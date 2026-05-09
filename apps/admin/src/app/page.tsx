@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@supabase/supabase-js'
 import { PRODUCTS } from '@kind/shared'
 import { Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react'

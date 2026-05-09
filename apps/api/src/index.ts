@@ -10,6 +10,7 @@ import { subscriptionRouter } from './routes/subscriptions'
 import { paystackRouter } from './routes/paystack'
 import { leadRouter } from './routes/leads'
 import { roadmapRouter } from './routes/roadmap'
+import { icpRouter } from './routes/icps'
 import { errorHandler } from './middleware/error'
 
 const app = express()
@@ -31,6 +32,7 @@ app.use('/subscriptions', subscriptionRouter)
 app.use('/webhooks/paystack', paystackRouter)
 app.use('/leads', leadRouter)
 app.use('/roadmap', roadmapRouter)
+app.use('/icps', icpRouter)
 
 app.use(errorHandler)
 

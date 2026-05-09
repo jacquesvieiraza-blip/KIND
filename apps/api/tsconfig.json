@@ -2,12 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../../",
     "paths": {
       "@kind/shared": ["../../packages/shared/src"],
       "@kind/db": ["../../packages/db/src"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../../packages/shared/src/**/*", "../../packages/db/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Zap, Users, Bot, MessageSquare, ArrowRight, CheckCircle2, MapPin, Shield, TrendingUp } from 'lucide-react'
+import { ArrowRight, Check, X, Zap } from 'lucide-react'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -9,208 +9,354 @@ export default async function Home() {
   if (user) redirect('/dashboard')
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      {/* Nav */}
-      <nav className="border-b border-gray-100 sticky top-0 bg-white/90 backdrop-blur-sm z-50">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-[#080808] text-white font-sans antialiased">
+
+      {/* ── Nav ─────────────────────────────────────────────────────────── */}
+      <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/5 bg-[#080808]/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Zap className="text-brand-500 w-5 h-5" />
-            <span className="font-bold text-lg text-brand-900 tracking-tight">K.I.N.D</span>
+            <Zap className="w-4 h-4 text-[#0066FF]" />
+            <span className="font-bold text-white tracking-tight">K.I.N.D</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-              Sign in
-            </Link>
-            <Link href="/login" className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-colors">
-              Get started free
-            </Link>
+          <div className="hidden md:flex items-center gap-8 text-sm text-white/50">
+            <a href="#services" className="hover:text-white transition-colors">Services</a>
+            <a href="#process" className="hover:text-white transition-colors">Process</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#contact" className="hover:text-white transition-colors">Contact</a>
           </div>
+          <Link href="/login" className="text-sm text-[#0066FF] hover:text-blue-400 transition-colors font-medium flex items-center gap-1">
+            Dashboard <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6 pt-20 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 bg-brand-50 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          <Zap className="w-3.5 h-3.5" />
-          Built for African businesses
-        </div>
-        <h1 className="text-5xl lg:text-6xl font-bold text-brand-900 leading-tight max-w-3xl mx-auto mb-6">
-          Turn African markets into{' '}
-          <span className="text-brand-500">your pipeline</span>
-        </h1>
-        <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-          K.I.N.D gives ambitious African businesses AI-powered lead generation, virtual assistants, and customer chatbots — in one platform, built for local compliance.
+      {/* ── Hero ────────────────────────────────────────────────────────── */}
+      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-14">
+        <p className="text-xs font-semibold tracking-[0.2em] text-[#0066FF] uppercase mb-8">
+          AI Consulting · South Africa
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <h1 className="text-[clamp(3.5rem,10vw,8rem)] font-black leading-[0.9] tracking-tight mb-8">
+          <span className="block" style={{ background: 'linear-gradient(180deg, #ffffff 40%, #555555 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Intelligence,
+          </span>
+          <span className="block" style={{ background: 'linear-gradient(180deg, #cccccc 0%, #333333 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Engineered.
+          </span>
+        </h1>
+        <p className="text-white/50 text-lg max-w-xl mx-auto leading-relaxed mb-10">
+          One platform. Every AI product your business needs. Log in once and access all your K.I.N.D modules — Lead Generation, Chatbot, Voice Agent, Virtual Assistant — in a single, unified workspace.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <Link
             href="/login"
-            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3.5 rounded-xl text-base transition-colors"
+            className="bg-[#0066FF] hover:bg-blue-500 text-white font-semibold px-7 py-3.5 rounded-full text-sm transition-colors"
           >
-            Start your 14-day free trial
-            <ArrowRight className="w-4 h-4" />
+            Book a Free Call
           </Link>
-          <p className="text-sm text-gray-400">No credit card required</p>
+          <a
+            href="#services"
+            className="border border-white/20 hover:border-white/40 text-white font-semibold px-7 py-3.5 rounded-full text-sm transition-colors"
+          >
+            View Services
+          </a>
         </div>
 
-        {/* Social proof strip */}
-        <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-gray-400">
+        {/* Stats strip */}
+        <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
           {[
-            { icon: <Shield className="w-4 h-4" />, label: 'POPIA compliant' },
-            { icon: <MapPin className="w-4 h-4" />, label: '10 African markets' },
-            { icon: <TrendingUp className="w-4 h-4" />, label: 'ZAR & USD billing' },
-          ].map(({ icon, label }) => (
-            <div key={label} className="flex items-center gap-1.5">
-              {icon}
-              <span>{label}</span>
+            { value: '5+', label: 'AI Products' },
+            { value: '24/7', label: 'Always-on AI' },
+            { value: '< 2wk', label: 'Time to pilot' },
+            { value: '100%', label: 'In-house stack' },
+          ].map(({ value, label }) => (
+            <div key={label}>
+              <p className="text-4xl font-bold text-white mb-1">{value}</p>
+              <p className="text-sm text-white/40">{label}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Products */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-brand-900 mb-3">Three AI products. One platform.</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">Everything you need to grow — from finding leads to closing deals to keeping customers happy.</p>
+      {/* ── Services ────────────────────────────────────────────────────── */}
+      <section id="services" className="py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.2em] text-[#0066FF] uppercase mb-3">Services</p>
+              <h2 className="text-5xl font-black leading-tight">
+                Five AI Products.<br />
+                <span className="text-white/50">One Platform.</span>
+              </h2>
+            </div>
+            <p className="text-white/40 max-w-sm text-sm leading-relaxed">
+              Every K.I.N.D product is built to integrate, scale, and compound — each one amplifying the others. Start with one, grow into all.
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <Users className="w-6 h-6" />,
-                title: 'AI Lead Generation',
-                description: 'Get 250–2,500 precision-targeted B2B leads every month. Our AI scores each lead against your Ideal Customer Profile and handles the full POPIA consent workflow automatically.',
-                features: ['ICP-matched scoring 0–100', 'POPIA consent automation', 'CSV export to any CRM'],
-                color: 'bg-blue-50 text-blue-600',
-                from: 'From $299/month',
-              },
-              {
-                icon: <Bot className="w-6 h-6" />,
-                title: 'Virtual Assistant',
-                description: 'Stop spending hours on admin. Your AI assistant handles scheduling, email drafting, research requests, and knowledge queries — so your team focuses on selling.',
-                features: ['Email drafting & scheduling', 'Research on demand', 'Knowledge base queries'],
-                color: 'bg-violet-50 text-violet-600',
-                from: 'From $199/month',
-              },
-              {
-                icon: <MessageSquare className="w-6 h-6" />,
-                title: 'AI Chatbot Agent',
-                description: 'Never miss an inbound lead. Deploy an AI chatbot on your website and WhatsApp that answers questions, qualifies prospects, and escalates to your team when needed.',
-                features: ['Web + WhatsApp channels', 'Automatic escalation', 'Custom personality & tone'],
-                color: 'bg-green-50 text-green-600',
-                from: 'From $199/month',
-              },
-            ].map((product) => (
-              <div key={product.title} className="bg-white rounded-2xl border border-gray-100 p-7 flex flex-col">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${product.color}`}>
-                  {product.icon}
+          <div className="space-y-4">
+
+            {/* 01 — Lead Generation */}
+            <div className="rounded-2xl bg-[#0d1117] border border-white/5 p-8 md:p-12 grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <p className="text-xs tracking-[0.15em] text-white/30 uppercase mb-6">01 — Lead Generation</p>
+                <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6">
+                  <svg className="w-5 h-5 text-[#0066FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{product.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-5 flex-1">{product.description}</p>
-                <ul className="space-y-2 mb-5">
-                  {product.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                      <CheckCircle2 className="w-4 h-4 text-brand-500 shrink-0" />
+                <h3 className="text-3xl font-bold mb-3">AI Lead<br />Generation</h3>
+                <p className="text-white/40 text-sm leading-relaxed mb-6">
+                  Precision-targeted B2B lead sourcing, AI scoring, and POPIA-compliant consent management — delivered CRM-ready with full funnel analytics.
+                </p>
+                <ul className="space-y-2 mb-8">
+                  {['AI Sourcing & Scoring', 'POPIA/GDPR Consent', 'Human Verification', 'CRM-Ready Delivery', 'Funnel Analytics', 'ICP Recalibration'].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-white/50">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />
                       {f}
                     </li>
                   ))}
                 </ul>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{product.from}</p>
+                <Link href="/login" className="text-[#0066FF] text-sm font-medium hover:text-blue-400 transition-colors flex items-center gap-1">
+                  Learn more <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* How it works */}
-      <section className="py-20 max-w-6xl mx-auto px-6">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl font-bold text-brand-900 mb-3">From setup to pipeline in days</h2>
-          <p className="text-gray-500">Most customers see their first qualified leads within a week.</p>
-        </div>
-
-        <div className="grid md:grid-cols-4 gap-6">
-          {[
-            { step: '01', title: 'Define your ICP', desc: 'Tell us your ideal industry, job titles, company size, and locations.' },
-            { step: '02', title: 'AI sources leads', desc: 'Our engine finds and scores matching contacts across African markets.' },
-            { step: '03', title: 'POPIA consent runs', desc: 'Consent requests go out automatically. We track every event for compliance.' },
-            { step: '04', title: 'Export to your CRM', desc: 'Download consented leads as CSV or sync directly to your sales stack.' },
-          ].map(({ step, title, desc }) => (
-            <div key={step} className="text-center">
-              <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-500 font-bold text-lg flex items-center justify-center mx-auto mb-4">
-                {step}
+              {/* Mock widget */}
+              <div className="bg-[#0a0f15] rounded-2xl border border-white/5 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-xs tracking-widest text-white/30 uppercase">Lead Pipeline</p>
+                  <span className="flex items-center gap-1.5 text-xs text-green-400"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />LIVE</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  {[{ v: '390', l: 'Leads', c: 'text-white' }, { v: '81.9%', l: 'Qual Rate', c: 'text-green-400' }, { v: '20.0%', l: 'Conv Rate', c: 'text-[#0066FF]' }].map(({ v, l, c }) => (
+                    <div key={l} className="bg-[#111827] rounded-xl p-3">
+                      <p className={`text-xl font-bold ${c}`}>{v}</p>
+                      <p className="text-xs text-white/30 mt-0.5">{l}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs tracking-widest text-white/20 uppercase mb-3">Funnel</p>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Generated', count: 390, pct: 100, color: 'bg-purple-500' },
+                    { label: 'Consent Sent', count: 281, pct: 72, color: 'bg-blue-400' },
+                    { label: 'Opted In', count: 187, pct: 48, color: 'bg-green-400' },
+                    { label: 'Won', count: 51, pct: 13, color: 'bg-blue-500' },
+                  ].map(({ label, count, pct, color }) => (
+                    <div key={label} className="flex items-center gap-3">
+                      <p className="text-xs text-white/40 w-24 shrink-0">{label}</p>
+                      <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-xs text-white/40 w-8 text-right">{count}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
             </div>
-          ))}
+
+            {/* 02 + 03 — VA and Chatbot */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* VA */}
+              <div className="rounded-2xl bg-[#0d1117] border border-white/5 p-8">
+                <p className="text-xs tracking-[0.15em] text-white/30 uppercase mb-6">02 — Virtual Assistant</p>
+                <div className="w-11 h-11 rounded-xl bg-green-500/10 flex items-center justify-center mb-6">
+                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                </div>
+                <h3 className="text-3xl font-bold mb-3">Virtual<br />Assistant</h3>
+                <p className="text-white/40 text-sm leading-relaxed mb-6">
+                  A trained AI assistant that handles scheduling, research, email drafting, and internal knowledge queries — freeing your team for high-value work.
+                </p>
+                <ul className="space-y-2">
+                  {['Email Drafting & Scheduling', 'Research on Demand', 'Knowledge Base Queries', 'Calendar Management'].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-white/50">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />{f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Chatbot */}
+              <div className="rounded-2xl bg-[#0d1117] border border-white/5 p-8">
+                <p className="text-xs tracking-[0.15em] text-white/30 uppercase mb-6">03 — Chatbot Agents</p>
+                <div className="w-11 h-11 rounded-xl bg-orange-500/10 flex items-center justify-center mb-6">
+                  <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                </div>
+                <h3 className="text-3xl font-bold mb-3">AI Chatbot<br />Agents</h3>
+                <p className="text-white/40 text-sm leading-relaxed mb-6">
+                  Intelligent conversational agents embedded in your website — qualifying buyers, booking appointments, and closing deals without human intervention.
+                </p>
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  {[{ v: '3.4×', l: 'Avg. lead conversion lift' }, { v: '87%', l: 'Resolved without human' }, { v: '< 1s', l: 'Avg. response time' }, { v: '24/7', l: 'Always-on availability' }].map(({ v, l }) => (
+                    <div key={l} className="bg-orange-500/10 rounded-xl p-3">
+                      <p className="text-orange-400 font-bold text-lg">{v}</p>
+                      <p className="text-white/40 text-xs mt-0.5 leading-snug">{l}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 04 + 05 — Voice Agent and Consulting */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Voice Agent */}
+              <div className="rounded-2xl bg-[#0d1117] border border-white/5 p-8">
+                <p className="text-xs tracking-[0.15em] text-white/30 uppercase mb-6">04 — Voice Agent</p>
+                <div className="w-11 h-11 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                </div>
+                <h3 className="text-3xl font-bold mb-3">Voice Agent</h3>
+                <p className="text-white/40 text-sm leading-relaxed mb-6">
+                  Human-sounding voice AI that handles inbound calls, books appointments, and manages customer queries — at any scale, without hold times.
+                </p>
+                <ul className="space-y-2 mb-8">
+                  {['Natural Voice Conversations', 'Inbound Support', 'Outbound Sales Calling', 'Appointment Booking'].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-white/50">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />{f}
+                    </li>
+                  ))}
+                </ul>
+                <span className="text-xs text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-full font-medium">Coming soon</span>
+              </div>
+
+              {/* Consulting */}
+              <div className="rounded-2xl bg-[#0d1117] border border-white/5 p-8">
+                <p className="text-xs tracking-[0.15em] text-white/30 uppercase mb-6">05 — Monthly Retainer</p>
+                <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <h3 className="text-3xl font-bold mb-3">Monthly Consulting<br />Retainer</h3>
+                <p className="text-white/40 text-sm leading-relaxed mb-6">
+                  Ongoing senior-level AI strategy and implementation support. Your dedicated K.I.N.D consultant keeps your systems sharp, your roadmap current, and your team ahead of the curve.
+                </p>
+                <ul className="space-y-2 mb-6">
+                  {['Dedicated Senior Consultant', 'Monthly Strategy Session', 'Continuous Optimisation', 'Direct Access', 'Quarterly AI Briefing'].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-white/50">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />{f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="space-y-2">
+                  {[{ tier: 'Foundation', hours: '4 hrs / month', popular: false }, { tier: 'Growth', hours: '8 hrs / month', popular: true }, { tier: 'Partner', hours: '16 hrs / month', popular: false }].map(({ tier, hours, popular }) => (
+                    <div key={tier} className={`flex items-center justify-between px-4 py-3 rounded-xl border ${popular ? 'bg-white/5 border-white/10' : 'border-white/5'}`}>
+                      <div>
+                        <p className="text-sm font-medium text-white">{tier}</p>
+                        <p className="text-xs text-white/30">{hours}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {popular && <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium">Most Chosen</span>}
+                        <Link href="/login" className="text-xs border border-white/20 hover:border-white/40 text-white/60 hover:text-white px-3 py-1.5 rounded-lg transition-colors">
+                          Enquire
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-brand-900 mb-3">Simple, transparent pricing</h2>
-            <p className="text-gray-500">Billed in ZAR or USD. No hidden fees.</p>
+      {/* ── Pricing ─────────────────────────────────────────────────────── */}
+      <section id="pricing" className="py-24 px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16">
+            <p className="text-xs font-semibold tracking-[0.2em] text-[#0066FF] uppercase mb-3">Plans & Pricing</p>
+            <h2 className="text-4xl font-black">Lead Generation Plans</h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-4 max-w-5xl">
             {[
               {
                 tier: 'Starter',
-                price: '$299',
-                period: '/month',
-                description: 'For businesses just getting started with AI-powered lead generation.',
-                features: ['250 leads/month', 'AI scoring & POPIA consent', 'CSV export', '14-day free trial'],
-                cta: 'Start free trial',
-                highlight: false,
+                price: 'R5,550',
+                usd: '~$299/month',
+                leads: '250 leads / month',
+                popular: false,
+                min: '3-month minimum',
+                cta: 'Get Started',
+                features: [
+                  { text: '1 buyer profile', included: true },
+                  { text: '1 geographic region', included: true },
+                  { text: 'AI sourcing & scoring', included: true },
+                  { text: 'Human verification', included: true },
+                  { text: 'CRM-ready delivery', included: true },
+                  { text: 'Intelligence brief per lead', included: true },
+                  { text: 'Monthly pipeline report', included: true },
+                  { text: 'ICP recalibration', included: false },
+                  { text: 'Account manager', included: false },
+                ],
               },
               {
-                tier: 'Pro',
-                price: '$599',
-                period: '/month',
-                description: 'For growing teams that need higher volume and smarter automation.',
-                features: ['750 leads/month', 'Everything in Starter', 'Advanced ICP filters', 'Virtual Assistant add-on'],
-                cta: 'Start free trial',
-                highlight: true,
+                tier: 'Advanced',
+                price: 'R11,100',
+                usd: '~$599/month',
+                leads: '750 leads / month',
+                popular: true,
+                min: '3-month minimum',
+                cta: 'Get Started',
+                features: [
+                  { text: '3 buyer profiles', included: true },
+                  { text: 'Up to 3 regions', included: true },
+                  { text: 'AI sourcing & scoring', included: true },
+                  { text: 'Human verification', included: true },
+                  { text: 'CRM-ready delivery', included: true },
+                  { text: 'Intelligence brief per lead', included: true },
+                  { text: 'Monthly pipeline report', included: true },
+                  { text: 'Monthly ICP recalibration', included: true },
+                  { text: 'Dedicated account manager', included: true },
+                ],
               },
               {
                 tier: 'Enterprise',
-                price: '$1,200',
-                period: '/month',
-                description: 'For scale-ups that need the full suite with dedicated support.',
-                features: ['2,500 leads/month', 'All products included', 'Dedicated account manager', 'Custom integrations'],
-                cta: 'Talk to sales',
-                highlight: false,
+                price: 'R22,200',
+                usd: '~$1,200/month',
+                leads: '2,500 leads / month',
+                popular: false,
+                min: '6-month minimum',
+                cta: 'Get Started',
+                features: [
+                  { text: 'Unlimited buyer profiles', included: true },
+                  { text: 'Unlimited regions', included: true },
+                  { text: 'AI sourcing & scoring', included: true },
+                  { text: 'Human verification', included: true },
+                  { text: 'CRM-ready delivery', included: true },
+                  { text: 'Intelligence brief per lead', included: true },
+                  { text: 'Monthly pipeline report', included: true },
+                  { text: 'Monthly ICP recalibration', included: true },
+                  { text: 'Dedicated account manager', included: true },
+                ],
               },
             ].map((plan) => (
               <div
                 key={plan.tier}
-                className={`rounded-2xl p-7 flex flex-col ${plan.highlight ? 'bg-brand-900 text-white ring-2 ring-brand-500' : 'bg-white border border-gray-100'}`}
+                className={`rounded-2xl p-7 flex flex-col border ${plan.popular ? 'bg-[#0d1a2d] border-[#0066FF]/40' : 'bg-[#0d1117] border-white/5'}`}
               >
-                <p className={`text-sm font-semibold mb-1 ${plan.highlight ? 'text-brand-300' : 'text-brand-500'}`}>{plan.tier}</p>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className={`text-4xl font-bold ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>{plan.price}</span>
-                  <span className={`text-sm ${plan.highlight ? 'text-brand-300' : 'text-gray-400'}`}>{plan.period}</span>
+                {plan.popular && (
+                  <div className="mb-4">
+                    <span className="text-xs font-semibold bg-[#0066FF] text-white px-3 py-1 rounded-full">Most Popular</span>
+                  </div>
+                )}
+                <h3 className="text-xl font-bold text-white mb-1">{plan.tier}</h3>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-3xl font-black text-[#0066FF]">{plan.price}</span>
+                  <span className="text-white/30 text-sm">/mo</span>
                 </div>
-                <p className={`text-sm mb-6 leading-relaxed ${plan.highlight ? 'text-brand-200' : 'text-gray-500'}`}>{plan.description}</p>
-                <ul className="space-y-2.5 mb-8 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${plan.highlight ? 'text-brand-400' : 'text-brand-500'}`} />
-                      <span className={plan.highlight ? 'text-brand-100' : 'text-gray-600'}>{f}</span>
+                <p className="text-white/30 text-xs mb-1">{plan.usd}</p>
+                <p className="text-white/50 text-sm font-medium mb-6">{plan.leads}</p>
+                <ul className="space-y-2.5 flex-1 mb-6">
+                  {plan.features.map(({ text, included }) => (
+                    <li key={text} className={`flex items-center gap-2 text-sm ${included ? 'text-white/60' : 'text-white/20'}`}>
+                      {included
+                        ? <Check className="w-3.5 h-3.5 text-[#0066FF] shrink-0" />
+                        : <X className="w-3.5 h-3.5 shrink-0" />}
+                      {text}
                     </li>
                   ))}
                 </ul>
+                <p className="text-xs text-white/20 mb-4">{plan.min}</p>
                 <Link
                   href="/login"
-                  className={`text-center text-sm font-semibold py-3 rounded-xl transition-colors ${
-                    plan.highlight
-                      ? 'bg-brand-500 hover:bg-brand-600 text-white'
-                      : 'bg-brand-50 hover:bg-brand-100 text-brand-600'
-                  }`}
+                  className={`text-center text-sm font-semibold py-3.5 rounded-xl transition-colors ${plan.popular ? 'bg-[#0066FF] hover:bg-blue-500 text-white' : 'bg-white/5 hover:bg-white/10 text-white'}`}
                 >
                   {plan.cta}
                 </Link>
@@ -220,37 +366,62 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* CTA Banner */}
-      <section className="py-20 max-w-6xl mx-auto px-6 text-center">
-        <div className="bg-brand-900 rounded-3xl px-8 py-16">
-          <h2 className="text-3xl font-bold text-white mb-4">Ready to build your African pipeline?</h2>
-          <p className="text-brand-200 mb-8 max-w-lg mx-auto">
-            Join businesses across South Africa, Nigeria, Kenya, and beyond using K.I.N.D to grow faster with AI.
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 bg-white text-brand-900 font-semibold px-7 py-3.5 rounded-xl hover:bg-brand-50 transition-colors text-base"
-          >
-            Start your free trial
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <p className="text-brand-400 text-sm mt-4">14 days free · No credit card required</p>
+      {/* ── Process ─────────────────────────────────────────────────────── */}
+      <section id="process" className="py-24 px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16">
+            <p className="text-xs font-semibold tracking-[0.2em] text-[#0066FF] uppercase mb-3">Process</p>
+            <h2 className="text-4xl font-black">From setup to pipeline<br /><span className="text-white/40">in under two weeks.</span></h2>
+          </div>
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { n: '01', title: 'ICP Definition', desc: 'We work with you to define your ideal customer profile — industries, titles, company sizes, and locations.' },
+              { n: '02', title: 'AI Sourcing', desc: 'Our engine sources and scores matching contacts across African markets in real time.' },
+              { n: '03', title: 'POPIA Consent', desc: 'Consent requests go out automatically. Every event is tracked and logged for full compliance.' },
+              { n: '04', title: 'CRM Delivery', desc: 'Verified, consented leads arrive in your inbox or CRM — ready to work.' },
+            ].map(({ n, title, desc }) => (
+              <div key={n} className="border border-white/5 rounded-2xl p-6">
+                <p className="text-4xl font-black text-white/10 mb-4">{n}</p>
+                <h3 className="text-base font-bold text-white mb-2">{title}</h3>
+                <p className="text-sm text-white/40 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-100 py-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* ── CTA ─────────────────────────────────────────────────────────── */}
+      <section id="contact" className="py-24 px-6 border-t border-white/5">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-xs font-semibold tracking-[0.2em] text-[#0066FF] uppercase mb-6">Get Started</p>
+          <h2 className="text-5xl font-black mb-6">
+            Ready to build your<br />
+            <span className="text-white/40">African pipeline?</span>
+          </h2>
+          <p className="text-white/40 mb-10 text-lg">
+            Join businesses across South Africa, Nigeria, Kenya, and beyond using K.I.N.D to grow faster with AI.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/login"
+              className="bg-[#0066FF] hover:bg-blue-500 text-white font-semibold px-8 py-4 rounded-full text-sm transition-colors"
+            >
+              Start your free trial
+            </Link>
+            <p className="text-white/30 text-sm">14 days free · No credit card required</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/5 py-8 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Zap className="text-brand-500 w-4 h-4" />
-            <span className="font-bold text-brand-900 text-sm">K.I.N.D</span>
-            <span className="text-gray-400 text-xs ml-2">AI Intelligence Platform</span>
+            <Zap className="w-4 h-4 text-[#0066FF]" />
+            <span className="font-bold text-white text-sm tracking-tight">K.I.N.D</span>
+            <span className="text-white/20 text-xs ml-1">AI Intelligence Platform</span>
           </div>
-          <div className="flex items-center gap-6 text-sm text-gray-400">
-            <Link href="/login" className="hover:text-gray-600 transition-colors">Sign in</Link>
-            <Link href="/login" className="hover:text-gray-600 transition-colors">Get started</Link>
-            <span>© {new Date().getFullYear()} K.I.N.D</span>
-          </div>
+          <p className="text-white/20 text-xs">© {new Date().getFullYear()} K.I.N.D. All rights reserved.</p>
         </div>
       </footer>
     </div>

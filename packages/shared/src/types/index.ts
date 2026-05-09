@@ -1,3 +1,5 @@
+// ─── User & Auth ────────────────────────────────────────────────────────────
+
 export type UserRole = 'client' | 'admin'
 
 export interface User {
@@ -8,8 +10,12 @@ export interface User {
   created_at: string
 }
 
+// ─── Subscription & Billing ──────────────────────────────────────────────────
+
 export type SubscriptionStatus = 'active' | 'inactive' | 'trialing' | 'past_due' | 'cancelled'
+
 export type ProductTier = 'starter' | 'pro' | 'enterprise'
+
 export type ProductType = 'lead_gen' | 'virtual_assistant' | 'chatbot' | 'consulting'
 
 export interface Subscription {
@@ -29,6 +35,8 @@ export interface Subscription {
   updated_at: string
 }
 
+// ─── Client ──────────────────────────────────────────────────────────────────
+
 export interface Client {
   id: string
   user_id: string
@@ -41,7 +49,21 @@ export interface Client {
   created_at: string
 }
 
+// ─── Lead Gen ────────────────────────────────────────────────────────────────
+
 export type LeadStatus = 'pending' | 'scored' | 'consent_sent' | 'consent_given' | 'exported' | 'rejected'
+
+export interface ICP {
+  id: string
+  client_id: string
+  industries: string[]
+  job_titles: string[]
+  company_sizes: string[]
+  locations: string[]
+  keywords: string[]
+  created_at: string
+  updated_at: string
+}
 
 export interface Lead {
   id: string
@@ -65,6 +87,88 @@ export interface Lead {
   created_at: string
 }
 
-export interface ApiSuccess<T> { success: true; data: T }
-export interface ApiError { success: false; error: string; code?: string }
+// ─── Virtual Assistant ────────────────────────────────────────────────────────
+
+export interface VAConversation {
+  id: string
+  client_id: string
+  channel: 'whatsapp' | 'email' | 'web'
+  messages: VAMessage[]
+  created_at: string
+}
+
+export interface VAMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+}
+
+// ─── Chatbot ─────────────────────────────────────────────────────────────────
+
+export interface ChatbotConfig {
+  id: string
+  client_id: string
+  name: string
+  system_prompt: string
+  whatsapp_enabled: boolean
+  web_enabled: boolean
+  escalation_email: string | null
+  created_at: string
+}
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export interface UsageMetrics {
+  client_id: string
+  period_start: string
+  period_end: string
+  leads_sourced: number
+  leads_scored: number
+  leads_exported: number
+  va_messages: number
+  chatbot_conversations: number
+  voice_minutes: number
+}
+
+// ─── Paystack ────────────────────────────────────────────────────────────────
+
+export interface PaystackWebhookEvent {
+  event: string
+  data: Record<string, unknown>
+}
+
+export interface PaystackCustomer {
+  id: number
+  customer_code: string
+  email: string
+  first_name: string
+  last_name: string
+}
+
+export interface PaystackSubscription {
+  subscription_code: string
+  status: string
+  amount: number
+  plan: {
+    plan_code: string
+    name: string
+    interval: string
+  }
+  customer: PaystackCustomer
+  next_payment_date: string
+}
+
+// ─── API Responses ───────────────────────────────────────────────────────────
+
+export interface ApiSuccess<T> {
+  success: true
+  data: T
+}
+
+export interface ApiError {
+  success: false
+  error: string
+  code?: string
+}
+
 export type ApiResponse<T> = ApiSuccess<T> | ApiError

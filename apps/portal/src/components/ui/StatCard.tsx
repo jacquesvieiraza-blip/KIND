@@ -18,8 +18,12 @@ interface StatCardProps {
 export function StatCard({ label, value, suffix, icon, color }: StatCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5">
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${COLOR_MAP[color]}`}>{icon}</div>
-      <p className="text-2xl font-bold text-gray-900">{value.toLocaleString()}{suffix}</p>
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${COLOR_MAP[color]}`}>
+        {icon}
+      </div>
+      <p className="text-2xl font-bold text-gray-900">
+        {value.toLocaleString()}{suffix}
+      </p>
       <p className="text-sm text-gray-500 mt-0.5">{label}</p>
     </div>
   )

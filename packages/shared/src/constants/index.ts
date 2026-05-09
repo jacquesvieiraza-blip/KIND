@@ -34,8 +34,16 @@ export const PRODUCTS = {
 } as const
 
 export const SUPPORTED_COUNTRIES = [
-  'South Africa', 'Nigeria', 'Kenya', 'Ghana', 'Egypt',
-  'Rwanda', 'Tanzania', 'Uganda', 'Senegal', "Cote d'Ivoire",
+  'South Africa',
+  'Nigeria',
+  'Kenya',
+  'Ghana',
+  'Egypt',
+  'Rwanda',
+  'Tanzania',
+  'Uganda',
+  'Senegal',
+  'Côte d\'Ivoire',
 ] as const
 
 export const TRIAL_DAYS = 14

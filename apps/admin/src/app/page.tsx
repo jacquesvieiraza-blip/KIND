@@ -6,11 +6,14 @@ import { Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react'
 
 // Admin page — uses service role server-side only
 async function getAdminStats() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+
+  if (supabaseUrl.includes('placeholder') || serviceKey === 'placeholder-key') {
+    return { totalClients: 0, activeSubscriptions: 0, trialClients: 0, pastDue: 0, totalLeads: 0, mrrZar: 0, mrrUsd: 0, recentSubs: [] }
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
 
   const [
     { count: totalClients },

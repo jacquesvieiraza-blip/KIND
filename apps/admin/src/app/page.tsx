@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import { PRODUCTS } from '@kind/shared'
 import { Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react'
 
 const EMPTY_STATS = { totalClients: 0, activeSubscriptions: 0, trialClients: 0, pastDue: 0, totalLeads: 0, mrrZar: 0, mrrUsd: 0, recentSubs: [] }
@@ -97,18 +96,23 @@ export default async function AdminPage() {
           <p className="text-sm text-gray-400 mt-1">Total leads sourced across all clients</p>
         </div>
 
-        {/* Product breakdown */}
+        {/* Products */}
         <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h2 className="font-semibold mb-4">Product Catalog</h2>
+          <h2 className="font-semibold mb-4">Products</h2>
           <div className="grid grid-cols-2 gap-3">
-            {Object.entries(PRODUCTS).map(([key, product]) => (
-              <div key={key} className="border border-gray-100 rounded-lg p-4">
+            {[
+              { name: 'Lead Generation', tiers: [{ tier: 'Starter', price: 99 }, { tier: 'Pro', price: 249 }, { tier: 'Enterprise', price: 599 }] },
+              { name: 'Virtual Assistant', tiers: [{ tier: 'Starter', price: 149 }, { tier: 'Pro', price: 349 }, { tier: 'Enterprise', price: 799 }] },
+              { name: 'Chatbot Agent', tiers: [{ tier: 'Starter', price: 99 }, { tier: 'Pro', price: 249 }, { tier: 'Enterprise', price: 499 }] },
+              { name: 'Consulting', tiers: [{ tier: 'Pro', price: 499 }, { tier: 'Enterprise', price: 999 }] },
+            ].map((product) => (
+              <div key={product.name} className="border border-gray-100 rounded-lg p-4">
                 <p className="font-medium text-sm">{product.name}</p>
                 <div className="mt-2 space-y-1">
-                  {Object.entries(product.tiers).map(([tier, config]) => (
+                  {product.tiers.map(({ tier, price }) => (
                     <div key={tier} className="flex justify-between text-xs text-gray-500">
-                      <span className="capitalize">{tier}</span>
-                      <span>${(config as { price_usd: number }).price_usd}/mo</span>
+                      <span>{tier}</span>
+                      <span>${price}/mo</span>
                     </div>
                   ))}
                 </div>

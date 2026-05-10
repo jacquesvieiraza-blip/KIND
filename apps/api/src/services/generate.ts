@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { db } from '@kind/db'
 import { searchApollo } from './apollo'
+import { generateMockLeads } from './mock-leads'
 import { scoreLead, scoreLeadsInBatches } from './scoring'
 import { sendConsentEmail } from './consent-email'
 
@@ -39,17 +40,32 @@ export async function runLeadGeneration(
     const clientName = client?.company_name ?? 'Our Client'
     const perPage = tierLimit(sub?.tier ?? null)
 
-    // ── 1. Apollo search ──────────────────────────────────────────────────────
-    const contacts = await searchApollo(
-      {
-        job_titles: icp.job_titles,
-        industries: icp.industries,
-        locations: icp.locations,
-        company_sizes: icp.company_sizes,
-        keywords: icp.keywords,
-      },
-      perPage
-    )
+    // ── 1. Source leads (Apollo if key set, otherwise mock) ───────────────────
+    let contacts
+    try {
+      contacts = await searchApollo(
+        {
+          job_titles: icp.job_titles,
+          industries: icp.industries,
+          locations: icp.locations,
+          company_sizes: icp.company_sizes,
+          keywords: icp.keywords,
+        },
+        perPage
+      )
+    } catch {
+      console.log('Apollo unavailable — using mock lead data')
+      contacts = generateMockLeads(
+        {
+          job_titles: icp.job_titles,
+          industries: icp.industries,
+          locations: icp.locations,
+          company_sizes: icp.company_sizes,
+          keywords: icp.keywords,
+        },
+        perPage
+      )
+    }
 
     const withEmail = contacts.filter((c) => c.email)
     await db.from('lead_generation_jobs').update({ total_found: withEmail.length }).eq('id', jobId)

@@ -21,7 +21,18 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 app.use(helmet())
-app.use(cors({ origin: process.env.PORTAL_URL || 'http://localhost:3000', credentials: true }))
+const allowedOrigins = (process.env.PORTAL_URL || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow server-to-server (no origin) and all configured origins
+    if (!origin || allowedOrigins.some((o) => origin.startsWith(o))) return cb(null, true)
+    cb(new Error('CORS: origin not allowed'))
+  },
+  credentials: true,
+}))
 app.use(morgan('dev'))
 
 // Raw body needed for Paystack webhook signature verification

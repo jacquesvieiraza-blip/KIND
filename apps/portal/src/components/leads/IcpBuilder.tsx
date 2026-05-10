@@ -172,9 +172,11 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
   const [icps, setIcps] = useState<ICP[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [generating, setGenerating] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState('')
   const [jobs, setJobs] = useState<Record<string, GenerationJob>>({})
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -209,10 +211,13 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
 
   async function handleSubmitForReview(icpId: string) {
     setSubmitting(icpId)
+    setSubmitError('')
     try {
       await api.post(`/icps/${icpId}/submit`, {}, token)
       setIcps((prev) => prev.map((i) => i.id === icpId ? { ...i, status: 'pending_review' } : i))
-    } catch { /* ignore */ }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to submit for review')
+    }
     setSubmitting(null)
   }
 
@@ -265,6 +270,7 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
   async function handleSave() {
     if (!form.industries.length || !form.job_titles.length) return
     setSaving(true)
+    setSaveError('')
     try {
       if (editingId) {
         await api.patch(`/icps/${editingId}`, form, token)
@@ -275,7 +281,9 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
       setEditingId(null)
       setForm(EMPTY_FORM)
       fetchIcps()
-    } catch { /* ignore */ }
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save ICP. Please try again.')
+    }
     setSaving(false)
   }
 
@@ -428,6 +436,13 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
         </div>
       )}
 
+      {/* Submit error */}
+      {submitError && (
+        <div className="mx-5 mb-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
+          {submitError}
+        </div>
+      )}
+
       {/* Last job history hint */}
       {!loading && icps.length > 0 && Object.keys(jobs).length === 0 && (
         <div className="px-5 pb-3">
@@ -455,6 +470,10 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
           </div>
 
           <CompanySizeSelector selected={form.company_sizes} onChange={(v) => setForm({ ...form, company_sizes: v })} />
+
+          {saveError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">{saveError}</p>
+          )}
 
           <div className="flex items-center gap-3 pt-1">
             <button

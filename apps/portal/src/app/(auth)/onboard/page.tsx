@@ -93,7 +93,7 @@ export default function OnboardPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
                 <input
-                  type="url"
+                  type="text"
                   value={form.website}
                   onChange={(e) => setForm({ ...form, website: e.target.value })}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"

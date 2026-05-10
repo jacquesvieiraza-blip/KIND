@@ -2,9 +2,9 @@ export const PRODUCTS = {
   lead_gen: {
     name: 'AI Lead Generation',
     tiers: {
-      starter: { price_usd: 27, leads_per_month: 250 },
-      pro: { price_usd: 108, leads_per_month: 750 },
-      enterprise: { price_usd: 200, leads_per_month: 2500 },
+      starter: { price_usd: 27, leads_per_month: 20 },
+      pro: { price_usd: 108, leads_per_month: 40 },
+      enterprise: { price_usd: 200, leads_per_month: 100 },
     },
   },
   virtual_assistant: {

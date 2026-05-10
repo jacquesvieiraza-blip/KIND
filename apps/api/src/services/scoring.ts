@@ -47,7 +47,8 @@ Reply with valid JSON only, no markdown:
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
+  const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
+  const text = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
   const parsed = JSON.parse(text)
 
   return {

@@ -8,7 +8,7 @@ const onboardSchema = z.object({
   company_name: z.string().min(2),
   industry: z.string().optional(),
   country: z.string().min(2),
-  website: z.string().url().optional(),
+  website: z.string().optional(),
   phone: z.string().optional(),
 })
 

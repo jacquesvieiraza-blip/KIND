@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { runLeadGeneration } from '../services/generate'
 
 export const icpRouter = Router()
 
@@ -104,5 +105,70 @@ icpRouter.delete('/:id', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ success: false, error: 'Failed to delete ICP' })
+  }
+})
+
+// POST /icps/:id/generate — start async lead generation job
+icpRouter.post('/:id/generate', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: icp } = await db
+      .from('icps')
+      .select('id')
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .single()
+    if (!icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+
+    // Prevent duplicate running jobs
+    const { data: running } = await db
+      .from('lead_generation_jobs')
+      .select('id')
+      .eq('icp_id', req.params.id)
+      .eq('status', 'running')
+      .maybeSingle()
+    if (running) {
+      res.status(409).json({ success: false, error: 'A generation job is already running for this ICP' })
+      return
+    }
+
+    const { data: job, error: jobErr } = await db
+      .from('lead_generation_jobs')
+      .insert({ client_id: clientId, icp_id: req.params.id, status: 'running' })
+      .select()
+      .single()
+    if (jobErr || !job) throw jobErr ?? new Error('Failed to create job')
+
+    // Fire and forget — runs in background
+    setImmediate(() => runLeadGeneration(job.id, clientId, req.params.id))
+
+    res.status(202).json({ success: true, data: { job_id: job.id } })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to start generation' })
+  }
+})
+
+// GET /icps/:id/jobs — recent generation jobs for an ICP
+icpRouter.get('/:id/jobs', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data, error } = await db
+      .from('lead_generation_jobs')
+      .select('*')
+      .eq('icp_id', req.params.id)
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+
+    if (error) throw error
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to fetch jobs' })
   }
 })

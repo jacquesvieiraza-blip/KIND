@@ -3,6 +3,38 @@
 -- Run this in the Supabase SQL editor (Dashboard > SQL Editor)
 -- ============================================================
 
+-- ─── Week 2 Additions ────────────────────────────────────────────────────────
+-- Run these ALTER statements in Supabase SQL Editor if upgrading an existing DB
+
+-- Lead generation jobs table
+create table if not exists public.lead_generation_jobs (
+  id                  uuid primary key default gen_random_uuid(),
+  client_id           uuid not null references public.clients(id) on delete cascade,
+  icp_id              uuid not null references public.icps(id) on delete cascade,
+  status              text not null default 'running' check (status in ('running', 'completed', 'failed')),
+  total_found         integer not null default 0,
+  total_scored        integer not null default 0,
+  total_consent_sent  integer not null default 0,
+  error_message       text,
+  created_at          timestamptz not null default now(),
+  completed_at        timestamptz
+);
+
+alter table public.lead_generation_jobs enable row level security;
+create policy "clients_own_jobs" on public.lead_generation_jobs
+  for all using (
+    client_id in (select id from public.clients where user_id = auth.uid())
+  );
+
+-- Add consent_token and source_job_id to leads (safe if columns already exist)
+alter table public.leads
+  add column if not exists consent_token text unique,
+  add column if not exists source_job_id uuid references public.lead_generation_jobs(id);
+
+create index if not exists idx_leads_consent_token on public.leads(consent_token);
+create index if not exists idx_jobs_icp_id on public.lead_generation_jobs(icp_id);
+create index if not exists idx_jobs_client_id on public.lead_generation_jobs(client_id);
+
 -- ─── Waitlist ────────────────────────────────────────────────────────────────
 create table if not exists public.waitlist (
   id          uuid primary key default gen_random_uuid(),

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, MutableRefObject } from 'react'
 import { api } from '@/lib/api'
 import {
   Users,
@@ -124,7 +124,13 @@ function StatCard({ label, value, icon, color }: StatCardProps) {
   )
 }
 
-export function LeadsContent({ token }: { token: string }) {
+export function LeadsContent({
+  token,
+  refreshRef,
+}: {
+  token: string
+  refreshRef?: MutableRefObject<(() => void) | null>
+}) {
   const [stats, setStats] = useState<LeadStats | null>(null)
   const [leads, setLeads] = useState<Lead[]>([])
   const [total, setTotal] = useState(0)
@@ -163,6 +169,19 @@ export function LeadsContent({ token }: { token: string }) {
     fetchStats()
     fetchLeads(1, '', '')
   }, [fetchStats, fetchLeads])
+
+  // Expose a refresh function to the parent wrapper
+  useEffect(() => {
+    if (refreshRef) {
+      refreshRef.current = () => {
+        setPage(1)
+        setStatusFilter('')
+        setMinScore('')
+        fetchStats()
+        fetchLeads(1, '', '')
+      }
+    }
+  }, [refreshRef, fetchStats, fetchLeads])
 
   function applyFilters() {
     setPage(1)

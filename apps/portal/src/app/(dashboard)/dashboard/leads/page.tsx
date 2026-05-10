@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { LeadsContent } from '@/components/leads/LeadsContent'
-import { IcpBuilder } from '@/components/leads/IcpBuilder'
+import { LeadsClientWrapper } from '@/components/leads/LeadsClientWrapper'
 
 export default async function LeadsPage() {
   const supabase = await createClient()
@@ -17,8 +16,7 @@ export default async function LeadsPage() {
           Precision-targeted B2B leads, AI-scored and POPIA-compliant.
         </p>
       </div>
-      <IcpBuilder token={session.access_token} />
-      <LeadsContent token={session.access_token} />
+      <LeadsClientWrapper token={session.access_token} />
     </div>
   )
 }

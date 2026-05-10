@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect, KeyboardEvent } from 'react'
+import { useState, useEffect, useRef, KeyboardEvent } from 'react'
 import { api } from '@/lib/api'
-import { Target, Plus, X, ChevronDown, ChevronUp, Loader2, Check, Pencil, Trash2 } from 'lucide-react'
+import {
+  Target, Plus, X, ChevronDown, ChevronUp, Loader2, Check,
+  Pencil, Trash2, Zap, CheckCircle2, AlertCircle, Clock,
+} from 'lucide-react'
 
 interface ICP {
   id: string
@@ -12,6 +15,18 @@ interface ICP {
   locations: string[]
   keywords: string[]
   created_at: string
+}
+
+interface GenerationJob {
+  id: string
+  icp_id: string
+  status: 'running' | 'completed' | 'failed'
+  total_found: number
+  total_scored: number
+  total_consent_sent: number
+  error_message: string | null
+  created_at: string
+  completed_at: string | null
 }
 
 const COMPANY_SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '500+']
@@ -67,17 +82,10 @@ function TagInput({
   )
 }
 
-function CompanySizeSelector({
-  selected,
-  onChange,
-}: {
-  selected: string[]
-  onChange: (sizes: string[]) => void
-}) {
+function CompanySizeSelector({ selected, onChange }: { selected: string[]; onChange: (s: string[]) => void }) {
   function toggle(size: string) {
     onChange(selected.includes(size) ? selected.filter((s) => s !== size) : [...selected, size])
   }
-
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1.5">Company Size</label>
@@ -104,6 +112,50 @@ function CompanySizeSelector({
   )
 }
 
+function JobStatusBanner({ job, onDone }: { job: GenerationJob; onDone: () => void }) {
+  useEffect(() => {
+    if (job.status !== 'running') onDone()
+  }, [job.status, onDone])
+
+  if (job.status === 'running') {
+    return (
+      <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm">
+        <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
+        <div>
+          <p className="font-medium text-blue-800">Generating leads…</p>
+          <p className="text-xs text-blue-600 mt-0.5">
+            Found {job.total_found} · Scored {job.total_scored} · Consent sent {job.total_consent_sent}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (job.status === 'completed') {
+    return (
+      <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-sm">
+        <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+        <div>
+          <p className="font-medium text-green-800">Generation complete</p>
+          <p className="text-xs text-green-600 mt-0.5">
+            {job.total_found} found · {job.total_scored} scored · {job.total_consent_sent} consent emails sent
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm">
+      <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+      <div>
+        <p className="font-medium text-red-800">Generation failed</p>
+        <p className="text-xs text-red-600 mt-0.5">{job.error_message ?? 'An error occurred. Please try again.'}</p>
+      </div>
+    </div>
+  )
+}
+
 const EMPTY_FORM = {
   industries: [] as string[],
   job_titles: [] as string[],
@@ -112,14 +164,17 @@ const EMPTY_FORM = {
   keywords: [] as string[],
 }
 
-export function IcpBuilder({ token }: { token: string }) {
+export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRefresh?: () => void }) {
   const [icps, setIcps] = useState<ICP[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [generating, setGenerating] = useState<string | null>(null)
+  const [jobs, setJobs] = useState<Record<string, GenerationJob>>({})
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   async function fetchIcps() {
     try {
@@ -131,6 +186,49 @@ export function IcpBuilder({ token }: { token: string }) {
   }
 
   useEffect(() => { fetchIcps() }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function pollJob(icpId: string) {
+    try {
+      const res = await api.get<{ data: GenerationJob[] }>(`/icps/${icpId}/jobs`, token)
+      const latest = res.data?.[0]
+      if (!latest) return
+      setJobs((prev) => ({ ...prev, [icpId]: latest }))
+      if (latest.status !== 'running') {
+        setGenerating(null)
+        clearInterval(pollRef.current!)
+        pollRef.current = null
+        onLeadsRefresh?.()
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function handleGenerate(icpId: string) {
+    setGenerating(icpId)
+    try {
+      await api.post(`/icps/${icpId}/generate`, {}, token)
+      pollRef.current = setInterval(() => pollJob(icpId), 3000)
+      pollJob(icpId)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to start generation'
+      setJobs((prev) => ({
+        ...prev,
+        [icpId]: {
+          id: 'temp',
+          icp_id: icpId,
+          status: 'failed',
+          total_found: 0,
+          total_scored: 0,
+          total_consent_sent: 0,
+          error_message: msg,
+          created_at: new Date().toISOString(),
+          completed_at: null,
+        },
+      }))
+      setGenerating(null)
+    }
+  }
+
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
 
   function startEdit(icp: ICP) {
     setEditingId(icp.id)
@@ -208,36 +306,69 @@ export function IcpBuilder({ token }: { token: string }) {
         </div>
       </div>
 
-      {/* Existing ICPs */}
+      {/* ICP cards */}
       {!loading && icps.length > 0 && (
-        <div className="px-5 pt-4 pb-1 flex flex-wrap gap-3">
-          {icps.map((icp) => (
-            <div key={icp.id} className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm">
-              <div>
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {icp.industries.slice(0, 2).map((i) => (
-                    <span key={i} className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md font-medium">{i}</span>
-                  ))}
-                  {icp.industries.length > 2 && (
-                    <span className="text-xs text-gray-400">+{icp.industries.length - 2}</span>
-                  )}
+        <div className="px-5 pt-4 pb-2 space-y-3">
+          {icps.map((icp) => {
+            const job = jobs[icp.id]
+            const isGenerating = generating === icp.id
+            return (
+              <div key={icp.id}>
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {icp.industries.slice(0, 2).map((i) => (
+                        <span key={i} className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md font-medium">{i}</span>
+                      ))}
+                      {icp.industries.length > 2 && (
+                        <span className="text-xs text-gray-400">+{icp.industries.length - 2}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">
+                      {icp.job_titles.slice(0, 3).join(', ')}{icp.job_titles.length > 3 ? ` +${icp.job_titles.length - 3}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleGenerate(icp.id)}
+                      disabled={!!generating}
+                      className="flex items-center gap-1.5 text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGenerating
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <Zap className="w-3.5 h-3.5" />}
+                      {isGenerating ? 'Running…' : 'Generate'}
+                    </button>
+                    <button onClick={() => startEdit(icp)} className="text-gray-300 hover:text-brand-500 transition-colors p-1.5">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(icp.id)}
+                      disabled={deleting === icp.id}
+                      className="text-gray-300 hover:text-red-500 transition-colors p-1.5 disabled:opacity-40"
+                    >
+                      {deleting === icp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500">{icp.job_titles.slice(0, 3).join(', ')}{icp.job_titles.length > 3 ? ` +${icp.job_titles.length - 3}` : ''}</p>
+                {job && (
+                  <div className="mt-2">
+                    <JobStatusBanner job={job} onDone={() => setJobs((prev) => ({ ...prev, [icp.id]: { ...prev[icp.id], status: job.status } }))} />
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1 ml-2">
-                <button onClick={() => startEdit(icp)} className="text-gray-300 hover:text-brand-500 transition-colors p-1">
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(icp.id)}
-                  disabled={deleting === icp.id}
-                  className="text-gray-300 hover:text-red-500 transition-colors p-1 disabled:opacity-40"
-                >
-                  {deleting === icp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
+        </div>
+      )}
+
+      {/* Last job history hint */}
+      {!loading && icps.length > 0 && Object.keys(jobs).length === 0 && (
+        <div className="px-5 pb-3">
+          <p className="text-xs text-gray-400 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" />
+            Click Generate to start sourcing leads from your ICP criteria
+          </p>
         </div>
       )}
 
@@ -251,36 +382,13 @@ export function IcpBuilder({ token }: { token: string }) {
           )}
 
           <div className="grid md:grid-cols-2 gap-5">
-            <TagInput
-              label="Industries *"
-              placeholder="e.g. Financial Services, Retail…"
-              tags={form.industries}
-              onChange={(v) => setForm({ ...form, industries: v })}
-            />
-            <TagInput
-              label="Job Titles *"
-              placeholder="e.g. CFO, Head of Sales…"
-              tags={form.job_titles}
-              onChange={(v) => setForm({ ...form, job_titles: v })}
-            />
-            <TagInput
-              label="Locations"
-              placeholder="e.g. Johannesburg, Lagos…"
-              tags={form.locations}
-              onChange={(v) => setForm({ ...form, locations: v })}
-            />
-            <TagInput
-              label="Keywords"
-              placeholder="e.g. SaaS, B2B, scale-up…"
-              tags={form.keywords}
-              onChange={(v) => setForm({ ...form, keywords: v })}
-            />
+            <TagInput label="Industries *" placeholder="e.g. Financial Services, Retail…" tags={form.industries} onChange={(v) => setForm({ ...form, industries: v })} />
+            <TagInput label="Job Titles *" placeholder="e.g. CFO, Head of Sales…" tags={form.job_titles} onChange={(v) => setForm({ ...form, job_titles: v })} />
+            <TagInput label="Locations" placeholder="e.g. Johannesburg, Lagos…" tags={form.locations} onChange={(v) => setForm({ ...form, locations: v })} />
+            <TagInput label="Keywords" placeholder="e.g. SaaS, B2B, scale-up…" tags={form.keywords} onChange={(v) => setForm({ ...form, keywords: v })} />
           </div>
 
-          <CompanySizeSelector
-            selected={form.company_sizes}
-            onChange={(v) => setForm({ ...form, company_sizes: v })}
-          />
+          <CompanySizeSelector selected={form.company_sizes} onChange={(v) => setForm({ ...form, company_sizes: v })} />
 
           <div className="flex items-center gap-3 pt-1">
             <button
@@ -299,9 +407,7 @@ export function IcpBuilder({ token }: { token: string }) {
                 Cancel
               </button>
             )}
-            {!isValid && (
-              <p className="text-xs text-gray-400">Industries and Job Titles are required</p>
-            )}
+            {!isValid && <p className="text-xs text-gray-400">Industries and Job Titles are required</p>}
           </div>
         </div>
       )}

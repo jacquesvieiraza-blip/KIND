@@ -424,7 +424,13 @@ export default function Home() {
             <span className="font-bold text-white text-sm tracking-tight">K.I.N.D</span>
             <span className="text-white/20 text-xs ml-1">AI Intelligence Platform</span>
           </div>
-          <p className="text-white/20 text-xs">© {new Date().getFullYear()} K.I.N.D. All rights reserved.</p>
+          <div className="flex items-center gap-5 text-xs text-white/30">
+            <Link href="/legal/terms" className="hover:text-white/60 transition-colors">Terms</Link>
+            <Link href="/legal/privacy" className="hover:text-white/60 transition-colors">Privacy</Link>
+            <Link href="/legal/popia" className="hover:text-white/60 transition-colors">POPIA</Link>
+            <Link href="/legal/dpa" className="hover:text-white/60 transition-colors">DPA</Link>
+            <span className="text-white/20">© {new Date().getFullYear()} K.I.N.D Intelligence (Pty) Ltd</span>
+          </div>
         </div>
       </footer>
     </div>

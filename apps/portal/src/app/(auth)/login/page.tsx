@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [agreed, setAgreed] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -21,6 +22,11 @@ export default function LoginPage() {
     setMessage('')
 
     if (mode === 'signup') {
+      if (!agreed) {
+        setError('Please agree to the Terms of Service and Privacy Policy to continue.')
+        setLoading(false)
+        return
+      }
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) {
         setError(error.message)
@@ -78,6 +84,26 @@ export default function LoginPage() {
                 placeholder="••••••••"
               />
             </div>
+
+            {mode === 'signup' && (
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                />
+                <span className="text-xs text-gray-500 leading-relaxed">
+                  I agree to the{' '}
+                  <a href="/legal/terms" target="_blank" className="text-brand-500 hover:underline">Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="/legal/privacy" target="_blank" className="text-brand-500 hover:underline">Privacy Policy</a>
+                  . I acknowledge the{' '}
+                  <a href="/legal/dpa" target="_blank" className="text-brand-500 hover:underline">Data Processing Agreement</a>
+                  {' '}as the Responsible Party for any leads I receive.
+                </span>
+              </label>
+            )}
 
             {error && (
               <p className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">{error}</p>

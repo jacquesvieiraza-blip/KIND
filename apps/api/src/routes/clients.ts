@@ -33,7 +33,7 @@ const updateSchema = z.object({
   company_name: z.string().min(2).optional(),
   industry: z.string().optional(),
   country: z.string().optional(),
-  website: z.string().url().optional(),
+  website: z.union([z.string().url(), z.literal('')]).optional(),
   phone: z.string().optional(),
 })
 

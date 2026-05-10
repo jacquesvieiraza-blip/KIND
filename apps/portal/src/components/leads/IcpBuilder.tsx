@@ -368,7 +368,7 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {status === 'approved' && (
+                    {(status === 'approved' || status === 'draft') && (
                       <button
                         onClick={() => handleGenerate(icp.id)}
                         disabled={!!generating}
@@ -378,14 +378,25 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
                         {isGenerating ? 'Running…' : 'Generate'}
                       </button>
                     )}
-                    {(status === 'draft' || status === 'rejected') && (
+                    {status === 'draft' && (
+                      <button
+                        onClick={() => handleSubmitForReview(icp.id)}
+                        disabled={isSubmitting}
+                        className="flex items-center gap-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Get admin review for quality assurance"
+                      >
+                        {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        {isSubmitting ? 'Submitting…' : 'Submit for Review'}
+                      </button>
+                    )}
+                    {status === 'rejected' && (
                       <button
                         onClick={() => handleSubmitForReview(icp.id)}
                         disabled={isSubmitting}
                         className="flex items-center gap-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                        {isSubmitting ? 'Submitting…' : 'Submit for Review'}
+                        {isSubmitting ? 'Submitting…' : 'Resubmit'}
                       </button>
                     )}
                     {status === 'pending_review' && (

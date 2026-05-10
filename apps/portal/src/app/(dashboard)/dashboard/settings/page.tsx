@@ -42,15 +42,23 @@ export default function SettingsPage() {
     load()
   }, [])
 
+  const [saveError, setSaveError] = useState('')
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    await api.patch('/clients/me', form, session.access_token)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    setSaveError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setSaving(false); return }
+      await api.patch('/clients/me', form, session.access_token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Save failed. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -105,7 +113,7 @@ export default function SettingsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
               <input
-                type="url"
+                type="text"
                 value={form.website}
                 onChange={(e) => setForm({ ...form, website: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -122,6 +130,9 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {saveError && (
+            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{saveError}</p>
+          )}
           <button
             type="submit"
             disabled={saving}

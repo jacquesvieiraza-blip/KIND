@@ -1,7 +1,9 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+// All API calls go through the Next.js proxy at /api/kind/...
+// The proxy forwards to Railway server-side, so no CORS or NEXT_PUBLIC_ env var needed.
+const API_BASE = '/api/kind'
 
 async function apiFetch<T>(path: string, options?: RequestInit, token?: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

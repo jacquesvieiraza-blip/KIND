@@ -48,7 +48,7 @@ export default function AssistantPage() {
 
         <div className="px-8 py-6 flex items-center justify-between border-b border-gray-50">
           <div className="flex items-center gap-6">
-            {['247 on waitlist', 'Launching Week 4', 'Early access priority'].map((item, i) => (
+            {['247 on waitlist', 'Launching Week 4', 'Early access priority'].map((item) => (
               <div key={item} className="flex items-center gap-2 text-sm text-gray-500">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                 {item}

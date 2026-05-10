@@ -109,7 +109,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/login" className="text-[#0066FF] text-sm font-medium hover:text-blue-400 transition-colors flex items-center gap-1">
+                <Link href="/products/lead-gen" className="text-[#0066FF] text-sm font-medium hover:text-blue-400 transition-colors flex items-center gap-1">
                   Learn more <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -160,13 +160,16 @@ export default function Home() {
                 <p className="text-white/40 text-sm leading-relaxed mb-6">
                   A trained AI assistant that handles scheduling, research, email drafting, and internal knowledge queries — freeing your team for high-value work.
                 </p>
-                <ul className="space-y-2">
+                <ul className="space-y-2 mb-6">
                   {['Email Drafting & Scheduling', 'Research on Demand', 'Knowledge Base Queries', 'Calendar Management'].map((f) => (
                     <li key={f} className="flex items-center gap-2 text-sm text-white/50">
                       <span className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />{f}
                     </li>
                   ))}
                 </ul>
+                <Link href="/products/virtual-assistant" className="text-green-400 text-sm font-medium hover:text-green-300 transition-colors flex items-center gap-1">
+                  Join waitlist <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
 
               {/* Chatbot */}
@@ -187,6 +190,9 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
+                <Link href="/products/chatbot" className="text-orange-400 text-sm font-medium hover:text-orange-300 transition-colors flex items-center gap-1">
+                  Join waitlist <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
 
@@ -209,7 +215,9 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <span className="text-xs text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-full font-medium">Coming soon</span>
+                <Link href="/products/voice-agent" className="text-purple-400 text-sm font-medium hover:text-purple-300 transition-colors flex items-center gap-1">
+                  Join waitlist <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
 
               {/* Consulting */}
@@ -238,8 +246,8 @@ export default function Home() {
                       </div>
                       <div className="flex items-center gap-2">
                         {popular && <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium">Most Chosen</span>}
-                        <Link href="/login" className="text-xs border border-white/20 hover:border-white/40 text-white/60 hover:text-white px-3 py-1.5 rounded-lg transition-colors">
-                          Enquire
+                        <Link href="/products/consulting" className="text-xs border border-white/20 hover:border-white/40 text-white/60 hover:text-white px-3 py-1.5 rounded-lg transition-colors">
+                          Learn more
                         </Link>
                       </div>
                     </div>

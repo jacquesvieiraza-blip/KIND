@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { StatCard } from '@/components/ui/StatCard'
 import { ProductCard } from '@/components/ui/ProductCard'
+import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
 import { Users, Bot, MessageSquare, TrendingUp, Zap } from 'lucide-react'
 
 export default async function DashboardPage() {
@@ -10,15 +11,34 @@ export default async function DashboardPage() {
 
   let client = null
   let leadStats = null
+  let orderForm = null
+  let subscription = null
 
   if (session) {
     try {
       const res = await api.get<{ data: Record<string, unknown> }>('/clients/me', session.access_token)
       client = res.data
-      const statsRes = await api.get<{ data: Record<string, unknown> }>('/leads/stats', session.access_token)
-      leadStats = statsRes.data
     } catch {
       // Not onboarded yet
+    }
+
+    if (client) {
+      try {
+        const [statsRes, formRes, subRes] = await Promise.allSettled([
+          api.get<{ data: Record<string, unknown> }>('/leads/stats', session.access_token),
+          api.get<{ data: Record<string, unknown> | null }>('/order-forms/my', session.access_token),
+          api.get<{ data: Record<string, unknown>[] }>('/subscriptions', session.access_token),
+        ])
+
+        if (statsRes.status === 'fulfilled') leadStats = statsRes.value.data
+        if (formRes.status === 'fulfilled') orderForm = formRes.value.data
+        if (subRes.status === 'fulfilled') {
+          const subs = subRes.value.data ?? []
+          subscription = (subs as Record<string, unknown>[]).find(
+            (s) => s.status === 'active' || s.status === 'trialing'
+          ) ?? null
+        }
+      } catch { /* non-fatal */ }
     }
   }
 
@@ -41,9 +61,33 @@ export default async function DashboardPage() {
   }
 
   const stats = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number } | null
+  const orderFormData = orderForm as { id: string; status: string; products: string[]; pricing_zar: number; signed_at: string | null } | null
+  const subData = subscription as { status: string; trial_ends_at: string | null; product: string } | null
+
+  // Determine onboarding status
+  const hasSignedForm = orderFormData?.status === 'signed'
+  const hasPendingForm = orderFormData?.status === 'sent'
+  const isTrialing = subData?.status === 'trialing'
+  const isActive = subData?.status === 'active'
+
+  let trialDaysLeft = 0
+  if (isTrialing && subData?.trial_ends_at) {
+    trialDaysLeft = Math.max(0, Math.ceil(
+      (new Date(subData.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    ))
+  }
 
   return (
     <div className="space-y-6">
+      {/* Onboarding banners — shown in priority order */}
+      <OnboardingBanner
+        hasSignedForm={hasSignedForm}
+        hasPendingForm={hasPendingForm}
+        isTrialing={isTrialing}
+        isActive={isActive}
+        trialDaysLeft={trialDaysLeft}
+      />
+
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
           Good morning, {(client as { company_name: string }).company_name}

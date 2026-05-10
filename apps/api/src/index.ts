@@ -10,6 +10,7 @@ import { subscriptionRouter } from './routes/subscriptions'
 import { paystackRouter } from './routes/paystack'
 import { leadRouter } from './routes/leads'
 import { roadmapRouter } from './routes/roadmap'
+import { orderFormRouter } from './routes/order-forms'
 import { icpRouter } from './routes/icps'
 import { consentRouter } from './routes/consent'
 import { documentRouter } from './routes/documents'
@@ -50,6 +51,7 @@ app.use('/roadmap', roadmapRouter)
 app.use('/icps', icpRouter)
 app.use('/consent', consentRouter)
 app.use('/documents', documentRouter)
+app.use('/order-forms', orderFormRouter)
 app.use('/platform-messages', platformMessageRouter)
 app.use('/admin-api', adminApiRouter)
 

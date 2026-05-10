@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { ClientDocuments } from './ClientDocuments'
 import { ClientMessages } from './ClientMessages'
 import { ClientIcps } from './ClientIcps'
+import { OrderFormManager } from './OrderFormManager'
 
 const API_URL = process.env.API_URL || 'https://kindapi-production.up.railway.app'
 const ADMIN_SECRET = process.env.ADMIN_SECRET || ''
@@ -24,10 +25,11 @@ interface PageProps {
 }
 
 export default async function ClientDetailPage({ params, searchParams }: PageProps) {
-  const [clientRes, docsRes, messagesRes] = await Promise.all([
+  const [clientRes, docsRes, messagesRes, orderFormRes] = await Promise.all([
     adminFetch(`/admin-api/clients/${params.id}`),
     adminFetch(`/admin-api/clients/${params.id}/documents`),
     adminFetch(`/admin-api/clients/${params.id}/messages`),
+    adminFetch(`/admin-api/clients/${params.id}/order-form`),
   ])
 
   if (!clientRes?.data) notFound()
@@ -36,10 +38,16 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
   const docs = docsRes?.data ?? []
   const messages = messagesRes?.data ?? []
   const icps = client.icps ?? []
+  const orderForm = orderFormRes?.data ?? null
 
-  const tab = searchParams.tab ?? 'documents'
+  const tab = searchParams.tab ?? 'order-form'
+
+  const orderFormLabel = orderForm
+    ? orderForm.status === 'signed' ? 'Order Form ✓' : 'Order Form !'
+    : 'Order Form'
 
   const TABS = [
+    { key: 'order-form', label: orderFormLabel },
     { key: 'documents', label: `Documents (${docs.length})` },
     { key: 'messages', label: `Messages (${messages.length})` },
     { key: 'icps', label: `ICPs (${icps.length})` },
@@ -108,6 +116,9 @@ export default async function ClientDetailPage({ params, searchParams }: PagePro
       </div>
 
       {/* Tab content */}
+      {tab === 'order-form' && (
+        <OrderFormManager clientId={params.id} initialForm={orderForm} />
+      )}
       {tab === 'documents' && (
         <ClientDocuments clientId={params.id} initialDocs={docs} />
       )}

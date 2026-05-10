@@ -12,6 +12,7 @@ const storage = createClient(
 )
 
 const BUCKET = 'client-documents'
+const TERMS_BUCKET = 'terms-documents'
 
 // Simple secret header guard
 function requireAdminSecret(req: Request, res: Response, next: NextFunction) {
@@ -252,5 +253,178 @@ adminApiRouter.get('/icps/pending', async (_req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ success: false, error: 'Failed to fetch pending ICPs' })
+  }
+})
+
+// ─── Terms Documents (T&C Library) ───────────────────────────────────────────
+
+async function ensureTermsBucket() {
+  const { data } = await storage.storage.getBucket(TERMS_BUCKET)
+  if (!data) {
+    await storage.storage.createBucket(TERMS_BUCKET, { public: false, fileSizeLimit: '50mb' })
+  }
+}
+
+// GET /admin-api/terms — list all terms documents
+adminApiRouter.get('/terms', async (_req, res) => {
+  try {
+    const { data, error } = await db
+      .from('terms_documents')
+      .select('*')
+      .order('created_at', { ascending: true })
+
+    if (error) throw error
+
+    const docsWithUrls = await Promise.all(
+      (data || []).map(async (doc) => {
+        const { data: signed } = await storage.storage
+          .from(TERMS_BUCKET)
+          .createSignedUrl(doc.file_path, 3600)
+        return { ...doc, download_url: signed?.signedUrl ?? null }
+      })
+    )
+
+    res.json({ success: true, data: docsWithUrls })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to fetch terms documents' })
+  }
+})
+
+// POST /admin-api/terms/upload-url — signed URL so admin can upload a terms PDF
+adminApiRouter.post('/terms/upload-url', async (req, res) => {
+  try {
+    const { filename } = z.object({ filename: z.string().min(1) }).parse(req.body)
+    await ensureTermsBucket()
+
+    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const filePath = `${Date.now()}-${safeName}`
+
+    const { data, error } = await storage.storage.from(TERMS_BUCKET).createSignedUploadUrl(filePath)
+    if (error) throw error
+
+    res.json({ success: true, data: { signed_url: data.signedUrl, token: data.token, path: filePath } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to generate upload URL' })
+  }
+})
+
+// POST /admin-api/terms — register an uploaded terms document
+adminApiRouter.post('/terms', async (req, res) => {
+  try {
+    const body = z.object({
+      name: z.string().min(1),
+      document_type: z.enum(['msa', 'offer', 'sla', 'service_order', 'popia', 'other']),
+      file_path: z.string().min(1),
+      file_size: z.number().optional(),
+      version: z.string().default('1.0'),
+    }).parse(req.body)
+
+    const { data, error } = await db
+      .from('terms_documents')
+      .insert({ ...body, active: true })
+      .select()
+      .single()
+
+    if (error) throw error
+    res.status(201).json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to register terms document' })
+  }
+})
+
+// DELETE /admin-api/terms/:id — remove a terms document
+adminApiRouter.delete('/terms/:id', async (req, res) => {
+  try {
+    const { data: doc } = await db
+      .from('terms_documents')
+      .select('file_path')
+      .eq('id', req.params.id)
+      .single()
+
+    if (doc) await storage.storage.from(TERMS_BUCKET).remove([doc.file_path])
+    await db.from('terms_documents').delete().eq('id', req.params.id)
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to delete terms document' })
+  }
+})
+
+// ─── Order Forms ─────────────────────────────────────────────────────────────
+
+// GET /admin-api/clients/:id/order-form — get a client's order form
+adminApiRouter.get('/clients/:id/order-form', async (req, res) => {
+  try {
+    const { data, error } = await db
+      .from('order_forms')
+      .select('*')
+      .eq('client_id', req.params.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to fetch order form' })
+  }
+})
+
+const orderFormSchema = z.object({
+  products: z.array(z.string()).min(1),
+  pricing_zar: z.number().positive(),
+  billing_interval: z.enum(['monthly', 'annual', 'once']).default('monthly'),
+  scope: z.string().optional(),
+  start_date: z.string().optional(),
+  notes: z.string().optional(),
+})
+
+// POST /admin-api/clients/:id/order-form — create and send an order form
+adminApiRouter.post('/clients/:id/order-form', async (req, res) => {
+  try {
+    const body = orderFormSchema.parse(req.body)
+
+    // Deactivate any existing draft/sent forms for this client
+    await db
+      .from('order_forms')
+      .update({ status: 'draft' })
+      .eq('client_id', req.params.id)
+      .eq('status', 'sent')
+
+    const { data, error } = await db
+      .from('order_forms')
+      .insert({
+        client_id: req.params.id,
+        ...body,
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    res.status(201).json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to create order form' })
+  }
+})
+
+// DELETE /admin-api/order-forms/:id — delete a draft order form
+adminApiRouter.delete('/order-forms/:id', async (req, res) => {
+  try {
+    await db.from('order_forms').delete().eq('id', req.params.id).eq('status', 'draft')
+    res.json({ success: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to delete order form' })
   }
 })

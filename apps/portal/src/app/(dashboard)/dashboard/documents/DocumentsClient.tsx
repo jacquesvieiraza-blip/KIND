@@ -1,10 +1,27 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import {
-  FileText, Download, Loader2, Upload, X, CheckCircle2, AlertCircle, File,
+  FileText, Download, Loader2, CheckCircle2, AlertCircle,
+  ChevronDown, ChevronUp, PenLine, File, Lock,
 } from 'lucide-react'
+
+const PRODUCT_LABELS: Record<string, string> = {
+  lead_gen: 'AI Lead Generation',
+  virtual_assistant: 'Virtual Assistant',
+  chatbot: 'AI Chatbot',
+  consulting: 'Consulting',
+}
+
+const TERMS_TYPE_LABELS: Record<string, string> = {
+  msa: 'Master Services Agreement',
+  offer: 'Offer Document',
+  sla: 'Chatbot SLA (Exhibit A)',
+  service_order: 'Service Order (Exhibit B)',
+  popia: 'POPIA Compliant Process',
+  other: 'Terms Document',
+}
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   offer: 'Offer Document',
@@ -15,7 +32,29 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   other: 'Document',
 }
 
-interface Document {
+interface OrderForm {
+  id: string
+  products: string[]
+  pricing_zar: number
+  billing_interval: string
+  scope: string | null
+  start_date: string | null
+  notes: string | null
+  status: 'sent' | 'signed'
+  sent_at: string
+  signed_at: string | null
+  signed_by_name: string | null
+}
+
+interface TermsDoc {
+  id: string
+  name: string
+  document_type: string
+  version: string
+  download_url: string | null
+}
+
+interface ClientDoc {
   id: string
   name: string
   file_path: string
@@ -29,80 +68,234 @@ interface Document {
 
 function formatBytes(bytes: number | null): string {
   if (!bytes) return ''
-  if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function DocumentsClient({ token }: { token: string }) {
-  const [docs, setDocs] = useState<Document[]>([])
-  const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const [uploadSuccess, setUploadSuccess] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(amount)
+}
 
-  async function fetchDocs() {
+function OrderFormCard({ form, token, onSigned }: { form: OrderForm; token: string; onSigned: () => void }) {
+  const [showTerms, setShowTerms] = useState(false)
+  const [terms, setTerms] = useState<TermsDoc[]>([])
+  const [loadingTerms, setLoadingTerms] = useState(false)
+  const [signerName, setSignerName] = useState('')
+  const [signing, setSigning] = useState(false)
+  const [error, setError] = useState('')
+  const [confirmed, setConfirmed] = useState(false)
+
+  async function loadTerms() {
+    if (terms.length > 0) { setShowTerms((v) => !v); return }
+    setShowTerms(true)
+    setLoadingTerms(true)
     try {
-      const res = await api.get<{ data: Document[] }>('/documents', token)
-      setDocs(res.data ?? [])
+      const res = await api.get<{ data: TermsDoc[] }>('/order-forms/terms', token)
+      setTerms(res.data ?? [])
+    } catch { /* ignore */ }
+    setLoadingTerms(false)
+  }
+
+  async function handleSign(e: React.FormEvent) {
+    e.preventDefault()
+    if (!signerName.trim()) { setError('Please enter your full name to sign.'); return }
+    if (!confirmed) { setError('Please confirm you have read and agree to the terms.'); return }
+    setSigning(true)
+    setError('')
+    try {
+      await api.post(`/order-forms/${form.id}/sign`, { signed_by_name: signerName.trim() }, token)
+      onSigned()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signing failed. Please try again.')
+    } finally {
+      setSigning(false)
+    }
+  }
+
+  const isSigned = form.status === 'signed'
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className={`px-6 py-4 border-b flex items-center gap-3 ${isSigned ? 'bg-green-50 border-green-100' : 'bg-amber-50 border-amber-100'}`}>
+        {isSigned
+          ? <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+          : <PenLine className="w-5 h-5 text-amber-600 shrink-0" />
+        }
+        <div className="flex-1">
+          <h2 className="font-semibold text-gray-900">KIND Order Form</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {isSigned
+              ? `Signed by ${form.signed_by_name} on ${new Date(form.signed_at!).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}`
+              : `Sent ${new Date(form.sent_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })} · Awaiting your signature`
+            }
+          </p>
+        </div>
+        {isSigned
+          ? <span className="bg-green-100 text-green-700 text-xs font-medium px-2.5 py-1 rounded-full">Signed</span>
+          : <span className="bg-amber-100 text-amber-700 text-xs font-medium px-2.5 py-1 rounded-full">Signature required</span>
+        }
+      </div>
+
+      {/* Order details */}
+      <div className="px-6 py-5 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">Products</p>
+            <ul className="space-y-0.5">
+              {form.products.map((p) => (
+                <li key={p} className="text-sm text-gray-800 font-medium">{PRODUCT_LABELS[p] ?? p}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">Investment</p>
+            <p className="text-sm text-gray-800 font-medium">
+              {formatCurrency(form.pricing_zar)} / {form.billing_interval}
+            </p>
+          </div>
+          {form.start_date && (
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">Start date</p>
+              <p className="text-sm text-gray-800">
+                {new Date(form.start_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+          )}
+          {form.scope && (
+            <div className="col-span-2">
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">Scope</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{form.scope}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Legal notice */}
+        <div className="bg-gray-50 rounded-lg px-4 py-3 text-xs text-gray-500 leading-relaxed">
+          By signing this Order Form, you confirm you have read and agree to KIND&apos;s Master Services Agreement, POPIA Compliant Process, and all applicable service exhibits — all incorporated herein by reference and available to view below.
+        </div>
+
+        {/* T&C viewer toggle */}
+        <button
+          type="button"
+          onClick={loadTerms}
+          className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
+        >
+          {showTerms ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          {showTerms ? 'Hide' : 'View'} Terms &amp; Conditions
+        </button>
+
+        {showTerms && (
+          <div className="border border-gray-100 rounded-xl overflow-hidden">
+            {loadingTerms ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 animate-spin text-brand-500" />
+              </div>
+            ) : terms.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">Terms documents not yet uploaded.</p>
+            ) : (
+              <ul className="divide-y divide-gray-50">
+                {terms.map((t) => (
+                  <li key={t.id} className="flex items-center gap-3 px-4 py-3">
+                    <File className="w-4 h-4 text-brand-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{t.name}</p>
+                      <p className="text-xs text-gray-400">{TERMS_TYPE_LABELS[t.document_type] ?? t.document_type} · v{t.version}</p>
+                    </div>
+                    {t.download_url && (
+                      <a
+                        href={t.download_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 font-medium shrink-0"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        View PDF
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* Signing form */}
+        {!isSigned && (
+          <form onSubmit={handleSign} className="border-t border-gray-100 pt-5 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Your full name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
+                placeholder="Type your full legal name to sign"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+              />
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+                className="mt-0.5 accent-brand-500"
+              />
+              <span className="text-sm text-gray-600">
+                I confirm I have read, understood, and agree to the Order Form and the incorporated Terms &amp; Conditions. I understand this constitutes a legally binding electronic signature under ECTA 25 of 2002.
+              </span>
+            </label>
+
+            {error && (
+              <div className="flex items-center gap-2 text-sm text-red-600">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={signing}
+              className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg px-4 py-3 transition-colors"
+            >
+              {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : <PenLine className="w-4 h-4" />}
+              {signing ? 'Signing…' : 'Sign Order Form'}
+            </button>
+          </form>
+        )}
+
+        {isSigned && (
+          <div className="border-t border-gray-100 pt-4 flex items-center gap-2 text-sm text-green-700">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Signed by <span className="font-medium ml-1">{form.signed_by_name}</span>&nbsp;on {new Date(form.signed_at!).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function DocumentsClient({ token }: { token: string }) {
+  const [orderForm, setOrderForm] = useState<OrderForm | null | undefined>(undefined)
+  const [docs, setDocs] = useState<ClientDoc[]>([])
+  const [loading, setLoading] = useState(true)
+
+  async function fetchAll() {
+    setLoading(true)
+    try {
+      const [formRes, docsRes] = await Promise.allSettled([
+        api.get<{ data: OrderForm | null }>('/order-forms/my', token),
+        api.get<{ data: ClientDoc[] }>('/documents', token),
+      ])
+      if (formRes.status === 'fulfilled') setOrderForm(formRes.value.data)
+      else setOrderForm(null)
+      if (docsRes.status === 'fulfilled') setDocs(docsRes.value.data ?? [])
     } catch { /* ignore */ }
     setLoading(false)
   }
 
-  useEffect(() => { fetchDocs() }, [])  // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploading(true)
-    setUploadError(null)
-    setUploadSuccess(false)
-
-    try {
-      // 1. Get signed upload URL
-      const urlRes = await api.post<{ data: { signed_url: string; path: string } }>(
-        '/documents/upload-url',
-        { filename: file.name, mime_type: file.type },
-        token
-      )
-
-      // 2. Upload directly to Supabase Storage
-      const uploadRes = await fetch(urlRes.data.signed_url, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
-      })
-
-      if (!uploadRes.ok) throw new Error('Upload failed')
-
-      // 3. Register the document
-      await api.post('/documents', {
-        name: file.name,
-        file_path: urlRes.data.path,
-        file_size: file.size,
-        mime_type: file.type,
-        document_type: 'other',
-      }, token)
-
-      setUploadSuccess(true)
-      fetchDocs()
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed')
-    }
-
-    setUploading(false)
-    if (fileRef.current) fileRef.current.value = ''
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this document?')) return
-    try {
-      await api.delete(`/documents/${id}`, token)
-      setDocs((prev) => prev.filter((d) => d.id !== id))
-    } catch { /* ignore */ }
-  }
+  useEffect(() => { fetchAll() }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -114,65 +307,26 @@ export function DocumentsClient({ token }: { token: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Upload section */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900">Upload a Document</h2>
+      {orderForm ? (
+        <OrderFormCard form={orderForm} token={token} onSigned={fetchAll} />
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+          <Lock className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <p className="text-sm font-medium text-gray-500">No Order Form yet</p>
+          <p className="text-xs text-gray-400 mt-1">Your K.I.N.D team will send your Order Form shortly.</p>
         </div>
-        <div
-          className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors"
-          onClick={() => fileRef.current?.click()}
-        >
-          <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">Click to upload a PDF, Word doc, or image</p>
-          <p className="text-xs text-gray-400 mt-1">Max 50 MB</p>
-        </div>
-        <input
-          ref={fileRef}
-          type="file"
-          className="hidden"
-          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-          onChange={handleUpload}
-        />
+      )}
 
-        {uploading && (
-          <div className="flex items-center gap-2 mt-3 text-sm text-blue-600">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Uploading…
+      {docs.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900">Other Documents</h2>
           </div>
-        )}
-        {uploadSuccess && (
-          <div className="flex items-center gap-2 mt-3 text-sm text-green-600">
-            <CheckCircle2 className="w-4 h-4" />
-            Document uploaded successfully
-          </div>
-        )}
-        {uploadError && (
-          <div className="flex items-center gap-2 mt-3 text-sm text-red-600">
-            <AlertCircle className="w-4 h-4" />
-            {uploadError}
-          </div>
-        )}
-      </div>
-
-      {/* Documents list */}
-      <div className="bg-white rounded-xl border border-gray-100">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Your Documents</h2>
-        </div>
-
-        {docs.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">No documents yet.</p>
-            <p className="text-xs mt-1">Your K.I.N.D team will upload your agreement documents here.</p>
-          </div>
-        ) : (
           <ul className="divide-y divide-gray-50">
             {docs.map((doc) => (
               <li key={doc.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
-                  <File className="w-5 h-5 text-brand-500" />
+                  <FileText className="w-5 h-5 text-brand-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">{doc.name}</p>
@@ -183,32 +337,22 @@ export function DocumentsClient({ token }: { token: string }) {
                     {doc.uploaded_by === 'admin' ? ' · From K.I.N.D' : ''}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {doc.download_url && (
-                    <a
-                      href={doc.download_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Download
-                    </a>
-                  )}
-                  {doc.uploaded_by === 'client' && (
-                    <button
-                      onClick={() => handleDelete(doc.id)}
-                      className="text-gray-300 hover:text-red-500 transition-colors p-1.5"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                {doc.download_url && (
+                  <a
+                    href={doc.download_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download
+                  </a>
+                )}
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

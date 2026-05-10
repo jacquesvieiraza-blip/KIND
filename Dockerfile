@@ -23,4 +23,4 @@ RUN npm run build --workspace=apps/api
 
 EXPOSE 4000
 
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["node", "apps/api/dist/apps/api/src/index.js"]

@@ -3,6 +3,26 @@
 -- Run this in the Supabase SQL editor (Dashboard > SQL Editor)
 -- ============================================================
 
+-- ─── Waitlist ────────────────────────────────────────────────────────────────
+create table if not exists public.waitlist (
+  id          uuid primary key default gen_random_uuid(),
+  first_name  text not null,
+  email       text not null,
+  product     text not null,
+  created_at  timestamptz default now(),
+  unique(email, product)
+);
+
+alter table public.waitlist enable row level security;
+
+-- Anyone can insert (public signup)
+create policy "waitlist_insert" on public.waitlist
+  for insert with check (true);
+
+-- Only service role can read (admin only)
+create policy "waitlist_select" on public.waitlist
+  for select using (false);
+
 -- Enable required extensions
 create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";

@@ -12,6 +12,9 @@ import { leadRouter } from './routes/leads'
 import { roadmapRouter } from './routes/roadmap'
 import { icpRouter } from './routes/icps'
 import { consentRouter } from './routes/consent'
+import { documentRouter } from './routes/documents'
+import { platformMessageRouter } from './routes/platform-messages'
+import { adminApiRouter } from './routes/admin-api'
 import { errorHandler } from './middleware/error'
 
 const app = express()
@@ -35,6 +38,9 @@ app.use('/leads', leadRouter)
 app.use('/roadmap', roadmapRouter)
 app.use('/icps', icpRouter)
 app.use('/consent', consentRouter)
+app.use('/documents', documentRouter)
+app.use('/platform-messages', platformMessageRouter)
+app.use('/admin-api', adminApiRouter)
 
 app.use(errorHandler)
 

@@ -61,7 +61,27 @@ async function handleChargeSuccess(data: Record<string, unknown>) {
   const metadata = data.metadata as Record<string, string> | null
   if (!metadata?.client_id) return
 
-  const { client_id, product, tier, billing_interval } = metadata
+  const { client_id, product, tier, billing_interval, topup_id, quantity } = metadata
+
+  // Lead top-up purchase
+  if (topup_id && quantity) {
+    const qty = Number(quantity)
+    await db.from('lead_topups').update({ status: 'completed' }).eq('id', topup_id)
+    const { data: sub } = await db
+      .from('subscriptions')
+      .select('id, extra_lead_quota')
+      .eq('client_id', client_id)
+      .eq('product', 'lead_gen')
+      .in('status', ['trialing', 'active'])
+      .limit(1)
+      .maybeSingle()
+    if (sub) {
+      await db.from('subscriptions')
+        .update({ extra_lead_quota: (sub.extra_lead_quota ?? 0) + qty })
+        .eq('id', sub.id)
+    }
+    return
+  }
 
   const periodEnd = new Date()
   periodEnd.setMonth(periodEnd.getMonth() + 1)

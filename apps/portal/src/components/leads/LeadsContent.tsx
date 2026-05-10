@@ -15,6 +15,8 @@ import {
   Square,
   ExternalLink,
   AlertCircle,
+  ShoppingCart,
+  Zap,
 } from 'lucide-react'
 
 type LeadStatus = 'pending' | 'scored' | 'consent_sent' | 'consent_given' | 'exported' | 'rejected'
@@ -43,6 +45,15 @@ interface LeadStats {
   consented: number
   exported: number
   avg_score: number
+}
+
+interface LeadQuota {
+  tier: string
+  base: number
+  extra: number
+  total: number
+  used: number
+  remaining: number
 }
 
 const STATUS_STYLES: Record<LeadStatus, string> = {
@@ -132,11 +143,13 @@ export function LeadsContent({
   refreshRef?: MutableRefObject<(() => void) | null>
 }) {
   const [stats, setStats] = useState<LeadStats | null>(null)
+  const [quota, setQuota] = useState<LeadQuota | null>(null)
   const [leads, setLeads] = useState<Lead[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [buyingLeads, setBuyingLeads] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [statusFilter, setStatusFilter] = useState('')
   const [minScore, setMinScore] = useState('')
@@ -147,8 +160,12 @@ export function LeadsContent({
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await api.get<{ data: LeadStats }>('/leads/stats', token)
-      setStats(res.data)
+      const [statsRes, quotaRes] = await Promise.all([
+        api.get<{ data: LeadStats }>('/leads/stats', token),
+        api.get<{ data: LeadQuota }>('/subscriptions/quota', token),
+      ])
+      setStats(statsRes.data)
+      setQuota(quotaRes.data)
     } catch { /* ignore */ }
   }, [token])
 
@@ -225,6 +242,15 @@ export function LeadsContent({
     }
   }
 
+  async function handleBuyLeads(quantity: number) {
+    setBuyingLeads(true)
+    try {
+      const res = await api.post<{ data: { authorization_url: string } }>('/subscriptions/topup', { quantity }, token)
+      window.location.href = res.data.authorization_url
+    } catch { /* ignore */ }
+    setBuyingLeads(false)
+  }
+
   async function handleExport() {
     const ids = Array.from(selected).filter((id) => exportableLeads.some((l) => l.id === id))
     if (!ids.length) return
@@ -258,6 +284,47 @@ export function LeadsContent({
         <StatCard label="POPIA Consented" value={stats?.consented ?? '—'} icon={<ShieldCheck className="w-5 h-5" />} color="bg-green-50 text-green-600" />
         <StatCard label="Exported" value={stats?.exported ?? '—'} icon={<Download className="w-5 h-5" />} color="bg-purple-50 text-purple-600" />
       </div>
+
+      {/* Quota banner */}
+      {quota && (
+        <div className="bg-white rounded-xl border border-gray-100 p-4 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+              <Zap className="w-4 h-4 text-brand-500" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900">
+                Lead Quota — <span className="capitalize">{quota.tier}</span> Plan
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 bg-gray-100 rounded-full h-1.5 w-32">
+                  <div
+                    className="bg-brand-500 h-1.5 rounded-full"
+                    style={{ width: `${Math.min((quota.used / quota.total) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 whitespace-nowrap">
+                  {quota.used} / {quota.total} used · {quota.remaining} remaining
+                  {quota.extra > 0 && <span className="text-green-600 ml-1">(+{quota.extra} top-up)</span>}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {[20, 40, 60].map((qty) => (
+              <button
+                key={qty}
+                onClick={() => handleBuyLeads(qty)}
+                disabled={buyingLeads}
+                className="flex items-center gap-1.5 text-xs font-medium border border-brand-200 text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <ShoppingCart className="w-3.5 h-3.5" />
+                +{qty} leads {qty === 20 ? '(R449)' : qty === 40 ? '(R899)' : '(R1,349)'}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Lead Pipeline */}
       <div className="bg-white rounded-xl border border-gray-100">

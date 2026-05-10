@@ -4,8 +4,10 @@ import { useState, useEffect, useRef, KeyboardEvent } from 'react'
 import { api } from '@/lib/api'
 import {
   Target, Plus, X, ChevronDown, ChevronUp, Loader2, Check,
-  Pencil, Trash2, Zap, CheckCircle2, AlertCircle, Clock,
+  Pencil, Trash2, Zap, CheckCircle2, AlertCircle, Clock, Send, XCircle,
 } from 'lucide-react'
+
+type IcpStatus = 'draft' | 'pending_review' | 'approved' | 'rejected'
 
 interface ICP {
   id: string
@@ -14,6 +16,8 @@ interface ICP {
   company_sizes: string[]
   locations: string[]
   keywords: string[]
+  status: IcpStatus
+  review_notes: string | null
   created_at: string
 }
 
@@ -170,6 +174,7 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [generating, setGenerating] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState<string | null>(null)
   const [jobs, setJobs] = useState<Record<string, GenerationJob>>({})
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -200,6 +205,15 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
         onLeadsRefresh?.()
       }
     } catch { /* ignore */ }
+  }
+
+  async function handleSubmitForReview(icpId: string) {
+    setSubmitting(icpId)
+    try {
+      await api.post(`/icps/${icpId}/submit`, {}, token)
+      setIcps((prev) => prev.map((i) => i.id === icpId ? { ...i, status: 'pending_review' } : i))
+    } catch { /* ignore */ }
+    setSubmitting(null)
   }
 
   async function handleGenerate(icpId: string) {
@@ -312,6 +326,22 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
           {icps.map((icp) => {
             const job = jobs[icp.id]
             const isGenerating = generating === icp.id
+            const isSubmitting = submitting === icp.id
+            const status = icp.status ?? 'draft'
+
+            const STATUS_BADGE: Record<string, string> = {
+              draft: 'bg-gray-100 text-gray-500',
+              pending_review: 'bg-amber-50 text-amber-700',
+              approved: 'bg-green-50 text-green-700',
+              rejected: 'bg-red-50 text-red-600',
+            }
+            const STATUS_LABEL: Record<string, string> = {
+              draft: 'Draft',
+              pending_review: 'Pending Review',
+              approved: 'Approved',
+              rejected: 'Rejected',
+            }
+
             return (
               <div key={icp.id}>
                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
@@ -323,23 +353,48 @@ export function IcpBuilder({ token, onLeadsRefresh }: { token: string; onLeadsRe
                       {icp.industries.length > 2 && (
                         <span className="text-xs text-gray-400">+{icp.industries.length - 2}</span>
                       )}
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${STATUS_BADGE[status]}`}>
+                        {STATUS_LABEL[status]}
+                      </span>
                     </div>
                     <p className="text-xs text-gray-500 truncate">
                       {icp.job_titles.slice(0, 3).join(', ')}{icp.job_titles.length > 3 ? ` +${icp.job_titles.length - 3}` : ''}
                     </p>
+                    {status === 'rejected' && icp.review_notes && (
+                      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                        <XCircle className="w-3 h-3 shrink-0" />
+                        {icp.review_notes}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => handleGenerate(icp.id)}
-                      disabled={!!generating}
-                      className="flex items-center gap-1.5 text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGenerating
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        : <Zap className="w-3.5 h-3.5" />}
-                      {isGenerating ? 'Running…' : 'Generate'}
-                    </button>
-                    <button onClick={() => startEdit(icp)} className="text-gray-300 hover:text-brand-500 transition-colors p-1.5">
+                    {status === 'approved' && (
+                      <button
+                        onClick={() => handleGenerate(icp.id)}
+                        disabled={!!generating}
+                        className="flex items-center gap-1.5 text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                        {isGenerating ? 'Running…' : 'Generate'}
+                      </button>
+                    )}
+                    {(status === 'draft' || status === 'rejected') && (
+                      <button
+                        onClick={() => handleSubmitForReview(icp.id)}
+                        disabled={isSubmitting}
+                        className="flex items-center gap-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        {isSubmitting ? 'Submitting…' : 'Submit for Review'}
+                      </button>
+                    )}
+                    {status === 'pending_review' && (
+                      <span className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg font-medium">
+                        <Clock className="w-3.5 h-3.5" />
+                        Under Review
+                      </span>
+                    )}
+                    <button onClick={() => startEdit(icp)} className="text-gray-300 hover:text-brand-500 transition-colors p-1.5" title="Edit">
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button

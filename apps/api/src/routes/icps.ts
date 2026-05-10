@@ -108,6 +108,29 @@ icpRouter.delete('/:id', async (req: AuthRequest, res) => {
   }
 })
 
+// POST /icps/:id/submit — submit ICP for admin review
+icpRouter.post('/:id/submit', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data, error } = await db
+      .from('icps')
+      .update({ status: 'pending_review' })
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .select()
+      .single()
+
+    if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to submit ICP for review' })
+  }
+})
+
 // POST /icps/:id/generate — start async lead generation job
 icpRouter.post('/:id/generate', async (req: AuthRequest, res) => {
   try {
@@ -116,11 +139,15 @@ icpRouter.post('/:id/generate', async (req: AuthRequest, res) => {
 
     const { data: icp } = await db
       .from('icps')
-      .select('id')
+      .select('id, status')
       .eq('id', req.params.id)
       .eq('client_id', clientId)
       .single()
     if (!icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+    if (icp.status !== 'approved' && icp.status !== 'draft') {
+      res.status(403).json({ success: false, error: 'ICP must be approved before generating leads' })
+      return
+    }
 
     // Prevent duplicate running jobs
     const { data: running } = await db

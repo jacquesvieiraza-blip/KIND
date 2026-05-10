@@ -369,3 +369,74 @@ create policy "clients_own_referrals" on public.referrals
 
 -- ─── Service role bypass (for API server) ────────────────────────────────────
 -- The API uses the service_role key which bypasses RLS — no additional policies needed.
+
+-- ─── Week 3 Additions ────────────────────────────────────────────────────────
+-- Run in Supabase SQL Editor when upgrading an existing database
+
+-- Feature 1: Document Management
+-- Also run in Supabase Storage console: create a private bucket named "client-documents"
+create table if not exists public.client_documents (
+  id            uuid primary key default gen_random_uuid(),
+  client_id     uuid not null references public.clients(id) on delete cascade,
+  name          text not null,
+  file_path     text not null,
+  file_size     bigint,
+  mime_type     text,
+  document_type text not null default 'other'
+    check (document_type in ('offer', 'msa', 'sla', 'playbook', 'service_order', 'other')),
+  uploaded_by   text not null default 'admin'
+    check (uploaded_by in ('admin', 'client')),
+  created_at    timestamptz not null default now()
+);
+
+alter table public.client_documents enable row level security;
+create policy "clients_read_own_docs" on public.client_documents
+  for select using (
+    client_id in (select id from public.clients where user_id = auth.uid())
+  );
+
+-- Feature 2: In-Platform Messaging (separate from chatbot messages)
+create table if not exists public.client_messages (
+  id          uuid primary key default gen_random_uuid(),
+  client_id   uuid not null references public.clients(id) on delete cascade,
+  sender_type text not null check (sender_type in ('client', 'admin')),
+  content     text not null,
+  read_at     timestamptz,
+  created_at  timestamptz not null default now()
+);
+
+alter table public.client_messages enable row level security;
+create policy "clients_own_platform_messages" on public.client_messages
+  for all using (
+    client_id in (select id from public.clients where user_id = auth.uid())
+  );
+
+create index if not exists idx_client_messages_client_id on public.client_messages(client_id);
+
+-- Feature 3: Lead Top-ups
+alter table public.subscriptions
+  add column if not exists extra_lead_quota integer not null default 0;
+
+create table if not exists public.lead_topups (
+  id                  uuid primary key default gen_random_uuid(),
+  client_id           uuid not null references public.clients(id) on delete cascade,
+  quantity            integer not null,
+  amount_zar          integer not null,
+  paystack_reference  text,
+  status              text not null default 'pending'
+    check (status in ('pending', 'completed', 'failed')),
+  created_at          timestamptz not null default now()
+);
+
+alter table public.lead_topups enable row level security;
+create policy "clients_own_topups" on public.lead_topups
+  for all using (
+    client_id in (select id from public.clients where user_id = auth.uid())
+  );
+
+-- Feature 4: ICP Approval Flow
+alter table public.icps
+  add column if not exists status text not null default 'draft'
+    check (status in ('draft', 'pending_review', 'approved', 'rejected')),
+  add column if not exists review_notes text,
+  add column if not exists reviewed_at timestamptz;

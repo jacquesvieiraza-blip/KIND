@@ -143,6 +143,105 @@ subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
   }
 })
 
+// POST /subscriptions/topup — purchase extra lead quota
+subscriptionRouter.post('/topup', async (req: AuthRequest, res) => {
+  try {
+    const { quantity } = z.object({
+      quantity: z.number().int().refine((n) => [20, 40, 60].includes(n), 'Must be 20, 40, or 60'),
+    }).parse(req.body)
+
+    const { data: client } = await db
+      .from('clients')
+      .select('id')
+      .eq('user_id', req.userId!)
+      .single()
+
+    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const token = req.headers.authorization?.replace('Bearer ', '') || ''
+    const { data: { user } } = await supabase.auth.getUser(token)
+
+    // R449 per 20 leads
+    const amountZarKobo = (quantity / 20) * 44900
+
+    const { data: topup } = await db
+      .from('lead_topups')
+      .insert({ client_id: client.id, quantity, amount_zar: Math.round(amountZarKobo / 100), status: 'pending' })
+      .select()
+      .single()
+
+    const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user?.email,
+        amount: Math.round(amountZarKobo),
+        currency: 'ZAR',
+        callback_url: `${process.env.PORTAL_URL}/dashboard/leads?topup=success`,
+        metadata: { client_id: client.id, topup_id: topup?.id, quantity },
+      }),
+    })
+
+    const paystackData = await paystackRes.json() as { status: boolean; data: { authorization_url: string; reference: string } }
+
+    if (!paystackData.status) {
+      res.status(500).json({ success: false, error: 'Paystack initialization failed' })
+      return
+    }
+
+    // Store paystack reference
+    if (topup) {
+      await db.from('lead_topups').update({ paystack_reference: paystackData.data.reference }).eq('id', topup.id)
+    }
+
+    res.json({ success: true, data: { authorization_url: paystackData.data.authorization_url, reference: paystackData.data.reference } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to initiate top-up' })
+  }
+})
+
+// GET /subscriptions/quota — current lead generation quota
+subscriptionRouter.get('/quota', async (req: AuthRequest, res) => {
+  try {
+    const { data: client } = await db.from('clients').select('id').eq('user_id', req.userId!).single()
+    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: sub } = await db
+      .from('subscriptions')
+      .select('tier, extra_lead_quota')
+      .eq('client_id', client.id)
+      .eq('product', 'lead_gen')
+      .in('status', ['trialing', 'active'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const tierLimits: Record<string, number> = { starter: 20, pro: 40, enterprise: 100 }
+    const tier = sub?.tier ?? 'starter'
+    const base = tierLimits[tier] ?? 20
+    const extra = sub?.extra_lead_quota ?? 0
+
+    const { count: leadsThisMonth } = await db
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id)
+      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+
+    const used = leadsThisMonth ?? 0
+    const total = base + extra
+    const remaining = Math.max(0, total - used)
+
+    res.json({ success: true, data: { tier, base, extra, total, used, remaining } })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to fetch quota' })
+  }
+})
+
 // POST /subscriptions/cancel — cancel a subscription
 subscriptionRouter.post('/cancel', async (req: AuthRequest, res) => {
   try {

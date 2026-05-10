@@ -14,6 +14,8 @@ import {
   LogOut,
   Zap,
   MapPin,
+  FileText,
+  Inbox,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -22,6 +24,8 @@ const NAV_ITEMS = [
   { href: '/dashboard/assistant', label: 'Virtual Assistant', icon: Bot },
   { href: '/dashboard/chatbot', label: 'Chatbot Agent', icon: MessageSquare },
   { href: '/dashboard/roadmap', label: 'AI Roadmap', icon: MapPin },
+  { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+  { href: '/dashboard/messages', label: 'Messages', icon: Inbox },
   { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]

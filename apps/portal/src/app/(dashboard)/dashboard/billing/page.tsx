@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { PRODUCTS } from '@kind/shared'
 import type { Subscription } from '@kind/shared'
-import { CreditCard, Check, Loader2 } from 'lucide-react'
+import { CreditCard, Check, Loader2, ChevronDown } from 'lucide-react'
 
 const PRODUCT_LABELS: Record<string, string> = {
   lead_gen: 'AI Lead Generation',
@@ -14,11 +14,29 @@ const PRODUCT_LABELS: Record<string, string> = {
   consulting: 'Monthly Consulting',
 }
 
+const CURRENCIES = [
+  { code: 'USD', symbol: '$', label: 'USD — US Dollar', rate: 1 },
+  { code: 'ZAR', symbol: 'R', label: 'ZAR — South African Rand', rate: 19 },
+  { code: 'NGN', symbol: '₦', label: 'NGN — Nigerian Naira', rate: 1600 },
+  { code: 'KES', symbol: 'KSh', label: 'KES — Kenyan Shilling', rate: 130 },
+  { code: 'GHS', symbol: 'GH₵', label: 'GHS — Ghanaian Cedi', rate: 15 },
+  { code: 'EUR', symbol: '€', label: 'EUR — Euro', rate: 0.92 },
+  { code: 'GBP', symbol: '£', label: 'GBP — British Pound', rate: 0.79 },
+]
+
+function formatPrice(usd: number, currency: typeof CURRENCIES[0]) {
+  const amount = usd * currency.rate
+  if (amount >= 1000) return `${currency.symbol}${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+  return `${currency.symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+}
+
 export default function BillingPage() {
   const supabase = createClient()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
   const [initiating, setInitiating] = useState<string | null>(null)
+  const [currency, setCurrency] = useState(CURRENCIES[0])
+  const [currencyOpen, setCurrencyOpen] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -38,10 +56,8 @@ export default function BillingPage() {
   async function subscribe(product: string, tier: string) {
     const key = `${product}_${tier}`
     setInitiating(key)
-
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-
     try {
       const res = await api.post<{ data: { authorization_url: string } }>(
         '/subscriptions/initiate',
@@ -52,7 +68,6 @@ export default function BillingPage() {
     } catch (err) {
       console.error(err)
     }
-
     setInitiating(null)
   }
 
@@ -68,9 +83,36 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Billing & Plans</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage your subscriptions. All prices in ZAR.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Billing & Plans</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage your subscriptions. Prices shown in your selected currency.</p>
+        </div>
+
+        {/* Currency selector */}
+        <div className="relative">
+          <button
+            onClick={() => setCurrencyOpen(o => !o)}
+            className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-300 bg-white shadow-sm"
+          >
+            <span>{currency.code}</span>
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          </button>
+          {currencyOpen && (
+            <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-100 rounded-xl shadow-lg z-10 overflow-hidden">
+              {CURRENCIES.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={() => { setCurrency(c); setCurrencyOpen(false) }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors flex items-center justify-between ${c.code === currency.code ? 'text-brand-500 font-medium' : 'text-gray-700'}`}
+                >
+                  <span>{c.label}</span>
+                  {c.code === currency.code && <Check className="w-3.5 h-3.5" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Active Subscriptions */}
@@ -87,7 +129,7 @@ export default function BillingPage() {
                   <p className="text-xs text-gray-400 capitalize">{sub.tier} · {sub.billing_interval}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold">R{(sub.amount_usd * 19).toLocaleString()}/mo</p>
+                  <p className="text-sm font-semibold">{formatPrice(sub.amount_usd, currency)}/mo</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     sub.status === 'active' ? 'bg-green-50 text-green-700' :
                     sub.status === 'trialing' ? 'bg-amber-50 text-amber-700' :
@@ -122,10 +164,10 @@ export default function BillingPage() {
                   )}
                   <p className="font-semibold capitalize">{tierKey}</p>
                   <p className="text-2xl font-bold mt-1">
-                    R{(tier.price_usd * 19).toLocaleString()}
+                    {formatPrice(tier.price_usd, currency)}
                     <span className="text-sm font-normal text-gray-400">/mo</span>
                   </p>
-                  <p className="text-xs text-gray-400 mb-4">≈ ${tier.price_usd} USD</p>
+                  <p className="text-xs text-gray-400 mb-4">${tier.price_usd} USD · fixed rate</p>
 
                   <button
                     onClick={() => subscribe(productKey, tierKey)}
@@ -150,6 +192,10 @@ export default function BillingPage() {
           </div>
         </div>
       ))}
+
+      <p className="text-xs text-gray-400 text-center pb-4">
+        All payments processed in USD via Paystack. Currency display is indicative only based on fixed exchange rates.
+      </p>
     </div>
   )
 }

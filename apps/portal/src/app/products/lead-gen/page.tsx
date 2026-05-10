@@ -45,7 +45,7 @@ export default function LeadGenPage() {
         >
           Start Your Pipeline <ArrowRight className="w-4 h-4" />
         </Link>
-        <p className="text-white/20 text-xs mt-4">14-day free trial · No credit card required</p>
+        <p className="text-white/20 text-xs mt-4">From $27/mo · 14-day free trial · No credit card required</p>
       </section>
 
       {/* How it Works */}

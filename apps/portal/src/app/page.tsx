@@ -271,8 +271,8 @@ export default function Home() {
             {[
               {
                 tier: 'Starter',
-                price: 'R5,550',
-                usd: '~$299/month',
+                price: 'R513',
+                usd: '~$27/month',
                 leads: '250 leads / month',
                 popular: false,
                 min: '3-month minimum',
@@ -291,8 +291,8 @@ export default function Home() {
               },
               {
                 tier: 'Advanced',
-                price: 'R11,100',
-                usd: '~$599/month',
+                price: 'R2,052',
+                usd: '~$108/month',
                 leads: '750 leads / month',
                 popular: true,
                 min: '3-month minimum',
@@ -311,8 +311,8 @@ export default function Home() {
               },
               {
                 tier: 'Enterprise',
-                price: 'R22,200',
-                usd: '~$1,200/month',
+                price: 'R3,800',
+                usd: '~$200/month',
                 leads: '2,500 leads / month',
                 popular: false,
                 min: '6-month minimum',

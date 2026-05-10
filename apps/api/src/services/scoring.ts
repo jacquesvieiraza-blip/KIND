@@ -42,7 +42,7 @@ Reply with valid JSON only, no markdown:
 {"score": <integer 0-100>, "reasoning": "<1-2 sentences explaining the score>"}`
 
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: 'claude-haiku-4-5',
     max_tokens: 200,
     messages: [{ role: 'user', content: prompt }],
   })

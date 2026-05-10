@@ -160,12 +160,12 @@ export function LeadsContent({
 
   const fetchStats = useCallback(async () => {
     try {
-      const [statsRes, quotaRes] = await Promise.all([
-        api.get<{ data: LeadStats }>('/leads/stats', token),
-        api.get<{ data: LeadQuota }>('/subscriptions/quota', token),
-      ])
-      setStats(statsRes.data)
-      setQuota(quotaRes.data)
+      const res = await api.get<{ data: LeadStats }>('/leads/stats', token)
+      setStats(res.data)
+    } catch { /* ignore */ }
+    try {
+      const res = await api.get<{ data: LeadQuota }>('/subscriptions/quota', token)
+      setQuota(res.data)
     } catch { /* ignore */ }
   }, [token])
 

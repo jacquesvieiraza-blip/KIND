@@ -4,14 +4,15 @@ import { createClient } from '@supabase/supabase-js'
 import { PRODUCTS } from '@kind/shared'
 import { Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react'
 
+const EMPTY_STATS = { totalClients: 0, activeSubscriptions: 0, trialClients: 0, pastDue: 0, totalLeads: 0, mrrZar: 0, mrrUsd: 0, recentSubs: [] }
+
 // Admin page — uses service role server-side only
 async function getAdminStats() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+  try {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
-  if (supabaseUrl.includes('placeholder') || serviceKey === 'placeholder-key') {
-    return { totalClients: 0, activeSubscriptions: 0, trialClients: 0, pastDue: 0, totalLeads: 0, mrrZar: 0, mrrUsd: 0, recentSubs: [] }
-  }
+  if (!supabaseUrl || !serviceKey) return EMPTY_STATS
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
 
@@ -43,22 +44,17 @@ async function getAdminStats() {
     mrrUsd: Math.round(mrrZar / 19),
     recentSubs: activeSubs?.slice(0, 10) || [],
   }
+  } catch (err) {
+    console.error('Admin stats error:', err)
+    return EMPTY_STATS
+  }
 }
 
 export default async function AdminPage() {
   const stats = await getAdminStats()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-brand-900 text-white px-8 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-lg">K.I.N.D Admin</h1>
-          <p className="text-white/50 text-xs">Operations Dashboard</p>
-        </div>
-        <span className="text-xs text-white/40">{new Date().toLocaleDateString('en-ZA', { dateStyle: 'full' })}</span>
-      </header>
-
-      <main className="px-8 py-6 max-w-6xl space-y-6">
+    <div className="space-y-6 max-w-5xl">
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -120,7 +116,6 @@ export default async function AdminPage() {
             ))}
           </div>
         </div>
-      </main>
     </div>
   )
 }

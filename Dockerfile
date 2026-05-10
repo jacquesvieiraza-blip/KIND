@@ -1,5 +1,6 @@
 FROM node:22-alpine
 
+# Force rebuild
 WORKDIR /app
 
 # Copy root workspace files

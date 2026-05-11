@@ -1,230 +1,275 @@
 # KIND AI Platform — Master Roadmap
-**Launch date: 31 May 2026 · Today: 11 May 2026 · Days remaining: 20**
+**Launch date: 31 May 2026 · Updated: 11 May 2026 · Days remaining: 20**
 
-> This document is the single source of truth for everything that needs to happen before launch and beyond.
-> Items are ordered by priority. Decide which to action next from here.
-
----
-
-## Current state (what is already built)
-
-| Area | Status |
-|------|--------|
-| Monorepo scaffold — portal, admin, API, DB, shared packages | ✅ Done |
-| Supabase auth — login + onboard flow | ✅ Done |
-| Paystack billing integration — subscribe + webhook handler | ✅ Done |
-| Admin operations dashboard (MRR, client count, progress bar) | ✅ Done |
-| Dashboard home page — stat cards + product grid | ✅ Done |
-| Settings page — business profile edit | ✅ Done |
-| Billing page — plan selection + Paystack redirect | ✅ Done |
-| Shared types, constants, DB client package | ✅ Done |
-| Admin roadmap page (`/roadmap`) — 4-phase business milestones | ✅ Done |
-| Portal roadmap page (`/dashboard/roadmap`) — product feature roadmap | ✅ Done |
-| DB clients table | ✅ Done |
+> Single source of truth. Two goals, in order:
+> **Goal 1 — Fully functional Lead Gen live by 31 May 2026**
+> **Goal 2 — FIGSY launch (immediately after Lead Gen is stable)**
 
 ---
 
-## P0 — Deploy blockers (do these first, nothing works without them)
+## What is already built
 
-These are infrastructure tasks that block everything else from being testable or live.
+| Area | Status | Notes |
+|------|--------|-------|
+| Monorepo scaffold — portal, admin, API, DB, shared | ✅ Built | |
+| Supabase auth — login + onboard | ✅ Built | |
+| Paystack billing — subscribe + webhook | ✅ Built | Plan codes need setting in env vars |
+| Admin dashboard — MRR, client count, progress | ✅ Built | |
+| Portal dashboard home — stat cards, product grid | ✅ Built | |
+| Settings page — business profile edit | ✅ Built | |
+| Billing page — plan selection + Paystack redirect | ✅ Built | |
+| Admin roadmap page | ✅ Built | Needs updating once FIGSY + pricing is confirmed |
+| Portal roadmap page | ✅ Built | Needs updating once FIGSY + pricing is confirmed |
+| Shared types, constants, DB client package | ✅ Built | Needs Consulting removed, FIGSY added |
+| DB schema — `clients` table only | ⚠️ Partial | 5 more tables needed before anything else works |
+| Lead Gen page | ❌ Stub | Shows "Week 2 Build" placeholder |
+| Virtual Assistant page | ❌ Stub | Shows placeholder |
+| Chatbot Agent page | ❌ Stub | Shows placeholder |
+| FIGSY | ❌ Not started | Does not exist anywhere in the codebase |
+
+---
+
+## GOAL 1 — Fully functional Lead Gen by 31 May
+
+### What "fully functional" means for launch day
+
+Lead Gen is done when a paying client can:
+1. Build an ICP (define who they want to reach)
+2. See a lead pipeline with scores
+3. Send POPIA consent requests and track responses
+4. Export consented leads as CSV
+5. See their stats (total leads, avg score, consented count, exported count)
+6. Block a lead permanently if they opt out
+
+These 6 things are the definition of done. Everything below is grouped by whether it is **required for 31 May** or **post-launch**.
+
+---
+
+### STEP 1 — Infrastructure (must be done first, blocks everything)
+
+| # | Task | Who | Notes |
+|---|------|-----|-------|
+| S1-1 | Complete DB schema — write all missing tables | Code | `subscriptions`, `icps`, `leads`, `opt_out_blocklist`, `assistant_messages`, `chatbot_configs`, `usage_metrics`. File: `packages/db/src/schema.sql` |
+| S1-2 | Run Supabase migrations | You | Paste schema into Supabase SQL editor and run |
+| S1-3 | Set Vercel env vars — portal | You | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL` |
+| S1-4 | Set Vercel env vars — admin | You | `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| S1-5 | Set Railway env vars — API | You | All from `apps/api/.env.example` including all Paystack plan codes |
+| S1-6 | Configure Paystack webhook URL | You | Point to `https://api.yourdomain.com/webhooks/paystack` in Paystack dashboard |
+| S1-7 | Test auth flow end-to-end | You | Sign up → onboard → dashboard → billing |
+
+---
+
+### STEP 2 — Remove Consulting (clean up before building)
+
+| # | Task | File |
+|---|------|------|
+| S2-1 | Remove `consulting` from `PRODUCTS` constant | `packages/shared/src/constants/index.ts` |
+| S2-2 | Remove `consulting` from `ProductType` | `packages/shared/src/types/index.ts` |
+| S2-3 | Remove Consulting card from portal dashboard | `apps/portal/src/app/(dashboard)/dashboard/page.tsx` |
+| S2-4 | Remove Consulting from billing page | `apps/portal/src/app/(dashboard)/dashboard/billing/page.tsx` |
+| S2-5 | Remove Consulting from admin product catalog | `apps/admin/src/app/page.tsx` |
+| S2-6 | Remove Consulting from portal + admin roadmap pages | Both roadmap pages |
+
+---
+
+### STEP 3 — Lead Gen core (required for 31 May — build in this order)
+
+#### S3-A: API routes
+
+| # | Task | File | Notes |
+|---|------|------|-------|
+| S3-A1 | ICP routes — GET /icps, POST /icps, PATCH /icps/:id, DELETE /icps/:id | `apps/api/src/routes/icps.ts` | Full CRUD |
+| S3-A2 | Extend leads routes — GET with filters, POST (create lead), PATCH status/consent, GET stats | `apps/api/src/routes/leads.ts` | Stats endpoint already exists; extend it |
+| S3-A3 | Opt-out blocklist route — POST /leads/optout (add to blocklist), GET /leads/optout | `apps/api/src/routes/leads.ts` | Permanent block, cross-client |
+| S3-A4 | Register ICP router in API index | `apps/api/src/index.ts` | |
+
+#### S3-B: Lead Gen portal pages (required for launch)
+
+| # | Task | File | Notes |
+|---|------|------|-------|
+| S3-B1 | Lead stats cards — wire to real `/leads/stats` API | `apps/portal/src/app/(dashboard)/dashboard/leads/page.tsx` | Replace "-" placeholders with real data |
+| S3-B2 | ICP builder form | `apps/portal/src/app/(dashboard)/dashboard/leads/icp/page.tsx` | Fields: industry, job titles, company size, geography, seniority level, tech stack |
+| S3-B3 | Lead pipeline table | `apps/portal/src/app/(dashboard)/dashboard/leads/page.tsx` | Sortable/filterable. Columns: name, company, title, score, status, POPIA consent status, actions |
+| S3-B4 | POPIA consent action in table | Same page | "Send consent" button → marks lead as `consent_sent`. "Mark consented" → `consent_given`. |
+| S3-B5 | Opt-out action in table | Same page | "Block lead" button → calls opt-out API, removes lead from all future pipelines |
+| S3-B6 | CSV export button | Same page | Exports only `consent_given` leads |
+| S3-B7 | Lead score display | Same page | Score badge (0–100), colour-coded: 80+ green, 50–79 amber, below 50 red |
+| S3-B8 | Apollo consent filter toggle | Leads/ICP page | Toggle: "Only show leads who have already consented on Apollo." Default ON. |
+
+---
+
+### STEP 4 — Lead Gen upgrades (required for 31 May — NB.docx requirements)
+
+These are the specific upgrades from the NB.docx brief that make Lead Gen sellable at the new price points.
+
+| # | Task | Priority | Notes |
+|---|------|----------|-------|
+| S4-1 | Apollo consent filter active | **Must have** | Use Apollo's existing consent layer. Only surface already-opted-in leads. Do not wait for KIND's own POPIA flow as the gating mechanism. |
+| S4-2 | Opt-out blocklist — permanent, cross-client | **Must have** | If any lead asks not to be contacted: flag, block, never surface again for any client. Data kept, used as blocklist. |
+| S4-3 | AI-personalised outreach email generator | **Must have** | When client clicks "Draft outreach" on a lead, Claude generates a personalised email based on that lead's profile (name, company, title, signals). Not a template. |
+| S4-4 | CRM sync — new leads only | **Target** | Connect to client's existing CRM (HubSpot first, Pipedrive second). Scrape CRM before delivering lead. Client only pays for leads that don't already exist in their CRM. Complex — attempt before launch, ship after if needed. |
+| S4-5 | Pipeline revenue tracking | **Target** | Each lead has an estimated deal value. Pipeline view shows expected revenue. Attempt before launch, ship after if needed. |
+| S4-6 | Stronger ICP signals | **Post-launch** | Add more ICP fields: funding stage, hiring signals, tech stack. Post-launch enhancement. |
+| S4-7 | GDPR + POPIA compliance layer in Lead Gen | **Must have** | Show compliance notice before any outreach is sent. Document the process in the UI. |
+
+---
+
+### STEP 5 — Lead-capture landing page (run in parallel with Steps 3–4)
+
+This is the marketing top-of-funnel. It runs in parallel — does not block product build.
 
 | # | Task | Notes |
 |---|------|-------|
-| P0-1 | Run Supabase schema migrations | Tables missing: `subscriptions`, `icps`, `leads`, `assistant_messages`, `chatbot_configs`, `usage_metrics`. Schema file is at `packages/db/src/schema.sql` — it currently only has the `clients` table. |
-| P0-2 | Set Vercel environment variables — portal | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL` |
-| P0-3 | Set Vercel environment variables — admin | `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
-| P0-4 | Set Railway environment variables — API | All vars from `apps/api/.env.example` including Paystack keys and plan codes |
-| P0-5 | Test auth flow end-to-end | Sign up → onboard → dashboard → billing |
-| P0-6 | Upload compliance PDFs to Supabase storage or public folder | T&C, Privacy Policy, POPIA Notice — referenced in portal footer |
-| P0-7 | Configure Paystack webhook URL in Paystack dashboard | Must point to `https://api.yourdomain.com/webhooks/paystack` |
+| S5-1 | Build standalone HTML lead-capture page | Single file, no framework. Deploys to Netlify Drop or Vercel in minutes. |
+| S5-2 | Form fields | Name, email, company, country, "which product" (Lead Gen / FIGSY / Both) |
+| S5-3 | On submit: email to jacqueskind01@gmail.com | Use Formspree or similar — no backend needed |
+| S5-4 | Deploy and share the link | This is the #1 marketing asset before launch |
+| S5-5 | Goal | 100 sign-ups before 31 May. Start immediately. |
 
 ---
 
-## P1 — This week (highest business impact, pre-launch)
+## GOAL 2 — FIGSY launch (after Lead Gen is stable)
 
-### P1-1 — Standalone HTML lead-capture landing page
-**Priority: #1 highest. Do this before anything else in the product.**
+FIGSY is an AI SDR/BDR agent. It takes a lead list → runs personalised AI outreach → handles replies → books meetings.
+Reference product: Alta HQ / Katie (altahq.com)
 
-- Single HTML file, no framework dependency — deployable anywhere instantly
-- Target: Lead Gen + FIGSY interest registrations
-- Form captures: name, email, company, country, "which product interests you" (Lead Gen / FIGSY / Both)
-- On submit: sends email notification to `jacqueskind01@gmail.com`
-- Goal: **100 sign-ups before 31 May 2026**
-- Must go live within days, not weeks
-- This is the top-of-funnel for everything else
+FIGSY **depends on Lead Gen being functional** — it consumes leads from the Lead Gen pipeline. Build Lead Gen first.
 
-### P1-2 — Remove AI Consulting from all surfaces
-- Remove from `packages/shared/src/constants/index.ts` (PRODUCTS constant)
-- Remove from `packages/shared/src/types/index.ts` (ProductType)
-- Remove from portal billing page
-- Remove from admin product catalog
-- Remove from portal roadmap page
-- Remove from admin roadmap page
-- Remove from dashboard ProductCard grid
-- **Reason:** Product is being dropped. Not building further on it.
+### FIGSY pricing (from NB.docx)
 
----
-
-## P2 — FIGSY (new centrepiece product — build before launch)
-
-FIGSY is an AI SDR/BDR agent — KIND's own version of "Katie" from Alta HQ (altahq.com).
-It takes a lead list, runs personalised AI outreach, handles replies, and books meetings directly into calendar.
-
-**Reference product:** https://www.altahq.com (Katie — AI SDR agent)
-**Design reference:** Visily design (Google Drive link from NB.docx)
-
-### FIGSY Pricing (as defined in NB.docx)
-
-| Tier | What | Price |
-|------|------|-------|
-| Lead Gen Only — Starter | 100 leads, basic ICP | $500/mo |
-| Lead Gen Only — Advanced | 500 leads, Apollo search, CRM sync | $1,200/mo |
+| Tier | Includes | Price |
+|------|----------|-------|
+| Lead Gen Only — Starter | 100 leads/mo, basic ICP | $500/mo |
+| Lead Gen Only — Advanced | 500 leads/mo, Apollo search, CRM sync | $1,200/mo |
 | Lead Gen Only — Enterprise | Unlimited, dedicated support | Custom |
 | KIND + FIGSY Bundle — Starter | Lead Gen Starter + FIGSY Starter | $700/mo |
 | KIND + FIGSY Bundle — Advanced | Lead Gen Advanced + FIGSY Pro | $1,500/mo |
 | KIND + FIGSY Bundle — Enterprise | Full stack | Custom |
-| FIGSY Add-on (existing clients) — Starter | FIGSY Starter added to existing subscription | +$300/mo |
-| FIGSY Add-on (existing clients) — Enterprise | FIGSY Enterprise added to existing subscription | +$800/mo |
+| FIGSY Add-on — Starter | Add FIGSY to existing subscription | +$300/mo |
+| FIGSY Add-on — Enterprise | Add FIGSY to existing subscription | +$800/mo |
 
-> FIGSY Starter and FIGSY Pro need to be fully defined (feature scope per tier).
+> ⚠️ FIGSY Starter vs Pro feature scope still needs to be defined before building.
 
-### P2 tasks
+### FIGSY Phase 1 — MVP (build immediately after Lead Gen ships)
 
-| # | Task | Phase |
+| # | Task | Notes |
 |---|------|-------|
-| P2-1 | Define FIGSY Starter vs Pro tier features clearly | Planning |
-| P2-2 | Add FIGSY to shared constants and types | Code |
-| P2-3 | Add FIGSY pricing to billing page | Code |
-| P2-4 | FIGSY campaign creation UI — upload/select lead list, name campaign | Phase 1 MVP |
-| P2-5 | FIGSY AI email sequence builder — AI generates personalised outreach per lead profile | Phase 1 MVP |
-| P2-6 | FIGSY reply detection — monitor for responses, classify (interested / not interested / opt-out) | Phase 1 MVP |
-| P2-7 | FIGSY opt-out handler — permanent blocklist, cross-client, never generates that lead again | Phase 1 MVP |
-| P2-8 | FIGSY campaign dashboard — sent/opened/replied/booked metrics | Phase 1 MVP |
-| P2-9 | FIGSY calendar integration — book meetings directly into client's calendar | Phase 2 |
-| P2-10 | FIGSY CRM push — push booked meetings and engaged leads to client CRM | Phase 2 |
-| P2-11 | FIGSY full AI reply automation — AI handles back-and-forth, escalates when needed | Phase 2 |
-| P2-12 | Animated explainer video — how FIGSY works (for website + landing page) | Marketing |
-| P2-13 | FIGSY portal page (`/dashboard/figsy`) | Code |
+| F1-1 | Define FIGSY Starter vs Pro tier scope | Decision required before any code is written |
+| F1-2 | Add FIGSY to shared constants and types | New `ProductType`, new `PRODUCTS` entry |
+| F1-3 | Update pricing in billing page | Add all FIGSY tiers and bundle tiers |
+| F1-4 | FIGSY portal page (`/dashboard/figsy`) | Top-level page, entry point |
+| F1-5 | Campaign creation | Name campaign, select or upload lead list from Lead Gen pipeline |
+| F1-6 | AI email sequence builder | Claude generates personalised outreach email per lead (uses lead profile: name, company, title, signals). Sequence: initial → follow-up 1 → follow-up 2 |
+| F1-7 | Reply detection | Monitor inbox for responses. Classify: interested / not interested / opt-out / out-of-office |
+| F1-8 | Opt-out handler | Shared with Lead Gen blocklist (S4-2). Auto-block on opt-out reply. |
+| F1-9 | Campaign dashboard | Metrics per campaign: sent, opened, replied, interested, booked |
+| F1-10 | DB tables for FIGSY | `figsy_campaigns`, `figsy_sequences`, `figsy_replies` |
+| F1-11 | API routes for FIGSY | Campaign CRUD, sequence management, reply ingestion |
+
+### FIGSY Phase 2 — Full automation (post-launch, June+)
+
+| # | Task | Notes |
+|---|------|-------|
+| F2-1 | Calendar integration | Book meetings directly into client's calendar (Google Calendar first) |
+| F2-2 | CRM push | Push booked meetings + engaged leads to client CRM |
+| F2-3 | Full AI reply automation | AI handles full back-and-forth conversation, escalates to human when needed |
+| F2-4 | Animated explainer video | How FIGSY works: lead → outreach → reply → booked meeting |
 
 ---
 
-## P3 — Lead Gen upgrades (major rethink from NB.docx)
+## Lower priority — do after Lead Gen and FIGSY are live
 
-The current lead gen product needs significant upgrades before it's sellable at the new price points.
+### Virtual Assistant and Chatbot (deprioritised for now)
+These are stub pages in the portal. They are **not blocking Lead Gen or FIGSY**. Build after launch.
 
-| # | Task | Detail |
-|---|------|--------|
-| P3-1 | CRM sync — connect to client's existing CRM | Scrape client CRM first to check if lead already exists. Client **only pays for leads that are new to their CRM**. |
-| P3-2 | Apollo consent filter | Only surface leads who have already opted in or consented on Apollo. Use Apollo's existing consent layer — don't wait for KIND's own consent flow for quick wins. |
-| P3-3 | Opt-out blocklist (permanent, cross-client) | If a lead replies asking to not be contacted, flag and permanently block across ALL clients. Never generate that lead again unless they explicitly opt back in. Data is **kept** (not deleted) — used as blocklist. |
-| P3-4 | Stronger ICP builder | More signals, better targeting. Current ICP is too basic. |
-| P3-5 | AI-personalised outreach emails | When drafting outreach emails, generate based on that specific lead's profile. Personal, not templated. |
-| P3-6 | Pipeline revenue tracking | Visibility on what leads in the pipeline are worth — expected revenue per lead/campaign. |
-| P3-7 | GDPR + POPIA strict process | Formalise the compliance layer around contacting leads. Document the process clearly in the product. |
-| P3-8 | ICP builder page (`/dashboard/leads/icp`) | Full form: industry, job titles, company size, geography, tech stack signals |
-| P3-9 | Lead pipeline table | Sortable, filterable by status/score. Columns: name, company, title, score, status, POPIA consent, actions |
-| P3-10 | POPIA consent workflow in lead table | Send consent, track response, mark consented/rejected |
-| P3-11 | Lead stats cards wired to real API data | Currently shows "-" placeholders |
-| P3-12 | CSV export | Download consented leads as CSV |
+| # | Task |
+|---|------|
+| VA-1 | Virtual Assistant — Claude-powered chat interface |
+| VA-2 | API route — assistant chat with message history |
+| CB-1 | Chatbot Agent — persona config form + embed code snippet |
+| CB-2 | API route — chatbot config CRUD |
 
----
+### Compliance
+| # | Task |
+|---|------|
+| C-1 | GDPR clause in Terms & Conditions |
+| C-2 | CCPA + CAN-SPAM (US) coverage in Privacy Policy |
+| C-3 | Hosting disclosure — where data is stored (Supabase region) |
+| C-4 | POPIA compliance page |
 
-## P4 — Outstanding portal features (Week 2 & 3 stubs — unbuilt)
+### Website redesign (post-launch)
+Reference: myclaw.ai structure
 
-These are the placeholder pages that currently show "builds in Week 2/3" messages.
+| # | Task |
+|---|------|
+| W-1 | Nav redesign — Products dropdown, Use Cases, Resources, Company |
+| W-2 | Product landing pages — one per product (Lead Gen, FIGSY, VA, Chatbot) |
+| W-3 | Yearly pricing option — ~2 months free vs monthly |
+| W-4 | Company page — "what this means to KIND" framing |
+| W-5 | Privacy page with full hosting disclosure |
+| W-6 | Use Cases section per product and industry |
 
-| # | Task | Current state |
-|---|------|---------------|
-| P4-1 | Complete DB schema | Only `clients` table exists. Need: `subscriptions`, `icps`, `leads`, `assistant_messages`, `chatbot_configs`, `usage_metrics` |
-| P4-2 | API routes — ICP (CRUD) | Not built |
-| P4-3 | API routes — Assistant (Claude-powered chat, message history) | Not built |
-| P4-4 | API routes — Chatbot config (get/update persona, settings) | Not built |
-| P4-5 | Leads page — full UI | ICP builder form + lead pipeline table + score display + POPIA consent actions + filters |
-| P4-6 | Virtual Assistant page — full chat interface | Claude-powered. Currently empty placeholder. |
-| P4-7 | Chatbot Agent page — configuration UI | Persona name, tone, website URL, embed code snippet, test chat preview. Currently empty placeholder. |
-| P4-8 | Register new API routes in `apps/api/src/index.ts` | ICP router, assistant router, chatbot router |
-
----
-
-## P5 — Compliance (global)
-
-Business is Africa-first but global. Need full compliance documentation.
-
-| # | Task | Detail |
-|---|------|--------|
-| P5-1 | GDPR compliance added to T&C documents | Europe-facing users are in scope |
-| P5-2 | US privacy law coverage (CCPA + CAN-SPAM) | Needed for US-based leads and clients |
-| P5-3 | Update Privacy Policy to cover data hosting location | Where is data stored? Supabase region. |
-| P5-4 | Hosting disclosure page or section on website | GDPR requirement — users must know where their data is processed |
-| P5-5 | POPIA-specific compliance page | South African clients need this |
+### Marketing assets
+| # | Task |
+|---|------|
+| M-1 | FIGSY animated explainer video — lead → outreach → reply → booked |
+| M-2 | AI-generated video content — people talking about KIND products |
+| M-3 | Email nurture sequence — 5 emails for landing page sign-ups |
+| M-4 | Launch week marketing calendar — LinkedIn, email, WhatsApp broadcast |
 
 ---
 
-## P6 — Website redesign
-
-Reference structure: myclaw.ai
-Reference product: OpenClaw "what this means to KIND" company section
-
-| # | Task | Detail |
-|---|------|--------|
-| P6-1 | Navigation redesign with dropdowns | Products (each with own landing page), Use Cases, Resources, Company |
-| P6-2 | Product landing pages | One per product: AI Lead Generation, FIGSY, Virtual Assistant, Chatbot Agent |
-| P6-3 | Company page | "What this means to KIND" section — OpenClaw-style framing |
-| P6-4 | Yearly pricing option across all products | With discount vs monthly (industry standard: ~2 months free) |
-| P6-5 | Website content accuracy | Content must accurately reflect what products actually do — no exaggeration |
-| P6-6 | FIGSY standalone landing page | Separate from main website — can be the lead capture page from P1-1 |
-| P6-7 | Privacy page with hosting disclosure | Where data lives, GDPR + POPIA + CCPA coverage |
-| P6-8 | Use Cases section | Specific industries and scenarios for each product |
-
----
-
-## P7 — Marketing assets
-
-| # | Task | Detail |
-|---|------|--------|
-| P7-1 | FIGSY animated explainer video | How FIGSY works — lead → outreach → reply → meeting booked |
-| P7-2 | AI-generated video content | People talking about KIND products — for social and landing pages |
-| P7-3 | Marketing calendar for launch week (31 May) | LinkedIn, email, WhatsApp broadcast |
-| P7-4 | Email nurture sequence | For everyone who signs up via P1-1 landing page — 5-email sequence before launch |
-
----
-
-## Suggested order of execution (next 20 days)
+## Realistic 20-day execution plan
 
 ```
-Week 1 (11–17 May)
-  Day 1–2:  P0 — deploy blockers (infra + env vars)
-  Day 2–3:  P1-1 — HTML lead-capture landing page (go live ASAP)
-  Day 3–4:  P1-2 — remove AI Consulting from all surfaces
-  Day 5–7:  P4-1 + P4-2/3/4 — DB schema + new API routes
+Days 1–2   (11–12 May)  S1: DB schema written in code + you run migrations
+                         S2: Remove Consulting from all surfaces
+                         S5: HTML lead-capture landing page → live
 
-Week 2 (18–24 May)
-  Day 8–10:  P4-5 — full Leads page (ICP builder + pipeline table)
-  Day 11–12: P4-6 — Virtual Assistant chat interface
-  Day 13–14: P4-7 — Chatbot Agent config page
-  Day 14:    P2-1/2/3 — FIGSY defined in constants + billing page
+Days 3–5   (13–15 May)  S3-A: ICP + leads API routes built and registered
+                         S3-B1: Lead stats wired to real data
 
-Week 3 (25–31 May) — launch sprint
-  Day 15–17: P2-4/5/6/7/8 — FIGSY Phase 1 MVP
-  Day 18:    P3-1/2/3 — CRM sync + consent filter + opt-out blocklist
-  Day 19:    P5 — compliance docs
-  Day 20:    P6-1/2 — website nav + product pages
-  Launch:    31 May 2026
+Days 6–9   (16–19 May)  S3-B2–B8: Full Leads page
+                         — ICP builder form
+                         — Lead pipeline table with score, status, filters
+                         — POPIA consent workflow
+                         — Opt-out action
+                         — CSV export
+
+Days 10–12 (20–22 May)  S4-1: Apollo consent filter active
+                         S4-2: Opt-out blocklist enforced
+                         S4-3: AI-personalised outreach email generator
+                         S4-7: GDPR/POPIA compliance notice in Lead Gen
+
+Days 13–14 (23–24 May)  S4-4: CRM sync (HubSpot) — attempt; ship to post-launch if too complex
+                         End-to-end test of all Lead Gen flows
+
+Day 15     (25 May)      ✅ Lead Gen feature-complete
+
+Days 16–17 (26–27 May)  F1-1: Define FIGSY tiers
+                         F1-2/3: Add FIGSY to constants + billing
+                         F1-10/11: FIGSY DB tables + API routes
+
+Days 18–19 (28–29 May)  F1-4–F1-9: FIGSY portal page, campaign creation,
+                         AI email sequences, reply detection, dashboard
+
+Day 20     (30 May)      Final QA and fix pass
+
+31 May     LAUNCH        Lead Gen live + FIGSY Phase 1 live
 ```
 
 ---
 
 ## Post-launch (June onwards)
-
-- FIGSY Phase 2 — calendar integration, CRM push, full AI reply automation
-- Lead Gen — stronger ICP signals, pipeline revenue tracking, AI-personalised emails
-- Website — full redesign, use cases, yearly pricing
-- Marketing — FIGSY video, AI content, nurture sequences
-- SOC 2 readiness
-- Pan-African expansion (8 countries by end of Q3)
-- Mobile app
+- FIGSY Phase 2: calendar integration, CRM push, full AI replies, explainer video
+- Lead Gen: CRM sync (if not shipped), pipeline revenue tracking, stronger ICP
+- Virtual Assistant + Chatbot pages
+- Website redesign (myclaw.ai structure)
+- Compliance docs
+- Marketing assets
+- Pan-African expansion (8 countries Q3)
 - Series A readiness
 
 ---
 
-*Last updated: 11 May 2026. Review and update after every work session.*
+*Last updated: 11 May 2026. Update after every work session.*

@@ -186,6 +186,46 @@ create table if not exists public.usage_metrics (
 create index if not exists usage_metrics_client_id_idx on public.usage_metrics(client_id);
 
 -- ─────────────────────────────────────────────
+-- AGREEMENT TEMPLATES (admin uploads once — 5 PDFs)
+-- ─────────────────────────────────────────────
+create table if not exists public.agreement_templates (
+  id          uuid primary key default uuid_generate_v4(),
+  name        text not null,          -- e.g. "Master Services Agreement"
+  description text,
+  file_path   text not null,          -- Supabase storage path
+  file_url    text not null,          -- public URL
+  sort_order  integer not null default 0,
+  is_active   boolean not null default true,
+  created_at  timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────
+-- ORDER FORMS (one per client, created by admin)
+-- ─────────────────────────────────────────────
+create table if not exists public.order_forms (
+  id                  uuid primary key default uuid_generate_v4(),
+  client_id           uuid not null references public.clients(id) on delete cascade,
+  products            jsonb not null default '[]',
+  -- e.g. [{"product":"lead_gen","tier":"starter","price_usd":500,"billing_interval":"monthly"}]
+  total_monthly_usd   integer not null default 0,
+  start_date          date,
+  scope_notes         text,
+  status              text not null default 'draft'
+                        check (status in ('draft','sent','signed','cancelled')),
+  sent_at             timestamptz,
+  signed_at           timestamptz,
+  signed_by           text,           -- full name typed by client
+  signed_ip           text,
+  created_by_email    text,           -- admin who created it
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  unique(client_id)                   -- one active order form per client
+);
+
+create index if not exists order_forms_client_id_idx on public.order_forms(client_id);
+create index if not exists order_forms_status_idx    on public.order_forms(status);
+
+-- ─────────────────────────────────────────────
 -- ROW LEVEL SECURITY
 -- ─────────────────────────────────────────────
 -- Enable RLS on all tables. Each client can only see their own data.
@@ -197,7 +237,9 @@ alter table public.leads            enable row level security;
 alter table public.opt_out_blocklist enable row level security;
 alter table public.assistant_messages enable row level security;
 alter table public.chatbot_configs  enable row level security;
-alter table public.usage_metrics    enable row level security;
+alter table public.usage_metrics         enable row level security;
+alter table public.agreement_templates   enable row level security;
+alter table public.order_forms           enable row level security;
 
 -- Clients: own row only
 create policy if not exists "clients_own" on public.clients
@@ -273,3 +315,20 @@ create or replace trigger chatbot_configs_updated_at
 create or replace trigger usage_metrics_updated_at
   before update on public.usage_metrics
   for each row execute function public.set_updated_at();
+
+create or replace trigger order_forms_updated_at
+  before update on public.order_forms
+  for each row execute function public.set_updated_at();
+
+-- Agreement templates: readable by all authenticated users (clients need to view T&Cs)
+create policy if not exists "agreement_templates_read" on public.agreement_templates
+  for select using (auth.role() = 'authenticated');
+
+-- Order forms: client can only see their own
+create policy if not exists "order_forms_own" on public.order_forms
+  for select using (client_id = public.current_client_id());
+create policy if not exists "order_forms_sign" on public.order_forms
+  for update using (client_id = public.current_client_id());
+
+-- Supabase Storage: create bucket 'agreement-templates' (run separately in Storage tab)
+-- Bucket should be: private, max file size 10MB, allowed types: application/pdf

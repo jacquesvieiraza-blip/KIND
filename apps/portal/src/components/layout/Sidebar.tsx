@@ -4,16 +4,17 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, Bot, MessageSquare, CreditCard, Settings, LogOut, Zap, Map } from 'lucide-react'
+import { LayoutDashboard, Users, Bot, MessageSquare, CreditCard, Settings, LogOut, Zap, Map, FileText } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/leads', label: 'Lead Gen', icon: Users },
-  { href: '/dashboard/assistant', label: 'Virtual Assistant', icon: Bot },
-  { href: '/dashboard/chatbot', label: 'Chatbot Agent', icon: MessageSquare },
-  { href: '/dashboard/roadmap', label: 'Roadmap', icon: Map },
-  { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { href: '/dashboard',           label: 'Dashboard',        icon: LayoutDashboard },
+  { href: '/dashboard/leads',     label: 'Lead Gen',         icon: Users },
+  { href: '/dashboard/assistant', label: 'Virtual Assistant',icon: Bot },
+  { href: '/dashboard/chatbot',   label: 'Chatbot Agent',    icon: MessageSquare },
+  { href: '/dashboard/documents', label: 'Documents',        icon: FileText },
+  { href: '/dashboard/roadmap',   label: 'Roadmap',          icon: Map },
+  { href: '/dashboard/billing',   label: 'Billing',          icon: CreditCard },
+  { href: '/dashboard/settings',  label: 'Settings',         icon: Settings },
 ]
 
 export function Sidebar({ userEmail }: { userEmail: string }) {

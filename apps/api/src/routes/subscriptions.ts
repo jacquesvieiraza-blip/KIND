@@ -24,6 +24,36 @@ subscriptionRouter.get('/', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch subscriptions' }) }
 })
 
+subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
+  try {
+    const { reference } = z.object({ reference: z.string().min(1) }).parse(req.body)
+    const paystackRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
+    })
+    const paystackData = await paystackRes.json() as { status: boolean; data: { status: string; metadata: Record<string, string> } }
+    if (!paystackData.status || paystackData.data.status !== 'success') {
+      res.status(400).json({ success: false, error: 'Payment not successful' }); return
+    }
+    const { client_id, product, tier, billing_interval } = paystackData.data.metadata
+    const tierConfig = PRODUCTS[product as keyof typeof PRODUCTS]?.tiers[tier as keyof object] as { price_usd: number } | undefined
+    if (!tierConfig) { res.status(400).json({ success: false, error: 'Invalid product/tier' }); return }
+    const amountUsd = tierConfig.price_usd
+    await db.from('subscriptions').upsert({
+      client_id, product, tier,
+      status: 'active',
+      billing_interval: billing_interval || 'monthly',
+      amount_usd: amountUsd,
+      amount_zar: amountUsd * 19,
+      current_period_start: new Date().toISOString(),
+      current_period_end: new Date(Date.now() + 30 * 86400000).toISOString(),
+    }, { onConflict: 'client_id' })
+    res.json({ success: true, message: 'Subscription activated' })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Verification failed' })
+  }
+})
+
 subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
   try {
     const { product, tier, billing_interval } = z.object({

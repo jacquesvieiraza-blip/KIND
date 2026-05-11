@@ -2,21 +2,52 @@ import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { StatCard } from '@/components/ui/StatCard'
 import { ProductCard } from '@/components/ui/ProductCard'
+import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
 import { Users, Bot, MessageSquare, TrendingUp, Zap, ShieldCheck } from 'lucide-react'
+
+type BannerState = 'no_form' | 'awaiting_signature' | 'awaiting_payment' | 'trial' | 'none'
+
+function getBannerState(orderForm: Record<string, unknown> | null, subscriptions: Record<string, unknown>[]): { state: BannerState; trialDaysLeft?: number } {
+  const active  = subscriptions.some(s => s.status === 'active')
+  const trialing = subscriptions.find(s => s.status === 'trialing')
+
+  if (active) return { state: 'none' }
+
+  if (trialing && trialing.trial_ends_at) {
+    const daysLeft = Math.ceil((new Date(trialing.trial_ends_at as string).getTime() - Date.now()) / 86400000)
+    return { state: 'trial', trialDaysLeft: Math.max(0, daysLeft) }
+  }
+
+  if (!orderForm) return { state: 'no_form' }
+  if (orderForm.status === 'sent')   return { state: 'awaiting_signature' }
+  if (orderForm.status === 'signed') return { state: 'awaiting_payment' }
+
+  return { state: 'no_form' }
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
-  let client = null
-  let leadStats = null
+
+  let client      = null
+  let leadStats   = null
+  let orderForm   = null
+  let subs: Record<string, unknown>[] = []
+
   if (session) {
     try {
-      const res = await api.get<{ data: Record<string, unknown> }>('/clients/me', session.access_token)
-      client = res.data
-      const statsRes = await api.get<{ data: Record<string, unknown> }>('/leads/stats', session.access_token)
+      const [clientRes, statsRes, docsRes] = await Promise.all([
+        api.get<{ data: Record<string, unknown> }>('/clients/me', session.access_token),
+        api.get<{ data: Record<string, unknown> }>('/leads/stats', session.access_token).catch(() => ({ data: null })),
+        api.get<{ data: { order_form: Record<string, unknown> | null } }>('/order-forms/me', session.access_token).catch(() => ({ data: { order_form: null } })),
+      ])
+      client    = clientRes.data
       leadStats = statsRes.data
+      orderForm = docsRes.data.order_form
+      subs      = (client?.subscriptions as Record<string, unknown>[]) || []
     } catch { }
   }
+
   if (!client) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -29,25 +60,33 @@ export default async function DashboardPage() {
       </div>
     )
   }
+
+  const { state, trialDaysLeft } = getBannerState(orderForm, subs)
   const stats = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number } | null
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Good morning, {(client as { company_name: string }).company_name}</h1>
         <p className="text-gray-500 text-sm mt-1">Here's what's happening with your AI products today.</p>
       </div>
+
+      {/* Three-tier onboarding banner */}
+      <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Leads" value={stats?.total ?? 0} icon={<Users className="w-5 h-5" />} color="blue" />
-        <StatCard label="Scored" value={stats?.scored ?? 0} icon={<TrendingUp className="w-5 h-5" />} color="indigo" />
-        <StatCard label="POPIA Consented" value={stats?.consented ?? 0} icon={<ShieldCheck className="w-5 h-5" />} color="green" />
-        <StatCard label="Avg Score" value={stats?.avg_score ?? 0} suffix="/100" icon={<TrendingUp className="w-5 h-5" />} color="purple" />
+        <StatCard label="Total Leads"     value={stats?.total ?? 0}              icon={<Users className="w-5 h-5" />}       color="blue" />
+        <StatCard label="Scored"          value={stats?.scored ?? 0}             icon={<TrendingUp className="w-5 h-5" />}  color="indigo" />
+        <StatCard label="POPIA Consented" value={stats?.consented ?? 0}          icon={<ShieldCheck className="w-5 h-5" />} color="green" />
+        <StatCard label="Avg Score"       value={stats?.avg_score ?? 0} suffix="/100" icon={<TrendingUp className="w-5 h-5" />} color="purple" />
       </div>
+
       <div>
         <h2 className="text-lg font-semibold mb-4">Your AI Products</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <ProductCard title="AI Lead Generation" description="Precision-targeted B2B leads, scored and POPIA-compliant." icon={<Users className="w-6 h-6" />} href="/dashboard/leads" status="active" metric={`${stats?.total ?? 0} leads this month`} />
-          <ProductCard title="Virtual Assistant" description="Scheduling, email drafting, and knowledge queries." icon={<Bot className="w-6 h-6" />} href="/dashboard/assistant" status="active" metric="Ready to use" />
-          <ProductCard title="Chatbot Agent" description="Web and WhatsApp AI chatbot for your customers." icon={<MessageSquare className="w-6 h-6" />} href="/dashboard/chatbot" status="active" metric="Configure your bot" />
+          <ProductCard title="AI Lead Generation"  description="Precision-targeted B2B leads, scored and POPIA-compliant." icon={<Users className="w-6 h-6" />}         href="/dashboard/leads"    status="active" metric={`${stats?.total ?? 0} leads this month`} />
+          <ProductCard title="Virtual Assistant"   description="Scheduling, email drafting, and knowledge queries."       icon={<Bot className="w-6 h-6" />}           href="/dashboard/assistant" status="active" metric="Ready to use" />
+          <ProductCard title="Chatbot Agent"       description="Web and WhatsApp AI chatbot for your customers."          icon={<MessageSquare className="w-6 h-6" />} href="/dashboard/chatbot"   status="active" metric="Configure your bot" />
         </div>
       </div>
     </div>

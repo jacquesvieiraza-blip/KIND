@@ -9,10 +9,10 @@ subscriptionRouter.use(requireAuth)
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!
 const PLAN_CODES: Record<string, Record<string, string>> = {
-  lead_gen: { starter: process.env.PAYSTACK_PLAN_LEAD_GEN_STARTER || '', pro: process.env.PAYSTACK_PLAN_LEAD_GEN_PRO || '', enterprise: process.env.PAYSTACK_PLAN_LEAD_GEN_ENTERPRISE || '' },
+  lead_gen: { starter: process.env.PAYSTACK_PLAN_LEAD_GEN_STARTER || '', advanced: process.env.PAYSTACK_PLAN_LEAD_GEN_ADVANCED || '', enterprise: process.env.PAYSTACK_PLAN_LEAD_GEN_ENTERPRISE || '' },
+  lead_gen_figsy: { starter: process.env.PAYSTACK_PLAN_FIGSY_STARTER || '', advanced: process.env.PAYSTACK_PLAN_FIGSY_ADVANCED || '', enterprise: process.env.PAYSTACK_PLAN_FIGSY_ENTERPRISE || '' },
   virtual_assistant: { starter: process.env.PAYSTACK_PLAN_VA_STARTER || '', pro: process.env.PAYSTACK_PLAN_VA_PRO || '', enterprise: process.env.PAYSTACK_PLAN_VA_ENTERPRISE || '' },
   chatbot: { starter: process.env.PAYSTACK_PLAN_CHATBOT_STARTER || '', pro: process.env.PAYSTACK_PLAN_CHATBOT_PRO || '', enterprise: process.env.PAYSTACK_PLAN_CHATBOT_ENTERPRISE || '' },
-  consulting: { pro: process.env.PAYSTACK_PLAN_CONSULTING_PRO || '', enterprise: process.env.PAYSTACK_PLAN_CONSULTING_ENTERPRISE || '' },
 }
 
 subscriptionRouter.get('/', async (req: AuthRequest, res) => {
@@ -57,8 +57,8 @@ subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
 subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
   try {
     const { product, tier, billing_interval } = z.object({
-      product: z.enum(['lead_gen', 'virtual_assistant', 'chatbot', 'consulting']),
-      tier: z.enum(['starter', 'pro', 'enterprise']),
+      product: z.enum(['lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot']),
+      tier: z.enum(['starter', 'advanced', 'pro', 'enterprise']),
       billing_interval: z.enum(['monthly', 'annual']).default('monthly'),
     }).parse(req.body)
     const { data: client } = await db.from('clients').select('id, user_id').eq('user_id', req.userId!).single()

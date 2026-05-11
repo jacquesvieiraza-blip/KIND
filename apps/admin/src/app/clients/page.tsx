@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@supabase/supabase-js'
 import { Users, FileText, CreditCard, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react'
 import Link from 'next/link'

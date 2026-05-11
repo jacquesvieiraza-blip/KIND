@@ -25,7 +25,10 @@ export default async function AdminPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-[#001f4d] text-white px-8 py-4 flex items-center justify-between">
         <div><h1 className="font-bold text-lg">K.I.N.D Admin</h1><p className="text-white/50 text-xs">Operations Dashboard</p></div>
-        <span className="text-xs text-white/40">{new Date().toLocaleDateString('en-ZA', { dateStyle: 'full' })}</span>
+        <div className="flex items-center gap-6">
+          <a href="/roadmap" className="text-xs text-white/60 hover:text-white transition-colors">Roadmap →</a>
+          <span className="text-xs text-white/40">{new Date().toLocaleDateString('en-ZA', { dateStyle: 'full' })}</span>
+        </div>
       </header>
       <main className="px-8 py-6 max-w-6xl space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

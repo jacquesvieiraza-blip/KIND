@@ -241,44 +241,50 @@ alter table public.usage_metrics         enable row level security;
 alter table public.agreement_templates   enable row level security;
 alter table public.order_forms           enable row level security;
 
--- Clients: own row only
-create policy if not exists "clients_own" on public.clients
-  for all using (auth.uid() = user_id);
-
 -- Helper: resolve current user's client id
 create or replace function public.current_client_id()
 returns uuid language sql stable as $$
   select id from public.clients where user_id = auth.uid() limit 1;
 $$;
 
--- Subscriptions: own client only
-create policy if not exists "subscriptions_own" on public.subscriptions
+-- Policies (drop first so re-runs are safe)
+drop policy if exists "clients_own"           on public.clients;
+drop policy if exists "subscriptions_own"     on public.subscriptions;
+drop policy if exists "icps_own"              on public.icps;
+drop policy if exists "leads_own"             on public.leads;
+drop policy if exists "blocklist_read"        on public.opt_out_blocklist;
+drop policy if exists "blocklist_write"       on public.opt_out_blocklist;
+drop policy if exists "assistant_messages_own" on public.assistant_messages;
+drop policy if exists "chatbot_configs_own"   on public.chatbot_configs;
+drop policy if exists "usage_metrics_own"     on public.usage_metrics;
+drop policy if exists "agreement_templates_read" on public.agreement_templates;
+drop policy if exists "order_forms_own"       on public.order_forms;
+drop policy if exists "order_forms_sign"      on public.order_forms;
+
+create policy "clients_own" on public.clients
+  for all using (auth.uid() = user_id);
+
+create policy "subscriptions_own" on public.subscriptions
   for all using (client_id = public.current_client_id());
 
--- ICPs: own client only
-create policy if not exists "icps_own" on public.icps
+create policy "icps_own" on public.icps
   for all using (client_id = public.current_client_id());
 
--- Leads: own client only
-create policy if not exists "leads_own" on public.leads
+create policy "leads_own" on public.leads
   for all using (client_id = public.current_client_id());
 
--- Opt-out blocklist: readable by all authenticated (needed for cross-client check), writable by own client
-create policy if not exists "blocklist_read" on public.opt_out_blocklist
+create policy "blocklist_read" on public.opt_out_blocklist
   for select using (auth.role() = 'authenticated');
-create policy if not exists "blocklist_write" on public.opt_out_blocklist
+create policy "blocklist_write" on public.opt_out_blocklist
   for insert with check (auth.role() = 'authenticated');
 
--- Assistant messages: own client only
-create policy if not exists "assistant_messages_own" on public.assistant_messages
+create policy "assistant_messages_own" on public.assistant_messages
   for all using (client_id = public.current_client_id());
 
--- Chatbot configs: own client only
-create policy if not exists "chatbot_configs_own" on public.chatbot_configs
+create policy "chatbot_configs_own" on public.chatbot_configs
   for all using (client_id = public.current_client_id());
 
--- Usage metrics: own client only
-create policy if not exists "usage_metrics_own" on public.usage_metrics
+create policy "usage_metrics_own" on public.usage_metrics
   for all using (client_id = public.current_client_id());
 
 -- ─────────────────────────────────────────────
@@ -320,14 +326,12 @@ create or replace trigger order_forms_updated_at
   before update on public.order_forms
   for each row execute function public.set_updated_at();
 
--- Agreement templates: readable by all authenticated users (clients need to view T&Cs)
-create policy if not exists "agreement_templates_read" on public.agreement_templates
+create policy "agreement_templates_read" on public.agreement_templates
   for select using (auth.role() = 'authenticated');
 
--- Order forms: client can only see their own
-create policy if not exists "order_forms_own" on public.order_forms
+create policy "order_forms_own" on public.order_forms
   for select using (client_id = public.current_client_id());
-create policy if not exists "order_forms_sign" on public.order_forms
+create policy "order_forms_sign" on public.order_forms
   for update using (client_id = public.current_client_id());
 
 -- Supabase Storage: create bucket 'agreement-templates' (run separately in Storage tab)

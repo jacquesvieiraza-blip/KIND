@@ -1,6 +1,6 @@
 # KIND Product Roadmap
 **Target launch: 31 May 2026**
-**Last updated: 11 May 2026**
+**Last updated: 12 May 2026**
 
 ---
 
@@ -15,7 +15,26 @@
 
 ---
 
-## PRIORITY 0 — Launch Blocker (Do Today)
+## TOMORROW MORNING — First Things (12 May)
+
+Do these before anything else. In order.
+
+| # | Task | How |
+|---|------|-----|
+| T-1 | Set up Formspree for landing page waitlist form | Go to formspree.io → New Form → set email to jacqueskind01@gmail.com → copy the form ID (looks like `xabcdefg`) → replace `YOUR_FORM_ID` in `apps/landing/index.html` → re-upload `index.html` to Netlify |
+| T-2 | Run Supabase migration: Week 3 tables | Go to Supabase SQL Editor → paste and run the Week 3 migration SQL |
+| T-3 | Run Supabase migration 004 (order_forms) | Go to Supabase SQL Editor → open `packages/db/src/migrations/004_order_forms.sql` → paste and run |
+| T-4 | Vercel kind-portal: update env vars | Add `API_URL=https://kindapi-production.up.railway.app` → delete `NEXT_PUBLIC_API_URL` → Save |
+| T-5 | Vercel kind-admin: update env vars | Add `SUPABASE_SERVICE_ROLE_KEY`, confirm `ADMIN_SECRET` and `API_URL` are set |
+| T-6 | Redeploy kind-portal | Vercel → kind-portal → Deployments → Redeploy |
+| T-7 | Redeploy kind-admin | Vercel → kind-admin → Deployments → Redeploy |
+| T-8 | Redeploy Railway API | Railway → kindapi → Deploy → Redeploy latest |
+| T-9 | Upload 5 T&C PDFs to Terms Library | Go to kind-admin → Terms Library → upload each PDF with correct type |
+| T-10 | Full flow test | Settings save → ICP → Messages → Order Form → Sign → Payment banner shows |
+
+---
+
+## PRIORITY 0 — Launch Blocker (Deferred from 11 May)
 
 These are blocking everything. Nothing in the portal works correctly until these are done.
 

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { PRODUCTS, FIGSY_ADDONS } from '@kind/shared'
 import type { Subscription } from '@kind/shared'
-import { CreditCard, Check, Loader2, Zap } from 'lucide-react'
+import { Check, Loader2, Zap } from 'lucide-react'
 
 const PRODUCT_LABELS: Record<string, string> = {
   lead_gen:          'AI Lead Generation',

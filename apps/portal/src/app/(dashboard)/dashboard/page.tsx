@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { StatCard } from '@/components/ui/StatCard'

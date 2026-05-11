@@ -75,31 +75,7 @@
     #scene-counter { font-size: 12px; color: rgba(255,255,255,0.3); min-width: 50px; text-align: center; }
 
     /* ── Voiceover subtitle ── */
-    #subtitle {
-      position: fixed;
-      bottom: 72px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.7);
-      border: 1px solid rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.7);
-      font-size: 13px;
-      line-height: 1.6;
-      padding: 10px 20px;
-      border-radius: 10px;
-      max-width: 700px;
-      text-align: center;
-      backdrop-filter: blur(8px);
-      z-index: 99;
-    }
-    #subtitle-label {
-      font-size: 10px;
-      color: #6366f1;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
+    #subtitle { display: none; }
 
     /* ── Animations ── */
     @keyframes fadeUp {

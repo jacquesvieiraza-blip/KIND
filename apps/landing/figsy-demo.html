@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIGSY — AI Sales Agent by K.I.N.D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f172a;
+      color: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      user-select: none;
+    }
+
+    /* ── Scene container ── */
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 80px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+    }
+    .scene.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── Progress bar ── */
+    #progress-bar {
+      position: fixed;
+      bottom: 0; left: 0;
+      height: 3px;
+      background: #6366f1;
+      transition: width 0.1s linear;
+      z-index: 100;
+    }
+
+    /* ── Controls ── */
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 100;
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 100px;
+      padding: 10px 20px;
+      backdrop-filter: blur(10px);
+    }
+    #controls button {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      font-size: 18px;
+      transition: color 0.2s;
+      padding: 4px 8px;
+    }
+    #controls button:hover { color: #fff; }
+    #scene-counter { font-size: 12px; color: rgba(255,255,255,0.3); min-width: 50px; text-align: center; }
+
+    /* ── Voiceover subtitle ── */
+    #subtitle {
+      position: fixed;
+      bottom: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 10px 20px;
+      border-radius: 10px;
+      max-width: 700px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+      z-index: 99;
+    }
+    #subtitle-label {
+      font-size: 10px;
+      color: #6366f1;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes slideLeft {
+      from { opacity: 0; transform: translateX(30px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes countUp { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes ping {
+      0%   { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes planeFly {
+      from { transform: translateX(0) translateY(0) rotate(-10deg); opacity: 1; }
+      to   { transform: translateX(80px) translateY(-40px) rotate(-10deg); opacity: 0; }
+    }
+    @keyframes typing {
+      from { width: 0; }
+      to   { width: 100%; }
+    }
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 30px rgba(99,102,241,0.3); }
+      50%       { box-shadow: 0 0 80px rgba(99,102,241,0.6); }
+    }
+    @keyframes dropIn {
+      from { opacity: 0; transform: translateY(-20px) scale(0.9); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .anim-fadeup   { animation: fadeUp 0.6s ease forwards; }
+    .anim-fadein   { animation: fadeIn 0.6s ease forwards; }
+    .anim-scalein  { animation: scaleIn 0.5s ease forwards; }
+    .anim-slideleft { animation: slideLeft 0.5s ease forwards; }
+
+    /* ── Shared UI ── */
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #818cf8;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 5px 12px; border-radius: 100px;
+    }
+    .headline {
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 900; line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #818cf8, #a78bfa, #c084fc);
+      background-size: 200% 200%;
+      animation: gradientShift 4s ease infinite;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px 24px;
+    }
+
+    /* ═══════════════════════════ SCENE 1: PROBLEM ═══════════════════════════ */
+    #s1-glow {
+      position: absolute;
+      top: 40%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 500px; height: 300px;
+      background: radial-gradient(ellipse, rgba(239,68,68,0.12), transparent 70%);
+      pointer-events: none;
+    }
+    .problem-card {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 12px; padding: 14px 20px;
+      opacity: 0;
+    }
+    .problem-card .icon { font-size: 20px; }
+    .problem-card .label { font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.7); }
+    .problem-card .x { color: #f87171; font-size: 18px; margin-left: auto; }
+
+    /* ═══════════════════════════ SCENE 2: REVEAL ═══════════════════════════ */
+    #s2-glow {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, rgba(99,102,241,0.2), transparent 60%);
+      animation: glowPulse 2s ease infinite;
+      pointer-events: none;
+    }
+    #figsy-wordmark {
+      font-size: clamp(60px, 10vw, 120px);
+      font-weight: 900; letter-spacing: -0.04em;
+    }
+    .letter { display: inline-block; opacity: 0; }
+
+    /* ═══════════════════════════ SCENE 3: FIND ═══════════════════════════ */
+    .icp-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      opacity: 0;
+    }
+    .icp-label { font-size: 11px; color: rgba(255,255,255,0.3); width: 80px; }
+    .icp-value { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); }
+    .contact-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 12px 16px;
+      opacity: 0;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #a78bfa);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
+    }
+    .contact-name { font-size: 13px; font-weight: 600; }
+    .contact-meta { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .check { color: #4ade80; font-size: 16px; margin-left: auto; }
+
+    /* ═══════════════════════════ SCENE 4: EMAIL ═══════════════════════════ */
+    .email-window {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; overflow: hidden;
+      width: 100%; max-width: 640px;
+    }
+    .email-titlebar {
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .email-field {
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .field-label { font-size: 11px; color: rgba(255,255,255,0.25); width: 32px; }
+    .field-value { font-size: 13px; color: rgba(255,255,255,0.6); }
+    .email-body { padding: 20px; font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.7; min-height: 120px; }
+    #typewriter-text { white-space: pre-wrap; }
+    #cursor { display: inline-block; width: 2px; height: 14px; background: #818cf8; margin-left: 1px; animation: pulse 0.8s ease infinite; vertical-align: middle; }
+    .ai-badge {
+      margin: 0 20px 16px;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 8px; padding: 6px 12px;
+      font-size: 11px; color: #818cf8; font-weight: 600;
+    }
+
+    /* ═══════════════════════════ SCENE 5: SEND ═══════════════════════════ */
+    .timeline-row {
+      display: flex; align-items: center; gap: 16px;
+      opacity: 0;
+    }
+    .tl-day {
+      font-size: 11px; color: rgba(255,255,255,0.3);
+      width: 48px; text-align: right; flex-shrink: 0;
+    }
+    .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .tl-content {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 16px;
+      font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .tl-content .badge {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 100px;
+      margin-left: auto;
+    }
+    .plane {
+      font-size: 18px;
+      display: inline-block;
+    }
+
+    /* ═══════════════════════════ SCENE 6: CALENDAR ═══════════════════════════ */
+    .cal-header {
+      display: grid; grid-template-columns: 60px repeat(5, 1fr);
+      gap: 6px; margin-bottom: 6px;
+    }
+    .cal-day-label { font-size: 11px; color: rgba(255,255,255,0.3); text-align: center; padding: 6px 0; }
+    .cal-grid {
+      display: grid; grid-template-columns: 60px repeat(5, 1fr);
+      gap: 6px;
+    }
+    .cal-time { font-size: 10px; color: rgba(255,255,255,0.2); text-align: right; padding-right: 8px; padding-top: 4px; }
+    .cal-slot { height: 40px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04); }
+    .cal-meeting {
+      height: 40px; border-radius: 8px;
+      padding: 4px 8px; font-size: 10px; font-weight: 600;
+      line-height: 1.3;
+      opacity: 0;
+    }
+
+    /* ═══════════════════════════ SCENE 7: RESULTS ═══════════════════════════ */
+    .stat-card {
+      text-align: center;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px; padding: 36px 32px;
+      opacity: 0;
+    }
+    .stat-number {
+      font-size: clamp(48px, 6vw, 80px);
+      font-weight: 900; line-height: 1;
+    }
+    .stat-label { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 8px; }
+
+    /* ═══════════════════════════ SCENE 8: CTA ═══════════════════════════ */
+    #s8-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(99,102,241,0.25), transparent 65%);
+      pointer-events: none;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: #6366f1; color: #fff;
+      font-size: 16px; font-weight: 700;
+      padding: 16px 40px; border-radius: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      animation: glowPulse 2s ease infinite;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div id="progress-bar" style="width:0%"></div>
+
+<!-- Controls -->
+<div id="controls">
+  <button onclick="prevScene()" title="Previous">◀</button>
+  <button onclick="toggleAuto()" id="play-btn" title="Play/Pause">⏸</button>
+  <span id="scene-counter">1 / 8</span>
+  <button onclick="nextScene()" title="Next">▶</button>
+</div>
+
+<!-- Voiceover subtitle -->
+<div id="subtitle">
+  <div id="subtitle-label">🎙 Voiceover</div>
+  <div id="subtitle-text"></div>
+</div>
+
+<!-- ═══════════ SCENE 1: PROBLEM ═══════════ -->
+<div class="scene" id="scene-1">
+  <div id="s1-glow"></div>
+  <div style="max-width:640px; width:100%; text-align:center;">
+    <div class="chip" style="margin-bottom:24px; opacity:0;" id="s1-chip">The Problem</div>
+    <h1 class="headline" style="opacity:0; margin-bottom:12px;" id="s1-h1">
+      Your pipeline isn't<br/><span style="color:#f87171;">filling itself.</span>
+    </h1>
+    <p style="color:rgba(255,255,255,0.4); font-size:16px; margin-bottom:40px; opacity:0;" id="s1-sub">
+      Your team spends 40+ hours a month on tasks that rarely turn into meetings.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:12px; max-width:420px; margin:0 auto;">
+      <div class="problem-card" id="s1-c1">
+        <span class="icon">🔍</span>
+        <span class="label">Finding the right prospects</span>
+        <span class="x">✗</span>
+      </div>
+      <div class="problem-card" id="s1-c2">
+        <span class="icon">✍️</span>
+        <span class="label">Writing individual emails</span>
+        <span class="x">✗</span>
+      </div>
+      <div class="problem-card" id="s1-c3">
+        <span class="icon">🔄</span>
+        <span class="label">Chasing replies manually</span>
+        <span class="x">✗</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCENE 2: REVEAL ═══════════ -->
+<div class="scene" id="scene-2">
+  <div id="s2-glow"></div>
+  <div style="text-align:center;">
+    <p style="font-size:13px; color:rgba(255,255,255,0.3); letter-spacing:0.2em; text-transform:uppercase; font-weight:600; margin-bottom:20px; opacity:0;" id="s2-intro">Meet your new sales agent</p>
+    <div id="figsy-wordmark" class="gradient-text">
+      <span class="letter" id="l-f">F</span><span class="letter" id="l-i">I</span><span class="letter" id="l-g">G</span><span class="letter" id="l-s">S</span><span class="letter" id="l-y">Y</span>
+    </div>
+    <p style="font-size:18px; color:rgba(255,255,255,0.5); margin-top:16px; opacity:0; letter-spacing:0.05em;" id="s2-tagline">AI Sales Agent — by K.I.N.D</p>
+    <div style="margin-top:40px; display:flex; justify-content:center; gap:32px; opacity:0;" id="s2-pills">
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:900; color:#818cf8;">Find</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.3); margin-top:4px;">Ideal clients</div>
+      </div>
+      <div style="color:rgba(255,255,255,0.15); font-size:24px; display:flex; align-items:center;">→</div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:900; color:#a78bfa;">Engage</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.3); margin-top:4px;">Personally</div>
+      </div>
+      <div style="color:rgba(255,255,255,0.15); font-size:24px; display:flex; align-items:center;">→</div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:900; color:#c084fc;">Book</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.3); margin-top:4px;">Meetings</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCENE 3: FIND ═══════════ -->
+<div class="scene" id="scene-3">
+  <div style="max-width:800px; width:100%;">
+    <div style="text-align:center; margin-bottom:40px; opacity:0;" id="s3-header">
+      <div class="chip" style="margin-bottom:16px;">Step 1 of 4</div>
+      <h2 class="headline">FIGSY <span class="gradient-text">finds</span> your people</h2>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 48px 1fr; gap:24px; align-items:start;">
+      <!-- ICP Panel -->
+      <div>
+        <p style="font-size:11px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-bottom:12px;">Your ICP</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="icp-row" id="icp1"><span class="icp-label">Industry</span><span class="icp-value">SaaS / Tech</span></div>
+          <div class="icp-row" id="icp2"><span class="icp-label">Size</span><span class="icp-value">50 – 500 employees</span></div>
+          <div class="icp-row" id="icp3"><span class="icp-label">Title</span><span class="icp-value">Head of Sales / Growth</span></div>
+          <div class="icp-row" id="icp4"><span class="icp-label">Location</span><span class="icp-value">South Africa · Global</span></div>
+          <div class="icp-row" id="icp5"><span class="icp-label">Signal</span><span class="icp-value">Recently funded 💰</span></div>
+        </div>
+      </div>
+      <!-- Arrow -->
+      <div style="display:flex; align-items:center; justify-content:center; height:100%; padding-top:60px;">
+        <div style="color:#6366f1; font-size:28px; opacity:0;" id="s3-arrow">→</div>
+      </div>
+      <!-- Results Panel -->
+      <div>
+        <p style="font-size:11px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.1em; font-weight:600; margin-bottom:12px;">Contacts found</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="contact-card" id="cc1">
+            <div class="avatar">SM</div>
+            <div><div class="contact-name">Sarah M.</div><div class="contact-meta">Head of Growth · Acme Corp</div></div>
+            <span class="check">✓</span>
+          </div>
+          <div class="contact-card" id="cc2">
+            <div class="avatar" style="background:linear-gradient(135deg,#a78bfa,#c084fc);">JT</div>
+            <div><div class="contact-name">James T.</div><div class="contact-meta">VP Sales · TechFlow SA</div></div>
+            <span class="check">✓</span>
+          </div>
+          <div class="contact-card" id="cc3">
+            <div class="avatar" style="background:linear-gradient(135deg,#34d399,#10b981);">PN</div>
+            <div><div class="contact-name">Priya N.</div><div class="contact-meta">Sales Director · NovaBuild</div></div>
+            <span class="check">✓</span>
+          </div>
+        </div>
+        <div style="text-align:center; margin-top:12px; font-size:12px; color:rgba(255,255,255,0.3); opacity:0;" id="s3-count">+ 197 more from 275M+ contacts</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCENE 4: EMAIL ═══════════ -->
+<div class="scene" id="scene-4">
+  <div style="max-width:640px; width:100%;">
+    <div style="text-align:center; margin-bottom:32px; opacity:0;" id="s4-header">
+      <div class="chip" style="margin-bottom:16px;">Step 2 of 4</div>
+      <h2 class="headline">Every email is <span class="gradient-text">personal</span></h2>
+    </div>
+    <!-- Contact trigger card -->
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; opacity:0;" id="s4-trigger">
+      <div class="avatar" style="width:44px;height:44px;font-size:16px;">SM</div>
+      <div>
+        <div style="font-size:14px; font-weight:600;">Sarah M. — Head of Growth, Acme Corp</div>
+        <div style="font-size:12px; color:rgba(255,255,255,0.4); margin-top:2px;">Series A raised · 180 employees · SaaS</div>
+      </div>
+      <div style="margin-left:auto; font-size:11px; color:#818cf8; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2); padding:4px 10px; border-radius:100px;">ICP match ✓</div>
+    </div>
+    <div class="email-window" id="s4-email" style="opacity:0;">
+      <div class="email-titlebar">
+        <div class="dot" style="background:#ef4444;"></div>
+        <div class="dot" style="background:#f59e0b;"></div>
+        <div class="dot" style="background:#22c55e;"></div>
+        <span style="margin-left:8px; font-size:12px; color:rgba(255,255,255,0.3);">FIGSY — composing</span>
+        <span style="margin-left:auto; font-size:10px; color:#818cf8; animation:pulse 1s ease infinite;">● AI writing…</span>
+      </div>
+      <div class="email-field"><span class="field-label">To</span><span class="field-value">sarah.m@acmecorp.co.za</span></div>
+      <div class="email-field"><span class="field-label">Sub</span><span class="field-value">Congrats on the Series A, Sarah</span></div>
+      <div class="email-body"><span id="typewriter-text"></span><span id="cursor"></span></div>
+      <div class="ai-badge" id="s4-badge" style="opacity:0;">✦ Written for Sarah specifically — not a template</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCENE 5: SEND ═══════════ -->
+<div class="scene" id="scene-5">
+  <div style="max-width:600px; width:100%;">
+    <div style="text-align:center; margin-bottom:40px; opacity:0;" id="s5-header">
+      <div class="chip" style="margin-bottom:16px;">Step 3 of 4</div>
+      <h2 class="headline">Send. Follow up.<br/><span class="gradient-text">Handle replies.</span></h2>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:12px; position:relative;">
+      <!-- Vertical line -->
+      <div style="position:absolute; left:116px; top:20px; bottom:20px; width:1px; background:rgba(255,255,255,0.06);"></div>
+
+      <div class="timeline-row" id="tl1">
+        <span class="tl-day">Day 1</span>
+        <div class="tl-dot" style="background:#6366f1;"></div>
+        <div class="tl-content">
+          <span>📤</span>
+          <span>First email sent — personalised for Sarah</span>
+          <span class="badge" style="background:rgba(99,102,241,0.1); color:#818cf8;">Sent</span>
+        </div>
+      </div>
+      <div class="timeline-row" id="tl2">
+        <span class="tl-day">Day 3</span>
+        <div class="tl-dot" style="background:#6366f1; opacity:0.5;"></div>
+        <div class="tl-content" style="opacity:0.7;">
+          <span>📤</span>
+          <span>No reply — follow-up sent automatically</span>
+          <span class="badge" style="background:rgba(99,102,241,0.1); color:#818cf8;">Auto</span>
+        </div>
+      </div>
+      <div class="timeline-row" id="tl3">
+        <span class="tl-day">Day 5</span>
+        <div class="tl-dot" style="background:#4ade80; box-shadow:0 0 10px rgba(74,222,128,0.5);"></div>
+        <div class="tl-content" style="border-color:rgba(74,222,128,0.2); background:rgba(74,222,128,0.05);">
+          <span>💬</span>
+          <span style="color:rgba(255,255,255,0.9);">Sarah replied — <strong>"Yes, let's chat"</strong></span>
+          <span class="badge" style="background:rgba(74,222,128,0.15); color:#4ade80;">🔥 Hot lead</span>
+        </div>
+      </div>
+      <div class="timeline-row" id="tl4">
+        <span class="tl-day">Day 2</span>
+        <div class="tl-dot" style="background:#f87171;"></div>
+        <div class="tl-content" style="border-color:rgba(248,113,113,0.15); opacity:0.6;">
+          <span>🚫</span>
+          <span>James replied — "Unsubscribe"</span>
+          <span class="badge" style="background:rgba(248,113,113,0.1); color:#f87171;">Blocked ✓</span>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:12px; color:rgba(255,255,255,0.25); margin-top:4px; opacity:0;" id="s5-note">POPIA · GDPR · CAN-SPAM compliant — every send</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCENE 6: CALENDAR ═══════════ -->
+<div class="scene" id="scene-6">
+  <div style="max-width:700px; width:100%;">
+    <div style="text-align:center; margin-bottom:32px; opacity:0;" id="s6-header">
+      <div class="chip" style="margin-bottom:16px;">Step 4 of 4</div>
+      <h2 class="headline">Meetings land in<br/><span class="gradient-text">your calendar.</span></h2>
+    </div>
+    <div style="background:#1e293b; border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:20px; opacity:0;" id="s6-cal">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <span style="font-size:14px; font-weight:700;">May 2026</span>
+        <span style="font-size:12px; color:rgba(255,255,255,0.3);">← Week 3 →</span>
+      </div>
+      <div class="cal-header">
+        <div></div>
+        <div class="cal-day-label">Mon<br/><strong>18</strong></div>
+        <div class="cal-day-label">Tue<br/><strong>19</strong></div>
+        <div class="cal-day-label">Wed<br/><strong>20</strong></div>
+        <div class="cal-day-label">Thu<br/><strong>21</strong></div>
+        <div class="cal-day-label">Fri<br/><strong>22</strong></div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-time">9:00</div>
+        <div class="cal-slot"></div>
+        <div class="cal-meeting" id="cm1" style="background:rgba(99,102,241,0.25); border:1px solid rgba(99,102,241,0.4); color:#a5b4fc;">Discovery<br/>Sarah M.</div>
+        <div class="cal-slot"></div>
+        <div class="cal-slot"></div>
+        <div class="cal-meeting" id="cm2" style="background:rgba(167,139,250,0.2); border:1px solid rgba(167,139,250,0.3); color:#c4b5fd;">Intro Call<br/>Priya N.</div>
+
+        <div class="cal-time">10:00</div>
+        <div class="cal-slot"></div>
+        <div class="cal-slot"></div>
+        <div class="cal-meeting" id="cm3" style="background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.3); color:#6ee7b7;">Demo<br/>James T.</div>
+        <div class="cal-slot"></div>
+        <div class="cal-slot"></div>
+
+        <div class="cal-time">11:00</div>
+        <div class="cal-meeting" id="cm4" style="background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.3); color:#a5b4fc;">Strategy<br/>Lebo K.</div>
+        <div class="cal-slot"></div>
+        <div class="cal-slot"></div>
+        <div class="cal-meeting" id="cm5" style="background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.25); color:#fde68a;">Follow-up<br/>Nia A.</div>
+        <div class="cal-slot"></div>
+      </div>
+    </div>
+    <p style="text-align:center; font-size:22px; font-weight:800; color:rgba(255,255,255,0.8); margin-top:24px; opacity:0;" id="s6-caption">You just show up. ☕</p>
+  </div>
+</div>
+
+<!-- ═══════════ SCENE 7: RESULTS ═══════════ -->
+<div class="scene" id="scene-7">
+  <div style="max-width:700px; width:100%; text-align:center;">
+    <div style="opacity:0; margin-bottom:48px;" id="s7-header">
+      <h2 class="headline">While you sleep,<br/><span class="gradient-text">FIGSY works.</span></h2>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px;">
+      <div class="stat-card" id="st1">
+        <div class="stat-number gradient-text">6×</div>
+        <div class="stat-label">more meetings vs<br/>manual outreach</div>
+      </div>
+      <div class="stat-card" id="st2">
+        <div class="stat-number" style="color:#4ade80;">40h</div>
+        <div class="stat-label">saved per rep<br/>every month</div>
+      </div>
+      <div class="stat-card" id="st3">
+        <div class="stat-number" style="color:#f59e0b;">24/7</div>
+        <div class="stat-label">always on<br/>never sleeps</div>
+      </div>
+    </div>
+    <p style="color:rgba(255,255,255,0.3); font-size:14px; margin-top:32px; opacity:0;" id="s7-sub">
+      Every lead found, every email written, every reply handled — automatically.
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════ SCENE 8: CTA ═══════════ -->
+<div class="scene" id="scene-8">
+  <div id="s8-bg"></div>
+  <div style="text-align:center; max-width:600px; position:relative;">
+    <div style="width:64px; height:64px; background:#6366f1; border-radius:18px; display:flex; align-items:center; justify-content:center; margin:0 auto 24px; opacity:0;" id="s8-logo">
+      <span style="font-size:28px; font-weight:900;">K</span>
+    </div>
+    <div style="font-size:14px; color:rgba(255,255,255,0.3); letter-spacing:0.2em; text-transform:uppercase; font-weight:600; margin-bottom:12px; opacity:0;" id="s8-kw">K.I.N.D</div>
+    <div style="font-size:clamp(48px,8vw,96px); font-weight:900; letter-spacing:-0.03em; opacity:0;" id="s8-figsy" class="gradient-text">FIGSY</div>
+    <p style="font-size:18px; color:rgba(255,255,255,0.5); margin-top:8px; margin-bottom:40px; opacity:0;" id="s8-tag">Find. Engage. Book. Repeat.</p>
+    <div style="opacity:0;" id="s8-launch">
+      <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:100px; padding:8px 20px; font-size:13px; color:rgba(255,255,255,0.5); margin-bottom:24px;">
+        <span style="width:8px;height:8px;background:#4ade80;border-radius:50%;display:inline-block;animation:pulse 1.5s ease infinite;"></span>
+        Launching 31 May 2026
+      </div>
+      <br/>
+      <a href="#" class="cta-btn">Join the waitlist →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const scenes = document.querySelectorAll('.scene')
+  const progressBar = document.getElementById('progress-bar')
+  const sceneCounter = document.getElementById('scene-counter')
+  const subtitleText = document.getElementById('subtitle-text')
+  const playBtn = document.getElementById('play-btn')
+
+  let current = 0
+  let autoPlay = true
+  let timer = null
+  let typeTimer = null
+
+  const VOICEOVERS = [
+    "Your sales team is spending hours every week finding prospects, writing emails, chasing replies. Most of it never turns into a meeting.",
+    "There's a better way. Meet FIGSY — your AI sales agent from K.I.N.D.",
+    "FIGSY starts by finding the right people. Using your Ideal Customer Profile, it searches a database of over 275 million professionals and identifies exactly who you should be talking to.",
+    "Then it writes a personal email to each one. Not a template. FIGSY reads their profile — their role, their company, what they've been doing — and writes something that sounds human.",
+    "It sends the email. If there's no reply, it follows up at the right time. The moment someone responds, FIGSY stops and flags them. Opt-outs are handled automatically — POPIA and GDPR compliant, every time.",
+    "And when a lead is ready to talk — the meeting lands in your calendar. You just show up.",
+    "While your competitors are writing emails one by one, FIGSY is working 24/7 — finding leads, starting conversations, and filling your pipeline.",
+    "K.I.N.D. Launching 31 May. Join the waitlist and lock in your early access pricing."
+  ]
+
+  const DURATIONS = [7000, 6000, 8000, 9000, 8000, 7000, 7000, 8000]
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+  function animate(el, cls, delayMs = 0) {
+    if (!el) return
+    setTimeout(() => {
+      el.style.opacity = '1'
+      el.classList.add(cls)
+    }, delayMs)
+  }
+
+  // ── Scene animations ──
+  async function animateScene(index) {
+    if (typeTimer) { clearInterval(typeTimer); typeTimer = null }
+
+    if (index === 0) { // Scene 1
+      animate(document.getElementById('s1-chip'), 'anim-fadeup', 0)
+      animate(document.getElementById('s1-h1'), 'anim-fadeup', 200)
+      animate(document.getElementById('s1-sub'), 'anim-fadeup', 400)
+      ;[['s1-c1',600],['s1-c2',800],['s1-c3',1000]].forEach(([id,d]) => animate(document.getElementById(id), 'anim-slideleft', d))
+    }
+
+    if (index === 1) { // Scene 2
+      animate(document.getElementById('s2-intro'), 'anim-fadein', 200)
+      const letters = ['l-f','l-i','l-g','l-s','l-y']
+      letters.forEach((id, i) => animate(document.getElementById(id), 'anim-scaleIn', 400 + i * 120))
+      animate(document.getElementById('s2-tagline'), 'anim-fadeup', 1200)
+      animate(document.getElementById('s2-pills'), 'anim-fadeup', 1600)
+    }
+
+    if (index === 2) { // Scene 3
+      animate(document.getElementById('s3-header'), 'anim-fadeup', 0)
+      ;[['icp1',200],['icp2',350],['icp3',500],['icp4',650],['icp5',800]].forEach(([id,d]) => animate(document.getElementById(id), 'anim-slideleft', d))
+      animate(document.getElementById('s3-arrow'), 'anim-fadein', 1000)
+      ;[['cc1',1100],['cc2',1350],['cc3',1600]].forEach(([id,d]) => animate(document.getElementById(id), 'anim-fadeup', d))
+      animate(document.getElementById('s3-count'), 'anim-fadein', 2000)
+    }
+
+    if (index === 3) { // Scene 4
+      animate(document.getElementById('s4-header'), 'anim-fadeup', 0)
+      animate(document.getElementById('s4-trigger'), 'anim-slideleft', 400)
+      animate(document.getElementById('s4-email'), 'anim-fadeup', 900)
+
+      const emailContent = "Hi Sarah,\n\nCongrats on the Series A — raising in this market is impressive.\n\nI noticed you're scaling the sales team at Acme. Most growth-stage teams hit the same wall: SDRs are expensive, ramp is slow, and pipeline dries up.\n\nWe built FIGSY to fix exactly that. It finds your prospects, writes them a personal email, and books the meeting — automatically.\n\nWorth a 20-minute call this week?\n\n— FIGSY, K.I.N.D"
+      const el = document.getElementById('typewriter-text')
+      if (el) {
+        el.textContent = ''
+        let i = 0
+        setTimeout(() => {
+          typeTimer = setInterval(() => {
+            if (i < emailContent.length) { el.textContent = emailContent.slice(0, ++i) }
+            else {
+              clearInterval(typeTimer)
+              animate(document.getElementById('s4-badge'), 'anim-fadein', 200)
+            }
+          }, 14)
+        }, 1100)
+      }
+    }
+
+    if (index === 4) { // Scene 5
+      animate(document.getElementById('s5-header'), 'anim-fadeup', 0)
+      ;[['tl1',400],['tl2',900],['tl3',1400],['tl4',1900]].forEach(([id,d]) => animate(document.getElementById(id), 'anim-slideleft', d))
+      animate(document.getElementById('s5-note'), 'anim-fadein', 2400)
+    }
+
+    if (index === 5) { // Scene 6
+      animate(document.getElementById('s6-header'), 'anim-fadeup', 0)
+      animate(document.getElementById('s6-cal'), 'anim-fadeup', 600)
+      ;[['cm1',1000],['cm2',1300],['cm3',1600],['cm4',1900],['cm5',2200]].forEach(([id,d]) => animate(document.getElementById(id), 'anim-dropIn', d))
+      animate(document.getElementById('s6-caption'), 'anim-fadeup', 2600)
+    }
+
+    if (index === 6) { // Scene 7
+      animate(document.getElementById('s7-header'), 'anim-fadeup', 0)
+      ;[['st1',400],['st2',700],['st3',1000]].forEach(([id,d]) => animate(document.getElementById(id), 'anim-scaleIn', d))
+      animate(document.getElementById('s7-sub'), 'anim-fadein', 1400)
+    }
+
+    if (index === 7) { // Scene 8
+      animate(document.getElementById('s8-logo'), 'anim-scaleIn', 0)
+      animate(document.getElementById('s8-kw'), 'anim-fadein', 400)
+      animate(document.getElementById('s8-figsy'), 'anim-fadeup', 700)
+      animate(document.getElementById('s8-tag'), 'anim-fadein', 1100)
+      animate(document.getElementById('s8-launch'), 'anim-fadeup', 1500)
+    }
+  }
+
+  // Register additional keyframes
+  const style = document.createElement('style')
+  style.textContent = `
+    .anim-scaleIn { animation: scaleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards !important; }
+    .anim-dropIn  { animation: dropIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards !important; }
+  `
+  document.head.appendChild(style)
+
+  function resetScene(index) {
+    // Reset animated elements in a scene
+    const scene = scenes[index]
+    if (!scene) return
+    scene.querySelectorAll('[id]').forEach(el => {
+      const wasVisible = ['s1-chip','s1-h1','s1-sub','s2-intro','s2-tagline','s2-pills',
+        's3-header','s3-arrow','s3-count','s4-header','s4-trigger','s4-email','s4-badge',
+        's5-header','s5-note','s6-header','s6-cal','s6-caption','s7-header','s7-sub',
+        's8-logo','s8-kw','s8-figsy','s8-tag','s8-launch']
+      if (wasVisible.includes(el.id)) {
+        el.style.opacity = '0'
+        el.style.transform = ''
+        el.classList.remove('anim-fadeup','anim-fadein','anim-scalein','anim-slideleft','anim-scaleIn','anim-dropIn')
+      }
+    })
+    // Reset cards
+    scene.querySelectorAll('.problem-card, .icp-row, .contact-card, .timeline-row, .stat-card, .letter, .cal-meeting').forEach(el => {
+      el.style.opacity = '0'
+      el.classList.remove('anim-fadeup','anim-fadein','anim-scalein','anim-slideleft','anim-scaleIn','anim-dropIn')
+    })
+    if (index === 3) {
+      const el = document.getElementById('typewriter-text')
+      if (el) el.textContent = ''
+    }
+  }
+
+  function goToScene(index) {
+    if (index < 0 || index >= scenes.length) return
+
+    scenes[current].classList.remove('active')
+    resetScene(index)
+    current = index
+    scenes[current].classList.add('active')
+
+    subtitleText.textContent = VOICEOVERS[current]
+    sceneCounter.textContent = `${current + 1} / ${scenes.length}`
+    progressBar.style.width = `${((current + 1) / scenes.length) * 100}%`
+
+    setTimeout(() => animateScene(current), 100)
+
+    if (autoPlay) scheduleNext()
+  }
+
+  function scheduleNext() {
+    clearTimeout(timer)
+    if (current < scenes.length - 1) {
+      timer = setTimeout(() => goToScene(current + 1), DURATIONS[current])
+    }
+  }
+
+  function nextScene() { clearTimeout(timer); goToScene(current + 1) }
+  function prevScene() { clearTimeout(timer); goToScene(current - 1) }
+
+  function toggleAuto() {
+    autoPlay = !autoPlay
+    playBtn.textContent = autoPlay ? '⏸' : '▶'
+    if (autoPlay) scheduleNext()
+    else clearTimeout(timer)
+  }
+
+  // Keyboard controls
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextScene() }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevScene() }
+    if (e.key === 'p' || e.key === 'P') toggleAuto()
+  })
+
+  // Start
+  goToScene(0)
+</script>
+</body>
+</html>

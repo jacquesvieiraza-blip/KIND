@@ -1,8 +1,6 @@
-export const dynamic = 'force-dynamic'
-
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { FileText, Upload, Trash2, ExternalLink, Loader2, GripVertical, CheckCircle } from 'lucide-react'
 

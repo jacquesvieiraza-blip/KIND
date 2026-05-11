@@ -15,8 +15,9 @@ async function getAdminStats() {
     supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'past_due'),
     supabase.from('leads').select('id', { count: 'exact', head: true }),
   ])
-  const mrrZar = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_zar || 0) / 100, 0)
-  return { totalClients: totalClients || 0, activeSubscriptions: activeSubs?.length || 0, trialClients: trialSubs?.length || 0, pastDue: pastDue || 0, totalLeads: totalLeads || 0, mrrZar, mrrUsd: Math.round(mrrZar / 19) }
+  const mrrUsd = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_usd || 0), 0)
+  const mrrZar = Math.round(mrrUsd * 19)
+  return { totalClients: totalClients || 0, activeSubscriptions: activeSubs?.length || 0, trialClients: trialSubs?.length || 0, pastDue: pastDue || 0, totalLeads: totalLeads || 0, mrrZar, mrrUsd }
 }
 
 export default async function AdminPage() {
@@ -47,7 +48,7 @@ export default async function AdminPage() {
           ))}
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h2 className="font-semibold mb-4">Progress to $100K Target</h2>
+          <h2 className="font-semibold mb-4">Progress to $26K MRR (Month 6 target)</h2>
           <div className="mb-2 flex justify-between text-sm"><span className="text-gray-500">Current MRR</span><span className="font-semibold">${stats.mrrUsd.toLocaleString()} / $26,000</span></div>
           <div className="w-full bg-gray-100 rounded-full h-3"><div className="bg-[#0066FF] h-3 rounded-full" style={{ width: `${Math.min((stats.mrrUsd / 26000) * 100, 100)}%` }} /></div>
           <p className="text-xs text-gray-400 mt-2">{((stats.mrrUsd / 26000) * 100).toFixed(1)}% of Month 6 MRR target</p>
@@ -59,15 +60,24 @@ export default async function AdminPage() {
               <div key={key} className="border border-gray-100 rounded-lg p-4">
                 <p className="font-medium text-sm">{product.name}</p>
                 <div className="mt-2 space-y-1">
-                  {Object.entries(product.tiers).map(([tier, config]) => (
-                    <div key={tier} className="flex justify-between text-xs text-gray-500">
-                      <span className="capitalize">{tier}</span><span>${(config as { price_usd: number }).price_usd}/mo</span>
-                    </div>
-                  ))}
+                  {Object.entries(product.tiers).map(([tier, config]) => {
+                    const c = config as { price_usd: number; custom?: boolean }
+                    return (
+                      <div key={tier} className="flex justify-between text-xs text-gray-500">
+                        <span className="capitalize">{tier}</span>
+                        <span>{c.custom ? 'Custom' : `$${c.price_usd}/mo`}</span>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             ))}
           </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <h2 className="font-semibold mb-1">Total Leads in Platform</h2>
+          <p className="text-3xl font-bold text-gray-900">{stats.totalLeads.toLocaleString()}</p>
+          <p className="text-sm text-gray-400 mt-1">across all clients</p>
         </div>
       </main>
     </div>

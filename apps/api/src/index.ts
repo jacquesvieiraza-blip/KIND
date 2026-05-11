@@ -8,6 +8,7 @@ import { clientRouter } from './routes/clients'
 import { subscriptionRouter } from './routes/subscriptions'
 import { paystackRouter } from './routes/paystack'
 import { leadRouter } from './routes/leads'
+import { icpRouter } from './routes/icps'
 import { errorHandler } from './middleware/error'
 
 const app = express()
@@ -20,11 +21,12 @@ app.use('/webhooks/paystack', express.raw({ type: 'application/json' }))
 app.use(express.json())
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'kind-api' }))
-app.use('/auth', authRouter)
-app.use('/clients', clientRouter)
+app.use('/auth',          authRouter)
+app.use('/clients',       clientRouter)
 app.use('/subscriptions', subscriptionRouter)
 app.use('/webhooks/paystack', paystackRouter)
-app.use('/leads', leadRouter)
+app.use('/leads',         leadRouter)
+app.use('/icps',          icpRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => console.log(`KIND API running on port ${PORT}`))

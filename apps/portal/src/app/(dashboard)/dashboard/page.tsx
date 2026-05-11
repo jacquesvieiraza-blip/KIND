@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { StatCard } from '@/components/ui/StatCard'
 import { ProductCard } from '@/components/ui/ProductCard'
-import { Users, Bot, MessageSquare, TrendingUp, Zap } from 'lucide-react'
+import { Users, Bot, MessageSquare, TrendingUp, Zap, ShieldCheck } from 'lucide-react'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
       </div>
     )
   }
-  const stats = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number } | null
+  const stats = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number } | null
   return (
     <div className="space-y-6">
       <div>
@@ -39,7 +39,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Leads" value={stats?.total ?? 0} icon={<Users className="w-5 h-5" />} color="blue" />
         <StatCard label="Scored" value={stats?.scored ?? 0} icon={<TrendingUp className="w-5 h-5" />} color="indigo" />
-        <StatCard label="POPIA Consented" value={stats?.consented ?? 0} icon={<Zap className="w-5 h-5" />} color="green" />
+        <StatCard label="POPIA Consented" value={stats?.consented ?? 0} icon={<ShieldCheck className="w-5 h-5" />} color="green" />
         <StatCard label="Avg Score" value={stats?.avg_score ?? 0} suffix="/100" icon={<TrendingUp className="w-5 h-5" />} color="purple" />
       </div>
       <div>

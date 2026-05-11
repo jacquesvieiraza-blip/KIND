@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D — AI Lead Generation & FIGSY Sales Agent</title>
+  <meta name="description" content="K.I.N.D finds your ideal clients and FIGSY books the meetings — automatically. Join the waitlist before 31 May launch." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  '#f0f4ff',
+              100: '#e0e9ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* Pipeline animation */
+    .pipeline-step {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .pipeline-step.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .pipeline-connector {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .pipeline-connector.visible {
+      opacity: 1;
+    }
+    /* Typewriter */
+    .typewriter-cursor::after {
+      content: '|';
+      animation: blink 0.7s step-end infinite;
+      color: #818cf8;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+    /* Pulse ring on "Meeting Booked" */
+    @keyframes ping {
+      75%, 100% { transform: scale(1.8); opacity: 0; }
+    }
+    .ping-ring {
+      animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    /* Glow card */
+    .glow-card {
+      box-shadow: 0 0 0 1px rgba(99,102,241,0.2), 0 4px 24px rgba(99,102,241,0.08);
+    }
+    .glow-card:hover {
+      box-shadow: 0 0 0 1px rgba(99,102,241,0.4), 0 8px 40px rgba(99,102,241,0.15);
+    }
+    /* Smooth scroll */
+    html { scroll-behavior: smooth; }
+    /* Badge pulse */
+    @keyframes badge-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
+    }
+    .badge-pulse { animation: badge-pulse 2.5s ease infinite; }
+  </style>
+</head>
+<body class="bg-slate-950 text-white font-sans antialiased">
+
+  <!-- ───────────────────────────────── NAV ───────────────────────────────── -->
+  <nav class="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
+          <span class="text-white font-black text-xs">K</span>
+        </div>
+        <span class="font-bold text-white tracking-tight">K.I.N.D</span>
+      </div>
+      <div class="hidden md:flex items-center gap-8 text-sm text-white/50">
+        <a href="#how-it-works" class="hover:text-white transition-colors">How it works</a>
+        <a href="#products" class="hover:text-white transition-colors">Products</a>
+        <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+      </div>
+      <a href="#waitlist" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+        Join the waitlist
+      </a>
+    </div>
+  </nav>
+
+  <!-- ───────────────────────────────── HERO ───────────────────────────────── -->
+  <section class="pt-36 pb-24 px-6 text-center relative overflow-hidden">
+    <!-- Background glow -->
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-brand-500/10 rounded-full blur-[120px]"></div>
+    </div>
+
+    <div class="relative max-w-4xl mx-auto">
+      <div class="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 rounded-full px-4 py-1.5 text-sm text-brand-400 font-medium mb-8 badge-pulse">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-400 inline-block"></span>
+        Launching 31 May 2026 — Limited early access
+      </div>
+
+      <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6">
+        Your pipeline,<br />
+        <span class="gradient-text">on autopilot.</span>
+      </h1>
+
+      <p class="text-xl text-white/50 max-w-2xl mx-auto leading-relaxed mb-10">
+        K.I.N.D finds your ideal clients. <strong class="text-white/80">FIGSY</strong> writes a personal email to each one, handles the replies, and books the meeting — while you sleep.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="#waitlist" class="w-full sm:w-auto bg-brand-500 hover:bg-brand-600 text-white font-bold px-8 py-4 rounded-xl text-base transition-colors">
+          Register your interest
+        </a>
+        <a href="#how-it-works" class="w-full sm:w-auto border border-white/10 hover:border-white/20 text-white/70 hover:text-white font-medium px-8 py-4 rounded-xl text-base transition-colors">
+          See how it works
+        </a>
+      </div>
+
+      <!-- Social proof counter -->
+      <p class="mt-8 text-sm text-white/30">
+        Join <span class="text-white/60 font-semibold" id="counter">—</span> businesses already on the waitlist
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── PROBLEM STRIP ─────────────────────────── -->
+  <section class="border-y border-white/5 bg-white/[0.02] py-12 px-6">
+    <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+      <div>
+        <p class="text-4xl font-black text-white mb-2">78%</p>
+        <p class="text-white/40 text-sm">of outreach emails are never opened because they're generic</p>
+      </div>
+      <div>
+        <p class="text-4xl font-black text-white mb-2">40hrs</p>
+        <p class="text-white/40 text-sm">per month the average SDR spends on manual prospecting</p>
+      </div>
+      <div>
+        <p class="text-4xl font-black text-white mb-2">6×</p>
+        <p class="text-white/40 text-sm">more meetings booked when outreach is personalised per contact</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────── HOW FIGSY WORKS (ANIMATION) ─────────────────────── -->
+  <section id="how-it-works" class="py-28 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-20">
+        <p class="text-brand-400 text-sm font-semibold uppercase tracking-widest mb-3">Meet FIGSY</p>
+        <h2 class="text-4xl md:text-5xl font-black mb-4">
+          Find. Engage. Book.<br />
+          <span class="gradient-text">Repeat.</span>
+        </h2>
+        <p class="text-white/40 text-lg max-w-xl mx-auto">
+          FIGSY is your AI sales agent. It runs the entire outbound pipeline — from finding the right person to getting them on your calendar.
+        </p>
+      </div>
+
+      <!-- 5-step pipeline -->
+      <div class="relative" id="pipeline">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
+
+          <!-- Step 1 -->
+          <div class="pipeline-step flex flex-col items-center text-center w-full md:w-36" data-delay="0">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center text-2xl mb-3 relative">
+              🎯
+            </div>
+            <p class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Find</p>
+            <p class="text-sm font-semibold text-white mb-1">Ideal Leads</p>
+            <p class="text-xs text-white/40 leading-relaxed">Matches your ICP using Apollo's database of 275M+ contacts</p>
+          </div>
+
+          <!-- Connector 1 -->
+          <div class="pipeline-connector hidden md:flex flex-col items-center gap-1 px-2" data-delay="1">
+            <svg width="48" height="16" viewBox="0 0 48 16" fill="none">
+              <path d="M0 8 H36 M36 8 L28 3 M36 8 L28 13" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <p class="text-xs text-white/20">auto</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="pipeline-step flex flex-col items-center text-center w-full md:w-36" data-delay="1">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center text-2xl mb-3">
+              ✍️
+            </div>
+            <p class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Draft</p>
+            <p class="text-sm font-semibold text-white mb-1">Personal Email</p>
+            <p class="text-xs text-white/40 leading-relaxed">AI writes a unique email per contact — name, company, role, pain point</p>
+          </div>
+
+          <!-- Connector 2 -->
+          <div class="pipeline-connector hidden md:flex flex-col items-center gap-1 px-2" data-delay="2">
+            <svg width="48" height="16" viewBox="0 0 48 16" fill="none">
+              <path d="M0 8 H36 M36 8 L28 3 M36 8 L28 13" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <p class="text-xs text-white/20">auto</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="pipeline-step flex flex-col items-center text-center w-full md:w-36" data-delay="2">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center text-2xl mb-3">
+              📤
+            </div>
+            <p class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Send</p>
+            <p class="text-sm font-semibold text-white mb-1">& Follow Up</p>
+            <p class="text-xs text-white/40 leading-relaxed">Sends and follows up at the right times — stops the moment they reply</p>
+          </div>
+
+          <!-- Connector 3 -->
+          <div class="pipeline-connector hidden md:flex flex-col items-center gap-1 px-2" data-delay="3">
+            <svg width="48" height="16" viewBox="0 0 48 16" fill="none">
+              <path d="M0 8 H36 M36 8 L28 3 M36 8 L28 13" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <p class="text-xs text-white/20">auto</p>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="pipeline-step flex flex-col items-center text-center w-full md:w-36" data-delay="3">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center text-2xl mb-3">
+              💬
+            </div>
+            <p class="text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Handle</p>
+            <p class="text-sm font-semibold text-white mb-1">Replies</p>
+            <p class="text-xs text-white/40 leading-relaxed">Detects interest, flags hot leads, respects opt-outs automatically</p>
+          </div>
+
+          <!-- Connector 4 -->
+          <div class="pipeline-connector hidden md:flex flex-col items-center gap-1 px-2" data-delay="4">
+            <svg width="48" height="16" viewBox="0 0 48 16" fill="none">
+              <path d="M0 8 H36 M36 8 L28 3 M36 8 L28 13" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <p class="text-xs text-white/20">auto</p>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="pipeline-step flex flex-col items-center text-center w-full md:w-36" data-delay="4">
+            <div class="w-16 h-16 rounded-2xl bg-green-900/60 border border-green-500/30 flex items-center justify-center text-2xl mb-3 relative">
+              📅
+              <span class="absolute inset-0 rounded-2xl bg-green-500/10 ping-ring"></span>
+            </div>
+            <p class="text-xs font-bold text-green-400 uppercase tracking-widest mb-1">Book</p>
+            <p class="text-sm font-semibold text-white mb-1">Meeting Booked</p>
+            <p class="text-xs text-white/40 leading-relaxed">Meeting lands in your calendar. You just show up.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typewriter email preview -->
+      <div class="mt-20 max-w-2xl mx-auto bg-slate-900 border border-white/10 rounded-2xl overflow-hidden glow-card" id="email-preview">
+        <div class="flex items-center gap-2 px-5 py-3 border-b border-white/5 bg-slate-800/50">
+          <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
+          <span class="ml-2 text-xs text-white/30">FIGSY — composing outreach</span>
+        </div>
+        <div class="p-6 space-y-3">
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-white/30 w-10">To:</span>
+            <span class="text-sm text-white/70">sarah.m@acmecorp.co.za</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-white/30 w-10">Sub:</span>
+            <span class="text-sm text-white/70">Congrats on the Series A, Sarah</span>
+          </div>
+          <div class="border-t border-white/5 pt-4">
+            <p class="text-sm text-white/80 leading-relaxed min-h-[80px] typewriter-cursor" id="typewriter"></p>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div>
+            <span class="text-xs text-brand-400 font-medium">AI-generated for Sarah specifically — not a template</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── PRODUCTS ─────────────────────────── -->
+  <section id="products" class="py-24 px-6 border-t border-white/5">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+        <p class="text-brand-400 text-sm font-semibold uppercase tracking-widest mb-3">Two products. One pipeline.</p>
+        <h2 class="text-4xl font-black">Everything you need to fill your calendar</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Lead Gen -->
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-8 glow-card transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center text-2xl mb-6">🎯</div>
+          <h3 class="text-xl font-bold mb-2">K.I.N.D Lead Generation</h3>
+          <p class="text-white/40 text-sm leading-relaxed mb-6">
+            We research, score, and deliver verified B2B decision-maker contacts that match your exact Ideal Customer Profile. POPIA and GDPR compliant.
+          </p>
+          <ul class="space-y-3">
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-brand-400 mt-0.5">✓</span>
+              <span class="text-white/60">ICP-matched contacts from 275M+ professional database</span>
+            </li>
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-brand-400 mt-0.5">✓</span>
+              <span class="text-white/60">Pre-screened for consent — Apollo-verified opted-in leads</span>
+            </li>
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-brand-400 mt-0.5">✓</span>
+              <span class="text-white/60">CRM deduplication — only pay for net-new contacts</span>
+            </li>
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-brand-400 mt-0.5">✓</span>
+              <span class="text-white/60">Opt-out blocklist — contacts who say stop are never contacted again</span>
+            </li>
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-brand-400 mt-0.5">✓</span>
+              <span class="text-white/60">Delivered straight to your K.I.N.D dashboard</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- FIGSY -->
+        <div class="bg-slate-900 border border-brand-500/30 rounded-2xl p-8 relative overflow-hidden glow-card transition-all duration-300">
+          <div class="absolute top-4 right-4 bg-brand-500/20 border border-brand-500/30 text-brand-300 text-xs font-bold px-2.5 py-1 rounded-full">NEW</div>
+          <div class="w-12 h-12 rounded-xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center text-2xl mb-6">🤖</div>
+          <h3 class="text-xl font-bold mb-2">FIGSY — AI Sales Agent</h3>
+          <p class="text-white/40 text-sm leading-relaxed mb-6">
+            FIGSY is your always-on AI SDR. Give it your lead list and it handles the outreach, follow-up, reply detection, and meeting booking — end to end.
+          </p>
+          <ul class="space-y-3">
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-green-400 mt-0.5">✓</span>
+              <span class="text-white/60">Personalised email per contact — written by AI, not a template</span>
+            </li>
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-green-400 mt-0.5">✓</span>
+              <span class="text-white/60">3-touch automated follow-up sequence</span>
+            </li>
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-green-400 mt-0.5">✓</span>
+              <span class="text-white/60">Reply detection — flags interested leads instantly</span>
+            </li>
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-green-400 mt-0.5">✓</span>
+              <span class="text-white/60">Automatic opt-out handling — POPIA &amp; GDPR safe</span>
+            </li>
+            <li class="flex items-start gap-3 text-sm">
+              <span class="text-green-400 mt-0.5">✓</span>
+              <span class="text-white/60">Pipeline value tracking — see what your leads are worth</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── PRICING ─────────────────────────── -->
+  <section id="pricing" class="py-24 px-6 border-t border-white/5 bg-white/[0.01]">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+        <p class="text-brand-400 text-sm font-semibold uppercase tracking-widest mb-3">Pricing</p>
+        <h2 class="text-4xl font-black mb-4">Simple, outcome-based pricing</h2>
+        <p class="text-white/40">Early access members lock in launch pricing. Cancel anytime.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- Tier 1: Lead Gen Only -->
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-7 flex flex-col">
+          <div class="mb-6">
+            <p class="text-xs text-white/40 uppercase tracking-widest font-semibold mb-1">Lead Gen</p>
+            <h3 class="text-lg font-bold mb-4">Starter</h3>
+            <div class="flex items-end gap-1 mb-1">
+              <span class="text-4xl font-black">$500</span>
+              <span class="text-white/40 mb-1.5">/mo</span>
+            </div>
+            <p class="text-xs text-white/30">or $5,000/yr — save 2 months</p>
+          </div>
+          <ul class="space-y-3 flex-1 mb-8">
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> 100 verified leads/month</li>
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> Basic ICP scoring</li>
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> POPIA &amp; GDPR compliant</li>
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> Dashboard access</li>
+          </ul>
+          <a href="#waitlist" class="block text-center bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
+            Join waitlist
+          </a>
+        </div>
+
+        <!-- Tier 2: Bundle (highlighted) -->
+        <div class="bg-brand-500/10 border border-brand-500/40 rounded-2xl p-7 flex flex-col relative">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white text-xs font-bold px-3 py-1 rounded-full">Most popular</div>
+          <div class="mb-6">
+            <p class="text-xs text-brand-400 uppercase tracking-widest font-semibold mb-1">Lead Gen + FIGSY</p>
+            <h3 class="text-lg font-bold mb-4">Advanced Bundle</h3>
+            <div class="flex items-end gap-1 mb-1">
+              <span class="text-4xl font-black">$1,500</span>
+              <span class="text-white/40 mb-1.5">/mo</span>
+            </div>
+            <p class="text-xs text-white/30">or $15,000/yr — save 2 months</p>
+          </div>
+          <ul class="space-y-3 flex-1 mb-8">
+            <li class="flex items-center gap-2 text-sm text-white/80"><span class="text-green-400">✓</span> 500 verified leads/month</li>
+            <li class="flex items-center gap-2 text-sm text-white/80"><span class="text-green-400">✓</span> Apollo search &amp; CRM sync</li>
+            <li class="flex items-center gap-2 text-sm text-white/80"><span class="text-green-400">✓</span> FIGSY AI agent included</li>
+            <li class="flex items-center gap-2 text-sm text-white/80"><span class="text-green-400">✓</span> 1,000 contacts/month for outreach</li>
+            <li class="flex items-center gap-2 text-sm text-white/80"><span class="text-green-400">✓</span> Pipeline revenue tracking</li>
+            <li class="flex items-center gap-2 text-sm text-white/80"><span class="text-green-400">✓</span> Priority support</li>
+          </ul>
+          <a href="#waitlist" class="block text-center bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-xl text-sm transition-colors">
+            Join waitlist
+          </a>
+        </div>
+
+        <!-- Tier 3: Enterprise -->
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-7 flex flex-col">
+          <div class="mb-6">
+            <p class="text-xs text-white/40 uppercase tracking-widest font-semibold mb-1">Full Stack</p>
+            <h3 class="text-lg font-bold mb-4">Enterprise</h3>
+            <div class="flex items-end gap-1 mb-1">
+              <span class="text-4xl font-black">Custom</span>
+            </div>
+            <p class="text-xs text-white/30">Annual contract · dedicated team</p>
+          </div>
+          <ul class="space-y-3 flex-1 mb-8">
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> Unlimited leads</li>
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> FIGSY Enterprise + calendar booking</li>
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> Full CRM integration</li>
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> Dedicated account manager</li>
+            <li class="flex items-center gap-2 text-sm text-white/60"><span class="text-brand-400">✓</span> Custom compliance setup</li>
+          </ul>
+          <a href="#waitlist" class="block text-center bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
+            Talk to us
+          </a>
+        </div>
+      </div>
+
+      <!-- FIGSY add-on note -->
+      <div class="mt-8 bg-slate-900/50 border border-white/5 rounded-xl px-6 py-4 text-center">
+        <p class="text-sm text-white/40">
+          Already have a lead gen tool? Add FIGSY to any existing K.I.N.D account from
+          <span class="text-white/70 font-semibold">+$300/mo (Starter)</span> or
+          <span class="text-white/70 font-semibold">+$800/mo (Enterprise)</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── COMPLIANCE STRIP ─────────────────────────── -->
+  <section class="py-12 px-6 border-t border-white/5">
+    <div class="max-w-4xl mx-auto">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        <div>
+          <p class="text-2xl mb-2">🇿🇦</p>
+          <p class="text-xs font-semibold text-white/60">POPIA Compliant</p>
+          <p class="text-xs text-white/30 mt-0.5">South Africa</p>
+        </div>
+        <div>
+          <p class="text-2xl mb-2">🇪🇺</p>
+          <p class="text-xs font-semibold text-white/60">GDPR Compliant</p>
+          <p class="text-xs text-white/30 mt-0.5">European Union</p>
+        </div>
+        <div>
+          <p class="text-2xl mb-2">🇺🇸</p>
+          <p class="text-xs font-semibold text-white/60">CAN-SPAM &amp; CCPA</p>
+          <p class="text-xs text-white/30 mt-0.5">United States</p>
+        </div>
+        <div>
+          <p class="text-2xl mb-2">🌍</p>
+          <p class="text-xs font-semibold text-white/60">Africa-first</p>
+          <p class="text-xs text-white/30 mt-0.5">Global reach</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── WAITLIST FORM ─────────────────────────── -->
+  <section id="waitlist" class="py-28 px-6 border-t border-white/5">
+    <div class="max-w-xl mx-auto text-center">
+      <p class="text-brand-400 text-sm font-semibold uppercase tracking-widest mb-3">Early access</p>
+      <h2 class="text-4xl font-black mb-4">Reserve your spot</h2>
+      <p class="text-white/40 mb-10">
+        We're launching 31 May 2026. Register your interest now and we'll reach out before launch with early access pricing.
+      </p>
+
+      <!--
+        SETUP INSTRUCTIONS:
+        1. Go to https://formspree.io and sign up for a free account
+        2. Create a new form — set the email to jacqueskind01@gmail.com
+        3. Copy your form ID (looks like: xpzgkwrb)
+        4. Replace YOUR_FORM_ID below with your actual form ID
+      -->
+      <form
+        action="https://formspree.io/f/YOUR_FORM_ID"
+        method="POST"
+        id="waitlist-form"
+        class="space-y-4 text-left"
+      >
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-white/60 mb-1.5">First name</label>
+            <input
+              type="text"
+              name="first_name"
+              required
+              placeholder="Jacques"
+              class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-brand-500 transition-colors"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-white/60 mb-1.5">Last name</label>
+            <input
+              type="text"
+              name="last_name"
+              required
+              placeholder="Vieira"
+              class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-brand-500 transition-colors"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-white/60 mb-1.5">Work email</label>
+          <input
+            type="email"
+            name="email"
+            required
+            placeholder="you@company.com"
+            class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-brand-500 transition-colors"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-white/60 mb-1.5">Company</label>
+          <input
+            type="text"
+            name="company"
+            required
+            placeholder="Acme Corp"
+            class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-brand-500 transition-colors"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-white/60 mb-1.5">I'm interested in</label>
+          <select
+            name="interested_in"
+            class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors appearance-none"
+          >
+            <option value="bundle">K.I.N.D Lead Gen + FIGSY (Bundle)</option>
+            <option value="lead_gen">K.I.N.D Lead Gen only</option>
+            <option value="figsy">FIGSY only (add-on)</option>
+            <option value="enterprise">Enterprise — let's talk</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-white/60 mb-1.5">How many leads do you need per month? <span class="text-white/30 font-normal">(optional)</span></label>
+          <input
+            type="text"
+            name="leads_per_month"
+            placeholder="e.g. 200"
+            class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-brand-500 transition-colors"
+          />
+        </div>
+
+        <!-- Hidden fields for Formspree -->
+        <input type="hidden" name="_subject" value="New KIND Waitlist Registration" />
+        <input type="hidden" name="_next" value="thanks" />
+
+        <button
+          type="submit"
+          id="submit-btn"
+          class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-4 rounded-xl text-base transition-colors"
+        >
+          Register my interest
+        </button>
+
+        <p class="text-xs text-center text-white/25">
+          No spam. No credit card. We'll contact you before launch with your early access options.
+        </p>
+      </form>
+
+      <!-- Success state -->
+      <div id="form-success" class="hidden text-center py-8">
+        <div class="w-16 h-16 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
+        <h3 class="text-2xl font-bold mb-2">You're on the list.</h3>
+        <p class="text-white/40">We'll be in touch before 31 May with your early access details.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── FOOTER ─────────────────────────── -->
+  <footer class="border-t border-white/5 py-12 px-6">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-brand-500 flex items-center justify-center">
+          <span class="text-white font-black text-xs">K</span>
+        </div>
+        <span class="font-bold text-white/60 text-sm">K.I.N.D</span>
+      </div>
+      <p class="text-xs text-white/25 text-center">
+        POPIA · GDPR · CAN-SPAM compliant · Africa-first, globally available · © 2026 K.I.N.D
+      </p>
+      <div class="flex gap-6 text-xs text-white/30">
+        <a href="#" class="hover:text-white/60 transition-colors">Privacy</a>
+        <a href="#" class="hover:text-white/60 transition-colors">Terms</a>
+        <a href="mailto:jacqueskind01@gmail.com" class="hover:text-white/60 transition-colors">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ─────────────────────────── SCRIPTS ─────────────────────────── -->
+  <script>
+    // ── Pipeline scroll animation ──
+    const steps = document.querySelectorAll('.pipeline-step')
+    const connectors = document.querySelectorAll('.pipeline-connector')
+
+    const pipelineObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          steps.forEach((step, i) => {
+            const delay = parseInt(step.dataset.delay) * 150
+            setTimeout(() => step.classList.add('visible'), delay)
+          })
+          connectors.forEach((conn, i) => {
+            const delay = parseInt(conn.dataset.delay) * 150 + 100
+            setTimeout(() => conn.classList.add('visible'), delay)
+          })
+          pipelineObserver.unobserve(entry.target)
+        }
+      })
+    }, { threshold: 0.2 })
+
+    const pipeline = document.getElementById('pipeline')
+    if (pipeline) pipelineObserver.observe(pipeline)
+
+    // ── Typewriter email ──
+    const emailText = "Hi Sarah,\n\nCongrats on Acme Corp's Series A — raising in this market is no small thing.\n\nI noticed you're scaling the sales team. Most growth-stage teams at your stage hit the same wall: SDRs are expensive, ramp is slow, and pipeline dries up while you wait.\n\nWe built FIGSY to fix that. It finds your ideal contacts, writes a personal email to each one (not a template), and books the meeting — automatically.\n\nWorth a 20-minute call this week?\n\n— FIGSY, K.I.N.D AI Sales Agent"
+
+    const typewriterEl = document.getElementById('typewriter')
+    let typeIndex = 0
+    let typeStarted = false
+
+    const typewriterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !typeStarted) {
+          typeStarted = true
+          typewriterObserver.unobserve(entry.target)
+          setTimeout(startTyping, 800)
+        }
+      })
+    }, { threshold: 0.5 })
+
+    const emailPreview = document.getElementById('email-preview')
+    if (emailPreview) typewriterObserver.observe(emailPreview)
+
+    function startTyping() {
+      if (!typewriterEl) return
+      const interval = setInterval(() => {
+        if (typeIndex < emailText.length) {
+          typewriterEl.textContent = emailText.slice(0, typeIndex + 1)
+          typeIndex++
+        } else {
+          clearInterval(interval)
+          typewriterEl.classList.remove('typewriter-cursor')
+        }
+      }, 18)
+    }
+
+    // ── Waitlist counter (cosmetic — update with real number) ──
+    const counter = document.getElementById('counter')
+    if (counter) {
+      let count = 0
+      const target = 47
+      const interval = setInterval(() => {
+        count += 3
+        if (count >= target) { count = target; clearInterval(interval) }
+        counter.textContent = count
+      }, 30)
+    }
+
+    // ── Form submission ──
+    const form = document.getElementById('waitlist-form')
+    const successEl = document.getElementById('form-success')
+    const submitBtn = document.getElementById('submit-btn')
+
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        submitBtn.textContent = 'Submitting…'
+        submitBtn.disabled = true
+
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'Accept': 'application/json' }
+          })
+
+          if (res.ok) {
+            form.style.display = 'none'
+            successEl.classList.remove('hidden')
+            // Update counter
+            if (counter) counter.textContent = parseInt(counter.textContent) + 1
+          } else {
+            submitBtn.textContent = 'Try again'
+            submitBtn.disabled = false
+          }
+        } catch {
+          submitBtn.textContent = 'Try again'
+          submitBtn.disabled = false
+        }
+      })
+    }
+  </script>
+</body>
+</html>

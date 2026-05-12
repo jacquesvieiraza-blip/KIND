@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { FileText, Upload, Trash2, ExternalLink, Loader2, GripVertical, CheckCircle } from 'lucide-react'
+import { FileText, Upload, Trash2, ExternalLink, Loader2, CheckCircle } from 'lucide-react'
+import { AdminNav } from '@/components/AdminNav'
 
 interface Template {
   id: string
@@ -90,16 +91,7 @@ export default function TermsLibraryPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-[#001f4d] text-white px-8 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-lg">K.I.N.D Admin</h1>
-          <p className="text-white/50 text-xs">Terms Library</p>
-        </div>
-        <div className="flex items-center gap-6">
-          <a href="/" className="text-xs text-white/60 hover:text-white transition-colors">← Dashboard</a>
-          <a href="/clients" className="text-xs text-white/60 hover:text-white transition-colors">Clients →</a>
-        </div>
-      </header>
+      <AdminNav />
 
       <main className="px-8 py-8 max-w-4xl mx-auto space-y-6">
         <div>

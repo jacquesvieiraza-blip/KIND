@@ -39,7 +39,7 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
+      if (!session) { setLoading(false); return }
       setToken(session.access_token)
       try {
         const res = await api.get<{ data: { order_form: OrderForm | null; templates: Template[] } }>('/order-forms/me', session.access_token)

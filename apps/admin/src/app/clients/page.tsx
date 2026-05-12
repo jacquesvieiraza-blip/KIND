@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import { Users, FileText, CreditCard, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react'
 import Link from 'next/link'
+import { AdminNav } from '@/components/AdminNav'
 
 interface OrderForm { status: string; signed_at: string | null }
 interface Subscription { status: string; product: string }
@@ -54,17 +55,7 @@ export default async function ClientsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-[#001f4d] text-white px-8 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-lg">K.I.N.D Admin</h1>
-          <p className="text-white/50 text-xs">Clients</p>
-        </div>
-        <div className="flex items-center gap-6">
-          <a href="/" className="text-xs text-white/60 hover:text-white">← Dashboard</a>
-          <a href="/terms-library" className="text-xs text-white/60 hover:text-white">Terms Library</a>
-          <a href="/roadmap" className="text-xs text-white/60 hover:text-white">Roadmap →</a>
-        </div>
-      </header>
+      <AdminNav />
 
       <main className="px-8 py-8 max-w-6xl mx-auto space-y-6">
         <div>

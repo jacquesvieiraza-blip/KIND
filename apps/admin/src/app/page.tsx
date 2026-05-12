@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import { PRODUCTS } from '@kind/shared'
 import { Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react'
+import { AdminNav } from '@/components/AdminNav'
 
 async function getAdminStats() {
   const supabase = createClient(
@@ -26,13 +27,7 @@ export default async function AdminPage() {
   const stats = await getAdminStats()
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-[#001f4d] text-white px-8 py-4 flex items-center justify-between">
-        <div><h1 className="font-bold text-lg">K.I.N.D Admin</h1><p className="text-white/50 text-xs">Operations Dashboard</p></div>
-        <div className="flex items-center gap-6">
-          <a href="/roadmap" className="text-xs text-white/60 hover:text-white transition-colors">Roadmap →</a>
-          <span className="text-xs text-white/40">{new Date().toLocaleDateString('en-ZA', { dateStyle: 'full' })}</span>
-        </div>
-      </header>
+      <AdminNav />
       <main className="px-8 py-6 max-w-6xl space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[

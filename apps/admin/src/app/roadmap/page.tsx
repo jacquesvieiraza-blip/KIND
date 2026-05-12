@@ -1,4 +1,5 @@
-import { CheckCircle2, Circle, Clock, DollarSign, Users, TrendingUp, Briefcase, Globe, Zap } from 'lucide-react'
+import { CheckCircle2, Circle, Clock, DollarSign, Users, TrendingUp, Briefcase, Globe } from 'lucide-react'
+import { AdminNav } from '@/components/AdminNav'
 
 const PHASES = [
   {
@@ -123,18 +124,7 @@ export default function AdminRoadmapPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-[#001f4d] text-white px-8 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-lg flex items-center gap-2">
-            <Zap className="w-5 h-5 text-blue-400" />K.I.N.D Admin
-          </h1>
-          <p className="text-white/50 text-xs">Operations Dashboard</p>
-        </div>
-        <div className="flex items-center gap-6">
-          <a href="/" className="text-xs text-white/50 hover:text-white transition-colors">← Overview</a>
-          <span className="text-xs text-white/40">{new Date().toLocaleDateString('en-ZA', { dateStyle: 'full' })}</span>
-        </div>
-      </header>
+      <AdminNav />
 
       <main className="px-8 py-8 max-w-6xl mx-auto space-y-8">
         {/* Header */}

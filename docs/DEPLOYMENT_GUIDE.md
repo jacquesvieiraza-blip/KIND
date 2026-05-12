@@ -197,18 +197,19 @@ Go to your admin Vercel URL → you should see the admin dashboard. Navigate to 
 
 You need one plan per product per tier. Go to [paystack.com](https://paystack.com) → **Products** → **Plans** → **Create Plan** for each:
 
-| Plan name | Amount | Interval | Plan code (copy after creating) |
-|-----------|--------|----------|--------------------------------|
-| KIND Lead Gen Starter | ZAR 9,500 (~$500) | Monthly | `PLN_xxx` |
-| KIND Lead Gen Advanced | ZAR 22,800 (~$1,200) | Monthly | `PLN_xxx` |
-| KIND Lead Gen + FIGSY Starter | ZAR 13,300 (~$700) | Monthly | `PLN_xxx` |
-| KIND Lead Gen + FIGSY Advanced | ZAR 28,500 (~$1,500) | Monthly | `PLN_xxx` |
-| KIND VA Starter | ZAR 3,800 (~$200) | Monthly | `PLN_xxx` |
-| KIND VA Pro | ZAR 9,500 (~$500) | Monthly | `PLN_xxx` |
-| KIND Chatbot Starter | ZAR 3,800 (~$200) | Monthly | `PLN_xxx` |
-| KIND Chatbot Pro | ZAR 7,600 (~$400) | Monthly | `PLN_xxx` |
+| Plan name | ZAR amount | Interval | Plan code (copy after creating) |
+|-----------|-----------|----------|--------------------------------|
+| KIND Lead Gen Starter | R1,900 (~$100) | Monthly | `PLN_xxx` |
+| KIND Lead Gen Advanced | R3,781 (~$199) | Monthly | `PLN_xxx` |
+| KIND Lead Gen + FIGSY Starter | R5,700 (~$300) | Monthly | `PLN_xxx` |
+| KIND Lead Gen + FIGSY Advanced | R13,281 (~$699) | Monthly | `PLN_xxx` |
+| KIND VA Starter | R3,800 (~$200) | Monthly | `PLN_xxx` |
+| KIND VA Pro | R9,500 (~$500) | Monthly | `PLN_xxx` |
+| KIND Chatbot Starter | R3,800 (~$200) | Monthly | `PLN_xxx` |
+| KIND Chatbot Pro | R7,600 (~$400) | Monthly | `PLN_xxx` |
 
-> Exchange rate used: 1 USD = 19 ZAR. Adjust for current rate.
+> Pricing model: usage-based. Lead Gen = $1/lead (min $100/mo). Lead Gen + FIGSY = $3/lead (min $300/mo). These Paystack plans represent the monthly minimums. Overages billed separately in Phase 2.
+> Exchange rate: 1 USD = 19 ZAR. Adjust for current rate.
 
 ### 5b. Update Railway env vars with plan codes
 
@@ -216,7 +217,9 @@ Go back to Railway → API service → Variables. Fill in the plan codes you cop
 
 ```
 PAYSTACK_PLAN_LEAD_GEN_STARTER=PLN_xxxx
-PAYSTACK_PLAN_LEAD_GEN_PRO=PLN_xxxx
+PAYSTACK_PLAN_LEAD_GEN_ADVANCED=PLN_xxxx
+PAYSTACK_PLAN_FIGSY_STARTER=PLN_xxxx
+PAYSTACK_PLAN_FIGSY_ADVANCED=PLN_xxxx
 PAYSTACK_PLAN_VA_STARTER=PLN_xxxx
 PAYSTACK_PLAN_VA_PRO=PLN_xxxx
 PAYSTACK_PLAN_CHATBOT_STARTER=PLN_xxxx
@@ -406,14 +409,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 PAYSTACK_SECRET_KEY=sk_live_xxxxx
 PAYSTACK_PUBLIC_KEY=pk_live_xxxxx
 PAYSTACK_PLAN_LEAD_GEN_STARTER=PLN_xxx
-PAYSTACK_PLAN_LEAD_GEN_PRO=PLN_xxx
-PAYSTACK_PLAN_LEAD_GEN_ENTERPRISE=PLN_xxx
+PAYSTACK_PLAN_LEAD_GEN_ADVANCED=PLN_xxx
+PAYSTACK_PLAN_FIGSY_STARTER=PLN_xxx
+PAYSTACK_PLAN_FIGSY_ADVANCED=PLN_xxx
 PAYSTACK_PLAN_VA_STARTER=PLN_xxx
 PAYSTACK_PLAN_VA_PRO=PLN_xxx
-PAYSTACK_PLAN_VA_ENTERPRISE=PLN_xxx
 PAYSTACK_PLAN_CHATBOT_STARTER=PLN_xxx
 PAYSTACK_PLAN_CHATBOT_PRO=PLN_xxx
-PAYSTACK_PLAN_CHATBOT_ENTERPRISE=PLN_xxx
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 ADMIN_EMAILS=you@kind.africa
 ```

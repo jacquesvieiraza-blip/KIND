@@ -64,6 +64,7 @@ create table if not exists public.icps (
   keywords          text[] not null default '{}',
   apollo_only_consented boolean not null default true,
   is_active         boolean not null default true,
+  last_run_at       timestamptz,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );

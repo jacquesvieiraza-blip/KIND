@@ -227,12 +227,25 @@ export default function LeadsPage() {
         ) : filteredLeads.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium">No leads yet</p>
-            <p className="text-xs mt-1">Set up your ICP to start receiving leads.</p>
-            <a href="/dashboard/leads/icp"
-              className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
-              <Plus className="w-4 h-4" />Build your ICP
-            </a>
+            {icps.length === 0 ? (
+              <>
+                <p className="text-sm font-medium text-gray-700">No ICP set up yet</p>
+                <p className="text-xs mt-1">Define your ideal customer profile so K.I.N.D knows who to find.</p>
+                <a href="/dashboard/leads/icp"
+                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+                  <Plus className="w-4 h-4" />Build your ICP
+                </a>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-gray-700">No leads yet</p>
+                <p className="text-xs mt-1">Your ICP is saved — run it to pull matching leads from Apollo.</p>
+                <a href="/dashboard/leads/icp"
+                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+                  <Settings2 className="w-4 h-4" />Run your ICP →
+                </a>
+              </>
+            )}
           </div>
         ) : (
           <>

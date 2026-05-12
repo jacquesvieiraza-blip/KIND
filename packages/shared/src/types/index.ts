@@ -57,6 +57,7 @@ export interface ICP {
   keywords: string[]
   apollo_only_consented: boolean
   is_active: boolean
+  last_run_at: string | null
   created_at: string
   updated_at: string
 }

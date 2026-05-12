@@ -25,10 +25,10 @@
     .btn-nav-primary:hover { opacity: 0.88; }
     .nav-item { position: relative; }
     .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s; display: inline-block; margin-top: 1px; }
-    .nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
-    .nav-item:hover > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
     .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9); z-index: 300; transition: opacity .15s, visibility .15s; }
-    .nav-item:hover .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
     .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
     .dd-link:hover { background: rgba(255,255,255,0.05); }
     .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
@@ -250,6 +250,12 @@
     document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'))
     if (!isOpen) item.classList.add('open')
   }
+
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer;
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open'); });
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open'); }, 200); });
+  });
 </script>
 </body>
 </html>

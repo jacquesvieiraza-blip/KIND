@@ -32,8 +32,8 @@
     /* ── NAV DROPDOWNS ── */
     .nav-item { position: relative; }
     .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
-    .nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
-    .nav-item:hover > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
     .nav-dropdown {
       opacity: 0; visibility: hidden; pointer-events: none;
       position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
@@ -41,7 +41,7 @@
       padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9);
       z-index: 300; transition: opacity .15s, visibility .15s;
     }
-    .nav-item:hover .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
     .dd-link {
       display: flex; align-items: flex-start; gap: 12px;
       padding: 10px 12px; border-radius: 10px;
@@ -370,7 +370,6 @@
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-eyebrow">AI Consulting · South Africa</div>
   <h1>Intelligence,<br/>Engineered.</h1>
   <p>One platform. Every AI product your business needs. Log in once and access all your K.I.N.D modules — Lead Generation, FIGSY, Virtual Assistant, Chatbot — in a single, unified workspace.</p>
   <div class="hero-btns">
@@ -426,26 +425,28 @@
       <span class="prod-tag t-purple">Virtual Assistant</span>
       <h3>AI Virtual Assistant</h3>
       <p>A Claude-powered assistant trained on your business. Handles scheduling, email drafting, internal Q&amp;A, and document queries — always available, always accurate.</p>
-      <div class="prod-price">$200 <span class="sm">/ mo starter</span></div>
+      <div class="prod-price">$750 <span class="sm">/ mo</span></div>
       <ul class="prod-features">
         <li class="g">Business knowledge base</li>
         <li class="g">Email drafting &amp; summarisation</li>
         <li class="g">Scheduling &amp; calendar queries</li>
         <li class="g">500 messages/mo included</li>
       </ul>
+      <a href="https://tally.so/r/kind-waitlist" class="p-btn p-btn-out" style="display:block;margin-top:16px;text-align:center;font-size:0.82rem">Coming soon — join waitlist →</a>
     </div>
     <div class="prod">
       <div class="prod-icon">💬</div>
       <span class="prod-tag t-indigo">Chatbot Agent</span>
       <h3>AI Chatbot Agent</h3>
       <p>Fully configured AI chatbot for your website or WhatsApp. Answers customer queries, captures leads, and hands off to your team — one embed code away.</p>
-      <div class="prod-price">$200 <span class="sm">/ mo starter</span></div>
+      <div class="prod-price">$499 <span class="sm">/ mo</span></div>
       <ul class="prod-features">
         <li class="g">Web &amp; WhatsApp deployment</li>
         <li class="g">Custom persona and tone</li>
         <li class="g">Lead capture built in</li>
         <li class="g">500 conversations/mo included</li>
       </ul>
+      <a href="https://tally.so/r/kind-waitlist" class="p-btn p-btn-out" style="display:block;margin-top:16px;text-align:center;font-size:0.82rem">Coming soon — join waitlist →</a>
     </div>
   </div>
 </div>
@@ -517,7 +518,7 @@
         <li>CSV export</li>
         <li class="dim">FIGSY not included</li>
       </ul>
-      <a href="mailto:hello@kind.ai" class="p-btn p-btn-out">Get started</a>
+      <a href="mailto:hello@get-kind.com" class="p-btn p-btn-out">Get started</a>
     </div>
     <div class="p-card pop">
       <div class="pop-pill">Most popular</div>
@@ -534,26 +535,26 @@
         <li class="b">Meeting booking automation</li>
         <li class="b">Campaign dashboard</li>
       </ul>
-      <a href="mailto:hello@kind.ai" class="p-btn p-btn-blue">Book a free call →</a>
+      <a href="mailto:hello@get-kind.com" class="p-btn p-btn-blue">Book a free call →</a>
     </div>
     <div class="p-card">
       <div class="p-plan">VA + Chatbot</div>
       <h3>Assistant Products</h3>
       <p class="p-desc">Flat monthly subscription. Add to any plan or use standalone.</p>
-      <div class="p-price" style="font-size:1.8rem">$200<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span></div>
-      <div class="p-note">Starter tier · Pro tiers available</div>
+      <div class="p-price" style="font-size:1.8rem">from $499<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span></div>
+      <div class="p-note">Coming soon — join the waitlist</div>
       <ul>
-        <li>Virtual Assistant — from $200/mo</li>
-        <li>AI Chatbot Agent — from $200/mo</li>
+        <li>Virtual Assistant — $750/mo</li>
+        <li>AI Chatbot Agent — $499/mo</li>
         <li>Custom persona &amp; knowledge base</li>
         <li>Web &amp; WhatsApp deployment</li>
         <li>500 interactions/mo included</li>
         <li>Pro: 2,000 interactions/mo</li>
       </ul>
-      <a href="mailto:hello@kind.ai" class="p-btn p-btn-out">Get started</a>
+      <a href="https://tally.so/r/kind-waitlist" class="p-btn p-btn-out">Join waitlist →</a>
     </div>
   </div>
-  <p class="p-vol-note">Volume discounts from 500+ leads · ZAR billing available · Enterprise pricing on request</p>
+  <p class="p-vol-note">Volume discounts from 500+ leads · Local currency billing available · Enterprise pricing on request</p>
 </div>
 
 <div class="divider"></div>
@@ -761,6 +762,19 @@
       window.location.href = PORTAL + '/login'
     }
   })
+</script>
+<script>
+  // Smooth nav dropdowns — 200ms grace period bridging link→dropdown gap
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer;
+    item.addEventListener('mouseenter', function() {
+      clearTimeout(timer);
+      item.classList.add('is-open');
+    });
+    item.addEventListener('mouseleave', function() {
+      timer = setTimeout(function() { item.classList.remove('is-open'); }, 200);
+    });
+  });
 </script>
 </body>
 </html>

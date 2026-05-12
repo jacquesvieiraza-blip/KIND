@@ -43,17 +43,17 @@ export const PRODUCTS = {
   virtual_assistant: {
     name: 'Virtual Assistant',
     tiers: {
-      starter:    { price_usd: 200, price_zar: 3800,  messages_per_month: 500   },
-      pro:        { price_usd: 500, price_zar: 9500,  messages_per_month: 2000  },
-      enterprise: { price_usd: 0,   price_zar: 0,     messages_per_month: 0, custom: true },
+      starter:    { price_usd: 750,  price_zar: 14250, messages_per_month: 500   },
+      pro:        { price_usd: 1500, price_zar: 28500, messages_per_month: 2000  },
+      enterprise: { price_usd: 0,    price_zar: 0,     messages_per_month: 0, custom: true },
     },
   },
   chatbot: {
     name: 'AI Chatbot Agent',
     tiers: {
-      starter:    { price_usd: 200, price_zar: 3800,  conversations_per_month: 500   },
-      pro:        { price_usd: 400, price_zar: 7600,  conversations_per_month: 2000  },
-      enterprise: { price_usd: 0,   price_zar: 0,     conversations_per_month: 0, custom: true },
+      starter:    { price_usd: 499,  price_zar: 9481,  conversations_per_month: 500   },
+      pro:        { price_usd: 999,  price_zar: 18981, conversations_per_month: 2000  },
+      enterprise: { price_usd: 0,    price_zar: 0,     conversations_per_month: 0, custom: true },
     },
   },
 } as const

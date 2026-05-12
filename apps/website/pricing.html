@@ -26,10 +26,10 @@
     .btn-nav-primary:hover { opacity: 0.88; }
     .nav-item { position: relative; }
     .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
-    .nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
-    .nav-item:hover > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
     .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9); z-index: 300; transition: opacity .15s, visibility .15s; }
-    .nav-item:hover .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
     .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
     .dd-link:hover { background: rgba(255,255,255,0.05); }
     .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
@@ -258,22 +258,22 @@
       <h3>Assistant Products</h3>
       <p class="p-desc">Flat monthly subscription. Add to any plan or run standalone. No usage stress.</p>
       <div class="p-price" id="price-va" style="font-size:1.9rem">
-        <span class="p-price-orig" id="orig-va">$200</span>$200<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span>
+        from $499<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span>
       </div>
-      <div class="p-note">Starter tier · Pro tiers available</div>
+      <div class="p-note">Coming soon — join the waitlist</div>
       <ul>
-        <li>Virtual Assistant — from $200/mo</li>
-        <li>AI Chatbot Agent — from $200/mo</li>
+        <li>Virtual Assistant — $750/mo</li>
+        <li>AI Chatbot Agent — $499/mo</li>
         <li>Custom persona &amp; knowledge base</li>
         <li>Web &amp; WhatsApp deployment</li>
         <li>500 interactions/mo included</li>
         <li>Pro: 2,000 interactions/mo</li>
       </ul>
-      <a href="https://app.get-kind.com" class="p-btn p-btn-out">Start free trial</a>
+      <a href="https://tally.so/r/kind-waitlist" class="p-btn p-btn-out">Join waitlist →</a>
     </div>
 
   </div>
-  <p class="p-vol-note">Volume discounts from 500+ leads · ZAR billing available · Enterprise pricing on request · <a href="mailto:hello@get-kind.com" style="color:rgba(255,255,255,0.35);text-decoration:none">hello@get-kind.com</a></p>
+  <p class="p-vol-note">Volume discounts from 500+ leads · Local currency billing available · Enterprise pricing on request · <a href="mailto:hello@get-kind.com" style="color:rgba(255,255,255,0.35);text-decoration:none">hello@get-kind.com</a></p>
 </div>
 
 <!-- ADD-ONS -->
@@ -305,8 +305,8 @@
     </div>
     <div class="a-card">
       <div class="a-icon">🌍</div>
-      <h3>ZAR Billing</h3>
-      <p style="font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-top:6px">Bill in South African Rand via Paystack. Identical product, local currency. Rates converted at spot + 1.5% on billing date.</p>
+      <h3>Local Currency Billing</h3>
+      <p style="font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-top:6px">Bill in your local currency via Paystack. Identical product, same features. Rates converted at spot + 1.5% on billing date.</p>
       <div class="a-tiers">
         <div class="a-tier">
           <span class="a-tier-name">Available on all plans</span>
@@ -417,13 +417,12 @@
     labelM.classList.toggle('active', !isYearly)
     labelY.classList.toggle('active', isYearly)
 
-    // VA/Chatbot pricing
+    // VA/Chatbot pricing (coming soon — waitlist only, toggle is informational)
     const priceVA = document.getElementById('price-va')
-    const origVA = document.getElementById('orig-va')
     if (isYearly) {
-      priceVA.innerHTML = '<span style="font-size:1.1rem;font-weight:400;color:rgba(255,255,255,0.25);text-decoration:line-through;margin-right:4px">$200</span>$160<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span>'
+      priceVA.innerHTML = 'from $399<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo <span style="font-size:0.75rem;color:#4ade80">20% off</span></span>'
     } else {
-      priceVA.innerHTML = '$200<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span>'
+      priceVA.innerHTML = 'from $499<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span>'
     }
 
     // FIGSY add-on monthly prices
@@ -442,6 +441,18 @@
       ? 'From $300/mo · billed $3,600/yr · 100 leads included'
       : 'From $300/mo · 100 leads included'
   }
+
+  // Smooth nav dropdowns
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer;
+    item.addEventListener('mouseenter', function() {
+      clearTimeout(timer);
+      item.classList.add('is-open');
+    });
+    item.addEventListener('mouseleave', function() {
+      timer = setTimeout(function() { item.classList.remove('is-open'); }, 200);
+    });
+  });
 
   function toggleFaq(btn) {
     const item = btn.closest('.faq-item')

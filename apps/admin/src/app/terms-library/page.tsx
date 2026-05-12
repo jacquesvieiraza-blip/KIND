@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import { FileText, Upload, Trash2, ExternalLink, Loader2, GripVertical, CheckCircle } from 'lucide-react'
 
 interface Template {
@@ -52,38 +51,23 @@ export default function TermsLibraryPage() {
 
     setUploading(uploadTarget)
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
-    const fileName = `${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, '_')}`
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('agreement-templates')
-      .upload(fileName, file, { contentType: 'application/pdf', upsert: false })
-
-    if (uploadError) {
-      alert(`Upload failed: ${uploadError.message}`)
-      setUploading(null)
-      return
-    }
-
-    const { data: urlData } = supabase.storage.from('agreement-templates').getPublicUrl(uploadData.path)
-
     const sortOrder = REQUIRED_DOCS.findIndex(d => d.name === uploadTarget)
     const docMeta = REQUIRED_DOCS.find(d => d.name === uploadTarget)
 
-    await fetch('/api/templates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: uploadTarget,
-        description: docMeta?.description,
-        file_path: uploadData.path,
-        file_url: urlData.publicUrl,
-        sort_order: sortOrder,
-      }),
-    })
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('name', uploadTarget)
+    formData.append('description', docMeta?.description || '')
+    formData.append('sort_order', String(sortOrder))
+
+    const res = await fetch('/api/templates/upload', { method: 'POST', body: formData })
+    const json = await res.json()
+
+    if (!res.ok) {
+      alert(`Upload failed: ${json.error}`)
+      setUploading(null)
+      return
+    }
 
     setUploadSuccess(uploadTarget)
     setTimeout(() => setUploadSuccess(null), 3000)

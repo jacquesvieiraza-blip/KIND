@@ -3,6 +3,123 @@
 
 ---
 
+## INTERNAL AI OPERATING SYSTEM — FOUNDER AGENT STACK
+
+*You are the CEO. The agents run everything else.*
+
+### ICP for K.I.N.D outreach
+- **Company size:** 1–200 employees (SMB to mid-market, no enterprise)
+- **Title:** Founder, Owner, MD, CEO, Director
+- **Pain point:** Too busy running the business to do consistent outreach — pipeline is empty or inconsistent
+- **Sector:** Any
+- **Geography:** Any (English-speaking first — UK, SA, Nigeria, Kenya, Australia, US)
+- **Sending domain:** jacquesfigsy.com *(to register — do not use Gmail)*
+
+---
+
+### Agent roster
+
+| Agent | Type | What it does |
+|-------|------|-------------|
+| FIGSY | Async — always on | Finds leads, writes personalised emails, follows up, books meetings |
+| AE | Async + on-demand | Preps prospect briefs, sends proposals, chases to close |
+| Solutions Engineer | On-demand | Handles technical pre-sales questions, scopes integrations |
+| Customer Success | Async — always on | Monitors client health, flags churn risk, sends check-ins |
+| Support | Async — always on | Handles hello@get-kind.com, resolves queries, escalates only what it can't solve |
+| CMO | Weekly async report | Pipeline health, conversion tracking, content suggestions |
+| CRO | On-demand | Diagnoses funnel drop-offs, recommends fixes |
+| CTO | On-demand | That's Claude Code |
+
+---
+
+### Agent detail
+
+**1 — FIGSY (Outreach)**
+- Source: Apollo (same stack as client product)
+- Finds SMB/mid-market founders globally matching K.I.N.D ICP
+- Writes a unique personalised email per lead — role, company, industry
+- Sends from jacquesfigsy.com
+- Follows up twice with fresh angles
+- Books meetings into your calendar
+- You show up. That's it.
+
+**2 — AE (Sales closer)**
+- Triggered when FIGSY books a meeting
+- Pre-call: pulls company data, identifies pain points, prepares a 1-page brief
+- Post-call: sends follow-up email, proposal, and chases until closed or dead
+- Escalates to you only for pricing decisions or unusual requests
+
+**3 — Solutions Engineer**
+- On-demand — triggered before or after technical prospect conversations
+- Answers: "how does K.I.N.D integrate with X", "can it do Y", scopes custom requirements
+- Feeds answers to AE for inclusion in proposals
+
+**4 — Customer Success**
+- Reads Supabase daily — monitors all active and trial client accounts
+- Flags and acts on:
+  - No ICP run in 7+ days → sends a check-in email
+  - Trial expiring in 3 days → sends upgrade nudge
+  - Order form not signed → reminds client
+  - Low lead volume → suggests ICP refinement
+- Escalates churn risk accounts to you with full context
+
+**5 — Support**
+- Monitors hello@get-kind.com continuously
+- Reads query → checks knowledge base and FAQ → resolves if possible
+- If resolved: replies directly from hello@get-kind.com
+- If not: escalates to you with full thread summary and suggested response
+- Target: resolve 80% of queries without you touching them
+
+**6 — CMO**
+- Runs every Monday morning, delivers a report to your inbox
+- Covers: pipeline metrics, trial-to-paid conversion, what prospects are asking, suggested content
+- On-demand for campaign ideas, positioning, or messaging questions
+
+**7 — CRO**
+- On-demand
+- Input: a metric, a funnel stage, or a problem ("signups are up but trials aren't converting")
+- Output: diagnosis + recommended fix with priority order
+
+**8 — CTO**
+- On-demand (Claude Code)
+- Architecture, code, infrastructure, debugging
+
+---
+
+### Data sources the agents use
+| Source | What it contains |
+|--------|-----------------|
+| Supabase | All client data — subscriptions, leads, ICPs, order forms |
+| hello@get-kind.com | Client support queries, inbound leads |
+| Apollo | Lead sourcing for FIGSY outreach |
+| K.I.N.D admin portal | Content, order forms, terms library |
+
+---
+
+### Your day (once agents are running)
+1. Morning: review overnight agent activity — meetings booked, support escalations, CS flags
+2. Take the meetings FIGSY booked
+3. Make the decisions agents escalated
+4. That's largely it
+
+---
+
+### Build order for agent stack
+*(After K.I.N.D platform infrastructure is live)*
+
+1. **FIGSY for yourself** — register jacquesfigsy.com, configure sending, set your ICP, let it run
+2. **Support agent** — wire hello@get-kind.com, build knowledge base, connect to Resend
+3. **Customer Success agent** — connect to Supabase, define trigger rules, automated nudges
+4. **AE agent** — prospect brief builder, proposal sender, follow-up sequence
+5. **CMO agent** — weekly report, pipeline metrics, content suggestions
+6. **Solutions Engineer + CRO** — on-demand, lower urgency
+
+### Dependency
+- jacquesfigsy.com domain must be registered and DNS verified before FIGSY can send
+- All agents depend on K.I.N.D platform being fully live (Railway deployed, Resend verified)
+
+---
+
 ## LEGAL & FINANCIAL SETUP — UK SOLE TRADER
 
 ### Legal structure

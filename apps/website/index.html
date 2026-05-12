@@ -545,6 +545,36 @@
 
   let currentMode = 'signup'
 
+  // Handle email confirmation redirect (?confirmed=1) and password reset (?reset=1)
+  ;(async function handleRedirect() {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('confirmed') === '1') {
+      // Supabase has already set the session via URL hash fragment — check for it
+      const { data: { session } } = await sb.auth.getSession()
+      if (session) {
+        // Session found in this tab — go straight to onboard
+        window.location.href = PORTAL + '/onboard'
+        return
+      }
+      // Different device/browser — session not available here, show login prompt
+      openAuth('login')
+      const msg = document.getElementById('auth-msg')
+      msg.className = 'auth-msg success'
+      msg.textContent = 'Email confirmed! Log in below to go to your dashboard.'
+      msg.style.display = 'block'
+      // Clean up URL
+      history.replaceState(null, '', window.location.pathname)
+    }
+    if (params.get('reset') === '1') {
+      openAuth('login')
+      const msg = document.getElementById('auth-msg')
+      msg.className = 'auth-msg success'
+      msg.textContent = 'Password updated! Log in with your new password.'
+      msg.style.display = 'block'
+      history.replaceState(null, '', window.location.pathname)
+    }
+  })()
+
   function openAuth(mode) {
     currentMode = mode
     switchTab(mode)

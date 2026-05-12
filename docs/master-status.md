@@ -3,6 +3,53 @@
 
 ---
 
+## LEGAL & FINANCIAL SETUP — UK SOLE TRADER
+
+### Legal structure
+- Operating as a **UK sole trader** under the K.I.N.D brand
+- Register as self-employed with HMRC: gov.uk/register-for-self-assessment (free, 10 min)
+- Trade name: K.I.N.D — include full legal name on all invoices
+- VAT registration not required until turnover exceeds £90,000/year
+- Incorporate as Ltd when profits consistently exceed ~£50,000/year
+
+### Banking
+- **Starling Bank** or **Tide** — free UK business account, keep separate from personal
+- **Wise Business** — multi-currency account (USD, ZAR, GBP) for receiving client payments at near-spot rates
+
+### Getting paid
+- Paystack handles ZAR billing for South African clients (already built into the platform)
+- Paystack also covers Nigeria and Kenya
+- Wise receives USD/ZAR transfers for clients outside Paystack coverage
+- All invoices issued in USD — Paystack converts to local currency on the client's end
+
+### Tax
+- Pay Income Tax + National Insurance on **profits** (revenue minus expenses)
+- File Self Assessment annually — deadline 31 January
+- Set aside **25–30%** of every payment received for tax
+- All tech costs are deductible: Railway, Vercel, Supabase, Apollo, Resend, Claude Code, domain, home office broadband/phone
+
+### Deductible business expenses
+| Expense | Monthly cost |
+|---------|-------------|
+| Supabase | $25 |
+| Vercel | $20 |
+| Railway | $10–20 |
+| Apollo | $99 |
+| Resend | $0–20 |
+| Domain | $1.25 |
+| Claude Code | $100–200 |
+
+### Contracts
+- Order form (built into the platform) is the service agreement — signed before billing starts
+- Add UK address and full legal name to the order form footer before first client signs
+- Order form covers: scope, payment terms, liability, POPIA/GDPR compliance
+
+### When to go Ltd
+- Once profits consistently exceed ~£50,000/year — Corporation Tax (19–25%) is cheaper than higher-rate Income Tax
+- Also required if bringing on investors or co-founders
+
+---
+
 ## DOMAINS
 
 | Property | URL |

@@ -15,7 +15,15 @@ These run whether you have zero clients or one hundred.
 | Apollo.io | Lead data source — 24,000 credits/mo | Professional | $99 |
 | Resend | Transactional email (welcome, POPIA consent) | Free up to 3,000/mo | $0–20 |
 | kindai.com domain | Domain registration | Annual ~$15 | $1.25 |
-| **Total floor** | | | **$155–185/mo** |
+| **Claude Code (development)** | AI-assisted development — building and maintaining the entire platform | Max plan | **$100–200** |
+| **Total floor** | | | **$255–385/mo** |
+
+**Note on Claude Code:** This is a founder operating cost — the AI tool used to build and maintain K.I.N.D. It is not a product cost passed to clients. As the platform matures and requires less active development, this cost reduces or stops entirely. It is separate from the Anthropic API cost (which is the in-product cost of L3 lead scoring and F1 FIGSY — those are variable, sub-cent per lead).
+
+**Claude Code plans:**
+- Pro: $20/mo — sufficient for light usage
+- Max (5x): $100/mo — recommended for active development
+- Max (20x): $200/mo — heavy daily builds like the current phase
 
 **When Apollo upgrades:**
 - Professional: $99/mo — 24,000 credits — covers ~14,000 delivered leads/mo
@@ -165,8 +173,10 @@ The data cost is negligible. Your real cost is the fixed stack spread across all
 
 ## 8. Summary
 
-- **Floor cost to operate:** ~$165/mo
-- **Break-even:** 1–2 clients depending on product mix
+- **Floor cost to operate (tech stack only):** ~$165/mo
+- **Floor cost including Claude Code development:** ~$265–385/mo
+- **Break-even (tech stack only):** 1–2 clients depending on product mix
+- **Break-even (including Claude Code):** 2–3 clients depending on product mix
 - **Margin at 10 clients:** 85–91%
 - **Margin at 50 clients:** 93–94%
 - **Margin at 100 clients:** 94–95%

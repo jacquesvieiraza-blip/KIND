@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const FROM = 'K.I.N.D <hello@kindai.com>'
+const FROM = 'K.I.N.D <hello@get-kind.com>'
 
 export async function sendWelcomeEmail(to: string, companyName: string) {
   if (!resend) return
@@ -18,12 +18,12 @@ export async function sendWelcomeEmail(to: string, companyName: string) {
           <li>Set up your <strong>Ideal Customer Profile</strong> so we know who to find</li>
           <li>Your first leads will appear within 24 hours</li>
         </ol>
-        <a href="https://app.kindai.com/dashboard"
+        <a href="https://app.get-kind.com/dashboard"
            style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
           Go to my dashboard →
         </a>
         <p style="color:#999;font-size:0.8rem;margin-top:32px">
-          Questions? Reply to this email or book a call at <a href="mailto:hello@kindai.com">hello@kindai.com</a>.
+          Questions? Reply to this email or book a call at <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>.
         </p>
       </div>
     `,

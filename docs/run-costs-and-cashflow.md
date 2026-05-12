@@ -14,7 +14,7 @@ These run whether you have zero clients or one hundred.
 | Railway | API server (Node.js backend) | Usage-based | $10–20 |
 | Apollo.io | Lead data source — 24,000 credits/mo | Professional | $99 |
 | Resend | Transactional email (welcome, POPIA consent) | Free up to 3,000/mo | $0–20 |
-| kindai.com domain | Domain registration | Annual ~$15 | $1.25 |
+| get-kind.com domain | Domain registration | Annual ~$15 | $1.25 |
 | **Claude Code (development)** | AI-assisted development — building and maintaining the entire platform | Max plan | **$100–200** |
 | **Total floor** | | | **$255–385/mo** |
 

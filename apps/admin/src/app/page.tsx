@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import { PRODUCTS } from '@kind/shared'
+import { PRICING, PRODUCTS, FIGSY_ADDON } from '@kind/shared'
 import { Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react'
 import { AdminNav } from '@/components/AdminNav'
 
@@ -51,18 +51,50 @@ export default async function AdminPage() {
           <p className="text-xs text-gray-400 mt-2">{((stats.mrrUsd / 26000) * 100).toFixed(1)}% of Month 6 MRR target</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h2 className="font-semibold mb-4">Product Catalog</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <h2 className="font-semibold mb-1">Product Catalog</h2>
+          <p className="text-xs text-gray-400 mb-4">Current pricing model — usage-based for Lead Gen, flat subscription for VA &amp; Chatbot</p>
+          <div className="space-y-3">
+            {/* Usage-based products */}
+            {Object.entries(PRICING).map(([key, p]) => (
+              <div key={key} className="border border-blue-100 rounded-lg p-4 bg-blue-50/30">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-medium text-sm text-gray-900">{p.name}</p>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">Usage-based</span>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">Min ${p.monthly_minimum_usd}/mo · includes {p.includes_leads} leads</p>
+                <div className="space-y-1">
+                  {p.tiers.map(t => (
+                    <div key={t.label} className="flex justify-between text-xs text-gray-600">
+                      <span>{t.label}</span>
+                      <span className="font-medium">${t.rate_usd}/lead · R{t.rate_zar}/lead</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {/* FIGSY add-on */}
+            <div className="border border-indigo-100 rounded-lg p-4 bg-indigo-50/30">
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-medium text-sm text-gray-900">{FIGSY_ADDON.name}</p>
+                <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">Add-on</span>
+              </div>
+              <p className="text-xs text-gray-400">{FIGSY_ADDON.description}</p>
+              <p className="text-xs font-medium text-gray-700 mt-1">${FIGSY_ADDON.price_usd}/mo · R{FIGSY_ADDON.price_zar}/mo</p>
+            </div>
+            {/* Flat subscription products */}
             {Object.entries(PRODUCTS).map(([key, product]) => (
               <div key={key} className="border border-gray-100 rounded-lg p-4">
-                <p className="font-medium text-sm">{product.name}</p>
-                <div className="mt-2 space-y-1">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-medium text-sm text-gray-900">{product.name}</p>
+                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-medium">Flat subscription</span>
+                </div>
+                <div className="space-y-1">
                   {Object.entries(product.tiers).map(([tier, config]) => {
                     const c = config as { price_usd: number; custom?: boolean }
                     return (
-                      <div key={tier} className="flex justify-between text-xs text-gray-500">
+                      <div key={tier} className="flex justify-between text-xs text-gray-600">
                         <span className="capitalize">{tier}</span>
-                        <span>{c.custom ? 'Custom' : `$${c.price_usd}/mo`}</span>
+                        <span className="font-medium">{c.custom ? 'Custom' : `$${c.price_usd}/mo`}</span>
                       </div>
                     )
                   })}

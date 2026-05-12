@@ -41,14 +41,27 @@ export async function POST(req: NextRequest) {
 
   const { data: urlData } = db.storage.from('agreement-templates').getPublicUrl(uploadData.path)
 
-  const { data, error } = await db
+  const { data: existing } = await db
     .from('agreement_templates')
-    .upsert(
-      { name, description, file_path: uploadData.path, file_url: urlData.publicUrl, sort_order, is_active: true },
-      { onConflict: 'name' }
-    )
-    .select()
+    .select('id')
+    .eq('name', name)
     .single()
+
+  let data, error
+  if (existing) {
+    ({ data, error } = await db
+      .from('agreement_templates')
+      .update({ description, file_path: uploadData.path, file_url: urlData.publicUrl, sort_order, is_active: true })
+      .eq('id', existing.id)
+      .select()
+      .single())
+  } else {
+    ({ data, error } = await db
+      .from('agreement_templates')
+      .insert({ name, description, file_path: uploadData.path, file_url: urlData.publicUrl, sort_order, is_active: true })
+      .select()
+      .single())
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ data }, { status: 201 })

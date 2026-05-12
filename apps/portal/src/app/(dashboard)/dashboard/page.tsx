@@ -10,14 +10,21 @@ import { Users, Bot, MessageSquare, TrendingUp, Zap, ShieldCheck } from 'lucide-
 type BannerState = 'no_form' | 'awaiting_signature' | 'awaiting_payment' | 'trial' | 'none'
 
 function getBannerState(orderForm: Record<string, unknown> | null, subscriptions: Record<string, unknown>[]): { state: BannerState; trialDaysLeft?: number } {
-  const active  = subscriptions.some(s => s.status === 'active')
+  const active   = subscriptions.some(s => s.status === 'active')
   const trialing = subscriptions.find(s => s.status === 'trialing')
 
   if (active) return { state: 'none' }
 
   if (trialing && trialing.trial_ends_at) {
     const daysLeft = Math.ceil((new Date(trialing.trial_ends_at as string).getTime() - Date.now()) / 86400000)
-    return { state: 'trial', trialDaysLeft: Math.max(0, daysLeft) }
+    const clamped  = Math.max(0, daysLeft)
+
+    // Order form must be signed during (and after) trial
+    if (!orderForm || orderForm.status !== 'signed') {
+      return { state: 'awaiting_signature', trialDaysLeft: clamped }
+    }
+    if (daysLeft <= 0) return { state: 'awaiting_payment' }
+    return { state: 'trial', trialDaysLeft: clamped }
   }
 
   if (!orderForm) return { state: 'no_form' }

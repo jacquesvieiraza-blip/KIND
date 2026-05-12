@@ -27,8 +27,10 @@ export function OnboardingBanner({ state, trialDaysLeft }: Props) {
     awaiting_signature: {
       bg:   'bg-red-50 border-red-200',
       icon: <FileText className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />,
-      text: 'Action required: Sign your Order Form to activate your account.',
-      sub:  'Products are locked until your agreement is signed.',
+      text: 'Action required: Sign your Service Agreement to complete your setup.',
+      sub:  trialDaysLeft !== undefined
+        ? `${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''} left in your trial — sign now to keep access when it ends.`
+        : 'Products are locked until your agreement is signed.',
       cta:  <Link href="/dashboard/documents" className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
               <FileText className="w-3.5 h-3.5" />Sign now
             </Link>,

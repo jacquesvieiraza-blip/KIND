@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
+import { sendWelcomeEmail } from '../lib/email'
 
 export const authRouter = Router()
 
@@ -26,6 +27,7 @@ authRouter.post('/onboard', async (req, res) => {
     const trialEnd = new Date()
     trialEnd.setDate(trialEnd.getDate() + 14)
     await db.from('subscriptions').insert({ client_id: data.id, product: 'lead_gen', tier: 'starter', status: 'trialing', amount_zar: 0, trial_ends_at: trialEnd.toISOString(), current_period_end: trialEnd.toISOString() })
+    sendWelcomeEmail(user.email!, body.company_name).catch(() => {})
     res.json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

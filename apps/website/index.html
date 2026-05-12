@@ -516,14 +516,20 @@
         <label>Email address</label>
         <input type="email" id="auth-email" placeholder="you@company.com" required />
       </div>
-      <div class="field">
-        <label>Password</label>
+      <div class="field" id="password-field">
+        <label style="display:flex;justify-content:space-between;align-items:center;">
+          Password
+          <button type="button" id="forgot-link" onclick="switchTab('forgot')" style="background:none;border:none;color:rgba(255,255,255,0.45);font-size:0.72rem;cursor:pointer;padding:0;display:none;">Forgot password?</button>
+        </label>
         <input type="password" id="auth-password" placeholder="Min. 8 characters" minlength="8" required />
       </div>
       <button type="submit" class="auth-btn" id="auth-submit">Create account →</button>
     </form>
     <div id="auth-msg" class="auth-msg" style="display:none"></div>
     <p class="trial-note" id="trial-note">14-day free trial · No credit card · Cancel anytime</p>
+    <p style="text-align:center;margin-top:14px;font-size:0.72rem;color:rgba(255,255,255,0.3);">
+      Prefer a demo? <a href="mailto:hello@kindai.com?subject=Book%20a%20Call" style="color:rgba(255,255,255,0.55);text-decoration:underline;">Book a call →</a>
+    </p>
   </div>
 </div>
 
@@ -558,11 +564,25 @@
     currentMode = mode
     document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
     document.getElementById('tab-login').classList.toggle('active', mode === 'login')
-    document.getElementById('modal-title').textContent = mode === 'signup' ? 'Start free trial' : 'Welcome back'
-    document.getElementById('modal-sub').textContent = mode === 'signup' ? '14 days free. No credit card required.' : 'Log in to your K.I.N.D dashboard.'
-    document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account →' : 'Log in →'
-    document.getElementById('trial-note').style.display = mode === 'signup' ? 'block' : 'none'
     document.getElementById('auth-msg').style.display = 'none'
+
+    if (mode === 'forgot') {
+      document.getElementById('modal-title').textContent = 'Reset password'
+      document.getElementById('modal-sub').textContent = 'We\'ll send a reset link to your email.'
+      document.getElementById('auth-submit').textContent = 'Send reset link →'
+      document.getElementById('password-field').style.display = 'none'
+      document.getElementById('auth-password').required = false
+      document.getElementById('trial-note').style.display = 'none'
+      document.getElementById('forgot-link').style.display = 'none'
+    } else {
+      document.getElementById('modal-title').textContent = mode === 'signup' ? 'Start free trial' : 'Welcome back'
+      document.getElementById('modal-sub').textContent = mode === 'signup' ? '14 days free. No credit card required.' : 'Log in to your K.I.N.D dashboard.'
+      document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account →' : 'Log in →'
+      document.getElementById('trial-note').style.display = mode === 'signup' ? 'block' : 'none'
+      document.getElementById('password-field').style.display = 'block'
+      document.getElementById('auth-password').required = true
+      document.getElementById('forgot-link').style.display = mode === 'login' ? 'inline' : 'none'
+    }
   }
 
   document.getElementById('auth-modal').addEventListener('click', function(e) {
@@ -580,8 +600,27 @@
     btn.textContent = 'Please wait…'
     msg.style.display = 'none'
 
-    if (currentMode === 'signup') {
-      const { error } = await sb.auth.signUp({ email, password })
+    if (currentMode === 'forgot') {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/?reset=1',
+      })
+      if (error) {
+        msg.className = 'auth-msg error'
+        msg.textContent = error.message
+        msg.style.display = 'block'
+        btn.disabled = false
+        btn.textContent = 'Send reset link →'
+      } else {
+        msg.className = 'auth-msg success'
+        msg.textContent = 'Reset link sent — check your email.'
+        msg.style.display = 'block'
+        btn.textContent = 'Email sent ✓'
+      }
+    } else if (currentMode === 'signup') {
+      const { error } = await sb.auth.signUp({
+        email, password,
+        options: { emailRedirectTo: window.location.origin + '/?confirmed=1' },
+      })
       if (error) {
         msg.className = 'auth-msg error'
         msg.textContent = error.message
@@ -593,7 +632,7 @@
         msg.textContent = 'Account created! Check your email to confirm, then you\'ll be redirected.'
         msg.style.display = 'block'
         btn.textContent = 'Check your email ✓'
-        // Poll for session after email confirmation
+        // Poll for session after email confirmation (works when they return to this tab)
         const check = setInterval(async () => {
           const { data: { session } } = await sb.auth.getSession()
           if (session) { clearInterval(check); window.location.href = PORTAL + '/onboard' }

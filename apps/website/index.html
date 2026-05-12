@@ -545,35 +545,8 @@
 
   let currentMode = 'signup'
 
-  // Handle email confirmation redirect (?confirmed=1) and password reset (?reset=1)
-  ;(async function handleRedirect() {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('confirmed') === '1') {
-      // Supabase has already set the session via URL hash fragment — check for it
-      const { data: { session } } = await sb.auth.getSession()
-      if (session) {
-        // Session found in this tab — go straight to onboard
-        window.location.href = PORTAL + '/onboard'
-        return
-      }
-      // Different device/browser — session not available here, show login prompt
-      openAuth('login')
-      const msg = document.getElementById('auth-msg')
-      msg.className = 'auth-msg success'
-      msg.textContent = 'Email confirmed! Log in below to go to your dashboard.'
-      msg.style.display = 'block'
-      // Clean up URL
-      history.replaceState(null, '', window.location.pathname)
-    }
-    if (params.get('reset') === '1') {
-      openAuth('login')
-      const msg = document.getElementById('auth-msg')
-      msg.className = 'auth-msg success'
-      msg.textContent = 'Password updated! Log in with your new password.'
-      msg.style.display = 'block'
-      history.replaceState(null, '', window.location.pathname)
-    }
-  })()
+  // Email confirmation and password reset now go directly to the portal's /auth/callback.
+  // This page no longer needs to handle those redirects.
 
   function openAuth(mode) {
     currentMode = mode
@@ -592,8 +565,10 @@
 
   function switchTab(mode) {
     currentMode = mode
+    // Login is handled on the portal domain — clicking the tab goes there directly
+    if (mode === 'login') { window.location.href = PORTAL + '/login'; return }
     document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
-    document.getElementById('tab-login').classList.toggle('active', mode === 'login')
+    document.getElementById('tab-login').classList.toggle('active', false)
     document.getElementById('auth-msg').style.display = 'none'
 
     if (mode === 'forgot') {
@@ -631,8 +606,9 @@
     msg.style.display = 'none'
 
     if (currentMode === 'forgot') {
+      // Reset link goes to portal — password update happens on the portal domain
       const { error } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/?reset=1',
+        redirectTo: PORTAL + '/auth/callback?next=/reset-password',
       })
       if (error) {
         msg.className = 'auth-msg error'
@@ -647,9 +623,12 @@
         btn.textContent = 'Email sent ✓'
       }
     } else if (currentMode === 'signup') {
+      // emailRedirectTo points to the portal's /auth/callback — Supabase sets the
+      // session cookie on the portal domain, then forwards to /onboard. This avoids
+      // the cross-domain session problem entirely.
       const { error } = await sb.auth.signUp({
         email, password,
-        options: { emailRedirectTo: window.location.origin + '/?confirmed=1' },
+        options: { emailRedirectTo: PORTAL + '/auth/callback?next=/onboard' },
       })
       if (error) {
         msg.className = 'auth-msg error'
@@ -659,26 +638,14 @@
         btn.textContent = 'Create account →'
       } else {
         msg.className = 'auth-msg success'
-        msg.textContent = 'Account created! Check your email to confirm, then you\'ll be redirected.'
+        msg.textContent = 'Account created! Check your email to confirm — you\'ll be taken straight to your dashboard.'
         msg.style.display = 'block'
         btn.textContent = 'Check your email ✓'
-        // Poll for session after email confirmation (works when they return to this tab)
-        const check = setInterval(async () => {
-          const { data: { session } } = await sb.auth.getSession()
-          if (session) { clearInterval(check); window.location.href = PORTAL + '/onboard' }
-        }, 2000)
       }
     } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password })
-      if (error) {
-        msg.className = 'auth-msg error'
-        msg.textContent = error.message
-        msg.style.display = 'block'
-        btn.disabled = false
-        btn.textContent = 'Log in →'
-      } else {
-        window.location.href = PORTAL + '/dashboard'
-      }
+      // Login: redirect to portal login page — auth happens on the portal domain
+      closeAuth()
+      window.location.href = PORTAL + '/login'
     }
   })
 </script>

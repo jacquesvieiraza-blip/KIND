@@ -18,7 +18,7 @@ export async function sendWelcomeEmail(to: string, companyName: string) {
           <li>Set up your <strong>Ideal Customer Profile</strong> so we know who to find</li>
           <li>Your first leads will appear within 24 hours</li>
         </ol>
-        <a href="https://kind-portal.vercel.app/dashboard"
+        <a href="https://app.kindai.com/dashboard"
            style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
           Go to my dashboard →
         </a>

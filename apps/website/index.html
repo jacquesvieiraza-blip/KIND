@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D — Intelligence, Engineered. AI Platform for Africa.</title>
+  <meta name="description" content="One platform. Every AI product your business needs. Lead Generation, FIGSY AI SDR, Virtual Assistant, Chatbot — built for Africa." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #0066FF; --border: rgba(255,255,255,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; line-height: 1.6; overflow-x: hidden; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); z-index: 200;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(255,255,255,0.55); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); transition: all .2s; }
+    .btn-nav-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .btn-nav-primary { background: var(--blue); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary:hover { opacity: 0.88; }
+
+    /* ── HERO ── */
+    .hero {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 88vh; text-align: center; padding: 80px 24px 60px;
+      position: relative;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 500px;
+      background: radial-gradient(ellipse at center top, rgba(0,102,255,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 36px;
+    }
+    .hero h1 {
+      font-size: clamp(4rem, 10vw, 8.5rem);
+      font-weight: 900; line-height: 0.95; letter-spacing: -0.04em;
+      background: linear-gradient(180deg, #ffffff 30%, rgba(255,255,255,0.25) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 36px;
+    }
+    .hero p {
+      font-size: 1.05rem; color: rgba(255,255,255,0.45); max-width: 520px;
+      margin: 0 auto 44px; line-height: 1.75;
+    }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-hero-primary {
+      background: var(--blue); color: #fff; font-size: 0.95rem; font-weight: 700;
+      text-decoration: none; padding: 13px 28px; border-radius: 100px; transition: opacity .2s;
+    }
+    .btn-hero-primary:hover { opacity: 0.88; }
+    .btn-hero-ghost {
+      color: rgba(255,255,255,0.7); font-size: 0.95rem; font-weight: 500;
+      text-decoration: none; padding: 13px 28px; border-radius: 100px;
+      border: 1px solid rgba(255,255,255,0.16); transition: all .2s;
+    }
+    .btn-hero-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+
+    /* ── STATS ── */
+    .stats { display: flex; justify-content: center; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .stat { text-align: center; padding: 36px 52px; border-right: 1px solid var(--border); }
+    .stat:last-child { border-right: none; }
+    .stat .n { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.03em; color: #fff; }
+    .stat .l { font-size: 0.78rem; color: rgba(255,255,255,0.32); margin-top: 4px; letter-spacing: 0.01em; }
+
+    /* ── SECTION ── */
+    .section { padding: 100px 24px; max-width: 1080px; margin: 0 auto; }
+    .s-label { text-align: center; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
+    .s-title { text-align: center; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 18px; }
+    .s-sub { text-align: center; font-size: 0.95rem; color: rgba(255,255,255,0.4); max-width: 560px; margin: 0 auto 64px; line-height: 1.7; }
+    .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
+
+    /* ── PRODUCTS ── */
+    .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .prod { background: #0a0a0a; border: 1px solid var(--border); border-radius: 20px; padding: 36px 32px; transition: border-color .2s; }
+    .prod:hover { border-color: rgba(255,255,255,0.15); }
+    .prod.featured { border-color: rgba(0,102,255,0.3); background: rgba(0,20,60,0.5); }
+    .prod-icon { font-size: 28px; margin-bottom: 20px; }
+    .prod-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; margin-bottom: 12px; }
+    .t-blue   { background: rgba(0,102,255,0.15); color: #60a5fa; }
+    .t-purple { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+    .t-indigo { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+    .t-green  { background: rgba(34,197,94,0.12); color: #4ade80; }
+    .prod h3 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; }
+    .prod p  { font-size: 0.85rem; color: rgba(255,255,255,0.42); line-height: 1.65; margin-bottom: 24px; }
+    .prod-price { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; }
+    .prod-price .sm { font-size: 0.82rem; font-weight: 400; color: rgba(255,255,255,0.3); }
+    .prod-features { list-style: none; margin-top: 20px; }
+    .prod-features li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.82rem; color: rgba(255,255,255,0.55); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .prod-features li:last-child { border-bottom: none; }
+    .prod-features li::before { content: "✓"; font-weight: 800; flex-shrink: 0; }
+    .prod-features li.g::before { color: #4ade80; }
+    .prod-features li.b::before { color: #60a5fa; }
+
+    /* ── FIGSY BLOCK ── */
+    .figsy-block {
+      background: linear-gradient(135deg, rgba(0,25,70,0.9) 0%, rgba(0,5,20,0.98) 100%);
+      border: 1px solid rgba(0,102,255,0.2); border-radius: 28px; padding: 72px 64px;
+      position: relative; overflow: hidden;
+    }
+    .figsy-block::after {
+      content: ''; position: absolute; top: -100px; right: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(0,102,255,0.1) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .f-eye { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #60a5fa; margin-bottom: 20px; }
+    .figsy-block h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 18px; }
+    .figsy-block h2 span { color: #60a5fa; }
+    .figsy-block > p { font-size: 0.95rem; color: rgba(255,255,255,0.45); max-width: 560px; margin-bottom: 48px; line-height: 1.7; position: relative; z-index: 1; }
+    .figsy-flow { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 40px; position: relative; z-index: 1; }
+    .f-step { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 20px; }
+    .f-step .fn { width: 26px; height: 26px; background: rgba(0,102,255,0.18); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; color: #60a5fa; margin-bottom: 10px; }
+    .f-step h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 5px; }
+    .f-step p { font-size: 0.78rem; color: rgba(255,255,255,0.36); line-height: 1.5; }
+    .figsy-feats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; position: relative; z-index: 1; }
+    .f-feat { display: flex; align-items: flex-start; gap: 8px; font-size: 0.82rem; color: rgba(255,255,255,0.55); }
+    .f-feat::before { content: "✓"; color: #60a5fa; font-weight: 800; flex-shrink: 0; }
+
+    /* ── PRICING ── */
+    .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+    .p-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 20px; padding: 36px 28px; display: flex; flex-direction: column; }
+    .p-card.pop { border-color: rgba(0,102,255,0.4); background: rgba(0,20,55,0.6); position: relative; }
+    .pop-pill { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 14px; border-radius: 100px; white-space: nowrap; }
+    .p-plan { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); margin-bottom: 8px; }
+    .p-card h3 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 8px; }
+    .p-desc { font-size: 0.82rem; color: rgba(255,255,255,0.36); line-height: 1.6; margin-bottom: 28px; flex: 1; }
+    .p-price { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
+    .p-note { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-bottom: 28px; }
+    .p-card ul { list-style: none; margin-bottom: 28px; }
+    .p-card ul li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; color: rgba(255,255,255,0.55); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .p-card ul li:last-child { border-bottom: none; }
+    .p-card ul li::before { content: "✓"; color: #4ade80; font-weight: 800; flex-shrink: 0; }
+    .p-card ul li.b::before { color: #60a5fa; }
+    .p-card ul li.dim { color: rgba(255,255,255,0.2); }
+    .p-card ul li.dim::before { color: rgba(255,255,255,0.12); }
+    .p-btn { display: block; text-align: center; padding: 12px; border-radius: 100px; font-size: 0.875rem; font-weight: 700; text-decoration: none; transition: all .2s; border: none; cursor: pointer; margin-top: auto; }
+    .p-btn-blue { background: var(--blue); color: #fff; }
+    .p-btn-blue:hover { opacity: 0.88; }
+    .p-btn-out { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.14); }
+    .p-btn-out:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+    .p-vol-note { text-align: center; font-size: 0.78rem; color: rgba(255,255,255,0.25); margin-top: 22px; }
+
+    /* ── HOW IT WORKS ── */
+    .hiw-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    .hiw-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 16px; padding: 28px 22px; }
+    .hiw-num { width: 34px; height: 34px; background: rgba(0,102,255,0.12); border: 1px solid rgba(0,102,255,0.22); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 800; color: #60a5fa; margin-bottom: 16px; }
+    .hiw-card h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 8px; }
+    .hiw-card p { font-size: 0.8rem; color: rgba(255,255,255,0.38); line-height: 1.6; }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(0,25,70,0.8) 0%, rgba(0,5,20,0.9) 100%);
+      border: 1px solid rgba(0,102,255,0.2); border-radius: 24px;
+      padding: 72px 48px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-banner::before {
+      content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(0,102,255,0.1) 0%, transparent 70%);
+    }
+    .cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 16px; position: relative; z-index: 1; }
+    .cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.42); margin-bottom: 36px; position: relative; z-index: 1; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+
+    /* ── FOOTER ── */
+    footer { border-top: 1px solid var(--border); padding: 60px 48px 40px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 52px; }
+    .footer-brand p { font-size: 0.82rem; color: rgba(255,255,255,0.35); margin-top: 14px; max-width: 240px; line-height: 1.65; }
+    .footer-col h4 { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.28); margin-bottom: 18px; }
+    .footer-col a { display: block; font-size: 0.83rem; color: rgba(255,255,255,0.42); text-decoration: none; margin-bottom: 10px; transition: color .2s; }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 28px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+    .badges { display: flex; gap: 10px; flex-wrap: wrap; }
+    .badge { font-size: 0.68rem; color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .products-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .figsy-flow { grid-template-columns: 1fr 1fr; }
+      .figsy-feats { grid-template-columns: 1fr 1fr; }
+      .hiw-grid { grid-template-columns: 1fr 1fr; }
+      .figsy-block { padding: 44px 28px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+    @media (max-width: 600px) {
+      .stat { padding: 28px 32px; }
+      .figsy-flow, .figsy-feats { grid-template-columns: 1fr; }
+      .hiw-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .cta-banner { padding: 48px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <a href="#products" class="nav-link">Products</a>
+    <a href="#figsy" class="nav-link">FIGSY</a>
+    <a href="#how-it-works" class="nav-link">How it works</a>
+    <a href="#pricing" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://kind-portal.vercel.app/login" class="btn-nav-ghost">Client login</a>
+    <a href="mailto:hello@kind.ai" class="btn-nav-primary">Book a free call</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">AI Consulting · South Africa</div>
+  <h1>Intelligence,<br/>Engineered.</h1>
+  <p>One platform. Every AI product your business needs. Log in once and access all your K.I.N.D modules — Lead Generation, FIGSY, Virtual Assistant, Chatbot — in a single, unified workspace.</p>
+  <div class="hero-btns">
+    <a href="mailto:hello@kind.ai" class="btn-hero-primary">Book a Free Call</a>
+    <a href="#products" class="btn-hero-ghost">View Services</a>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><div class="n">5+</div><div class="l">AI Products</div></div>
+  <div class="stat"><div class="n">24/7</div><div class="l">Always-on AI</div></div>
+  <div class="stat"><div class="n">&lt; 2wk</div><div class="l">Time to pilot</div></div>
+  <div class="stat"><div class="n">100%</div><div class="l">In-house stack</div></div>
+</div>
+
+<!-- PRODUCTS -->
+<div class="section" id="products">
+  <div class="s-label">Platform</div>
+  <div class="s-title">Every AI product<br/>your business needs</div>
+  <p class="s-sub">Purpose-built AI products that work together on one platform. Start with one, add more as you grow.</p>
+  <div class="products-grid">
+    <div class="prod featured">
+      <div class="prod-icon">🎯</div>
+      <span class="prod-tag t-blue">Lead Generation</span>
+      <h3>AI Lead Generation</h3>
+      <p>Precision-targeted B2B leads sourced from 250M+ contacts, matched to your ICP, AI-scored, and POPIA-compliant. Only pay for leads that are new to your pipeline.</p>
+      <div class="prod-price">$1 <span class="sm">/ lead · from $100/mo</span></div>
+      <ul class="prod-features">
+        <li class="g">ICP-matched leads from Apollo</li>
+        <li class="g">AI lead scoring 0–100</li>
+        <li class="g">POPIA consent workflow</li>
+        <li class="g">CRM deduplication</li>
+        <li class="g">CSV export</li>
+      </ul>
+    </div>
+    <div class="prod featured">
+      <div class="prod-icon">🤖</div>
+      <span class="prod-tag t-blue">FIGSY — AI SDR</span>
+      <h3>FIGSY AI Outreach</h3>
+      <p>Your autonomous AI Sales Development Representative. Writes personalised emails per lead, sends from your domain, handles replies, follows up, and books meetings automatically.</p>
+      <div class="prod-price">$3 <span class="sm">/ lead · from $300/mo</span></div>
+      <ul class="prod-features">
+        <li class="b">AI-personalised outreach emails</li>
+        <li class="b">Automated follow-up sequences</li>
+        <li class="b">Reply detection and handling</li>
+        <li class="b">Calendar meeting booking</li>
+        <li class="b">Campaign dashboard</li>
+      </ul>
+    </div>
+    <div class="prod">
+      <div class="prod-icon">🧠</div>
+      <span class="prod-tag t-purple">Virtual Assistant</span>
+      <h3>AI Virtual Assistant</h3>
+      <p>A Claude-powered assistant trained on your business. Handles scheduling, email drafting, internal Q&amp;A, and document queries — always available, always accurate.</p>
+      <div class="prod-price">$200 <span class="sm">/ mo starter</span></div>
+      <ul class="prod-features">
+        <li class="g">Business knowledge base</li>
+        <li class="g">Email drafting &amp; summarisation</li>
+        <li class="g">Scheduling &amp; calendar queries</li>
+        <li class="g">500 messages/mo included</li>
+      </ul>
+    </div>
+    <div class="prod">
+      <div class="prod-icon">💬</div>
+      <span class="prod-tag t-indigo">Chatbot Agent</span>
+      <h3>AI Chatbot Agent</h3>
+      <p>Fully configured AI chatbot for your website or WhatsApp. Answers customer queries, captures leads, and hands off to your team — one embed code away.</p>
+      <div class="prod-price">$200 <span class="sm">/ mo starter</span></div>
+      <ul class="prod-features">
+        <li class="g">Web &amp; WhatsApp deployment</li>
+        <li class="g">Custom persona and tone</li>
+        <li class="g">Lead capture built in</li>
+        <li class="g">500 conversations/mo included</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- FIGSY -->
+<div class="section" id="figsy">
+  <div class="s-label">FIGSY — AI SDR</div>
+  <div class="s-title">Your AI sales rep.<br/>Never sleeps. Never quits.</div>
+  <p class="s-sub">FIGSY is a fully autonomous AI SDR — not a template tool. It reads each lead individually and runs the entire outreach cycle without you lifting a finger.</p>
+  <div class="figsy-block">
+    <div class="f-eye">🤖 How FIGSY works</div>
+    <h2>Lead to booked meeting — <span>automatically</span></h2>
+    <p>FIGSY picks up every scored lead, writes a unique personalised email, sends from your domain, reads the reply, follows up with fresh angles, and books the meeting when the lead is ready. You just show up.</p>
+    <div class="figsy-flow">
+      <div class="f-step"><div class="fn">1</div><h4>Lead arrives</h4><p>FIGSY picks up each new scored lead from your pipeline automatically.</p></div>
+      <div class="f-step"><div class="fn">2</div><h4>Personalised email written</h4><p>AI writes a unique email per lead — based on their role, company and industry. Not a template.</p></div>
+      <div class="f-step"><div class="fn">3</div><h4>Sent from your domain</h4><p>Emails go from your address. Looks like it came from you. DMARC &amp; SPF compliant.</p></div>
+      <div class="f-step"><div class="fn">4</div><h4>Replies handled</h4><p>FIGSY reads every reply, classifies intent, and responds — or books the meeting.</p></div>
+      <div class="f-step"><div class="fn">5</div><h4>Follow-ups automated</h4><p>No reply? FIGSY follows up twice with fresh messaging angles — not the same email.</p></div>
+      <div class="f-step"><div class="fn">6</div><h4>Meeting booked</h4><p>Interested leads get a calendar invite. You get a notification. Show up and close.</p></div>
+    </div>
+    <div class="figsy-feats">
+      <div class="f-feat">Works standalone or with Lead Gen</div>
+      <div class="f-feat">Upload your own CSV lead list</div>
+      <div class="f-feat">POPIA &amp; GDPR compliant by design</div>
+      <div class="f-feat">Auto opt-out shared blocklist</div>
+      <div class="f-feat">Campaign dashboard — full visibility</div>
+      <div class="f-feat">Powered by Claude (Anthropic)</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- HOW IT WORKS -->
+<div class="section" id="how-it-works">
+  <div class="s-label">How it works</div>
+  <div class="s-title">From ICP to meeting<br/>in four steps</div>
+  <p class="s-sub">The full Lead Gen + FIGSY pipeline — from defining who you want to reach, to a meeting booked in your calendar.</p>
+  <div class="hiw-grid">
+    <div class="hiw-card"><div class="hiw-num">1</div><h3>Define your ICP</h3><p>Set your Ideal Customer Profile — industry, title, company size, geography, revenue range.</p></div>
+    <div class="hiw-card"><div class="hiw-num">2</div><h3>AI finds leads</h3><p>We pull matching contacts from 250M+, deduplicate, score 0–100, and run POPIA consent.</p></div>
+    <div class="hiw-card"><div class="hiw-num">3</div><h3>FIGSY runs outreach</h3><p>Personalised emails sent, replies handled, follow-ups automated — without you involved.</p></div>
+    <div class="hiw-card"><div class="hiw-num">4</div><h3>You close the deal</h3><p>Interested leads appear as booked meetings. You only pay for leads actually delivered.</p></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- PRICING -->
+<div class="section" id="pricing">
+  <div class="s-label">Pricing</div>
+  <div class="s-title">Pay per result.<br/>Not per seat.</div>
+  <p class="s-sub">Usage-based pricing for Lead Gen and FIGSY. Flat monthly for VA and Chatbot. No contracts, no surprises.</p>
+  <div class="pricing-grid">
+    <div class="p-card">
+      <div class="p-plan">Lead Gen</div>
+      <h3>AI Lead Generation</h3>
+      <p class="p-desc">Scored, consented leads matched to your ICP. No duplicates. No contracts.</p>
+      <div class="p-price">$1<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/lead</span></div>
+      <div class="p-note">From $100/mo · 100 leads included</div>
+      <ul>
+        <li class="g" style="--c:#4ade80">ICP-matched from Apollo</li>
+        <li>AI score 0–100</li>
+        <li>POPIA consent workflow</li>
+        <li>CRM deduplication</li>
+        <li>CSV export</li>
+        <li class="dim">FIGSY not included</li>
+      </ul>
+      <a href="mailto:hello@kind.ai" class="p-btn p-btn-out">Get started</a>
+    </div>
+    <div class="p-card pop">
+      <div class="pop-pill">Most popular</div>
+      <div class="p-plan">Lead Gen + FIGSY</div>
+      <h3>Full Pipeline Bundle</h3>
+      <p class="p-desc">Leads found and AI outreach running. The complete end-to-end sales system.</p>
+      <div class="p-price">$3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/lead</span></div>
+      <div class="p-note">From $300/mo · 100 leads included</div>
+      <ul>
+        <li>Everything in Lead Gen</li>
+        <li class="b">FIGSY personalised outreach</li>
+        <li class="b">3-step follow-up sequences</li>
+        <li class="b">Reply detection &amp; handling</li>
+        <li class="b">Meeting booking automation</li>
+        <li class="b">Campaign dashboard</li>
+      </ul>
+      <a href="mailto:hello@kind.ai" class="p-btn p-btn-blue">Book a free call →</a>
+    </div>
+    <div class="p-card">
+      <div class="p-plan">VA + Chatbot</div>
+      <h3>Assistant Products</h3>
+      <p class="p-desc">Flat monthly subscription. Add to any plan or use standalone.</p>
+      <div class="p-price" style="font-size:1.8rem">$200<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span></div>
+      <div class="p-note">Starter tier · Pro tiers available</div>
+      <ul>
+        <li>Virtual Assistant — from $200/mo</li>
+        <li>AI Chatbot Agent — from $200/mo</li>
+        <li>Custom persona &amp; knowledge base</li>
+        <li>Web &amp; WhatsApp deployment</li>
+        <li>500 interactions/mo included</li>
+        <li>Pro: 2,000 interactions/mo</li>
+      </ul>
+      <a href="mailto:hello@kind.ai" class="p-btn p-btn-out">Get started</a>
+    </div>
+  </div>
+  <p class="p-vol-note">Volume discounts from 500+ leads · ZAR billing available · Enterprise pricing on request</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<div class="section">
+  <div class="cta-banner">
+    <h2>Ready to build your AI sales team?</h2>
+    <p>Book a free 30-minute call. We'll walk you through the platform and set up your first ICP together.</p>
+    <div class="cta-btns">
+      <a href="mailto:hello@kind.ai" class="btn-hero-primary">Book a Free Call</a>
+      <a href="https://kind-portal.vercel.app/login" class="btn-hero-ghost">Client login →</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo">
+          <div class="logo-icon">⚡</div>
+          <span class="logo-text" style="margin-left:10px;">K.I.N.D</span>
+        </a>
+        <p>Africa-first AI sales platform. Precision leads, autonomous outreach, and intelligent business tools — built for B2B teams.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Products</h4>
+        <a href="#products">AI Lead Generation</a>
+        <a href="#figsy">FIGSY — AI SDR</a>
+        <a href="#products">Virtual Assistant</a>
+        <a href="#products">Chatbot Agent</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="mailto:hello@kind.ai">hello@kind.ai</a>
+        <a href="https://kind-portal.vercel.app/login">Client login</a>
+        <a href="https://kind-portal.vercel.app/privacy">Privacy policy</a>
+        <a href="https://kind-portal.vercel.app/terms">Terms of service</a>
+      </div>
+      <div class="footer-col">
+        <h4>Early access</h4>
+        <a href="https://tourmaline-granita-07e9b4.netlify.app">Join waitlist</a>
+        <a href="#pricing">View pricing</a>
+        <a href="mailto:hello@kind.ai">Contact us</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 K.I.N.D AI Platform. All rights reserved.</p>
+      <div class="badges">
+        <span class="badge">POPIA Compliant</span>
+        <span class="badge">GDPR Compliant</span>
+        <span class="badge">Data hosted EU</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

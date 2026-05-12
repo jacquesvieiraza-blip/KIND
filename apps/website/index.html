@@ -23,11 +23,36 @@
     .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
     .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
     .nav-links { display: flex; align-items: center; gap: 2px; }
-    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
     .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
     .nav-right { display: flex; align-items: center; gap: 10px; }
     .btn-nav-ghost { color: rgba(255,255,255,0.55); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); transition: all .2s; cursor: pointer; background: none; }
     .btn-nav-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+    /* ── NAV DROPDOWNS ── */
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item:hover > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-dropdown {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9);
+      z-index: 300; transition: opacity .15s, visibility .15s;
+    }
+    .nav-item:hover .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 12px; border-radius: 10px;
+      text-decoration: none; transition: background .15s;
+    }
+    .dd-link:hover { background: rgba(255,255,255,0.05); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(255,255,255,0.3); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: #fff; }
+    .dd-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 4px; }
 
     /* ── AUTH MODAL ── */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
@@ -240,15 +265,102 @@
 
 <!-- NAV -->
 <nav>
-  <a href="#" class="logo">
+  <a href="/" class="logo">
     <div class="logo-icon">⚡</div>
     <span class="logo-text">K.I.N.D</span>
   </a>
   <div class="nav-links">
-    <a href="#products" class="nav-link">Products</a>
-    <a href="#figsy" class="nav-link">FIGSY</a>
-    <a href="#how-it-works" class="nav-link">How it works</a>
-    <a href="#pricing" class="nav-link">Pricing</a>
+
+    <!-- Products -->
+    <div class="nav-item">
+      <a href="#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="#products" class="dd-link">
+          <span class="dd-icon">🎯</span>
+          <span><span class="dd-title">AI Lead Generation</span><span class="dd-sub">ICP-matched B2B leads from 250M+ contacts</span></span>
+        </a>
+        <a href="#figsy" class="dd-link">
+          <span class="dd-icon">🤖</span>
+          <span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span>
+        </a>
+        <a href="#products" class="dd-link">
+          <span class="dd-icon">🧠</span>
+          <span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span>
+        </a>
+        <a href="#products" class="dd-link">
+          <span class="dd-icon">💬</span>
+          <span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Use Cases -->
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link">
+          <span class="dd-icon">📊</span>
+          <span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span>
+        </a>
+        <a href="use-cases.html#financial" class="dd-link">
+          <span class="dd-icon">🏦</span>
+          <span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span>
+        </a>
+        <a href="use-cases.html#real-estate" class="dd-link">
+          <span class="dd-icon">🏠</span>
+          <span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span>
+        </a>
+        <a href="use-cases.html#professional-services" class="dd-link">
+          <span class="dd-icon">⚖️</span>
+          <span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span>
+        </a>
+        <a href="use-cases.html#saas" class="dd-link">
+          <span class="dd-icon">💻</span>
+          <span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span>
+        </a>
+        <a href="use-cases.html#recruitment" class="dd-link">
+          <span class="dd-icon">👥</span>
+          <span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Resources -->
+    <div class="nav-item">
+      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link">
+          <span class="dd-icon">📖</span>
+          <span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span>
+        </a>
+        <a href="support.html" class="dd-link">
+          <span class="dd-icon">🛟</span>
+          <span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span>
+        </a>
+        <div class="dd-divider"></div>
+        <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="dd-link">
+          <span class="dd-icon">📅</span>
+          <span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@kindai.com</span></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Company -->
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link">
+          <span class="dd-icon">🏢</span>
+          <span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span>
+        </a>
+        <a href="support.html" class="dd-link">
+          <span class="dd-icon">💬</span>
+          <span><span class="dd-title">Support</span><span class="dd-sub">Help centre &amp; contact</span></span>
+        </a>
+      </div>
+    </div>
+
+    <a href="pricing.html" class="nav-link">Pricing</a>
   </div>
   <div class="nav-right">
     <button onclick="openAuth('login')" class="btn-nav-ghost">Log in</button>
@@ -478,16 +590,17 @@
       </div>
       <div class="footer-col">
         <h4>Company</h4>
-        <a href="mailto:hello@kind.ai">hello@kind.ai</a>
-        <a href="https://app.kindai.com/login">Client login</a>
-        <a href="https://app.kindai.com/privacy">Privacy policy</a>
-        <a href="https://app.kindai.com/terms">Terms of service</a>
+        <a href="about.html">About K.I.N.D</a>
+        <a href="use-cases.html">Use Cases</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="support.html">Support</a>
       </div>
       <div class="footer-col">
-        <h4>Early access</h4>
-        <a href="https://tourmaline-granita-07e9b4.netlify.app">Join waitlist</a>
-        <a href="#pricing">View pricing</a>
-        <a href="mailto:hello@kind.ai">Contact us</a>
+        <h4>Get in touch</h4>
+        <a href="mailto:hello@kindai.com">hello@kindai.com</a>
+        <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo">Book a Demo</a>
+        <a href="https://app.kindai.com/login">Client login</a>
+        <a href="https://app.kindai.com/terms">Terms of service</a>
       </div>
     </div>
     <div class="footer-bottom">

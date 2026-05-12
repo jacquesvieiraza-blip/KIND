@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About K.I.N.D — Knowledge. Intelligence. Networks. Delivered.</title>
+  <meta name="description" content="K.I.N.D was built by a sales rep who was tired of hunting for leads that never converted. We built the tool we wished we had." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #0066FF; --border: rgba(255,255,255,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; line-height: 1.6; overflow-x: hidden; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); z-index: 200;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(255,255,255,0.55); font-size: 0.85rem; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); transition: all .2s; cursor: pointer; background: none; text-decoration: none; }
+    .btn-nav-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .btn-nav-primary { background: var(--blue); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.88; }
+
+    /* NAV DROPDOWNS */
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item:hover > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-dropdown {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9);
+      z-index: 300; transition: opacity .15s, visibility .15s;
+    }
+    .nav-item:hover .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(255,255,255,0.05); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(255,255,255,0.3); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: #fff; }
+    .dd-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 4px; }
+
+    /* ── PAGE ── */
+    .page-hero {
+      max-width: 760px; margin: 0 auto;
+      padding: 100px 24px 72px; text-align: center;
+      position: relative;
+    }
+    .page-hero::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 400px;
+      background: radial-gradient(ellipse at center top, rgba(0,102,255,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); margin-bottom: 28px; }
+    .page-hero h1 {
+      font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 900; letter-spacing: -0.04em;
+      line-height: 1; margin-bottom: 28px;
+      background: linear-gradient(180deg, #fff 30%, rgba(255,255,255,0.25) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .page-hero p { font-size: 1.05rem; color: rgba(255,255,255,0.45); line-height: 1.75; max-width: 580px; margin: 0 auto; }
+
+    .content { max-width: 800px; margin: 0 auto; padding: 0 24px 120px; }
+    .divider { height: 1px; background: var(--border); margin: 72px 0; }
+
+    /* acronym block */
+    .acronym { display: grid; grid-template-columns: 48px 1fr; gap: 0; margin: 56px 0; }
+    .acronym-row { display: contents; }
+    .ac-letter { font-size: 2.8rem; font-weight: 900; color: var(--blue); letter-spacing: -0.04em; line-height: 1.15; padding: 8px 0; }
+    .ac-text { padding: 8px 0 8px 20px; border-left: 1px solid rgba(0,102,255,0.25); margin-left: 0; }
+    .ac-text strong { font-size: 1rem; font-weight: 700; color: #fff; display: block; }
+    .ac-text span { font-size: 0.85rem; color: rgba(255,255,255,0.38); }
+
+    /* story section */
+    .story h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 28px; }
+    .story p { font-size: 0.95rem; color: rgba(255,255,255,0.55); line-height: 1.85; margin-bottom: 20px; }
+    .story p strong { color: rgba(255,255,255,0.85); font-weight: 600; }
+
+    /* values grid */
+    .values-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 48px; }
+    .value-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; }
+    .value-card .vi { font-size: 1.4rem; margin-bottom: 14px; }
+    .value-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+    .value-card p { font-size: 0.82rem; color: rgba(255,255,255,0.38); line-height: 1.65; }
+
+    /* compliance row */
+    .compliance { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+    .c-badge { font-size: 0.78rem; color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 8px 16px; border-radius: 100px; }
+
+    /* CTA */
+    .about-cta {
+      background: linear-gradient(135deg, rgba(0,25,70,0.8) 0%, rgba(0,5,20,0.9) 100%);
+      border: 1px solid rgba(0,102,255,0.2); border-radius: 24px;
+      padding: 64px 48px; text-align: center;
+    }
+    .about-cta h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 14px; }
+    .about-cta p { font-size: 0.95rem; color: rgba(255,255,255,0.42); margin-bottom: 32px; }
+    .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-blue { background: var(--blue); color: #fff; font-size: 0.95rem; font-weight: 700; text-decoration: none; padding: 13px 28px; border-radius: 100px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-blue:hover { opacity: 0.88; }
+    .btn-ghost { color: rgba(255,255,255,0.7); font-size: 0.95rem; text-decoration: none; padding: 13px 28px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.16); transition: all .2s; }
+    .btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 60px 48px 40px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 28px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .values-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .about-cta { padding: 44px 24px; }
+      .acronym { grid-template-columns: 40px 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="/#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="/#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">AI Lead Generation</span><span class="dd-sub">ICP-matched B2B leads from 250M+ contacts</span></span></a>
+        <a href="/#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@kindai.com</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link" style="color:#fff">Company <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Support</span><span class="dd-sub">Help centre &amp; contact</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.kindai.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.kindai.com" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="eyebrow">About K.I.N.D</div>
+  <h1>We built the tool<br/>we wished we had.</h1>
+  <p>K.I.N.D started with a simple frustration — great salespeople buried under data noise, chasing leads that were never going to close. We fixed that.</p>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- What K.I.N.D stands for -->
+  <section>
+    <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--blue);margin-bottom:20px">The name</div>
+    <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);font-weight:900;letter-spacing:-0.03em;margin-bottom:8px">Knowledge. Intelligence.<br/>Networks. Delivered.</h2>
+    <p style="font-size:0.9rem;color:rgba(255,255,255,0.38);margin-bottom:0">Every word is intentional.</p>
+    <div class="acronym">
+      <div class="ac-letter">K</div>
+      <div class="ac-text"><strong>Knowledge</strong><span>Deep, structured data about the people and companies that matter to your business — enriched, scored, and ready to act on.</span></div>
+      <div class="ac-letter" style="padding-top:16px">I</div>
+      <div class="ac-text" style="padding-top:16px"><strong>Intelligence</strong><span>AI that doesn't just find leads — it understands them. Scored against your ICP, filtered for intent, ranked by fit.</span></div>
+      <div class="ac-letter" style="padding-top:16px">N</div>
+      <div class="ac-text" style="padding-top:16px"><strong>Networks</strong><span>250M+ verified professionals. Your CRM. Your blocklist. Connected data that ensures every lead is net-new to your pipeline.</span></div>
+      <div class="ac-letter" style="padding-top:16px">D</div>
+      <div class="ac-text" style="padding-top:16px"><strong>Delivered</strong><span>Not a database you log into. Not a spreadsheet you export. Leads, scored and consented, placed directly in your workflow.</span></div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Founder story -->
+  <section class="story">
+    <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--blue);margin-bottom:20px">The story</div>
+    <h2>A sales rep who got<br/>tired of the noise.</h2>
+    <p>Before building K.I.N.D, our founder was an Account Executive. The job description said "close deals." The reality was spending more time building prospect lists than actually selling — cold-calling directories, scrubbing spreadsheets, chasing leads that had nothing to do with what the company actually sold.</p>
+    <p>The problem wasn't effort. <strong>The problem was signal.</strong> Pipeline quality was buried under volume. The whole model was built on the assumption that if you spray enough emails, something sticks. It does — but at a cost. Wasted hours. Burned relationships. Reps demoralised before they even pick up the phone.</p>
+    <p>So the right question became: <strong>what if the filtering happened before the outreach?</strong> What if every lead you spoke to was already a qualified fit — right industry, right title, right company size, right moment?</p>
+    <p>That question became a tool. The tool became K.I.N.D.</p>
+    <p>We didn't build K.I.N.D to replace salespeople. The human element — the conversation, the relationship, the close — that's irreplaceable. <strong>We built K.I.N.D to give reps their time back.</strong> To let them do the one thing AI still can't: show up, listen, and earn trust.</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Mission & values -->
+  <section>
+    <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--blue);margin-bottom:20px">Our values</div>
+    <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);font-weight:900;letter-spacing:-0.03em;margin-bottom:8px">What we believe in.</h2>
+    <p style="font-size:0.9rem;color:rgba(255,255,255,0.38);margin-bottom:0">The principles behind every product decision we make.</p>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="vi">🎯</div>
+        <h3>Quality over quantity</h3>
+        <p>One perfectly matched lead is worth more than a hundred cold contacts. We optimise for fit, not volume — and we charge accordingly. No leads, no charge.</p>
+      </div>
+      <div class="value-card">
+        <div class="vi">🤝</div>
+        <h3>Humans close deals</h3>
+        <p>AI handles the pipeline. People handle the relationship. K.I.N.D is built to amplify your sales team, not replace them. The best outcome is a rep who finally has time to sell.</p>
+      </div>
+      <div class="value-card">
+        <div class="vi">🔒</div>
+        <h3>Privacy is non-negotiable</h3>
+        <p>POPIA, GDPR, and CAN-SPAM compliance is built into the product — not bolted on. Every lead goes through consent workflows. Opt-outs are respected globally and immediately.</p>
+      </div>
+      <div class="value-card">
+        <div class="vi">🌍</div>
+        <h3>Built for Africa, sold everywhere</h3>
+        <p>We started in South Africa because that's where the gap was biggest. Our infrastructure is Africa-first. Our market is global. We serve clients across Africa, the US, and Europe.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Compliance -->
+  <section>
+    <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--blue);margin-bottom:20px">Compliance</div>
+    <h2 style="font-size:clamp(1.6rem,3vw,2.2rem);font-weight:900;letter-spacing:-0.03em;margin-bottom:16px">Built to the highest<br/>global standard.</h2>
+    <p style="font-size:0.9rem;color:rgba(255,255,255,0.45);line-height:1.75;max-width:560px">Our platform is designed to meet the compliance requirements of every market we serve — from POPIA in South Africa to GDPR in Europe to CAN-SPAM in the United States. Consent workflows, opt-out blocklists, and data residency are not features. They are defaults.</p>
+    <div class="compliance">
+      <span class="c-badge">POPIA Compliant — South Africa</span>
+      <span class="c-badge">GDPR Compliant — Europe</span>
+      <span class="c-badge">CAN-SPAM Compliant — United States</span>
+      <span class="c-badge">Data hosted in South Africa (AWS af-south-1)</span>
+      <span class="c-badge">Opt-out blocklist — instant &amp; permanent</span>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- CTA -->
+  <div class="about-cta">
+    <h2>Ready to see it in action?</h2>
+    <p>Start a free 14-day trial or book a call with the team. No credit card required.</p>
+    <div class="cta-row">
+      <a href="https://app.kindai.com" class="btn-blue">Start free trial — 14 days free</a>
+      <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="btn-ghost">Book a demo →</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-bottom">
+      <p>© 2026 K.I.N.D AI Platform. All rights reserved.</p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <a href="/" style="font-size:0.75rem;color:rgba(255,255,255,0.28);text-decoration:none">Home</a>
+        <a href="pricing.html" style="font-size:0.75rem;color:rgba(255,255,255,0.28);text-decoration:none">Pricing</a>
+        <a href="support.html" style="font-size:0.75rem;color:rgba(255,255,255,0.28);text-decoration:none">Support</a>
+        <a href="mailto:hello@kindai.com" style="font-size:0.75rem;color:rgba(255,255,255,0.28);text-decoration:none">hello@kindai.com</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

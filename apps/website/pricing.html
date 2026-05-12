@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pricing — K.I.N.D AI Platform</title>
+  <meta name="description" content="Usage-based pricing for AI Lead Generation and FIGSY. Flat monthly for VA and Chatbot. 20% off with yearly billing." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #0066FF; --border: rgba(255,255,255,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover, .nav-link.active { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(255,255,255,0.55); font-size: 0.85rem; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); transition: all .2s; cursor: pointer; background: none; text-decoration: none; }
+    .btn-nav-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .btn-nav-primary { background: var(--blue); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.88; }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item:hover > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9); z-index: 300; transition: opacity .15s, visibility .15s; }
+    .nav-item:hover .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(255,255,255,0.05); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(255,255,255,0.3); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: #fff; }
+    .dd-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 4px; }
+
+    /* PAGE */
+    .page-hero { max-width: 640px; margin: 0 auto; padding: 80px 24px 56px; text-align: center; }
+    .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); margin-bottom: 24px; }
+    .page-hero h1 { font-size: clamp(2.6rem, 5vw, 4.2rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px; background: linear-gradient(180deg, #fff 30%, rgba(255,255,255,0.25) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .page-hero p { font-size: 1rem; color: rgba(255,255,255,0.42); line-height: 1.75; }
+
+    /* BILLING TOGGLE */
+    .toggle-wrap { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 36px 0 56px; }
+    .toggle-label { font-size: 0.875rem; color: rgba(255,255,255,0.45); }
+    .toggle-label.active { color: #fff; }
+    .toggle-switch { width: 44px; height: 24px; background: rgba(255,255,255,0.1); border-radius: 100px; position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); transition: background .2s; }
+    .toggle-switch.yearly { background: var(--blue); border-color: var(--blue); }
+    .toggle-knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 100px; transition: transform .2s; }
+    .toggle-switch.yearly .toggle-knob { transform: translateX(20px); }
+    .save-badge { font-size: 0.7rem; font-weight: 700; background: rgba(34,197,94,0.15); color: #4ade80; padding: 3px 10px; border-radius: 100px; border: 1px solid rgba(34,197,94,0.2); }
+
+    /* PRICING GRID */
+    .pricing-wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+    .p-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 20px; padding: 36px 28px; display: flex; flex-direction: column; position: relative; }
+    .p-card.pop { border-color: rgba(0,102,255,0.4); background: rgba(0,20,55,0.6); }
+    .pop-pill { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 14px; border-radius: 100px; white-space: nowrap; }
+    .p-plan { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); margin-bottom: 8px; }
+    .p-card h3 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 8px; }
+    .p-desc { font-size: 0.82rem; color: rgba(255,255,255,0.36); line-height: 1.6; margin-bottom: 28px; flex: 1; }
+    .p-price { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; transition: all .2s; }
+    .p-price-orig { font-size: 1.1rem; font-weight: 400; color: rgba(255,255,255,0.2); text-decoration: line-through; display: none; margin-right: 6px; }
+    .p-note { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-bottom: 28px; }
+    .p-card ul { list-style: none; margin-bottom: 28px; }
+    .p-card ul li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; color: rgba(255,255,255,0.55); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .p-card ul li:last-child { border-bottom: none; }
+    .p-card ul li::before { content: "✓"; color: #4ade80; font-weight: 800; flex-shrink: 0; }
+    .p-card ul li.b::before { color: #60a5fa; }
+    .p-card ul li.dim { color: rgba(255,255,255,0.2); }
+    .p-card ul li.dim::before { color: rgba(255,255,255,0.12); }
+    .p-btn { display: block; text-align: center; padding: 12px; border-radius: 100px; font-size: 0.875rem; font-weight: 700; text-decoration: none; transition: all .2s; border: none; cursor: pointer; margin-top: auto; }
+    .p-btn-blue { background: var(--blue); color: #fff; }
+    .p-btn-blue:hover { opacity: 0.88; }
+    .p-btn-out { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.14); }
+    .p-btn-out:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+    .p-vol-note { text-align: center; font-size: 0.78rem; color: rgba(255,255,255,0.25); margin-top: 22px; padding-bottom: 8px; }
+
+    /* VA ADDONS */
+    .addon-section { max-width: 1080px; margin: 80px auto 0; padding: 0 24px; }
+    .addon-header { margin-bottom: 32px; }
+    .addon-header .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 12px; }
+    .addon-header h2 { font-size: clamp(1.6rem,3vw,2.2rem); font-weight: 900; letter-spacing: -0.03em; }
+    .addon-header p { font-size: 0.9rem; color: rgba(255,255,255,0.38); margin-top: 8px; }
+    .addon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .a-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 18px; padding: 28px 24px; }
+    .a-icon { font-size: 1.4rem; margin-bottom: 16px; }
+    .a-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+    .a-tiers { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .a-tier { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; font-size: 0.82rem; }
+    .a-tier-name { color: rgba(255,255,255,0.55); }
+    .a-tier-price { font-weight: 700; color: #fff; }
+    .a-tier-price .y-price { display: none; }
+
+    /* FAQ */
+    .faq-section { max-width: 720px; margin: 100px auto 0; padding: 0 24px 120px; }
+    .faq-header { margin-bottom: 40px; }
+    .faq-header .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 12px; }
+    .faq-header h2 { font-size: clamp(1.6rem,3vw,2.2rem); font-weight: 900; letter-spacing: -0.03em; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q { width: 100%; background: none; border: none; color: #fff; text-align: left; padding: 20px 0; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .faq-q .fq-icon { font-size: 0.75rem; color: rgba(255,255,255,0.3); transition: transform .2s; flex-shrink: 0; }
+    .faq-item.open .fq-icon { transform: rotate(180deg); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+    .faq-item.open .faq-a { max-height: 300px; }
+    .faq-a p { font-size: 0.85rem; color: rgba(255,255,255,0.45); line-height: 1.75; padding-bottom: 20px; }
+
+    /* CTA */
+    .cta-wrap { max-width: 1080px; margin: 0 auto 120px; padding: 0 24px; }
+    .cta-banner { background: linear-gradient(135deg, rgba(0,25,70,0.8) 0%, rgba(0,5,20,0.9) 100%); border: 1px solid rgba(0,102,255,0.2); border-radius: 24px; padding: 64px 48px; text-align: center; position: relative; overflow: hidden; }
+    .cta-banner::before { content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(0,102,255,0.1) 0%, transparent 70%); }
+    .cta-banner h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 14px; position: relative; z-index: 1; }
+    .cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.42); margin-bottom: 32px; position: relative; z-index: 1; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+    .btn-blue { background: var(--blue); color: #fff; font-size: 0.95rem; font-weight: 700; text-decoration: none; padding: 13px 28px; border-radius: 100px; transition: opacity .2s; }
+    .btn-blue:hover { opacity: 0.88; }
+    .btn-ghost { color: rgba(255,255,255,0.7); font-size: 0.95rem; text-decoration: none; padding: 13px 28px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.16); transition: all .2s; }
+    .btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-inner p { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+    .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.75rem; color: rgba(255,255,255,0.28); text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .pricing-grid, .addon-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .cta-banner { padding: 44px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="/#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="/#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">AI Lead Generation</span><span class="dd-sub">ICP-matched B2B leads from 250M+ contacts</span></span></a>
+        <a href="/#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Support</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link active">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.kindai.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.kindai.com" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="eyebrow">Pricing</div>
+  <h1>Pay per result.<br/>Not per seat.</h1>
+  <p>Usage-based pricing for Lead Gen and FIGSY. Flat monthly for VA and Chatbot. No contracts, no hidden fees.</p>
+</div>
+
+<!-- BILLING TOGGLE -->
+<div class="toggle-wrap">
+  <span class="toggle-label active" id="label-monthly">Monthly</span>
+  <div class="toggle-switch" id="billing-toggle" onclick="toggleBilling()">
+    <div class="toggle-knob"></div>
+  </div>
+  <span class="toggle-label" id="label-yearly">Yearly <span class="save-badge">Save 20%</span></span>
+</div>
+
+<!-- PRICING CARDS -->
+<div class="pricing-wrap">
+  <div class="pricing-grid">
+
+    <!-- Lead Gen -->
+    <div class="p-card">
+      <div class="p-plan">Lead Gen</div>
+      <h3>AI Lead Generation</h3>
+      <p class="p-desc">Scored, consented B2B leads matched to your ICP. No duplicates. No contracts.</p>
+      <div class="p-price">
+        $1<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/lead</span>
+      </div>
+      <div class="p-note" id="note-leadgen">From $100/mo · 100 leads included</div>
+      <ul>
+        <li>ICP-matched from 250M+ contacts</li>
+        <li>AI lead score 0–100</li>
+        <li>POPIA consent workflow</li>
+        <li>CRM deduplication</li>
+        <li>CSV export</li>
+        <li class="dim">FIGSY outreach not included</li>
+      </ul>
+      <a href="https://app.kindai.com" class="p-btn p-btn-out">Start free trial</a>
+    </div>
+
+    <!-- Lead Gen + FIGSY -->
+    <div class="p-card pop">
+      <div class="pop-pill">Most popular</div>
+      <div class="p-plan">Lead Gen + FIGSY</div>
+      <h3>Full Pipeline Bundle</h3>
+      <p class="p-desc">Leads found and AI outreach running. The complete end-to-end B2B sales system.</p>
+      <div class="p-price">
+        $3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/lead</span>
+      </div>
+      <div class="p-note" id="note-bundle">From $300/mo · 100 leads included</div>
+      <ul>
+        <li>Everything in Lead Gen</li>
+        <li class="b">FIGSY personalised outreach</li>
+        <li class="b">3-step follow-up sequences</li>
+        <li class="b">Reply detection &amp; handling</li>
+        <li class="b">Meeting booking automation</li>
+        <li class="b">Campaign dashboard</li>
+      </ul>
+      <a href="mailto:hello@kindai.com?subject=Lead%20Gen%20+%20FIGSY%20Bundle" class="p-btn p-btn-blue">Book a free call →</a>
+    </div>
+
+    <!-- VA + Chatbot -->
+    <div class="p-card">
+      <div class="p-plan">VA + Chatbot</div>
+      <h3>Assistant Products</h3>
+      <p class="p-desc">Flat monthly subscription. Add to any plan or run standalone. No usage stress.</p>
+      <div class="p-price" id="price-va" style="font-size:1.9rem">
+        <span class="p-price-orig" id="orig-va">$200</span>$200<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span>
+      </div>
+      <div class="p-note">Starter tier · Pro tiers available</div>
+      <ul>
+        <li>Virtual Assistant — from $200/mo</li>
+        <li>AI Chatbot Agent — from $200/mo</li>
+        <li>Custom persona &amp; knowledge base</li>
+        <li>Web &amp; WhatsApp deployment</li>
+        <li>500 interactions/mo included</li>
+        <li>Pro: 2,000 interactions/mo</li>
+      </ul>
+      <a href="https://app.kindai.com" class="p-btn p-btn-out">Start free trial</a>
+    </div>
+
+  </div>
+  <p class="p-vol-note">Volume discounts from 500+ leads · ZAR billing available · Enterprise pricing on request · <a href="mailto:hello@kindai.com" style="color:rgba(255,255,255,0.35);text-decoration:none">hello@kindai.com</a></p>
+</div>
+
+<!-- ADD-ONS -->
+<div class="addon-section">
+  <div class="addon-header">
+    <div class="s-label">Add-ons</div>
+    <h2>Upgrade any plan</h2>
+    <p>Layer on more power. Add-ons stack on top of your core subscription.</p>
+  </div>
+  <div class="addon-grid">
+    <div class="a-card">
+      <div class="a-icon">🤖</div>
+      <h3>FIGSY — AI SDR Add-on</h3>
+      <p style="font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-top:6px">Add autonomous AI outreach on top of Lead Gen. FIGSY personalises, sends, follows up, and books meetings for every lead in your pipeline.</p>
+      <div class="a-tiers">
+        <div class="a-tier">
+          <span class="a-tier-name">Starter — up to 100 leads/mo</span>
+          <span class="a-tier-price"><span class="m-price">+$150/mo</span><span class="y-price">+$120/mo</span></span>
+        </div>
+        <div class="a-tier">
+          <span class="a-tier-name">Growth — up to 500 leads/mo</span>
+          <span class="a-tier-price"><span class="m-price">+$350/mo</span><span class="y-price">+$280/mo</span></span>
+        </div>
+        <div class="a-tier">
+          <span class="a-tier-name">Scale — unlimited leads</span>
+          <span class="a-tier-price">Custom</span>
+        </div>
+      </div>
+    </div>
+    <div class="a-card">
+      <div class="a-icon">🌍</div>
+      <h3>ZAR Billing</h3>
+      <p style="font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-top:6px">Bill in South African Rand via Paystack. Identical product, local currency. Rates converted at spot + 1.5% on billing date.</p>
+      <div class="a-tiers">
+        <div class="a-tier">
+          <span class="a-tier-name">Available on all plans</span>
+          <span class="a-tier-price" style="color:#4ade80">Included</span>
+        </div>
+        <div class="a-tier">
+          <span class="a-tier-name">Contact us to switch</span>
+          <span class="a-tier-price" style="color:rgba(255,255,255,0.4)"><a href="mailto:hello@kindai.com" style="color:inherit;text-decoration:none">hello@kindai.com</a></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="faq-section" id="faq">
+  <div class="faq-header">
+    <div class="s-label">FAQ</div>
+    <h2>Common questions</h2>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Is there a free trial?
+      <span class="fq-icon">▾</span>
+    </button>
+    <div class="faq-a"><p>Yes — all plans include a 14-day free trial. No credit card required to sign up. You'll be prompted to choose a plan at the end of your trial or when you'd like to start activating leads.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      What does "$1/lead" actually mean?
+      <span class="fq-icon">▾</span>
+    </button>
+    <div class="faq-a"><p>You pay $1 for each net-new lead delivered to your pipeline — verified email, matched to your ICP, POPIA-consented, and not already in your CRM. The $100/mo minimum covers your first 100 leads. Above 100 leads, you pay $1 per additional lead. No lead, no charge.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      What's included in the yearly discount?
+      <span class="fq-icon">▾</span>
+    </button>
+    <div class="faq-a"><p>Switching to yearly billing gives you 20% off flat-rate products (VA, Chatbot, FIGSY add-on). Usage-based pricing for leads stays the same — you only pay for what's delivered. Yearly plans are billed upfront annually.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Can I cancel anytime?
+      <span class="fq-icon">▾</span>
+    </button>
+    <div class="faq-a"><p>Monthly plans can be cancelled at any time — your access continues until the end of the billing period. Yearly plans are non-refundable once the billing period starts. We recommend starting monthly to test the platform before committing to a yearly plan.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Is K.I.N.D POPIA / GDPR compliant?
+      <span class="fq-icon">▾</span>
+    </button>
+    <div class="faq-a"><p>Yes. Every lead goes through a POPIA consent workflow before being delivered to your pipeline. Opt-outs are applied immediately and shared across all K.I.N.D clients. We are also GDPR-compliant for European contacts and CAN-SPAM compliant for US contacts. Our data is hosted in AWS af-south-1 (Cape Town).</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">
+      Do you offer enterprise / volume pricing?
+      <span class="fq-icon">▾</span>
+    </button>
+    <div class="faq-a"><p>Yes. Volume discounts are available from 500+ leads per month. Enterprise contracts include dedicated account management, custom SLAs, and bespoke ICP configuration. Email <a href="mailto:hello@kindai.com" style="color:#60a5fa">hello@kindai.com</a> to discuss.</p></div>
+  </div>
+
+</div>
+
+<!-- CTA -->
+<div class="cta-wrap">
+  <div class="cta-banner">
+    <h2>Start your free trial today.</h2>
+    <p>14 days free. No credit card. Your first leads within 24 hours.</p>
+    <div class="cta-btns">
+      <a href="https://app.kindai.com" class="btn-blue">Start free trial →</a>
+      <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="btn-ghost">Book a demo</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <p>© 2026 K.I.N.D AI Platform. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="about.html">About</a>
+      <a href="use-cases.html">Use Cases</a>
+      <a href="support.html">Support</a>
+      <a href="mailto:hello@kindai.com">hello@kindai.com</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  let isYearly = false
+
+  function toggleBilling() {
+    isYearly = !isYearly
+    const toggle = document.getElementById('billing-toggle')
+    const labelM = document.getElementById('label-monthly')
+    const labelY = document.getElementById('label-yearly')
+
+    toggle.classList.toggle('yearly', isYearly)
+    labelM.classList.toggle('active', !isYearly)
+    labelY.classList.toggle('active', isYearly)
+
+    // VA/Chatbot pricing
+    const priceVA = document.getElementById('price-va')
+    const origVA = document.getElementById('orig-va')
+    if (isYearly) {
+      priceVA.innerHTML = '<span style="font-size:1.1rem;font-weight:400;color:rgba(255,255,255,0.25);text-decoration:line-through;margin-right:4px">$200</span>$160<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span>'
+    } else {
+      priceVA.innerHTML = '$200<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span>'
+    }
+
+    // FIGSY add-on monthly prices
+    document.querySelectorAll('.m-price').forEach(el => {
+      el.style.display = isYearly ? 'none' : 'inline'
+    })
+    document.querySelectorAll('.y-price').forEach(el => {
+      el.style.display = isYearly ? 'inline' : 'none'
+    })
+
+    // Notes
+    document.getElementById('note-leadgen').textContent = isYearly
+      ? 'From $100/mo · billed $1,200/yr · 100 leads included'
+      : 'From $100/mo · 100 leads included'
+    document.getElementById('note-bundle').textContent = isYearly
+      ? 'From $300/mo · billed $3,600/yr · 100 leads included'
+      : 'From $300/mo · 100 leads included'
+  }
+
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item')
+    const isOpen = item.classList.contains('open')
+    document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'))
+    if (!isOpen) item.classList.add('open')
+  }
+</script>
+</body>
+</html>

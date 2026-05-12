@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Use Cases — K.I.N.D AI Lead Generation Platform</title>
+  <meta name="description" content="See how K.I.N.D powers B2B pipeline across financial services, real estate, SaaS, recruitment, and more." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #0066FF; --border: rgba(255,255,255,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; line-height: 1.6; overflow-x: hidden; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(255,255,255,0.55); font-size: 0.85rem; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); transition: all .2s; text-decoration: none; }
+    .btn-nav-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .btn-nav-primary { background: var(--blue); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary:hover { opacity: 0.88; }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s; display: inline-block; margin-top: 1px; }
+    .nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item:hover > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9); z-index: 300; transition: opacity .15s, visibility .15s; }
+    .nav-item:hover .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(255,255,255,0.05); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(255,255,255,0.3); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: #fff; }
+    .dd-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 4px; }
+
+    /* PAGE */
+    .page-hero { max-width: 680px; margin: 0 auto; padding: 80px 24px 56px; text-align: center; }
+    .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); margin-bottom: 24px; }
+    .page-hero h1 { font-size: clamp(2.6rem, 5vw, 4.2rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px; background: linear-gradient(180deg, #fff 30%, rgba(255,255,255,0.25) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .page-hero p { font-size: 1rem; color: rgba(255,255,255,0.42); line-height: 1.75; }
+
+    /* USE CASE SECTIONS */
+    .uc-section { max-width: 1080px; margin: 0 auto; padding: 80px 24px; border-top: 1px solid var(--border); }
+    .uc-section:first-of-type { border-top: none; }
+    .uc-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+    .uc-inner.reverse { direction: rtl; }
+    .uc-inner.reverse > * { direction: ltr; }
+    .uc-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .uc-icon-wrap { width: 32px; height: 32px; background: rgba(0,102,255,0.12); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .uc-section h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; }
+    .uc-section p { font-size: 0.9rem; color: rgba(255,255,255,0.45); line-height: 1.8; margin-bottom: 16px; }
+    .uc-section p strong { color: rgba(255,255,255,0.8); font-weight: 600; }
+    .uc-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .uc-metric { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .uc-metric .mn { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; color: #fff; }
+    .uc-metric .ml { font-size: 0.75rem; color: rgba(255,255,255,0.32); margin-top: 2px; }
+    .uc-feats { list-style: none; margin-top: 24px; }
+    .uc-feats li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: rgba(255,255,255,0.55); padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .uc-feats li:last-child { border-bottom: none; }
+    .uc-feats li::before { content: "✓"; color: #4ade80; font-weight: 800; flex-shrink: 0; }
+    .uc-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 20px; padding: 32px; height: 100%; }
+    .uc-quote { font-size: 0.95rem; color: rgba(255,255,255,0.6); line-height: 1.75; font-style: italic; margin-bottom: 24px; }
+    .uc-quote::before { content: '"'; color: var(--blue); font-size: 1.8rem; line-height: 0.5; vertical-align: -0.4rem; margin-right: 4px; }
+    .uc-persona { display: flex; align-items: center; gap: 12px; }
+    .uc-persona-avatar { width: 36px; height: 36px; background: rgba(0,102,255,0.15); border-radius: 100px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .uc-persona-name { font-size: 0.82rem; font-weight: 600; }
+    .uc-persona-role { font-size: 0.75rem; color: rgba(255,255,255,0.35); }
+    .uc-use-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; margin-bottom: 20px; }
+
+    /* CTA */
+    .cta-wrap { max-width: 1080px; margin: 40px auto 120px; padding: 0 24px; }
+    .cta-banner { background: linear-gradient(135deg, rgba(0,25,70,0.8) 0%, rgba(0,5,20,0.9) 100%); border: 1px solid rgba(0,102,255,0.2); border-radius: 24px; padding: 64px 48px; text-align: center; position: relative; overflow: hidden; }
+    .cta-banner h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 14px; }
+    .cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.42); margin-bottom: 32px; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-blue { background: var(--blue); color: #fff; font-size: 0.95rem; font-weight: 700; text-decoration: none; padding: 13px 28px; border-radius: 100px; transition: opacity .2s; }
+    .btn-blue:hover { opacity: 0.88; }
+    .btn-ghost { color: rgba(255,255,255,0.7); font-size: 0.95rem; text-decoration: none; padding: 13px 28px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.16); transition: all .2s; }
+    .btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-inner p { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+    .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.75rem; color: rgba(255,255,255,0.28); text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .uc-inner, .uc-inner.reverse { grid-template-columns: 1fr; direction: ltr; gap: 40px; }
+      .uc-metrics { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .cta-banner { padding: 44px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="/#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="/#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">AI Lead Generation</span><span class="dd-sub">ICP-matched B2B leads from 250M+ contacts</span></span></a>
+        <a href="/#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link" style="color:#fff">Use Cases <span class="chevron">▾</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Support</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.kindai.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.kindai.com" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="eyebrow">Use Cases</div>
+  <h1>Built for the teams<br/>that sell.</h1>
+  <p>K.I.N.D powers B2B pipeline across industries. Same platform, same precision — adapted to what your market looks like.</p>
+</div>
+
+<!-- B2B SALES TEAMS -->
+<div class="uc-section" id="b2b-sales">
+  <div class="uc-inner">
+    <div>
+      <div class="uc-label"><div class="uc-icon-wrap">📊</div>B2B Sales Teams</div>
+      <h2>Less prospecting.<br/>More selling.</h2>
+      <p>B2B sales teams spend up to <strong>40% of their time prospecting</strong> — building lists, scrubbing data, chasing leads that don't fit. K.I.N.D automates the entire top-of-funnel so your reps focus on what they actually get paid for: conversations and closes.</p>
+      <p>Set your ICP once. Every lead that lands in your pipeline is already verified, scored, and matched to your target profile. No list building. No guesswork.</p>
+      <ul class="uc-feats">
+        <li>ICP-matched from 250M+ verified B2B contacts</li>
+        <li>AI lead scoring — prioritise the highest-fit prospects first</li>
+        <li>FIGSY handles outreach, follow-up, and meeting booking</li>
+        <li>CRM deduplication — zero overlap with existing pipeline</li>
+        <li>Your team shows up to booked meetings, not cold calls</li>
+      </ul>
+    </div>
+    <div>
+      <div class="uc-metrics">
+        <div class="uc-metric"><div class="mn">40%</div><div class="ml">Average time reps spend on prospecting — reclaimed</div></div>
+        <div class="uc-metric"><div class="mn">24h</div><div class="ml">First leads delivered after ICP is configured</div></div>
+        <div class="uc-metric"><div class="mn">$1</div><div class="ml">Per net-new qualified lead — pay for results only</div></div>
+        <div class="uc-metric"><div class="mn">100%</div><div class="ml">Deduplication against your existing CRM</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FINANCIAL SERVICES -->
+<div class="uc-section" id="financial">
+  <div class="uc-inner reverse">
+    <div>
+      <div class="uc-label"><div class="uc-icon-wrap">🏦</div>Financial Services</div>
+      <h2>Compliant leads for<br/>regulated markets.</h2>
+      <p>Financial services firms operate in <strong>the most compliance-sensitive prospecting environment</strong> in any industry. POPIA in South Africa, GDPR in Europe, and FSCA requirements mean that how you source and contact prospects matters as much as who you contact.</p>
+      <p>K.I.N.D builds consent workflows and opt-out management directly into every lead — so your team can prospect with confidence, not legal anxiety.</p>
+      <ul class="uc-feats">
+        <li>POPIA &amp; GDPR consent captured per lead before delivery</li>
+        <li>Opt-out blocklist — shared, instant, permanent</li>
+        <li>Target CFOs, Finance Directors, and Treasury teams by seniority</li>
+        <li>Industry filters: banking, insurance, asset management, fintech</li>
+        <li>Audit trail on every lead interaction for compliance reporting</li>
+      </ul>
+    </div>
+    <div>
+      <div class="uc-card">
+        <span class="uc-use-tag" style="background:rgba(0,102,255,0.12);color:#60a5fa">Who we target</span>
+        <p style="font-size:0.85rem;color:rgba(255,255,255,0.45);line-height:1.75;margin-bottom:20px">K.I.N.D helps financial services firms reach:</p>
+        <ul class="uc-feats">
+          <li>CFOs &amp; Finance Directors — enterprise &amp; mid-market</li>
+          <li>Treasury &amp; investment managers</li>
+          <li>Business owners &amp; directors of SMEs</li>
+          <li>Wealth management &amp; retirement fund decision-makers</li>
+          <li>Procurement and operations leads at regulated entities</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REAL ESTATE -->
+<div class="uc-section" id="real-estate">
+  <div class="uc-inner">
+    <div>
+      <div class="uc-label"><div class="uc-icon-wrap">🏠</div>Real Estate &amp; Property</div>
+      <h2>Commercial pipeline<br/>on autopilot.</h2>
+      <p>Commercial real estate, property developers, and industrial park operators are sitting on a goldmine of B2B pipeline — if they could identify the right prospects. <strong>K.I.N.D targets the decision-makers behind commercial leasing decisions</strong> before they're in the market, not after.</p>
+      <p>Expansion directors, operations leads, and business owners actively looking to scale are on Apollo. K.I.N.D finds them, scores them, and gets your team in front of them first.</p>
+      <ul class="uc-feats">
+        <li>Target expansion and operations decision-makers at growing businesses</li>
+        <li>Filter by company growth signals and headcount trajectory</li>
+        <li>FIGSY outreach positions your properties before they brief brokers</li>
+        <li>Residential: target property investors, developers, sectional title buyers</li>
+        <li>Full POPIA consent workflow — compliant by design</li>
+      </ul>
+    </div>
+    <div>
+      <div class="uc-metrics">
+        <div class="uc-metric"><div class="mn">B2B</div><div class="ml">Commercial tenants, developers, investors — all in one pipeline</div></div>
+        <div class="uc-metric"><div class="mn">Early</div><div class="ml">Reach prospects before they brief commercial agents or brokers</div></div>
+        <div class="uc-metric"><div class="mn">ZAR</div><div class="ml">Local billing available — pay in rands, no FX risk</div></div>
+        <div class="uc-metric"><div class="mn">Fast</div><div class="ml">First targeted leads within 24 hours of ICP setup</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFESSIONAL SERVICES -->
+<div class="uc-section" id="professional-services">
+  <div class="uc-inner reverse">
+    <div>
+      <div class="uc-label"><div class="uc-icon-wrap">⚖️</div>Professional Services</div>
+      <h2>The right decision-maker.<br/>Every time.</h2>
+      <p>Law firms, accounting practices, HR consultancies, and management consultants all share the same challenge: <strong>getting in front of the right person at the right company at the right time</strong>. Generic outreach gets ignored. K.I.N.D delivers precision-targeted leads that already fit the brief.</p>
+      <p>Filter by industry, company size, seniority, and revenue range to ensure every prospect is someone who actually has authority to engage your services.</p>
+      <ul class="uc-feats">
+        <li>Seniority targeting: C-Suite, VP, Director, Manager</li>
+        <li>Revenue and headcount filters for right-sizing prospects</li>
+        <li>Industry filtering: legal, finance, consulting, HR, advisory</li>
+        <li>AI scoring prioritises highest-fit firms in your territory</li>
+        <li>FIGSY outreach personalised per role and company type</li>
+      </ul>
+    </div>
+    <div>
+      <div class="uc-card">
+        <span class="uc-use-tag" style="background:rgba(139,92,246,0.12);color:#c4b5fd">Ideal for</span>
+        <ul class="uc-feats">
+          <li>Legal firms targeting in-house counsel or CFOs</li>
+          <li>Accounting &amp; audit firms reaching finance directors</li>
+          <li>HR consultancies targeting CHRO and People leads</li>
+          <li>Management consultants reaching COO/CEO level</li>
+          <li>Recruitment firms finding hiring managers at scale</li>
+        </ul>
+        <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid var(--border)">
+          <p style="font-size:0.8rem;color:rgba(255,255,255,0.4);line-height:1.65">"The quality of the leads is different. We're not cold-calling gatekeepers — we're talking directly to decision-makers who already fit our client profile."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SAAS & TECHNOLOGY -->
+<div class="uc-section" id="saas">
+  <div class="uc-inner">
+    <div>
+      <div class="uc-label"><div class="uc-icon-wrap">💻</div>SaaS &amp; Technology</div>
+      <h2>B2B SaaS pipeline<br/>at scale.</h2>
+      <p>SaaS businesses live and die by pipeline velocity. You need a <strong>repeatable, predictable system for sourcing qualified leads</strong> that can scale with the business — not a growth hack that works for 90 days and burns out.</p>
+      <p>K.I.N.D gives SaaS teams a programmatic pipeline engine: define your ICP once (industry, tech stack, company size, job function), and receive a continuous flow of scored, verified leads ready for outreach.</p>
+      <ul class="uc-feats">
+        <li>Target by tech stack, industry, company size, and growth stage</li>
+        <li>Score leads against your ICP — prioritise highest ACV potential first</li>
+        <li>FIGSY outreach personalised to role: "How [Company] uses [Category]"</li>
+        <li>Plug into your CRM — HubSpot, Salesforce, Pipedrive via CSV or API</li>
+        <li>Full deduplication — no overlap with inbound or existing pipeline</li>
+      </ul>
+    </div>
+    <div>
+      <div class="uc-metrics">
+        <div class="uc-metric"><div class="mn">ICP</div><div class="ml">Define once, leads arrive continuously — no manual refresh</div></div>
+        <div class="uc-metric"><div class="mn">0→1</div><div class="ml">Outbound pipeline from zero in under a week</div></div>
+        <div class="uc-metric"><div class="mn">Global</div><div class="ml">US, EU, APAC, Africa — same platform, any geography</div></div>
+        <div class="uc-metric"><div class="mn">CRM</div><div class="ml">Deduplication prevents overlap with inbound and SDR-sourced leads</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECRUITMENT & STAFFING -->
+<div class="uc-section" id="recruitment">
+  <div class="uc-inner reverse">
+    <div>
+      <div class="uc-label"><div class="uc-icon-wrap">👥</div>Recruitment &amp; Staffing</div>
+      <h2>Find the hiring managers<br/>before they post.</h2>
+      <p>Recruitment agencies and staffing firms compete for the same mandates. The firms that win are the ones who reach hiring managers <strong>before the role is advertised</strong> — when the need is real but the brief isn't briefed yet.</p>
+      <p>K.I.N.D helps recruiters identify and reach HR Directors, People &amp; Culture leads, and business owners at companies in active growth phases — before competitors are in the room.</p>
+      <ul class="uc-feats">
+        <li>Target CHRO, HR Director, Talent Acquisition, and People leads</li>
+        <li>Filter by headcount growth signals and job posting activity</li>
+        <li>Sector filtering: tech, financial services, retail, manufacturing</li>
+        <li>FIGSY outreach that positions your firm before the brief lands</li>
+        <li>Full POPIA compliance — critical for SA recruitment market</li>
+      </ul>
+    </div>
+    <div>
+      <div class="uc-card">
+        <span class="uc-use-tag" style="background:rgba(34,197,94,0.1);color:#4ade80">Signals K.I.N.D looks for</span>
+        <ul class="uc-feats">
+          <li>Headcount growth in past 6 months</li>
+          <li>Active job postings in target departments</li>
+          <li>Series A/B/C funded companies scaling teams</li>
+          <li>Newly appointed HR or People Directors</li>
+          <li>Companies expanding to new geographies or offices</li>
+        </ul>
+        <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid var(--border)">
+          <p style="font-size:0.8rem;color:rgba(255,255,255,0.4);line-height:1.65">"We used to chase job ads. Now we're talking to hiring managers two weeks before the ad goes up."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-wrap">
+  <div class="cta-banner">
+    <h2>See it work for your industry.</h2>
+    <p>Start a free trial or book a 30-minute call. We'll walk you through the ICP setup for your market.</p>
+    <div class="cta-btns">
+      <a href="https://app.kindai.com" class="btn-blue">Start free trial — 14 days free</a>
+      <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="btn-ghost">Book a demo →</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <p>© 2026 K.I.N.D AI Platform. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="about.html">About</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="support.html">Support</a>
+      <a href="mailto:hello@kindai.com">hello@kindai.com</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

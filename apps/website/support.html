@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support — K.I.N.D AI Platform</title>
+  <meta name="description" content="Get help with K.I.N.D. FAQ, contact form, and direct email support." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #0066FF; --border: rgba(255,255,255,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; line-height: 1.6; overflow-x: hidden; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(255,255,255,0.55); font-size: 0.85rem; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); transition: all .2s; text-decoration: none; }
+    .btn-nav-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .btn-nav-primary { background: var(--blue); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary:hover { opacity: 0.88; }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s; display: inline-block; margin-top: 1px; }
+    .nav-item:hover > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item:hover > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9); z-index: 300; transition: opacity .15s, visibility .15s; }
+    .nav-item:hover .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(255,255,255,0.05); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(255,255,255,0.3); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: #fff; }
+    .dd-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 4px; }
+
+    /* PAGE */
+    .page-hero { max-width: 600px; margin: 0 auto; padding: 80px 24px 56px; text-align: center; }
+    .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); margin-bottom: 24px; }
+    .page-hero h1 { font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px; background: linear-gradient(180deg, #fff 30%, rgba(255,255,255,0.25) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .page-hero p { font-size: 1rem; color: rgba(255,255,255,0.42); line-height: 1.75; }
+
+    /* CONTACT CARDS */
+    .contact-section { max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+    .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .c-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 18px; padding: 28px 24px; text-align: center; text-decoration: none; transition: border-color .2s; display: block; }
+    .c-card:hover { border-color: rgba(255,255,255,0.18); }
+    .c-card.primary { border-color: rgba(0,102,255,0.3); background: rgba(0,20,55,0.5); }
+    .c-card .ci { font-size: 1.8rem; margin-bottom: 14px; }
+    .c-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; color: #fff; }
+    .c-card p { font-size: 0.82rem; color: rgba(255,255,255,0.35); line-height: 1.6; }
+    .c-card .c-action { display: inline-block; margin-top: 16px; font-size: 0.8rem; font-weight: 600; color: var(--blue); }
+
+    /* FAQ */
+    .faq-section { max-width: 760px; margin: 0 auto; padding: 0 24px 100px; }
+    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 12px; }
+    .faq-section h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 36px; }
+    .faq-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px; }
+    .faq-cat { font-size: 0.78rem; font-weight: 600; padding: 6px 14px; border-radius: 100px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); cursor: pointer; transition: all .15s; }
+    .faq-cat.active, .faq-cat:hover { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q { width: 100%; background: none; border: none; color: #fff; text-align: left; padding: 20px 0; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .faq-q .fq-icon { font-size: 0.75rem; color: rgba(255,255,255,0.3); transition: transform .2s; flex-shrink: 0; }
+    .faq-item.open .fq-icon { transform: rotate(180deg); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+    .faq-item.open .faq-a { max-height: 400px; }
+    .faq-a p { font-size: 0.85rem; color: rgba(255,255,255,0.45); line-height: 1.8; padding-bottom: 20px; }
+    .faq-a a { color: #60a5fa; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-inner p { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+    .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.75rem; color: rgba(255,255,255,0.28); text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .contact-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="/#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="/#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">AI Lead Generation</span></span></a>
+        <a href="/#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="support.html" class="nav-link" style="color:#fff">Resources <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Support</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.kindai.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.kindai.com" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="eyebrow">Support</div>
+  <h1>We're here<br/>to help.</h1>
+  <p>Find answers in the FAQ, or reach out directly. We respond to all emails within one business day.</p>
+</div>
+
+<!-- CONTACT CARDS -->
+<div class="contact-section">
+  <div class="contact-grid">
+
+    <a href="mailto:hello@kindai.com" class="c-card primary">
+      <div class="ci">✉️</div>
+      <h3>Email support</h3>
+      <p>For general questions, billing, and account help. We respond within one business day.</p>
+      <span class="c-action">hello@kindai.com →</span>
+    </a>
+
+    <a href="mailto:hello@kindai.com?subject=Book%20a%20Demo" class="c-card">
+      <div class="ci">📅</div>
+      <h3>Book a demo</h3>
+      <p>30-minute call with the team. We'll walk you through the platform and set up your first ICP together.</p>
+      <span class="c-action">Book now →</span>
+    </a>
+
+    <a href="https://app.kindai.com/login" class="c-card">
+      <div class="ci">🔐</div>
+      <h3>Client portal</h3>
+      <p>Access your dashboard, view leads, manage your ICP, and check billing status.</p>
+      <span class="c-action">Log in to portal →</span>
+    </a>
+
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="faq-section" id="faq">
+  <div class="s-label">FAQ</div>
+  <h2>Frequently asked questions</h2>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How do I get started?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>Sign up for a free 14-day trial at <a href="https://app.kindai.com">app.kindai.com</a>. Once your account is confirmed, you'll complete a short onboarding form (company name, industry) and then build your first ICP. Your first leads will appear within 24 hours of running the ICP.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What is an ICP and how do I set one up?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>An ICP (Ideal Customer Profile) defines who you want to reach — industry, job title, company size, geography, and seniority level. In your portal, go to Leads → Build ICP and fill in your target criteria. Once saved, click "Run ICP" and K.I.N.D will search 250M+ contacts and deliver matched, scored leads to your pipeline.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How are leads scored?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>Each lead receives an AI score from 0–100 based on how closely they match your ICP. Factors include: job title match, seniority match, company size fit, industry alignment, and geographic relevance. Leads scoring 70+ are considered high-fit. You can filter your leads pipeline by score to prioritise your outreach.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What does "net-new lead" mean — will I be charged for duplicates?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>No. You only pay for leads that are genuinely new to your pipeline. K.I.N.D deduplicates against your existing leads — if a contact has already been delivered to you, they won't appear again and you won't be charged. We also check against your CRM when you connect it. If a lead is already in your CRM, they won't be delivered.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Is K.I.N.D POPIA compliant?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>Yes. POPIA compliance is built into the product, not added on. Every lead goes through a consent workflow before being delivered to your pipeline. Opt-out requests are applied immediately, permanently, and shared across all K.I.N.D clients (so a contact who opts out of one client's outreach is protected across all clients). Our data is hosted in AWS af-south-1 (Cape Town, South Africa).</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">What is FIGSY and how does it work?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>FIGSY is K.I.N.D's AI SDR (Sales Development Representative). It picks up each new scored lead, writes a unique personalised email (not a template — personalised to the lead's role, company, and industry), sends it from your domain, reads the reply, follows up twice with fresh angles, and books a meeting when the lead is ready. You just show up to the booked meetings. FIGSY is available as an add-on to Lead Gen or as the Full Pipeline Bundle.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Can I cancel my plan?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>Yes. Monthly plans can be cancelled at any time from your billing settings — access continues until the end of the current billing period. Yearly plans are billed annually and are non-refundable once the billing cycle starts. We recommend starting on a monthly plan to trial the platform before committing annually.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Do you offer ZAR billing?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>Yes. All plans are available in South African Rand (ZAR) via Paystack. The product and features are identical — billing is simply in local currency. Contact <a href="mailto:hello@kindai.com">hello@kindai.com</a> to switch to ZAR billing.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">I haven't received my confirmation email. What do I do?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>Check your spam/junk folder first. If it's not there, email <a href="mailto:hello@kindai.com">hello@kindai.com</a> with the email address you signed up with and we'll resend the confirmation or manually verify your account.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How do I connect my CRM?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>CRM integration is currently in development. In the meantime, you can export your leads as a CSV from the Leads page and import into HubSpot, Salesforce, Pipedrive, or any other CRM that supports CSV import. Direct CRM integrations (via API/OAuth) are coming in a future release. Email <a href="mailto:hello@kindai.com">hello@kindai.com</a> if you have specific CRM integration needs.</p></div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <p>© 2026 K.I.N.D AI Platform. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="about.html">About</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="use-cases.html">Use Cases</a>
+      <a href="mailto:hello@kindai.com">hello@kindai.com</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item')
+    const isOpen = item.classList.contains('open')
+    document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'))
+    if (!isOpen) item.classList.add('open')
+  }
+</script>
+</body>
+</html>

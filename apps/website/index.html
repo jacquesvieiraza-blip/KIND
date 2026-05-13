@@ -61,19 +61,23 @@
     /* ── HERO ── */
     .hero {
       max-width: 1080px; margin: 0 auto;
-      padding: 100px 48px 0;
-      text-align: center;
+      padding: 80px 48px 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
       position: relative;
     }
+    .hero-text { text-align: left; }
     .hero-label {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--blue); margin-bottom: 28px;
+      color: var(--blue); margin-bottom: 24px;
       background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.15);
       padding: 6px 14px; border-radius: 100px;
     }
     .hero h1 {
-      font-size: clamp(3.2rem, 7vw, 6.5rem);
+      font-size: clamp(2.8rem, 5.5vw, 5.5rem);
       font-weight: 900;
       letter-spacing: -0.04em;
       line-height: 1.0;
@@ -82,13 +86,13 @@
     }
     .hero h1 span { color: var(--blue); }
     .hero-sub {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       color: rgba(0,0,0,0.45);
-      max-width: 520px;
-      margin: 0 auto 40px;
+      max-width: 460px;
+      margin: 0 0 36px;
       line-height: 1.7;
     }
-    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 80px; }
+    .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 0; }
     .btn-hero-primary {
       background: var(--dark); color: #fff; font-size: 0.95rem; font-weight: 600;
       padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer;
@@ -102,47 +106,32 @@
     }
     .btn-hero-ghost:hover { border-color: rgba(0,0,0,0.35); }
 
-    /* ── NODE NETWORK ANIMATION ── */
+    /* ── HERO AGENT IMAGE ── */
+    .hero-agent {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hero-agent-img {
+      width: 100%; max-width: 480px;
+      border-radius: 32px;
+      display: block;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+      animation: float-agent 5s ease-in-out infinite;
+    }
+    @keyframes float-agent {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+    }
+
+    /* ── NODE NETWORK (kept as background strip) ── */
     .hero-visual {
       position: relative;
-      height: 420px;
-      margin: 0 -48px;
+      height: 200px;
+      margin: 48px -48px 0;
       overflow: hidden;
+      opacity: 0.5;
     }
     .hero-visual canvas { width: 100%; height: 100%; }
-
-    /* Floating annotation labels */
-    .anno {
-      position: absolute;
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(0,0,0,0.35);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-    .anno::before {
-      content: '';
-      display: inline-block;
-      width: 20px;
-      height: 1px;
-      background: rgba(0,0,0,0.2);
-    }
-    .anno-1 { top: 80px; left: 8%; }
-    .anno-2 { top: 60px; right: 8%; }
-    .anno-3 { bottom: 120px; left: 6%; }
-    .anno-4 { bottom: 100px; right: 7%; }
-    .anno-right::before { display: none; }
-    .anno-right::after {
-      content: '';
-      display: inline-block;
-      width: 20px;
-      height: 1px;
-      background: rgba(0,0,0,0.2);
-    }
 
     /* ── SECTION BASE ── */
     .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
@@ -551,6 +540,12 @@
       .stats-inner { grid-template-columns: 1fr 1fr; }
       .footer-grid { grid-template-columns: 1fr; }
       .cta-banner { padding: 48px 28px; }
+      .hero { grid-template-columns: 1fr; gap: 40px; padding: 48px 24px 0; }
+      .hero-text { text-align: center; }
+      .hero-sub { margin: 0 auto 36px; }
+      .hero-btns { justify-content: center; }
+      .hero-agent-img { max-width: 320px; }
+      .hero-visual { margin: 0 -24px 0; }
       .figsy-scene { grid-template-columns: 1fr; gap: 40px; }
       .figsy-sticky { position: static; }
       .figsy-scroll-step { opacity: 1; }
@@ -639,23 +634,27 @@
 
 <!-- HERO -->
 <div class="hero">
-  <div class="live-chip"><span class="live-dot"></span>K.I.N.D AI is live — 14-day free trial</div>
-  <div class="hero-label" style="margin-top:8px">⚡ AI-Powered Lead Generation &amp; Outreach</div>
-  <h1>Your pipeline,<br/><span id="tw-target">on autopilot.</span><span class="tw-cursor" id="tw-cursor" style="display:none"></span></h1>
-  <p class="hero-sub reveal">K.I.N.D finds, qualifies, and books meetings with your ideal clients — automatically. You show up to the call.</p>
-  <div class="hero-btns reveal reveal-delay-1">
-    <button onclick="openAuth('signup')" class="btn-hero-primary">Start free trial — 14 days free</button>
-    <a href="#how-it-works" class="btn-hero-ghost">See how it works</a>
+  <!-- Left: text -->
+  <div class="hero-text">
+    <div class="live-chip"><span class="live-dot"></span>K.I.N.D AI is live — 14-day free trial</div>
+    <div class="hero-label">⚡ AI-Powered Lead Generation &amp; Outreach</div>
+    <h1>Your pipeline,<br/><span id="tw-target">on autopilot.</span><span class="tw-cursor" id="tw-cursor" style="display:none"></span></h1>
+    <p class="hero-sub reveal">K.I.N.D finds, qualifies, and books meetings with your ideal clients — automatically. You show up to the call.</p>
+    <div class="hero-btns reveal reveal-delay-1">
+      <button onclick="openAuth('signup')" class="btn-hero-primary">Start free trial — 14 days free</button>
+      <a href="#how-it-works" class="btn-hero-ghost">See how it works</a>
+    </div>
   </div>
 
-  <!-- Animated node network -->
-  <div class="hero-visual">
-    <canvas id="node-canvas"></canvas>
-    <div class="anno anno-1">QUALIFIES LEADS AUTOMATICALLY</div>
-    <div class="anno anno-2 anno-right">3-SEQUENCE OUTREACH</div>
-    <div class="anno anno-3">LEARNS FROM EVERY REPLY</div>
-    <div class="anno anno-4 anno-right">BOOKS MEETINGS WHILE YOU SLEEP</div>
+  <!-- Right: AI agent image -->
+  <div class="hero-agent">
+    <img src="ai-agent.jpg" alt="K.I.N.D AI Lead Gen Agent" class="hero-agent-img" />
   </div>
+</div>
+
+<!-- Dots strip below hero -->
+<div class="hero-visual">
+  <canvas id="node-canvas"></canvas>
 </div>
 
 <!-- PROBLEM SECTION -->
@@ -753,8 +752,7 @@
     <div class="figsy-sticky">
       <div class="figsy-character">
         <div class="figsy-avatar" id="figsy-avatar">
-          <!-- Replace the emoji below with: <img src="your-photo.jpg" alt="FIGSY" /> -->
-          🤖
+          <img src="ai-agent.jpg" alt="FIGSY AI Agent" />
           <div class="figsy-avatar-ring"></div>
         </div>
         <div class="figsy-name">FIGSY</div>

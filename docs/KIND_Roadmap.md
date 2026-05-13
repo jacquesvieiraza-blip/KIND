@@ -1,11 +1,12 @@
 # KIND AI Platform — Master Roadmap
 **Launch date: 31 May 2026 · Updated: 13 May 2026 · Days remaining: 18**
 
-> Single source of truth. Four goals, in order:
+> Single source of truth. Five goals, in order:
 > **Goal 1 — Lead Gen fully live by 31 May 2026**
 > **Goal 2 — FIGSY launch (immediately after Lead Gen is stable)**
 > **Goal 3 — VA + Chatbot Agent (June/July 2026)**
-> **Goal 4 — Platform expansion — African markets (2027)**
+> **Goal 4 — K.I.N.D runs on K.I.N.D — internal AE, CRO, CMO agents**
+> **Goal 5 — Platform expansion — African markets (2027)**
 
 ---
 
@@ -274,6 +275,40 @@ Handles inbound — website visitors and WhatsApp messages. Qualifies leads, ans
 | CB-7 | Billing integration | $200/mo Starter, $400/mo Pro via Paystack |
 
 **Build trigger:** Start VA + Chatbot when FIGSY Phase 1 is live and at least 3 clients are active on Lead Gen.
+
+---
+
+## GOAL 4 — K.I.N.D Runs on K.I.N.D (Internal AI Agent Team)
+
+> You are building an AI agent platform for other businesses. You should be running your own business with the same agents. K.I.N.D is the first client. This is how you know it works — and it becomes the most powerful demo you have.
+
+### The Internal Agent Desk
+
+| Agent | Role | What it does |
+|-------|------|-------------|
+| **AE Agent** | Account Executive | Monitors every client — login activity, ICP status, lead volume, trial expiry. Flags at-risk accounts. Drafts check-in and conversion emails automatically |
+| **CRO Agent** | Chief Revenue Officer | Watches MRR, churn signals, TTFL per client, trial → paid conversion rate. Surfaces "3 trials haven't built an ICP — they'll churn" before it happens |
+| **CMO Agent** | Chief Marketing Officer | Runs K.I.N.D's own outbound. LinkedIn content, email sequences, launch campaigns. Knows the brand voice and target ICP (the businesses K.I.N.D wants as clients) |
+
+### Build Tasks
+
+| # | Agent | Task | Notes |
+|---|-------|------|-------|
+| INT-1 | AE | Client health dashboard — login recency, ICP built Y/N, leads delivered, trial days left | Admin panel view |
+| INT-2 | AE | At-risk alert engine — flag clients with no activity > 3 days | Email alert to founder |
+| INT-3 | AE | Auto-draft check-in email when client goes cold | Claude drafts, founder approves and sends |
+| INT-4 | AE | Trial expiry sequence — 3 emails at day 10, 12, 14 of trial | Triggered automatically via Resend |
+| INT-5 | CRO | Revenue dashboard — MRR, churn rate, TTFL average, trial conversion % | Admin panel |
+| INT-6 | CRO | Weekly digest — auto-generated summary of key metrics emailed to founder every Monday | Claude writes it, Resend delivers |
+| INT-7 | CRO | Churn prediction — flag clients whose usage is declining before they cancel | ML-lite: score drop + login frequency |
+| INT-8 | CMO | Brand voice config — tone, ICP for K.I.N.D's own clients, messaging pillars | Config file Claude reads |
+| INT-9 | CMO | LinkedIn post generator — weekly content ideas + drafts based on product updates | Claude drafts, founder posts |
+| INT-10 | CMO | Outbound for K.I.N.D — FIGSY runs K.I.N.D's own prospecting | K.I.N.D uses FIGSY to sell FIGSY |
+
+### The Principle
+K.I.N.D eating its own cooking is the most credible thing you can show a prospect. When they ask "does it work?" the answer is: "We run our entire sales and retention operation on it. Here's our dashboard."
+
+**Build trigger:** Start INT-1 through INT-7 (AE + CRO) immediately after Lead Gen smoke test passes — these run on top of data that already exists. CMO (INT-8 through INT-10) starts at FIGSY launch.
 
 ---
 

@@ -71,6 +71,7 @@ This drives retention, word of mouth, and trial → paid conversion. Non-negotia
 | B8 | **"First leads ready" email** (S4) | Push email to client on first lead delivery | ⏳ |
 | B9 | **AI ICP pre-fill from website** (S2) | Claude scrapes website → suggests ICP fields on onboarding | ⏳ |
 | B10 | **TTFL metric on admin dashboard** (S6) | `signup_at → first lead` per client, flag slow pipelines | ⏳ |
+| B11 | **Merge branch to main** | Merges `claude/ai-business-roadmap-U3OWJ` → main → deploys all fixes + website changes to production | ⏳ After smoke test |
 
 ### The Smoke Test — 9 Steps
 
@@ -139,7 +140,7 @@ Once all above complete, run through in order:
 | Paystack — 8 plans created | ⏳ | Copy PLN_ codes to Railway vars |
 | Paystack — webhook set | ⏳ | `https://kindapi-production.up.railway.app/webhooks/paystack` |
 | 5 PDFs uploaded to Terms Library | ⏳ | |
-| Branch merged to main | ⏳ | After smoke test passes |
+| Branch `claude/ai-business-roadmap-U3OWJ` merged to main | ⏳ | After smoke test passes — this deploys everything to get-kind.com |
 
 ---
 

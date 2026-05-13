@@ -7,6 +7,74 @@ import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
 
 export const leadRouter = Router()
+
+// ── PUBLIC: POPIA consent callback (no auth — lead clicks link in email) ───────
+leadRouter.post('/public/consent', async (req, res) => {
+  try {
+    const { lead_id, token, consent } = z.object({
+      lead_id: z.string().uuid(),
+      token:   z.string(),
+      consent: z.boolean(),
+    }).parse(req.body)
+
+    const { data: lead, error: leadErr } = await db.from('leads')
+      .select('id, email, first_name, last_name, linkedin_url, status, client_id')
+      .eq('id', lead_id).single()
+
+    if (leadErr || !lead) {
+      res.status(404).json({ success: false, error: 'Lead not found' }); return
+    }
+
+    if (token !== lead.id) {
+      res.status(401).json({ success: false, error: 'Invalid token' }); return
+    }
+
+    if (lead.status === 'consent_given' || lead.status === 'opted_out') {
+      res.json({ success: true, already_processed: true, status: lead.status }); return
+    }
+
+    if (consent) {
+      await db.from('leads')
+        .update({ status: 'consent_given', consent_given_at: new Date().toISOString() })
+        .eq('id', lead_id)
+
+      // Fire-and-forget CRM push
+      if (lead.email) {
+        const { data: client } = await db.from('clients')
+          .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).single()
+        if (client?.crm_sync_enabled && client?.crm_type && client?.crm_api_key) {
+          const { pushToCrm } = await import('../lib/crm')
+          pushToCrm(client.crm_type as any, client.crm_api_key, lead as any).catch(console.error)
+        }
+      }
+
+      res.json({ success: true, status: 'consent_given' })
+    } else {
+      if (lead.email) {
+        await db.from('opt_out_blocklist').upsert({
+          email:                lead.email,
+          linkedin_url:         lead.linkedin_url,
+          full_name:            `${lead.first_name} ${lead.last_name}`.trim(),
+          reason:               'lead_declined_consent',
+          blocked_by_client_id: lead.client_id,
+        }, { onConflict: 'email', ignoreDuplicates: false })
+
+        await db.from('leads').update({ status: 'opted_out', opted_out_at: new Date().toISOString() })
+          .eq('email', lead.email)
+      } else {
+        await db.from('leads').update({ status: 'opted_out', opted_out_at: new Date().toISOString() })
+          .eq('id', lead_id)
+      }
+
+      res.json({ success: true, status: 'opted_out' })
+    }
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[leads/public/consent]', err)
+    res.status(500).json({ success: false, error: 'Failed to process consent' })
+  }
+})
+
 leadRouter.use(requireAuth)
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })

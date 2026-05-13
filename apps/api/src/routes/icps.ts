@@ -3,6 +3,9 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { buildSearchBody, searchPeople } from '../lib/apollo'
+import { scoreLeadsForIcp } from '../lib/scoring'
+import { sendFirstLeadsReadyEmail } from '../lib/email'
+import { suggestIcpFromWebsite } from '../lib/scrape'
 
 export const icpRouter = Router()
 icpRouter.use(requireAuth)
@@ -24,6 +27,103 @@ async function getClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
+async function runIcpJob(
+  icpId: string,
+  clientId: string,
+  userId: string,
+): Promise<{ inserted: number; skipped: number }> {
+  const { data: icp, error: icpErr } = await db
+    .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
+  if (icpErr || !icp) throw new Error('ICP not found')
+
+  const searchBody = buildSearchBody(icp)
+  const contacts   = await searchPeople(searchBody)
+
+  let inserted = 0
+  let skipped  = 0
+  const insertedIds: string[] = []
+
+  for (const contact of contacts) {
+    if (contact.email) {
+      const { data: blocked } = await db.from('opt_out_blocklist')
+        .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()
+      if (blocked) { skipped++; continue }
+    }
+
+    if (contact.id) {
+      const { data: existing } = await db.from('leads')
+        .select('id').eq('client_id', clientId).eq('apollo_id', contact.id).maybeSingle()
+      if (existing) { skipped++; continue }
+    }
+
+    const { data: newLead, error: insertErr } = await db.from('leads').insert({
+      client_id:        clientId,
+      icp_id:           icp.id,
+      first_name:       contact.first_name || '',
+      last_name:        contact.last_name  || '',
+      email:            contact.email      || null,
+      job_title:        contact.title      || null,
+      company:          contact.organization?.name ?? contact.organization_name ?? null,
+      linkedin_url:     contact.linkedin_url || null,
+      country:          contact.country    || null,
+      industry:         contact.organization?.industry || null,
+      company_size:     contact.organization?.num_employees
+                          ? String(contact.organization.num_employees) : null,
+      seniority:        contact.seniority  || null,
+      tech_stack:       contact.organization?.technology_names ?? [],
+      apollo_id:        contact.id,
+      apollo_consented: contact.email_status === 'verified' ||
+                        contact.email_status === 'likely_to_engage',
+      status:           'pending',
+    }).select('id').single()
+
+    if (insertErr || !newLead) {
+      skipped++
+    } else {
+      inserted++
+      insertedIds.push(newLead.id)
+    }
+  }
+
+  await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
+
+  if (inserted > 0) {
+    const { data: clientRow } = await db.from('clients')
+      .select('id, company_name, referred_by, first_icp_run_at, credit_balance')
+      .eq('id', clientId).single()
+
+    scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '').catch(console.error)
+
+    if (clientRow && !clientRow.first_icp_run_at) {
+      await db.from('clients')
+        .update({ first_icp_run_at: new Date().toISOString(), credit_balance: (clientRow.credit_balance ?? 0) + 100 })
+        .eq('id', clientId)
+
+      if (clientRow.referred_by) {
+        const { data: referrer } = await db.from('clients')
+          .select('id, credit_balance').eq('id', clientRow.referred_by).single()
+        if (referrer) {
+          await db.from('clients')
+            .update({ credit_balance: (referrer.credit_balance ?? 0) + 100 })
+            .eq('id', referrer.id)
+        }
+      }
+
+      try {
+        const { data: { user } } = await db.auth.admin.getUserById(userId)
+        const userEmail = user?.email ?? ''
+        if (userEmail) {
+          await sendFirstLeadsReadyEmail(userEmail, clientRow.company_name ?? '', inserted)
+        }
+      } catch (emailErr) {
+        console.error('[icps] first-leads email failed:', emailErr)
+      }
+    }
+  }
+
+  return { inserted, skipped }
+}
+
 icpRouter.get('/', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
@@ -34,6 +134,18 @@ icpRouter.get('/', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch ICPs' }) }
 })
 
+icpRouter.post('/prefill', async (req: AuthRequest, res) => {
+  try {
+    const { website_url } = z.object({ website_url: z.string().url() }).parse(req.body)
+    const suggestions = await suggestIcpFromWebsite(website_url)
+    res.json({ success: true, data: suggestions })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[icps/prefill]', err)
+    res.status(422).json({ success: false, error: err instanceof Error ? err.message : 'Failed to analyse website' })
+  }
+})
+
 icpRouter.post('/', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.parse(req.body)
@@ -41,6 +153,7 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
+    runIcpJob(data.id, clientId, req.userId!).catch(console.error)
     res.status(201).json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
@@ -80,81 +193,9 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const { data: icp, error: icpErr } = await db
-      .from('icps').select('*').eq('id', req.params.id).eq('client_id', clientId).single()
-    if (icpErr || !icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+    const { inserted, skipped } = await runIcpJob(req.params.id, clientId, req.userId!)
 
-    const searchBody = buildSearchBody(icp)
-    const contacts   = await searchPeople(searchBody)
-
-    let inserted = 0
-    let skipped  = 0
-
-    for (const contact of contacts) {
-      // Skip permanently opted-out emails
-      if (contact.email) {
-        const { data: blocked } = await db.from('opt_out_blocklist')
-          .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()
-        if (blocked) { skipped++; continue }
-      }
-
-      // Skip duplicates by apollo_id for this client
-      if (contact.id) {
-        const { data: existing } = await db.from('leads')
-          .select('id').eq('client_id', clientId).eq('apollo_id', contact.id).maybeSingle()
-        if (existing) { skipped++; continue }
-      }
-
-      const { error: insertErr } = await db.from('leads').insert({
-        client_id:        clientId,
-        icp_id:           icp.id,
-        first_name:       contact.first_name || '',
-        last_name:        contact.last_name  || '',
-        email:            contact.email      || null,
-        job_title:        contact.title      || null,
-        company:          contact.organization?.name ?? contact.organization_name ?? null,
-        linkedin_url:     contact.linkedin_url || null,
-        country:          contact.country    || null,
-        industry:         contact.organization?.industry || null,
-        company_size:     contact.organization?.num_employees
-                            ? String(contact.organization.num_employees) : null,
-        seniority:        contact.seniority  || null,
-        tech_stack:       contact.organization?.technology_names ?? [],
-        apollo_id:        contact.id,
-        apollo_consented: contact.email_status === 'verified' ||
-                          contact.email_status === 'likely_to_engage',
-        status:           'pending',
-      })
-
-      insertErr ? skipped++ : inserted++
-    }
-
-    await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
-
-    // Referral credit: fire once on first successful ICP run
-    if (inserted > 0) {
-      const { data: clientRow } = await db.from('clients')
-        .select('id, referred_by, first_icp_run_at, credit_balance')
-        .eq('id', clientId).single()
-
-      if (clientRow && !clientRow.first_icp_run_at) {
-        await db.from('clients')
-          .update({ first_icp_run_at: new Date().toISOString(), credit_balance: (clientRow.credit_balance ?? 0) + 100 })
-          .eq('id', clientId)
-
-        if (clientRow.referred_by) {
-          const { data: referrer } = await db.from('clients')
-            .select('id, credit_balance').eq('id', clientRow.referred_by).single()
-          if (referrer) {
-            await db.from('clients')
-              .update({ credit_balance: (referrer.credit_balance ?? 0) + 100 })
-              .eq('id', referrer.id)
-          }
-        }
-      }
-    }
-
-    res.json({ success: true, data: { inserted, skipped, total: contacts.length } })
+    res.json({ success: true, data: { inserted, skipped, total: inserted + skipped } })
   } catch (err) {
     console.error(err)
     res.status(500).json({

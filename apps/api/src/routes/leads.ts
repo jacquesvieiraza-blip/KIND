@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import Anthropic from '@anthropic-ai/sdk'
+import { sendConsentEmail } from '../lib/email'
 
 export const leadRouter = Router()
 leadRouter.use(requireAuth)
@@ -183,6 +184,36 @@ leadRouter.post('/:id/optout', async (req: AuthRequest, res) => {
 
     res.json({ success: true, message: 'Lead permanently blocked' })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to block lead' }) }
+})
+
+// ── SEND POPIA CONSENT EMAIL ──────────────────────────────────────────────────
+leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead, error: leadErr } = await db.from('leads')
+      .select('*').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (leadErr || !lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    if (!lead.email) { res.status(422).json({ success: false, error: 'Lead has no email address' }); return }
+
+    if (lead.status === 'consent_given' || lead.status === 'opted_out') {
+      res.status(409).json({ success: false, error: `Lead has already ${lead.status === 'consent_given' ? 'consented' : 'opted out'}` })
+      return
+    }
+
+    const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).single()
+
+    const optOutUrl = `${process.env.PORTAL_URL}/consent?lead=${lead.id}&token=${lead.id}`
+    await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
+
+    await db.from('leads')
+      .update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+
+    res.json({ success: true })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to send consent email' }) }
 })
 
 // ── OPT-OUT BLOCKLIST LIST ─────────────────────────────────────────────────────

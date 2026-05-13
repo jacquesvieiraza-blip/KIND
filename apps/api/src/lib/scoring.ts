@@ -47,7 +47,7 @@ export async function scoreLeadsForIcp(
 
       const leadsText = leads
         .map(
-          (l, idx) =>
+          (l: any, idx: number) =>
             `${idx + 1}. id="${l.id}" name="${l.first_name} ${l.last_name}" title="${l.job_title || 'unknown'}" company="${l.company || 'unknown'}" industry="${l.industry || 'unknown'}" seniority="${l.seniority || 'unknown'}" country="${l.country || 'unknown'}"`,
         )
         .join('\n')

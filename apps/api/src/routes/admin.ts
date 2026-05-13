@@ -26,7 +26,7 @@ adminRouter.get('/clients', async (_req: Request, res: Response) => {
     if (error) throw error
 
     const results = await Promise.all(
-      (clients ?? []).map(async (client) => {
+      (clients ?? []).map(async (client: any) => {
         const [totalRes, monthRes, firstLeadRes, userRes] = await Promise.all([
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
           db.from('leads').select('id', { count: 'exact', head: true })

@@ -6,6 +6,7 @@ import { buildSearchBody, searchPeople } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
+import { autoEnrollLead } from '../lib/figsy'
 
 export const icpRouter = Router()
 icpRouter.use(requireAuth)
@@ -93,6 +94,13 @@ async function runIcpJob(
       .eq('id', clientId).single()
 
     scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '').catch(console.error)
+
+    // S5 — FIGSY auto-start: enroll pre-consented leads into any active campaign
+    const { data: consentedLeads } = await db.from('leads')
+      .select('id').in('id', insertedIds).eq('apollo_consented', true)
+    for (const lead of consentedLeads ?? []) {
+      autoEnrollLead(lead.id, clientId).catch(console.error)
+    }
 
     if (clientRow && !clientRow.first_icp_run_at) {
       await db.from('clients')

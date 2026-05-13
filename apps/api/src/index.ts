@@ -13,6 +13,7 @@ import { orderFormRouter } from './routes/order-forms'
 import { creditRouter } from './routes/credits'
 import { errorHandler } from './middleware/error'
 import { adminRouter } from './routes/admin'
+import { figsyRouter } from './routes/figsy'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -33,6 +34,7 @@ app.use('/icps',          icpRouter)
 app.use('/order-forms',   orderFormRouter)
 app.use('/credits',       creditRouter)
 app.use('/admin',         adminRouter)
+app.use('/figsy',         figsyRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => console.log(`KIND API running on port ${PORT}`))

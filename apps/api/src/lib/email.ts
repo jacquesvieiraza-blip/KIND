@@ -188,6 +188,173 @@ export async function sendFirstLeadsReadyEmail(
   })
 }
 
+// M-2 — Trial nurture sequence (day 1, 3, 5, 7, 10)
+export async function sendNurtureEmail(
+  to: string,
+  companyName: string,
+  stage: 1 | 3 | 5 | 7 | 10,
+  context: { has_icp: boolean; lead_count: number; consented_count: number },
+) {
+  if (!resend) return
+
+  const emails: Record<number, { subject: string; html: string }> = {
+    1: {
+      subject: `Get your first leads in the next 2 hours — K.I.N.D`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">Your K.I.N.D trial is live. Here's how to get leads in the next 2 hours:</p>
+          <ol style="color:#555;line-height:2.2;padding-left:20px">
+            <li><strong>Go to the ICP Builder</strong> — takes 60 seconds with our AI pre-fill</li>
+            <li>Our AI scrapes your website and suggests your ideal customer profile</li>
+            <li>Confirm the fields — the search fires automatically</li>
+            <li>Pre-consented leads land in your pipeline within the hour</li>
+          </ol>
+          <a href="${DASH}/leads/icp"
+             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+            Build my ICP now →
+          </a>
+          <p style="color:#999;font-size:0.8rem;margin-top:32px">
+            Questions? Reply to this email — <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+          </p>
+        </div>`,
+    },
+    3: {
+      subject: context.has_icp
+        ? `Your leads are scored and waiting — K.I.N.D`
+        : `You haven't built your ICP yet — here's why that matters`,
+      html: context.has_icp
+        ? `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">
+            You have <strong>${context.lead_count} scored leads</strong> waiting in your pipeline.
+            ${context.consented_count > 0
+              ? `<strong>${context.consented_count}</strong> have already given consent — they're ready to contact right now.`
+              : `The next step is to send consent emails to your top leads.`}
+          </p>
+          <a href="${DASH}/leads"
+             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+            Review my leads →
+          </a>
+        </div>`
+        : `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">
+            You signed up 3 days ago but haven't built your ICP yet.
+            No ICP = no leads. It takes 60 seconds — our AI pre-fills it from your website.
+          </p>
+          <p style="color:#555;line-height:1.6">
+            Clients who build their ICP on day 1 get their first leads within 2 hours.
+            Clients who wait get leads much later — or not at all.
+          </p>
+          <a href="${DASH}/leads/icp"
+             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+            Build my ICP (60 seconds) →
+          </a>
+        </div>`,
+    },
+    5: {
+      subject: `What does a 90-score lead look like? — K.I.N.D`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">
+            Every lead in K.I.N.D is scored 0–100 against your ICP by our AI. Here's what the scores mean:
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0f0f0;border-radius:8px;overflow:hidden;margin:16px 0">
+            <tr style="background:#f9fafb">
+              <td style="padding:10px 16px;font-weight:600;font-size:0.85rem;color:#16a34a">80–100 ●●●●●</td>
+              <td style="padding:10px 16px;font-size:0.85rem;color:#555">Strong ICP match — title, industry, company size all fit. Contact these first.</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 16px;font-weight:600;font-size:0.85rem;color:#d97706">50–79 ●●●○○</td>
+              <td style="padding:10px 16px;font-size:0.85rem;color:#555">Partial match — worth contacting, lower priority.</td>
+            </tr>
+            <tr style="background:#f9fafb">
+              <td style="padding:10px 16px;font-weight:600;font-size:0.85rem;color:#6b7280">0–49 ●○○○○</td>
+              <td style="padding:10px 16px;font-size:0.85rem;color:#555">Weak match — included for volume, not ideal first contacts.</td>
+            </tr>
+          </table>
+          <p style="color:#555;line-height:1.6">
+            Filter your pipeline to 80+ scores and send consent emails to those first.
+            That's where your highest-value conversations start.
+          </p>
+          <a href="${DASH}/leads"
+             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+            View my scored leads →
+          </a>
+        </div>`,
+    },
+    7: {
+      subject: `One week in — your pipeline snapshot`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">Here's where your pipeline stands at the end of week 1:</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f7ff;border-radius:8px;overflow:hidden;margin:16px 0">
+            <tr>
+              <td align="center" style="padding:16px 12px">
+                <p style="margin:0;font-size:1.5rem;font-weight:700;color:#111">${context.lead_count}</p>
+                <p style="margin:4px 0 0;font-size:0.75rem;color:#888">Total leads</p>
+              </td>
+              <td align="center" style="padding:16px 12px;border-left:1px solid #d0e8ff">
+                <p style="margin:0;font-size:1.5rem;font-weight:700;color:#16a34a">${context.consented_count}</p>
+                <p style="margin:4px 0 0;font-size:0.75rem;color:#888">Consented</p>
+              </td>
+              <td align="center" style="padding:16px 12px;border-left:1px solid #d0e8ff">
+                <p style="margin:0;font-size:1.5rem;font-weight:700;color:#0066FF">${Math.max(0, context.lead_count - context.consented_count)}</p>
+                <p style="margin:4px 0 0;font-size:0.75rem;color:#888">Pending</p>
+              </td>
+            </tr>
+          </table>
+          ${context.consented_count === 0 && context.lead_count > 0 ? `
+          <p style="color:#d97706;line-height:1.6">
+            <strong>You haven't sent any consent emails yet.</strong>
+            Consented leads are the ones you can actually reach out to.
+            Send consent emails to your top 10 this week.
+          </p>` : ''}
+          <a href="${DASH}/leads"
+             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+            Open my pipeline →
+          </a>
+        </div>`,
+    },
+    10: {
+      subject: `4 days left on your trial — here's what you'd lose`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">Your K.I.N.D trial ends in <strong>4 days</strong>.</p>
+          ${context.lead_count > 0 ? `
+          <p style="color:#555;line-height:1.6">
+            Right now you have <strong>${context.lead_count} leads</strong> in your pipeline
+            ${context.consented_count > 0 ? `and <strong>${context.consented_count} contacts who've consented</strong>` : ''}.
+            If your trial ends without a subscription, your pipeline pauses — no new leads, no consent tracking, no outreach.
+          </p>` : `
+          <p style="color:#555;line-height:1.6">
+            Your leads, ICP, and all your settings are still here.
+            Subscribe to keep them running.
+          </p>`}
+          <p style="color:#555;line-height:1.6">
+            Our Lead Gen Starter is R1,900/mo — that's 100 scored, POPIA-compliant leads delivered every month.
+          </p>
+          <a href="${DASH}/billing"
+             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+            Subscribe now →
+          </a>
+          <p style="color:#999;font-size:0.8rem;margin-top:24px">
+            Questions about pricing? Reply to this email.
+          </p>
+        </div>`,
+    },
+  }
+
+  const { subject, html } = emails[stage]
+  await resend.emails.send({ from: FROM, to, subject, html })
+}
+
 // D5 — Weekly leads digest (send every Monday)
 export async function sendWeeklyLeadsDigest(
   to: string,

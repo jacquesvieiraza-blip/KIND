@@ -15,7 +15,8 @@ import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendNurtureEmail } from '../lib/email'
+import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -526,5 +527,196 @@ internalRouter.get('/cro/churn-risk', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('[cro/churn-risk]', err)
     res.status(500).json({ success: false, error: 'Failed to compute churn risk' })
+  }
+})
+
+// ── M-2 — TRIAL NURTURE SEQUENCE ─────────────────────────────────────────────
+// Call daily. Sends day-1/3/5/7/10 nurture emails to trial clients.
+internalRouter.post('/ae/nurture', async (_req: Request, res: Response) => {
+  try {
+    const now = new Date()
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id, created_at, first_icp_run_at')
+      .not('user_id', 'is', null)
+      .gte('created_at', new Date(now.getTime() - 14 * 86400000).toISOString())
+
+    const STAGES = [1, 3, 5, 7, 10] as const
+    let sent = 0
+
+    for (const client of clients ?? []) {
+      const daysOld = Math.floor((now.getTime() - new Date(client.created_at).getTime()) / 86400000)
+
+      if (!(STAGES as readonly number[]).includes(daysOld)) continue
+
+      // Skip if already on an active paid subscription
+      const { data: activeSub } = await db.from('subscriptions')
+        .select('id').eq('client_id', client.id).eq('status', 'active').maybeSingle()
+      if (activeSub) continue
+
+      try {
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
+        const email = user?.email
+        if (!email) continue
+
+        const { count: leadCount } = await db.from('leads')
+          .select('id', { count: 'exact', head: true }).eq('client_id', client.id)
+        const { count: consentedCount } = await db.from('leads')
+          .select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'consent_given')
+
+        await sendNurtureEmail(email, client.company_name ?? '', daysOld as 1|3|5|7|10, {
+          has_icp:        !!client.first_icp_run_at,
+          lead_count:     leadCount ?? 0,
+          consented_count: consentedCount ?? 0,
+        })
+        sent++
+      } catch (err) {
+        console.error(`[ae/nurture] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { sent } })
+  } catch (err) {
+    console.error('[ae/nurture]', err)
+    res.status(500).json({ success: false, error: 'Nurture run failed' })
+  }
+})
+
+// ── INT-8 — CMO: BRAND VOICE CONFIG ──────────────────────────────────────────
+// In-memory brand voice — update lib/cmo.ts to change permanently.
+let brandVoiceOverride: Record<string, unknown> | null = null
+
+internalRouter.get('/cmo/brand-voice', (_req: Request, res: Response) => {
+  res.json({ success: true, data: brandVoiceOverride ?? KIND_BRAND })
+})
+
+internalRouter.post('/cmo/brand-voice', (req: Request, res: Response) => {
+  brandVoiceOverride = req.body as Record<string, unknown>
+  res.json({ success: true, data: brandVoiceOverride, note: 'Override active until next deploy. Edit lib/cmo.ts to persist.' })
+})
+
+// ── INT-9 — CMO: LINKEDIN POST GENERATOR ─────────────────────────────────────
+// Claude generates 3 LinkedIn post drafts using K.I.N.D brand voice.
+internalRouter.post('/cmo/linkedin-posts', async (req: Request, res: Response) => {
+  try {
+    const { theme, product_update, count = 3 } = req.body as {
+      theme?: string
+      product_update?: string
+      count?: number
+    }
+
+    const brand = brandVoiceOverride ?? KIND_BRAND as any
+    const pillars = (brand.messaging_pillars as string[]).join('\n- ')
+    const hooks   = (brand.tone as any).example_hooks.join('\n- ')
+
+    const prompt = `You are the CMO of K.I.N.D — ${brand.tagline}.
+
+Brand voice: ${(brand.tone as any).voice}
+Avoid: ${(brand.tone as any).avoid.join(', ')}
+Messaging pillars:
+- ${pillars}
+
+Example hooks:
+- ${hooks}
+
+${theme ? `Theme for this batch: ${theme}` : ''}
+${product_update ? `Product update to feature: ${product_update}` : ''}
+
+Write ${count} LinkedIn post drafts for K.I.N.D. Each post should:
+- Be 100–200 words
+- Lead with a punchy hook (first line is what people see before "see more")
+- Target B2B founders and sales directors at African SMEs (5-50 employees)
+- Include a clear point of view — no wishy-washy "it depends" content
+- End with a question or subtle CTA (not "DM me for a demo")
+- Do NOT include hashtags
+
+Separate posts with "---POST---".`
+
+    const message = await anthropic.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 1200,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+
+    const raw   = (message.content[0] as { type: string; text: string }).text.trim()
+    const posts = raw.split('---POST---').map(p => p.trim()).filter(Boolean)
+
+    const schedule = ['Monday', 'Wednesday', 'Friday'].slice(0, posts.length)
+
+    res.json({
+      success: true,
+      data: {
+        posts: posts.map((text, i) => ({ day: schedule[i] ?? `Post ${i + 1}`, text })),
+        generated_at: new Date().toISOString(),
+      },
+    })
+  } catch (err) {
+    console.error('[cmo/linkedin-posts]', err)
+    res.status(500).json({ success: false, error: 'Failed to generate posts' })
+  }
+})
+
+// ── INT-10 — CMO: K.I.N.D OUTBOUND (KIND RUNS FIGSY ON ITSELF) ───────────────
+// Run Apollo with K.I.N.D's own ICP — emails founder a prospect list.
+internalRouter.post('/cmo/prospect', async (_req: Request, res: Response) => {
+  try {
+    const founderEmail = process.env.FOUNDER_EMAIL
+    if (!founderEmail) { res.status(422).json({ success: false, error: 'FOUNDER_EMAIL not set' }); return }
+
+    const contacts = await findKindProspects()
+
+    if (contacts.length === 0) {
+      res.json({ success: true, data: { found: 0, message: 'No new prospects found' } })
+      return
+    }
+
+    const rows = contacts.slice(0, 20).map(c => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0">${c.first_name ?? ''} ${c.last_name ?? ''}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#555">${c.title ?? '—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#555">${c.organization?.name ?? c.organization_name ?? '—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#555">${c.country ?? '—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0">
+          ${c.email ? `<a href="mailto:${c.email}" style="color:#0066FF">${c.email}</a>` : '—'}
+          ${c.linkedin_url ? ` · <a href="${c.linkedin_url}" style="color:#0066FF">LinkedIn</a>` : ''}
+        </td>
+      </tr>`).join('')
+
+    if (resend) {
+      await resend.emails.send({
+        from: FROM,
+        to:   founderEmail,
+        subject: `K.I.N.D outbound prospects — ${contacts.length} found — ${new Date().toLocaleDateString('en-ZA')}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:700px;margin:0 auto;color:#111">
+            <h2 style="margin-bottom:4px">K.I.N.D Outbound Prospects</h2>
+            <p style="color:#888;font-size:0.85rem">Apollo search · ${new Date().toLocaleDateString('en-ZA')} · ${contacts.length} contacts found</p>
+            <p style="color:#555;line-height:1.6">
+              These are B2B founders and sales leaders at African SMEs who match K.I.N.D's own ICP.
+              Top 20 shown below — enroll them into a FIGSY campaign for automated outreach.
+            </p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0f0f0;border-radius:8px;overflow:hidden">
+              <thead>
+                <tr style="background:#f9fafb">
+                  <th style="padding:10px 12px;text-align:left;font-size:0.8rem;color:#888">Name</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.8rem;color:#888">Title</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.8rem;color:#888">Company</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.8rem;color:#888">Country</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.8rem;color:#888">Contact</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <p style="color:#888;font-size:0.8rem;margin-top:24px">
+              Go to admin → create a FIGSY campaign → enroll these contacts.
+            </p>
+          </div>`,
+      })
+    }
+
+    res.json({ success: true, data: { found: contacts.length, emailed_to: founderEmail } })
+  } catch (err) {
+    console.error('[cmo/prospect]', err)
+    res.status(500).json({ success: false, error: 'Outbound prospect run failed' })
   }
 })

@@ -258,7 +258,7 @@ FIGSY is a **standalone AI SDR/BDR agent** — sold independently or bundled wit
 | F1-6 | Campaign dashboard | Sent, replied, reply rate, interested % | ✅ Done |
 | F1-7 | DB tables | `figsy_campaigns`, `figsy_enrollments`, `figsy_sent_emails`, `figsy_replies` | ✅ Done |
 | F1-8 | API routes | Campaign CRUD, enroll, preview sequence, send-due, reply webhook | ✅ Done |
-| F1-9 | Billing integration | $3/lead Starter, $2/lead Advanced | ⏳ Post-launch |
+| F1-9 | Billing integration | $3/lead Starter, $2/lead Advanced | ✅ Done — gates campaign activation behind active FIGSY subscription |
 | F1-10 | **FIGSY auto-start on lead delivery (S5)** | Auto-trigger outreach when consented lead hits pipeline — no manual activation | ✅ Done |
 
 ### FIGSY Phase 2 — Full Automation (June+)
@@ -345,9 +345,9 @@ Handles inbound — website visitors and WhatsApp messages. Qualifies leads, ans
 | INT-5 | CRO | Revenue dashboard — MRR, churn rate, TTFL average, trial conversion % | ✅ `GET /internal/cro/dashboard` |
 | INT-6 | CRO | Weekly digest — auto-generated summary of key metrics emailed to founder every Monday | ✅ `POST /internal/cro/weekly-digest` — Claude writes it |
 | INT-7 | CRO | Churn prediction — flag clients whose usage is declining before they cancel | ✅ `GET /internal/cro/churn-risk` — risk score per client |
-| INT-8 | CMO | Brand voice config — tone, ICP for K.I.N.D's own clients, messaging pillars | ⏳ At FIGSY launch |
-| INT-9 | CMO | LinkedIn post generator — weekly content ideas + drafts based on product updates | ⏳ At FIGSY launch |
-| INT-10 | CMO | Outbound for K.I.N.D — FIGSY runs K.I.N.D's own prospecting | ⏳ At FIGSY launch |
+| INT-8 | CMO | Brand voice config — tone, ICP for K.I.N.D's own clients, messaging pillars | ✅ Done — `GET/POST /internal/cmo/brand-voice`, config in `lib/cmo.ts` |
+| INT-9 | CMO | LinkedIn post generator — weekly content ideas + drafts based on product updates | ✅ Done — `POST /internal/cmo/linkedin-posts` — Claude generates 3 branded posts |
+| INT-10 | CMO | Outbound for K.I.N.D — FIGSY runs K.I.N.D's own prospecting | ✅ Done — `POST /internal/cmo/prospect` — Apollo search + emails founder prospect list |
 
 ### The Principle
 K.I.N.D eating its own cooking is the most credible thing you can show a prospect. When they ask "does it work?" the answer is: "We run our entire sales and retention operation on it. Here's our dashboard."
@@ -373,7 +373,7 @@ K.I.N.D eating its own cooking is the most credible thing you can show a prospec
 | # | Task | When |
 |---|------|------|
 | M-1 | FIGSY explainer video — lead → outreach → reply → booked meeting | FIGSY launch |
-| M-2 | Email nurture sequence — 5 emails for trial signups | Before launch |
+| M-2 | Email nurture sequence — 5 emails for trial signups | ✅ Done — `POST /internal/ae/nurture`, sends day 1/3/5/7/10 emails |
 | M-3 | Launch week calendar — LinkedIn, email, WhatsApp broadcast | 31 May |
 | M-4 | VA + Chatbot launch campaign | July |
 

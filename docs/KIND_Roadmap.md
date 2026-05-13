@@ -285,4 +285,45 @@ Start building when: infrastructure is fully live + at least one test of the ful
 
 ---
 
-*Last updated: 12 May 2026. Update after every work session.*
+## 5-Year Vision
+
+> *Documented 13 May 2026 — founder's strategic direction*
+
+### The Honest Take
+
+K.I.N.D is not a lead gen tool. It is infrastructure. The 5-year opportunity is to become the **B2B revenue operating system for African businesses** — AI-native from day one, not retrofitted like Western incumbents.
+
+---
+
+### Year 1–2 — Prove the Model
+The product works. Clients get leads within hours. FIGSY books meetings. Word spreads. 50–100 paying clients. Real MRR. The most important thing that happens in this phase is not revenue — it is **data**. Every ICP run, every lead scored, every email FIGSY sends is a proprietary dataset no competitor can buy.
+
+### Year 2–3 — The Platform Shift
+K.I.N.D stops being "the lead gen tool" and becomes the full B2B revenue OS:
+- CRM built in — clients no longer need HubSpot
+- Pipeline forecasting — AI predicts close probability from lead score + FIGSY engagement
+- Multi-channel FIGSY — email, LinkedIn, WhatsApp, voice
+- VA and Chatbot mature — K.I.N.D handles the entire customer journey from stranger to signed contract
+
+### Year 3–4 — African Expansion
+South Africa proves the model. Expand into Nigeria, Kenya, Egypt, Ghana. These markets are massively underserved by Western tools — Salesforce and HubSpot are too expensive and too American. K.I.N.D is built for this: local currency billing, POPIA/NDPR compliance baked in, pricing that fits. **The Salesforce of Africa — but AI-native.**
+
+The data advantage compounds here. Lead and conversion data across industries, countries, and company sizes across the continent. No one else has that.
+
+### Year 4–5 — The Network Effect
+K.I.N.D sits between buyers and sellers across thousands of companies. It knows who is buying what, when, and why. It starts connecting clients to each other — warm B2B introductions, marketplace dynamics, partnership matching.
+
+**K.I.N.D becomes a B2B network, not just software.** The data moat makes it defensible. The speed model makes it sticky. The African-first positioning makes it ownable.
+
+At scale: **$50–100M ARR** with a legitimate path to acquisition by a global CRM, data, or AI player — or an IPO on the JSE as the first AI-native B2B revenue platform built on the continent.
+
+---
+
+### The Single Biggest Risk
+Speed of execution. The first-mover window in this exact space in Africa is **18–24 months**. Salesforce, HubSpot, and well-funded startups will arrive. The moat being built right now — the data, the brand, the client relationships — is what makes K.I.N.D unconquerable when they do.
+
+**That is why Time to First Lead is not just a metric. It is the competitive weapon.**
+
+---
+
+*Last updated: 13 May 2026. Update after every work session.*

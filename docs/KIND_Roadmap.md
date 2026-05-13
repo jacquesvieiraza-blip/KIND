@@ -186,6 +186,49 @@ Once all above complete, run through in order:
 
 ---
 
+## Lead Gen Only vs Lead Gen + FIGSY — Internal Process Comparison
+
+> Internal reference. Not client-facing. Use this to explain the product, train staff, and spec new features.
+
+### Step-by-step from signup to outcome
+
+| Step | Lead Gen Only ($1/lead) | Lead Gen + FIGSY ($3/lead) |
+|------|------------------------|---------------------------|
+| **1. Signup & payment** | Client signs up, pays via Paystack | Same |
+| **2. Onboarding** | Fills company profile (name, industry, country, website) | Same |
+| **3. ICP setup** | Claude scrapes their website → pre-fills ICP fields. Client confirms in 60s | Same |
+| **4. ICP saved** | Apollo search fires automatically — no manual Run button | Same |
+| **5. Apollo results** | Pre-consented contacts prioritised (`apollo_only_consented: true`) | Same |
+| **6. Lead scoring** | Claude haiku scores every lead 0–100 against ICP. Reasoning stored per lead | Same |
+| **7. Client notified** | "Your first leads are ready" email sent automatically with lead count | Same |
+| **8. Lead delivery — client's options** | **3 options:** | **Same 3 options, but FIGSY also runs automatically** |
+| | ① Export CSV — download scored leads, email themselves | ① Export CSV |
+| | ② CRM sync — push to HubSpot or Pipedrive via API key in Settings *(to build)* | ② CRM sync *(to build)* |
+| | ③ Auto email digest — K.I.N.D emails client a leads report (top scores, stats, pipeline value) every time a new batch lands *(to build)* | ③ Auto email digest *(to build)* |
+| **9. Outreach** | ❌ Client does their own emailing from their own tool | ✅ FIGSY auto-enrolls every consented lead into active campaign |
+| **10. Email sequences** | ❌ Client writes manually | ✅ Claude writes personalised 3-step sequence per lead — sent automatically |
+| **11. Follow-ups** | ❌ Client chases manually | ✅ Step 2 at Day 4, Step 3 at Day 9 — fully automatic |
+| **12. Reply handling** | ❌ Client manages their own inbox | ✅ Replies classified: interested / not now / opt-out / OOO |
+| **13. Opt-outs** | Manual block button in portal per lead | ✅ Auto-suppressed instantly — shared blocklist, cross-platform |
+| **14. Interested leads** | Client has to discover this themselves | ✅ Surfaced in FIGSY campaign dashboard — reply rate, interested % |
+| **15. Ongoing batches** | ICP re-runs on schedule — new leads added to pipeline | Same, plus FIGSY auto-enrolls new arrivals |
+
+### The one-line difference
+- **Lead Gen Only** — K.I.N.D finds and scores the right people. Client does the talking.
+- **Lead Gen + FIGSY** — K.I.N.D finds, scores, and FIGSY does the talking. Client just books the meeting.
+
+### Lead delivery options to build (D-series tasks)
+
+| # | Task | Plan | Notes |
+|---|------|------|-------|
+| D1 | **CRM sync — HubSpot** | Lead Gen + FIGSY | Client pastes HubSpot API key in Settings. Leads push on consent_given. Fields: name, email, title, company, score, LinkedIn |
+| D2 | **CRM sync — Pipedrive** | Lead Gen + FIGSY | Same as D1, Pipedrive API |
+| D3 | **Integrations settings page** | Both | Portal settings tab — paste CRM API key, pick CRM, toggle sync on/off |
+| D4 | **Auto email digest — on first batch** | Both | Extend existing "first leads ready" email to include top 5 leads inline with scores |
+| D5 | **Auto email digest — weekly** | Both | Every Monday: new leads this week, top 10 by score, avg score, pipeline value, link to dashboard |
+
+---
+
 ## GOAL 1 — Lead Gen Remaining Build Tasks
 
 | # | Task | Priority | Notes |

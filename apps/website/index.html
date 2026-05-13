@@ -370,6 +370,169 @@
     .modal-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: rgba(0,0,0,0.35); }
     .modal-footer a { color: var(--blue); text-decoration: none; }
 
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1);
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ── HERO LIVE CHIP ── */
+    .live-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+      color: #059669; font-size: 0.72rem; font-weight: 700;
+      padding: 6px 14px; border-radius: 100px; margin-bottom: 16px;
+    }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ── TYPEWRITER ── */
+    .tw-cursor {
+      display: inline-block; width: 3px; height: 0.85em;
+      background: var(--blue); margin-left: 2px; vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── FIGSY SCROLL SCENE ── */
+    .figsy-scene {
+      max-width: 1080px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
+    }
+    .figsy-sticky { position: sticky; top: 96px; }
+    .figsy-character {
+      background: #0a0a0a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 28px;
+      padding: 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 80px rgba(0,102,255,0.15);
+    }
+    .figsy-character::before {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 70%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    }
+    .figsy-avatar {
+      width: 120px; height: 120px; border-radius: 50%;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      margin: 0 auto 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3.5rem; position: relative;
+      border: 2px solid rgba(0,102,255,0.3);
+      box-shadow: 0 0 40px rgba(0,102,255,0.2);
+    }
+    .figsy-avatar img {
+      width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+    }
+    .figsy-avatar-ring {
+      position: absolute; inset: -8px; border-radius: 50%;
+      border: 1.5px solid rgba(0,102,255,0.2);
+      animation: spin-ring 8s linear infinite;
+    }
+    .figsy-avatar-ring::before {
+      content: ''; position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+      width: 6px; height: 6px; background: var(--blue); border-radius: 50%;
+    }
+    @keyframes spin-ring { to { transform: rotate(360deg); } }
+    .figsy-name { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .figsy-role { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-bottom: 20px; }
+    .figsy-status-bar {
+      display: flex; justify-content: center; gap: 12px; margin-bottom: 24px;
+    }
+    .figsy-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 100px; padding: 5px 12px;
+      font-size: 0.7rem; font-weight: 600; color: rgba(255,255,255,0.5);
+    }
+    .figsy-badge.on { color: #34d399; border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.06); }
+    .figsy-thinking {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 16px; text-align: left;
+    }
+    .figsy-thinking-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 8px; }
+    .figsy-thinking-text { font-size: 0.82rem; color: rgba(255,255,255,0.55); line-height: 1.6; min-height: 60px; transition: opacity 0.4s; }
+    .figsy-typing-dots { display: inline-flex; gap: 3px; align-items: center; margin-top: 8px; }
+    .figsy-typing-dots span {
+      width: 4px; height: 4px; background: var(--blue); border-radius: 50%;
+      animation: typing-dot 1.2s ease-in-out infinite;
+    }
+    .figsy-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .figsy-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-dot { 0%,80%,100%{transform:scale(0.6);opacity:0.3} 40%{transform:scale(1);opacity:1} }
+
+    .figsy-steps { padding: 8px 0; }
+    .figsy-scroll-step {
+      padding: 48px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      opacity: 0.3;
+      transition: opacity 0.5s;
+    }
+    .figsy-scroll-step:last-child { border-bottom: none; }
+    .figsy-scroll-step.active { opacity: 1; }
+    .figsy-scroll-step .step-num {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 16px;
+    }
+    .figsy-scroll-step h4 {
+      font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.2;
+    }
+    .figsy-scroll-step p {
+      font-size: 0.92rem; color: rgba(255,255,255,0.45); line-height: 1.75;
+    }
+    .figsy-scroll-step .step-detail {
+      display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap;
+    }
+    .step-pill {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 100px; padding: 5px 14px;
+      font-size: 0.75rem; color: rgba(255,255,255,0.5);
+    }
+
+    /* ── VIDEO SECTION ── */
+    .video-section { padding: 80px 48px; background: var(--light); }
+    .video-inner { max-width: 1080px; margin: 0 auto; }
+    .video-header { text-align: center; margin-bottom: 48px; }
+    .video-wrap {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #0a0a0a;
+      aspect-ratio: 16/9;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .video-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .video-placeholder {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      background: linear-gradient(135deg, #0a0a1a 0%, #001240 50%, #0a0a1a 100%);
+    }
+    .video-play-btn {
+      width: 72px; height: 72px; background: var(--blue); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 40px rgba(0,102,255,0.4);
+    }
+    .video-play-btn:hover { transform: scale(1.08); box-shadow: 0 0 60px rgba(0,102,255,0.6); }
+    .video-play-btn svg { margin-left: 4px; }
+    .video-caption { font-size: 0.85rem; color: rgba(255,255,255,0.3); }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 1024px) {
       .prod-grid { grid-template-columns: 1fr 1fr; }
@@ -388,6 +551,10 @@
       .stats-inner { grid-template-columns: 1fr 1fr; }
       .footer-grid { grid-template-columns: 1fr; }
       .cta-banner { padding: 48px 28px; }
+      .figsy-scene { grid-template-columns: 1fr; gap: 40px; }
+      .figsy-sticky { position: static; }
+      .figsy-scroll-step { opacity: 1; }
+      .video-section { padding: 64px 24px; }
     }
   </style>
 </head>
@@ -472,10 +639,11 @@
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-label">⚡ AI-Powered Lead Generation</div>
-  <h1>Your pipeline,<br/><span>on autopilot.</span></h1>
-  <p class="hero-sub">K.I.N.D finds, qualifies, and books meetings with your ideal clients — automatically. You show up to the call.</p>
-  <div class="hero-btns">
+  <div class="live-chip"><span class="live-dot"></span>K.I.N.D AI is live — 14-day free trial</div>
+  <div class="hero-label" style="margin-top:8px">⚡ AI-Powered Lead Generation &amp; Outreach</div>
+  <h1>Your pipeline,<br/><span id="tw-target">on autopilot.</span><span class="tw-cursor" id="tw-cursor" style="display:none"></span></h1>
+  <p class="hero-sub reveal">K.I.N.D finds, qualifies, and books meetings with your ideal clients — automatically. You show up to the call.</p>
+  <div class="hero-btns reveal reveal-delay-1">
     <button onclick="openAuth('signup')" class="btn-hero-primary">Start free trial — 14 days free</button>
     <a href="#how-it-works" class="btn-hero-ghost">See how it works</a>
   </div>
@@ -496,17 +664,17 @@
     <h2 class="problem-headline">Most founders lose pipeline <em>not to better competitors</em> — but to their own calendar.</h2>
     <p class="problem-sub">You're running the business. Outreach falls off. Pipeline dries up. K.I.N.D fixes this.</p>
     <div class="problem-cards">
-      <div class="prob-card">
+      <div class="prob-card reveal">
         <div class="prob-num">80%<span> of founders</span></div>
         <h3>Too busy to prospect</h3>
         <p>You're running the business. Outreach falls off. Pipeline dries up. It's not a skill problem — it's a time problem.</p>
       </div>
-      <div class="prob-card">
+      <div class="prob-card reveal reveal-delay-1">
         <div class="prob-num">96%<span> of templates</span></div>
         <h3>Generic outreach doesn't work</h3>
         <p>Templates get ignored. Personalisation at scale was impossible — until now. Every K.I.N.D email is unique to the recipient.</p>
       </div>
-      <div class="prob-card">
+      <div class="prob-card reveal reveal-delay-2">
         <div class="prob-num">5x<span> touches needed</span></div>
         <h3>Leads go cold without follow-up</h3>
         <p>80% of deals need 5+ touches. Nobody has time for that manually. FIGSY follows up automatically, every time.</p>
@@ -572,48 +740,78 @@
 
 <div style="height:1px;background:var(--border);max-width:1080px;margin:0 auto"></div>
 
-<!-- FIGSY DEEP DIVE -->
+<!-- FIGSY SCROLL SCENE -->
 <div class="figsy-section" id="figsy">
-  <div class="figsy-inner">
-    <div class="figsy-header">
-      <div class="s-label">FIGSY — AI SDR</div>
-      <div class="s-title">Your AI sales rep.<br/>Never sleeps. Never quits.</div>
-      <p class="s-sub">FIGSY is a fully autonomous AI SDR — not a template tool. It reads each lead individually and runs the entire outreach cycle without you lifting a finger.</p>
+  <div style="max-width:1080px;margin:0 auto 72px;padding:0">
+    <div class="s-label" style="color:#60a5fa">FIGSY — AI SDR</div>
+    <div class="s-title reveal" style="color:#fff">Meet your AI sales rep.</div>
+    <p class="s-sub reveal reveal-delay-1" style="color:rgba(255,255,255,0.4);margin-bottom:0">Fully autonomous. Never sleeps. Never misses a follow-up. FIGSY reads each lead, runs the conversation, and books the meeting — without you.</p>
+  </div>
+
+  <div class="figsy-scene">
+    <!-- Sticky character card -->
+    <div class="figsy-sticky">
+      <div class="figsy-character">
+        <div class="figsy-avatar" id="figsy-avatar">
+          <!-- Replace the emoji below with: <img src="your-photo.jpg" alt="FIGSY" /> -->
+          🤖
+          <div class="figsy-avatar-ring"></div>
+        </div>
+        <div class="figsy-name">FIGSY</div>
+        <div class="figsy-role">AI Sales Development Rep</div>
+        <div class="figsy-status-bar">
+          <span class="figsy-badge on">● Online</span>
+          <span class="figsy-badge">✦ Powered by Claude</span>
+        </div>
+        <div class="figsy-thinking">
+          <div class="figsy-thinking-label">Currently working on</div>
+          <div class="figsy-thinking-text" id="figsy-thought">Scanning 250M+ contacts to find leads that match your ICP...</div>
+          <div class="figsy-typing-dots"><span></span><span></span><span></span></div>
+        </div>
+      </div>
     </div>
-    <div class="figsy-flow">
-      <div class="figsy-step">
-        <div class="figsy-step-num">Step 01</div>
-        <h4>Lead sourced</h4>
-        <p>Apollo finds contacts matching your ICP from 250M+ verified profiles.</p>
+
+    <!-- Scroll steps -->
+    <div class="figsy-steps" id="figsy-steps">
+      <div class="figsy-scroll-step active" data-thought="Scanning 250M+ contacts from Apollo. Filtering by industry, title, geography, and company size to match your ICP exactly.">
+        <div class="step-num">Step 01</div>
+        <h4>ICP-matched lead sourcing</h4>
+        <p>Apollo's 250M+ verified contacts are searched against your Ideal Customer Profile. Only decision-makers who match your criteria get through.</p>
+        <div class="step-detail">
+          <span class="step-pill">250M+ contacts</span>
+          <span class="step-pill">ICP filters</span>
+          <span class="step-pill">Verified emails</span>
+        </div>
       </div>
-      <div class="figsy-step">
-        <div class="figsy-step-num">Step 02</div>
-        <h4>Email written</h4>
-        <p>Claude writes a unique, personalised email per lead. Role, company, industry — never a template.</p>
+      <div class="figsy-scroll-step" data-thought="Writing a personalised email for Sarah Chen, VP of Sales at TechCorp. Opening with her recent funding round — never a template.">
+        <div class="step-num">Step 02</div>
+        <h4>Hyper-personalised outreach</h4>
+        <p>Claude writes a unique email for every single lead. Role, company context, industry signals — each message sounds like it was written by a human who did their homework.</p>
+        <div class="step-detail">
+          <span class="step-pill">Zero templates</span>
+          <span class="step-pill">Claude AI writing</span>
+          <span class="step-pill">3-sequence follow-up</span>
+        </div>
       </div>
-      <div class="figsy-step">
-        <div class="figsy-step-num">Step 03</div>
-        <h4>Reply handled</h4>
-        <p>FIGSY reads every reply. Positive? Continues the conversation. Negative? Records opt-out.</p>
+      <div class="figsy-scroll-step" data-thought="Reply received from James M. at Vertex Capital — positive intent. Crafting a response that moves toward a meeting without being pushy.">
+        <div class="step-num">Step 03</div>
+        <h4>Intelligent reply handling</h4>
+        <p>FIGSY reads every reply. Positive? It continues the conversation naturally. Objection? It handles it. Unsubscribe? Permanently blocked, POPIA recorded.</p>
+        <div class="step-detail">
+          <span class="step-pill">Reads every reply</span>
+          <span class="step-pill">Objection handling</span>
+          <span class="step-pill">POPIA compliant</span>
+        </div>
       </div>
-      <div class="figsy-step">
-        <div class="figsy-step-num">Step 04</div>
-        <h4>Meeting booked</h4>
-        <p>When the lead is ready, FIGSY books directly into your calendar. You show up.</p>
-      </div>
-    </div>
-    <div class="figsy-feats">
-      <div class="figsy-feat">
-        <h4>Learns from every campaign</h4>
-        <p>FIGSY tracks what's working — which industries, titles, and angles convert — and adapts automatically.</p>
-      </div>
-      <div class="figsy-feat">
-        <h4>POPIA &amp; GDPR compliant</h4>
-        <p>Unsubscribe link in every email. Opt-outs recorded permanently. Built for South African and global compliance.</p>
-      </div>
-      <div class="figsy-feat">
-        <h4>Credit only on positive reply</h4>
-        <p>No reply or negative response? No charge. You only pay when a lead shows genuine interest.</p>
+      <div class="figsy-scroll-step" data-thought="Booked: 30-min discovery call with James M. on Thursday at 10am. Calendar invite sent. Your CRM has been updated. You just need to show up.">
+        <div class="step-num">Step 04</div>
+        <h4>Meeting booked to your calendar</h4>
+        <p>When a prospect is ready, FIGSY books directly into your calendar. You get a notification. You show up to the call. That's it.</p>
+        <div class="step-detail">
+          <span class="step-pill">Calendar booking</span>
+          <span class="step-pill">Instant notification</span>
+          <span class="step-pill">Credit on booking</span>
+        </div>
       </div>
     </div>
   </div>
@@ -643,23 +841,47 @@
   </div>
 </div>
 
+<!-- VIDEO DEMO -->
+<div class="video-section">
+  <div class="video-inner">
+    <div class="video-header reveal">
+      <div class="s-label" style="text-align:center">See it in action</div>
+      <div class="s-title" style="text-align:center;font-size:clamp(1.8rem,3.5vw,2.8rem)">Watch K.I.N.D build your pipeline.</div>
+      <p style="text-align:center;color:rgba(0,0,0,0.4);font-size:0.95rem;margin-top:8px">A 90-second walkthrough of the full lead gen flow.</p>
+    </div>
+    <div class="video-wrap reveal reveal-delay-1">
+      <!-- TO ADD YOUR VIDEO: replace the video-placeholder div with:
+           <video autoplay muted loop playsinline poster="thumbnail.jpg">
+             <source src="demo.mp4" type="video/mp4">
+           </video>
+      -->
+      <div class="video-placeholder">
+        <div class="video-play-btn" onclick="this.closest('.video-wrap').querySelector('.video-placeholder').style.display='none'">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <p class="video-caption">Product demo — drop your screen recording here</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- STATS -->
 <div class="stats-section">
   <div class="stats-inner">
-    <div class="stat">
-      <div class="stat-num">250<span>M+</span></div>
+    <div class="stat reveal">
+      <div class="stat-num"><span class="counter" data-target="250" data-suffix="M+">0</span></div>
       <div class="stat-label">Verified B2B contacts<br/>in the database</div>
     </div>
-    <div class="stat">
-      <div class="stat-num">3<span>×</span></div>
+    <div class="stat reveal reveal-delay-1">
+      <div class="stat-num"><span class="counter" data-target="3" data-suffix="×">0</span></div>
       <div class="stat-label">AI ICP refinements<br/>per month included</div>
     </div>
-    <div class="stat">
-      <div class="stat-num">$<span>1</span></div>
+    <div class="stat reveal reveal-delay-2">
+      <div class="stat-num">$<span class="counter" data-target="1" data-suffix="">0</span></div>
       <div class="stat-label">Per qualified lead<br/>on K.I.N.D AI plan</div>
     </div>
-    <div class="stat">
-      <div class="stat-num">14</div>
+    <div class="stat reveal reveal-delay-3">
+      <div class="stat-num"><span class="counter" data-target="14" data-suffix="">0</span></div>
       <div class="stat-label">Day free trial<br/>no card required</div>
     </div>
   </div>
@@ -911,6 +1133,88 @@
   resize()
   initNodes()
   draw()
+
+  // ── SCROLL REVEAL ─────────────────────────────────────────────────────────────
+  const revealObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible')
+        revealObserver.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.12 })
+  document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el) })
+
+  // ── STAT COUNTERS ──────────────────────────────────────────────────────────────
+  const counterObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) return
+      var el = entry.target
+      var target = parseInt(el.dataset.target)
+      var suffix = el.dataset.suffix || ''
+      var start = 0
+      var duration = 1400
+      var startTime = null
+      function step(timestamp) {
+        if (!startTime) startTime = timestamp
+        var progress = Math.min((timestamp - startTime) / duration, 1)
+        var ease = 1 - Math.pow(1 - progress, 3)
+        el.textContent = Math.round(start + (target - start) * ease) + suffix
+        if (progress < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+      counterObserver.unobserve(el)
+    })
+  }, { threshold: 0.5 })
+  document.querySelectorAll('.counter').forEach(function(el) { counterObserver.observe(el) })
+
+  // ── TYPEWRITER ────────────────────────────────────────────────────────────────
+  var twPhrases = ['on autopilot.', 'while you sleep.', 'without templates.', 'on autopilot.']
+  var twIdx = 0, twCharIdx = 0, twDeleting = false
+  var twTarget = document.getElementById('tw-target')
+  var twCursor = document.getElementById('tw-cursor')
+  if (twTarget && twCursor) {
+    twCursor.style.display = 'inline-block'
+    function typeStep() {
+      var phrase = twPhrases[twIdx]
+      if (twDeleting) {
+        twCharIdx--
+        twTarget.textContent = phrase.substring(0, twCharIdx)
+        if (twCharIdx === 0) {
+          twDeleting = false
+          twIdx = (twIdx + 1) % twPhrases.length
+          setTimeout(typeStep, 400)
+        } else { setTimeout(typeStep, 45) }
+      } else {
+        twCharIdx++
+        twTarget.textContent = phrase.substring(0, twCharIdx)
+        if (twCharIdx === phrase.length) {
+          if (twIdx === twPhrases.length - 1) return // stop on last phrase
+          setTimeout(function() { twDeleting = true; typeStep() }, 2200)
+        } else { setTimeout(typeStep, 70) }
+      }
+    }
+    setTimeout(typeStep, 1800)
+  }
+
+  // ── FIGSY SCROLL STEPS ────────────────────────────────────────────────────────
+  var figsySteps = document.querySelectorAll('.figsy-scroll-step')
+  var figsyThought = document.getElementById('figsy-thought')
+  if (figsySteps.length && figsyThought) {
+    var stepObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return
+        figsySteps.forEach(function(s) { s.classList.remove('active') })
+        entry.target.classList.add('active')
+        figsyThought.style.opacity = '0'
+        setTimeout(function() {
+          figsyThought.textContent = entry.target.dataset.thought
+          figsyThought.style.opacity = '1'
+        }, 200)
+      })
+    }, { threshold: 0.5, rootMargin: '-10% 0px -40% 0px' })
+    figsySteps.forEach(function(s) { stepObserver.observe(s) })
+  }
 
   // Smooth nav dropdowns
   document.querySelectorAll('.nav-item').forEach(function(item) {

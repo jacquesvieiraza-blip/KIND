@@ -32,9 +32,9 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
       .eq('client_id', clientId).not('score', 'is', null)
 
     const avgScore = avgData?.length
-      ? Math.round(avgData.reduce((sum, l) => sum + (l.score || 0), 0) / avgData.length)
+      ? Math.round(avgData.reduce((sum: number, l: any) => sum + (l.score || 0), 0) / avgData.length)
       : 0
-    const pipelineValueUsd = avgData?.reduce((sum, l) => sum + (l.estimated_deal_value_usd || 0), 0) ?? 0
+    const pipelineValueUsd = avgData?.reduce((sum: number, l: any) => sum + (l.estimated_deal_value_usd || 0), 0) ?? 0
 
     res.json({
       success: true,
@@ -186,7 +186,7 @@ leadRouter.post('/:id/optout', async (req: AuthRequest, res) => {
 })
 
 // ── OPT-OUT BLOCKLIST LIST ─────────────────────────────────────────────────────
-leadRouter.get('/blocklist', async (req: AuthRequest, res) => {
+leadRouter.get('/blocklist', async (_req: AuthRequest, res) => {
   try {
     const { data, error } = await db.from('opt_out_blocklist')
       .select('*').is('opted_back_in_at', null).order('created_at', { ascending: false })
@@ -256,7 +256,7 @@ leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
     if (error) throw error
 
     const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Job Title', 'Company', 'LinkedIn', 'Country', 'Score', 'Status', 'Consent Date']
-    const rows = (data || []).map(l => [
+    const rows = (data || []).map((l: any) => [
       l.first_name, l.last_name, l.email || '', l.phone || '',
       l.job_title || '', l.company || '', l.linkedin_url || '',
       l.country || '', l.score ?? '', l.status,

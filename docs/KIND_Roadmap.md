@@ -1,9 +1,41 @@
 # KIND AI Platform — Master Roadmap
-**Launch date: 31 May 2026 · Updated: 12 May 2026 · Days remaining: 19**
+**Launch date: 31 May 2026 · Updated: 13 May 2026 · Days remaining: 18**
 
 > Single source of truth. Two goals, in order:
 > **Goal 1 — Fully functional Lead Gen live by 31 May 2026**
 > **Goal 2 — FIGSY launch (immediately after Lead Gen is stable)**
+
+---
+
+## #1 Priority — Speed Pipeline (Time to First Lead)
+
+> The core business metric: how fast can we put a real, scored, contactable lead in front of a client from the moment they sign up?
+> **Target: < 2 hours. Every time. Every plan.**
+
+This is non-negotiable and drives retention, word of mouth, and conversion from trial to paid.
+
+### The Build (in order)
+
+| # | Task | What it does |
+|---|------|-------------|
+| S1 | **ICP auto-trigger on save** | The moment a client saves their ICP, the lead search fires automatically — no manual "Run ICP" button |
+| S2 | **AI ICP pre-fill on onboarding** | Claude scrapes the client's website and pre-populates ICP fields — client confirms in < 60 seconds |
+| S3 | **Pre-consented contacts first** | Apollo `apollo_only_consented` contacts are scored and delivered in the same hour — no consent email wait |
+| S4 | **"First leads ready" push email** | Auto-notify client the moment their first leads land — don't make them log in to discover it |
+| S5 | **FIGSY auto-start on lead delivery** | For FIGSY plans, outreach begins automatically when the first consented lead arrives |
+| S6 | **TTFL metric on admin dashboard** | Track `signup_at → first scored lead` per client. Target < 2 hours. Flag anything > 4 hours |
+
+### Client journey — target state
+| Time | Event |
+|------|-------|
+| Hour 0 | Signup, email confirmed |
+| Hour 0–1 | Onboarding — AI pre-fills ICP from their website, client confirms in 60s |
+| Hour 1 | ICP saved → search fires automatically |
+| Hour 1–2 | Pre-consented leads scored and delivered, client notified by email |
+| Hour 1–2 | FIGSY sends first outreach (FIGSY plans only) |
+| Hour 24–48 | More leads arrive as consent replies come in |
+| Day 3–7 | Replies detected, FIGSY follows up |
+| Day 7–14 | First meetings booked |
 
 ---
 

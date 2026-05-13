@@ -4,7 +4,8 @@ import { Resend } from 'resend'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const FROM = 'K.I.N.D <hello@get-kind.com>'
+const FROM     = 'K.I.N.D <hello@get-kind.com>'
+const REPLY_TO = process.env.FIGSY_REPLY_TO || 'hello@get-kind.com'
 
 interface Lead {
   id: string
@@ -117,8 +118,9 @@ export async function sendSequenceEmail(
   let messageId: string | undefined
   if (resend) {
     const result = await resend.emails.send({
-      from: FROM,
-      to: lead.email,
+      from:     FROM,
+      reply_to: REPLY_TO,
+      to:       lead.email,
       subject,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
         ${body.split('\n').map(line => `<p style="margin:0 0 12px">${line}</p>`).join('')}

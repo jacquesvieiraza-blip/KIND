@@ -358,9 +358,13 @@
 - [x] All domain references updated to get-kind.com
 
 ### Infrastructure
-- [x] A — DNS: GoDaddy records set (A @ → 216.198.79.1, CNAME www/app/admin → Vercel)
-- [x] B — Vercel: get-kind.com + www (website), app.get-kind.com (portal), admin.get-kind.com (admin) — all valid
-- [x] C — Supabase: Site URL → get-kind.com, Redirect URLs → app.get-kind.com/auth/callback + app.get-kind.com/**
+- [x] A — DNS: GoDaddy records set (A @ → 216.198.79.1, CNAME www/app/admin → Vercel, Resend DNS records)
+- [x] B — Vercel: get-kind.com + www (website), app.get-kind.com (portal), admin.get-kind.com (admin) — all valid. NEXT_PUBLIC_API_URL added to kind-portal.
+- [x] C — Supabase: Site URL → get-kind.com, Redirect URLs → app.get-kind.com/auth/callback + app.get-kind.com/**, last_run_at SQL migration done
+- [x] D — Railway: API deployed at kindapi-production-83cb.up.railway.app — all env vars set
+- [x] E — Apollo: API key set in Railway
+- [x] F — Paystack: Live secret key set in Railway, webhook → kindapi-production-83cb.up.railway.app/webhook/paystack
+- [x] G — Resend: get-kind.com domain verified, API key set in Railway
 
 ### Business Documents
 - [x] Run costs & cashflow model — docs/run-costs-and-cashflow.md
@@ -372,39 +376,6 @@
 ## WHAT STILL NEEDS TO BE DONE
 
 ### SECTION A — INFRASTRUCTURE (remaining)
-
----
-
-**C — SUPABASE — SQL migration** *(5 min)*
-
-Still needs running in Supabase SQL Editor:
-```sql
-alter table public.icps add column if not exists last_run_at timestamptz;
-```
-
----
-
-**D — RAILWAY — Deploy the API** *(20 min — do this first tomorrow)*
-
-- New project → deploy from GitHub → jacquesvieiraza-blip/KIND
-- Root directory: `apps/api`
-- Build command: `yarn install && yarn build`
-- Start command: `node dist/index.js`
-- Generate domain (copy this URL — needed for Vercel NEXT_PUBLIC_API_URL and Paystack webhook)
-
-Add all environment variables:
-
-| Variable | Value | Where to get it |
-|----------|-------|----------------|
-| SUPABASE_URL | https://lwtadfdaoyvjmjhrfkgs.supabase.co | Supabase → Settings → API |
-| SUPABASE_ANON_KEY | eyJhbGci... | Supabase → Settings → API |
-| SUPABASE_SERVICE_ROLE_KEY | (secret) | Supabase → Settings → API → service_role |
-| DATABASE_URL | (postgres URI) | Supabase → Settings → Database → URI |
-| APOLLO_API_KEY | (from step E) | apollo.io |
-| PAYSTACK_SECRET_KEY | (from step F) | paystack.com |
-| PORTAL_URL | https://app.get-kind.com | Fixed |
-| RESEND_API_KEY | (from step G) | resend.com |
-| ANTHROPIC_API_KEY | (from console) | console.anthropic.com |
 
 ---
 

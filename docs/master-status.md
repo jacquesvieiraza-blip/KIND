@@ -3,7 +3,141 @@
 
 ---
 
-## INTERNAL AI OPERATING SYSTEM — FOUNDER AGENT STACK
+## CONFIRMED PRODUCT DIRECTION — NEXT BUILD PHASE
+
+*All decisions confirmed. Do not build until infrastructure is live.*
+
+---
+
+### Product naming
+- **K.I.N.D AI** — Lead Gen Pro (the engine that finds and emails leads)
+- **FIGSY** — Lead Gen Advanced (the adaptive AI SDR, powered by FIGSY)
+- VA and Chatbot — coming soon, waitlist only, no prices shown on website
+
+---
+
+### Pricing model — credit bundles (replacing current $1/lead model)
+
+| Plan | Credits | Price |
+|------|---------|-------|
+| K.I.N.D AI (Lead Gen Pro) | 20 | $20 |
+| K.I.N.D AI (Lead Gen Pro) | 40 | $40 |
+| K.I.N.D AI (Lead Gen Pro) | 100 | $100 |
+| FIGSY Advanced | 20 | $60 |
+| FIGSY Advanced | 40 | $120 |
+| FIGSY Advanced | 100 | $300 |
+
+**Rules:**
+- Credits purchased in bundles of 20 via dropdown top-up (UI like Manus)
+- 1 credit consumed when a prospect sends a **positive reply** (interested/wants to chat)
+- No credit consumed for no-reply or negative reply
+- No refunds on spent credits
+- Cancel or downgrade anytime — no credits refunded on downgrade
+- 3 AI-regenerated ICP suggestions per month included on both plans
+- Unlimited ICP regenerations on FIGSY Advanced
+
+---
+
+### Lead qualification — 3-sequence outreach
+
+**Sequence:**
+- Email 1 (Day 1): Personalised intro — who they are, problem K.I.N.D solves for their situation
+- Email 2 (Day 4): Different angle — social proof, result, or a question
+- Email 3 (Day 9): Final short note — "worth a quick chat?"
+
+**Outcomes:**
+- No response to all 3 → opt-out, recorded in blocklist, no credit used
+- Any negative reply → opt-out, blocklist, no credit used
+- Any positive reply → qualified lead, 1 credit consumed, client notified instantly
+
+**Unsubscribe link in every email** — POPIA/GDPR requirement. Click = instant opt-out + blocklist.
+
+**Reply inbox — how it works in practice:**
+- Every outreach email has a tracked reply-to tied to that lead and client campaign
+- Replies come back into K.I.N.D centrally — not to the client's personal inbox
+- Claude classifies the reply: positive / negative / ambiguous
+- Ambiguous → flagged for review
+- Positive → credit consumed, lead flips to "qualified", client notified (email + in-app), full thread visible in client dashboard
+- Admin portal shows all reply activity across all clients
+- Client never misses a positive reply — system catches and pushes it to them
+
+---
+
+### Outreach engine — confirmed stack
+- **Apollo** — lead sourcing (already built)
+- **Claude** — personalised email writing (already built)
+- **Resend** — sending and reply tracking
+- **No Manus** — everything stays in-house
+
+---
+
+### ICP learning and adaptation
+- System tracks every email sent and every response per client campaign
+- Builds data on: which industries, titles, company sizes, and email angles convert
+- Monthly AI review per client:
+  - Suggests refined ICP based on what's working
+  - Adapts email copy angles toward higher-converting approaches
+- 3 ICP regeneration suggestions/month on K.I.N.D AI plan
+- Unlimited on FIGSY Advanced
+- ICP bot either suggests a refined version or asks 3 prompting questions to guide the client
+
+---
+
+### FIGSY — adaptive SDR behaviour
+- Learning system — gets smarter with every campaign
+- Reads its own results (reply rates, positive rates, opt-outs) and adjusts
+- Handles the full outreach cycle up to positive reply
+- On positive reply: hands off cleanly to client's sales rep
+- No human SDR adapts this systematically — this is the product advantage
+
+---
+
+### Client portal upgrades — confirmed scope
+
+**Usage dashboard:**
+- Credits remaining / credits used this month
+- Total emails sent / open rate / reply rate / positive reply rate
+- Qualified leads this month vs last month
+- ROI metric: emails sent per qualified lead
+
+**Permissions:**
+- Account owner (full access — billing, ICP, settings)
+- Team member (view leads, cannot change billing or ICP)
+- Read-only (view pipeline only)
+
+**Notifications:**
+- New qualified lead → instant email + in-app notification
+- Credits running low (under 20% remaining) → email prompt to top up
+- ICP regeneration ready → email
+- Trial expiring → already built, keep
+
+**Invoice and billing:**
+- Billing history with downloadable invoices
+- Current credit balance
+- Top-up button (dropdown, bundles of 20)
+- Upgrade / downgrade plan
+
+**Languages:** Phase 2/3 — not now
+
+---
+
+### Website redesign — ClickUp style
+- Dark, premium, animated
+- Hero with product demo or animated screenshot
+- "How it works" showing actual UI
+- Social proof — logos, numbers, client quotes
+- Feature sections with scroll animation
+- Strong CTA contrast throughout
+- **Build first in next phase** — before infrastructure, as the visual foundation
+- Note: hero product screenshots will need updating once platform is fully live with real data
+
+---
+
+### Still open
+- VA/Chatbot cards — remove prices entirely or keep $750/$499 with waitlist? *(decision pending)*
+- Register jacquesfigsy.com for FIGSY personal outreach sending domain
+
+---
 
 *You are the CEO. The agents run everything else.*
 

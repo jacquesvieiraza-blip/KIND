@@ -3,13 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>K.I.N.D — Intelligence, Engineered. AI Platform for Africa.</title>
-  <meta name="description" content="One platform. Every AI product your business needs. Lead Generation, FIGSY AI SDR, Virtual Assistant, Chatbot — built for Africa." />
+  <title>K.I.N.D — Your pipeline, on autopilot.</title>
+  <meta name="description" content="K.I.N.D finds, qualifies, and books meetings with your ideal clients — automatically. AI lead generation and FIGSY AI SDR for ambitious businesses." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --blue: #0066FF; --border: rgba(255,255,255,0.08); }
+    :root {
+      --blue: #0066FF;
+      --dark: #0a0a0a;
+      --mid: #444;
+      --light: #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+    }
     html { scroll-behavior: smooth; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; line-height: 1.6; overflow-x: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
     /* ── NAV ── */
     nav {
@@ -17,251 +23,402 @@
       padding: 0 48px; height: 64px;
       border-bottom: 1px solid var(--border);
       position: sticky; top: 0;
-      background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); z-index: 200;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
     }
     .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
     .nav-links { display: flex; align-items: center; gap: 2px; }
-    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
-    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
     .nav-right { display: flex; align-items: center; gap: 10px; }
-    .btn-nav-ghost { color: rgba(255,255,255,0.55); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); transition: all .2s; cursor: pointer; background: none; }
-    .btn-nav-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
 
     /* ── NAV DROPDOWNS ── */
     .nav-item { position: relative; }
     .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
     .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
-    .nav-item.is-open > .nav-link { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
     .nav-dropdown {
       opacity: 0; visibility: hidden; pointer-events: none;
       position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-      background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
-      padding: 8px; min-width: 240px; box-shadow: 0 24px 64px rgba(0,0,0,0.9);
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
       z-index: 300; transition: opacity .15s, visibility .15s;
     }
     .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
-    .dd-link {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 10px 12px; border-radius: 10px;
-      text-decoration: none; transition: background .15s;
-    }
-    .dd-link:hover { background: rgba(255,255,255,0.05); }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
     .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
-    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(255,255,255,0.8); display: block; }
-    .dd-sub { font-size: 0.72rem; color: rgba(255,255,255,0.3); display: block; margin-top: 2px; line-height: 1.4; }
-    .dd-link:hover .dd-title { color: #fff; }
-    .dd-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 4px; }
-
-    /* ── AUTH MODAL ── */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
-    .modal-overlay.open { display: flex; }
-    .modal { background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 48px 40px; width: 100%; max-width: 440px; position: relative; }
-    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: rgba(255,255,255,0.4); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px; transition: all .2s; }
-    .modal-close:hover { color: #fff; background: rgba(255,255,255,0.08); }
-    .modal h2 { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 6px; }
-    .modal .sub { font-size: 0.85rem; color: rgba(255,255,255,0.38); margin-bottom: 32px; }
-    .modal .tabs { display: flex; gap: 0; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 4px; margin-bottom: 28px; }
-    .modal .tab { flex: 1; text-align: center; padding: 8px; border-radius: 7px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: rgba(255,255,255,0.4); border: none; background: none; transition: all .2s; }
-    .modal .tab.active { background: #fff; color: #000; }
-    .modal .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-    .modal .field label { font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.45); }
-    .modal .field input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 11px 14px; font-size: 0.9rem; color: #fff; outline: none; transition: border-color .2s; }
-    .modal .field input::placeholder { color: rgba(255,255,255,0.2); }
-    .modal .field input:focus { border-color: var(--blue); }
-    .modal .auth-btn { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: 10px; padding: 13px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 8px; transition: opacity .2s; }
-    .modal .auth-btn:hover { opacity: 0.88; }
-    .modal .auth-btn:disabled { opacity: 0.5; cursor: default; }
-    .modal .auth-msg { font-size: 0.82rem; text-align: center; margin-top: 14px; padding: 10px; border-radius: 8px; }
-    .modal .auth-msg.error { background: rgba(220,38,38,0.1); color: #fca5a5; }
-    .modal .auth-msg.success { background: rgba(34,197,94,0.1); color: #86efac; }
-    .modal .trial-note { text-align: center; font-size: 0.75rem; color: rgba(255,255,255,0.25); margin-top: 14px; }
-    .btn-nav-primary { background: var(--blue); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
-    .btn-nav-primary:hover { opacity: 0.88; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
 
     /* ── HERO ── */
     .hero {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 88vh; text-align: center; padding: 80px 24px 60px;
+      max-width: 1080px; margin: 0 auto;
+      padding: 100px 48px 0;
+      text-align: center;
       position: relative;
     }
-    .hero::before {
-      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 800px; height: 500px;
-      background: radial-gradient(ellipse at center top, rgba(0,102,255,0.12) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero-eyebrow {
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
-      color: var(--blue); margin-bottom: 36px;
+    .hero-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 28px;
+      background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.15);
+      padding: 6px 14px; border-radius: 100px;
     }
     .hero h1 {
-      font-size: clamp(4rem, 10vw, 8.5rem);
-      font-weight: 900; line-height: 0.95; letter-spacing: -0.04em;
-      background: linear-gradient(180deg, #ffffff 30%, rgba(255,255,255,0.25) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      margin-bottom: 36px;
+      font-size: clamp(3.2rem, 7vw, 6.5rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.0;
+      color: var(--dark);
+      margin-bottom: 24px;
     }
-    .hero p {
-      font-size: 1.05rem; color: rgba(255,255,255,0.45); max-width: 520px;
-      margin: 0 auto 44px; line-height: 1.75;
+    .hero h1 span { color: var(--blue); }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: rgba(0,0,0,0.45);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
     }
-    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 80px; }
     .btn-hero-primary {
-      background: var(--blue); color: #fff; font-size: 0.95rem; font-weight: 700;
-      text-decoration: none; padding: 13px 28px; border-radius: 100px; transition: opacity .2s;
+      background: var(--dark); color: #fff; font-size: 0.95rem; font-weight: 600;
+      padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer;
+      transition: opacity .2s; text-decoration: none;
     }
-    .btn-hero-primary:hover { opacity: 0.88; }
+    .btn-hero-primary:hover { opacity: 0.8; }
     .btn-hero-ghost {
-      color: rgba(255,255,255,0.7); font-size: 0.95rem; font-weight: 500;
-      text-decoration: none; padding: 13px 28px; border-radius: 100px;
-      border: 1px solid rgba(255,255,255,0.16); transition: all .2s;
+      background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 500;
+      padding: 14px 32px; border-radius: 100px; border: 1.5px solid rgba(0,0,0,0.15);
+      cursor: pointer; transition: all .2s; text-decoration: none;
     }
-    .btn-hero-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+    .btn-hero-ghost:hover { border-color: rgba(0,0,0,0.35); }
 
-    /* ── STATS ── */
-    .stats { display: flex; justify-content: center; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-    .stat { text-align: center; padding: 36px 52px; border-right: 1px solid var(--border); }
-    .stat:last-child { border-right: none; }
-    .stat .n { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.03em; color: #fff; }
-    .stat .l { font-size: 0.78rem; color: rgba(255,255,255,0.32); margin-top: 4px; letter-spacing: 0.01em; }
+    /* ── NODE NETWORK ANIMATION ── */
+    .hero-visual {
+      position: relative;
+      height: 420px;
+      margin: 0 -48px;
+      overflow: hidden;
+    }
+    .hero-visual canvas { width: 100%; height: 100%; }
 
-    /* ── SECTION ── */
-    .section { padding: 100px 24px; max-width: 1080px; margin: 0 auto; }
-    .s-label { text-align: center; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
-    .s-title { text-align: center; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 18px; }
-    .s-sub { text-align: center; font-size: 0.95rem; color: rgba(255,255,255,0.4); max-width: 560px; margin: 0 auto 64px; line-height: 1.7; }
+    /* Floating annotation labels */
+    .anno {
+      position: absolute;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .anno::before {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 1px;
+      background: rgba(0,0,0,0.2);
+    }
+    .anno-1 { top: 80px; left: 8%; }
+    .anno-2 { top: 60px; right: 8%; }
+    .anno-3 { bottom: 120px; left: 6%; }
+    .anno-4 { bottom: 100px; right: 7%; }
+    .anno-right::before { display: none; }
+    .anno-right::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 1px;
+      background: rgba(0,0,0,0.2);
+    }
+
+    /* ── SECTION BASE ── */
+    .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
     .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
+    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
+    .s-title { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
+    .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
+
+    /* ── PROBLEM SECTION ── */
+    .problem-section {
+      background: var(--dark);
+      padding: 100px 48px;
+      color: #fff;
+    }
+    .problem-inner { max-width: 1080px; margin: 0 auto; }
+    .problem-headline {
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      max-width: 700px;
+      margin-bottom: 16px;
+    }
+    .problem-headline em { font-style: normal; color: rgba(255,255,255,0.3); }
+    .problem-sub { font-size: 0.95rem; color: rgba(255,255,255,0.35); margin-bottom: 64px; }
+    .problem-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .prob-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 32px 28px;
+    }
+    .prob-num { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.04em; color: #fff; margin-bottom: 12px; }
+    .prob-num span { font-size: 1rem; font-weight: 400; color: rgba(255,255,255,0.25); }
+    .prob-card h3 { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .prob-card p { font-size: 0.85rem; color: rgba(255,255,255,0.4); line-height: 1.7; }
 
     /* ── PRODUCTS ── */
-    .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .prod { background: #0a0a0a; border: 1px solid var(--border); border-radius: 20px; padding: 36px 32px; transition: border-color .2s; }
-    .prod:hover { border-color: rgba(255,255,255,0.15); }
-    .prod.featured { border-color: rgba(0,102,255,0.3); background: rgba(0,20,60,0.5); }
-    .prod-icon { font-size: 28px; margin-bottom: 20px; }
-    .prod-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; margin-bottom: 12px; }
-    .t-blue   { background: rgba(0,102,255,0.15); color: #60a5fa; }
-    .t-purple { background: rgba(139,92,246,0.15); color: #c4b5fd; }
-    .t-indigo { background: rgba(99,102,241,0.15); color: #a5b4fc; }
-    .t-green  { background: rgba(34,197,94,0.12); color: #4ade80; }
-    .prod h3 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; }
-    .prod p  { font-size: 0.85rem; color: rgba(255,255,255,0.42); line-height: 1.65; margin-bottom: 24px; }
-    .prod-price { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; }
-    .prod-price .sm { font-size: 0.82rem; font-weight: 400; color: rgba(255,255,255,0.3); }
-    .prod-features { list-style: none; margin-top: 20px; }
-    .prod-features li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.82rem; color: rgba(255,255,255,0.55); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .prod-features li:last-child { border-bottom: none; }
-    .prod-features li::before { content: "✓"; font-weight: 800; flex-shrink: 0; }
-    .prod-features li.g::before { color: #4ade80; }
-    .prod-features li.b::before { color: #60a5fa; }
-
-    /* ── FIGSY BLOCK ── */
-    .figsy-block {
-      background: linear-gradient(135deg, rgba(0,25,70,0.9) 0%, rgba(0,5,20,0.98) 100%);
-      border: 1px solid rgba(0,102,255,0.2); border-radius: 28px; padding: 72px 64px;
-      position: relative; overflow: hidden;
+    .prod-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .prod {
+      background: var(--light);
+      border-radius: 24px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
     }
-    .figsy-block::after {
-      content: ''; position: absolute; top: -100px; right: -100px;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(0,102,255,0.1) 0%, transparent 65%);
-      pointer-events: none;
+    .prod.featured { background: var(--dark); color: #fff; grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .prod-icon { font-size: 2rem; margin-bottom: 20px; }
+    .prod-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; margin-bottom: 14px; }
+    .t-blue { background: rgba(0,102,255,0.1); color: var(--blue); }
+    .t-purple { background: rgba(139,92,246,0.1); color: #7c3aed; }
+    .t-indigo { background: rgba(99,102,241,0.1); color: #4f46e5; }
+    .t-green { background: rgba(16,185,129,0.1); color: #059669; }
+    .prod h3 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; }
+    .prod p { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.7; margin-bottom: 20px; }
+    .prod.featured p { color: rgba(255,255,255,0.45); }
+    .prod-price { font-size: 1.3rem; font-weight: 900; color: var(--dark); letter-spacing: -0.02em; margin-bottom: 20px; }
+    .prod.featured .prod-price { color: #fff; }
+    .prod-price .sm { font-size: 0.8rem; font-weight: 400; color: rgba(0,0,0,0.3); }
+    .prod.featured .prod-price .sm { color: rgba(255,255,255,0.35); }
+    .prod-features { list-style: none; }
+    .prod-features li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.83rem; color: rgba(0,0,0,0.5); padding: 5px 0; }
+    .prod.featured .prod-features li { color: rgba(255,255,255,0.5); }
+    .prod-features li.g::before { content: "✓"; color: #059669; font-weight: 800; flex-shrink: 0; }
+    .prod-features li.b::before { content: "✓"; color: var(--blue); font-weight: 800; flex-shrink: 0; }
+    .prod-waitlist {
+      display: inline-block; margin-top: 20px; font-size: 0.8rem; font-weight: 600;
+      color: rgba(0,0,0,0.4); border: 1px solid rgba(0,0,0,0.12); padding: 8px 16px;
+      border-radius: 100px; text-decoration: none; transition: all .2s;
     }
-    .f-eye { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #60a5fa; margin-bottom: 20px; }
-    .figsy-block h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 18px; }
-    .figsy-block h2 span { color: #60a5fa; }
-    .figsy-block > p { font-size: 0.95rem; color: rgba(255,255,255,0.45); max-width: 560px; margin-bottom: 48px; line-height: 1.7; position: relative; z-index: 1; }
-    .figsy-flow { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 40px; position: relative; z-index: 1; }
-    .f-step { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 20px; }
-    .f-step .fn { width: 26px; height: 26px; background: rgba(0,102,255,0.18); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; color: #60a5fa; margin-bottom: 10px; }
-    .f-step h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 5px; }
-    .f-step p { font-size: 0.78rem; color: rgba(255,255,255,0.36); line-height: 1.5; }
-    .figsy-feats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; position: relative; z-index: 1; }
-    .f-feat { display: flex; align-items: flex-start; gap: 8px; font-size: 0.82rem; color: rgba(255,255,255,0.55); }
-    .f-feat::before { content: "✓"; color: #60a5fa; font-weight: 800; flex-shrink: 0; }
+    .prod-waitlist:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
 
-    /* ── PRICING ── */
-    .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
-    .p-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 20px; padding: 36px 28px; display: flex; flex-direction: column; }
-    .p-card.pop { border-color: rgba(0,102,255,0.4); background: rgba(0,20,55,0.6); position: relative; }
-    .pop-pill { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 14px; border-radius: 100px; white-space: nowrap; }
-    .p-plan { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); margin-bottom: 8px; }
-    .p-card h3 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 8px; }
-    .p-desc { font-size: 0.82rem; color: rgba(255,255,255,0.36); line-height: 1.6; margin-bottom: 28px; flex: 1; }
-    .p-price { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
-    .p-note { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-bottom: 28px; }
-    .p-card ul { list-style: none; margin-bottom: 28px; }
-    .p-card ul li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; color: rgba(255,255,255,0.55); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .p-card ul li:last-child { border-bottom: none; }
-    .p-card ul li::before { content: "✓"; color: #4ade80; font-weight: 800; flex-shrink: 0; }
-    .p-card ul li.b::before { color: #60a5fa; }
-    .p-card ul li.dim { color: rgba(255,255,255,0.2); }
-    .p-card ul li.dim::before { color: rgba(255,255,255,0.12); }
-    .p-btn { display: block; text-align: center; padding: 12px; border-radius: 100px; font-size: 0.875rem; font-weight: 700; text-decoration: none; transition: all .2s; border: none; cursor: pointer; margin-top: auto; }
-    .p-btn-blue { background: var(--blue); color: #fff; }
-    .p-btn-blue:hover { opacity: 0.88; }
-    .p-btn-out { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.14); }
-    .p-btn-out:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
-    .p-vol-note { text-align: center; font-size: 0.78rem; color: rgba(255,255,255,0.25); margin-top: 22px; }
+    /* ── FIGSY DARK SECTION ── */
+    .figsy-section {
+      background: var(--dark);
+      padding: 100px 48px;
+    }
+    .figsy-inner { max-width: 1080px; margin: 0 auto; }
+    .figsy-header { max-width: 600px; margin-bottom: 64px; }
+    .figsy-header .s-label { color: #60a5fa; }
+    .figsy-header .s-title { color: #fff; }
+    .figsy-header .s-sub { color: rgba(255,255,255,0.4); margin-bottom: 0; }
+    .figsy-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 48px; }
+    .figsy-step {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 28px 24px;
+    }
+    .figsy-step-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-bottom: 12px; }
+    .figsy-step h4 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .figsy-step p { font-size: 0.8rem; color: rgba(255,255,255,0.35); line-height: 1.6; }
+    .figsy-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .figsy-feat {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 24px;
+    }
+    .figsy-feat h4 { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .figsy-feat p { font-size: 0.8rem; color: rgba(255,255,255,0.35); line-height: 1.6; }
 
     /* ── HOW IT WORKS ── */
-    .hiw-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
-    .hiw-card { background: #0a0a0a; border: 1px solid var(--border); border-radius: 16px; padding: 28px 22px; }
-    .hiw-num { width: 34px; height: 34px; background: rgba(0,102,255,0.12); border: 1px solid rgba(0,102,255,0.22); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 800; color: #60a5fa; margin-bottom: 16px; }
-    .hiw-card h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 8px; }
-    .hiw-card p { font-size: 0.8rem; color: rgba(255,255,255,0.38); line-height: 1.6; }
+    .hiw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    .hiw-card { padding: 32px; background: var(--light); border-radius: 20px; }
+    .hiw-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
+    .hiw-card h3 { font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+    .hiw-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
+
+    /* ── STATS ── */
+    .stats-section { background: var(--light); padding: 80px 48px; }
+    .stats-inner { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+    .stat { padding: 40px 32px; text-align: center; }
+    .stat-num { font-size: 3rem; font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1; margin-bottom: 8px; }
+    .stat-num span { color: var(--blue); }
+    .stat-label { font-size: 0.82rem; color: rgba(0,0,0,0.4); line-height: 1.5; }
+
+    /* ── PRICING ── */
+    .pricing-section { padding: 100px 48px; }
+    .pricing-inner { max-width: 1080px; margin: 0 auto; }
+    .pricing-header { text-align: center; margin-bottom: 56px; }
+    .p-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .p-card {
+      border: 1.5px solid var(--border);
+      border-radius: 24px;
+      padding: 36px 32px;
+      position: relative;
+    }
+    .p-card.featured {
+      background: var(--dark);
+      border-color: var(--dark);
+      color: #fff;
+    }
+    .p-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--blue); color: #fff; font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px;
+    }
+    .p-plan { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.3); margin-bottom: 8px; }
+    .p-card.featured .p-plan { color: rgba(255,255,255,0.3); }
+    .p-card h3 { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .p-card p { font-size: 0.83rem; color: rgba(0,0,0,0.4); line-height: 1.6; margin-bottom: 24px; }
+    .p-card.featured p { color: rgba(255,255,255,0.4); }
+    .p-price { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1; margin-bottom: 6px; }
+    .p-card.featured .p-price { color: #fff; }
+    .p-note { font-size: 0.75rem; color: rgba(0,0,0,0.3); margin-bottom: 28px; }
+    .p-card.featured .p-note { color: rgba(255,255,255,0.25); }
+    .p-divider { height: 1px; background: var(--border); margin-bottom: 24px; }
+    .p-card.featured .p-divider { background: rgba(255,255,255,0.08); }
+    .p-card ul { list-style: none; margin-bottom: 32px; }
+    .p-card ul li { font-size: 0.83rem; color: rgba(0,0,0,0.55); padding: 6px 0; display: flex; align-items: flex-start; gap: 8px; }
+    .p-card.featured ul li { color: rgba(255,255,255,0.55); }
+    .p-card ul li::before { content: "✓"; color: #059669; font-weight: 800; flex-shrink: 0; }
+    .p-btn {
+      display: block; text-align: center; padding: 13px 24px;
+      border-radius: 100px; font-size: 0.88rem; font-weight: 600;
+      text-decoration: none; transition: all .2s; cursor: pointer; border: none;
+    }
+    .p-btn-dark { background: var(--dark); color: #fff; }
+    .p-btn-dark:hover { opacity: 0.8; }
+    .p-btn-white { background: #fff; color: var(--dark); }
+    .p-btn-white:hover { opacity: 0.85; }
+    .p-btn-out { background: transparent; color: var(--dark); border: 1.5px solid var(--border); }
+    .p-btn-out:hover { border-color: rgba(0,0,0,0.3); }
+    .p-vol-note { text-align: center; margin-top: 32px; font-size: 0.8rem; color: rgba(0,0,0,0.3); }
 
     /* ── CTA BANNER ── */
+    .cta-section { padding: 80px 48px 120px; }
+    .cta-inner { max-width: 1080px; margin: 0 auto; }
     .cta-banner {
-      background: linear-gradient(135deg, rgba(0,25,70,0.8) 0%, rgba(0,5,20,0.9) 100%);
-      border: 1px solid rgba(0,102,255,0.2); border-radius: 24px;
-      padding: 72px 48px; text-align: center;
-      position: relative; overflow: hidden;
+      background: var(--dark);
+      border-radius: 32px;
+      padding: 80px 64px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
     }
     .cta-banner::before {
-      content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
-      width: 600px; height: 300px;
-      background: radial-gradient(ellipse, rgba(0,102,255,0.1) 0%, transparent 70%);
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.15) 0%, transparent 60%);
+      pointer-events: none;
     }
-    .cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 16px; position: relative; z-index: 1; }
-    .cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.42); margin-bottom: 36px; position: relative; z-index: 1; }
-    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+    .cta-banner h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 14px; }
+    .cta-banner p { font-size: 1rem; color: rgba(255,255,255,0.38); margin-bottom: 36px; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-cta-primary { background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer; transition: opacity .2s; text-decoration: none; }
+    .btn-cta-primary:hover { opacity: 0.88; }
+    .btn-cta-ghost { background: transparent; color: rgba(255,255,255,0.6); font-size: 0.95rem; font-weight: 500; padding: 14px 32px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; transition: all .2s; text-decoration: none; }
+    .btn-cta-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
 
     /* ── FOOTER ── */
-    footer { border-top: 1px solid var(--border); padding: 60px 48px 40px; }
+    footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
     .footer-inner { max-width: 1080px; margin: 0 auto; }
-    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 52px; }
-    .footer-brand p { font-size: 0.82rem; color: rgba(255,255,255,0.35); margin-top: 14px; max-width: 240px; line-height: 1.65; }
-    .footer-col h4 { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.28); margin-bottom: 18px; }
-    .footer-col a { display: block; font-size: 0.83rem; color: rgba(255,255,255,0.42); text-decoration: none; margin-bottom: 10px; transition: color .2s; }
-    .footer-col a:hover { color: #fff; }
-    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 28px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
-    .footer-bottom p { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
-    .badges { display: flex; gap: 10px; flex-wrap: wrap; }
-    .badge { font-size: 0.68rem; color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
+    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
+    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
+    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
+    .footer-col a:hover { color: var(--dark); }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-legal { display: flex; gap: 20px; }
+    .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
+    .footer-legal a:hover { color: var(--dark); }
+
+    /* ── AUTH MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); z-index: 999; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 24px; padding: 40px; width: 100%; max-width: 420px; margin: 24px; box-shadow: 0 32px 80px rgba(0,0,0,0.2); position: relative; }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: rgba(0,0,0,0.3); line-height: 1; padding: 4px; }
+    .modal-close:hover { color: var(--dark); }
+    .modal h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; color: var(--dark); }
+    .modal-sub { font-size: 0.85rem; color: rgba(0,0,0,0.4); margin-bottom: 28px; }
+    .modal-tabs { display: flex; gap: 4px; background: rgba(0,0,0,0.04); border-radius: 10px; padding: 3px; margin-bottom: 24px; }
+    .modal-tab { flex: 1; padding: 8px; border: none; background: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: rgba(0,0,0,0.4); transition: all .15s; }
+    .modal-tab.active { background: #fff; color: var(--dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: rgba(0,0,0,0.5); margin-bottom: 6px; }
+    .form-group input { width: 100%; padding: 11px 14px; border: 1.5px solid rgba(0,0,0,0.12); border-radius: 10px; font-size: 0.9rem; outline: none; transition: border-color .15s; color: var(--dark); background: #fff; }
+    .form-group input:focus { border-color: var(--blue); }
+    .btn-form { width: 100%; padding: 13px; background: var(--dark); color: #fff; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity .2s; margin-top: 8px; }
+    .btn-form:hover { opacity: 0.85; }
+    .modal-msg { font-size: 0.82rem; text-align: center; margin-top: 14px; color: rgba(0,0,0,0.4); display: none; }
+    .modal-msg.err { color: #dc2626; display: block; }
+    .modal-msg.ok { color: #059669; display: block; }
+    .modal-forgot { font-size: 0.78rem; color: rgba(0,0,0,0.35); text-align: right; margin-top: -8px; margin-bottom: 16px; cursor: pointer; text-decoration: underline; }
+    .modal-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: rgba(0,0,0,0.35); }
+    .modal-footer a { color: var(--blue); text-decoration: none; }
 
     /* ── RESPONSIVE ── */
-    @media (max-width: 900px) {
-      nav { padding: 0 24px; }
-      .nav-links { display: none; }
-      .products-grid, .pricing-grid { grid-template-columns: 1fr; }
-      .figsy-flow { grid-template-columns: 1fr 1fr; }
-      .figsy-feats { grid-template-columns: 1fr 1fr; }
-      .hiw-grid { grid-template-columns: 1fr 1fr; }
-      .figsy-block { padding: 44px 28px; }
+    @media (max-width: 1024px) {
+      .prod-grid { grid-template-columns: 1fr 1fr; }
+      .prod.featured { grid-column: span 2; }
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
     }
-    @media (max-width: 600px) {
-      .stat { padding: 28px 32px; }
-      .figsy-flow, .figsy-feats { grid-template-columns: 1fr; }
-      .hiw-grid { grid-template-columns: 1fr; }
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .hero { padding: 64px 24px 0; }
+      .section { padding: 64px 24px; }
+      .problem-section, .figsy-section, .stats-section, .pricing-section, .cta-section { padding: 64px 24px; }
+      .prod-grid { grid-template-columns: 1fr; }
+      .prod.featured { grid-column: span 1; grid-template-columns: 1fr; gap: 24px; }
+      .problem-cards, .figsy-flow, .figsy-feats, .hiw-grid, .p-cards { grid-template-columns: 1fr; }
+      .stats-inner { grid-template-columns: 1fr 1fr; }
       .footer-grid { grid-template-columns: 1fr; }
-      .cta-banner { padding: 48px 24px; }
+      .cta-banner { padding: 48px 28px; }
     }
   </style>
 </head>
 <body>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <h2 id="auth-title">Welcome to K.I.N.D</h2>
+    <p class="modal-sub" id="auth-sub">Start your 14-day free trial — no card required.</p>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tab-signup" onclick="switchTab('signup')">Sign up</button>
+      <button class="modal-tab" id="tab-login" onclick="switchTab('login')">Log in</button>
+    </div>
+    <form id="auth-form" onsubmit="submitAuth(event)">
+      <div class="form-group">
+        <label for="auth-email">Email</label>
+        <input type="email" id="auth-email" placeholder="you@company.com" required />
+      </div>
+      <div class="form-group">
+        <label for="auth-password">Password</label>
+        <input type="password" id="auth-password" placeholder="••••••••" required minlength="6" />
+      </div>
+      <p class="modal-forgot" id="forgot-link" onclick="handleForgot()">Forgot password?</p>
+      <button type="submit" class="btn-form" id="auth-submit">Create account</button>
+      <p class="modal-msg" id="auth-msg"></p>
+    </form>
+    <p class="modal-footer">By signing up you agree to our <a href="https://app.get-kind.com/terms">Terms of Service</a>.</p>
+  </div>
+</div>
 
 <!-- NAV -->
 <nav>
@@ -270,92 +427,41 @@
     <span class="logo-text">K.I.N.D</span>
   </a>
   <div class="nav-links">
-
-    <!-- Products -->
     <div class="nav-item">
       <a href="#products" class="nav-link">Products <span class="chevron">▾</span></a>
       <div class="nav-dropdown">
-        <a href="#products" class="dd-link">
-          <span class="dd-icon">🎯</span>
-          <span><span class="dd-title">AI Lead Generation</span><span class="dd-sub">ICP-matched B2B leads from 250M+ contacts</span></span>
-        </a>
-        <a href="#figsy" class="dd-link">
-          <span class="dd-icon">🤖</span>
-          <span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span>
-        </a>
-        <a href="#products" class="dd-link">
-          <span class="dd-icon">🧠</span>
-          <span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span>
-        </a>
-        <a href="#products" class="dd-link">
-          <span class="dd-icon">💬</span>
-          <span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span>
-        </a>
+        <a href="#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">K.I.N.D AI — Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
+        <a href="#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
       </div>
     </div>
-
-    <!-- Use Cases -->
     <div class="nav-item">
       <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
       <div class="nav-dropdown" style="min-width:264px">
-        <a href="use-cases.html#b2b-sales" class="dd-link">
-          <span class="dd-icon">📊</span>
-          <span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span>
-        </a>
-        <a href="use-cases.html#financial" class="dd-link">
-          <span class="dd-icon">🏦</span>
-          <span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span>
-        </a>
-        <a href="use-cases.html#real-estate" class="dd-link">
-          <span class="dd-icon">🏠</span>
-          <span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span>
-        </a>
-        <a href="use-cases.html#professional-services" class="dd-link">
-          <span class="dd-icon">⚖️</span>
-          <span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span>
-        </a>
-        <a href="use-cases.html#saas" class="dd-link">
-          <span class="dd-icon">💻</span>
-          <span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span>
-        </a>
-        <a href="use-cases.html#recruitment" class="dd-link">
-          <span class="dd-icon">👥</span>
-          <span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span>
-        </a>
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
       </div>
     </div>
-
-    <!-- Resources -->
     <div class="nav-item">
       <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
       <div class="nav-dropdown">
-        <a href="support.html#faq" class="dd-link">
-          <span class="dd-icon">📖</span>
-          <span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span>
-        </a>
-        <a href="support.html" class="dd-link">
-          <span class="dd-icon">🛟</span>
-          <span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span>
-        </a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
         <div class="dd-divider"></div>
-        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="dd-link">
-          <span class="dd-icon">📅</span>
-          <span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span>
-        </a>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
       </div>
     </div>
-
-    <!-- Company -->
     <div class="nav-item">
       <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
       <div class="nav-dropdown">
-        <a href="about.html" class="dd-link">
-          <span class="dd-icon">🏢</span>
-          <span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span>
-        </a>
+        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
       </div>
     </div>
-
     <a href="pricing.html" class="nav-link">Pricing</a>
   </div>
   <div class="nav-right">
@@ -366,203 +472,278 @@
 
 <!-- HERO -->
 <div class="hero">
-  <h1>Intelligence,<br/>Engineered.</h1>
-  <p>One platform. Every AI product your business needs. Log in once and access all your K.I.N.D modules — Lead Generation, FIGSY, Virtual Assistant, Chatbot — in a single, unified workspace.</p>
+  <div class="hero-label">⚡ AI-Powered Lead Generation</div>
+  <h1>Your pipeline,<br/><span>on autopilot.</span></h1>
+  <p class="hero-sub">K.I.N.D finds, qualifies, and books meetings with your ideal clients — automatically. You show up to the call.</p>
   <div class="hero-btns">
     <button onclick="openAuth('signup')" class="btn-hero-primary">Start free trial — 14 days free</button>
-    <a href="#products" class="btn-hero-ghost">View Services</a>
+    <a href="#how-it-works" class="btn-hero-ghost">See how it works</a>
+  </div>
+
+  <!-- Animated node network -->
+  <div class="hero-visual">
+    <canvas id="node-canvas"></canvas>
+    <div class="anno anno-1">QUALIFIES LEADS AUTOMATICALLY</div>
+    <div class="anno anno-2 anno-right">3-SEQUENCE OUTREACH</div>
+    <div class="anno anno-3">LEARNS FROM EVERY REPLY</div>
+    <div class="anno anno-4 anno-right">BOOKS MEETINGS WHILE YOU SLEEP</div>
   </div>
 </div>
 
-<!-- STATS -->
-<div class="stats">
-  <div class="stat"><div class="n">5+</div><div class="l">AI Products</div></div>
-  <div class="stat"><div class="n">24/7</div><div class="l">Always-on AI</div></div>
-  <div class="stat"><div class="n">&lt; 2wk</div><div class="l">Time to pilot</div></div>
-  <div class="stat"><div class="n">100%</div><div class="l">In-house stack</div></div>
+<!-- PROBLEM SECTION -->
+<div class="problem-section">
+  <div class="problem-inner">
+    <h2 class="problem-headline">Most founders lose pipeline <em>not to better competitors</em> — but to their own calendar.</h2>
+    <p class="problem-sub">You're running the business. Outreach falls off. Pipeline dries up. K.I.N.D fixes this.</p>
+    <div class="problem-cards">
+      <div class="prob-card">
+        <div class="prob-num">80%<span> of founders</span></div>
+        <h3>Too busy to prospect</h3>
+        <p>You're running the business. Outreach falls off. Pipeline dries up. It's not a skill problem — it's a time problem.</p>
+      </div>
+      <div class="prob-card">
+        <div class="prob-num">96%<span> of templates</span></div>
+        <h3>Generic outreach doesn't work</h3>
+        <p>Templates get ignored. Personalisation at scale was impossible — until now. Every K.I.N.D email is unique to the recipient.</p>
+      </div>
+      <div class="prob-card">
+        <div class="prob-num">5x<span> touches needed</span></div>
+        <h3>Leads go cold without follow-up</h3>
+        <p>80% of deals need 5+ touches. Nobody has time for that manually. FIGSY follows up automatically, every time.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- PRODUCTS -->
 <div class="section" id="products">
-  <div class="s-label">Platform</div>
-  <div class="s-title">Every AI product<br/>your business needs</div>
-  <p class="s-sub">Purpose-built AI products that work together on one platform. Start with one, add more as you grow.</p>
-  <div class="products-grid">
-    <div class="prod featured">
+  <div class="s-label">Products</div>
+  <div class="s-title">Everything your pipeline needs.</div>
+  <p class="s-sub">Two core products. One platform. Pay only for qualified results.</p>
+  <div class="prod-grid">
+    <!-- Lead Gen -->
+    <div class="prod">
       <div class="prod-icon">🎯</div>
-      <span class="prod-tag t-blue">Lead Generation</span>
+      <span class="prod-tag t-blue">K.I.N.D AI</span>
       <h3>AI Lead Generation</h3>
-      <p>Precision-targeted B2B leads sourced from 250M+ contacts, matched to your ICP, AI-scored, and POPIA-compliant. Only pay for leads that are new to your pipeline.</p>
-      <div class="prod-price">$1 <span class="sm">/ lead · from $100/mo</span></div>
+      <p>ICP-matched B2B leads sourced from 250M+ contacts. We email them first — you only pay when a lead replies positively.</p>
+      <div class="prod-price">$1 <span class="sm">per qualified lead · from $20</span></div>
       <ul class="prod-features">
-        <li class="g">ICP-matched leads from Apollo</li>
-        <li class="g">AI lead scoring 0–100</li>
-        <li class="g">POPIA consent workflow</li>
-        <li class="g">CRM deduplication</li>
-        <li class="g">CSV export</li>
+        <li class="g">Apollo-powered lead sourcing</li>
+        <li class="g">3-sequence automated outreach</li>
+        <li class="g">Credit only on positive reply</li>
+        <li class="g">3 AI ICP regenerations/month</li>
       </ul>
     </div>
-    <div class="prod featured">
+    <!-- FIGSY -->
+    <div class="prod">
       <div class="prod-icon">🤖</div>
-      <span class="prod-tag t-blue">FIGSY — AI SDR</span>
-      <h3>FIGSY AI Outreach</h3>
-      <p>Your autonomous AI Sales Development Representative. Writes personalised emails per lead, sends from your domain, handles replies, follows up, and books meetings automatically.</p>
-      <div class="prod-price">$3 <span class="sm">/ lead · from $300/mo</span></div>
+      <span class="prod-tag t-green">FIGSY Advanced</span>
+      <h3>FIGSY — AI SDR</h3>
+      <p>FIGSY goes further. It reads each reply, continues the conversation, handles objections, and books the meeting — without you.</p>
+      <div class="prod-price">$3 <span class="sm">per qualified lead · from $60</span></div>
       <ul class="prod-features">
-        <li class="b">AI-personalised outreach emails</li>
-        <li class="b">Automated follow-up sequences</li>
-        <li class="b">Reply detection and handling</li>
-        <li class="b">Calendar meeting booking</li>
-        <li class="b">Campaign dashboard</li>
+        <li class="b">Everything in K.I.N.D AI</li>
+        <li class="b">Adaptive reply handling</li>
+        <li class="b">Objection management</li>
+        <li class="b">Meeting booked to your calendar</li>
+        <li class="b">Learns from every campaign</li>
+        <li class="b">Unlimited ICP regenerations</li>
       </ul>
     </div>
+    <!-- VA -->
     <div class="prod">
       <div class="prod-icon">🧠</div>
       <span class="prod-tag t-purple">Virtual Assistant</span>
       <h3>AI Virtual Assistant</h3>
-      <p>A Claude-powered assistant trained on your business. Handles scheduling, email drafting, internal Q&amp;A, and document queries — always available, always accurate.</p>
-      <div class="prod-price">$750 <span class="sm">/ mo</span></div>
-      <ul class="prod-features">
-        <li class="g">Business knowledge base</li>
-        <li class="g">Email drafting &amp; summarisation</li>
-        <li class="g">Scheduling &amp; calendar queries</li>
-        <li class="g">500 messages/mo included</li>
-      </ul>
-      <a href="https://tally.so/r/kind-waitlist" class="p-btn p-btn-out" style="display:block;margin-top:16px;text-align:center;font-size:0.82rem">Coming soon — join waitlist →</a>
+      <p>A Claude-powered assistant trained on your business. Handles scheduling, email drafting, internal Q&amp;A, and document queries.</p>
+      <a href="https://tally.so/r/kind-waitlist" class="prod-waitlist">Coming soon — join waitlist →</a>
     </div>
+    <!-- Chatbot -->
     <div class="prod">
       <div class="prod-icon">💬</div>
       <span class="prod-tag t-indigo">Chatbot Agent</span>
       <h3>AI Chatbot Agent</h3>
-      <p>Fully configured AI chatbot for your website or WhatsApp. Answers customer queries, captures leads, and hands off to your team — one embed code away.</p>
-      <div class="prod-price">$499 <span class="sm">/ mo</span></div>
-      <ul class="prod-features">
-        <li class="g">Web &amp; WhatsApp deployment</li>
-        <li class="g">Custom persona and tone</li>
-        <li class="g">Lead capture built in</li>
-        <li class="g">500 conversations/mo included</li>
-      </ul>
-      <a href="https://tally.so/r/kind-waitlist" class="p-btn p-btn-out" style="display:block;margin-top:16px;text-align:center;font-size:0.82rem">Coming soon — join waitlist →</a>
+      <p>Fully configured AI chatbot for your website or WhatsApp. Answers queries, captures leads, and hands off to your team.</p>
+      <a href="https://tally.so/r/kind-waitlist" class="prod-waitlist">Coming soon — join waitlist →</a>
     </div>
   </div>
 </div>
 
-<div class="divider"></div>
+<div style="height:1px;background:var(--border);max-width:1080px;margin:0 auto"></div>
 
-<!-- FIGSY -->
-<div class="section" id="figsy">
-  <div class="s-label">FIGSY — AI SDR</div>
-  <div class="s-title">Your AI sales rep.<br/>Never sleeps. Never quits.</div>
-  <p class="s-sub">FIGSY is a fully autonomous AI SDR — not a template tool. It reads each lead individually and runs the entire outreach cycle without you lifting a finger.</p>
-  <div class="figsy-block">
-    <div class="f-eye">🤖 How FIGSY works</div>
-    <h2>Lead to booked meeting — <span>automatically</span></h2>
-    <p>FIGSY picks up every scored lead, writes a unique personalised email, sends from your domain, reads the reply, follows up with fresh angles, and books the meeting when the lead is ready. You just show up.</p>
+<!-- FIGSY DEEP DIVE -->
+<div class="figsy-section" id="figsy">
+  <div class="figsy-inner">
+    <div class="figsy-header">
+      <div class="s-label">FIGSY — AI SDR</div>
+      <div class="s-title">Your AI sales rep.<br/>Never sleeps. Never quits.</div>
+      <p class="s-sub">FIGSY is a fully autonomous AI SDR — not a template tool. It reads each lead individually and runs the entire outreach cycle without you lifting a finger.</p>
+    </div>
     <div class="figsy-flow">
-      <div class="f-step"><div class="fn">1</div><h4>Lead arrives</h4><p>FIGSY picks up each new scored lead from your pipeline automatically.</p></div>
-      <div class="f-step"><div class="fn">2</div><h4>Personalised email written</h4><p>AI writes a unique email per lead — based on their role, company and industry. Not a template.</p></div>
-      <div class="f-step"><div class="fn">3</div><h4>Sent from your domain</h4><p>Emails go from your address. Looks like it came from you. DMARC &amp; SPF compliant.</p></div>
-      <div class="f-step"><div class="fn">4</div><h4>Replies handled</h4><p>FIGSY reads every reply, classifies intent, and responds — or books the meeting.</p></div>
-      <div class="f-step"><div class="fn">5</div><h4>Follow-ups automated</h4><p>No reply? FIGSY follows up twice with fresh messaging angles — not the same email.</p></div>
-      <div class="f-step"><div class="fn">6</div><h4>Meeting booked</h4><p>Interested leads get a calendar invite. You get a notification. Show up and close.</p></div>
+      <div class="figsy-step">
+        <div class="figsy-step-num">Step 01</div>
+        <h4>Lead sourced</h4>
+        <p>Apollo finds contacts matching your ICP from 250M+ verified profiles.</p>
+      </div>
+      <div class="figsy-step">
+        <div class="figsy-step-num">Step 02</div>
+        <h4>Email written</h4>
+        <p>Claude writes a unique, personalised email per lead. Role, company, industry — never a template.</p>
+      </div>
+      <div class="figsy-step">
+        <div class="figsy-step-num">Step 03</div>
+        <h4>Reply handled</h4>
+        <p>FIGSY reads every reply. Positive? Continues the conversation. Negative? Records opt-out.</p>
+      </div>
+      <div class="figsy-step">
+        <div class="figsy-step-num">Step 04</div>
+        <h4>Meeting booked</h4>
+        <p>When the lead is ready, FIGSY books directly into your calendar. You show up.</p>
+      </div>
     </div>
     <div class="figsy-feats">
-      <div class="f-feat">Works standalone or with Lead Gen</div>
-      <div class="f-feat">Upload your own CSV lead list</div>
-      <div class="f-feat">POPIA &amp; GDPR compliant by design</div>
-      <div class="f-feat">Auto opt-out shared blocklist</div>
-      <div class="f-feat">Campaign dashboard — full visibility</div>
-      <div class="f-feat">Powered by Claude (Anthropic)</div>
+      <div class="figsy-feat">
+        <h4>Learns from every campaign</h4>
+        <p>FIGSY tracks what's working — which industries, titles, and angles convert — and adapts automatically.</p>
+      </div>
+      <div class="figsy-feat">
+        <h4>POPIA &amp; GDPR compliant</h4>
+        <p>Unsubscribe link in every email. Opt-outs recorded permanently. Built for South African and global compliance.</p>
+      </div>
+      <div class="figsy-feat">
+        <h4>Credit only on positive reply</h4>
+        <p>No reply or negative response? No charge. You only pay when a lead shows genuine interest.</p>
+      </div>
     </div>
   </div>
 </div>
-
-<div class="divider"></div>
 
 <!-- HOW IT WORKS -->
 <div class="section" id="how-it-works">
   <div class="s-label">How it works</div>
-  <div class="s-title">From ICP to meeting<br/>in four steps</div>
-  <p class="s-sub">The full Lead Gen + FIGSY pipeline — from defining who you want to reach, to a meeting booked in your calendar.</p>
+  <div class="s-title">Live in minutes.</div>
+  <p class="s-sub">No integrations. No complex setup. Define your ICP, add credits, and K.I.N.D starts working.</p>
   <div class="hiw-grid">
-    <div class="hiw-card"><div class="hiw-num">1</div><h3>Define your ICP</h3><p>Set your Ideal Customer Profile — industry, title, company size, geography, revenue range.</p></div>
-    <div class="hiw-card"><div class="hiw-num">2</div><h3>AI finds leads</h3><p>We pull matching contacts from 250M+, deduplicate, score 0–100, and run POPIA consent.</p></div>
-    <div class="hiw-card"><div class="hiw-num">3</div><h3>FIGSY runs outreach</h3><p>Personalised emails sent, replies handled, follow-ups automated — without you involved.</p></div>
-    <div class="hiw-card"><div class="hiw-num">4</div><h3>You close the deal</h3><p>Interested leads appear as booked meetings. You only pay for leads actually delivered.</p></div>
+    <div class="hiw-card">
+      <div class="hiw-num">Step 01</div>
+      <h3>Define your ICP</h3>
+      <p>Set your Ideal Customer Profile — industry, title, company size, geography. Our AI suggests refinements based on your results.</p>
+    </div>
+    <div class="hiw-card">
+      <div class="hiw-num">Step 02</div>
+      <h3>Add credits &amp; launch</h3>
+      <p>Buy a credit bundle — from $20. K.I.N.D sources leads, writes personalised emails, and starts your 3-sequence outreach automatically.</p>
+    </div>
+    <div class="hiw-card">
+      <div class="hiw-num">Step 03</div>
+      <h3>Receive qualified leads</h3>
+      <p>When a prospect replies positively, 1 credit is consumed and you're notified instantly. Upgrade to FIGSY and it books the meeting too.</p>
+    </div>
   </div>
 </div>
 
-<div class="divider"></div>
+<!-- STATS -->
+<div class="stats-section">
+  <div class="stats-inner">
+    <div class="stat">
+      <div class="stat-num">250<span>M+</span></div>
+      <div class="stat-label">Verified B2B contacts<br/>in the database</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">3<span>×</span></div>
+      <div class="stat-label">AI ICP refinements<br/>per month included</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">$<span>1</span></div>
+      <div class="stat-label">Per qualified lead<br/>on K.I.N.D AI plan</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">14</div>
+      <div class="stat-label">Day free trial<br/>no card required</div>
+    </div>
+  </div>
+</div>
 
 <!-- PRICING -->
-<div class="section" id="pricing">
-  <div class="s-label">Pricing</div>
-  <div class="s-title">Pay per result.<br/>Not per seat.</div>
-  <p class="s-sub">Usage-based pricing for Lead Gen and FIGSY. Flat monthly for VA and Chatbot. No contracts, no surprises.</p>
-  <div class="pricing-grid">
-    <div class="p-card">
-      <div class="p-plan">Lead Gen</div>
-      <h3>AI Lead Generation</h3>
-      <p class="p-desc">Scored, consented leads matched to your ICP. No duplicates. No contracts.</p>
-      <div class="p-price">$1<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/lead</span></div>
-      <div class="p-note">From $100/mo · 100 leads included</div>
-      <ul>
-        <li class="g" style="--c:#4ade80">ICP-matched from Apollo</li>
-        <li>AI score 0–100</li>
-        <li>POPIA consent workflow</li>
-        <li>CRM deduplication</li>
-        <li>CSV export</li>
-        <li class="dim">FIGSY not included</li>
-      </ul>
-      <a href="mailto:hello@get-kind.com" class="p-btn p-btn-out">Get started</a>
+<div class="pricing-section" id="pricing">
+  <div class="pricing-inner">
+    <div class="pricing-header">
+      <div class="s-label" style="text-align:center">Pricing</div>
+      <div class="s-title" style="text-align:center;max-width:none">Pay for results, not promises.</div>
+      <p style="font-size:1rem;color:rgba(0,0,0,0.4);margin-top:8px">Credits consumed only on positive replies. No monthly minimums. Cancel anytime.</p>
     </div>
-    <div class="p-card pop">
-      <div class="pop-pill">Most popular</div>
-      <div class="p-plan">Lead Gen + FIGSY</div>
-      <h3>Full Pipeline Bundle</h3>
-      <p class="p-desc">Leads found and AI outreach running. The complete end-to-end sales system.</p>
-      <div class="p-price">$3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/lead</span></div>
-      <div class="p-note">From $300/mo · 100 leads included</div>
-      <ul>
-        <li>Everything in Lead Gen</li>
-        <li class="b">FIGSY personalised outreach</li>
-        <li class="b">3-step follow-up sequences</li>
-        <li class="b">Reply detection &amp; handling</li>
-        <li class="b">Meeting booking automation</li>
-        <li class="b">Campaign dashboard</li>
-      </ul>
-      <a href="mailto:hello@get-kind.com" class="p-btn p-btn-blue">Book a free call →</a>
+    <div class="p-cards">
+      <!-- Lead Gen Pro -->
+      <div class="p-card">
+        <div class="p-plan">K.I.N.D AI</div>
+        <h3>Lead Gen Pro</h3>
+        <p>AI-sourced, AI-outreached leads. Pay only when a prospect replies positively.</p>
+        <div class="p-price">$1<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/qualified lead</span></div>
+        <div class="p-note">Start from $20 · bundles of 20 credits</div>
+        <div class="p-divider"></div>
+        <ul>
+          <li>Apollo lead sourcing</li>
+          <li>3-sequence personalised outreach</li>
+          <li>Credit on positive reply only</li>
+          <li>3 AI ICP regenerations/month</li>
+          <li>Reply tracking &amp; opt-out management</li>
+          <li>14-day free trial</li>
+        </ul>
+        <button onclick="openAuth('signup')" class="p-btn p-btn-out">Start free trial</button>
+      </div>
+      <!-- FIGSY Advanced -->
+      <div class="p-card featured">
+        <div class="p-badge">Most popular</div>
+        <div class="p-plan">FIGSY</div>
+        <h3>Lead Gen Advanced</h3>
+        <p>Everything in Lead Gen Pro — plus FIGSY handles replies, books meetings, and learns from every campaign.</p>
+        <div class="p-price">$3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.3)">/qualified lead</span></div>
+        <div class="p-note">Start from $60 · bundles of 20 credits</div>
+        <div class="p-divider"></div>
+        <ul>
+          <li>Everything in Lead Gen Pro</li>
+          <li>FIGSY handles all replies</li>
+          <li>Objection management</li>
+          <li>Meeting booked to your calendar</li>
+          <li>Adaptive learning per campaign</li>
+          <li>Unlimited ICP regenerations</li>
+        </ul>
+        <button onclick="openAuth('signup')" class="p-btn p-btn-white">Start free trial</button>
+      </div>
+      <!-- Enterprise -->
+      <div class="p-card">
+        <div class="p-plan">Enterprise</div>
+        <h3>Custom</h3>
+        <p>High-volume campaigns, custom integrations, dedicated support, and tailored pricing.</p>
+        <div class="p-price" style="font-size:1.8rem">Let's talk</div>
+        <div class="p-note">Volume discounts · SLA · dedicated AE</div>
+        <div class="p-divider"></div>
+        <ul>
+          <li>Everything in FIGSY Advanced</li>
+          <li>CRM integration (HubSpot, Salesforce)</li>
+          <li>Custom sending domain setup</li>
+          <li>Dedicated account manager</li>
+          <li>Custom billing &amp; invoicing</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="mailto:hello@get-kind.com?subject=Enterprise%20Enquiry" class="p-btn p-btn-out">Contact us</a>
+      </div>
     </div>
-    <div class="p-card">
-      <div class="p-plan">VA + Chatbot</div>
-      <h3>Assistant Products</h3>
-      <p class="p-desc">Flat monthly subscription. Add to any plan or use standalone.</p>
-      <div class="p-price" style="font-size:1.8rem">from $499<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.28)">/mo</span></div>
-      <div class="p-note">Coming soon — join the waitlist</div>
-      <ul>
-        <li>Virtual Assistant — $750/mo</li>
-        <li>AI Chatbot Agent — $499/mo</li>
-        <li>Custom persona &amp; knowledge base</li>
-        <li>Web &amp; WhatsApp deployment</li>
-        <li>500 interactions/mo included</li>
-        <li>Pro: 2,000 interactions/mo</li>
-      </ul>
-      <a href="https://tally.so/r/kind-waitlist" class="p-btn p-btn-out">Join waitlist →</a>
-    </div>
+    <p class="p-vol-note">Local currency billing available · No contracts · Cancel anytime · <a href="mailto:hello@get-kind.com" style="color:rgba(0,0,0,0.3);text-decoration:none">hello@get-kind.com</a></p>
   </div>
-  <p class="p-vol-note">Volume discounts from 500+ leads · Local currency billing available · Enterprise pricing on request</p>
 </div>
 
-<div class="divider"></div>
-
 <!-- CTA -->
-<div class="section">
-  <div class="cta-banner">
-    <h2>Ready to build your AI sales team?</h2>
-    <p>Book a free 30-minute call. We'll walk you through the platform and set up your first ICP together.</p>
-    <div class="cta-btns">
-      <button onclick="openAuth('signup')" class="btn-hero-primary">Start free trial — 14 days free</button>
-      <button onclick="openAuth('login')" class="btn-hero-ghost">Log in →</button>
+<div class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-banner">
+      <h2>Ready to fill your pipeline?</h2>
+      <p>14-day free trial. No credit card. Cancel anytime.</p>
+      <div class="cta-btns">
+        <button onclick="openAuth('signup')" class="btn-cta-primary">Start free trial →</button>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="btn-cta-ghost">Book a demo</a>
+      </div>
     </div>
   </div>
 </div>
@@ -572,18 +753,18 @@
   <div class="footer-inner">
     <div class="footer-grid">
       <div class="footer-brand">
-        <a href="#" class="logo">
+        <a href="/" class="logo">
           <div class="logo-icon">⚡</div>
-          <span class="logo-text" style="margin-left:10px;">K.I.N.D</span>
+          <span class="logo-text">K.I.N.D</span>
         </a>
-        <p>Africa-first AI sales platform. Precision leads, autonomous outreach, and intelligent business tools — built for B2B teams.</p>
+        <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation for ambitious businesses.</p>
       </div>
       <div class="footer-col">
         <h4>Products</h4>
-        <a href="#products">AI Lead Generation</a>
+        <a href="#products">K.I.N.D AI — Lead Gen</a>
         <a href="#figsy">FIGSY — AI SDR</a>
-        <a href="#products">Virtual Assistant</a>
-        <a href="#products">Chatbot Agent</a>
+        <a href="https://tally.so/r/kind-waitlist">Virtual Assistant</a>
+        <a href="https://tally.so/r/kind-waitlist">Chatbot Agent</a>
       </div>
       <div class="footer-col">
         <h4>Company</h4>
@@ -596,180 +777,147 @@
         <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
         <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo">Book a Demo</a>
         <a href="https://app.get-kind.com/login">Client login</a>
-        <a href="https://app.get-kind.com/terms">Terms of service</a>
+        <a href="support.html">Support</a>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 K.I.N.D AI Platform. All rights reserved.</p>
-      <div class="badges">
-        <span class="badge">POPIA Compliant</span>
-        <span class="badge">GDPR Compliant</span>
-        <span class="badge">Data hosted EU</span>
+      <p>© 2026 K.I.N.D. All rights reserved.</p>
+      <div class="footer-legal">
+        <a href="https://app.get-kind.com/terms">Terms of Service</a>
+        <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
+        <a href="about.html#compliance">POPIA &amp; GDPR</a>
       </div>
     </div>
   </div>
 </footer>
 
-<!-- AUTH MODAL -->
-<div class="modal-overlay" id="auth-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeAuth()">×</button>
-    <h2 id="modal-title">Start free trial</h2>
-    <p class="sub" id="modal-sub">14 days free. No credit card required.</p>
-    <div class="tabs">
-      <button class="tab active" id="tab-signup" onclick="switchTab('signup')">Sign up</button>
-      <button class="tab" id="tab-login" onclick="switchTab('login')">Log in</button>
-    </div>
-    <form id="auth-form">
-      <div class="field">
-        <label>Email address</label>
-        <input type="email" id="auth-email" placeholder="you@company.com" required />
-      </div>
-      <div class="field" id="password-field">
-        <label style="display:flex;justify-content:space-between;align-items:center;">
-          Password
-          <button type="button" id="forgot-link" onclick="switchTab('forgot')" style="background:none;border:none;color:rgba(255,255,255,0.45);font-size:0.72rem;cursor:pointer;padding:0;display:none;">Forgot password?</button>
-        </label>
-        <input type="password" id="auth-password" placeholder="Min. 8 characters" minlength="8" required />
-      </div>
-      <button type="submit" class="auth-btn" id="auth-submit">Create account →</button>
-    </form>
-    <div id="auth-msg" class="auth-msg" style="display:none"></div>
-    <p class="trial-note" id="trial-note">14-day free trial · No credit card · Cancel anytime</p>
-    <p style="text-align:center;margin-top:14px;font-size:0.72rem;color:rgba(255,255,255,0.3);">
-      Prefer a demo? <a href="mailto:hello@get-kind.com?subject=Book%20a%20Call" style="color:rgba(255,255,255,0.55);text-decoration:underline;">Book a call →</a>
-    </p>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-  // ── Replace these two values with yours from Supabase Dashboard → Settings → API ──
-  const SUPABASE_URL  = 'https://lwtadfdaoyvjmjhrfkgs.supabase.co'
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dGFkZmRhb3l2am1qaHJma2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDU5NDgsImV4cCI6MjA5MzkyMTk0OH0.cwb3d7TQ_jYZrXsoVbC7oWlJ_OgXh8xL_n2sFRPZ6_M'
-  // ─────────────────────────────────────────────────────────────────────────────────
-
   const PORTAL = 'https://app.get-kind.com'
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
-
-  let currentMode = 'signup'
-
-  // Email confirmation and password reset now go directly to the portal's /auth/callback.
-  // This page no longer needs to handle those redirects.
+  const SUPABASE_URL = 'https://lwtadfdaoyvjmjhrfkgs.supabase.co'
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dGFkZmRhb3l2am1qaHJma2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMDUxNDksImV4cCI6MjA2MTc4MTE0OX0.U-3J1JxkFH8Kgg3xMzN3NJgCVSutXGXEITJHMmPCIPM'
+  let authMode = 'signup'
 
   function openAuth(mode) {
-    currentMode = mode
+    authMode = mode
     switchTab(mode)
     document.getElementById('auth-modal').classList.add('open')
-    document.body.style.overflow = 'hidden'
-    setTimeout(() => document.getElementById('auth-email').focus(), 100)
   }
-
-  function closeAuth() {
-    document.getElementById('auth-modal').classList.remove('open')
-    document.body.style.overflow = ''
-    document.getElementById('auth-msg').style.display = 'none'
-    document.getElementById('auth-form').reset()
-  }
-
+  function closeAuth() { document.getElementById('auth-modal').classList.remove('open') }
   function switchTab(mode) {
-    currentMode = mode
-    // Login is handled on the portal domain — clicking the tab goes there directly
-    if (mode === 'login') { window.location.href = PORTAL + '/login'; return }
+    authMode = mode
     document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
-    document.getElementById('tab-login').classList.toggle('active', false)
-    document.getElementById('auth-msg').style.display = 'none'
-
-    if (mode === 'forgot') {
-      document.getElementById('modal-title').textContent = 'Reset password'
-      document.getElementById('modal-sub').textContent = 'We\'ll send a reset link to your email.'
-      document.getElementById('auth-submit').textContent = 'Send reset link →'
-      document.getElementById('password-field').style.display = 'none'
-      document.getElementById('auth-password').required = false
-      document.getElementById('trial-note').style.display = 'none'
-      document.getElementById('forgot-link').style.display = 'none'
-    } else {
-      document.getElementById('modal-title').textContent = mode === 'signup' ? 'Start free trial' : 'Welcome back'
-      document.getElementById('modal-sub').textContent = mode === 'signup' ? '14 days free. No credit card required.' : 'Log in to your K.I.N.D dashboard.'
-      document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account →' : 'Log in →'
-      document.getElementById('trial-note').style.display = mode === 'signup' ? 'block' : 'none'
-      document.getElementById('password-field').style.display = 'block'
-      document.getElementById('auth-password').required = true
-      document.getElementById('forgot-link').style.display = mode === 'login' ? 'inline' : 'none'
-    }
+    document.getElementById('tab-login').classList.toggle('active', mode === 'login')
+    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to K.I.N.D' : 'Welcome back'
+    document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Start your 14-day free trial — no card required.' : 'Log in to your dashboard.'
+    document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account' : 'Log in'
+    document.getElementById('forgot-link').style.display = mode === 'login' ? 'block' : 'none'
+    document.getElementById('auth-msg').className = 'modal-msg'
   }
-
   document.getElementById('auth-modal').addEventListener('click', function(e) {
     if (e.target === this) closeAuth()
   })
-
-  document.getElementById('auth-form').addEventListener('submit', async function(e) {
-    e.preventDefault()
-    const btn = document.getElementById('auth-submit')
+  async function handleForgot() {
+    const email = document.getElementById('auth-email').value
     const msg = document.getElementById('auth-msg')
+    if (!email) { msg.className = 'modal-msg err'; msg.textContent = 'Enter your email first.'; return }
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/recover`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ email }) })
+    msg.className = 'modal-msg ok'; msg.textContent = 'Reset link sent — check your inbox.'
+  }
+  async function submitAuth(e) {
+    e.preventDefault()
     const email = document.getElementById('auth-email').value
     const password = document.getElementById('auth-password').value
-
+    const btn = document.getElementById('auth-submit')
+    const msg = document.getElementById('auth-msg')
+    btn.textContent = '...'
     btn.disabled = true
-    btn.textContent = 'Please wait…'
-    msg.style.display = 'none'
-
-    if (currentMode === 'forgot') {
-      // Reset link goes to portal — password update happens on the portal domain
-      const { error } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: PORTAL + '/auth/callback?next=/reset-password',
-      })
-      if (error) {
-        msg.className = 'auth-msg error'
-        msg.textContent = error.message
-        msg.style.display = 'block'
-        btn.disabled = false
-        btn.textContent = 'Send reset link →'
-      } else {
-        msg.className = 'auth-msg success'
-        msg.textContent = 'Reset link sent — check your email.'
-        msg.style.display = 'block'
-        btn.textContent = 'Email sent ✓'
-      }
-    } else if (currentMode === 'signup') {
-      // emailRedirectTo points to the portal's /auth/callback — Supabase sets the
-      // session cookie on the portal domain, then forwards to /onboard. This avoids
-      // the cross-domain session problem entirely.
-      const { error } = await sb.auth.signUp({
-        email, password,
-        options: { emailRedirectTo: PORTAL + '/auth/callback?next=/onboard' },
-      })
-      if (error) {
-        msg.className = 'auth-msg error'
-        msg.textContent = error.message
-        msg.style.display = 'block'
-        btn.disabled = false
-        btn.textContent = 'Create account →'
-      } else {
-        msg.className = 'auth-msg success'
-        msg.textContent = 'Account created! Check your email to confirm — you\'ll be taken straight to your dashboard.'
-        msg.style.display = 'block'
-        btn.textContent = 'Check your email ✓'
-      }
+    msg.className = 'modal-msg'
+    if (authMode === 'signup') {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ email, password, options: { emailRedirectTo: `${PORTAL}/auth/callback` } }) })
+      const data = await res.json()
+      if (data.error) { msg.className = 'modal-msg err'; msg.textContent = data.error.message; btn.textContent = 'Create account'; btn.disabled = false }
+      else { msg.className = 'modal-msg ok'; msg.textContent = 'Check your email to confirm your account ✓'; btn.textContent = 'Check your email ✓' }
     } else {
-      // Login: redirect to portal login page — auth happens on the portal domain
       closeAuth()
       window.location.href = PORTAL + '/login'
     }
-  })
-</script>
-<script>
-  // Smooth nav dropdowns — 200ms grace period bridging link→dropdown gap
+  }
+
+  // Node network canvas animation
+  const canvas = document.getElementById('node-canvas')
+  const ctx = canvas.getContext('2d')
+  let nodes = [], W, H, animId
+
+  function resize() {
+    W = canvas.width = canvas.offsetWidth
+    H = canvas.height = canvas.offsetHeight
+  }
+
+  function initNodes() {
+    nodes = []
+    const count = Math.floor(W / 60)
+    for (let i = 0; i < count; i++) {
+      nodes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        r: Math.random() * 2.5 + 1.5,
+        pulse: Math.random() * Math.PI * 2
+      })
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H)
+    const t = Date.now() * 0.001
+
+    // Draw edges
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x
+        const dy = nodes[i].y - nodes[j].y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 160) {
+          ctx.beginPath()
+          ctx.strokeStyle = `rgba(0,102,255,${0.06 * (1 - dist / 160)})`
+          ctx.lineWidth = 0.8
+          ctx.moveTo(nodes[i].x, nodes[i].y)
+          ctx.lineTo(nodes[j].x, nodes[j].y)
+          ctx.stroke()
+        }
+      }
+    }
+
+    // Draw nodes
+    nodes.forEach(n => {
+      n.pulse += 0.02
+      const glow = (Math.sin(n.pulse) + 1) / 2
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, n.r + glow, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(0,102,255,${0.25 + glow * 0.35})`
+      ctx.fill()
+
+      n.x += n.vx
+      n.y += n.vy
+      if (n.x < 0 || n.x > W) n.vx *= -1
+      if (n.y < 0 || n.y > H) n.vy *= -1
+    })
+
+    animId = requestAnimationFrame(draw)
+  }
+
+  window.addEventListener('resize', () => { resize(); initNodes() })
+  resize()
+  initNodes()
+  draw()
+
+  // Smooth nav dropdowns
   document.querySelectorAll('.nav-item').forEach(function(item) {
-    var timer;
-    item.addEventListener('mouseenter', function() {
-      clearTimeout(timer);
-      item.classList.add('is-open');
-    });
-    item.addEventListener('mouseleave', function() {
-      timer = setTimeout(function() { item.classList.remove('is-open'); }, 200);
-    });
-  });
+    var timer
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open') })
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open') }, 200) })
+  })
 </script>
 </body>
 </html>

@@ -373,6 +373,83 @@
 
 ---
 
+## NEXT PHASES — CONFIRMED ORDER
+
+| Phase | Name | Size | Status |
+|-------|------|------|--------|
+| Phase 2 | Referral Backend | Small | Not started |
+| Phase 3 | Credit-Based Billing | Medium | Not started |
+| Phase 4 | FIGSY Outreach Engine | Large | Not started |
+| Phase 5 | Portal Upgrades | Medium | Not started |
+| Phase 6 | Founder Agent Stack | Large | Not started |
+| Phase 7 | Smoke Test + Go-Live | Small | Not started |
+
+---
+
+### Phase 2 — Referral Backend *(small, quick)*
+- Store `referred_by` on client record when signup URL contains `?ref=<client_id>`
+- On first ICP run by new client → credit both referrer and new client with 100 leads
+- Show credit balance in portal dashboard header
+- Referral banner already built in portal (frontend done)
+
+---
+
+### Phase 3 — Credit-Based Billing *(medium)*
+Replace current subscription-based billing with credit bundles:
+- Credit bundles of 20 purchased via Paystack (dropdown top-up, Manus-style)
+- $1/credit for K.I.N.D AI (Lead Gen), $3/credit for FIGSY Advanced
+- 1 credit consumed on positive reply only (not on lead delivery)
+- Credit balance shown in dashboard header
+- Outreach pauses at 0 credits; 7-day warning before suspension
+- No refunds on spent credits
+- Replace billing page with new credit purchase UI
+
+---
+
+### Phase 4 — FIGSY Outreach Engine *(large)*
+The core product — autonomous 3-sequence email outreach:
+- **Day 1, Day 4, Day 9** emails sent from client's email via Resend
+- Reply classification: positive / negative / no reply (Claude-powered)
+- Positive reply → 1 credit consumed, lead flagged as qualified, client notified
+- Negative / no reply → lead opted out after sequence ends, no credit used
+- Unsubscribe link in every email (POPIA/GDPR requirement)
+- Centralised reply inbox per client in portal
+- ICP learning loop — monthly AI review, auto-refine ICP from reply data
+- 3 ICP regenerations/month on K.I.N.D AI, unlimited on FIGSY Advanced
+
+---
+
+### Phase 5 — Portal Upgrades *(medium)*
+- Usage dashboard: credits remaining, emails sent, reply rate, positive reply rate, ROI metric
+- Permissions: owner / team member / read-only roles
+- Notifications: qualified lead alert, low credits, ICP ready, trial expiring
+- Billing history with downloadable invoices
+- Credit top-up flow inline in portal
+- Upgrade / downgrade plan
+
+---
+
+### Phase 6 — Founder Agent Stack *(for running K.I.N.D's own business)*
+- Register `jacquesfigsy.com` sending domain
+- FIGSY running K.I.N.D's own outbound (ICP: SMB founders, UK/SA/Nigeria/Kenya)
+- Support agent monitoring `hello@get-kind.com`
+- Customer success agent (trial nudges, onboarding check-ins, churn flags)
+- AE agent (prospect briefs, proposal drafting, follow-up)
+
+---
+
+### Phase 7 — Smoke Test + Go-Live *(before first real client)*
+End-to-end test flow:
+1. Sign up → confirm email → onboard
+2. Build ICP → run ICP → leads appear
+3. Sign order form (Documents tab)
+4. Billing → Paystack checkout → payment confirmed
+5. Credits appear in dashboard
+6. FIGSY picks up leads and starts outreach
+7. Positive reply → qualified lead notification fires
+
+---
+
 ## WHAT STILL NEEDS TO BE DONE
 
 ### SECTION A — INFRASTRUCTURE (remaining)

@@ -27,7 +27,7 @@ function ConfirmContent() {
         setMessage('Your subscription is now active. Welcome aboard!')
       } catch (err: unknown) {
         setStatus('error')
-        setMessage(err instanceof Error ? err.message : 'Payment verification failed. Please contact hello@kind.ai.')
+        setMessage(err instanceof Error ? err.message : 'Payment verification failed. Please contact hello@get-kind.com.')
       }
     }
     verify()
@@ -66,7 +66,7 @@ function ConfirmContent() {
             <div className="flex gap-3 justify-center">
               <Link href="/dashboard/billing" className="text-sm text-brand-500 hover:underline font-medium">Try again</Link>
               <span className="text-gray-300">·</span>
-              <a href="mailto:hello@kind.ai" className="text-sm text-gray-500 hover:underline">Contact support</a>
+              <a href="mailto:hello@get-kind.com" className="text-sm text-gray-500 hover:underline">Contact support</a>
             </div>
           </>
         )}

@@ -380,9 +380,9 @@
 | Phase 2 | Referral Backend | Small | Not started |
 | Phase 3 | Credit-Based Billing | Medium | Not started |
 | Phase 4 | Portal Upgrades | Medium | Not started |
-| Phase 5 | FIGSY Outreach Engine | Large | Not started |
-| Phase 6 | Founder Agent Stack | Large | Not started |
-| Phase 7 | Smoke Test + Go-Live | Small | Not started |
+| Phase 5 | Smoke Test + Go-Live | Small | Not started |
+| Phase 6 | FIGSY Outreach Engine | Large | Not started |
+| Phase 7 | Founder Agent Stack | Large | Not started |
 
 ---
 
@@ -416,7 +416,18 @@ Replace current subscription-based billing with credit bundles:
 
 ---
 
-### Phase 5 — FIGSY Outreach Engine *(large)*
+### Phase 5 — Smoke Test + Go-Live *(before first real client)*
+End-to-end test flow:
+1. Sign up → confirm email → onboard
+2. Build ICP → run ICP → leads appear
+3. Sign order form (Documents tab)
+4. Billing → Paystack checkout → payment confirmed
+5. Credits appear in dashboard
+6. Fix anything that breaks before a real client touches it
+
+---
+
+### Phase 6 — FIGSY Outreach Engine *(large)*
 The core product — autonomous 3-sequence email outreach:
 - **Day 1, Day 4, Day 9** emails sent from client's email via Resend
 - Reply classification: positive / negative / no reply (Claude-powered)
@@ -429,24 +440,12 @@ The core product — autonomous 3-sequence email outreach:
 
 ---
 
-### Phase 6 — Founder Agent Stack *(for running K.I.N.D's own business)*
+### Phase 7 — Founder Agent Stack *(for running K.I.N.D's own business)*
 - Register `jacquesfigsy.com` sending domain
 - FIGSY running K.I.N.D's own outbound (ICP: SMB founders, UK/SA/Nigeria/Kenya)
 - Support agent monitoring `hello@get-kind.com`
 - Customer success agent (trial nudges, onboarding check-ins, churn flags)
 - AE agent (prospect briefs, proposal drafting, follow-up)
-
----
-
-### Phase 7 — Smoke Test + Go-Live *(before first real client)*
-End-to-end test flow:
-1. Sign up → confirm email → onboard
-2. Build ICP → run ICP → leads appear
-3. Sign order form (Documents tab)
-4. Billing → Paystack checkout → payment confirmed
-5. Credits appear in dashboard
-6. FIGSY picks up leads and starts outreach
-7. Positive reply → qualified lead notification fires
 
 ---
 

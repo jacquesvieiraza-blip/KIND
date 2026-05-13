@@ -1,9 +1,11 @@
 # KIND AI Platform — Master Roadmap
 **Launch date: 31 May 2026 · Updated: 13 May 2026 · Days remaining: 18**
 
-> Single source of truth. Two goals, in order:
-> **Goal 1 — Fully functional Lead Gen live by 31 May 2026**
+> Single source of truth. Four goals, in order:
+> **Goal 1 — Lead Gen fully live by 31 May 2026**
 > **Goal 2 — FIGSY launch (immediately after Lead Gen is stable)**
+> **Goal 3 — VA + Chatbot Agent (June/July 2026)**
+> **Goal 4 — Platform expansion — African markets (2027)**
 
 ---
 
@@ -12,24 +14,25 @@
 > The core business metric: how fast can we put a real, scored, contactable lead in front of a client from the moment they sign up?
 > **Target: < 2 hours. Every time. Every plan.**
 
-This is non-negotiable and drives retention, word of mouth, and conversion from trial to paid.
+This drives retention, word of mouth, and trial → paid conversion. Non-negotiable.
 
-### The Build (in order)
+### The 6 Speed Tasks (built before smoke test)
 
 | # | Task | What it does | Status |
 |---|------|-------------|--------|
-| S1 | **ICP auto-trigger on save** | The moment a client saves their ICP, the lead search fires automatically — no manual "Run ICP" button | ⏳ To build |
-| S2 | **AI ICP pre-fill on onboarding** | Claude scrapes the client's website and pre-populates ICP fields — client confirms in < 60 seconds | ⏳ To build |
-| S3 | **Pre-consented contacts first** | Apollo `apollo_only_consented` contacts are scored and delivered in the same hour — no consent email wait | ⏳ To build |
-| S4 | **"First leads ready" push email** | Auto-notify client the moment their first leads land — don't make them log in to discover it | ⏳ To build |
-| S5 | **FIGSY auto-start on lead delivery** | For FIGSY plans, outreach begins automatically when the first consented lead arrives | ⏳ Post smoke test |
-| S6 | **TTFL metric on admin dashboard** | Track `signup_at → first scored lead` per client. Target < 2 hours. Flag anything > 4 hours | ⏳ To build |
+| S1 | **ICP auto-trigger on save** | ICP saved → lead search fires automatically. No manual "Run ICP" button | ⏳ To build |
+| S2 | **AI ICP pre-fill on onboarding** | Claude scrapes client's website → pre-populates ICP fields. Client confirms in < 60s | ⏳ To build |
+| S3 | **Pre-consented contacts first** | Apollo `apollo_only_consented` leads scored and delivered same hour — no consent wait | ⏳ To build |
+| S4 | **"First leads ready" push email** | Auto-notify client the moment first leads land — don't make them log in to discover it | ⏳ To build |
+| S5 | **FIGSY auto-start on lead delivery** | Outreach begins automatically when first consented lead arrives — no manual activation | ⏳ FIGSY Phase 1 |
+| S6 | **TTFL metric on admin dashboard** | Track `signup_at → first scored lead` per client. Target < 2 hours. Flag > 4 hours | ⏳ To build |
 
-### Client journey — target state
+### Client Journey — Target State
+
 | Time | Event |
 |------|-------|
 | Hour 0 | Signup, email confirmed |
-| Hour 0–1 | Onboarding — AI pre-fills ICP from their website, client confirms in 60s |
+| Hour 0–1 | Onboarding — AI pre-fills ICP from website, client confirms in 60s |
 | Hour 1 | ICP saved → search fires automatically |
 | Hour 1–2 | Pre-consented leads scored and delivered, client notified by email |
 | Hour 1–2 | FIGSY sends first outreach (FIGSY plans only) |
@@ -41,44 +44,48 @@ This is non-negotiable and drives retention, word of mouth, and conversion from 
 
 ## What Must Be Built Before Smoke Test
 
-> The smoke test cannot pass without every item below complete. Do these in order.
+> Nothing below smoke test until every item here is done. In order.
 
-### 1. Config (no code — manual steps)
+### Config — Manual Steps (no code)
+
 | # | Task | Where | Done? |
 |---|------|-------|-------|
 | C1 | Set Supabase Site URL to `https://app.get-kind.com` | Supabase → Auth → URL Configuration | ⏳ |
 | C2 | Add `https://app.get-kind.com/auth/callback` to Redirect URLs | Supabase → Auth → URL Configuration | ⏳ |
-| C3 | Create 8 Paystack plans (see pricing table below) | paystack.com → Products → Plans | ⏳ |
-| C4 | Set Paystack webhook URL | Paystack → Settings → Webhooks | ⏳ |
-| C5 | Confirm all Railway env vars are set | Railway → Variables | ⏳ |
+| C3 | Create 8 Paystack subscription plans (see pricing table) | paystack.com → Products → Plans | ⏳ |
+| C4 | Set Paystack webhook URL to Railway API | Paystack → Settings → Webhooks | ⏳ |
+| C5 | Confirm all Railway env vars present | Railway → Variables | ⏳ |
 
-### 2. Code — must be live before smoke test
-| # | Task | What it does | Status |
-|---|------|-------------|--------|
-| B1 | **Auth fixes deployed** | Token verification fixed, `company_name` bug fixed, empty URL field fixed — code done, needs Railway redeploy | ✅ Code done — deploy |
-| B2 | **Apollo API → ICP builder** | Client activates ICP → Apollo returns matching contacts → stored as leads in DB | ⏳ To build |
-| B3 | **Lead scoring automation** | When leads arrive from Apollo, Claude auto-scores each one 0–100 against ICP. No manual step | ⏳ To build |
-| B4 | **POPIA consent email** | "Send consent" button on lead card sends a real email via Resend. Tracks `consent_sent_at` | ⏳ To build |
-| B5 | **Usage counter per client** | Count leads delivered this billing period. Needed for billing page and overage logic | ⏳ To build |
-| B6 | **ICP auto-trigger on save** (S1) | No manual "Run ICP" — fires search automatically on ICP save | ⏳ To build |
-| B7 | **Pre-consented contacts first** (S3) | Apollo `apollo_only_consented` leads delivered in same hour, skip consent wait | ⏳ To build |
-| B8 | **"First leads ready" email** (S4) | Push email to client the moment first leads land | ⏳ To build |
-| B9 | **Merge branch to main** | All recent fixes and website changes go live on production | ⏳ After smoke test passes |
+### Code — Build Tasks
+
+| # | Task | Notes | Status |
+|---|------|-------|--------|
+| B1 | **Deploy auth fixes to Railway** | Token verification fixed, `company_name` bug fixed, empty URL fix — code done | ✅ Code done → redeploy |
+| B2 | **Apollo API → ICP builder** | ICP activated → Apollo search → leads stored in DB | ⏳ |
+| B3 | **Lead scoring automation** | Claude auto-scores leads 0–100 on arrival — no manual step | ⏳ |
+| B4 | **POPIA consent email** | "Send consent" fires real Resend email, tracks `consent_sent_at` | ⏳ |
+| B5 | **Usage counter per client** | Count leads delivered this billing period — needed for billing + overages | ⏳ |
+| B6 | **ICP auto-trigger on save** (S1) | No manual Run button — fires on ICP save | ⏳ |
+| B7 | **Pre-consented contacts first** (S3) | Deliver Apollo pre-consented leads in same hour | ⏳ |
+| B8 | **"First leads ready" email** (S4) | Push email to client on first lead delivery | ⏳ |
+| B9 | **AI ICP pre-fill from website** (S2) | Claude scrapes website → suggests ICP fields on onboarding | ⏳ |
+| B10 | **TTFL metric on admin dashboard** (S6) | `signup_at → first lead` per client, flag slow pipelines | ⏳ |
 
 ### The Smoke Test — 9 Steps
-Once all above is done, run through this in order:
+
+Once all above complete, run through in order:
 
 | Step | Action | Pass condition |
 |------|--------|---------------|
-| 1 | Sign up at `app.get-kind.com` | Email confirmation arrives |
-| 2 | Confirm email, redirected to portal | Dashboard loads, onboarding banner shows |
-| 3 | Complete business profile | Profile saved, no "Invalid token" error |
-| 4 | Build ICP and save | ICP saved, lead search auto-fires |
+| 1 | Sign up at `app.get-kind.com` | Confirmation email arrives |
+| 2 | Confirm email, land on portal | Dashboard loads, onboarding banner shows |
+| 3 | Complete business profile | Saved, no "Invalid token" error |
+| 4 | Build ICP and save | Auto-fires lead search immediately |
 | 5 | View leads pipeline | Leads appear within 2 hours, scores visible |
 | 6 | Send POPIA consent to a lead | Email sent, `consent_sent_at` updates |
-| 7 | Export leads as CSV | CSV downloads with auth header |
-| 8 | Subscribe to a plan (Paystack) | Redirected to Paystack, returns to portal, subscription active |
-| 9 | Admin view | Client visible in admin dashboard with correct stats |
+| 7 | Export leads as CSV | CSV downloads correctly |
+| 8 | Subscribe to a plan | Paystack checkout → returns → subscription active |
+| 9 | Check admin dashboard | Client visible, TTFL metric showing |
 
 ---
 
@@ -87,14 +94,14 @@ Once all above is done, run through this in order:
 | Area | Status | Notes |
 |------|--------|-------|
 | Monorepo scaffold — portal, admin, API, DB, shared | ✅ | |
-| Supabase auth — login, onboard | ✅ | Bugs fixed 13 May |
+| Supabase auth — login, onboard | ✅ | |
 | Auth bug — Invalid token on onboarding | ✅ Fixed | Was using wrong Supabase client |
-| Auth bug — `company_name` undefined | ✅ Fixed | Destructuring error |
-| Auth bug — empty website URL failing validation | ✅ Fixed | `emptyToUndefined` zod transform |
+| Auth bug — `company_name` undefined on onboard | ✅ Fixed | Destructuring error |
+| Auth bug — empty website URL failing Zod validation | ✅ Fixed | `emptyToUndefined` transform |
 | CSV export — auth header not sent | ✅ Fixed | Replaced `window.open` with fetch + blob |
 | Full DB schema — all 10 tables + RLS | ✅ | |
 | Paystack billing — subscribe, verify, webhook (code) | ✅ | Plans not yet created in Paystack dashboard |
-| Admin dashboard — MRR, clients, progress | ✅ | |
+| Admin dashboard — MRR, clients, progress tracker | ✅ | |
 | Admin — clients list + client detail | ✅ | |
 | Admin — order form builder + send | ✅ | |
 | Admin — Terms Library PDF uploader | ✅ | |
@@ -108,20 +115,34 @@ Once all above is done, run through this in order:
 | Portal — Settings page | ✅ | |
 | Portal — /terms and /privacy legal pages | ✅ | |
 | API — ICP routes (CRUD + activate) | ✅ | |
-| API — Leads routes (stats, filters, opt-out, AI email draft, CSV export) | ✅ | |
+| API — Leads routes (stats, filters, opt-out, AI draft, CSV export) | ✅ | |
 | API — Order form routes (get, sign with IP) | ✅ | |
 | API — Subscription routes (initiate, verify) | ✅ | |
-| Website — homepage (hero, dots, FIGSY scene, video, stats) | ✅ | Redesigned 13 May |
-| Website — about, pricing, support, use-cases | ✅ | Rebranded to white theme 13 May |
-| Website — YouTube demo video embedded | ✅ | `NwGI12rcUAc` |
+| Website — homepage (split hero, AI agent, dots, FIGSY scroll scene, video, stats) | ✅ | Redesigned 13 May |
+| Website — about, pricing, support, use-cases | ✅ | Rebranded white theme 13 May |
+| Website — YouTube demo video embedded | ✅ | |
 | SOP document | ✅ | `docs/KIND_SOP.md` |
 | Deployment guide | ✅ | `docs/DEPLOYMENT_GUIDE.md` |
 
 ---
 
-## Confirmed Pricing Model (locked 11 May 2026)
+## Infrastructure Status (as of 13 May 2026)
 
-Usage-based pricing. Clients pay per lead, with a monthly minimum. More usage = lower rate.
+| Service | Status | Notes |
+|---------|--------|-------|
+| Supabase — schema + storage bucket | ✅ | |
+| Railway — API deployed | ✅ | `https://kindapi-production.up.railway.app` |
+| Vercel — Portal | ✅ | `https://app.get-kind.com` |
+| Vercel — Website | ✅ | `https://get-kind.com` |
+| Supabase — auth URLs configured | ⏳ | Site URL + callback URL |
+| Paystack — 8 plans created | ⏳ | Copy PLN_ codes to Railway vars |
+| Paystack — webhook set | ⏳ | `https://kindapi-production.up.railway.app/webhooks/paystack` |
+| 5 PDFs uploaded to Terms Library | ⏳ | |
+| Branch merged to main | ⏳ | After smoke test passes |
+
+---
+
+## Confirmed Pricing Model (locked 11 May 2026)
 
 ### Leads Only
 | Volume | Rate | Monthly minimum |
@@ -137,23 +158,21 @@ Usage-based pricing. Clients pay per lead, with a monthly minimum. More usage = 
 | 101–500 leads/mo | $2.00/lead | — |
 | 500+ leads/mo | $1.20/lead | — |
 
-### FIGSY Add-on (upgrade from Leads Only)
-- $150/mo flat — adds FIGSY AI outreach to existing Leads Only plan
+### FIGSY Add-on
+- $150/mo flat — adds FIGSY outreach to existing Leads Only plan
 
-### VA + Chatbot (flat subscription)
+### VA + Chatbot
 | Product | Starter | Pro |
 |---------|---------|-----|
 | Virtual Assistant | $200/mo | $500/mo |
 | AI Chatbot Agent | $200/mo | $400/mo |
 
-**ZAR billing:** USD price × 19 at date of invoice.
-
-**Phase 2 (10+ clients):** Introduce overage tracking. Starter includes 100 leads, $1 each after. Advanced includes 200 leads, $0.80 each after.
+**ZAR billing:** USD × 19 at invoice date.
 
 ### Paystack Plans to Create (8 plans)
 
-| Plan name | ZAR amount | Interval |
-|-----------|-----------|----------|
+| Plan name | ZAR | Interval |
+|-----------|-----|----------|
 | KIND Lead Gen Starter | R1,900 | Monthly |
 | KIND Lead Gen Advanced | R3,781 | Monthly |
 | KIND Lead Gen + FIGSY Starter | R5,700 | Monthly |
@@ -165,108 +184,157 @@ Usage-based pricing. Clients pay per lead, with a monthly minimum. More usage = 
 
 ---
 
-## Infrastructure Status (as of 13 May 2026)
+## GOAL 1 — Lead Gen Remaining Build Tasks
 
-| Service | Status | Notes |
-|---------|--------|-------|
-| Supabase — schema + storage bucket | ✅ Done | |
-| Railway — API deployed | ✅ Done | `https://kindapi-production.up.railway.app` |
-| Vercel — Portal | ✅ Live | `https://app.get-kind.com` |
-| Vercel — Website | ✅ Live | `https://get-kind.com` |
-| Supabase — auth URLs configured | ⏳ Pending | Site URL + callback URL |
-| Paystack — plans created | ⏳ Pending | 8 plans, copy PLN_ codes to Railway |
-| Paystack — webhook set | ⏳ Pending | `https://kindapi-production.up.railway.app/webhooks/paystack` |
-| 5 PDFs uploaded to Terms Library | ⏳ Pending | |
-| Branch merged to main | ⏳ After smoke test | |
+| # | Task | Priority | Notes |
+|---|------|----------|-------|
+| L1 | Apollo API → ICP builder | Must have | = B2 above |
+| L2 | POPIA consent email | Must have | = B4 above |
+| L3 | Lead scoring automation | Must have | = B3 above |
+| L4 | Usage counter per client | Must have | = B5 above |
+| L5 | Overage billing trigger | Post-launch | When count > 100, trigger Paystack charge |
+| L6 | CRM sync (HubSpot/Pipedrive) | Nice to have | After launch |
 
 ---
 
-## GOAL 2 — FIGSY (starts when Lead Gen is live and smoke test passes)
+## GOAL 2 — FIGSY (starts when Lead Gen smoke test passes)
 
-FIGSY is a **standalone AI SDR/BDR agent** — not just a Lead Gen add-on. It can be sold independently to any B2B company doing outbound sales.
+FIGSY is a **standalone AI SDR/BDR agent** — sold independently or bundled with Lead Gen.
 
 ### FIGSY Phase 1 — MVP
 
 | # | Task | Notes |
 |---|------|-------|
 | F1-1 | FIGSY portal page (`/dashboard/figsy`) | Entry point, campaign list |
-| F1-2 | Campaign creation | Name, select leads from pipeline or upload CSV |
-| F1-3 | AI email sequence builder | Claude generates personalised initial + 2 follow-ups per lead |
-| F1-4 | Reply detection | Monitor inbox, classify: interested / not interested / opt-out / OOO |
-| F1-5 | Opt-out handler | Auto-block on opt-out reply, shared with Lead Gen blocklist |
+| F1-2 | Campaign creation | Name, select leads or upload CSV |
+| F1-3 | AI email sequence builder | Claude writes personalised initial + 2 follow-ups per lead |
+| F1-4 | Reply detection | Classify replies: interested / not interested / opt-out / OOO |
+| F1-5 | Opt-out handler | Auto-block, shared with Lead Gen blocklist |
 | F1-6 | Campaign dashboard | Sent, opened, replied, interested, booked |
 | F1-7 | DB tables | `figsy_campaigns`, `figsy_sequences`, `figsy_replies` |
 | F1-8 | API routes | Campaign CRUD, sequence management, reply ingestion |
-| F1-9 | FIGSY billing integration | Wire to usage-based pricing ($3/lead Starter, $2/lead Advanced) |
-| F1-10 | FIGSY auto-start on lead delivery (S5) | Auto-trigger outreach when consented lead hits pipeline |
+| F1-9 | Billing integration | $3/lead Starter, $2/lead Advanced |
+| F1-10 | **FIGSY auto-start on lead delivery (S5)** | Auto-trigger outreach when consented lead hits pipeline — no manual activation |
 
-### FIGSY Phase 2 — Full automation (June+)
+### FIGSY Phase 2 — Full Automation (June+)
 
 | # | Task |
 |---|------|
 | F2-1 | Calendar integration (Google Calendar first) |
 | F2-2 | CRM push — booked meetings to HubSpot/Pipedrive |
-| F2-3 | Full AI reply automation — handles back-and-forth |
-| F2-4 | Animated explainer video |
+| F2-3 | Full AI reply automation — handles multi-turn back-and-forth |
+| F2-4 | LinkedIn + WhatsApp outreach channels |
+| F2-5 | Animated explainer video |
 
 ---
 
-## Lower priority — after Lead Gen and FIGSY are live
+## GOAL 3 — The Agent Suite (June/July 2026)
 
-### VA + Chatbot
-| # | Task |
-|---|------|
-| VA-1 | Virtual Assistant — Claude-powered chat interface |
-| VA-2 | API route — assistant chat with message history |
-| CB-1 | Chatbot Agent — persona config + embed code |
-| CB-2 | API route — chatbot config CRUD |
+> K.I.N.D is not just lead gen software. It is an **AI agent platform**. Each product is a specialist agent with one job. Together they cover the entire revenue cycle — no humans in the loop until the meeting is booked.
 
-### Website (Option B — at FIGSY launch)
-| # | Task |
-|---|------|
-| W-1 | Full rebuild in Next.js + Framer Motion |
-| W-2 | Individual product landing pages (Lead Gen, FIGSY, VA, Chatbot) |
-| W-3 | Annual pricing option |
-| W-4 | Use Cases section per product and industry |
+### The Full Agent Stack
 
-### Marketing
-| # | Task |
-|---|------|
-| M-1 | FIGSY explainer video — lead → outreach → reply → booked meeting |
-| M-2 | Email nurture sequence — 5 emails for landing page sign-ups |
-| M-3 | Launch week calendar — LinkedIn, email, WhatsApp broadcast |
+| Agent | Job | When |
+|-------|-----|------|
+| **Lead Gen** | Finds, scores, and delivers the right people | Live 31 May |
+| **FIGSY** | Reaches out, follows up, and books the meeting | June |
+| **Virtual Assistant (VA)** | Knows your business — answers questions, drafts proposals, handles client comms | July |
+| **Chatbot Agent** | Handles inbound on your website and WhatsApp — qualifies, captures, responds 24/7 | July |
+
+**The full cycle:** Stranger lands on site → Chatbot captures and qualifies them → Lead Gen scores them → FIGSY reaches out → VA manages the relationship. Start to booked meeting. Fully automated.
 
 ---
 
-## Revised Execution Schedule
+### GOAL 3A — Virtual Assistant
+
+Claude trained on the client's business — products, pricing, FAQs, processes, tone of voice. Acts as a smart internal assistant and client-facing responder.
+
+| # | Task | Notes |
+|---|------|-------|
+| VA-1 | Knowledge base upload | Client uploads docs, URLs, FAQs. Claude ingests and indexes |
+| VA-2 | VA onboarding flow in portal | Upload interface, source list, sync status |
+| VA-3 | VA chat interface (`/dashboard/va`) | Clean chat UI, message history, source citations |
+| VA-4 | API route — streaming chat with context | Streams responses, maintains conversation session |
+| VA-5 | Persona config | Name, tone, scope limits (what it can/can't answer) |
+| VA-6 | Embed snippet | One `<script>` tag — drops VA on client's own website as a chat widget |
+| VA-7 | Billing integration | $200/mo Starter, $500/mo Pro via Paystack |
+
+### GOAL 3B — Chatbot Agent
+
+Handles inbound — website visitors and WhatsApp messages. Qualifies leads, answers questions, captures contact details. Feeds directly into the Lead Gen pipeline.
+
+| # | Task | Notes |
+|---|------|-------|
+| CB-1 | Chatbot config (`/dashboard/chatbot`) | Persona name, greeting, topic scope |
+| CB-2 | Knowledge base — same engine as VA, separate persona | Trained on products/services/FAQs |
+| CB-3 | Web embed — JavaScript chat widget | Floating bubble, fully branded, one line of code |
+| CB-4 | WhatsApp integration — Twilio or WhatsApp Business API | Same bot, WhatsApp channel |
+| CB-5 | Lead capture flow | Bot collects name, email, company → pushes to Lead Gen pipeline automatically |
+| CB-6 | Conversation dashboard | All chats, qualification status, captured contacts |
+| CB-7 | Billing integration | $200/mo Starter, $400/mo Pro via Paystack |
+
+**Build trigger:** Start VA + Chatbot when FIGSY Phase 1 is live and at least 3 clients are active on Lead Gen.
+
+---
+
+## Website Roadmap
+
+| # | Task | When |
+|---|------|------|
+| W-1 | Confirm YouTube video visible on get-kind.com | This week |
+| W-2 | Option B — Full Next.js + Framer Motion rebuild | At FIGSY launch |
+| W-3 | Individual product landing pages (Lead Gen, FIGSY, VA, Chatbot) | With Option B |
+| W-4 | Annual pricing option | With Option B |
+| W-5 | Use Cases section per product and industry | With Option B |
+
+---
+
+## Marketing Roadmap
+
+| # | Task | When |
+|---|------|------|
+| M-1 | FIGSY explainer video — lead → outreach → reply → booked meeting | FIGSY launch |
+| M-2 | Email nurture sequence — 5 emails for trial signups | Before launch |
+| M-3 | Launch week calendar — LinkedIn, email, WhatsApp broadcast | 31 May |
+| M-4 | VA + Chatbot launch campaign | July |
+
+---
+
+## Execution Schedule
 
 ```
-13–14 May   Config (Supabase auth URLs, Paystack plans + webhook)
-            Auth fixes deployed to Railway
+13–14 May   Config: Supabase auth URLs, Paystack plans + webhook, Railway vars
+            Deploy auth fixes to Railway
 
-14–16 May   Speed Pipeline build:
-            - Apollo API → ICP builder (B2)
-            - Lead scoring automation (B3)
-            - POPIA consent email (B4)
-            - Usage counter (B5)
-            - ICP auto-trigger on save (B6 / S1)
-            - Pre-consented contacts first (B7 / S3)
-            - "First leads ready" email (B8 / S4)
-            - TTFL metric on admin dashboard (S6)
-            - AI ICP pre-fill on onboarding (S2)
+14–17 May   Speed Pipeline + Lead Gen wiring:
+            B2  Apollo API → ICP builder
+            B3  Lead scoring automation
+            B4  POPIA consent email
+            B5  Usage counter
+            B6  ICP auto-trigger on save (S1)
+            B7  Pre-consented contacts first (S3)
+            B8  "First leads ready" email (S4)
+            B9  AI ICP pre-fill from website (S2)
+            B10 TTFL metric on admin dashboard (S6)
 
-17–18 May   Smoke test — all 9 steps pass
+17–19 May   Smoke test — all 9 steps must pass
             Fix anything broken
 
 19 May      Merge branch to main → production deploy
 
-20–25 May   FIGSY Phase 1 build
+20–25 May   FIGSY Phase 1 build (F1-1 through F1-9)
 
-26–29 May   FIGSY dashboard + billing + auto-start
+26–28 May   FIGSY auto-start (F1-10 / S5) + billing integration
 
-30 May      Final QA pass
+29–30 May   End-to-end FIGSY test + final QA pass
 
 31 May      LAUNCH — Lead Gen + FIGSY Phase 1 live
+
+June        FIGSY Phase 2 (calendar, CRM push, full AI reply)
+            VA + Chatbot build begins
+
+July        VA + Chatbot live
+            Website Option B rebuild
 ```
 
 ---
@@ -275,16 +343,18 @@ FIGSY is a **standalone AI SDR/BDR agent** — not just a Lead Gen add-on. It ca
 
 | Decision | Outcome |
 |----------|---------|
-| Pricing model | Usage-based — $1/lead (Leads Only), $3/lead (Leads + FIGSY), min $100/$300/mo |
 | Core metric | Time to First Lead (TTFL) — target < 2 hours from signup |
-| FIGSY positioning | Standalone product AND bundle — not just an add-on |
+| Pricing model | Usage-based — $1/lead (Lead Gen), $3/lead (Lead Gen + FIGSY), min $100/$300/mo |
+| Agent positioning | Four specialist agents covering full revenue cycle — not just a lead tool |
+| FIGSY positioning | Standalone product AND bundle |
 | FIGSY trigger | Build starts when Lead Gen smoke test passes |
-| Payment processor | Paystack (ZAR billing, USD pricing) |
+| VA + Chatbot trigger | Build starts when FIGSY Phase 1 live + 3 active clients |
+| Payment processor | Paystack (ZAR + USD) |
 | AI provider | Anthropic Claude (`claude-sonnet-4-6`) |
-| Data source | Apollo.io with consent filter — pre-consented first |
+| Data source | Apollo.io — pre-consented contacts delivered first |
 | Hosting | Supabase + Railway + Vercel |
-| Legal signature model | One Order Form signs all 5 documents (ECTA compliant) |
-| Overage pricing | Phase 2 — launch flat first, add overages at 10+ clients |
+| Legal | One Order Form signs all 5 documents (ECTA compliant) |
+| Overage pricing | Phase 2 — launch flat first, add at 10+ clients |
 
 ---
 
@@ -292,368 +362,32 @@ FIGSY is a **standalone AI SDR/BDR agent** — not just a Lead Gen add-on. It ca
 
 > *Documented 13 May 2026 — founder's strategic direction*
 
-### The Honest Take
-
 K.I.N.D is not a lead gen tool. It is infrastructure. The 5-year opportunity is to become the **B2B revenue operating system for African businesses** — AI-native from day one, not retrofitted like Western incumbents.
 
----
-
 ### Year 1–2 — Prove the Model
-The product works. Clients get leads within hours. FIGSY books meetings. Word spreads. 50–100 paying clients. Real MRR. The most important thing that happens in this phase is not revenue — it is **data**. Every ICP run, every lead scored, every email FIGSY sends is a proprietary dataset no competitor can buy.
+The product works. Clients get leads within hours. FIGSY books meetings. VA and Chatbot go live. 50–100 paying clients. Real MRR. The most important output of this phase is not revenue — it is **data**. Every ICP run, every lead scored, every FIGSY email sent is a proprietary dataset no competitor can buy.
 
 ### Year 2–3 — The Platform Shift
-K.I.N.D stops being "the lead gen tool" and becomes the full B2B revenue OS:
-- CRM built in — clients no longer need HubSpot
+K.I.N.D becomes the full B2B revenue OS:
+- CRM built in — clients stop needing HubSpot
 - Pipeline forecasting — AI predicts close probability from lead score + FIGSY engagement
 - Multi-channel FIGSY — email, LinkedIn, WhatsApp, voice
-- VA and Chatbot mature — K.I.N.D handles the entire customer journey from stranger to signed contract
+- K.I.N.D handles the entire customer journey from stranger to signed contract
 
 ### Year 3–4 — African Expansion
-South Africa proves the model. Expand into Nigeria, Kenya, Egypt, Ghana. These markets are massively underserved by Western tools — Salesforce and HubSpot are too expensive and too American. K.I.N.D is built for this: local currency billing, POPIA/NDPR compliance baked in, pricing that fits. **The Salesforce of Africa — but AI-native.**
+South Africa proves the model. Expand into Nigeria, Kenya, Egypt, Ghana. These markets are massively underserved — Salesforce and HubSpot are too expensive and too American. K.I.N.D is built for this: local currency billing, POPIA/NDPR compliance baked in. **The Salesforce of Africa — AI-native.**
 
-The data advantage compounds here. Lead and conversion data across industries, countries, and company sizes across the continent. No one else has that.
+The data advantage compounds here. Lead and conversion data across industries, countries, and company sizes across the continent. No one else will have that.
 
 ### Year 4–5 — The Network Effect
-K.I.N.D sits between buyers and sellers across thousands of companies. It knows who is buying what, when, and why. It starts connecting clients to each other — warm B2B introductions, marketplace dynamics, partnership matching.
+K.I.N.D sits between buyers and sellers across thousands of companies. It starts connecting clients to each other — warm B2B introductions, marketplace dynamics, partnership matching. **K.I.N.D becomes a B2B network, not just software.**
 
-**K.I.N.D becomes a B2B network, not just software.** The data moat makes it defensible. The speed model makes it sticky. The African-first positioning makes it ownable.
-
-At scale: **$50–100M ARR** with a legitimate path to acquisition by a global CRM, data, or AI player — or an IPO on the JSE as the first AI-native B2B revenue platform built on the continent.
-
----
+At scale: **$50–100M ARR** — legitimate path to acquisition by a global CRM, data, or AI player, or an IPO on the JSE as the first AI-native B2B revenue platform built on the continent.
 
 ### The Single Biggest Risk
-Speed of execution. The first-mover window in this exact space in Africa is **18–24 months**. Salesforce, HubSpot, and well-funded startups will arrive. The moat being built right now — the data, the brand, the client relationships — is what makes K.I.N.D unconquerable when they do.
+Speed of execution. The first-mover window in Africa is **18–24 months**. The moat being built right now — the data, the brand, the client relationships — is what makes K.I.N.D unconquerable when bigger players arrive.
 
-**That is why Time to First Lead is not just a metric. It is the competitive weapon.**
-
----
-
-*Last updated: 13 May 2026. Update after every work session.*
-
-
-> Single source of truth. Two goals, in order:
-> **Goal 1 — Fully functional Lead Gen live by 31 May 2026**
-> **Goal 2 — FIGSY launch (immediately after Lead Gen is stable)**
-
----
-
-## #1 Priority — Speed Pipeline (Time to First Lead)
-
-> The core business metric: how fast can we put a real, scored, contactable lead in front of a client from the moment they sign up?
-> **Target: < 2 hours. Every time. Every plan.**
-
-This is non-negotiable and drives retention, word of mouth, and conversion from trial to paid.
-
-### The Build (in order)
-
-| # | Task | What it does |
-|---|------|-------------|
-| S1 | **ICP auto-trigger on save** | The moment a client saves their ICP, the lead search fires automatically — no manual "Run ICP" button |
-| S2 | **AI ICP pre-fill on onboarding** | Claude scrapes the client's website and pre-populates ICP fields — client confirms in < 60 seconds |
-| S3 | **Pre-consented contacts first** | Apollo `apollo_only_consented` contacts are scored and delivered in the same hour — no consent email wait |
-| S4 | **"First leads ready" push email** | Auto-notify client the moment their first leads land — don't make them log in to discover it |
-| S5 | **FIGSY auto-start on lead delivery** | For FIGSY plans, outreach begins automatically when the first consented lead arrives |
-| S6 | **TTFL metric on admin dashboard** | Track `signup_at → first scored lead` per client. Target < 2 hours. Flag anything > 4 hours |
-
-### Client journey — target state
-| Time | Event |
-|------|-------|
-| Hour 0 | Signup, email confirmed |
-| Hour 0–1 | Onboarding — AI pre-fills ICP from their website, client confirms in 60s |
-| Hour 1 | ICP saved → search fires automatically |
-| Hour 1–2 | Pre-consented leads scored and delivered, client notified by email |
-| Hour 1–2 | FIGSY sends first outreach (FIGSY plans only) |
-| Hour 24–48 | More leads arrive as consent replies come in |
-| Day 3–7 | Replies detected, FIGSY follows up |
-| Day 7–14 | First meetings booked |
-
----
-
-## Confirmed Pricing Model (locked 11 May 2026)
-
-Usage-based pricing. Clients pay per lead, with a monthly minimum. More usage = lower rate.
-
-### Leads Only
-| Volume | Rate | Monthly minimum |
-|--------|------|----------------|
-| 0–100 leads/mo | $1.00/lead | $100/mo |
-| 101–500 leads/mo | $1.00/lead | — |
-| 500+ leads/mo | $0.80/lead | — |
-
-### Leads + FIGSY
-| Volume | Rate | Monthly minimum |
-|--------|------|----------------|
-| 0–100 leads/mo | $3.00/lead | $300/mo |
-| 101–500 leads/mo | $2.00/lead | — |
-| 500+ leads/mo | $1.20/lead | — |
-
-### FIGSY Add-on (upgrade from Leads Only)
-- $150/mo flat — adds FIGSY AI outreach to existing Leads Only plan
-
-### VA + Chatbot (flat subscription)
-| Product | Starter | Pro |
-|---------|---------|-----|
-| Virtual Assistant | $200/mo | $500/mo |
-| AI Chatbot Agent | $200/mo | $400/mo |
-
-**ZAR billing:** USD price × 19 at date of invoice.
-
-**Phase 2 (10+ clients):** Introduce overage tracking. Starter includes 100 leads, $1 each after. Advanced includes 200 leads, $0.80 each after.
-
----
-
-## Infrastructure Status (as of 12 May 2026)
-
-| Service | Status | Notes |
-|---------|--------|-------|
-| Supabase — schema + storage bucket | ✅ Done | `agreement-templates` bucket created |
-| Railway — API deployed | ✅ Done | `https://kindapi-production.up.railway.app` |
-| Vercel — Portal | ✅ Live | `https://kind-portal.vercel.app` |
-| Vercel — Admin | ⏳ Tomorrow | Needs redeploy after `SUPABASE_SERVICE_ROLE_KEY` added |
-| Paystack — plans created | ⏳ Tomorrow | 8 plans to create (see Step 5 below) |
-| Paystack — webhook set | ⏳ Tomorrow | URL: `https://kindapi-production.up.railway.app/webhooks/paystack` |
-| Netlify — landing page | ⏳ Tomorrow | Needs Formspree ID + deploy |
-| 5 PDFs uploaded to Terms Library | ⏳ Pending | Admin must be live first |
-| First client created | ⏳ Pending | All above must be done first |
-
----
-
-## Tomorrow Morning — Action List (12 May 2026)
-
-Do these in order:
-
-### 1. Admin portal redeploy (5 min)
-- Vercel → kind-admin-h5q6 → Deployments → Redeploy
-- Confirm it loads without error at `https://kind-admin-h5q6.vercel.app`
-
-### 2. Netlify landing page (10 min)
-- Sign up at formspree.io → New Form → name "KIND Enquiries" → copy form ID
-- Tell Claude the form ID → Claude updates `apps/landing/index.html`
-- Drag `apps/landing/` folder to netlify.com/drop → live instantly
-- Also update the existing Netlify waitlist page pricing (currently shows old $500/$1,500 prices)
-
-### 3. Paystack — create 8 subscription plans (15 min)
-Log into paystack.com → Products → Plans → Create Plan for each:
-
-| Plan name | ZAR amount | Interval |
-|-----------|-----------|----------|
-| KIND Lead Gen Starter | R1,900 | Monthly |
-| KIND Lead Gen Advanced | R3,781 | Monthly |
-| KIND Lead Gen + FIGSY Starter | R5,700 | Monthly |
-| KIND Lead Gen + FIGSY Advanced | R13,281 | Monthly |
-| KIND VA Starter | R3,800 | Monthly |
-| KIND VA Pro | R9,500 | Monthly |
-| KIND Chatbot Starter | R3,800 | Monthly |
-| KIND Chatbot Pro | R7,600 | Monthly |
-
-After creating each plan, copy the `PLN_xxx` code into Railway → Variables.
-
-### 4. Paystack — set webhook (2 min)
-- Paystack → Settings → API Keys & Webhooks → Webhooks
-- Add URL: `https://kindapi-production.up.railway.app/webhooks/paystack`
-- Events: `charge.success`, `subscription.create`, `subscription.disable`, `invoice.update`
-
-### 5. Upload 5 PDFs to Terms Library (5 min)
-- Go to `https://kind-admin-h5q6.vercel.app/terms-library`
-- Upload all 5 agreement PDFs (MSA, POPIA Process, Chatbot SLA, Order Form T&Cs, Privacy Policy)
-
-### 6. Create first client (5 min)
-- Supabase → Authentication → Users → Invite user → enter client email
-- They receive a "Set password" email → they log in → portal is live for them
-
----
-
-## What is built (code complete)
-
-| Area | Status |
-|------|--------|
-| Monorepo scaffold — portal, admin, API, DB, shared | ✅ |
-| Supabase auth — login, onboard | ✅ |
-| Full DB schema — all 10 tables + RLS | ✅ |
-| Paystack billing — subscribe, verify, webhook | ✅ |
-| Admin dashboard — MRR, clients, progress | ✅ |
-| Admin — clients list + client detail | ✅ |
-| Admin — order form builder + send | ✅ |
-| Admin — Terms Library PDF uploader | ✅ |
-| Portal — dashboard home with stats | ✅ |
-| Portal — Lead Gen page with pipeline, filters, scoring | ✅ |
-| Portal — ICP Builder | ✅ |
-| Portal — Documents page (order form signing, T&C viewer) | ✅ |
-| Portal — Billing page with usage-based pricing | ✅ |
-| Portal — Billing confirm (Paystack return handler) | ✅ |
-| Portal — Onboarding banner (3-tier gate) | ✅ |
-| Portal — Settings page | ✅ |
-| Portal — /terms and /privacy legal pages | ✅ |
-| API — ICP routes (CRUD + activate) | ✅ |
-| API — Leads routes (stats, filters, opt-out, AI email draft, CSV export) | ✅ |
-| API — Order form routes (get, sign with IP) | ✅ |
-| API — Subscription routes (initiate, verify) | ✅ |
-| Landing page HTML (Netlify) | ✅ Needs Formspree ID |
-| SOP document | ✅ `docs/KIND_SOP.md` |
-| Deployment guide | ✅ `docs/DEPLOYMENT_GUIDE.md` |
-
----
-
-## GOAL 1 — Lead Gen fully live by 31 May
-
-### Remaining build tasks
-
-| # | Task | Priority | Notes |
-|---|------|----------|-------|
-| L1 | Wire Apollo API to ICP builder | Must have | Client activates ICP → system pulls matching leads from Apollo |
-| L2 | POPIA consent email send | Must have | "Send consent" button actually sends an email via Resend/Sendgrid |
-| L3 | Lead scoring automation | Must have | Auto-score leads against ICP when they arrive, not manual |
-| L4 | Usage counter per client | Must have | Track leads delivered per month for billing |
-| L5 | Overage billing trigger | Post-launch | When count exceeds 100, trigger Paystack charge per lead |
-| L6 | CRM sync (HubSpot) | Nice to have | Ship after launch if not done |
-
----
-
-## GOAL 2 — FIGSY (starts when Lead Gen is live and stable)
-
-FIGSY is a **standalone AI SDR/BDR agent** — not just a Lead Gen add-on. It can be sold independently to any B2B company doing outbound sales.
-
-### FIGSY trigger
-Start building when: infrastructure is fully live + at least one test of the full Lead Gen flow (ICP → leads → consent → export) has been completed successfully.
-
-### FIGSY Phase 1 — MVP
-
-| # | Task | Notes |
-|---|------|-------|
-| F1-1 | FIGSY portal page (`/dashboard/figsy`) | Entry point, campaign list |
-| F1-2 | Campaign creation | Name, select leads from pipeline or upload CSV |
-| F1-3 | AI email sequence builder | Claude generates personalised initial + 2 follow-ups per lead |
-| F1-4 | Reply detection | Monitor inbox, classify: interested / not interested / opt-out / OOO |
-| F1-5 | Opt-out handler | Auto-block on opt-out reply, shared with Lead Gen blocklist |
-| F1-6 | Campaign dashboard | Sent, opened, replied, interested, booked |
-| F1-7 | DB tables | `figsy_campaigns`, `figsy_sequences`, `figsy_replies` |
-| F1-8 | API routes | Campaign CRUD, sequence management, reply ingestion |
-| F1-9 | FIGSY billing integration | Wire to usage-based pricing ($3/lead Starter, $2/lead Advanced) |
-
-### FIGSY Phase 2 — Full automation (June+)
-
-| # | Task |
-|---|------|
-| F2-1 | Calendar integration (Google Calendar first) |
-| F2-2 | CRM push — booked meetings to HubSpot/Pipedrive |
-| F2-3 | Full AI reply automation — handles back-and-forth |
-| F2-4 | Animated explainer video |
-
----
-
-## Lower priority — after Lead Gen and FIGSY are live
-
-### VA + Chatbot
-| # | Task |
-|---|------|
-| VA-1 | Virtual Assistant — Claude-powered chat interface |
-| VA-2 | API route — assistant chat with message history |
-| CB-1 | Chatbot Agent — persona config + embed code |
-| CB-2 | API route — chatbot config CRUD |
-
-### Website redesign (post-launch)
-| # | Task |
-|---|------|
-| W-1 | Products dropdown nav, Use Cases, Resources, Company pages |
-| W-2 | Individual product landing pages (Lead Gen, FIGSY, VA, Chatbot) |
-| W-3 | Annual pricing option (~2 months free) |
-| W-4 | Use Cases section per product and industry |
-
-### Marketing
-| # | Task |
-|---|------|
-| M-1 | FIGSY explainer video — lead → outreach → reply → booked meeting |
-| M-2 | Email nurture sequence — 5 emails for landing page sign-ups |
-| M-3 | Launch week calendar — LinkedIn, email, WhatsApp broadcast |
-
----
-
-## Revised execution schedule
-
-```
-12 May (tomorrow)   Infrastructure live — admin, Netlify, Paystack, PDFs, first client
-
-13–16 May           Lead Gen wiring:
-                    - Apollo API → ICP builder
-                    - POPIA consent email (Resend)
-                    - Lead scoring automation
-                    - Usage counter per client
-
-17–20 May           End-to-end Lead Gen test
-                    Fix all issues found in testing
-                    First real client runs through full flow
-
-21–25 May           FIGSY Phase 1 build
-                    - DB tables + API routes
-                    - Portal page + campaign creation
-                    - AI email sequences
-                    - Reply detection + opt-out handler
-
-26–29 May           FIGSY dashboard + billing integration
-                    End-to-end FIGSY test
-
-30 May              Final QA pass
-
-31 May              LAUNCH — Lead Gen + FIGSY Phase 1 live
-```
-
----
-
-## Key decisions locked
-
-| Decision | Outcome |
-|----------|---------|
-| Pricing model | Usage-based — $1/lead (Leads Only), $3/lead (Leads + FIGSY), min $100/$300/mo |
-| FIGSY positioning | Standalone product AND bundle — not just an add-on |
-| FIGSY trigger | Build starts when Lead Gen infrastructure is live and tested |
-| Payment processor | Paystack (ZAR billing, USD pricing) |
-| AI provider | Anthropic Claude (`claude-sonnet-4-6`) |
-| Data source | Apollo.io with consent filter |
-| Hosting | Supabase + Railway + Vercel + Netlify |
-| Legal signature model | One Order Form signs all 5 documents (ECTA compliant) |
-| Overage pricing | Phase 2 — launch flat first, add overages at 10+ clients |
-
----
-
-## 5-Year Vision
-
-> *Documented 13 May 2026 — founder's strategic direction*
-
-### The Honest Take
-
-K.I.N.D is not a lead gen tool. It is infrastructure. The 5-year opportunity is to become the **B2B revenue operating system for African businesses** — AI-native from day one, not retrofitted like Western incumbents.
-
----
-
-### Year 1–2 — Prove the Model
-The product works. Clients get leads within hours. FIGSY books meetings. Word spreads. 50–100 paying clients. Real MRR. The most important thing that happens in this phase is not revenue — it is **data**. Every ICP run, every lead scored, every email FIGSY sends is a proprietary dataset no competitor can buy.
-
-### Year 2–3 — The Platform Shift
-K.I.N.D stops being "the lead gen tool" and becomes the full B2B revenue OS:
-- CRM built in — clients no longer need HubSpot
-- Pipeline forecasting — AI predicts close probability from lead score + FIGSY engagement
-- Multi-channel FIGSY — email, LinkedIn, WhatsApp, voice
-- VA and Chatbot mature — K.I.N.D handles the entire customer journey from stranger to signed contract
-
-### Year 3–4 — African Expansion
-South Africa proves the model. Expand into Nigeria, Kenya, Egypt, Ghana. These markets are massively underserved by Western tools — Salesforce and HubSpot are too expensive and too American. K.I.N.D is built for this: local currency billing, POPIA/NDPR compliance baked in, pricing that fits. **The Salesforce of Africa — but AI-native.**
-
-The data advantage compounds here. Lead and conversion data across industries, countries, and company sizes across the continent. No one else has that.
-
-### Year 4–5 — The Network Effect
-K.I.N.D sits between buyers and sellers across thousands of companies. It knows who is buying what, when, and why. It starts connecting clients to each other — warm B2B introductions, marketplace dynamics, partnership matching.
-
-**K.I.N.D becomes a B2B network, not just software.** The data moat makes it defensible. The speed model makes it sticky. The African-first positioning makes it ownable.
-
-At scale: **$50–100M ARR** with a legitimate path to acquisition by a global CRM, data, or AI player — or an IPO on the JSE as the first AI-native B2B revenue platform built on the continent.
-
----
-
-### The Single Biggest Risk
-Speed of execution. The first-mover window in this exact space in Africa is **18–24 months**. Salesforce, HubSpot, and well-funded startups will arrive. The moat being built right now — the data, the brand, the client relationships — is what makes K.I.N.D unconquerable when they do.
-
-**That is why Time to First Lead is not just a metric. It is the competitive weapon.**
+**Time to First Lead is not just a metric. It is the competitive weapon.**
 
 ---
 

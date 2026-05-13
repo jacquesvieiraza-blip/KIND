@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 
-export const metadata = { title: 'Terms & Conditions — K.I.N.D', description: 'KIND AI Platform Terms and Conditions' }
+export const metadata = { title: 'Terms of Service — K.I.N.D', description: 'K.I.N.D Terms of Service' }
 
 export default function TermsPage() {
   return (
@@ -13,60 +13,58 @@ export default function TermsPage() {
         <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Back to dashboard →</Link>
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms & Conditions</h1>
-        <p className="text-gray-500 text-sm mb-8">Last updated: May 2026</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
+        <p className="text-gray-500 text-sm mb-8">Last updated: May 2026 · Full version at <a href="https://get-kind.com/terms" className="text-[#0066FF] hover:underline" target="_blank" rel="noopener noreferrer">get-kind.com/terms</a></p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Agreement</h2>
-            <p>These Terms & Conditions ("Terms") govern your use of the K.I.N.D AI Platform ("Platform"), operated by K.I.N.D AI (Pty) Ltd ("KIND", "we", "us"). By accessing the Platform or signing a Service Order Form, you agree to these Terms.</p>
-            <p className="mt-2">Your complete agreement set consists of: the signed Service Order Form, the Master Services Agreement (MSA), the POPIA Compliant Process document, and any applicable Exhibits (including the Chatbot SLA). The Order Form incorporates all of these by reference.</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Parties</h2>
+            <p>These Terms of Service govern your use of the K.I.N.D AI Platform, operated by Jacques Vieira trading as K.I.N.D ("K.I.N.D", "we", "us"), registered at 33 Townsend Road, Stratford-upon-Avon, CV37 7DE, United Kingdom. By signing an Order Form or accessing the Platform you agree to these Terms.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Services</h2>
-            <p>KIND provides AI-powered business services including Lead Generation, Virtual Assistant, AI Chatbot Agent, and the FIGSY AI SDR product. The specific services, tiers, and pricing applicable to your account are set out in your Service Order Form.</p>
+            <p>K.I.N.D provides AI-powered outbound sales services including lead generation, ICP profiling, 3-sequence email outreach, and the FIGSY AI SDR. The specific services and pricing for your account are set out in your Order Form.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Payment & Billing</h2>
-            <p>Fees are billed monthly or annually as selected. All prices are in USD unless otherwise stated. ZAR billing applies the exchange rate at date of invoice. Payments are processed via Paystack. Subscriptions auto-renew unless cancelled at least 5 business days before the renewal date.</p>
-            <p className="mt-2">Trial periods, where offered, are 14 days. At trial end, a subscription must be activated to retain access.</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Credits & Billing</h2>
+            <p>Services are charged on a credit basis. Credits are purchased in bundles and are non-refundable. One credit is consumed when a lead responds positively to outreach. Zero credits = outreach pauses. Credits are topped up manually or automatically. Accounts with outstanding balances have 7 days before suspension.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">4. Acceptable Use</h2>
-            <p>You may not use the Platform to: (a) contact leads who have opted out; (b) send unsolicited commercial communications in violation of POPIA, GDPR, or CAN-SPAM; (c) reverse engineer any component of the Platform; (d) resell access without written permission.</p>
+            <p>You may not use the Platform to contact leads who have opted out, send communications violating POPIA, GDPR, or CAN-SPAM, reverse-engineer any component, or resell access without written permission.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">5. Data & Privacy</h2>
-            <p>KIND processes personal data as a data operator on your behalf. Our data practices are set out in the POPIA Compliant Process document and our Privacy Policy. You remain the responsible party for all leads you contact. You must ensure your use of leads complies with applicable law including POPIA, GDPR, and CAN-SPAM.</p>
+            <p>K.I.N.D processes personal data on your behalf as a data processor. You remain the data controller responsible for ensuring your use of leads complies with POPIA, GDPR, CAN-SPAM, and all applicable laws. Our Privacy Policy is available at get-kind.com/privacy.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">6. Intellectual Property</h2>
-            <p>All Platform technology, AI models, and proprietary processes remain KIND's exclusive property. Client data remains the client's property. KIND is granted a licence to process client data solely to deliver the contracted services.</p>
+            <p>All Platform technology, AI models, and processes remain K.I.N.D's property. Client data remains the client's property. K.I.N.D is licensed to process client data solely to deliver contracted services.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">7. Limitation of Liability</h2>
-            <p>To the maximum extent permitted by law, KIND's liability is limited to fees paid in the 3 months preceding any claim. KIND is not liable for indirect, consequential, or lost-profit damages.</p>
+            <p>K.I.N.D's total liability is capped at the fees paid in the 3 months preceding any claim. K.I.N.D is not liable for indirect, consequential, or lost-profit damages.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">8. Governing Law</h2>
-            <p>These Terms are governed by the laws of South Africa. Disputes shall be resolved in the courts of South Africa, or by arbitration if mutually agreed. For GDPR-covered clients, EU law applies to data processing matters.</p>
+            <p>These Terms are governed by the laws of England and Wales. Disputes are subject to the exclusive jurisdiction of the courts of England and Wales.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">9. Contact</h2>
-            <p>Questions about these Terms: <a href="mailto:legal@kind.ai" className="text-[#0066FF] hover:underline">legal@kind.ai</a></p>
+            <p>Questions: <a href="mailto:hello@get-kind.com" className="text-[#0066FF] hover:underline">hello@get-kind.com</a></p>
           </section>
         </div>
       </main>
       <footer className="border-t border-gray-100 px-8 py-6 text-center text-xs text-gray-400">
-        © 2026 K.I.N.D AI · <Link href="/privacy" className="hover:text-gray-600">Privacy Policy</Link> · <Link href="/dashboard" className="hover:text-gray-600">Dashboard</Link>
+        © 2026 K.I.N.D · <Link href="/privacy" className="hover:text-gray-600">Privacy Policy</Link> · <Link href="/dashboard" className="hover:text-gray-600">Dashboard</Link>
       </footer>
     </div>
   )

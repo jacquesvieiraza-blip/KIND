@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { FileText, ChevronDown, ChevronUp, CheckCircle, Loader2, Shield, ExternalLink, AlertCircle, Lock } from 'lucide-react'
+import { FileText, CheckCircle, Loader2, Shield, ExternalLink, AlertCircle, Lock } from 'lucide-react'
 
-interface Template { id: string; name: string; description: string | null; file_url: string; sort_order: number }
 interface ProductLine { product: string; tier: string; price_usd: number; billing_interval: string }
 interface OrderForm {
   id: string
@@ -27,10 +26,7 @@ export default function DocumentsPage() {
   const supabase = createClient()
   const [token, setToken]         = useState<string | null>(null)
   const [orderForm, setOrderForm] = useState<OrderForm | null>(null)
-  const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading]     = useState(true)
-  const [showTCs, setShowTCs]     = useState(false)
-  const [activeDoc, setActiveDoc] = useState<Template | null>(null)
   const [signedBy, setSignedBy]   = useState('')
   const [agreed, setAgreed]       = useState(false)
   const [signing, setSigning]     = useState(false)
@@ -42,9 +38,8 @@ export default function DocumentsPage() {
       if (!session) { setLoading(false); return }
       setToken(session.access_token)
       try {
-        const res = await api.get<{ data: { order_form: OrderForm | null; templates: Template[] } }>('/order-forms/me', session.access_token)
+        const res = await api.get<{ data: { order_form: OrderForm | null } }>('/order-forms/me', session.access_token)
         setOrderForm(res.data.order_form)
-        setTemplates(res.data.templates)
         if (res.data.order_form?.status === 'signed') setSigned(true)
       } catch { }
       setLoading(false)
@@ -166,41 +161,16 @@ export default function DocumentsPage() {
             </div>
           )}
 
-          {/* T&C viewer toggle */}
-          <div className="border border-gray-100 rounded-xl overflow-hidden">
-            <button onClick={() => setShowTCs(!showTCs)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <span className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-blue-500" />
-                View full Terms & Conditions ({templates.length} documents)
-              </span>
-              {showTCs ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-            </button>
-
-            {showTCs && (
-              <div className="border-t border-gray-100 p-4 bg-gray-50">
-                <p className="text-xs text-gray-500 mb-3">
-                  By signing the Order Form above, you confirm you have read and agree to all of the following documents, incorporated by reference.
-                </p>
-                <div className="space-y-2">
-                  {templates.map(t => (
-                    <div key={t.id} className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-gray-100">
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{t.name}</p>
-                        {t.description && <p className="text-xs text-gray-400 mt-0.5">{t.description}</p>}
-                      </div>
-                      <a href={t.file_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-medium shrink-0 ml-4">
-                        <ExternalLink className="w-3.5 h-3.5" />View PDF
-                      </a>
-                    </div>
-                  ))}
-                  {templates.length === 0 && (
-                    <p className="text-xs text-gray-400 text-center py-2">Documents being prepared by your account manager.</p>
-                  )}
-                </div>
-              </div>
-            )}
+          {/* Terms of Service link */}
+          <div className="border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between">
+            <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Shield className="w-4 h-4 text-blue-500" />
+              K.I.N.D Terms of Service
+            </span>
+            <a href="https://get-kind.com/terms" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-medium shrink-0 ml-4">
+              <ExternalLink className="w-3.5 h-3.5" />Read Terms
+            </a>
           </div>
         </div>
 
@@ -233,7 +203,9 @@ export default function DocumentsPage() {
                 className="mt-0.5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
               />
               <span className="text-sm text-gray-600">
-                I have read and agree to the KIND Service Order Form and all incorporated terms, including the Master Services Agreement, POPIA Compliant Process, and all applicable Exhibits. I confirm I am authorised to sign on behalf of my organisation.
+                I have read and agree to the{' '}
+                <a href="https://get-kind.com/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">K.I.N.D Terms of Service</a>
+                {' '}and the details set out in this Order Form. I confirm I am authorised to sign on behalf of my organisation.
               </span>
             </label>
 
@@ -252,7 +224,7 @@ export default function DocumentsPage() {
             </button>
 
             <p className="text-xs text-gray-400 text-center">
-              Your IP address and timestamp will be recorded. Questions? Email <a href="mailto:hello@kind.ai" className="text-brand-500 hover:underline">hello@kind.ai</a>
+              Your IP address and timestamp will be recorded. Questions? Email <a href="mailto:hello@get-kind.com" className="text-brand-500 hover:underline">hello@get-kind.com</a>
             </p>
           </div>
         )}

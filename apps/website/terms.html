@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — K.I.N.D</title>
+  <meta name="description" content="K.I.N.D Terms of Service, Privacy Policy, and Service Agreement." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #0066FF; --border: rgba(255,255,255,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; line-height: 1.6; overflow-x: hidden; }
+
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); z-index: 200;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(255,255,255,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(255,255,255,0.55); font-size: 0.85rem; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); transition: all .2s; text-decoration: none; }
+    .btn-nav-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .btn-nav-primary { background: var(--blue); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; }
+
+    /* PAGE */
+    .page-hero { max-width: 760px; margin: 0 auto; padding: 80px 24px 56px; }
+    .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); margin-bottom: 20px; }
+    .page-hero h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 16px; }
+    .page-hero p { font-size: 0.9rem; color: rgba(255,255,255,0.38); line-height: 1.7; }
+
+    /* TOC */
+    .toc-wrap { max-width: 760px; margin: 0 auto 0; padding: 0 24px; }
+    .toc { background: #0a0a0a; border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px; margin-bottom: 56px; }
+    .toc h3 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.3); margin-bottom: 16px; }
+    .toc ol { list-style: none; counter-reset: toc; }
+    .toc ol li { counter-increment: toc; display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .toc ol li:last-child { border-bottom: none; }
+    .toc ol li::before { content: counter(toc, decimal-leading-zero); font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.2); flex-shrink: 0; width: 24px; }
+    .toc ol li a { font-size: 0.85rem; color: rgba(255,255,255,0.55); text-decoration: none; transition: color .15s; }
+    .toc ol li a:hover { color: #fff; }
+
+    /* CONTENT */
+    .content { max-width: 760px; margin: 0 auto; padding: 0 24px 120px; }
+    .section { margin-bottom: 64px; scroll-margin-top: 80px; }
+    .section h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); color: #fff; }
+    .section h3 { font-size: 1rem; font-weight: 700; color: rgba(255,255,255,0.85); margin: 28px 0 10px; }
+    .section p { font-size: 0.88rem; color: rgba(255,255,255,0.5); line-height: 1.85; margin-bottom: 14px; }
+    .section p strong { color: rgba(255,255,255,0.8); font-weight: 600; }
+    .section ul, .section ol { padding-left: 20px; margin-bottom: 14px; }
+    .section ul li, .section ol li { font-size: 0.88rem; color: rgba(255,255,255,0.5); line-height: 1.85; margin-bottom: 6px; }
+    .section ul li strong, .section ol li strong { color: rgba(255,255,255,0.8); }
+    .highlight-box { background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.15); border-radius: 12px; padding: 20px 24px; margin: 20px 0; }
+    .highlight-box p { color: rgba(255,255,255,0.6); margin-bottom: 0; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-inner { max-width: 760px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-inner p { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+    .footer-links { display: flex; gap: 16px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(255,255,255,0.28); text-decoration: none; }
+    .footer-links a:hover { color: #fff; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .page-hero { padding: 56px 24px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <a href="/#products" class="nav-link">Products</a>
+    <a href="/use-cases.html" class="nav-link">Use Cases</a>
+    <a href="/pricing.html" class="nav-link">Pricing</a>
+    <a href="/about.html" class="nav-link">Company</a>
+    <a href="/support.html" class="nav-link">Support</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="eyebrow">Legal</div>
+  <h1>Terms of Service</h1>
+  <p>Last updated: May 2026 · Effective immediately upon account creation or order form signature.<br/>
+  These terms govern your use of the K.I.N.D platform and all associated services.</p>
+</div>
+
+<div class="toc-wrap">
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#parties">Parties & Agreement</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#trial">Free Trial</a></li>
+      <li><a href="#credits">Credits & Billing</a></li>
+      <li><a href="#qualified-leads">What Constitutes a Qualified Lead</a></li>
+      <li><a href="#cancellation">Cancellation & Downgrade</a></li>
+      <li><a href="#obligations">Client Obligations</a></li>
+      <li><a href="#data">Data, Privacy & Compliance</a></li>
+      <li><a href="#ip">Intellectual Property</a></li>
+      <li><a href="#liability">Liability & Warranties</a></li>
+      <li><a href="#termination">Termination</a></li>
+      <li><a href="#governing-law">Governing Law</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ol>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section" id="parties">
+    <h2>1. Parties & Agreement</h2>
+    <p>These Terms of Service ("Agreement") are entered into between:</p>
+    <p><strong>K.I.N.D</strong>, a business operated by Jacques Vieira trading as K.I.N.D, 33 Townsend Road, Stratford-upon-Avon, CV37 7DE, United Kingdom ("K.I.N.D", "we", "us", "our")</p>
+    <p>and the individual or entity that creates an account or signs an Order Form ("Client", "you", "your").</p>
+    <p>By creating an account, starting a free trial, signing an Order Form, or using any K.I.N.D service, you agree to be bound by this Agreement in full. If you are entering this Agreement on behalf of a company or other legal entity, you represent that you have the authority to bind that entity.</p>
+    <div class="highlight-box">
+      <p>By signing the Order Form, you confirm that you have read, understood, and agree to these Terms of Service, our Privacy Policy, and any service-specific terms referenced in your Order Form. No separate signature of these documents is required.</p>
+    </div>
+  </div>
+
+  <div class="section" id="services">
+    <h2>2. Services</h2>
+    <p>K.I.N.D provides the following AI-powered services:</p>
+    <h3>K.I.N.D AI — Lead Gen Pro</h3>
+    <p>An AI-powered lead generation service that sources B2B contacts matching your Ideal Customer Profile (ICP), sends a 3-sequence personalised outreach email campaign on your behalf, and delivers qualified leads (defined in Section 5) to your dashboard. Credits are consumed only on positive replies.</p>
+    <h3>FIGSY — Lead Gen Advanced</h3>
+    <p>All features of K.I.N.D AI, plus an autonomous AI SDR (FIGSY) that reads and responds to prospect replies, manages objections, continues the conversation, and books meetings directly into your calendar.</p>
+    <h3>Additional Services</h3>
+    <p>K.I.N.D may offer additional products including Virtual Assistant and Chatbot Agent. These are subject to separate order forms and pricing at the time of activation.</p>
+    <p>K.I.N.D reserves the right to modify, update, or discontinue any service with 30 days' written notice to active clients.</p>
+  </div>
+
+  <div class="section" id="trial">
+    <h2>3. Free Trial</h2>
+    <p>New clients receive a <strong>14-day free trial</strong> commencing on the date of account creation. During the trial:</p>
+    <ul>
+      <li>You have access to the full K.I.N.D platform</li>
+      <li>No payment is required</li>
+      <li>An Order Form is auto-generated and must be signed before the trial ends to continue service</li>
+      <li>If the Order Form is not signed and payment not made by day 14, access is suspended</li>
+    </ul>
+    <p>The trial period is offered once per client. Creating multiple accounts to extend trial access is a breach of this Agreement and may result in permanent suspension.</p>
+  </div>
+
+  <div class="section" id="credits">
+    <h2>4. Credits & Billing</h2>
+    <h3>Credit System</h3>
+    <p>K.I.N.D operates on a prepaid credit model. Credits are purchased in bundles and consumed only when a qualified lead is delivered (as defined in Section 5).</p>
+    <ul>
+      <li><strong>K.I.N.D AI — Lead Gen Pro:</strong> $1 per credit. Bundles from $20 (20 credits).</li>
+      <li><strong>FIGSY — Lead Gen Advanced:</strong> $3 per credit. Bundles from $60 (20 credits).</li>
+      <li>Credits are purchased in bundles of 20 and can be topped up at any time.</li>
+      <li>Credits do not expire provided your account remains active.</li>
+    </ul>
+    <h3>Top-Up</h3>
+    <p>Credits can be topped up manually at any time via the Billing page in your dashboard. Automatic top-up is available and can be configured in your billing settings. If auto top-up is disabled and credits reach zero, outreach pauses until credits are added. K.I.N.D is not liable for missed opportunities during a zero-credit period.</p>
+    <h3>No Refunds</h3>
+    <p><strong>All credit purchases are non-refundable.</strong> Unused credits at the time of cancellation or account termination are forfeited. No credits are refunded on downgrade.</p>
+    <h3>Taxes</h3>
+    <p>All prices are exclusive of applicable taxes. You are responsible for any taxes applicable in your jurisdiction.</p>
+    <h3>Suspension for Non-Payment</h3>
+    <p>If a payment fails or a top-up is not completed within 7 days of the credit balance reaching zero, K.I.N.D reserves the right to suspend outreach services. Account data is retained for 90 days following suspension.</p>
+  </div>
+
+  <div class="section" id="qualified-leads">
+    <h2>5. What Constitutes a Qualified Lead</h2>
+    <p>A <strong>qualified lead</strong> is defined as a prospect who sends a positive reply to any email in the 3-sequence outreach campaign. A positive reply includes any response indicating interest, a request for more information, a request to schedule a call, or any other reply that is not an opt-out or negative response.</p>
+    <p>The following do <strong>not</strong> consume a credit:</p>
+    <ul>
+      <li>No response to all 3 emails in the sequence</li>
+      <li>A negative reply ("not interested", "remove me", "no thank you", or similar)</li>
+      <li>An automated out-of-office reply</li>
+      <li>A click on the unsubscribe link</li>
+    </ul>
+    <p>One credit is consumed per qualified lead, regardless of subsequent engagement. If a qualified lead later goes cold or does not convert to a meeting, the credit is not refunded.</p>
+    <p>K.I.N.D makes no guarantee regarding conversion rates, meeting bookings, or sales outcomes resulting from qualified leads.</p>
+  </div>
+
+  <div class="section" id="cancellation">
+    <h2>6. Cancellation & Downgrade</h2>
+    <h3>Cancellation</h3>
+    <p>You may cancel your subscription at any time via the Billing page in your dashboard or by emailing hello@get-kind.com. Cancellation takes effect immediately. No refund is issued for unused credits. Your account data is retained for 90 days following cancellation.</p>
+    <h3>Downgrade</h3>
+    <p>You may downgrade from FIGSY Advanced to K.I.N.D AI at any time. No credits are refunded upon downgrade. Any credits previously purchased at the FIGSY Advanced rate ($3/credit) remain in your account and will be consumed at the K.I.N.D AI rate going forward.</p>
+    <h3>Upgrade</h3>
+    <p>You may upgrade from K.I.N.D AI to FIGSY Advanced at any time. Remaining credits carry over. The new per-credit rate applies to all credits purchased after the upgrade date.</p>
+  </div>
+
+  <div class="section" id="obligations">
+    <h2>7. Client Obligations</h2>
+    <p>By using K.I.N.D services, you agree to:</p>
+    <ul>
+      <li>Provide accurate ICP information and a legitimate business email sending domain</li>
+      <li>Ensure that your intended outreach targets are B2B contacts and that your use of K.I.N.D complies with all applicable laws in your jurisdiction</li>
+      <li>Not use K.I.N.D to send spam, harass individuals, or contact persons on legally mandated do-not-contact lists</li>
+      <li>Not use K.I.N.D for any unlawful purpose including but not limited to fraud, phishing, or impersonation</li>
+      <li>Keep your account credentials secure and notify us immediately of any unauthorised access</li>
+      <li>Not resell, sublicense, or white-label K.I.N.D services without written permission</li>
+    </ul>
+    <p>K.I.N.D reserves the right to suspend or terminate accounts that breach these obligations without notice and without refund.</p>
+  </div>
+
+  <div class="section" id="data">
+    <h2>8. Data, Privacy & Compliance</h2>
+    <h3>Data We Process</h3>
+    <p>K.I.N.D processes personal data of your prospects (name, email, job title, company, LinkedIn URL) sourced from Apollo.io's database of 250M+ verified B2B contacts. This data is used solely to run outreach campaigns on your behalf.</p>
+    <h3>Consent & Opt-Out</h3>
+    <p>Every outreach email sent by K.I.N.D includes an unsubscribe link. Any prospect who clicks the unsubscribe link, or replies requesting removal, is immediately added to a permanent opt-out blocklist. Opted-out contacts are never contacted again by any K.I.N.D client.</p>
+    <h3>POPIA (South Africa)</h3>
+    <p>K.I.N.D operates in compliance with the Protection of Personal Information Act (POPIA). The 3-sequence outreach model constitutes a legitimate interest basis for initial contact. Opt-outs are honoured immediately and permanently.</p>
+    <h3>GDPR (European Union & UK)</h3>
+    <p>For clients targeting EU or UK-based prospects, outreach is conducted on a legitimate interest basis under GDPR Article 6(1)(f). Opt-outs are treated as withdrawal of consent and actioned immediately.</p>
+    <h3>CAN-SPAM (United States)</h3>
+    <p>All emails include a physical address, clear identification of the sender, and a functioning opt-out mechanism in compliance with the CAN-SPAM Act.</p>
+    <h3>Data Retention</h3>
+    <p>Prospect data is retained for the duration of your active subscription and for 90 days following cancellation. You may request deletion of your account data at any time by contacting hello@get-kind.com.</p>
+    <h3>Sub-processors</h3>
+    <p>K.I.N.D uses the following sub-processors: Apollo.io (lead data), Supabase (database), Resend (email delivery), Anthropic (AI email writing), Paystack (payment processing), Railway (API hosting), Vercel (web hosting).</p>
+  </div>
+
+  <div class="section" id="ip">
+    <h2>9. Intellectual Property</h2>
+    <p>K.I.N.D retains all intellectual property rights in the platform, software, AI models, and all associated technology. Nothing in this Agreement grants you any ownership rights in the K.I.N.D platform.</p>
+    <p>You retain ownership of your ICP data, business information, and any content you provide to K.I.N.D. You grant K.I.N.D a limited licence to use this information solely to provide the services described in this Agreement.</p>
+    <p>Email copy generated by K.I.N.D's AI on your behalf, once delivered as qualified leads, is yours to use in your sales process.</p>
+  </div>
+
+  <div class="section" id="liability">
+    <h2>10. Liability & Warranties</h2>
+    <h3>No Guarantee of Results</h3>
+    <p>K.I.N.D does not guarantee any specific number of qualified leads, meetings booked, or sales outcomes. Lead generation results vary based on ICP quality, industry, geography, and market conditions.</p>
+    <h3>Service Availability</h3>
+    <p>K.I.N.D aims for 99% uptime but does not guarantee uninterrupted service. Planned maintenance will be communicated in advance where possible.</p>
+    <h3>Disclaimer of Warranties</h3>
+    <p>The K.I.N.D platform is provided "as is" without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement.</p>
+    <h3>Limitation of Liability</h3>
+    <p><strong>K.I.N.D's total aggregate liability to you for any claim arising under or in connection with this Agreement shall not exceed the total amount you paid to K.I.N.D in the three (3) months immediately preceding the event giving rise to the claim.</strong></p>
+    <p>K.I.N.D shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, loss of data, or loss of business opportunity, even if advised of the possibility of such damages.</p>
+  </div>
+
+  <div class="section" id="termination">
+    <h2>11. Termination</h2>
+    <p>Either party may terminate this Agreement at any time. K.I.N.D may terminate immediately and without notice if:</p>
+    <ul>
+      <li>You breach any material term of this Agreement</li>
+      <li>You use the platform for unlawful purposes</li>
+      <li>You attempt to reverse-engineer, scrape, or misuse the platform</li>
+    </ul>
+    <p>Upon termination, your access to the platform is suspended immediately. Account data is retained for 90 days and then permanently deleted. No refund of unused credits is made upon termination for breach.</p>
+  </div>
+
+  <div class="section" id="governing-law">
+    <h2>12. Governing Law</h2>
+    <p>This Agreement is governed by and construed in accordance with the laws of England and Wales. Any disputes arising under this Agreement shall be subject to the exclusive jurisdiction of the courts of England and Wales.</p>
+    <p>If any provision of this Agreement is found to be unenforceable, the remaining provisions shall continue in full force and effect.</p>
+    <p>K.I.N.D reserves the right to update these Terms of Service at any time. Updated terms will be posted at get-kind.com/terms with the effective date. Continued use of the platform following notification of updated terms constitutes acceptance.</p>
+  </div>
+
+  <div class="section" id="contact">
+    <h2>13. Contact</h2>
+    <p>For any questions regarding these terms, data requests, or legal notices:</p>
+    <p>
+      <strong>K.I.N.D</strong><br/>
+      Jacques Vieira trading as K.I.N.D<br/>
+      33 Townsend Road<br/>
+      Stratford-upon-Avon<br/>
+      CV37 7DE<br/>
+      United Kingdom<br/>
+      <a href="mailto:hello@get-kind.com" style="color:var(--blue);text-decoration:none">hello@get-kind.com</a>
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <p>© 2026 K.I.N.D — Jacques Vieira trading as K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/about.html">About</a>
+      <a href="/support.html">Support</a>
+      <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

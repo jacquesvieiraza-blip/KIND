@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { StatCard } from '@/components/ui/StatCard'
 import { ProductCard } from '@/components/ui/ProductCard'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
+import { ReferralBanner } from '@/components/ui/ReferralBanner'
 import { Users, Bot, MessageSquare, TrendingUp, Zap, ShieldCheck } from 'lucide-react'
 
 type BannerState = 'no_form' | 'awaiting_signature' | 'awaiting_payment' | 'trial' | 'none'
@@ -89,6 +90,11 @@ export default async function DashboardPage() {
         <StatCard label="POPIA Consented" value={stats?.consented ?? 0}          icon={<ShieldCheck className="w-5 h-5" />} color="green" />
         <StatCard label="Avg Score"       value={stats?.avg_score ?? 0} suffix="/100" icon={<TrendingUp className="w-5 h-5" />} color="purple" />
       </div>
+
+      {/* Referral banner — only show for active/trialing clients */}
+      {(client as { id?: string }).id && (
+        <ReferralBanner referralCode={(client as { id: string }).id} />
+      )}
 
       <div>
         <h2 className="text-lg font-semibold mb-4">Your AI Products</h2>

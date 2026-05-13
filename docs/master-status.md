@@ -379,8 +379,8 @@
 |-------|------|------|--------|
 | Phase 2 | Referral Backend | Small | Not started |
 | Phase 3 | Credit-Based Billing | Medium | Not started |
-| Phase 4 | FIGSY Outreach Engine | Large | Not started |
-| Phase 5 | Portal Upgrades | Medium | Not started |
+| Phase 4 | Portal Upgrades | Medium | Not started |
+| Phase 5 | FIGSY Outreach Engine | Large | Not started |
 | Phase 6 | Founder Agent Stack | Large | Not started |
 | Phase 7 | Smoke Test + Go-Live | Small | Not started |
 
@@ -406,7 +406,17 @@ Replace current subscription-based billing with credit bundles:
 
 ---
 
-### Phase 4 — FIGSY Outreach Engine *(large)*
+### Phase 4 — Portal Upgrades *(medium)*
+- Usage dashboard: credits remaining, emails sent, reply rate, positive reply rate, ROI metric
+- Permissions: owner / team member / read-only roles
+- Notifications: qualified lead alert, low credits, ICP ready, trial expiring
+- Billing history with downloadable invoices
+- Credit top-up flow inline in portal
+- Upgrade / downgrade plan
+
+---
+
+### Phase 5 — FIGSY Outreach Engine *(large)*
 The core product — autonomous 3-sequence email outreach:
 - **Day 1, Day 4, Day 9** emails sent from client's email via Resend
 - Reply classification: positive / negative / no reply (Claude-powered)
@@ -416,16 +426,6 @@ The core product — autonomous 3-sequence email outreach:
 - Centralised reply inbox per client in portal
 - ICP learning loop — monthly AI review, auto-refine ICP from reply data
 - 3 ICP regenerations/month on K.I.N.D AI, unlimited on FIGSY Advanced
-
----
-
-### Phase 5 — Portal Upgrades *(medium)*
-- Usage dashboard: credits remaining, emails sent, reply rate, positive reply rate, ROI metric
-- Permissions: owner / team member / read-only roles
-- Notifications: qualified lead alert, low credits, ICP ready, trial expiring
-- Billing history with downloadable invoices
-- Credit top-up flow inline in portal
-- Upgrade / downgrade plan
 
 ---
 

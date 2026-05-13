@@ -29,3 +29,67 @@ export async function sendWelcomeEmail(to: string, companyName: string) {
     `,
   })
 }
+
+export async function sendConsentEmail(
+  to: string,
+  firstName: string,
+  senderCompanyName: string,
+  optOutUrl: string,
+) {
+  if (!resend) return
+  const consentUrl = `${optOutUrl}?consent=true`
+  const declineUrl = `${optOutUrl}?consent=false`
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `[Action required] ${senderCompanyName} would like to connect`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <p style="line-height:1.6">Hi ${firstName},</p>
+        <p style="color:#555;line-height:1.6">
+          <strong>${senderCompanyName}</strong> would like your permission to send you B2B communication.
+          Under POPIA, they need your consent before reaching out further.
+        </p>
+        <p style="color:#555;line-height:1.6">
+          If you're open to hearing from them, click the button below. You can withdraw consent at any time.
+        </p>
+        <a href="${consentUrl}"
+           style="display:inline-block;margin-top:8px;background:#16a34a;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+          Give Consent
+        </a>
+        <p style="margin-top:24px">
+          <a href="${declineUrl}" style="color:#888;font-size:0.875rem">No thanks, I'd prefer not to be contacted</a>
+        </p>
+        <p style="color:#bbb;font-size:0.75rem;margin-top:32px;border-top:1px solid #eee;padding-top:16px">
+          This email was sent on behalf of ${senderCompanyName} via K.I.N.D.
+          If you did not expect this, you can safely ignore it.
+        </p>
+      </div>
+    `,
+  })
+}
+
+export async function sendFirstLeadsReadyEmail(to: string, companyName: string, leadCount: number) {
+  if (!resend) return
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your first ${leadCount} leads are ready — K.I.N.D`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <h1 style="font-size:1.5rem;margin-bottom:8px">Your leads are in, ${companyName}!</h1>
+        <p style="color:#555;line-height:1.6">
+          We've found <strong>${leadCount} leads</strong> that match your Ideal Customer Profile.
+          They're scored, ranked, and waiting in your pipeline — ready to contact.
+        </p>
+        <a href="https://app.get-kind.com/dashboard/leads"
+           style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+          View my leads →
+        </a>
+        <p style="color:#999;font-size:0.8rem;margin-top:32px">
+          Questions? Reply to this email — we're here to help.
+        </p>
+      </div>
+    `,
+  })
+}

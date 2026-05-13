@@ -9,10 +9,11 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 
 function ConfirmContent() {
-  const params = useSearchParams()
+  const params    = useSearchParams()
   const reference = params.get('reference') || params.get('trxref')
-  const supabase = createClient()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const type      = params.get('type')
+  const supabase  = createClient()
+  const [status, setStatus]   = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -22,16 +23,24 @@ function ConfirmContent() {
       if (!session) { setStatus('error'); setMessage('Session expired. Please log in again.'); return }
 
       try {
-        await api.post('/subscriptions/verify', { reference }, session.access_token)
-        setStatus('success')
-        setMessage('Your subscription is now active. Welcome aboard!')
+        if (type === 'credit') {
+          const res = await api.post<{ data: { credits_added: number; new_balance: number } }>(
+            '/credits/verify', { reference }, session.access_token
+          )
+          setStatus('success')
+          setMessage(`${res.data.credits_added} credits added. Your balance is now ${res.data.new_balance}.`)
+        } else {
+          await api.post('/subscriptions/verify', { reference }, session.access_token)
+          setStatus('success')
+          setMessage('Your subscription is now active. Welcome aboard!')
+        }
       } catch (err: unknown) {
         setStatus('error')
         setMessage(err instanceof Error ? err.message : 'Payment verification failed. Please contact hello@get-kind.com.')
       }
     }
     verify()
-  }, [reference])
+  }, [reference, type])
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
@@ -48,11 +57,13 @@ function ConfirmContent() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Payment confirmed!</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              {type === 'credit' ? 'Credits added!' : 'Payment confirmed!'}
+            </h2>
             <p className="text-gray-500 text-sm mb-6">{message}</p>
-            <Link href="/dashboard"
+            <Link href="/dashboard/billing"
               className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors">
-              Go to my dashboard →
+              {type === 'credit' ? 'View balance →' : 'Go to billing →'}
             </Link>
           </>
         )}
@@ -70,9 +81,7 @@ function ConfirmContent() {
             </div>
           </>
         )}
-        {reference && (
-          <p className="text-xs text-gray-400 mt-6">Reference: {reference}</p>
-        )}
+        {reference && <p className="text-xs text-gray-400 mt-6">Reference: {reference}</p>}
       </div>
     </div>
   )

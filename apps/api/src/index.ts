@@ -10,6 +10,7 @@ import { paystackRouter } from './routes/paystack'
 import { leadRouter } from './routes/leads'
 import { icpRouter } from './routes/icps'
 import { orderFormRouter } from './routes/order-forms'
+import { creditRouter } from './routes/credits'
 import { errorHandler } from './middleware/error'
 
 const app = express()
@@ -29,6 +30,7 @@ app.use('/webhooks/paystack', paystackRouter)
 app.use('/leads',         leadRouter)
 app.use('/icps',          icpRouter)
 app.use('/order-forms',   orderFormRouter)
+app.use('/credits',       creditRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => console.log(`KIND API running on port ${PORT}`))

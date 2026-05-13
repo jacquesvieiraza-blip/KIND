@@ -8,4 +8,4 @@ build
 .env.*.local
 *.log
 .DS_Store
-apps/portal/tsconfig.tsbuildinfo
+*.tsbuildinfo

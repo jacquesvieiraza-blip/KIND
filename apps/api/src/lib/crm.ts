@@ -92,6 +92,107 @@ export async function pushToCrm(
   return { success: false, error: `Unknown CRM type: ${crmType}` }
 }
 
+interface DealData {
+  lead_name:     string
+  company:       string | null
+  reply_snippet: string
+}
+
+export async function pushDealToHubSpot(
+  apiKey:    string,
+  contactId: string | undefined,
+  deal:      DealData,
+): Promise<{ success: boolean; deal_id?: string; error?: string }> {
+  try {
+    const closeDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+
+    const body = {
+      properties: {
+        dealname:    `FIGSY Interest — ${deal.lead_name}${deal.company ? ` @ ${deal.company}` : ''}`,
+        dealstage:   'appointmentscheduled',
+        pipeline:    'default',
+        closedate:   closeDate,
+        description: deal.reply_snippet.slice(0, 500),
+      },
+    }
+
+    const res = await fetch('https://api.hubapi.com/crm/v3/objects/deals', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body:    JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+      const err = await res.json() as any
+      return { success: false, error: err?.message ?? `HubSpot deal error ${res.status}` }
+    }
+
+    const data = await res.json() as any
+    const dealId = data.id as string
+
+    // Associate deal with contact if we have a contact ID
+    if (contactId) {
+      await fetch(
+        `https://api.hubapi.com/crm/v3/objects/deals/${dealId}/associations/contacts/${contactId}/3`,
+        { method: 'PUT', headers: { Authorization: `Bearer ${apiKey}` } },
+      ).catch(() => {})
+    }
+
+    return { success: true, deal_id: dealId }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'HubSpot deal push failed' }
+  }
+}
+
+export async function pushDealToPipedrive(
+  apiKey:   string,
+  personId: string | undefined,
+  deal:     DealData,
+): Promise<{ success: boolean; deal_id?: string; error?: string }> {
+  try {
+    const body: Record<string, unknown> = {
+      title: `FIGSY Interest — ${deal.lead_name}${deal.company ? ` @ ${deal.company}` : ''}`,
+    }
+    if (personId) body.person_id = Number(personId)
+
+    const res = await fetch(`https://api.pipedrive.com/v1/deals?api_token=${apiKey}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+      const err = await res.json() as any
+      return { success: false, error: err?.error ?? `Pipedrive deal error ${res.status}` }
+    }
+
+    const data = await res.json() as any
+    return { success: true, deal_id: String(data.data?.id) }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Pipedrive deal push failed' }
+  }
+}
+
+export async function pushDealToCrm(
+  crmType: string,
+  apiKey:  string,
+  lead:    Lead,
+  deal:    DealData,
+): Promise<{ success: boolean; deal_id?: string; contact_id?: string; error?: string }> {
+  const contactResult = await pushToCrm(crmType, apiKey, lead)
+  const contactId = contactResult.contact_id
+
+  if (crmType === 'hubspot') {
+    const dealResult = await pushDealToHubSpot(apiKey, contactId, deal)
+    return { ...dealResult, contact_id: contactId }
+  }
+  if (crmType === 'pipedrive') {
+    const dealResult = await pushDealToPipedrive(apiKey, contactId, deal)
+    return { ...dealResult, contact_id: contactId }
+  }
+  return { success: false, error: `Unknown CRM type: ${crmType}` }
+}
+
 export async function testCrmConnection(crmType: string, apiKey: string): Promise<{ success: boolean; error?: string }> {
   try {
     if (crmType === 'hubspot') {

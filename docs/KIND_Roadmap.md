@@ -266,7 +266,7 @@ FIGSY is a **standalone AI SDR/BDR agent** — sold independently or bundled wit
 | # | Task |
 |---|------|
 | F2-1 | Calendar integration (Google Calendar first) |
-| F2-2 | CRM push — booked meetings to HubSpot/Pipedrive |
+| F2-2 | CRM push — interested reply → Deal/Opportunity in HubSpot/Pipedrive | ✅ Done |
 | F2-3 | Full AI reply automation — handles multi-turn back-and-forth |
 | F2-4 | LinkedIn + WhatsApp outreach channels |
 | F2-5 | Animated explainer video |

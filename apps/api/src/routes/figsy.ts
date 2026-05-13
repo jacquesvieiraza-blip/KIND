@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead } from '../lib/figsy'
+import { pushDealToCrm } from '../lib/crm'
 
 export const figsyRouter = Router()
 figsyRouter.use(requireAuth)
@@ -328,10 +329,11 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       }
     }
 
-    // Handle interested — pause sequence, bump stats
+    // Handle interested — pause sequence, bump stats, push deal to CRM
     if (classification === 'interested' && enrollment) {
       await db.from('figsy_enrollments')
         .update({ status: 'replied' }).eq('id', enrollment.id)
+
       const { data: camp } = await db.from('figsy_campaigns')
         .select('replies_interested, replies_total').eq('id', enrollment.campaign_id).single()
       if (camp) {
@@ -339,6 +341,32 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
           replies_interested: (camp.replies_interested ?? 0) + 1,
           replies_total:      (camp.replies_total       ?? 0) + 1,
         }).eq('id', enrollment.campaign_id)
+      }
+
+      // F2-2 — push deal/opportunity to client's CRM
+      const { data: leadFull } = await db.from('leads')
+        .select('id, first_name, last_name, email, job_title, company, linkedin_url, country, score')
+        .eq('id', lead.id).single()
+      const { data: client } = await db.from('clients')
+        .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).single()
+
+      if (client?.crm_sync_enabled && client?.crm_type && client?.crm_api_key && leadFull) {
+        const leadName = `${leadFull.first_name} ${leadFull.last_name}`.trim()
+        pushDealToCrm(client.crm_type, client.crm_api_key, {
+          ...leadFull,
+          phone: null,
+        }, {
+          lead_name:     leadName,
+          company:       leadFull.company,
+          reply_snippet: body.slice(0, 300),
+        }).then(result => {
+          if (result.success && result.deal_id && enrollment) {
+            db.from('figsy_enrollments').update({
+              crm_deal_id:   result.deal_id,
+              crm_pushed_at: new Date().toISOString(),
+            }).eq('id', enrollment.id).then(() => {})
+          }
+        }).catch(console.error)
       }
     }
 

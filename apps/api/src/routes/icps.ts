@@ -129,8 +129,30 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
       insertErr ? skipped++ : inserted++
     }
 
-    // Record when this ICP was last run (column added via migration below)
     await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
+
+    // Referral credit: fire once on first successful ICP run
+    if (inserted > 0) {
+      const { data: clientRow } = await db.from('clients')
+        .select('id, referred_by, first_icp_run_at, credit_balance')
+        .eq('id', clientId).single()
+
+      if (clientRow && !clientRow.first_icp_run_at) {
+        await db.from('clients')
+          .update({ first_icp_run_at: new Date().toISOString(), credit_balance: (clientRow.credit_balance ?? 0) + 100 })
+          .eq('id', clientId)
+
+        if (clientRow.referred_by) {
+          const { data: referrer } = await db.from('clients')
+            .select('id, credit_balance').eq('id', clientRow.referred_by).single()
+          if (referrer) {
+            await db.from('clients')
+              .update({ credit_balance: (referrer.credit_balance ?? 0) + 100 })
+              .eq('id', referrer.id)
+          }
+        }
+      }
+    }
 
     res.json({ success: true, data: { inserted, skipped, total: contacts.length } })
   } catch (err) {

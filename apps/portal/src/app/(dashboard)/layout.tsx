@@ -13,17 +13,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   let trialExpired    = false
   let orderFormSigned = false
+  let creditBalance   = 0
 
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       const [clientRes, docsRes] = await Promise.all([
-        api.get<{ data: { subscriptions: { status: string; trial_ends_at?: string }[] } }>('/clients/me', session.access_token),
+        api.get<{ data: { subscriptions: { status: string; trial_ends_at?: string }[]; credit_balance?: number } }>('/clients/me', session.access_token),
         api.get<{ data: { order_form: { status: string } | null } }>('/order-forms/me', session.access_token).catch(() => ({ data: { order_form: null } })),
       ])
       const subs      = clientRes.data?.subscriptions ?? []
       const hasActive = subs.some((s) => s.status === 'active')
       orderFormSigned = docsRes.data?.order_form?.status === 'signed'
+      creditBalance   = clientRes.data?.credit_balance ?? 0
 
       if (!hasActive) {
         const trialing = subs.find((s) => s.status === 'trialing')
@@ -37,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar userEmail={user.email || ''} />
+      <Sidebar userEmail={user.email || ''} creditBalance={creditBalance} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
         <TrialExpiredOverlay expired={trialExpired} orderFormSigned={orderFormSigned} />
         {children}

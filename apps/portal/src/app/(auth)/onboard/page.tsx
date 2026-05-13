@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
 
-export default function OnboardPage() {
+function OnboardForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const referredBy = searchParams.get('ref') || undefined
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -20,7 +22,7 @@ export default function OnboardPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/login'); return }
     try {
-      await api.post('/auth/onboard', form, session.access_token)
+      await api.post('/auth/onboard', { ...form, ...(referredBy ? { referred_by: referredBy } : {}) }, session.access_token)
       router.push('/dashboard')
     } catch (err) { setError(err instanceof Error ? err.message : 'Onboarding failed') }
     setLoading(false)
@@ -74,5 +76,13 @@ export default function OnboardPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OnboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50" />}>
+      <OnboardForm />
+    </Suspense>
   )
 }

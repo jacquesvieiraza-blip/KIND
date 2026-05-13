@@ -7,10 +7,11 @@ export const authRouter = Router()
 
 const onboardSchema = z.object({
   company_name: z.string().min(2),
-  industry: z.string().optional(),
-  country: z.string().min(2),
-  website: z.string().url().optional(),
-  phone: z.string().optional(),
+  industry:     z.string().optional(),
+  country:      z.string().min(2),
+  website:      z.string().url().optional(),
+  phone:        z.string().optional(),
+  referred_by:  z.string().uuid().optional(),
 })
 
 authRouter.post('/onboard', async (req, res) => {
@@ -21,8 +22,19 @@ authRouter.post('/onboard', async (req, res) => {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) { res.status(401).json({ success: false, error: 'Invalid token' }); return }
-    const body = onboardSchema.parse(req.body)
-    const { data, error } = await db.from('clients').upsert({ user_id: user.id, ...body }, { onConflict: 'user_id' }).select().single()
+    const { referred_by, ...profileFields } = onboardSchema.parse(req.body)
+
+    // Validate referral code points to a real client
+    let resolvedReferredBy: string | undefined
+    if (referred_by) {
+      const { data: referrer } = await db.from('clients').select('id').eq('id', referred_by).maybeSingle()
+      if (referrer) resolvedReferredBy = referrer.id
+    }
+
+    const { data, error } = await db.from('clients').upsert(
+      { user_id: user.id, ...profileFields, ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}) },
+      { onConflict: 'user_id' }
+    ).select().single()
     if (error) throw error
     const trialEnd = new Date()
     trialEnd.setDate(trialEnd.getDate() + 14)

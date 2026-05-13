@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { testCrmConnection } from '../lib/crm'
 
 export const clientRouter = Router()
 clientRouter.use(requireAuth)
@@ -66,11 +67,14 @@ clientRouter.get('/me/usage', async (req: AuthRequest, res) => {
 clientRouter.patch('/me', async (req: AuthRequest, res) => {
   try {
     const body = z.object({
-      company_name: z.string().min(2).optional(),
-      industry: z.string().optional(),
-      country: z.string().optional(),
-      website: z.string().url().optional(),
-      phone: z.string().optional(),
+      company_name:      z.string().min(2).optional(),
+      industry:          z.string().optional(),
+      country:           z.string().optional(),
+      website:           z.string().url().optional(),
+      phone:             z.string().optional(),
+      crm_type:          z.enum(['hubspot', 'pipedrive', 'none']).optional(),
+      crm_api_key:       z.string().optional(),
+      crm_sync_enabled:  z.boolean().optional(),
     }).parse(req.body)
     const { data, error } = await db.from('clients').update(body).eq('user_id', req.userId!).select().single()
     if (error) throw error
@@ -78,5 +82,19 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Update failed' })
+  }
+})
+
+clientRouter.post('/me/crm/test', async (req: AuthRequest, res) => {
+  try {
+    const { crm_type, crm_api_key } = z.object({
+      crm_type:    z.enum(['hubspot', 'pipedrive']),
+      crm_api_key: z.string().min(1),
+    }).parse(req.body)
+    const result = await testCrmConnection(crm_type, crm_api_key)
+    res.json({ success: result.success, error: result.error })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Test failed' })
   }
 })

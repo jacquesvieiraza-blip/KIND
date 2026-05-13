@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import Anthropic from '@anthropic-ai/sdk'
+import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
 
 export const leadRouter = Router()
@@ -142,6 +143,19 @@ leadRouter.patch('/:id/status', async (req: AuthRequest, res) => {
       .update({ status, ...extra }).eq('id', req.params.id).eq('client_id', clientId).select().single()
     if (error) throw error
     if (!data) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    // Auto-push to CRM when consent given
+    if (status === 'consent_given') {
+      const { data: client } = await db.from('clients')
+        .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', clientId).single()
+      if (client?.crm_sync_enabled && client.crm_type && client.crm_api_key && client.crm_type !== 'none') {
+        pushToCrm(client.crm_type, client.crm_api_key, data).then(result => {
+          if (result.contact_id) {
+            db.from('leads').update({ crm_contact_id: result.contact_id, crm_synced: true }).eq('id', data.id)
+          }
+        }).catch(console.error)
+      }
+    }
 
     res.json({ success: true, data })
   } catch (err) {

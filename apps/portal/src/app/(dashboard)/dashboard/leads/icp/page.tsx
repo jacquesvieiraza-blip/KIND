@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Play, Users } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X } from 'lucide-react'
 
 const INDUSTRIES = [
   'Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture',
@@ -134,8 +134,8 @@ export default function ICPPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<ICPFormData>(emptyForm())
   const [saved, setSaved] = useState(false)
-  const [running, setRunning] = useState<string | null>(null)
-  const [runResult, setRunResult] = useState<{ icpId: string; inserted: number; skipped: number; total: number } | null>(null)
+  const [showSavedBanner, setShowSavedBanner] = useState(false)
+  const [prefillNotice, setPrefillNotice] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -149,7 +149,22 @@ export default function ICPPage() {
 
   function startCreate() {
     setEditingId(null)
-    setForm(emptyForm())
+    const base = emptyForm()
+
+    const raw = localStorage.getItem('kind_icp_prefill')
+    if (raw) {
+      try {
+        const prefill = JSON.parse(raw) as Partial<ICPFormData>
+        setForm({ ...base, ...prefill })
+        setPrefillNotice(true)
+        localStorage.removeItem('kind_icp_prefill')
+      } catch {
+        setForm(base)
+      }
+    } else {
+      setForm(base)
+    }
+
     setShowForm(true)
   }
 
@@ -166,6 +181,7 @@ export default function ICPPage() {
       keywords:              icp.keywords,
       apollo_only_consented: icp.apollo_only_consented,
     })
+    setPrefillNotice(false)
     setShowForm(true)
   }
 
@@ -181,6 +197,8 @@ export default function ICPPage() {
         setIcps(prev => [res.data, ...prev])
       }
       setSaved(true)
+      setShowSavedBanner(true)
+      setTimeout(() => setShowSavedBanner(false), 8000)
       setTimeout(() => { setSaved(false); setShowForm(false) }, 1200)
     } catch { }
     setSaving(false)
@@ -198,28 +216,24 @@ export default function ICPPage() {
     setIcps(prev => prev.map(i => ({ ...i, is_active: i.id === id })))
   }
 
-  async function handleRun(id: string) {
-    if (!token) return
-    setRunning(id)
-    setRunResult(null)
-    try {
-      const res = await api.post<{ data: { inserted: number; skipped: number; total: number } }>(
-        `/icps/${id}/run`, {}, token
-      )
-      setRunResult({ icpId: id, ...res.data })
-      setIcps(prev => prev.map(i => i.id === id ? { ...i, last_run_at: new Date().toISOString() } : i))
-    } catch (err) {
-      console.error(err)
-    }
-    setRunning(null)
-  }
-
   const set = (field: keyof ICPFormData) => (val: unknown) => setForm(f => ({ ...f, [field]: val }))
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-brand-500" /></div>
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {/* Saved banner */}
+      {showSavedBanner && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between">
+          <p className="text-sm text-blue-800">
+            ✅ ICP saved — K.I.N.D is searching for your leads now. Check back in a few minutes.
+          </p>
+          <button onClick={() => setShowSavedBanner(false)} className="ml-4 text-blue-400 hover:text-blue-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -289,44 +303,16 @@ export default function ICPPage() {
               </div>
             ))}
           </div>
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className={`text-xs px-2 py-0.5 rounded-full ${icp.apollo_only_consented ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-500'}`}>
-                {icp.apollo_only_consented ? '✓ Consented only' : 'All Apollo leads'}
+          <div className="mt-3 flex items-center gap-2">
+            <span className={`text-xs px-2 py-0.5 rounded-full ${icp.apollo_only_consented ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-500'}`}>
+              {icp.apollo_only_consented ? '✓ Consented only' : 'All Apollo leads'}
+            </span>
+            {icp.last_run_at && (
+              <span className="text-xs text-gray-400">
+                Last run {new Date(icp.last_run_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}
               </span>
-              {icp.last_run_at && (
-                <span className="text-xs text-gray-400">
-                  Last run {new Date(icp.last_run_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={() => handleRun(icp.id)}
-              disabled={running === icp.id}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-60"
-            >
-              {running === icp.id
-                ? <><Loader2 className="w-3 h-3 animate-spin" />Finding leads…</>
-                : <><Play className="w-3 h-3" />Run ICP</>
-              }
-            </button>
+            )}
           </div>
-
-          {/* Run result banner */}
-          {runResult?.icpId === icp.id && (
-            <div className="mt-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-green-600 shrink-0" />
-                <p className="text-sm text-green-800">
-                  <strong>{runResult.inserted} new lead{runResult.inserted !== 1 ? 's' : ''}</strong> added
-                  {runResult.skipped > 0 && ` · ${runResult.skipped} skipped (duplicates / opted-out)`}
-                </p>
-              </div>
-              <a href="/dashboard/leads" className="text-xs text-green-700 font-semibold hover:underline whitespace-nowrap ml-4">
-                View leads →
-              </a>
-            </div>
-          )}
         </div>
       ))}
 
@@ -334,6 +320,15 @@ export default function ICPPage() {
       {showForm && (
         <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-6">
           <h3 className="font-semibold text-gray-900">{editingId ? 'Edit ICP' : 'New ICP'}</h3>
+
+          {prefillNotice && (
+            <div className="flex items-start justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+              <p className="text-sm text-blue-800">✨ We pre-filled your ICP from your website — review and adjust as needed.</p>
+              <button onClick={() => setPrefillNotice(false)} className="ml-3 text-blue-400 hover:text-blue-600 transition-colors shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ICP Name *</label>
@@ -364,7 +359,7 @@ export default function ICPPage() {
             <button onClick={handleSave} disabled={saving || !form.name.trim()}
               className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-60">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : null}
-              {saved ? 'Saved!' : saving ? 'Saving…' : 'Save ICP'}
+              {saved ? 'Saved!' : saving ? 'Saving…' : 'Save & Find Leads'}
             </button>
             <button onClick={() => setShowForm(false)}
               className="px-5 py-2.5 border border-gray-200 text-sm font-medium rounded-lg hover:border-gray-400 transition-colors">

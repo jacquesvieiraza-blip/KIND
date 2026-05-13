@@ -6,9 +6,14 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LayoutDashboard, Users, Bot, MessageSquare, CreditCard, Settings, LogOut, Zap, Map, FileText, Coins, BarChart2 } from 'lucide-react'
 
+function RobotIcon({ className }: { className?: string }) {
+  return <span className={className} style={{ fontSize: '1rem', lineHeight: 1 }}>🤖</span>
+}
+
 const NAV_ITEMS = [
   { href: '/dashboard',           label: 'Dashboard',        icon: LayoutDashboard },
   { href: '/dashboard/leads',     label: 'Lead Gen',         icon: Users },
+  { href: '/dashboard/figsy',     label: 'FIGSY',            icon: RobotIcon },
   { href: '/dashboard/usage',     label: 'Usage',            icon: BarChart2 },
   { href: '/dashboard/assistant', label: 'Virtual Assistant',icon: Bot },
   { href: '/dashboard/chatbot',   label: 'Chatbot Agent',    icon: MessageSquare },

@@ -6,10 +6,10 @@ import { api } from '@/lib/api'
 import type { Lead, LeadStats, ICP } from '@kind/shared'
 import { SCORE_THRESHOLDS } from '@kind/shared'
 import {
-  Users, TrendingUp, ShieldCheck, Download, Search, Filter,
-  ChevronDown, Mail, Ban, Sparkles, Loader2, ExternalLink,
-  AlertCircle, CheckCircle, Clock, XCircle, Plus, Settings2,
-  DollarSign,
+  Users, TrendingUp, ShieldCheck, Download, Search,
+  Mail, Ban, Sparkles, Loader2, ExternalLink,
+  CheckCircle, Clock, XCircle, Plus, Settings2,
+  DollarSign, Send,
 } from 'lucide-react'
 
 // ── Score badge ───────────────────────────────────────────────────────────────
@@ -60,6 +60,7 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [emailDraft, setEmailDraft] = useState<{ leadId: string; draft: string } | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('')
@@ -117,6 +118,24 @@ export default function LeadsPage() {
     setActionLoading(null)
   }
 
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  async function sendConsentEmail(leadId: string) {
+    if (!token) return
+    setActionLoading(`consent-${leadId}`)
+    try {
+      await api.post(`/leads/${leadId}/consent`, {}, token)
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: 'consent_sent' as Lead['status'] } : l))
+      showToast('Consent email sent ✓')
+    } catch {
+      showToast('Failed to send — try again', 'error')
+    }
+    setActionLoading(null)
+  }
+
   async function draftEmail(leadId: string) {
     if (!token) return
     setActionLoading(`email-${leadId}`)
@@ -155,6 +174,15 @@ export default function LeadsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all ${
+          toast.type === 'success' ? 'bg-gray-900 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -294,6 +322,19 @@ export default function LeadsPage() {
                       <td className="px-4 py-3">
                         {lead.status !== 'opted_out' && (
                           <div className="flex items-center gap-1">
+                            {(lead.status === 'pending' || lead.status === 'scored') && lead.email && (
+                              <button
+                                onClick={() => sendConsentEmail(lead.id)}
+                                disabled={actionLoading === `consent-${lead.id}`}
+                                title="Send consent email"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-medium transition-colors disabled:opacity-40"
+                              >
+                                {actionLoading === `consent-${lead.id}`
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : <Send className="w-3 h-3" />}
+                                Consent
+                              </button>
+                            )}
                             {lead.status === 'scored' && (
                               <button onClick={() => updateStatus(lead.id, 'consent_sent')}
                                 disabled={actionLoading === `status-${lead.id}`}

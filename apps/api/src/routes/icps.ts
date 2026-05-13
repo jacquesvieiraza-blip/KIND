@@ -121,7 +121,14 @@ async function runIcpJob(
         const { data: { user } } = await db.auth.admin.getUserById(userId)
         const userEmail = user?.email ?? ''
         if (userEmail) {
-          await sendFirstLeadsReadyEmail(userEmail, clientRow.company_name ?? '', inserted)
+          // D4 — include top 5 scored leads inline in the email
+          const { data: topLeads } = await db.from('leads')
+            .select('first_name, last_name, job_title, company, score, linkedin_url')
+            .in('id', insertedIds)
+            .not('score', 'is', null)
+            .order('score', { ascending: false })
+            .limit(5)
+          await sendFirstLeadsReadyEmail(userEmail, clientRow.company_name ?? '', inserted, topLeads ?? [])
         }
       } catch (emailErr) {
         console.error('[icps] first-leads email failed:', emailErr)

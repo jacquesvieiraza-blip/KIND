@@ -21,12 +21,12 @@ This drives retention, word of mouth, and trial → paid conversion. Non-negotia
 
 | # | Task | What it does | Status |
 |---|------|-------------|--------|
-| S1 | **ICP auto-trigger on save** | ICP saved → lead search fires automatically. No manual "Run ICP" button | ⏳ To build |
-| S2 | **AI ICP pre-fill on onboarding** | Claude scrapes client's website → pre-populates ICP fields. Client confirms in < 60s | ⏳ To build |
-| S3 | **Pre-consented contacts first** | Apollo `apollo_only_consented` leads scored and delivered same hour — no consent wait | ⏳ To build |
-| S4 | **"First leads ready" push email** | Auto-notify client the moment first leads land — don't make them log in to discover it | ⏳ To build |
-| S5 | **FIGSY auto-start on lead delivery** | Outreach begins automatically when first consented lead arrives — no manual activation | ⏳ FIGSY Phase 1 |
-| S6 | **TTFL metric on admin dashboard** | Track `signup_at → first scored lead` per client. Target < 2 hours. Flag > 4 hours | ⏳ To build |
+| S1 | **ICP auto-trigger on save** | ICP saved → lead search fires automatically. No manual "Run ICP" button | ✅ Done |
+| S2 | **AI ICP pre-fill on onboarding** | Claude scrapes client's website → pre-populates ICP fields. Client confirms in < 60s | ✅ Done |
+| S3 | **Pre-consented contacts first** | Apollo `apollo_only_consented` leads scored and delivered same hour — no consent wait | ✅ Done |
+| S4 | **"First leads ready" push email** | Auto-notify client the moment first leads land — don't make them log in to discover it | ✅ Done |
+| S5 | **FIGSY auto-start on lead delivery** | Outreach begins automatically when first consented lead arrives — no manual activation | ✅ Done |
+| S6 | **TTFL metric on admin dashboard** | Track `signup_at → first scored lead` per client. Target < 2 hours. Flag > 4 hours | ✅ Done |
 
 ### Client Journey — Target State
 
@@ -62,15 +62,15 @@ This drives retention, word of mouth, and trial → paid conversion. Non-negotia
 | # | Task | Notes | Status |
 |---|------|-------|--------|
 | B1 | **Deploy auth fixes to Railway** | Token verification fixed, `company_name` bug fixed, empty URL fix — code done | ✅ Code done → redeploy |
-| B2 | **Apollo API → ICP builder** | ICP activated → Apollo search → leads stored in DB | ⏳ |
-| B3 | **Lead scoring automation** | Claude auto-scores leads 0–100 on arrival — no manual step | ⏳ |
-| B4 | **POPIA consent email** | "Send consent" fires real Resend email, tracks `consent_sent_at` | ⏳ |
-| B5 | **Usage counter per client** | Count leads delivered this billing period — needed for billing + overages | ⏳ |
-| B6 | **ICP auto-trigger on save** (S1) | No manual Run button — fires on ICP save | ⏳ |
-| B7 | **Pre-consented contacts first** (S3) | Deliver Apollo pre-consented leads in same hour | ⏳ |
-| B8 | **"First leads ready" email** (S4) | Push email to client on first lead delivery | ⏳ |
-| B9 | **AI ICP pre-fill from website** (S2) | Claude scrapes website → suggests ICP fields on onboarding | ⏳ |
-| B10 | **TTFL metric on admin dashboard** (S6) | `signup_at → first lead` per client, flag slow pipelines | ⏳ |
+| B2 | **Apollo API → ICP builder** | ICP activated → Apollo search → leads stored in DB | ✅ Done |
+| B3 | **Lead scoring automation** | Claude auto-scores leads 0–100 on arrival — no manual step | ✅ Done |
+| B4 | **POPIA consent email** | "Send consent" fires real Resend email, tracks `consent_sent_at` | ✅ Done |
+| B5 | **Usage counter per client** | Count leads delivered this billing period — needed for billing + overages | ✅ Done |
+| B6 | **ICP auto-trigger on save** (S1) | No manual Run button — fires on ICP save | ✅ Done |
+| B7 | **Pre-consented contacts first** (S3) | Deliver Apollo pre-consented leads in same hour | ✅ Done |
+| B8 | **"First leads ready" email** (S4) | Push email to client on first lead delivery — now includes top 5 leads inline | ✅ Done |
+| B9 | **AI ICP pre-fill from website** (S2) | Claude scrapes website → suggests ICP fields on onboarding | ✅ Done |
+| B10 | **TTFL metric on admin dashboard** (S6) | `signup_at → first lead` per client, flag slow pipelines | ✅ Done |
 | B11 | **Merge branch to main** | Merges `claude/ai-business-roadmap-U3OWJ` → main → deploys all fixes + website changes to production | ⏳ After smoke test |
 
 ### The Smoke Test — 9 Steps
@@ -221,11 +221,11 @@ Once all above complete, run through in order:
 
 | # | Task | Plan | Notes |
 |---|------|------|-------|
-| D1 | **CRM sync — HubSpot** | Lead Gen + FIGSY | Client pastes HubSpot API key in Settings. Leads push on consent_given. Fields: name, email, title, company, score, LinkedIn |
-| D2 | **CRM sync — Pipedrive** | Lead Gen + FIGSY | Same as D1, Pipedrive API |
-| D3 | **Integrations settings page** | Both | Portal settings tab — paste CRM API key, pick CRM, toggle sync on/off |
-| D4 | **Auto email digest — on first batch** | Both | Extend existing "first leads ready" email to include top 5 leads inline with scores |
-| D5 | **Auto email digest — weekly** | Both | Every Monday: new leads this week, top 10 by score, avg score, pipeline value, link to dashboard |
+| D1 | **CRM sync — HubSpot** | Lead Gen + FIGSY | Client pastes HubSpot API key in Settings. Leads push on consent_given. | ✅ Done |
+| D2 | **CRM sync — Pipedrive** | Lead Gen + FIGSY | Same as D1, Pipedrive API | ✅ Done |
+| D3 | **Integrations settings page** | Both | Portal settings tab — paste CRM API key, pick CRM, test connection, toggle sync | ✅ Done |
+| D4 | **Auto email digest — on first batch** | Both | First leads email now includes top 5 leads inline with scores and pipeline value | ✅ Done |
+| D5 | **Auto email digest — weekly** | Both | Every Monday via `POST /internal/digest/weekly` — top 10 leads, stats, pipeline value | ✅ Done |
 
 ---
 
@@ -250,16 +250,16 @@ FIGSY is a **standalone AI SDR/BDR agent** — sold independently or bundled wit
 
 | # | Task | Notes |
 |---|------|-------|
-| F1-1 | FIGSY portal page (`/dashboard/figsy`) | Entry point, campaign list |
-| F1-2 | Campaign creation | Name, select leads or upload CSV |
-| F1-3 | AI email sequence builder | Claude writes personalised initial + 2 follow-ups per lead |
-| F1-4 | Reply detection | Classify replies: interested / not interested / opt-out / OOO |
-| F1-5 | Opt-out handler | Auto-block, shared with Lead Gen blocklist |
-| F1-6 | Campaign dashboard | Sent, opened, replied, interested, booked |
-| F1-7 | DB tables | `figsy_campaigns`, `figsy_sequences`, `figsy_replies` |
-| F1-8 | API routes | Campaign CRUD, sequence management, reply ingestion |
-| F1-9 | Billing integration | $3/lead Starter, $2/lead Advanced |
-| F1-10 | **FIGSY auto-start on lead delivery (S5)** | Auto-trigger outreach when consented lead hits pipeline — no manual activation |
+| F1-1 | FIGSY portal page (`/dashboard/figsy`) | Entry point, campaign list | ✅ Done |
+| F1-2 | Campaign creation | Name, select leads or upload CSV | ✅ Done |
+| F1-3 | AI email sequence builder | Claude writes personalised initial + 2 follow-ups per lead | ✅ Done |
+| F1-4 | Reply detection | Classify replies: interested / not interested / opt-out / OOO | ✅ Done |
+| F1-5 | Opt-out handler | Auto-block, shared with Lead Gen blocklist | ✅ Done |
+| F1-6 | Campaign dashboard | Sent, replied, reply rate, interested % | ✅ Done |
+| F1-7 | DB tables | `figsy_campaigns`, `figsy_enrollments`, `figsy_sent_emails`, `figsy_replies` | ✅ Done |
+| F1-8 | API routes | Campaign CRUD, enroll, preview sequence, send-due, reply webhook | ✅ Done |
+| F1-9 | Billing integration | $3/lead Starter, $2/lead Advanced | ⏳ Post-launch |
+| F1-10 | **FIGSY auto-start on lead delivery (S5)** | Auto-trigger outreach when consented lead hits pipeline — no manual activation | ✅ Done |
 
 ### FIGSY Phase 2 — Full Automation (June+)
 
@@ -338,16 +338,16 @@ Handles inbound — website visitors and WhatsApp messages. Qualifies leads, ans
 
 | # | Agent | Task | Notes |
 |---|-------|------|-------|
-| INT-1 | AE | Client health dashboard — login recency, ICP built Y/N, leads delivered, trial days left | Admin panel view |
-| INT-2 | AE | At-risk alert engine — flag clients with no activity > 3 days | Email alert to founder |
-| INT-3 | AE | Auto-draft check-in email when client goes cold | Claude drafts, founder approves and sends |
-| INT-4 | AE | Trial expiry sequence — 3 emails at day 10, 12, 14 of trial | Triggered automatically via Resend |
-| INT-5 | CRO | Revenue dashboard — MRR, churn rate, TTFL average, trial conversion % | Admin panel |
-| INT-6 | CRO | Weekly digest — auto-generated summary of key metrics emailed to founder every Monday | Claude writes it, Resend delivers |
-| INT-7 | CRO | Churn prediction — flag clients whose usage is declining before they cancel | ML-lite: score drop + login frequency |
-| INT-8 | CMO | Brand voice config — tone, ICP for K.I.N.D's own clients, messaging pillars | Config file Claude reads |
-| INT-9 | CMO | LinkedIn post generator — weekly content ideas + drafts based on product updates | Claude drafts, founder posts |
-| INT-10 | CMO | Outbound for K.I.N.D — FIGSY runs K.I.N.D's own prospecting | K.I.N.D uses FIGSY to sell FIGSY |
+| INT-1 | AE | Client health dashboard — login recency, ICP built Y/N, leads delivered, trial days left | ✅ Admin dashboard built |
+| INT-2 | AE | At-risk alert engine — flag clients with no activity > 3 days | ✅ `POST /internal/ae/at-risk` — emails founder |
+| INT-3 | AE | Auto-draft check-in email when client goes cold | ✅ `POST /internal/ae/checkin-draft` — Claude drafts |
+| INT-4 | AE | Trial expiry sequence — 3 emails at day 10, 12, 14 of trial | ✅ `POST /internal/ae/trial-expiry` — run daily |
+| INT-5 | CRO | Revenue dashboard — MRR, churn rate, TTFL average, trial conversion % | ✅ `GET /internal/cro/dashboard` |
+| INT-6 | CRO | Weekly digest — auto-generated summary of key metrics emailed to founder every Monday | ✅ `POST /internal/cro/weekly-digest` — Claude writes it |
+| INT-7 | CRO | Churn prediction — flag clients whose usage is declining before they cancel | ✅ `GET /internal/cro/churn-risk` — risk score per client |
+| INT-8 | CMO | Brand voice config — tone, ICP for K.I.N.D's own clients, messaging pillars | ⏳ At FIGSY launch |
+| INT-9 | CMO | LinkedIn post generator — weekly content ideas + drafts based on product updates | ⏳ At FIGSY launch |
+| INT-10 | CMO | Outbound for K.I.N.D — FIGSY runs K.I.N.D's own prospecting | ⏳ At FIGSY launch |
 
 ### The Principle
 K.I.N.D eating its own cooking is the most credible thing you can show a prospect. When they ask "does it work?" the answer is: "We run our entire sales and retention operation on it. Here's our dashboard."
@@ -470,4 +470,4 @@ Speed of execution. The first-mover window in Africa is **18–24 months**. The 
 
 ---
 
-*Last updated: 13 May 2026. Update after every work session.*
+*Last updated: 13 May 2026 (session 2). Update after every work session.*

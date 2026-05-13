@@ -6,7 +6,7 @@ import { StatCard } from '@/components/ui/StatCard'
 import { ProductCard } from '@/components/ui/ProductCard'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
 import { ReferralBanner } from '@/components/ui/ReferralBanner'
-import { Users, Bot, MessageSquare, TrendingUp, Zap, ShieldCheck } from 'lucide-react'
+import { Users, Bot, MessageSquare, TrendingUp, Zap, ShieldCheck, Coins, DollarSign } from 'lucide-react'
 
 type BannerState = 'no_form' | 'awaiting_signature' | 'awaiting_payment' | 'trial' | 'none'
 
@@ -72,23 +72,29 @@ export default async function DashboardPage() {
   }
 
   const { state, trialDaysLeft } = getBannerState(orderForm, subs)
-  const stats = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number } | null
+  const stats   = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number } | null
+  const credits = (client as { credit_balance?: number }).credit_balance ?? 0
+
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Good morning, {(client as { company_name: string }).company_name}</h1>
-        <p className="text-gray-500 text-sm mt-1">Here's what's happening with your AI products today.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{greeting}, {(client as { company_name: string }).company_name}</h1>
+        <p className="text-gray-500 text-sm mt-1">Here's what's happening with your pipeline today.</p>
       </div>
 
       {/* Three-tier onboarding banner */}
       <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard label="Total Leads"     value={stats?.total ?? 0}              icon={<Users className="w-5 h-5" />}       color="blue" />
         <StatCard label="Scored"          value={stats?.scored ?? 0}             icon={<TrendingUp className="w-5 h-5" />}  color="indigo" />
         <StatCard label="POPIA Consented" value={stats?.consented ?? 0}          icon={<ShieldCheck className="w-5 h-5" />} color="green" />
         <StatCard label="Avg Score"       value={stats?.avg_score ?? 0} suffix="/100" icon={<TrendingUp className="w-5 h-5" />} color="purple" />
+        <StatCard label="Credits"         value={credits}                        icon={<Coins className="w-5 h-5" />}       color="yellow" />
+        <StatCard label="Pipeline Value"  value={stats?.pipeline_value_usd ?? 0} prefix="$" icon={<DollarSign className="w-5 h-5" />} color="green" />
       </div>
 
       {/* Referral banner — only show for active/trialing clients */}

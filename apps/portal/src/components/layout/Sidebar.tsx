@@ -4,11 +4,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, Bot, MessageSquare, CreditCard, Settings, LogOut, Zap, Map, FileText, Coins } from 'lucide-react'
+import { LayoutDashboard, Users, Bot, MessageSquare, CreditCard, Settings, LogOut, Zap, Map, FileText, Coins, BarChart2 } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard',           label: 'Dashboard',        icon: LayoutDashboard },
   { href: '/dashboard/leads',     label: 'Lead Gen',         icon: Users },
+  { href: '/dashboard/usage',     label: 'Usage',            icon: BarChart2 },
   { href: '/dashboard/assistant', label: 'Virtual Assistant',icon: Bot },
   { href: '/dashboard/chatbot',   label: 'Chatbot Agent',    icon: MessageSquare },
   { href: '/dashboard/documents', label: 'Documents',        icon: FileText },

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
+import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -42,7 +43,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Sidebar userEmail={user.email || ''} creditBalance={creditBalance} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
         <TrialExpiredOverlay expired={trialExpired} orderFormSigned={orderFormSigned} />
-        {children}
+        <div className="max-w-7xl space-y-4">
+          <LowCreditsNotice balance={creditBalance} />
+          {children}
+        </div>
       </main>
     </div>
   )

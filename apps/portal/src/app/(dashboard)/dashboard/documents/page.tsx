@@ -3,67 +3,57 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { FileText, CheckCircle, Loader2, Shield, ExternalLink, AlertCircle, Lock } from 'lucide-react'
+import { FileText, CheckCircle, Loader2, Shield, ExternalLink, Lock } from 'lucide-react'
 
-interface ProductLine { product: string; tier: string; price_usd: number; billing_interval: string }
-interface OrderForm {
-  id: string
+interface Subscription {
+  product: string
+  tier: string
   status: string
-  products: ProductLine[]
-  total_monthly_usd: number
-  start_date: string | null
-  scope_notes: string | null
-  signed_at: string | null
-  signed_by: string | null
-  sent_at: string | null
+  created_at: string
+  amount_zar: number
 }
 
-function formatProduct(p: ProductLine) {
-  return `${p.product.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} — ${p.tier.charAt(0).toUpperCase() + p.tier.slice(1)} · $${p.price_usd}/${p.billing_interval}`
+const DOCS = [
+  {
+    title:       'Terms of Service',
+    description: 'Governs your use of the K.I.N.D platform, service levels, and acceptable use.',
+    url:         'https://get-kind.com/terms',
+  },
+  {
+    title:       'Privacy Policy',
+    description: 'How K.I.N.D collects, stores, and processes personal data under POPIA.',
+    url:         'https://get-kind.com/privacy',
+  },
+  {
+    title:       'Data Processing Agreement',
+    description: 'POPIA-compliant DPA governing how K.I.N.D processes data on your behalf.',
+    url:         'https://get-kind.com/dpa',
+  },
+]
+
+function productLabel(product: string, tier: string) {
+  const name = product.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  const t    = tier.charAt(0).toUpperCase() + tier.slice(1)
+  return `${name} — ${t}`
 }
 
 export default function DocumentsPage() {
   const supabase = createClient()
-  const [token, setToken]         = useState<string | null>(null)
-  const [orderForm, setOrderForm] = useState<OrderForm | null>(null)
-  const [loading, setLoading]     = useState(true)
-  const [signedBy, setSignedBy]   = useState('')
-  const [agreed, setAgreed]       = useState(false)
-  const [signing, setSigning]     = useState(false)
-  const [signed, setSigned]       = useState(false)
-  const [error, setError]         = useState('')
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [loading, setLoading]             = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { setLoading(false); return }
-      setToken(session.access_token)
       try {
-        const res = await api.get<{ data: { order_form: OrderForm | null } }>('/order-forms/me', session.access_token)
-        setOrderForm(res.data.order_form)
-        if (res.data.order_form?.status === 'signed') setSigned(true)
+        const res = await api.get<{ data: { subscriptions: Subscription[] } }>('/clients/me', session.access_token)
+        setSubscriptions((res.data as any).subscriptions ?? [])
       } catch { }
       setLoading(false)
     })
   }, [])
 
-  async function handleSign() {
-    if (!token || !orderForm) return
-    if (!signedBy.trim() || signedBy.trim().split(' ').length < 2) {
-      setError('Please enter your full name (first and last name).')
-      return
-    }
-    if (!agreed) { setError('Please tick the checkbox to confirm your agreement.'); return }
-    setError('')
-    setSigning(true)
-    try {
-      await api.post(`/order-forms/${orderForm.id}/sign`, { signed_by: signedBy.trim() }, token)
-      setOrderForm(prev => prev ? { ...prev, status: 'signed', signed_by: signedBy.trim(), signed_at: new Date().toISOString() } : prev)
-      setSigned(true)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to sign. Please try again.')
-    }
-    setSigning(false)
-  }
+  const activeSub = subscriptions.find(s => s.status === 'active' || s.status === 'trialing')
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -71,163 +61,82 @@ export default function DocumentsPage() {
     </div>
   )
 
-  // No order form sent yet
-  if (!orderForm) return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-        <p className="text-gray-500 text-sm mt-1">Your agreements and service documents.</p>
-      </div>
-      <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-        <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="font-medium text-gray-700 mb-1">No documents yet</p>
-        <p className="text-sm text-gray-400">Your Order Form will appear here once your account manager has sent it.</p>
-      </div>
-    </div>
-  )
-
-  const isSigned = signed || orderForm.status === 'signed'
-
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-        <p className="text-gray-500 text-sm mt-1">Review and sign your Service Agreement.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Documents & Agreements</h1>
+        <p className="text-gray-500 text-sm mt-1">Your legal agreements with K.I.N.D.</p>
       </div>
 
-      {/* Signed confirmation banner */}
-      {isSigned && (
+      {/* Acceptance record */}
+      {activeSub ? (
         <div className="bg-green-50 border border-green-200 rounded-xl p-5 flex items-start gap-3">
           <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
           <div>
-            <p className="font-semibold text-green-800">Agreement signed</p>
-            <p className="text-green-700 text-sm mt-0.5">
-              Signed by <strong>{orderForm.signed_by}</strong> on {orderForm.signed_at ? new Date(orderForm.signed_at).toLocaleDateString('en-ZA', { dateStyle: 'long' }) : '—'}.
-              This agreement is legally binding under the Electronic Communications and Transactions Act (ECTA).
+            <p className="font-semibold text-green-800">Agreement on record</p>
+            <p className="text-green-700 text-sm mt-1 leading-relaxed">
+              By completing your{' '}
+              <strong>{productLabel(activeSub.product, activeSub.tier)}</strong>{' '}
+              purchase on{' '}
+              <strong>{new Date(activeSub.created_at).toLocaleDateString('en-ZA', { dateStyle: 'long' })}</strong>,
+              you accepted K.I.N.D's Terms of Service, Privacy Policy, and Data Processing Agreement.
+              This constitutes a legally binding electronic agreement under the Electronic Communications
+              and Transactions Act (ECTA), No. 25 of 2002.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex items-start gap-3">
+          <Shield className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-blue-800">No purchase yet</p>
+            <p className="text-blue-700 text-sm mt-1 leading-relaxed">
+              Your acceptance of K.I.N.D's terms will be recorded automatically when you
+              complete your first purchase on the Billing page. No manual signing required.
             </p>
           </div>
         </div>
       )}
 
-      {/* Order form card */}
+      {/* Legal documents */}
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-gray-900">KIND Service Order Form</h2>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {isSigned ? `Signed ${orderForm.signed_at ? new Date(orderForm.signed_at).toLocaleDateString('en-ZA') : ''}` : 'Awaiting your signature'}
-              </p>
-            </div>
-          </div>
-          {isSigned
-            ? <span className="flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-3 py-1.5 rounded-full"><CheckCircle className="w-3.5 h-3.5" />Signed</span>
-            : <span className="flex items-center gap-1.5 text-xs font-medium text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full"><AlertCircle className="w-3.5 h-3.5" />Signature required</span>
-          }
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900">Legal documents</h2>
+          <p className="text-xs text-gray-400 mt-0.5">These documents govern your relationship with K.I.N.D.</p>
         </div>
-
-        {/* Order summary */}
-        <div className="px-6 py-5 space-y-4">
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Services Ordered</p>
-            <div className="space-y-2">
-              {(orderForm.products || []).map((p, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-700">{formatProduct(p)}</span>
-                  <span className="font-medium text-gray-900">${p.price_usd}/mo</span>
+        <div className="divide-y divide-gray-100">
+          {DOCS.map(doc => (
+            <div key={doc.title} className="px-6 py-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-blue-600" />
                 </div>
-              ))}
-              <div className="flex items-center justify-between text-sm font-semibold pt-2 border-t border-gray-100 mt-2">
-                <span className="text-gray-900">Total Monthly</span>
-                <span className="text-gray-900">${orderForm.total_monthly_usd}/mo</span>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">{doc.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{doc.description}</p>
+                </div>
               </div>
+              <a
+                href={doc.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-[#0066FF] hover:underline font-medium shrink-0">
+                <ExternalLink className="w-3.5 h-3.5" />Read
+              </a>
             </div>
-          </div>
-
-          {orderForm.start_date && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Service Start Date</p>
-              <p className="text-sm text-gray-700">{new Date(orderForm.start_date).toLocaleDateString('en-ZA', { dateStyle: 'long' })}</p>
-            </div>
-          )}
-
-          {orderForm.scope_notes && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Scope Notes</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{orderForm.scope_notes}</p>
-            </div>
-          )}
-
-          {/* Terms of Service link */}
-          <div className="border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between">
-            <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <Shield className="w-4 h-4 text-blue-500" />
-              K.I.N.D Terms of Service
-            </span>
-            <a href="https://get-kind.com/terms" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-medium shrink-0 ml-4">
-              <ExternalLink className="w-3.5 h-3.5" />Read Terms
-            </a>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Signature section */}
-        {!isSigned && (
-          <div className="px-6 py-5 bg-gray-50 border-t border-gray-100 space-y-4">
-            <div className="flex items-start gap-2">
-              <Lock className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-gray-500">
-                This is a legally binding electronic signature under the Electronic Communications and Transactions Act (ECTA), No. 25 of 2002.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Your full name *</label>
-              <input
-                type="text"
-                value={signedBy}
-                onChange={e => setSignedBy(e.target.value)}
-                placeholder="Type your full name to sign"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-              />
-            </div>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={e => setAgreed(e.target.checked)}
-                className="mt-0.5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-              />
-              <span className="text-sm text-gray-600">
-                I have read and agree to the{' '}
-                <a href="https://get-kind.com/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">K.I.N.D Terms of Service</a>
-                {' '}and the details set out in this Order Form. I confirm I am authorised to sign on behalf of my organisation.
-              </span>
-            </label>
-
-            {error && (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />{error}
-              </div>
-            )}
-
-            <button
-              onClick={handleSign}
-              disabled={signing || !signedBy.trim() || !agreed}
-              className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center">
-              {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-              {signing ? 'Signing…' : 'Sign Order Form'}
-            </button>
-
-            <p className="text-xs text-gray-400 text-center">
-              Your IP address and timestamp will be recorded. Questions? Email <a href="mailto:hello@get-kind.com" className="text-brand-500 hover:underline">hello@get-kind.com</a>
-            </p>
-          </div>
-        )}
+      {/* Legal note */}
+      <div className="flex items-start gap-2 text-xs text-gray-400">
+        <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+        <p>
+          Electronic acceptance via payment is legally equivalent to a handwritten signature under
+          ECTA No. 25 of 2002. Your IP address and payment timestamp are recorded as proof of acceptance.
+          Questions? Email{' '}
+          <a href="mailto:hello@get-kind.com" className="text-[#0066FF] hover:underline">hello@get-kind.com</a>.
+        </p>
       </div>
     </div>
   )

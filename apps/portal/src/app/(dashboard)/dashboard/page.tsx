@@ -8,9 +8,9 @@ import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
 import { ReferralBanner } from '@/components/ui/ReferralBanner'
 import { Users, Bot, MessageSquare, TrendingUp, Zap, ShieldCheck, Coins, DollarSign } from 'lucide-react'
 
-type BannerState = 'no_form' | 'awaiting_signature' | 'awaiting_payment' | 'trial' | 'none'
+type BannerState = 'awaiting_payment' | 'trial' | 'none'
 
-function getBannerState(orderForm: Record<string, unknown> | null, subscriptions: Record<string, unknown>[]): { state: BannerState; trialDaysLeft?: number } {
+function getBannerState(subscriptions: Record<string, unknown>[]): { state: BannerState; trialDaysLeft?: number } {
   const active   = subscriptions.some(s => s.status === 'active')
   const trialing = subscriptions.find(s => s.status === 'trialing')
 
@@ -18,21 +18,12 @@ function getBannerState(orderForm: Record<string, unknown> | null, subscriptions
 
   if (trialing && trialing.trial_ends_at) {
     const daysLeft = Math.ceil((new Date(trialing.trial_ends_at as string).getTime() - Date.now()) / 86400000)
-    const clamped  = Math.max(0, daysLeft)
-
-    // Order form must be signed during (and after) trial
-    if (!orderForm || orderForm.status !== 'signed') {
-      return { state: 'awaiting_signature', trialDaysLeft: clamped }
-    }
     if (daysLeft <= 0) return { state: 'awaiting_payment' }
-    return { state: 'trial', trialDaysLeft: clamped }
+    return { state: 'trial', trialDaysLeft: Math.max(0, daysLeft) }
   }
 
-  if (!orderForm) return { state: 'no_form' }
-  if (orderForm.status === 'sent')   return { state: 'awaiting_signature' }
-  if (orderForm.status === 'signed') return { state: 'awaiting_payment' }
-
-  return { state: 'no_form' }
+  if (subscriptions.length === 0) return { state: 'none' }
+  return { state: 'awaiting_payment' }
 }
 
 export default async function DashboardPage() {
@@ -41,19 +32,16 @@ export default async function DashboardPage() {
 
   let client      = null
   let leadStats   = null
-  let orderForm   = null
   let subs: Record<string, unknown>[] = []
 
   if (session) {
     try {
-      const [clientRes, statsRes, docsRes] = await Promise.all([
+      const [clientRes, statsRes] = await Promise.all([
         api.get<{ data: Record<string, unknown> }>('/clients/me', session.access_token),
         api.get<{ data: Record<string, unknown> }>('/leads/stats', session.access_token).catch(() => ({ data: null })),
-        api.get<{ data: { order_form: Record<string, unknown> | null } }>('/order-forms/me', session.access_token).catch(() => ({ data: { order_form: null } })),
       ])
       client    = clientRes.data
       leadStats = statsRes.data
-      orderForm = docsRes.data.order_form
       subs      = (client?.subscriptions as Record<string, unknown>[]) || []
     } catch { }
   }
@@ -71,7 +59,7 @@ export default async function DashboardPage() {
     )
   }
 
-  const { state, trialDaysLeft } = getBannerState(orderForm, subs)
+  const { state, trialDaysLeft } = getBannerState(subs)
   const stats   = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number } | null
   const credits = (client as { credit_balance?: number }).credit_balance ?? 0
 

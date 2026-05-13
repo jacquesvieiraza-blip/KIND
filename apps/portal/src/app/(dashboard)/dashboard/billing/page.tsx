@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { Coins, Zap, TrendingUp, Loader2, Check, ChevronDown } from 'lucide-react'
+import { Coins, Zap, TrendingUp, Loader2, Check, ChevronDown, Shield } from 'lucide-react'
 
 interface CreditTransaction {
   id: string
@@ -18,7 +18,7 @@ const KIND_AI_BUNDLES  = [{ size: 20, price: 20 }, { size: 40, price: 40 }, { si
 const FIGSY_BUNDLES    = [{ size: 20, price: 60 }, { size: 40, price: 120 }, { size: 100, price: 300 }]
 
 function BundleCard({
-  plan, label, tagline, bundles, accentClass, bgClass, initiating, onBuy,
+  plan, label, tagline, bundles, accentClass, bgClass, initiating, termsAccepted, onBuy,
 }: {
   plan: 'kind_ai' | 'figsy'
   label: string
@@ -27,6 +27,7 @@ function BundleCard({
   accentClass: string
   bgClass: string
   initiating: string | null
+  termsAccepted: boolean
   onBuy: (plan: 'kind_ai' | 'figsy', size: number) => void
 }) {
   const [selected, setSelected] = useState(bundles[0].size)
@@ -72,8 +73,9 @@ function BundleCard({
 
         <button
           onClick={() => onBuy(plan, selected)}
-          disabled={initiating === key}
-          className={`w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-60 ${accentClass}`}>
+          disabled={initiating === key || !termsAccepted}
+          title={!termsAccepted ? 'Please accept the terms below before purchasing' : undefined}
+          className={`w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${accentClass}`}>
           {initiating === key
             ? <Loader2 className="w-4 h-4 animate-spin" />
             : <Coins className="w-4 h-4" />}
@@ -94,6 +96,7 @@ export default function BillingPage() {
   const [transactions, setTransactions] = useState<CreditTransaction[]>([])
   const [loading, setLoading]           = useState(true)
   const [initiating, setInitiating]     = useState<string | null>(null)
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -164,6 +167,35 @@ export default function BillingPage() {
         ))}
       </div>
 
+      {/* Terms acceptance — must tick before any purchase */}
+      <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
+        <label className="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={e => setTermsAccepted(e.target.checked)}
+            className="mt-0.5 rounded border-gray-300 text-brand-500 focus:ring-brand-500 shrink-0"
+          />
+          <span className="text-sm text-gray-700 leading-relaxed">
+            I have read and agree to the{' '}
+            <a href="https://get-kind.com/terms" target="_blank" rel="noopener noreferrer"
+               className="text-[#0066FF] hover:underline font-medium">Terms of Service</a>
+            {' '}and{' '}
+            <a href="https://get-kind.com/privacy" target="_blank" rel="noopener noreferrer"
+               className="text-[#0066FF] hover:underline font-medium">Privacy Policy</a>.
+            By completing a purchase I confirm I am authorised to act on behalf of my organisation.
+            My acceptance will be recorded with a timestamp and is legally binding under the Electronic
+            Communications and Transactions Act (ECTA), No. 25 of 2002.
+          </span>
+        </label>
+        {termsAccepted && (
+          <div className="flex items-center gap-1.5 mt-3 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2">
+            <Shield className="w-3.5 h-3.5 shrink-0" />
+            Terms accepted — you can now complete your purchase.
+          </div>
+        )}
+      </div>
+
       {/* Bundle cards */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Top up credits</h2>
@@ -176,6 +208,7 @@ export default function BillingPage() {
             bgClass="bg-[#0066FF]"
             accentClass="bg-brand-500 hover:bg-brand-600 text-white"
             initiating={initiating}
+            termsAccepted={termsAccepted}
             onBuy={handleBuy}
           />
           <BundleCard
@@ -186,6 +219,7 @@ export default function BillingPage() {
             bgClass="bg-[#001f4d]"
             accentClass="bg-[#001f4d] hover:bg-[#002a6e] text-white"
             initiating={initiating}
+            termsAccepted={termsAccepted}
             onBuy={handleBuy}
           />
         </div>

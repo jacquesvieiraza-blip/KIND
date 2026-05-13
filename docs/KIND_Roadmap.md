@@ -57,6 +57,8 @@ This drives retention, word of mouth, and trial → paid conversion. Non-negotia
 | C4 | Set Paystack webhook URL to Railway API | Paystack → Settings → Webhooks | ⏳ |
 | C5 | Confirm all Railway env vars present | Railway → Variables | ⏳ |
 
+> **Note:** Document signing removed from client flow. Payment = legal acceptance under ECTA. Terms acceptance checkbox on billing page. Documents page shows acceptance record. No PDF uploads required.
+
 ### Code — Build Tasks
 
 | # | Task | Notes | Status |

@@ -129,7 +129,17 @@ export default function LeadsPage() {
 
   async function exportCSV() {
     if (!token) return
-    window.open(`${process.env.NEXT_PUBLIC_API_URL}/leads/export/csv?token=${token}`, '_blank')
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leads/export/csv`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href = url; a.download = 'kind-leads.csv'; a.click()
+      URL.revokeObjectURL(url)
+    } catch { }
   }
 
   const filteredLeads = leads.filter(l =>

@@ -5,12 +5,14 @@ import { sendWelcomeEmail } from '../lib/email'
 
 export const authRouter = Router()
 
+const emptyToUndefined = z.string().transform(v => v === '' ? undefined : v)
+
 const onboardSchema = z.object({
   company_name: z.string().min(2),
-  industry:     z.string().optional(),
+  industry:     emptyToUndefined.optional(),
   country:      z.string().min(2),
-  website:      z.string().url().optional(),
-  phone:        z.string().optional(),
+  website:      emptyToUndefined.pipe(z.string().url().optional()),
+  phone:        emptyToUndefined.optional(),
   referred_by:  z.string().uuid().optional(),
 })
 
@@ -18,9 +20,7 @@ authRouter.post('/onboard', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '')
     if (!token) { res.status(401).json({ success: false, error: 'Missing token' }); return }
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    const { data: { user }, error: authError } = await db.auth.getUser(token)
     if (authError || !user) { res.status(401).json({ success: false, error: 'Invalid token' }); return }
     const { referred_by, ...profileFields } = onboardSchema.parse(req.body)
 
@@ -55,7 +55,7 @@ authRouter.post('/onboard', async (req, res) => {
       sent_at:            new Date().toISOString(),
       created_by_email:   'system',
     }, { onConflict: 'client_id' })
-    sendWelcomeEmail(user.email!, body.company_name).catch(() => {})
+    sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})
     res.json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

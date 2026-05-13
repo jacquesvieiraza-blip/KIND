@@ -40,10 +40,8 @@ creditRouter.post('/topup', async (req: AuthRequest, res) => {
       .select('id').eq('user_id', req.userId!).single()
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
     const token = req.headers.authorization?.replace('Bearer ', '') || ''
-    const { data: { user } } = await supabase.auth.getUser(token)
+    const { data: { user } } = await db.auth.getUser(token)
 
     const amountUsd = BUNDLES[plan][bundle_size]
     const amountZarKobo = amountUsd * 19 * 100

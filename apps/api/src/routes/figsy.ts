@@ -212,13 +212,30 @@ figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // Domain warming cap — FIGSY_DAILY_SEND_LIMIT env var limits total sends per day across all clients
+    const dailyLimit = process.env.FIGSY_DAILY_SEND_LIMIT ? parseInt(process.env.FIGSY_DAILY_SEND_LIMIT, 10) : null
+    let remaining = 20 // default batch size
+    if (dailyLimit !== null && !isNaN(dailyLimit)) {
+      const todayUTC = new Date()
+      todayUTC.setUTCHours(0, 0, 0, 0)
+      const { count } = await db.from('figsy_sent_emails')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', todayUTC.toISOString())
+      const sentToday = count ?? 0
+      remaining = Math.max(0, dailyLimit - sentToday)
+      if (remaining === 0) {
+        res.json({ success: true, data: { sent: 0, capped: true, daily_limit: dailyLimit } })
+        return
+      }
+    }
+
     const now = new Date().toISOString()
     const { data: due } = await db.from('figsy_enrollments')
       .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
       .eq('client_id', clientId)
       .in('status', ['enrolled', 'in_progress'])
       .lte('next_send_at', now)
-      .limit(20)
+      .limit(remaining)
 
     let sent = 0
     for (const enrollment of due ?? []) {
@@ -237,7 +254,7 @@ figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
       }
     }
 
-    res.json({ success: true, data: { sent } })
+    res.json({ success: true, data: { sent, ...(dailyLimit !== null ? { daily_limit: dailyLimit } : {}) } })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to send due emails' }) }
 })
 

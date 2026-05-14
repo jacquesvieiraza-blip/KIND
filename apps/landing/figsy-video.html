@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FIGSY — AI Lead Gen Agent by K.I.N.D</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #1a0533;
+    overflow: hidden;
+  }
+
+  #stage {
+    width: 100%; height: 100%;
+    position: relative; overflow: hidden;
+  }
+
+  /* ── SCENE BASE ── */
+  .scene {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.7s ease;
+  }
+  .scene.active { opacity: 1; pointer-events: auto; }
+
+  /* ── SHARED BG ── */
+  .bg-warm {
+    background: linear-gradient(135deg, #2d1454 0%, #4a1a6e 40%, #7c3aed 100%);
+  }
+  .bg-dark {
+    background: linear-gradient(135deg, #0a0015 0%, #1a0533 60%, #2d0a52 100%);
+  }
+  .bg-glow {
+    background: linear-gradient(135deg, #3b0d6e 0%, #6d28d9 50%, #a855f7 100%);
+  }
+  .bg-pink {
+    background: linear-gradient(135deg, #4a0d6e 0%, #7c3aed 40%, #c026d3 100%);
+  }
+  .bg-soft {
+    background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #a78bfa 100%);
+  }
+
+  /* ambient orb */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: orbFloat 6s ease-in-out infinite;
+  }
+  @keyframes orbFloat {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-20px) scale(1.05); }
+  }
+
+  /* ── FIGSY AVATAR ── */
+  .figsy-avatar {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a855f7, #7c3aed, #ec4899);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem;
+    position: relative;
+    box-shadow: 0 0 60px rgba(168,85,247,0.6), 0 0 120px rgba(168,85,247,0.3);
+    animation: avatarPulse 3s ease-in-out infinite;
+  }
+  .figsy-avatar::after {
+    content: '';
+    position: absolute; inset: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(168,85,247,0.4);
+    animation: ringExpand 3s ease-in-out infinite;
+  }
+  @keyframes avatarPulse {
+    0%, 100% { box-shadow: 0 0 60px rgba(168,85,247,0.6), 0 0 120px rgba(168,85,247,0.3); }
+    50% { box-shadow: 0 0 80px rgba(168,85,247,0.8), 0 0 160px rgba(168,85,247,0.4); }
+  }
+  @keyframes ringExpand {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.1); opacity: 0.3; }
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .headline {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    text-align: center;
+  }
+  .headline em {
+    font-style: normal;
+    background: linear-gradient(90deg, #e879f9, #a855f7, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .sub {
+    font-size: clamp(0.9rem, 2vw, 1.15rem);
+    color: rgba(255,255,255,0.55);
+    text-align: center;
+    margin-top: 16px;
+    line-height: 1.6;
+    max-width: 500px;
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(168,85,247,0.2);
+    border: 1px solid rgba(168,85,247,0.4);
+    color: #c084fc;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  /* ── UI CARDS ── */
+  .ui-card {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 20px;
+    color: #fff;
+  }
+
+  /* ── SCENE 1 — Pipeline isn't filling ── */
+  #s1 { flex-direction: column; }
+  .dashboard-float {
+    position: absolute; right: 8%; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    animation: floatRight 4s ease-in-out infinite;
+  }
+  @keyframes floatRight {
+    0%, 100% { transform: translateY(-50%) translateX(0); }
+    50% { transform: translateY(-52%) translateX(-8px); }
+  }
+  .dash-chip {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 12px 18px;
+    display: flex; align-items: center; gap: 12px;
+    min-width: 200px;
+  }
+  .dash-chip-icon { font-size: 1.1rem; }
+  .dash-chip-label { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+  .dash-chip-val { font-size: 1rem; font-weight: 700; color: #fff; margin-left: auto; }
+  .dash-chip-val.red { color: #f87171; }
+  .chart-mini {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 14px 18px;
+    min-width: 200px;
+  }
+  .chart-bar-row { display: flex; align-items: flex-end; gap: 6px; height: 48px; margin-top: 8px; }
+  .chart-bar {
+    flex: 1; background: rgba(248,113,113,0.6);
+    border-radius: 4px 4px 0 0;
+    animation: barDrop 2s ease-in-out infinite;
+  }
+  @keyframes barDrop {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* ── SCENE 2 — Meet FIGSY ── */
+  #s2 { flex-direction: column; gap: 32px; }
+  .meet-badge {
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    background: linear-gradient(90deg, #f0abfc, #a855f7, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .sparkle {
+    position: absolute;
+    font-size: 1.5rem;
+    animation: sparklePop 3s ease-in-out infinite;
+  }
+  @keyframes sparklePop {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.7; }
+    50% { transform: scale(1.3) rotate(20deg); opacity: 1; }
+  }
+
+  /* ── SCENE 3 — Finds the right people ── */
+  #s3 { gap: 48px; align-items: center; }
+  .lead-cards { display: flex; flex-direction: column; gap: 10px; }
+  .lead-card {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+    min-width: 280px;
+    animation: slideInRight 0.6s ease both;
+  }
+  .lead-card:nth-child(1) { animation-delay: 0.2s; }
+  .lead-card:nth-child(2) { animation-delay: 0.5s; }
+  .lead-card:nth-child(3) { animation-delay: 0.8s; }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .lead-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .lead-name { font-size: 0.85rem; font-weight: 700; color: #fff; }
+  .lead-role { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .score-pill {
+    margin-left: auto;
+    font-size: 0.7rem; font-weight: 800;
+    padding: 4px 10px; border-radius: 100px;
+    background: rgba(74,222,128,0.2); color: #4ade80;
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+  .search-bar {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50px; padding: 12px 20px;
+    display: flex; align-items: center; gap: 10px;
+    color: rgba(255,255,255,0.5); font-size: 0.85rem;
+    min-width: 280px; margin-bottom: 6px;
+  }
+
+  /* ── SCENE 4 — Writes emails ── */
+  #s4 { gap: 48px; }
+  .email-preview {
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 16px;
+    padding: 20px;
+    min-width: 300px; max-width: 340px;
+  }
+  .email-to { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+  .email-subject { font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 12px; }
+  .email-body { font-size: 0.75rem; color: rgba(255,255,255,0.6); line-height: 1.6; }
+  .email-tags { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+  .email-tag {
+    font-size: 0.65rem; font-weight: 700; padding: 3px 10px;
+    border-radius: 100px;
+  }
+  .et-purple { background: rgba(168,85,247,0.2); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+  .et-green  { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+  .et-blue   { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.2); }
+  .type-cursor {
+    display: inline-block; width: 2px; height: 0.85em;
+    background: #a855f7; margin-left: 2px; vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* ── SCENE 5 — Follows up ── */
+  #s5 { gap: 48px; }
+  .sequence-timeline { display: flex; flex-direction: column; gap: 0; min-width: 300px; }
+  .seq-item {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 0; position: relative;
+  }
+  .seq-item::after {
+    content: '';
+    position: absolute; left: 17px; top: 100%; width: 2px; height: 100%;
+    background: rgba(168,85,247,0.3);
+  }
+  .seq-item:last-child::after { display: none; }
+  .seq-dot {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+  }
+  .seq-dot.sent { background: rgba(168,85,247,0.3); border: 2px solid #a855f7; }
+  .seq-dot.pending { background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.15); }
+  .seq-label { font-size: 0.85rem; font-weight: 600; color: #fff; }
+  .seq-day { font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .seq-status { margin-left: auto; }
+  .chat-bubble {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 16px 16px 16px 4px;
+    padding: 12px 16px;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.5;
+    max-width: 240px;
+    margin-bottom: 8px;
+    animation: bubbleIn 0.5s ease both;
+  }
+  .chat-bubble.mine {
+    background: rgba(168,85,247,0.25);
+    border-color: rgba(168,85,247,0.4);
+    border-radius: 16px 16px 4px 16px;
+    align-self: flex-end;
+    color: #fff;
+  }
+  @keyframes bubbleIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .chat-wrap { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── SCENE 6 — Engages leads ── */
+  #s6 { flex-direction: column; }
+  .globe-wrap {
+    position: absolute; right: 10%; top: 50%; transform: translateY(-50%);
+    width: 260px; height: 260px;
+  }
+  .globe-circle {
+    width: 220px; height: 220px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, rgba(168,85,247,0.4), rgba(109,40,217,0.2));
+    border: 2px solid rgba(168,85,247,0.3);
+    position: absolute; top: 20px; left: 20px;
+    animation: globeRotate 8s linear infinite;
+    overflow: hidden;
+  }
+  .globe-line {
+    position: absolute; width: 100%; height: 1px;
+    background: rgba(168,85,247,0.2);
+    top: 50%;
+  }
+  .globe-line2 {
+    position: absolute; height: 100%; width: 1px;
+    background: rgba(168,85,247,0.2);
+    left: 50%;
+  }
+  @keyframes globeRotate {
+    from { box-shadow: 0 0 40px rgba(168,85,247,0.4); }
+    50% { box-shadow: 0 0 80px rgba(168,85,247,0.6); }
+    to { box-shadow: 0 0 40px rgba(168,85,247,0.4); }
+  }
+  .globe-person {
+    position: absolute;
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    border: 2px solid rgba(168,85,247,0.5);
+    animation: personPop 4s ease-in-out infinite;
+  }
+  @keyframes personPop {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  .globe-chat {
+    position: absolute;
+    background: rgba(168,85,247,0.3);
+    border: 1px solid rgba(168,85,247,0.5);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.65rem;
+    color: #fff;
+    white-space: nowrap;
+    animation: chatPopIn 3s ease-in-out infinite;
+  }
+  @keyframes chatPopIn {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
+  }
+
+  /* ── SCENE 7 — Books meetings ── */
+  #s7 { gap: 48px; }
+  .calendar-card {
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 18px; padding: 20px;
+    min-width: 280px;
+  }
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .cal-month { font-size: 0.85rem; font-weight: 700; color: #fff; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day {
+    aspect-ratio: 1; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; color: rgba(255,255,255,0.4);
+  }
+  .cal-day.booked {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: #fff; font-weight: 700;
+    animation: bookPop 0.4s ease 0.5s both;
+  }
+  .cal-day.today { color: rgba(255,255,255,0.8); font-weight: 600; }
+  @keyframes bookPop {
+    from { transform: scale(0); }
+    to   { transform: scale(1); }
+  }
+  .meeting-chip {
+    margin-top: 12px;
+    background: rgba(168,85,247,0.2);
+    border: 1px solid rgba(168,85,247,0.4);
+    border-radius: 10px; padding: 10px 14px;
+    font-size: 0.78rem; color: #c084fc;
+    display: flex; align-items: center; gap: 8px;
+    animation: chipSlide 0.5s ease 1s both;
+  }
+  @keyframes chipSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SCENE 8 — Pipeline full ── */
+  #s8 { gap: 48px; }
+  .pipeline-card {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 18px; padding: 24px;
+    min-width: 280px;
+  }
+  .pipeline-label { font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .pipeline-val { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 900; color: #fff; letter-spacing: -0.03em; }
+  .pipeline-delta { font-size: 0.8rem; color: #4ade80; font-weight: 600; margin-top: 4px; }
+  .chart-area { margin-top: 20px; display: flex; align-items: flex-end; gap: 6px; height: 80px; }
+  .chart-col {
+    flex: 1; background: linear-gradient(180deg, rgba(168,85,247,0.8), rgba(109,40,217,0.4));
+    border-radius: 6px 6px 0 0;
+    animation: growUp 1s ease both;
+  }
+  @keyframes growUp {
+    from { transform: scaleY(0); transform-origin: bottom; }
+    to   { transform: scaleY(1); transform-origin: bottom; }
+  }
+
+  /* ── SCENE 9 — 24/7 ── */
+  #s9 { flex-direction: column; }
+  .clock-wrap {
+    position: absolute; right: 12%; top: 50%; transform: translateY(-50%);
+    width: 200px; height: 200px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .clock-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 3px solid rgba(168,85,247,0.3);
+  }
+  .clock-ring-fill {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #a855f7;
+    border-right-color: #a855f7;
+    animation: clockSpin 3s linear infinite;
+  }
+  @keyframes clockSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .clock-inner {
+    font-size: 2.5rem; font-weight: 900; color: #fff;
+    background: linear-gradient(135deg, #f0abfc, #a855f7);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .icon-orbit {
+    position: absolute;
+    animation: orbit 6s linear infinite;
+    transform-origin: 100px 100px;
+  }
+  .icon-orbit-2 { animation-delay: -2s; }
+  .icon-orbit-3 { animation-delay: -4s; }
+  @keyframes orbit {
+    from { transform: rotate(0deg) translateX(80px) rotate(0deg); }
+    to   { transform: rotate(360deg) translateX(80px) rotate(-360deg); }
+  }
+  .orbit-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(168,85,247,0.3);
+    border: 1px solid rgba(168,85,247,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  /* ── SCENE 10 — Features ── */
+  #s10 { gap: 48px; flex-direction: column; }
+  .features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 480px; }
+  .feature-chip {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    animation: featureIn 0.4s ease both;
+  }
+  .feature-chip:nth-child(1) { animation-delay: 0.1s; }
+  .feature-chip:nth-child(2) { animation-delay: 0.2s; }
+  .feature-chip:nth-child(3) { animation-delay: 0.3s; }
+  .feature-chip:nth-child(4) { animation-delay: 0.4s; }
+  .feature-chip:nth-child(5) { animation-delay: 0.5s; }
+  .feature-chip:nth-child(6) { animation-delay: 0.6s; }
+  @keyframes featureIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .feature-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .feature-name { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.85); }
+
+  /* ── SCENE 11 — Brand card ── */
+  #s11 { flex-direction: column; align-items: center; }
+  .brand-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 28px; padding: 40px 56px;
+    text-align: center; max-width: 520px; width: 100%;
+    position: relative; overflow: hidden;
+  }
+  .brand-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(168,85,247,0.2), transparent 60%);
+    pointer-events: none;
+  }
+  .brand-figsy {
+    font-size: clamp(3rem, 8vw, 5rem);
+    font-weight: 900; letter-spacing: -0.04em;
+    background: linear-gradient(90deg, #f0abfc 0%, #c084fc 40%, #818cf8 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .brand-kind {
+    font-size: 0.78rem; color: rgba(255,255,255,0.35);
+    font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .brand-tagline {
+    margin-top: 20px;
+    font-size: 1rem; color: rgba(255,255,255,0.7);
+    line-height: 1.5;
+  }
+  .brand-heart { color: #a855f7; }
+  .cta-btn {
+    display: inline-block; margin-top: 24px;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: #fff; font-size: 0.88rem; font-weight: 700;
+    padding: 14px 32px; border-radius: 50px;
+    text-decoration: none; letter-spacing: 0.02em;
+    box-shadow: 0 8px 30px rgba(124,58,237,0.5);
+  }
+
+  /* ── SCENE 12 — You close the deals ── */
+  #s12 { flex-direction: column; }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 3px;
+    background: rgba(255,255,255,0.08);
+    z-index: 100;
+  }
+  #progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #a855f7, #ec4899);
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  /* ── SCENE NAV DOTS ── */
+  #nav-dots {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 100;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    cursor: pointer; transition: all 0.3s;
+  }
+  .dot.active { background: #a855f7; width: 20px; border-radius: 3px; }
+
+  /* ── BRANDING WATERMARK ── */
+  .watermark {
+    position: fixed; top: 20px; left: 24px; z-index: 100;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .wm-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: rgba(168,85,247,0.3);
+    border: 1px solid rgba(168,85,247,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 900; color: #fff;
+  }
+  .wm-text { font-size: 0.78rem; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 0.08em; }
+
+  /* ── REPLAY ── */
+  #replay-btn {
+    position: fixed; bottom: 20px; right: 24px; z-index: 100;
+    background: rgba(168,85,247,0.2);
+    border: 1px solid rgba(168,85,247,0.4);
+    color: #c084fc; font-size: 0.75rem; font-weight: 700;
+    padding: 8px 16px; border-radius: 100px;
+    cursor: pointer; display: none;
+    transition: background 0.2s;
+  }
+  #replay-btn:hover { background: rgba(168,85,247,0.35); }
+
+  /* entrance animations */
+  .fade-up {
+    animation: fadeUp 0.8s ease both;
+  }
+  .fade-up-delay { animation: fadeUp 0.8s ease 0.3s both; }
+  .fade-up-delay2 { animation: fadeUp 0.8s ease 0.5s both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <!-- WATERMARK -->
+  <div class="watermark">
+    <div class="wm-icon">F</div>
+    <div class="wm-text">FIGSY by K.I.N.D</div>
+  </div>
+
+  <!-- ── SCENE 1 — Your pipeline isn't filling itself ── -->
+  <div class="scene bg-dark active" id="s1">
+    <div class="orb" style="width:400px;height:400px;background:rgba(124,58,237,0.15);top:-100px;left:-100px;animation-delay:-2s"></div>
+    <div class="orb" style="width:300px;height:300px;background:rgba(236,72,153,0.1);bottom:-50px;right:20%;animation-delay:-4s"></div>
+    <div style="max-width:480px;z-index:2">
+      <div class="headline fade-up">Your pipeline<br/>isn't filling<br/><em>itself.</em></div>
+      <p class="sub fade-up-delay">You're spending 3+ hours a day on prospecting. Nothing's converting. Sound familiar?</p>
+    </div>
+    <div class="dashboard-float">
+      <div class="dash-chip">
+        <span class="dash-chip-icon">👥</span>
+        <span class="dash-chip-label">New leads</span>
+        <span class="dash-chip-val red">0</span>
+      </div>
+      <div class="dash-chip">
+        <span class="dash-chip-icon">📋</span>
+        <span class="dash-chip-label">Follow ups</span>
+        <span class="dash-chip-val red">12 overdue</span>
+      </div>
+      <div class="dash-chip">
+        <span class="dash-chip-icon">📧</span>
+        <span class="dash-chip-label">Emails sent</span>
+        <span class="dash-chip-val red">47 — no replies</span>
+      </div>
+      <div class="chart-mini">
+        <div style="font-size:0.7rem;color:rgba(255,255,255,0.35)">Pipeline trend</div>
+        <div class="chart-bar-row">
+          <div class="chart-bar" style="height:80%"></div>
+          <div class="chart-bar" style="height:70%"></div>
+          <div class="chart-bar" style="height:55%"></div>
+          <div class="chart-bar" style="height:40%"></div>
+          <div class="chart-bar" style="height:30%"></div>
+          <div class="chart-bar" style="height:15%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 2 — Meet FIGSY ── -->
+  <div class="scene bg-warm" id="s2">
+    <div class="orb" style="width:500px;height:500px;background:rgba(168,85,247,0.2);top:-150px;right:-100px"></div>
+    <span class="sparkle" style="top:15%;left:15%">✦</span>
+    <span class="sparkle" style="top:20%;right:20%;animation-delay:-1s">✦</span>
+    <span class="sparkle" style="bottom:25%;left:20%;animation-delay:-2s">✧</span>
+    <span class="sparkle" style="bottom:20%;right:15%;animation-delay:-0.5s">✦</span>
+    <div style="text-align:center;z-index:2">
+      <div class="tag fade-up">Introducing</div>
+      <div class="meet-badge fade-up-delay">FIGSY</div>
+      <p style="font-size:1rem;color:rgba(255,255,255,0.5);margin-top:8px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600" class="fade-up-delay2">AI Lead Gen Agent · by K.I.N.D</p>
+      <p class="sub fade-up-delay2" style="margin-top:20px">Your new AI teammate. Finds leads, writes emails, follows up, books meetings — while you focus on closing.</p>
+    </div>
+  </div>
+
+  <!-- ── SCENE 3 — Finds the right people ── -->
+  <div class="scene bg-glow" id="s3">
+    <div class="orb" style="width:350px;height:350px;background:rgba(168,85,247,0.25);bottom:-100px;left:-80px"></div>
+    <div style="z-index:2;max-width:360px">
+      <div class="headline fade-up" style="text-align:left">Finds the<br/><em>right people.</em></div>
+      <p class="sub fade-up-delay" style="text-align:left">250M+ B2B contacts. Scored against your ICP. In your portal in minutes.</p>
+    </div>
+    <div style="z-index:2">
+      <div class="search-bar">
+        🔍 &nbsp;Searching 250M+ contacts…
+      </div>
+      <div class="lead-cards">
+        <div class="lead-card">
+          <div class="lead-avatar" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">JW</div>
+          <div><div class="lead-name">Jenny Wilson</div><div class="lead-role">Marketing Director · Acme Inc.</div></div>
+          <div class="score-pill">94</div>
+        </div>
+        <div class="lead-card">
+          <div class="lead-avatar" style="background:linear-gradient(135deg,#0891b2,#0066ff)">RF</div>
+          <div><div class="lead-name">Robert Fox</div><div class="lead-role">VP of Sales · Globes</div></div>
+          <div class="score-pill">88</div>
+        </div>
+        <div class="lead-card">
+          <div class="lead-avatar" style="background:linear-gradient(135deg,#059669,#10b981)">EH</div>
+          <div><div class="lead-name">Esther Howard</div><div class="lead-role">Growth Lead · Intech</div></div>
+          <div class="score-pill">81</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 4 — Writes emails ── -->
+  <div class="scene bg-soft" id="s4">
+    <div class="orb" style="width:400px;height:400px;background:rgba(236,72,153,0.15);top:-100px;right:-80px;animation-delay:-3s"></div>
+    <div style="z-index:2;max-width:340px">
+      <div class="headline fade-up" style="text-align:left">Writes emails<br/>that get<br/><em>replies.</em></div>
+      <p class="sub fade-up-delay" style="text-align:left">Personalised for every lead. Reads their profile. Sounds human. Never generic.</p>
+    </div>
+    <div style="z-index:2">
+      <div class="email-preview fade-up">
+        <div class="email-to">To: jenny.wilson@acme.com</div>
+        <div class="email-subject">Quick idea for Acme's pipeline<span class="type-cursor"></span></div>
+        <div class="email-body">
+          Hi Jenny,<br/><br/>
+          Saw Acme is scaling fast — congrats! I had a quick idea that could help your team drive more qualified opportunities.<br/><br/>
+          Open to a quick chat?<br/><br/>
+          Best,<br/>
+          <span style="color:#c084fc;font-weight:600">FIGSY</span>
+        </div>
+        <div class="email-tags">
+          <span class="email-tag et-purple">✓ Personalised</span>
+          <span class="email-tag et-green">✓ Relevant</span>
+          <span class="email-tag et-blue">✓ Compelling</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 5 — Follows up ── -->
+  <div class="scene bg-dark" id="s5">
+    <div class="orb" style="width:450px;height:450px;background:rgba(124,58,237,0.2);bottom:-150px;left:-100px;animation-delay:-1s"></div>
+    <div style="z-index:2;max-width:320px">
+      <div class="headline fade-up" style="text-align:left">Follows up.<br/><em>Automatically.</em></div>
+      <p class="sub fade-up-delay" style="text-align:left">80% of deals need 5+ touches. FIGSY never misses one.</p>
+    </div>
+    <div style="z-index:2;display:flex;flex-direction:column;gap:24px">
+      <div class="sequence-timeline">
+        <div class="seq-item">
+          <div class="seq-dot sent">📧</div>
+          <div><div class="seq-label">Day 1 email sent</div><div class="seq-day">Personalised intro</div></div>
+          <div class="seq-status"><span style="font-size:0.7rem;color:#4ade80">✓ Sent</span></div>
+        </div>
+        <div class="seq-item">
+          <div class="seq-dot sent">📨</div>
+          <div><div class="seq-label">Day 4 follow-up</div><div class="seq-day">Adds relevant insight</div></div>
+          <div class="seq-status"><span style="font-size:0.7rem;color:#4ade80">✓ Sent</span></div>
+        </div>
+        <div class="seq-item">
+          <div class="seq-dot pending">📩</div>
+          <div><div class="seq-label">Day 9 final touch</div><div class="seq-day">Leave the door open</div></div>
+          <div class="seq-status"><span style="font-size:0.7rem;color:rgba(255,255,255,0.3)">Queued</span></div>
+        </div>
+      </div>
+      <div class="chat-wrap">
+        <div class="chat-bubble">Just checking in — did you get a chance to see my last email?</div>
+        <div class="chat-bubble mine">Yes! Let's set up a call.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 6 — Engages leads ── -->
+  <div class="scene bg-warm" id="s6">
+    <div class="orb" style="width:400px;height:400px;background:rgba(168,85,247,0.2);top:-100px;left:-100px;animation-delay:-2s"></div>
+    <div style="z-index:2;max-width:420px">
+      <div class="headline fade-up" style="text-align:left">Engages leads<br/>while you focus<br/>on <em>what matters.</em></div>
+      <p class="sub fade-up-delay" style="text-align:left">FIGSY handles every conversation. You only show up when a meeting is ready.</p>
+    </div>
+    <div class="globe-wrap" style="z-index:2">
+      <div class="globe-circle">
+        <div class="globe-line"></div>
+        <div class="globe-line2"></div>
+        <div class="globe-line" style="top:30%"></div>
+        <div class="globe-line" style="top:70%"></div>
+      </div>
+      <div class="globe-person" style="top:-10px;left:90px;background:rgba(168,85,247,0.2)">👩‍💼</div>
+      <div class="globe-person" style="bottom:10px;left:20px;background:rgba(96,165,250,0.2);animation-delay:-1s">👨‍💻</div>
+      <div class="globe-person" style="top:40%;right:-10px;background:rgba(74,222,128,0.2);animation-delay:-2s">👩‍🏢</div>
+      <div class="globe-chat" style="top:5px;right:0">Interested! 🎯</div>
+      <div class="globe-chat" style="bottom:20px;right:-10px;animation-delay:-1s">Let's chat 📅</div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 7 — Books meetings ── -->
+  <div class="scene bg-glow" id="s7">
+    <div class="orb" style="width:350px;height:350px;background:rgba(236,72,153,0.15);bottom:-80px;right:-60px;animation-delay:-3s"></div>
+    <div style="z-index:2;max-width:320px">
+      <div class="headline fade-up" style="text-align:left">Books more<br/><em>meetings.</em></div>
+      <p class="sub fade-up-delay" style="text-align:left">When a lead is interested, FIGSY sends the booking link. You get a notification. You show up to the call.</p>
+    </div>
+    <div style="z-index:2">
+      <div class="calendar-card fade-up">
+        <div class="cal-header">
+          <div class="cal-month">May 2026</div>
+          <div style="font-size:0.7rem;color:rgba(255,255,255,0.3)">◀ ▶</div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-day" style="color:rgba(255,255,255,0.25)">M</div>
+          <div class="cal-day" style="color:rgba(255,255,255,0.25)">T</div>
+          <div class="cal-day" style="color:rgba(255,255,255,0.25)">W</div>
+          <div class="cal-day" style="color:rgba(255,255,255,0.25)">T</div>
+          <div class="cal-day" style="color:rgba(255,255,255,0.25)">F</div>
+          <div class="cal-day" style="color:rgba(255,255,255,0.25)">S</div>
+          <div class="cal-day" style="color:rgba(255,255,255,0.25)">S</div>
+          <div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div>
+          <div class="cal-day">4</div><div class="cal-day">5</div><div class="cal-day">6</div><div class="cal-day">7</div>
+          <div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day booked">10</div>
+          <div class="cal-day today">11</div><div class="cal-day">12</div><div class="cal-day">13</div><div class="cal-day">14</div>
+          <div class="cal-day">15</div><div class="cal-day">16</div><div class="cal-day">17</div>
+          <div class="cal-day">18</div><div class="cal-day">19</div><div class="cal-day">20</div><div class="cal-day">21</div>
+        </div>
+        <div class="meeting-chip">
+          🗓️ &nbsp;Discovery Call · 10:00 AM — Jenny Wilson
+        </div>
+        <div class="meeting-chip" style="animation-delay:1.3s;margin-top:6px">
+          🤝 &nbsp;OBR Meeting · 2:00 PM — Robert Fox
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 8 — Pipeline full ── -->
+  <div class="scene bg-soft" id="s8">
+    <div class="orb" style="width:500px;height:500px;background:rgba(168,85,247,0.2);top:-200px;left:-100px;animation-delay:-1s"></div>
+    <div style="z-index:2;max-width:320px">
+      <div class="headline fade-up" style="text-align:left">Keeps your<br/>pipeline <em>full.</em></div>
+      <p class="sub fade-up-delay" style="text-align:left">Every credit spent is a qualified conversation. No spend without a result.</p>
+    </div>
+    <div style="z-index:2">
+      <div class="pipeline-card fade-up">
+        <div class="pipeline-label">Pipeline Growth</div>
+        <div class="pipeline-val">$284,500</div>
+        <div class="pipeline-delta">↑ +38% this month</div>
+        <div class="chart-area">
+          <div class="chart-col" style="height:30%;animation-delay:0.1s"></div>
+          <div class="chart-col" style="height:40%;animation-delay:0.2s"></div>
+          <div class="chart-col" style="height:35%;animation-delay:0.3s"></div>
+          <div class="chart-col" style="height:55%;animation-delay:0.4s"></div>
+          <div class="chart-col" style="height:65%;animation-delay:0.5s"></div>
+          <div class="chart-col" style="height:75%;animation-delay:0.6s"></div>
+          <div class="chart-col" style="height:70%;animation-delay:0.7s"></div>
+          <div class="chart-col" style="height:85%;animation-delay:0.8s"></div>
+          <div class="chart-col" style="height:90%;animation-delay:0.9s"></div>
+          <div class="chart-col" style="height:100%;background:linear-gradient(180deg,#a855f7,#7c3aed);animation-delay:1s"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 9 — Works 24/7 ── -->
+  <div class="scene bg-dark" id="s9">
+    <div class="orb" style="width:600px;height:600px;background:rgba(124,58,237,0.15);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:-2s"></div>
+    <div style="z-index:2;max-width:400px;margin-right:auto">
+      <div class="headline fade-up" style="text-align:left">Works <em>24/7.</em><br/>Never stops.</div>
+      <p class="sub fade-up-delay" style="text-align:left">No sick days. No holidays. No "I'll follow up Monday." FIGSY works while you sleep.</p>
+    </div>
+    <div class="clock-wrap" style="z-index:2">
+      <div class="clock-ring"></div>
+      <div class="clock-ring-fill"></div>
+      <div class="clock-inner">24/7</div>
+      <div class="icon-orbit" style="transform-origin:center center">
+        <div class="orbit-dot">📧</div>
+      </div>
+      <div class="icon-orbit icon-orbit-2" style="transform-origin:center center">
+        <div class="orbit-dot">🔍</div>
+      </div>
+      <div class="icon-orbit icon-orbit-3" style="transform-origin:center center">
+        <div class="orbit-dot">📅</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 10 — All features ── -->
+  <div class="scene bg-glow" id="s10">
+    <div class="orb" style="width:400px;height:400px;background:rgba(236,72,153,0.12);bottom:-100px;right:-80px;animation-delay:-3s"></div>
+    <div style="z-index:2;text-align:center">
+      <div class="headline fade-up" style="margin-bottom:8px">One agent.<br/><em>Everything you need.</em></div>
+      <p class="sub fade-up-delay" style="margin:0 auto 28px">Lead Research · Personalised Email · Smart Follow-Ups · Meeting Booking · CRM Sync · Pipeline Growth</p>
+      <div class="features-grid fade-up-delay2">
+        <div class="feature-chip"><div class="feature-icon">🔍</div><div class="feature-name">Lead Research</div></div>
+        <div class="feature-chip"><div class="feature-icon">✉️</div><div class="feature-name">Personalised Email</div></div>
+        <div class="feature-chip"><div class="feature-icon">🔄</div><div class="feature-name">Smart Follow-Ups</div></div>
+        <div class="feature-chip"><div class="feature-icon">📅</div><div class="feature-name">Meeting Booking</div></div>
+        <div class="feature-chip"><div class="feature-icon">🔗</div><div class="feature-name">CRM Sync</div></div>
+        <div class="feature-chip"><div class="feature-icon">📈</div><div class="feature-name">Pipeline Growth</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENE 11 — Brand ── -->
+  <div class="scene bg-pink" id="s11">
+    <div class="orb" style="width:600px;height:600px;background:rgba(168,85,247,0.2);top:50%;left:50%;transform:translate(-50%,-60%);animation-delay:-1s"></div>
+    <span class="sparkle" style="top:12%;left:12%">✦</span>
+    <span class="sparkle" style="top:15%;right:15%;animation-delay:-1.5s">✦</span>
+    <span class="sparkle" style="bottom:20%;left:18%;animation-delay:-0.8s">✧</span>
+    <span class="sparkle" style="bottom:15%;right:12%;animation-delay:-2s">✦</span>
+    <div class="brand-card fade-up" style="z-index:2">
+      <div class="brand-figsy">FIGSY</div>
+      <div style="font-size:0.85rem;color:rgba(255,255,255,0.5);margin-top:4px;font-style:italic">AI Lead Gen Agent</div>
+      <div class="brand-tagline">Your new teammate for growth <span class="brand-heart">💜</span></div>
+      <div class="brand-kind" style="margin-top:16px">by K.I.N.D</div>
+      <a href="https://get-kind.com" class="cta-btn" style="cursor:pointer">Get Started with FIGSY →</a>
+    </div>
+  </div>
+
+  <!-- ── SCENE 12 — You close the deals ── -->
+  <div class="scene bg-warm" id="s12">
+    <div class="orb" style="width:500px;height:500px;background:rgba(168,85,247,0.25);top:-150px;right:-100px;animation-delay:-2s"></div>
+    <div class="orb" style="width:300px;height:300px;background:rgba(236,72,153,0.15);bottom:-50px;left:10%;animation-delay:-4s"></div>
+    <span class="sparkle" style="top:20%;right:25%">✦</span>
+    <span class="sparkle" style="bottom:25%;right:20%;animation-delay:-1s">✧</span>
+    <div style="z-index:2;max-width:500px;text-align:center">
+      <div class="tag fade-up">Ready to start?</div>
+      <div class="headline fade-up-delay" style="font-size:clamp(2.2rem,6vw,4rem)">Let FIGSY handle<br/>the outreach.<br/><em>You close the deals.</em></div>
+      <p class="sub fade-up-delay2">First leads in under 10 minutes. African-first. POPIA compliant. Start at $20.</p>
+      <div style="margin-top:32px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="fade-up-delay2">
+        <a href="https://get-kind.com" style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:0.9rem;font-weight:700;padding:14px 32px;border-radius:50px;text-decoration:none;box-shadow:0 8px 30px rgba(124,58,237,0.5)">Start free trial →</a>
+        <a href="https://get-kind.com" style="display:inline-block;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:0.9rem;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none">Learn more</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PROGRESS BAR -->
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<!-- NAV DOTS -->
+<div id="nav-dots">
+  <div class="dot active" onclick="goTo(0)"></div>
+  <div class="dot" onclick="goTo(1)"></div>
+  <div class="dot" onclick="goTo(2)"></div>
+  <div class="dot" onclick="goTo(3)"></div>
+  <div class="dot" onclick="goTo(4)"></div>
+  <div class="dot" onclick="goTo(5)"></div>
+  <div class="dot" onclick="goTo(6)"></div>
+  <div class="dot" onclick="goTo(7)"></div>
+  <div class="dot" onclick="goTo(8)"></div>
+  <div class="dot" onclick="goTo(9)"></div>
+  <div class="dot" onclick="goTo(10)"></div>
+  <div class="dot" onclick="goTo(11)"></div>
+</div>
+
+<!-- REPLAY -->
+<button id="replay-btn" onclick="restart()">↺ Replay</button>
+
+<script>
+  const SCENE_DURATION = 4500 // ms per scene
+  const TOTAL_SCENES   = 12
+  let current   = 0
+  let timer     = null
+  let progTimer = null
+  let progStart = null
+  let running   = true
+
+  const scenes  = document.querySelectorAll('.scene')
+  const dots    = document.querySelectorAll('.dot')
+  const fill    = document.getElementById('progress-fill')
+  const replay  = document.getElementById('replay-btn')
+
+  function goTo(idx) {
+    scenes[current].classList.remove('active')
+    dots[current].classList.remove('active')
+    current = idx
+    scenes[current].classList.add('active')
+    dots[current].classList.add('active')
+
+    // Re-trigger animations
+    scenes[current].querySelectorAll('.fade-up,.fade-up-delay,.fade-up-delay2').forEach(el => {
+      el.style.animation = 'none'
+      el.offsetHeight
+      el.style.animation = ''
+    })
+    scenes[current].querySelectorAll('.lead-card,.feature-chip,.chart-col,.meeting-chip,.cal-day.booked').forEach(el => {
+      el.style.animation = 'none'
+      el.offsetHeight
+      el.style.animation = ''
+    })
+
+    resetProgress()
+    if (idx === TOTAL_SCENES - 1) {
+      replay.style.display = 'block'
+    } else {
+      replay.style.display = 'none'
+    }
+  }
+
+  function next() {
+    if (current < TOTAL_SCENES - 1) {
+      goTo(current + 1)
+      scheduleNext()
+    } else {
+      running = false
+    }
+  }
+
+  function scheduleNext() {
+    clearTimeout(timer)
+    timer = setTimeout(next, SCENE_DURATION)
+    progStart = Date.now()
+    animateProgress()
+  }
+
+  function resetProgress() {
+    clearInterval(progTimer)
+    fill.style.width = '0%'
+  }
+
+  function animateProgress() {
+    clearInterval(progTimer)
+    progTimer = setInterval(() => {
+      const elapsed = Date.now() - progStart
+      const pct = Math.min((elapsed / SCENE_DURATION) * 100, 100)
+      fill.style.width = pct + '%'
+      if (pct >= 100) clearInterval(progTimer)
+    }, 30)
+  }
+
+  function restart() {
+    running = true
+    replay.style.display = 'none'
+    goTo(0)
+    scheduleNext()
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      clearTimeout(timer)
+      resetProgress()
+      if (current < TOTAL_SCENES - 1) { goTo(current + 1); scheduleNext() }
+    }
+    if (e.key === 'ArrowLeft') {
+      clearTimeout(timer)
+      resetProgress()
+      if (current > 0) { goTo(current - 1); scheduleNext() }
+    }
+  })
+
+  // Click to advance
+  document.getElementById('stage').addEventListener('click', e => {
+    if (e.target.closest('#nav-dots') || e.target.closest('#replay-btn') || e.target.closest('a')) return
+    clearTimeout(timer)
+    resetProgress()
+    if (current < TOTAL_SCENES - 1) { goTo(current + 1); scheduleNext() }
+  })
+
+  // Start
+  scheduleNext()
+</script>
+</body>
+</html>

@@ -440,9 +440,36 @@ When FIGSY detects an interested reply, instead of just flagging it, it should:
 4. Every Monday → `POST /internal/digest/weekly` (weekly leads digest to clients)
 5. Every Monday → `POST /internal/cro/weekly-digest` (founder CRO summary)
 
-### Resend — Inbound Email Routing
-1. Route `hello@get-kind.com` inbound → `POST /founder/support/inbound` (with x-admin-key header)
-2. Route FIGSY reply-to address → `POST /figsy/replies/inbound`
+### Resend — Inbound Email Routing (full setup)
+
+**What system we use:** Resend — NOT Google. Resend is a developer email service (like SendGrid). You have send.get-kind.com already set up in Resend.
+
+**Why not Google/Gmail for outreach:**
+Google/Gmail blocks cold outreach at volume. Gmail accounts used to send cold email at scale get flagged and suspended by Google. Resend uses its own sending infrastructure with proper SPF, DKIM, and DMARC records — it is the correct tool for this. Gmail is fine as a personal inbox but must never be used as the sending engine for FIGSY outreach.
+
+**The gap right now:** Nobody has configured inbound routing in Resend. Emails sent TO hello@get-kind.com go nowhere automated. No support triage, no reply classification. Everything is one-directional (outbound only, and even that is blocked because RESEND_API_KEY is not in Railway yet).
+
+**What to do in Resend dashboard:**
+
+Step 1 — Add inbound for support emails:
+- Resend dashboard → Domains → get-kind.com → Inbound
+- Add route: `hello@get-kind.com` → webhook to `https://kindapi-production-83cb.up.railway.app/founder/support/inbound`
+- Add header: `x-admin-key: YOUR_ADMIN_SECRET_KEY`
+
+Step 2 — Decide your FIGSY reply-to address (e.g. `replies@get-kind.com`):
+- Add route: `replies@get-kind.com` → webhook to `https://kindapi-production-83cb.up.railway.app/figsy/replies/inbound`
+- Set `FIGSY_REPLY_TO=replies@get-kind.com` in Railway env vars
+
+Step 3 — Optional: set up Google Workspace for hello@get-kind.com if you also want a real Gmail inbox for that address. This is separate from Resend and is just for you to read emails manually. It does not affect the automated routing above.
+
+**Where every email address goes once configured:**
+
+| Address | Direction | Goes to |
+|---------|-----------|---------|
+| `hello@get-kind.com` | Outbound (sending) | All K.I.N.D system emails sent from here via Resend |
+| `hello@get-kind.com` | Inbound (receiving) | Resend webhook → `/founder/support/inbound` → AI triages → simple auto-reply, complex → your FOUNDER_EMAIL inbox |
+| `replies@get-kind.com` (FIGSY_REPLY_TO) | Inbound (receiving) | Resend webhook → `/figsy/replies/inbound` → AI classifies → credit consumed if interested → you alerted |
+| `FOUNDER_EMAIL` (your personal address in Railway env) | Inbound (receiving) | Your actual inbox — escalations, at-risk alerts, AE requests, weekly digests all land here |
 
 ### Supabase — Run 3 Migrations — BLOCKING for credits + agents
 Run in Supabase SQL editor in this order:

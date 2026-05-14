@@ -672,7 +672,7 @@ All email is broken right now because `RESEND_API_KEY` is not set in Railway. No
 ## SECTION 18 — GO-TO-MARKET STRATEGY
 *Added 14 May 2026 · Target: 50 paying clients by end of June 2026*
 
-### Target Live Date: Wednesday 21 May 2026
+### Target Live Date: Sunday 31 May 2026
 
 ---
 
@@ -744,7 +744,7 @@ SA market runs on WhatsApp.
 - Message 30 warm contacts personally
 - FIGSY campaign targeting K.I.N.D ICP queued and ready
 
-**Wednesday 21 May — GO LIVE**
+**Sunday 31 May — GO LIVE**
 - LinkedIn launch post (personal story + product announcement)
 - WhatsApp broadcast to full list
 - FIGSY outreach begins: 20 leads/day
@@ -802,8 +802,8 @@ SA market runs on WhatsApp.
 
 | Date | Milestone |
 |---|---|
-| 21 May 2026 | Go live |
-| 31 May 2026 | 10 paying clients |
+| 31 May 2026 | Go live |
+| 14 June 2026 | 10 paying clients |
 | 14 June 2026 | First LinkedIn case study post |
 | 30 June 2026 | 50 paying clients · domain at full send volume |
 | 31 July 2026 | First enterprise conversation |

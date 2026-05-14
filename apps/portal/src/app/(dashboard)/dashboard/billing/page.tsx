@@ -114,6 +114,10 @@ export default function BillingPage() {
   const [loading, setLoading]           = useState(true)
   const [initiating, setInitiating]     = useState<string | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [receiptTx, setReceiptTx] = useState<CreditTransaction | null>(null)
+  const [autoTopup, setAutoTopup]         = useState({ enabled: false, threshold: 10, plan: 'kind_ai' as 'kind_ai' | 'figsy', bundle_size: 20 })
+  const [savingTopup, setSavingTopup]     = useState(false)
+  const [topupSaved, setTopupSaved]       = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -124,10 +128,56 @@ export default function BillingPage() {
         setBalance(res.data.balance)
         setTransactions(res.data.transactions)
       } catch { }
+      try {
+        const clientRes = await api.get<{ data: { auto_topup_enabled?: boolean; auto_topup_threshold?: number; auto_topup_plan?: string; auto_topup_bundle_size?: number } }>('/clients/me', session.access_token)
+        if (clientRes.data) {
+          setAutoTopup({
+            enabled:     clientRes.data.auto_topup_enabled ?? false,
+            threshold:   clientRes.data.auto_topup_threshold ?? 10,
+            plan:        (clientRes.data.auto_topup_plan as 'kind_ai' | 'figsy') ?? 'kind_ai',
+            bundle_size: clientRes.data.auto_topup_bundle_size ?? 20,
+          })
+        }
+      } catch { }
       setLoading(false)
     }
     load()
   }, [])
+
+  function printReceipt(tx: CreditTransaction) {
+    const html = `<!DOCTYPE html><html><head><title>K.I.N.D Receipt</title><style>body{font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto}h1{font-size:20px;font-weight:bold;margin-bottom:4px}.logo{color:#0066FF;font-weight:bold;font-size:18px;margin-bottom:24px}table{width:100%;border-collapse:collapse;margin-top:16px}td{padding:8px 0;border-bottom:1px solid #eee;font-size:14px}td:last-child{text-align:right;font-weight:500}.footer{font-size:12px;color:#888;margin-top:32px}@media print{button{display:none}}</style></head><body>
+<div class="logo">⚡ K.I.N.D</div>
+<h1>Credit Purchase Receipt</h1>
+<p style="color:#666;font-size:14px">${new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'long' })}</p>
+<table>
+<tr><td>Description</td><td>${tx.note || 'Credit purchase'}</td></tr>
+<tr><td>Credits added</td><td>+${tx.amount}</td></tr>
+<tr><td>Plan</td><td>${tx.plan ? (tx.plan === 'kind_ai' ? 'K.I.N.D AI' : 'FIGSY') : '—'}</td></tr>
+<tr><td>Transaction ID</td><td style="font-size:11px">${tx.id}</td></tr>
+</table>
+<div class="footer">K.I.N.D AI · get-kind.com · hello@get-kind.com<br>Questions? Reply to this email.</div>
+<br><button onclick="window.print()" style="margin-top:16px;padding:10px 20px;background:#0066FF;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px">Print / Save as PDF</button>
+</body></html>`
+    const w = window.open('', '_blank')
+    if (w) { w.document.write(html); w.document.close() }
+  }
+
+  async function saveAutoTopup() {
+    setSavingTopup(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    try {
+      await api.patch('/clients/me/auto-topup', {
+        auto_topup_enabled:     autoTopup.enabled,
+        auto_topup_threshold:   autoTopup.threshold,
+        auto_topup_plan:        autoTopup.plan,
+        auto_topup_bundle_size: autoTopup.bundle_size,
+      }, session.access_token)
+      setTopupSaved(true)
+      setTimeout(() => setTopupSaved(false), 3000)
+    } catch (err) { console.error(err) }
+    setSavingTopup(false)
+  }
 
   async function handleBuy(plan: 'kind_ai' | 'figsy', bundle_size: number) {
     const key = `${plan}_${bundle_size}`
@@ -242,6 +292,49 @@ export default function BillingPage() {
         </div>
       </div>
 
+      {/* Auto top-up settings */}
+      <div className="bg-white border border-gray-100 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Auto top-up</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Automatically recharge when balance drops below your threshold. Requires a saved card from a previous purchase.</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" checked={autoTopup.enabled} onChange={e => setAutoTopup(p => ({ ...p, enabled: e.target.checked }))} className="sr-only peer" />
+            <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:bg-[#0066FF] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
+          </label>
+        </div>
+        {autoTopup.enabled && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-1.5">Recharge when below</p>
+                <select value={autoTopup.threshold} onChange={e => setAutoTopup(p => ({ ...p, threshold: Number(e.target.value) }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                  {[5, 10, 20, 50].map(v => <option key={v} value={v}>{v} credits</option>)}
+                </select>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-1.5">Plan</p>
+                <select value={autoTopup.plan} onChange={e => setAutoTopup(p => ({ ...p, plan: e.target.value as 'kind_ai' | 'figsy' }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                  <option value="kind_ai">K.I.N.D AI</option>
+                  <option value="figsy">FIGSY</option>
+                </select>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-1.5">Recharge amount</p>
+                <select value={autoTopup.bundle_size} onChange={e => setAutoTopup(p => ({ ...p, bundle_size: Number(e.target.value) }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                  {[10, 20, 40, 75, 100, 200].map(v => <option key={v} value={v}>{v} credits</option>)}
+                </select>
+              </div>
+            </div>
+            <button onClick={saveAutoTopup} disabled={savingTopup} className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
+              {savingTopup ? <Loader2 className="w-4 h-4 animate-spin" /> : topupSaved ? <Check className="w-4 h-4" /> : null}
+              {topupSaved ? 'Saved!' : 'Save settings'}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Transaction history */}
       {transactions.length > 0 && (
         <div>
@@ -253,9 +346,14 @@ export default function BillingPage() {
                   <p className="font-medium text-gray-800">{tx.note || tx.type}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
                 </div>
-                <span className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                  {tx.amount > 0 ? '+' : ''}{tx.amount}
-                </span>
+                <div className="flex items-center">
+                  <span className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {tx.amount > 0 ? '+' : ''}{tx.amount}
+                  </span>
+                  {tx.type === 'purchase' && (
+                    <button onClick={() => printReceipt(tx)} className="ml-3 text-xs text-blue-500 hover:underline shrink-0">Receipt</button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

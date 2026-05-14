@@ -79,7 +79,7 @@ creditRouter.post('/verify', async (req: AuthRequest, res) => {
     })
     const paystackData = await paystackRes.json() as {
       status: boolean
-      data: { status: string; metadata: { client_id: string; plan: string; bundle_size: number; amount_usd: number; type: string } }
+      data: { status: string; metadata: { client_id: string; plan: string; bundle_size: number; amount_usd: number; type: string }; authorization?: { reusable: boolean; authorization_code: string } }
     }
 
     if (!paystackData.status || paystackData.data.status !== 'success') {
@@ -110,6 +110,13 @@ creditRouter.post('/verify', async (req: AuthRequest, res) => {
         note:      `Purchased ${bundle_size} credits (${plan})`,
       }),
     ])
+
+    // Store auth code for auto top-up if present
+    if (paystackData.data.authorization?.reusable && paystackData.data.authorization?.authorization_code) {
+      await db.from('clients').update({
+        auto_topup_paystack_auth: paystackData.data.authorization.authorization_code,
+      }).eq('id', client_id)
+    }
 
     res.json({ success: true, data: { credits_added: Number(bundle_size), new_balance: newBalance } })
   } catch (err) {

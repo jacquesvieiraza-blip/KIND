@@ -368,12 +368,110 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
           }
         }).catch(console.error)
       }
+
+      // Auto top-up check
+      try {
+        const { data: clientForTopup } = await db.from('clients')
+          .select('id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
+          .eq('id', lead.client_id).single()
+        if (clientForTopup?.auto_topup_enabled &&
+            clientForTopup.auto_topup_paystack_auth &&
+            (clientForTopup.credit_balance ?? 0) < (clientForTopup.auto_topup_threshold ?? 0)) {
+          const plan = clientForTopup.auto_topup_plan ?? 'kind_ai'
+          const bundleSize = clientForTopup.auto_topup_bundle_size ?? 20
+          const BUNDLES: Record<string, Record<number, number>> = {
+            kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
+            figsy:   { 10: 35, 20: 60, 40: 110, 75: 195, 100: 250, 200: 460, 500: 1100 },
+          }
+          const amountUsd = BUNDLES[plan]?.[bundleSize]
+          if (amountUsd) {
+            const amountZarKobo = Math.round(amountUsd * 19 * 100)
+            const chargeRes = await fetch('https://api.paystack.co/transaction/charge_authorization', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                authorization_code: clientForTopup.auto_topup_paystack_auth,
+                email: '', // Will be populated from Paystack
+                amount: amountZarKobo,
+                currency: 'ZAR',
+                metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
+              }),
+            })
+            const chargeData = await chargeRes.json() as { status: boolean; data: { status: string } }
+            if (chargeData.status && chargeData.data?.status === 'success') {
+              const newBal = (clientForTopup.credit_balance ?? 0) + bundleSize
+              await Promise.all([
+                db.from('clients').update({ credit_balance: newBal }).eq('id', clientForTopup.id),
+                db.from('credit_transactions').insert({
+                  client_id: clientForTopup.id,
+                  type: 'purchase',
+                  amount: bundleSize,
+                  plan,
+                  note: `Auto top-up: ${bundleSize} credits (${plan})`,
+                }),
+              ])
+            }
+          }
+        }
+      } catch (autoErr) { console.error('[auto-topup]', autoErr) }
     }
 
     res.status(200).json({ received: true, id: reply?.id })
   } catch (err) {
     console.error('[figsy/inbound]', err)
     res.status(200).json({ received: true }) // Always 200 to webhook provider
+  }
+})
+
+// ── AI FOLLOW-UP DRAFT ────────────────────────────────────────────────────────
+figsyRouter.post('/replies/:id/draft-followup', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, body, from_email, classification, lead_id')
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .single()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    const { data: lead } = await db.from('leads')
+      .select('first_name, last_name, job_title, company')
+      .eq('id', reply.lead_id).single()
+
+    const { data: client } = await db.from('clients')
+      .select('company_name').eq('id', clientId).single()
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `You are an AI sales assistant. Draft a concise, professional follow-up reply to this interested lead.
+
+Lead: ${lead?.first_name} ${lead?.last_name}, ${lead?.job_title} at ${lead?.company}
+Our company: ${client?.company_name}
+Their reply: "${reply.body.slice(0, 600)}"
+
+Write a warm, brief reply (3-5 sentences) that:
+1. Thanks them for their interest
+2. Proposes a short call to learn about their needs
+3. Offers 2-3 specific times or asks for their availability
+4. Keeps it conversational and not salesy
+
+Output ONLY the email body, no subject line, no sign-off.`,
+      }],
+    })
+
+    const draft = (response.content[0] as { type: string; text: string }).text
+    res.json({ success: true, data: { draft } })
+  } catch (err) {
+    console.error('[figsy/draft-followup]', err)
+    res.status(500).json({ success: false, error: 'Failed to generate draft' })
   }
 })
 

@@ -62,6 +62,9 @@ export default function LeadsPage() {
   const [emailDraft, setEmailDraft] = useState<{ leadId: string; draft: string } | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkSending, setBulkSending] = useState(false)
+
   // Filters
   const [statusFilter, setStatusFilter] = useState('')
   const [minScore, setMinScore] = useState('')
@@ -161,6 +164,19 @@ export default function LeadsPage() {
     } catch { }
   }
 
+  async function bulkConsentSend() {
+    if (!token || selectedIds.size === 0) return
+    setBulkSending(true)
+    try {
+      const res = await api.post<{ data: { sent: number; skipped: number } }>('/leads/bulk-consent', { lead_ids: Array.from(selectedIds) }, token)
+      setSelectedIds(new Set())
+      showToast(`Consent emails sent: ${res.data.sent} sent, ${res.data.skipped} skipped`)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to send bulk consent', 'error')
+    }
+    setBulkSending(false)
+  }
+
   const filteredLeads = leads.filter(l =>
     !search || `${l.first_name} ${l.last_name} ${l.company} ${l.job_title}`.toLowerCase().includes(search.toLowerCase())
   )
@@ -190,6 +206,11 @@ export default function LeadsPage() {
           <p className="text-gray-500 text-sm mt-1">Precision-targeted B2B leads, AI-scored and POPIA-compliant.</p>
         </div>
         <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <button onClick={bulkConsentSend} disabled={bulkSending} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+              <Send className="w-4 h-4" />{bulkSending ? 'Sending…' : `Send consent (${selectedIds.size})`}
+            </button>
+          )}
           <a href="/dashboard/leads/icp"
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-400 transition-colors">
             <Settings2 className="w-4 h-4" />ICP Settings
@@ -291,6 +312,9 @@ export default function LeadsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100">
+                    <th className="px-4 py-3 w-10">
+                      <input type="checkbox" checked={filteredLeads.length > 0 && selectedIds.size === filteredLeads.filter(l => l.status !== 'opted_out' && l.email).length} onChange={e => { const eligible = filteredLeads.filter(l => l.status !== 'opted_out' && l.email); setSelectedIds(e.target.checked ? new Set(eligible.map(l => l.id)) : new Set()) }} className="rounded border-gray-300" />
+                    </th>
                     {['Lead', 'Company', 'Score', 'Status', 'Source', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
@@ -299,6 +323,11 @@ export default function LeadsPage() {
                 <tbody className="divide-y divide-gray-50">
                   {filteredLeads.map(lead => (
                     <tr key={lead.id} className={`hover:bg-gray-50 transition-colors ${lead.status === 'opted_out' ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-3">
+                        {lead.status !== 'opted_out' && lead.email && (
+                          <input type="checkbox" checked={selectedIds.has(lead.id)} onChange={e => setSelectedIds(prev => { const next = new Set(prev); e.target.checked ? next.add(lead.id) : next.delete(lead.id); return next })} className="rounded border-gray-300" />
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
                         <p className="text-xs text-gray-400">{lead.job_title || '—'}</p>

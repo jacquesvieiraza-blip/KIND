@@ -16,6 +16,7 @@ import { adminRouter } from './routes/admin'
 import { figsyRouter } from './routes/figsy'
 import { internalRouter } from './routes/internal'
 import { supportRouter } from './routes/support'
+import { founderRouter } from './routes/founder'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -39,6 +40,7 @@ app.use('/admin',         adminRouter)
 app.use('/figsy',         figsyRouter)
 app.use('/internal',      internalRouter)
 app.use('/support',       supportRouter)
+app.use('/founder',       founderRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => console.log(`KIND API running on port ${PORT}`))

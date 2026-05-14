@@ -6,7 +6,11 @@ async function apiFetch<T>(path: string, options?: RequestInit, token?: string):
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options?.headers },
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'API request failed')
+  if (!res.ok) {
+    const err = new Error(data.error || 'API request failed') as Error & { status: number }
+    err.status = res.status
+    throw err
+  }
   return data
 }
 

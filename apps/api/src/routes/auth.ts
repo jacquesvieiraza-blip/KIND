@@ -56,6 +56,12 @@ authRouter.post('/onboard', async (req, res) => {
       created_by_email:   'system',
     }, { onConflict: 'client_id' })
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})
+    // Fire-and-forget CS day1 follow-up
+    fetch(`http://localhost:${process.env.PORT || 4000}/founder/cs/followup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': process.env.ADMIN_SECRET_KEY || '' },
+      body: JSON.stringify({ client_id: data.id, step: 'day1' }),
+    }).catch(() => {})
     res.json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

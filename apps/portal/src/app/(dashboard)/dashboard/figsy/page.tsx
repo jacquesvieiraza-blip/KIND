@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 
+interface Reply {
+  id: string
+  from_email: string
+  body: string
+  classification: 'interested' | 'not_now' | 'opt_out' | 'out_of_office' | 'other'
+  received_at: string
+}
+
 interface Campaign {
   id: string
   name: string
@@ -49,6 +57,11 @@ export default function FigsyPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [hasFigsySub, setHasFigsySub] = useState(true)
+  const [expandedReplies, setExpandedReplies] = useState<string | null>(null)
+  const [campaignReplies, setCampaignReplies] = useState<Record<string, Reply[]>>({})
+  const [replyDraft, setReplyDraft] = useState<{ replyId: string; draft: string } | null>(null)
+  const [draftingId, setDraftingId] = useState<string | null>(null)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
@@ -59,8 +72,17 @@ export default function FigsyPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-      const res = await api.get<{ data: Campaign[] }>('/figsy/campaigns', token)
-      setCampaigns(res.data ?? [])
+      const [campaignsRes, subsRes] = await Promise.all([
+        api.get<{ data: Campaign[] }>('/figsy/campaigns', token),
+        api.get<{ data: { product: string; status: string }[] }>('/subscriptions', token),
+      ])
+      setCampaigns(campaignsRes.data ?? [])
+      const subs = subsRes.data ?? []
+      const hasSub = subs.some(
+        s => (s.product === 'lead_gen_figsy' || s.product === 'figsy_addon') &&
+             (s.status === 'active' || s.status === 'trialing')
+      )
+      setHasFigsySub(hasSub)
     } catch {
       // silently ignore
     }
@@ -68,6 +90,26 @@ export default function FigsyPage() {
   }, [supabase])
 
   useEffect(() => { loadCampaigns() }, [loadCampaigns])
+
+  async function loadReplies(campaignId: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.get<{ data: Reply[] }>(`/figsy/campaigns/${campaignId}/replies`, session?.access_token)
+      setCampaignReplies(prev => ({ ...prev, [campaignId]: res.data ?? [] }))
+    } catch {}
+  }
+
+  async function draftFollowup(replyId: string) {
+    setDraftingId(replyId)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.post<{ data: { draft: string } }>(`/figsy/replies/${replyId}/draft-followup`, {}, session?.access_token)
+      setReplyDraft({ replyId, draft: res.data.draft })
+    } catch {
+      toast('Failed to generate draft — try again')
+    }
+    setDraftingId(null)
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -94,7 +136,13 @@ export default function FigsyPage() {
       setCampaigns(prev => prev.map(c => c.id === campaign.id ? res.data : c))
       toast(`Campaign ${status === 'active' ? 'activated' : status}`)
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to update campaign')
+      const msg = err instanceof Error ? err.message : ''
+      const status403 = (err as any)?.status === 403
+      if (status === 'active' && (status403 || msg.includes('FIGSY requires'))) {
+        toast('FIGSY subscription required — upgrade to activate campaigns.')
+      } else {
+        toast(msg || 'Failed to update campaign')
+      }
     }
     setUpdatingId(null)
   }
@@ -132,6 +180,24 @@ export default function FigsyPage() {
           + New campaign
         </button>
       </div>
+
+      {/* Upgrade banner */}
+      {!hasFigsySub && (
+        <div className="bg-[#0a1628] border border-blue-900/40 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1">
+            <p className="text-white font-semibold text-base">FIGSY requires an upgrade</p>
+            <p className="text-blue-300 text-sm mt-0.5">
+              Activate automated 3-step email outreach sequences. Upgrade to Lead Gen + FIGSY to unlock.
+            </p>
+          </div>
+          <a
+            href="/dashboard/billing"
+            className="shrink-0 px-4 py-2 bg-[#0066FF] hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+          >
+            Upgrade now →
+          </a>
+        </div>
+      )}
 
       {/* Create form */}
       {showCreate && (
@@ -282,6 +348,58 @@ export default function FigsyPage() {
                   </ol>
                 </div>
               )}
+
+              {/* Replies toggle */}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    if (expandedReplies === campaign.id) { setExpandedReplies(null) }
+                    else { setExpandedReplies(campaign.id); loadReplies(campaign.id) }
+                  }}
+                  className="text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
+                >
+                  {expandedReplies === campaign.id ? '▲' : '▼'} View replies ({campaign.replies_total ?? 0})
+                </button>
+
+                {expandedReplies === campaign.id && (
+                  <div className="mt-3 space-y-2">
+                    {!campaignReplies[campaign.id] ? (
+                      <p className="text-xs text-gray-400">Loading…</p>
+                    ) : campaignReplies[campaign.id].length === 0 ? (
+                      <p className="text-xs text-gray-400">No replies yet.</p>
+                    ) : (
+                      campaignReplies[campaign.id].map(reply => (
+                        <div key={reply.id} className={`rounded-lg px-3 py-2.5 text-xs border ${
+                          reply.classification === 'interested' ? 'bg-green-50 border-green-200' :
+                          reply.classification === 'opt_out'    ? 'bg-red-50 border-red-100' :
+                          'bg-gray-50 border-gray-100'
+                        }`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <span className="font-medium text-gray-800">{reply.from_email}</span>
+                              <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                                reply.classification === 'interested' ? 'bg-green-200 text-green-800' :
+                                reply.classification === 'opt_out'    ? 'bg-red-200 text-red-700' :
+                                'bg-gray-200 text-gray-600'
+                              }`}>{reply.classification.replace('_', ' ')}</span>
+                            </div>
+                            {reply.classification === 'interested' && (
+                              <button
+                                onClick={() => draftFollowup(reply.id)}
+                                disabled={draftingId === reply.id}
+                                className="flex items-center gap-1 px-2 py-1 bg-white border border-green-300 text-green-700 rounded-md hover:bg-green-50 disabled:opacity-40 text-[11px] font-medium transition-colors shrink-0"
+                              >
+                                {draftingId === reply.id ? '…' : '✨ Draft reply'}
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-gray-500 mt-1 leading-relaxed line-clamp-2">{reply.body.slice(0, 200)}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -291,6 +409,20 @@ export default function FigsyPage() {
       {toastMsg && (
         <div className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg z-50">
           {toastMsg}
+        </div>
+      )}
+
+      {replyDraft && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+            <h3 className="font-semibold text-gray-900 mb-3">✨ AI-drafted follow-up</h3>
+            <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-64 overflow-y-auto">{replyDraft.draft}</div>
+            <div className="flex gap-3">
+              <button onClick={() => { navigator.clipboard.writeText(replyDraft.draft) }} className="flex-1 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">Copy to clipboard</button>
+              <button onClick={() => setReplyDraft(null)} className="px-4 py-2.5 border border-gray-200 text-sm font-medium rounded-xl hover:border-gray-400 transition-colors">Close</button>
+            </div>
+            <p className="text-xs text-gray-400 mt-3 text-center">Review before sending. Add your name and signature.</p>
+          </div>
         </div>
       )}
     </div>

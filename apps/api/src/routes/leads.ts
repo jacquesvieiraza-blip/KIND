@@ -354,6 +354,44 @@ Output only the email body, nothing else.`
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to generate email draft' }) }
 })
 
+// ── BULK CONSENT SEND ─────────────────────────────────────────────────────────
+// POST /leads/bulk-consent
+leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
+  try {
+    const { lead_ids } = z.object({
+      lead_ids: z.array(z.string().uuid()).min(1).max(100),
+    }).parse(req.body)
+
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: leads } = await db.from('leads')
+      .select('id, email, first_name, last_name, status')
+      .in('id', lead_ids)
+      .eq('client_id', clientId)
+
+    const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).single()
+
+    let sent = 0, skipped = 0
+    for (const lead of leads ?? []) {
+      if (!lead.email || lead.status === 'opted_out' || lead.status === 'consent_given' || lead.status === 'consent_sent') {
+        skipped++; continue
+      }
+      try {
+        const optOutUrl = `${process.env.PORTAL_URL}/consent?lead=${lead.id}&token=${lead.id}`
+        await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
+        await db.from('leads').update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() }).eq('id', lead.id)
+        sent++
+      } catch { skipped++ }
+    }
+
+    res.json({ success: true, data: { sent, skipped } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to send bulk consent' })
+  }
+})
+
 // ── CSV EXPORT ────────────────────────────────────────────────────────────────
 leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
   try {

@@ -495,8 +495,28 @@ Run in Supabase SQL editor in this order:
 ### Domain
 - Register `jacquesfigsy.com`
 
-### Git
-- Merge `claude/ai-business-roadmap-U3OWJ` into `main`
+### Email deliverability — domain warming (IMPORTANT before going live)
+Sending cold email at full volume on a new domain immediately will get you flagged by receiving mail servers even through Resend. You must warm the domain gradually:
+- Week 1: max 20 emails/day
+- Week 2: max 50 emails/day
+- Week 3: max 150 emails/day
+- Week 4+: full volume
+This means FIGSY's send-due cron must have a daily cap set in Railway env vars before launch. I can build this — do not launch without it.
+
+### Google Workspace (optional but recommended)
+If you want a real Gmail inbox for hello@get-kind.com that you can read like a normal email:
+- Sign up for Google Workspace (£5.20/mo per user at google.com/workspace)
+- Verify get-kind.com domain in Google Workspace
+- This gives you hello@get-kind.com in Gmail
+- This is SEPARATE from Resend — Resend still handles all automated sending. Google Workspace is just for you to have a proper inbox to read escalations manually.
+- NOTE: Never use Google Workspace to send FIGSY outreach. Only Resend does that.
+
+### Git — merge to main
+- Go to github.com/jacquesvieiraza-blip/KIND
+- You will see a banner for `claude/ai-business-roadmap-U3OWJ` — click Compare & pull request
+- Create pull request → Merge pull request
+- This puts all 60+ commits onto main so GitHub shows the full codebase
+- Direct push to main is blocked by branch protection (only you can merge via PR)
 
 ### Smoke Test (last — after all above done)
 Sign up → confirm email → onboard → build ICP → run ICP → leads appear → sign order form → billing → Paystack checkout → confirm payment
@@ -507,6 +527,8 @@ Sign up → confirm email → onboard → build ICP → run ICP → leads appear
 
 ### Immediate gaps to close
 | # | Item | Detail |
+|---|------|--------|
+| 0 | Domain warming daily cap | Add `FIGSY_DAILY_SEND_LIMIT` env var. send-due cron checks emails sent today, stops at limit. Starts at 20, you increase in Railway as domain warms. Must be done before go-live. |
 |---|------|--------|
 | 1 | Referral credit trigger on first ICP run | Confirm/complete logic in icps.ts that credits both referrer (100 leads) and new client (100 leads) |
 | 2 | 7-day suspension warning email at 0 credits | Email sequence after credits hit 0: warning day 1, day 4, day 7 before pausing outreach |

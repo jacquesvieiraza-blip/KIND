@@ -662,6 +662,154 @@ All email is broken right now because `RESEND_API_KEY` is not set in Railway. No
 
 ---
 
+## SECTION 18 — GO-TO-MARKET STRATEGY
+*Added 14 May 2026 · Target: 50 paying clients by end of June 2026*
+
+### Target Live Date: Wednesday 21 May 2026
+
+---
+
+### K.I.N.D's Own ICP (who we're selling to)
+
+| | |
+|---|---|
+| Company size | 2–50 employees |
+| Stage | Startup, scale-up, SME |
+| Geography | South Africa first → Nigeria, Kenya, Ghana |
+| Industry | SaaS, fintech, recruitment, consulting, professional services, property tech |
+| Decision maker | Founder doing their own sales / Head of Sales / BDM |
+| Pain | Inconsistent pipeline, 3+ hrs/day manual prospecting, can't afford a full-time SDR |
+| Trigger | Missed revenue target, lost a big client, trying to scale |
+
+---
+
+### Positioning
+
+**One line:** Your B2B pipeline, on autopilot. African-first.
+
+- Only lead gen tool built for Africa — POPIA compliant, ZAR billing, Paystack
+- Pay for results — no contract, no risk, start at $20
+- vs hiring a junior SDR: R25,000/mo vs $20 to start
+- vs Apollo/ZoomInfo: they sell data, we sell pipeline
+- vs Lemlist/Outreach: built for Africa, not retrofitted for it
+
+---
+
+### Channels — Priority Order
+
+**1. FIGSY eats its own dog food**
+Use FIGSY to acquire K.I.N.D clients. Best proof of product.
+- Build K.I.N.D ICP: Founders + Sales Directors + BDMs at SA tech/SaaS/fintech/consulting
+- Run FIGSY campaigns from day one — every meeting booked is a case study
+- Domain warming starts at 20/day — use those 20 on the hottest ICP matches
+
+**2. Jacques personal brand on LinkedIn**
+Post every day for 30 days. Insight posts, not product posts.
+- Week 1–2: pain points, prospecting inefficiency, pipeline inconsistency in SA market
+- Week 3–4: first client results, how FIGSY works, behind-the-scenes build
+- Format: short, punchy, one idea per post, end with CTA to site
+
+**3. WhatsApp broadcast**
+SA market runs on WhatsApp.
+- Build broadcast list of 50–100 warm personal contacts now
+- Launch day: personal message (not salesy) to full list
+- Create K.I.N.D early clients WhatsApp group for community + feedback
+- Referral programme ($100 credits per referral) — activate through WhatsApp
+
+**4. Direct warm outreach — personal network**
+- List 30 people who run B2B companies or are in sales roles
+- Reach out personally before launch: "going live Wednesday, would love your feedback"
+- First 10 clients don't need to be perfect ICP — they need to generate results to post about
+
+**5. Content / SEO — plant seeds now, harvest in 60 days**
+- "How to build a B2B sales pipeline in South Africa in 2026"
+- "POPIA and cold email: what's actually allowed"
+- "Best lead generation tools for African businesses"
+- "How to find your ICP in 10 minutes"
+
+---
+
+### Launch Sequence
+
+**Now → 20 May (pre-launch)**
+- Jacques: LinkedIn post announcing go-live countdown
+- Build WhatsApp broadcast list
+- Message 30 warm contacts personally
+- FIGSY campaign targeting K.I.N.D ICP queued and ready
+
+**Wednesday 21 May — GO LIVE**
+- LinkedIn launch post (personal story + product announcement)
+- WhatsApp broadcast to full list
+- FIGSY outreach begins: 20 leads/day
+- Email to anyone on waitlist/early interest list
+
+**Week 1 (21–27 May) — Targets**
+
+| Metric | Target |
+|---|---|
+| Signups | 15–25 |
+| ICPs built | 10+ |
+| Credits purchased | 5–8 |
+| FIGSY outreach sent | 60 (3 days × 20) |
+| Meetings booked | 2–4 |
+
+**Week 2 (28 May – 3 Jun)**
+- Post first real client result on LinkedIn
+- Activate referral programme — email all signed-up clients asking for 1 referral
+- Domain warming moves to 50/day
+
+**Week 3–4**
+- Domain at 150/day
+- Case study #2 on LinkedIn
+- WhatsApp group active — gather testimonials
+- Retarget anyone who visited get-kind.com but didn't sign up
+
+---
+
+### Pricing Play
+
+- Lead with Lead Gen Pro at $20 — lowest barrier, gets them in
+- Upsell FIGSY after they see leads and realise they have no time to follow up manually
+- Push 100-credit bundles for better unit economics and more committed clients
+- Enterprise: take to a call, don't send a price list
+
+---
+
+### Message by Channel
+
+**LinkedIn (authority):**
+> "Your best SDR costs R25,000/mo before commission. K.I.N.D costs $20 to start and only charges when it finds you a qualified lead."
+
+**Cold email via FIGSY:**
+> Lead with the pain (pipeline inconsistency). One sentence on what we do. Proof point (250M+ contacts, African-first). Risk-free CTA: 14-day trial, $1/lead, cancel anytime.
+
+**WhatsApp (personal):**
+> "Hey [name] — launching something I've been building for the last 6 months. Would mean a lot if you checked it out. get-kind.com"
+
+**Referral activation:**
+> "Every client you refer gets $100 in free credits. So do you. Share your link."
+
+---
+
+### 90-Day Milestones
+
+| Date | Milestone |
+|---|---|
+| 21 May 2026 | Go live |
+| 31 May 2026 | 10 paying clients |
+| 14 June 2026 | First LinkedIn case study post |
+| 30 June 2026 | 50 paying clients · domain at full send volume |
+| 31 July 2026 | First enterprise conversation |
+| 31 August 2026 | 150 clients · VA + Chatbot waitlist converting |
+
+---
+
+### Notes
+- 📌 Netlify landing page — redeploy apps/landing/ once Jacques drags folder (latest version already updated in repo)
+- 📌 Website video — swap YouTube embed URL once new video is ready (tell me the URL, I update same day)
+
+---
+
 ## MASTER SUMMARY TABLE
 
 | # | Item | Status | Owner |

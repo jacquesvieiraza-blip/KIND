@@ -546,14 +546,21 @@ Sign up → confirm email → onboard → build ICP → run ICP → leads appear
 | 10 | Lead scoring explainer modal | Tooltip/modal in leads table explaining how 0–100 score is calculated per lead |
 | 11 | Referral leaderboard | Portal page: how many referrals made, credits earned, credits pending |
 
-### Phase B — FIGSY Upgrades
+### Phase B — New Channels (before 31 May — moved from post-launch)
+| # | Item | Detail | Blocked by |
+|---|------|--------|------------|
+| 12 | FIGSY Voice Calls | Vapi.ai or Retell AI + Claude + Twilio SA +27 number. Fires after Day 1 email, no reply in 48h. Books meetings live. | Jacques: Vapi.ai account + API key, Twilio SA +27 number |
+| 13 | WhatsApp Outreach | WhatsApp Business API. Day 2 WhatsApp message runs parallel to email sequence. Same reply classification + credit model. | Jacques: Meta Business verified, WhatsApp Business API approved |
+| 14 | Partner / Reseller Programme | /partners page on website. Referral link tracking. $100 credits auto-credited on referred client first payment. Partner dashboard. | None — can build now |
+
+### Phase C — FIGSY Upgrades
 | # | Item | Detail |
 |---|------|--------|
-| 12 | A/B email subject line testing | Send 2 variants to first 20% of leads, pick winner by 48h open rate, send winner to rest |
-| 13 | Adaptive learning per campaign | FIGSY adjusts openers and subject lines based on what's working in current campaign data |
-| 14 | Branded unsubscribe page | One-click POPIA-compliant opt-out landing page |
-| 15 | FIGSY campaign analytics dashboard | Per-campaign: open rate, reply rate, positive reply rate, credit spend, ROI |
-| 16 | Sequence preview in portal | Show 3-email sequence in readable format before launching campaign |
+| 15 | A/B email subject line testing | Send 2 variants to first 20% of leads, pick winner by 48h open rate, send winner to rest |
+| 16 | Adaptive learning per campaign | FIGSY adjusts openers and subject lines based on what's working in current campaign data |
+| 17 | Branded unsubscribe page | One-click POPIA-compliant opt-out landing page |
+| 18 | FIGSY campaign analytics dashboard | Per-campaign: open rate, reply rate, positive reply rate, credit spend, ROI |
+| 19 | Sequence preview in portal | Show 3-email sequence in readable format before launching campaign |
 
 ### Phase C — Billing & Revenue
 | # | Item | Detail |
@@ -835,8 +842,20 @@ SA market runs on WhatsApp.
 | 19 | Calendar link injection in FIGSY | ❌ Not built | Me (after you set up Calendly) |
 | 20 | Full calendar webhook (meeting confirmed → lead status) | ❌ Not built | Me (after you decide approach) |
 | 21 | Domain warming daily send cap (FIGSY_DAILY_SEND_LIMIT) | ❌ Not built | Me — blocking pre-launch |
-| 22 | Google Workspace for hello@get-kind.com personal inbox | ❌ Not done | You (optional) |
-| 23 | Merge branch to main on GitHub | ❌ Not done | You — see Section 14 |
+| 22 | Remove POPIA consent gate — auto-enroll all scored leads | ❌ Not built | Me — blocking pre-launch |
+| 23 | Day 1 email for Lead Gen Pro clients | ❌ Not built | Me — blocking pre-launch |
+| 24 | Direct-pay path in portal (skip trial) | ❌ Not built | Me — blocking pre-launch |
+| 25 | 7-day credit expiry warning email sequence | ❌ Not built | Me |
+| 26 | Unified FIGSY reply inbox in portal | ❌ Not built | Me |
+| 27 | Trial-to-paid conversion prompt (day 7/12/14) | ❌ Not built | Me |
+| 28 | Onboarding checklist / first-run wizard | ❌ Not built | Me |
+| 29 | Competitive comparison pages (3 pages) | ❌ Not built | Me |
+| 30 | Trust page (get-kind.com/trust) | ❌ Not built | Me |
+| 31 | Partner programme page + referral tracking | ❌ Not built | Me |
+| 32 | FIGSY Voice Calls (Vapi.ai + Twilio SA) | ❌ Not built | Me (after Jacques: Vapi account + Twilio +27 number) |
+| 33 | WhatsApp Outreach channel | ❌ Not built | Me (after Jacques: Meta Business + WhatsApp API approved) |
+| 34 | Google Workspace for hello@get-kind.com personal inbox | ❌ Not done | You (optional) |
+| 35 | Merge branch to main on GitHub | ❌ Not done | You — see Section 14 |
 
 ---
 

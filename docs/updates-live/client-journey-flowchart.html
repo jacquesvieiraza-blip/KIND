@@ -347,9 +347,42 @@
 
     <div class="node n-blue node-wide">🏢 Onboarding form<br/><span style="font-weight:400;font-size:0.7rem">company name · industry · country · website</span></div>
     <div class="down"></div>
-    <div class="node n-blue node-wide">💳 Client pays online via Paystack<br/><span style="font-weight:400;font-size:0.7rem">ticks checkbox · accepts terms &amp; conditions · payment confirmed</span></div>
-    <div class="down"></div>
-    <div class="node n-grey node-wide">⏱️ 14-day free trial starts<br/><span style="font-weight:400;font-size:0.7rem">CS day-1/3/7 follow-up emails fire automatically</span></div>
+
+    <!-- trial vs direct payment fork -->
+    <div style="max-width:620px;width:100%;background:rgba(0,0,0,0.03);border:1.5px dashed rgba(0,0,0,0.12);border-radius:14px;padding:16px 20px">
+      <div style="text-align:center;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.3);margin-bottom:14px">Client chooses their path</div>
+      <div class="outcomes outcomes-2">
+        <div class="split-col">
+          <div class="branch-label bl-blue">Starts free trial</div>
+          <div class="down" style="height:10px"></div>
+          <div class="outcome oc-blue" style="text-align:left;padding:12px 14px">
+            <div style="font-weight:800;margin-bottom:6px">⏱️ 14-day free trial</div>
+            <div style="font-size:0.65rem;line-height:1.7;font-weight:400">
+              · Full portal access<br/>
+              · Can build ICP &amp; preview leads<br/>
+              · CS follow-up emails: day 1 / 3 / 7<br/>
+              · Must add credits before outreach fires<br/>
+              · Trial expiry → billing CTA shown
+            </div>
+          </div>
+        </div>
+        <div class="split-col">
+          <div class="branch-label bl-green">Pays immediately</div>
+          <div class="down" style="height:10px"></div>
+          <div class="outcome oc-green" style="text-align:left;padding:12px 14px">
+            <div style="font-weight:800;margin-bottom:6px">💳 Straight to Paystack</div>
+            <div style="font-size:0.65rem;line-height:1.7;font-weight:400">
+              · Ticks T&amp;C checkbox<br/>
+              · Selects credit bundle<br/>
+              · Payment confirmed via webhook<br/>
+              · Credits appear immediately<br/>
+              · No trial period — live from day 1
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:0.67rem;color:rgba(0,0,0,0.35)">Both paths converge at Phase 2 — Build ICP &amp; run leads</div>
+    </div>
     <div class="down"></div>
 
     <!-- plan choice -->
@@ -374,9 +407,9 @@
      PHASE 2 — CREDITS & ICP (shared both plans)
 ════════════════════════════════════════════════ -->
 <div class="phase-band">
-  <div class="phase-band-title">Phase 2 — Add Credits &amp; Build ICP (both plans)</div>
+  <div class="phase-band-title">Phase 2 — Add Credits &amp; Build ICP (both plans — trial clients add credits here, direct-pay clients already have credits)</div>
   <div class="flow">
-    <div class="node n-blue node-wide">💳 Adds credit bundle via Paystack<br/><span style="font-weight:400;font-size:0.7rem">min $20 · 20 credits · ZAR billing available</span></div>
+    <div class="node n-blue node-wide">💳 Adds credit bundle via Paystack<br/><span style="font-weight:400;font-size:0.7rem">trial: adds credits when ready · direct-pay: already done · T&amp;C accepted at this step</span></div>
     <div class="down"></div>
     <div class="node n-grey node-wide">⚡ Paystack processes payment<br/><span style="font-weight:400;font-size:0.7rem">webhook confirms · credits appear in sidebar immediately</span></div>
     <div class="down"></div>

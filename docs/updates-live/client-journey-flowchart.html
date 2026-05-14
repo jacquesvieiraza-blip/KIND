@@ -410,40 +410,44 @@
 <div class="phase-divider"></div>
 
 <!-- ═══════════════════════════════════════════════
-     PHASE 3 — POPIA CONSENT (shared both plans)
+     PHASE 3 — FIRST OUTREACH (shared both plans)
 ════════════════════════════════════════════════ -->
 <div class="phase-band">
-  <div class="phase-band-title">Phase 3 — POPIA Consent Workflow (both plans)</div>
+  <div class="phase-band-title">Phase 3 — First Outreach (both plans — K.I.N.D sends on client's behalf)</div>
   <div class="flow">
-    <div class="node n-blue node-wide">📨 Client sends POPIA consent email<br/><span style="font-weight:400;font-size:0.7rem">single lead or bulk (up to 100 at once)</span></div>
+    <div class="node n-grey node-wide">⚡ ICP run completes → leads scored &amp; visible in portal immediately</div>
     <div class="down"></div>
-    <div class="node n-grey node-wide">📧 Consent email sent from send.get-kind.com<br/><span style="font-weight:400;font-size:0.7rem">personalised · with accept / reject links · POPIA compliant</span></div>
+    <div class="node n-grey node-wide" style="max-width:400px">📧 K.I.N.D sends Day 1 email to every scored lead automatically<br/><span style="font-weight:400;font-size:0.7rem">sent from send.get-kind.com · personalised per lead</span></div>
     <div class="down"></div>
 
-    <!-- 3-way split -->
-    <div class="outcomes outcomes-3" style="max-width:680px">
-      <div class="split-col">
-        <div class="branch-label bl-green">Lead clicks Accept</div>
-        <div class="down" style="height:10px"></div>
-        <div class="outcome oc-green">
-          <span class="oc-tag">Status: consent_given</span>
-          ✅ Lead is POPIA compliant<br/>Available for outreach &amp; export
-        </div>
+    <!-- POPIA legitimate interest callout -->
+    <div style="max-width:500px;width:100%;background:rgba(0,102,255,0.04);border:1.5px solid rgba(0,102,255,0.15);border-radius:12px;padding:14px 18px;text-align:left">
+      <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#0066FF;margin-bottom:8px">POPIA Legitimate Interest — covered in every Day 1 email</div>
+      <div style="font-size:0.73rem;color:rgba(0,0,0,0.6);line-height:1.7">
+        ✅ <strong>Who is contacting them</strong> — client's company name &amp; product clearly stated<br/>
+        ✅ <strong>Why it's relevant</strong> — matched to their specific industry &amp; job role (from ICP)<br/>
+        ✅ <strong>One-click opt-out</strong> — included in every email, actioned immediately<br/>
+        <span style="font-size:0.68rem;color:rgba(0,0,0,0.35);margin-top:4px;display:block">B2B legitimate interest basis under POPIA — no prior consent gate required</span>
       </div>
+    </div>
+    <div class="down"></div>
+
+    <!-- 2-way split -->
+    <div class="outcomes outcomes-2" style="max-width:500px">
       <div class="split-col">
-        <div class="branch-label bl-amber">No response</div>
-        <div class="down" style="height:10px"></div>
-        <div class="outcome oc-amber">
-          <span class="oc-tag">Status: consent_sent</span>
-          ⏳ Waiting<br/>Client can resend manually
-        </div>
-      </div>
-      <div class="split-col">
-        <div class="branch-label bl-red">Lead clicks Reject / Opt-out</div>
+        <div class="branch-label bl-red">Lead clicks opt-out</div>
         <div class="down" style="height:10px"></div>
         <div class="outcome oc-red">
           <span class="oc-tag">Status: opted_out</span>
           ❌ Permanently blocked<br/>Added to opt-out list<br/>Never contacted again
+        </div>
+      </div>
+      <div class="split-col">
+        <div class="branch-label bl-blue">No opt-out</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-blue">
+          <span class="oc-tag">Status: in sequence</span>
+          ➡️ Lead continues into plan journey below
         </div>
       </div>
     </div>
@@ -466,13 +470,13 @@
       <div class="journey-col-header jch-blue">Lead Gen Pro — $1 / qualified lead</div>
       <div class="journey-col-body">
 
-        <div class="step step-action">📋 Client reviews consented leads in portal</div>
+        <div class="step step-system">📧 Day 1 email already sent by K.I.N.D<br/><span style="font-weight:400;font-size:0.68rem">client identified · opt-out included · POPIA covered</span></div>
         <div class="down"></div>
-        <div class="step step-action">✍️ Client drafts outreach email<br/><span style="font-weight:400;font-size:0.68rem">optionally uses AI draft button (Claude generates personalised email)</span></div>
+        <div class="step step-action">📋 Client reviews lead replies in portal</div>
         <div class="down"></div>
-        <div class="step step-action">📤 Client exports leads as CSV<br/><span style="font-weight:400;font-size:0.68rem">consent-given leads only · downloads to CRM or inbox</span></div>
+        <div class="step step-action">📤 Client exports leads as CSV<br/><span style="font-weight:400;font-size:0.68rem">downloads to their CRM or inbox</span></div>
         <div class="down"></div>
-        <div class="step step-system">📧 Client sends emails manually from own inbox / CRM</div>
+        <div class="step step-action">✍️ Client sends follow-up emails manually<br/><span style="font-weight:400;font-size:0.68rem">optionally uses AI draft button for personalised email copy</span></div>
         <div class="down"></div>
 
         <!-- reply outcomes -->
@@ -509,7 +513,7 @@
         <div class="end-state es-green">🎯 Meeting booked · Deal in pipeline</div>
 
         <div class="note" style="margin-top:16px">
-          <strong>Upgrade prompt:</strong> At any point the client can upgrade to FIGSY to automate steps 2–6 above. Existing consented leads carry over.
+          <strong>Upgrade prompt:</strong> At any point the client can upgrade to FIGSY — K.I.N.D takes over Day 4 &amp; Day 9 follow-ups automatically. Existing leads carry over.
         </div>
 
       </div>
@@ -522,17 +526,15 @@
       <div class="journey-col-header jch-purple">Lead Gen + FIGSY — $3 / qualified lead</div>
       <div class="journey-col-body">
 
-        <div class="step step-figsy">🤖 Client creates FIGSY campaign in portal</div>
+        <div class="step step-system">⚡ Scored leads auto-enrolled into FIGSY campaign<br/><span style="font-weight:400;font-size:0.68rem">happens immediately after ICP run · no manual step needed</span></div>
         <div class="down"></div>
-        <div class="step step-figsy">➕ Enrolls consented leads into campaign<br/><span style="font-weight:400;font-size:0.68rem">up to 50 leads per campaign · selects from consent_given leads</span></div>
-        <div class="down"></div>
-        <div class="step step-system">⚡ FIGSY generates 3-email AI sequence per lead<br/><span style="font-weight:400;font-size:0.68rem">reads lead profile · personalised subject + body · unique per lead</span></div>
+        <div class="step step-system">🤖 FIGSY generates 3-email AI sequence per lead<br/><span style="font-weight:400;font-size:0.68rem">reads lead profile · personalised subject + body · unique per lead</span></div>
         <div class="down"></div>
 
         <!-- DAY 1 -->
         <div style="width:100%;background:rgba(124,58,237,0.06);border:1.5px solid rgba(124,58,237,0.15);border-radius:10px;padding:10px 14px;text-align:center;font-size:0.74rem;font-weight:700;color:#5b21b6">
-          📧 Day 1 Email sent by FIGSY<br/>
-          <span style="font-weight:400;font-size:0.68rem;color:#6d28d9">from hello@get-kind.com · reply-to: replies@get-kind.com</span>
+          📧 Day 1 — already sent in Phase 3<br/>
+          <span style="font-weight:400;font-size:0.68rem;color:#6d28d9">FIGSY handles replies · Day 4 &amp; Day 9 queued automatically</span>
         </div>
         <div class="down"></div>
 
@@ -770,7 +772,7 @@
       <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(0,0,0,0.3);margin-bottom:8px">Lead Gen Pro</div>
       <div style="font-size:0.72rem;font-weight:700;color:#065f46;margin-bottom:6px">✅ Qualified (positive reply)</div>
       <div style="font-size:0.72rem;font-weight:700;color:#065f46;margin-bottom:6px">📤 Exported (CSV)</div>
-      <div style="font-size:0.72rem;font-weight:700;color:#92400e;margin-bottom:6px">⏳ Consent pending</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#004acc;margin-bottom:6px">📬 Day 1 sent · awaiting reply</div>
       <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Opted out</div>
       <div style="font-size:0.72rem;font-weight:700;color:rgba(0,0,0,0.4)">⬛ No reply (inactive)</div>
     </div>
@@ -798,7 +800,6 @@
       <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Opt-out on Day 1</div>
       <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Opt-out on Day 4</div>
       <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Opt-out on Day 9</div>
-      <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">🚫 Consent rejected (pre-outreach)</div>
       <div style="font-size:0.68rem;color:rgba(0,0,0,0.4)">All opt-outs → permanent blocklist. No credits consumed.</div>
     </div>
 

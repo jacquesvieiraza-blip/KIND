@@ -8,10 +8,10 @@ creditRouter.use(requireAuth)
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!
 
-const BUNDLES = {
-  kind_ai: { 20: 20, 40: 40, 100: 100 },
-  figsy:   { 20: 60, 40: 120, 100: 300 },
-} as const
+const BUNDLES: Record<'kind_ai' | 'figsy', Record<number, number>> = {
+  kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
+  figsy:   { 10: 35, 20: 60, 40: 110, 75: 195, 100: 250, 200: 460, 500: 1100 },
+}
 
 // ── GET balance + transaction history ─────────────────────────────────────────
 creditRouter.get('/', async (req: AuthRequest, res) => {
@@ -33,8 +33,11 @@ creditRouter.post('/topup', async (req: AuthRequest, res) => {
   try {
     const { plan, bundle_size } = z.object({
       plan:        z.enum(['kind_ai', 'figsy']),
-      bundle_size: z.union([z.literal(20), z.literal(40), z.literal(100)]),
+      bundle_size: z.number().int().positive(),
     }).parse(req.body)
+
+    const amountUsd = BUNDLES[plan][bundle_size]
+    if (!amountUsd) { res.status(400).json({ success: false, error: 'Invalid bundle size' }); return }
 
     const { data: client } = await db.from('clients')
       .select('id').eq('user_id', req.userId!).single()
@@ -42,9 +45,7 @@ creditRouter.post('/topup', async (req: AuthRequest, res) => {
 
     const token = req.headers.authorization?.replace('Bearer ', '') || ''
     const { data: { user } } = await db.auth.getUser(token)
-
-    const amountUsd = BUNDLES[plan][bundle_size]
-    const amountZarKobo = amountUsd * 19 * 100
+    const amountZarKobo = Math.round(amountUsd * 19 * 100)
 
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',

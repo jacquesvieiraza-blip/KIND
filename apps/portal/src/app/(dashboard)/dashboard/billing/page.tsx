@@ -14,8 +14,25 @@ interface CreditTransaction {
   created_at: string
 }
 
-const KIND_AI_BUNDLES  = [{ size: 20, price: 20 }, { size: 40, price: 40 }, { size: 100, price: 100 }]
-const FIGSY_BUNDLES    = [{ size: 20, price: 60 }, { size: 40, price: 120 }, { size: 100, price: 300 }]
+const KIND_AI_BUNDLES = [
+  { size: 10,  price: 12  },
+  { size: 20,  price: 20  },
+  { size: 40,  price: 38  },
+  { size: 75,  price: 68  },
+  { size: 100, price: 88  },
+  { size: 200, price: 160 },
+  { size: 500, price: 375 },
+]
+
+const FIGSY_BUNDLES = [
+  { size: 10,  price: 35   },
+  { size: 20,  price: 60   },
+  { size: 40,  price: 110  },
+  { size: 75,  price: 195  },
+  { size: 100, price: 250  },
+  { size: 200, price: 460  },
+  { size: 500, price: 1100 },
+]
 
 function BundleCard({
   plan, label, tagline, bundles, accentClass, bgClass, initiating, termsAccepted, onBuy,

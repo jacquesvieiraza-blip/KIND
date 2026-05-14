@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import { PRICING, PRODUCTS, FIGSY_ADDON } from '@kind/shared'
-import { Users, DollarSign, TrendingUp, AlertCircle, Clock } from 'lucide-react'
+import { Users, DollarSign, TrendingUp, AlertCircle, Clock, Target, CheckCircle2, XCircle, MinusCircle } from 'lucide-react'
 import { AdminNav } from '@/components/AdminNav'
 
 interface ClientRow {
@@ -153,6 +153,157 @@ function StatusBadge({ status }: { status: string | null }) {
   )
 }
 
+const MONTHLY_TARGETS = [
+  { month: 'May 2026',  mrrTarget: 500,    clientTarget: 8   },
+  { month: 'Jun 2026',  mrrTarget: 2000,   clientTarget: 15  },
+  { month: 'Jul 2026',  mrrTarget: 5000,   clientTarget: 30  },
+  { month: 'Aug 2026',  mrrTarget: 10000,  clientTarget: 55  },
+  { month: 'Sep 2026',  mrrTarget: 17000,  clientTarget: 80  },
+  { month: 'Oct 2026',  mrrTarget: 26000,  clientTarget: 120 },
+  { month: 'Nov 2026',  mrrTarget: 36000,  clientTarget: 160 },
+  { month: 'Dec 2026',  mrrTarget: 48000,  clientTarget: 200 },
+]
+
+const KEY_KPIS = [
+  { label: 'Time to First Lead',     target: '< 4 hrs',   unit: 'TTFL' },
+  { label: 'Trial → Paid Conv.',     target: '> 40%',     unit: 'CVR' },
+  { label: 'Monthly Churn',          target: '< 5%',      unit: 'Churn' },
+  { label: 'FIGSY Reply Rate',       target: '> 3%',      unit: 'Reply' },
+  { label: 'FIGSY Interested Rate',  target: '> 0.5%',    unit: 'Int.' },
+  { label: 'NPS',                    target: '> 50',      unit: 'NPS' },
+]
+
+function ragStatus(pct: number): 'green' | 'amber' | 'red' {
+  if (pct >= 80) return 'green'
+  if (pct >= 50) return 'amber'
+  return 'red'
+}
+
+function RagIcon({ pct }: { pct: number }) {
+  const status = ragStatus(pct)
+  if (status === 'green') return <CheckCircle2 className="w-4 h-4 text-green-500" />
+  if (status === 'amber') return <MinusCircle className="w-4 h-4 text-amber-500" />
+  return <XCircle className="w-4 h-4 text-red-400" />
+}
+
+function getCurrentTarget() {
+  const now = new Date()
+  // Find the target for the current or nearest upcoming month
+  const nowMs = now.getTime()
+  for (const t of MONTHLY_TARGETS) {
+    const d = new Date(t.month)
+    if (d.getTime() >= nowMs - 86400000 * 30) return t
+  }
+  return MONTHLY_TARGETS[MONTHLY_TARGETS.length - 1]
+}
+
+function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClients: number }) {
+  const current = getCurrentTarget()
+  const mrrPct     = Math.min((mrrUsd / current.mrrTarget) * 100, 100)
+  const clientPct  = Math.min((totalClients / current.clientTarget) * 100, 100)
+
+  return (
+    <div className="space-y-4">
+      {/* Current month progress */}
+      <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Target className="w-5 h-5 text-[#0066FF]" />
+          <h2 className="font-semibold">KPI Progress — {current.month}</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div className="flex justify-between text-sm mb-1.5">
+              <span className="text-gray-500">MRR</span>
+              <span className="font-semibold">${mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-2.5">
+              <div className={`h-2.5 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-green-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#0066FF]'}`}
+                   style={{ width: `${mrrPct}%` }} />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">{mrrPct.toFixed(1)}% of target</p>
+          </div>
+          <div>
+            <div className="flex justify-between text-sm mb-1.5">
+              <span className="text-gray-500">Clients</span>
+              <span className="font-semibold">{totalClients} / {current.clientTarget}</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-2.5">
+              <div className={`h-2.5 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-green-500' : ragStatus(clientPct) === 'amber' ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                   style={{ width: `${clientPct}%` }} />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">{clientPct.toFixed(1)}% of target</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly targets roadmap */}
+      <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <h2 className="font-semibold mb-1">Monthly Revenue Targets</h2>
+        <p className="text-xs text-gray-400 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100">
+                {['Month', 'MRR Target', 'Client Target', 'Current vs Target', ''].map(h => (
+                  <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {MONTHLY_TARGETS.map(t => {
+                const isCurrentMonth = t.month === current.month
+                const pct = Math.min((mrrUsd / t.mrrTarget) * 100, 100)
+                const isFuture = new Date(t.month).getTime() > Date.now() + 86400000 * 30
+                return (
+                  <tr key={t.month} className={isCurrentMonth ? 'bg-blue-50/50' : 'hover:bg-gray-50'}>
+                    <td className="px-3 py-3">
+                      <span className="font-medium text-gray-900">{t.month}</span>
+                      {isCurrentMonth && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">Now</span>}
+                    </td>
+                    <td className="px-3 py-3 font-medium text-gray-700">${t.mrrTarget.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>
+                    <td className="px-3 py-3">
+                      {isFuture ? (
+                        <span className="text-xs text-gray-300">upcoming</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 bg-gray-100 rounded-full h-1.5">
+                            <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-green-500' : ragStatus(pct) === 'amber' ? 'bg-amber-500' : 'bg-[#0066FF]'}`}
+                                 style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs text-gray-500">{pct.toFixed(0)}%</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      {!isFuture && <RagIcon pct={pct} />}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Key KPI targets */}
+      <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <h2 className="font-semibold mb-1">Core KPI Targets</h2>
+        <p className="text-xs text-gray-400 mb-4">Track these weekly — they're the leading indicators of growth</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {KEY_KPIS.map(k => (
+            <div key={k.label} className="bg-gray-50 rounded-lg px-4 py-3">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{k.unit}</p>
+              <p className="text-lg font-bold text-gray-900 mt-0.5">{k.target}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{k.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default async function AdminPage() {
   const stats = await getAdminStats()
 
@@ -189,12 +340,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <h2 className="font-semibold mb-4">Progress to $26K MRR (Month 6 target)</h2>
-          <div className="mb-2 flex justify-between text-sm"><span className="text-gray-500">Current MRR</span><span className="font-semibold">${stats.mrrUsd.toLocaleString()} / $26,000</span></div>
-          <div className="w-full bg-gray-100 rounded-full h-3"><div className="bg-[#0066FF] h-3 rounded-full" style={{ width: `${Math.min((stats.mrrUsd / 26000) * 100, 100)}%` }} /></div>
-          <p className="text-xs text-gray-400 mt-2">{((stats.mrrUsd / 26000) * 100).toFixed(1)}% of Month 6 MRR target</p>
-        </div>
+        <KpiTargetsSection mrrUsd={stats.mrrUsd} totalClients={stats.totalClients} />
 
         {/* Client Pipeline Health */}
         <div className="bg-white rounded-xl border border-gray-100 p-6">

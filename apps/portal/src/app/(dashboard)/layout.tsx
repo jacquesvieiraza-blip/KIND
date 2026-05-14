@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
+import { SupportWidget } from '@/components/ui/SupportWidget'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -48,6 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {children}
         </div>
       </main>
+      <SupportWidget />
     </div>
   )
 }

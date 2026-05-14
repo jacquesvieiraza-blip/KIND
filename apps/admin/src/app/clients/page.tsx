@@ -1,11 +1,10 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import { Users, FileText, CreditCard, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Users, CheckCircle, Clock, XCircle, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { AdminNav } from '@/components/AdminNav'
 
-interface OrderForm { status: string; signed_at: string | null }
 interface Subscription { status: string; product: string }
 interface Client {
   id: string
@@ -13,7 +12,7 @@ interface Client {
   country: string
   industry: string | null
   created_at: string
-  order_forms: OrderForm[]
+  terms_accepted_at: string | null
   subscriptions: Subscription[]
 }
 
@@ -25,32 +24,29 @@ async function getClients(): Promise<Client[]> {
   )
   const { data } = await db
     .from('clients')
-    .select('*, order_forms(*), subscriptions(*)')
+    .select('*, subscriptions(*)')
     .order('created_at', { ascending: false })
   return (data || []) as Client[]
 }
 
 function clientStatus(client: Client): { label: string; color: string; icon: React.ReactNode } {
-  const of = client.order_forms?.[0]
   const subs = client.subscriptions || []
   const active = subs.some(s => s.status === 'active')
   const trial  = subs.some(s => s.status === 'trialing')
 
-  if (active)                         return { label: 'Active',            color: 'bg-green-100 text-green-700',  icon: <CheckCircle className="w-3.5 h-3.5" /> }
-  if (trial)                          return { label: 'Trial',             color: 'bg-blue-100 text-blue-700',    icon: <Clock className="w-3.5 h-3.5" /> }
-  if (of?.status === 'signed')        return { label: 'Signed — unpaid',   color: 'bg-amber-100 text-amber-700',  icon: <CreditCard className="w-3.5 h-3.5" /> }
-  if (of?.status === 'sent')          return { label: 'Awaiting signature', color: 'bg-orange-100 text-orange-700', icon: <FileText className="w-3.5 h-3.5" /> }
-  return                               { label: 'No order form',           color: 'bg-gray-100 text-gray-500',    icon: <XCircle className="w-3.5 h-3.5" /> }
+  if (active) return { label: 'Active',    color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-3.5 h-3.5" /> }
+  if (trial)  return { label: 'Trial',     color: 'bg-blue-100 text-blue-700',   icon: <Clock className="w-3.5 h-3.5" /> }
+  return       { label: 'No credits',  color: 'bg-gray-100 text-gray-500',    icon: <XCircle className="w-3.5 h-3.5" /> }
 }
 
 export default async function ClientsPage() {
   const clients = await getClients()
 
   const counts = {
-    active:    clients.filter(c => c.subscriptions?.some(s => s.status === 'active')).length,
-    trial:     clients.filter(c => c.subscriptions?.some(s => s.status === 'trialing')).length,
-    unsigned:  clients.filter(c => c.order_forms?.[0]?.status === 'sent').length,
-    noForm:    clients.filter(c => !c.order_forms?.length).length,
+    active:        clients.filter(c => c.subscriptions?.some(s => s.status === 'active')).length,
+    trial:         clients.filter(c => c.subscriptions?.some(s => s.status === 'trialing')).length,
+    termsAccepted: clients.filter(c => !!c.terms_accepted_at).length,
+    noCredits:     clients.filter(c => !c.subscriptions?.some(s => s.status === 'active' || s.status === 'trialing')).length,
   }
 
   return (
@@ -66,10 +62,10 @@ export default async function ClientsPage() {
         {/* Summary strip */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: 'Active',             value: counts.active,   color: 'text-green-600' },
-            { label: 'On Trial',           value: counts.trial,    color: 'text-blue-600' },
-            { label: 'Awaiting signature', value: counts.unsigned, color: 'text-orange-600' },
-            { label: 'No order form',      value: counts.noForm,   color: 'text-gray-500' },
+            { label: 'Active',         value: counts.active,        color: 'text-green-600' },
+            { label: 'On Trial',       value: counts.trial,         color: 'text-blue-600' },
+            { label: 'T&Cs Accepted',  value: counts.termsAccepted, color: 'text-indigo-600' },
+            { label: 'No Credits',     value: counts.noCredits,     color: 'text-gray-500' },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 text-center">
               <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -89,7 +85,7 @@ export default async function ClientsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {['Company', 'Country', 'Status', 'Order Form', 'Active Products', 'Actions'].map(h => (
+                  {['Company', 'Country', 'Status', 'T&Cs', 'Active Products', 'Actions'].map(h => (
                     <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -97,7 +93,6 @@ export default async function ClientsPage() {
               <tbody className="divide-y divide-gray-50">
                 {clients.map(client => {
                   const st = clientStatus(client)
-                  const of = client.order_forms?.[0]
                   const activeProducts = (client.subscriptions || []).filter(s => s.status === 'active' || s.status === 'trialing')
 
                   return (
@@ -113,14 +108,13 @@ export default async function ClientsPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3">
-                        {of ? (
-                          <div>
-                            <span className={`text-xs font-medium ${of.status === 'signed' ? 'text-green-600' : of.status === 'sent' ? 'text-orange-600' : 'text-gray-400'}`}>
-                              {of.status === 'signed' ? `✓ Signed ${of.signed_at ? new Date(of.signed_at).toLocaleDateString('en-ZA') : ''}` : of.status === 'sent' ? '⏳ Awaiting signature' : of.status}
-                            </span>
-                          </div>
+                        {client.terms_accepted_at ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            {new Date(client.terms_accepted_at).toLocaleDateString('en-ZA')}
+                          </span>
                         ) : (
-                          <span className="text-xs text-gray-400">Not sent</span>
+                          <span className="text-xs text-gray-400">Not accepted</span>
                         )}
                       </td>
                       <td className="px-5 py-3">

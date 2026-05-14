@@ -185,7 +185,7 @@ export default function BillingPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     try {
-      const res = await api.post<{ data: { authorization_url: string } }>('/credits/topup', { plan, bundle_size }, session.access_token)
+      const res = await api.post<{ data: { authorization_url: string } }>('/credits/topup', { plan, bundle_size, terms_accepted: termsAccepted }, session.access_token)
       window.location.href = res.data.authorization_url
     } catch (err) { console.error(err) }
     setInitiating(null)

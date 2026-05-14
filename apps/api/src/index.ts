@@ -9,7 +9,6 @@ import { subscriptionRouter } from './routes/subscriptions'
 import { paystackRouter } from './routes/paystack'
 import { leadRouter } from './routes/leads'
 import { icpRouter } from './routes/icps'
-import { orderFormRouter } from './routes/order-forms'
 import { creditRouter } from './routes/credits'
 import { errorHandler } from './middleware/error'
 import { adminRouter } from './routes/admin'
@@ -34,7 +33,6 @@ app.use('/subscriptions', subscriptionRouter)
 app.use('/webhooks/paystack', paystackRouter)
 app.use('/leads',         leadRouter)
 app.use('/icps',          icpRouter)
-app.use('/order-forms',   orderFormRouter)
 app.use('/credits',       creditRouter)
 app.use('/admin',         adminRouter)
 app.use('/figsy',         figsyRouter)

@@ -97,15 +97,15 @@ export default function TermsLibraryPage() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Agreement Template Library</h2>
           <p className="text-gray-500 text-sm mt-1">
-            Upload your 5 legal PDFs once. They automatically appear in every client's T&C viewer when their Order Form is sent.
+            Upload your legal PDFs. Clients can access these documents from the billing page before accepting the terms &amp; conditions.
           </p>
         </div>
 
         {/* Status banner */}
         <div className={`rounded-xl px-5 py-4 flex items-center gap-3 ${allUploaded ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
           {allUploaded
-            ? <><CheckCircle className="w-5 h-5 text-green-500 shrink-0" /><p className="text-sm text-green-800 font-medium">All 5 required documents uploaded. Clients can view T&Cs on their Order Form.</p></>
-            : <><Upload className="w-5 h-5 text-amber-500 shrink-0" /><p className="text-sm text-amber-800"><strong>{5 - uploadedNames.filter(n => REQUIRED_DOCS.some(d => d.name === n)).length} document(s) missing.</strong> Upload all 5 before sending Order Forms to clients.</p></>
+            ? <><CheckCircle className="w-5 h-5 text-green-500 shrink-0" /><p className="text-sm text-green-800 font-medium">All required documents uploaded. Clients can view these before accepting T&amp;Cs at checkout.</p></>
+            : <><Upload className="w-5 h-5 text-amber-500 shrink-0" /><p className="text-sm text-amber-800"><strong>{5 - uploadedNames.filter(n => REQUIRED_DOCS.some(d => d.name === n)).length} document(s) missing.</strong> Upload all documents before going live.</p></>
           }
         </div>
 

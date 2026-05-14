@@ -31,17 +31,27 @@ creditRouter.get('/', async (req: AuthRequest, res) => {
 // ── INITIATE top-up ────────────────────────────────────────────────────────────
 creditRouter.post('/topup', async (req: AuthRequest, res) => {
   try {
-    const { plan, bundle_size } = z.object({
-      plan:        z.enum(['kind_ai', 'figsy']),
-      bundle_size: z.number().int().positive(),
+    const { plan, bundle_size, terms_accepted } = z.object({
+      plan:           z.enum(['kind_ai', 'figsy']),
+      bundle_size:    z.number().int().positive(),
+      terms_accepted: z.boolean().optional(),
     }).parse(req.body)
 
     const amountUsd = BUNDLES[plan][bundle_size]
     if (!amountUsd) { res.status(400).json({ success: false, error: 'Invalid bundle size' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('id').eq('user_id', req.userId!).single()
+      .select('id, terms_accepted_at').eq('user_id', req.userId!).single()
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Record T&C acceptance on first purchase if ticked
+    if (terms_accepted && !client.terms_accepted_at) {
+      const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.socket.remoteAddress || ''
+      await db.from('clients').update({
+        terms_accepted_at: new Date().toISOString(),
+        terms_accepted_ip: ip,
+      }).eq('id', client.id)
+    }
 
     const token = req.headers.authorization?.replace('Bearer ', '') || ''
     const { data: { user } } = await db.auth.getUser(token)

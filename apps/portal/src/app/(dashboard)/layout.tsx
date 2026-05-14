@@ -13,20 +13,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  let trialExpired    = false
-  let orderFormSigned = false
-  let creditBalance   = 0
+  let trialExpired  = false
+  let creditBalance = 0
 
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
-      const [clientRes, docsRes] = await Promise.all([
-        api.get<{ data: { subscriptions: { status: string; trial_ends_at?: string }[]; credit_balance?: number } }>('/clients/me', session.access_token),
-        api.get<{ data: { order_form: { status: string } | null } }>('/order-forms/me', session.access_token).catch(() => ({ data: { order_form: null } })),
-      ])
+      const clientRes = await api.get<{ data: { subscriptions: { status: string; trial_ends_at?: string }[]; credit_balance?: number } }>('/clients/me', session.access_token)
       const subs      = clientRes.data?.subscriptions ?? []
       const hasActive = subs.some((s) => s.status === 'active')
-      orderFormSigned = docsRes.data?.order_form?.status === 'signed'
       creditBalance   = clientRes.data?.credit_balance ?? 0
 
       if (!hasActive) {
@@ -43,7 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex h-screen bg-gray-50">
       <Sidebar userEmail={user.email || ''} creditBalance={creditBalance} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
-        <TrialExpiredOverlay expired={trialExpired} orderFormSigned={orderFormSigned} />
+        <TrialExpiredOverlay expired={trialExpired} />
         <div className="max-w-7xl space-y-4">
           <LowCreditsNotice balance={creditBalance} />
           {children}

@@ -42,19 +42,6 @@ authRouter.post('/onboard', async (req, res) => {
       client_id: data.id, product: 'lead_gen', tier: 'usage', status: 'trialing',
       amount_zar: 0, trial_ends_at: trialEnd.toISOString(), current_period_end: trialEnd.toISOString(),
     })
-    // Auto-create a standard order form so the client can sign immediately — no admin action needed
-    const billingStart = new Date(trialEnd)
-    billingStart.setDate(billingStart.getDate() + 1)
-    await db.from('order_forms').upsert({
-      client_id:          data.id,
-      products:           [{ product: 'lead_gen', tier: 'usage', price_usd: 100, billing_interval: 'monthly' }],
-      total_monthly_usd:  100,
-      start_date:         billingStart.toISOString().split('T')[0],
-      scope_notes:        'AI Lead Generation — usage-based billing. Minimum $100/mo. First 100 leads included; additional leads charged at $1.00/lead.',
-      status:             'sent',
-      sent_at:            new Date().toISOString(),
-      created_by_email:   'system',
-    }, { onConflict: 'client_id' })
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})
     // Fire-and-forget CS day1 follow-up
     fetch(`http://localhost:${process.env.PORT || 4000}/founder/cs/followup`, {

@@ -101,42 +101,6 @@
     .s-sub { font-size: 1rem; color: rgba(0,0,0,0.42); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
     .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
 
-    /* ── VIDEO SECTION ── */
-    .video-section { padding: 80px 48px; background: var(--light); }
-    .video-inner { max-width: 1080px; margin: 0 auto; }
-    .video-header { text-align: center; margin-bottom: 40px; }
-    .video-header .s-title { margin-bottom: 12px; }
-    .video-header p { font-size: 0.95rem; color: rgba(0,0,0,0.42); }
-    .video-wrap {
-      position: relative;
-      border-radius: 24px;
-      overflow: hidden;
-      background: var(--dark);
-      aspect-ratio: 16/9;
-      box-shadow: 0 32px 80px rgba(0,0,0,0.18);
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-    .video-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .video-placeholder {
-      position: absolute; inset: 0; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 20px;
-      background: linear-gradient(135deg, #0a0a1a 0%, #001240 50%, #0a0a1a 100%);
-    }
-    .video-node-overlay { position: absolute; inset: 0; opacity: 0.3; }
-    .video-node-overlay canvas { width: 100%; height: 100%; }
-    .play-ring {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: var(--blue);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 0 48px rgba(0,102,255,0.5);
-      z-index: 2; position: relative;
-    }
-    .play-ring:hover { transform: scale(1.08); box-shadow: 0 0 72px rgba(0,102,255,0.7); }
-    .play-ring svg { margin-left: 5px; }
-    .video-label { font-size: 0.85rem; color: rgba(255,255,255,0.35); z-index: 2; position: relative; }
-    .video-label strong { color: rgba(255,255,255,0.7); }
-
     /* ── HOW IT WORKS ── */
     .hiw-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     .hiw-card { background: var(--light); border-radius: 20px; padding: 32px 28px; }
@@ -280,7 +244,7 @@
       .hero { padding: 72px 24px 48px; }
       .hero-canvas-wrap { margin: 40px -24px 0; }
       .section { padding: 64px 24px; }
-      .video-section, .figsy-section, .pricing-section, .form-section { padding: 64px 24px; }
+      .figsy-section, .pricing-section, .form-section { padding: 64px 24px; }
       .hiw-grid { grid-template-columns: 1fr 1fr; }
       .prod-grid { grid-template-columns: 1fr; }
       .prod.featured { grid-column: span 1; grid-template-columns: 1fr; gap: 24px; }
@@ -363,30 +327,6 @@
   </div>
 </div>
 
-<!-- VIDEO SECTION -->
-<div class="video-section" id="watch">
-  <div class="video-inner">
-    <div class="video-header reveal">
-      <div class="s-label">Platform demo</div>
-      <div class="s-title">See K.I.N.D in action</div>
-      <p>Watch how K.I.N.D finds leads, scores them, and lets FIGSY run the entire outreach sequence — from first email to booked meeting.</p>
-    </div>
-    <div class="video-wrap reveal">
-      <!-- Swap the src below for your actual video file or YouTube embed -->
-      <!-- <video controls poster=""> <source src="kind-demo.mp4" type="video/mp4" /></video> -->
-      <div class="video-placeholder">
-        <canvas id="video-canvas" class="video-node-overlay"></canvas>
-        <div class="play-ring" onclick="this.parentElement.innerHTML='<iframe width=\'100%\' height=\'100%\' src=\'https://www.youtube.com/embed/?autoplay=1\' frameborder=\'0\' allow=\'autoplay; fullscreen\' allowfullscreen style=\'display:block\'></iframe>'">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-            <polygon points="5,3 19,12 5,21"/>
-          </svg>
-        </div>
-        <div class="video-label"><strong>K.I.N.D Platform Demo</strong> · 2 min overview</div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- HOW IT WORKS -->
 <div class="section" id="how-it-works">
   <div class="s-label reveal">How it works</div>
@@ -429,7 +369,7 @@
         <span class="prod-tag t-blue">🎯 Lead Generation</span>
         <h3>AI Lead Generation</h3>
         <p>Precision-targeted B2B leads sourced from Apollo's 250M+ database, matched against your ICP, scored 0–100, and POPIA-compliant. Only pay for leads new to your pipeline.</p>
-        <div class="prod-price">$1 <span class="sm">/ lead · from $100/mo</span></div>
+        <div class="prod-price">$1 <span class="sm">per qualified lead · from $20</span></div>
         <ul class="prod-list">
           <li>ICP-matched leads from Apollo</li>
           <li>AI lead scoring 0–100</li>
@@ -442,7 +382,7 @@
         <span class="prod-tag t-blue" style="background:rgba(0,102,255,0.2);color:#60a5fa">🤖 FIGSY — AI SDR</span>
         <h3>FIGSY AI Outreach</h3>
         <p>FIGSY is your autonomous AI Sales Development Representative. It reads each lead's profile, writes a unique personalised email, sends from your domain, handles replies, and books meetings.</p>
-        <div class="prod-price">$3 <span class="sm">/ lead · from $300/mo</span></div>
+        <div class="prod-price">$3 <span class="sm">per qualified lead · from $60</span></div>
         <ul class="prod-list">
           <li class="b">AI-personalised emails — unique per lead</li>
           <li class="b">Automated 3-step follow-up sequences</li>
@@ -545,60 +485,64 @@
   <div class="pricing-inner">
     <div class="pricing-header reveal">
       <div class="s-label">Pricing</div>
-      <div class="s-title">Pay per result.<br/>Not per seat.</div>
-      <p class="s-sub" style="margin:12px auto 0;text-align:center">Usage-based pricing for Lead Gen and FIGSY — you only pay for leads delivered.</p>
+      <div class="s-title">Pay for results, not promises.</div>
+      <p class="s-sub" style="margin:12px auto 0;text-align:center">Credits consumed only on positive replies. No monthly minimums. Cancel anytime.</p>
     </div>
     <div class="p-cards">
       <div class="p-card reveal reveal-d1">
-        <div class="p-plan">Lead Gen</div>
-        <h3>AI Lead Generation</h3>
-        <p>Precision leads, AI-scored, POPIA-compliant. No duplicates, no contracts.</p>
-        <div class="p-price">$1<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/lead</span></div>
-        <div class="p-note">From $100/mo · 100 leads included</div>
+        <div class="p-plan">K.I.N.D AI</div>
+        <h3>Lead Gen Pro</h3>
+        <p>AI-sourced, AI-outreached leads. Pay only when a prospect replies positively.</p>
+        <div class="p-price">$1<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/qualified lead</span></div>
+        <div class="p-note">Start from $20 · bundles of 20 credits</div>
         <div class="p-divider"></div>
         <ul>
-          <li>ICP-matched from Apollo</li>
-          <li>AI score 0–100</li>
-          <li>POPIA consent workflow</li>
-          <li>CRM deduplication</li>
-          <li>CSV export</li>
+          <li>Apollo lead sourcing</li>
+          <li>3-sequence personalised outreach</li>
+          <li>Credit on positive reply only</li>
+          <li>3 AI ICP regenerations/month</li>
+          <li>Reply tracking &amp; opt-out management</li>
+          <li>14-day free trial</li>
         </ul>
         <a href="#join" class="p-btn p-btn-out">Get early access</a>
       </div>
       <div class="p-card featured reveal reveal-d2">
         <div class="p-badge">Most popular</div>
-        <div class="p-plan">Lead Gen + FIGSY</div>
-        <h3>Full Pipeline Bundle</h3>
-        <p>Leads found + AI outreach running. The complete end-to-end sales system.</p>
-        <div class="p-price">$3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.3)">/lead</span></div>
-        <div class="p-note">From $300/mo · 100 leads included</div>
+        <div class="p-plan">FIGSY</div>
+        <h3>Lead Gen Advanced</h3>
+        <p>Everything in Lead Gen Pro — plus FIGSY handles replies, books meetings, and learns from every campaign.</p>
+        <div class="p-price">$3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.3)">/qualified lead</span></div>
+        <div class="p-note">Start from $60 · bundles of 20 credits</div>
         <div class="p-divider"></div>
         <ul>
-          <li>Everything in Lead Gen</li>
-          <li>FIGSY personalised outreach</li>
-          <li>3-step follow-up sequences</li>
-          <li>Reply detection &amp; handling</li>
-          <li>Meeting booking automation</li>
+          <li>Everything in Lead Gen Pro</li>
+          <li>FIGSY handles all replies</li>
+          <li>Objection management</li>
+          <li>Meeting booked to your calendar</li>
+          <li>Adaptive learning per campaign</li>
+          <li>Unlimited ICP regenerations</li>
         </ul>
         <a href="#join" class="p-btn p-btn-white">Reserve my spot →</a>
       </div>
       <div class="p-card reveal reveal-d3">
-        <div class="p-plan">FIGSY Standalone</div>
-        <h3>FIGSY — AI SDR Only</h3>
-        <p>Already have leads? Plug FIGSY into your existing pipeline and let it run outreach.</p>
-        <div class="p-price" style="font-size:1.8rem">Custom</div>
-        <div class="p-note">Upload your own CSV · contact us</div>
+        <div class="p-plan">Enterprise</div>
+        <h3>Custom</h3>
+        <p>High-volume campaigns, custom integrations, dedicated support, and tailored pricing.</p>
+        <div class="p-price" style="font-size:1.8rem">Let's talk</div>
+        <div class="p-note">Volume discounts · SLA · dedicated AE</div>
         <div class="p-divider"></div>
         <ul>
-          <li>Full FIGSY outreach engine</li>
-          <li>Upload your own lead list</li>
-          <li>AI personalised emails</li>
-          <li>Reply &amp; follow-up automation</li>
+          <li>Everything in FIGSY Advanced</li>
+          <li>CRM integration (HubSpot, Salesforce)</li>
+          <li>Custom sending domain setup</li>
+          <li>Dedicated account manager</li>
+          <li>Custom billing &amp; invoicing</li>
+          <li>Priority support</li>
         </ul>
-        <a href="mailto:hello@get-kind.com" class="p-btn p-btn-out">Contact us</a>
+        <a href="mailto:hello@get-kind.com?subject=Enterprise%20Enquiry" class="p-btn p-btn-out">Contact us</a>
       </div>
     </div>
-    <p class="p-vol">Volume discounts: 101–500 leads at $2/lead · 500+ leads from $0.80/lead · ZAR billing available · Enterprise pricing on request</p>
+    <p class="p-vol">Local currency billing available · No contracts · Cancel anytime · <a href="mailto:hello@get-kind.com" style="color:rgba(0,0,0,0.3);text-decoration:none">hello@get-kind.com</a></p>
   </div>
 </div>
 
@@ -831,60 +775,6 @@
     resize(); initNodes(); draw()
   })()
 
-  /* ── NODE NETWORK (video placeholder) ───────────────────────────────────── */
-  ;(function() {
-    const canvas = document.getElementById('video-canvas')
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    let nodes = [], W, H
-
-    function resize() {
-      const wrap = canvas.parentElement
-      W = canvas.width  = wrap ? wrap.offsetWidth  : 800
-      H = canvas.height = wrap ? wrap.offsetHeight : 450
-    }
-    function initNodes() {
-      nodes = []
-      const count = Math.floor(W / 60)
-      for (let i = 0; i < count; i++) {
-        nodes.push({
-          x: Math.random() * W, y: Math.random() * H,
-          vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-          r: Math.random() * 2 + 1, pulse: Math.random() * Math.PI * 2,
-        })
-      }
-    }
-    function draw() {
-      ctx.clearRect(0, 0, W, H)
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y
-          const dist = Math.sqrt(dx*dx + dy*dy)
-          if (dist < 180) {
-            ctx.beginPath()
-            ctx.strokeStyle = 'rgba(0,102,255,' + (0.15 * (1 - dist / 180)) + ')'
-            ctx.lineWidth = 1
-            ctx.moveTo(nodes[i].x, nodes[i].y)
-            ctx.lineTo(nodes[j].x, nodes[j].y)
-            ctx.stroke()
-          }
-        }
-      }
-      nodes.forEach(function(n) {
-        n.pulse += 0.02
-        const glow = (Math.sin(n.pulse) + 1) / 2
-        ctx.beginPath()
-        ctx.arc(n.x, n.y, n.r + glow, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(0,102,255,' + (0.3 + glow * 0.4) + ')'
-        ctx.fill()
-        n.x += n.vx; n.y += n.vy
-        if (n.x < 0 || n.x > W) n.vx *= -1
-        if (n.y < 0 || n.y > H) n.vy *= -1
-      })
-      requestAnimationFrame(draw)
-    }
-    resize(); initNodes(); draw()
-  })()
 
   /* ── SCROLL REVEAL ───────────────────────────────────────────────────────── */
   var obs = new IntersectionObserver(function(entries) {

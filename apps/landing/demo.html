@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D — Platform Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue:   #0066FF;
+      --dark:   #0a0a0a;
+      --navy:   #001f4d;
+      --light:  #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #fff;
+      overflow: hidden;
+      color: var(--dark);
+    }
+
+    /* ── STAGE ── */
+    #stage { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+    .scene {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 80px;
+      opacity: 0; transition: opacity 0.7s ease;
+      pointer-events: none;
+    }
+    .scene.active { opacity: 1; pointer-events: auto; }
+
+    /* dark scenes override text colour */
+    .scene-dark { background: var(--dark); color: #fff; }
+    .scene-light { background: #fff; }
+    .scene-off { background: var(--light); }
+
+    /* ── CHROME ── */
+    #progress-bar {
+      position: fixed; bottom: 0; left: 0;
+      height: 3px; background: var(--blue);
+      transition: width 0.3s linear; z-index: 100;
+    }
+    #scene-counter {
+      position: fixed; bottom: 16px; right: 24px;
+      font-size: 0.75rem; color: rgba(0,0,0,0.22);
+      z-index: 100; font-variant-numeric: tabular-nums;
+    }
+    #skip-btn {
+      position: fixed; bottom: 12px; left: 24px;
+      font-size: 0.75rem; color: rgba(0,0,0,0.22);
+      z-index: 100; cursor: pointer; border: none; background: none;
+      transition: color 0.2s;
+    }
+    #skip-btn:hover { color: rgba(0,0,0,0.55); }
+    /* override chrome colour on dark scenes */
+    body.dark-scene #scene-counter { color: rgba(255,255,255,0.22); }
+    body.dark-scene #skip-btn { color: rgba(255,255,255,0.22); }
+    body.dark-scene #skip-btn:hover { color: rgba(255,255,255,0.55); }
+
+    /* ── CANVAS ── */
+    #bg-canvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      opacity: 0.07;
+      pointer-events: none; z-index: 0;
+    }
+    body.dark-scene #bg-canvas { opacity: 0.18; }
+
+    /* ── TYPOGRAPHY ── */
+    .eyebrow {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--blue);
+      margin-bottom: 20px;
+    }
+    .scene-dark .eyebrow { color: #60a5fa; }
+    .headline {
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      font-weight: 900; letter-spacing: -0.04em; line-height: 1.0;
+      text-align: center; margin-bottom: 24px; color: var(--dark);
+    }
+    .scene-dark .headline { color: #fff; }
+    .headline .blue { color: var(--blue); }
+    .headline .dim  { color: rgba(0,0,0,0.2); }
+    .scene-dark .headline .dim { color: rgba(255,255,255,0.25); }
+    .subline {
+      font-size: clamp(1rem, 2vw, 1.3rem);
+      color: rgba(0,0,0,0.42); line-height: 1.7;
+      text-align: center; max-width: 680px;
+    }
+    .scene-dark .subline { color: rgba(255,255,255,0.42); }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.18);
+      color: var(--blue); font-size: 0.75rem; font-weight: 700;
+      padding: 7px 18px; border-radius: 100px; margin-bottom: 32px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: pulse 1.8s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+    /* ── FADE-IN-UP ── */
+    .fade-up { opacity: 0; transform: translateY(24px); animation: none; }
+    .scene.active .fade-up { animation: fadeUp 0.7s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .d1 { animation-delay: 0.1s; } .d2 { animation-delay: 0.3s; }
+    .d3 { animation-delay: 0.5s; } .d4 { animation-delay: 0.7s; }
+    .d5 { animation-delay: 0.9s; }
+    @keyframes fadeUp { to { opacity: 1; transform: none; } }
+
+    /* ── SCENE 1 — INTRO (light) ── */
+    #s1 { z-index: 1; }
+    .logo-wrap { display: flex; align-items: center; gap: 18px; margin-bottom: 32px; }
+    .logo-icon {
+      width: 72px; height: 72px; background: var(--blue); border-radius: 18px;
+      display: flex; align-items: center; justify-content: center; font-size: 36px;
+      box-shadow: 0 0 60px rgba(0,102,255,0.3);
+    }
+    .logo-name { font-size: 3rem; font-weight: 900; letter-spacing: -0.04em; color: var(--dark); }
+
+    /* ── SCENE 2 — PROBLEM (dark) ── */
+    #s2 { z-index: 1; }
+    .problem-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+      width: 100%; max-width: 900px; margin-top: 48px;
+    }
+    .prob-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 32px 28px;
+    }
+    .prob-num { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.04em; color: #fff; margin-bottom: 10px; }
+    .prob-num span { font-size: 1rem; font-weight: 400; color: rgba(255,255,255,0.2); }
+    .prob-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+    .prob-card p { font-size: 0.8rem; color: rgba(255,255,255,0.38); line-height: 1.6; }
+
+    /* ── SCENE 3 — ICP BUILDER (light) ── */
+    #s3 { z-index: 1; }
+    .portal-frame {
+      width: 100%; max-width: 900px; margin-top: 40px;
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.1);
+    }
+    .portal-topbar {
+      background: var(--light); padding: 14px 20px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tb-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .tb-url {
+      flex: 1; background: rgba(0,0,0,0.05); border-radius: 6px;
+      padding: 5px 12px; font-size: 0.75rem; color: rgba(0,0,0,0.35);
+      margin: 0 12px; text-align: center;
+    }
+    .portal-body { display: flex; height: 380px; }
+    .portal-sidebar {
+      width: 180px; background: var(--navy); padding: 20px 12px;
+      border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+    }
+    .sb-logo { display: flex; align-items: center; gap: 8px; padding: 4px 8px; margin-bottom: 20px; }
+    .sb-logo-icon { width: 24px; height: 24px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    .sb-logo-text { font-weight: 800; font-size: 0.85rem; color: #fff; }
+    .sb-item {
+      padding: 8px 10px; border-radius: 8px; font-size: 0.75rem;
+      color: rgba(255,255,255,0.45); margin-bottom: 2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sb-item.active { background: var(--blue); color: #fff; }
+    .sb-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.5; flex-shrink: 0; }
+    .portal-main { flex: 1; padding: 28px; overflow: hidden; background: #fff; }
+    .pm-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; color: var(--dark); }
+    .pm-sub { font-size: 0.78rem; color: rgba(0,0,0,0.38); margin-bottom: 24px; }
+    .icp-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .icp-field { display: flex; flex-direction: column; gap: 5px; }
+    .icp-field label { font-size: 0.68rem; font-weight: 600; color: rgba(0,0,0,0.38); text-transform: uppercase; letter-spacing: 0.06em; }
+    .icp-input {
+      background: var(--light); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px; font-size: 0.8rem; color: var(--dark);
+      position: relative; overflow: hidden;
+    }
+    .icp-input.typing::after {
+      content: '|'; animation: blink 0.8s step-end infinite; margin-left: 2px; color: var(--blue);
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .icp-input.filled { border-color: rgba(0,102,255,0.3); }
+    .icp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .icp-tag { background: rgba(0,102,255,0.08); border: 1px solid rgba(0,102,255,0.2); color: var(--blue); font-size: 0.68rem; font-weight: 600; padding: 3px 10px; border-radius: 100px; }
+    .run-btn {
+      margin-top: 20px; background: var(--dark); color: #fff; border: none;
+      border-radius: 100px; padding: 10px 22px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+    }
+    .run-btn.pulse-btn { animation: btnPulse 1.5s ease-in-out infinite; }
+    @keyframes btnPulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0.2)} 50%{box-shadow:0 0 0 12px rgba(0,0,0,0)} }
+
+    /* ── SCENE 4 — LEADS (light) ── */
+    #s4 { z-index: 1; }
+    .leads-frame { width: 100%; max-width: 900px; margin-top: 32px; }
+    .leads-header-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .leads-count { font-size: 0.82rem; color: rgba(0,0,0,0.4); }
+    .leads-count strong { color: var(--dark); font-size: 1rem; }
+    .lead-row {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--light); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 18px; margin-bottom: 8px;
+      opacity: 0; transform: translateX(-20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .lead-row.show { opacity: 1; transform: none; }
+    .lead-avatar {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700;
+    }
+    .lead-info { flex: 1; min-width: 0; }
+    .lead-name { font-size: 0.88rem; font-weight: 600; color: var(--dark); }
+    .lead-title { font-size: 0.72rem; color: rgba(0,0,0,0.4); margin-top: 1px; }
+    .lead-company { font-size: 0.78rem; color: rgba(0,0,0,0.5); min-width: 120px; }
+    .score-badge {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.88rem; font-weight: 800; flex-shrink: 0;
+    }
+    .score-high  { background: rgba(34,197,94,0.12);  color: #16a34a; }
+    .score-mid   { background: rgba(251,191,36,0.12); color: #d97706; }
+    .score-low   { background: rgba(239,68,68,0.12);  color: #dc2626; }
+    .status-chip {
+      font-size: 0.68rem; font-weight: 700; padding: 4px 10px; border-radius: 100px; flex-shrink: 0;
+    }
+    .chip-blue   { background: rgba(0,102,255,0.08);  color: var(--blue); }
+    .chip-green  { background: rgba(34,197,94,0.1);   color: #16a34a; }
+    .chip-purple { background: rgba(139,92,246,0.1);  color: #7c3aed; }
+
+    /* ── SCENE 5 — FIGSY (off-white) ── */
+    #s5 { z-index: 1; }
+    .figsy-demo { width: 100%; max-width: 860px; margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .figsy-card {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 18px; padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+    .fc-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 14px; }
+    .fc-email-line { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .fc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
+    .fc-dot.sending { animation: sendPulse 0.8s ease-in-out infinite; }
+    @keyframes sendPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
+    .fc-line { flex: 1; height: 8px; border-radius: 4px; background: rgba(0,0,0,0.07); overflow: hidden; position: relative; }
+    .fc-line-fill { height: 100%; border-radius: 4px; background: var(--blue); width: 0%; transition: width 1.5s ease; }
+    .fc-name { font-size: 0.82rem; color: rgba(0,0,0,0.45); white-space: nowrap; flex-shrink: 0; font-weight: 500; }
+    .reply-item {
+      display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .reply-item.show { opacity: 1; transform: none; }
+    .reply-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
+    .reply-text { font-size: 0.78rem; color: rgba(0,0,0,0.5); line-height: 1.5; }
+    .reply-text strong { color: var(--dark); display: block; margin-bottom: 2px; font-size: 0.82rem; }
+    .reply-badge { font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 100px; display: inline-block; margin-top: 4px; }
+
+    /* ── SCENE 6 — RESULTS (light) ── */
+    #s6 { z-index: 1; }
+    .results-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; width: 100%; max-width: 900px; margin-top: 48px; }
+    .res-card {
+      background: var(--light); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 24px; text-align: center;
+    }
+    .res-num { font-size: 3rem; font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1; margin-bottom: 8px; }
+    .res-num span { color: var(--blue); }
+    .res-label { font-size: 0.78rem; color: rgba(0,0,0,0.38); line-height: 1.5; }
+
+    /* ── SCENE 7 — CTA (dark) ── */
+    #s7 { z-index: 1; }
+    .cta-btn {
+      display: inline-block; margin-top: 36px;
+      background: var(--blue); color: #fff;
+      font-size: 1.1rem; font-weight: 700;
+      padding: 18px 48px; border-radius: 100px;
+      text-decoration: none;
+      box-shadow: 0 0 60px rgba(0,102,255,0.4);
+      animation: ctaPulse 2s ease-in-out infinite;
+    }
+    @keyframes ctaPulse { 0%,100%{box-shadow:0 0 40px rgba(0,102,255,0.4)} 50%{box-shadow:0 0 80px rgba(0,102,255,0.7)} }
+    .cta-sub { font-size: 0.85rem; color: rgba(255,255,255,0.3); margin-top: 16px; }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div id="progress-bar"></div>
+<div id="scene-counter">1 / 7</div>
+<button id="skip-btn">skip →</button>
+
+<div id="stage">
+
+  <!-- SCENE 1 — INTRO (light) -->
+  <div class="scene scene-light active" id="s1">
+    <div class="pill fade-up"><span class="dot"></span>Launching 31 May 2026</div>
+    <div class="logo-wrap fade-up d1">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-name">K.I.N.D</div>
+    </div>
+    <div class="headline fade-up d2">Your pipeline,<br/><span class="blue">on autopilot.</span></div>
+    <p class="subline fade-up d3">AI lead generation + autonomous outreach. From first contact to booked meeting — without lifting a finger.</p>
+  </div>
+
+  <!-- SCENE 2 — PROBLEM (dark) -->
+  <div class="scene scene-dark" id="s2">
+    <div class="eyebrow fade-up">The problem with B2B sales today</div>
+    <div class="headline fade-up d1" style="font-size:clamp(2rem,5vw,4rem)">
+      Your team spends <span class="dim">80% of their time</span><br/>
+      on work that <span class="blue">shouldn't be manual.</span>
+    </div>
+    <div class="problem-grid">
+      <div class="prob-card fade-up d2">
+        <div class="prob-num">67<span>%</span></div>
+        <h3>Time wasted prospecting</h3>
+        <p>Sales reps spend most of their day finding leads instead of closing them.</p>
+      </div>
+      <div class="prob-card fade-up d3">
+        <div class="prob-num">8<span>x</span></div>
+        <h3>Follow-ups needed to get a reply</h3>
+        <p>Most reps give up after 2 touchpoints. FIGSY never does.</p>
+      </div>
+      <div class="prob-card fade-up d4">
+        <div class="prob-num">$40k<span>+</span></div>
+        <h3>Cost of one SDR per year</h3>
+        <p>K.I.N.D does the same job — at a fraction of the cost, 24/7.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3 — ICP BUILDER (light) -->
+  <div class="scene scene-light" id="s3">
+    <div class="eyebrow fade-up">Step 1 — Define your ideal customer</div>
+    <div class="headline fade-up d1" style="font-size:clamp(1.8rem,4vw,3.5rem)">Build your ICP in <span class="blue">2 minutes.</span></div>
+    <div class="portal-frame fade-up d2">
+      <div class="portal-topbar">
+        <div class="tb-dot" style="background:#ff5f57"></div>
+        <div class="tb-dot" style="background:#febc2e"></div>
+        <div class="tb-dot" style="background:#28c840"></div>
+        <div class="tb-url">app.get-kind.com/dashboard/leads/icp</div>
+      </div>
+      <div class="portal-body">
+        <div class="portal-sidebar">
+          <div class="sb-logo"><div class="sb-logo-icon">⚡</div><span class="sb-logo-text">K.I.N.D</span></div>
+          <div class="sb-item"><span class="sb-dot"></span>Dashboard</div>
+          <div class="sb-item active"><span class="sb-dot"></span>Lead Gen</div>
+          <div class="sb-item"><span class="sb-dot"></span>FIGSY</div>
+          <div class="sb-item"><span class="sb-dot"></span>Billing</div>
+          <div class="sb-item"><span class="sb-dot"></span>Settings</div>
+        </div>
+        <div class="portal-main">
+          <div class="pm-title">ICP Builder</div>
+          <div class="pm-sub">Define who you want to reach. We'll find them for you.</div>
+          <div class="icp-form">
+            <div class="icp-field">
+              <label>Industry</label>
+              <div class="icp-input filled">SaaS / Technology</div>
+            </div>
+            <div class="icp-field">
+              <label>Job Title</label>
+              <div class="icp-input filled">CEO, CTO, Head of Sales</div>
+            </div>
+            <div class="icp-field">
+              <label>Company Size</label>
+              <div class="icp-input filled">10–200 employees</div>
+            </div>
+            <div class="icp-field">
+              <label>Geography</label>
+              <div class="icp-input filled">South Africa, Nigeria, Kenya</div>
+            </div>
+            <div class="icp-field" style="grid-column:span 2">
+              <label>Tech Stack Keywords</label>
+              <div class="icp-tags">
+                <span class="icp-tag">Salesforce</span>
+                <span class="icp-tag">HubSpot</span>
+                <span class="icp-tag">Slack</span>
+                <span class="icp-tag">AWS</span>
+                <span class="icp-tag">+ add more</span>
+              </div>
+            </div>
+          </div>
+          <button class="run-btn pulse-btn">⚡ Run ICP — find my leads</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 4 — LEADS APPEARING (light) -->
+  <div class="scene scene-light" id="s4">
+    <div class="eyebrow fade-up">Step 2 — AI finds and scores your leads</div>
+    <div class="headline fade-up d1" style="font-size:clamp(1.8rem,4vw,3.5rem)"><span class="blue">247 leads</span> found.<br/>Scored. Verified. Ready.</div>
+    <div class="leads-frame fade-up d2">
+      <div class="leads-header-row">
+        <div class="leads-count">Showing <strong id="lead-counter">0</strong> of 247 leads · Avg score <strong>74</strong></div>
+        <div style="font-size:0.75rem;color:rgba(0,0,0,0.3)">POPIA compliant · Apollo verified</div>
+      </div>
+      <div id="lead-list"></div>
+    </div>
+  </div>
+
+  <!-- SCENE 5 — FIGSY SENDING (off-white) -->
+  <div class="scene scene-off" id="s5">
+    <div class="eyebrow fade-up">Step 3 — FIGSY runs the outreach</div>
+    <div class="headline fade-up d1" style="font-size:clamp(1.8rem,4vw,3.5rem)">Personalised emails.<br/><span class="blue">Sent automatically.</span></div>
+    <div class="figsy-demo fade-up d2">
+      <div class="figsy-card">
+        <div class="fc-label">Outreach sequence — sending now</div>
+        <div id="email-lines"></div>
+      </div>
+      <div class="figsy-card">
+        <div class="fc-label">Replies classified by AI</div>
+        <div id="reply-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 6 — RESULTS (light) -->
+  <div class="scene scene-light" id="s6">
+    <div class="eyebrow fade-up">The results</div>
+    <div class="headline fade-up d1" style="font-size:clamp(1.8rem,4vw,3.5rem)">From ICP to <span class="blue">booked meetings.</span><br/>Automatically.</div>
+    <div class="results-grid">
+      <div class="res-card fade-up d2">
+        <div class="res-num"><span id="r1">0</span></div>
+        <div class="res-label">Leads sourced &amp; scored</div>
+      </div>
+      <div class="res-card fade-up d3">
+        <div class="res-num"><span id="r2">0</span>%</div>
+        <div class="res-label">Email open rate</div>
+      </div>
+      <div class="res-card fade-up d4">
+        <div class="res-num"><span id="r3">0</span></div>
+        <div class="res-label">Positive replies</div>
+      </div>
+      <div class="res-card fade-up d5">
+        <div class="res-num"><span id="r4">0</span></div>
+        <div class="res-label">Meetings booked</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 7 — CTA (dark) -->
+  <div class="scene scene-dark" id="s7">
+    <div class="pill fade-up"><span class="dot"></span>Limited early access — 31 May 2026</div>
+    <div class="headline fade-up d1">Ready to put your<br/><span class="blue">pipeline on autopilot?</span></div>
+    <p class="subline fade-up d2">Join the waitlist. We'll reach out personally before launch.</p>
+    <a href="https://join.get-kind.com" class="cta-btn fade-up d3">Reserve your spot →</a>
+    <p class="cta-sub fade-up d4">get-kind.com · hello@get-kind.com</p>
+  </div>
+
+</div>
+
+<script>
+  /* ── NODE NETWORK BACKGROUND ── */
+  ;(function(){
+    const canvas = document.getElementById('bg-canvas')
+    const ctx = canvas.getContext('2d')
+    let nodes=[], W, H
+    function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight }
+    function init(){
+      nodes=[]
+      const n=Math.floor(W/70)
+      for(let i=0;i<n;i++) nodes.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,r:Math.random()*2+1.5,p:Math.random()*Math.PI*2})
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H)
+      for(let i=0;i<nodes.length;i++){
+        for(let j=i+1;j<nodes.length;j++){
+          const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,d=Math.sqrt(dx*dx+dy*dy)
+          if(d<180){ ctx.beginPath();ctx.strokeStyle='rgba(0,102,255,'+(0.15*(1-d/180))+')';ctx.lineWidth=0.8;ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke() }
+        }
+      }
+      nodes.forEach(function(n){
+        n.p+=0.02; const g=(Math.sin(n.p)+1)/2
+        ctx.beginPath();ctx.arc(n.x,n.y,n.r+g,0,Math.PI*2);ctx.fillStyle='rgba(0,102,255,'+(0.25+g*.35)+')';ctx.fill()
+        n.x+=n.vx;n.y+=n.vy
+        if(n.x<0||n.x>W)n.vx*=-1;if(n.y<0||n.y>H)n.vy*=-1
+      })
+      requestAnimationFrame(draw)
+    }
+    window.addEventListener('resize',function(){resize();init()})
+    resize();init();draw()
+  })()
+
+  /* ── SCENE MANAGEMENT ── */
+  const SCENES    = ['s1','s2','s3','s4','s5','s6','s7']
+  const DURATIONS = [4500, 6000, 7000, 7000, 8000, 6000, 0]
+  const DARK_SCENES = new Set([1, 6])   // s2 and s7 (0-indexed)
+  let current = 0, timer = null
+
+  function showScene(idx){
+    document.querySelectorAll('.scene').forEach(function(s){ s.classList.remove('active') })
+    document.getElementById(SCENES[idx]).classList.add('active')
+    document.getElementById('scene-counter').textContent = (idx+1)+' / '+SCENES.length
+    const pct = (idx / (SCENES.length - 1)) * 100
+    document.getElementById('progress-bar').style.width = pct+'%'
+
+    // toggle dark-scene class on body for chrome colour flip
+    if(DARK_SCENES.has(idx)){
+      document.body.classList.add('dark-scene')
+    } else {
+      document.body.classList.remove('dark-scene')
+    }
+
+    if(idx===3) animateLeads()
+    if(idx===4) animateFigsy()
+    if(idx===5) animateResults()
+
+    clearTimeout(timer)
+    if(DURATIONS[idx]) timer = setTimeout(nextScene, DURATIONS[idx])
+  }
+
+  function nextScene(){
+    if(current < SCENES.length - 1){ current++; showScene(current) }
+  }
+
+  document.getElementById('skip-btn').addEventListener('click', nextScene)
+  document.addEventListener('keydown', function(e){ if(e.key===' '||e.key==='ArrowRight') nextScene() })
+
+  /* ── SCENE 4 — LEADS ── */
+  const LEADS = [
+    { name:'Sipho Nkosi',    title:'CEO',           company:'Growthbase SA',   color:'#0066FF', score:92, status:'Consented',    chip:'chip-green'  },
+    { name:'Amara Osei',     title:'Head of Sales', company:'Zenith Fintech',  color:'#7c3aed', score:85, status:'Scored',       chip:'chip-blue'   },
+    { name:'Priya Moonsamy', title:'CTO',           company:'Cloudloop Lagos', color:'#059669', score:78, status:'Consent Sent', chip:'chip-purple' },
+    { name:'James Mureithi', title:'VP Sales',      company:'AfriData Kenya',  color:'#dc2626', score:71, status:'Scored',       chip:'chip-blue'   },
+    { name:'Lerato Dlamini', title:'MD',            company:'BoltStack JHB',   color:'#d97706', score:88, status:'Consented',    chip:'chip-green'  },
+  ]
+
+  function animateLeads(){
+    const list = document.getElementById('lead-list')
+    list.innerHTML = ''
+    const counter = document.getElementById('lead-counter')
+    LEADS.forEach(function(l, i){
+      const row = document.createElement('div')
+      row.className = 'lead-row'
+      const scoreClass = l.score>=80 ? 'score-high' : l.score>=60 ? 'score-mid' : 'score-low'
+      row.innerHTML =
+        '<div class="lead-avatar" style="background:'+l.color+'18;color:'+l.color+'">'+l.name.split(' ').map(function(n){return n[0]}).join('')+'</div>'+
+        '<div class="lead-info"><div class="lead-name">'+l.name+'</div><div class="lead-title">'+l.title+'</div></div>'+
+        '<div class="lead-company">'+l.company+'</div>'+
+        '<div class="score-badge '+scoreClass+'">'+l.score+'</div>'+
+        '<div class="status-chip '+l.chip+'">'+l.status+'</div>'
+      list.appendChild(row)
+      setTimeout(function(){
+        row.classList.add('show')
+        counter.textContent = String(i+1)
+      }, 400 + i*300)
+    })
+  }
+
+  /* ── SCENE 5 — FIGSY ── */
+  const EMAIL_LEADS = ['Sipho Nkosi','Amara Osei','Priya Moonsamy','James Mureithi','Lerato Dlamini']
+  const REPLIES = [
+    { name:'Sipho Nkosi',    text:'"This looks really relevant — would love to jump on a call."', badge:'Interested', bg:'rgba(34,197,94,0.08)', badgeColor:'#16a34a', icon:'✉️' },
+    { name:'Amara Osei',     text:'"Not right now, we\'re in the middle of a restructure."',      badge:'Not now',    bg:'rgba(0,0,0,0.04)',     badgeColor:'rgba(0,0,0,0.38)', icon:'📩' },
+    { name:'Lerato Dlamini', text:'"Yes, I\'ve been looking for exactly this. When can we chat?"', badge:'Interested', bg:'rgba(34,197,94,0.08)', badgeColor:'#16a34a', icon:'✉️' },
+  ]
+
+  function animateFigsy(){
+    const emailLines = document.getElementById('email-lines')
+    emailLines.innerHTML = ''
+    EMAIL_LEADS.forEach(function(name, i){
+      const row = document.createElement('div')
+      row.className = 'fc-email-line'
+      row.innerHTML = '<div class="fc-dot sending"></div><div class="fc-line"><div class="fc-line-fill" id="fill-'+i+'"></div></div><div class="fc-name">'+name+'</div>'
+      emailLines.appendChild(row)
+      setTimeout(function(){
+        const fill = document.getElementById('fill-'+i)
+        if(fill) fill.style.width='100%'
+      }, 300 + i*400)
+    })
+
+    const replyList = document.getElementById('reply-list')
+    replyList.innerHTML = ''
+    REPLIES.forEach(function(r, i){
+      const item = document.createElement('div')
+      item.className = 'reply-item'
+      item.innerHTML =
+        '<div class="reply-icon" style="background:'+r.bg+'">'+r.icon+'</div>'+
+        '<div class="reply-text"><strong>'+r.name+'</strong>'+r.text+
+        '<span class="reply-badge" style="background:'+r.bg+';color:'+r.badgeColor+'">'+r.badge+'</span></div>'
+      replyList.appendChild(item)
+      setTimeout(function(){ item.classList.add('show') }, 2000 + i*800)
+    })
+  }
+
+  /* ── SCENE 6 — COUNTERS ── */
+  function countUp(elId, target, duration){
+    const el = document.getElementById(elId)
+    if(!el) return
+    let start = null
+    function step(ts){
+      if(!start) start = ts
+      const progress = Math.min((ts-start)/duration, 1)
+      const ease = 1 - Math.pow(1-progress, 3)
+      el.textContent = Math.round(target * ease)
+      if(progress < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }
+
+  function animateResults(){
+    setTimeout(function(){ countUp('r1', 247, 1400) }, 500)
+    setTimeout(function(){ countUp('r2', 38,  1200) }, 700)
+    setTimeout(function(){ countUp('r3', 31,  1200) }, 900)
+    setTimeout(function(){ countUp('r4', 12,  1000) }, 1100)
+  }
+
+  /* ── START ── */
+  showScene(0)
+</script>
+</body>
+</html>

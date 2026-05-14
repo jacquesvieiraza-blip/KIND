@@ -588,6 +588,80 @@ Sign up → confirm email → onboard → build ICP → run ICP → leads appear
 
 ---
 
+## SECTION 16 — BUILT BEYOND ORIGINAL ROADMAP
+*These were not in the original roadmap document — added during build*
+
+| Feature | Where in codebase |
+|---------|------------------|
+| Speed Pipeline — prefill ICP from website scrape + AI suggest | POST /icps/prefill |
+| CRM integration — HubSpot + Pipedrive auto-sync on consent | apps/api/src/lib/crm.ts |
+| Deal/Opportunity CRM push on positive FIGSY reply | figsy.ts /replies/inbound |
+| Support chat widget (Claude Haiku, context-aware) | POST /support/chat + SupportWidget.tsx |
+| Weekly leads digest email to all active clients | POST /internal/digest/weekly |
+| CS day-1 follow-up auto-fired on every new onboard | auth.ts onboard route |
+| Paystack webhook handler (subscription lifecycle) | POST /webhooks/paystack |
+| Paystack authorization code stored for auto top-up | credits.ts verify |
+| KPI / CRO dashboard for founder | GET /internal/cro/dashboard |
+| Trial expired overlay in portal | TrialExpiredOverlay.tsx |
+| AI reply draft on interested FIGSY reply | POST /figsy/replies/:id/draft-followup |
+| Bulk consent send (up to 100 leads at once) | POST /leads/bulk-consent |
+| FIGSY subscription upgrade wall (403 + banner in portal) | figsy/page.tsx + figsy.ts |
+| Notification bell (4 types, polls every 2 min) | NotificationBell.tsx |
+| Receipt / invoice print-to-PDF per transaction | billing/page.tsx printReceipt() |
+| Auto top-up with saved Paystack authorization code | billing/page.tsx + PATCH /clients/me/auto-topup |
+| Agreement template library in admin | admin/terms-library/page.tsx |
+| At-risk client detection (no ICP or leads after 3 days) | POST /internal/ae/at-risk |
+| Trial expiry email sequence (day 10, 12, 14) | POST /internal/ae/trial-expiry |
+| Trial nurture email sequence (day 1, 3, 5, 7, 10) | POST /internal/ae/nurture |
+| Weekly CRO digest with Claude commentary | POST /internal/cro/weekly-digest |
+| Churn risk scoring per client (0–100) | GET /internal/cro/churn-risk |
+| LinkedIn post generation with brand voice | POST /internal/cmo/linkedin-posts |
+| Brand voice config (in-memory override) | GET/POST /internal/cmo/brand-voice |
+| Founder activity digest | GET /founder/digest |
+| founder_agent_logs table (all agent actions stored) | supabase/migrations/20260514_founder_agent.sql |
+| Admin founder dashboard (digest cards, logs, manual triggers) | admin/founder/page.tsx |
+| Animated 7-scene demo presentation (screen-recordable) | apps/landing/demo.html |
+| Netlify landing page (white/light brand) | apps/landing/index.html |
+
+---
+
+## SECTION 17 — EMAIL SYSTEM FULL REFERENCE
+
+### What system we use
+**Resend** — not Google, not Gmail, not SendGrid. Resend is a developer email service. Domain: send.get-kind.com. All automated email (outbound and inbound routing) runs through Resend.
+
+### Why Google/Gmail cannot be used for outreach
+Google detects cold outreach volume and will suspend the sending address, then potentially blacklist the domain. If hello@get-kind.com gets blacklisted by Google, it breaks everything — including legitimate emails. Resend uses dedicated IP infrastructure with proper SPF/DKIM/DMARC. Google Workspace can be used as a personal reading inbox (optional) but must never send FIGSY outreach.
+
+### Domain warming — BLOCKING pre-launch item
+Sending full-volume cold email on a new domain immediately will trigger spam filters even through Resend. Warm up gradually:
+- Week 1: max 20 emails/day
+- Week 2: max 50 emails/day
+- Week 3: max 150 emails/day
+- Week 4+: full volume
+
+A `FIGSY_DAILY_SEND_LIMIT` env var needs to be built and set in Railway before go-live.
+
+### Every email address and where it goes
+
+| Address | Direction | Goes to |
+|---------|-----------|---------|
+| `hello@get-kind.com` | Outbound (FROM on all system emails) | Sent via Resend to recipients |
+| `hello@get-kind.com` | Inbound (people emailing you) | Resend inbound webhook → POST /founder/support/inbound → AI triages → auto-replies simple / forwards complex to FOUNDER_EMAIL |
+| `replies@get-kind.com` (FIGSY_REPLY_TO) | Inbound (leads replying to outreach) | Resend inbound webhook → POST /figsy/replies/inbound → AI classifies → credit consumed if interested → founder alerted |
+| `FOUNDER_EMAIL` (your personal email in Railway) | Inbound (your inbox) | Escalations, at-risk alerts, AE requests, weekly CRO digest, trial expiry alerts all land here |
+
+### Currently — nothing works
+All email is broken right now because `RESEND_API_KEY` is not set in Railway. No email of any kind is sending or receiving. All Resend API calls fail silently.
+
+### Inbound setup required in Resend dashboard
+1. Domains → get-kind.com → Inbound
+2. Add route: `hello@get-kind.com` → POST `https://kindapi-production-83cb.up.railway.app/founder/support/inbound` with header `x-admin-key: YOUR_ADMIN_SECRET_KEY`
+3. Add route: `replies@get-kind.com` → POST `https://kindapi-production-83cb.up.railway.app/figsy/replies/inbound`
+4. Set `FIGSY_REPLY_TO=replies@get-kind.com` in Railway env vars
+
+---
+
 ## MASTER SUMMARY TABLE
 
 | # | Item | Status | Owner |
@@ -611,11 +685,16 @@ Sign up → confirm email → onboard → build ICP → run ICP → leads appear
 | 17 | jacquesfigsy.com domain | ❌ Not done | You |
 | 18 | Calendar setup (Calendly/Cal.com account) | ❌ Not done | You |
 | 19 | Calendar link injection in FIGSY | ❌ Not built | Me (after you set up Calendly) |
-| 20 | Merge to main | ❌ Not done | You |
-| 21 | Full calendar webhook (meeting confirmed → lead status) | ❌ Not built | Me (after you decide approach) |
+| 20 | Full calendar webhook (meeting confirmed → lead status) | ❌ Not built | Me (after you decide approach) |
+| 21 | Domain warming daily send cap (FIGSY_DAILY_SEND_LIMIT) | ❌ Not built | Me — blocking pre-launch |
+| 22 | Google Workspace for hello@get-kind.com personal inbox | ❌ Not done | You (optional) |
+| 23 | Merge branch to main on GitHub | ❌ Not done | You — see Section 14 |
 
 ---
 
 *Last updated: 14 May 2026*
+*Branch with all code: claude/ai-business-roadmap-U3OWJ*
+*GitHub merge instructions: see Section 14*
+*Do not build anything without explicit instruction from Jacques.*
 *Branch: claude/ai-business-roadmap-U3OWJ*
 *Do not build anything from this document without explicit instruction from Jacques.*

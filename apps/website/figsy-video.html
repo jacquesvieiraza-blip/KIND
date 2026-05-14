@@ -408,6 +408,52 @@
     box-shadow: 0 8px 28px rgba(124,58,237,0.5);
   }
 
+  /* ── SCENE 2 — FIGSY CHARACTER ── */
+  .figsy-scene { display: flex; align-items: stretch; width: 100%; height: 100%; }
+  .figsy-left {
+    flex: 0 0 44%; display: flex; flex-direction: column;
+    justify-content: center; padding: 48px 36px 48px 52px; z-index: 2;
+  }
+  .figsy-right { flex: 1; position: relative; overflow: hidden; }
+  .figsy-photo {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: center top;
+  }
+  .ann-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 0.62rem; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #2d1454;
+    background: rgba(255,255,255,0.58); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.65); border-radius: 100px;
+    padding: 5px 13px; margin-bottom: 8px; align-self: flex-start;
+    opacity: 0; transform: translateX(-14px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+  .ann-chip.visible { opacity: 1; transform: translateX(0); }
+  .ann-dot2 { width: 6px; height: 6px; border-radius: 50%; background: #7c3aed; flex-shrink: 0; }
+  .figsy-meet-pill {
+    position: absolute; bottom: 13%; left: 50%; transform: translateX(-50%) translateY(14px);
+    background: rgba(12,4,28,0.9); backdrop-filter: blur(14px);
+    border-radius: 50px; padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px; white-space: nowrap;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    opacity: 0; transition: opacity 0.55s ease, transform 0.55s ease;
+  }
+  .figsy-meet-pill.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .fmp-text { color: #fff; font-size: 0.88rem; font-weight: 700; }
+  .fmp-arrow {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem;
+  }
+  .figsy-growth-badge {
+    position: absolute; bottom: 5.5%; left: 50%; transform: translateX(-50%);
+    background: #fef08a; color: #713f12; font-size: 0.78rem; font-weight: 700;
+    padding: 7px 18px; border-radius: 50px; white-space: nowrap;
+    opacity: 0; transition: opacity 0.5s ease;
+  }
+  .figsy-growth-badge.visible { opacity: 1; }
+
   /* ── PROGRESS + DOTS ── */
   #progress-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.07); z-index: 100; }
   #progress-fill { height: 100%; background: linear-gradient(90deg, #a855f7, #ec4899); width: 0%; transition: width 0.08s linear; }
@@ -452,17 +498,29 @@
   </div>
 
   <!-- S2 — Meet FIGSY -->
-  <div class="scene bg-warm" id="s2">
-    <div class="orb" style="width:500px;height:500px;background:rgba(168,85,247,0.18);top:-150px;right:-100px"></div>
-    <span class="sparkle" style="top:14%;left:13%">✦</span>
-    <span class="sparkle" style="top:18%;right:18%;animation-delay:-1.2s">✦</span>
-    <span class="sparkle" style="bottom:22%;left:18%;animation-delay:-2.1s">✧</span>
-    <span class="sparkle" style="bottom:18%;right:14%;animation-delay:-0.6s">✦</span>
-    <div style="text-align:center;z-index:2">
-      <div class="tag fade-up">Introducing</div>
-      <div class="meet-title fade-up-delay">FIGSY</div>
-      <p style="font-size:0.9rem;color:rgba(255,255,255,0.45);margin-top:6px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600" class="fade-up-delay">AI Lead Gen Agent · by K.I.N.D</p>
-      <p class="sub fade-up-delay2">Finds your ideal clients. Writes personalised emails. Follows up automatically. Books the meeting.</p>
+  <div class="scene" id="s2" style="background:linear-gradient(135deg,#fde68a 0%,#f0abfc 40%,#c4b5fd 68%,#7c3aed 100%)">
+    <div class="figsy-scene">
+      <!-- left: title + annotation chips -->
+      <div class="figsy-left">
+        <div class="tag fade-up" style="color:#7c3aed;border-color:rgba(124,58,237,0.35);background:rgba(124,58,237,0.1);align-self:flex-start;margin-bottom:14px">Introducing</div>
+        <div style="font-size:clamp(3.2rem,8vw,5.5rem);font-weight:900;letter-spacing:-0.04em;background:linear-gradient(90deg,#7c3aed,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:0.92;margin-bottom:10px" class="fade-up-delay">FIGSY</div>
+        <p style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(45,20,84,0.55);margin-bottom:18px" class="fade-up-delay">AI Lead Gen Agent · by K.I.N.D</p>
+        <p style="font-size:0.86rem;color:rgba(45,20,84,0.65);line-height:1.65;max-width:260px;margin-bottom:26px" class="fade-up-delay2">Finds your ideal clients. Writes personalised emails. Books the meeting.</p>
+        <div class="ann-chip" id="ann1"><div class="ann-dot2"></div>AI Lead Gen Agent</div>
+        <div class="ann-chip" id="ann2"><div class="ann-dot2"></div>Qualifies leads 24 / 7</div>
+        <div class="ann-chip" id="ann3"><div class="ann-dot2"></div>Builds pipeline automatically</div>
+        <div class="ann-chip" id="ann4"><div class="ann-dot2"></div>More conversations. More pipeline.</div>
+      </div>
+      <!-- right: FIGSY photo -->
+      <div class="figsy-right">
+        <img src="3A63BC48-0E48-4FB0-AEFC-FE862AD9DA3B.png" class="figsy-photo" alt="FIGSY — AI Lead Gen Agent"/>
+        <div class="figsy-meet-pill" id="fmp">
+          <span style="font-size:1.1rem">🤖</span>
+          <span class="fmp-text">Meet your AI Lead Gen Agent</span>
+          <div class="fmp-arrow">→</div>
+        </div>
+        <div class="figsy-growth-badge" id="fgb">Your new teammate for growth 💛</div>
+      </div>
     </div>
   </div>
 
@@ -756,6 +814,17 @@ function typeInto(el, text, speed, callback) {
 function onSceneEnter(idx) {
   clearSceneTimers()
 
+  if (idx === 1) { // S2 — FIGSY annotation chips + pills
+    const anns = ['ann1','ann2','ann3','ann4']
+    anns.forEach((id, i) => {
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 500 + i * 280)
+      sceneTimers.push(t)
+    })
+    const t1 = setTimeout(() => document.getElementById('fmp')?.classList.add('visible'), 1800)
+    const t2 = setTimeout(() => document.getElementById('fgb')?.classList.add('visible'), 2300)
+    sceneTimers.push(t1, t2)
+  }
+
   if (idx === 2) { // S3 — lead cards slide in
     const ids = ['lc1','lc2','lc3']
     ids.forEach((id, i) => {
@@ -878,6 +947,9 @@ function clearSceneTimers() {
   sceneTimers.forEach(t => { clearTimeout(t); clearInterval(t) })
   sceneTimers = []
   // reset all animated els
+  ;['ann1','ann2','ann3','ann4'].forEach(id => document.getElementById(id)?.classList.remove('visible'))
+  document.getElementById('fmp')?.classList.remove('visible')
+  document.getElementById('fgb')?.classList.remove('visible')
   ;['lc1','lc2','lc3'].forEach(id => document.getElementById(id)?.classList.remove('visible'))
   ;['et1','et2','et3'].forEach(id => document.getElementById(id)?.classList.remove('popped'))
   ;['si1','si2','si3','bub1','bub2'].forEach(id => document.getElementById(id)?.classList.remove('visible'))

@@ -299,7 +299,7 @@
 <div id="stage">
 
   <!-- SCENE 1 — INTRO (light) -->
-  <div class="scene scene-light active" id="s1">
+  <div class="scene scene-light" id="s1">
     <div class="pill fade-up"><span class="dot"></span>Launching 31 May 2026</div>
     <div class="logo-wrap fade-up d1">
       <div class="logo-icon">⚡</div>
@@ -495,14 +495,17 @@
   let current = 0, timer = null
 
   function showScene(idx){
+    // Remove active from all scenes
     document.querySelectorAll('.scene').forEach(function(s){ s.classList.remove('active') })
+    // Force browser to recalculate styles so animations re-trigger
+    void document.getElementById(SCENES[idx]).offsetWidth
+    // Show next scene
     document.getElementById(SCENES[idx]).classList.add('active')
     document.getElementById('scene-counter').textContent = (idx+1)+' / '+SCENES.length
-    const pct = (idx / (SCENES.length - 1)) * 100
+    var pct = (idx / (SCENES.length - 1)) * 100
     document.getElementById('progress-bar').style.width = pct+'%'
 
-    // toggle dark-scene class on body for chrome colour flip
-    if(DARK_SCENES.has(idx)){
+    if(idx === 1 || idx === 6){
       document.body.classList.add('dark-scene')
     } else {
       document.body.classList.remove('dark-scene')
@@ -613,7 +616,7 @@
   }
 
   /* ── START ── */
-  showScene(0)
+  window.addEventListener('load', function(){ showScene(0) })
 </script>
 </body>
 </html>

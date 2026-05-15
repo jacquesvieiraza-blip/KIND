@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FIGSY vs Hiring an SDR — K.I.N.D</title>
-  <meta name="description" content="Why hiring a human SDR costs R 35,000–55,000/month once you factor in salary, benefits, tools, and ramp time. FIGSY costs a fraction and never stops." />
+  <title>FIGSY vs Prospecting Manually — K.I.N.D</title>
+  <meta name="description" content="Manual prospecting kills 15+ hours a week. K.I.N.D automates ICP matching, outreach, and follow-up so your team focuses on closing." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -73,24 +73,17 @@
     }
     .page-hero h1 {
       font-size: clamp(2.4rem, 5vw, 4.2rem);
-      font-weight: 900;
-      letter-spacing: -0.04em;
-      line-height: 1.05;
-      color: var(--dark);
-      margin-bottom: 24px;
+      font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
+      color: var(--dark); margin-bottom: 24px;
     }
     .page-hero-sub {
-      font-size: 1.1rem;
-      color: rgba(0,0,0,0.45);
-      max-width: 640px;
-      margin: 0 auto 36px;
-      line-height: 1.7;
+      font-size: 1.1rem; color: rgba(0,0,0,0.45);
+      max-width: 680px; margin: 0 auto 36px; line-height: 1.7;
     }
     .btn-primary {
-      display: inline-block;
-      background: var(--dark); color: #fff; font-size: 0.95rem; font-weight: 600;
-      padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer;
-      transition: opacity .2s; text-decoration: none;
+      display: inline-block; background: var(--dark); color: #fff;
+      font-size: 0.95rem; font-weight: 600; padding: 14px 32px;
+      border-radius: 100px; border: none; cursor: pointer; transition: opacity .2s; text-decoration: none;
     }
     .btn-primary:hover { opacity: 0.8; }
 
@@ -101,12 +94,20 @@
     .s-title { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
     .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 48px; }
 
+    /* STATS STRIP */
+    .stats-strip { background: var(--light); padding: 64px 48px; }
+    .stats-inner { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+    .stat { padding: 40px 32px; text-align: center; background: #fff; }
+    .stat:first-child { border-radius: 20px 0 0 20px; }
+    .stat:last-child { border-radius: 0 20px 20px 0; }
+    .stat-num { font-size: 3rem; font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1; margin-bottom: 10px; }
+    .stat-num span { color: var(--blue); }
+    .stat-label { font-size: 0.82rem; color: rgba(0,0,0,0.4); line-height: 1.5; max-width: 200px; margin: 0 auto; }
+
     /* COMPARISON TABLE */
     .table-wrap {
-      overflow-x: auto;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+      overflow-x: auto; border-radius: 20px;
+      border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(0,0,0,0.05);
     }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     thead th {
@@ -133,16 +134,17 @@
     .pain-inner { max-width: 1080px; margin: 0 auto; }
     .pain-inner .s-label { color: #60a5fa; }
     .pain-inner .s-title { color: #fff; margin-bottom: 48px; }
-    .pain-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .pain-card {
+    .pain-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .pain-item {
+      display: flex; gap: 20px; align-items: flex-start;
       background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px; padding: 36px 28px;
+      border-radius: 16px; padding: 28px 24px;
     }
-    .pain-card-num {
-      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: rgba(255,255,255,0.2); margin-bottom: 16px;
+    .pain-num {
+      font-size: 1.6rem; font-weight: 900; letter-spacing: -0.04em;
+      color: rgba(255,255,255,0.12); line-height: 1; flex-shrink: 0; min-width: 36px;
     }
-    .pain-card p { font-size: 0.95rem; font-weight: 600; color: #fff; line-height: 1.65; }
+    .pain-item p { font-size: 0.92rem; font-weight: 500; color: rgba(255,255,255,0.7); line-height: 1.6; }
 
     /* CTA BANNER */
     .cta-section { padding: 80px 48px 100px; }
@@ -180,6 +182,7 @@
     .reveal.visible { opacity: 1; transform: none; }
     .reveal-delay-1 { transition-delay: 0.1s; }
     .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
 
     /* RESPONSIVE */
     @media (max-width: 768px) {
@@ -187,10 +190,14 @@
       .nav-links { display: none; }
       .page-hero { padding: 56px 24px 48px; }
       .section { padding: 56px 24px; }
+      .stats-strip { padding: 48px 24px; }
+      .stats-inner { grid-template-columns: 1fr; gap: 2px; }
+      .stat:first-child { border-radius: 20px 20px 0 0; }
+      .stat:last-child { border-radius: 0 0 20px 20px; }
       .pain-section, .cta-section { padding: 56px 24px; }
       .cta-section { padding-bottom: 72px; }
       .cta-banner { padding: 48px 28px; }
-      .pain-cards { grid-template-columns: 1fr; }
+      .pain-list { grid-template-columns: 1fr; }
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
     }
     @media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr; } }
@@ -253,9 +260,29 @@
 <!-- HERO -->
 <div class="page-hero">
   <div class="hero-label">Comparison</div>
-  <h1>FIGSY vs Hiring an SDR</h1>
-  <p class="page-hero-sub">A human SDR costs R 35,000–55,000/month fully loaded. FIGSY starts at R 1/lead — and it never calls in sick, never needs a manager, and books meetings 24/7.</p>
-  <a href="https://app.get-kind.com/signup" class="btn-primary">Try FIGSY free →</a>
+  <h1>FIGSY vs Prospecting Manually</h1>
+  <p class="page-hero-sub">Manual prospecting burns 15 hours a week on LinkedIn searches, copy-paste emails, and chasing cold leads. K.I.N.D automates the entire top of funnel — so you only talk to people who want to talk.</p>
+  <a href="https://app.get-kind.com/signup" class="btn-primary">Start free →</a>
+</div>
+
+<div class="divider"></div>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat reveal">
+      <div class="stat-num">15 <span>hrs</span></div>
+      <div class="stat-label">Average time spent prospecting manually each week — LinkedIn, email, follow-up</div>
+    </div>
+    <div class="stat reveal reveal-delay-1">
+      <div class="stat-num">2–<span>3%</span></div>
+      <div class="stat-label">Average cold email reply rate for manual outreach</div>
+    </div>
+    <div class="stat reveal reveal-delay-2">
+      <div class="stat-num"><span>R 0</span></div>
+      <div class="stat-label">What you pay per lead with K.I.N.D free trial</div>
+    </div>
+  </div>
 </div>
 
 <div class="divider"></div>
@@ -263,72 +290,57 @@
 <!-- COMPARISON TABLE -->
 <div class="section">
   <div class="s-label reveal">Side by side</div>
-  <div class="s-title reveal">The full picture</div>
-  <p class="s-sub reveal">Every line item a CFO would ask about — laid out honestly.</p>
+  <div class="s-title reveal">Automated vs manual</div>
+  <p class="s-sub reveal">The same outcomes — one takes 15 hours a week, the other runs while you sleep.</p>
   <div class="table-wrap reveal">
     <table>
       <thead>
         <tr>
           <th></th>
-          <th class="col-kind">FIGSY</th>
-          <th class="col-other">Human SDR</th>
+          <th class="col-kind">K.I.N.D</th>
+          <th class="col-other">Manual</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Monthly cost</td>
-          <td class="col-kind"><span class="win">✓</span>From R 1/lead</td>
-          <td class="col-other"><span class="loss">✕</span>R 35,000–55,000 incl. benefits</td>
+          <td>Lead sourcing</td>
+          <td class="col-kind"><span class="win">✓</span>Automated ICP matching</td>
+          <td class="col-other"><span class="loss">✕</span>Hours of LinkedIn searching</td>
         </tr>
         <tr>
-          <td>Ramp time</td>
-          <td class="col-kind"><span class="win">✓</span>Instant</td>
-          <td class="col-other"><span class="loss">✕</span>60–90 days</td>
+          <td>Email writing</td>
+          <td class="col-kind"><span class="win">✓</span>AI-personalised per lead</td>
+          <td class="col-other"><span class="loss">✕</span>You write every email</td>
         </tr>
         <tr>
-          <td>Daily outreach capacity</td>
-          <td class="col-kind"><span class="win">✓</span>500+</td>
-          <td class="col-other"><span class="neutral">—</span>30–50</td>
+          <td>Follow-up</td>
+          <td class="col-kind"><span class="win">✓</span>Automated multi-step</td>
+          <td class="col-other"><span class="loss">✕</span>You remember or forget</td>
         </tr>
         <tr>
-          <td>Works weekends</td>
-          <td class="col-kind"><span class="win">✓</span>Yes</td>
-          <td class="col-other"><span class="loss">✕</span>No</td>
-        </tr>
-        <tr>
-          <td>Sick days / leave</td>
-          <td class="col-kind"><span class="win">✓</span>None</td>
-          <td class="col-other"><span class="loss">✕</span>~15 days/year</td>
-        </tr>
-        <tr>
-          <td>Scales instantly</td>
-          <td class="col-kind"><span class="win">✓</span>Yes</td>
-          <td class="col-other"><span class="loss">✕</span>Hire another person</td>
-        </tr>
-        <tr>
-          <td>Multi-channel</td>
-          <td class="col-kind"><span class="win">✓</span>Email + Voice + WhatsApp</td>
-          <td class="col-other"><span class="neutral">—</span>Usually email only</td>
+          <td>Volume</td>
+          <td class="col-kind"><span class="win">✓</span>500+ emails/day</td>
+          <td class="col-other"><span class="neutral">—</span>20–30 if you're lucky</td>
         </tr>
         <tr>
           <td>Consistency</td>
-          <td class="col-kind"><span class="win">✓</span>100%</td>
-          <td class="col-other"><span class="neutral">—</span>Varies</td>
+          <td class="col-kind"><span class="win">✓</span>Every lead touched</td>
+          <td class="col-other"><span class="loss">✕</span>Falls off after 1–2 tries</td>
         </tr>
         <tr>
-          <td>Personalisation</td>
-          <td class="col-kind"><span class="win">✓</span>AI-generated per prospect</td>
-          <td class="col-other"><span class="neutral">—</span>Manual</td>
+          <td>Time cost</td>
+          <td class="col-kind"><span class="win">✓</span>Near-zero</td>
+          <td class="col-other"><span class="loss">✕</span>15+ hrs/week</td>
         </tr>
         <tr>
-          <td>Tools needed</td>
-          <td class="col-kind"><span class="win">✓</span>Included</td>
-          <td class="col-other"><span class="loss">✕</span>Apollo/Outreach/LinkedIn (R 4,000+/mo)</td>
+          <td>Scalability</td>
+          <td class="col-kind"><span class="win">✓</span>Instant</td>
+          <td class="col-other"><span class="loss">✕</span>Hire more people</td>
         </tr>
         <tr>
-          <td>POPIA compliance built-in</td>
-          <td class="col-kind"><span class="win">✓</span>Yes</td>
-          <td class="col-other"><span class="loss">✕</span>Requires training</td>
+          <td>Data quality</td>
+          <td class="col-kind"><span class="win">✓</span>Verified email + mobile</td>
+          <td class="col-other"><span class="loss">✕</span>Copy-pasted, often stale</td>
         </tr>
       </tbody>
     </table>
@@ -340,20 +352,24 @@
 <!-- PAIN SECTION -->
 <div class="pain-section">
   <div class="pain-inner">
-    <div class="s-label">The hidden cost of hiring</div>
-    <div class="s-title reveal">What the job ad doesn't tell you</div>
-    <div class="pain-cards">
-      <div class="pain-card reveal">
-        <div class="pain-card-num">Cost 01</div>
-        <p>3 months average ramp time — while you're paying full salary from day one.</p>
+    <div class="s-label">The real cost</div>
+    <div class="s-title reveal">What manual prospecting actually costs you</div>
+    <div class="pain-list">
+      <div class="pain-item reveal">
+        <div class="pain-num">01</div>
+        <p>Every hour spent prospecting is an hour not spent closing.</p>
       </div>
-      <div class="pain-card reveal reveal-delay-1">
-        <div class="pain-card-num">Cost 02</div>
-        <p>Tools: LinkedIn Sales Navigator, Apollo, email platform — add R 4,000+/mo on top of salary.</p>
+      <div class="pain-item reveal reveal-delay-1">
+        <div class="pain-num">02</div>
+        <p>Copy-paste errors, missed follow-ups, inconsistent messaging.</p>
       </div>
-      <div class="pain-card reveal reveal-delay-2">
-        <div class="pain-card-num">Cost 03</div>
-        <p>Attrition: average SDR tenure is 14 months. Then you start the whole process again.</p>
+      <div class="pain-item reveal reveal-delay-2">
+        <div class="pain-num">03</div>
+        <p>You stop when you're busy — your pipeline dries up 60 days later.</p>
+      </div>
+      <div class="pain-item reveal reveal-delay-3">
+        <div class="pain-num">04</div>
+        <p>No data. No tracking. No insight on what's working.</p>
       </div>
     </div>
   </div>
@@ -363,9 +379,9 @@
 <div class="cta-section">
   <div class="cta-inner">
     <div class="cta-banner">
-      <h2>Stop paying SDR salaries.<br/>Start booking meetings.</h2>
+      <h2>Automate your top of funnel.<br/>Focus on closing.</h2>
       <p>Full access free trial — no credit card required</p>
-      <a href="https://app.get-kind.com/signup" class="btn-cta">Try FIGSY free →</a>
+      <a href="https://app.get-kind.com/signup" class="btn-cta">Start free →</a>
     </div>
   </div>
 </div>

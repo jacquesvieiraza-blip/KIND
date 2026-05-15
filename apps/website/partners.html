@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Partner Programme — K.I.N.D</title>
-  <meta name="description" content="Refer clients, earn credits, resell under your brand. K.I.N.D's partner programme is built for agencies, consultants, and business development professionals." />
+  <title>Partner Programme &#8212; K.I.N.D</title>
+  <meta name="description" content="Refer clients to K.I.N.D and earn 20% recurring commission, or white-label our AI infrastructure under your brand. Built for agencies, consultants, and sales-adjacent services." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -17,7 +17,7 @@
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
-    /* ── NAV ── */
+    /* NAV */
     nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 48px; height: 64px;
@@ -30,12 +30,14 @@
     .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
     .nav-links { display: flex; align-items: center; gap: 2px; }
     .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
-    .nav-link:hover, .nav-link.active { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
     .nav-right { display: flex; align-items: center; gap: 10px; }
     .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
     .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
     .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
     .btn-nav-primary:hover { opacity: 0.8; }
+
+    /* NAV DROPDOWNS */
     .nav-item { position: relative; }
     .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
     .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
@@ -56,113 +58,252 @@
     .dd-link:hover .dd-title { color: var(--dark); }
     .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
 
-    /* ── SHARED ── */
+    /* AUTH MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); z-index: 999; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 24px; padding: 40px; width: 100%; max-width: 420px; margin: 24px; box-shadow: 0 32px 80px rgba(0,0,0,0.2); position: relative; }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: rgba(0,0,0,0.3); line-height: 1; padding: 4px; }
+    .modal-close:hover { color: var(--dark); }
+    .modal h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; color: var(--dark); }
+    .modal-sub { font-size: 0.85rem; color: rgba(0,0,0,0.4); margin-bottom: 28px; }
+    .modal-tabs { display: flex; gap: 4px; background: rgba(0,0,0,0.04); border-radius: 10px; padding: 3px; margin-bottom: 24px; }
+    .modal-tab { flex: 1; padding: 8px; border: none; background: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: rgba(0,0,0,0.4); transition: all .15s; }
+    .modal-tab.active { background: #fff; color: var(--dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: rgba(0,0,0,0.5); margin-bottom: 6px; }
+    .form-group input { width: 100%; padding: 11px 14px; border: 1.5px solid rgba(0,0,0,0.12); border-radius: 10px; font-size: 0.9rem; outline: none; transition: border-color .15s; color: var(--dark); background: #fff; font-family: inherit; }
+    .form-group input:focus { border-color: var(--blue); }
+    .btn-form { width: 100%; padding: 13px; background: var(--dark); color: #fff; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity .2s; margin-top: 8px; }
+    .btn-form:hover { opacity: 0.85; }
+    .modal-msg { font-size: 0.82rem; text-align: center; margin-top: 14px; color: rgba(0,0,0,0.4); display: none; }
+    .modal-msg.err { color: #dc2626; display: block; }
+    .modal-msg.ok { color: #059669; display: block; }
+    .modal-forgot { font-size: 0.78rem; color: rgba(0,0,0,0.35); text-align: right; margin-top: -8px; margin-bottom: 16px; cursor: pointer; text-decoration: underline; }
+    .modal-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: rgba(0,0,0,0.35); }
+    .modal-footer a { color: var(--blue); text-decoration: none; }
+
+    /* PARTNER FORM FIELDS */
+    .pf-input,
+    .pf-select,
+    .pf-textarea {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid rgba(0,0,0,0.12); border-radius: 10px;
+      font-size: 0.9rem; outline: none; transition: border-color .15s;
+      color: var(--dark); background: #fff; font-family: inherit;
+    }
+    .pf-input:focus, .pf-select:focus, .pf-textarea:focus { border-color: var(--blue); }
+    .pf-textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+    .pf-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      cursor: pointer;
+    }
+
+    /* SECTION BASE */
     .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
+    .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
     .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
     .s-title { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
     .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
-    .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
 
-    /* ── HERO ── */
-    .page-hero {
-      background: var(--dark); padding: 100px 48px; text-align: center;
-      position: relative; overflow: hidden;
+    /* HERO */
+    .hero {
+      max-width: 1080px; margin: 0 auto;
+      padding: 96px 48px 80px;
+      text-align: center;
     }
-    .page-hero::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.18) 0%, transparent 65%);
-      pointer-events: none;
-    }
-    .page-hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
-    .hero-badge {
+    .hero-label {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: #60a5fa; margin-bottom: 24px;
-      background: rgba(0,102,255,0.1); border: 1px solid rgba(0,102,255,0.2);
+      color: var(--blue); margin-bottom: 28px;
+      background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.15);
       padding: 6px 14px; border-radius: 100px;
     }
-    .page-hero h1 { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: #fff; margin-bottom: 20px; }
-    .page-hero p { font-size: 1.1rem; color: rgba(255,255,255,0.45); max-width: 560px; margin: 0 auto; line-height: 1.75; }
-
-    /* ── TIER CARDS ── */
-    .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .tier-card {
-      border: 1.5px solid var(--border); border-radius: 24px; padding: 36px 32px;
-      position: relative;
+    .hero h1 {
+      font-size: clamp(2.6rem, 5.5vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.0;
+      color: var(--dark);
+      margin-bottom: 24px;
+      max-width: 820px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    .tier-card.featured { background: var(--dark); border-color: var(--dark); color: #fff; }
-    .tier-badge {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-      background: var(--blue); color: #fff; font-size: 0.65rem; font-weight: 700;
-      letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px;
+    .hero-sub {
+      font-size: 1.1rem;
+      color: rgba(0,0,0,0.45);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
     }
-    .tier-icon { font-size: 2rem; margin-bottom: 16px; }
-    .tier-card h3 { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
-    .tier-card.featured h3 { color: #fff; }
-    .tier-card > p { font-size: 0.85rem; color: rgba(0,0,0,0.4); line-height: 1.6; margin-bottom: 24px; }
-    .tier-card.featured > p { color: rgba(255,255,255,0.4); }
-    .tier-highlight { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.03em; color: var(--blue); margin-bottom: 20px; }
-    .tier-card.featured .tier-highlight { color: #60a5fa; }
-    .tier-divider { height: 1px; background: var(--border); margin-bottom: 20px; }
-    .tier-card.featured .tier-divider { background: rgba(255,255,255,0.08); }
-    .tier-card ul { list-style: none; margin-bottom: 28px; }
-    .tier-card ul li { font-size: 0.83rem; color: rgba(0,0,0,0.55); padding: 5px 0; display: flex; align-items: flex-start; gap: 8px; }
-    .tier-card.featured ul li { color: rgba(255,255,255,0.55); }
-    .tier-card ul li::before { content: "✓"; color: #059669; font-weight: 800; flex-shrink: 0; }
-    .tier-cta { display: block; text-align: center; padding: 12px 20px; border-radius: 100px; font-size: 0.88rem; font-weight: 600; text-decoration: none; transition: all .2s; border: 1.5px solid var(--border); color: var(--dark); }
-    .tier-cta:hover { border-color: rgba(0,0,0,0.3); }
-    .tier-card.featured .tier-cta { background: #fff; color: var(--dark); border-color: transparent; }
-    .tier-card.featured .tier-cta:hover { opacity: 0.85; }
-
-    /* ── HOW REFERRALS WORK ── */
-    .steps-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 48px; }
-    .step-box {
-      background: var(--light); border-radius: 16px; padding: 28px 24px; position: relative;
+    .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .btn-hero-primary {
+      background: var(--dark); color: #fff; font-size: 0.95rem; font-weight: 600;
+      padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer;
+      transition: opacity .2s; text-decoration: none;
     }
-    .step-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 14px; }
-    .step-box h4 { font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
-    .step-box p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
+    .btn-hero-primary:hover { opacity: 0.8; }
+    .btn-hero-ghost {
+      background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 500;
+      padding: 14px 32px; border-radius: 100px; border: 1.5px solid rgba(0,0,0,0.15);
+      cursor: pointer; transition: all .2s; text-decoration: none;
+    }
+    .btn-hero-ghost:hover { border-color: rgba(0,0,0,0.35); }
 
-    /* ── WHITE LABEL SECTION ── */
-    .wl-section { background: var(--dark); padding: 100px 48px; }
-    .wl-inner { max-width: 1080px; margin: 0 auto; }
-    .wl-section .s-label { color: #60a5fa; }
-    .wl-section .s-title { color: #fff; }
-    .wl-section .s-sub { color: rgba(255,255,255,0.4); }
-    .wl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 40px; }
+    /* PARTNER TYPE CARDS */
+    .partner-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .partner-card {
+      background: var(--light);
+      border-radius: 24px;
+      padding: 40px 36px;
+    }
+    .partner-card-icon { font-size: 2rem; margin-bottom: 20px; }
+    .partner-card h3 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; color: var(--dark); }
+    .partner-card p { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
+    .partner-tag {
+      display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 4px 10px; border-radius: 100px; margin-bottom: 16px;
+    }
+    .t-blue { background: rgba(0,102,255,0.1); color: var(--blue); }
+    .t-purple { background: rgba(139,92,246,0.1); color: #7c3aed; }
+    .t-green { background: rgba(16,185,129,0.1); color: #059669; }
+
+    /* HOW IT WORKS */
+    .hiw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    .hiw-card { padding: 36px 32px; background: var(--light); border-radius: 20px; }
+    .hiw-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
+    .hiw-card h3 { font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+    .hiw-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
+
+    /* RATES TABLE */
+    .rates-section { background: var(--dark); padding: 100px 48px; }
+    .rates-inner { max-width: 1080px; margin: 0 auto; }
+    .rates-header { max-width: 640px; margin-bottom: 56px; }
+    .rates-header .s-label { color: #60a5fa; }
+    .rates-header .s-title { color: #fff; }
+    .rates-header .s-sub { color: rgba(255,255,255,0.4); margin-bottom: 0; }
+    .rates-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .rates-table th {
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.4);
+      font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      padding: 16px 24px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .rates-table th:first-child { border-radius: 12px 0 0 0; }
+    .rates-table th:last-child { border-radius: 0 12px 0 0; }
+    .rates-table td {
+      padding: 20px 24px;
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.65);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      vertical-align: middle;
+    }
+    .rates-table tr:last-child td { border-bottom: none; }
+    .rates-table tbody tr { background: rgba(255,255,255,0.02); transition: background .15s; }
+    .rates-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+    .rate-plan { font-weight: 700; color: #fff; font-size: 0.92rem; }
+    .rate-cut { font-weight: 800; color: #34d399; font-size: 1rem; }
+    .rate-custom { color: rgba(255,255,255,0.35); font-style: italic; }
+    .rates-note {
+      margin-top: 24px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.28);
+      line-height: 1.6;
+      padding: 16px 24px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+    }
+
+    /* WHITE LABEL SECTION */
+    .wl-section { background: var(--light); padding: 100px 48px; }
+    .wl-inner { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+    .wl-text h2 { font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 20px; color: var(--dark); }
+    .wl-text p { font-size: 0.95rem; color: rgba(0,0,0,0.45); line-height: 1.75; margin-bottom: 32px; }
+    .wl-points { list-style: none; margin-bottom: 36px; }
+    .wl-points li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; color: rgba(0,0,0,0.6); padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .wl-points li:last-child { border-bottom: none; }
+    .wl-points li::before { content: "&#10003;"; color: #059669; font-weight: 800; flex-shrink: 0; margin-top: 2px; }
+    .btn-wl {
+      display: inline-block; background: var(--dark); color: #fff;
+      font-size: 0.9rem; font-weight: 600; padding: 13px 28px;
+      border-radius: 100px; text-decoration: none; transition: opacity .2s;
+    }
+    .btn-wl:hover { opacity: 0.8; }
     .wl-card {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px; padding: 28px 24px;
+      background: var(--dark);
+      border-radius: 28px;
+      padding: 48px 40px;
+      position: relative;
+      overflow: hidden;
     }
-    .wl-card .wi { font-size: 1.5rem; margin-bottom: 14px; }
-    .wl-card h4 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
-    .wl-card p { font-size: 0.82rem; color: rgba(255,255,255,0.4); line-height: 1.65; }
+    .wl-card::before {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 60%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    }
+    .wl-card-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #60a5fa; margin-bottom: 12px; }
+    .wl-card h3 { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; margin-bottom: 24px; }
+    .wl-features { list-style: none; }
+    .wl-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: rgba(255,255,255,0.5); padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .wl-features li:last-child { border-bottom: none; }
+    .wl-features li::before { content: "&#10003;"; color: #34d399; font-weight: 800; flex-shrink: 0; margin-top: 2px; }
 
-    /* ── WHO IT'S FOR ── */
-    .who-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
-    .who-card { background: var(--light); border-radius: 16px; padding: 28px 24px; }
-    .who-card .wi { font-size: 1.8rem; margin-bottom: 14px; }
-    .who-card h4 { font-size: 0.95rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
-    .who-card p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
+    /* FORM SECTION */
+    .form-section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
+    .form-layout { display: grid; grid-template-columns: 1fr 1.4fr; gap: 80px; align-items: start; }
+    .form-intro h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
+    .form-intro p { font-size: 0.9rem; color: rgba(0,0,0,0.45); line-height: 1.75; margin-bottom: 32px; }
+    .form-trust { display: flex; flex-direction: column; gap: 20px; }
+    .trust-item { display: flex; align-items: flex-start; gap: 14px; }
+    .trust-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+    .trust-text strong { display: block; font-size: 0.85rem; font-weight: 700; color: var(--dark); margin-bottom: 2px; }
+    .trust-text span { font-size: 0.78rem; color: rgba(0,0,0,0.4); }
+    .partner-form { background: var(--light); border-radius: 24px; padding: 40px; }
+    .pf-label { display: block; font-size: 0.8rem; font-weight: 600; color: rgba(0,0,0,0.5); margin-bottom: 6px; }
+    .pf-group { margin-bottom: 16px; }
+    .pf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .btn-pf-submit {
+      width: 100%; padding: 14px; background: var(--dark); color: #fff;
+      border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; transition: opacity .2s; margin-top: 8px; font-family: inherit;
+    }
+    .btn-pf-submit:hover { opacity: 0.85; }
 
-    /* ── CTA BANNER ── */
+    /* CTA BANNER */
     .cta-section { padding: 80px 48px 120px; }
     .cta-inner { max-width: 1080px; margin: 0 auto; }
     .cta-banner {
-      background: var(--dark); border-radius: 32px; padding: 80px 64px;
-      text-align: center; position: relative; overflow: hidden;
+      background: var(--dark);
+      border-radius: 32px;
+      padding: 80px 64px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
     }
     .cta-banner::before {
-      content: ''; position: absolute; inset: 0;
+      content: '';
+      position: absolute; inset: 0;
       background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.15) 0%, transparent 60%);
       pointer-events: none;
     }
     .cta-banner h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 14px; }
-    .cta-banner p { font-size: 1rem; color: rgba(255,255,255,0.38); margin-bottom: 36px; }
-    .btn-cta-primary { background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer; transition: opacity .2s; text-decoration: none; display: inline-block; }
+    .cta-banner p { font-size: 1rem; color: rgba(255,255,255,0.38); margin-bottom: 36px; max-width: 520px; margin-left: auto; margin-right: auto; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-cta-primary { background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer; transition: opacity .2s; text-decoration: none; }
     .btn-cta-primary:hover { opacity: 0.88; }
 
-    /* ── FOOTER ── */
+    /* FOOTER */
     footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
     .footer-inner { max-width: 1080px; margin: 0 auto; }
     .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
@@ -176,253 +317,358 @@
     .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
     .footer-legal a:hover { color: var(--dark); }
 
-    /* ── RESPONSIVE ── */
+    /* SCROLL REVEAL */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1);
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* RESPONSIVE */
     @media (max-width: 1024px) {
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .wl-inner { gap: 48px; }
+      .form-layout { gap: 48px; }
     }
     @media (max-width: 768px) {
       nav { padding: 0 24px; }
       .nav-links { display: none; }
-      .page-hero { padding: 64px 24px; }
+      .hero { padding: 64px 24px 56px; }
       .section { padding: 64px 24px; }
+      .partner-grid { grid-template-columns: 1fr; }
+      .hiw-grid { grid-template-columns: 1fr; }
+      .rates-section { padding: 64px 24px; }
       .wl-section { padding: 64px 24px; }
-      .tier-grid, .steps-row, .wl-grid, .who-grid { grid-template-columns: 1fr; }
-      .footer-grid { grid-template-columns: 1fr; }
-      .cta-section { padding: 64px 24px; }
+      .wl-inner { grid-template-columns: 1fr; gap: 40px; }
+      .form-section { padding: 64px 24px; }
+      .form-layout { grid-template-columns: 1fr; gap: 40px; }
+      .pf-row { grid-template-columns: 1fr; }
+      .cta-section { padding: 64px 24px 80px; }
       .cta-banner { padding: 48px 28px; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .rates-table th, .rates-table td { padding: 14px 16px; font-size: 0.82rem; }
     }
   </style>
 </head>
 <body>
 
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()">&#x2715;</button>
+    <h2 id="auth-title">Welcome to K.I.N.D</h2>
+    <p class="modal-sub" id="auth-sub">Start your 14-day free trial &mdash; no card required.</p>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tab-signup" onclick="switchTab('signup')">Sign up</button>
+      <button class="modal-tab" id="tab-login" onclick="switchTab('login')">Log in</button>
+    </div>
+    <form id="auth-form" onsubmit="submitAuth(event)">
+      <div class="form-group">
+        <label for="auth-email">Email</label>
+        <input type="email" id="auth-email" placeholder="you@company.com" required />
+      </div>
+      <div class="form-group">
+        <label for="auth-password">Password</label>
+        <input type="password" id="auth-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required minlength="6" />
+      </div>
+      <p class="modal-forgot" id="forgot-link" onclick="handleForgot()">Forgot password?</p>
+      <button type="submit" class="btn-form" id="auth-submit">Create account</button>
+      <p class="modal-msg" id="auth-msg"></p>
+    </form>
+    <p class="modal-footer">By signing up you agree to our <a href="https://app.get-kind.com/terms">Terms of Service</a>.</p>
+  </div>
+</div>
+
 <!-- NAV -->
 <nav>
   <a href="/" class="logo">
-    <div class="logo-icon">⚡</div>
+    <div class="logo-icon">&#x26A1;</div>
     <span class="logo-text">K.I.N.D</span>
   </a>
   <div class="nav-links">
     <div class="nav-item">
-      <a href="index.html#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <a href="index.html#products" class="nav-link">Products <span class="chevron">&#9662;</span></a>
       <div class="nav-dropdown">
-        <a href="index.html#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">K.I.N.D AI — Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
-        <a href="index.html#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
-        <a href="index.html#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
-        <a href="index.html#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">&#127919;</span><span><span class="dd-title">K.I.N.D AI &mdash; Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
+        <a href="index.html#figsy" class="dd-link"><span class="dd-icon">&#129302;</span><span><span class="dd-title">FIGSY &mdash; AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">&#129504;</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">&#128172;</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot &mdash; one embed away</span></span></a>
       </div>
     </div>
     <div class="nav-item">
-      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#9662;</span></a>
       <div class="nav-dropdown" style="min-width:264px">
-        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
-        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
-        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
-        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">&#128202;</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">&#127970;</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">&#127968;</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">&#9878;&#65039;</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">&#128187;</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">&#128101;</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
       </div>
     </div>
     <div class="nav-item">
-      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <a href="support.html" class="nav-link">Resources <span class="chevron">&#9662;</span></a>
       <div class="nav-dropdown">
-        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
-        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#128218;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">&#128031;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
         <div class="dd-divider"></div>
-        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">&#128197;</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
       </div>
     </div>
     <div class="nav-item">
-      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <a href="about.html" class="nav-link">Company <span class="chevron">&#9662;</span></a>
       <div class="nav-dropdown">
-        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <a href="about.html" class="dd-link"><span class="dd-icon">&#127970;</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">&#129309;</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn recurring commission or white-label our platform</span></span></a>
       </div>
     </div>
     <a href="pricing.html" class="nav-link">Pricing</a>
-    <a href="trust.html" class="nav-link">Trust &amp; Security</a>
-    <a href="partners.html" class="nav-link active">Partners</a>
   </div>
   <div class="nav-right">
-    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
-    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start free trial</a>
+    <button onclick="openAuth('login')" class="btn-nav-ghost">Log in</button>
+    <button onclick="openAuth('signup')" class="btn-nav-primary">Start free trial</button>
   </div>
 </nav>
 
 <!-- HERO -->
-<div class="page-hero">
-  <div class="page-hero-inner">
-    <div class="hero-badge">🤝 Partner Programme</div>
-    <h1>Grow your agency<br/>with K.I.N.D.</h1>
-    <p>Refer clients, earn credits, resell under your brand. Three flexible tiers — built around how you work.</p>
+<div class="hero">
+  <div class="hero-label">Partner Programme</div>
+  <h1 class="reveal">Grow your revenue.<br/>Help your clients grow theirs.</h1>
+  <p class="hero-sub reveal reveal-delay-1">Refer clients to K.I.N.D and earn recurring commission &mdash; or white-label our AI infrastructure under your brand. Built for agencies, consultants, and sales-adjacent services.</p>
+  <div class="hero-btns reveal reveal-delay-2">
+    <a href="mailto:partners@get-kind.com" class="btn-hero-primary">Become a partner &rarr;</a>
+    <a href="#rates" class="btn-hero-ghost">See commission rates</a>
   </div>
 </div>
 
-<!-- TIERS -->
+<div class="divider"></div>
+
+<!-- PARTNER TYPES -->
 <div class="section">
-  <div class="s-label">Partnership Tiers</div>
-  <div class="s-title">Pick your level of involvement.</div>
-  <p class="s-sub">Start with a referral link. Grow into a full white-label reseller. Every tier is designed to add real value to your business.</p>
-  <div class="tier-grid">
-    <!-- Referral -->
-    <div class="tier-card">
-      <div class="tier-icon">🔗</div>
-      <h3>Referral Partner</h3>
-      <p>The simplest way to earn with K.I.N.D. Share your link — get paid when clients activate.</p>
-      <div class="tier-highlight">$100 credits</div>
-      <div class="tier-divider"></div>
-      <ul>
-        <li>Unique referral link</li>
-        <li>$100 in K.I.N.D credits per activated client</li>
-        <li>Referred client also gets $20 bonus credits</li>
-        <li>No minimum referrals required</li>
-        <li>Real-time referral dashboard</li>
-        <li>No commitment or contracts</li>
-      </ul>
-      <a href="mailto:hello@get-kind.com?subject=Partner%20Application&body=I'm%20interested%20in%20the%20Referral%20Partner%20tier." class="tier-cta">Apply now →</a>
+  <div class="s-label">Partner types</div>
+  <div class="s-title">Find the model that fits you.</div>
+  <p class="s-sub">Three ways to work with K.I.N.D &mdash; from a simple referral link to a fully white-labelled AI platform.</p>
+  <div class="partner-grid">
+    <div class="partner-card reveal">
+      <div class="partner-card-icon">&#129309;</div>
+      <span class="partner-tag t-blue">Referral Partner</span>
+      <h3>Refer &amp; earn</h3>
+      <p>Refer clients, earn 20% recurring commission for 12 months. No integration required. Share a link. That&rsquo;s it.</p>
     </div>
-    <!-- Agency Reseller -->
-    <div class="tier-card featured">
-      <div class="tier-badge">Most popular</div>
-      <div class="tier-icon">🏢</div>
-      <h3>Agency Reseller</h3>
-      <p>Resell K.I.N.D under your brand. Set your own pricing. Your clients see your name, not ours.</p>
-      <div class="tier-highlight">White-label portal</div>
-      <div class="tier-divider"></div>
-      <ul>
-        <li>Everything in Referral Partner</li>
-        <li>White-label dashboard with your logo</li>
-        <li>Custom subdomain (crm.youragency.com)</li>
-        <li>Set your own client pricing</li>
-        <li>Volume discount on credits</li>
-        <li>Priority support channel</li>
-      </ul>
-      <a href="mailto:hello@get-kind.com?subject=Partner%20Application&body=I'm%20interested%20in%20the%20Agency%20Reseller%20tier." class="tier-cta">Apply now →</a>
+    <div class="partner-card reveal reveal-delay-1">
+      <div class="partner-card-icon">&#127970;</div>
+      <span class="partner-tag t-purple">Agency Partner</span>
+      <h3>White-label K.I.N.D</h3>
+      <p>White-label K.I.N.D under your brand. Your clients see your logo. You control the pricing. We handle the infrastructure.</p>
     </div>
-    <!-- Strategic -->
-    <div class="tier-card">
-      <div class="tier-icon">🚀</div>
-      <h3>Strategic Partner</h3>
-      <p>For high-volume partners ready to grow with K.I.N.D at a deeper level.</p>
-      <div class="tier-highlight">Revenue share</div>
-      <div class="tier-divider"></div>
-      <ul>
-        <li>Everything in Agency Reseller</li>
-        <li>Revenue share on referred spend</li>
-        <li>Co-marketing &amp; joint campaigns</li>
-        <li>Dedicated partner success manager</li>
-        <li>Early access to new features</li>
-        <li>Co-branded content &amp; case studies</li>
-      </ul>
-      <a href="mailto:hello@get-kind.com?subject=Partner%20Application&body=I'm%20interested%20in%20the%20Strategic%20Partner%20tier." class="tier-cta">Apply now →</a>
+    <div class="partner-card reveal reveal-delay-2">
+      <div class="partner-card-icon">&#128268;</div>
+      <span class="partner-tag t-green">Technology Partner</span>
+      <h3>Integrate via API</h3>
+      <p>Integrate K.I.N.D into your platform via API. Mutual GTM, co-marketing, and a shared roadmap conversation.</p>
     </div>
   </div>
 </div>
 
 <div class="divider"></div>
 
-<!-- HOW REFERRALS WORK -->
+<!-- HOW IT WORKS -->
 <div class="section">
   <div class="s-label">How it works</div>
-  <div class="s-title">Referrals in 4 steps.</div>
-  <p class="s-sub">No complicated dashboards. No waiting months to see results. The process is simple by design.</p>
-  <div class="steps-row">
-    <div class="step-box">
-      <div class="step-num">Step 01</div>
-      <h4>Get your link</h4>
-      <p>Apply to the partner programme and receive your unique referral link and dashboard login within 24 hours.</p>
+  <div class="s-title">Simple by design.</div>
+  <p class="s-sub">No complex certification. No minimums. Start earning within 48 hours of applying.</p>
+  <div class="hiw-grid">
+    <div class="hiw-card reveal">
+      <div class="hiw-num">Step 01</div>
+      <h3>Apply</h3>
+      <p>Submit the form below. We review every application within 48 hours and reach out directly. No gatekeeping.</p>
     </div>
-    <div class="step-box">
-      <div class="step-num">Step 02</div>
-      <h4>Share with clients</h4>
-      <p>Share your referral link directly, or embed it in your proposals, emails, and website. No tracking pixel required.</p>
+    <div class="hiw-card reveal reveal-delay-1">
+      <div class="hiw-num">Step 02</div>
+      <h3>Share</h3>
+      <p>Get your unique referral link or white-label setup. Start sharing with your network, clients, or embedding K.I.N.D into your own offering.</p>
     </div>
-    <div class="step-box">
-      <div class="step-num">Step 03</div>
-      <h4>Client activates</h4>
-      <p>When your referred client signs up and activates their account with their first credit purchase, the referral is confirmed.</p>
+    <div class="hiw-card reveal reveal-delay-2">
+      <div class="hiw-num">Step 03</div>
+      <h3>Earn</h3>
+      <p>20% recurring commission, paid monthly, direct to your account. No cap on earnings. The more clients you refer, the more you earn &mdash; every month.</p>
     </div>
-    <div class="step-box">
-      <div class="step-num">Step 04</div>
-      <h4>Both get credits</h4>
-      <p>You receive $100 in K.I.N.D credits. Your referred client receives $20 in bonus credits. Tracked in real time.</p>
+  </div>
+</div>
+
+<!-- RATES -->
+<div class="rates-section" id="rates">
+  <div class="rates-inner">
+    <div class="rates-header reveal">
+      <div class="s-label">Commission rates</div>
+      <h2 class="s-title">What you earn per client.</h2>
+      <p class="s-sub">Every active client you refer earns you 20% of their monthly subscription &mdash; for 12 months, on every plan.</p>
     </div>
+    <table class="rates-table reveal reveal-delay-1">
+      <thead>
+        <tr>
+          <th>Plan</th>
+          <th>Monthly Revenue</th>
+          <th>Your 20% Cut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="rate-plan">Lead Gen Starter</td>
+          <td>R&nbsp;1,490 / mo</td>
+          <td class="rate-cut">R&nbsp;298 / mo per client</td>
+        </tr>
+        <tr>
+          <td class="rate-plan">Lead Gen Pro</td>
+          <td>R&nbsp;2,990 / mo</td>
+          <td class="rate-cut">R&nbsp;598 / mo per client</td>
+        </tr>
+        <tr>
+          <td class="rate-plan">FIGSY Agent <span style="font-weight:400;color:rgba(255,255,255,0.3);font-size:0.8rem">(credit-based, ~R&nbsp;5k/mo avg)</span></td>
+          <td>&asymp; R&nbsp;5,000 avg / mo</td>
+          <td class="rate-cut">&asymp; R&nbsp;1,000 / mo per client</td>
+        </tr>
+        <tr>
+          <td class="rate-plan">Enterprise</td>
+          <td class="rate-custom">Custom pricing</td>
+          <td class="rate-custom">Custom &mdash; <a href="mailto:partners@get-kind.com" style="color:rgba(255,255,255,0.4);text-decoration:underline">email us</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="rates-note reveal reveal-delay-2">Commission paid monthly after a 30-day client retention window. No cap on earnings. Refer 10 clients on Lead Gen Pro and earn R&nbsp;5,980 / mo &mdash; passively.</p>
   </div>
 </div>
 
 <!-- WHITE LABEL -->
 <div class="wl-section">
   <div class="wl-inner">
-    <div class="s-label">White-label</div>
-    <div class="s-title">Your brand. Your pricing.</div>
-    <p class="s-sub">Agency Resellers get access to K.I.N.D's full white-label portal. Your clients see your agency, not K.I.N.D. You control the relationship.</p>
-    <div class="wl-grid">
-      <div class="wl-card">
-        <div class="wi">🎨</div>
-        <h4>Your logo &amp; colours</h4>
-        <p>Upload your brand assets. The client portal shows your logo, your colour scheme, and your name — K.I.N.D branding is hidden.</p>
-      </div>
-      <div class="wl-card">
-        <div class="wi">🌐</div>
-        <h4>Your domain</h4>
-        <p>Set up your white-label portal on your own subdomain (e.g. crm.youragency.com). Clients never see get-kind.com in the URL.</p>
-      </div>
-      <div class="wl-card">
-        <div class="wi">💰</div>
-        <h4>Your pricing</h4>
-        <p>Buy credits at your agency rate and resell at whatever price makes sense for your market. Full margin control.</p>
-      </div>
-      <div class="wl-card">
-        <div class="wi">🤐</div>
-        <h4>Your relationship</h4>
-        <p>Clients invoice you, not K.I.N.D. Support goes through your agency. K.I.N.D works behind the scenes so you look like the hero.</p>
-      </div>
+    <div class="wl-text reveal">
+      <div class="s-label">White-label</div>
+      <h2>White-label K.I.N.D under your brand.</h2>
+      <p>Your logo. Your domain. Your pricing. We handle every bit of the infrastructure &mdash; AI models, deliverability, data sourcing, and compliance. You sell it as your own.</p>
+      <ul class="wl-points">
+        <li>Your logo and brand throughout the product</li>
+        <li>Your own domain and client-facing URLs</li>
+        <li>You set the pricing &mdash; we invoice you wholesale</li>
+        <li>We handle all infrastructure and uptime</li>
+        <li>Minimum 5 active client seats to qualify</li>
+        <li>Custom pricing based on seat volume</li>
+      </ul>
+      <a href="mailto:partners@get-kind.com?subject=White-label+enquiry" class="btn-wl">Talk to us about white-label &rarr;</a>
+    </div>
+    <div class="wl-card reveal reveal-delay-1">
+      <div class="wl-card-label">White-label includes</div>
+      <h3>Everything, rebranded.</h3>
+      <ul class="wl-features">
+        <li>Full platform under your brand identity</li>
+        <li>Custom domain setup (e.g. leads.youragency.com)</li>
+        <li>Branded client onboarding flow</li>
+        <li>Your own pricing tiers and packaging</li>
+        <li>250M+ Apollo-powered lead database</li>
+        <li>FIGSY AI SDR included</li>
+        <li>POPIA &amp; GDPR-compliant infrastructure</li>
+        <li>Dedicated partner support channel</li>
+        <li>Priority onboarding within 5 business days</li>
+      </ul>
     </div>
   </div>
 </div>
 
-<!-- WHO IT'S FOR -->
-<div class="section">
-  <div class="s-label">Who it's for</div>
-  <div class="s-title">Built for professionals who sell to businesses.</div>
-  <p class="s-sub">If your clients need more pipeline, K.I.N.D is the tool you've been waiting to add to your offer.</p>
-  <div class="who-grid">
-    <div class="who-card">
-      <div class="wi">📣</div>
-      <h4>Marketing Agencies</h4>
-      <p>Add AI-powered B2B lead generation to your service offering. Retain clients longer by expanding into pipeline building.</p>
+<div class="divider"></div>
+
+<!-- APPLICATION FORM -->
+<div class="form-section" id="apply">
+  <div class="form-layout">
+    <div class="form-intro reveal">
+      <div class="s-label">Apply</div>
+      <h2>Ready to partner with K.I.N.D?</h2>
+      <p>Fill in the form and we&rsquo;ll review your application within 48 hours. We look forward to building something together.</p>
+      <div class="form-trust">
+        <div class="trust-item">
+          <span class="trust-icon">&#128336;</span>
+          <div class="trust-text">
+            <strong>48-hour review</strong>
+            <span>We respond to every application personally</span>
+          </div>
+        </div>
+        <div class="trust-item">
+          <span class="trust-icon">&#128200;</span>
+          <div class="trust-text">
+            <strong>20% recurring commission</strong>
+            <span>Paid monthly for 12 months per referred client</span>
+          </div>
+        </div>
+        <div class="trust-item">
+          <span class="trust-icon">&#128274;</span>
+          <div class="trust-text">
+            <strong>No minimums or exclusivity</strong>
+            <span>Refer when it makes sense for your clients</span>
+          </div>
+        </div>
+        <div class="trust-item">
+          <span class="trust-icon">&#127480;&#127462;</span>
+          <div class="trust-text">
+            <strong>Based in Cape Town, SA</strong>
+            <span>Local currency, local support, South African-owned</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="who-card">
-      <div class="wi">💼</div>
-      <h4>Business Consultants</h4>
-      <p>When clients ask "how do we get more leads?" — you now have an answer. Refer or resell directly into your consulting practice.</p>
-    </div>
-    <div class="who-card">
-      <div class="wi">🎓</div>
-      <h4>Sales Coaches</h4>
-      <p>Help your students and clients prospect more effectively. Earn credits every time a student activates K.I.N.D after your programme.</p>
-    </div>
-    <div class="who-card">
-      <div class="wi">📈</div>
-      <h4>Business Development Firms</h4>
-      <p>Offer managed lead gen services powered by K.I.N.D. White-label the platform and deliver results under your brand.</p>
-    </div>
-    <div class="who-card">
-      <div class="wi">🖥️</div>
-      <h4>Web &amp; Digital Agencies</h4>
-      <p>Bundle K.I.N.D into your website packages. Help clients not just launch a site — but start filling the pipeline from day one.</p>
-    </div>
-    <div class="who-card">
-      <div class="wi">🤝</div>
-      <h4>Fractional CMOs &amp; CROs</h4>
-      <p>Add AI outreach to your fractional engagements. Scale pipeline activity across multiple clients with one platform.</p>
+    <div class="partner-form reveal reveal-delay-1">
+      <form action="mailto:partners@get-kind.com" method="POST" enctype="text/plain">
+        <div class="pf-row">
+          <div class="pf-group">
+            <label class="pf-label" for="p-name">Full name</label>
+            <input class="pf-input" type="text" id="p-name" name="Name" placeholder="Jane Smith" required />
+          </div>
+          <div class="pf-group">
+            <label class="pf-label" for="p-company">Company</label>
+            <input class="pf-input" type="text" id="p-company" name="Company" placeholder="Your Agency" required />
+          </div>
+        </div>
+        <div class="pf-row">
+          <div class="pf-group">
+            <label class="pf-label" for="p-email">Email</label>
+            <input class="pf-input" type="email" id="p-email" name="Email" placeholder="you@agency.com" required />
+          </div>
+          <div class="pf-group">
+            <label class="pf-label" for="p-website">Website</label>
+            <input class="pf-input" type="url" id="p-website" name="Website" placeholder="https://youragency.com" />
+          </div>
+        </div>
+        <div class="pf-group">
+          <label class="pf-label" for="p-type">Partner type</label>
+          <select class="pf-select" id="p-type" name="Partner type" required>
+            <option value="" disabled selected>Select a partner type</option>
+            <option value="Referral">Referral &mdash; refer clients, earn commission</option>
+            <option value="Agency">Agency &mdash; resell under your brand</option>
+            <option value="White-label">White-label &mdash; fully branded platform</option>
+            <option value="Technology">Technology &mdash; API / platform integration</option>
+          </select>
+        </div>
+        <div class="pf-group">
+          <label class="pf-label" for="p-message">Tell us about your business and clients</label>
+          <textarea class="pf-textarea" id="p-message" name="Message" placeholder="What do you do? Who are your clients? How do you see K.I.N.D fitting in?"></textarea>
+        </div>
+        <button type="submit" class="btn-pf-submit">Apply to partner programme &rarr;</button>
+      </form>
     </div>
   </div>
 </div>
 
-<!-- CTA -->
+<!-- CTA BANNER -->
 <div class="cta-section">
   <div class="cta-inner">
-    <div class="cta-banner">
-      <h2>Ready to become a K.I.N.D partner?</h2>
-      <p>Applications reviewed within 24 hours. No commitment required to start.</p>
-      <a href="mailto:hello@get-kind.com?subject=Partner%20Application" class="btn-cta-primary">Apply to become a partner →</a>
+    <div class="cta-banner reveal">
+      <h2>Ready to grow together?</h2>
+      <p>We work with agencies, consultants, VAs, and anyone who sells to growing SA businesses. If your clients need more pipeline, let&rsquo;s talk.</p>
+      <div class="cta-btns">
+        <a href="mailto:partners@get-kind.com" class="btn-cta-primary">Apply now &rarr;</a>
+      </div>
     </div>
   </div>
 </div>
@@ -433,15 +679,15 @@
     <div class="footer-grid">
       <div class="footer-brand">
         <a href="/" class="logo">
-          <div class="logo-icon">⚡</div>
+          <div class="logo-icon">&#x26A1;</div>
           <span class="logo-text">K.I.N.D</span>
         </a>
         <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation for ambitious businesses.</p>
       </div>
       <div class="footer-col">
         <h4>Products</h4>
-        <a href="index.html#products">K.I.N.D AI — Lead Gen</a>
-        <a href="index.html#figsy">FIGSY — AI SDR</a>
+        <a href="index.html#products">K.I.N.D AI &mdash; Lead Gen</a>
+        <a href="index.html#figsy">FIGSY &mdash; AI SDR</a>
         <a href="https://tally.so/r/kind-waitlist">Virtual Assistant</a>
         <a href="https://tally.so/r/kind-waitlist">Chatbot Agent</a>
       </div>
@@ -450,29 +696,109 @@
         <a href="about.html">About K.I.N.D</a>
         <a href="use-cases.html">Use Cases</a>
         <a href="pricing.html">Pricing</a>
-        <a href="trust.html">Trust &amp; Security</a>
-        <a href="partners.html">Partners</a>
+        <a href="partners.html">Partner Programme</a>
       </div>
       <div class="footer-col">
         <h4>Get in touch</h4>
         <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        <a href="mailto:partners@get-kind.com">partners@get-kind.com</a>
         <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo">Book a Demo</a>
         <a href="https://app.get-kind.com/login">Client login</a>
         <a href="support.html">Support</a>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 K.I.N.D. All rights reserved.</p>
+      <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
       <div class="footer-legal">
         <a href="https://app.get-kind.com/terms">Terms of Service</a>
         <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
-        <a href="trust.html">POPIA &amp; GDPR</a>
+        <a href="about.html#compliance">POPIA &amp; GDPR</a>
       </div>
     </div>
   </div>
 </footer>
 
 <script>
+  var PORTAL = 'https://app.get-kind.com'
+  var SUPABASE_URL = 'https://lwtadfdaoyvjmjhrfkgs.supabase.co'
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dGFkZmRhb3l2am1qaHJma2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMDUxNDksImV4cCI6MjA2MTc4MTE0OX0.U-3J1JxkFH8Kgg3xMzN3NJgCVSutXGXEITJHMmPCIPM'
+  var authMode = 'signup'
+
+  function openAuth(mode) {
+    authMode = mode
+    switchTab(mode)
+    document.getElementById('auth-modal').classList.add('open')
+  }
+  function closeAuth() { document.getElementById('auth-modal').classList.remove('open') }
+  function switchTab(mode) {
+    authMode = mode
+    document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
+    document.getElementById('tab-login').classList.toggle('active', mode === 'login')
+    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to K.I.N.D' : 'Welcome back'
+    document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Start your 14-day free trial — no card required.' : 'Log in to your dashboard.'
+    document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account' : 'Log in'
+    document.getElementById('forgot-link').style.display = mode === 'login' ? 'block' : 'none'
+    document.getElementById('auth-msg').className = 'modal-msg'
+  }
+  document.getElementById('auth-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeAuth()
+  })
+  async function handleForgot() {
+    var email = document.getElementById('auth-email').value
+    var msg = document.getElementById('auth-msg')
+    if (!email) { msg.className = 'modal-msg err'; msg.textContent = 'Enter your email first.'; return }
+    await fetch(SUPABASE_URL + '/auth/v1/recover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ email: email })
+    })
+    msg.className = 'modal-msg ok'
+    msg.textContent = 'Reset link sent — check your inbox.'
+  }
+  async function submitAuth(e) {
+    e.preventDefault()
+    var email = document.getElementById('auth-email').value
+    var password = document.getElementById('auth-password').value
+    var btn = document.getElementById('auth-submit')
+    var msg = document.getElementById('auth-msg')
+    btn.textContent = '...'
+    btn.disabled = true
+    msg.className = 'modal-msg'
+    if (authMode === 'signup') {
+      var res = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        body: JSON.stringify({ email: email, password: password, options: { emailRedirectTo: PORTAL + '/auth/callback' } })
+      })
+      var data = await res.json()
+      if (data.error) {
+        msg.className = 'modal-msg err'
+        msg.textContent = data.error.message
+        btn.textContent = 'Create account'
+        btn.disabled = false
+      } else {
+        msg.className = 'modal-msg ok'
+        msg.textContent = 'Check your email to confirm your account'
+        btn.textContent = 'Check your email'
+      }
+    } else {
+      closeAuth()
+      window.location.href = PORTAL + '/login'
+    }
+  }
+
+  // Scroll reveal
+  var revealObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible')
+        revealObserver.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.12 })
+  document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el) })
+
+  // Nav dropdowns
   document.querySelectorAll('.nav-item').forEach(function(item) {
     var timer
     item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open') })

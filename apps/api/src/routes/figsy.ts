@@ -13,6 +13,60 @@ async function getClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const [
+      sentRes, repliesRes, interestedRes, optOutRes,
+      activeCampaignsRes, totalLeadsRes, leadsContactedRes, avgScoreRes,
+    ] = await Promise.all([
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'interested'),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out'),
+      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'contacted'),
+      db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null),
+    ])
+
+    const totalSent        = sentRes.count ?? 0
+    const totalReplied     = repliesRes.count ?? 0
+    const interested       = interestedRes.count ?? 0
+    const optOuts          = optOutRes.count ?? 0
+    const activeCampaigns  = activeCampaignsRes.count ?? 0
+    const totalLeads       = totalLeadsRes.count ?? 0
+    const leadsContacted   = leadsContactedRes.count ?? 0
+
+    const scores = (avgScoreRes.data ?? []) as { score: number }[]
+    const avgScore = scores.length
+      ? Math.round(scores.reduce((sum, l) => sum + (l.score || 0), 0) / scores.length)
+      : 0
+
+    const replyRate     = totalSent > 0 ? totalReplied / totalSent : 0
+    const interestedRate = totalSent > 0 ? interested / totalSent : 0
+
+    res.json({
+      success: true,
+      data: {
+        totalSent,
+        totalReplied,
+        replyRate,
+        interested,
+        interestedRate,
+        optOuts,
+        activeCampaigns,
+        totalLeads,
+        leadsContacted,
+        avgScore,
+      },
+    })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch KPIs' }) }
+})
+
 // ── CAMPAIGNS ────────────────────────────────────────────────────────────────
 
 figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {
@@ -80,6 +134,40 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to update campaign' })
+  }
+})
+
+// ── CLONE CAMPAIGN ────────────────────────────────────────────────────────────
+figsyRouter.post('/campaigns/:campaignId/clone', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: original, error: fetchErr } = await db.from('figsy_campaigns')
+      .select('name, icp_id, status, settings')
+      .eq('id', req.params.campaignId)
+      .eq('client_id', clientId)
+      .single()
+
+    if (fetchErr || !original) {
+      res.status(404).json({ success: false, error: 'Campaign not found' }); return
+    }
+
+    const { data: newCampaign, error: insertErr } = await db.from('figsy_campaigns')
+      .insert({
+        name:      `${original.name} (copy)`,
+        icp_id:    original.icp_id ?? null,
+        status:    'draft',
+        settings:  original.settings ?? null,
+        client_id: clientId,
+      })
+      .select()
+      .single()
+
+    if (insertErr) throw insertErr
+    res.status(201).json({ success: true, campaign: newCampaign })
+  } catch (err) {
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to clone campaign' })
   }
 })
 

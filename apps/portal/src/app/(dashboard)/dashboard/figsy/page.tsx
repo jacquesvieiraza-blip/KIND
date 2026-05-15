@@ -62,6 +62,7 @@ export default function FigsyPage() {
   const [campaignReplies, setCampaignReplies] = useState<Record<string, Reply[]>>({})
   const [replyDraft, setReplyDraft] = useState<{ replyId: string; draft: string } | null>(null)
   const [draftingId, setDraftingId] = useState<string | null>(null)
+  const [cloningId, setCloningId] = useState<string | null>(null)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
@@ -145,6 +146,19 @@ export default function FigsyPage() {
       }
     }
     setUpdatingId(null)
+  }
+
+  async function handleClone(id: string) {
+    setCloningId(id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.post<{ success: boolean; campaign: Campaign }>(`/figsy/campaigns/${id}/clone`, {}, session?.access_token)
+      setCampaigns(prev => [res.campaign, ...prev])
+      toast('Campaign cloned')
+    } catch {
+      toast('Failed to clone campaign')
+    }
+    setCloningId(null)
   }
 
   async function handleDelete(id: string) {
@@ -348,6 +362,14 @@ export default function FigsyPage() {
                       {updatingId === campaign.id ? '…' : 'Resume'}
                     </button>
                   )}
+                  <button
+                    onClick={() => handleClone(campaign.id)}
+                    disabled={cloningId === campaign.id}
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-500 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                    title="Clone campaign"
+                  >
+                    {cloningId === campaign.id ? '…' : 'Clone'}
+                  </button>
                   {campaign.status !== 'active' && (
                     <button
                       onClick={() => handleDelete(campaign.id)}

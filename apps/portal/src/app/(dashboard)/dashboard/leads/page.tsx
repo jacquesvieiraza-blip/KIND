@@ -9,7 +9,7 @@ import {
   Users, TrendingUp, ShieldCheck, Download, Search,
   Mail, Ban, Sparkles, Loader2, ExternalLink,
   CheckCircle, Clock, XCircle, Plus, Settings2,
-  DollarSign, Send,
+  DollarSign, Send, X, ChevronDown,
 } from 'lucide-react'
 
 // ── Score badge ───────────────────────────────────────────────────────────────
@@ -64,6 +64,9 @@ export default function LeadsPage() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkSending, setBulkSending] = useState(false)
+  const [bulkExporting, setBulkExporting] = useState(false)
+  const [bulkStatusLoading, setBulkStatusLoading] = useState(false)
+  const [showMarkAs, setShowMarkAs] = useState(false)
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('')
@@ -175,6 +178,43 @@ export default function LeadsPage() {
       showToast(err instanceof Error ? err.message : 'Failed to send bulk consent', 'error')
     }
     setBulkSending(false)
+  }
+
+  async function bulkExport() {
+    if (!token) return
+    setBulkExporting(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leads/bulk-export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ leadIds: Array.from(selectedIds) }),
+      })
+      if (!res.ok) { showToast('Export failed — try again', 'error'); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const date = new Date().toISOString().slice(0, 10)
+      a.href = url; a.download = `kind-leads-${date}.csv`; a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      showToast('Export failed — try again', 'error')
+    }
+    setBulkExporting(false)
+  }
+
+  async function bulkMarkAs(status: string) {
+    if (!token || selectedIds.size === 0) return
+    setBulkStatusLoading(true)
+    setShowMarkAs(false)
+    try {
+      await api.post<{ success: boolean; updated: number }>('/leads/bulk-status', { leadIds: Array.from(selectedIds), status }, token)
+      setLeads(prev => prev.map(l => selectedIds.has(l.id) ? { ...l, status: status as Lead['status'] } : l))
+      showToast(`Marked ${selectedIds.size} leads as ${status}`)
+      setSelectedIds(new Set())
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to update statuses', 'error')
+    }
+    setBulkStatusLoading(false)
   }
 
   const filteredLeads = leads.filter(l =>
@@ -416,6 +456,55 @@ export default function LeadsPage() {
           </>
         )}
       </div>
+
+      {/* Floating bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-4 bg-gray-900 text-white px-6 py-4 rounded-t-xl shadow-2xl">
+          <span className="text-sm font-medium shrink-0">{selectedIds.size} lead{selectedIds.size !== 1 ? 's' : ''} selected</span>
+          <div className="flex items-center gap-3 flex-1 flex-wrap">
+            <button
+              onClick={bulkExport}
+              disabled={bulkExporting}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />{bulkExporting ? 'Exporting…' : 'Export selected'}
+            </button>
+            <button
+              onClick={() => bulkConsentSend()}
+              disabled={bulkSending}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />{bulkSending ? 'Sending…' : 'Send consent'}
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowMarkAs(p => !p)}
+                disabled={bulkStatusLoading}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {bulkStatusLoading ? 'Updating…' : 'Mark as…'}<ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {showMarkAs && (
+                <div className="absolute bottom-full mb-1 left-0 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden text-gray-900 min-w-36">
+                  {(['qualified', 'disqualified', 'contacted'] as const).map(s => (
+                    <button key={s} onClick={() => bulkMarkAs(s)}
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 capitalize transition-colors">
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => { setSelectedIds(new Set()); setShowMarkAs(false) }}
+            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
+            title="Clear selection"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* AI Email draft modal */}
       {emailDraft && (

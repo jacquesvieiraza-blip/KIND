@@ -445,6 +445,72 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
   }
 })
 
+// ── BULK STATUS UPDATE ────────────────────────────────────────────────────────
+leadRouter.post('/bulk-status', async (req: AuthRequest, res) => {
+  try {
+    const { leadIds, status } = z.object({
+      leadIds: z.array(z.string().uuid()).min(1).max(100),
+      status:  z.enum(['new', 'contacted', 'qualified', 'disqualified']),
+    }).parse(req.body)
+
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { count, error } = await db.from('leads')
+      .update({ status })
+      .in('id', leadIds)
+      .eq('client_id', clientId)
+      .select('id', { count: 'exact', head: true })
+
+    if (error) throw error
+    res.json({ success: true, updated: count ?? 0 })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to update lead statuses' })
+  }
+})
+
+// ── BULK EXPORT (POST) ────────────────────────────────────────────────────────
+leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
+  try {
+    const { leadIds } = z.object({
+      leadIds: z.array(z.string().uuid()).optional(),
+    }).parse(req.body)
+
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    let query = db.from('leads')
+      .select('first_name,last_name,email,phone,job_title,company,industry,country,score,status,created_at')
+      .eq('client_id', clientId)
+      .order('score', { ascending: false, nullsFirst: false })
+
+    if (leadIds && leadIds.length > 0) {
+      query = query.in('id', leadIds)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    const date = new Date().toISOString().slice(0, 10)
+    const headers = ['first_name', 'last_name', 'email', 'phone', 'job_title', 'company', 'industry', 'country', 'score', 'status', 'created_at']
+    const rows = (data || []).map((l: any) => [
+      l.first_name, l.last_name, l.email || '', l.phone || '',
+      l.job_title || '', l.company || '', l.industry || '',
+      l.country || '', l.score ?? '', l.status,
+      l.created_at ? new Date(l.created_at).toLocaleDateString() : '',
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+
+    const csv = [headers.join(','), ...rows].join('\n')
+    res.setHeader('Content-Type', 'text/csv')
+    res.setHeader('Content-Disposition', `attachment; filename="kind-leads-${date}.csv"`)
+    res.send(csv)
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to export leads' })
+  }
+})
+
 // ── CSV EXPORT ────────────────────────────────────────────────────────────────
 leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
   try {

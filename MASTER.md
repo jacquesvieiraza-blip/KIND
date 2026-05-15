@@ -35,7 +35,7 @@
 
 | # | Item | Where | Status |
 |---|---|---|---|
-| **1** | Drop `milla.png` + `vida.png` into `apps/website/` | [GitHub upload link](https://github.com/jacquesvieiraza-blip/KIND/upload/claude/ai-business-roadmap-U3OWJ/apps/website) | Pending — tomorrow |
+| **1** | Drop `milla.png` + `vida.png` into `apps/website/` | [GitHub upload link](https://github.com/jacquesvieiraza-blip/KIND/upload/claude/ai-business-roadmap-U3OWJ/apps/website) | **Done** — wired into about.html |
 | **2** | Supabase: set Site URL → `https://app.get-kind.com` | Supabase → Auth → URL Configuration | Pending |
 | **3** | Supabase: add redirect URL → `https://app.get-kind.com/auth/callback` | Same as above | Pending |
 | **4** | Railway env var: `FOUNDER_EMAIL=your@email.com` | Railway → Variables | Pending |
@@ -195,7 +195,7 @@
 | **Vida** | Founder's daughter | Chatbot Agent — website + WhatsApp inbound qualifier | July 2026 |
 
 All three named on `apps/website/about.html` — Meet the agents section.
-Character images: FIGSY image live. Milla (`milla.png`) + Vida (`vida.png`) pending drop.
+Character images: All three live on about.html. FIGSY (`ai-agent.jpg`), Milla (`milla.png`), Vida (`vida.png`).
 
 ---
 

@@ -6,7 +6,7 @@ import { buildSearchBody, searchPeople } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
-import { autoEnrollLead } from '../lib/figsy'
+import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 
 export const icpRouter = Router()
 icpRouter.use(requireAuth)
@@ -95,11 +95,17 @@ async function runIcpJob(
 
     scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '').catch(console.error)
 
-    // S5 — FIGSY auto-start: enroll pre-consented leads into any active campaign
-    const { data: consentedLeads } = await db.from('leads')
-      .select('id').in('id', insertedIds).eq('apollo_consented', true)
-    for (const lead of consentedLeads ?? []) {
-      autoEnrollLead(lead.id, clientId).catch(console.error)
+    // S5 — FIGSY auto-start: enroll all scored leads (POPIA legitimate interest — no consent gate needed)
+    // If client has no active FIGSY campaign, send Lead Gen Pro Day 1 outreach instead
+    const { data: figsyCampaign } = await db.from('figsy_campaigns')
+      .select('id').eq('client_id', clientId).eq('status', 'active').maybeSingle()
+
+    if (figsyCampaign) {
+      for (const leadId of insertedIds) {
+        autoEnrollLead(leadId, clientId).catch(console.error)
+      }
+    } else {
+      sendDay1OutreachBatch(insertedIds, clientId, clientRow?.company_name ?? '').catch(console.error)
     }
 
     if (clientRow && !clientRow.first_icp_run_at) {

@@ -139,10 +139,29 @@ function OnboardForm() {
             )}
 
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-            <button type="submit" disabled={loading}
-              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-60">
-              {loading ? 'Setting up...' : 'Go to my dashboard'}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button type="submit" disabled={loading}
+                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-60">
+                {loading ? 'Setting up...' : 'Start free trial →'}
+              </button>
+              <button type="button" disabled={loading}
+                onClick={async (e) => {
+                  e.preventDefault()
+                  setLoading(true)
+                  setError('')
+                  const { data: { session } } = await supabase.auth.getSession()
+                  if (!session) { router.push('/login'); return }
+                  try {
+                    await api.post('/auth/onboard', { ...form, ...(referredBy ? { referred_by: referredBy } : {}) }, session.access_token)
+                    router.push('/dashboard/billing?source=direct_pay')
+                  } catch (err) { setError(err instanceof Error ? err.message : 'Onboarding failed') }
+                  setLoading(false)
+                }}
+                className="w-full bg-white hover:bg-gray-50 text-brand-600 font-medium rounded-lg px-4 py-2.5 text-sm transition-colors border border-brand-200 disabled:opacity-60">
+                {loading ? 'Setting up...' : 'Pay now — skip trial →'}
+              </button>
+              <p className="text-xs text-gray-400 text-center">Free trial: full access, no credit card needed</p>
+            </div>
           </form>
         </div>
       </div>

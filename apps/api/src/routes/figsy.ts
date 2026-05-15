@@ -492,5 +492,20 @@ Output ONLY the email body, no subject line, no sign-off.`,
   }
 })
 
+// Unified inbox — all replies across all campaigns for this client
+figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data, error } = await db.from('figsy_replies')
+      .select('*, leads(first_name,last_name,job_title,company)')
+      .eq('client_id', clientId)
+      .order('processed_at', { ascending: false })
+      .limit(200)
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch replies' }) }
+})
+
 // Export for use in icps.ts (S5 — FIGSY auto-start)
 export { autoEnrollLead }

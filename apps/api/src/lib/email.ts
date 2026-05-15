@@ -355,6 +355,52 @@ export async function sendNurtureEmail(
   await resend.emails.send({ from: FROM, to, subject, html })
 }
 
+export async function sendZeroCreditsWarning(
+  to: string,
+  companyName: string,
+  daysAtZero: number,
+) {
+  if (!resend) return
+
+  const subject =
+    daysAtZero <= 1 ? `Your K.I.N.D credits have run out — top up to keep leads flowing` :
+    daysAtZero <= 4 ? `Reminder: your K.I.N.D outreach is paused (${daysAtZero} days)` :
+                      `Final reminder — top up credits or your account will be suspended`
+
+  const urgency =
+    daysAtZero <= 1 ? `Your credits just ran out.` :
+    daysAtZero <= 4 ? `Your credits have been at zero for ${daysAtZero} days.` :
+                      `It's been ${daysAtZero} days with zero credits.`
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <p>Hi ${companyName},</p>
+        <p style="color:#555;line-height:1.6">
+          ${urgency} All outreach is currently paused — no new leads are being contacted on your behalf.
+        </p>
+        <p style="color:#555;line-height:1.6">
+          Top up your credits now to resume. Your ICP, lead pipeline, and all settings are saved and ready to go.
+        </p>
+        ${daysAtZero >= 7 ? `
+        <p style="color:#dc2626;line-height:1.6">
+          <strong>⚠️ Your account will be suspended if no top-up is received in the next 24 hours.</strong>
+        </p>` : ''}
+        <a href="${DASH}/billing"
+           style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+          Top up credits now →
+        </a>
+        <p style="color:#999;font-size:0.8rem;margin-top:24px">
+          Questions? Reply to this email — <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        </p>
+      </div>
+    `,
+  })
+}
+
 // D5 — Weekly leads digest (send every Monday)
 export async function sendWeeklyLeadsDigest(
   to: string,

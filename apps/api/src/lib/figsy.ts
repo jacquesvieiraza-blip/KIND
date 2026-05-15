@@ -168,6 +168,96 @@ export async function sendSequenceEmail(
     })
 }
 
+interface Day1Draft {
+  subject: string
+  body: string
+}
+
+async function generateDay1Email(
+  lead: Lead,
+  senderCompany: string,
+  senderIndustry: string | null,
+): Promise<Day1Draft> {
+  const prompt = `You are a B2B sales copywriter for ${senderCompany}${senderIndustry ? ` (${senderIndustry})` : ''}.
+
+Write a short Day 1 cold outreach email to this lead:
+- Name: ${lead.first_name} ${lead.last_name}
+- Title: ${lead.job_title || 'unknown'}
+- Company: ${lead.company || 'unknown'}
+- Industry: ${lead.industry || 'unknown'}
+- Country: ${lead.country || 'unknown'}
+${lead.score_reasoning ? `- Why they match: ${lead.score_reasoning}` : ''}
+
+Rules:
+- Under 80 words
+- Personalised to their specific role and company
+- Single CTA: 15-minute call
+- No buzzwords. No "Hope this finds you well". Sound human.
+- End with: "Reply STOP to opt out."
+- Short subject line, no clickbait
+
+Return ONLY valid JSON: {"subject": "...", "body": "..."}`
+
+  const message = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 400,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const raw = (message.content[0] as { type: string; text: string }).text.trim()
+  return JSON.parse(raw) as Day1Draft
+}
+
+export async function sendDay1OutreachBatch(
+  leadIds: string[],
+  clientId: string,
+  clientCompanyName: string,
+): Promise<void> {
+  const { data: client } = await db.from('clients')
+    .select('company_name, industry').eq('id', clientId).single()
+
+  const { data: leads } = await db.from('leads')
+    .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
+    .in('id', leadIds)
+
+  for (const lead of (leads ?? []) as Lead[]) {
+    if (!lead.email) continue
+
+    const { data: blocked } = await db.from('opt_out_blocklist')
+      .select('id').eq('email', lead.email).is('opted_back_in_at', null).maybeSingle()
+    if (blocked) continue
+
+    try {
+      const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null)
+
+      if (resend) {
+        await resend.emails.send({
+          from: FROM,
+          reply_to: REPLY_TO,
+          to: lead.email,
+          subject: draft.subject,
+          html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
+            ${draft.body.split('\n').map((line: string) => `<p style="margin:0 0 12px">${line}</p>`).join('')}
+          </div>`,
+        })
+      }
+
+      await db.from('figsy_sent_emails').insert({
+        enrollment_id: null,
+        campaign_id:   null,
+        lead_id:       lead.id,
+        step:          1,
+        subject:       draft.subject,
+        body:          draft.body,
+      })
+
+      await db.from('leads').update({ status: 'contacted' }).eq('id', lead.id)
+    } catch (err) {
+      console.error('[day1-outreach] lead', lead.id, err)
+    }
+  }
+}
+
 // Auto-enroll a single consented lead into the active campaign (S5 — FIGSY auto-start)
 export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {
   try {

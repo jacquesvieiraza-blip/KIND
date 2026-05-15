@@ -15,7 +15,7 @@ import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest, sendNurtureEmail } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -718,5 +718,53 @@ internalRouter.post('/cmo/prospect', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('[cmo/prospect]', err)
     res.status(500).json({ success: false, error: 'Outbound prospect run failed' })
+  }
+})
+
+// ── INT-11 — ZERO CREDITS WARNING ────────────────────────────────────────────
+// Call daily. Warns clients with zero credit balance.
+internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => {
+  try {
+    const now = new Date()
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id, credit_balance, first_icp_run_at')
+      .eq('credit_balance', 0)
+      .not('first_icp_run_at', 'is', null)
+      .not('user_id', 'is', null)
+
+    let sent = 0
+
+    for (const client of clients ?? []) {
+      try {
+        // Find when credits last hit zero (last deduction transaction)
+        const { data: lastTx } = await db.from('credit_transactions')
+          .select('created_at')
+          .eq('client_id', client.id)
+          .eq('type', 'deduction')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (!lastTx?.created_at) continue
+
+        const daysAtZero = Math.floor((now.getTime() - new Date(lastTx.created_at).getTime()) / 86400000)
+        if (![1, 4, 7].includes(daysAtZero)) continue
+
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
+        const email = user?.email
+        if (!email) continue
+
+        await sendZeroCreditsWarning(email, client.company_name ?? '', daysAtZero)
+        sent++
+      } catch (err) {
+        console.error(`[zero-credits] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { sent } })
+  } catch (err) {
+    console.error('[zero-credits]', err)
+    res.status(500).json({ success: false, error: 'Zero-credits run failed' })
   }
 })

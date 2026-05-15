@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { Loader2, MessageSquare, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
+import { Loader2, MessageSquare, CheckCircle, XCircle, Clock, AlertCircle, Copy, Check, RefreshCw } from 'lucide-react'
 
 interface Reply {
   id: string

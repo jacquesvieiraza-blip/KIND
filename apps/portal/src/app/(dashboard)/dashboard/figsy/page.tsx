@@ -161,6 +161,62 @@ export default function FigsyPage() {
 
   const activeCampaign = campaigns.find(c => c.status === 'active')
 
+  /* ── Upgrade wall ─────────────────────────────────────────────── */
+  if (!loading && !hasFigsySub) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] px-4">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 max-w-lg w-full p-8 text-center">
+          <div className="text-4xl mb-4">🤖</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">
+            Unlock FIGSY — Your AI Outreach Agent
+          </h1>
+          <p className="text-gray-500 text-sm leading-relaxed mb-6">
+            FIGSY writes personalised cold emails, follows up automatically, and books meetings — while you focus on closing.
+          </p>
+
+          {/* Feature list */}
+          <ul className="text-left space-y-2.5 mb-6">
+            {[
+              'AI-personalised 3-step email sequences per lead',
+              'Automatic follow-up on Day 4 and Day 9',
+              'Reply classification — interested, not interested, opt-out',
+              'CRM deal push when a lead says yes',
+              'Multi-channel coming: Voice + WhatsApp',
+            ].map(feature => (
+              <li key={feature} className="flex items-start gap-2.5 text-sm text-gray-700">
+                <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">✓</span>
+                {feature}
+              </li>
+            ))}
+          </ul>
+
+          {/* Pricing */}
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">
+            From R 60 / 20 outreach credits
+          </p>
+
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="/dashboard/billing"
+              className="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              Upgrade to FIGSY →
+            </a>
+            <a
+              href="https://get-kind.com/figsy-video.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 border border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+            >
+              See how it works
+            </a>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
@@ -181,23 +237,7 @@ export default function FigsyPage() {
         </button>
       </div>
 
-      {/* Upgrade banner */}
-      {!hasFigsySub && (
-        <div className="bg-[#0a1628] border border-blue-900/40 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex-1">
-            <p className="text-white font-semibold text-base">FIGSY requires an upgrade</p>
-            <p className="text-blue-300 text-sm mt-0.5">
-              Activate automated 3-step email outreach sequences. Upgrade to Lead Gen + FIGSY to unlock.
-            </p>
-          </div>
-          <a
-            href="/dashboard/billing"
-            className="shrink-0 px-4 py-2 bg-[#0066FF] hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
-          >
-            Upgrade now →
-          </a>
-        </div>
-      )}
+      {/* --- removed old inline upgrade banner (replaced by full-page wall above) --- */}
 
       {/* Create form */}
       {showCreate && (

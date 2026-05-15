@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { StatCard } from '@/components/ui/StatCard'
 import { ProductCard } from '@/components/ui/ProductCard'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
+import { OnboardingChecklist } from '@/components/ui/OnboardingChecklist'
 import { ReferralBanner } from '@/components/ui/ReferralBanner'
 import { Users, Bot, MessageSquare, TrendingUp, Zap, ShieldCheck, Coins, DollarSign } from 'lucide-react'
 
@@ -33,16 +34,22 @@ export default async function DashboardPage() {
   let client      = null
   let leadStats   = null
   let subs: Record<string, unknown>[] = []
+  let icpCount    = 0
+  let figsyCount  = 0
 
   if (session) {
     try {
-      const [clientRes, statsRes] = await Promise.all([
+      const [clientRes, statsRes, icpRes, figsyRes] = await Promise.all([
         api.get<{ data: Record<string, unknown> }>('/clients/me', session.access_token),
         api.get<{ data: Record<string, unknown> }>('/leads/stats', session.access_token).catch(() => ({ data: null })),
+        api.get<{ data: unknown[] }>('/icps', session.access_token).catch(() => ({ data: [] })),
+        api.get<{ data: unknown[] }>('/figsy/campaigns', session.access_token).catch(() => ({ data: [] })),
       ])
-      client    = clientRes.data
-      leadStats = statsRes.data
-      subs      = (client?.subscriptions as Record<string, unknown>[]) || []
+      client      = clientRes.data
+      leadStats   = statsRes.data
+      subs        = (client?.subscriptions as Record<string, unknown>[]) || []
+      icpCount    = (icpRes.data ?? []).length
+      figsyCount  = (figsyRes.data ?? []).length
     } catch { }
   }
 
@@ -72,6 +79,14 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">{greeting}, {(client as { company_name: string }).company_name}</h1>
         <p className="text-gray-500 text-sm mt-1">Here's what's happening with your pipeline today.</p>
       </div>
+
+      {/* Onboarding checklist — hidden once all steps complete */}
+      <OnboardingChecklist
+        hasCompanyName={!!((client as { company_name?: string }).company_name)}
+        hasIcps={icpCount > 0}
+        hasLeads={(stats?.total ?? 0) > 0}
+        hasFigsyCampaigns={figsyCount > 0}
+      />
 
       {/* Three-tier onboarding banner */}
       <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />

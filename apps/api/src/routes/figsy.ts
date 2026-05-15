@@ -492,6 +492,57 @@ Output ONLY the email body, no subject line, no sign-off.`,
   }
 })
 
+// ── AI REPLY SUGGESTION (F2-3) ────────────────────────────────────────────────
+figsyRouter.post('/replies/:replyId/suggest', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, body, classification, leads(first_name, last_name, job_title, company)')
+      .eq('id', req.params.replyId)
+      .eq('client_id', clientId)
+      .single()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    if (reply.classification !== 'interested') {
+      res.status(400).json({ error: 'Only available for interested replies' }); return
+    }
+
+    const lead = Array.isArray(reply.leads) ? reply.leads[0] : reply.leads
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: `You are writing a short follow-up reply on behalf of a sales professional (the client). The prospect has replied to a cold outreach email and expressed interest.
+
+Prospect: ${lead?.first_name ?? ''} ${lead?.last_name ?? ''}, ${lead?.job_title ?? 'unknown role'} at ${lead?.company ?? 'unknown company'}
+Their reply: "${reply.body.slice(0, 600)}"
+
+Write a suggested follow-up reply (50-80 words) that:
+- Acknowledges their interest warmly but directly
+- Proposes a specific next step: a 15-minute call, and mentions sending a calendar link
+- Sounds like a real person, not a bot or a template
+- Uses no buzzwords, no em-dashes
+- Ends with "Best," on its own line, then "[Your name]" on the next line
+
+Output ONLY the email body. No subject line. No preamble.`,
+      }],
+    })
+
+    const suggestion = (response.content[0] as { type: string; text: string }).text.trim()
+    res.json({ success: true, suggestion })
+  } catch (err) {
+    console.error('[figsy/replies/suggest]', err)
+    res.status(500).json({ success: false, error: 'Failed to generate suggestion' })
+  }
+})
+
 // Unified inbox — all replies across all campaigns for this client
 figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
   try {

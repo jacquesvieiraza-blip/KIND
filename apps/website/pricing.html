@@ -232,6 +232,13 @@
     .modal-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: rgba(0,0,0,0.35); }
     .modal-footer a { color: var(--blue); text-decoration: none; }
 
+    /* ── ANTI-ALTA STRIP ── */
+    .anti-alta { display:flex; align-items:center; gap:16px; background:var(--light); border-radius:16px; padding:16px 24px; margin-bottom:40px; flex-wrap:wrap; }
+    .aa-item { font-size:0.78rem; line-height:1.5; flex:1; min-width:200px; }
+    .aa-bad { color:rgba(0,0,0,0.35); text-decoration:line-through; }
+    .aa-good { color:var(--dark); font-weight:600; }
+    .aa-vs { font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:rgba(0,0,0,0.2); flex-shrink:0; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 1024px) {
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
@@ -313,6 +320,9 @@
       <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
       <div class="nav-dropdown">
         <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">🤝</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
       </div>
     </div>
     <a href="pricing.html" class="nav-link active">Pricing</a>
@@ -328,6 +338,7 @@
   <div class="eyebrow">Pricing</div>
   <h1>Pay per result.<br/>Not per seat.</h1>
   <p>Usage-based pricing for Lead Gen and FIGSY. Flat monthly for VA and Chatbot. No contracts, no hidden fees.</p>
+  <p style="font-size:0.78rem;color:rgba(0,0,0,0.35);margin-top:16px">Your data stays in Africa — Cape Town servers (Supabase af-south-1) · POPIA compliant by design · No data sold to third parties</p>
 </div>
 
 <!-- Animated dots canvas strip -->
@@ -346,6 +357,11 @@
 
 <!-- PRICING CARDS -->
 <div class="pricing-wrap">
+  <div class="anti-alta">
+    <div class="aa-item aa-bad">Alta AI SDR — from $1,250/mo · USD only · Quarterly locked-in · No trial · No refunds</div>
+    <div class="aa-vs">vs</div>
+    <div class="aa-item aa-good">K.I.N.D — from R 1,490/mo · ZAR billing · No contracts · Full free trial · Cancel anytime</div>
+  </div>
   <div class="pricing-grid">
 
     <!-- Lead Gen -->
@@ -547,6 +563,8 @@
         <a href="about.html">About K.I.N.D</a>
         <a href="use-cases.html">Use Cases</a>
         <a href="pricing.html">Pricing</a>
+        <a href="trust.html">Trust &amp; Security</a>
+        <a href="partners.html">Partners</a>
       </div>
       <div class="footer-col">
         <h4>Get in touch</h4>

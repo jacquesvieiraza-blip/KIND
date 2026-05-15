@@ -479,6 +479,24 @@
     <div class="agent-card-role">Growth · weekly digest · automated</div>
     <div class="agent-card-desc">Weekly MRR, churn risk, and campaign digest. Drafts personalised booking emails for demo requests.</div>
   </div>
+
+  <div class="agent-card" style="border-color:rgba(8,145,178,0.35)!important;background:rgba(8,145,178,0.08)!important">
+    <div class="agent-card-name">
+      <span class="agent-dot" style="background:#38bdf8"></span>
+      FIGSY Voice Agent
+    </div>
+    <div class="agent-card-role">AI Cold Caller · Vapi.ai · Twilio SA +27</div>
+    <div class="agent-card-desc">Calls qualified leads 48h after Day 1 email (no reply). Intro → value pitch → objection handling → books meeting live. Leaves AI voicemail if no answer.</div>
+  </div>
+
+  <div class="agent-card" style="border-color:rgba(37,211,102,0.35)!important;background:rgba(37,211,102,0.08)!important">
+    <div class="agent-card-name">
+      <span class="agent-dot" style="background:#4ade80"></span>
+      FIGSY WhatsApp Agent
+    </div>
+    <div class="agent-card-role">WhatsApp Business API · Africa-first channel</div>
+    <div class="agent-card-desc">Fires Day 2 in parallel to email. Approved Meta template → free-form AI conversation. Classifies replies, sends booking link in-chat. 5× email open rates.</div>
+  </div>
 </div>
 
 <!-- LEGEND -->
@@ -767,6 +785,21 @@
         </div>
         <div class="down"></div>
 
+        <!-- MULTI-CHANNEL PARALLEL -->
+        <div style="width:100%;background:rgba(0,0,0,0.03);border:1.5px dashed rgba(0,0,0,0.1);border-radius:10px;padding:10px 14px">
+          <div style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,0,0,0.3);text-align:center;margin-bottom:8px">Phase 7 channels fire in parallel (live 31 May)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:rgba(8,145,178,0.07);border:1px solid rgba(8,145,178,0.2);border-radius:8px;padding:7px 10px;font-size:0.67rem;color:#0c4a6e;text-align:center">
+              📞 <strong>Voice call</strong> fires 48h after Day 1 (no reply)<br/><span style="font-weight:400;opacity:0.7">Vapi.ai · Twilio +27</span>
+            </div>
+            <div style="background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:7px 10px;font-size:0.67rem;color:#065f46;text-align:center">
+              💬 <strong>WhatsApp</strong> fires Day 2 (parallel)<br/><span style="font-weight:400;opacity:0.7">Meta API · Africa-first</span>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:0.62rem;color:rgba(0,0,0,0.3);margin-top:6px">See Phase 7 for full flow diagrams of both channels</div>
+        </div>
+        <div class="down"></div>
+
         <div class="outcomes outcomes-3">
           <div class="split-col">
             <div class="branch-label bl-green">Interested reply</div>
@@ -1047,76 +1080,300 @@
 <div class="phase-divider"></div>
 
 <!-- ═══════════════════════════════════════════════
-     PHASE 7 — NEW CHANNELS (live by 31 May)
+     PHASE 7 — MULTI-CHANNEL FIGSY
 ════════════════════════════════════════════════ -->
 <div class="phase-band" style="background:#fff;border:1.5px solid var(--border)">
-  <div class="phase-band-title">Phase 7 — New Channels &amp; Growth (all live by launch · 31 May 2026)</div>
-  <div class="cs-grid">
+  <div class="phase-band-title">Phase 7 — Multi-Channel FIGSY: Voice Agent + WhatsApp + Partner Programme (all live by 31 May 2026)</div>
 
-    <div style="background:var(--light);border-radius:16px;padding:22px 20px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#0891b2,#0066ff);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📞</div>
-        <div>
-          <div style="font-size:0.82rem;font-weight:900;color:var(--dark)">FIGSY Voice Calls</div>
-          <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600;margin-top:1px">Vapi.ai · Twilio SA +27 · Claude</div>
+  <!-- ── 7A: FIGSY VOICE AGENT ── -->
+  <div style="background:rgba(8,145,178,0.05);border:1.5px solid rgba(8,145,178,0.2);border-radius:18px;padding:24px 28px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#0891b2,#0066ff);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📞</div>
+      <div>
+        <div style="font-size:0.92rem;font-weight:900;color:#0c4a6e">FIGSY Voice Agent</div>
+        <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600">Vapi.ai · Claude Haiku · Twilio SA +27 · triggers 48h after Day 1 email with no reply detected</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="node n-grey node-wide">📧 Day 1 email sent by FIGSY</div>
+      <div class="down"></div>
+      <div class="node n-grey node-wide">⏳ 48 hours pass — FIGSY detects no reply</div>
+      <div class="down"></div>
+      <div class="node node-wide" style="background:rgba(8,145,178,0.08);border:1.5px solid rgba(8,145,178,0.3);color:#0c4a6e">
+        📞 FIGSY Voice Agent dials lead<br/>
+        <span style="font-weight:400;font-size:0.68rem">Twilio SA +27 number · displayed as client's business number · AI discloses itself at start</span>
+      </div>
+      <div class="down"></div>
+
+      <div class="diamond-wrap">
+        <div class="diamond" style="background:rgba(8,145,178,0.06);border-color:rgba(8,145,178,0.3)">
+          <div class="diamond-inner" style="color:#0c4a6e">Lead<br/>answers?</div>
         </div>
       </div>
-      <div style="font-size:0.72rem;color:rgba(0,0,0,0.6);line-height:1.7;margin-bottom:12px">
-        FIGSY calls qualified leads on the client's behalf. Introduces the product, handles objections, books meetings live — all without a human on the line.
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="font-size:0.67rem;font-weight:700;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px">Journey impact</div>
-        <div style="font-size:0.7rem;color:rgba(0,0,0,0.6);line-height:1.6">
-          After Day 1 email → no reply after 48h → FIGSY places call automatically<br/>
-          Interested? Meeting booked on the spot via Calendly<br/>
-          Opt-out on call → blocked permanently, same as email opt-out
+
+      <div class="outcomes outcomes-2" style="max-width:640px">
+
+        <!-- NO ANSWER branch -->
+        <div class="split-col">
+          <div class="branch-label bl-grey">No answer / voicemail</div>
+          <div class="down" style="height:8px"></div>
+          <div class="outcome oc-grey" style="text-align:left;padding:12px 14px">
+            <div style="font-weight:700;margin-bottom:6px">🔊 AI leaves personalised voicemail</div>
+            <div style="font-size:0.63rem;line-height:1.7;font-weight:400">
+              "Hi [Name], this is an AI agent calling on behalf of [Client Company]. We help businesses like yours [value prop]. I'll send you a quick email — no pressure."<br/><br/>
+              → Voicemail transcript stored in DB<br/>
+              → Day 4 email queued as normal
+            </div>
+          </div>
+        </div>
+
+        <!-- ANSWERS branch -->
+        <div class="split-col">
+          <div class="branch-label bl-blue">Lead answers</div>
+          <div class="down" style="height:8px"></div>
+          <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:0">
+            <div class="step" style="width:100%;border-color:rgba(8,145,178,0.25);color:#0c4a6e;font-size:0.72rem">
+              🗣️ <strong>AI intro</strong> — "Hi [Name], I'm FIGSY, an AI agent for [Company]. I'm reaching out because [personalised reason based on their role]."
+            </div>
+            <div class="down"></div>
+            <div class="step" style="width:100%;border-color:rgba(8,145,178,0.25);color:#0c4a6e;font-size:0.72rem">
+              📢 <strong>30-sec value pitch</strong> — personalised to lead's industry, company size, and role via Claude
+            </div>
+            <div class="down"></div>
+            <div class="step" style="width:100%;border-color:rgba(8,145,178,0.25);color:#0c4a6e;font-size:0.72rem">
+              🧠 <strong>Live objection handling</strong> — Claude processes response and generates reply in real-time via Vapi.ai
+            </div>
+            <div class="down"></div>
+
+            <div class="diamond-wrap">
+              <div class="diamond" style="width:110px;height:110px;background:rgba(8,145,178,0.06);border-color:rgba(8,145,178,0.3)">
+                <div class="diamond-inner" style="color:#0c4a6e;width:90px;font-size:0.66rem">Lead<br/>response?</div>
+              </div>
+            </div>
+
+            <div class="outcomes outcomes-3" style="width:100%">
+              <div class="split-col">
+                <div class="branch-label bl-green">Interested</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-green" style="font-size:0.65rem">
+                  ✅ 1 credit consumed<br/>
+                  📲 Booking link sent via SMS<br/>
+                  immediately after call<br/>
+                  Client alerted 🔔<br/>
+                  Lead marked qualified<br/>
+                  Call transcript saved
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="branch-label bl-amber">Not now</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-amber" style="font-size:0.65rem">
+                  ⏳ Polite exit<br/>
+                  "No problem, I'll follow up by email."<br/>
+                  No credits consumed<br/>
+                  Day 4 email still queued<br/>
+                  Call transcript saved
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="branch-label bl-red">Opt-out</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-red" style="font-size:0.65rem">
+                  ❌ "Understood, removing you now."<br/>
+                  Blocked permanently<br/>
+                  All channels stopped<br/>
+                  No credits consumed<br/>
+                  Added to blocklist
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div style="background:var(--light);border-radius:16px;padding:22px 20px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#25d366,#059669);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💬</div>
-        <div>
-          <div style="font-size:0.82rem;font-weight:900;color:var(--dark)">WhatsApp Outreach</div>
-          <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600;margin-top:1px">WhatsApp Business API · Africa-first</div>
-        </div>
-      </div>
-      <div style="font-size:0.72rem;color:rgba(0,0,0,0.6);line-height:1.7;margin-bottom:12px">
-        FIGSY reaches leads on WhatsApp — the dominant B2B channel across Africa. Conversation-style sequences, two-way replies, meeting booking link in-chat.
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="font-size:0.67rem;font-weight:700;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px">Journey impact</div>
-        <div style="font-size:0.7rem;color:rgba(0,0,0,0.6);line-height:1.6">
-          Runs parallel to email sequence — WhatsApp message fires on Day 2<br/>
-          Replies classified same as email (interested / not now / opt-out)<br/>
-          Credit consumed on interested reply, same model as email
-        </div>
-      </div>
+    <div style="margin-top:18px;background:rgba(8,145,178,0.04);border-left:3px solid rgba(8,145,178,0.3);padding:10px 14px;border-radius:0 8px 8px 0;font-size:0.7rem;color:rgba(0,0,0,0.5);line-height:1.6">
+      <strong style="color:#0c4a6e">Tech stack:</strong> Vapi.ai manages the live call session &amp; voice streaming · Claude Haiku generates personalised responses in real-time · Twilio provides the SA +27 number shown to leads · full call transcript stored · AI identity disclosed at call start (POPIA compliant)
     </div>
-
-    <div style="background:var(--light);border-radius:16px;padding:22px 20px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🤝</div>
-        <div>
-          <div style="font-size:0.82rem;font-weight:900;color:var(--dark)">Partner / Reseller Programme</div>
-          <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600;margin-top:1px">Referral credits · Reseller dashboard</div>
-        </div>
-      </div>
-      <div style="font-size:0.72rem;color:rgba(0,0,0,0.6);line-height:1.7;margin-bottom:12px">
-        Agencies and consultants resell K.I.N.D under their brand. $100 credits per referred client who pays. Dedicated partner dashboard. White-label option.
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="font-size:0.67rem;font-weight:700;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px">Journey impact</div>
-        <div style="font-size:0.7rem;color:rgba(0,0,0,0.6);line-height:1.6">
-          Referred client signs up via partner link → both get credits automatically<br/>
-          Partner sees all referred clients + their status in partner dashboard<br/>
-          Reseller mode: white-label portal with partner's own branding
-        </div>
-      </div>
-    </div>
-
   </div>
+
+  <!-- ── 7B: WHATSAPP OUTREACH ── -->
+  <div style="background:rgba(37,211,102,0.04);border:1.5px solid rgba(37,211,102,0.2);border-radius:18px;padding:24px 28px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#25d366,#059669);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💬</div>
+      <div>
+        <div style="font-size:0.92rem;font-weight:900;color:#065f46">FIGSY WhatsApp Agent</div>
+        <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600">WhatsApp Business API · Meta approved · fires Day 2 parallel to email sequence · Africa-first channel · 97%+ SA professionals use it for business</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="node n-grey node-wide">📧 Day 1 email sent by FIGSY</div>
+      <div class="arrow">↓<span class="arrow-label">Day 2 — parallel channel fires automatically</span></div>
+      <div class="node node-wide" style="background:rgba(37,211,102,0.1);border:1.5px solid rgba(37,211,102,0.35);color:#065f46;max-width:360px">
+        💬 FIGSY sends WhatsApp message<br/>
+        <span style="font-weight:400;font-size:0.68rem">Step 1: Approved Meta template (mandatory first message)<br/>Step 2: If they reply → free-form AI conversation begins<br/>Personalised to lead name, company, industry</span>
+      </div>
+      <div class="down"></div>
+
+      <div class="diamond-wrap">
+        <div class="diamond" style="background:rgba(37,211,102,0.07);border-color:rgba(37,211,102,0.35)">
+          <div class="diamond-inner" style="color:#065f46">Lead<br/>replies?</div>
+        </div>
+      </div>
+
+      <div class="outcomes outcomes-2" style="max-width:640px">
+
+        <!-- NO REPLY branch -->
+        <div class="split-col">
+          <div class="branch-label bl-grey">No reply on WhatsApp</div>
+          <div class="down" style="height:8px"></div>
+          <div class="outcome oc-grey" style="text-align:left;padding:12px 14px">
+            <div style="font-weight:700;margin-bottom:6px">⬛ WhatsApp thread closes silently</div>
+            <div style="font-size:0.63rem;line-height:1.7;font-weight:400">
+              No further WhatsApp messages sent<br/>
+              Email sequence continues as normal<br/>
+              Day 4 email queued · Day 9 queued<br/>
+              Voice call may still fire (48h after Day 1)
+            </div>
+          </div>
+        </div>
+
+        <!-- REPLIES branch -->
+        <div class="split-col">
+          <div class="branch-label bl-green">Lead replies on WhatsApp</div>
+          <div class="down" style="height:8px"></div>
+          <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:0">
+            <div class="step" style="width:100%;border-color:rgba(37,211,102,0.3);color:#065f46;font-size:0.72rem">
+              🤖 FIGSY reads reply · Claude classifies intent
+            </div>
+            <div class="down"></div>
+
+            <div class="outcomes outcomes-3" style="width:100%">
+              <div class="split-col">
+                <div class="branch-label bl-green">Interested</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-green" style="font-size:0.65rem">
+                  ✅ 1 credit consumed<br/>
+                  📲 Booking link sent<br/>
+                  in WhatsApp chat<br/>
+                  Email sequence paused<br/>
+                  Voice call cancelled<br/>
+                  Client alerted 🔔
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="branch-label bl-amber">Not now</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-amber" style="font-size:0.65rem">
+                  ⏳ Polite WA reply sent<br/>
+                  "No worries — I'll check back."<br/>
+                  No credits consumed<br/>
+                  Email sequence continues<br/>
+                  Day 4 email queued
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="branch-label bl-red">Opt-out</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-red" style="font-size:0.65rem">
+                  ❌ "Removing you now."<br/>
+                  All channels stopped<br/>
+                  Blocked permanently<br/>
+                  No credits consumed<br/>
+                  Added to blocklist
+                </div>
+              </div>
+            </div>
+
+            <div class="down"></div>
+            <div class="step" style="width:100%;border-color:rgba(37,211,102,0.2);color:#065f46;font-size:0.7rem;font-style:italic">
+              If conversation continues → FIGSY maintains free-form AI chat until booking or opt-out
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;background:rgba(37,211,102,0.04);border-left:3px solid rgba(37,211,102,0.3);padding:10px 14px;border-radius:0 8px 8px 0;font-size:0.7rem;color:rgba(0,0,0,0.5);line-height:1.6">
+      <strong style="color:#065f46">Why WhatsApp first in Africa:</strong> 97%+ of South African professionals use WhatsApp for business daily. Open rates are 5× higher than email. Read receipts confirm delivery. FIGSY treats WhatsApp as a live conversation — reply-aware, two-way, booking-ready in-thread.
+    </div>
+  </div>
+
+  <!-- ── 7C: PARTNER / RESELLER PROGRAMME ── -->
+  <div style="background:rgba(217,119,6,0.04);border:1.5px solid rgba(217,119,6,0.2);border-radius:18px;padding:24px 28px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🤝</div>
+      <div>
+        <div style="font-size:0.92rem;font-weight:900;color:#92400e">Partner / Reseller Programme</div>
+        <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600">$100 credits per referred client who runs first ICP · partner dashboard · white-label option for agencies</div>
+      </div>
+    </div>
+
+    <div class="split-2" style="gap:20px;align-items:start">
+
+      <!-- referral flow -->
+      <div class="flow">
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,0,0,0.3);margin-bottom:14px;text-align:center">Referral flow</div>
+        <div class="node node-wide" style="background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.25);color:#92400e">
+          🔗 Partner shares unique referral link<br/>
+          <span style="font-weight:400;font-size:0.68rem">get-kind.com?ref=[partner_id]</span>
+        </div>
+        <div class="down"></div>
+        <div class="node node-wide" style="background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.25);color:#92400e">
+          🆕 Referred client signs up + completes onboarding
+        </div>
+        <div class="down"></div>
+        <div class="node node-wide" style="background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.25);color:#92400e">
+          ▶️ Referred client runs first ICP (lead gen job)
+        </div>
+        <div class="down"></div>
+        <div class="outcomes outcomes-2" style="max-width:420px">
+          <div class="split-col">
+            <div class="outcome oc-amber" style="font-size:0.67rem;text-align:center">
+              🎁 <strong>Referred client</strong><br/>+100 credits added automatically
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="outcome oc-amber" style="font-size:0.67rem;text-align:center">
+              💰 <strong>Partner</strong><br/>+100 credits added automatically
+            </div>
+          </div>
+        </div>
+        <div class="down"></div>
+        <div class="node n-grey node-wide" style="font-size:0.72rem">
+          📧 Partner gets email notification when referral activates
+        </div>
+      </div>
+
+      <!-- partner dashboard + reseller -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,0,0,0.3);margin-bottom:2px">Partner dashboard</div>
+        <div style="background:var(--light);border-radius:14px;padding:16px 18px">
+          <div style="font-size:0.72rem;color:rgba(0,0,0,0.6);line-height:2">
+            📊 All referred clients + their status visible<br/>
+            💰 Credits earned per referral tracked<br/>
+            🔗 Unique referral link shown on dashboard<br/>
+            📧 Notification on each new referral activation<br/>
+            📈 Referred client MRR visible to partner
+          </div>
+        </div>
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,0,0,0.3);margin-bottom:2px">White-label / reseller mode</div>
+        <div style="background:var(--light);border-radius:14px;padding:16px 18px">
+          <div style="font-size:0.72rem;color:rgba(0,0,0,0.6);line-height:2">
+            🏷️ Portal shows partner's own logo + branding<br/>
+            📧 Emails sent from partner's domain<br/>
+            💼 Client sees partner's product — not K.I.N.D<br/>
+            🤝 Partner sets their own pricing on top of K.I.N.D cost<br/>
+            🔐 Full client data isolation between resellers
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <!-- FOOTER -->

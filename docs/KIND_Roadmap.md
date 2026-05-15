@@ -11,7 +11,7 @@
 
 ---
 
-## FULL STATUS AUDIT — 14 May 2026
+## FULL STATUS AUDIT — 15 May 2026
 
 ### ✅ BUILT (code complete, on branch `claude/ai-business-roadmap-U3OWJ`)
 
@@ -52,14 +52,22 @@
 | Auto-enroll consented leads (S5) | No manual activation — fires when consented lead arrives |
 | Subscription gate | Can't activate campaign without FIGSY plan |
 | CRM deal push on "interested" reply (F2-2) | Creates Deal in HubSpot or Pipedrive |
+| POPIA consent gate removed | All scored leads enrolled automatically — no manual consent step needed |
+| Day 1 outreach batch (`sendDay1OutreachBatch`) | Lead Gen Pro: Claude-generated personalised Day 1 email sent automatically |
+| FIGSY email generation humanised | SA voice, specific observations, no AI tells, SA first name sign-off |
+| Domain warming cap | `FIGSY_DAILY_SEND_LIMIT` env var — limits daily sends to protect domain reputation |
+| Unified reply inbox | Portal page + `GET /figsy/replies/all` API endpoint — all replies across campaigns |
+| F2-3: AI reply suggestions | `POST /figsy/replies/:id/suggest` — Claude drafts follow-up for interested replies; portal UI with editable textarea + copy button |
 
-#### Billing & Legal
+#### Billing & Onboarding
 | What | Notes |
 |------|-------|
 | Paystack credit bundle checkout | One-time purchase: 20/40/100 credits |
 | Terms acceptance checkbox on billing | Must tick before purchase enabled |
 | Documents page | Shows acceptance record tied to subscription date — NO manual signing |
 | Onboarding banner | Trial days left + subscribe CTA only |
+| Direct-pay path on onboarding | Two-button flow: "Start free trial" vs "Pay now" — no friction for buyers ready to purchase |
+| Zero-credits warning emails | Day 1/4/7 escalation cron endpoint (`POST /internal/ae/zero-credits`) |
 
 #### Email Sequences (all sent via Resend from `hello@get-kind.com`)
 | Sequence | Trigger | Goes to |
@@ -98,6 +106,25 @@
 | Homepage — hero, AI agent, FIGSY scroll scene, video, stats | Redesigned |
 | About, pricing, support, use-cases | White rebrand |
 | YouTube demo video | Updated to Y4mI7s5H99s |
+| Homepage: team narrative, FIGSY character, POPIA trust strip, speed claim, anti-Alta pricing strip | Full content refresh |
+| trust.html — Trust & Security page | POPIA, data handling, security practices |
+| partners.html — Partner Programme page | Static partner programme page |
+| dpa.html — Data Processing Agreement page | POPIA-compliant DPA for clients |
+| vs-hiring-an-sdr.html, vs-prospecting-manually.html, vs-apollo.html | Competitive comparison pages |
+| FIGSY animated video (12-scene HTML) + character image | FIGSY explainer — HTML animation + character asset |
+| Nav links: Trust & Security + Partners | Added across all pages |
+
+#### Portal
+| What | Notes |
+|------|-------|
+| FIGSY upgrade wall | Upsell page for non-FIGSY subscribers — shows feature list and upgrade CTA |
+| Onboarding checklist | 4-step progress tracker on dashboard home |
+| Support widget | Integrated into dashboard layout — AI-powered Ask K.I.N.D chat bubble |
+
+#### Admin
+| What | Notes |
+|------|-------|
+| CMO Tools page (`/cmo`) | LinkedIn post generator (3 branded posts via Claude) + prospect finder (Apollo search) — live results in UI |
 
 ---
 
@@ -164,13 +191,12 @@ All cron endpoints need header: `x-admin-key: {your ADMIN_SECRET_KEY}`
 
 | Item | What | Priority |
 |------|------|----------|
-| Admin KPI dashboard | Revenue targets, client count targets, MRR progress, weekly actuals vs targets — built into admin | High — doing now |
-| Expand credit bundles | More size options (5, 10, 20, 40, 75, 100, 200, 500 credits) on billing page | High — doing now |
-| Ask K.I.N.D support widget | AI chat bubble in portal footer — Claude answers product questions, handles issues | High — doing now |
-| FIGSY upgrade wall | Show upgrade prompt + feature list when no FIGSY subscription, instead of empty campaign list | Medium |
-| F2-3: AI reply suggestions | When reply classified as "interested", Claude drafts a suggested follow-up response in FIGSY dashboard | Medium |
 | Lead bulk consent send | Select multiple leads → send consent emails to all in one click | Medium |
-| Admin CMO page | UI for LinkedIn post generator + prospect finder — buttons, live results | Low |
+| Client-facing KPI dashboard | Clients see their own pipeline metrics, reply rates, meetings booked | Medium |
+| Lead bulk actions | Archive, re-score, or export selected leads in bulk | Medium |
+| FIGSY campaign cloning | Duplicate a campaign with all settings pre-filled | Low |
+| Admin: CMO theme input | Allow specifying a theme / product update when generating LinkedIn posts | Low |
+| Referral program | Client refers another → both get free credits | Low |
 
 ---
 
@@ -214,7 +240,7 @@ When a lead replies "interested" to a FIGSY email, FIGSY needs to book a meeting
 |---|------|--------|-------|
 | F2-1 | Google Calendar integration | ❌ Needs credentials | Client connects their Google Calendar → FIGSY books meetings |
 | F2-2 | CRM deal push on interested reply | ✅ Done | HubSpot + Pipedrive deal created automatically |
-| F2-3 | AI reply suggestion drafts | 🔨 I can build | Show suggested follow-up when reply is "interested" |
+| F2-3 | AI reply suggestion drafts | ✅ Done | `POST /figsy/replies/:id/suggest` + portal UI with editable textarea + copy |
 | F2-4 | LinkedIn + WhatsApp channels | ❌ Needs APIs | Multi-channel outreach |
 | F2-5 | FIGSY explainer video | ⏳ Marketing task | Not code |
 
@@ -455,4 +481,4 @@ K.I.N.D becomes the full B2B revenue OS:
 
 ---
 
-*Last updated: 14 May 2026. Update after every session.*
+*Last updated: 15 May 2026. Update after every session.*

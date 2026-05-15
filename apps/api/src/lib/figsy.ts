@@ -38,9 +38,9 @@ export async function generateSequence(
   senderCompanyName: string,
   senderIndustry: string | null,
 ): Promise<SequenceDraft> {
-  const prompt = `You are an expert B2B sales copywriter for ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}.
+  const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."
 
-Write a 3-step cold outreach email sequence for this lead:
+Lead details:
 - Name: ${lead.first_name} ${lead.last_name}
 - Title: ${lead.job_title || 'unknown'}
 - Company: ${lead.company || 'unknown'}
@@ -48,15 +48,36 @@ Write a 3-step cold outreach email sequence for this lead:
 - Seniority: ${lead.seniority || 'unknown'}
 - Country: ${lead.country || 'unknown'}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
-${lead.score_reasoning ? `- Why they match: ${lead.score_reasoning}` : ''}
+${lead.score_reasoning ? `- Why they're relevant: ${lead.score_reasoning}` : ''}
 
-Rules:
-- Step 1 (Day 0): First touch. Short, personal, specific to their role. Single CTA: 15-min call.
-- Step 2 (Day 4): Follow-up. Reference step 1, add a relevant insight or case study angle. Keep it light.
-- Step 3 (Day 9): Final touch. Brief, no pressure, leave the door open.
-- Each email ≤ 120 words.
-- No buzzwords. No "Hope this finds you well". Sound human.
-- Subject lines: short, specific, no clickbait.
+Write a 3-email sequence:
+
+Step 1 (Day 0) — First touch:
+- Open with a specific, genuine observation about their role, company, or a problem they likely face. Not generic — make them feel seen.
+- One sentence on what ${senderCompanyName} does and why it matters to them specifically.
+- One soft CTA: quick call, 15 minutes.
+- Max 70 words. No subject line tricks. Subject should feel like a colleague's email.
+
+Step 2 (Day 4) — Follow-up:
+- Acknowledge you sent something already — don't pretend this is the first email.
+- Add a new angle: a question, a stat, a short insight relevant to their industry.
+- Keep it shorter than Step 1. Lighter. No pressure.
+- Max 60 words.
+
+Step 3 (Day 9) — Final touch:
+- Be direct: this is the last email.
+- Leave it genuinely open — no guilt, no urgency tactics.
+- 3–4 sentences max.
+
+Hard rules (violating any of these makes the email useless):
+- Never say "Hope this finds you well", "I wanted to reach out", "touch base", "synergy", "leverage", "game-changer", or "revolutionary"
+- No bullet points in the email body
+- No em-dashes (—) — they read as AI
+- Don't mention you're an AI or automation
+- Don't make up facts about their company you don't know
+- Subject lines: 4–6 words, lowercase, no punctuation, no questions
+- End every email with: "Reply STOP to opt out."
+- Sign off with a real first name (pick a South African-sounding name that fits the sender's industry)
 
 Return ONLY valid JSON, no markdown:
 {
@@ -178,23 +199,29 @@ async function generateDay1Email(
   senderCompany: string,
   senderIndustry: string | null,
 ): Promise<Day1Draft> {
-  const prompt = `You are a B2B sales copywriter for ${senderCompany}${senderIndustry ? ` (${senderIndustry})` : ''}.
+  const prompt = `You are writing a cold email on behalf of ${senderCompany}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — someone who noticed this prospect and decided to reach out. Not templated. Not AI-sounding. Like someone who typed this in 90 seconds.
 
-Write a short Day 1 cold outreach email to this lead:
+Lead:
 - Name: ${lead.first_name} ${lead.last_name}
 - Title: ${lead.job_title || 'unknown'}
 - Company: ${lead.company || 'unknown'}
 - Industry: ${lead.industry || 'unknown'}
 - Country: ${lead.country || 'unknown'}
-${lead.score_reasoning ? `- Why they match: ${lead.score_reasoning}` : ''}
+${lead.score_reasoning ? `- Why they're a fit: ${lead.score_reasoning}` : ''}
+
+Write one cold email. First touch. Under 70 words.
 
 Rules:
-- Under 80 words
-- Personalised to their specific role and company
-- Single CTA: 15-minute call
-- No buzzwords. No "Hope this finds you well". Sound human.
+- Open with a specific observation about their role or company — not a compliment, a real observation
+- One sentence on what ${senderCompany} does and why it matters to them
+- One CTA: short call, 15 minutes
+- No bullet points in the body
+- No em-dashes (—)
+- No buzzwords: no "synergy", "leverage", "touch base", "game-changer", "revolutionary", "Hope this finds you well", "I wanted to reach out"
+- Don't mention AI or automation
+- Subject: 4–6 words, lowercase, no punctuation
+- Sign off with a real first name (South African-sounding, fits the industry)
 - End with: "Reply STOP to opt out."
-- Short subject line, no clickbait
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`
 

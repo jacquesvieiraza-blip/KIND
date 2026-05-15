@@ -481,4 +481,52 @@ K.I.N.D becomes the full B2B revenue OS:
 
 ---
 
+## MARKET EXPANSION PLAN — US & UK
+
+> **Trigger: after 5 paying SA clients. Do not action before then.**
+> Full detail in `docs/master-status.md` → section: Market Expansion
+
+### Phase 1 — SA Launch (now → client 5)
+- SA only. Current site, current pricing, current positioning.
+- Nothing changes. Focus entirely on proving the model locally.
+
+### Phase 2 — Dual Market: SA + US + UK (after client 5)
+
+**Website (1 afternoon, no code changes):**
+- Pricing: USD front, ZAR secondary — "From $20 / R380 per credit bundle"
+- Hero copy: "Built in Africa. Ready for the world."
+- Trust page: POPIA + GDPR + CAN-SPAM — all three compliance badges
+- 2 new comparison pages targeting US search terms (`vs-outreach.html`, `vs-salesloft.html`)
+- Support page: US/UK timezone note added
+
+**Billing (half day of code):**
+- Add Stripe for USD/GBP alongside Paystack (ZAR stays on Paystack)
+- Route US/UK signups → Stripe, SA signups → Paystack
+
+**Positioning locked:**
+> "Started in Cape Town. Serving businesses in SA, the US, and the UK."
+- African origin is the differentiator — not a limiter
+
+**What never changes:** product, pricing model, Apollo data source, FIGSY/Milla/Vida characters, all existing code
+
+### Phase 3 — Data Residency (assessed per enterprise client demand)
+- Current: Supabase af-south-1 (Cape Town) — fine for SA and most US/UK clients
+- If US enterprise demands US-hosted data: provision Supabase US region
+- SOC 2 Type II conversation starts at this point (target: Q1 2027)
+- DPA already published at get-kind.com/dpa — covers current architecture
+
+---
+
+## AGENT NAMING (LOCKED)
+
+| Agent | Named after | Role | Status |
+|---|---|---|---|
+| FIGSY | The founder | AI SDR — outbound email, follow-up, meeting booking | Live |
+| Milla | Founder's daughter | Virtual Assistant — trained on your business | July 2026 |
+| Vida | Founder's daughter | Chatbot — website + WhatsApp inbound qualifier | July 2026 |
+
+All three named on `apps/website/about.html` — Meet the agents section.
+
+---
+
 *Last updated: 15 May 2026. Update after every session.*

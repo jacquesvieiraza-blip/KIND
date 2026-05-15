@@ -1,5 +1,7 @@
 # K.I.N.D — Master Status Document
-*Last updated: May 2026*
+*Last updated: 15 May 2026*
+
+> **Full roadmap:** `docs/KIND_Roadmap.md` — single source of truth for build status, KPIs, revenue targets, product vision, and market expansion plan.
 
 ---
 
@@ -864,3 +866,51 @@ For reference: what a client experiences once everything above is live.
 
 *Document owner: K.I.N.D founding team*
 *Update this document after each build session.*
+
+---
+
+## MARKET EXPANSION PLAN — US & UK
+
+> **Trigger: after 5 paying SA clients. Do not action before then.**
+> Full phased plan in `docs/KIND_Roadmap.md` → section: Market Expansion
+
+**Phase 1 — SA only (now → client 5):** Nothing changes. Prove the model.
+
+**Phase 2 — Dual market (after client 5):**
+- Pricing: USD front, ZAR secondary
+- Hero: "Built in Africa. Ready for the world."
+- Trust page: POPIA + GDPR + CAN-SPAM all three
+- Add Stripe for USD/GBP (Paystack stays for ZAR)
+- 2 new US comparison pages (`vs-outreach.html`, `vs-salesloft.html`)
+
+**Phase 3 — Data residency (post Phase 2):** Assess per enterprise demand. SOC 2 Q1 2027.
+
+---
+
+## THINGS TO REMEMBER — PENDING ACTIONS
+
+> Items Jacques needs to action or provide. Updated each session.
+
+| # | Item | Status |
+|---|---|---|
+| 1 | **Drop Milla + Vida character images** into `apps/website/` as `milla.png` and `vida.png` | Pending — tomorrow |
+| 2 | Set Railway env vars: FOUNDER_EMAIL, FIGSY_DAILY_SEND_LIMIT=20, FIGSY_REPLY_TO | Pending |
+| 3 | Supabase: set Site URL + redirect URL for auth | Pending |
+| 4 | Paystack webhook registration | Pending |
+| 5 | Run DB migrations 002–005 in Supabase SQL editor | Pending |
+| 6 | Resend: configure inbound routing for replies@ | Pending |
+| 7 | Set up 6 Railway cron jobs | Pending |
+| 8 | Merge branch `claude/ai-business-roadmap-U3OWJ` → main + deploy | Pending |
+| 9 | G2 / Capterra / Product Hunt listing on launch day | Pending |
+| 10 | Meta WhatsApp Business API application | Pending |
+| 11 | Vapi.ai account + Twilio SA +27 number | Pending |
+
+---
+
+## AGENT NAMING (LOCKED)
+
+| Agent | Named after | Role | Status |
+|---|---|---|---|
+| FIGSY | The founder | AI SDR — outbound, follow-up, meeting booking | Live |
+| Milla | Founder's daughter | Virtual Assistant — answers questions, drafts proposals | July 2026 |
+| Vida | Founder's daughter | Chatbot — website + WhatsApp inbound qualifier | July 2026 |

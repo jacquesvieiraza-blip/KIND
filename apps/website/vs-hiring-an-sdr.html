@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D vs Hiring an SDR — The Numbers Don't Lie</title>
+  <meta name="description" content="1 SDR costs R45,000/month. K.I.N.D costs ~R380/month. Same qualified leads. 99% cheaper. See the full comparison." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #0066FF;
+      --dark: #0a0a0a;
+      --mid: #444;
+      --light: #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+      --green: #059669;
+      --red: #dc2626;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+      z-index: 300; transition: opacity .15s, visibility .15s;
+    }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+
+    /* ── SHARED ── */
+    .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
+    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
+    .s-title { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
+    .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
+    .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
+
+    /* ── HERO ── */
+    .page-hero {
+      background: var(--dark); padding: 100px 48px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .page-hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.18) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .page-hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #60a5fa; margin-bottom: 24px;
+      background: rgba(0,102,255,0.1); border: 1px solid rgba(0,102,255,0.2);
+      padding: 6px 14px; border-radius: 100px;
+    }
+    .page-hero h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: #fff; margin-bottom: 20px; }
+    .page-hero h1 span { color: #60a5fa; }
+    .page-hero p { font-size: 1.1rem; color: rgba(255,255,255,0.45); max-width: 560px; margin: 0 auto; line-height: 1.75; }
+
+    /* ── COMPARISON TABLE ── */
+    .table-wrap { overflow-x: auto; margin-top: 48px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { padding: 14px 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 2px solid var(--border); text-align: left; }
+    thead th:first-child { color: rgba(0,0,0,0.3); }
+    thead th.col-sdr { color: var(--red); }
+    thead th.col-kind { color: var(--green); background: rgba(5,150,105,0.04); border-radius: 8px 8px 0 0; }
+    tbody tr:nth-child(even) { background: rgba(0,0,0,0.02); }
+    tbody td { padding: 16px 20px; font-size: 0.88rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody td:first-child { font-weight: 600; color: var(--dark); }
+    tbody td.col-sdr { color: rgba(0,0,0,0.55); }
+    tbody td.col-kind { color: var(--dark); background: rgba(5,150,105,0.03); font-weight: 500; }
+    .win { color: var(--green); font-weight: 700; }
+
+    /* ── CARD GRID ── */
+    .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .comp-card { background: var(--light); border-radius: 20px; padding: 28px 24px; }
+    .comp-card .ci { font-size: 1.6rem; margin-bottom: 14px; }
+    .comp-card h3 { font-size: 0.95rem; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+    .comp-card .sdr-val { font-size: 0.85rem; color: var(--red); margin-bottom: 4px; }
+    .comp-card .sdr-val::before { content: "SDR: "; font-weight: 600; }
+    .comp-card .kind-val { font-size: 0.85rem; color: var(--green); }
+    .comp-card .kind-val::before { content: "K.I.N.D: "; font-weight: 600; }
+
+    /* ── MATH SECTION ── */
+    .math-section { background: var(--dark); padding: 100px 48px; }
+    .math-inner { max-width: 1080px; margin: 0 auto; }
+    .math-section .s-label { color: #60a5fa; }
+    .math-section .s-title { color: #fff; }
+    .math-section .s-sub { color: rgba(255,255,255,0.4); }
+    .math-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 40px; }
+    .math-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 32px 28px; text-align: center;
+    }
+    .math-num { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 8px; }
+    .math-card:nth-child(1) .math-num { color: #f87171; }
+    .math-card:nth-child(2) .math-num { color: #60a5fa; }
+    .math-card:nth-child(3) .math-num { color: #34d399; }
+    .math-label { font-size: 0.82rem; color: rgba(255,255,255,0.4); line-height: 1.5; }
+    .math-eq {
+      text-align: center; margin-top: 48px; padding: 32px;
+      background: rgba(0,102,255,0.08); border: 1px solid rgba(0,102,255,0.2);
+      border-radius: 20px;
+    }
+    .math-eq p { font-size: 1rem; color: rgba(255,255,255,0.6); line-height: 1.9; }
+    .math-eq strong { color: #fff; }
+    .math-eq .result { font-size: 1.4rem; font-weight: 900; color: #34d399; display: block; margin-top: 12px; letter-spacing: -0.02em; }
+
+    /* ── CTA ── */
+    .cta-section { padding: 80px 48px 120px; }
+    .cta-inner { max-width: 1080px; margin: 0 auto; }
+    .cta-banner {
+      background: var(--dark); border-radius: 32px; padding: 80px 64px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-banner::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .cta-banner h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 14px; }
+    .cta-banner p { font-size: 1rem; color: rgba(255,255,255,0.38); margin-bottom: 36px; }
+    .btn-cta-primary { background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer; transition: opacity .2s; text-decoration: none; display: inline-block; }
+    .btn-cta-primary:hover { opacity: 0.88; }
+
+    /* ── FOOTER ── */
+    footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
+    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
+    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
+    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
+    .footer-col a:hover { color: var(--dark); }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-legal { display: flex; gap: 20px; }
+    .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
+    .footer-legal a:hover { color: var(--dark); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .page-hero { padding: 64px 24px; }
+      .section { padding: 64px 24px; }
+      .math-section { padding: 64px 24px; }
+      .card-grid, .math-cards { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 64px 24px; }
+      .cta-banner { padding: 48px 28px; }
+      table { font-size: 0.8rem; }
+      thead th, tbody td { padding: 12px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="index.html#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">K.I.N.D AI — Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
+        <a href="index.html#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+    <a href="trust.html" class="nav-link">Trust &amp; Security</a>
+    <a href="partners.html" class="nav-link">Partners</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="hero-badge">⚡ vs Hiring an SDR</div>
+    <h1>K.I.N.D vs<br/><span>Hiring an SDR</span></h1>
+    <p>One costs R45,000/month, needs 6 weeks to onboard, and has bad days. The other costs ~R380/month and runs 24/7.</p>
+  </div>
+</div>
+
+<!-- AT A GLANCE -->
+<div class="section">
+  <div class="s-label">At a glance</div>
+  <div class="s-title">Six dimensions. One clear winner.</div>
+  <p class="s-sub">A side-by-side comparison of every dimension that matters to a founder or sales manager evaluating their outreach options.</p>
+  <div class="card-grid">
+    <div class="comp-card">
+      <div class="ci">💸</div>
+      <h3>Cost</h3>
+      <p class="sdr-val">R25,000–R45,000/month salary + benefits + commission</p>
+      <p class="kind-val">From $20/month (~R380). Credits only on qualified leads.</p>
+    </div>
+    <div class="comp-card">
+      <div class="ci">⏱️</div>
+      <h3>Speed to live</h3>
+      <p class="sdr-val">4–6 weeks to hire, onboard, and train to full productivity</p>
+      <p class="kind-val">Live in 10 minutes. ICP set, campaign running same day.</p>
+    </div>
+    <div class="comp-card">
+      <div class="ci">📈</div>
+      <h3>Scale</h3>
+      <p class="sdr-val">40–60 outreach attempts per day, limited by human capacity</p>
+      <p class="kind-val">250M+ database searched instantly. Runs 24/7, no limits.</p>
+    </div>
+    <div class="comp-card">
+      <div class="ci">🎯</div>
+      <h3>Consistency</h3>
+      <p class="sdr-val">Good days and bad days. Sick leave. Resignations. Inconsistency.</p>
+      <p class="kind-val">Every email is the same quality. No off days. No churn risk.</p>
+    </div>
+    <div class="comp-card">
+      <div class="ci">🧠</div>
+      <h3>Lead data quality</h3>
+      <p class="sdr-val">Manual research. Hours spent on LinkedIn. No scoring.</p>
+      <p class="kind-val">AI-scored 0–100 on 40+ data points. Verified contacts only.</p>
+    </div>
+    <div class="comp-card">
+      <div class="ci">⚖️</div>
+      <h3>POPIA compliance</h3>
+      <p class="sdr-val">SDR needs training. Compliance depends on the individual.</p>
+      <p class="kind-val">Built-in. Opt-out on every email. Blocklist automated.</p>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- FULL TABLE -->
+<div class="section">
+  <div class="s-label">Detailed comparison</div>
+  <div class="s-title">Every dimension, in detail.</div>
+  <p class="s-sub">No cherry-picking. Here's the full picture.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Dimension</th>
+          <th class="col-sdr">Hiring an SDR</th>
+          <th class="col-kind">K.I.N.D AI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Monthly cost</td>
+          <td class="col-sdr">R25,000–R45,000 salary + benefits + commission + tools</td>
+          <td class="col-kind"><span class="win">From $20/month (~R380)</span> — credits only consumed on qualified leads</td>
+        </tr>
+        <tr>
+          <td>Time to first outreach</td>
+          <td class="col-sdr">4–6 weeks (job post, interviews, onboarding, training)</td>
+          <td class="col-kind"><span class="win">10 minutes</span> — define ICP, add credits, launch</td>
+        </tr>
+        <tr>
+          <td>Daily outreach capacity</td>
+          <td class="col-sdr">40–60 emails/day (human physical limit)</td>
+          <td class="col-kind"><span class="win">Unlimited</span> — 24/7 operation, no daily cap</td>
+        </tr>
+        <tr>
+          <td>Contact database</td>
+          <td class="col-sdr">Manual LinkedIn search, CSV imports, personal network</td>
+          <td class="col-kind"><span class="win">250M+ verified contacts</span> searched against your ICP automatically</td>
+        </tr>
+        <tr>
+          <td>Email personalisation</td>
+          <td class="col-sdr">Varies by person — quality depends on individual skill</td>
+          <td class="col-kind"><span class="win">Claude AI</span> writes a unique email for every single lead, every time</td>
+        </tr>
+        <tr>
+          <td>Follow-up consistency</td>
+          <td class="col-sdr">Often falls off — manually tracked, easy to forget</td>
+          <td class="col-kind"><span class="win">100% automated</span> 3-sequence follow-up. Every lead, every time.</td>
+        </tr>
+        <tr>
+          <td>Reply handling (FIGSY)</td>
+          <td class="col-sdr">SDR reads and responds manually — slow, inconsistent</td>
+          <td class="col-kind"><span class="win">FIGSY reads every reply</span> — handles objections, books meetings autonomously</td>
+        </tr>
+        <tr>
+          <td>Lead scoring</td>
+          <td class="col-sdr">Gut feel or manual spreadsheet scoring</td>
+          <td class="col-kind"><span class="win">AI-scored 0–100</span> on 40+ data points per contact</td>
+        </tr>
+        <tr>
+          <td>POPIA compliance</td>
+          <td class="col-sdr">Requires training, monitoring, and individual discipline</td>
+          <td class="col-kind"><span class="win">Built-in</span> — opt-out on every email, permanent blocklist, legitimate interest framework</td>
+        </tr>
+        <tr>
+          <td>Sick leave / absence risk</td>
+          <td class="col-sdr">Yes — 15–21 days sick leave per year, campaigns pause</td>
+          <td class="col-kind"><span class="win">Zero</span> — runs continuously, no absence risk</td>
+        </tr>
+        <tr>
+          <td>Churn risk</td>
+          <td class="col-sdr">SDR average tenure 14–18 months — constant replacement cost</td>
+          <td class="col-kind"><span class="win">Zero</span> — no resignation, no handover, no knowledge loss</td>
+        </tr>
+        <tr>
+          <td>Reporting &amp; analytics</td>
+          <td class="col-sdr">Manual CRM updates — accuracy depends on SDR discipline</td>
+          <td class="col-kind"><span class="win">Real-time dashboard</span> — every send, open, reply, and conversion tracked automatically</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- THE MATH -->
+<div class="math-section">
+  <div class="math-inner">
+    <div class="s-label">The math</div>
+    <div class="s-title">Run the numbers.</div>
+    <p class="s-sub">One year. Same outcome. Dramatically different cost.</p>
+    <div class="math-cards">
+      <div class="math-card">
+        <div class="math-num">R45,000</div>
+        <div class="math-label">Monthly SDR cost (salary + benefits + tools, conservative estimate)</div>
+      </div>
+      <div class="math-card">
+        <div class="math-num">R380</div>
+        <div class="math-label">Monthly K.I.N.D cost at $20/month starter plan (~R380 at current rates)</div>
+      </div>
+      <div class="math-card">
+        <div class="math-num">99%</div>
+        <div class="math-label">Cost reduction. Same qualified leads. Running 24/7 instead of 8 hours a day.</div>
+      </div>
+    </div>
+    <div class="math-eq">
+      <p>
+        <strong>1 SDR at R45,000/month × 12 months = R540,000/year</strong><br/>
+        K.I.N.D at $20/month × 12 months = ~R4,560/year<br/>
+        Annual saving if outcomes are equivalent:
+      </p>
+      <span class="result">R535,440 saved per year</span>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-banner">
+      <h2>Why hire an SDR?</h2>
+      <p>Start your 14-day free trial today — no credit card required. Your pipeline starts filling in minutes.</p>
+      <a href="https://app.get-kind.com/signup" class="btn-cta-primary">Start free trial →</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <div class="logo-icon">⚡</div>
+          <span class="logo-text">K.I.N.D</span>
+        </a>
+        <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation for ambitious businesses.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Products</h4>
+        <a href="index.html#products">K.I.N.D AI — Lead Gen</a>
+        <a href="index.html#figsy">FIGSY — AI SDR</a>
+        <a href="https://tally.so/r/kind-waitlist">Virtual Assistant</a>
+        <a href="https://tally.so/r/kind-waitlist">Chatbot Agent</a>
+      </div>
+      <div class="footer-col">
+        <h4>Compare</h4>
+        <a href="vs-hiring-an-sdr.html">vs Hiring an SDR</a>
+        <a href="vs-prospecting-manually.html">vs Manual Prospecting</a>
+        <a href="vs-apollo.html">vs Apollo.io</a>
+        <a href="trust.html">Trust &amp; Security</a>
+        <a href="partners.html">Partners</a>
+      </div>
+      <div class="footer-col">
+        <h4>Get in touch</h4>
+        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo">Book a Demo</a>
+        <a href="https://app.get-kind.com/login">Client login</a>
+        <a href="support.html">Support</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 K.I.N.D. All rights reserved.</p>
+      <div class="footer-legal">
+        <a href="https://app.get-kind.com/terms">Terms of Service</a>
+        <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
+        <a href="trust.html">POPIA &amp; GDPR</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open') })
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open') }, 200) })
+  })
+</script>
+</body>
+</html>

@@ -27,17 +27,86 @@ const classConfig = {
   other:          { label: 'Other',             bg: 'bg-gray-50',   text: 'text-gray-600',   border: 'border-gray-200',  icon: MessageSquare },
 }
 
+function DraftReplyButton({ replyId, token }: { replyId: string; token: string }) {
+  const [loading, setLoading]     = useState(false)
+  const [suggestion, setSuggestion] = useState('')
+  const [used, setUsed]           = useState(false)
+  const [copied, setCopied]       = useState(false)
+
+  async function fetchSuggestion() {
+    setLoading(true)
+    try {
+      const res = await api.post<{ data: { suggestion: string } }>(
+        `/figsy/replies/${replyId}/suggest`,
+        {},
+        token
+      )
+      setSuggestion(res.data?.suggestion ?? '')
+      setUsed(true)
+    } catch { /* ignore */ }
+    setLoading(false)
+  }
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(suggestion).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={fetchSuggestion}
+        disabled={loading}
+        className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white transition-colors"
+      >
+        {loading ? (
+          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Drafting…</>
+        ) : used ? (
+          <><RefreshCw className="w-3.5 h-3.5" /> Regenerate</>
+        ) : (
+          'Draft reply →'
+        )}
+      </button>
+
+      {suggestion && (
+        <div className="mt-3">
+          <textarea
+            value={suggestion}
+            onChange={e => setSuggestion(e.target.value)}
+            rows={6}
+            className="w-full text-sm text-gray-800 border border-green-200 bg-white rounded-lg px-3 py-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-green-300 leading-relaxed"
+          />
+          <button
+            onClick={copyToClipboard}
+            className="mt-2 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors px-2 py-1 rounded hover:bg-white border border-transparent hover:border-gray-200"
+          >
+            {copied ? (
+              <><Check className="w-3.5 h-3.5 text-green-500" /> Copied to clipboard</>
+            ) : (
+              <><Copy className="w-3.5 h-3.5" /> Copy to clipboard</>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function FigsyRepliesPage() {
   const supabase = createClient()
   const [replies, setReplies] = useState<Reply[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [token, setToken] = useState('')
 
   useEffect(() => {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
+      setToken(session.access_token)
       try {
         const res = await api.get<{ data: Reply[] }>('/figsy/replies/all', session.access_token)
         setReplies(res.data ?? [])

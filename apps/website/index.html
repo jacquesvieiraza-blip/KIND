@@ -296,6 +296,13 @@
     .p-btn-out:hover { border-color: rgba(0,0,0,0.3); }
     .p-vol-note { text-align: center; margin-top: 32px; font-size: 0.8rem; color: rgba(0,0,0,0.3); }
 
+    /* ── ANTI-ALTA STRIP ── */
+    .anti-alta { display:flex; align-items:center; gap:16px; background:var(--light); border-radius:16px; padding:16px 24px; margin-bottom:40px; flex-wrap:wrap; }
+    .aa-item { font-size:0.78rem; line-height:1.5; flex:1; min-width:200px; }
+    .aa-bad { color:rgba(0,0,0,0.35); text-decoration:line-through; }
+    .aa-good { color:var(--dark); font-weight:600; }
+    .aa-vs { font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:rgba(0,0,0,0.2); flex-shrink:0; }
+
     /* ── CTA BANNER ── */
     .cta-section { padding: 80px 48px 120px; }
     .cta-inner { max-width: 1080px; margin: 0 auto; }
@@ -622,6 +629,9 @@
       <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
       <div class="nav-dropdown">
         <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">🤝</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
       </div>
     </div>
     <a href="pricing.html" class="nav-link">Pricing</a>
@@ -899,6 +909,11 @@
       <div class="s-title" style="text-align:center;max-width:none">Pay for results, not promises.</div>
       <p style="font-size:1rem;color:rgba(0,0,0,0.4);margin-top:8px">Credits consumed only on positive replies. No monthly minimums. Cancel anytime.</p>
     </div>
+    <div class="anti-alta">
+      <div class="aa-item aa-bad">Alta AI SDR — from $1,250/mo · USD only · Quarterly locked-in · No trial · No refunds</div>
+      <div class="aa-vs">vs</div>
+      <div class="aa-item aa-good">K.I.N.D — from R 1,490/mo · ZAR billing · No contracts · Full free trial · Cancel anytime</div>
+    </div>
     <div class="p-cards">
       <!-- Lead Gen Pro -->
       <div class="p-card">
@@ -997,6 +1012,8 @@
         <a href="about.html">About K.I.N.D</a>
         <a href="use-cases.html">Use Cases</a>
         <a href="pricing.html">Pricing</a>
+        <a href="trust.html">Trust &amp; Security</a>
+        <a href="partners.html">Partners</a>
       </div>
       <div class="footer-col">
         <h4>Get in touch</h4>

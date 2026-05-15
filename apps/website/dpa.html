@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Processing Agreement — K.I.N.D</title>
+  <meta name="description" content="K.I.N.D's Data Processing Agreement covering POPIA, GDPR, data location, security measures, sub-processors, and your rights." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #0066FF;
+      --dark: #0a0a0a;
+      --mid: #444;
+      --light: #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover, .nav-link.active { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+      z-index: 300; transition: opacity .15s, visibility .15s;
+    }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+
+    /* ── HERO ── */
+    .page-hero {
+      background: var(--dark);
+      padding: 100px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.18) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .page-hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #60a5fa; margin-bottom: 24px;
+      background: rgba(0,102,255,0.1); border: 1px solid rgba(0,102,255,0.2);
+      padding: 6px 14px; border-radius: 100px;
+    }
+    .page-hero h1 { font-size: clamp(2.2rem, 4.5vw, 3.6rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: #fff; margin-bottom: 20px; }
+    .page-hero p { font-size: 1rem; color: rgba(255,255,255,0.45); max-width: 600px; margin: 0 auto; line-height: 1.75; }
+    .effective-date { margin-top: 24px; font-size: 0.78rem; color: rgba(255,255,255,0.25); }
+
+    /* ── LEGAL CONTENT ── */
+    .legal-wrap { max-width: 800px; margin: 0 auto; padding: 80px 24px 120px; }
+    .dpa-section { margin-bottom: 56px; }
+    .dpa-section h2 {
+      font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em;
+      color: var(--dark); margin-bottom: 16px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .dpa-num { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.12); padding: 3px 10px; border-radius: 100px; flex-shrink: 0; }
+    .dpa-section p { font-size: 0.9rem; color: rgba(0,0,0,0.55); line-height: 1.85; margin-bottom: 12px; }
+    .dpa-section p:last-child { margin-bottom: 0; }
+    .dpa-section ul { list-style: none; margin-top: 12px; }
+    .dpa-section ul li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: rgba(0,0,0,0.55); padding: 8px 0; border-bottom: 1px solid var(--border); line-height: 1.7; }
+    .dpa-section ul li:last-child { border-bottom: none; }
+    .dpa-section ul li::before { content: "–"; color: rgba(0,0,0,0.2); flex-shrink: 0; font-weight: 700; }
+    .dpa-def { display: grid; grid-template-columns: 140px 1fr; gap: 12px 24px; margin-top: 12px; }
+    .dpa-def dt { font-size: 0.83rem; font-weight: 700; color: var(--dark); padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .dpa-def dd { font-size: 0.85rem; color: rgba(0,0,0,0.5); line-height: 1.7; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .dpa-def dt:last-of-type, .dpa-def dd:last-of-type { border-bottom: none; }
+
+    /* ── SUB-PROCESSOR TABLE ── */
+    .sp-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.83rem; }
+    .sp-table th { text-align: left; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.35); padding: 10px 12px; border-bottom: 2px solid var(--border); }
+    .sp-table td { padding: 12px 12px; border-bottom: 1px solid var(--border); color: rgba(0,0,0,0.55); vertical-align: top; line-height: 1.6; }
+    .sp-table td:first-child { font-weight: 600; color: var(--dark); }
+    .sp-table tr:last-child td { border-bottom: none; }
+
+    /* ── CTA ── */
+    .dpa-cta {
+      background: var(--light); border-radius: 20px; padding: 40px 36px;
+      text-align: center; margin-top: 72px;
+    }
+    .dpa-cta h3 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; color: var(--dark); margin-bottom: 8px; }
+    .dpa-cta p { font-size: 0.88rem; color: rgba(0,0,0,0.45); margin-bottom: 20px; }
+    .dpa-cta a { display: inline-block; background: var(--dark); color: #fff; font-size: 0.88rem; font-weight: 700; padding: 12px 28px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
+    .dpa-cta a:hover { opacity: 0.8; }
+
+    /* ── FOOTER ── */
+    footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
+    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
+    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
+    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
+    .footer-col a:hover { color: var(--dark); }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-legal { display: flex; gap: 20px; }
+    .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
+    .footer-legal a:hover { color: var(--dark); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .page-hero { padding: 64px 24px; }
+      .legal-wrap { padding: 56px 20px 80px; }
+      .dpa-def { grid-template-columns: 1fr; gap: 0; }
+      .dpa-def dt { border-bottom: none; padding-bottom: 2px; }
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+    }
+    @media (max-width: 1024px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="index.html#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">K.I.N.D AI — Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
+        <a href="index.html#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">🤝</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="hero-badge">⚖️ Legal</div>
+    <h1>Data Processing Agreement</h1>
+    <p>This DPA governs how K.I.N.D (Pty) Ltd processes personal data on behalf of clients under POPIA (South Africa), GDPR (EU/UK), and applicable African data protection laws.</p>
+    <p class="effective-date">Effective date: 31 May 2026</p>
+  </div>
+</div>
+
+<!-- DPA CONTENT -->
+<div class="legal-wrap">
+
+  <!-- 1. Definitions -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">1</span> Definitions</h2>
+    <dl class="dpa-def">
+      <dt>Controller</dt>
+      <dd>The Client — the legal entity that has entered into a subscription agreement with K.I.N.D and who determines the purposes and means of processing personal data.</dd>
+      <dt>Processor</dt>
+      <dd>K.I.N.D (Pty) Ltd — who processes personal data on behalf of the Controller in accordance with this DPA and the applicable service agreement.</dd>
+      <dt>Data Subject</dt>
+      <dd>The individual whose personal data is processed — in the context of K.I.N.D's services, the lead or prospect identified for B2B outreach on behalf of the Client.</dd>
+      <dt>Personal Data</dt>
+      <dd>Any information relating to an identified or identifiable natural person, as defined in section 1 of the Protection of Personal Information Act 4 of 2013 (POPIA) and Article 4 of the GDPR.</dd>
+    </dl>
+  </div>
+
+  <!-- 2. Scope -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">2</span> Scope of Processing</h2>
+    <p>K.I.N.D processes personal data solely for the purpose of B2B lead generation and outreach services performed on behalf of the Client. The categories of personal data processed include:</p>
+    <ul>
+      <li>Full name and job title</li>
+      <li>Business email address</li>
+      <li>Company name and industry</li>
+      <li>Phone number (where available in source database)</li>
+      <li>LinkedIn profile URL and publicly available professional information</li>
+      <li>Email engagement data (opens, replies, opt-outs)</li>
+    </ul>
+    <p style="margin-top:16px">K.I.N.D does not process special categories of personal data (as defined under POPIA and GDPR) and will not do so without explicit written consent from both the Client and the Data Subject.</p>
+    <p>Processing is carried out only on documented instructions from the Client, as set out in the Client's Ideal Customer Profile (ICP) configuration and campaign settings. K.I.N.D will inform the Client if it believes any instruction infringes applicable data protection law.</p>
+  </div>
+
+  <!-- 3. Data Location -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">3</span> Data Location &amp; Cross-Border Transfers</h2>
+    <p>All personal data processed by K.I.N.D is stored in South Africa on Supabase's <strong>af-south-1</strong> region (Cape Town). This includes lead records, campaign data, email logs, opt-out records, and client account data.</p>
+    <p>K.I.N.D does not transfer personal data outside of South Africa without:</p>
+    <ul>
+      <li>Explicit written consent from the Client; and</li>
+      <li>Appropriate safeguards in place as required by POPIA section 72, including binding corporate rules, standard contractual clauses, or equivalent protections.</li>
+    </ul>
+    <p style="margin-top:16px">Where sub-processors (see Section 5) are located outside South Africa, K.I.N.D has assessed the transfer basis and relies on appropriate safeguards including Standard Contractual Clauses (SCCs) and the sub-processor's own adequacy certifications.</p>
+  </div>
+
+  <!-- 4. Security Measures -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">4</span> Security Measures</h2>
+    <p>K.I.N.D implements and maintains the following technical and organisational measures to protect personal data:</p>
+    <ul>
+      <li>Row-level security (RLS) on all database tables — client data is logically isolated and inaccessible to other tenants at the database layer</li>
+      <li>Encryption at rest for all stored data using AES-256 via Supabase infrastructure</li>
+      <li>Encryption in transit via TLS 1.2+ on all connections; HTTPS enforced on all K.I.N.D domains</li>
+      <li>JWT-based access control with short-lived tokens scoped to minimum required permissions</li>
+      <li>No passwords stored in plain text; authentication uses Supabase magic links and OAuth flows</li>
+      <li>Regular internal security reviews of application logic and access controls</li>
+      <li>Staff access to production data limited to personnel with a legitimate operational need</li>
+    </ul>
+    <p style="margin-top:16px">K.I.N.D will notify the Client without undue delay, and in any event within 72 hours of becoming aware, of a personal data breach that is likely to result in a risk to the rights and freedoms of Data Subjects.</p>
+  </div>
+
+  <!-- 5. Sub-processors -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">5</span> Sub-processors</h2>
+    <p>K.I.N.D engages the following sub-processors in the delivery of its services. Each sub-processor is subject to contractual obligations that provide equivalent data protection to this DPA.</p>
+    <table class="sp-table">
+      <thead>
+        <tr>
+          <th>Sub-processor</th>
+          <th>Purpose</th>
+          <th>Location</th>
+          <th>Safeguards</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Supabase</td>
+          <td>Database hosting, authentication, storage</td>
+          <td>Cape Town, South Africa (af-south-1)</td>
+          <td>In-country; SOC 2 Type II</td>
+        </tr>
+        <tr>
+          <td>Resend</td>
+          <td>Transactional email delivery</td>
+          <td>United States</td>
+          <td>SOC 2 Type II; SCCs applied</td>
+        </tr>
+        <tr>
+          <td>Apollo.io</td>
+          <td>B2B contact database and lead sourcing</td>
+          <td>United States</td>
+          <td>DPA in place; SCCs applied</td>
+        </tr>
+        <tr>
+          <td>Anthropic</td>
+          <td>AI language model for email generation</td>
+          <td>United States</td>
+          <td>No data retained per API terms; SCCs applied</td>
+        </tr>
+        <tr>
+          <td>Paystack</td>
+          <td>Payment processing</td>
+          <td>Nigeria / South Africa</td>
+          <td>PCI DSS compliant; DPA in place</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:16px">K.I.N.D will notify Clients of any intended changes to this list (additions or replacements of sub-processors) with reasonable prior notice, giving the Client the opportunity to object to such changes.</p>
+  </div>
+
+  <!-- 6. Data Retention -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">6</span> Data Retention</h2>
+    <p>K.I.N.D retains personal data only for as long as necessary to deliver the services and meet legal obligations:</p>
+    <ul>
+      <li>Lead and prospect data is retained for 24 months from the date of last campaign activity, or until the Client requests deletion — whichever is earlier</li>
+      <li>Email engagement logs (opens, clicks, replies) are retained for 24 months</li>
+      <li>Opt-out and suppression (blocklist) records are retained indefinitely to honour the Data Subject's right not to be contacted — deletion of these records would undermine the opt-out</li>
+      <li>Client account data is retained for 12 months following account closure for audit and legal purposes, then deleted</li>
+    </ul>
+    <p style="margin-top:16px">Upon expiry of the applicable retention period, personal data is deleted or anonymised in a manner that renders re-identification impossible.</p>
+  </div>
+
+  <!-- 7. Client Rights -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">7</span> Client Rights</h2>
+    <p>Clients may exercise the following rights in relation to personal data held by K.I.N.D on their behalf:</p>
+    <ul>
+      <li>Request a complete export of all personal data held for their account in a portable, machine-readable format</li>
+      <li>Request deletion of all their account data and associated lead records at any time by emailing <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a></li>
+      <li>Request correction of inaccurate personal data</li>
+      <li>Object to any specific processing activity</li>
+    </ul>
+    <p style="margin-top:16px">K.I.N.D will action deletion and export requests within <strong>30 days</strong> of receipt. Where a request cannot be fulfilled in full (for example, where retention is required by law), K.I.N.D will explain the basis for retaining the data.</p>
+  </div>
+
+  <!-- 8. Data Subject Rights -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">8</span> Data Subject Rights</h2>
+    <p>K.I.N.D has implemented the following mechanisms for Data Subjects (leads and prospects) to exercise their rights:</p>
+    <ul>
+      <li><strong>Opt-out:</strong> Any Data Subject may opt out by replying STOP, UNSUBSCRIBE, or any equivalent to any email. K.I.N.D immediately and permanently suppresses further contact with that individual across all campaigns and all clients on the platform</li>
+      <li><strong>Deletion requests:</strong> Data Subjects may request deletion of their personal data by emailing <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a>. K.I.N.D will action within 30 days, subject to the retention of suppression records as noted in Section 6</li>
+      <li><strong>Access requests:</strong> Data Subjects may request access to personal data held about them. K.I.N.D will respond within 30 days</li>
+      <li><strong>Objection:</strong> Data Subjects may object to processing at any time. K.I.N.D will cease processing unless a compelling legitimate basis can be demonstrated</li>
+    </ul>
+    <p style="margin-top:16px">Where K.I.N.D receives a Data Subject request that relates to data processed on behalf of a specific Client, K.I.N.D will promptly forward the request to the relevant Client and assist in fulfilling it.</p>
+  </div>
+
+  <!-- 9. Liability -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">9</span> Liability</h2>
+    <p>K.I.N.D's total aggregate liability under this DPA — whether in contract, delict, or otherwise — is limited to the total fees paid by the Client to K.I.N.D in the <strong>three calendar months</strong> immediately preceding the event giving rise to the claim.</p>
+    <p>K.I.N.D is not liable for any indirect, consequential, incidental, or punitive damages arising from or related to this DPA, even if advised of the possibility of such damages.</p>
+    <p>Nothing in this clause limits liability for death or personal injury, fraud, or any liability that cannot be limited by applicable law.</p>
+  </div>
+
+  <!-- 10. Governing Law -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">10</span> Governing Law</h2>
+    <p>This DPA and any dispute or claim arising out of or in connection with it (including non-contractual disputes or claims) is governed by and construed in accordance with the laws of the Republic of South Africa.</p>
+    <p>The parties submit to the exclusive jurisdiction of the courts of South Africa to settle any dispute or claim arising out of or in connection with this DPA. For European clients, K.I.N.D acknowledges the primacy of applicable EU supervisory authority guidance in relation to GDPR obligations.</p>
+    <p>This DPA forms part of and is incorporated into K.I.N.D's Terms of Service. In the event of any conflict between this DPA and the Terms of Service on data protection matters, this DPA shall prevail.</p>
+  </div>
+
+  <!-- CTA -->
+  <div class="dpa-cta">
+    <h3>Questions about this DPA?</h3>
+    <p>Our team is based in South Africa and is happy to answer any questions about how we process your data or your clients' data.</p>
+    <a href="mailto:privacy@get-kind.com">Email privacy@get-kind.com</a>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <div class="logo-icon">⚡</div>
+          <span class="logo-text">K.I.N.D</span>
+        </a>
+        <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation for ambitious businesses.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Products</h4>
+        <a href="index.html#products">K.I.N.D AI — Lead Gen</a>
+        <a href="index.html#figsy">FIGSY — AI SDR</a>
+        <a href="https://tally.so/r/kind-waitlist">Virtual Assistant</a>
+        <a href="https://tally.so/r/kind-waitlist">Chatbot Agent</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About K.I.N.D</a>
+        <a href="use-cases.html">Use Cases</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="trust.html">Trust &amp; Security</a>
+        <a href="dpa.html">Data Processing Agreement</a>
+        <a href="partners.html">Partners</a>
+      </div>
+      <div class="footer-col">
+        <h4>Get in touch</h4>
+        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        <a href="mailto:privacy@get-kind.com">privacy@get-kind.com</a>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo">Book a Demo</a>
+        <a href="https://app.get-kind.com/login">Client login</a>
+        <a href="support.html">Support</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 K.I.N.D. All rights reserved.</p>
+      <div class="footer-legal">
+        <a href="https://app.get-kind.com/terms">Terms of Service</a>
+        <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
+        <a href="dpa.html">DPA</a>
+        <a href="trust.html">POPIA &amp; GDPR</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open') })
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open') }, 200) })
+  })
+</script>
+</body>
+</html>

@@ -188,6 +188,9 @@ export default function FigsyRepliesPage() {
                       <p className="text-xs text-gray-400 mt-3 italic">AI: {reply.classification_reasoning}</p>
                     )}
                     <p className="text-xs text-gray-400 mt-1">{reply.from_email}</p>
+                    {reply.classification === 'interested' && token && (
+                      <DraftReplyButton replyId={reply.id} token={token} />
+                    )}
                   </div>
                 )}
               </div>

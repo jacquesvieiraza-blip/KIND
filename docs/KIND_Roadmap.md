@@ -1,5 +1,5 @@
 # KIND AI Platform — Master Roadmap
-**Launch date: 31 May 2026 · Last updated: 14 May 2026 · Days remaining: 17**
+**Launch date: 31 May 2026 · Last updated: 15 May 2026 · Days remaining: 16**
 
 > Single source of truth for everything — what's built, what's not, who builds what, targets, KPIs, and vision.
 >

@@ -721,6 +721,57 @@ internalRouter.post('/cmo/prospect', async (_req: Request, res: Response) => {
   }
 })
 
+// ── FIGSY GLOBAL SEND-DUE ─────────────────────────────────────────────────────
+// Call every 2 hours. Sends due FIGSY sequence emails across all active campaigns.
+internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) => {
+  try {
+    const dailyLimit = process.env.FIGSY_DAILY_SEND_LIMIT ? parseInt(process.env.FIGSY_DAILY_SEND_LIMIT, 10) : 200
+    const todayUTC = new Date()
+    todayUTC.setUTCHours(0, 0, 0, 0)
+
+    const { count: sentToday } = await db.from('figsy_sent_emails')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', todayUTC.toISOString())
+
+    const remaining = Math.max(0, dailyLimit - (sentToday ?? 0))
+    if (remaining === 0) {
+      res.json({ success: true, data: { sent: 0, capped: true, daily_limit: dailyLimit } })
+      return
+    }
+
+    const now = new Date().toISOString()
+    const { data: due } = await db.from('figsy_enrollments')
+      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
+      .in('status', ['enrolled', 'in_progress'])
+      .lte('next_send_at', now)
+      .limit(remaining)
+
+    const { sendSequenceEmail } = await import('../lib/figsy')
+
+    let sent = 0
+    for (const enrollment of due ?? []) {
+      const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
+      if (!lead?.email) continue
+      const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
+      if (nextStep > 3) continue
+      const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
+      const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
+      if (!subject || !body) continue
+      try {
+        await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, enrollment.campaign_id)
+        sent++
+      } catch (err) {
+        console.error('[figsy/send-due-all] enrollment', enrollment.id, ':', err)
+      }
+    }
+
+    res.json({ success: true, data: { sent, remaining_today: remaining - sent, daily_limit: dailyLimit } })
+  } catch (err) {
+    console.error('[figsy/send-due-all]', err)
+    res.status(500).json({ success: false, error: 'FIGSY send-due-all failed' })
+  }
+})
+
 // ── INT-11 — ZERO CREDITS WARNING ────────────────────────────────────────────
 // Call daily. Warns clients with zero credit balance.
 internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => {

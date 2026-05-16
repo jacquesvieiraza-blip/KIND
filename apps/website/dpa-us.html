@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Data Processing Agreement — K.I.N.D</title>
-  <meta name="description" content="K.I.N.D's Data Processing Agreement covering POPIA, GDPR, data location, security measures, sub-processors, and your rights." />
+  <title>US Privacy Addendum — K.I.N.D</title>
+  <meta name="description" content="K.I.N.D's US Privacy Addendum covering CCPA, CPRA, California consumer rights, data deletion, and opt-out rights for US-based clients and contacts." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -98,17 +98,9 @@
     .dpa-section ul li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: rgba(0,0,0,0.55); padding: 8px 0; border-bottom: 1px solid var(--border); line-height: 1.7; }
     .dpa-section ul li:last-child { border-bottom: none; }
     .dpa-section ul li::before { content: "–"; color: rgba(0,0,0,0.2); flex-shrink: 0; font-weight: 700; }
-    .dpa-def { display: grid; grid-template-columns: 140px 1fr; gap: 12px 24px; margin-top: 12px; }
+    .dpa-def { display: grid; grid-template-columns: 160px 1fr; gap: 12px 24px; margin-top: 12px; }
     .dpa-def dt { font-size: 0.83rem; font-weight: 700; color: var(--dark); padding: 8px 0; border-bottom: 1px solid var(--border); }
     .dpa-def dd { font-size: 0.85rem; color: rgba(0,0,0,0.5); line-height: 1.7; padding: 8px 0; border-bottom: 1px solid var(--border); }
-    .dpa-def dt:last-of-type, .dpa-def dd:last-of-type { border-bottom: none; }
-
-    /* ── SUB-PROCESSOR TABLE ── */
-    .sp-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.83rem; }
-    .sp-table th { text-align: left; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.35); padding: 10px 12px; border-bottom: 2px solid var(--border); }
-    .sp-table td { padding: 12px 12px; border-bottom: 1px solid var(--border); color: rgba(0,0,0,0.55); vertical-align: top; line-height: 1.6; }
-    .sp-table td:first-child { font-weight: 600; color: var(--dark); }
-    .sp-table tr:last-child td { border-bottom: none; }
 
     /* ── CTA ── */
     .dpa-cta {
@@ -119,6 +111,19 @@
     .dpa-cta p { font-size: 0.88rem; color: rgba(0,0,0,0.45); margin-bottom: 20px; }
     .dpa-cta a { display: inline-block; background: var(--dark); color: #fff; font-size: 0.88rem; font-weight: 700; padding: 12px 28px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
     .dpa-cta a:hover { opacity: 0.8; }
+
+    /* ── BREADCRUMB ── */
+    .breadcrumb { font-size: 0.8rem; color: rgba(0,0,0,0.35); margin-bottom: 40px; }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    /* ── NOTICE BOX ── */
+    .notice-box {
+      background: rgba(0,102,255,0.04); border: 1px solid rgba(0,102,255,0.15);
+      border-radius: 12px; padding: 20px 24px; margin-bottom: 40px;
+    }
+    .notice-box p { font-size: 0.85rem; color: rgba(0,0,0,0.55); line-height: 1.75; margin: 0; }
+    .notice-box strong { color: var(--dark); }
 
     /* ── FOOTER ── */
     footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
@@ -174,8 +179,6 @@
         <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
         <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
         <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
-        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
-        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
       </div>
     </div>
     <div class="nav-item">
@@ -192,11 +195,13 @@
       <div class="nav-dropdown">
         <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
         <div class="dd-divider"></div>
-        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, GDPR, CCPA &amp; compliance</span></span></a>
         <a href="partners.html" class="dd-link"><span class="dd-icon">🤝</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
       </div>
     </div>
     <a href="pricing.html" class="nav-link">Pricing</a>
+    <a href="trust.html" class="nav-link">Trust &amp; Security</a>
+    <a href="partners.html" class="nav-link">Partners</a>
   </div>
   <div class="nav-right">
     <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
@@ -207,198 +212,134 @@
 <!-- HERO -->
 <div class="page-hero">
   <div class="page-hero-inner">
-    <div class="hero-badge">⚖️ Legal</div>
-    <h1>Data Processing Agreement</h1>
-    <p>This DPA governs how K.I.N.D processes personal data on behalf of clients under POPIA (South Africa), GDPR (EU/UK), CCPA/CPRA (California, USA), and applicable data protection laws.</p>
-    <p class="effective-date">Effective date: 31 May 2026</p>
+    <div class="hero-badge">🇺🇸 US Privacy Addendum</div>
+    <h1>US Privacy Addendum</h1>
+    <p>This addendum supplements K.I.N.D's Data Processing Agreement for US-based clients and data subjects, covering CCPA, CPRA, and CAN-SPAM compliance obligations.</p>
+    <p class="effective-date">Effective date: 31 May 2026 · Supplements the <a href="dpa.html" style="color:rgba(255,255,255,0.5);text-decoration:underline">main DPA</a></p>
   </div>
 </div>
 
-<!-- DPA CONTENT -->
+<!-- CONTENT -->
 <div class="legal-wrap">
 
-  <!-- 1. Definitions -->
+  <div class="breadcrumb">
+    <a href="dpa.html">Data Processing Agreement</a> &rsaquo; US Privacy Addendum
+  </div>
+
+  <div class="notice-box">
+    <p><strong>Who this applies to:</strong> This addendum applies to K.I.N.D clients whose end users or outreach targets include individuals located in the United States, and specifically to California residents under the CCPA/CPRA. It supplements and is incorporated into the main <a href="dpa.html" style="color:var(--blue);text-decoration:none">Data Processing Agreement</a>. In the event of any conflict, this addendum prevails on US privacy matters.</p>
+  </div>
+
+  <!-- 1. Scope -->
   <div class="dpa-section">
-    <h2><span class="dpa-num">1</span> Definitions</h2>
+    <h2><span class="dpa-num">1</span> Scope &amp; Applicability</h2>
+    <p>This US Privacy Addendum applies where K.I.N.D processes personal information of individuals located in the United States on behalf of a Client. It sets out K.I.N.D's obligations under:</p>
+    <ul>
+      <li>The California Consumer Privacy Act of 2018 (CCPA), as amended by the California Privacy Rights Act of 2020 (CPRA)</li>
+      <li>The CAN-SPAM Act of 2003 (commercial email)</li>
+      <li>Other applicable US state privacy laws as they come into effect</li>
+    </ul>
+    <p style="margin-top:16px">This addendum does not modify K.I.N.D's obligations under POPIA or GDPR, which are covered in the main DPA.</p>
+  </div>
+
+  <!-- 2. Definitions -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">2</span> Definitions</h2>
     <dl class="dpa-def">
-      <dt>Controller</dt>
-      <dd>The Client — the legal entity that has entered into a subscription agreement with K.I.N.D and who determines the purposes and means of processing personal data.</dd>
-      <dt>Processor</dt>
-      <dd>K.I.N.D (Pty) Ltd — who processes personal data on behalf of the Controller in accordance with this DPA and the applicable service agreement.</dd>
-      <dt>Data Subject</dt>
-      <dd>The individual whose personal data is processed — in the context of K.I.N.D's services, the lead or prospect identified for B2B outreach on behalf of the Client.</dd>
-      <dt>Personal Data</dt>
-      <dd>Any information relating to an identified or identifiable natural person, as defined in section 1 of the Protection of Personal Information Act 4 of 2013 (POPIA) and Article 4 of the GDPR.</dd>
+      <dt>Business</dt>
+      <dd>K.I.N.D — acting as a "service provider" under CCPA when processing personal information on behalf of a Client.</dd>
+      <dt>Consumer</dt>
+      <dd>A natural person who is a California resident — as defined in Section 17014 of Title 18 of the California Code of Regulations.</dd>
+      <dt>Personal Information</dt>
+      <dd>Information that identifies, relates to, describes, is reasonably capable of being associated with, or could reasonably be linked, directly or indirectly, with a particular consumer or household — as defined in CCPA §1798.140(v).</dd>
+      <dt>Service Provider</dt>
+      <dd>K.I.N.D's role under CCPA — processing personal information on behalf of the Client (the Business) pursuant to a written contract, for a specific business purpose, and not retaining, using, or disclosing it for any other commercial purpose.</dd>
+      <dt>Sale / Sharing</dt>
+      <dd>K.I.N.D does not sell or share personal information within the meaning of CCPA §1798.140. No data is sold, rented, released, disclosed, or otherwise communicated to a third party for monetary or other valuable consideration.</dd>
     </dl>
   </div>
 
-  <!-- 2. Scope -->
+  <!-- 3. No Sale of Personal Information -->
   <div class="dpa-section">
-    <h2><span class="dpa-num">2</span> Scope of Processing</h2>
-    <p>K.I.N.D processes personal data solely for the purpose of B2B lead generation and outreach services performed on behalf of the Client. The categories of personal data processed include:</p>
+    <h2><span class="dpa-num">3</span> No Sale or Sharing of Personal Information</h2>
+    <p>K.I.N.D does not sell personal information. K.I.N.D does not share personal information for cross-context behavioural advertising. This applies to all personal information processed on behalf of Clients, including lead records, email engagement data, and contact information.</p>
+    <p>K.I.N.D certifies that it understands these restrictions and will comply with them. K.I.N.D will not sell or share personal information received from a Client for any purpose other than performing the services set out in the subscription agreement.</p>
+    <p>K.I.N.D does not have actual knowledge that it sells or shares personal information of consumers under 16 years of age.</p>
+  </div>
+
+  <!-- 4. California Consumer Rights -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">4</span> California Consumer Rights</h2>
+    <p>K.I.N.D supports Clients in responding to verifiable California consumer requests. The following rights apply to California residents whose personal information K.I.N.D processes:</p>
     <ul>
-      <li>Full name and job title</li>
-      <li>Business email address</li>
-      <li>Company name and industry</li>
-      <li>Phone number (where available in source database)</li>
-      <li>LinkedIn profile URL and publicly available professional information</li>
-      <li>Email engagement data (opens, replies, opt-outs)</li>
+      <li><strong>Right to know (§1798.100):</strong> Consumers may request disclosure of the categories and specific pieces of personal information collected, the sources, the business or commercial purpose, and categories of third parties with whom it is shared. K.I.N.D will respond within 45 days, with a single 45-day extension where reasonably necessary.</li>
+      <li><strong>Right to delete (§1798.105):</strong> Consumers may request deletion of personal information K.I.N.D has collected. Requests are subject to exceptions (e.g., completing transactions, detecting security incidents, legal compliance). K.I.N.D will action deletion requests within 45 days.</li>
+      <li><strong>Right to correct (§1798.106):</strong> Consumers may request correction of inaccurate personal information. K.I.N.D will use commercially reasonable efforts to correct or complete inaccurate information.</li>
+      <li><strong>Right to opt out of sale/sharing (§1798.120):</strong> Not applicable — K.I.N.D does not sell or share personal information. There is nothing to opt out of.</li>
+      <li><strong>Right to limit use of sensitive personal information (§1798.121):</strong> K.I.N.D does not process sensitive personal information as defined under CPRA. This right is not triggered.</li>
+      <li><strong>Right to non-discrimination (§1798.125):</strong> K.I.N.D will not discriminate against any consumer for exercising CCPA rights — including by denying service, charging different prices, or providing a different level or quality of service.</li>
     </ul>
-    <p style="margin-top:16px">K.I.N.D does not process special categories of personal data (as defined under POPIA and GDPR) and will not do so without explicit written consent from both the Client and the Data Subject.</p>
-    <p>Processing is carried out only on documented instructions from the Client, as set out in the Client's Ideal Customer Profile (ICP) configuration and campaign settings. K.I.N.D will inform the Client if it believes any instruction infringes applicable data protection law.</p>
+    <p style="margin-top:16px">To submit a California privacy request, email <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a> with subject line "California Privacy Request". Include your name, the type of request, and sufficient information to verify your identity. K.I.N.D will respond within 45 calendar days.</p>
   </div>
 
-  <!-- 3. Data Location -->
+  <!-- 5. Authorised Agent Requests -->
   <div class="dpa-section">
-    <h2><span class="dpa-num">3</span> Data Location &amp; Cross-Border Transfers</h2>
-    <p>All personal data processed by K.I.N.D is stored in South Africa on Supabase's <strong>af-south-1</strong> region (Cape Town). This includes lead records, campaign data, email logs, opt-out records, and client account data.</p>
-    <p>K.I.N.D does not transfer personal data outside of South Africa without:</p>
+    <h2><span class="dpa-num">5</span> Authorised Agent Requests</h2>
+    <p>A California consumer may designate an authorised agent to make a CCPA request on their behalf. K.I.N.D will require the authorised agent to provide written proof of authority to act on behalf of the consumer, and may verify the consumer's identity directly before processing the request.</p>
+    <p>Requests from authorised agents should be submitted to <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a> with documentation of the agent's authorisation.</p>
+  </div>
+
+  <!-- 6. CAN-SPAM Compliance -->
+  <div class="dpa-section">
+    <h2><span class="dpa-num">6</span> CAN-SPAM Compliance</h2>
+    <p>All commercial email sent by K.I.N.D on behalf of Clients to US-based recipients complies with the CAN-SPAM Act of 2003. The following requirements are met for every email:</p>
     <ul>
-      <li>Explicit written consent from the Client; and</li>
-      <li>Appropriate safeguards in place as required by POPIA section 72, including binding corporate rules, standard contractual clauses, or equivalent protections.</li>
+      <li><strong>No deceptive headers:</strong> The "From", "To", "Reply-To" and routing information accurately identify the person or business initiating the email.</li>
+      <li><strong>No misleading subject lines:</strong> Subject lines accurately reflect the content of the message. No bait-and-switch subject lines are used.</li>
+      <li><strong>Physical address:</strong> Every commercial email includes a valid physical postal address for the sending organisation as required by CAN-SPAM Section 5(a)(5).</li>
+      <li><strong>Clear opt-out mechanism:</strong> Every email includes a clear and conspicuous explanation of how recipients can opt out of receiving future emails from the sender.</li>
+      <li><strong>Opt-outs honoured within 10 business days:</strong> Opt-out requests are processed within 10 business days as required by CAN-SPAM. Once an opt-out is processed, the sender may not send further commercial emails to that address.</li>
+      <li><strong>Monitoring of third-party activity:</strong> Even where K.I.N.D uses third-party services to send emails on behalf of Clients, K.I.N.D monitors compliance and takes responsibility for CAN-SPAM compliance in its role as the initiating sender.</li>
     </ul>
-    <p style="margin-top:16px">Where sub-processors (see Section 5) are located outside South Africa, K.I.N.D has assessed the transfer basis and relies on appropriate safeguards including Standard Contractual Clauses (SCCs) and the sub-processor's own adequacy certifications.</p>
   </div>
 
-  <!-- 4. Security Measures -->
+  <!-- 7. Data Retention (US) -->
   <div class="dpa-section">
-    <h2><span class="dpa-num">4</span> Security Measures</h2>
-    <p>K.I.N.D implements and maintains the following technical and organisational measures to protect personal data:</p>
+    <h2><span class="dpa-num">7</span> Data Retention — US Contacts</h2>
+    <p>Personal information of US-based contacts is subject to the same retention periods as set out in Section 6 of the main DPA:</p>
     <ul>
-      <li>Row-level security (RLS) on all database tables — client data is logically isolated and inaccessible to other tenants at the database layer</li>
-      <li>Encryption at rest for all stored data using AES-256 via Supabase infrastructure</li>
-      <li>Encryption in transit via TLS 1.2+ on all connections; HTTPS enforced on all K.I.N.D domains</li>
-      <li>JWT-based access control with short-lived tokens scoped to minimum required permissions</li>
-      <li>No passwords stored in plain text; authentication uses Supabase magic links and OAuth flows</li>
-      <li>Regular internal security reviews of application logic and access controls</li>
-      <li>Staff access to production data limited to personnel with a legitimate operational need</li>
+      <li>Lead and prospect data: retained for 24 months from the date of last campaign activity, or until deletion is requested — whichever is earlier</li>
+      <li>Email engagement logs: retained for 24 months</li>
+      <li>Opt-out / suppression records: retained indefinitely to honour the consumer's right not to be contacted (deletion of these records would undermine the opt-out)</li>
     </ul>
-    <p style="margin-top:16px">K.I.N.D will notify the Client without undue delay, and in any event within 72 hours of becoming aware, of a personal data breach that is likely to result in a risk to the rights and freedoms of Data Subjects.</p>
+    <p style="margin-top:16px">Upon expiry of the applicable retention period, personal information is securely deleted or anonymised in a manner that renders re-identification impossible.</p>
   </div>
 
-  <!-- 5. Sub-processors -->
+  <!-- 8. Sub-processors (US) -->
   <div class="dpa-section">
-    <h2><span class="dpa-num">5</span> Sub-processors</h2>
-    <p>K.I.N.D engages the following sub-processors in the delivery of its services. Each sub-processor is subject to contractual obligations that provide equivalent data protection to this DPA.</p>
-    <table class="sp-table">
-      <thead>
-        <tr>
-          <th>Sub-processor</th>
-          <th>Purpose</th>
-          <th>Location</th>
-          <th>Safeguards</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Supabase</td>
-          <td>Database hosting, authentication, storage</td>
-          <td>Cape Town, South Africa (af-south-1)</td>
-          <td>In-country; SOC 2 Type II</td>
-        </tr>
-        <tr>
-          <td>Resend</td>
-          <td>Transactional email delivery</td>
-          <td>United States</td>
-          <td>SOC 2 Type II; SCCs applied</td>
-        </tr>
-        <tr>
-          <td>Apollo.io</td>
-          <td>B2B contact database and lead sourcing</td>
-          <td>United States</td>
-          <td>DPA in place; SCCs applied</td>
-        </tr>
-        <tr>
-          <td>Anthropic</td>
-          <td>AI language model for email generation</td>
-          <td>United States</td>
-          <td>No data retained per API terms; SCCs applied</td>
-        </tr>
-        <tr>
-          <td>Paystack</td>
-          <td>Payment processing</td>
-          <td>Nigeria / South Africa</td>
-          <td>PCI DSS compliant; DPA in place</td>
-        </tr>
-      </tbody>
-    </table>
-    <p style="margin-top:16px">K.I.N.D will notify Clients of any intended changes to this list (additions or replacements of sub-processors) with reasonable prior notice, giving the Client the opportunity to object to such changes.</p>
-  </div>
-
-  <!-- 6. Data Retention -->
-  <div class="dpa-section">
-    <h2><span class="dpa-num">6</span> Data Retention</h2>
-    <p>K.I.N.D retains personal data only for as long as necessary to deliver the services and meet legal obligations:</p>
+    <h2><span class="dpa-num">8</span> Sub-processors Processing US Personal Information</h2>
+    <p>The following sub-processors may process personal information of US-based contacts in the course of K.I.N.D's services. Each is a "service provider" or "contractor" under CCPA:</p>
     <ul>
-      <li>Lead and prospect data is retained for 24 months from the date of last campaign activity, or until the Client requests deletion — whichever is earlier</li>
-      <li>Email engagement logs (opens, clicks, replies) are retained for 24 months</li>
-      <li>Opt-out and suppression (blocklist) records are retained indefinitely to honour the Data Subject's right not to be contacted — deletion of these records would undermine the opt-out</li>
-      <li>Client account data is retained for 12 months following account closure for audit and legal purposes, then deleted</li>
+      <li><strong>Resend</strong> — email delivery infrastructure (US). Processes email addresses and delivery metadata. Bound by service provider DPA.</li>
+      <li><strong>Apollo.io</strong> — B2B contact database (US). Provides contact data sourced from public and licensed databases. Bound by DPA with data use restrictions.</li>
+      <li><strong>Anthropic</strong> — AI language model for email generation (US). Processes email content and lead context. No data retained per Anthropic API terms.</li>
+      <li><strong>Supabase</strong> — database infrastructure (Cape Town, South Africa). Primary data store — not a US processor. SOC 2 Type II certified.</li>
     </ul>
-    <p style="margin-top:16px">Upon expiry of the applicable retention period, personal data is deleted or anonymised in a manner that renders re-identification impossible.</p>
+    <p style="margin-top:16px">K.I.N.D will notify Clients of any changes to this list with reasonable prior notice.</p>
   </div>
 
-  <!-- 7. Client Rights -->
+  <!-- 9. Governing Law -->
   <div class="dpa-section">
-    <h2><span class="dpa-num">7</span> Client Rights</h2>
-    <p>Clients may exercise the following rights in relation to personal data held by K.I.N.D on their behalf:</p>
-    <ul>
-      <li>Request a complete export of all personal data held for their account in a portable, machine-readable format</li>
-      <li>Request deletion of all their account data and associated lead records at any time by emailing <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a></li>
-      <li>Request correction of inaccurate personal data</li>
-      <li>Object to any specific processing activity</li>
-    </ul>
-    <p style="margin-top:16px">K.I.N.D will action deletion and export requests within <strong>30 days</strong> of receipt. Where a request cannot be fulfilled in full (for example, where retention is required by law), K.I.N.D will explain the basis for retaining the data.</p>
-  </div>
-
-  <!-- 8. Data Subject Rights -->
-  <div class="dpa-section">
-    <h2><span class="dpa-num">8</span> Data Subject Rights</h2>
-    <p>K.I.N.D has implemented the following mechanisms for Data Subjects (leads and prospects) to exercise their rights:</p>
-    <ul>
-      <li><strong>Opt-out:</strong> Any Data Subject may opt out by replying STOP, UNSUBSCRIBE, or any equivalent to any email. K.I.N.D immediately and permanently suppresses further contact with that individual across all campaigns and all clients on the platform</li>
-      <li><strong>Deletion requests:</strong> Data Subjects may request deletion of their personal data by emailing <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a>. K.I.N.D will action within 30 days, subject to the retention of suppression records as noted in Section 6</li>
-      <li><strong>Access requests:</strong> Data Subjects may request access to personal data held about them. K.I.N.D will respond within 30 days</li>
-      <li><strong>Objection:</strong> Data Subjects may object to processing at any time. K.I.N.D will cease processing unless a compelling legitimate basis can be demonstrated</li>
-    </ul>
-    <p style="margin-top:16px">Where K.I.N.D receives a Data Subject request that relates to data processed on behalf of a specific Client, K.I.N.D will promptly forward the request to the relevant Client and assist in fulfilling it.</p>
-  </div>
-
-  <!-- 9. Liability -->
-  <div class="dpa-section">
-    <h2><span class="dpa-num">9</span> Liability</h2>
-    <p>K.I.N.D's total aggregate liability under this DPA — whether in contract, delict, or otherwise — is limited to the total fees paid by the Client to K.I.N.D in the <strong>three calendar months</strong> immediately preceding the event giving rise to the claim.</p>
-    <p>K.I.N.D is not liable for any indirect, consequential, incidental, or punitive damages arising from or related to this DPA, even if advised of the possibility of such damages.</p>
-    <p>Nothing in this clause limits liability for death or personal injury, fraud, or any liability that cannot be limited by applicable law.</p>
-  </div>
-
-  <!-- 10. Governing Law -->
-  <div class="dpa-section">
-    <h2><span class="dpa-num">10</span> Governing Law</h2>
-    <p>This DPA and any dispute or claim arising out of or in connection with it (including non-contractual disputes or claims) is governed by and construed in accordance with the laws of the Republic of South Africa.</p>
-    <p>The parties submit to the exclusive jurisdiction of the courts of South Africa to settle any dispute or claim arising out of or in connection with this DPA. For European clients, K.I.N.D acknowledges the primacy of applicable EU supervisory authority guidance in relation to GDPR obligations.</p>
-    <p>This DPA forms part of and is incorporated into K.I.N.D's Terms of Service. In the event of any conflict between this DPA and the Terms of Service on data protection matters, this DPA shall prevail.</p>
-  </div>
-
-  <!-- 11. CCPA / California Privacy Rights -->
-  <div class="dpa-section">
-    <h2><span class="dpa-num">11</span> CCPA / California Privacy Rights</h2>
-    <p>For clients and data subjects located in California, USA, K.I.N.D complies with the California Consumer Privacy Act (CCPA) as amended by the California Privacy Rights Act (CPRA). The following rights apply to California residents:</p>
-    <ul>
-      <li><strong>Right to know:</strong> You may request disclosure of the categories and specific pieces of personal information K.I.N.D has collected about you, the sources of collection, the business or commercial purpose, and any third parties with whom the information is shared. Requests will be fulfilled within 45 days.</li>
-      <li><strong>Right to delete:</strong> You may request deletion of personal information collected from you, subject to certain exceptions (e.g., where retention is required to complete a transaction, detect security incidents, or comply with legal obligations). Email <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a> to submit a deletion request.</li>
-      <li><strong>Right to opt out of sale or sharing:</strong> K.I.N.D does not sell personal information within the meaning of CCPA, nor does it share personal information for cross-context behavioural advertising. There is no opt-out mechanism required as this activity does not occur.</li>
-      <li><strong>Right to non-discrimination:</strong> K.I.N.D will not discriminate against you for exercising any CCPA rights — including by denying service, charging different prices, or providing a different level of service.</li>
-      <li><strong>Authorised agent requests:</strong> A California resident may designate an authorised agent to submit requests on their behalf. K.I.N.D will verify the agent's authorisation before processing the request.</li>
-    </ul>
-    <p style="margin-top:16px">K.I.N.D does not have actual knowledge that it sells or shares personal information of consumers under 16 years of age.</p>
-    <p>For all California privacy requests, contact: <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a></p>
+    <h2><span class="dpa-num">9</span> Governing Law — US Addendum</h2>
+    <p>This US Privacy Addendum supplements the main DPA and is governed by the laws applicable to the main DPA (the laws of England and Wales, as K.I.N.D is a UK-incorporated company) except where US federal law or California state law mandatorily applies to specific US privacy rights.</p>
+    <p>K.I.N.D acknowledges the jurisdiction of California courts in relation to CCPA enforcement and the authority of the California Privacy Protection Agency (CPPA) in relation to CPRA compliance.</p>
+    <p>For all US privacy matters, contact: <a href="mailto:privacy@get-kind.com" style="color:var(--blue);text-decoration:none">privacy@get-kind.com</a></p>
   </div>
 
   <!-- CTA -->
   <div class="dpa-cta">
-    <h3>Questions about this DPA?</h3>
-    <p>Our team is based in South Africa and is happy to answer any questions about how we process your data or your clients' data.</p>
+    <h3>Questions about US privacy compliance?</h3>
+    <p>Email our privacy team — we'll walk you through how K.I.N.D handles US contacts and what your obligations are as a client.</p>
     <a href="mailto:privacy@get-kind.com">Email privacy@get-kind.com</a>
   </div>
 
@@ -450,7 +391,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 K.I.N.D. All rights reserved.</p>
+      <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
       <div class="footer-legal">
         <a href="https://app.get-kind.com/terms">Terms of Service</a>
         <a href="https://app.get-kind.com/privacy">Privacy Policy</a>

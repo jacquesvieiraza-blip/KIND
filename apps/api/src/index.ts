@@ -23,6 +23,7 @@ import { calendarRouter } from './routes/calendar'
 import { millaRouter } from './routes/milla'
 import { vidaRouter } from './routes/vida'
 import { stripeRouter } from './routes/stripe'
+import { startCrons } from './cron'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -57,4 +58,7 @@ app.use('/stripe',        stripeRouter)
 app.use('/webhooks/stripe', stripeRouter)
 app.use(errorHandler)
 
-app.listen(PORT, () => console.log(`KIND API running on port ${PORT}`))
+app.listen(PORT, () => {
+  console.log(`KIND API running on port ${PORT}`)
+  startCrons()
+})

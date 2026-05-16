@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { Coins, Zap, TrendingUp, Loader2, Check, ChevronDown, Shield } from 'lucide-react'
+import { Coins, Zap, TrendingUp, Loader2, Check, ChevronDown, Shield, CreditCard } from 'lucide-react'
 
 interface CreditTransaction {
   id: string
@@ -107,6 +107,16 @@ function BundleCard({
   )
 }
 
+// Stripe credit bundles matching the 4 configured price IDs
+const STRIPE_LEADGEN_BUNDLES = [
+  { credits: 20,  priceUsd: 20,  label: '20 credits — $20',  creditType: 'lead_gen' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '' },
+  { credits: 100, priceUsd: 100, label: '100 credits — $100', creditType: 'lead_gen' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '' },
+]
+const STRIPE_FIGSY_BUNDLES = [
+  { credits: 20,  priceUsd: 60,  label: '20 outreach credits — $60',  creditType: 'figsy' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '' },
+  { credits: 100, priceUsd: 300, label: '100 outreach credits — $300', creditType: 'figsy' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '' },
+]
+
 export default function BillingPage() {
   const supabase = createClient()
   const [balance, setBalance]           = useState<number | null>(null)
@@ -118,6 +128,8 @@ export default function BillingPage() {
   const [autoTopup, setAutoTopup]         = useState({ enabled: false, threshold: 10, plan: 'kind_ai' as 'kind_ai' | 'figsy', bundle_size: 20 })
   const [savingTopup, setSavingTopup]     = useState(false)
   const [topupSaved, setTopupSaved]       = useState(false)
+  const [stripeConfigured, setStripeConfigured] = useState(false)
+  const [stripeInitiating, setStripeInitiating] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -138,6 +150,10 @@ export default function BillingPage() {
             bundle_size: clientRes.data.auto_topup_bundle_size ?? 20,
           })
         }
+      } catch { }
+      try {
+        const stripeRes = await api.get<{ configured: boolean }>('/stripe/status', session.access_token)
+        setStripeConfigured(stripeRes.configured ?? false)
       } catch { }
       setLoading(false)
     }
@@ -189,6 +205,22 @@ export default function BillingPage() {
       window.location.href = res.data.authorization_url
     } catch (err) { console.error(err) }
     setInitiating(null)
+  }
+
+  async function handleStripeBuy(priceId: string, credits: number, creditType: 'lead_gen' | 'figsy') {
+    const key = `stripe_${creditType}_${credits}`
+    setStripeInitiating(key)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setStripeInitiating(null); return }
+    try {
+      const res = await api.post<{ url?: string; error?: string }>('/stripe/checkout', { priceId, credits, creditType }, session.access_token)
+      if (res.url) {
+        window.location.href = res.url
+      } else {
+        console.error('[Stripe] No checkout URL returned:', res)
+      }
+    } catch (err) { console.error('[Stripe] checkout error:', err) }
+    setStripeInitiating(null)
   }
 
   if (loading) return (
@@ -291,6 +323,78 @@ export default function BillingPage() {
           />
         </div>
       </div>
+
+      {/* Stripe — USD/GBP billing */}
+      {stripeConfigured && (
+        <div className="bg-white border border-gray-100 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-1">
+            <CreditCard className="w-5 h-5 text-[#635bff]" />
+            <h2 className="text-lg font-semibold text-gray-900">Pay in USD / GBP</h2>
+          </div>
+          <p className="text-sm text-gray-400 mb-5">
+            Paying from outside South Africa? Use a card below — billed in USD via Stripe, no exchange rate surprises.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Lead Gen via Stripe */}
+            <div className="rounded-xl overflow-hidden border border-gray-100">
+              <div className="bg-[#0066FF] px-5 py-4 text-white">
+                <p className="font-semibold">K.I.N.D AI — Lead Gen</p>
+                <p className="text-white/60 text-xs mt-0.5">Sourcing + scoring · USD billing</p>
+              </div>
+              <div className="bg-white px-5 py-5 space-y-3">
+                {STRIPE_LEADGEN_BUNDLES.map(b => {
+                  const key = `stripe_lead_gen_${b.credits}`
+                  return (
+                    <button
+                      key={b.credits}
+                      onClick={() => handleStripeBuy(b.priceId, b.credits, b.creditType)}
+                      disabled={stripeInitiating === key || !b.priceId}
+                      className="w-full flex items-center justify-between text-sm font-medium px-4 py-3 rounded-xl border border-gray-200 hover:border-[#0066FF] hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      <span className="text-gray-700">{b.credits} credits</span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-900">${b.priceUsd}</span>
+                        {stripeInitiating === key
+                          ? <Loader2 className="w-4 h-4 animate-spin text-[#0066FF]" />
+                          : <CreditCard className="w-4 h-4 text-gray-400" />}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            {/* FIGSY via Stripe */}
+            <div className="rounded-xl overflow-hidden border border-gray-100">
+              <div className="bg-[#001f4d] px-5 py-4 text-white">
+                <p className="font-semibold">FIGSY Advanced</p>
+                <p className="text-white/60 text-xs mt-0.5">Full outreach SDR · USD billing</p>
+              </div>
+              <div className="bg-white px-5 py-5 space-y-3">
+                {STRIPE_FIGSY_BUNDLES.map(b => {
+                  const key = `stripe_figsy_${b.credits}`
+                  return (
+                    <button
+                      key={b.credits}
+                      onClick={() => handleStripeBuy(b.priceId, b.credits, b.creditType)}
+                      disabled={stripeInitiating === key || !b.priceId}
+                      className="w-full flex items-center justify-between text-sm font-medium px-4 py-3 rounded-xl border border-gray-200 hover:border-[#001f4d] hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      <span className="text-gray-700">{b.credits} outreach credits</span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-900">${b.priceUsd}</span>
+                        {stripeInitiating === key
+                          ? <Loader2 className="w-4 h-4 animate-spin text-[#001f4d]" />
+                          : <CreditCard className="w-4 h-4 text-gray-400" />}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Powered by Stripe · Secure card processing · Credits appear immediately after payment
+          </p>
+        </div>
+      )}
 
       {/* Auto top-up settings */}
       <div className="bg-white border border-gray-100 rounded-xl p-6">

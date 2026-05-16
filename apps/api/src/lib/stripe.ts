@@ -1,7 +1,7 @@
 import Stripe from 'stripe'
 
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' as Stripe.LatestApiVersion })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' as any })
   : null
 
 // Price IDs — configure via environment variables
@@ -57,7 +57,8 @@ export async function createCheckoutSession(params: {
   }
 }
 
-export function constructWebhookEvent(payload: Buffer, sig: string): Stripe.Event | null {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function constructWebhookEvent(payload: Buffer, sig: string): any | null {
   if (!stripe) return null
   const secret = process.env.STRIPE_WEBHOOK_SECRET
   if (!secret) {

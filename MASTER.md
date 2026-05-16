@@ -43,13 +43,18 @@
 | **6** | Railway env var: `FIGSY_REPLY_TO=replies@get-kind.com` | Railway → Variables | Pending |
 | **7** | Confirm all other Railway env vars exist (see §12) | Railway → Variables | Pending |
 | **8** | Paystack webhook: `kindapi-production-83cb.up.railway.app/webhooks/paystack` | Paystack → Settings → Webhooks | Pending |
-| **9** | Run DB migrations 002, 003, 004, 005 in order | Supabase → SQL Editor | Pending |
+| **9** | Run DB migrations 001–009 in order | Supabase → SQL Editor | Pending — now 9 migrations |
 | **10** | Resend: configure inbound routing → `kindapi-production-83cb.up.railway.app/figsy/replies/inbound` | resend.com → Inbound | Pending |
 | **11** | Set up 6 Railway cron jobs (see §12) | Railway → Cron | Pending |
 | **12** | Merge branch `claude/ai-business-roadmap-U3OWJ` → main + deploy | GitHub | Pending |
 | **13** | G2, Capterra, Product Hunt — list on launch day, ask first 10 clients for reviews week 1 | External platforms | Launch day |
 | **14** | Meta WhatsApp Business API application | business.facebook.com | Pending |
 | **15** | Vapi.ai account + Twilio SA +27 number | vapi.ai + twilio.com | Pending |
+| **16** | `npm install googleapis` in `apps/api/` before Railway deploy | Terminal: `cd apps/api && npm install googleapis` | Pending |
+| **17** | Stripe: create account + 4 price IDs + set STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET | stripe.com | Pending |
+| **18** | Google Cloud: create project, enable Calendar API, create OAuth credentials | console.cloud.google.com | Pending |
+| **19** | Vapi: create FIGSY assistant, connect Twilio number, set webhook URL | app.vapi.ai | Pending |
+| **20** | WhatsApp: complete Meta app setup, subscribe to messages webhook | developers.facebook.com | Pending |
 
 ---
 

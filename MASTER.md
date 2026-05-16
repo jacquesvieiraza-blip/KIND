@@ -3,7 +3,7 @@
 **Launch date: 31 May 2026 · Days remaining: 15**
 
 > Everything in one place. Roadmap, status, cashflow, SOPs, client flow, expansion plan, pending actions.
-> Branch: `claude/ai-business-roadmap-U3OWJ` → merge to main before launch.
+> Branch: main ✅ merged 16 May 2026
 
 ---
 
@@ -29,32 +29,88 @@
 
 ---
 
-## 1. THINGS TO REMEMBER — PENDING ACTIONS
+## 1. CURRENT STATUS — WHAT'S LIVE
 
-> Updated every session. These are items only Jacques can action.
+| Item | Status | Notes |
+|---|---|---|
+| Website — `get-kind.com` | ✅ Live | Vercel — kind-admin project, root: apps/website |
+| Client Portal — `app.get-kind.com` | ✅ Live | Vercel — kind-portal project |
+| Admin Dashboard — `admin.get-kind.com` | ✅ Live | Vercel — kind-admin-h5q6 project |
+| Railway API | ✅ Running | kindapi-production-83cb.up.railway.app |
+| Railway env vars — all 14 | ✅ Set | All required vars configured |
+| Supabase — 39 tables | ✅ Migrated | All schema + 9 migrations run |
+| Supabase auth URLs | ✅ Configured | Site URL + redirect URL set |
+| Paystack webhook | ✅ Done | Registered and active |
+| TypeScript build | ✅ Clean | All 4 errors fixed |
+| Phone number in leads table | ✅ Done | Shows in portal leads pipeline |
+| All 5 comparison pages | ✅ Linked | Footer Compare section on every page |
+| Branch merged to main | ✅ Done | PR #1 merged 16 May 2026 |
+| Cron jobs | ⏳ Pending | Need separate service — post-launch |
+| Resend inbound routing | ⏳ Pending | Needs paid Resend plan |
+| Stripe USD/GBP billing | ⏳ Pending | Post-launch |
+| Google Calendar OAuth | ⏳ Pending | Post-launch |
+| Vapi.ai Voice | ⏳ Pending | Post-launch |
+| WhatsApp Business API | ⏳ Pending | Post-launch — 3–7 day Meta approval |
 
-| # | Item | Where | Status |
-|---|---|---|---|
-| **1** | Drop `milla.png` + `vida.png` into `apps/website/` | [GitHub upload link](https://github.com/jacquesvieiraza-blip/KIND/upload/claude/ai-business-roadmap-U3OWJ/apps/website) | **Done** — wired into about.html |
-| **2** | Supabase: set Site URL → `https://app.get-kind.com` | Supabase → Auth → URL Configuration | Pending |
-| **3** | Supabase: add redirect URL → `https://app.get-kind.com/auth/callback` | Same as above | Pending |
-| **4** | Railway env var: `FOUNDER_EMAIL=your@email.com` | Railway → Variables | Pending |
-| **5** | Railway env var: `FIGSY_DAILY_SEND_LIMIT=20` | Railway → Variables | Pending |
-| **6** | Railway env var: `FIGSY_REPLY_TO=replies@get-kind.com` | Railway → Variables | Pending |
-| **7** | Confirm all other Railway env vars exist (see §12) | Railway → Variables | Pending |
-| **8** | Paystack webhook: `kindapi-production-83cb.up.railway.app/webhooks/paystack` | Paystack → Settings → Webhooks | Pending |
-| **9** | Run DB migrations 001–009 in order | Supabase → SQL Editor | Pending — now 9 migrations |
-| **10** | Resend: configure inbound routing → `kindapi-production-83cb.up.railway.app/figsy/replies/inbound` | resend.com → Inbound | Pending |
-| **11** | Set up 6 Railway cron jobs (see §12) | Railway → Cron | Pending |
-| **12** | Merge branch `claude/ai-business-roadmap-U3OWJ` → main + deploy | GitHub | Pending |
-| **13** | G2, Capterra, Product Hunt — list on launch day, ask first 10 clients for reviews week 1 | External platforms | Launch day |
-| **14** | Meta WhatsApp Business API application | business.facebook.com | Pending |
-| **15** | Vapi.ai account + Twilio SA +27 number | vapi.ai + twilio.com | Pending |
-| **16** | `npm install googleapis` in `apps/api/` before Railway deploy | Terminal: `cd apps/api && npm install googleapis` | Pending |
-| **17** | Stripe: create account + 4 price IDs + set STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET | stripe.com | Pending |
-| **18** | Google Cloud: create project, enable Calendar API, create OAuth credentials | console.cloud.google.com | Pending |
-| **19** | Vapi: create FIGSY assistant, connect Twilio number, set webhook URL | app.vapi.ai | Pending |
-| **20** | WhatsApp: complete Meta app setup, subscribe to messages webhook | developers.facebook.com | Pending |
+---
+
+## 2. WHAT JACQUES NEEDS TO DO
+
+### Before Launch
+| # | Task | Where |
+|---|---|---|
+| 1 | Upload new Vida image — drag new `vida.png` into `apps/website/` | github.com/jacquesvieiraza-blip/KIND → apps/website → Add file |
+| 2 | Create test client + run smoke test | app.get-kind.com — Monday |
+| 3 | Register company (UK — Companies House) | companieshouse.gov.uk — see step-by-step below |
+
+### Post-Launch (when ready)
+| # | Task | Where |
+|---|---|---|
+| 4 | Upgrade Resend plan → enable inbound routing | resend.com |
+| 5 | Set up Stripe account + 4 price IDs | stripe.com |
+| 6 | Google Cloud — Calendar API + OAuth credentials | console.cloud.google.com |
+| 7 | Vapi.ai account + phone number | vapi.ai + twilio.com |
+| 8 | Meta WhatsApp Business API application | business.facebook.com |
+| 9 | G2, Capterra, Product Hunt listings | Launch day |
+
+### Company Registration — UK (Companies House)
+1. Go to **companieshouse.gov.uk**
+2. Click **"Register a company"** → use the WebFiling service
+3. Create a Companies House account if you don't have one
+4. Choose **Private Limited Company (Ltd)**
+5. Choose a company name — check availability on the site
+6. Enter registered UK address
+7. Add director details (your name, DOB, address)
+8. Add at least 1 share (you can be sole shareholder)
+9. Pay **£50** registration fee
+10. Receive **Certificate of Incorporation** within 24 hours
+11. You'll get a **Company Registration Number (CRN)** — keep this safe
+
+**Total cost: £50 · Timeline: same day to 24 hours**
+
+---
+
+## 3. WHAT CLAUDE CAN DO
+
+| Task | Notes |
+|---|---|
+| Set up cron job service for Railway | Ready — just say go |
+| Fix any bugs found during smoke test | Ready |
+| Copy/content changes on any website page | Ready |
+| Add test data seeding script | Ready |
+| Any new pages or features | Ready |
+| Push code and trigger redeploys | Always |
+
+---
+
+## 4. MONDAY PLAN
+
+1. Upload new Vida image to GitHub (`apps/website/vida.png`)
+2. Create test client at `app.get-kind.com`
+3. Run full smoke test (see §15)
+4. Fix anything that breaks
+5. Resend inbound routing decision (upgrade or skip)
+6. Stripe setup if ready
 
 ---
 

@@ -104,6 +104,45 @@
 | Zero-credits warning cron | Day 1/4/7 escalation emails |
 | Onboarding checklist | 4-step tracker, disappears when complete |
 
+### Milla — Virtual Assistant (Built)
+| Item | Notes |
+|---|---|
+| DB migration 008 | milla_documents, milla_chunks (FTS), milla_sessions, milla_messages |
+| `apps/api/src/lib/milla.ts` | chunkText, processDocument, searchChunks (FTS), chat (Claude Sonnet) |
+| `apps/api/src/routes/milla.ts` | Upload docs, list/delete docs, sessions, chat endpoint |
+| Portal assistant page | Documents tab + Chat tab with source attribution |
+| Vector strategy | Supabase full-text search (no extra API key) — swappable to pgvector later |
+
+### Vida — Chatbot Agent (Built)
+| Item | Notes |
+|---|---|
+| DB migration 009 | vida_configs, vida_sessions, vida_messages |
+| `apps/api/src/lib/vida.ts` | generateVidaReply, scoreSession, notifyHotLead (Claude Haiku) |
+| `apps/api/src/routes/vida.ts` | Config CRUD, sessions/messages, public widget API (no auth) |
+| Portal chatbot page | Configure tab, Conversations tab, Embed tab with copy code |
+| `apps/website/vida-widget.js` | Self-contained embeddable JS widget, no dependencies |
+
+### Stripe Billing (Built — needs credentials to activate)
+| Item | Notes |
+|---|---|
+| `apps/api/src/lib/stripe.ts` | Checkout session, webhook event — gated by STRIPE_SECRET_KEY |
+| `apps/api/src/routes/stripe.ts` | POST /stripe/checkout, POST /webhooks/stripe, GET /stripe/status |
+| Portal billing page | USD/GBP section added below Paystack, hidden if Stripe not configured |
+| New env vars | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, 4× STRIPE_PRICE_* IDs |
+
+### US Comparison Pages (Built)
+| Item | Notes |
+|---|---|
+| `apps/website/vs-outreach.html` | K.I.N.D vs Outreach.io — 8-row comparison table |
+| `apps/website/vs-salesloft.html` | K.I.N.D vs Salesloft — 8-row comparison table |
+| `apps/website/pricing.html` | USD front, ZAR secondary — "From $20 / R380" |
+
+### GDPR + CAN-SPAM (Built)
+| Item | Notes |
+|---|---|
+| `apps/website/trust.html` | Full GDPR section (4 items) + CAN-SPAM section (4 items) added |
+| Meta description | Updated to POPIA + GDPR + CAN-SPAM |
+
 ### Voice, WhatsApp & Calendar (Built — needs credentials to activate)
 | Item | Notes |
 |---|---|
@@ -162,13 +201,13 @@
 
 ## 3. WHAT I CAN BUILD NEXT (NO BLOCKERS)
 
+All major items are now built. Remaining polish only:
+
 | # | Item | Priority |
 |---|---|---|
-| 1 | Add Milla + Vida images to about page | High — waiting on images (tomorrow) |
-| 2 | Bulk lead actions UI polish | Medium |
-| 3 | Client KPI dashboard polish | Medium |
-| 4 | US/UK comparison pages (`vs-outreach.html`, `vs-salesloft.html`) | Low — after 5 clients |
-| 5 | Stripe billing for USD/GBP | Low — after 5 clients |
+| 1 | Add vs-outreach + vs-salesloft to footer nav on all pages | Low |
+| 2 | Lead phone number display in portal leads table | Low |
+| 3 | Vida widget CDN hosting (vida-widget.js on get-kind.com) | Low |
 
 ---
 
@@ -184,6 +223,16 @@
 
 ---
 
+### New Railway Env Vars (add when ready)
+```
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_LEADGEN_20=
+STRIPE_PRICE_LEADGEN_100=
+STRIPE_PRICE_FIGSY_20=
+STRIPE_PRICE_FIGSY_100=
+```
+
 ## 5. WILL NOT BUILD YET
 
 | Item | Why |
@@ -194,6 +243,7 @@
 | ICP self-improvement (Luna equivalent) | Needs 3+ months of live campaign data |
 | Built-in CRM | Year 2 — HubSpot/Pipedrive push covers it now |
 | African language support | Phase B — after Voice + WhatsApp live |
+| pgvector embeddings for Milla | Currently using FTS — upgrade to pgvector + OpenAI embeddings at 50+ clients |
 
 ---
 

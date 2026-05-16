@@ -78,14 +78,14 @@ alter table public.milla_sessions  enable row level security;
 alter table public.milla_messages  enable row level security;
 
 -- Service role bypass (used by API)
-create policy if not exists "service role bypass milla_documents"
+create policy "service role bypass milla_documents"
   on public.milla_documents for all to service_role using (true) with check (true);
 
-create policy if not exists "service role bypass milla_chunks"
+create policy "service role bypass milla_chunks"
   on public.milla_chunks for all to service_role using (true) with check (true);
 
-create policy if not exists "service role bypass milla_sessions"
+create policy "service role bypass milla_sessions"
   on public.milla_sessions for all to service_role using (true) with check (true);
 
-create policy if not exists "service role bypass milla_messages"
+create policy "service role bypass milla_messages"
   on public.milla_messages for all to service_role using (true) with check (true);

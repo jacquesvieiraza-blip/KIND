@@ -63,11 +63,11 @@ alter table public.vida_sessions  enable row level security;
 alter table public.vida_messages  enable row level security;
 
 -- Service role bypass (used by API)
-create policy if not exists "service role bypass vida_configs"
+create policy "service role bypass vida_configs"
   on public.vida_configs for all to service_role using (true) with check (true);
 
-create policy if not exists "service role bypass vida_sessions"
+create policy "service role bypass vida_sessions"
   on public.vida_sessions for all to service_role using (true) with check (true);
 
-create policy if not exists "service role bypass vida_messages"
+create policy "service role bypass vida_messages"
   on public.vida_messages for all to service_role using (true) with check (true);

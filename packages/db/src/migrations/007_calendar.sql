@@ -39,5 +39,5 @@ create index if not exists idx_calendar_bookings_enrollment_id on public.calenda
 alter table public.calendar_bookings enable row level security;
 
 -- Service role bypass (used by API)
-create policy if not exists "service role bypass calendar_bookings"
+create policy "service role bypass calendar_bookings"
   on public.calendar_bookings for all to service_role using (true) with check (true);

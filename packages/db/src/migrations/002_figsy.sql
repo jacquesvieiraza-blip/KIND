@@ -115,33 +115,33 @@ alter table public.figsy_sent_emails  enable row level security;
 alter table public.figsy_replies      enable row level security;
 
 -- Clients can only see their own data
-create policy if not exists "clients see own campaigns"
+create policy "clients see own campaigns"
   on public.figsy_campaigns for all
   using (client_id = public.current_client_id());
 
-create policy if not exists "clients see own enrollments"
+create policy "clients see own enrollments"
   on public.figsy_enrollments for all
   using (client_id = public.current_client_id());
 
-create policy if not exists "clients see own sent emails"
+create policy "clients see own sent emails"
   on public.figsy_sent_emails for all
   using (campaign_id in (
     select id from public.figsy_campaigns where client_id = public.current_client_id()
   ));
 
-create policy if not exists "clients see own replies"
+create policy "clients see own replies"
   on public.figsy_replies for all
   using (client_id = public.current_client_id());
 
 -- Service role bypass (used by API)
-create policy if not exists "service role bypass campaigns"
+create policy "service role bypass campaigns"
   on public.figsy_campaigns for all to service_role using (true) with check (true);
 
-create policy if not exists "service role bypass enrollments"
+create policy "service role bypass enrollments"
   on public.figsy_enrollments for all to service_role using (true) with check (true);
 
-create policy if not exists "service role bypass sent emails"
+create policy "service role bypass sent emails"
   on public.figsy_sent_emails for all to service_role using (true) with check (true);
 
-create policy if not exists "service role bypass replies"
+create policy "service role bypass replies"
   on public.figsy_replies for all to service_role using (true) with check (true);

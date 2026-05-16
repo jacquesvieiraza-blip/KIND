@@ -20,6 +20,9 @@ import { partnersRouter } from './routes/partners'
 import { voiceRouter } from './routes/voice'
 import { whatsappRouter } from './routes/whatsapp'
 import { calendarRouter } from './routes/calendar'
+import { millaRouter } from './routes/milla'
+import { vidaRouter } from './routes/vida'
+import { stripeRouter } from './routes/stripe'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -28,6 +31,7 @@ app.use(helmet())
 app.use(cors({ origin: process.env.PORTAL_URL || 'http://localhost:3000', credentials: true }))
 app.use(morgan('dev'))
 app.use('/webhooks/paystack', express.raw({ type: 'application/json' }))
+app.use('/webhooks/stripe',  express.raw({ type: 'application/json' }))
 app.use(express.json())
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'kind-api' }))
@@ -47,6 +51,10 @@ app.use('/partners',      partnersRouter)
 app.use('/voice',         voiceRouter)
 app.use('/whatsapp',      whatsappRouter)
 app.use('/calendar',      calendarRouter)
+app.use('/milla',         millaRouter)
+app.use('/vida',          vidaRouter)
+app.use('/stripe',        stripeRouter)
+app.use('/webhooks/stripe', stripeRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => console.log(`KIND API running on port ${PORT}`))

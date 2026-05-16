@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>K.I.N.D — Client Journey Flowchart</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:   #0066FF;
+    --dark:   #0a0a0a;
+    --navy:   #001f4d;
+    --green:  #059669;
+    --red:    #dc2626;
+    --amber:  #d97706;
+    --purple: #7c3aed;
+    --teal:   #0891b2;
+    --light:  #f5f5f7;
+    --border: rgba(0,0,0,0.1);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #fff;
+    color: var(--dark);
+    padding: 48px 32px 80px;
+    min-width: 1100px;
+  }
+
+  /* ── HEADER ── */
+  .doc-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .doc-logo {
+    display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px;
+  }
+  .doc-logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #0066FF 0%, #7c3aed 100%);
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 14px rgba(0,102,255,0.3);
+  }
+  .doc-logo-text { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.03em; }
+  .doc-title { font-size: 2.1rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 8px; }
+  .doc-sub { font-size: 0.88rem; color: rgba(0,0,0,0.4); }
+
+  /* ── AGENT TEAM BANNER ── */
+  .agent-team-banner {
+    display: flex; align-items: stretch; gap: 12px;
+    background: var(--dark);
+    border-radius: 18px;
+    padding: 24px 28px;
+    margin-bottom: 36px;
+    overflow: hidden;
+    position: relative;
+  }
+  .agent-team-banner::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(0,102,255,0.15) 0%, rgba(124,58,237,0.15) 100%);
+    pointer-events: none;
+  }
+  .atb-label {
+    display: flex; flex-direction: column; justify-content: center;
+    flex-shrink: 0; padding-right: 20px; border-right: 1px solid rgba(255,255,255,0.1);
+    margin-right: 8px;
+  }
+  .atb-label-tag {
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 4px;
+  }
+  .atb-label-title {
+    font-size: 1rem; font-weight: 900; color: #fff; letter-spacing: -0.02em;
+  }
+  .agent-card {
+    flex: 1; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .agent-card-name {
+    font-size: 0.78rem; font-weight: 800; color: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .agent-card-name .agent-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .agent-card-role {
+    font-size: 0.65rem; color: rgba(255,255,255,0.4);
+    font-weight: 500; margin-left: 15px;
+  }
+  .agent-card-desc {
+    font-size: 0.68rem; color: rgba(255,255,255,0.6);
+    line-height: 1.5; margin-left: 15px;
+  }
+  .agent-card-figsy {
+    border-color: rgba(124,58,237,0.4) !important;
+    background: rgba(124,58,237,0.12) !important;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex; align-items: center; justify-content: center;
+    gap: 24px; margin-bottom: 44px; flex-wrap: wrap;
+  }
+  .leg { display: flex; align-items: center; gap: 7px; font-size: 0.73rem; font-weight: 600; color: rgba(0,0,0,0.5); }
+  .leg-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    text-align: center; font-size: 0.65rem; font-weight: 800;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(0,0,0,0.3); margin-bottom: 20px;
+  }
+
+  /* ── NODES ── */
+  .flow { display: flex; flex-direction: column; align-items: center; }
+  .node {
+    border-radius: 14px; padding: 12px 20px;
+    font-size: 0.8rem; font-weight: 600; text-align: center;
+    line-height: 1.4; position: relative;
+    min-width: 180px; max-width: 220px;
+  }
+  .node-sm {
+    border-radius: 10px; padding: 9px 16px;
+    font-size: 0.73rem; font-weight: 600; text-align: center;
+    line-height: 1.4; min-width: 150px; max-width: 190px;
+  }
+  .node-wide {
+    min-width: 260px; max-width: 340px;
+  }
+
+  /* node colours */
+  .n-blue   { background: rgba(0,102,255,0.08); border: 1.5px solid rgba(0,102,255,0.25); color: #004acc; }
+  .n-navy   { background: var(--navy); border: 1.5px solid var(--navy); color: #fff; }
+  .n-green  { background: rgba(5,150,105,0.08); border: 1.5px solid rgba(5,150,105,0.3); color: #065f46; }
+  .n-red    { background: rgba(220,38,38,0.08); border: 1.5px solid rgba(220,38,38,0.25); color: #991b1b; }
+  .n-amber  { background: rgba(217,119,6,0.08); border: 1.5px solid rgba(217,119,6,0.25); color: #92400e; }
+  .n-purple { background: rgba(124,58,237,0.1); border: 1.5px solid rgba(124,58,237,0.3); color: #5b21b6; }
+  .n-grey   { background: var(--light); border: 1.5px solid rgba(0,0,0,0.1); color: rgba(0,0,0,0.6); }
+  .n-dark   { background: var(--dark); border: 1.5px solid var(--dark); color: #fff; }
+
+  /* diamond decision node */
+  .diamond-wrap { display: flex; justify-content: center; margin: 4px 0; }
+  .diamond {
+    width: 130px; height: 130px;
+    transform: rotate(45deg);
+    background: rgba(0,102,255,0.06);
+    border: 1.5px solid rgba(0,102,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .diamond-inner {
+    transform: rotate(-45deg);
+    font-size: 0.72rem; font-weight: 700; color: #004acc;
+    text-align: center; line-height: 1.35; padding: 8px;
+    width: 110px;
+  }
+
+  /* ── ARROWS ── */
+  .arrow { display: flex; justify-content: center; align-items: center; height: 28px; color: rgba(0,0,0,0.2); font-size: 1.2rem; }
+  .arrow-label { font-size: 0.65rem; font-weight: 700; color: rgba(0,0,0,0.35); letter-spacing: 0.04em; text-transform: uppercase; margin-left: 4px; }
+
+  /* ── PHASE BANDS ── */
+  .phase-band {
+    background: var(--light);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .phase-band-title {
+    font-size: 0.65rem; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: rgba(0,0,0,0.3); margin-bottom: 20px; text-align: center;
+  }
+
+  /* ── SPLIT LAYOUTS ── */
+  .split-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .split-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .split-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+  .split-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  /* column header pill */
+  .col-pill {
+    font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 5px 14px; border-radius: 100px;
+    margin-bottom: 14px;
+  }
+  .pill-blue   { background: rgba(0,102,255,0.1); color: var(--blue); }
+  .pill-purple { background: rgba(124,58,237,0.1); color: var(--purple); }
+  .pill-green  { background: rgba(5,150,105,0.1); color: var(--green); }
+  .pill-red    { background: rgba(220,38,38,0.1); color: var(--red); }
+  .pill-amber  { background: rgba(217,119,6,0.1); color: var(--amber); }
+  .pill-grey   { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.5); }
+
+  /* divider between phases */
+  .phase-divider {
+    width: 2px; height: 32px; background: rgba(0,0,0,0.1);
+    margin: 0 auto;
+  }
+
+  /* outcome terminal nodes */
+  .terminal {
+    border-radius: 100px; padding: 8px 18px;
+    font-size: 0.72rem; font-weight: 700; text-align: center;
+  }
+
+  /* connector label on a branch */
+  .branch-label {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px;
+    margin: 2px auto;
+  }
+  .bl-green  { background: rgba(5,150,105,0.1);  color: var(--green); }
+  .bl-red    { background: rgba(220,38,38,0.1);   color: var(--red); }
+  .bl-amber  { background: rgba(217,119,6,0.1);   color: var(--amber); }
+  .bl-blue   { background: rgba(0,102,255,0.1);   color: var(--blue); }
+  .bl-grey   { background: rgba(0,0,0,0.06);      color: rgba(0,0,0,0.45); }
+
+  /* horizontal rule between major sections */
+  .h-rule {
+    border: none; border-top: 2px dashed rgba(0,0,0,0.08);
+    margin: 32px 0;
+  }
+
+  /* plan split header */
+  .plan-header {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 24px; margin-bottom: 0;
+  }
+  .plan-box {
+    border-radius: 16px; padding: 16px 20px; text-align: center;
+  }
+  .plan-box-blue { background: rgba(0,102,255,0.06); border: 2px solid rgba(0,102,255,0.2); }
+  .plan-box-purple { background: rgba(124,58,237,0.06); border: 2px solid rgba(124,58,237,0.2); }
+  .plan-box h3 { font-size: 0.85rem; font-weight: 800; margin-bottom: 4px; }
+  .plan-box p { font-size: 0.72rem; color: rgba(0,0,0,0.45); }
+  .plan-box-blue h3 { color: var(--blue); }
+  .plan-box-purple h3 { color: var(--purple); }
+
+  /* note callout */
+  .note {
+    background: rgba(0,102,255,0.04); border-left: 3px solid var(--blue);
+    padding: 8px 12px; border-radius: 0 8px 8px 0;
+    font-size: 0.72rem; color: rgba(0,0,0,0.5); line-height: 1.5;
+    margin-top: 8px;
+  }
+
+  /* ── FULL TWO-COLUMN JOURNEY ── */
+  .journey-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .journey-col { display: flex; flex-direction: column; gap: 0; }
+  .journey-col-header {
+    border-radius: 14px 14px 0 0;
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 0.78rem; font-weight: 800; letter-spacing: 0.02em;
+  }
+  .jch-blue { background: var(--blue); color: #fff; }
+  .jch-purple {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    color: #fff;
+  }
+  .journey-col-body {
+    border: 1.5px solid rgba(0,0,0,0.08);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    padding: 20px 16px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0;
+  }
+  .journey-col-body-figsy {
+    border-color: rgba(124,58,237,0.15) !important;
+  }
+
+  /* step row */
+  .step {
+    width: 100%;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--dark);
+    text-align: center;
+    line-height: 1.4;
+  }
+  .step-system {
+    background: var(--light);
+    border-color: rgba(0,0,0,0.07);
+    color: rgba(0,0,0,0.6);
+    font-style: italic;
+  }
+  .step-action { border-color: rgba(0,102,255,0.2); color: #004acc; }
+  .step-figsy  {
+    background: rgba(124,58,237,0.05);
+    border-color: rgba(124,58,237,0.2);
+    color: #5b21b6;
+  }
+  .step-credit { border-color: rgba(5,150,105,0.2); color: #065f46; }
+  .down { height: 20px; width: 2px; background: rgba(0,0,0,0.12); margin: 0 auto; }
+  .down-label {
+    display: flex; align-items: center; gap: 6px;
+    justify-content: center; margin: 2px 0;
+  }
+  .down-label .down { height: 14px; }
+
+  /* outcome branch row */
+  .outcomes {
+    width: 100%;
+    display: grid;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .outcomes-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .outcomes-2 { grid-template-columns: 1fr 1fr; }
+  .outcome {
+    border-radius: 8px; padding: 8px 10px;
+    font-size: 0.68rem; font-weight: 700; text-align: center;
+    line-height: 1.4;
+  }
+  .oc-green  { background: rgba(5,150,105,0.1);  border: 1px solid rgba(5,150,105,0.25); color: #065f46; }
+  .oc-amber  { background: rgba(217,119,6,0.1);  border: 1px solid rgba(217,119,6,0.25); color: #92400e; }
+  .oc-red    { background: rgba(220,38,38,0.1);  border: 1px solid rgba(220,38,38,0.2);  color: #991b1b; }
+  .oc-blue   { background: rgba(0,102,255,0.08); border: 1px solid rgba(0,102,255,0.2);  color: #004acc; }
+  .oc-purple { background: rgba(124,58,237,0.08);border: 1px solid rgba(124,58,237,0.2); color: #5b21b6; }
+  .oc-grey   { background: rgba(0,0,0,0.04);     border: 1px solid rgba(0,0,0,0.1);      color: rgba(0,0,0,0.5); }
+
+  .oc-tag {
+    font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase;
+    display: block; margin-bottom: 3px; opacity: 0.7;
+  }
+
+  /* terminal end states */
+  .end-state {
+    width: 100%;
+    border-radius: 100px;
+    padding: 9px 16px;
+    font-size: 0.72rem; font-weight: 700; text-align: center;
+    margin-top: 4px;
+  }
+  .es-green  { background: var(--green); color: #fff; }
+  .es-red    { background: var(--red); color: #fff; }
+  .es-blue   { background: var(--blue); color: #fff; }
+  .es-grey   { background: rgba(0,0,0,0.12); color: rgba(0,0,0,0.6); }
+
+  /* billing section */
+  .billing-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 8px;
+  }
+  .billing-branch { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  /* FIGSY persona card */
+  .figsy-persona {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(91,33,182,0.06) 100%);
+    border: 1.5px solid rgba(124,58,237,0.25);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 0;
+  }
+  .figsy-persona-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .figsy-avatar {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .figsy-persona-name {
+    font-size: 0.82rem; font-weight: 900; color: #5b21b6; letter-spacing: -0.01em;
+  }
+  .figsy-persona-title {
+    font-size: 0.62rem; color: rgba(91,33,182,0.6); font-weight: 600;
+  }
+  .figsy-traits {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .figsy-trait {
+    font-size: 0.6rem; font-weight: 700; padding: 2px 8px; border-radius: 100px;
+    background: rgba(124,58,237,0.12); color: #7c3aed; letter-spacing: 0.04em;
+  }
+  .figsy-quote {
+    font-size: 0.68rem; color: rgba(91,33,182,0.7); font-style: italic; line-height: 1.5;
+    border-left: 2px solid rgba(124,58,237,0.3); padding-left: 8px;
+  }
+
+  /* coming soon band */
+  .coming-soon-band {
+    border: 2px dashed rgba(0,0,0,0.1);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-bottom: 12px;
+    background: #fff;
+    position: relative;
+  }
+  .cs-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--dark); color: #fff;
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; padding: 4px 14px; border-radius: 100px;
+  }
+  .cs-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+  }
+  .cs-card {
+    border: 1.5px dashed rgba(0,0,0,0.12);
+    border-radius: 14px; padding: 16px; text-align: center;
+  }
+  .cs-icon { font-size: 1.8rem; margin-bottom: 8px; }
+  .cs-title { font-size: 0.78rem; font-weight: 800; color: rgba(0,0,0,0.5); margin-bottom: 4px; }
+  .cs-desc { font-size: 0.67rem; color: rgba(0,0,0,0.35); line-height: 1.5; }
+
+  @media print {
+    body { padding: 20px; }
+    .phase-band { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="doc-header">
+  <div class="doc-logo">
+    <div class="doc-logo-icon">⚡</div>
+    <div class="doc-logo-text">K.I.N.D</div>
+  </div>
+  <div class="doc-title">Client Journey Flowchart</div>
+  <div class="doc-sub">Every possible path — Lead Gen Pro &amp; Lead Gen + FIGSY · 14 May 2026</div>
+</div>
+
+<!-- AGENT TEAM BANNER -->
+<div class="agent-team-banner">
+  <div class="atb-label">
+    <div class="atb-label-tag">The K.I.N.D team</div>
+    <div class="atb-label-title">Your AI<br/>colleagues</div>
+  </div>
+
+  <div class="agent-card agent-card-figsy">
+    <div class="agent-card-name">
+      <span class="agent-dot" style="background:#a78bfa"></span>
+      FIGSY
+    </div>
+    <div class="agent-card-role">AI Outreach Specialist · Lead Gen + FIGSY plan</div>
+    <div class="agent-card-desc">Writes personalised 3-email sequences, reads replies, classifies intent, sends booking links. Never sleeps.</div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-card-name">
+      <span class="agent-dot" style="background:#60a5fa"></span>
+      CS Agent
+    </div>
+    <div class="agent-card-role">Customer Success · automated</div>
+    <div class="agent-card-desc">Day 1/3/7 client emails, trial-to-paid nudges, at-risk alerts to founder.</div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-card-name">
+      <span class="agent-dot" style="background:#4ade80"></span>
+      Support Agent
+    </div>
+    <div class="agent-card-role">hello@get-kind.com · automated</div>
+    <div class="agent-card-desc">Classifies inbound email. Simple → auto-reply. Complex → routes to founder inbox instantly.</div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-card-name">
+      <span class="agent-dot" style="background:#fbbf24"></span>
+      AE + CRO Agent
+    </div>
+    <div class="agent-card-role">Growth · weekly digest · automated</div>
+    <div class="agent-card-desc">Weekly MRR, churn risk, and campaign digest. Drafts personalised booking emails for demo requests.</div>
+  </div>
+
+  <div class="agent-card" style="border-color:rgba(8,145,178,0.35)!important;background:rgba(8,145,178,0.08)!important">
+    <div class="agent-card-name">
+      <span class="agent-dot" style="background:#38bdf8"></span>
+      FIGSY Voice Agent
+    </div>
+    <div class="agent-card-role">AI Cold Caller · Vapi.ai · Twilio SA +27</div>
+    <div class="agent-card-desc">Calls qualified leads 48h after Day 1 email (no reply). Intro → value pitch → objection handling → books meeting live. Leaves AI voicemail if no answer.</div>
+  </div>
+
+  <div class="agent-card" style="border-color:rgba(37,211,102,0.35)!important;background:rgba(37,211,102,0.08)!important">
+    <div class="agent-card-name">
+      <span class="agent-dot" style="background:#4ade80"></span>
+      FIGSY WhatsApp Agent
+    </div>
+    <div class="agent-card-role">WhatsApp Business API · Africa-first channel</div>
+    <div class="agent-card-desc">Fires Day 2 in parallel to email. Approved Meta template → free-form AI conversation. Classifies replies, sends booking link in-chat. 5× email open rates.</div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:rgba(0,102,255,0.3)"></div>Client action</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(0,0,0,0.15)"></div>System action (automated)</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(5,150,105,0.4)"></div>Positive outcome</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(217,119,6,0.4)"></div>Neutral / waiting</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(220,38,38,0.35)"></div>Negative / blocked</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(124,58,237,0.3)"></div>FIGSY AI action</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     PHASE 1 — ONBOARDING (shared both plans)
+════════════════════════════════════════════════ -->
+<div class="phase-band">
+  <div class="phase-band-title">Phase 1 — Onboarding (both plans)</div>
+  <div class="flow">
+    <div class="node n-blue node-wide">🌐 Visits get-kind.com or join.get-kind.com</div>
+    <div class="down"></div>
+    <div class="node n-blue node-wide">📝 Signs up — name, work email, password</div>
+    <div class="down"></div>
+    <div class="node n-grey node-wide" style="font-style:italic">📧 Confirmation email sent via Resend</div>
+    <div class="down"></div>
+
+    <!-- branch: confirms or not -->
+    <div class="outcomes outcomes-2" style="max-width:500px">
+      <div class="split-col">
+        <div class="branch-label bl-green">Confirms email</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-green">✅ Account activated</div>
+      </div>
+      <div class="split-col">
+        <div class="branch-label bl-red">Never confirms</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-red">❌ Account stays unverified<br/>CS Agent sends Day 1 nudge</div>
+      </div>
+    </div>
+    <div class="down"></div>
+
+    <div class="node n-blue node-wide">🏢 Onboarding form<br/><span style="font-weight:400;font-size:0.7rem">company name · industry · country · website</span></div>
+    <div class="down"></div>
+
+    <!-- trial vs direct payment fork -->
+    <div style="max-width:660px;width:100%;background:rgba(0,0,0,0.03);border:1.5px dashed rgba(0,0,0,0.12);border-radius:16px;padding:18px 22px">
+      <div style="text-align:center;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.3);margin-bottom:14px">Client chooses their path</div>
+      <div class="outcomes outcomes-2">
+        <div class="split-col">
+          <div class="branch-label bl-blue">Starts free trial</div>
+          <div class="down" style="height:10px"></div>
+          <div class="outcome oc-blue" style="text-align:left;padding:12px 14px">
+            <div style="font-weight:800;margin-bottom:6px">⏱️ 14-day free trial</div>
+            <div style="font-size:0.65rem;line-height:1.8;font-weight:400">
+              · Full portal access<br/>
+              · Build ICP &amp; preview leads<br/>
+              · CS Agent emails: day 1 / 3 / 7<br/>
+              · Must add credits before outreach fires<br/>
+              · Trial expiry → billing CTA shown
+            </div>
+          </div>
+        </div>
+        <div class="split-col">
+          <div class="branch-label bl-green">Pays immediately</div>
+          <div class="down" style="height:10px"></div>
+          <div class="outcome oc-green" style="text-align:left;padding:12px 14px">
+            <div style="font-weight:800;margin-bottom:6px">💳 Straight to Paystack</div>
+            <div style="font-size:0.65rem;line-height:1.8;font-weight:400">
+              · Ticks T&amp;C checkbox (recorded with IP)<br/>
+              · Selects credit bundle<br/>
+              · Payment confirmed via webhook<br/>
+              · Credits appear immediately<br/>
+              · Live from day 1 — no trial period
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:0.67rem;color:rgba(0,0,0,0.35)">Both paths converge at Phase 2 — Build ICP &amp; run leads</div>
+    </div>
+    <div class="down"></div>
+
+    <!-- plan choice -->
+    <div style="max-width:700px;width:100%">
+      <div class="plan-header">
+        <div class="plan-box plan-box-blue">
+          <h3>Lead Gen Pro</h3>
+          <p>$1 per qualified lead · from $20 · bundles of 20 credits</p>
+        </div>
+        <div class="plan-box plan-box-purple">
+          <h3>Lead Gen + FIGSY</h3>
+          <p>$3 per qualified lead · from $60 · bundles of 20 credits</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     PHASE 2 — CREDITS & ICP (shared both plans)
+════════════════════════════════════════════════ -->
+<div class="phase-band">
+  <div class="phase-band-title">Phase 2 — Add Credits &amp; Build ICP (both plans — trial clients add credits here · direct-pay clients already have credits)</div>
+  <div class="flow">
+    <div class="node n-blue node-wide">💳 Adds credit bundle via Paystack<br/><span style="font-weight:400;font-size:0.7rem">trial: adds credits when ready · direct-pay: already done · T&amp;C accepted at this step</span></div>
+    <div class="down"></div>
+    <div class="node n-grey node-wide">⚡ Paystack processes payment<br/><span style="font-weight:400;font-size:0.7rem">webhook confirms · credits appear in sidebar immediately</span></div>
+    <div class="down"></div>
+
+    <div class="outcomes outcomes-2" style="max-width:500px">
+      <div class="split-col">
+        <div class="branch-label bl-green">Payment successful</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-green">✅ Credits added to account</div>
+      </div>
+      <div class="split-col">
+        <div class="branch-label bl-red">Payment fails</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-red">❌ No credits · retry prompt shown</div>
+      </div>
+    </div>
+    <div class="down"></div>
+
+    <div class="node n-blue node-wide">🎯 Builds ICP in portal<br/><span style="font-weight:400;font-size:0.7rem">industry · job title · company size · geography · tech stack</span></div>
+    <div class="down"></div>
+    <div class="node n-grey node-wide">🤖 Optionally: paste website URL → AI pre-fills ICP keywords</div>
+    <div class="down"></div>
+    <div class="node n-blue node-wide">▶️ Runs ICP — Apollo search triggered<br/><span style="font-weight:400;font-size:0.7rem">searches 250M+ contacts · deduplicates against existing leads</span></div>
+    <div class="down"></div>
+    <div class="node n-grey node-wide">⚡ System scores every lead 0–100<br/><span style="font-weight:400;font-size:0.7rem">based on ICP match · job title · company size · industry fit</span></div>
+    <div class="down"></div>
+    <div class="node n-green node-wide">📋 Leads appear in portal<br/>Filtered · scored · ready</div>
+  </div>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     PHASE 3 — FIRST OUTREACH (shared both plans)
+════════════════════════════════════════════════ -->
+<div class="phase-band">
+  <div class="phase-band-title">Phase 3 — First Outreach (both plans — K.I.N.D sends on client's behalf · POPIA legitimate interest basis)</div>
+  <div class="flow">
+    <div class="node n-grey node-wide">⚡ ICP run completes → leads scored &amp; visible in portal immediately</div>
+    <div class="down"></div>
+    <div class="node n-grey node-wide" style="max-width:420px">📧 K.I.N.D sends Day 1 email to every scored lead automatically<br/><span style="font-weight:400;font-size:0.7rem">sent from send.get-kind.com · personalised per lead · no consent gate</span></div>
+    <div class="down"></div>
+
+    <!-- POPIA legitimate interest callout -->
+    <div style="max-width:540px;width:100%;background:rgba(0,102,255,0.04);border:1.5px solid rgba(0,102,255,0.15);border-radius:14px;padding:16px 20px;text-align:left">
+      <div style="font-size:0.63rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#0066FF;margin-bottom:10px">POPIA Legitimate Interest — covered in every Day 1 email</div>
+      <div style="font-size:0.74rem;color:rgba(0,0,0,0.65);line-height:1.8">
+        ✅ <strong>Who is contacting them</strong> — client's company name &amp; product clearly stated<br/>
+        ✅ <strong>Why it's relevant</strong> — matched to their specific industry &amp; job role (ICP-filtered)<br/>
+        ✅ <strong>One-click opt-out</strong> — included in every email, actioned immediately<br/>
+      </div>
+      <div style="font-size:0.65rem;color:rgba(0,0,0,0.32);margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.07)">
+        B2B legitimate interest under POPIA · data stored in Cape Town (af-south-1) · no prior consent gate required
+      </div>
+    </div>
+    <div class="down"></div>
+
+    <!-- 2-way split -->
+    <div class="outcomes outcomes-2" style="max-width:520px">
+      <div class="split-col">
+        <div class="branch-label bl-red">Lead clicks opt-out</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-red">
+          <span class="oc-tag">Status: opted_out</span>
+          ❌ Permanently blocked<br/>Added to opt-out list<br/>Never contacted again
+        </div>
+      </div>
+      <div class="split-col">
+        <div class="branch-label bl-blue">No opt-out</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-blue">
+          <span class="oc-tag">Status: in sequence</span>
+          ➡️ Lead continues into plan journey below
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     PHASE 4 — TWO PATHS DIVERGE
+════════════════════════════════════════════════ -->
+<div class="phase-band" style="background:#fff;border:1.5px solid var(--border)">
+  <div class="phase-band-title">Phase 4 — Journey splits by plan</div>
+  <div class="journey-grid">
+
+    <!-- ──────────────────────────────
+         LEAD GEN PRO COLUMN
+    ────────────────────────────── -->
+    <div class="journey-col">
+      <div class="journey-col-header jch-blue">Lead Gen Pro — $1 / qualified lead</div>
+      <div class="journey-col-body">
+
+        <div class="step step-system">📧 Day 1 email already sent by K.I.N.D<br/><span style="font-weight:400;font-size:0.68rem">client identified · opt-out included · POPIA covered</span></div>
+        <div class="down"></div>
+        <div class="step step-action">📋 Client reviews lead replies in portal</div>
+        <div class="down"></div>
+        <div class="step step-action">📤 Client exports leads as CSV<br/><span style="font-weight:400;font-size:0.68rem">downloads to their CRM or inbox</span></div>
+        <div class="down"></div>
+        <div class="step step-action">✍️ Client sends follow-up emails manually<br/><span style="font-weight:400;font-size:0.68rem">AI draft button available for personalised copy</span></div>
+        <div class="down"></div>
+
+        <!-- reply outcomes -->
+        <div class="outcomes outcomes-3">
+          <div class="split-col">
+            <div class="branch-label bl-green">Positive reply</div>
+            <div class="down" style="height:8px"></div>
+            <div class="outcome oc-green">
+              <span class="oc-tag">Qualified lead</span>
+              ✅ 1 credit consumed<br/>Lead flagged qualified<br/>Client follows up manually
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="branch-label bl-amber">Not now / neutral</div>
+            <div class="down" style="height:8px"></div>
+            <div class="outcome oc-amber">
+              <span class="oc-tag">Pending</span>
+              ⏳ Client follows up at their discretion
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="branch-label bl-red">No reply / opt-out</div>
+            <div class="down" style="height:8px"></div>
+            <div class="outcome oc-red">
+              <span class="oc-tag">Inactive</span>
+              ❌ No credit consumed<br/>Lead stays in list
+            </div>
+          </div>
+        </div>
+        <div class="down"></div>
+
+        <div class="step step-action">📅 Client books meeting manually with qualified lead</div>
+        <div class="down"></div>
+        <div class="end-state es-green">🎯 Meeting booked · Deal in pipeline</div>
+
+        <div class="note" style="margin-top:16px">
+          <strong>Upgrade prompt:</strong> At any point the client can upgrade to FIGSY — K.I.N.D takes over Day 4 &amp; Day 9 follow-ups automatically. Existing leads carry over.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────
+         FIGSY COLUMN
+    ────────────────────────────── -->
+    <div class="journey-col">
+      <div class="journey-col-header jch-purple">Lead Gen + FIGSY — $3 / qualified lead</div>
+      <div class="journey-col-body journey-col-body-figsy">
+
+        <!-- FIGSY persona card -->
+        <div class="figsy-persona" style="margin-bottom:0">
+          <div class="figsy-persona-header">
+            <div class="figsy-avatar">🤖</div>
+            <div>
+              <div class="figsy-persona-name">FIGSY</div>
+              <div class="figsy-persona-title">AI Outreach Specialist · K.I.N.D Agent Team</div>
+            </div>
+          </div>
+          <div class="figsy-traits">
+            <span class="figsy-trait">Personalized</span>
+            <span class="figsy-trait">3-Email Sequence</span>
+            <span class="figsy-trait">24/7</span>
+            <span class="figsy-trait">Reply-aware</span>
+            <span class="figsy-trait">Booking-ready</span>
+          </div>
+          <div class="figsy-quote">"I read every lead's profile before I write to them. No generic templates. Just conversations that land."</div>
+        </div>
+        <div class="down"></div>
+
+        <div class="step step-figsy">⚡ Scored leads auto-enrolled into FIGSY campaign<br/><span style="font-weight:400;font-size:0.68rem">immediately after ICP run · no manual step needed</span></div>
+        <div class="down"></div>
+        <div class="step step-figsy">🤖 FIGSY generates 3-email AI sequence per lead<br/><span style="font-weight:400;font-size:0.68rem">reads lead profile · personalised subject + body · unique per lead</span></div>
+        <div class="down"></div>
+
+        <!-- DAY 1 -->
+        <div style="width:100%;background:rgba(124,58,237,0.07);border:1.5px solid rgba(124,58,237,0.2);border-radius:10px;padding:10px 14px;text-align:center;font-size:0.74rem;font-weight:700;color:#5b21b6">
+          📧 Day 1 — sent in Phase 3 (shared outreach)<br/>
+          <span style="font-weight:400;font-size:0.68rem;color:#6d28d9">FIGSY monitors replies · Day 4 &amp; Day 9 already queued</span>
+        </div>
+        <div class="down"></div>
+
+        <!-- MULTI-CHANNEL PARALLEL -->
+        <div style="width:100%;background:rgba(0,0,0,0.03);border:1.5px dashed rgba(0,0,0,0.1);border-radius:10px;padding:10px 14px">
+          <div style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,0,0,0.3);text-align:center;margin-bottom:8px">Phase 7 channels fire in parallel (live 31 May)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:rgba(8,145,178,0.07);border:1px solid rgba(8,145,178,0.2);border-radius:8px;padding:7px 10px;font-size:0.67rem;color:#0c4a6e;text-align:center">
+              📞 <strong>Voice call</strong> fires 48h after Day 1 (no reply)<br/><span style="font-weight:400;opacity:0.7">Vapi.ai · Twilio +27</span>
+            </div>
+            <div style="background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:7px 10px;font-size:0.67rem;color:#065f46;text-align:center">
+              💬 <strong>WhatsApp</strong> fires Day 2 (parallel)<br/><span style="font-weight:400;opacity:0.7">Meta API · Africa-first</span>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:0.62rem;color:rgba(0,0,0,0.3);margin-top:6px">See Phase 7 for full flow diagrams of both channels</div>
+        </div>
+        <div class="down"></div>
+
+        <div class="outcomes outcomes-3">
+          <div class="split-col">
+            <div class="branch-label bl-green">Interested reply</div>
+            <div class="down" style="height:8px"></div>
+            <div class="outcome oc-green">
+              <span class="oc-tag">Positive</span>
+              ✅ AI classifies as interested<br/>
+              1 credit consumed<br/>
+              Lead = qualified<br/>
+              FIGSY drafts follow-up<br/>
+              Booking link included<br/>
+              Client alerted 🔔
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="branch-label bl-amber">Not now reply</div>
+            <div class="down" style="height:8px"></div>
+            <div class="outcome oc-amber">
+              <span class="oc-tag">Neutral</span>
+              ⏳ No credit consumed<br/>
+              Sequence continues<br/>
+              Day 4 email queued
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="branch-label bl-red">Opt-out reply</div>
+            <div class="down" style="height:8px"></div>
+            <div class="outcome oc-red">
+              <span class="oc-tag">Blocked</span>
+              ❌ No credit consumed<br/>
+              Lead opted out<br/>
+              Added to blocklist<br/>
+              Sequence ends
+            </div>
+          </div>
+        </div>
+        <div class="down"></div>
+
+        <!-- DAY 4 -->
+        <div style="width:100%;background:rgba(124,58,237,0.07);border:1.5px solid rgba(124,58,237,0.2);border-radius:10px;padding:10px 14px;text-align:center;font-size:0.74rem;font-weight:700;color:#5b21b6">
+          📧 Day 4 Follow-up sent by FIGSY<br/>
+          <span style="font-weight:400;font-size:0.68rem;color:#6d28d9">(only if no interested reply on Day 1)</span>
+        </div>
+        <div class="down"></div>
+
+        <div class="outcomes outcomes-3">
+          <div class="split-col">
+            <div class="outcome oc-green" style="font-size:0.65rem">
+              ✅ Interested → credit consumed · qualified · booking link sent · client alerted
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="outcome oc-amber" style="font-size:0.65rem">
+              ⏳ Not now → Day 9 queued
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="outcome oc-red" style="font-size:0.65rem">
+              ❌ Opt-out → blocked permanently
+            </div>
+          </div>
+        </div>
+        <div class="down"></div>
+
+        <!-- DAY 9 -->
+        <div style="width:100%;background:rgba(124,58,237,0.07);border:1.5px solid rgba(124,58,237,0.2);border-radius:10px;padding:10px 14px;text-align:center;font-size:0.74rem;font-weight:700;color:#5b21b6">
+          📧 Day 9 Final email sent by FIGSY<br/>
+          <span style="font-weight:400;font-size:0.68rem;color:#6d28d9">(only if no interested reply on Day 1 or Day 4)</span>
+        </div>
+        <div class="down"></div>
+
+        <div class="outcomes outcomes-3">
+          <div class="split-col">
+            <div class="outcome oc-green" style="font-size:0.65rem">
+              ✅ Interested → credit consumed · qualified · booking link sent · client alerted
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="outcome oc-amber" style="font-size:0.65rem">
+              ⏳ Not now → sequence complete · lead marked inactive
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="outcome oc-red" style="font-size:0.65rem">
+              ❌ Opt-out → blocked permanently
+            </div>
+          </div>
+        </div>
+        <div class="down"></div>
+
+        <!-- no reply outcome -->
+        <div class="outcome oc-grey" style="width:100%;font-size:0.68rem">
+          <span class="oc-tag">No reply at all — all 3 emails</span>
+          ⬛ No credit consumed · Lead marked inactive · Sequence complete
+        </div>
+        <div class="down"></div>
+
+        <!-- meeting booking -->
+        <div style="width:100%;background:rgba(5,150,105,0.06);border:1.5px solid rgba(5,150,105,0.2);border-radius:10px;padding:10px 14px;">
+          <div style="font-size:0.72rem;font-weight:700;color:#065f46;text-align:center;margin-bottom:8px">On interested reply — FIGSY sends follow-up automatically</div>
+          <div class="outcomes outcomes-2">
+            <div class="split-col">
+              <div class="outcome oc-green" style="font-size:0.65rem">
+                🗓️ Lead books via Calendly link<br/>Meeting in client's calendar
+              </div>
+            </div>
+            <div class="split-col">
+              <div class="outcome oc-amber" style="font-size:0.65rem">
+                📩 No booking yet — client follows up manually with qualified lead
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="down"></div>
+
+        <div class="end-state es-green">🎯 Meeting booked · Deal in pipeline</div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     PHASE 5 — CREDIT MANAGEMENT (both plans)
+════════════════════════════════════════════════ -->
+<div class="phase-band">
+  <div class="phase-band-title">Phase 5 — Credit Management (both plans — runs in background)</div>
+  <div class="flow">
+    <div class="node n-grey node-wide">📊 System monitors credit balance after every deduction</div>
+    <div class="down"></div>
+
+    <div class="outcomes outcomes-2" style="max-width:620px">
+      <div class="split-col">
+        <div class="branch-label bl-amber">Credits hit low threshold</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-amber">🔔 Notification bell fires in portal<br/><span style="font-size:0.63rem">low_credits alert — top up prompt shown</span></div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcomes outcomes-2">
+          <div class="split-col">
+            <div class="branch-label bl-green">Auto top-up ON</div>
+            <div class="down" style="height:8px"></div>
+            <div class="outcome oc-green" style="font-size:0.65rem">⚡ Paystack charges saved card automatically<br/>Credits restored instantly<br/>Outreach continues uninterrupted</div>
+          </div>
+          <div class="split-col">
+            <div class="branch-label bl-red">Auto top-up OFF</div>
+            <div class="down" style="height:8px"></div>
+            <div class="outcome oc-amber" style="font-size:0.65rem">⏳ Client gets warning email<br/>Manual top-up required</div>
+          </div>
+        </div>
+      </div>
+      <div class="split-col">
+        <div class="branch-label bl-red">Credits hit zero</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-red">⛔ All outreach paused immediately</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcome oc-amber" style="font-size:0.65rem">📧 Warning emails sent:<br/>Day 1 · Day 4 · Day 7</div>
+        <div class="down" style="height:10px"></div>
+        <div class="outcomes outcomes-2">
+          <div class="split-col">
+            <div class="outcome oc-green" style="font-size:0.63rem">✅ Client tops up → outreach resumes from where it paused</div>
+          </div>
+          <div class="split-col">
+            <div class="outcome oc-red" style="font-size:0.63rem">❌ No top-up after 7 days → account suspended</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     PHASE 6 — FOUNDER AGENTS (background, automated)
+════════════════════════════════════════════════ -->
+<div class="phase-band" style="background:#0a0a0a;color:#fff">
+  <div class="phase-band-title" style="color:rgba(255,255,255,0.3)">Phase 6 — K.I.N.D Agent Stack (runs automatically in background · no human needed)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:18px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0"></div>
+        <div style="font-size:0.67rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5)">Support Agent</div>
+      </div>
+      <div style="font-size:0.75rem;color:rgba(255,255,255,0.65);line-height:1.7">
+        📧 Someone emails hello@get-kind.com<br/>
+        ↓ Resend routes to API<br/>
+        ↓ AI classifies email<br/>
+        <span style="color:#4ade80">Simple query → auto-reply sent</span><br/>
+        <span style="color:#fbbf24">Complex → forwarded to founder inbox</span>
+      </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:18px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#60a5fa;flex-shrink:0"></div>
+        <div style="font-size:0.67rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5)">CS Agent</div>
+      </div>
+      <div style="font-size:0.75rem;color:rgba(255,255,255,0.65);line-height:1.7">
+        🆕 New client signs up<br/>
+        ↓ Day 1: welcome + tips email<br/>
+        ↓ Day 3: check-in email<br/>
+        ↓ Day 7: ICP advice email<br/>
+        <span style="color:#fbbf24">At-risk (no ICP after 3 days) → founder alerted</span><br/>
+        <span style="color:#f87171">Trial day 10/12/14 → upgrade nudge</span>
+      </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:18px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#fbbf24;flex-shrink:0"></div>
+        <div style="font-size:0.67rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5)">AE + CRO Agent</div>
+      </div>
+      <div style="font-size:0.75rem;color:rgba(255,255,255,0.65);line-height:1.7">
+        📅 Demo request received<br/>
+        ↓ AI drafts personalised booking email<br/>
+        ↓ Sent to prospect + founder alerted<br/>
+        <br/>
+        📊 Every Monday:<br/>
+        ↓ Weekly CRO digest to founder inbox<br/>
+        <span style="color:#4ade80">MRR · churn risk · active campaigns</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     ALL POSSIBLE OUTCOMES SUMMARY
+════════════════════════════════════════════════ -->
+<div class="phase-band" style="background:var(--light)">
+  <div class="phase-band-title">All Possible Lead Outcomes — Reference</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+
+    <div style="background:#fff;border-radius:12px;padding:14px;border:1px solid var(--border)">
+      <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(0,0,0,0.3);margin-bottom:8px">Lead Gen Pro</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#065f46;margin-bottom:6px">✅ Qualified (positive reply)</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#065f46;margin-bottom:6px">📤 Exported (CSV)</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#004acc;margin-bottom:6px">📬 Day 1 sent · awaiting reply</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Opted out</div>
+      <div style="font-size:0.72rem;font-weight:700;color:rgba(0,0,0,0.4)">⬛ No reply (inactive)</div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;padding:14px;border:1px solid var(--border)">
+      <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(0,0,0,0.3);margin-bottom:8px">FIGSY — Positive</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#065f46;margin-bottom:6px">✅ Interested on Day 1</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#065f46;margin-bottom:6px">✅ Interested on Day 4</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#065f46;margin-bottom:6px">✅ Interested on Day 9</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#065f46;margin-bottom:6px">🗓️ Meeting booked</div>
+      <div style="font-size:0.68rem;color:rgba(0,0,0,0.4)">1 credit consumed on each interested reply</div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;padding:14px;border:1px solid var(--border)">
+      <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(0,0,0,0.3);margin-bottom:8px">FIGSY — Neutral</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#92400e;margin-bottom:6px">⏳ Not now — Day 1 (→ Day 4)</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#92400e;margin-bottom:6px">⏳ Not now — Day 4 (→ Day 9)</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#92400e;margin-bottom:6px">⏳ Not now — Day 9 (inactive)</div>
+      <div style="font-size:0.72rem;font-weight:700;color:rgba(0,0,0,0.4);margin-bottom:6px">⬛ No reply — all 3 days (inactive)</div>
+      <div style="font-size:0.68rem;color:rgba(0,0,0,0.4)">No credits consumed on neutral/no-reply</div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;padding:14px;border:1px solid var(--border)">
+      <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(0,0,0,0.3);margin-bottom:8px">FIGSY — Negative</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Opt-out on Day 1</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Opt-out on Day 4</div>
+      <div style="font-size:0.72rem;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Opt-out on Day 9</div>
+      <div style="font-size:0.68rem;color:rgba(0,0,0,0.4)">All opt-outs → permanent blocklist. No credits consumed.</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══════════════════════════════════════════════
+     PHASE 7 — MULTI-CHANNEL FIGSY
+════════════════════════════════════════════════ -->
+<div class="phase-band" style="background:#fff;border:1.5px solid var(--border)">
+  <div class="phase-band-title">Phase 7 — Multi-Channel FIGSY: Voice Agent + WhatsApp + Partner Programme (all live by 31 May 2026)</div>
+
+  <!-- ── 7A: FIGSY VOICE AGENT ── -->
+  <div style="background:rgba(8,145,178,0.05);border:1.5px solid rgba(8,145,178,0.2);border-radius:18px;padding:24px 28px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#0891b2,#0066ff);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📞</div>
+      <div>
+        <div style="font-size:0.92rem;font-weight:900;color:#0c4a6e">FIGSY Voice Agent</div>
+        <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600">Vapi.ai · Claude Haiku · Twilio SA +27 · triggers 48h after Day 1 email with no reply detected</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="node n-grey node-wide">📧 Day 1 email sent by FIGSY</div>
+      <div class="down"></div>
+      <div class="node n-grey node-wide">⏳ 48 hours pass — FIGSY detects no reply</div>
+      <div class="down"></div>
+      <div class="node node-wide" style="background:rgba(8,145,178,0.08);border:1.5px solid rgba(8,145,178,0.3);color:#0c4a6e">
+        📞 FIGSY Voice Agent dials lead<br/>
+        <span style="font-weight:400;font-size:0.68rem">Twilio SA +27 number · displayed as client's business number · AI discloses itself at start</span>
+      </div>
+      <div class="down"></div>
+
+      <div class="diamond-wrap">
+        <div class="diamond" style="background:rgba(8,145,178,0.06);border-color:rgba(8,145,178,0.3)">
+          <div class="diamond-inner" style="color:#0c4a6e">Lead<br/>answers?</div>
+        </div>
+      </div>
+
+      <div class="outcomes outcomes-2" style="max-width:640px">
+
+        <!-- NO ANSWER branch -->
+        <div class="split-col">
+          <div class="branch-label bl-grey">No answer / voicemail</div>
+          <div class="down" style="height:8px"></div>
+          <div class="outcome oc-grey" style="text-align:left;padding:12px 14px">
+            <div style="font-weight:700;margin-bottom:6px">🔊 AI leaves personalised voicemail</div>
+            <div style="font-size:0.63rem;line-height:1.7;font-weight:400">
+              "Hi [Name], this is an AI agent calling on behalf of [Client Company]. We help businesses like yours [value prop]. I'll send you a quick email — no pressure."<br/><br/>
+              → Voicemail transcript stored in DB<br/>
+              → Day 4 email queued as normal
+            </div>
+          </div>
+        </div>
+
+        <!-- ANSWERS branch -->
+        <div class="split-col">
+          <div class="branch-label bl-blue">Lead answers</div>
+          <div class="down" style="height:8px"></div>
+          <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:0">
+            <div class="step" style="width:100%;border-color:rgba(8,145,178,0.25);color:#0c4a6e;font-size:0.72rem">
+              🗣️ <strong>AI intro</strong> — "Hi [Name], I'm FIGSY, an AI agent for [Company]. I'm reaching out because [personalised reason based on their role]."
+            </div>
+            <div class="down"></div>
+            <div class="step" style="width:100%;border-color:rgba(8,145,178,0.25);color:#0c4a6e;font-size:0.72rem">
+              📢 <strong>30-sec value pitch</strong> — personalised to lead's industry, company size, and role via Claude
+            </div>
+            <div class="down"></div>
+            <div class="step" style="width:100%;border-color:rgba(8,145,178,0.25);color:#0c4a6e;font-size:0.72rem">
+              🧠 <strong>Live objection handling</strong> — Claude processes response and generates reply in real-time via Vapi.ai
+            </div>
+            <div class="down"></div>
+
+            <div class="diamond-wrap">
+              <div class="diamond" style="width:110px;height:110px;background:rgba(8,145,178,0.06);border-color:rgba(8,145,178,0.3)">
+                <div class="diamond-inner" style="color:#0c4a6e;width:90px;font-size:0.66rem">Lead<br/>response?</div>
+              </div>
+            </div>
+
+            <div class="outcomes outcomes-3" style="width:100%">
+              <div class="split-col">
+                <div class="branch-label bl-green">Interested</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-green" style="font-size:0.65rem">
+                  ✅ 1 credit consumed<br/>
+                  📲 Booking link sent via SMS<br/>
+                  immediately after call<br/>
+                  Client alerted 🔔<br/>
+                  Lead marked qualified<br/>
+                  Call transcript saved
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="branch-label bl-amber">Not now</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-amber" style="font-size:0.65rem">
+                  ⏳ Polite exit<br/>
+                  "No problem, I'll follow up by email."<br/>
+                  No credits consumed<br/>
+                  Day 4 email still queued<br/>
+                  Call transcript saved
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="branch-label bl-red">Opt-out</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-red" style="font-size:0.65rem">
+                  ❌ "Understood, removing you now."<br/>
+                  Blocked permanently<br/>
+                  All channels stopped<br/>
+                  No credits consumed<br/>
+                  Added to blocklist
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;background:rgba(8,145,178,0.04);border-left:3px solid rgba(8,145,178,0.3);padding:10px 14px;border-radius:0 8px 8px 0;font-size:0.7rem;color:rgba(0,0,0,0.5);line-height:1.6">
+      <strong style="color:#0c4a6e">Tech stack:</strong> Vapi.ai manages the live call session &amp; voice streaming · Claude Haiku generates personalised responses in real-time · Twilio provides the SA +27 number shown to leads · full call transcript stored · AI identity disclosed at call start (POPIA compliant)
+    </div>
+  </div>
+
+  <!-- ── 7B: WHATSAPP OUTREACH ── -->
+  <div style="background:rgba(37,211,102,0.04);border:1.5px solid rgba(37,211,102,0.2);border-radius:18px;padding:24px 28px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#25d366,#059669);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💬</div>
+      <div>
+        <div style="font-size:0.92rem;font-weight:900;color:#065f46">FIGSY WhatsApp Agent</div>
+        <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600">WhatsApp Business API · Meta approved · fires Day 2 parallel to email sequence · Africa-first channel · 97%+ SA professionals use it for business</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="node n-grey node-wide">📧 Day 1 email sent by FIGSY</div>
+      <div class="arrow">↓<span class="arrow-label">Day 2 — parallel channel fires automatically</span></div>
+      <div class="node node-wide" style="background:rgba(37,211,102,0.1);border:1.5px solid rgba(37,211,102,0.35);color:#065f46;max-width:360px">
+        💬 FIGSY sends WhatsApp message<br/>
+        <span style="font-weight:400;font-size:0.68rem">Step 1: Approved Meta template (mandatory first message)<br/>Step 2: If they reply → free-form AI conversation begins<br/>Personalised to lead name, company, industry</span>
+      </div>
+      <div class="down"></div>
+
+      <div class="diamond-wrap">
+        <div class="diamond" style="background:rgba(37,211,102,0.07);border-color:rgba(37,211,102,0.35)">
+          <div class="diamond-inner" style="color:#065f46">Lead<br/>replies?</div>
+        </div>
+      </div>
+
+      <div class="outcomes outcomes-2" style="max-width:640px">
+
+        <!-- NO REPLY branch -->
+        <div class="split-col">
+          <div class="branch-label bl-grey">No reply on WhatsApp</div>
+          <div class="down" style="height:8px"></div>
+          <div class="outcome oc-grey" style="text-align:left;padding:12px 14px">
+            <div style="font-weight:700;margin-bottom:6px">⬛ WhatsApp thread closes silently</div>
+            <div style="font-size:0.63rem;line-height:1.7;font-weight:400">
+              No further WhatsApp messages sent<br/>
+              Email sequence continues as normal<br/>
+              Day 4 email queued · Day 9 queued<br/>
+              Voice call may still fire (48h after Day 1)
+            </div>
+          </div>
+        </div>
+
+        <!-- REPLIES branch -->
+        <div class="split-col">
+          <div class="branch-label bl-green">Lead replies on WhatsApp</div>
+          <div class="down" style="height:8px"></div>
+          <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:0">
+            <div class="step" style="width:100%;border-color:rgba(37,211,102,0.3);color:#065f46;font-size:0.72rem">
+              🤖 FIGSY reads reply · Claude classifies intent
+            </div>
+            <div class="down"></div>
+
+            <div class="outcomes outcomes-3" style="width:100%">
+              <div class="split-col">
+                <div class="branch-label bl-green">Interested</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-green" style="font-size:0.65rem">
+                  ✅ 1 credit consumed<br/>
+                  📲 Booking link sent<br/>
+                  in WhatsApp chat<br/>
+                  Email sequence paused<br/>
+                  Voice call cancelled<br/>
+                  Client alerted 🔔
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="branch-label bl-amber">Not now</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-amber" style="font-size:0.65rem">
+                  ⏳ Polite WA reply sent<br/>
+                  "No worries — I'll check back."<br/>
+                  No credits consumed<br/>
+                  Email sequence continues<br/>
+                  Day 4 email queued
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="branch-label bl-red">Opt-out</div>
+                <div class="down" style="height:6px"></div>
+                <div class="outcome oc-red" style="font-size:0.65rem">
+                  ❌ "Removing you now."<br/>
+                  All channels stopped<br/>
+                  Blocked permanently<br/>
+                  No credits consumed<br/>
+                  Added to blocklist
+                </div>
+              </div>
+            </div>
+
+            <div class="down"></div>
+            <div class="step" style="width:100%;border-color:rgba(37,211,102,0.2);color:#065f46;font-size:0.7rem;font-style:italic">
+              If conversation continues → FIGSY maintains free-form AI chat until booking or opt-out
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;background:rgba(37,211,102,0.04);border-left:3px solid rgba(37,211,102,0.3);padding:10px 14px;border-radius:0 8px 8px 0;font-size:0.7rem;color:rgba(0,0,0,0.5);line-height:1.6">
+      <strong style="color:#065f46">Why WhatsApp first in Africa:</strong> 97%+ of South African professionals use WhatsApp for business daily. Open rates are 5× higher than email. Read receipts confirm delivery. FIGSY treats WhatsApp as a live conversation — reply-aware, two-way, booking-ready in-thread.
+    </div>
+  </div>
+
+  <!-- ── 7C: PARTNER / RESELLER PROGRAMME ── -->
+  <div style="background:rgba(217,119,6,0.04);border:1.5px solid rgba(217,119,6,0.2);border-radius:18px;padding:24px 28px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🤝</div>
+      <div>
+        <div style="font-size:0.92rem;font-weight:900;color:#92400e">Partner / Reseller Programme</div>
+        <div style="font-size:0.63rem;color:rgba(0,0,0,0.4);font-weight:600">$100 credits per referred client who runs first ICP · partner dashboard · white-label option for agencies</div>
+      </div>
+    </div>
+
+    <div class="split-2" style="gap:20px;align-items:start">
+
+      <!-- referral flow -->
+      <div class="flow">
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,0,0,0.3);margin-bottom:14px;text-align:center">Referral flow</div>
+        <div class="node node-wide" style="background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.25);color:#92400e">
+          🔗 Partner shares unique referral link<br/>
+          <span style="font-weight:400;font-size:0.68rem">get-kind.com?ref=[partner_id]</span>
+        </div>
+        <div class="down"></div>
+        <div class="node node-wide" style="background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.25);color:#92400e">
+          🆕 Referred client signs up + completes onboarding
+        </div>
+        <div class="down"></div>
+        <div class="node node-wide" style="background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.25);color:#92400e">
+          ▶️ Referred client runs first ICP (lead gen job)
+        </div>
+        <div class="down"></div>
+        <div class="outcomes outcomes-2" style="max-width:420px">
+          <div class="split-col">
+            <div class="outcome oc-amber" style="font-size:0.67rem;text-align:center">
+              🎁 <strong>Referred client</strong><br/>+100 credits added automatically
+            </div>
+          </div>
+          <div class="split-col">
+            <div class="outcome oc-amber" style="font-size:0.67rem;text-align:center">
+              💰 <strong>Partner</strong><br/>+100 credits added automatically
+            </div>
+          </div>
+        </div>
+        <div class="down"></div>
+        <div class="node n-grey node-wide" style="font-size:0.72rem">
+          📧 Partner gets email notification when referral activates
+        </div>
+      </div>
+
+      <!-- partner dashboard + reseller -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,0,0,0.3);margin-bottom:2px">Partner dashboard</div>
+        <div style="background:var(--light);border-radius:14px;padding:16px 18px">
+          <div style="font-size:0.72rem;color:rgba(0,0,0,0.6);line-height:2">
+            📊 All referred clients + their status visible<br/>
+            💰 Credits earned per referral tracked<br/>
+            🔗 Unique referral link shown on dashboard<br/>
+            📧 Notification on each new referral activation<br/>
+            📈 Referred client MRR visible to partner
+          </div>
+        </div>
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,0,0,0.3);margin-bottom:2px">White-label / reseller mode</div>
+        <div style="background:var(--light);border-radius:14px;padding:16px 18px">
+          <div style="font-size:0.72rem;color:rgba(0,0,0,0.6);line-height:2">
+            🏷️ Portal shows partner's own logo + branding<br/>
+            📧 Emails sent from partner's domain<br/>
+            💼 Client sees partner's product — not K.I.N.D<br/>
+            🤝 Partner sets their own pricing on top of K.I.N.D cost<br/>
+            🔐 Full client data isolation between resellers
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div style="text-align:center;margin-top:48px;font-size:0.72rem;color:rgba(0,0,0,0.25)">
+  K.I.N.D — get-kind.com · hello@get-kind.com · Updated 14 May 2026
+</div>
+
+</body>
+</html>

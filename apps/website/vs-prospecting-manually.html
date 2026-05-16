@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIGSY vs Prospecting Manually — K.I.N.D</title>
+  <meta name="description" content="Manual prospecting kills 15+ hours a week. K.I.N.D automates ICP matching, outreach, and follow-up so your team focuses on closing." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #0066FF;
+      --dark: #0a0a0a;
+      --mid: #444;
+      --light: #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+
+    /* NAV DROPDOWNS */
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+      z-index: 300; transition: opacity .15s, visibility .15s;
+    }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+
+    /* PAGE HERO */
+    .page-hero {
+      max-width: 1080px; margin: 0 auto;
+      padding: 88px 48px 80px;
+      text-align: center;
+    }
+    .hero-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 24px;
+      background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.15);
+      padding: 6px 14px; border-radius: 100px;
+    }
+    .page-hero h1 {
+      font-size: clamp(2.4rem, 5vw, 4.2rem);
+      font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
+      color: var(--dark); margin-bottom: 24px;
+    }
+    .page-hero-sub {
+      font-size: 1.1rem; color: rgba(0,0,0,0.45);
+      max-width: 680px; margin: 0 auto 36px; line-height: 1.7;
+    }
+    .btn-primary {
+      display: inline-block; background: var(--dark); color: #fff;
+      font-size: 0.95rem; font-weight: 600; padding: 14px 32px;
+      border-radius: 100px; border: none; cursor: pointer; transition: opacity .2s; text-decoration: none;
+    }
+    .btn-primary:hover { opacity: 0.8; }
+
+    /* SECTION BASE */
+    .section { max-width: 1080px; margin: 0 auto; padding: 80px 48px; }
+    .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
+    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
+    .s-title { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
+    .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 48px; }
+
+    /* STATS STRIP */
+    .stats-strip { background: var(--light); padding: 64px 48px; }
+    .stats-inner { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+    .stat { padding: 40px 32px; text-align: center; background: #fff; }
+    .stat:first-child { border-radius: 20px 0 0 20px; }
+    .stat:last-child { border-radius: 0 20px 20px 0; }
+    .stat-num { font-size: 3rem; font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1; margin-bottom: 10px; }
+    .stat-num span { color: var(--blue); }
+    .stat-label { font-size: 0.82rem; color: rgba(0,0,0,0.4); line-height: 1.5; max-width: 200px; margin: 0 auto; }
+
+    /* COMPARISON TABLE */
+    .table-wrap {
+      overflow-x: auto; border-radius: 20px;
+      border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    thead th {
+      padding: 20px 24px; text-align: left;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      border-bottom: 1px solid var(--border); background: var(--light);
+    }
+    thead th:first-child { color: rgba(0,0,0,0.35); width: 32%; }
+    thead th.col-kind { background: rgba(0,102,255,0.07); color: var(--blue); border-bottom: 2px solid rgba(0,102,255,0.2); }
+    thead th.col-other { color: rgba(0,0,0,0.4); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(0,0,0,0.013); }
+    tbody td { padding: 16px 24px; vertical-align: middle; font-size: 0.88rem; }
+    tbody td:first-child { font-weight: 600; color: rgba(0,0,0,0.5); font-size: 0.85rem; }
+    tbody td.col-kind { background: rgba(0,102,255,0.03); font-weight: 600; color: var(--dark); }
+    tbody td.col-other { color: var(--mid); }
+    .win { color: #059669; font-weight: 800; margin-right: 5px; }
+    .loss { color: #dc2626; font-weight: 700; margin-right: 5px; }
+    .neutral { color: rgba(0,0,0,0.28); margin-right: 5px; }
+
+    /* PAIN SECTION */
+    .pain-section { background: var(--dark); padding: 80px 48px; }
+    .pain-inner { max-width: 1080px; margin: 0 auto; }
+    .pain-inner .s-label { color: #60a5fa; }
+    .pain-inner .s-title { color: #fff; margin-bottom: 48px; }
+    .pain-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .pain-item {
+      display: flex; gap: 20px; align-items: flex-start;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 28px 24px;
+    }
+    .pain-num {
+      font-size: 1.6rem; font-weight: 900; letter-spacing: -0.04em;
+      color: rgba(255,255,255,0.12); line-height: 1; flex-shrink: 0; min-width: 36px;
+    }
+    .pain-item p { font-size: 0.92rem; font-weight: 500; color: rgba(255,255,255,0.7); line-height: 1.6; }
+
+    /* CTA BANNER */
+    .cta-section { padding: 80px 48px 100px; }
+    .cta-inner { max-width: 1080px; margin: 0 auto; }
+    .cta-banner {
+      background: var(--dark); border-radius: 32px; padding: 80px 64px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-banner::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 14px; position: relative; }
+    .cta-banner p { font-size: 0.9rem; color: rgba(255,255,255,0.38); margin-bottom: 36px; position: relative; }
+    .btn-cta { display: inline-block; background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer; transition: opacity .2s; text-decoration: none; position: relative; }
+    .btn-cta:hover { opacity: 0.88; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
+    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
+    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
+    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
+    .footer-col a:hover { color: var(--dark); }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-legal { display: flex; gap: 20px; }
+    .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
+    .footer-legal a:hover { color: var(--dark); }
+
+    /* SCROLL REVEAL */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1); }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .page-hero { padding: 56px 24px 48px; }
+      .section { padding: 56px 24px; }
+      .stats-strip { padding: 48px 24px; }
+      .stats-inner { grid-template-columns: 1fr; gap: 2px; }
+      .stat:first-child { border-radius: 20px 20px 0 0; }
+      .stat:last-child { border-radius: 0 0 20px 20px; }
+      .pain-section, .cta-section { padding: 56px 24px; }
+      .cta-section { padding-bottom: 72px; }
+      .cta-banner { padding: 48px 28px; }
+      .pain-list { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+    @media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="/#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="/#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">K.I.N.D AI — Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
+        <a href="/#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="/#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">🤝</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+    <a href="trust.html" class="nav-link">Trust &amp; Security</a>
+    <a href="partners.html" class="nav-link">Partners</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="hero-label">Comparison</div>
+  <h1>FIGSY vs Prospecting Manually</h1>
+  <p class="page-hero-sub">Manual prospecting burns 15 hours a week on LinkedIn searches, copy-paste emails, and chasing cold leads. K.I.N.D automates the entire top of funnel — so you only talk to people who want to talk.</p>
+  <a href="https://app.get-kind.com/signup" class="btn-primary">Start free →</a>
+</div>
+
+<div class="divider"></div>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat reveal">
+      <div class="stat-num">15 <span>hrs</span></div>
+      <div class="stat-label">Average time spent prospecting manually each week — LinkedIn, email, follow-up</div>
+    </div>
+    <div class="stat reveal reveal-delay-1">
+      <div class="stat-num">2–<span>3%</span></div>
+      <div class="stat-label">Average cold email reply rate for manual outreach</div>
+    </div>
+    <div class="stat reveal reveal-delay-2">
+      <div class="stat-num"><span>R 0</span></div>
+      <div class="stat-label">What you pay per lead with K.I.N.D free trial</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- COMPARISON TABLE -->
+<div class="section">
+  <div class="s-label reveal">Side by side</div>
+  <div class="s-title reveal">Automated vs manual</div>
+  <p class="s-sub reveal">The same outcomes — one takes 15 hours a week, the other runs while you sleep.</p>
+  <div class="table-wrap reveal">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th class="col-kind">K.I.N.D</th>
+          <th class="col-other">Manual</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Lead sourcing</td>
+          <td class="col-kind"><span class="win">✓</span>Automated ICP matching</td>
+          <td class="col-other"><span class="loss">✕</span>Hours of LinkedIn searching</td>
+        </tr>
+        <tr>
+          <td>Email writing</td>
+          <td class="col-kind"><span class="win">✓</span>AI-personalised per lead</td>
+          <td class="col-other"><span class="loss">✕</span>You write every email</td>
+        </tr>
+        <tr>
+          <td>Follow-up</td>
+          <td class="col-kind"><span class="win">✓</span>Automated multi-step</td>
+          <td class="col-other"><span class="loss">✕</span>You remember or forget</td>
+        </tr>
+        <tr>
+          <td>Volume</td>
+          <td class="col-kind"><span class="win">✓</span>500+ emails/day</td>
+          <td class="col-other"><span class="neutral">—</span>20–30 if you're lucky</td>
+        </tr>
+        <tr>
+          <td>Consistency</td>
+          <td class="col-kind"><span class="win">✓</span>Every lead touched</td>
+          <td class="col-other"><span class="loss">✕</span>Falls off after 1–2 tries</td>
+        </tr>
+        <tr>
+          <td>Time cost</td>
+          <td class="col-kind"><span class="win">✓</span>Near-zero</td>
+          <td class="col-other"><span class="loss">✕</span>15+ hrs/week</td>
+        </tr>
+        <tr>
+          <td>Scalability</td>
+          <td class="col-kind"><span class="win">✓</span>Instant</td>
+          <td class="col-other"><span class="loss">✕</span>Hire more people</td>
+        </tr>
+        <tr>
+          <td>Data quality</td>
+          <td class="col-kind"><span class="win">✓</span>Verified email + mobile</td>
+          <td class="col-other"><span class="loss">✕</span>Copy-pasted, often stale</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- PAIN SECTION -->
+<div class="pain-section">
+  <div class="pain-inner">
+    <div class="s-label">The real cost</div>
+    <div class="s-title reveal">What manual prospecting actually costs you</div>
+    <div class="pain-list">
+      <div class="pain-item reveal">
+        <div class="pain-num">01</div>
+        <p>Every hour spent prospecting is an hour not spent closing.</p>
+      </div>
+      <div class="pain-item reveal reveal-delay-1">
+        <div class="pain-num">02</div>
+        <p>Copy-paste errors, missed follow-ups, inconsistent messaging.</p>
+      </div>
+      <div class="pain-item reveal reveal-delay-2">
+        <div class="pain-num">03</div>
+        <p>You stop when you're busy — your pipeline dries up 60 days later.</p>
+      </div>
+      <div class="pain-item reveal reveal-delay-3">
+        <div class="pain-num">04</div>
+        <p>No data. No tracking. No insight on what's working.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-banner">
+      <h2>Automate your top of funnel.<br/>Focus on closing.</h2>
+      <p>Full access free trial — no credit card required</p>
+      <a href="https://app.get-kind.com/signup" class="btn-cta">Start free →</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <div class="logo-icon">⚡</div>
+          <span class="logo-text">K.I.N.D</span>
+        </a>
+        <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation for ambitious businesses.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Products</h4>
+        <a href="/#products">K.I.N.D AI — Lead Gen</a>
+        <a href="/#figsy">FIGSY — AI SDR</a>
+        <a href="https://tally.so/r/kind-waitlist">Virtual Assistant</a>
+        <a href="https://tally.so/r/kind-waitlist">Chatbot Agent</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About K.I.N.D</a>
+        <a href="use-cases.html">Use Cases</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="trust.html">Trust &amp; Security</a>
+        <a href="partners.html">Partners</a>
+      </div>
+      <div class="footer-col">
+        <h4>Get in touch</h4>
+        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo">Book a Demo</a>
+        <a href="https://app.get-kind.com/login">Client login</a>
+        <a href="support.html">Support</a>
+      </div>
+      <div class="footer-col">
+        <h4>Compare</h4>
+        <a href="vs-apollo.html">K.I.N.D vs Apollo</a>
+        <a href="vs-outreach.html">K.I.N.D vs Outreach</a>
+        <a href="vs-salesloft.html">K.I.N.D vs Salesloft</a>
+        <a href="vs-prospecting-manually.html">vs Manual Prospecting</a>
+        <a href="vs-hiring-an-sdr.html">vs Hiring an SDR</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 K.I.N.D. All rights reserved.</p>
+      <div class="footer-legal">
+        <a href="https://app.get-kind.com/terms">Terms of Service</a>
+        <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
+        <a href="about.html#compliance">POPIA &amp; GDPR</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open') })
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open') }, 200) })
+  })
+  var revealObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) { entry.target.classList.add('visible'); revealObserver.unobserve(entry.target) }
+    })
+  }, { threshold: 0.1 })
+  document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el) })
+</script>
+</body>
+</html>

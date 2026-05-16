@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D vs Salesloft — The Efficient Alternative</title>
+  <meta name="description" content="Salesloft costs $75–$125/user/month with annual contracts and no free trial. K.I.N.D gets you qualified leads in 10 minutes from $20/month with no team, no contract, and POPIA compliance built in." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #0066FF;
+      --dark: #0a0a0a;
+      --mid: #444;
+      --light: #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+      --green: #059669;
+      --red: #dc2626;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+      z-index: 300; transition: opacity .15s, visibility .15s;
+    }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+
+    /* SHARED */
+    .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
+    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
+    .s-title { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
+    .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
+    .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
+
+    /* HERO */
+    .page-hero {
+      background: var(--dark); padding: 100px 48px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .page-hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.18) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .page-hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #60a5fa; margin-bottom: 24px;
+      background: rgba(0,102,255,0.1); border: 1px solid rgba(0,102,255,0.2);
+      padding: 6px 14px; border-radius: 100px;
+    }
+    .page-hero h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: #fff; margin-bottom: 20px; }
+    .page-hero h1 span { color: #60a5fa; }
+    .page-hero p { font-size: 1.1rem; color: rgba(255,255,255,0.45); max-width: 600px; margin: 0 auto; line-height: 1.75; }
+
+    /* TRUST STRIP */
+    .trust-strip {
+      background: var(--light); border-bottom: 1px solid var(--border);
+      padding: 16px 48px; display: flex; align-items: center; justify-content: center;
+      gap: 32px; flex-wrap: wrap;
+    }
+    .trust-item { font-size: 0.78rem; color: rgba(0,0,0,0.5); display: flex; align-items: center; gap: 6px; }
+    .trust-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+    /* REASONS GRID */
+    .reasons-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .reason-card {
+      background: var(--light); border-radius: 20px; padding: 32px 28px;
+      position: relative; overflow: hidden;
+    }
+    .reason-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--blue), rgba(0,102,255,0.3));
+    }
+    .reason-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 12px; }
+    .reason-card h3 { font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 10px; }
+    .reason-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
+    .apollo-vs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .pill-bad { font-size: 0.75rem; color: var(--red); background: rgba(220,38,38,0.07); border: 1px solid rgba(220,38,38,0.15); padding: 3px 10px; border-radius: 100px; }
+    .pill-good { font-size: 0.75rem; color: var(--green); background: rgba(5,150,105,0.07); border: 1px solid rgba(5,150,105,0.15); padding: 3px 10px; border-radius: 100px; }
+
+    /* TABLE SECTION */
+    .table-section { background: var(--dark); padding: 100px 48px; }
+    .table-inner { max-width: 1080px; margin: 0 auto; }
+    .table-section .s-label { color: #60a5fa; }
+    .table-section .s-title { color: #fff; }
+    .table-section .s-sub { color: rgba(255,255,255,0.4); }
+    .table-wrap { overflow-x: auto; margin-top: 40px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { padding: 14px 20px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; }
+    thead th:first-child { color: rgba(255,255,255,0.3); }
+    thead th.col-apollo { color: #f87171; }
+    thead th.col-kind { color: #34d399; }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 14px 20px; font-size: 0.85rem; vertical-align: middle; }
+    tbody td:first-child { font-weight: 600; color: rgba(255,255,255,0.7); }
+    tbody td.col-apollo { color: rgba(255,255,255,0.4); }
+    tbody td.col-kind { color: rgba(255,255,255,0.9); }
+    .check { color: #34d399; font-weight: 800; }
+    .cross { color: #f87171; font-weight: 800; }
+    .partial { color: #fbbf24; font-weight: 800; }
+
+    /* PRICING COMPARE */
+    .pricing-compare { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 40px; }
+    .price-card { border-radius: 20px; padding: 32px; }
+    .price-card.them { border: 1.5px solid rgba(220,38,38,0.2); background: rgba(220,38,38,0.03); }
+    .price-card.us { border: 1.5px solid rgba(5,150,105,0.2); background: rgba(5,150,105,0.03); }
+    .price-card-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
+    .price-card.them .price-card-label { color: var(--red); }
+    .price-card.us .price-card-label { color: var(--green); }
+    .price-card h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: 10px; }
+    .big-price { font-size: 2.2rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 8px; }
+    .price-card.them .big-price { color: var(--red); }
+    .price-card.us .big-price { color: var(--green); }
+    .price-card > p { font-size: 0.83rem; color: rgba(0,0,0,0.45); line-height: 1.6; margin-bottom: 16px; }
+    .price-card ul { list-style: none; }
+    .price-card ul li { font-size: 0.82rem; color: rgba(0,0,0,0.55); padding: 5px 0; display: flex; gap: 8px; align-items: flex-start; }
+    .price-card.them ul li::before { content: "✕"; color: var(--red); font-weight: 800; flex-shrink: 0; }
+    .price-card.us ul li::before { content: "✓"; color: var(--green); font-weight: 800; flex-shrink: 0; }
+
+    /* CTA */
+    .cta-section { padding: 80px 48px 120px; }
+    .cta-inner { max-width: 1080px; margin: 0 auto; }
+    .cta-banner {
+      background: var(--dark); border-radius: 32px; padding: 80px 64px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-banner::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .cta-banner h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 14px; }
+    .cta-banner p { font-size: 1rem; color: rgba(255,255,255,0.38); margin-bottom: 36px; }
+    .btn-cta-primary { background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer; transition: opacity .2s; text-decoration: none; display: inline-block; }
+    .btn-cta-primary:hover { opacity: 0.88; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
+    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
+    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
+    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
+    .footer-col a:hover { color: var(--dark); }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-legal { display: flex; gap: 20px; }
+    .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
+    .footer-legal a:hover { color: var(--dark); }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .page-hero { padding: 64px 24px; }
+      .section { padding: 64px 24px; }
+      .table-section { padding: 64px 24px; }
+      .trust-strip { padding: 16px 24px; gap: 16px; }
+      .reasons-grid, .pricing-compare { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 64px 24px; }
+      .cta-banner { padding: 48px 28px; }
+      table { font-size: 0.78rem; }
+      thead th, tbody td { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">&#9889;</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="index.html#products" class="nav-link">Products <span class="chevron">&#9662;</span></a>
+      <div class="nav-dropdown">
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">&#127919;</span><span><span class="dd-title">K.I.N.D AI &#8212; Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
+        <a href="index.html#figsy" class="dd-link"><span class="dd-icon">&#129302;</span><span><span class="dd-title">FIGSY &#8212; AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">&#129504;</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="index.html#products" class="dd-link"><span class="dd-icon">&#128172;</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot &#8212; one embed away</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#9662;</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">&#128202;</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">&#127974;</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="support.html" class="nav-link">Resources <span class="chevron">&#9662;</span></a>
+      <div class="nav-dropdown">
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#128214;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">&#128663;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">&#9662;</span></a>
+      <div class="nav-dropdown">
+        <a href="about.html" class="dd-link"><span class="dd-icon">&#127962;</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">🤝</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+    <a href="trust.html" class="nav-link">Trust &amp; Security</a>
+    <a href="partners.html" class="nav-link">Partners</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="hero-badge">&#128161; The Efficient Alternative</div>
+    <h1>K.I.N.D vs<br/><span>Salesloft</span></h1>
+    <p>Salesloft is a category leader &#8212; for US enterprise teams with dedicated RevOps. K.I.N.D is for ambitious businesses that want results without the overhead.</p>
+  </div>
+</div>
+
+<!-- TRUST STRIP -->
+<div class="trust-strip">
+  <div class="trust-item"><div class="trust-dot"></div>No annual contract</div>
+  <div class="trust-item"><div class="trust-dot"></div>Free 14-day trial</div>
+  <div class="trust-item"><div class="trust-dot"></div>POPIA compliant</div>
+  <div class="trust-item"><div class="trust-dot"></div>From $20 / R380/month</div>
+  <div class="trust-item"><div class="trust-dot"></div>USD &amp; ZAR billing</div>
+  <div class="trust-item"><div class="trust-dot"></div>No sales team needed</div>
+</div>
+
+<!-- 8 REASONS -->
+<div class="section">
+  <div class="s-label">7 reasons to switch</div>
+  <div class="s-title">Results without the overhead.</div>
+  <p class="s-sub">Salesloft is a premium enterprise sales engagement platform. K.I.N.D is the alternative for teams that want the results &#8212; pipeline, meetings, qualified leads &#8212; without the enterprise overhead, the contracts, or the training investment.</p>
+  <div class="reasons-grid">
+    <div class="reason-card">
+      <div class="reason-num">01</div>
+      <h3>FIGSY runs itself</h3>
+      <p>Salesloft is designed to be operated by trained sales development reps. Sequences, cadences, and playbooks all need human configuration and oversight. FIGSY is the SDR &#8212; it sources leads, writes emails, handles replies, and books meetings autonomously.</p>
+      <div class="apollo-vs">
+        <span class="pill-bad">Salesloft: needs a sales team to drive it</span>
+        <span class="pill-good">K.I.N.D: FIGSY replaces the SDR role</span>
+      </div>
+    </div>
+    <div class="reason-card">
+      <div class="reason-num">02</div>
+      <h3>10x cheaper</h3>
+      <p>Salesloft costs $75&#8211;$125 per user per month with annual billing. For a typical 5-person team, that is $4,500&#8211;$7,500 per year locked in. K.I.N.D is $20/month total &#8212; no minimum seats, no annual lock-in.</p>
+      <div class="apollo-vs">
+        <span class="pill-bad">Salesloft: $75+/user, annual contract</span>
+        <span class="pill-good">K.I.N.D: from $20/mo total</span>
+      </div>
+    </div>
+    <div class="reason-card">
+      <div class="reason-num">03</div>
+      <h3>POPIA built-in</h3>
+      <p>Salesloft has no POPIA compliance framework and hosts data in US/EU data centres. For South African and African businesses, this is a legal exposure. K.I.N.D is POPIA-native: opt-out on every email, permanent blocklist, consent records, and data hosted at af-south-1 in Cape Town.</p>
+      <div class="apollo-vs">
+        <span class="pill-bad">Salesloft: no POPIA framework</span>
+        <span class="pill-good">K.I.N.D: POPIA built-in, Cape Town hosted</span>
+      </div>
+    </div>
+    <div class="reason-card">
+      <div class="reason-num">04</div>
+      <h3>No enterprise implementation</h3>
+      <p>Salesloft requires complex implementation, CRM integration, team training, and weeks of configuration before outreach begins. K.I.N.D starts in 10 minutes &#8212; connect your email, describe your ICP, and FIGSY begins reaching out immediately.</p>
+      <div class="apollo-vs">
+        <span class="pill-bad">Salesloft: complex enterprise implementation</span>
+        <span class="pill-good">K.I.N.D: starts in 10 minutes</span>
+      </div>
+    </div>
+    <div class="reason-card">
+      <div class="reason-num">05</div>
+      <h3>Africa-first</h3>
+      <p>Salesloft is built for US and EU enterprise. African market data, local compliance, and African business context are not considerations in the product. K.I.N.D was built Africa-first and works just as effectively for US and UK clients who want Africa-grade data governance.</p>
+      <div class="apollo-vs">
+        <span class="pill-bad">Salesloft: US/EU focused</span>
+        <span class="pill-good">K.I.N.D: Africa-first, works globally</span>
+      </div>
+    </div>
+    <div class="reason-card">
+      <div class="reason-num">06</div>
+      <h3>Pay per result</h3>
+      <p>Salesloft's annual contract means you pay whether your pipeline grows or not. K.I.N.D is credit-based: a credit is consumed only when a prospect replies positively to outreach. If no one engages, you pay nothing beyond your initial bundle.</p>
+      <div class="apollo-vs">
+        <span class="pill-bad">Salesloft: flat monthly regardless</span>
+        <span class="pill-good">K.I.N.D: credits consumed only on positive reply</span>
+      </div>
+    </div>
+    <div class="reason-card">
+      <div class="reason-num">07</div>
+      <h3>Free trial, no annual lock-in</h3>
+      <p>Salesloft has no free trial and requires an annual contract on all meaningful plans. K.I.N.D offers a 14-day free trial with no credit card required &#8212; cancel anytime, no penalties, no questions asked.</p>
+      <div class="apollo-vs">
+        <span class="pill-bad">Salesloft: no free trial, annual contract</span>
+        <span class="pill-good">K.I.N.D: free trial, cancel anytime</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FULL TABLE -->
+<div class="table-section">
+  <div class="table-inner">
+    <div class="s-label">Feature comparison</div>
+    <div class="s-title">Every feature, head to head.</div>
+    <p class="s-sub">A direct comparison between Salesloft and K.I.N.D for teams that want results without the enterprise sales infrastructure.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="col-apollo">Salesloft</th>
+            <th class="col-kind">K.I.N.D</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Starting price</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> $75&#8211;$125/user/month</td>
+            <td class="col-kind"><span class="check">&#10003;</span> From $20 / R380/month</td>
+          </tr>
+          <tr>
+            <td>Annual contract</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> Annual contract required</td>
+            <td class="col-kind"><span class="check">&#10003;</span> No contract &#8212; cancel anytime</td>
+          </tr>
+          <tr>
+            <td>POPIA compliant</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> No POPIA framework</td>
+            <td class="col-kind"><span class="check">&#10003;</span> Built-in: opt-out, blocklist, consent records</td>
+          </tr>
+          <tr>
+            <td>Africa coverage</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> US/EU centric, no Africa focus</td>
+            <td class="col-kind"><span class="check">&#10003;</span> Africa-first &#8212; SA, NG, KE, GH markets</td>
+          </tr>
+          <tr>
+            <td>Implementation time</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> Complex implementation, weeks of setup</td>
+            <td class="col-kind"><span class="check">&#10003;</span> 10 minutes to first outreach</td>
+          </tr>
+          <tr>
+            <td>AI-generated emails</td>
+            <td class="col-apollo"><span class="partial">&#126;</span> Template cadences with variable tokens</td>
+            <td class="col-kind"><span class="check">&#10003;</span> Claude AI writes unique emails per contact</td>
+          </tr>
+          <tr>
+            <td>Requires SDR team</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> Yes &#8212; built for trained sales teams</td>
+            <td class="col-kind"><span class="check">&#10003;</span> No &#8212; FIGSY is the SDR</td>
+          </tr>
+          <tr>
+            <td>Free trial</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> No free trial available</td>
+            <td class="col-kind"><span class="check">&#10003;</span> 14-day free trial, no card required</td>
+          </tr>
+          <tr>
+            <td>Data location</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> US/EU data centres only</td>
+            <td class="col-kind"><span class="check">&#10003;</span> Cape Town, af-south-1</td>
+          </tr>
+          <tr>
+            <td>Billing currency</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> USD only</td>
+            <td class="col-kind"><span class="check">&#10003;</span> ZAR via Paystack or USD via Stripe</td>
+          </tr>
+          <tr>
+            <td>Per-result pricing</td>
+            <td class="col-apollo"><span class="cross">&#10005;</span> Flat annual fee regardless of results</td>
+            <td class="col-kind"><span class="check">&#10003;</span> Credits consumed only on positive reply</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING COMPARE -->
+<div class="section">
+  <div class="s-label">Pricing</div>
+  <div class="s-title">The cost difference is clear.</div>
+  <p class="s-sub">Salesloft at $75/user/month for 5 users is $4,500+/year before a single lead is generated. K.I.N.D starts at $20/month and you only pay for positive replies &#8212; no results, no spend.</p>
+  <div class="pricing-compare">
+    <div class="price-card them">
+      <div class="price-card-label">Salesloft</div>
+      <h3>Typical 5-user team</h3>
+      <div class="big-price">$375+/mo</div>
+      <p>$4,500+/year minimum. Annual contract. No trial. Requires trained sales team. No POPIA, no Africa data. USD billing only.</p>
+      <ul>
+        <li>$75&#8211;$125 per user/month</li>
+        <li>5+ users typical, annual billing</li>
+        <li>No free trial available</li>
+        <li>Requires trained SDR team to operate</li>
+        <li>No POPIA framework</li>
+        <li>US/EU data centres only</li>
+        <li>USD billing only</li>
+      </ul>
+    </div>
+    <div class="price-card us">
+      <div class="price-card-label">K.I.N.D</div>
+      <h3>Starter Plan</h3>
+      <div class="big-price">$20/mo</div>
+      <p>&#8764;R380/month. No annual commitment. FIGSY handles outreach autonomously. Pay only on positive replies. ZAR or USD billing.</p>
+      <ul>
+        <li>From $20/month, no team needed</li>
+        <li>No annual contract, cancel anytime</li>
+        <li>14-day free trial, no card required</li>
+        <li>FIGSY AI replaces the SDR role</li>
+        <li>POPIA + GDPR + CAN-SPAM built-in</li>
+        <li>Cape Town hosted (af-south-1)</li>
+        <li>ZAR via Paystack or USD via Stripe</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-banner">
+      <h2>Get your first leads in 10 minutes.</h2>
+      <p>14 days free. No annual contract. No sales team required. POPIA compliant from day one.</p>
+      <a href="https://app.get-kind.com/signup" class="btn-cta-primary">Get your first leads in 10 minutes &#8594;</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <div class="logo-icon">&#9889;</div>
+          <span class="logo-text">K.I.N.D</span>
+        </a>
+        <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation for ambitious businesses.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Products</h4>
+        <a href="index.html#products">K.I.N.D AI &#8212; Lead Gen</a>
+        <a href="index.html#figsy">FIGSY &#8212; AI SDR</a>
+        <a href="https://tally.so/r/kind-waitlist">Virtual Assistant</a>
+        <a href="https://tally.so/r/kind-waitlist">Chatbot Agent</a>
+      </div>
+      <div class="footer-col">
+        <h4>Compare</h4>
+        <a href="vs-hiring-an-sdr.html">vs Hiring an SDR</a>
+        <a href="vs-prospecting-manually.html">vs Manual Prospecting</a>
+        <a href="vs-apollo.html">vs Apollo.io</a>
+        <a href="vs-outreach.html">vs Outreach.io</a>
+        <a href="vs-salesloft.html">vs Salesloft</a>
+      </div>
+      <div class="footer-col">
+        <h4>Get in touch</h4>
+        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo">Book a Demo</a>
+        <a href="https://app.get-kind.com/login">Client login</a>
+        <a href="support.html">Support</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&#169; 2026 K.I.N.D. All rights reserved.</p>
+      <div class="footer-legal">
+        <a href="https://app.get-kind.com/terms">Terms of Service</a>
+        <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
+        <a href="trust.html">POPIA &amp; GDPR</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open') })
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open') }, 200) })
+  })
+</script>
+</body>
+</html>

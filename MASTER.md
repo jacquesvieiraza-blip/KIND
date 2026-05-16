@@ -1,6 +1,6 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 15 May 2026**
-**Launch date: 31 May 2026 · Days remaining: 16**
+**Single source of truth. Last updated: 16 May 2026**
+**Launch date: 31 May 2026 · Days remaining: 15**
 
 > Everything in one place. Roadmap, status, cashflow, SOPs, client flow, expansion plan, pending actions.
 > Branch: `claude/ai-business-roadmap-U3OWJ` → merge to main before launch.
@@ -104,6 +104,17 @@
 | Zero-credits warning cron | Day 1/4/7 escalation emails |
 | Onboarding checklist | 4-step tracker, disappears when complete |
 
+### Voice, WhatsApp & Calendar (Built — needs credentials to activate)
+| Item | Notes |
+|---|---|
+| Voice Agent (Vapi.ai) | `apps/api/src/lib/vapi.ts` + `routes/voice.ts` — FIGSY places calls on day 4. Gated: if no VAPI_API_KEY, skips gracefully |
+| DB migration 006 | `figsy_calls` table — tracks all calls, status, outcome, transcript |
+| WhatsApp (Vida inbound) | `apps/api/src/lib/whatsapp.ts` + `routes/whatsapp.ts` — Vida responds to inbound messages. Gated: if no WHATSAPP_TOKEN, skips |
+| Google Calendar | `apps/api/src/lib/gcal.ts` + `routes/calendar.ts` — OAuth connect, free slot detection, meeting booking. Gated: if no GOOGLE_CLIENT_ID, skips |
+| DB migration 007 | `calendar_bookings` table + calendar token columns on clients |
+| Settings page integrations | Calendar connect button, WhatsApp status, Voice status — all with setup guidance |
+| Admin Launch checklist | `admin.get-kind.com/launch` — 10-section interactive checklist, 50+ items, all steps to go live |
+
 ### Internal Agents (Founder Tooling)
 | Agent | Endpoint | What it does |
 |---|---|---|
@@ -163,13 +174,13 @@
 
 ## 4. WHAT'S BLOCKED (NEEDS YOUR ACTION)
 
-| Item | Blocked by |
-|---|---|
-| Voice agent (FIGSY calls — Day 4 follow-up) | Vapi.ai account + Twilio SA +27 number |
-| WhatsApp outreach channel | Meta Business API approval (3–7 days) |
-| F2-1: Google Calendar (FIGSY books meetings) | Google OAuth credentials |
-| VA product (Milla) | Vector DB decision (Supabase pgvector vs Pinecone) + July build slot |
-| Chatbot product (Vida) | Same as VA |
+| Item | Blocked by | Code status |
+|---|---|---|
+| Voice agent (FIGSY calls — Day 4 follow-up) | Vapi.ai account + Twilio SA +27 number | **Built** — add 4 env vars to activate |
+| WhatsApp outreach channel | Meta Business API approval (3–7 days) | **Built** — add 3 env vars to activate |
+| Google Calendar booking | Google OAuth credentials | **Built** — add 3 env vars to activate |
+| VA product (Milla) | Vector DB decision (Supabase pgvector vs Pinecone) + July build slot | Not built |
+| Chatbot product (Vida) | Same as VA | Not built |
 
 ---
 
@@ -450,6 +461,19 @@ FOUNDER_EMAIL=your@email.com
 FIGSY_REPLY_TO=replies@get-kind.com
 FIGSY_DAILY_SEND_LIMIT=20
 PORTAL_URL=https://app.get-kind.com
+# Google Calendar (add when ready)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=https://kindapi-production-83cb.up.railway.app/calendar/callback
+# Vapi.ai Voice (add when ready)
+VAPI_API_KEY=
+VAPI_PHONE_NUMBER_ID=
+VAPI_ASSISTANT_ID=
+VAPI_WEBHOOK_SECRET=
+# WhatsApp Business API (add when ready)
+WHATSAPP_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_VERIFY_TOKEN=
 ```
 
 ### Railway Cron Jobs (set up after merge)

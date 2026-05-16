@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, FileText, Map, Megaphone } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket } from 'lucide-react'
 
 const NAV = [
   { href: '/',              label: 'Dashboard',     icon: LayoutDashboard },
@@ -10,6 +10,7 @@ const NAV = [
   { href: '/terms-library', label: 'Terms Library', icon: FileText },
   { href: '/roadmap',       label: 'Roadmap',       icon: Map },
   { href: '/cmo',           label: 'CMO Tools',     icon: Megaphone },
+  { href: '/launch',        label: 'Launch',        icon: Rocket },
 ]
 
 function pageTitle(pathname: string) {

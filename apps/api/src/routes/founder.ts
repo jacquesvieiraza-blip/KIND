@@ -62,11 +62,11 @@ Respond with JSON only: { "category": "billing|technical|sales|general", "urgenc
     } catch {}
 
     // Log the inbound email
-    await db.from('founder_agent_logs').insert({
+    await Promise.resolve(db.from('founder_agent_logs').insert({
       agent:   'support',
       action:  'inbound_email',
       payload: { from, subject, body: body.slice(0, 500), classification },
-    }).then(() => {}).catch(() => {})
+    })).catch(() => {})
 
     let autoReplied = false
 
@@ -172,11 +172,11 @@ Under 80 words. Output: SUBJECT: ...\nBODY: ...`,
       await resend.emails.send({ from: FROM, to: [email], subject, text: body })
     }
 
-    await db.from('founder_agent_logs').insert({
+    await Promise.resolve(db.from('founder_agent_logs').insert({
       agent:   'cs',
       action:  `followup_${step}`,
       payload: { client_id, email, subject, sent: !!resend },
-    }).then(() => {}).catch(() => {})
+    })).catch(() => {})
 
     res.json({ success: true, data: { step, subject, sent: !!resend } })
   } catch (err) {
@@ -237,11 +237,11 @@ Output: SUBJECT: ...\nBODY: ...`,
       })
     }
 
-    await db.from('founder_agent_logs').insert({
+    await Promise.resolve(db.from('founder_agent_logs').insert({
       agent:   'ae',
       action:  'demo_request',
       payload: { name, email, company, message, subject, sent: !!resend },
-    }).then(() => {}).catch(() => {})
+    })).catch(() => {})
 
     res.json({ success: true, data: { subject, sent: !!resend } })
   } catch (err) {

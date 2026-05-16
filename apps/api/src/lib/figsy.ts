@@ -174,19 +174,18 @@ export async function sendSequenceEmail(
   }).eq('id', enrollmentId)
 
   // Bump campaign email count
-  await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
-    .catch(() => {
-      // RPC may not exist yet — do direct update fallback
-      db.from('figsy_campaigns')
-        .select('emails_sent').eq('id', campaignId).single()
-        .then(({ data }: { data: any }) => {
-          if (data) {
-            db.from('figsy_campaigns')
-              .update({ emails_sent: (data.emails_sent ?? 0) + 1 })
-              .eq('id', campaignId)
-          }
-        })
-    })
+  try {
+    await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
+  } catch {
+    // RPC may not exist yet — do direct update fallback
+    const { data } = await db.from('figsy_campaigns')
+      .select('emails_sent').eq('id', campaignId).single()
+    if (data) {
+      await db.from('figsy_campaigns')
+        .update({ emails_sent: ((data as { emails_sent?: number }).emails_sent ?? 0) + 1 })
+        .eq('id', campaignId)
+    }
+  }
 }
 
 interface Day1Draft {

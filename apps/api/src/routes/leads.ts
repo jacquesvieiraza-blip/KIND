@@ -460,7 +460,7 @@ leadRouter.post('/bulk-status', async (req: AuthRequest, res) => {
       .update({ status })
       .in('id', leadIds)
       .eq('client_id', clientId)
-      .select('id', { count: 'exact', head: true })
+      .select('id')
 
     if (error) throw error
     res.json({ success: true, updated: count ?? 0 })

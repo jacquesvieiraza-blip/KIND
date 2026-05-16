@@ -161,15 +161,27 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
     setSaving(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      await api.post('/vida/config', {
-        bot_name:      config.bot_name,
-        greeting:      config.greeting,
-        system_prompt: config.system_prompt || null,
-        primary_color: config.primary_color,
-        collect_email: config.collect_email,
-        collect_phone: config.collect_phone,
-        notify_email:  config.notify_email || null,
-      }, session?.access_token)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+      const res = await fetch(`${apiUrl}/vida/config`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({
+          bot_name:      config.bot_name,
+          greeting:      config.greeting,
+          system_prompt: config.system_prompt || null,
+          primary_color: config.primary_color,
+          collect_email: config.collect_email,
+          collect_phone: config.collect_phone,
+          notify_email:  config.notify_email || null,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error((d as any).error || 'Failed to save config')
+      }
       toast('Config saved')
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to save config')

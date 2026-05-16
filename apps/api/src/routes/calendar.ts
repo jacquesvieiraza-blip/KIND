@@ -236,7 +236,7 @@ calendarRouter.get('/generate-link', requireAuth, async (req: AuthRequest, res) 
     return
   }
   try {
-    const { enrollmentId } = z.object({
+    const { enrollmentId: _enrollmentId } = z.object({
       enrollmentId: z.string().uuid(),
     }).parse(req.query)
 

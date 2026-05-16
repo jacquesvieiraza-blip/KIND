@@ -265,9 +265,9 @@ founderRouter.get('/digest', async (_req: Request, res: Response) => {
     ])
 
     const logs = logsRes.data ?? []
-    const supportCount  = logs.filter(l => l.agent === 'support').length
-    const csCount       = logs.filter(l => l.agent === 'cs').length
-    const aeCount       = logs.filter(l => l.agent === 'ae').length
+    const supportCount  = logs.filter((l: any) => l.agent === 'support').length
+    const csCount       = logs.filter((l: any) => l.agent === 'cs').length
+    const aeCount       = logs.filter((l: any) => l.agent === 'ae').length
 
     res.json({
       success: true,

@@ -178,7 +178,7 @@ export async function createMeeting(params: {
     },
   })
 
-  const meetLink = event.conferenceData?.entryPoints?.find((ep: { entryPointType: string; uri?: string }) => ep.entryPointType === 'video')?.uri ?? null
+  const meetLink = event.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri ?? null
 
   return {
     eventId:  event.id ?? '',

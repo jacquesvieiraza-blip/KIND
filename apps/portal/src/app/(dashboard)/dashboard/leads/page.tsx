@@ -355,7 +355,7 @@ export default function LeadsPage() {
                     <th className="px-4 py-3 w-10">
                       <input type="checkbox" checked={filteredLeads.length > 0 && selectedIds.size === filteredLeads.filter(l => l.status !== 'opted_out' && l.email).length} onChange={e => { const eligible = filteredLeads.filter(l => l.status !== 'opted_out' && l.email); setSelectedIds(e.target.checked ? new Set(eligible.map(l => l.id)) : new Set()) }} className="rounded border-gray-300" />
                     </th>
-                    {['Lead', 'Company', 'Score', 'Status', 'Source', 'Actions'].map(h => (
+                    {['Lead', 'Phone', 'Company', 'Score', 'Status', 'Source', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -372,6 +372,9 @@ export default function LeadsPage() {
                         <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
                         <p className="text-xs text-gray-400">{lead.job_title || '—'}</p>
                         {lead.email && <p className="text-xs text-gray-400">{lead.email}</p>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm text-gray-700">{lead.phone || '—'}</p>
                       </td>
                       <td className="px-4 py-3">
                         <p className="text-gray-700">{lead.company || '—'}</p>

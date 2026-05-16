@@ -677,33 +677,84 @@ All cron endpoints require header: `x-admin-key: {ADMIN_SECRET_KEY}`
 
 ## 14. MARKET EXPANSION PLAN — US & UK
 
-> **Trigger: after 5 paying SA clients. Do not action before then.**
+> **Trigger: after 5 paying clients. Do not action before then.**
+> **Current readiness: 75% — core compliance and billing infrastructure built. Legal gaps (CCPA) and marketing positioning need completing before serious US/UK sales efforts.**
 
-### Phase 1 — SA Launch (now → client 5)
-Nothing changes. Current site, current pricing, current positioning. Prove the model.
+---
 
-### Phase 2 — Dual Market (after client 5, ~1 day of work)
-**Website:**
-- Pricing: USD front, ZAR secondary — "From $20 / R380"
-- Hero: "Built in Africa. Ready for the world."
-- Trust page: POPIA + GDPR + CAN-SPAM — all three (compliance already in place)
-- 2 new US comparison pages (`vs-outreach.html`, `vs-salesloft.html`)
-- Support: add US/UK timezone note
+### WHAT'S ALREADY BUILT FOR US/UK
 
-**Billing:**
-- Add Stripe for USD/GBP alongside Paystack (ZAR stays on Paystack)
+| Item | Status | Notes |
+|---|---|---|
+| USD pricing front and centre | ✅ Done | "From $20 / R380" on pricing.html |
+| Stripe USD/GBP billing | ✅ Built | Code done — needs credentials to activate |
+| GDPR compliance section | ✅ Done | trust.html — Article 6(1)(f) legitimate interest, right to erasure, transparency |
+| CAN-SPAM compliance section | ✅ Done | trust.html — sender ID, opt-out, honest subjects, physical address |
+| DPA (Data Processing Agreement) | ✅ Done | dpa.html — 10-section legal doc, covers POPIA + GDPR |
+| vs-outreach.html | ✅ Done | 8-row comparison, Africa + price + compliance + no contract |
+| vs-salesloft.html | ✅ Done | 8-row comparison, identical structure |
+| vs-apollo.html | ✅ Done | 13-row comparison — NOTE: positions K.I.N.D as Africa-only (see gaps) |
+| Sub-processors listed | ✅ Done | Supabase (SOC 2), Resend (SOC 2 + SCCs), Apollo (SCCs), Anthropic (SCCs), Paystack (PCI DSS) |
+| Data sovereignty statement | ✅ Done | "No cross-border transfers to US or EU data centres" |
 
-**Positioning:**
-> "Started in Cape Town. Serving businesses in SA, the US, and the UK."
-African origin is the differentiator — not a limiter. Apollo data is excellent for US + UK.
+---
+
+### PHASE 1 — Launch (now → client 5)
+Nothing changes. Current site, current pricing. Prove the model.
+
+---
+
+### PHASE 2 — Dual Market (after client 5, ~1 day of work)
+
+**What to activate:**
+- Stripe billing — create 4 price IDs + set STRIPE_SECRET_KEY
+- Add GBP pricing examples to pricing.html
+- Add US/UK timezone support note to trust.html and support.html
+- Reframe vs-apollo.html — add section for US/UK companies (currently Africa-only framing)
+- Update hero to: "Built in Africa. Ready for the world."
 
 **What never changes:** product, pricing model, FIGSY/Milla/Vida characters, all code.
 
-### Phase 3 — Data Residency (post Phase 2, assessed per client demand)
+**Positioning:**
+> "Started in Cape Town. Serving businesses in SA, the US, and the UK."
+> African origin is the differentiator — not a limiter. Apollo data is excellent for US + UK.
+
+---
+
+### PHASE 3 — Data Residency & Legal (post Phase 2)
+
 - af-south-1 stays as default — fine for most US/UK clients
 - If enterprise demands US-hosted data: provision Supabase US region
-- SOC 2 Type II conversation starts here → target Q1 2027
-- DPA already published at `get-kind.com/dpa`
+- SOC 2 Type II → target Q1 2027
+- DPA-US addendum for California/US enterprise clients
+
+---
+
+### CRITICAL GAPS TO FIX BEFORE US SALES
+
+| Gap | Impact | Fix |
+|---|---|---|
+| **CCPA not mentioned anywhere** | US clients (especially California) will flag this | Add CCPA section to trust.html and dpa.html |
+| **US state privacy laws missing** | Virginia VCDPA, Colorado CPA, Connecticut CTDPA, Utah UCPA | Add to DPA as "applicable US state privacy laws" catch-all |
+| **vs-apollo.html frames K.I.N.D as Africa-only** | US/UK users reading it think K.I.N.D isn't for them | Add "US/UK companies" section to that page |
+| **GBP pricing not shown** | UK buyers see no local pricing | Add GBP examples to pricing.html once Stripe is live |
+| **No US/UK support hours mentioned** | US buyers assume no support in their timezone | Add async email support note |
+| **SOC 2 not yet certified** | US enterprise deals often require it | Target Q1 2027 — can't accelerate |
+| **DPA governing law is SA-only** | US enterprise buyers want US arbitration clause | Create DPA-US addendum post Phase 2 |
+
+---
+
+### WHAT CLAUDE CAN DO FOR US/UK EXPANSION
+
+| Task | When |
+|---|---|
+| Add CCPA section to trust.html | Say go — 30 mins |
+| Add CCPA to dpa.html | Say go — 30 mins |
+| Add US/UK section to vs-apollo.html | Say go — 1 hour |
+| Add GBP pricing examples to pricing.html | After Stripe is live |
+| Add US/UK support note to trust.html and support.html | Say go — 10 mins |
+| Update hero copy to "Built in Africa. Ready for the world." | Say go — 5 mins |
+| Create DPA-US addendum page | Say go — 1 hour |
 
 ---
 

@@ -1,31 +1,36 @@
 # K.I.N.D — MASTER DOCUMENT
 **Single source of truth. Last updated: 16 May 2026**
 **Launch date: 31 May 2026 · Days remaining: 15**
+**Business: UK registered (Companies House) · Platform: Africa-first, world-ready**
 
-> Everything in one place. Roadmap, status, cashflow, SOPs, client flow, expansion plan, pending actions.
+> Everything in one place. Status, roadmap, post-launch plan, expansion, compliance, SOPs, cashflow.
 > Branch: main ✅ merged 16 May 2026
 
 ---
 
 ## TABLE OF CONTENTS
 
-1. [Things to Remember — Pending Actions](#1-things-to-remember--pending-actions)
-2. [What's Built](#2-whats-built)
-3. [What I Can Build Next (No Blockers)](#3-what-i-can-build-next-no-blockers)
-4. [What's Blocked (Needs Your Action)](#4-whats-blocked-needs-your-action)
-5. [Will Not Build Yet](#5-will-not-build-yet)
-6. [Agent Naming](#6-agent-naming)
-7. [Pricing Model](#7-pricing-model)
-8. [Revenue Targets & KPIs](#8-revenue-targets--kpis)
-9. [Cashflow Model](#9-cashflow-model)
-10. [Client Flow — All Paths](#10-client-flow--all-paths)
-11. [Operations SOP](#11-operations-sop)
-12. [Tech Stack & Infrastructure](#12-tech-stack--infrastructure)
-13. [Deployment Checklist](#13-deployment-checklist)
-14. [Market Expansion Plan — US & UK](#14-market-expansion-plan--us--uk)
-15. [Product Vision — 1, 3, 5 Years](#15-product-vision--1-3-5-years)
-16. [Alta AI SDR — Competitive Audit](#16-alta-ai-sdr--competitive-audit)
-17. [Key Decisions Locked](#17-key-decisions-locked)
+1. [Current Status — What's Live](#1-current-status--whats-live)
+2. [What Jacques Needs To Do](#2-what-jacques-needs-to-do)
+3. [What Claude Can Do](#3-what-claude-can-do)
+4. [Monday Plan](#4-monday-plan)
+5. [Post-Launch Roadmap — Full Detail](#5-post-launch-roadmap--full-detail)
+6. [What's Built](#6-whats-built)
+7. [Blocked Features — All Details](#7-blocked-features--all-details)
+8. [Will Not Build Yet](#8-will-not-build-yet)
+9. [Market Expansion — US, UK & Africa](#9-market-expansion--us-uk--africa)
+10. [Compliance — Full Audit](#10-compliance--full-audit)
+11. [Agent Naming](#11-agent-naming)
+12. [Pricing Model](#12-pricing-model)
+13. [Revenue Targets & KPIs](#13-revenue-targets--kpis)
+14. [Cashflow Model](#14-cashflow-model)
+15. [Client Flow — All Paths](#15-client-flow--all-paths)
+16. [Operations SOP](#16-operations-sop)
+17. [Tech Stack & Infrastructure](#17-tech-stack--infrastructure)
+18. [Smoke Test Checklist](#18-smoke-test-checklist)
+19. [Product Vision — 1, 3, 5 Years](#19-product-vision--1-3-5-years)
+20. [Alta AI SDR — Competitive Audit](#20-alta-ai-sdr--competitive-audit)
+21. [Key Decisions Locked](#21-key-decisions-locked)
 
 ---
 
@@ -33,7 +38,7 @@
 
 | Item | Status | Notes |
 |---|---|---|
-| Website — `get-kind.com` | ✅ Live | Vercel — kind-admin project, root: apps/website |
+| Website — `get-kind.com` | ✅ Live | Vercel — kind-admin project |
 | Client Portal — `app.get-kind.com` | ✅ Live | Vercel — kind-portal project |
 | Admin Dashboard — `admin.get-kind.com` | ✅ Live | Vercel — kind-admin-h5q6 project |
 | Railway API | ✅ Running | kindapi-production-83cb.up.railway.app |
@@ -45,11 +50,11 @@
 | Phone number in leads table | ✅ Done | Shows in portal leads pipeline |
 | All 5 comparison pages | ✅ Linked | Footer Compare section on every page |
 | Branch merged to main | ✅ Done | PR #1 merged 16 May 2026 |
-| Cron jobs | ⏳ Pending | Need separate service — post-launch |
+| Cron jobs (6 jobs) | ⏳ Pending | Need separate service — Claude can build |
 | Resend inbound routing | ⏳ Pending | Needs paid Resend plan |
-| Stripe USD/GBP billing | ⏳ Pending | Post-launch |
-| Google Calendar OAuth | ⏳ Pending | Post-launch |
-| Vapi.ai Voice | ⏳ Pending | Post-launch |
+| Stripe USD/GBP billing | ⏳ Pending | Post-launch — code done, needs credentials |
+| Google Calendar OAuth | ⏳ Pending | Post-launch — code done, needs credentials |
+| Vapi.ai Voice | ⏳ Pending | Post-launch — code done, needs account |
 | WhatsApp Business API | ⏳ Pending | Post-launch — 3–7 day Meta approval |
 
 ---
@@ -59,32 +64,39 @@
 ### Before Launch
 | # | Task | Where |
 |---|---|---|
-| 1 | Upload new Vida image — drag new `vida.png` into `apps/website/` | github.com/jacquesvieiraza-blip/KIND → apps/website → Add file |
+| 1 | Upload new Vida image — drag `vida.png` into `apps/website/` | github.com/jacquesvieiraza-blip/KIND → apps/website → Add file |
 | 2 | Create test client + run smoke test | app.get-kind.com — Monday |
-| 3 | Register company (UK — Companies House) | companieshouse.gov.uk — see step-by-step below |
+| 3 | Register company — UK (Companies House) | companieshouse.gov.uk |
+| 4 | G2, Capterra, Product Hunt listings | Launch day 31 May |
 
-### Post-Launch (when ready)
-| # | Task | Where |
-|---|---|---|
-| 4 | Upgrade Resend plan → enable inbound routing | resend.com |
-| 5 | Set up Stripe account + 4 price IDs | stripe.com |
-| 6 | Google Cloud — Calendar API + OAuth credentials | console.cloud.google.com |
-| 7 | Vapi.ai account + phone number | vapi.ai + twilio.com |
-| 8 | Meta WhatsApp Business API application | business.facebook.com |
-| 9 | G2, Capterra, Product Hunt listings | Launch day |
+### Post-Launch — Priority Order
+| # | Task | Where | Trigger |
+|---|---|---|---|
+| 5 | Upgrade Resend → enable inbound routing | resend.com | When first FIGSY campaigns launch |
+| 6 | Stripe account + 4 price IDs | stripe.com | After 5 clients (Phase 2) |
+| 7 | Vapi.ai account + phone number | vapi.ai + twilio.com | Month 2 |
+| 8 | Meta WhatsApp Business API application | business.facebook.com | Month 2 (3–7 day approval) |
+| 9 | Google Cloud — Calendar API + OAuth | console.cloud.google.com | Month 2–3 |
+| 10 | SOC 2 Type II certification | External auditor | Q1 2027 (when enterprise deal demands it) |
 
 ### Company Registration — UK (Companies House)
 1. Go to **companieshouse.gov.uk**
-2. Click **"Register a company"** → use the WebFiling service
-3. Create a Companies House account if you don't have one
+2. Click **"Register a company"** → WebFiling service
+3. Create a Companies House account
 4. Choose **Private Limited Company (Ltd)**
-5. Choose a company name — check availability on the site
-6. Enter registered UK address
-7. Add director details (your name, DOB, address)
-8. Add at least 1 share (you can be sole shareholder)
-9. Pay **£50** registration fee
-10. Receive **Certificate of Incorporation** within 24 hours
-11. You'll get a **Company Registration Number (CRN)** — keep this safe
+5. Check company name availability
+6. Enter registered UK address (must be UK — can be your home address)
+7. Add director details (name, DOB, address)
+8. Add 1 share at £1 (sole shareholder)
+9. Choose SIC code — **62012** (Business/domestic software development) or **73110** (Advertising agencies)
+10. Pay **£50** registration fee
+11. Receive **Certificate of Incorporation** — usually same day
+12. You'll get a **Company Registration Number (CRN)**
+
+**After registration:**
+- Open business bank account (Monzo Business, Tide, or Starling — same day)
+- Register for Corporation Tax on HMRC within 3 months of trading
+- Register for VAT if revenue exceeds £90,000/year
 
 **Total cost: £50 · Timeline: same day to 24 hours**
 
@@ -92,13 +104,19 @@
 
 ## 3. WHAT CLAUDE CAN DO
 
-| Task | Notes |
+### Ready Now (just say go)
+| Task | Time |
 |---|---|
-| Set up cron job service for Railway | Ready — just say go |
-| Fix any bugs found during smoke test | Ready |
-| Copy/content changes on any website page | Ready |
-| Add test data seeding script | Ready |
-| Any new pages or features | Ready |
+| Set up cron job service for Railway | 1 hour |
+| Add CCPA section to trust.html and dpa.html | 30 mins |
+| Add US/UK section to vs-apollo.html | 1 hour |
+| Update hero copy: "Built in Africa. Ready for the world." | 5 mins |
+| Add US/UK support note to trust.html + support.html | 10 mins |
+| Create DPA-US addendum page | 1 hour |
+| Add GBP pricing examples to pricing.html | 30 mins (after Stripe live) |
+| Fix any bugs from smoke test | Ready |
+| Any copy/content changes on website | Ready |
+| New pages or features | Ready |
 | Push code and trigger redeploys | Always |
 
 ---
@@ -107,21 +125,68 @@
 
 1. Upload new Vida image to GitHub (`apps/website/vida.png`)
 2. Create test client at `app.get-kind.com`
-3. Run full smoke test (see §15)
+3. Run full smoke test (see §18)
 4. Fix anything that breaks
-5. Resend inbound routing decision (upgrade or skip)
-6. Stripe setup if ready
+5. Decision: Resend inbound routing upgrade?
+6. Decision: Stripe setup now or later?
 
 ---
 
-## 2. WHAT'S BUILT
+## 5. POST-LAUNCH ROADMAP — FULL DETAIL
+
+### Immediate (Week 1–2 after launch)
+| Item | Owner | Notes |
+|---|---|---|
+| Cron job service | Claude | 6 scheduled jobs — nurture, at-risk, trial-expiry, FIGSY send-due, 2x digests |
+| Resend inbound routing | Jacques | Upgrade Resend plan → replies flow into FIGSY inbox |
+| First 5 clients onboarded | Jacques | Smoke test with real users, fix any issues found |
+| G2 / Capterra / Product Hunt | Jacques | Launch day listings |
+
+### Month 1–2 (June 2026)
+| Item | Owner | Notes |
+|---|---|---|
+| Voice agent activation | Jacques | Vapi.ai account + Twilio SA +27 number → add 4 env vars |
+| WhatsApp activation | Jacques | Meta Business API approval (3–7 days) → add 3 env vars |
+| Google Calendar activation | Jacques | Google Cloud OAuth → add 3 env vars |
+| Stripe activation | Jacques | Account + 4 price IDs → USD/GBP billing live |
+| FIGSY campaigns live | Jacques | First clients running email sequences |
+| CCPA + US state laws | Claude | Add to trust.html + dpa.html — ready to go |
+| vs-apollo.html US/UK section | Claude | Add section for non-African buyers |
+
+### Month 3–6 (July–October 2026)
+| Item | Owner | Notes |
+|---|---|---|
+| Milla (VA) official launch | Both | July 2026 — built and waiting |
+| Vida (Chatbot) official launch | Both | July 2026 — built and waiting |
+| pgvector upgrade for Milla | Claude | At 50+ clients — upgrade from FTS to pgvector + OpenAI embeddings |
+| Vida widget CDN hosting | Claude | vida-widget.js on CDN for easier client embedding |
+| Recurring subscription model | Both | Phase 2 billing model — credit bundles → monthly plans |
+| US/UK Phase 2 marketing | Jacques | After 5 SA clients — activate Stripe, dual market positioning |
+| Africa expansion marketing | Jacques | Nigeria, Kenya, Ghana, Egypt |
+| DPA-US addendum page | Claude | For US enterprise clients (CCPA + US arbitration) |
+
+### Month 6–12 (November 2026 – May 2027)
+| Item | Owner | Notes |
+|---|---|---|
+| Pan-African launch | Jacques | Nigeria, Kenya, Ghana, Egypt — Apollo data works well |
+| African language support | Claude | After Voice + WhatsApp live — Phase B |
+| Multi-channel FIGSY | Both | Email + WhatsApp + Voice working together |
+| ICP self-improvement | Claude | After 3+ months live data — "Luna equivalent" |
+| Pipeline forecasting | Claude | AI predicts close probability per lead |
+| SOC 2 Type II | Jacques | Q1 2027 — external auditor needed |
+| Built-in CRM (Year 2) | Claude | Once HubSpot/Pipedrive integrations prove insufficient |
+| White-label resale | Both | Agencies resell K.I.N.D under their brand |
+
+---
+
+## 6. WHAT'S BUILT
 
 ### Core Platform
 | Item | Notes |
 |---|---|
 | Monorepo — portal, admin, API, DB, shared | Turborepo, TypeScript throughout |
 | Supabase auth — signup, login, email confirm, onboarding | All bugs fixed |
-| Full DB schema — 13 tables + RLS + 5 migrations | All tables + FIGSY, CRM, partners |
+| Full DB schema — 39 tables + RLS + 9 migrations | Complete |
 | CSV export, admin dashboard, CRM integration | HubSpot + Pipedrive |
 
 ### Lead Gen (Complete)
@@ -137,17 +202,18 @@
 | CRM push — HubSpot + Pipedrive | On consent_given |
 | First leads email (top 5 inline) | Auto-sent on first batch |
 | Weekly Monday leads digest | Cron |
-| Day 1 outreach for Lead Gen Pro | `sendDay1OutreachBatch` — Claude writes personalised email per lead |
+| Phone number column in leads table | Shows Apollo phone data |
+| Day 1 outreach for Lead Gen Pro | Claude writes personalised email per lead |
 
 ### FIGSY (Complete)
 | Item | Notes |
 |---|---|
 | Campaign CRUD — create/activate/pause/archive | Full lifecycle |
-| AI 3-step email sequences per lead | Humanised — SA voice, specific observations, no AI tells, SA first name sign-off |
+| AI 3-step email sequences per lead | Humanised — no AI tells, first name sign-off |
 | Domain warming cap | `FIGSY_DAILY_SEND_LIMIT` env var |
 | send-due queue — step 2 + 3 auto-send | `next_send_at` stored |
 | Reply classification — 5 categories | interested / not_interested / opt_out / out_of_office / other |
-| F2-3: AI reply suggestions | Claude drafts follow-up for interested replies |
+| AI reply suggestions | Claude drafts follow-up for interested replies |
 | Unified reply inbox | Portal page + `GET /figsy/replies/all` |
 | Campaign cloning | Clone button per campaign |
 | KPI dashboard | Reply rate, interested %, avg score, contacts |
@@ -159,70 +225,51 @@
 ### Billing & Onboarding
 | Item | Notes |
 |---|---|
-| Paystack credit bundle checkout | One-time purchase |
+| Paystack credit bundle checkout | One-time purchase, ZAR |
 | Terms acceptance checkbox on billing | Required before purchase |
 | Direct-pay path on onboarding | Trial vs pay now — two buttons |
 | Zero-credits warning cron | Day 1/4/7 escalation emails |
 | Onboarding checklist | 4-step tracker, disappears when complete |
+| 14-day free trial | Countdown overlay, no card required |
 
-### Milla — Virtual Assistant (Built)
+### Milla — Virtual Assistant (Built · Launches July 2026)
 | Item | Notes |
 |---|---|
 | DB migration 008 | milla_documents, milla_chunks (FTS), milla_sessions, milla_messages |
 | `apps/api/src/lib/milla.ts` | chunkText, processDocument, searchChunks (FTS), chat (Claude Sonnet) |
-| `apps/api/src/routes/milla.ts` | Upload docs, list/delete docs, sessions, chat endpoint |
 | Portal assistant page | Documents tab + Chat tab with source attribution |
-| Vector strategy | Supabase full-text search (no extra API key) — swappable to pgvector later |
+| Vector strategy | Supabase FTS now — upgrade to pgvector at 50+ clients |
 
-### Vida — Chatbot Agent (Built)
+### Vida — Chatbot Agent (Built · Launches July 2026)
 | Item | Notes |
 |---|---|
 | DB migration 009 | vida_configs, vida_sessions, vida_messages |
 | `apps/api/src/lib/vida.ts` | generateVidaReply, scoreSession, notifyHotLead (Claude Haiku) |
-| `apps/api/src/routes/vida.ts` | Config CRUD, sessions/messages, public widget API (no auth) |
 | Portal chatbot page | Configure tab, Conversations tab, Embed tab with copy code |
 | `apps/website/vida-widget.js` | Self-contained embeddable JS widget, no dependencies |
 
-### Stripe Billing (Built — needs credentials to activate)
+### Stripe Billing (Built · Needs credentials)
 | Item | Notes |
 |---|---|
-| `apps/api/src/lib/stripe.ts` | Checkout session, webhook event — gated by STRIPE_SECRET_KEY |
-| `apps/api/src/routes/stripe.ts` | POST /stripe/checkout, POST /webhooks/stripe, GET /stripe/status |
-| Portal billing page | USD/GBP section added below Paystack, hidden if Stripe not configured |
-| New env vars | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, 4× STRIPE_PRICE_* IDs |
+| Checkout session + webhook handler | Gated by STRIPE_SECRET_KEY |
+| Portal billing page | USD/GBP section hidden until Stripe configured |
+| Env vars needed | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, 4× STRIPE_PRICE_* IDs |
 
-### US Comparison Pages (Built)
+### Voice, WhatsApp & Calendar (Built · Needs credentials)
 | Item | Notes |
 |---|---|
-| `apps/website/vs-outreach.html` | K.I.N.D vs Outreach.io — 8-row comparison table |
-| `apps/website/vs-salesloft.html` | K.I.N.D vs Salesloft — 8-row comparison table |
-| `apps/website/pricing.html` | USD front, ZAR secondary — "From $20 / R380" |
+| Voice Agent (Vapi.ai) | FIGSY places calls day 4. Add 4 VAPI env vars to activate |
+| WhatsApp (Vida inbound) | Vida responds to WhatsApp messages. Add 3 vars to activate |
+| Google Calendar | OAuth connect, free slot detection, booking. Add 3 vars to activate |
 
-### GDPR + CAN-SPAM (Built)
-| Item | Notes |
-|---|---|
-| `apps/website/trust.html` | Full GDPR section (4 items) + CAN-SPAM section (4 items) added |
-| Meta description | Updated to POPIA + GDPR + CAN-SPAM |
-
-### Voice, WhatsApp & Calendar (Built — needs credentials to activate)
-| Item | Notes |
-|---|---|
-| Voice Agent (Vapi.ai) | `apps/api/src/lib/vapi.ts` + `routes/voice.ts` — FIGSY places calls on day 4. Gated: if no VAPI_API_KEY, skips gracefully |
-| DB migration 006 | `figsy_calls` table — tracks all calls, status, outcome, transcript |
-| WhatsApp (Vida inbound) | `apps/api/src/lib/whatsapp.ts` + `routes/whatsapp.ts` — Vida responds to inbound messages. Gated: if no WHATSAPP_TOKEN, skips |
-| Google Calendar | `apps/api/src/lib/gcal.ts` + `routes/calendar.ts` — OAuth connect, free slot detection, meeting booking. Gated: if no GOOGLE_CLIENT_ID, skips |
-| DB migration 007 | `calendar_bookings` table + calendar token columns on clients |
-| Settings page integrations | Calendar connect button, WhatsApp status, Voice status — all with setup guidance |
-| Admin Launch checklist | `admin.get-kind.com/launch` — 10-section interactive checklist, 50+ items, all steps to go live |
-
-### Internal Agents (Founder Tooling)
+### Internal Founder Agents (9 tools)
 | Agent | Endpoint | What it does |
 |---|---|---|
 | AE: at-risk alerts | `POST /internal/ae/at-risk` | Flags clients with no ICP/leads after 3 days |
 | AE: check-in draft | `POST /internal/ae/checkin-draft` | Claude drafts personalised check-in |
 | AE: trial expiry | `POST /internal/ae/trial-expiry` | Day 10/12/14 expiry emails |
 | AE: trial nurture | `POST /internal/ae/nurture` | Day 1/3/5/7/10 onboarding emails |
-| AE: zero-credits | `POST /internal/ae/zero-credits` | Day 1/4/7 warning when credits hit 0 |
+| AE: zero-credits | `POST /internal/ae/zero-credits` | Day 1/4/7 warning emails |
 | CRO: weekly digest | `POST /internal/cro/weekly-digest` | Claude writes + emails founder weekly summary |
 | CRO: churn risk | `GET /internal/cro/churn-risk` | Risk score 0–100 per client |
 | CMO: LinkedIn posts | `POST /internal/cmo/linkedin-posts` | Generates 3 branded posts |
@@ -233,82 +280,174 @@
 |---|---|
 | DB migration 005 | partners, partner_referrals, partner_commissions tables |
 | API | Apply, validate referral code, admin list/approve/commission/dashboard |
-| partners.html static page | 20% recurring commission, application form |
+| partners.html | 20% recurring commission for 12 months, application form |
 | Client referral page | `/dashboard/referral` — informal referral for existing clients |
 
-### Website (get-kind.com)
-| Page | Status |
+### Website (get-kind.com) — 16 pages
+| Page | Notes |
 |---|---|
-| index.html | Team narrative, FIGSY character, POPIA trust strip, speed claim, anti-Alta pricing |
+| index.html | Homepage — team narrative, FIGSY, trust strip, anti-Alta pricing |
 | about.html | Founder story, Meet the agents (FIGSY/Milla/Vida) |
-| pricing.html | Anti-Alta strip, "data stays in Africa" trust line |
-| trust.html | POPIA, data sovereignty, security architecture |
-| partners.html | Partner programme, commission rates, application form |
-| dpa.html | Data Processing Agreement (SA law, 10 sections) |
-| vs-hiring-an-sdr.html | FIGSY vs human SDR cost breakdown |
+| pricing.html | USD front, ZAR secondary, "See how we compare" link |
+| trust.html | POPIA + GDPR + CAN-SPAM, data sovereignty, security |
+| partners.html | Partner programme, 20% commission, application form |
+| dpa.html | Data Processing Agreement — 10 sections, SA law + GDPR |
+| use-cases.html | Industry use cases |
+| support.html | Support contact page |
+| terms.html | Terms of service |
+| figsy-video.html | 12-scene animated FIGSY explainer |
+| vs-apollo.html | K.I.N.D vs Apollo.io (13-row comparison) |
+| vs-outreach.html | K.I.N.D vs Outreach.io (8-row comparison) |
+| vs-salesloft.html | K.I.N.D vs Salesloft (8-row comparison) |
 | vs-prospecting-manually.html | K.I.N.D vs manual prospecting |
-| vs-apollo.html | K.I.N.D vs Apollo.io — Africa-first positioning |
-| figsy-video.html | 12-scene animated video with FIGSY character image |
-| use-cases.html, support.html, about.html, terms.html | All updated with nav links |
+| vs-hiring-an-sdr.html | K.I.N.D vs hiring an SDR |
+| about.html | Founder story + agent characters |
 
-### Admin (admin.get-kind.com)
+All 5 comparison pages linked in footer Compare section on every page. ✅
+
+### Admin Dashboard (admin.get-kind.com)
 | Item | Notes |
 |---|---|
-| CMO Tools page | LinkedIn post generator + prospect finder |
-| Client dashboard | MRR, TTFL, client health, churn risk |
+| Client overview | Total clients, MRR, active/trialing/past-due |
+| TTFL tracking | Time to first lead per client |
+| Client health | Leads, engagement, churn risk 0–100 |
+| CMO tools | LinkedIn post generator + prospect finder |
+| Launch checklist | 10-section interactive checklist, 50+ items |
 | Roadmap page | Internal product roadmap view |
 
 ---
 
-## 3. WHAT I CAN BUILD NEXT (NO BLOCKERS)
+## 7. BLOCKED FEATURES — ALL DETAILS
 
-All major items are now built. Remaining polish only:
+### Code complete — needs credentials only
 
-| # | Item | Priority |
+| Feature | What to do | Env vars needed |
 |---|---|---|
-| 1 | Add vs-outreach + vs-salesloft to footer nav on all pages | Low |
-| 2 | Lead phone number display in portal leads table | Low |
-| 3 | Vida widget CDN hosting (vida-widget.js on get-kind.com) | Low |
+| **Stripe USD/GBP billing** | Create Stripe account + 4 price IDs | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_LEADGEN_20, STRIPE_PRICE_LEADGEN_100, STRIPE_PRICE_FIGSY_20, STRIPE_PRICE_FIGSY_100 |
+| **Voice calls (Vapi.ai)** | Create Vapi account + Twilio +44 number | VAPI_API_KEY, VAPI_PHONE_NUMBER_ID, VAPI_ASSISTANT_ID, VAPI_WEBHOOK_SECRET |
+| **WhatsApp outreach** | Apply for Meta Business API | WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN |
+| **Google Calendar booking** | Create Google Cloud project + OAuth credentials | GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI |
 
----
+### Code complete — needs paid plan upgrade
 
-## 4. WHAT'S BLOCKED (NEEDS YOUR ACTION)
-
-| Item | Blocked by | Code status |
-|---|---|---|
-| Voice agent (FIGSY calls — Day 4 follow-up) | Vapi.ai account + Twilio SA +27 number | **Built** — add 4 env vars to activate |
-| WhatsApp outreach channel | Meta Business API approval (3–7 days) | **Built** — add 3 env vars to activate |
-| Google Calendar booking | Google OAuth credentials | **Built** — add 3 env vars to activate |
-| VA product (Milla) | Vector DB decision (Supabase pgvector vs Pinecone) + July build slot | Not built |
-| Chatbot product (Vida) | Same as VA | Not built |
-
----
-
-### New Railway Env Vars (add when ready)
-```
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_LEADGEN_20=
-STRIPE_PRICE_LEADGEN_100=
-STRIPE_PRICE_FIGSY_20=
-STRIPE_PRICE_FIGSY_100=
-```
-
-## 5. WILL NOT BUILD YET
-
-| Item | Why |
+| Feature | What to do |
 |---|---|
-| LinkedIn automation | Wrong channel for Africa, ToS risk |
-| 50+ data sources | Apollo covers SA — distraction before 50 clients |
-| SOC 2 Type II | Q1 2027 when first enterprise deal demands it |
-| ICP self-improvement (Luna equivalent) | Needs 3+ months of live campaign data |
-| Built-in CRM | Year 2 — HubSpot/Pipedrive push covers it now |
-| African language support | Phase B — after Voice + WhatsApp live |
-| pgvector embeddings for Milla | Currently using FTS — upgrade to pgvector + OpenAI embeddings at 50+ clients |
+| **Resend inbound routing** | Upgrade Resend to paid plan → configure webhook to `kindapi-production-83cb.up.railway.app/figsy/replies/inbound` |
+
+### Code complete — waiting for scheduled launch
+
+| Feature | Launch date |
+|---|---|
+| **Milla (Virtual Assistant)** | July 2026 |
+| **Vida (Chatbot Agent)** | July 2026 |
+
+### Pending setup — no code needed
+
+| Feature | What to do |
+|---|---|
+| **Cron jobs (6 jobs)** | Claude will build a cron service config — then deploy on Railway |
 
 ---
 
-## 6. AGENT NAMING
+## 8. WILL NOT BUILD YET
+
+| Item | Why | Revisit when |
+|---|---|---|
+| LinkedIn automation | ToS risk, wrong channel | Never |
+| 50+ data sources | Apollo covers the market | 50+ clients |
+| SOC 2 Type II | Expensive, overkill pre-enterprise | Q1 2027 |
+| ICP self-improvement (Luna) | Needs 3+ months live data | 6 months post-launch |
+| Built-in CRM | HubSpot/Pipedrive covers it | Year 2 |
+| African language support | Phase B — after Voice + WhatsApp | After WhatsApp live |
+| pgvector for Milla | FTS works now | 50+ clients |
+| Pipeline forecasting | Needs live data | Year 2 |
+| Multi-year contracts | Anti-positioning | Never |
+
+---
+
+## 9. MARKET EXPANSION — US, UK & AFRICA
+
+> **Trigger for US/UK Phase 2: after 5 paying clients**
+
+### What's Already Built for US/UK
+
+| Item | Status |
+|---|---|
+| USD pricing front and centre | ✅ Done |
+| Stripe USD/GBP billing code | ✅ Built (needs credentials) |
+| GDPR compliance (Articles 6, 17, 13/14) | ✅ Done — trust.html |
+| CAN-SPAM compliance | ✅ Done — trust.html |
+| DPA (10 sections, covers POPIA + GDPR) | ✅ Done — dpa.html |
+| vs-outreach.html | ✅ Done |
+| vs-salesloft.html | ✅ Done |
+| Sub-processors listed with SOC 2 + SCCs | ✅ Done |
+| Data sovereignty statement | ✅ Done |
+
+### Critical Gaps — Fix Before US/UK Sales
+
+| Gap | Impact | Fix | Owner |
+|---|---|---|---|
+| CCPA not mentioned anywhere | California buyers will flag it | Add to trust.html + dpa.html | Claude — ready now |
+| US state privacy laws missing | VCDPA, CPA, CTDPA, UCPA | Add catch-all to DPA | Claude — ready now |
+| vs-apollo.html frames K.I.N.D as Africa-only | US/UK users think it's not for them | Add US/UK section | Claude — ready now |
+| GBP pricing not shown | UK buyers see no local pricing | Add after Stripe live | Claude — after Stripe |
+| No US/UK support hours | US buyers assume no support | Add async note | Claude — ready now |
+| SOC 2 not certified | US enterprise needs it | External auditor | Q1 2027 |
+| DPA governing law is SA-only | US enterprise needs US clause | Create DPA-US addendum page | Claude — ready now |
+
+### Phase 1 — Launch (now → client 5)
+- Nothing changes
+- Current site, current positioning
+- Prove the model in home market
+
+### Phase 2 — Dual Market (after client 5)
+- Activate Stripe USD/GBP
+- Add CCPA to trust + DPA pages
+- Fix vs-apollo.html for US/UK buyers
+- Add GBP pricing examples
+- Add US/UK support note
+- Update hero: "Built in Africa. Ready for the world."
+- Positioning: "Started in Cape Town. Serving businesses in SA, the US, and the UK."
+
+### Phase 3 — Data Residency & Legal
+- af-south-1 stays as default (fine for most US/UK)
+- If enterprise demands US data hosting: provision Supabase US region
+- SOC 2 Type II → Q1 2027
+- DPA-US addendum for US enterprise clients
+
+### Pan-African Expansion (Year 1 — 2027)
+- Nigeria, Kenya, Ghana, Egypt
+- Apollo data covers all these markets
+- POPIA + local data laws mapping needed per country
+- Potential: African language support in Phase B
+
+---
+
+## 10. COMPLIANCE — FULL AUDIT
+
+| Framework | Status | Where |
+|---|---|---|
+| **POPIA** (South Africa) | ✅ Complete | Consent flow, opt-out blocklist, data sovereignty, DPA |
+| **GDPR** (EU/UK) | ✅ Complete | trust.html — Articles 6(1)(f), 17, 13/14. DPA covers SCCs |
+| **CAN-SPAM** (US) | ✅ Complete | trust.html — sender ID, opt-out, honest subjects |
+| **DPA** published | ✅ Complete | dpa.html — 10 sections, governing law SA + GDPR acknowledgement |
+| **CCPA** (California) | ❌ Missing | Add to trust.html + dpa.html — Claude can do now |
+| **US state laws** (VCDPA, CPA, etc.) | ❌ Missing | Add catch-all clause to DPA |
+| **SOC 2 Type II** | ❌ Deferred | Q1 2027 |
+| **DPA-US addendum** | ❌ Pending | Create post Phase 2 — for US enterprise |
+
+### Sub-processors (published in dpa.html)
+| Provider | Location | Certification |
+|---|---|---|
+| Supabase | Cape Town af-south-1 | SOC 2 Type II |
+| Resend | US (email delivery) | SOC 2 Type II + SCCs |
+| Apollo | US (lead data) | DPA + SCCs |
+| Anthropic | US (AI) | No data retained per API terms + SCCs |
+| Paystack | Nigeria/UK (payments) | PCI DSS |
+
+---
+
+## 11. AGENT NAMING
 
 | Agent | Named after | Role | Status |
 |---|---|---|---|
@@ -316,12 +455,12 @@ STRIPE_PRICE_FIGSY_100=
 | **Milla** | Founder's daughter | Virtual Assistant — trained on your business, answers questions, drafts proposals | July 2026 |
 | **Vida** | Founder's daughter | Chatbot Agent — website + WhatsApp inbound qualifier | July 2026 |
 
-All three named on `apps/website/about.html` — Meet the agents section.
-Character images: All three live on about.html. FIGSY (`ai-agent.jpg`), Milla (`milla.png`), Vida (`vida.png`).
+Character images: FIGSY (`ai-agent.jpg`), Milla (`milla.png`), Vida (`vida.png`) — all on `about.html`.
+New Vida image to be uploaded Monday.
 
 ---
 
-## 7. PRICING MODEL
+## 12. PRICING MODEL
 
 ### Credit Bundles (current model)
 
@@ -340,32 +479,36 @@ Character images: All three live on about.html. FIGSY (`ai-agent.jpg`), Milla (`
 - No refunds on spent credits
 - Cancel anytime — no contracts, no quarterly lock-in
 - ZAR billing via Paystack
-- USD billing via Stripe (after 5 clients, Phase 2)
+- USD/GBP billing via Stripe (Phase 2 — after 5 clients)
+- Volume discounts from 500+ leads/month
+- Yearly discount: 20% off flat-rate products
+
+**Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once the value is proven.
 
 **Anti-Alta positioning:**
 Alta AI SDR = from $1,250/mo, USD only, quarterly locked-in, no trial, no refunds.
-K.I.N.D = from R380, ZAR billing, no contracts, full free trial, cancel anytime.
+K.I.N.D = from $20, ZAR/USD/GBP billing, no contracts, full free trial, cancel anytime.
 
 ---
 
-## 8. REVENUE TARGETS & KPIs
+## 13. REVENUE TARGETS & KPIs
 
 ### Month-by-Month MRR Targets
 
-| Month | Target MRR (USD) | Target MRR (ZAR) | New Clients | Cumulative |
-|---|---|---|---|---|
-| May 2026 (launch) | $500 | R9,500 | 5 | 5 |
-| Jun 2026 | $2,000 | R38,000 | 10 | 15 |
-| Jul 2026 | $5,000 | R95,000 | 15 | 30 |
-| Aug 2026 | $9,000 | R171,000 | 15 | 45 |
-| Sep 2026 | $13,000 | R247,000 | 15 | 60 |
-| Oct 2026 | $18,000 | R342,000 | 15 | 75 |
-| Nov 2026 | $22,000 | R418,000 | 15 | 90 |
-| Dec 2026 | $26,000 | R494,000 | 10 | 100 |
+| Month | Target MRR (USD) | New Clients | Cumulative |
+|---|---|---|---|
+| May 2026 (launch) | $500 | 5 | 5 |
+| Jun 2026 | $2,000 | 10 | 15 |
+| Jul 2026 | $5,000 | 15 | 30 |
+| Aug 2026 | $9,000 | 15 | 45 |
+| Sep 2026 | $13,000 | 15 | 60 |
+| Oct 2026 | $18,000 | 15 | 75 |
+| Nov 2026 | $22,000 | 15 | 90 |
+| Dec 2026 | $26,000 | 10 | 100 |
 
 **Year 1 target: $26,000 MRR / 100 active clients by Dec 2026**
 
-### Core KPIs (track every Monday)
+### Core KPIs (check every Monday)
 
 | KPI | Target | Red Flag |
 |---|---|---|
@@ -377,82 +520,55 @@ K.I.N.D = from R380, ZAR billing, no contracts, full free trial, cancel anytime.
 | ICP built within 24h of signup | > 80% | < 60% |
 | At-risk clients (no ICP after 3 days) | 0 | > 2 |
 
-### Weekly Founder Dashboard (check every Monday)
+### Weekly Founder Checklist (every Monday)
 1. New signups last 7 days
 2. Trial → paid conversions last 7 days
 3. At-risk clients (no ICP, no leads)
 4. MRR vs monthly target
-5. FIGSY: reply rate + interested % across all campaigns
-6. TTFL: any client > 4 hours flagged
+5. FIGSY reply rate + interested % across all campaigns
+6. TTFL — any client > 4 hours flagged
 
 ---
 
-## 9. CASHFLOW MODEL
+## 14. CASHFLOW MODEL
 
 ### Fixed Monthly Tech Costs
 
 | Service | Plan | Cost/mo |
 |---|---|---|
-| Supabase | Pro (af-south-1 required for POPIA) | $25 |
-| Vercel | Pro (portal + website + admin) | $20 |
-| Railway | Usage-based (API server) | $10–20 |
+| Supabase | Pro (af-south-1 required) | $25 |
+| Vercel | Pro | $20 |
+| Railway | Usage-based | $10–20 |
 | Apollo.io | Professional (24,000 credits/mo) | $99 |
 | Resend | Free → Pro at scale | $0–20 |
-| Domain (get-kind.com) | Annual | $1.25 |
+| Domain | Annual | ~$1 |
 | **Total floor** | | **$155–185/mo** |
 
 **Variable costs per lead:** ~$0.009 (sub-cent at any volume)
-Apollo: ~$0.008 · Anthropic scoring: ~$0.0004 · FIGSY email: ~$0.01–0.02
 
-### Scenario A — Conservative ($150/mo avg, Lead Gen only)
-
-| Clients | MRR | Total costs | Net profit | Margin |
-|---|---|---|---|---|
-| 1 | $150 | $171 | **-$21** | -14% |
-| 2 | $300 | $178 | **$122** | 41% |
-| 5 | $750 | $197 | **$553** | 74% |
-| 10 | $1,500 | $229 | **$1,271** | 85% |
-| 30 | $4,500 | $356 | **$4,144** | 92% |
-| 100 | $15,000 | $895 | **$14,105** | 94% |
+### Scenario A — Conservative ($150/mo avg)
+| Clients | MRR | Net profit | Margin |
+|---|---|---|---|
+| 2 | $300 | $122 | 41% |
+| 5 | $750 | $553 | 74% |
+| 10 | $1,500 | $1,271 | 85% |
+| 100 | $15,000 | $14,105 | 94% |
 
 **Break-even: 2 clients.**
 
-### Scenario B — Base Case ($220/mo blended avg)
-
-| Clients | MRR | Total costs | Net profit | Margin |
-|---|---|---|---|---|
-| 1 | $220 | $174 | **$46** | 21% |
-| 5 | $1,100 | $212 | **$888** | 81% |
-| 10 | $2,200 | $259 | **$1,941** | 88% |
-| 50 | $11,000 | $684 | **$10,316** | 94% |
-| 100 | $22,000 | $1,198 | **$20,802** | 95% |
+### Scenario B — Base Case ($220/mo blended)
+| Clients | MRR | Net profit | Margin |
+|---|---|---|---|
+| 1 | $220 | $46 | 21% |
+| 5 | $1,100 | $888 | 81% |
+| 50 | $11,000 | $10,316 | 94% |
+| 100 | $22,000 | $20,802 | 95% |
 
 **Break-even: 1 client.**
 
-### Scenario C — Optimistic ($350/mo, FIGSY-heavy)
-
-| Clients | MRR | Total costs | Net profit | Margin |
-|---|---|---|---|---|
-| 5 | $1,750 | $241 | **$1,509** | 86% |
-| 10 | $3,500 | $317 | **$3,183** | 91% |
-| 50 | $17,500 | $973 | **$16,527** | 94% |
-| 100 | $35,000 | $1,775 | **$33,225** | 95% |
-
-### Annual Revenue Trajectory (Base Case — 3 new clients/month)
-
-| Month | Clients | MRR | Cumulative revenue |
-|---|---|---|---|
-| 1 | 1 | $220 | $220 |
-| 3 | 7 | $1,540 | $2,640 |
-| 6 | 16 | $3,520 | $11,220 |
-| 9 | 25 | $5,500 | $30,360 |
-| 12 | 37 | $8,140 | $62,920 |
-
-**Year 1 ARR at month 12: ~$97,680**
-
 ---
 
-## 10. CLIENT FLOW — ALL PATHS
+## 15. CLIENT FLOW — ALL PATHS
 
 ### Path 1 — Self-service trial (most common)
 1. get-kind.com → "Start free trial" → signup → confirm email
@@ -465,53 +581,43 @@ Apollo: ~$0.008 · Anthropic scoring: ~$0.0004 · FIGSY email: ~$0.01–0.02
 
 ### Path 2 — AE-assisted
 1–4. Identical to Path 1
-5. AE customises the auto-generated order form in admin portal
-6. Client signs customised agreement
-7. Client pays via Billing or direct Paystack link from AE
+5. AE customises order form in admin portal
+6. Client signs, pays
 
 ### Path 3 — Pay on day 1 (skip trial)
 1–4. Identical to Path 1
-5. Client goes straight to Documents → signs → goes to Billing → pays immediately
-6. Active from day 1, no trial countdown
+5. Client signs → pays immediately → active from day 1
 
 ### Path 4 — Trial expired, never paid
 1. Overlay fires on day 14
-2. "Sign Service Agreement" + "View Plans" buttons shown
+2. "Sign Service Agreement" + "View Plans" buttons
 3. Client signs → pays → active
-4. If abandons: subscription stays `trialing (expired)` — no charge, ever
+4. If abandons: subscription stays `trialing (expired)` — no charge ever
 
-### Path 5 — Active client upgrades (Lead Gen → FIGSY bundle)
-1. Billing → "Lead Gen + FIGSY Bundle" → Paystack → new subscription
-2. ⚠️ Old Lead Gen subscription must be cancelled manually (admin action) or via trigger
-
-### Path 6 — FIGSY add-on (manual)
-1. Client emails request → AE adds add-on line to order form → client re-signs
-2. Intentionally manual for now — FIGSY is higher touch
+### Path 5 — FIGSY upgrade
+1. Client on Lead Gen → wants FIGSY
+2. Billing → FIGSY bundle → Paystack
+3. Old Lead Gen subscription cancelled manually by admin
 
 ---
 
-## 11. OPERATIONS SOP
+## 16. OPERATIONS SOP
 
 ### Phase 1: Qualification
-Before booking a discovery call:
 - [ ] B2B company (sells to other businesses)
-- [ ] 5+ employees or R1M+ annual revenue
 - [ ] Has a sales function (even informal)
-- [ ] SA, Africa, or EMEA primary market
 - [ ] Use case maps to at least one K.I.N.D product
-
-**Disqualify if:** B2C only, under 6 months old with no revenue, requires custom dev
+- **Disqualify if:** B2C only, under 6 months old with no revenue, requires custom dev
 
 ### Phase 2: Discovery Call (30–45 min)
-Key questions:
 1. How do you currently find and qualify new clients?
 2. Where does your pipeline break down most?
 3. Have you tried outbound before? What happened?
 4. What markets and job titles are you trying to reach?
 5. What's your budget for sales infrastructure this year?
 
-### Phase 3: Proposal (send within 24h)
-Include: executive summary, recommended product(s), pricing, timeline, next steps.
+### Phase 3: Proposal (within 24h)
+Include: executive summary, recommended products, pricing, timeline, next steps.
 
 ### Phase 4: Order Form → Signature
 Admin portal → Clients → [Client] → Send Order Form → client signs in Documents tab.
@@ -520,147 +626,104 @@ Admin portal → Clients → [Client] → Send Order Form → client signs in Do
 Client → Billing → selects plan → Paystack → webhook fires → subscription active.
 
 ### Phase 6: Onboarding (Days 1–5)
-- Day 1: confirm client record + subscription in DB, send welcome email
-- Day 2–3: 60-min onboarding call — portal walkthrough, build ICP together, explain POPIA
-- Day 3–5: activate ICP, first leads appear, confirm client can see pipeline
+- Day 1: confirm record + subscription, send welcome email
+- Day 2–3: 60-min onboarding call — portal walkthrough, build ICP together
+- Day 3–5: first leads appear, confirm client can see pipeline
 
 ### Weekly Cadence
 | Day | Action |
 |---|---|
-| Monday | Review all active client pipelines — flag any with 0 new leads |
+| Monday | Review all active client pipelines — flag 0 new leads |
 | Wednesday | Check opt-out blocklist for new entries |
 | Friday | Review usage metrics — flag low engagement |
 
-### POPIA Compliance — Non-Negotiable
+### POPIA/GDPR Compliance — Non-Negotiable
 | Source | Can Contact? |
 |---|---|
 | Apollo (consented = true) | Yes — immediately |
 | Apollo (consented = false) | Only after KIND consent confirmed |
 | On opt-out blocklist | Never — even if re-appearing in Apollo |
 
-**Opt-out handling:** Lead Gen pipeline → Block → permanent, cross-client, instant.
-
 ---
 
-## 12. TECH STACK & INFRASTRUCTURE
+## 17. TECH STACK & INFRASTRUCTURE
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Portal (client-facing) | Next.js 14, TypeScript, Tailwind | `apps/portal` — Vercel |
-| Admin (internal) | Next.js 14, TypeScript, Tailwind | `apps/admin` — Vercel |
+| Portal (client-facing) | Next.js 14, TypeScript, Tailwind | `apps/portal` — Vercel (kind-portal) |
+| Admin (internal) | Next.js 14, TypeScript, Tailwind | `apps/admin` — Vercel (kind-admin-h5q6) |
 | API | Express, TypeScript | `apps/api` — Railway |
 | Database | Supabase (PostgreSQL, af-south-1 Cape Town) | RLS on all tables |
 | Auth | Supabase Auth | Email + password |
 | AI | Anthropic Claude (Haiku + Sonnet) | Haiku for volume, Sonnet for quality |
 | Lead data | Apollo.io API | Pre-consented contacts first |
 | Email sending | Resend | `hello@get-kind.com` |
-| Payments | Paystack | ZAR + USD, credit bundles |
-| Website | Static HTML | `apps/website` — Vercel |
-| Landing | Static HTML | `apps/landing` — Netlify |
+| Payments | Paystack (ZAR) + Stripe (USD/GBP — Phase 2) | Credit bundles |
+| Website | Static HTML | `apps/website` — Vercel (kind-admin) |
 
-### Railway Env Vars (all required)
+### Vercel Projects
+| Project | Root Dir | Domain |
+|---|---|---|
+| kind-admin | `apps/website` | `get-kind.com` |
+| kind-admin-h5q6 | `apps/admin` | `admin.get-kind.com` |
+| kind-portal | `apps/portal` | `app.get-kind.com` |
+
+### Railway Env Vars (all set ✅)
 ```
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_ANON_KEY
 ANTHROPIC_API_KEY
 APOLLO_API_KEY
 RESEND_API_KEY
 PAYSTACK_SECRET_KEY
 PAYSTACK_WEBHOOK_SECRET
 ADMIN_SECRET_KEY
-FOUNDER_EMAIL=your@email.com
+FOUNDER_EMAIL
 FIGSY_REPLY_TO=replies@get-kind.com
 FIGSY_DAILY_SEND_LIMIT=20
 PORTAL_URL=https://app.get-kind.com
-# Google Calendar (add when ready)
+DATABASE_URL
+```
+
+### Railway Env Vars (add when ready)
+```
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_LEADGEN_20=
+STRIPE_PRICE_LEADGEN_100=
+STRIPE_PRICE_FIGSY_20=
+STRIPE_PRICE_FIGSY_100=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=https://kindapi-production-83cb.up.railway.app/calendar/callback
-# Vapi.ai Voice (add when ready)
 VAPI_API_KEY=
 VAPI_PHONE_NUMBER_ID=
 VAPI_ASSISTANT_ID=
 VAPI_WEBHOOK_SECRET=
-# WhatsApp Business API (add when ready)
 WHATSAPP_TOKEN=
 WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
 ```
 
-### Railway Cron Jobs (set up after merge)
+### Cron Jobs (6 jobs — pending setup)
 | Schedule | Endpoint | Purpose |
 |---|---|---|
-| `0 8 * * *` | `POST /internal/ae/nurture` | Trial nurture emails |
+| `0 8 * * *` | `POST /internal/ae/nurture` | Trial nurture emails (Days 1/3/5/7/10) |
 | `0 8 * * *` | `POST /internal/ae/at-risk` | At-risk client alerts |
-| `0 8 * * *` | `POST /internal/ae/trial-expiry` | Trial expiry emails |
-| `0 8 * * *` | `POST /figsy/send-due` | FIGSY step 2 + 3 emails |
-| `0 7 * * 1` | `POST /internal/digest/weekly` | Weekly leads digest to clients |
+| `0 8 * * *` | `POST /internal/ae/trial-expiry` | Trial expiry emails (Days 10/12/14) |
+| `0 8 * * *` | `POST /figsy/send-due` | FIGSY step 2 + 3 auto-send |
+| `0 7 * * 1` | `POST /internal/digest/weekly` | Monday leads digest to clients |
 | `0 7 * * 1` | `POST /internal/cro/weekly-digest` | Weekly founder digest |
 
-All cron endpoints require header: `x-admin-key: {ADMIN_SECRET_KEY}`
-
-### DB Migrations (run in Supabase SQL Editor in order)
-1. `packages/db/src/schema.sql` — base schema
-2. `packages/db/src/migrations/001_icps_last_run_at.sql`
-3. `packages/db/src/migrations/002_figsy.sql`
-4. `packages/db/src/migrations/003_crm_integration.sql`
-5. `packages/db/src/migrations/004_figsy_crm_deal.sql`
-6. `packages/db/src/migrations/005_partners.sql`
+All require header: `x-admin-key: {ADMIN_SECRET_KEY}`
 
 ---
 
-## 13. DEPLOYMENT CHECKLIST
+## 18. SMOKE TEST CHECKLIST
 
-**~90 minutes end-to-end. Do in this order.**
+Run Monday with test client.
 
-### Before you start — collect these keys:
-- Supabase Project URL + Anon Key + Service Role Key
-- Paystack Secret Key + Webhook Secret
-- Anthropic API Key
-- Apollo API Key
-- Resend API Key
-- Railway API URL (after deploy)
-- Vercel Portal URL (after deploy)
-
-### Step 1 — Supabase (~10 min)
-- [ ] SQL Editor → run `packages/db/src/schema.sql`
-- [ ] SQL Editor → run migrations 001–005 in order
-- [ ] Storage → create bucket `agreement-templates` (public)
-- [ ] Auth → set Site URL: `https://app.get-kind.com`
-- [ ] Auth → add redirect URL: `https://app.get-kind.com/auth/callback`
-
-### Step 2 — Railway API (~15 min)
-- [ ] New project → deploy from GitHub → root dir: `apps/api`
-- [ ] Build: `npm run build` · Start: `npm start`
-- [ ] Add all env vars (see §12)
-- [ ] Set up 6 cron jobs (see §12)
-
-### Step 3 — Vercel Portal (~10 min)
-- [ ] Import repo → root dir: `apps/portal`
-- [ ] Set: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- [ ] Custom domain: `app.get-kind.com`
-
-### Step 4 — Vercel Admin (~10 min)
-- [ ] Import repo → root dir: `apps/admin`
-- [ ] Set: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- [ ] Custom domain: `admin.get-kind.com`
-
-### Step 5 — Vercel Website (~5 min)
-- [ ] Import repo → root dir: `apps/website`
-- [ ] Custom domain: `get-kind.com`
-
-### Step 6 — Netlify Landing (~5 min)
-- [ ] Drag `apps/landing/` folder into Netlify
-
-### Step 7 — Paystack (~10 min)
-- [ ] Settings → Webhooks → add: `kindapi-production-83cb.up.railway.app/webhooks/paystack`
-
-### Step 8 — Resend (~10 min)
-- [ ] Configure inbound routing for `replies@get-kind.com`
-- [ ] Webhook: `kindapi-production-83cb.up.railway.app/figsy/replies/inbound`
-- [ ] Update `FIGSY_REPLY_TO` in Railway to match
-
-### Step 9 — Smoke Test (9 steps)
 | Step | Action | Pass condition |
 |---|---|---|
 | 1 | Sign up at `app.get-kind.com` | Confirmation email arrives |
@@ -675,177 +738,103 @@ All cron endpoints require header: `x-admin-key: {ADMIN_SECRET_KEY}`
 
 ---
 
-## 14. MARKET EXPANSION PLAN — US & UK
+## 19. PRODUCT VISION — 1, 3, 5 YEARS
 
-> **Trigger: after 5 paying clients. Do not action before then.**
-> **Current readiness: 75% — core compliance and billing infrastructure built. Legal gaps (CCPA) and marketing positioning need completing before serious US/UK sales efforts.**
-
----
-
-### WHAT'S ALREADY BUILT FOR US/UK
-
-| Item | Status | Notes |
-|---|---|---|
-| USD pricing front and centre | ✅ Done | "From $20 / R380" on pricing.html |
-| Stripe USD/GBP billing | ✅ Built | Code done — needs credentials to activate |
-| GDPR compliance section | ✅ Done | trust.html — Article 6(1)(f) legitimate interest, right to erasure, transparency |
-| CAN-SPAM compliance section | ✅ Done | trust.html — sender ID, opt-out, honest subjects, physical address |
-| DPA (Data Processing Agreement) | ✅ Done | dpa.html — 10-section legal doc, covers POPIA + GDPR |
-| vs-outreach.html | ✅ Done | 8-row comparison, Africa + price + compliance + no contract |
-| vs-salesloft.html | ✅ Done | 8-row comparison, identical structure |
-| vs-apollo.html | ✅ Done | 13-row comparison — NOTE: positions K.I.N.D as Africa-only (see gaps) |
-| Sub-processors listed | ✅ Done | Supabase (SOC 2), Resend (SOC 2 + SCCs), Apollo (SCCs), Anthropic (SCCs), Paystack (PCI DSS) |
-| Data sovereignty statement | ✅ Done | "No cross-border transfers to US or EU data centres" |
-
----
-
-### PHASE 1 — Launch (now → client 5)
-Nothing changes. Current site, current pricing. Prove the model.
-
----
-
-### PHASE 2 — Dual Market (after client 5, ~1 day of work)
-
-**What to activate:**
-- Stripe billing — create 4 price IDs + set STRIPE_SECRET_KEY
-- Add GBP pricing examples to pricing.html
-- Add US/UK timezone support note to trust.html and support.html
-- Reframe vs-apollo.html — add section for US/UK companies (currently Africa-only framing)
-- Update hero to: "Built in Africa. Ready for the world."
-
-**What never changes:** product, pricing model, FIGSY/Milla/Vida characters, all code.
-
-**Positioning:**
-> "Started in Cape Town. Serving businesses in SA, the US, and the UK."
-> African origin is the differentiator — not a limiter. Apollo data is excellent for US + UK.
-
----
-
-### PHASE 3 — Data Residency & Legal (post Phase 2)
-
-- af-south-1 stays as default — fine for most US/UK clients
-- If enterprise demands US-hosted data: provision Supabase US region
-- SOC 2 Type II → target Q1 2027
-- DPA-US addendum for California/US enterprise clients
-
----
-
-### CRITICAL GAPS TO FIX BEFORE US SALES
-
-| Gap | Impact | Fix |
-|---|---|---|
-| **CCPA not mentioned anywhere** | US clients (especially California) will flag this | Add CCPA section to trust.html and dpa.html |
-| **US state privacy laws missing** | Virginia VCDPA, Colorado CPA, Connecticut CTDPA, Utah UCPA | Add to DPA as "applicable US state privacy laws" catch-all |
-| **vs-apollo.html frames K.I.N.D as Africa-only** | US/UK users reading it think K.I.N.D isn't for them | Add "US/UK companies" section to that page |
-| **GBP pricing not shown** | UK buyers see no local pricing | Add GBP examples to pricing.html once Stripe is live |
-| **No US/UK support hours mentioned** | US buyers assume no support in their timezone | Add async email support note |
-| **SOC 2 not yet certified** | US enterprise deals often require it | Target Q1 2027 — can't accelerate |
-| **DPA governing law is SA-only** | US enterprise buyers want US arbitration clause | Create DPA-US addendum post Phase 2 |
-
----
-
-### WHAT CLAUDE CAN DO FOR US/UK EXPANSION
-
-| Task | When |
-|---|---|
-| Add CCPA section to trust.html | Say go — 30 mins |
-| Add CCPA to dpa.html | Say go — 30 mins |
-| Add US/UK section to vs-apollo.html | Say go — 1 hour |
-| Add GBP pricing examples to pricing.html | After Stripe is live |
-| Add US/UK support note to trust.html and support.html | Say go — 10 mins |
-| Update hero copy to "Built in Africa. Ready for the world." | Say go — 5 mins |
-| Create DPA-US addendum page | Say go — 1 hour |
-
----
-
-## 15. PRODUCT VISION — 1, 3, 5 YEARS
-
-### Year 1 (by May 2027)
-- 150+ paying clients across SA + Nigeria + Kenya
+### Year 1 (by May 2027) — $40,000 MRR
+- 150+ paying clients (SA, UK, US, Nigeria, Kenya)
 - Lead Gen + FIGSY proven and reliable
 - Milla (VA) live for 30+ clients
 - Vida (Chatbot) live for 20+ clients
-- FIGSY Phase 2: Google Calendar booking, multi-channel (Voice + WhatsApp)
+- FIGSY Phase 2: Calendar + Voice + WhatsApp all active
+- ICP self-improvement live (3+ months data)
 - K.I.N.D's own outbound running entirely on FIGSY
-- Revenue: $40,000 MRR
 
-### Year 2 (2027) — Platform Shift ($120,000 MRR / 450 clients)
+### Year 2 (2027) — $120,000 MRR / 450 clients
 - Built-in CRM — clients stop needing HubSpot
-- Multi-channel FIGSY — email + LinkedIn + WhatsApp + Voice
-- Pan-African launch: Nigeria, Kenya, Ghana, Egypt
+- Multi-channel FIGSY — email + WhatsApp + Voice
+- Pan-African launch: Nigeria, Kenya, Ghana, Egypt fully active
 - Pipeline forecasting — AI predicts close probability
+- Recurring subscription model primary (credit bundles secondary)
+- White-label offering for agencies
 
-### Year 3 (2028) — Data Advantage ($300,000 MRR / 1,000 clients)
-- Proprietary dataset across thousands of African B2B companies
+### Year 3 (2028) — $300,000 MRR / 1,000 clients
+- Proprietary dataset across thousands of B2B companies
 - Predictive ICP — K.I.N.D tells you who to target before you ask
-- White-label offering — agencies resell K.I.N.D under their brand
+- African language support (Afrikaans, Zulu, Swahili, Yoruba)
+- SOC 2 Type II certified
 
 ### Year 5 (2030) — Market Leader
-- Dominant B2B revenue OS across Africa
 - 5,000+ clients, 10+ countries
+- Dominant B2B revenue OS across Africa
 - IPO-ready on JSE or acquisition at $100M+ valuation
 
 ---
 
-## 16. ALTA AI SDR — COMPETITIVE AUDIT
+## 20. ALTA AI SDR — COMPETITIVE AUDIT
 
 ### What Alta has
 - Three named agents: Katie (SDR), Alex (voice), Luna (RevOps intelligence)
 - Email + LinkedIn + SMS + voice. 50+ data sources. Self-improving.
 - SOC 2 Type II, ISO 27001, GDPR, CCPA. ~$18M raised.
-- G2 High Performer 4.9/5. Salesforce AppExchange. $1,250/mo minimum.
+- G2 High Performer 4.9/5. Salesforce AppExchange.
+- $1,250/mo minimum. USD only. Quarterly lock-in.
 
 ### Their gaps (our weapons)
 - Zero Africa presence
 - US data centres (POPIA risk)
-- USD-only quarterly billing, non-refundable, no trial
+- USD-only, quarterly billing, non-refundable, no trial
 - No POPIA/NDPR compliance
 - No WhatsApp-native strategy
 - No African language support
 - 3-business-day support response time
+- No ZAR billing
+- No free trial
 
 ### What we've done from this audit
 | # | Item | Status |
 |---|---|---|
-| 1 | Team narrative on website | Done |
-| 2 | FIGSY/Milla/Vida named agents with backstory | Done |
-| 3 | POPIA + data sovereignty on homepage + trust page | Done |
-| 4 | Speed claim ("first leads in 10 min") | Done |
-| 5 | Anti-Alta pricing strip | Done |
-| 6 | trust.html | Done |
-| 7 | partners.html + backend | Done |
-| 8 | 3 comparison pages | Done |
-| 9 | G2/Capterra/Product Hunt | Launch day |
-| 10 | Voice agent (FIGSY calls) | Month 2 — blocked |
-| 11 | WhatsApp channel | Month 2 — blocked |
-| 12 | African language support | Phase B |
-| 13 | SOC 2 Type II | Q1 2027 |
-| 14 | DPA template | Done (dpa.html) |
+| 1 | Team narrative on website | ✅ Done |
+| 2 | FIGSY/Milla/Vida named agents with backstory | ✅ Done |
+| 3 | POPIA + GDPR + CAN-SPAM on homepage + trust page | ✅ Done |
+| 4 | Speed claim ("first leads in 10 min") | ✅ Done |
+| 5 | Anti-Alta pricing strip | ✅ Done |
+| 6 | trust.html | ✅ Done |
+| 7 | partners.html + backend | ✅ Done |
+| 8 | 5 comparison pages | ✅ Done |
+| 9 | DPA template (dpa.html) | ✅ Done |
+| 10 | G2/Capterra/Product Hunt | Launch day |
+| 11 | Voice agent (FIGSY calls) | Month 2 — blocked on Vapi |
+| 12 | WhatsApp channel | Month 2 — blocked on Meta |
+| 13 | African language support | Phase B |
+| 14 | SOC 2 Type II | Q1 2027 |
+| 15 | ICP self-improvement (Luna equivalent) | 6 months post-launch |
 
 ---
 
-## 17. KEY DECISIONS LOCKED
+## 21. KEY DECISIONS LOCKED
 
 | Decision | Outcome |
 |---|---|
 | Core metric | TTFL — target < 2 hours from signup |
-| Billing model | Credit bundles. Recurring subscriptions Phase 2. |
+| Billing model | Credit bundles now. Recurring subscriptions Phase 2. |
 | Agent naming | FIGSY (founder) · Milla (daughter) · Vida (daughter) |
-| Market expansion trigger | After 5 paying SA clients |
-| US/UK compliance | POPIA + GDPR + CAN-SPAM — all three. Data residency post Phase 2. |
-| FIGSY launch | June 2026, after Lead Gen smoke test |
-| VA (Milla) + Chatbot (Vida) | July 2026 |
+| Market expansion trigger | After 5 paying clients |
+| Compliance | POPIA + GDPR + CAN-SPAM — all three. CCPA to add for US. |
+| FIGSY launch | After Lead Gen smoke test passes |
+| Milla + Vida launch | July 2026 |
 | Payment processor | Paystack (ZAR) → add Stripe (USD/GBP) at Phase 2 |
 | AI provider | Anthropic Claude — Haiku for volume, Sonnet for quality |
 | Data source | Apollo.io — pre-consented contacts first |
-| Hosting | Supabase af-south-1 + Railway + Vercel + Netlify |
-| Legal | Payment = acceptance under ECTA. No manual signing. |
-| Vector DB (VA/Chatbot) | TBD — Supabase pgvector (simple) vs Pinecone (scale) |
-| LinkedIn automation | Will not build — wrong channel for Africa |
-| SOC 2 | Q1 2027 — not before first enterprise deal demands it |
+| Hosting | Supabase af-south-1 + Railway + Vercel |
+| LinkedIn automation | Will not build — ToS risk, wrong channel |
+| SOC 2 | Q1 2027 — not before first enterprise deal |
+| Business registration | UK — Companies House |
+| Vector DB (Milla/Vida) | Supabase FTS now → pgvector at 50+ clients |
+| CRM | HubSpot + Pipedrive push only. Built-in CRM Year 2. |
+| Multi-year contracts | Will not offer — "cancel anytime" is core positioning |
 
 ---
 
 *Owner: K.I.N.D founding team*
-*Update this document after every session.*
-*Branch: `claude/ai-business-roadmap-U3OWJ`*
+*Last updated: 16 May 2026*
+*Branch: main*

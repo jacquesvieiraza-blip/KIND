@@ -61,6 +61,7 @@ export default function LeadsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [emailDraft, setEmailDraft] = useState<{ leadId: string; draft: string } | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkSending, setBulkSending] = useState(false)
@@ -78,6 +79,7 @@ export default function LeadsPage() {
 
   const fetchData = useCallback(async (tok: string) => {
     setLoading(true)
+    setFetchError(null)
     try {
       const params = new URLSearchParams({ page: String(page), limit: '50' })
       if (statusFilter) params.set('status', statusFilter)
@@ -94,7 +96,9 @@ export default function LeadsPage() {
       setLeads(leadsRes.data || [])
       setTotal(leadsRes.total || 0)
       setIcps(icpsRes.data || [])
-    } catch { }
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : 'Failed to load leads — please refresh.')
+    }
     setLoading(false)
   }, [page, statusFilter, minScore, icpFilter, apolloOnly])
 
@@ -322,6 +326,14 @@ export default function LeadsPage() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <p className="text-red-600 font-medium">Could not load leads</p>
+            <p className="text-sm text-gray-500">{fetchError}</p>
+            <button onClick={() => token && fetchData(token)} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-colors">
+              Retry
+            </button>
           </div>
         ) : filteredLeads.length === 0 ? (
           <div className="text-center py-20 text-gray-400">

@@ -136,13 +136,19 @@ export default function ICPPage() {
   const [saved, setSaved] = useState(false)
   const [showSavedBanner, setShowSavedBanner] = useState(false)
   const [prefillNotice, setPrefillNotice] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
+      if (!session) { setLoading(false); return }
       setToken(session.access_token)
-      const res = await api.get<{ data: ICP[] }>('/icps', session.access_token)
-      setIcps(res.data || [])
+      try {
+        const res = await api.get<{ data: ICP[] }>('/icps', session.access_token)
+        setIcps(res.data || [])
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : 'Failed to load ICPs — please refresh.')
+      }
       setLoading(false)
     })
   }, [])
@@ -188,6 +194,7 @@ export default function ICPPage() {
   async function handleSave() {
     if (!token || !form.name.trim()) return
     setSaving(true)
+    setSaveError(null)
     try {
       if (editingId) {
         const res = await api.patch<{ data: ICP }>(`/icps/${editingId}`, form, token)
@@ -200,7 +207,9 @@ export default function ICPPage() {
       setShowSavedBanner(true)
       setTimeout(() => setShowSavedBanner(false), 8000)
       setTimeout(() => { setSaved(false); setShowForm(false) }, 1200)
-    } catch { }
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save ICP — please try again.')
+    }
     setSaving(false)
   }
 
@@ -219,6 +228,18 @@ export default function ICPPage() {
   const set = (field: keyof ICPFormData) => (val: unknown) => setForm(f => ({ ...f, [field]: val }))
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-brand-500" /></div>
+
+  if (loadError) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center">
+        <p className="text-red-600 font-medium mb-2">Could not load ICPs</p>
+        <p className="text-sm text-gray-500">{loadError}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-colors">
+          Retry
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -355,13 +376,19 @@ export default function ICPPage() {
             </label>
           </div>
 
+          {saveError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+              {saveError}
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <button onClick={handleSave} disabled={saving || !form.name.trim()}
               className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-60">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : null}
               {saved ? 'Saved!' : saving ? 'Saving…' : 'Save & Find Leads'}
             </button>
-            <button onClick={() => setShowForm(false)}
+            <button onClick={() => { setShowForm(false); setSaveError(null) }}
               className="px-5 py-2.5 border border-gray-200 text-sm font-medium rounded-lg hover:border-gray-400 transition-colors">
               Cancel
             </button>

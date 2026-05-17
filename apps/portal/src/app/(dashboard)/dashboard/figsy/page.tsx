@@ -58,6 +58,7 @@ export default function FigsyPage() {
   const [toastMsg, setToastMsg] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [hasFigsySub, setHasFigsySub] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [expandedReplies, setExpandedReplies] = useState<string | null>(null)
   const [campaignReplies, setCampaignReplies] = useState<Record<string, Reply[]>>({})
   const [replyDraft, setReplyDraft] = useState<{ replyId: string; draft: string } | null>(null)
@@ -84,8 +85,8 @@ export default function FigsyPage() {
              (s.status === 'active' || s.status === 'trialing')
       )
       setHasFigsySub(hasSub)
-    } catch {
-      // silently ignore
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load campaigns — please refresh.')
     }
     setLoading(false)
   }, [supabase])
@@ -303,6 +304,14 @@ export default function FigsyPage() {
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
           <p className="text-sm text-gray-400">Loading campaigns…</p>
+        </div>
+      ) : loadError ? (
+        <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
+          <p className="text-sm font-medium text-red-600 mb-1">Could not load campaigns</p>
+          <p className="text-xs text-gray-500 mb-4">{loadError}</p>
+          <button onClick={loadCampaigns} className="px-4 py-2 bg-[#0066FF] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+            Retry
+          </button>
         </div>
       ) : campaigns.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">

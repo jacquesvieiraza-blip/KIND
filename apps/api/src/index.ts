@@ -29,7 +29,22 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 app.use(helmet())
-app.use(cors({ origin: process.env.PORTAL_URL || 'http://localhost:3000', credentials: true }))
+const ALLOWED_ORIGINS = [
+  'https://app.get-kind.com',
+  'https://admin.get-kind.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  ...(process.env.PORTAL_URL ? [process.env.PORTAL_URL] : []),
+]
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, curl, etc.)
+    if (!origin) return callback(null, true)
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
+    callback(new Error(`CORS: origin ${origin} not allowed`))
+  },
+  credentials: true,
+}))
 app.use(morgan('dev'))
 app.use('/webhooks/paystack', express.raw({ type: 'application/json' }))
 app.use('/webhooks/stripe',  express.raw({ type: 'application/json' }))

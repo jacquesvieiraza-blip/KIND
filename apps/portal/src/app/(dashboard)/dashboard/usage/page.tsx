@@ -31,6 +31,7 @@ const OVERAGE_RATE_USD = 1
 export default function UsagePage() {
   const supabase = createClient()
   const [loading, setLoading]           = useState(true)
+  const [loadError, setLoadError]       = useState<string | null>(null)
   const [balance, setBalance]           = useState(0)
   const [transactions, setTransactions] = useState<CreditTransaction[]>([])
   const [stats, setStats]               = useState<LeadStats | null>(null)
@@ -50,7 +51,9 @@ export default function UsagePage() {
         setTransactions(creditsRes.data.transactions)
         if (statsRes.data) setStats(statsRes.data)
         if (usageRes.data) setUsage(usageRes.data)
-      } catch { }
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : 'Failed to load usage data — please refresh.')
+      }
       setLoading(false)
     }
     load()
@@ -59,6 +62,18 @@ export default function UsagePage() {
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+    </div>
+  )
+
+  if (loadError) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center">
+        <p className="text-red-600 font-medium mb-2">Could not load usage data</p>
+        <p className="text-sm text-gray-500 mb-4">{loadError}</p>
+        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-colors">
+          Retry
+        </button>
+      </div>
     </div>
   )
 

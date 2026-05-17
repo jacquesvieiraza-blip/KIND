@@ -215,14 +215,22 @@ export default function ICPPage() {
 
   async function handleDelete(id: string) {
     if (!token || !confirm('Delete this ICP?')) return
-    await api.delete_(`/icps/${id}`, token)
-    setIcps(prev => prev.filter(i => i.id !== id))
+    try {
+      await api.delete_(`/icps/${id}`, token)
+      setIcps(prev => prev.filter(i => i.id !== id))
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to delete ICP — please try again.')
+    }
   }
 
   async function handleActivate(id: string) {
     if (!token) return
-    await api.patch(`/icps/${id}/activate`, {}, token)
-    setIcps(prev => prev.map(i => ({ ...i, is_active: i.id === id })))
+    try {
+      await api.patch(`/icps/${id}/activate`, {}, token)
+      setIcps(prev => prev.map(i => ({ ...i, is_active: i.id === id })))
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to activate ICP — please try again.')
+    }
   }
 
   const set = (field: keyof ICPFormData) => (val: unknown) => setForm(f => ({ ...f, [field]: val }))
@@ -243,6 +251,16 @@ export default function ICPPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {/* Error banner — shown for delete/activate errors when form is not open */}
+      {saveError && !showForm && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center justify-between">
+          <p className="text-sm text-red-700">{saveError}</p>
+          <button onClick={() => setSaveError(null)} className="ml-4 text-red-400 hover:text-red-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Saved banner */}
       {showSavedBanner && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between">

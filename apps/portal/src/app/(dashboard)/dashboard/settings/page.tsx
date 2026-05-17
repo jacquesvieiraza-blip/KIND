@@ -33,6 +33,8 @@ export default function SettingsPage() {
   const [crmSaved, setCrmSaved] = useState(false)
   const [crmTesting, setCrmTesting] = useState(false)
   const [crmTestResult, setCrmTestResult] = useState<{ success: boolean; error?: string } | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [crmSaveError, setCrmSaveError] = useState<string | null>(null)
   const [calendarStatus, setCalendarStatus] = useState<CalendarStatus | null>(null)
   const [whatsappStatus, setWhatsappStatus] = useState<{ configured: boolean } | null>(null)
   const [vapiStatus, setVapiStatus] = useState<{ configured: boolean } | null>(null)
@@ -76,24 +78,34 @@ export default function SettingsPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    setSaveError(null)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    await api.patch('/clients/me', form, session.access_token)
+    if (!session) { setSaving(false); return }
+    try {
+      await api.patch('/clients/me', form, session.access_token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save — please try again.')
+    }
     setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
   }
 
   async function handleCrmSave(e: React.FormEvent) {
     e.preventDefault()
     setCrmSaving(true)
     setCrmTestResult(null)
+    setCrmSaveError(null)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    await api.patch('/clients/me', crm, session.access_token)
+    if (!session) { setCrmSaving(false); return }
+    try {
+      await api.patch('/clients/me', crm, session.access_token)
+      setCrmSaved(true)
+      setTimeout(() => setCrmSaved(false), 3000)
+    } catch (err) {
+      setCrmSaveError(err instanceof Error ? err.message : 'Failed to save CRM settings — please try again.')
+    }
     setCrmSaving(false)
-    setCrmSaved(true)
-    setTimeout(() => setCrmSaved(false), 3000)
   }
 
   async function handleCrmTest() {
@@ -158,6 +170,7 @@ export default function SettingsPage() {
             </div>
           </div>
           {saved && <p className="text-green-600 text-sm">Saved!</p>}
+          {saveError && <p className="text-red-600 text-sm">{saveError}</p>}
           <button type="submit" disabled={saving}
             className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors disabled:opacity-60">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -248,6 +261,7 @@ export default function SettingsPage() {
           )}
 
           {crmSaved && <p className="text-green-600 text-sm">CRM settings saved!</p>}
+          {crmSaveError && <p className="text-red-600 text-sm">{crmSaveError}</p>}
           <button
             type="submit"
             disabled={crmSaving}

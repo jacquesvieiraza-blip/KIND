@@ -114,7 +114,9 @@ export default function LeadsPage() {
     try {
       await api.patch(`/leads/${leadId}/status`, { status }, token)
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l))
-    } catch { }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to update status', 'error')
+    }
     setActionLoading(null)
   }
 
@@ -124,7 +126,9 @@ export default function LeadsPage() {
     try {
       await api.post(`/leads/${leadId}/optout`, { reason: 'manual_block' }, token)
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: 'opted_out' } : l))
-    } catch { }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to block lead', 'error')
+    }
     setActionLoading(null)
   }
 
@@ -152,7 +156,9 @@ export default function LeadsPage() {
     try {
       const res = await api.post<{ data: { draft: string } }>(`/leads/${leadId}/draft-email`, {}, token)
       setEmailDraft({ leadId, draft: res.data.draft })
-    } catch { }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to generate email draft', 'error')
+    }
     setActionLoading(null)
   }
 

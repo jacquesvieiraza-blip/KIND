@@ -131,6 +131,7 @@ export default function BillingPage() {
   const [stripeConfigured, setStripeConfigured] = useState(false)
   const [stripeInitiating, setStripeInitiating] = useState<string | null>(null)
   const [buyError, setBuyError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -140,7 +141,9 @@ export default function BillingPage() {
         const res = await api.get<{ data: { balance: number; transactions: CreditTransaction[] } }>('/credits', session.access_token)
         setBalance(res.data.balance)
         setTransactions(res.data.transactions)
-      } catch { }
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : 'Failed to load billing data — please refresh.')
+      }
       try {
         const clientRes = await api.get<{ data: { auto_topup_enabled?: boolean; auto_topup_threshold?: number; auto_topup_plan?: string; auto_topup_bundle_size?: number } }>('/clients/me', session.access_token)
         if (clientRes.data) {
@@ -239,6 +242,18 @@ export default function BillingPage() {
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+    </div>
+  )
+
+  if (loadError) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center">
+        <p className="text-red-600 font-medium mb-2">Could not load billing data</p>
+        <p className="text-sm text-gray-500 mb-4">{loadError}</p>
+        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-colors">
+          Retry
+        </button>
+      </div>
     </div>
   )
 

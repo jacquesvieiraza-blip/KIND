@@ -1,6 +1,6 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 16 May 2026**
-**Launch date: 31 May 2026 · Days remaining: 15**
+**Single source of truth. Last updated: 17 May 2026**
+**Launch date: 31 May 2026 · Days remaining: 14**
 **Business: UK registered (Companies House) · Platform: Africa-first, world-ready**
 
 > Everything in one place. Status, roadmap, post-launch plan, expansion, compliance, SOPs, cashflow.
@@ -50,7 +50,10 @@
 | Phone number in leads table | ✅ Done | Shows in portal leads pipeline |
 | All 5 comparison pages | ✅ Linked | Footer Compare section on every page |
 | Branch merged to main | ✅ Done | PR #1 merged 16 May 2026 |
-| Cron jobs (6 jobs) | ⏳ Pending | Need separate service — Claude can build |
+| Cron jobs (7 jobs) | ✅ Built | node-cron in API — starts on boot, no extra service needed |
+| CCPA compliance | ✅ Done | trust.html + dpa.html + dpa-us.html all updated |
+| DPA-US addendum | ✅ Done | New page dpa-us.html — 9 sections, CCPA/CPRA/CAN-SPAM |
+| vs-apollo.html — global framing | ✅ Done | "Africa-first. World-ready." + UK/US section + table rows |
 | Resend inbound routing | ⏳ Pending | Needs paid Resend plan |
 | Stripe USD/GBP billing | ⏳ Pending | Post-launch — code done, needs credentials |
 | Google Calendar OAuth | ⏳ Pending | Post-launch — code done, needs credentials |
@@ -104,16 +107,20 @@
 
 ## 3. WHAT CLAUDE CAN DO
 
+### Done — completed 17 May 2026
+| Task | Status |
+|---|---|
+| Cron job service — 7 jobs, built into API, fires on boot | ✅ Done |
+| CCPA section — trust.html + dpa.html | ✅ Done |
+| vs-apollo.html — "Africa-first. World-ready." framing + UK/US section | ✅ Done |
+| DPA-US addendum page (dpa-us.html) — 9 sections, CCPA/CPRA/CAN-SPAM | ✅ Done |
+
 ### Ready Now (just say go)
 | Task | Time |
 |---|---|
-| Set up cron job service for Railway | 1 hour |
-| Add CCPA section to trust.html and dpa.html | 30 mins |
-| Add US/UK section to vs-apollo.html | 1 hour |
-| Update hero copy: "Built in Africa. Ready for the world." | 5 mins |
-| Add US/UK support note to trust.html + support.html | 10 mins |
-| Create DPA-US addendum page | 1 hour |
 | Add GBP pricing examples to pricing.html | 30 mins (after Stripe live) |
+| Update hero copy: "Built in Africa. Ready for the world." | 5 mins |
+| Add US/UK async support note to support.html | 10 mins |
 | Fix any bugs from smoke test | Ready |
 | Any copy/content changes on website | Ready |
 | New pages or features | Ready |
@@ -289,9 +296,10 @@
 | index.html | Homepage — team narrative, FIGSY, trust strip, anti-Alta pricing |
 | about.html | Founder story, Meet the agents (FIGSY/Milla/Vida) |
 | pricing.html | USD front, ZAR secondary, "See how we compare" link |
-| trust.html | POPIA + GDPR + CAN-SPAM, data sovereignty, security |
+| trust.html | POPIA + GDPR + CAN-SPAM + CCPA, data sovereignty, security |
 | partners.html | Partner programme, 20% commission, application form |
-| dpa.html | Data Processing Agreement — 10 sections, SA law + GDPR |
+| dpa.html | Data Processing Agreement — 11 sections, SA law + GDPR + CCPA |
+| dpa-us.html | US Privacy Addendum — 9 sections, CCPA/CPRA/CAN-SPAM, California rights |
 | use-cases.html | Industry use cases |
 | support.html | Support contact page |
 | terms.html | Terms of service |
@@ -345,7 +353,7 @@ All 5 comparison pages linked in footer Compare section on every page. ✅
 
 | Feature | What to do |
 |---|---|
-| **Cron jobs (6 jobs)** | Claude will build a cron service config — then deploy on Railway |
+| ~~**Cron jobs**~~ | ✅ Done — node-cron built into API, 7 jobs, auto-starts on boot |
 
 ---
 
@@ -387,13 +395,13 @@ All 5 comparison pages linked in footer Compare section on every page. ✅
 
 | Gap | Impact | Fix | Owner |
 |---|---|---|---|
-| CCPA not mentioned anywhere | California buyers will flag it | Add to trust.html + dpa.html | Claude — ready now |
-| US state privacy laws missing | VCDPA, CPA, CTDPA, UCPA | Add catch-all to DPA | Claude — ready now |
-| vs-apollo.html frames K.I.N.D as Africa-only | US/UK users think it's not for them | Add US/UK section | Claude — ready now |
+| CCPA not mentioned anywhere | ~~California buyers will flag it~~ | ✅ Fixed — trust.html + dpa.html + dpa-us.html | Done 17 May |
+| US state privacy laws missing | ~~VCDPA, CPA, CTDPA, UCPA~~ | ✅ Fixed — dpa-us.html Section 1 catch-all | Done 17 May |
+| vs-apollo.html frames K.I.N.D as Africa-only | ~~US/UK users think it's not for them~~ | ✅ Fixed — new UK & Global section, updated framing | Done 17 May |
+| DPA governing law is SA-only | ~~US enterprise needs US clause~~ | ✅ Fixed — dpa-us.html with US/California governing law | Done 17 May |
 | GBP pricing not shown | UK buyers see no local pricing | Add after Stripe live | Claude — after Stripe |
-| No US/UK support hours | US buyers assume no support | Add async note | Claude — ready now |
+| No US/UK support hours | US buyers assume no support | Add async note | Claude — 5 mins |
 | SOC 2 not certified | US enterprise needs it | External auditor | Q1 2027 |
-| DPA governing law is SA-only | US enterprise needs US clause | Create DPA-US addendum page | Claude — ready now |
 
 ### Phase 1 — Launch (now → client 5)
 - Nothing changes
@@ -431,10 +439,10 @@ All 5 comparison pages linked in footer Compare section on every page. ✅
 | **GDPR** (EU/UK) | ✅ Complete | trust.html — Articles 6(1)(f), 17, 13/14. DPA covers SCCs |
 | **CAN-SPAM** (US) | ✅ Complete | trust.html — sender ID, opt-out, honest subjects |
 | **DPA** published | ✅ Complete | dpa.html — 10 sections, governing law SA + GDPR acknowledgement |
-| **CCPA** (California) | ❌ Missing | Add to trust.html + dpa.html — Claude can do now |
-| **US state laws** (VCDPA, CPA, etc.) | ❌ Missing | Add catch-all clause to DPA |
+| **CCPA** (California) | ✅ Done | trust.html (4-item section) + dpa.html (Section 11) + dpa-us.html |
+| **US state laws** (VCDPA, CPA, etc.) | ✅ Done | dpa-us.html Section 1 — catch-all covers all US state laws |
+| **DPA-US addendum** | ✅ Done | dpa-us.html — 9 sections, CCPA/CPRA/CAN-SPAM/sub-processors |
 | **SOC 2 Type II** | ❌ Deferred | Q1 2027 |
-| **DPA-US addendum** | ❌ Pending | Create post Phase 2 — for US enterprise |
 
 ### Sub-processors (published in dpa.html)
 | Provider | Location | Certification |
@@ -706,17 +714,18 @@ WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
 ```
 
-### Cron Jobs (6 jobs — pending setup)
-| Schedule | Endpoint | Purpose |
+### Cron Jobs (7 jobs — ✅ Built, runs in API on boot)
+| Schedule (UTC) | Endpoint | Purpose |
 |---|---|---|
-| `0 8 * * *` | `POST /internal/ae/nurture` | Trial nurture emails (Days 1/3/5/7/10) |
-| `0 8 * * *` | `POST /internal/ae/at-risk` | At-risk client alerts |
-| `0 8 * * *` | `POST /internal/ae/trial-expiry` | Trial expiry emails (Days 10/12/14) |
-| `0 8 * * *` | `POST /figsy/send-due` | FIGSY step 2 + 3 auto-send |
-| `0 7 * * 1` | `POST /internal/digest/weekly` | Monday leads digest to clients |
-| `0 7 * * 1` | `POST /internal/cro/weekly-digest` | Weekly founder digest |
+| `0 6 * * *` | `POST /internal/ae/nurture` | Trial nurture emails (Days 1/3/5/7/10) |
+| `15 6 * * *` | `POST /internal/ae/at-risk` | At-risk client alerts |
+| `0 7 * * *` | `POST /internal/ae/trial-expiry` | Trial expiry emails (Days 10/12/14) |
+| `15 7 * * *` | `POST /internal/ae/zero-credits` | Zero-credits warning (Days 1/4/7) |
+| `0 */2 * * *` | `POST /internal/figsy/send-due-all` | FIGSY step 2+3 across all clients (every 2h) |
+| `0 7 * * 1` | `POST /internal/digest/weekly` | Monday leads digest to all clients |
+| `0 16 * * 5` | `POST /internal/cro/weekly-digest` | Friday founder digest |
 
-All require header: `x-admin-key: {ADMIN_SECRET_KEY}`
+Runs as `node-cron` in the API process — no Railway cron service needed. Starts automatically on `app.listen()`. All use `ADMIN_SECRET_KEY` header internally.
 
 ---
 
@@ -836,5 +845,5 @@ Run Monday with test client.
 ---
 
 *Owner: K.I.N.D founding team*
-*Last updated: 16 May 2026*
+*Last updated: 17 May 2026*
 *Branch: main*

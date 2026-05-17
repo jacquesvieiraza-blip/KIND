@@ -83,8 +83,8 @@ function BundleCard({
             <span>Price</span><span className="font-semibold text-gray-900">${bundle.price} USD</span>
           </div>
           <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-200">
-            <span>Billed in ZAR at current rate</span>
-            <span>≈ R{(bundle.price * 19).toLocaleString()}</span>
+            <span>Billed in USD</span>
+            <span>Secure payment</span>
           </div>
         </div>
 
@@ -130,6 +130,7 @@ export default function BillingPage() {
   const [topupSaved, setTopupSaved]       = useState(false)
   const [stripeConfigured, setStripeConfigured] = useState(false)
   const [stripeInitiating, setStripeInitiating] = useState<string | null>(null)
+  const [buyError, setBuyError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -198,18 +199,27 @@ export default function BillingPage() {
   async function handleBuy(plan: 'kind_ai' | 'figsy', bundle_size: number) {
     const key = `${plan}_${bundle_size}`
     setInitiating(key)
+    setBuyError(null)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    if (!session) { setInitiating(null); return }
     try {
       const res = await api.post<{ data: { authorization_url: string } }>('/credits/topup', { plan, bundle_size, terms_accepted: termsAccepted }, session.access_token)
-      window.location.href = res.data.authorization_url
-    } catch (err) { console.error(err) }
+      if (res.data?.authorization_url) {
+        window.location.href = res.data.authorization_url
+      } else {
+        setBuyError('Payment gateway did not return a redirect URL. Please try again or contact support.')
+      }
+    } catch (err) {
+      console.error(err)
+      setBuyError('Payment initiation failed. Please try again or email hello@get-kind.com.')
+    }
     setInitiating(null)
   }
 
   async function handleStripeBuy(priceId: string, credits: number, creditType: 'lead_gen' | 'figsy') {
     const key = `stripe_${creditType}_${credits}`
     setStripeInitiating(key)
+    setBuyError(null)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setStripeInitiating(null); return }
     try {
@@ -217,9 +227,12 @@ export default function BillingPage() {
       if (res.url) {
         window.location.href = res.url
       } else {
-        console.error('[Stripe] No checkout URL returned:', res)
+        setBuyError('Checkout session could not be created. Please contact hello@get-kind.com.')
       }
-    } catch (err) { console.error('[Stripe] checkout error:', err) }
+    } catch (err) {
+      console.error('[Stripe] checkout error:', err)
+      setBuyError('Stripe checkout failed. Please try again or email hello@get-kind.com.')
+    }
     setStripeInitiating(null)
   }
 
@@ -295,6 +308,13 @@ export default function BillingPage() {
         )}
       </div>
 
+      {/* Payment error banner */}
+      {buyError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700">
+          {buyError}
+        </div>
+      )}
+
       {/* Bundle cards */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Top up credits</h2>
@@ -324,9 +344,8 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Stripe — USD/GBP billing */}
-      {stripeConfigured && (
-        <div className="bg-white border border-gray-100 rounded-xl p-6">
+      {/* Stripe — USD billing */}
+      <div className="bg-white border border-gray-100 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-1">
             <CreditCard className="w-5 h-5 text-[#635bff]" />
             <h2 className="text-lg font-semibold text-gray-900">Pay in USD / GBP</h2>
@@ -394,7 +413,6 @@ export default function BillingPage() {
             Powered by Stripe · Secure card processing · Credits appear immediately after payment
           </p>
         </div>
-      )}
 
       {/* Auto top-up settings */}
       <div className="bg-white border border-gray-100 rounded-xl p-6">

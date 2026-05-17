@@ -38,10 +38,14 @@ authRouter.post('/onboard', async (req, res) => {
     if (error) throw error
     const trialEnd = new Date()
     trialEnd.setDate(trialEnd.getDate() + 14)
-    await db.from('subscriptions').insert({
-      client_id: data.id, product: 'lead_gen', tier: 'starter', status: 'trialing',
-      amount_usd: 0, amount_zar: 0, trial_ends_at: trialEnd.toISOString(), current_period_end: trialEnd.toISOString(),
-    })
+    const { data: existingSub } = await db.from('subscriptions')
+      .select('id').eq('client_id', data.id).eq('product', 'lead_gen').maybeSingle()
+    if (!existingSub) {
+      await db.from('subscriptions').insert({
+        client_id: data.id, product: 'lead_gen', tier: 'starter', status: 'trialing',
+        amount_usd: 0, amount_zar: 0, trial_ends_at: trialEnd.toISOString(), current_period_end: trialEnd.toISOString(),
+      })
+    }
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})
     // Fire-and-forget CS day1 follow-up
     fetch(`http://localhost:${process.env.PORT || 4000}/founder/cs/followup`, {

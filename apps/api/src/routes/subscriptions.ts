@@ -47,7 +47,7 @@ subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
       amount_zar: amountUsd * 19,
       current_period_start: new Date().toISOString(),
       current_period_end: new Date(Date.now() + 30 * 86400000).toISOString(),
-    }, { onConflict: 'client_id' })
+    }, { onConflict: 'client_id,product' })
     res.json({ success: true, message: 'Subscription activated' })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

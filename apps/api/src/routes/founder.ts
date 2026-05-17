@@ -89,7 +89,7 @@ Write a helpful reply. Do not include the subject line.`,
 
       if (resend) {
         await resend.emails.send({
-          from, to: [from], subject: `Re: ${subject}`,
+          from: FROM, to: [from], subject: `Re: ${subject}`,
           text: replyText,
         })
         autoReplied = true

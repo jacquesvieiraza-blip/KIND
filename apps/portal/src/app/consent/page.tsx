@@ -4,29 +4,39 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Zap, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 
-type ConsentState = 'loading' | 'consent_given' | 'opted_out' | 'already_processed' | 'error'
+type ConsentState = 'prompt' | 'loading' | 'consent_given' | 'opted_out' | 'already_processed' | 'error'
 
 function ConsentContent() {
   const searchParams = useSearchParams()
   const [state, setState] = useState<ConsentState>('loading')
   const [existingStatus, setExistingStatus] = useState<string | null>(null)
 
-  useEffect(() => {
-    const leadId  = searchParams.get('lead')
-    const token   = searchParams.get('token')
-    const consent = searchParams.get('consent')
+  const leadId = searchParams.get('lead')
+  const token  = searchParams.get('token')
 
-    if (!leadId || !token || consent === null) {
+  useEffect(() => {
+    if (!leadId || !token) {
       setState('error')
       return
     }
+    const consent = searchParams.get('consent')
+    // If no consent param, show the interactive prompt
+    if (consent === null) {
+      setState('prompt')
+      return
+    }
+    submitConsent(consent === 'true')
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  function submitConsent(consent: boolean) {
+    if (!leadId || !token) { setState('error'); return }
+    setState('loading')
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
     fetch(`${API}/leads/public/consent`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ lead_id: leadId, token, consent: consent === 'true' }),
+      body:    JSON.stringify({ lead_id: leadId, token, consent }),
     })
       .then(r => r.json())
       .then((data: any) => {
@@ -39,11 +49,36 @@ function ConsentContent() {
         }
       })
       .catch(() => setState('error'))
-  }, [searchParams])
+  }
 
   return (
     <main className="flex-1 flex items-center justify-center px-6 py-16">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 max-w-md w-full text-center">
+        {state === 'prompt' && (
+          <>
+            <Zap className="w-10 h-10 text-[#0066FF] mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-gray-900 mb-2">Data consent request</h1>
+            <p className="text-gray-600 text-sm leading-relaxed mb-6">
+              A company has shared your contact details with us for B2B outreach purposes.
+              Do you consent to being contacted?
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => submitConsent(true)}
+                className="flex-1 px-4 py-2.5 bg-[#0066FF] text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+              >
+                Yes, I consent
+              </button>
+              <button
+                onClick={() => submitConsent(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:border-gray-400 transition-colors"
+              >
+                No, opt me out
+              </button>
+            </div>
+          </>
+        )}
+
         {state === 'loading' && (
           <>
             <Loader2 className="w-10 h-10 text-[#0066FF] animate-spin mx-auto mb-4" />

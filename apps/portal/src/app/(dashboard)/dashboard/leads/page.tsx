@@ -507,7 +507,7 @@ export default function LeadsPage() {
               </button>
               {showMarkAs && (
                 <div className="absolute bottom-full mb-1 left-0 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden text-gray-900 min-w-36">
-                  {(['qualified', 'disqualified', 'contacted'] as const).map(s => (
+                  {(['consent_sent', 'consent_given', 'exported', 'rejected'] as const).map(s => (
                     <button key={s} onClick={() => bulkMarkAs(s)}
                       className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 capitalize transition-colors">
                       {s}

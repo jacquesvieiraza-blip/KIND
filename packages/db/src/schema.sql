@@ -47,6 +47,7 @@ create table if not exists public.subscriptions (
 );
 
 create index if not exists subscriptions_client_id_idx on public.subscriptions(client_id);
+create unique index if not exists subscriptions_client_product_idx on public.subscriptions(client_id, product);
 
 -- ─────────────────────────────────────────────
 -- IDEAL CUSTOMER PROFILES (ICPs)

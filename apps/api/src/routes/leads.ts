@@ -309,7 +309,7 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: leads } = await db.from('leads')
-      .select('id, email, first_name, last_name, apollo_consented, consent_sent_at, opt_out')
+      .select('id, email, first_name, last_name, apollo_consented, consent_sent_at, status')
       .in('id', leadIds)
       .eq('client_id', clientId)
 
@@ -321,9 +321,10 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
     let optedOut = 0
 
     for (const lead of leads ?? []) {
-      if (lead.apollo_consented) { alreadyConsented++; continue }
-      if (lead.opt_out)          { optedOut++;         continue }
-      if (lead.consent_sent_at)  { alreadySent++;      continue }
+      if (lead.apollo_consented)              { alreadyConsented++; continue }
+      if (lead.status === 'opted_out')        { optedOut++;         continue }
+      if (lead.consent_sent_at)              { alreadySent++;      continue }
+      if (!lead.email)                        { alreadySent++;      continue }
 
       try {
         const optOutUrl = `${process.env.PORTAL_URL}/consent?lead=${lead.id}&token=${lead.id}`
@@ -450,7 +451,7 @@ leadRouter.post('/bulk-status', async (req: AuthRequest, res) => {
   try {
     const { leadIds, status } = z.object({
       leadIds: z.array(z.string().uuid()).min(1).max(100),
-      status:  z.enum(['new', 'contacted', 'qualified', 'disqualified']),
+      status:  z.enum(['pending', 'scored', 'consent_sent', 'consent_given', 'exported', 'rejected', 'opted_out']),
     }).parse(req.body)
 
     const clientId = await getClientId(req.userId!)

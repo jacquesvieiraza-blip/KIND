@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Chatbot Agent — K.I.N.D</title>
+  <meta name="description" content="An AI chatbot trained on your business — deploys on your website or WhatsApp in minutes. Answers questions, captures leads, and hands off to your team. Coming soon." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #0066FF;
+      --indigo: #4f46e5;
+      --dark: #0a0a0a;
+      --mid: #444;
+      --light: #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+
+    /* HERO */
+    .hero-wrap { background: var(--dark); padding: 120px 48px 100px; text-align: center; position: relative; overflow: hidden; }
+    .hero-wrap::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(79,70,229,0.3) 0%, transparent 65%); }
+    .hero-inner { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; }
+    .cs-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(79,70,229,0.15); border: 1px solid rgba(79,70,229,0.3); border-radius: 20px; padding: 6px 16px; font-size: 0.78rem; font-weight: 600; color: #a5b4fc; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 32px; }
+    .cs-dot { width: 6px; height: 6px; background: #a5b4fc; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+    .hero-wrap h1 { font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 900; letter-spacing: -0.04em; color: #fff; line-height: 1.1; margin-bottom: 24px; }
+    .hero-wrap h1 span { color: #a5b4fc; }
+    .hero-wrap p { font-size: 1.1rem; color: rgba(255,255,255,0.55); line-height: 1.75; max-width: 580px; margin: 0 auto 48px; }
+
+    /* REGISTER FORM */
+    .form-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 40px; max-width: 480px; margin: 0 auto; }
+    .form-card h3 { color: #fff; font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .form-card p { color: rgba(255,255,255,0.4); font-size: 0.85rem; margin-bottom: 24px; }
+    .wl-group { margin-bottom: 14px; }
+    .wl-group label { display: block; font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+    .wl-group input, .wl-group select { width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; font-size: 0.9rem; color: #fff; outline: none; transition: border-color .15s; }
+    .wl-group input::placeholder { color: rgba(255,255,255,0.25); }
+    .wl-group input:focus, .wl-group select:focus { border-color: #a5b4fc; }
+    .wl-group select option { background: #1a1a2e; color: #fff; }
+    .btn-register { width: 100%; padding: 13px; background: var(--indigo); color: #fff; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity .2s; margin-top: 6px; }
+    .btn-register:hover { opacity: 0.85; }
+    .btn-register:disabled { opacity: 0.5; cursor: not-allowed; }
+    .form-msg { font-size: 0.82rem; text-align: center; margin-top: 12px; display: none; }
+    .form-msg.ok { color: #86efac; display: block; }
+    .form-msg.err { color: #fca5a5; display: block; }
+    .form-note { font-size: 0.72rem; color: rgba(255,255,255,0.2); text-align: center; margin-top: 14px; }
+
+    /* FEATURES */
+    .feat-section { padding: 100px 48px; max-width: 1080px; margin: 0 auto; }
+    .s-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--indigo); margin-bottom: 12px; }
+    .feat-section h2 { font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 16px; }
+    .feat-section > p { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 540px; margin-bottom: 64px; }
+    .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .feat-card { background: var(--light); border-radius: 16px; padding: 32px; }
+    .feat-icon { font-size: 1.8rem; margin-bottom: 16px; }
+    .feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feat-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
+
+    /* DEPLOY STRIP */
+    .deploy-section { background: var(--light); padding: 80px 48px; }
+    .deploy-inner { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .deploy-text h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 16px; }
+    .deploy-text p { font-size: 0.95rem; color: rgba(0,0,0,0.45); line-height: 1.7; margin-bottom: 28px; }
+    .deploy-channels { display: flex; flex-direction: column; gap: 14px; }
+    .channel { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; }
+    .channel-icon { font-size: 1.4rem; }
+    .channel-name { font-weight: 700; font-size: 0.9rem; }
+    .channel-desc { font-size: 0.8rem; color: rgba(0,0,0,0.4); }
+
+    /* HOW SECTION */
+    .how-section { padding: 100px 48px; }
+    .how-inner { max-width: 900px; margin: 0 auto; }
+    .how-inner h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 56px; }
+    .how-steps { display: flex; flex-direction: column; gap: 0; }
+    .how-step { display: flex; gap: 32px; padding: 32px 0; border-bottom: 1px solid rgba(0,0,0,0.07); }
+    .how-step:last-child { border-bottom: none; }
+    .step-num { font-size: 0.75rem; font-weight: 800; color: var(--indigo); letter-spacing: 0.06em; padding-top: 4px; min-width: 28px; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: 0.875rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
+
+    /* CTA */
+    .cta-wrap { padding: 80px 48px; text-align: center; }
+    .cta-wrap h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 12px; }
+    .cta-wrap p { color: rgba(0,0,0,0.45); margin-bottom: 32px; }
+    .btn-cta { display: inline-block; background: var(--indigo); color: #fff; padding: 14px 32px; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 0.95rem; transition: opacity .2s; }
+    .btn-cta:hover { opacity: 0.85; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 48px; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
+    .footer-col h4 { font-size: 0.75rem; font-weight: 700; color: rgba(0,0,0,0.4); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.55); text-decoration: none; margin-bottom: 8px; }
+    .footer-col a:hover { color: var(--dark); }
+    .footer-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 24px; }
+    .footer-bottom p { font-size: 0.8rem; color: rgba(0,0,0,0.3); }
+    .footer-legal { display: flex; gap: 20px; }
+    .footer-legal a { font-size: 0.8rem; color: rgba(0,0,0,0.3); text-decoration: none; }
+    .footer-legal a:hover { color: var(--dark); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero-wrap { padding: 80px 24px 72px; }
+      .feat-section { padding: 64px 24px; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .deploy-section { padding: 64px 24px; }
+      .deploy-inner { grid-template-columns: 1fr; }
+      .how-section { padding: 64px 24px; }
+      .cta-wrap { padding: 64px 24px; }
+      footer { padding: 40px 24px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">⚡</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <a href="/#products" class="nav-link">Products</a>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+    <a href="use-cases.html" class="nav-link">Use Cases</a>
+    <a href="about.html" class="nav-link">About</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero-wrap">
+  <div class="hero-inner">
+    <div class="cs-badge"><span class="cs-dot"></span>Coming Soon</div>
+    <h1>An AI chatbot that<br/><span>knows your business.</span></h1>
+    <p>Deploy a fully trained AI chatbot on your website or WhatsApp in minutes. It answers questions, captures leads, and hands off to your team exactly when they need to be involved.</p>
+    <div class="form-card">
+      <h3>Register your interest</h3>
+      <p>Early access is limited. We'll reach out when it's ready for you.</p>
+      <form id="wl-form" onsubmit="submitWaitlist(event)">
+        <div class="wl-group">
+          <label>Full name</label>
+          <input type="text" id="wl-name" placeholder="Jane Smith" required />
+        </div>
+        <div class="wl-group">
+          <label>Work email</label>
+          <input type="email" id="wl-email" placeholder="jane@company.com" required />
+        </div>
+        <div class="wl-group">
+          <label>Company</label>
+          <input type="text" id="wl-company" placeholder="Acme Ltd" />
+        </div>
+        <div class="wl-group">
+          <label>Where do you want to deploy?</label>
+          <select id="wl-deploy">
+            <option value="">Select...</option>
+            <option value="website">Website</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-register" id="wl-btn">Register interest →</button>
+        <div class="form-msg" id="wl-msg"></div>
+        <p class="form-note">No spam. No credit card. Early access only.</p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="feat-section">
+  <div class="s-label">What it does</div>
+  <h2>Always on. Always on-brand.</h2>
+  <p>Your chatbot handles the volume so your team handles the value. Trained on your content — not generic AI.</p>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">💬</div>
+      <h3>Instant answers</h3>
+      <p>Answers product questions, pricing queries, and support requests instantly — using only your approved content. No hallucinations, no off-script responses.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🎯</div>
+      <h3>Lead capture</h3>
+      <p>Qualifies visitors, collects contact details, and pushes warm leads directly into your K.I.N.D pipeline or CRM. No forms required.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🤝</div>
+      <h3>Human handoff</h3>
+      <p>Detects when a conversation needs a human and escalates immediately — via email notification, Slack, or a ticket in your helpdesk.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📱</div>
+      <h3>WhatsApp native</h3>
+      <p>Deploy on WhatsApp Business in minutes. Handles high message volumes and responds in seconds — 24/7, without a human on standby.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌐</div>
+      <h3>One-line website embed</h3>
+      <p>Add a single script tag to any website. Works with Webflow, WordPress, Shopify, and any custom site. No developer required.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <h3>Conversation analytics</h3>
+      <p>See what your customers are asking, which questions go unanswered, and how many leads the chatbot is generating each week.</p>
+    </div>
+  </div>
+</div>
+
+<!-- DEPLOY CHANNELS -->
+<div class="deploy-section">
+  <div class="deploy-inner">
+    <div class="deploy-text">
+      <div class="s-label">Deployment</div>
+      <h2>Deploy where your customers are.</h2>
+      <p>One setup. Multiple channels. Your chatbot stays consistent across every surface — same knowledge base, same tone, same escalation rules.</p>
+    </div>
+    <div class="deploy-channels">
+      <div class="channel">
+        <div class="channel-icon">🌐</div>
+        <div>
+          <div class="channel-name">Website widget</div>
+          <div class="channel-desc">One script tag — works on any site</div>
+        </div>
+      </div>
+      <div class="channel">
+        <div class="channel-icon">💚</div>
+        <div>
+          <div class="channel-name">WhatsApp Business</div>
+          <div class="channel-desc">Meta-approved, handles high volume</div>
+        </div>
+      </div>
+      <div class="channel">
+        <div class="channel-icon">🔗</div>
+        <div>
+          <div class="channel-name">API / Custom embed</div>
+          <div class="channel-desc">Build your own UI on top of our model</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="how-section">
+  <div class="how-inner">
+    <h2>Set up in minutes.</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <h3>Upload your content</h3>
+          <p>Add your FAQs, product pages, pricing, and support docs. The chatbot learns from your content — not generic internet data.</p>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <h3>Set your persona & rules</h3>
+          <p>Give it a name, a tone of voice, and define what it should and shouldn't say. Full control over how it represents your brand.</p>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <h3>Deploy in one click</h3>
+          <p>Copy the embed code and paste it into your site, or connect via the WhatsApp Business API. Live in under 10 minutes.</p>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <h3>Watch it work</h3>
+          <p>Monitor conversations, review lead captures, and improve the knowledge base over time. The more it learns, the better it gets.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-wrap">
+  <h2>Get early access.</h2>
+  <p>Register above or email us directly to join the priority list.</p>
+  <a href="mailto:hello@get-kind.com?subject=Chatbot%20Agent%20Early%20Access" class="btn-cta">Email us directly →</a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="logo"><div class="logo-icon">⚡</div><span class="logo-text">K.I.N.D</span></a>
+        <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation and automation for ambitious businesses.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Products</h4>
+        <a href="/#products">K.I.N.D AI — Lead Gen</a>
+        <a href="/#figsy">FIGSY — AI SDR</a>
+        <a href="virtual-assistant.html">Virtual Assistant</a>
+        <a href="chatbot-agent.html">Chatbot Agent</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About K.I.N.D</a>
+        <a href="use-cases.html">Use Cases</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="trust.html">Trust &amp; Security</a>
+        <a href="partners.html">Partners</a>
+      </div>
+      <div class="footer-col">
+        <h4>Get in touch</h4>
+        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo">Book a Demo</a>
+        <a href="https://app.get-kind.com/login">Client login</a>
+        <a href="support.html">Support</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 K.I.N.D. All rights reserved.</p>
+      <div class="footer-legal">
+        <a href="terms.html">Terms of Service</a>
+        <a href="dpa.html">Privacy Policy</a>
+        <a href="trust.html">Trust &amp; Security</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const SUPABASE_URL = 'https://lwtadfdaoyvjmjhrfkgs.supabase.co'
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dGFkZmRhb3l2am1qaHJma2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMDUxNDksImV4cCI6MjA2MTc4MTE0OX0.U-3J1JxkFH8Kgg3xMzN3NJgCVSutXGXEITJHMmPCIPM'
+
+  async function submitWaitlist(e) {
+    e.preventDefault()
+    const btn = document.getElementById('wl-btn')
+    const msg = document.getElementById('wl-msg')
+    const name = document.getElementById('wl-name').value.trim()
+    const email = document.getElementById('wl-email').value.trim()
+    const company = document.getElementById('wl-company').value.trim()
+    const deploy = document.getElementById('wl-deploy').value
+
+    btn.textContent = 'Registering...'
+    btn.disabled = true
+    msg.className = 'form-msg'
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/product_waitlist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ name, email, company, product: 'chatbot-agent', notes: deploy ? `deploy: ${deploy}` : null })
+      })
+      if (res.ok || res.status === 201) {
+        msg.className = 'form-msg ok'
+        msg.textContent = "You're on the list. We'll be in touch. ✓"
+        document.getElementById('wl-form').reset()
+        btn.textContent = "You're registered ✓"
+      } else {
+        throw new Error('Registration failed')
+      }
+    } catch {
+      msg.className = 'form-msg err'
+      msg.textContent = 'Something went wrong — email hello@get-kind.com directly.'
+      btn.textContent = 'Register interest →'
+      btn.disabled = false
+    }
+  }
+</script>
+</body>
+</html>

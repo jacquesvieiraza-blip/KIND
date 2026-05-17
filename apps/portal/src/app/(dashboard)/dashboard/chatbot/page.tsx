@@ -75,11 +75,42 @@ export default function ChatbotPage() {
   const supabase = createClient()
   const [tab, setTab] = useState<'configure' | 'conversations' | 'embed'>('configure')
   const [toastMsg, setToastMsg] = useState('')
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
     setTimeout(() => setToastMsg(''), 3500)
   }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { setHasAccess(false); return }
+      api.get<{ data: { product: string; status: string }[] }>('/subscriptions', session.access_token)
+        .then(res => setHasAccess((res.data ?? []).some(s => s.product === 'chatbot' && (s.status === 'active' || s.status === 'trialing'))))
+        .catch(() => setHasAccess(false))
+    })
+  }, [supabase])
+
+  if (hasAccess === null) return <div className="flex items-center justify-center min-h-[60vh]"><p className="text-sm text-gray-400">Loading…</p></div>
+
+  if (!hasAccess) return (
+    <div className="flex items-center justify-center min-h-[60vh] px-4">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 max-w-lg w-full p-8 text-center">
+        <div className="text-4xl mb-4">💬</div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">Unlock the Chatbot Agent</h1>
+        <p className="text-gray-500 text-sm leading-relaxed mb-6">Deploy an AI chatbot on your website or WhatsApp — trained on your business, live in minutes.</p>
+        <ul className="text-left space-y-2.5 mb-8">
+          {['Answers product questions instantly', 'Captures and qualifies leads 24/7', 'Hands off to your team when needed', 'One-line embed — any website'].map(f => (
+            <li key={f} className="flex items-start gap-2.5 text-sm text-gray-700">
+              <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">✓</span>{f}
+            </li>
+          ))}
+        </ul>
+        <a href="/dashboard/billing" className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">Upgrade to unlock →</a>
+        <p className="text-xs text-gray-400 mt-3">This add-on is currently in early access — email hello@get-kind.com to be added.</p>
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-6 max-w-4xl">

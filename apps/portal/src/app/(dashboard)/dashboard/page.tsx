@@ -70,6 +70,12 @@ export default async function DashboardPage() {
   const stats   = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number } | null
   const credits = (client as { credit_balance?: number }).credit_balance ?? 0
 
+  const hasProduct = (product: string) =>
+    subs.some(s => s.product === product && (s.status === 'active' || s.status === 'trialing'))
+  const hasFigsy     = hasProduct('lead_gen_figsy')
+  const hasVA        = hasProduct('virtual_assistant')
+  const hasChatbot   = hasProduct('chatbot')
+
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
@@ -108,9 +114,10 @@ export default async function DashboardPage() {
       <div>
         <h2 className="text-lg font-semibold mb-4">Your AI Products</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <ProductCard title="AI Lead Generation"  description="Precision-targeted B2B leads, scored and POPIA-compliant." icon={<Users className="w-6 h-6" />}         href="/dashboard/leads"    status="active" metric={`${stats?.total ?? 0} leads this month`} />
-          <ProductCard title="Virtual Assistant"   description="Scheduling, email drafting, and knowledge queries."       icon={<Bot className="w-6 h-6" />}           href="/dashboard/assistant" status="active" metric="Ready to use" />
-          <ProductCard title="Chatbot Agent"       description="Web and WhatsApp AI chatbot for your customers."          icon={<MessageSquare className="w-6 h-6" />} href="/dashboard/chatbot"   status="active" metric="Configure your bot" />
+          <ProductCard title="AI Lead Generation"  description="Precision-targeted B2B leads, scored and POPIA-compliant." icon={<Users className="w-6 h-6" />}         href="/dashboard/leads"    status="active"                   metric={`${stats?.total ?? 0} leads this month`} />
+          <ProductCard title="FIGSY — AI SDR"      description="Autonomous outreach: personalise, send, follow up, book." icon={<Zap className="w-6 h-6" />}            href="/dashboard/figsy"    status={hasFigsy ? 'active' : 'locked'}  metric={hasFigsy ? `${figsyCount} campaigns` : 'Lead Gen + FIGSY bundle'} upgradeHref="/dashboard/billing" />
+          <ProductCard title="Virtual Assistant"   description="Scheduling, email drafting, and knowledge queries."       icon={<Bot className="w-6 h-6" />}           href="/dashboard/assistant" status={hasVA ? 'active' : 'locked'}     metric={hasVA ? 'Ready to use' : 'Add-on — coming soon'} upgradeHref="/dashboard/billing" />
+          <ProductCard title="Chatbot Agent"       description="Web and WhatsApp AI chatbot for your customers."          icon={<MessageSquare className="w-6 h-6" />} href="/dashboard/chatbot"   status={hasChatbot ? 'active' : 'locked'}  metric={hasChatbot ? 'Configure your bot' : 'Add-on — coming soon'} upgradeHref="/dashboard/billing" />
         </div>
       </div>
     </div>

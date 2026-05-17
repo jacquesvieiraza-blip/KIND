@@ -621,30 +621,30 @@
       </div>
     </div>
     <div class="partner-form reveal reveal-delay-1">
-      <form action="mailto:partners@get-kind.com" method="POST" enctype="text/plain">
+      <form id="partner-form" onsubmit="submitPartnerForm(event)">
         <div class="pf-row">
           <div class="pf-group">
             <label class="pf-label" for="p-name">Full name</label>
-            <input class="pf-input" type="text" id="p-name" name="Name" placeholder="Jane Smith" required />
+            <input class="pf-input" type="text" id="p-name" placeholder="Jane Smith" required />
           </div>
           <div class="pf-group">
             <label class="pf-label" for="p-company">Company</label>
-            <input class="pf-input" type="text" id="p-company" name="Company" placeholder="Your Agency" required />
+            <input class="pf-input" type="text" id="p-company" placeholder="Your Agency" required />
           </div>
         </div>
         <div class="pf-row">
           <div class="pf-group">
             <label class="pf-label" for="p-email">Email</label>
-            <input class="pf-input" type="email" id="p-email" name="Email" placeholder="you@agency.com" required />
+            <input class="pf-input" type="email" id="p-email" placeholder="you@agency.com" required />
           </div>
           <div class="pf-group">
             <label class="pf-label" for="p-website">Website</label>
-            <input class="pf-input" type="url" id="p-website" name="Website" placeholder="https://youragency.com" />
+            <input class="pf-input" type="url" id="p-website" placeholder="https://youragency.com" />
           </div>
         </div>
         <div class="pf-group">
           <label class="pf-label" for="p-type">Partner type</label>
-          <select class="pf-select" id="p-type" name="Partner type" required>
+          <select class="pf-select" id="p-type" required>
             <option value="" disabled selected>Select a partner type</option>
             <option value="Referral">Referral &mdash; refer clients, earn commission</option>
             <option value="Agency">Agency &mdash; resell under your brand</option>
@@ -654,9 +654,10 @@
         </div>
         <div class="pf-group">
           <label class="pf-label" for="p-message">Tell us about your business and clients</label>
-          <textarea class="pf-textarea" id="p-message" name="Message" placeholder="What do you do? Who are your clients? How do you see K.I.N.D fitting in?"></textarea>
+          <textarea class="pf-textarea" id="p-message" placeholder="What do you do? Who are your clients? How do you see K.I.N.D fitting in?"></textarea>
         </div>
-        <button type="submit" class="btn-pf-submit">Apply to partner programme &rarr;</button>
+        <div id="pf-msg" style="display:none;font-size:0.85rem;padding:10px 14px;border-radius:10px;margin-bottom:12px"></div>
+        <button type="submit" class="btn-pf-submit" id="pf-btn">Apply to partner programme &rarr;</button>
       </form>
     </div>
   </div>
@@ -733,6 +734,47 @@
   var SUPABASE_URL = 'https://lwtadfdaoyvjmjhrfkgs.supabase.co'
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dGFkZmRhb3l2am1qaHJma2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMDUxNDksImV4cCI6MjA2MTc4MTE0OX0.U-3J1JxkFH8Kgg3xMzN3NJgCVSutXGXEITJHMmPCIPM'
   var authMode = 'signup'
+
+  async function submitPartnerForm(e) {
+    e.preventDefault()
+    var btn = document.getElementById('pf-btn')
+    var msg = document.getElementById('pf-msg')
+    var name = document.getElementById('p-name').value.trim()
+    var email = document.getElementById('p-email').value.trim()
+    var company = document.getElementById('p-company').value.trim()
+    var website = document.getElementById('p-website').value.trim()
+    var partnerType = document.getElementById('p-type').value
+    var message = document.getElementById('p-message').value.trim()
+    btn.textContent = 'Submitting…'
+    btn.disabled = true
+    msg.style.display = 'none'
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/partner_applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ name: name, email: email, company: company, website: website || null, partner_type: partnerType, message: message || null })
+      })
+      if (res.ok || res.status === 201) {
+        msg.style.display = 'block'
+        msg.style.background = '#f0fdf4'
+        msg.style.color = '#166534'
+        msg.style.border = '1px solid #bbf7d0'
+        msg.textContent = "Application received. We'll be in touch within 2 business days. ✓"
+        document.getElementById('partner-form').reset()
+        btn.textContent = 'Application sent ✓'
+      } else {
+        throw new Error('Submit failed')
+      }
+    } catch (err) {
+      msg.style.display = 'block'
+      msg.style.background = '#fef2f2'
+      msg.style.color = '#991b1b'
+      msg.style.border = '1px solid #fecaca'
+      msg.textContent = 'Something went wrong — email partners@get-kind.com directly.'
+      btn.textContent = 'Apply to partner programme →'
+      btn.disabled = false
+    }
+  }
 
   function openAuth(mode) {
     authMode = mode

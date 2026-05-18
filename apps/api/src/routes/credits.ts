@@ -56,13 +56,15 @@ creditRouter.post('/topup', async (req: AuthRequest, res) => {
 
     const token = req.headers.authorization?.replace('Bearer ', '') || ''
     const { data: { user } } = await db.auth.getUser(token)
+    if (!user?.email) { res.status(400).json({ success: false, error: 'Could not resolve user email for payment' }); return }
+
     const amountZarKobo = Math.round(amountUsd * 19 * 100)
 
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email:        user?.email,
+        email:        user.email,
         amount:       amountZarKobo,
         currency:     'ZAR',
         callback_url: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/billing/confirm?type=credit`,
@@ -70,8 +72,11 @@ creditRouter.post('/topup', async (req: AuthRequest, res) => {
       }),
     })
 
-    const paystackData = await paystackRes.json() as { status: boolean; data: { authorization_url: string; reference: string } }
-    if (!paystackData.status) { res.status(500).json({ success: false, error: 'Paystack initialization failed' }); return }
+    const paystackData = await paystackRes.json() as { status: boolean; message?: string; data: { authorization_url: string; reference: string } }
+    if (!paystackData.status) {
+      console.error('[credits/topup] Paystack error:', paystackData)
+      res.status(500).json({ success: false, error: paystackData.message || 'Paystack initialization failed' }); return
+    }
 
     res.json({ success: true, data: { authorization_url: paystackData.data.authorization_url } })
   } catch (err) {

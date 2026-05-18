@@ -108,7 +108,7 @@ authRouter.post('/onboard', async (req, res) => {
     if (!existingSub) {
       const { error: subErr } = await db.from('subscriptions').insert({
         client_id: clientId, product: 'lead_gen', tier: 'starter', status: 'trialing',
-        billing_interval: 'monthly', amount_usd: 0, amount_zar: 0,
+        billing_interval: 'monthly',
         trial_ends_at: trialEnd.toISOString(),
         current_period_start: now, current_period_end: trialEnd.toISOString(),
       })

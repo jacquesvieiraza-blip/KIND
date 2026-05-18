@@ -138,7 +138,18 @@ export default function ICPPage() {
   const [prefillNotice, setPrefillNotice] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [nameSuggestion, setNameSuggestion] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (form.name.trim()) { setNameSuggestion(null); return }
+    const parts: string[] = []
+    if (form.seniority_levels.length) parts.push(form.seniority_levels[0])
+    if (form.geographies.length)      parts.push(form.geographies[0])
+    if (form.industries.length)       parts.push(form.industries[0])
+    else if (form.job_titles.length)  parts.push(form.job_titles[0])
+    setNameSuggestion(parts.length >= 2 ? parts.join(' · ') : null)
+  }, [form.name, form.seniority_levels, form.geographies, form.industries, form.job_titles])
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -381,6 +392,12 @@ export default function ICPPage() {
             <input ref={nameInputRef} type="text" value={form.name} onChange={e => set('name')(e.target.value)}
               placeholder="e.g. SA Fintech CTOs"
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            {nameSuggestion && (
+              <button type="button" onClick={() => { set('name')(nameSuggestion); setNameSuggestion(null) }}
+                className="mt-1.5 text-xs text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                ✨ Use: <span className="font-medium">{nameSuggestion}</span>
+              </button>
+            )}
           </div>
 
           <CheckboxGroup label="Industries" options={INDUSTRIES} selected={form.industries} onChange={set('industries')} />

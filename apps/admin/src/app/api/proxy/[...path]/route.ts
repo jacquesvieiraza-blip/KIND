@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 
-const API = 'https://kindapi-production-83cb.up.railway.app'
+const API = 'https://kindapi-production-e64c.up.railway.app'
 
 async function proxy(req: NextRequest, path: string[]) {
   const key = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET || process.env.NEXT_PUBLIC_ADMIN_KEY || ''

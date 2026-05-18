@@ -45,7 +45,7 @@ const SECTIONS: { title: string; items: CheckItem[] }[] = [
       { id: 'rv-portal-url', label: 'PORTAL_URL=https://app.get-kind.com', detail: 'Used for redirect URLs and email links', critical: true },
       { id: 'rv-google-id', label: 'GOOGLE_CLIENT_ID', detail: 'console.cloud.google.com → APIs → Credentials → OAuth 2.0', critical: false },
       { id: 'rv-google-secret', label: 'GOOGLE_CLIENT_SECRET', detail: 'Same as above', critical: false },
-      { id: 'rv-google-redirect', label: 'GOOGLE_REDIRECT_URI=https://kindapi-production-83cb.up.railway.app/calendar/callback', detail: 'Must match Google Console redirect URI', critical: false },
+      { id: 'rv-google-redirect', label: 'GOOGLE_REDIRECT_URI=https://kindapi-production-e64c.up.railway.app/calendar/callback', detail: 'Must match Google Console redirect URI', critical: false },
       { id: 'rv-vapi-key', label: 'VAPI_API_KEY', detail: 'app.vapi.ai → Account → API Keys', critical: false },
       { id: 'rv-vapi-phone', label: 'VAPI_PHONE_NUMBER_ID', detail: 'Vapi dashboard → Phone Numbers → copy ID of your Twilio SA number', critical: false },
       { id: 'rv-vapi-assistant', label: 'VAPI_ASSISTANT_ID', detail: 'Vapi dashboard → Assistants → FIGSY → copy ID', critical: false },
@@ -69,20 +69,20 @@ const SECTIONS: { title: string; items: CheckItem[] }[] = [
   {
     title: '4. Paystack',
     items: [
-      { id: 'ps-webhook', label: 'Set webhook URL', detail: 'dashboard.paystack.com → Settings → Webhooks → https://kindapi-production-83cb.up.railway.app/webhooks/paystack', link: { text: 'Open Paystack', url: 'https://dashboard.paystack.com/#/settings/developer' }, critical: true },
+      { id: 'ps-webhook', label: 'Set webhook URL', detail: 'dashboard.paystack.com → Settings → Webhooks → https://kindapi-production-e64c.up.railway.app/webhooks/paystack', link: { text: 'Open Paystack', url: 'https://dashboard.paystack.com/#/settings/developer' }, critical: true },
     ],
   },
   {
     title: '5. Resend',
     items: [
-      { id: 'resend-inbound', label: 'Configure inbound routing for replies@get-kind.com', detail: 'resend.com → Domains → Inbound → add route → webhook: https://kindapi-production-83cb.up.railway.app/figsy/replies/inbound', link: { text: 'Open Resend', url: 'https://resend.com/domains' }, critical: true },
+      { id: 'resend-inbound', label: 'Configure inbound routing for replies@get-kind.com', detail: 'resend.com → Domains → Inbound → add route → webhook: https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound', link: { text: 'Open Resend', url: 'https://resend.com/domains' }, critical: true },
       { id: 'resend-domain', label: 'Verify get-kind.com domain in Resend', detail: 'Add DKIM + SPF DNS records from Resend to your domain registrar', critical: true },
     ],
   },
   {
     title: '6. Vercel — Portal (app.get-kind.com)',
     items: [
-      { id: 'v-portal-url', label: 'NEXT_PUBLIC_API_URL=https://kindapi-production-83cb.up.railway.app', detail: 'Vercel → portal project → Environment Variables', critical: true },
+      { id: 'v-portal-url', label: 'NEXT_PUBLIC_API_URL=https://kindapi-production-e64c.up.railway.app', detail: 'Vercel → portal project → Environment Variables', critical: true },
       { id: 'v-portal-sb-url', label: 'NEXT_PUBLIC_SUPABASE_URL', detail: 'Supabase → Settings → API → Project URL', critical: true },
       { id: 'v-portal-sb-anon', label: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', detail: 'Supabase → Settings → API → anon key', critical: true },
       { id: 'v-portal-domain', label: 'Custom domain: app.get-kind.com', detail: 'Vercel → portal → Domains → add app.get-kind.com', critical: true },
@@ -94,7 +94,7 @@ const SECTIONS: { title: string; items: CheckItem[] }[] = [
       { id: 'gc-project', label: 'Create a Google Cloud project', detail: 'console.cloud.google.com → New Project → K.I.N.D', link: { text: 'Open Google Console', url: 'https://console.cloud.google.com' }, critical: false },
       { id: 'gc-calendar-api', label: 'Enable Google Calendar API', detail: 'APIs & Services → Enable APIs → search Calendar API → Enable', critical: false },
       { id: 'gc-oauth', label: 'Create OAuth 2.0 credentials', detail: 'APIs & Services → Credentials → Create → OAuth client ID → Web Application', critical: false },
-      { id: 'gc-redirect', label: 'Add redirect URI: https://kindapi-production-83cb.up.railway.app/calendar/callback', detail: 'In the OAuth client config', critical: false },
+      { id: 'gc-redirect', label: 'Add redirect URI: https://kindapi-production-e64c.up.railway.app/calendar/callback', detail: 'In the OAuth client config', critical: false },
       { id: 'gc-consent', label: 'Configure OAuth consent screen', detail: 'App name: K.I.N.D · Scopes: calendar.events, calendar.readonly, userinfo.email', critical: false },
     ],
   },
@@ -105,7 +105,7 @@ const SECTIONS: { title: string; items: CheckItem[] }[] = [
       { id: 'vapi-twilio', label: 'Create Twilio account + buy SA +27 number', detail: 'twilio.com → buy number → South Africa → voice capable', link: { text: 'Open Twilio', url: 'https://www.twilio.com/console' }, critical: false },
       { id: 'vapi-twilio-connect', label: 'Connect Twilio to Vapi', detail: 'Vapi → Phone Numbers → Import → Twilio → enter SID + Auth Token', critical: false },
       { id: 'vapi-assistant', label: 'Create FIGSY assistant in Vapi', detail: 'Vapi → Assistants → New → name it FIGSY → note the Assistant ID', critical: false },
-      { id: 'vapi-webhook-url', label: 'Set Vapi webhook URL', detail: 'Vapi → Settings → Webhooks → https://kindapi-production-83cb.up.railway.app/voice/webhook', critical: false },
+      { id: 'vapi-webhook-url', label: 'Set Vapi webhook URL', detail: 'Vapi → Settings → Webhooks → https://kindapi-production-e64c.up.railway.app/voice/webhook', critical: false },
     ],
   },
   {
@@ -114,7 +114,7 @@ const SECTIONS: { title: string; items: CheckItem[] }[] = [
       { id: 'meta-account', label: 'Create Meta Business Manager account', detail: 'business.facebook.com → create account', link: { text: 'Open Meta Business', url: 'https://business.facebook.com' }, critical: false },
       { id: 'meta-app', label: 'Create a Meta App → WhatsApp product', detail: 'developers.facebook.com → My Apps → Create App → Business', link: { text: 'Open Meta Developers', url: 'https://developers.facebook.com' }, critical: false },
       { id: 'meta-phone', label: 'Add a phone number to your WhatsApp Business account', detail: 'Must be a number not previously used with WhatsApp', critical: false },
-      { id: 'meta-webhook', label: 'Set webhook URL in Meta App', detail: 'WhatsApp → Configuration → Webhook → https://kindapi-production-83cb.up.railway.app/whatsapp/webhook · Verify token = WHATSAPP_VERIFY_TOKEN', critical: false },
+      { id: 'meta-webhook', label: 'Set webhook URL in Meta App', detail: 'WhatsApp → Configuration → Webhook → https://kindapi-production-e64c.up.railway.app/whatsapp/webhook · Verify token = WHATSAPP_VERIFY_TOKEN', critical: false },
       { id: 'meta-subscribe', label: 'Subscribe to messages webhook field', detail: 'Meta App → WhatsApp → Webhook fields → messages → Subscribe', critical: false },
     ],
   },

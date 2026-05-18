@@ -195,7 +195,7 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
     setSaving(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-83cb.up.railway.app'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
       const res = await fetch(`${apiUrl}/vida/config`, {
         method: 'PUT',
         headers: {

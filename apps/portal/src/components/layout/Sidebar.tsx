@@ -12,7 +12,7 @@ function SystemStatus() {
   const [status, setStatus] = React.useState<'checking' | 'ok' | 'degraded'>('checking')
 
   React.useEffect(() => {
-    fetch('https://kindapi-production-83cb.up.railway.app/health', { signal: AbortSignal.timeout(5000) })
+    fetch('https://kindapi-production-e64c.up.railway.app/health', { signal: AbortSignal.timeout(5000) })
       .then(r => r.ok ? setStatus('ok') : setStatus('degraded'))
       .catch(() => setStatus('degraded'))
   }, [])

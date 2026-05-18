@@ -113,8 +113,11 @@ export default function AssistantPage() {
             </li>
           ))}
         </ul>
-        <a href="/dashboard/billing" className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">Upgrade to unlock →</a>
-        <p className="text-xs text-gray-400 mt-3">This add-on is currently in early access — email hello@get-kind.com to be added.</p>
+        <div className="flex flex-col gap-3">
+          <a href="/dashboard/billing" className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Upgrade to unlock →</a>
+          <a href="https://cal.com/get-kind/demo" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-gray-200">Book a demo</a>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">Available as an add-on. Book a demo to see it live.</p>
       </div>
     </div>
   )

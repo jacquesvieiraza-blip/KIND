@@ -1,11 +1,34 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LayoutDashboard, Users, Bot, MessageSquare, CreditCard, Settings, LogOut, Zap, Map, FileText, Coins, BarChart2, TrendingUp } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
+
+function SystemStatus() {
+  const [status, setStatus] = React.useState<'checking' | 'ok' | 'degraded'>('checking')
+
+  React.useEffect(() => {
+    fetch('https://kindapi-production-83cb.up.railway.app/health', { signal: AbortSignal.timeout(5000) })
+      .then(r => r.ok ? setStatus('ok') : setStatus('degraded'))
+      .catch(() => setStatus('degraded'))
+  }, [])
+
+  const dot = status === 'ok' ? 'bg-green-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-gray-400'
+  const label = status === 'ok' ? 'All systems operational' : status === 'degraded' ? 'Service disruption' : 'Checking…'
+
+  return (
+    <div className="px-3 pb-3">
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${dot} ${status === 'ok' ? 'animate-pulse' : ''}`} />
+        <span className="text-xs text-white/40">{label}</span>
+      </div>
+    </div>
+  )
+}
 
 function RobotIcon({ className }: { className?: string }) {
   return <span className={className} style={{ fontSize: '1rem', lineHeight: 1 }}>🤖</span>
@@ -69,6 +92,7 @@ export function Sidebar({ userEmail, creditBalance = 0 }: { userEmail: string; c
             </div>
           </div>
         </div>
+        <SystemStatus />
         <button onClick={handleSignOut} className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
           <LogOut className="w-4 h-4 shrink-0" />Sign out
         </button>

@@ -116,7 +116,10 @@ function OnboardForm() {
                 </button>
 
                 {prefillError && (
-                  <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{prefillError}</p>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 space-y-1">
+                    <p className="text-xs font-medium text-amber-800">We couldn't read your website automatically — this is common for sites with security protection.</p>
+                    <p className="text-xs text-amber-700">No problem — skip to your free trial below and set up your ICP manually from the dashboard. It only takes 2 minutes.</p>
+                  </div>
                 )}
 
                 {icpSuggestions && (

@@ -1097,7 +1097,8 @@
           window.location.href = data.data.redirect_url
         }
       } catch (err) {
-        msg.className = 'modal-msg err'; msg.textContent = 'Network error — please try again.'; btn.textContent = 'Create account'; btn.disabled = false
+        const detail = err instanceof Error ? err.message : String(err)
+        msg.className = 'modal-msg err'; msg.textContent = 'Error: ' + detail; btn.textContent = 'Create account'; btn.disabled = false
       }
     } else {
       closeAuth()

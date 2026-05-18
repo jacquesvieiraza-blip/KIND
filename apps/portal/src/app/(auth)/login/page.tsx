@@ -27,8 +27,22 @@ function LoginForm() {
     setError('')
     setMessage('')
     if (mode === 'signup') {
-      const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboard` } })
-      if (error) { setError(error.message) } else { setMessage('Check your email to confirm your account.') }
+      try {
+        const res = await fetch('https://kindapi-production-e64c.up.railway.app/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        })
+        const data = await res.json()
+        if (!data.success) {
+          setError(data.error || 'Signup failed — please try again')
+        } else {
+          // Railway returns a magic link — redirect straight in, no email confirmation needed
+          window.location.href = data.data.redirect_url
+        }
+      } catch {
+        setError('Could not connect — please try again.')
+      }
     } else {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {

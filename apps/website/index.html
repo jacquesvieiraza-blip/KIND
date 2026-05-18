@@ -1084,25 +1084,7 @@
     btn.disabled = true
     msg.className = 'modal-msg'
     if (authMode === 'signup') {
-      try {
-        const redirectTo = encodeURIComponent('https://app.get-kind.com/auth/callback?next=/onboard')
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/signup?redirect_to=${redirectTo}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-          body: JSON.stringify({ email, password })
-        })
-        const data = await res.json()
-        if (!res.ok) {
-          const errMsg = data.msg || data.error_description || data.message || 'Signup failed — please try again'
-          msg.className = 'modal-msg err'; msg.textContent = errMsg; btn.textContent = 'Create account'; btn.disabled = false
-        } else {
-          msg.className = 'modal-msg ok'
-          msg.textContent = '✓ Check your email — we sent you a link to get started.'
-          btn.textContent = 'Check your email'
-        }
-      } catch {
-        msg.className = 'modal-msg err'; msg.textContent = 'Please check your connection and try again.'; btn.textContent = 'Create account'; btn.disabled = false
-      }
+      window.location.href = PORTAL + '/login'
     } else {
       closeAuth()
       window.location.href = PORTAL + '/login'

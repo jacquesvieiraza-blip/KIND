@@ -6,7 +6,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 export const creditRouter = Router()
 creditRouter.use(requireAuth)
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!
+if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('PAYSTACK_SECRET_KEY is required')
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY
 
 const BUNDLES: Record<'kind_ai' | 'figsy', Record<number, number>> = {
   kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
@@ -64,7 +65,7 @@ creditRouter.post('/topup', async (req: AuthRequest, res) => {
         email:        user?.email,
         amount:       amountZarKobo,
         currency:     'ZAR',
-        callback_url: `${process.env.PORTAL_URL}/billing/confirm?type=credit`,
+        callback_url: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/billing/confirm?type=credit`,
         metadata:     { client_id: client.id, type: 'credit_purchase', plan, bundle_size, amount_usd: amountUsd },
       }),
     })

@@ -4,13 +4,10 @@ import { useState } from 'react'
 import { AdminNav } from '@/components/AdminNav'
 import { Loader2, Copy, Check, Linkedin, Search } from 'lucide-react'
 
-const API  = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
-const KEY  = process.env.NEXT_PUBLIC_ADMIN_KEY || ''
-
 function adminPost<T>(path: string, body?: unknown): Promise<T> {
-  return fetch(`${API}${path}`, {
+  return fetch(`/api/proxy${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   }).then(r => r.json())
 }

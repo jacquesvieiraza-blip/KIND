@@ -7,7 +7,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 export const subscriptionRouter = Router()
 subscriptionRouter.use(requireAuth)
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!
+if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('PAYSTACK_SECRET_KEY is required')
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY
 const PLAN_CODES: Record<string, Record<string, string>> = {
   lead_gen: { starter: process.env.PAYSTACK_PLAN_LEAD_GEN_STARTER || '', advanced: process.env.PAYSTACK_PLAN_LEAD_GEN_ADVANCED || '', enterprise: process.env.PAYSTACK_PLAN_LEAD_GEN_ENTERPRISE || '' },
   lead_gen_figsy: { starter: process.env.PAYSTACK_PLAN_FIGSY_STARTER || '', advanced: process.env.PAYSTACK_PLAN_FIGSY_ADVANCED || '', enterprise: process.env.PAYSTACK_PLAN_FIGSY_ENTERPRISE || '' },
@@ -78,7 +79,7 @@ subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: user?.email, amount: amountZarKobo, currency: 'ZAR', plan: planCode || undefined, callback_url: `${process.env.PORTAL_URL}/billing/confirm`, metadata: { client_id: client.id, product, tier, billing_interval } }),
+      body: JSON.stringify({ email: user?.email, amount: amountZarKobo, currency: 'ZAR', plan: planCode || undefined, callback_url: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/billing/confirm`, metadata: { client_id: client.id, product, tier, billing_interval } }),
     })
     const paystackData = await paystackRes.json() as { status: boolean; data: { authorization_url: string; reference: string } }
     if (!paystackData.status) { res.status(500).json({ success: false, error: 'Paystack initialization failed' }); return }

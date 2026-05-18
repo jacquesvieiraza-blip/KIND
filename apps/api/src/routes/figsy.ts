@@ -490,13 +490,16 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
           }
           const amountUsd = BUNDLES[plan]?.[bundleSize]
           if (amountUsd) {
+            const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.id)
+            const topupEmail = user?.email
+            if (!topupEmail) throw new Error('No email for auto-topup client')
             const amountZarKobo = Math.round(amountUsd * 19 * 100)
             const chargeRes = await fetch('https://api.paystack.co/transaction/charge_authorization', {
               method: 'POST',
               headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 authorization_code: clientForTopup.auto_topup_paystack_auth,
-                email: '', // Will be populated from Paystack
+                email: topupEmail,
                 amount: amountZarKobo,
                 currency: 'ZAR',
                 metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },

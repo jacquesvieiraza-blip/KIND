@@ -48,7 +48,7 @@ authRouter.post('/onboard', async (req, res) => {
     }
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})
     // Fire-and-forget CS day1 follow-up
-    fetch(`http://localhost:${process.env.PORT || 4000}/founder/cs/followup`, {
+    fetch(`${process.env.API_INTERNAL_URL || `http://localhost:${process.env.PORT || 4000}`}/founder/cs/followup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-key': process.env.ADMIN_SECRET_KEY || '' },
       body: JSON.stringify({ client_id: data.id, step: 'day1' }),

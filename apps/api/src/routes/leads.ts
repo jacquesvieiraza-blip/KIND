@@ -287,7 +287,7 @@ leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
 
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).single()
 
-    const optOutUrl = `${process.env.PORTAL_URL}/consent?lead=${lead.id}&token=${lead.id}`
+    const optOutUrl = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/consent?lead=${lead.id}&token=${lead.id}`
     await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
 
     await db.from('leads')
@@ -327,7 +327,7 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
       if (!lead.email)                        { alreadySent++;      continue }
 
       try {
-        const optOutUrl = `${process.env.PORTAL_URL}/consent?lead=${lead.id}&token=${lead.id}`
+        const optOutUrl = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/consent?lead=${lead.id}&token=${lead.id}`
         await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
         await db.from('leads')
           .update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() })
@@ -432,7 +432,7 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
         skipped++; continue
       }
       try {
-        const optOutUrl = `${process.env.PORTAL_URL}/consent?lead=${lead.id}&token=${lead.id}`
+        const optOutUrl = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/consent?lead=${lead.id}&token=${lead.id}`
         await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
         await db.from('leads').update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() }).eq('id', lead.id)
         sent++

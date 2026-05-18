@@ -23,6 +23,7 @@ import { calendarRouter } from './routes/calendar'
 import { millaRouter } from './routes/milla'
 import { vidaRouter } from './routes/vida'
 import { stripeRouter } from './routes/stripe'
+import { orderFormRouter } from './routes/order-forms'
 import { startCrons } from './cron'
 
 const app = express()
@@ -70,7 +71,7 @@ app.use('/calendar',      calendarRouter)
 app.use('/milla',         millaRouter)
 app.use('/vida',          vidaRouter)
 app.use('/stripe',        stripeRouter)
-app.use('/webhooks/stripe', stripeRouter)
+app.use('/order-forms',   orderFormRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => {

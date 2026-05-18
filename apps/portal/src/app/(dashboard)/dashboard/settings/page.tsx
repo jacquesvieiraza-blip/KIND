@@ -48,7 +48,7 @@ export default function SettingsPage() {
         const c = res.data
         setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '' })
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false })
-      } catch { }
+      } catch { setSaveError('Failed to load your profile. Please refresh.') }
 
       // Integration statuses — graceful, these endpoints may not be configured
       try {

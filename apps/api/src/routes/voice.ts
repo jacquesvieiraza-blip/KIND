@@ -9,6 +9,10 @@ import crypto from 'crypto'
 
 export const voiceRouter = Router()
 
+voiceRouter.get('/status', requireAuth, (_req, res) => {
+  res.json({ success: true, data: { configured: Boolean(process.env.VAPI_API_KEY) } })
+})
+
 async function getClientId(userId: string): Promise<string | null> {
   const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
   return data?.id ?? null

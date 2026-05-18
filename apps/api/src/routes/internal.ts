@@ -21,7 +21,7 @@ import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM   = 'K.I.N.D <hello@get-kind.com>'
-const DASH   = 'https://app.get-kind.com/dashboard'
+const DASH   = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard`
 
 export const internalRouter = Router()
 

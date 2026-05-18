@@ -27,7 +27,8 @@ export default function ReferralPage() {
 
       try {
         // Fetch client id
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/me`, {
+        const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+        const res = await fetch(`${base}/clients/me`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
         })
         if (res.ok) {
@@ -41,7 +42,7 @@ export default function ReferralPage() {
 
         // Try to fetch referrals — endpoint may not exist yet
         try {
-          const refRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/referrals`, {
+          const refRes = await fetch(`${base}/clients/referrals`, {
             headers: { Authorization: `Bearer ${session.access_token}` },
           })
           if (refRes.ok) {

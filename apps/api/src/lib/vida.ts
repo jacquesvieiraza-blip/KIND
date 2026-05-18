@@ -161,7 +161,7 @@ export async function notifyHotLead(
       <p>Hi there,</p>
       <p><strong>${displayName}</strong> was on your website and is interested in working with you.</p>
       <p>${emailLine}</p>
-      <p><a href="https://app.get-kind.com/dashboard/chatbot">View the full conversation →</a></p>
+      <p><a href="${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard/chatbot">View the full conversation →</a></p>
       <p style="color:#666;font-size:12px;">Session ID: ${sessionId}</p>
       <p style="color:#666;font-size:12px;">Sent by ${botName} via K.I.N.D</p>
     `,

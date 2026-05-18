@@ -165,16 +165,17 @@ export default function LeadsPage() {
   async function exportCSV() {
     if (!token) return
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leads/export/csv`, {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+      const res = await fetch(`${base}/leads/export/csv`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) return
+      if (!res.ok) { showToast('Export failed — please try again', 'error'); return }
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
       a.href = url; a.download = 'kind-leads.csv'; a.click()
       URL.revokeObjectURL(url)
-    } catch { }
+    } catch { showToast('Export failed — please try again', 'error') }
   }
 
   async function bulkConsentSend() {

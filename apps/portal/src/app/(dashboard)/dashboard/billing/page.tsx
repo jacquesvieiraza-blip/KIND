@@ -195,7 +195,7 @@ export default function BillingPage() {
       }, session.access_token)
       setTopupSaved(true)
       setTimeout(() => setTopupSaved(false), 3000)
-    } catch (err) { console.error(err) }
+    } catch (err) { console.error(err); setBuyError('Failed to save auto-topup settings') }
     setSavingTopup(false)
   }
 

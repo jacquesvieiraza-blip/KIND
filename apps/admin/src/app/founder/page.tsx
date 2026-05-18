@@ -17,13 +17,10 @@ interface Digest {
   recent_logs:      AgentLog[]
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || ''
-
 function adminFetch<T>(path: string, opts?: RequestInit): Promise<T> {
-  return fetch(`${API}${path}`, {
+  return fetch(`/api/proxy${path}`, {
     ...opts,
-    headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY, ...opts?.headers },
+    headers: { 'Content-Type': 'application/json', ...opts?.headers },
   }).then(r => r.json())
 }
 

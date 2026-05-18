@@ -1,5 +1,5 @@
 # KIND Platform — Full Status & Action Plan
-**Last updated: 18 May 2026**
+**Last updated: 18 May 2026 — commit ef95cfc**
 
 ---
 
@@ -15,253 +15,218 @@
 
 ---
 
-## WHAT YOU NEED TO DO (Requires Your Access)
+## YOUR IMMEDIATE TO-DO LIST (requires your access)
 
-### TODAY — Vercel has a deployment queued waiting for limit reset:
-| # | Action | Where |
-|---|--------|--------|
-| 1 | **Verify Vercel deployed** — check all 3 projects show latest commit `361ad32` | vercel.com dashboard |
-| 2 | **Run demo SQL migration** if not already done | Supabase → SQL Editor → paste below |
-| 3 | **Smoke test full signup flow** | get-kind.com → sign up → dashboard → ICP |
-| 4 | **Test Demo Environments** | admin.get-kind.com → Demo Envs → create one |
-
-#### Demo columns SQL (run in Supabase SQL Editor if not done):
-```sql
-ALTER TABLE public.clients
-  ADD COLUMN IF NOT EXISTS is_demo            BOOLEAN     DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS demo_prospect_name TEXT,
-  ADD COLUMN IF NOT EXISTS demo_created_by    TEXT,
-  ADD COLUMN IF NOT EXISTS demo_expires_at    TIMESTAMPTZ;
-```
-
-#### RLS SQL (already run — for reference):
-```sql
-ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.icps    ENABLE ROW LEVEL SECURITY;
-```
+| Priority | Action | Where |
+|----------|--------|-------|
+| 🔴 CRITICAL | Run `20260518_credit_transactions_rls.sql` in Supabase SQL Editor | Supabase → SQL Editor |
+| 🔴 CRITICAL | Run `20260518_company_registration.sql` in Supabase SQL Editor | Supabase → SQL Editor |
+| 🔴 HIGH | Complete Paystack KYC → get live `sk_live_...` key → update Railway env var | dashboard.paystack.com |
+| 🔴 HIGH | Set up Google Workspace for get-kind.com (see section below) | workspace.google.com |
+| 🟡 MEDIUM | Create calendar booking page (Calendly or Cal.com) → share link with Claude to update "Book a Demo" buttons | calendly.com or cal.com |
+| 🟡 MEDIUM | Verify Vercel deployed latest commit `ef95cfc` on all 3 projects | vercel.com |
+| 🟡 MEDIUM | Smoke test full signup → ICP → leads flow | app.get-kind.com |
+| 🟢 WHEN READY | Test Demo Environments: create demo → Open Demo | admin.get-kind.com/demo |
 
 ---
 
-## FULL SMOKE TEST CHECKLIST
+## GOOGLE WORKSPACE SETUP STEPS
 
-Run this top to bottom after Vercel deploys:
+You need Google Workspace to have a professional @get-kind.com inbox (hello@get-kind.com). Without it you can't send or receive email from your domain properly.
 
-**Signup & Onboarding**
-- [ ] go to get-kind.com → click Sign Up → redirects to app.get-kind.com/login
-- [ ] Fill in email + password → click Sign Up → no email confirmation → lands on /onboard
-- [ ] Fill company name, industry, country, website → click "Start free trial"
-- [ ] Dashboard loads — shows greeting with company name, stat cards, credit balance
+1. Go to workspace.google.com → **Get started** → Business Starter plan
+2. Enter your domain: **get-kind.com**
+3. Google gives you **MX records** — add them to your domain DNS (at your registrar: GoDaddy, Cloudflare, Namecheap, etc.)
+4. Google gives you a **TXT verification record** — add to DNS → click Verify in Google
+5. Create mailbox: **hello@get-kind.com** (primary inbox — sales, support, billing)
+6. Create or alias: **privacy@kind.ai** → forward to hello@get-kind.com (required by Privacy Policy)
+7. In Google Admin → Gmail → Authenticate email → **Enable DKIM** → add the DKIM TXT record to DNS
+8. Add **SPF record**: `v=spf1 include:_spf.google.com ~all` (merge with existing SPF if you have one from Resend)
+9. Add **DMARC record** on `_dmarc.get-kind.com`: `v=DMARC1; p=none; rua=mailto:hello@get-kind.com`
 
-**Lead Generation (ICP)**
-- [ ] Dashboard → Lead Gen → ICP Settings
-- [ ] Click "New ICP" → select seniority + geography → name hint "✨ Use: C-Suite · South Africa" appears
-- [ ] Click the hint → name fills in automatically
-- [ ] Click "Save & Find Leads" → saves, leads start loading
-- [ ] Leads appear in the leads table with scores
+**After Workspace is live:** Update `FOUNDER_EMAIL` in Railway to `hello@get-kind.com`.
 
-**Locked Product Screens**
-- [ ] Dashboard → FIGSY — locked screen shows "Book a demo" button → links to cal.com/get-kind/demo
-- [ ] Dashboard → Virtual Assistant — locked screen shows "Book a demo" button
-- [ ] Dashboard → Chatbot Agent — locked screen shows "Book a demo" button
-
-**General**
-- [ ] Sidebar bottom shows green dot "All systems operational"
-- [ ] Sign out → redirects to /login
-- [ ] Sign back in → dashboard loads correctly (no empty loop)
-
-**Admin Portal**
-- [ ] Go to admin.get-kind.com → see Dashboard with KPIs, MRR, TTFL
-- [ ] Clients page → shows all clients
-- [ ] Demo Envs → create a demo (fills prospect name, company, industry, country, expiry, your name)
-- [ ] Demo creates successfully → leads count shows "running…" then fills in
-- [ ] Click "Open Demo" → portal opens in new tab, logged in as that demo client
-- [ ] Verify portal shows demo company name, all 4 products active, leads visible
+**Important:** FIGSY outreach emails go through **Resend** (replies@get-kind.com), NOT Google Workspace. Keep them separate to protect your domain reputation.
 
 ---
 
-## EVERYTHING THAT WAS BUILT (Full Audit)
+## FULL SECURITY AUDIT RESULTS (completed 18 May 2026)
 
-### Infrastructure & Plumbing
-- ✅ Railway API running at `kindapi-production-e64c.up.railway.app`
-- ✅ Supabase SSR middleware — JWT refresh on every portal request
-- ✅ CORS configured — get-kind.com and app.get-kind.com can call Railway
-- ✅ All three Vercel projects deploy from `main` branch
-- ✅ RLS enabled on `clients` and `icps` tables
-- ✅ Admin proxy route in admin portal — forwards to Railway with admin key (GET, POST, PATCH, DELETE)
+Security audit run across all tables, routes, middleware, and config. Findings:
 
-### Authentication & Signup
-- ✅ Portal login page handles both signup and login modes
-- ✅ Signup calls Railway `/auth/signup` → auto-confirms email → returns magic link → user lands in dashboard
-- ✅ Login uses Supabase `signInWithPassword` → checks for company profile → redirects to /onboard if missing
-- ✅ Website get-kind.com signup button redirects to portal login (no broken form)
-- ✅ No email confirmation required — frictionless signup
+### ✅ SECURE — All good
+| Area | Status | Detail |
+|------|--------|--------|
+| RLS — clients | ✅ | `auth.uid() = user_id` policy — each client sees only their own row |
+| RLS — icps | ✅ | `client_id = current_client_id()` — re-enabled 18 May |
+| RLS — leads | ✅ | `client_id = current_client_id()` |
+| RLS — subscriptions | ✅ | `client_id = current_client_id()` |
+| RLS — figsy tables | ✅ | All 4 FIGSY tables have proper RLS |
+| RLS — milla/vida | ✅ | Service-role bypass only (correct — API enforces filtering) |
+| RLS — partners | ✅ | Service-role bypass (correct) |
+| RLS — opt_out_blocklist | ✅ | Requires authenticated role |
+| API auth — all user routes | ✅ | `requireAuth` middleware on every router |
+| API auth — admin routes | ✅ | `requireAdminKey` on all admin endpoints |
+| JWT refresh | ✅ | Supabase SSR middleware refreshes tokens on every portal request |
+| CORS | ✅ | Strict allowlist: get-kind.com, app.get-kind.com, admin.get-kind.com |
+| Subscription gating | ✅ | Both frontend (locked screens) and backend (403 checks) |
+| Demo isolation | ✅ | Demo clients are real rows subject to same RLS as paying clients |
+| Opt-out blocklist | ✅ | Checked before EVERY lead insert — ICP job + manual insert |
+| Env vars | ✅ | All required vars documented and in use |
 
-### Onboarding (`/onboard`)
-- ✅ Company name, industry, country, website, phone
-- ✅ "Pre-fill ICP from website" button — scrapes site, saves suggestions to localStorage
-- ✅ ICP suggestions applied automatically when user creates first ICP
-- ✅ "Start free trial" creates client row + trialing subscription
-- ✅ "Pay now — skip trial" goes straight to billing
-- ✅ Referred users tracked via `?ref=` param — both get 100 credits on first ICP run
+### 🔴 FIXED — Was broken, now fixed
+| Area | Fix |
+|------|-----|
+| **credit_transactions — NO RLS** | ✅ Fixed: migration `20260518_credit_transactions_rls.sql` — **run this now** |
+| **clients — RLS disabled** | ✅ Fixed: `20260518_enable_rls.sql` — already run |
+| **icps — RLS disabled** | ✅ Fixed: same migration — already run |
 
-### Dashboard (`/dashboard`)
-- ✅ Reads from Supabase directly (authenticated client, RLS-safe — no admin key needed)
-- ✅ Shows greeting, company name, stat cards (leads, score, consented, pipeline value, credits)
-- ✅ Onboarding checklist (company name → ICP → leads → FIGSY campaign)
-- ✅ Trial/payment banner based on subscription status
-- ✅ Product cards for all 4 products with lock states
-- ✅ Referral banner with unique referral link
+### Minor notes (not security issues)
+- Vida widget endpoints (`/widget/*`) are intentionally public — client-side chatbot needs no auth
+- FIGSY `/replies/inbound` is intentionally public — webhook from Resend
+- `/leads/public/consent` is intentionally public — POPIA opt-in landing page
+
+---
+
+## EVERYTHING THAT IS BUILT & LIVE
+
+### Platform Infrastructure
+- ✅ Railway API — Express + Node, all routes live
+- ✅ Supabase — database + auth + storage
+- ✅ Vercel — portal, admin, website all deploy from `main`
+- ✅ JWT refresh middleware on every portal request
+- ✅ CORS allowlist — only known origins
+- ✅ Admin proxy route — admin portal → Railway (GET, POST, PATCH, DELETE)
+
+### Authentication
+- ✅ Signup → no email confirmation → direct to /onboard
+- ✅ Login → Supabase signInWithPassword
+- ✅ Magic link generation for demo accounts
+- ✅ Middleware protects all /dashboard/* routes
+
+### Onboarding
+- ✅ Company name, industry, country, website, phone, company registration, VAT
+- ✅ "Pre-fill ICP from website" — scrapes site → saves to localStorage
+- ✅ Referral tracking via `?ref=` param
+
+### Dashboard
+- ✅ Company name greeting, stat cards, credit balance
+- ✅ Onboarding checklist, trial/payment banner
+- ✅ All 4 product cards with lock states
+- ✅ Referral banner with unique link
 - ✅ No empty dashboard loop — fixed
 
-### AI Lead Generation
-- ✅ Apollo.io integration — searches people by ICP criteria
-- ✅ ICP builder — industries, job titles, seniority, company size, geographies, tech stack, keywords
-- ✅ ICP auto-name suggestion — fills "✨ C-Suite · South Africa · Fintech" from selected criteria
-- ✅ ICP validation — clicking Save with empty name shows error + scrolls to name field
+### Lead Generation
+- ✅ Apollo.io integration — real leads from API
+- ✅ ICP builder — all criteria fields
+- ✅ **AI ICP Suggest** — "Suggest ICP with AI" button calls Claude, auto-fills form
+- ✅ ICP auto-name hint from selected criteria
 - ✅ ICP prefill from website URL
-- ✅ Opt-out/blocklist check before inserting leads
-- ✅ Lead scoring (AI scores 0–100)
-- ✅ Leads table — search, filter by status/score/ICP/Apollo consented
-- ✅ Lead actions — send consent email, mark status, AI email draft, block lead
-- ✅ Bulk actions — export CSV, send bulk consent, mark as
-- ✅ CSV export (full and bulk-selected)
-- ✅ POPIA compliance notice on leads page
+- ✅ Lead scoring (AI 0–100)
+- ✅ Leads table — search, filter, bulk actions, CSV export
+- ✅ Opt-out blocklist checked on every insert
+- ✅ POPIA consent email workflow
 
 ### FIGSY — AI SDR
-- ✅ Campaign management — create, activate, pause, clone, delete
-- ✅ Day 1 outreach auto-fires when ICP leads are inserted (if no active campaign, sends batch)
-- ✅ FIGSY auto-enroll — new leads auto-enrolled into active campaign
+- ✅ Campaign CRUD — create, activate, pause, clone, delete
+- ✅ Day 1 outreach auto-fires on ICP lead insert
 - ✅ Replies inbox with AI draft follow-up
-- ✅ Locked screen for non-subscribers → "Upgrade" + "Book a demo" CTA
+- ✅ Locked screen → Upgrade + Book a Demo
 
 ### Virtual Assistant (Milla)
-- ✅ Document management — upload training docs (txt, pdf, url)
-- ✅ Chat interface — RAG-based answers with source citations
-- ✅ Locked screen → "Upgrade" + "Book a demo" CTA
+- ✅ Document upload + RAG chat
+- ✅ Locked screen → Upgrade + Book a Demo
 
 ### Chatbot Agent (Vida)
-- ✅ Configure bot — name, greeting, system prompt, colours, email/phone collection
-- ✅ Conversations view — sessions, hot leads, transcripts
-- ✅ Embed tab — one-line JS widget code for website
-- ✅ Locked screen → "Upgrade" + "Book a demo" CTA
+- ✅ Config, conversations, embed code
+- ✅ Locked screen → Upgrade + Book a Demo
 
 ### Billing
-- ✅ Paystack integration for ZAR topups
-- ✅ Stripe integration for USD subscriptions
-- ✅ Credit balance shown in sidebar and dashboard
-- ✅ Low credits notice in layout
-- ✅ Trial expired overlay
+- ✅ Paystack integration (ZAR — currently test key, needs live key after KYC)
+- ✅ Stripe integration (USD subscriptions)
+- ✅ Credit balance in sidebar and dashboard
+- ✅ Auto top-up settings
+
+### Settings
+- ✅ Business profile — company name, industry, country, website, phone
+- ✅ **Company registration no. + VAT number** (new)
+- ✅ CRM integration — HubSpot, Pipedrive
+- ✅ Google Calendar connect
+- ✅ WhatsApp + Voice status (shown when configured)
 
 ### Admin Portal (admin.get-kind.com)
-- ✅ Dashboard — total clients, MRR (USD + ZAR), active subs, past due, avg TTFL
-- ✅ KPI progress bars — MRR and client targets for May–Dec 2026
-- ✅ Monthly targets roadmap table with RAG status
-- ✅ Client pipeline health table — TTFL, leads total, leads this month, status per client
-- ✅ Product catalog with pricing
-- ✅ Clients page — all clients, subscription status, active products, T&Cs accepted
-- ✅ **Demo Environments** (new) — full demo management for sales team
-- ✅ CMO Tools, Roadmap, Terms Library, Launch checklist pages
+- ✅ Dashboard — total clients, MRR, TTFL, KPI progress bars
+- ✅ Clients list — all clients, subscription status, T&Cs
+- ✅ **Client detail page** — subscriptions, credit balance, grant/refund credits form, transaction history, company registration, VAT
+- ✅ **Demo Environments** — create/open/extend/expire demo accounts
+- ✅ Roadmap — Phase 1–4 with milestone tracking
+- ✅ Launch checklist — all 13 sections including Google Workspace
 
-### Demo Environments (new)
-- ✅ Create demo: prospect name, company name, industry, country, website, expiry date, created by
-- ✅ Creates real Supabase user + client + all 4 products active
-- ✅ Auto-builds ICP from industry + country, runs against Apollo — real leads, real scores
-- ✅ "Open Demo" generates magic link, opens portal as demo client in new tab
-- ✅ Extend expiry date per demo
-- ✅ Expire immediately
-- ✅ Shows leads count (updates as ICP job runs), active/expiring/expired status
-- ✅ Tracks which sales team member created each demo
+### Demo Environments
+- ✅ Creates real Supabase user + client + all 4 products
+- ✅ Runs real Apollo ICP job → real leads, real scores
+- ✅ Magic link → open portal as demo client in new tab
+- ✅ Extend / expire controls
+- ✅ Leads count updates as ICP job runs
+
+### Credit Management (admin)
+- ✅ Grant credits — manual_grant or refund type
+- ✅ Transaction history — last 50 transactions per client
+- ✅ Balance shown in header of client detail page
 
 ### System Health
-- ✅ Sidebar shows live API status — green "All systems operational" / amber "Service disruption"
-- ✅ Polls Railway `/health` with 5s timeout
-
-### Website (get-kind.com)
-- ✅ Signup redirects to portal (no broken form)
-- ✅ Comparison pages: vs-outreach, vs-salesloft, vs-hiring-an-sdr, vs-prospecting
-- ✅ Trust & Security page
-- ✅ Partners page
-- ✅ Pricing page (USD, credit-bundle model)
-- ✅ About page with agent characters (FIGSY, Milla, Vida)
-- ✅ DPA (Data Processing Agreement) page
-- ✅ GDPR + CAN-SPAM compliance sections
+- ✅ Sidebar green/amber dot — polls Railway /health
 
 ---
 
-## WHAT I (CLAUDE) CAN DO — READY TO BUILD
+## WHAT CLAUDE CAN BUILD NEXT (say the word)
 
-| # | Task | Notes |
-|---|------|-------|
-| 1 | **Paystack end-to-end test** | Step through topup, verify credits update in dashboard |
-| 2 | **FIGSY campaign end-to-end test** | Create campaign → leads enrolled → Day 1 email fires |
-| 3 | **Referral flow verification** | Sign up with ref code → verify both accounts get 100 credits |
-| 4 | **First-leads email test** | Trigger first ICP run → verify email fires with top 5 leads |
-| 5 | **Add more sales team names** to Demo Envs dropdown | Currently: Jacques, Sales Engineer, Other |
-| 6 | **KPIs page in portal** | `/dashboard/kpis` — client-facing pipeline metrics |
-| 7 | **Usage page in portal** | `/dashboard/usage` — credit usage history |
-| 8 | **Fix any new errors** | Share a screenshot and I'll fix immediately |
-
----
-
-## KEY ENVIRONMENT VARIABLES
-
-### Vercel — Portal (`app.get-kind.com`):
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-NEXT_PUBLIC_API_URL=https://kindapi-production-e64c.up.railway.app
-```
-
-### Vercel — Admin (`admin.get-kind.com`):
-```
-NEXT_PUBLIC_SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-ADMIN_SECRET_KEY
-```
-
-### Railway — API:
-```
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-APOLLO_API_KEY
-ADMIN_SECRET_KEY
-OPENAI_API_KEY
-RESEND_API_KEY
-PORTAL_URL=https://app.get-kind.com
-PAYSTACK_SECRET_KEY
-STRIPE_SECRET_KEY
-```
+| # | Task |
+|---|------|
+| 1 | Fix "Book a Demo" buttons — share your Calendly/Cal.com link |
+| 2 | Chatbot image update — share new image |
+| 3 | Paystack end-to-end test after live key is set |
+| 4 | FIGSY campaign end-to-end test |
+| 5 | Referral flow verification |
+| 6 | KIND's own FIGSY campaign setup (dogfooding GTM) |
+| 7 | KPIs page in portal (`/dashboard/kpis`) |
+| 8 | Usage history page in portal |
+| 9 | Fix any error you see — share screenshot |
 
 ---
 
 ## KEY FILES
 
 ```
-apps/portal/src/app/(auth)/login/page.tsx                     signup + login
-apps/portal/src/app/(auth)/onboard/page.tsx                   onboarding form + ICP prefill
-apps/portal/src/app/(dashboard)/dashboard/page.tsx            main dashboard
-apps/portal/src/app/(dashboard)/layout.tsx                    sidebar, trial overlay, credits
-apps/portal/src/app/(dashboard)/dashboard/leads/page.tsx      leads table + bulk actions
-apps/portal/src/app/(dashboard)/dashboard/leads/icp/page.tsx  ICP builder
-apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx      FIGSY campaigns
-apps/portal/src/app/(dashboard)/dashboard/assistant/page.tsx  Milla VA
-apps/portal/src/app/(dashboard)/dashboard/chatbot/page.tsx    Vida chatbot
-apps/portal/src/app/(dashboard)/dashboard/billing/page.tsx    billing + topup
-apps/portal/src/middleware.ts                                  JWT refresh
-apps/portal/src/lib/api.ts                                     API helper (error handling fixed)
-apps/portal/src/components/layout/Sidebar.tsx                  sidebar + system health
+Portal:
+  apps/portal/src/app/(auth)/login/page.tsx               signup + login
+  apps/portal/src/app/(auth)/onboard/page.tsx             onboarding + ICP prefill
+  apps/portal/src/app/(dashboard)/dashboard/page.tsx      main dashboard
+  apps/portal/src/app/(dashboard)/layout.tsx              sidebar, trial overlay
+  apps/portal/src/app/(dashboard)/dashboard/leads/icp/page.tsx   ICP builder + AI suggest
+  apps/portal/src/app/(dashboard)/dashboard/settings/page.tsx    settings + registration
+  apps/portal/src/app/(dashboard)/dashboard/billing/page.tsx     billing + topup
+  apps/portal/src/middleware.ts                           JWT refresh
+  apps/portal/src/lib/api.ts                              API helper
 
-apps/admin/src/app/page.tsx                                    admin dashboard + KPIs
-apps/admin/src/app/clients/page.tsx                            all clients
-apps/admin/src/app/demo/page.tsx                               demo environments (new)
-apps/admin/src/components/AdminNav.tsx                         admin nav
+Admin:
+  apps/admin/src/app/page.tsx                             admin dashboard + KPIs
+  apps/admin/src/app/clients/page.tsx                     all clients
+  apps/admin/src/app/clients/[id]/page.tsx                client detail + credits
+  apps/admin/src/app/demo/page.tsx                        demo environments
+  apps/admin/src/app/launch/page.tsx                      pre-launch checklist
+  apps/admin/src/app/roadmap/page.tsx                     roadmap
 
-apps/api/src/routes/auth.ts                                    signup, onboard
-apps/api/src/routes/icps.ts                                    ICP CRUD + Apollo search
-apps/api/src/routes/leads.ts                                   leads CRUD + scoring
-apps/api/src/routes/figsy.ts                                   FIGSY campaigns
-apps/api/src/routes/admin.ts                                   admin endpoints + demo env API
+API:
+  apps/api/src/routes/admin.ts        admin + demo + credit endpoints
+  apps/api/src/routes/clients.ts      client CRUD + ICP AI suggest
+  apps/api/src/routes/icps.ts         ICP CRUD + Apollo search
+  apps/api/src/routes/leads.ts        leads CRUD + scoring
+  apps/api/src/routes/figsy.ts        FIGSY campaigns
 
-supabase/migrations/20260518_enable_rls.sql                    ✅ run
-supabase/migrations/20260518_demo_environments.sql             ✅ run (if you ran it)
+Migrations run in Supabase:
+  supabase/migrations/20260518_enable_rls.sql                    ✅ run
+  supabase/migrations/20260518_demo_environments.sql             ✅ run
+  supabase/migrations/20260518_credit_transactions_rls.sql       ⚠️ RUN THIS NOW
+  supabase/migrations/20260518_company_registration.sql          run when ready
 ```

@@ -30,8 +30,30 @@ function LoginForm() {
       const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboard` } })
       if (error) { setError(error.message) } else { setMessage('Check your email to confirm your account.') }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { setError(error.message) } else { router.push('/dashboard'); router.refresh() }
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setError(error.message)
+      } else {
+        // Check if client profile exists — redirect to onboard if not yet set up
+        try {
+          const res = await fetch(`https://kindapi-production-83cb.up.railway.app/clients/me`, {
+            headers: { Authorization: `Bearer ${data.session?.access_token}` },
+          })
+          if (res.status === 404) {
+            router.push('/onboard')
+          } else {
+            const body = await res.json()
+            if (!body?.data?.company_name) {
+              router.push('/onboard')
+            } else {
+              router.push('/dashboard')
+            }
+          }
+        } catch {
+          router.push('/dashboard')
+        }
+        router.refresh()
+      }
     }
     setLoading(false)
   }

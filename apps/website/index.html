@@ -1084,7 +1084,7 @@
     btn.disabled = true
     msg.className = 'modal-msg'
     if (authMode === 'signup') {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ email, password, options: { emailRedirectTo: `${PORTAL}/auth/callback` } }) })
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ email, password, options: { emailRedirectTo: `${PORTAL}/auth/callback?next=/onboard` } }) })
       const data = await res.json()
       if (data.error) { msg.className = 'modal-msg err'; msg.textContent = data.error.message; btn.textContent = 'Create account'; btn.disabled = false }
       else { msg.className = 'modal-msg ok'; msg.textContent = 'Check your email to confirm your account ✓'; btn.textContent = 'Check your email ✓' }

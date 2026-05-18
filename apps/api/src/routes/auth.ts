@@ -106,10 +106,13 @@ authRouter.post('/onboard', async (req, res) => {
     const { data: existingSub } = await db.from('subscriptions')
       .select('id').eq('client_id', clientId).eq('product', 'lead_gen').maybeSingle()
     if (!existingSub) {
-      await db.from('subscriptions').insert({
+      const { error: subErr } = await db.from('subscriptions').insert({
         client_id: clientId, product: 'lead_gen', tier: 'starter', status: 'trialing',
-        amount_usd: 0, amount_zar: 0, trial_ends_at: trialEnd.toISOString(), current_period_end: trialEnd.toISOString(),
+        billing_interval: 'monthly', amount_usd: 0, amount_zar: 0,
+        trial_ends_at: trialEnd.toISOString(),
+        current_period_start: now, current_period_end: trialEnd.toISOString(),
       })
+      if (subErr) throw new Error(`Subscription insert failed: ${subErr.message} (${subErr.code})`)
     }
 
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})

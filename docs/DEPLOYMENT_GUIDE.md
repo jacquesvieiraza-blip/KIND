@@ -1,14 +1,14 @@
 # KIND AI Platform — Deployment Guide
 
-**Version:** 1.0 · **Date:** May 2026  
+**Version:** 2.0 · **Date:** May 2026  
 **Time required:** ~90 minutes end-to-end (first time)  
-**Prerequisites:** Accounts on Supabase, Vercel, Railway, Paystack, Netlify, Formspree, Anthropic
+**Prerequisites:** Accounts on Supabase, Vercel, Railway, Paystack, Anthropic, Apollo
 
 ---
 
 ## Before You Start — Collect These Keys First
 
-Open a temporary notepad. You will need all of these before you start. Collect them first, then run the steps in order.
+Open a temporary notepad. Collect all keys before starting, then follow the steps in order.
 
 | Key | Where to find it | Variable name |
 |-----|-----------------|---------------|
@@ -18,143 +18,147 @@ Open a temporary notepad. You will need all of these before you start. Collect t
 | Paystack Secret Key | Paystack → Settings → API Keys & Webhooks → Secret Key | `PAYSTACK_SECRET_KEY` |
 | Paystack Public Key | Paystack → Settings → API Keys & Webhooks → Public Key | `PAYSTACK_PUBLIC_KEY` |
 | Anthropic API Key | console.anthropic.com → API Keys | `ANTHROPIC_API_KEY` |
-| Railway API URL | After deploying API — Railway → your service → Settings → Domain | `NEXT_PUBLIC_API_URL` |
-| Vercel Portal URL | After deploying portal — Vercel → Domains | `PORTAL_URL` |
+| Apollo API Key | apollo.io → Settings → Integrations → API | `APOLLO_API_KEY` |
+| Resend API Key | resend.com → API Keys | `RESEND_API_KEY` |
+| Admin Secret Key | Generate a random string (use `openssl rand -hex 32`) | `ADMIN_SECRET_KEY` |
+| Railway API URL | After deploying API — Railway → service → Settings → Domain | `NEXT_PUBLIC_API_URL` |
 
 ---
 
 ## Step 1: Supabase — Database Setup
 
-**Time: ~10 minutes**
+**Time: ~15 minutes**
 
 ### 1a. Run the schema
 
 1. Go to [supabase.com](https://supabase.com) → open your KIND project
-2. In the left sidebar click **SQL Editor**
-3. Click **New query**
-4. Open the file `packages/db/src/schema.sql` from this repo
-5. Copy the entire contents and paste it into the SQL editor
-6. Click **Run** (or press Ctrl+Enter / Cmd+Enter)
-7. You should see: `Success. No rows returned`
+2. In the left sidebar click **SQL Editor** → **New query**
+3. Open `packages/db/src/schema.sql` from this repo
+4. Copy the entire contents and paste into the SQL editor
+5. Click **Run** — you should see `Success. No rows returned`
 
-> If you see errors about tables already existing, that is fine — the schema uses `CREATE TABLE IF NOT EXISTS`. If you see an error about a specific table or function, check that you pasted the entire file.
+> If you see errors about tables already existing, that's fine — the schema uses `CREATE TABLE IF NOT EXISTS`.
 
-### 1b. Create the Storage bucket
+### 1b. Run all migrations (in order)
 
-1. In Supabase left sidebar click **Storage**
-2. Click **New bucket**
-3. Name it exactly: `agreement-templates`
-4. Toggle **Public bucket** to ON
-5. Click **Create bucket**
+In Supabase SQL Editor, run each file in order:
 
-### 1c. Verify tables were created
+```
+supabase/migrations/20260518_enable_rls.sql
+supabase/migrations/20260518_demo_environments.sql
+supabase/migrations/20260518_credit_transactions_rls.sql      ← CRITICAL security fix
+supabase/migrations/20260518_company_registration.sql
+```
 
-1. In Supabase left sidebar click **Table Editor**
-2. Confirm you can see these tables:
-   - `clients`
-   - `subscriptions`
-   - `leads`
-   - `icps`
-   - `opt_out_blocklist`
-   - `agreement_templates`
-   - `order_forms`
-   - `assistant_messages`
-   - `chatbot_configs`
-   - `usage_metrics`
+**Do not skip the credit_transactions_rls migration.** Without it, financial data is exposed across clients.
 
-If any are missing, re-run the SQL editor with the full schema file.
+### 1c. Supabase Auth configuration
+
+1. Supabase → **Authentication** → **URL Configuration**
+2. Set **Site URL** to `https://app.get-kind.com`
+3. Add to **Redirect URLs**:
+   - `https://app.get-kind.com/auth/callback`
+   - `https://app.get-kind.com/**`
+4. Under **Email** settings → disable **Confirm email** — clients land directly on /onboard with no confirmation step
+
+### 1d. Create the Storage bucket
+
+1. Supabase → **Storage** → **New bucket**
+2. Name it: `agreement-templates`
+3. Toggle **Public bucket** to ON
+4. Click **Create bucket**
+
+### 1e. Verify tables
+
+In Supabase → **Table Editor**, confirm you can see:
+`clients`, `subscriptions`, `leads`, `icps`, `opt_out_blocklist`, `credit_transactions`, `figsy_campaigns`, `figsy_emails`, `figsy_replies`, `assistant_messages`, `chatbot_configs`, `usage_metrics`, `partners`
 
 ---
 
 ## Step 2: Railway — Deploy the API
 
-**Time: ~15 minutes**
+**Time: ~20 minutes**
 
 ### 2a. Deploy
 
 1. Go to [railway.app](https://railway.app) → **New Project**
-2. Select **Deploy from GitHub repo** → connect your repo → select `jacquesvieiraza-blip/KIND`
-3. Railway will detect the monorepo. Set the **Root directory** to `apps/api`
+2. Select **Deploy from GitHub repo** → connect → select `jacquesvieiraza-blip/KIND`
+3. Set **Root directory:** `apps/api`
 4. Set **Build command:** `npm run build`
 5. Set **Start command:** `npm start`
 6. Click **Deploy**
 
 ### 2b. Set environment variables
 
-In Railway → your API service → **Variables** tab, add every line from `apps/api/.env.example`:
+In Railway → API service → **Variables** tab, add every variable below:
 
 ```
 PORT=4000
-PORTAL_URL=https://your-portal.vercel.app          ← fill after Step 3
+PORTAL_URL=https://app.get-kind.com
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-PAYSTACK_SECRET_KEY=sk_live_xxxxx
-PAYSTACK_PUBLIC_KEY=pk_live_xxxxx
+APOLLO_API_KEY=your-apollo-key
+PAYSTACK_SECRET_KEY=sk_live_xxxxx                   ← use test key until KYC complete
+PAYSTACK_WEBHOOK_SECRET=your-paystack-webhook-secret
 ANTHROPIC_API_KEY=sk-ant-xxxxx
-ADMIN_EMAILS=your@email.com
+RESEND_API_KEY=re_xxxxx
+ADMIN_SECRET_KEY=your-random-secret-string
+FOUNDER_EMAIL=hello@get-kind.com                    ← your email — all internal agent alerts go here
+FIGSY_REPLY_TO=replies@get-kind.com                 ← update after Resend inbound is configured
+FIGSY_DAILY_SEND_LIMIT=20                           ← protects domain reputation
 ```
 
-**Paystack plan codes** — leave these blank for now; you will fill them in Step 5:
-```
-PAYSTACK_PLAN_LEAD_GEN_STARTER=
-PAYSTACK_PLAN_LEAD_GEN_PRO=
-PAYSTACK_PLAN_LEAD_GEN_ENTERPRISE=
-PAYSTACK_PLAN_VA_STARTER=
-PAYSTACK_PLAN_VA_PRO=
-PAYSTACK_PLAN_VA_ENTERPRISE=
-PAYSTACK_PLAN_CHATBOT_STARTER=
-PAYSTACK_PLAN_CHATBOT_PRO=
-PAYSTACK_PLAN_CHATBOT_ENTERPRISE=
-```
+> **Paystack note:** Use test key (`sk_test_...`) until you complete Paystack KYC. Swap to `sk_live_...` after KYC is approved.
 
 ### 2c. Get your Railway API URL
 
-1. Railway → your API service → **Settings** → **Networking** → **Generate Domain**
-2. Copy the URL — it will look like `https://kind-api-production-xxxx.railway.app`
-3. Save this — you need it for Vercel env vars and Paystack webhook
+Railway → API service → **Settings** → **Networking** → **Generate Domain**
+
+Copy the URL — it will look like `https://kindapi-production-xxxx.up.railway.app`
+
+> Current live URL: `https://kindapi-production-e64c.up.railway.app`
 
 ### 2d. Verify the API is running
 
-Open a browser and go to: `https://your-railway-url.railway.app/health`
+Open: `https://your-railway-url.up.railway.app/health`
 
-You should see: `{"status":"ok"}` or similar. If you get a 502/503, check Railway logs for errors.
+You should see: `{"status":"ok"}`.
 
 ---
 
-## Step 3: Vercel — Deploy the Portal (Client-facing)
+## Step 3: Vercel — Deploy the Portal (client-facing)
 
 **Time: ~10 minutes**
 
 ### 3a. Deploy
 
-1. Go to [vercel.com](https://vercel.com) → **Add New Project**
-2. Import from GitHub → select `jacquesvieiraza-blip/KIND`
-3. Set **Framework Preset:** Next.js
-4. Set **Root Directory:** `apps/portal`
-5. Click **Deploy** (it will fail on first deploy — that is expected before env vars)
+1. Vercel → **Add New Project** → import `jacquesvieiraza-blip/KIND`
+2. Set **Framework Preset:** Next.js
+3. Set **Root Directory:** `apps/portal`
+4. Click **Deploy** (first deploy may fail before env vars — that's expected)
 
 ### 3b. Set environment variables
 
-Vercel → your portal project → **Settings** → **Environment Variables**. Add:
+Vercel → portal project → **Settings** → **Environment Variables**:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_API_URL=https://your-railway-url.railway.app
+NEXT_PUBLIC_API_URL=https://your-railway-url.up.railway.app
 ```
 
-### 3c. Redeploy
+### 3c. Add custom domain
 
-Vercel → **Deployments** → click the three dots on the latest deployment → **Redeploy**
+Vercel → portal → **Settings** → **Domains** → add `app.get-kind.com`
 
-### 3d. Get your portal URL
+### 3d. Redeploy
 
-Copy the Vercel domain (e.g. `https://kind-portal.vercel.app`) and go back to Railway → update `PORTAL_URL` with this value. Railway will automatically redeploy.
+Vercel → **Deployments** → three dots on latest → **Redeploy**
 
 ### 3e. Verify
 
-Go to your Vercel portal URL. You should see the login page. If you see a blank page or error, check Vercel's **Function Logs** for the error.
+Go to `https://app.get-kind.com` → you should see the login page.
 
 ---
 
@@ -164,7 +168,7 @@ Go to your Vercel portal URL. You should see the login page. If you see a blank 
 
 ### 4a. Deploy
 
-1. Vercel → **Add New Project** → import the same repo again
+1. Vercel → **Add New Project** → import same repo
 2. Set **Root Directory:** `apps/admin`
 3. Set **Framework Preset:** Next.js
 4. Click **Deploy**
@@ -174,210 +178,175 @@ Go to your Vercel portal URL. You should see the login page. If you see a blank 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_API_URL=https://your-railway-url.up.railway.app
+ADMIN_SECRET_KEY=your-admin-secret-key              ← same value as Railway
 ```
 
-> The admin uses the service role key to bypass RLS — keep this secret. Never expose it client-side.
+> The admin portal routes all management calls through the API using ADMIN_SECRET_KEY. The service role key is NOT used client-side in admin — all admin operations proxy through Railway.
 
-### 4c. Redeploy after setting vars
+### 4c. Add custom domain
 
-Same as Step 3c — Redeploy from Vercel dashboard.
+Vercel → admin project → **Settings** → **Domains** → add `admin.get-kind.com`
 
-### 4d. Verify
+### 4d. Redeploy and verify
 
-Go to your admin Vercel URL → you should see the admin dashboard. Navigate to **Terms Library** — you should see the 5 required documents listed (all showing as not yet uploaded).
+Go to `https://admin.get-kind.com` → you should see the admin dashboard.
 
 ---
 
-## Step 5: Paystack — Plans and Webhook
+## Step 5: Vercel — Deploy the Website
+
+**Time: ~5 minutes**
+
+### 5a. Deploy
+
+1. Vercel → **Add New Project** → import same repo
+2. Set **Framework Preset:** Other
+3. Set **Root Directory:** `apps/website`
+4. Set **Build command:** (leave empty or `echo done`)
+5. Set **Output directory:** `.`
+6. Click **Deploy**
+
+### 5b. Add custom domains
+
+Vercel → website project → **Settings** → **Domains**:
+- Add `get-kind.com`
+- Add `www.get-kind.com`
+
+### 5c. Verify
+
+Go to `https://get-kind.com` → you should see the marketing homepage.
+
+---
+
+## Step 6: Paystack — Plans and Webhook
 
 **Time: ~15 minutes**
 
-### 5a. Create subscription plans
+### 6a. Complete KYC first
 
-You need one plan per product per tier. Go to [paystack.com](https://paystack.com) → **Products** → **Plans** → **Create Plan** for each:
+Before creating live plans, complete Paystack KYC:
+- dashboard.paystack.com → **Settings** → **Compliance**
+- Submit business documents (business registration, ID, bank details)
+- Approval typically takes 1–3 business days
 
-| Plan name | ZAR amount | Interval | Plan code (copy after creating) |
-|-----------|-----------|----------|--------------------------------|
-| KIND Lead Gen Starter | R1,900 (~$100) | Monthly | `PLN_xxx` |
-| KIND Lead Gen Advanced | R3,781 (~$199) | Monthly | `PLN_xxx` |
-| KIND Lead Gen + FIGSY Starter | R5,700 (~$300) | Monthly | `PLN_xxx` |
-| KIND Lead Gen + FIGSY Advanced | R13,281 (~$699) | Monthly | `PLN_xxx` |
-| KIND VA Starter | R3,800 (~$200) | Monthly | `PLN_xxx` |
-| KIND VA Pro | R9,500 (~$500) | Monthly | `PLN_xxx` |
-| KIND Chatbot Starter | R3,800 (~$200) | Monthly | `PLN_xxx` |
-| KIND Chatbot Pro | R7,600 (~$400) | Monthly | `PLN_xxx` |
+> Until KYC is complete, only test payments work. Use test key `sk_test_...` in Railway.
 
-> Pricing model: usage-based. Lead Gen = $1/lead (min $100/mo). Lead Gen + FIGSY = $3/lead (min $300/mo). These Paystack plans represent the monthly minimums. Overages billed separately in Phase 2.
-> Exchange rate: 1 USD = 19 ZAR. Adjust for current rate.
-
-### 5b. Update Railway env vars with plan codes
-
-Go back to Railway → API service → Variables. Fill in the plan codes you copied:
-
-```
-PAYSTACK_PLAN_LEAD_GEN_STARTER=PLN_xxxx
-PAYSTACK_PLAN_LEAD_GEN_ADVANCED=PLN_xxxx
-PAYSTACK_PLAN_FIGSY_STARTER=PLN_xxxx
-PAYSTACK_PLAN_FIGSY_ADVANCED=PLN_xxxx
-PAYSTACK_PLAN_VA_STARTER=PLN_xxxx
-PAYSTACK_PLAN_VA_PRO=PLN_xxxx
-PAYSTACK_PLAN_CHATBOT_STARTER=PLN_xxxx
-PAYSTACK_PLAN_CHATBOT_PRO=PLN_xxxx
-```
-
-Railway will automatically redeploy with the new variables.
-
-### 5c. Set the webhook URL
+### 6b. Set the webhook URL
 
 1. Paystack → **Settings** → **API Keys & Webhooks** → **Webhooks**
 2. Click **Add Webhook**
-3. Enter URL: `https://your-railway-url.railway.app/webhooks/paystack`
-4. Select events: `charge.success`, `subscription.create`, `subscription.disable`, `invoice.update`
+3. URL: `https://kindapi-production-e64c.up.railway.app/webhooks/paystack`
+4. Events: `charge.success`, `subscription.create`, `subscription.disable`, `invoice.update`
 5. Click **Save**
 
-### 5d. Test the webhook
+### 6c. Test the webhook
 
-Paystack provides a test mode. Use their test card (`4084084084084081`, expiry any future date, CVV `408`) to make a test payment on the portal billing page. Check Railway logs — you should see the webhook hit arrive.
-
----
-
-## Step 6: Landing Page — Netlify
-
-**Time: ~5 minutes**
-
-### 6a. Create a Formspree form
-
-1. Go to [formspree.io](https://formspree.io) → **Sign up** (free plan is fine)
-2. Click **New Form** → name it "KIND Landing Page Enquiries"
-3. Copy the form ID — it looks like `xpwzabcd`
-
-### 6b. Update the landing page HTML
-
-Open `apps/landing/index.html` in any text editor.
-
-Find this line (around line 250):
-```html
-action="https://formspree.io/f/YOUR_FORM_ID"
-```
-
-Replace `YOUR_FORM_ID` with your actual Formspree form ID:
-```html
-action="https://formspree.io/f/xpwzabcd"
-```
-
-Save the file.
-
-### 6c. Deploy to Netlify
-
-**Option A — Drag and drop (fastest):**
-1. Go to [netlify.com](https://netlify.com) → **Sites**
-2. Drag the `apps/landing/` folder onto the drag-and-drop zone
-3. Netlify deploys it instantly — you get a URL like `https://kind-landing.netlify.app`
-
-**Option B — GitHub deploy (auto-updates on push):**
-1. Netlify → **Add new site** → **Import from Git**
-2. Select the KIND repo
-3. Set **Base directory:** `apps/landing`
-4. Set **Publish directory:** `.` (the landing folder itself)
-5. Click **Deploy**
-
-### 6d. Set a custom domain (optional)
-
-Netlify → **Domain settings** → **Add custom domain** → enter your domain (e.g. `kind.africa`). Follow DNS instructions.
+Use Paystack test card (`4084084084084081`, any future expiry, CVV `408`) to make a test payment on the portal billing page. Check Railway logs — you should see the webhook arrive.
 
 ---
 
-## Step 7: Upload Agreement Documents
+## Step 7: Google Workspace — Professional Email
 
-**Time: ~5 minutes**
+**Time: ~30 minutes**
 
-This must be done before you can send any Order Form to a client.
+This is required to send and receive email from hello@get-kind.com.
 
-1. Log into your admin portal (`https://your-admin.vercel.app`)
+1. Go to [workspace.google.com](https://workspace.google.com) → **Get started** → Business Starter plan (~$12/mo)
+2. Enter domain: `get-kind.com`
+3. Google provides **MX records** → add them to your domain DNS (at GoDaddy/Cloudflare/Namecheap)
+4. Google provides a **TXT verification record** → add to DNS → click Verify in Google
+5. Create mailbox: **hello@get-kind.com** (primary inbox — sales, support, billing)
+6. In Google Admin → Gmail → Authenticate email → **Enable DKIM** → add the DKIM TXT record to DNS
+7. Add **SPF record**: `v=spf1 include:_spf.google.com ~all` (merge with any existing Resend SPF)
+8. Add **DMARC record** on `_dmarc.get-kind.com`: `v=DMARC1; p=none; rua=mailto:hello@get-kind.com`
+
+**After Workspace is live:** Update `FOUNDER_EMAIL` in Railway to `hello@get-kind.com`.
+
+> **Note:** FIGSY outreach emails go through Resend (replies@get-kind.com), NOT Google Workspace. Keep them separate to protect your domain reputation.
+
+---
+
+## Step 8: Upload Agreement Documents
+
+**Time: ~5 minutes** (if PDFs are already prepared)
+
+Before sending any Order Form to a client, upload all 5 agreement documents:
+
+1. Log into `https://admin.get-kind.com`
 2. Navigate to **Terms Library** in the sidebar
-3. You will see 5 required documents listed — all showing as not yet uploaded:
+3. Upload each document:
    - Master Services Agreement (MSA)
    - POPIA Compliant Process
    - Chatbot SLA
    - Order Form Terms & Conditions
    - Privacy Policy
-4. For each document: click **Upload** → select the PDF from your computer → confirm
-5. Once all 5 show green ticks, the system is ready to send Order Forms
+4. Once all 5 show green ticks, Order Forms can be sent
 
-> The PDFs are stored in your Supabase `agreement-templates` bucket and linked in the database. Clients will see live PDF links when they view their Documents tab.
-
----
-
-## Step 8: Create Your First Client
-
-**Time: ~3 minutes**
-
-### 8a. Create the Supabase Auth user
-
-1. Supabase → **Authentication** → **Users** → **Invite user**
-2. Enter the client's email address
-3. They receive an email with a "Set password" link — this is their portal login
-
-### 8b. Create the client record
-
-After they set their password, the `clients` table should auto-populate via the auth trigger. If not, run this in Supabase SQL Editor:
-
-```sql
-INSERT INTO clients (user_id, name, company, email, country)
-VALUES (
-  '[their-user-uuid-from-auth-table]',
-  'Client Full Name',
-  'Company Name',
-  'client@company.com',
-  'South Africa'
-);
-```
-
-### 8c. Build and send the Order Form
-
-1. Go to Admin Portal → **Clients** → find the new client
-2. Click into their record
-3. Fill in the Order Form: select products, tier, billing interval, start date, any scope notes
-4. Click **Send Order Form to Client**
-5. The client's dashboard banner will now prompt them to sign
+PDFs are stored in the Supabase `agreement-templates` bucket.
 
 ---
 
-## Step 9: Smoke Test — Full Flow
+## Step 9: Railway Cron Jobs
+
+**Time: ~5 minutes**
+
+Set up these 6 cron jobs in Railway → API service → **Cron**. All need the header `x-admin-key: {ADMIN_SECRET_KEY}`.
+
+| Schedule | Endpoint | Purpose |
+|----------|----------|---------|
+| `0 8 * * *` | `POST /internal/ae/nurture` | Trial nurture emails (day 1/3/5/7/10) |
+| `0 8 * * *` | `POST /internal/ae/at-risk` | At-risk client alerts |
+| `0 8 * * *` | `POST /internal/ae/trial-expiry` | Trial expiry emails (day 10/12/14) |
+| `0 8 * * *` | `POST /figsy/send-due` | FIGSY step 2 + 3 emails |
+| `0 7 * * 1` | `POST /internal/digest/weekly` | Weekly leads digest to clients (Monday 7am) |
+| `0 7 * * 1` | `POST /internal/cro/weekly-digest` | Weekly founder digest to you (Monday 7am) |
+
+---
+
+## Step 10: Smoke Test — Full Flow
 
 Run through this checklist before going live with a real client.
 
-### Authentication
-- [ ] Can sign up with a new email on the portal
-- [ ] Receive confirmation email and can verify
-- [ ] Can log in and see the dashboard
-- [ ] Logout works correctly
+### New Client Self-Service
+- [ ] Sign up at `app.get-kind.com` with a test email
+- [ ] **No confirmation email required** — lands directly on /onboard
+- [ ] Complete onboarding: company name, industry, country, phone, website
+- [ ] Dashboard loads with trial banner (14 days)
 
-### Order Form Flow
-- [ ] Admin can create and send an Order Form
-- [ ] Client sees the "Sign your Order Form" red banner on dashboard
-- [ ] Client can view T&C documents in the Documents tab
-- [ ] Client can sign the form with their full name + checkbox
-- [ ] After signing, banner changes to amber "Complete payment"
+### AI ICP Suggest
+- [ ] Go to Lead Gen → ICP Builder
+- [ ] Click "Suggest ICP with AI" — form auto-fills from company profile
+- [ ] Manually adjust if needed → Save ICP
 
-### Payment Flow
-- [ ] Client goes to Billing → clicks Upgrade
-- [ ] Paystack checkout opens correctly
-- [ ] Test payment completes (use Paystack test mode)
-- [ ] Redirected to `/billing/confirm` — shows "Payment confirmed"
-- [ ] Subscription row created in Supabase → status: active
-- [ ] Dashboard banner clears
+### Lead Generation
+- [ ] Build ICP → Save → Apollo search fires automatically
+- [ ] Leads appear within minutes to 2 hours
+- [ ] All leads have AI scores (0–100) with reasoning
 
-### Lead Gen
-- [ ] Client can create an ICP in Lead Gen → ICP Builder
-- [ ] Can activate the ICP
-- [ ] Leads can be manually added
-- [ ] AI email draft button generates an email
+### Billing
+- [ ] Go to Billing → select a plan → Paystack checkout opens
+- [ ] Test payment completes → subscription flips to `active`
+- [ ] Trial overlay gone → full access
 
-### Admin
-- [ ] Client shows correct status badge in Clients list
-- [ ] Order form status updates correctly after signing
+### Admin Portal
+- [ ] Log into `admin.get-kind.com`
+- [ ] Client visible in Clients list with correct status
+- [ ] Click client → detail page shows subscriptions, credit balance, company registration
+- [ ] Grant 10 credits to test client → transaction appears in history
+
+### Demo Environments
+- [ ] Admin → Demo Environments → create new demo
+- [ ] Fill in prospect name, company, industry, AE name, expiry
+- [ ] System creates user + runs Apollo ICP → leads appear
+- [ ] "Open Demo" → portal opens in new tab as demo client
+
+### Settings
+- [ ] Go to portal Settings → update Company Registration No. → Save
+- [ ] Reload — value persists
+
+### Export
+- [ ] Lead Gen pipeline → select leads → Export CSV → file downloads
 
 ---
 
@@ -387,12 +356,13 @@ Run through this checklist before going live with a real client.
 |---------|-------------|-----|
 | Portal shows blank page | Missing env vars | Check Vercel env vars, redeploy |
 | Login works but dashboard errors | API not reachable | Check `NEXT_PUBLIC_API_URL` in Vercel, verify Railway is running |
-| "Client not found" errors | Client row missing | Run INSERT into clients table manually |
-| Payment verify fails | Wrong Paystack key | Confirm test vs live keys match your environment |
-| Webhook not arriving | Wrong URL or no events selected | Re-check Paystack → Webhooks URL and event types |
-| Terms Library shows upload errors | Bucket missing or not public | Create `agreement-templates` bucket in Supabase Storage and set to public |
-| Order form "sign" fails | Order form row not in DB | Admin must send the form first before client can sign |
-| AI email draft returns error | Missing Anthropic key | Check `ANTHROPIC_API_KEY` is set in Railway |
+| "Client not found" errors | RLS policy blocking | Confirm migrations ran, check client row exists in `clients` table |
+| Payment verify fails | Wrong Paystack key | Confirm test vs live keys match. Complete KYC for live key. |
+| Webhook not arriving | Wrong URL or no events | Re-check Paystack → Webhooks URL and event types |
+| Admin proxy 403 | ADMIN_SECRET_KEY mismatch | Confirm same value in Railway and Vercel admin env vars |
+| AI ICP Suggest returns error | Missing Anthropic key | Check `ANTHROPIC_API_KEY` is set in Railway |
+| Demo leads not appearing | Apollo rate limit or quota | Check Railway logs for Apollo errors |
+| Terms Library shows upload errors | Bucket missing or not public | Create `agreement-templates` bucket in Supabase Storage (public) |
 
 ---
 
@@ -402,22 +372,19 @@ Run through this checklist before going live with a real client.
 
 ```env
 PORT=4000
-PORTAL_URL=https://your-portal.vercel.app
+PORTAL_URL=https://app.get-kind.com
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+APOLLO_API_KEY=your-apollo-key
 PAYSTACK_SECRET_KEY=sk_live_xxxxx
-PAYSTACK_PUBLIC_KEY=pk_live_xxxxx
-PAYSTACK_PLAN_LEAD_GEN_STARTER=PLN_xxx
-PAYSTACK_PLAN_LEAD_GEN_ADVANCED=PLN_xxx
-PAYSTACK_PLAN_FIGSY_STARTER=PLN_xxx
-PAYSTACK_PLAN_FIGSY_ADVANCED=PLN_xxx
-PAYSTACK_PLAN_VA_STARTER=PLN_xxx
-PAYSTACK_PLAN_VA_PRO=PLN_xxx
-PAYSTACK_PLAN_CHATBOT_STARTER=PLN_xxx
-PAYSTACK_PLAN_CHATBOT_PRO=PLN_xxx
+PAYSTACK_WEBHOOK_SECRET=your-webhook-secret
 ANTHROPIC_API_KEY=sk-ant-xxxxx
-ADMIN_EMAILS=you@kind.africa
+RESEND_API_KEY=re_xxxxx
+ADMIN_SECRET_KEY=your-random-secret-string
+FOUNDER_EMAIL=hello@get-kind.com
+FIGSY_REPLY_TO=replies@get-kind.com
+FIGSY_DAILY_SEND_LIMIT=20
 ```
 
 ### `apps/portal` (Vercel)
@@ -425,7 +392,7 @@ ADMIN_EMAILS=you@kind.africa
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_API_URL=https://your-railway-url.railway.app
+NEXT_PUBLIC_API_URL=https://kindapi-production-e64c.up.railway.app
 ```
 
 ### `apps/admin` (Vercel)
@@ -433,24 +400,29 @@ NEXT_PUBLIC_API_URL=https://your-railway-url.railway.app
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_API_URL=https://kindapi-production-e64c.up.railway.app
+ADMIN_SECRET_KEY=your-random-secret-string
 ```
+
+### `apps/website` (Vercel)
+
+No environment variables needed. Static HTML.
 
 ---
 
 ## Deployment Order Summary
 
 ```
-1. Supabase (schema + bucket)     ← no dependencies
-2. Railway (API)                  ← needs Supabase keys
-3. Vercel Portal                  ← needs Railway URL + Supabase keys
-4. Vercel Admin                   ← needs Supabase keys (service role)
-5. Railway: update PORTAL_URL     ← needs Vercel portal URL
-6. Paystack plans + webhook       ← needs Railway URL for webhook
-7. Railway: update plan codes     ← needs Paystack plan codes
-8. Netlify landing page           ← needs Formspree ID
-9. Upload 5 PDFs via Admin        ← needs Admin deployed + Storage bucket
-10. Create first client           ← all systems must be live
+1. Supabase (schema + migrations + auth config + bucket)   ← no dependencies
+2. Railway (API + env vars)                                ← needs Supabase keys
+3. Vercel Portal                                           ← needs Railway URL + Supabase keys
+4. Vercel Admin                                            ← needs Railway URL + ADMIN_SECRET_KEY
+5. Vercel Website                                          ← no dependencies
+6. Google Workspace                                        ← needs domain DNS access
+7. Paystack KYC + webhook                                  ← needs Railway URL for webhook
+8. Upload 5 PDFs via Admin → Terms Library                 ← needs Admin deployed + Storage bucket
+9. Set up 6 Railway cron jobs                              ← needs API deployed
+10. Smoke test                                             ← all systems must be live
 ```
 
-Follow this exact order. Steps 3 and 4 can be done in parallel. Steps 6 and 8 are independent of each other.
+Steps 3, 4, and 5 can run in parallel. Steps 6 and 7 are independent of each other.

@@ -1,5 +1,5 @@
 # KIND AI Platform — Master Roadmap
-**Launch date: 31 May 2026 · Last updated: 15 May 2026 · Days remaining: 16**
+**Launch date: 31 May 2026 · Last updated: 18 May 2026 · Days remaining: 13**
 
 > Single source of truth for everything — what's built, what's not, who builds what, targets, KPIs, and vision.
 >
@@ -11,18 +11,23 @@
 
 ---
 
-## FULL STATUS AUDIT — 15 May 2026
+## FULL STATUS AUDIT — 18 May 2026
 
-### ✅ BUILT (code complete, on branch `claude/ai-business-roadmap-U3OWJ`)
+### ✅ BUILT (code complete — deployed to main + claude/ai-business-roadmap-U3OWJ)
 
 #### Core Platform
 | What | Notes |
 |------|-------|
 | Monorepo — portal, admin, API, DB, shared | Turborepo, TypeScript throughout |
-| Supabase auth — signup, login, email confirm, onboarding | All 3 bugs fixed (invalid token, company_name, empty URL) |
+| Supabase auth — signup, login, **no email confirmation**, onboarding | Direct to /onboard — no confirmation step |
 | Full DB schema — 13 tables + RLS policies | leads, clients, icps, subscriptions, credits, order_forms, figsy_* (4 tables), opt_out_blocklist, paystack_events |
 | CSV export with correct auth | Fetch + blob, no window.open |
 | Admin dashboard — MRR, TTFL, client health, churn risk | TTFL computed from leads data, not DB column |
+| **Demo Environments** | Admin creates real demo accounts → magic link → sales demo with live leads |
+| **AI ICP Suggest** | "Suggest ICP with AI" → Claude Haiku fills ICP form from company profile |
+| **Credit management (admin)** | Admin client detail: grant/refund credits, view transaction history |
+| **Company registration + VAT fields** | Portal Settings + Admin client detail |
+| **RLS security fix** | credit_transactions RLS re-enabled 18 May — was missing, financial data now protected |
 
 #### Lead Gen (100% complete)
 | What | Notes |
@@ -125,46 +130,37 @@
 | What | Notes |
 |------|-------|
 | CMO Tools page (`/cmo`) | LinkedIn post generator (3 branded posts via Claude) + prospect finder (Apollo search) — live results in UI |
+| Demo Environments (`/demo`) | Full sales demo tool — create, open, extend, expire demo accounts |
+| Client detail (`/clients/[id]`) | Credit balance, grant/refund form, transaction history, company reg + VAT |
+| Launch checklist (`/launch`) | 13 sections, Google Workspace + all migrations listed |
 
 ---
 
 ### ⏳ WHAT YOU NEED TO DO (manual — no code)
 
-#### Before smoke test (blocks everything):
+#### CRITICAL — Do This Week:
 
 | # | Task | Where | Why it matters |
 |---|------|-------|----------------|
-| **C1** | Set Supabase Site URL → `https://app.get-kind.com` | Supabase → Auth → URL Configuration | Auth emails and callbacks will fail without this |
-| **C2** | Add `https://app.get-kind.com/auth/callback` to Redirect URLs | Same place | Login redirect breaks without this |
-| **C3** | Add `FOUNDER_EMAIL=your@email.com` to Railway env vars | Railway → Variables | ALL internal agent emails go here. Not set = emails go nowhere |
-| **C4** | Confirm all Railway env vars exist (list below) | Railway → Variables | API crashes on missing keys |
-| **C5** | Set Paystack webhook → `https://kindapi-production.up.railway.app/webhooks/paystack` | Paystack → Settings → Webhooks | Payments won't confirm |
+| **C1** | **Run `20260518_credit_transactions_rls.sql`** | Supabase → SQL Editor | CRITICAL — financial data exposed to cross-client reads until done |
+| **C2** | **Run `20260518_company_registration.sql`** | Supabase → SQL Editor | Adds company reg no + VAT fields to DB |
+| **C3** | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Can't accept live payments without it |
+| **C4** | **Set up Google Workspace** | workspace.google.com → Business Starter | Need hello@get-kind.com for sales + support |
+| **C5** | **Create calendar booking page** | calendly.com or cal.com | Share link — I'll update all "Book a Demo" buttons |
 
-> **Note on Paystack plans:** The current billing model is **credit bundles** (one-time purchase, not recurring subscriptions). Clients buy 20/40/100 credits. You do NOT need to create the 8 subscription plans right now. The credit bundle system is already wired. Subscription plans can be added later for enterprise/volume clients.
+#### Already done (confirmed ✅):
+- Supabase Site URL + Redirect URLs set → `app.get-kind.com`
+- FOUNDER_EMAIL, FIGSY_REPLY_TO, FIGSY_DAILY_SEND_LIMIT in Railway
+- Paystack webhook URL set → `kindapi-production-e64c.up.railway.app/webhooks/paystack`
+- Railway env vars: SUPABASE_URL, SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, APOLLO_API_KEY, RESEND_API_KEY, PAYSTACK_SECRET_KEY, PAYSTACK_WEBHOOK_SECRET, ADMIN_SECRET_KEY, PORTAL_URL all set
+- Branch merged to main → deployed on Vercel
 
-#### After smoke test passes:
-
-| # | Task | Where |
-|---|------|-------|
-| **C6** | Run DB migrations 002, 003, 004 in Supabase SQL editor (in order) | Supabase → SQL Editor |
-| **C7** | Set up FIGSY inbound email in Resend dashboard (see FIGSY section below) | resend.com → Inbound |
-| **C8** | Add Railway cron jobs (see cron table below) | Railway → Cron |
-| **C9** | Merge branch `claude/ai-business-roadmap-U3OWJ` → `main` | GitHub |
-
-#### Railway env vars to confirm:
-```
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-ANTHROPIC_API_KEY
-APOLLO_API_KEY
-RESEND_API_KEY
-PAYSTACK_SECRET_KEY
-PAYSTACK_WEBHOOK_SECRET
-ADMIN_SECRET_KEY
-FOUNDER_EMAIL=your@email.com          ← ADD THIS
-FIGSY_REPLY_TO=hello@get-kind.com     ← ADD THIS (update when inbound email set up)
-PORTAL_URL=https://app.get-kind.com
-```
+#### FIGSY inbound email (needed before FIGSY campaigns run):
+1. Go to resend.com → Inbound
+2. Add `replies@get-kind.com` as an inbound address
+3. Set webhook URL: `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound`
+4. Update Railway env var `FIGSY_REPLY_TO` to match
+5. **Without this, FIGSY can send emails but can never detect replies**
 
 #### Railway cron jobs (set up after merge):
 | Cron schedule | Endpoint | Purpose |
@@ -181,7 +177,7 @@ All cron endpoints need header: `x-admin-key: {your ADMIN_SECRET_KEY}`
 #### FIGSY inbound email setup (required for reply detection to work):
 1. Go to resend.com → Inbound
 2. Add `hello@get-kind.com` as an inbound address (or create `replies@get-kind.com`)
-3. Set webhook URL to: `https://kindapi-production.up.railway.app/figsy/replies/inbound`
+3. Set webhook URL to: `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound`
 4. Update Railway env var `FIGSY_REPLY_TO` to match the address you chose
 5. **Without this, FIGSY can send emails but can never detect replies**
 
@@ -212,19 +208,21 @@ All cron endpoints need header: `x-admin-key: {your ADMIN_SECRET_KEY}`
 
 ---
 
-### 📋 SMOKE TEST — 9 steps (do after C1–C5 done)
+### 📋 SMOKE TEST — 11 steps (do after C1–C5 done)
 
 | Step | Action | Pass condition |
 |------|--------|---------------|
-| 1 | Sign up at `app.get-kind.com` | Confirmation email arrives in your inbox |
-| 2 | Click confirm link, land on portal | Dashboard loads, trial banner shows |
-| 3 | Complete business profile | Saves with no "Invalid token" error |
-| 4 | Build ICP, click Save | Lead search fires automatically (no Run button) |
-| 5 | Check leads pipeline | Leads appear within 2 hours, all with scores |
-| 6 | Send POPIA consent to one lead | Email arrives in lead's inbox, status updates to `consent_sent` |
+| 1 | Sign up at `app.get-kind.com` with a test email | **No confirmation email** — lands directly on /onboard |
+| 2 | Complete onboarding (company name, industry, country, phone, website) | Dashboard loads, 14-day trial banner shows |
+| 3 | Go to Lead Gen → ICP Builder → click "Suggest ICP with AI" | Form auto-fills from company profile |
+| 4 | Save ICP | Lead search fires automatically |
+| 5 | Check leads pipeline | Leads appear within 2 hours, all with AI scores (0–100) |
+| 6 | Send POPIA consent to one lead | Email arrives, status updates to `consent_sent` |
 | 7 | Export leads as CSV | File downloads correctly |
-| 8 | Go to Billing, tick terms, buy 20 credits | Paystack checkout opens, returns, credits show |
-| 9 | Check admin dashboard at admin.get-kind.com | Client visible, TTFL showing, leads count correct |
+| 8 | Go to Billing → select plan → Paystack checkout | Opens, completes, subscription flips to active |
+| 9 | Check admin → Clients | New client visible with correct status + credit balance |
+| 10 | Admin → client detail → grant 10 credits | Transaction appears in history |
+| 11 | Admin → Demo Environments → create demo → Open Demo | Portal opens as demo client with live leads |
 
 ---
 

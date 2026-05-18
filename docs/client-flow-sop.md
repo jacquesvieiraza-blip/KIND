@@ -1,5 +1,5 @@
 # K.I.N.D — Client Flow SOP
-*Last updated: May 2026*
+*Last updated: 18 May 2026*
 
 Complete start-to-finish — all paths.
 
@@ -10,26 +10,22 @@ Complete start-to-finish — all paths.
 **Entry point: get-kind.com**
 
 1. Client visits get-kind.com, clicks "Start free trial"
-2. Signs up with email + password → confirmation email sent
-3. Clicks confirmation link → lands on app.get-kind.com/auth/callback → redirected to /onboard
-4. Fills in company name, industry, country, phone, website → "Go to my dashboard"
+2. Redirected to app.get-kind.com/login → signs up with email + password
+3. **No email confirmation required** — lands directly on /onboard
+4. Fills in company name, industry, country, phone, website → "Start free trial"
 
 **What happens in the background:**
 - Client record created in DB
-- 14-day trial subscription created (status: trialing)
-- Order form auto-created and set to `sent` — Lead Gen, $100/mo minimum, billing starts day 15
+- 14-day trialing subscription created
 - Welcome email sent via Resend
 
-5. Dashboard loads — red banner: "Sign your Service Agreement — 14 days remaining"
-6. Client clicks Sign now → Documents page → order form is already there
-7. Reviews services ordered, billing start date, T&Cs → types full name → ticks checkbox → "Sign Order Form"
-8. Banner changes to: "Trial: 13 days remaining. Upgrade before your trial ends."
-9. Client sets up ICP, leads start appearing, explores dashboard for 14 days
-10. Day 14 — trial expires → full-screen overlay: "Your trial has ended"
-11. Client clicks "Choose a Plan" → Billing page → selects Lead Gen → Paystack → card entered → paid
-12. Webhook fires → subscription flips to active → overlay gone → full access
+5. Dashboard loads — trial banner visible
+6. Client builds ICP → leads appear → explores for 14 days
+7. Day 14 — trial expires → full-screen overlay: "Your trial has ended"
+8. Client clicks "Choose a Plan" → Billing page → selects plan → Paystack → card entered → paid
+9. Webhook fires → subscription flips to active → overlay gone → full access
 
-**If they cancel before day 15 (billing start date):** no charge — trial ends, subscription stays trialing until it expires. They lose access at day 14 but were never billed.
+**If they abandon before paying:** subscription stays `trialing (expired)` — no charge ever.
 
 ---
 
@@ -37,19 +33,12 @@ Complete start-to-finish — all paths.
 
 **Entry point: AE sends client to get-kind.com**
 
-1–4. Identical to Path 1 — client self-registers and onboards
+1–4. Identical to Path 1 — client self-registers and onboards (no email confirmation needed)
 
 5. AE receives alert (or checks admin portal) — sees new client in Clients list with status "Trial"
-6. AE opens client profile in admin portal → sees auto-generated order form ($100/mo Lead Gen)
-7. AE customises it — adds correct products, custom pricing, scope notes, start date → "Update & resend"
-8. Client's Documents page updates instantly — they now see the AE's version, not the auto-generated one
-9. AE calls/emails the client to walk them through signing
-10. Client signs the customised agreement
-11. Admin portal shows status: "Signed — awaiting payment"
-12. Client goes to Billing → selects their plan → Paystack → done
-    OR AE shares a direct Paystack payment link with the client
-
-**What's different from Path 1:** The order form is customised by a human before the client signs. Everything else is the same. The AE never needs to touch Supabase or create accounts — the client does all of that themselves first.
+6. AE opens client profile in admin portal → reviews subscriptions and details
+7. AE calls/emails the client to walk them through signing
+8. Client goes to Billing → selects their plan → Paystack → done
 
 ---
 
@@ -58,51 +47,51 @@ Complete start-to-finish — all paths.
 **Entry point: get-kind.com — client already knows they want to proceed**
 
 1–4. Identical — client signs up and onboards
-5. Client lands on dashboard with the "Sign your agreement" banner
-6. Client goes to Documents → signs the auto-generated order form immediately
-7. Instead of waiting for the 14-day trial, client goes to Billing
-8. Clicks "Get started" on their chosen plan → Paystack → card entered → payment success
-9. Subscription flips to active immediately
-10. Trial period becomes irrelevant — active subscription takes over
-11. No gates, no banners, full access from day 1
-
-**No changes needed — this works today.**
+5. Dashboard loads with trial banner
+6. Client goes directly to Billing → selects plan → Paystack → card → payment success
+7. Subscription flips to active immediately
+8. No trial overlay, no gates — full access from day 1
 
 ---
 
-## Path 4 — Trial expired, client never signed or paid
+## Path 4 — Trial expired, client never paid
 
 1. Trial expires on day 14 → full-screen overlay fires
-2. If order form not signed yet: overlay shows two buttons — "Sign Service Agreement" + "View Plans"
-3. Client goes to Documents → signs → overlay updates
-4. Client goes to Billing → pays → active
+2. Client clicks "Choose a Plan" → Billing → pays → active
 
-**If client abandons entirely:** subscription stays trialing (expired) indefinitely. No charge ever happens. They appear in admin as "Trial expired — unpaid." A follow-up email sequence (future build) would be the re-engagement tool here.
+**If client abandons entirely:** subscription stays `trialing (expired)` indefinitely. No charge ever. They appear in admin as trial expired.
 
 ---
 
 ## Path 5 — Active client upgrades (Lead Gen → Lead Gen + FIGSY bundle)
 
-1. Active client, already paying $100/mo for Lead Gen
-2. Goes to Billing → sees "Lead Gen + FIGSY Bundle" section
-3. Clicks "Get started" → Paystack → new subscription initiated
-4. On payment success → new subscription record created with product: `lead_gen_figsy`
-5. Dashboard shows both products active
-6. FIGSY outreach begins (F1 build)
-
-**⚠️ Open item:** The old Lead Gen subscription stays active alongside the bundle. The Lead Gen-only subscription needs to be cancelled when they upgrade to the bundle — either a small admin action or an automated cancellation trigger. This needs to be decided and built before FIGSY goes live.
+1. Active client on Lead Gen → Billing → sees FIGSY products
+2. Selects FIGSY bundle → Paystack → payment
+3. New subscription created with product: `lead_gen_figsy`
+4. Dashboard shows FIGSY unlocked
+5. **Admin action needed:** cancel the old Lead Gen-only subscription in admin portal
 
 ---
 
 ## Path 6 — Active client adds FIGSY as an add-on (not full bundle)
 
-1. Active client on Lead Gen → Billing → "Add FIGSY to your existing plan"
-2. Clicks "Request add-on" → mailto link → email to hello@get-kind.com
-3. Manual process: AE goes to admin portal → opens client profile → adds FIGSY add-on line to order form → "Update & resend"
-4. Client signs updated agreement
-5. AE activates FIGSY product in the client's subscription manually (or via a future admin toggle)
+1. Active client on Lead Gen → Billing → "Add FIGSY"
+2. Currently manual process: AE activates FIGSY in admin portal → grant subscription
+3. Client sees FIGSY unlocked on next load
 
-**This is intentionally manual for now** because FIGSY is a higher-touch product. If you want this self-service later, it can be automated.
+**This is intentionally manual for now** — FIGSY is a higher-touch product.
+
+---
+
+## Path 7 — Sales team demo
+
+1. AE goes to admin.get-kind.com → Demo Environments
+2. Fills in: prospect name, company name, industry, country, expiry date, AE name
+3. System creates: real Supabase user + client + all 4 products active + runs real Apollo ICP
+4. Leads start appearing within minutes
+5. AE clicks "Open Demo" → portal opens in new tab, logged in as the demo client
+6. AE walks the prospect through the live platform — real leads, real scores
+7. After demo: demo expires automatically on set date, or AE can expire immediately
 
 ---
 
@@ -110,12 +99,19 @@ Complete start-to-finish — all paths.
 
 | Path | Who | Trial? | AE involved? | Works today? |
 |------|-----|--------|-------------|-------------|
-| 1 — Self-service trial | Client | Yes | No | Yes |
-| 2 — AE-assisted | Client + AE | Yes | Yes | Yes |
-| 3 — Pay day 1 | Client | Skipped | No | Yes |
-| 4 — Trial expired, no payment | Client | Expired | Optional | Yes |
-| 5 — Upgrade to bundle | Active client | No | No | Needs Path 5 fix |
-| 6 — FIGSY add-on | Active client | No | Yes | Manual only |
+| 1 — Self-service trial | Client | Yes | No | ✅ Yes |
+| 2 — AE-assisted | Client + AE | Yes | Yes | ✅ Yes |
+| 3 — Pay day 1 | Client | Skipped | No | ✅ Yes |
+| 4 — Trial expired, no payment | Client | Expired | Optional | ✅ Yes |
+| 5 — Upgrade to bundle | Active client | No | Admin action | ✅ Yes (manual cancel old sub) |
+| 6 — FIGSY add-on | Active client | No | Yes | ✅ Manual |
+| 7 — Sales demo | AE only | Demo | Yes | ✅ Yes |
+
+---
+
+## Note on flowchart
+
+A visual flowchart does not yet exist — this is the text SOP. If you want a Mermaid diagram or a visual flow built into the admin portal, say the word and it can be added.
 
 ---
 

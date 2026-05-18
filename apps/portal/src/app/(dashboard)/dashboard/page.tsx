@@ -53,23 +53,10 @@ export default async function DashboardPage() {
     } catch { }
   }
 
-  // Only show setup prompt if we have a session but definitively no client (not just a failed fetch)
-  if (!client && !session) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <Zap className="w-12 h-12 text-brand-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Welcome to K.I.N.D</h2>
-          <p className="text-gray-500 mb-4">Complete your business profile to get started.</p>
-          <a href="/onboard" className="inline-block bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors">Set up my profile</a>
-        </div>
-      </div>
-    )
-  }
-
   const { state, trialDaysLeft } = getBannerState(subs)
   const stats   = leadStats as { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number } | null
-  const credits = (client as { credit_balance?: number }).credit_balance ?? 0
+  const credits = (client as { credit_balance?: number } | null)?.credit_balance ?? 0
+  const companyName = (client as { company_name?: string } | null)?.company_name ?? ''
 
   const hasProduct = (product: string) =>
     subs.some(s => s.product === product && (s.status === 'active' || s.status === 'trialing'))
@@ -83,13 +70,13 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{greeting}, {(client as { company_name: string }).company_name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{companyName ? `${greeting}, ${companyName}` : `${greeting}`}</h1>
         <p className="text-gray-500 text-sm mt-1">Here's what's happening with your pipeline today.</p>
       </div>
 
       {/* Onboarding checklist — hidden once all steps complete */}
       <OnboardingChecklist
-        hasCompanyName={!!((client as { company_name?: string }).company_name)}
+        hasCompanyName={!!companyName}
         hasIcps={icpCount > 0}
         hasLeads={(stats?.total ?? 0) > 0}
         hasFigsyCampaigns={figsyCount > 0}
@@ -108,7 +95,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Referral banner — only show for active/trialing clients */}
-      {(client as { id?: string }).id && (
+      {(client as { id?: string } | null)?.id && (
         <ReferralBanner referralCode={(client as { id: string }).id} />
       )}
 

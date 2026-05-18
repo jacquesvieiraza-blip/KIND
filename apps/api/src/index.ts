@@ -51,7 +51,7 @@ app.use('/webhooks/paystack', express.raw({ type: 'application/json' }))
 app.use('/webhooks/stripe',  express.raw({ type: 'application/json' }))
 app.use(express.json())
 
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'kind-api' }))
+app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'kind-api', v: '2026-05-18-b' }))
 app.use('/auth',          authRouter)
 app.use('/clients',       clientRouter)
 app.use('/subscriptions', subscriptionRouter)

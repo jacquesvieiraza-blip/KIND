@@ -1085,20 +1085,23 @@
     msg.className = 'modal-msg'
     if (authMode === 'signup') {
       try {
-        const res = await fetch('https://kindapi-production-e64c.up.railway.app/auth/signup', {
+        const redirectTo = encodeURIComponent('https://app.get-kind.com/auth/callback?next=/onboard')
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/signup?redirect_to=${redirectTo}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
           body: JSON.stringify({ email, password })
         })
         const data = await res.json()
-        if (!data.success) {
-          msg.className = 'modal-msg err'; msg.textContent = data.error || 'Signup failed — please try again'; btn.textContent = 'Create account'; btn.disabled = false
+        if (!res.ok) {
+          const errMsg = data.msg || data.error_description || data.message || 'Signup failed — please try again'
+          msg.className = 'modal-msg err'; msg.textContent = errMsg; btn.textContent = 'Create account'; btn.disabled = false
         } else {
-          window.location.href = data.data.redirect_url
+          msg.className = 'modal-msg ok'
+          msg.textContent = '✓ Check your email — we sent you a link to get started.'
+          btn.textContent = 'Check your email'
         }
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err)
-        msg.className = 'modal-msg err'; msg.textContent = 'Error: ' + detail; btn.textContent = 'Create account'; btn.disabled = false
+      } catch {
+        msg.className = 'modal-msg err'; msg.textContent = 'Please check your connection and try again.'; btn.textContent = 'Create account'; btn.disabled = false
       }
     } else {
       closeAuth()

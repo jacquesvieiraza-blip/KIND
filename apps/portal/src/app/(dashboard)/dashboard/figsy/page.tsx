@@ -211,20 +211,20 @@ export default function FigsyPage() {
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col gap-3">
             <a
               href="/dashboard/billing"
-              className="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+              className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center"
             >
               Upgrade to FIGSY →
             </a>
             <a
-              href="https://get-kind.com/figsy-video.html"
+              href="https://cal.com/get-kind/demo"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2.5 border border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+              className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-gray-200"
             >
-              See how it works
+              Book a demo
             </a>
           </div>
         </div>

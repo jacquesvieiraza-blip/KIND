@@ -1084,15 +1084,17 @@
     btn.disabled = true
     msg.className = 'modal-msg'
     if (authMode === 'signup') {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ email, password, options: { emailRedirectTo: `${PORTAL}/auth/callback?next=/onboard` } }) })
+      const res = await fetch('https://kindapi-production-83cb.up.railway.app/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
       const data = await res.json()
-      if (data.error) {
-        msg.className = 'modal-msg err'; msg.textContent = data.error.message; btn.textContent = 'Create account'; btn.disabled = false
-      } else if (data.session) {
-        // Email confirmation disabled — user is auto-confirmed, redirect straight to onboard
-        window.location.href = PORTAL + '/onboard'
+      if (!data.success) {
+        msg.className = 'modal-msg err'; msg.textContent = data.error || 'Signup failed — please try again'; btn.textContent = 'Create account'; btn.disabled = false
       } else {
-        msg.className = 'modal-msg ok'; msg.textContent = 'Check your email to confirm your account ✓'; btn.textContent = 'Check your email ✓'
+        // Redirect to magic link — auto signs in and goes straight to onboard
+        window.location.href = data.data.redirect_url
       }
     } else {
       closeAuth()

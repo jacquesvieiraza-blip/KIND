@@ -5,6 +5,47 @@ import { sendWelcomeEmail } from '../lib/email'
 
 export const authRouter = Router()
 
+// ── SIGNUP — bypass email confirmation via admin SDK ──────────────────────────
+authRouter.post('/signup', async (req, res) => {
+  try {
+    const { email, password } = z.object({
+      email:    z.string().email(),
+      password: z.string().min(6),
+    }).parse(req.body)
+
+    const PORTAL = process.env.PORTAL_URL || 'https://app.get-kind.com'
+
+    // Create user with admin API — email is auto-confirmed, no email sent
+    const { data: created, error: createErr } = await db.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    })
+    if (createErr) {
+      // User already exists — generate sign-in link instead
+      if (!createErr.message.includes('already')) {
+        res.status(400).json({ success: false, error: createErr.message }); return
+      }
+    }
+
+    // Generate a magic link so the browser auto-signs them in
+    const { data: linkData, error: linkErr } = await db.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo: `${PORTAL}/auth/callback?next=/onboard` },
+    })
+    if (linkErr || !linkData?.properties?.action_link) {
+      res.status(500).json({ success: false, error: linkErr?.message || 'Failed to generate sign-in link' }); return
+    }
+
+    res.json({ success: true, data: { redirect_url: linkData.properties.action_link } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors[0].message }); return }
+    console.error('[auth/signup]', err)
+    res.status(500).json({ success: false, error: 'Signup failed' })
+  }
+})
+
 const emptyToUndefined = z.string().transform(v => v === '' ? undefined : v)
 
 const onboardSchema = z.object({

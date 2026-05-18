@@ -20,8 +20,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       const clientRes = await api.get<{ data: { company_name?: string; subscriptions: { status: string; trial_ends_at?: string }[]; credit_balance?: number } }>('/clients/me', session.access_token)
-      // Redirect to onboard if client profile not set up yet
-      if (!clientRes.data?.company_name) redirect('/onboard')
       const subs      = clientRes.data?.subscriptions ?? []
       const hasActive = subs.some((s) => s.status === 'active')
       creditBalance   = clientRes.data?.credit_balance ?? 0

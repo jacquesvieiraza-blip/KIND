@@ -53,7 +53,8 @@ export default async function DashboardPage() {
     } catch { }
   }
 
-  if (!client) {
+  // Only show setup prompt if we have a session but definitively no client (not just a failed fetch)
+  if (!client && !session) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">

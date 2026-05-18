@@ -178,7 +178,9 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     res.status(201).json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error(err); res.status(500).json({ success: false, error: 'Failed to create ICP' })
+    console.error('[icps/create]', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    res.status(500).json({ success: false, error: msg })
   }
 })
 

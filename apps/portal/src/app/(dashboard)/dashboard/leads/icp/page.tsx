@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
@@ -138,6 +138,7 @@ export default function ICPPage() {
   const [prefillNotice, setPrefillNotice] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -192,7 +193,13 @@ export default function ICPPage() {
   }
 
   async function handleSave() {
-    if (!token || !form.name.trim()) return
+    if (!token) return
+    if (!form.name.trim()) {
+      setSaveError('Please enter a name for this ICP — e.g. "SA Fintech CTOs"')
+      nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      nameInputRef.current?.focus()
+      return
+    }
     setSaving(true)
     setSaveError(null)
     try {
@@ -371,7 +378,7 @@ export default function ICPPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ICP Name *</label>
-            <input type="text" value={form.name} onChange={e => set('name')(e.target.value)}
+            <input ref={nameInputRef} type="text" value={form.name} onChange={e => set('name')(e.target.value)}
               placeholder="e.g. SA Fintech CTOs"
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
@@ -401,7 +408,7 @@ export default function ICPPage() {
           )}
 
           <div className="flex items-center gap-3">
-            <button onClick={handleSave} disabled={saving || !form.name.trim()}
+            <button onClick={handleSave} disabled={saving}
               className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-60">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle className="w-4 h-4" /> : null}
               {saved ? 'Saved!' : saving ? 'Saving…' : 'Save & Find Leads'}

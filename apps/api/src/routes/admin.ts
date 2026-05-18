@@ -173,7 +173,6 @@ adminRouter.post('/demos', async (req: Request, res: Response) => {
       job_titles:            [],
       tech_stack:            [],
       keywords:              [],
-      apollo_only_consented: true,
     }).select('id').single()
 
     if (icpErr) throw new Error(`ICP insert failed: ${icpErr.message}`)

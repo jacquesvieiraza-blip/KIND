@@ -1084,17 +1084,20 @@
     btn.disabled = true
     msg.className = 'modal-msg'
     if (authMode === 'signup') {
-      const res = await fetch('https://kindapi-production-83cb.up.railway.app/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
-      const data = await res.json()
-      if (!data.success) {
-        msg.className = 'modal-msg err'; msg.textContent = data.error || 'Signup failed — please try again'; btn.textContent = 'Create account'; btn.disabled = false
-      } else {
-        // Redirect to magic link — auto signs in and goes straight to onboard
-        window.location.href = data.data.redirect_url
+      try {
+        const res = await fetch('https://kindapi-production-83cb.up.railway.app/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        })
+        const data = await res.json()
+        if (!data.success) {
+          msg.className = 'modal-msg err'; msg.textContent = data.error || 'Signup failed — please try again'; btn.textContent = 'Create account'; btn.disabled = false
+        } else {
+          window.location.href = data.data.redirect_url
+        }
+      } catch (err) {
+        msg.className = 'modal-msg err'; msg.textContent = 'Network error — please try again.'; btn.textContent = 'Create account'; btn.disabled = false
       }
     } else {
       closeAuth()

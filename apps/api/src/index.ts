@@ -31,6 +31,8 @@ const PORT = process.env.PORT || 4000
 
 app.use(helmet())
 const ALLOWED_ORIGINS = [
+  'https://get-kind.com',
+  'https://www.get-kind.com',
   'https://app.get-kind.com',
   'https://admin.get-kind.com',
   'http://localhost:3000',

@@ -42,6 +42,8 @@ function StatusBadge({ demo }: { demo: Demo }) {
   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><CheckCircle className="w-3 h-3" />Active · {daysLeft}d left</span>
 }
 
+const defaultExpiry = () => new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+
 export default function DemoPage() {
   const [demos, setDemos]         = useState<Demo[]>([])
   const [loading, setLoading]     = useState(true)
@@ -60,7 +62,7 @@ export default function DemoPage() {
     industry:      'Fintech',
     country:       'South Africa',
     website_url:   '',
-    expires_at:    '',
+    expires_at:    defaultExpiry(),
     created_by:    SALES_TEAM[0],
   })
 
@@ -91,7 +93,7 @@ export default function DemoPage() {
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Failed to create demo')
       setShowForm(false)
-      setForm({ prospect_name: '', company_name: '', industry: 'Fintech', country: 'South Africa', website_url: '', expires_at: '', created_by: SALES_TEAM[0] })
+      setForm({ prospect_name: '', company_name: '', industry: 'Fintech', country: 'South Africa', website_url: '', expires_at: defaultExpiry(), created_by: SALES_TEAM[0] })
       showToast(`Demo created for ${data.data.company_name} — ICP running in background`)
       loadDemos()
     } catch (err) {

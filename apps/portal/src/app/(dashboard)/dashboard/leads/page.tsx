@@ -165,7 +165,7 @@ export default function LeadsPage() {
   async function exportCSV() {
     if (!token) return
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://kindapi-production-e64c.up.railway.app'
       const res = await fetch(`${base}/leads/export/csv`, {
         headers: { Authorization: `Bearer ${token}` },
       })

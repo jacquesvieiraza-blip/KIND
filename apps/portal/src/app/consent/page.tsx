@@ -31,7 +31,7 @@ function ConsentContent() {
   function submitConsent(consent: boolean) {
     if (!leadId || !token) { setState('error'); return }
     setState('loading')
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://kindapi-production-e64c.up.railway.app'
 
     fetch(`${API}/leads/public/consent`, {
       method:  'POST',

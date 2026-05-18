@@ -293,7 +293,7 @@ export default function SettingsPage() {
           </div>
         ) : (
           <a
-            href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/calendar/connect`}
+            href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://kindapi-production-e64c.up.railway.app'}/calendar/connect`}
             className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors"
           >
             <Calendar className="w-4 h-4" /> Connect Google Calendar

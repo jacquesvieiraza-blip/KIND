@@ -27,7 +27,7 @@ export default function ReferralPage() {
 
       try {
         // Fetch client id
-        const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+        const base = process.env.NEXT_PUBLIC_API_URL || 'http://kindapi-production-e64c.up.railway.app'
         const res = await fetch(`${base}/clients/me`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
         })

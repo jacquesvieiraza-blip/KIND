@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-83cb.up.railway.app'
 
 async function apiFetch<T>(path: string, options?: RequestInit, token?: string): Promise<T> {
   const controller = new AbortController()

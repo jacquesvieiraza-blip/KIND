@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, ExternalLink } from 'lucide-react'
+import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone } from 'lucide-react'
 
 interface ClientData {
   company_name: string
@@ -301,73 +301,39 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* WhatsApp */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
-        <div className="flex items-center gap-2 mb-1">
-          <MessageCircle className="w-4 h-4 text-gray-400" />
-          <h2 className="font-semibold">WhatsApp Business</h2>
-          {whatsappStatus?.configured ? (
+      {/* WhatsApp — only show when active */}
+      {whatsappStatus?.configured && (
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <MessageCircle className="w-4 h-4 text-gray-400" />
+            <h2 className="font-semibold">WhatsApp Business</h2>
             <span className="ml-auto flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <CheckCircle className="w-3 h-3" /> Active
             </span>
-          ) : (
-            <span className="ml-auto flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-              Pending setup
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-gray-400 mb-5">
-          Vida handles inbound WhatsApp messages — qualifying leads, answering questions, and handing warm prospects to your team.
-        </p>
-        {whatsappStatus?.configured ? (
+          </div>
+          <p className="text-sm text-gray-400 mb-3">
+            Vida handles inbound WhatsApp messages — qualifying leads, answering questions, and handing warm prospects to your team.
+          </p>
           <p className="text-sm text-green-600">WhatsApp Business API is active. Vida is live on WhatsApp.</p>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500">WhatsApp requires Meta Business API approval (3–7 days). Once approved, add WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID to Railway.</p>
-            <a href="https://business.facebook.com/wa/manage/phone-numbers/" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-lg px-4 py-2 text-sm transition-colors">
-              <ExternalLink className="w-3.5 h-3.5" /> Open Meta Business Manager
-            </a>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Voice (Vapi) */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
-        <div className="flex items-center gap-2 mb-1">
-          <Phone className="w-4 h-4 text-gray-400" />
-          <h2 className="font-semibold">Voice Calls (FIGSY)</h2>
-          {vapiStatus?.configured ? (
+      {/* Voice (Vapi) — only show when active */}
+      {vapiStatus?.configured && (
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Phone className="w-4 h-4 text-gray-400" />
+            <h2 className="font-semibold">Voice Calls (FIGSY)</h2>
             <span className="ml-auto flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <CheckCircle className="w-3 h-3" /> Active
             </span>
-          ) : (
-            <span className="ml-auto flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-              Pending setup
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-gray-400 mb-5">
-          FIGSY places follow-up calls using Vapi.ai — leaving voicemails, qualifying interest, and booking meetings.
-        </p>
-        {vapiStatus?.configured ? (
-          <p className="text-sm text-green-600">Vapi is active. FIGSY will call leads on day 4 of the sequence.</p>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500">Requires a Vapi.ai account + Twilio SA +27 number. Once set up, add VAPI_API_KEY + VAPI_PHONE_NUMBER_ID + VAPI_ASSISTANT_ID to Railway.</p>
-            <div className="flex gap-3">
-              <a href="https://vapi.ai" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-lg px-4 py-2 text-sm transition-colors">
-                <ExternalLink className="w-3.5 h-3.5" /> Open Vapi.ai
-              </a>
-              <a href="https://twilio.com" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-lg px-4 py-2 text-sm transition-colors">
-                <ExternalLink className="w-3.5 h-3.5" /> Open Twilio
-              </a>
-            </div>
           </div>
-        )}
-      </div>
+          <p className="text-sm text-gray-400 mb-3">
+            FIGSY places follow-up calls using Vapi.ai — leaving voicemails, qualifying interest, and booking meetings.
+          </p>
+          <p className="text-sm text-green-600">Vapi is active. FIGSY will call leads on day 4 of the sequence.</p>
+        </div>
+      )}
     </div>
   )
 }

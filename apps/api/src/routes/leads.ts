@@ -102,9 +102,9 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
       .eq('client_id', clientId).not('score', 'is', null)
 
     const avgScore = avgData?.length
-      ? Math.round(avgData.reduce((sum: number, l: any) => sum + (l.score || 0), 0) / avgData.length)
+      ? Math.round(avgData.reduce((sum: number, l: any) => sum + (Number(l.score) || 0), 0) / avgData.length)
       : 0
-    const pipelineValueUsd = avgData?.reduce((sum: number, l: any) => sum + (l.estimated_deal_value_usd || 0), 0) ?? 0
+    const pipelineValueUsd = avgData?.reduce((sum: number, l: any) => sum + (Number(l.estimated_deal_value_usd) || 0), 0) ?? 0
 
     res.json({
       success: true,

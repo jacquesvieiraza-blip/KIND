@@ -214,7 +214,7 @@ export default function BillingPage() {
       }
     } catch (err) {
       console.error(err)
-      setBuyError('Payment initiation failed. Please try again or email hello@get-kind.com.')
+      setBuyError(err instanceof Error ? err.message : 'Payment initiation failed. Please try again or email hello@get-kind.com.')
     }
     setInitiating(null)
   }

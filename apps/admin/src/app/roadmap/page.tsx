@@ -28,6 +28,7 @@ const PHASES = [
     ],
     ops: [
       'Founder-led sales — direct outreach to SMEs in SA, NG, KE',
+      'Use own product: KIND runs FIGSY campaigns for KIND — dogfooding GTM',
       'Demo Environments in admin for sales team demos',
       'WhatsApp-first onboarding flow',
       'Set up internal ops playbook',

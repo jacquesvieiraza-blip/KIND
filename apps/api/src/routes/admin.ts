@@ -248,6 +248,69 @@ adminRouter.delete('/demos/:id', async (req: Request, res: Response) => {
   }
 })
 
+// GET /admin/clients/:id — single client details
+adminRouter.get('/clients/:id', async (req: Request, res: Response) => {
+  try {
+    const { data: client, error } = await db
+      .from('clients')
+      .select('*, subscriptions(*)')
+      .eq('id', req.params.id)
+      .single()
+    if (error || !client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    res.json({ success: true, data: client })
+  } catch (err) {
+    console.error('[admin/clients/:id]', err)
+    res.status(500).json({ success: false, error: 'Failed to fetch client' })
+  }
+})
+
+// ── CLIENT CREDIT MANAGEMENT ──────────────────────────────────────────────────
+
+// GET /admin/clients/:id/credits — credit balance + last 50 transactions
+adminRouter.get('/clients/:id/credits', async (req: Request, res: Response) => {
+  try {
+    const [clientRes, txRes] = await Promise.all([
+      db.from('clients').select('id, company_name, credit_balance').eq('id', req.params.id).single(),
+      db.from('credit_transactions').select('*').eq('client_id', req.params.id)
+        .order('created_at', { ascending: false }).limit(50),
+    ])
+    if (clientRes.error || !clientRes.data) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    res.json({ success: true, data: { balance: clientRes.data.credit_balance ?? 0, transactions: txRes.data ?? [] } })
+  } catch (err) {
+    console.error('[admin/clients/credits]', err)
+    res.status(500).json({ success: false, error: 'Failed to fetch credit data' })
+  }
+})
+
+// POST /admin/clients/:id/credits — grant or deduct credits
+adminRouter.post('/clients/:id/credits', async (req: Request, res: Response) => {
+  try {
+    const { amount, type, note } = req.body as { amount: number; type: 'manual_grant' | 'refund'; note?: string }
+    if (!amount || !type) { res.status(400).json({ success: false, error: 'amount and type are required' }); return }
+    if (!['manual_grant', 'refund'].includes(type)) {
+      res.status(400).json({ success: false, error: 'type must be manual_grant or refund' }); return
+    }
+
+    const { data: client, error: clientErr } = await db
+      .from('clients').select('id, credit_balance').eq('id', req.params.id).single()
+    if (clientErr || !client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const newBalance = (client.credit_balance ?? 0) + amount
+    const [, txRes] = await Promise.all([
+      db.from('clients').update({ credit_balance: newBalance }).eq('id', req.params.id),
+      db.from('credit_transactions').insert({
+        client_id: req.params.id, type, amount, note: note || null,
+      }).select('id').single(),
+    ])
+    if (txRes.error) throw txRes.error
+
+    res.json({ success: true, data: { new_balance: newBalance } })
+  } catch (err) {
+    console.error('[admin/clients/credits/grant]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : String(err) })
+  }
+})
+
 // POST /admin/setup-demo — legacy single demo account (kept for backwards compat)
 adminRouter.post('/setup-demo', async (req: Request, res: Response) => {
   try {

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles } from 'lucide-react'
 
 const INDUSTRIES = [
   'Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture',
@@ -139,6 +139,8 @@ export default function ICPPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [nameSuggestion, setNameSuggestion] = useState<string | null>(null)
+  const [aiSuggesting, setAiSuggesting]     = useState(false)
+  const [aiSuggestError, setAiSuggestError] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -249,6 +251,19 @@ export default function ICPPage() {
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to activate ICP — please try again.')
     }
+  }
+
+  async function handleAiSuggest() {
+    if (!token) return
+    setAiSuggesting(true)
+    setAiSuggestError(null)
+    try {
+      const res = await api.post<{ data: Partial<ICPFormData> }>('/clients/me/suggest-icp', {}, token)
+      setForm(f => ({ ...f, ...res.data }))
+    } catch (err) {
+      setAiSuggestError(err instanceof Error ? err.message : 'AI suggestion failed — please try again.')
+    }
+    setAiSuggesting(false)
   }
 
   const set = (field: keyof ICPFormData) => (val: unknown) => setForm(f => ({ ...f, [field]: val }))
@@ -376,7 +391,15 @@ export default function ICPPage() {
       {/* Form */}
       {showForm && (
         <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-6">
-          <h3 className="font-semibold text-gray-900">{editingId ? 'Edit ICP' : 'New ICP'}</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">{editingId ? 'Edit ICP' : 'New ICP'}</h3>
+            <button type="button" onClick={handleAiSuggest} disabled={aiSuggesting}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 disabled:opacity-60 transition-colors border border-purple-200">
+              {aiSuggesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {aiSuggesting ? 'Thinking…' : 'Suggest ICP with AI'}
+            </button>
+          </div>
+          {aiSuggestError && <p className="text-xs text-red-500">{aiSuggestError}</p>}
 
           {prefillNotice && (
             <div className="flex items-start justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">

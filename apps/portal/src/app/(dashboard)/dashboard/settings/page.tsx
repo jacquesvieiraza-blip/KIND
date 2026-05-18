@@ -12,6 +12,8 @@ interface ClientData {
   country: string
   website: string
   phone: string
+  company_registration: string
+  vat_number: string
   crm_type: string
   crm_api_key: string
   crm_sync_enabled: boolean
@@ -27,7 +29,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [form, setForm] = useState({ company_name: '', industry: '', country: 'South Africa', website: '', phone: '' })
+  const [form, setForm] = useState({ company_name: '', industry: '', country: 'South Africa', website: '', phone: '', company_registration: '', vat_number: '' })
   const [crm, setCrm] = useState({ crm_type: 'none', crm_api_key: '', crm_sync_enabled: false })
   const [crmSaving, setCrmSaving] = useState(false)
   const [crmSaved, setCrmSaved] = useState(false)
@@ -46,7 +48,7 @@ export default function SettingsPage() {
       try {
         const res = await api.get<{ data: ClientData }>('/clients/me', session.access_token)
         const c = res.data
-        setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '' })
+        setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '' })
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false })
       } catch { setSaveError('Failed to load your profile. Please refresh.') }
 
@@ -166,6 +168,20 @@ export default function SettingsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
               <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Registration No.</label>
+              <input type="text" value={form.company_registration} onChange={(e) => setForm({ ...form, company_registration: e.target.value })}
+                placeholder="e.g. 2023/123456/07"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">VAT Number <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input type="text" value={form.vat_number} onChange={(e) => setForm({ ...form, vat_number: e.target.value })}
+                placeholder="e.g. 4123456789"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
             </div>
           </div>

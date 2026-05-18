@@ -25,6 +25,8 @@ const SECTIONS: { title: string; items: CheckItem[] }[] = [
       { id: 'sb-007', label: 'Run migration 007_calendar.sql', detail: 'packages/db/src/migrations/007_calendar.sql', critical: false },
       { id: 'sb-rls', label: 'Run 20260518_enable_rls.sql', detail: 'supabase/migrations/20260518_enable_rls.sql — re-enables RLS on clients + icps', critical: true },
       { id: 'sb-demo', label: 'Run 20260518_demo_environments.sql', detail: 'supabase/migrations/20260518_demo_environments.sql — adds demo columns to clients', critical: true },
+      { id: 'sb-credits-rls', label: 'Run 20260518_credit_transactions_rls.sql', detail: 'CRITICAL: enables RLS on credit_transactions table — run this immediately', critical: true },
+      { id: 'sb-reg', label: 'Run 20260518_company_registration.sql', detail: 'Adds company_registration + vat_number columns to clients', critical: false },
       { id: 'sb-site-url', label: 'Set Site URL → https://app.get-kind.com', detail: 'Supabase → Auth → URL Configuration', critical: true },
       { id: 'sb-redirect', label: 'Add redirect URL → https://app.get-kind.com/auth/callback', detail: 'Same page as Site URL', critical: true },
       { id: 'sb-bucket', label: 'Create storage bucket: agreement-templates (public)', detail: 'Supabase → Storage → New bucket', critical: true },

@@ -16,7 +16,7 @@ authRouter.post('/signup', async (req, res) => {
     const PORTAL = process.env.PORTAL_URL || 'https://app.get-kind.com'
 
     // Create user with admin API — email is auto-confirmed, no email sent
-    const { data: created, error: createErr } = await db.auth.admin.createUser({
+    const { error: createErr } = await db.auth.admin.createUser({
       email,
       password,
       email_confirm: true,

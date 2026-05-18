@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { api } from '@/lib/api'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
@@ -17,13 +17,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let creditBalance = 0
 
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      const clientRes = await api.get<{ data: { company_name?: string; subscriptions: { status: string; trial_ends_at?: string }[]; credit_balance?: number } }>('/clients/me', session.access_token)
-      const subs      = clientRes.data?.subscriptions ?? []
-      const hasActive = subs.some((s) => s.status === 'active')
-      creditBalance   = clientRes.data?.credit_balance ?? 0
+    const admin = createAdminClient()
+    const { data: clientRow } = await admin
+      .from('clients')
+      .select('credit_balance, subscriptions(*)')
+      .eq('user_id', user.id)
+      .maybeSingle()
 
+    if (clientRow) {
+      creditBalance = clientRow.credit_balance ?? 0
+      const subs = (clientRow.subscriptions as { status: string; trial_ends_at?: string }[]) ?? []
+      const hasActive = subs.some((s) => s.status === 'active')
       if (!hasActive) {
         const trialing = subs.find((s) => s.status === 'trialing')
         if (trialing?.trial_ends_at) {

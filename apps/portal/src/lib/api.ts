@@ -10,7 +10,10 @@ async function apiFetch<T>(path: string, options?: RequestInit, token?: string):
   }).finally(() => clearTimeout(timer))
   const data = await res.json()
   if (!res.ok) {
-    const err = new Error(data.error || 'API request failed') as Error & { status: number }
+    const errMsg = Array.isArray(data.error)
+      ? data.error.map((e: { message?: string }) => e.message ?? JSON.stringify(e)).join(', ')
+      : (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)) || 'API request failed'
+    const err = new Error(errMsg) as Error & { status: number }
     err.status = res.status
     throw err
   }

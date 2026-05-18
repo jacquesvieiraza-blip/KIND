@@ -9,10 +9,9 @@
 
 | # | Action | Where | Status |
 |---|--------|--------|--------|
-| 1 | **Upgrade Vercel to Pro** | vercel.com/billing | Hit 100 deploys/day free limit — upgrade to Pro (~$20/mo per project) or wait 24h each day |
-| 2 | **RLS migration** | Supabase → SQL Editor | ✅ Done |
-| 3 | **Demo columns migration** | Supabase → SQL Editor | ✅ Done |
-| 4 | **Smoke test full platform** | get-kind.com + app.get-kind.com | After next Vercel deploy |
+| 1 | **RLS migration** | Supabase → SQL Editor | ✅ Done |
+| 2 | **Demo columns migration** | Supabase → SQL Editor | ✅ Done |
+| 3 | **Smoke test full platform** | get-kind.com + app.get-kind.com | After next Vercel deploy |
 
 ---
 
@@ -75,10 +74,9 @@
 
 | # | Task | Where |
 |---|------|--------|
-| 1 | **Upgrade Vercel to Pro** | vercel.com/billing — remove 100 deploys/day cap |
-| 2 | **Smoke test** signup → onboard → dashboard → ICP → leads | get-kind.com after deploy |
-| 3 | **Test Demo Environments** — create demo, run ICP, click Open Demo | admin.get-kind.com after deploy |
-| 4 | **Test "Book a demo"** on FIGSY/VA/Chatbot locked screens | app.get-kind.com |
+| 1 | **Smoke test** signup → onboard → dashboard → ICP → leads | get-kind.com after deploy |
+| 2 | **Test Demo Environments** — create demo, run ICP, click Open Demo | admin.get-kind.com after deploy |
+| 3 | **Test "Book a demo"** on FIGSY/VA/Chatbot locked screens | app.get-kind.com |
 
 ### Pending (Claude can do):
 

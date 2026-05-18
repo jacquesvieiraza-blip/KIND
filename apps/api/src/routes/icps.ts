@@ -28,7 +28,7 @@ async function getClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
-async function runIcpJob(
+export async function runIcpJob(
   icpId: string,
   clientId: string,
   userId: string,

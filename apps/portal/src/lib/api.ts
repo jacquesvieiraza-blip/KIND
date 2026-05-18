@@ -1,10 +1,13 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 async function apiFetch<T>(path: string, options?: RequestInit, token?: string): Promise<T> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15000)
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    signal: controller.signal,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options?.headers },
-  })
+  }).finally(() => clearTimeout(timer))
   const data = await res.json()
   if (!res.ok) {
     const err = new Error(data.error || 'API request failed') as Error & { status: number }

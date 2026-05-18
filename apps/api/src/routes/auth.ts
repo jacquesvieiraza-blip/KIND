@@ -32,7 +32,7 @@ authRouter.post('/onboard', async (req, res) => {
     }
 
     const { data, error } = await db.from('clients').upsert(
-      { user_id: user.id, ...profileFields, ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}) },
+      { user_id: user.id, ...profileFields, onboarded_at: new Date().toISOString(), ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}) },
       { onConflict: 'user_id' }
     ).select().single()
     if (error) throw error

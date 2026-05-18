@@ -150,7 +150,7 @@ export default function ICPPage() {
         setLoadError(err instanceof Error ? err.message : 'Failed to load ICPs — please refresh.')
       }
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   function startCreate() {

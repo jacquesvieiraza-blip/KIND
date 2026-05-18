@@ -1,8 +1,11 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { testCrmConnection } from '../lib/crm'
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export const clientRouter = Router()
 clientRouter.use(requireAuth)
@@ -72,6 +75,8 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       country:           z.string().optional(),
       website:           z.string().url().optional(),
       phone:             z.string().optional(),
+      company_registration: z.string().optional(),
+      vat_number:           z.string().optional(),
       crm_type:          z.enum(['hubspot', 'pipedrive', 'none']).optional(),
       crm_api_key:       z.string().optional(),
       crm_sync_enabled:  z.boolean().optional(),
@@ -114,6 +119,40 @@ clientRouter.patch('/me/auto-topup', async (req: AuthRequest, res) => {
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to save auto top-up settings' })
+  }
+})
+
+// POST /clients/me/suggest-icp — AI-generated ICP suggestions based on client profile
+clientRouter.post('/me/suggest-icp', async (req: AuthRequest, res) => {
+  try {
+    const { data: client, error } = await db.from('clients')
+      .select('company_name, industry, country, website')
+      .eq('user_id', req.userId!)
+      .single()
+    if (error || !client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const context = [
+      client.company_name ? `Company: ${client.company_name}` : '',
+      client.industry     ? `Industry: ${client.industry}` : '',
+      client.country      ? `Country: ${client.country}` : '',
+      client.website      ? `Website: ${client.website}` : '',
+    ].filter(Boolean).join('\n')
+
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      messages: [{
+        role: 'user',
+        content: `You are a B2B sales expert. Based on this company profile, suggest an Ideal Customer Profile (ICP) for their outreach.\n\n${context}\n\nRespond ONLY with valid JSON in this exact shape (no markdown, no explanation):\n{\n  "name": "string — short ICP name e.g. 'SA Fintech CTOs'",\n  "industries": ["up to 3 target industries"],\n  "job_titles": ["3-5 specific job titles to target"],\n  "seniority_levels": ["2-3 from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor"],\n  "company_sizes": ["2-3 from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+"],\n  "geographies": ["1-3 countries/regions"],\n  "keywords": ["2-3 buying signal keywords"]\n}`,
+      }],
+    })
+
+    const raw = (msg.content[0] as { type: string; text: string }).text.trim()
+    const suggestion = JSON.parse(raw)
+    res.json({ success: true, data: suggestion })
+  } catch (err) {
+    console.error('[clients/suggest-icp]', err)
+    res.status(500).json({ success: false, error: 'Failed to generate suggestion' })
   }
 })
 

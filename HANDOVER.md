@@ -92,18 +92,23 @@ All 4 products activated for 1 year.
 
 ## WHAT STILL NEEDS TO BE DONE
 
-### Pending (code not yet written):
+### Done (added today):
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | **ICP auto-name suggestion** | ✅ Done — shows clickable "✨ Use: C-Suite · South Africa · Fintech" hint when criteria selected but name empty |
+| 2 | **Lead export to CSV** | ✅ Already existed — "Export CSV" button in leads page header |
+| 3 | **Onboarding website prefill** | ✅ Already existed — "Pre-fill ICP from website" button in onboard form, saves to localStorage, applied when creating first ICP |
+| 4 | **Admin dashboard UI** | ✅ Already exists at admin.get-kind.com — full KPI tracking, client pipeline health, MRR progress, TTFL metrics |
+
+### Pending (still to do):
 
 | # | Task | Effort | Notes |
 |---|------|--------|-------|
-| 1 | **ICP auto-name generation** | Small | When user fills criteria but leaves Name empty, auto-suggest name like "SA Fintech CTOs" from selected fields |
-| 2 | **Billing / Paystack integration smoke test** | Medium | Verify topup flow works end-to-end with real card |
-| 3 | **FIGSY campaign creation end-to-end test** | Medium | Create campaign, verify Day 1 outreach fires |
-| 4 | **Lead export to CSV** | Small | Leads table has no export button yet |
-| 5 | **Email notifications for new leads** | Medium | First-leads email exists but needs testing |
-| 6 | **Onboarding — website URL prefill** | Small | `/icps/prefill` endpoint exists, UI should auto-call it after onboard |
-| 7 | **Admin dashboard UI** | Large | `/admin/clients` endpoint exists, no frontend yet |
-| 8 | **Referral tracking smoke test** | Small | Referral credit logic written, needs verification |
+| 1 | **Billing / Paystack integration smoke test** | Medium | Verify topup flow works end-to-end with real card |
+| 2 | **FIGSY campaign creation end-to-end test** | Medium | Create campaign, verify Day 1 outreach fires |
+| 3 | **Email notifications for new leads** | Medium | First-leads email exists but needs testing |
+| 4 | **Referral tracking smoke test** | Small | Referral credit logic written, needs verification |
 
 ### Pending (you need to do):
 
@@ -176,15 +181,10 @@ supabase/migrations/20260518_enable_rls.sql              — RLS re-enable (run 
 
 ---
 
-## WHAT I (CLAUDE) CAN DO WITHOUT YOU
+## WHAT I (CLAUDE) CAN DO NEXT
 
-When you're ready to continue, I can immediately:
-
-1. **Auto-generate ICP names** from selected criteria (no input needed from you)
-2. **Build the admin dashboard UI** for viewing all clients/metrics
-3. **Add CSV export** to the leads table
-4. **Write end-to-end test scripts** for the full signup flow
-5. **Add onboarding website prefill** — auto-call `/icps/prefill` after company URL entered
-6. **Fix any new errors** that surface after deploy — just share a screenshot
-
-Just tell me which to tackle first.
+1. **Smoke test scripts** — automated checks for signup → dashboard → ICP flow
+2. **Billing / Paystack smoke test** — step through topup with test card, verify credit balance updates
+3. **FIGSY end-to-end** — create campaign, verify Day 1 outreach fires to inserted leads
+4. **Referral tracking verification** — sign up with referral code, verify both accounts get 100 credits
+5. **Fix any new errors** — just share a screenshot

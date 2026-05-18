@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-83cb.up.railway.app'
-const KEY = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET || ''
+const KEY = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET || process.env.NEXT_PUBLIC_ADMIN_KEY || ''
 
 async function proxy(req: NextRequest, path: string[]) {
   const url = `${API}/${path.join('/')}`

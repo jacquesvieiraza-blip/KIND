@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
@@ -17,8 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let creditBalance = 0
 
   try {
-    const admin = createAdminClient()
-    const { data: clientRow } = await admin
+    const { data: clientRow } = await supabase
       .from('clients')
       .select('credit_balance, subscriptions(*)')
       .eq('user_id', user.id)

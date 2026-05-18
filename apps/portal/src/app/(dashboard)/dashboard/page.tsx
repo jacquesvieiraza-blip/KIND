@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { api } from '@/lib/api'
 import { StatCard } from '@/components/ui/StatCard'
 import { ProductCard } from '@/components/ui/ProductCard'
@@ -38,9 +37,8 @@ export default async function DashboardPage() {
   let figsyCount = 0
 
   if (user) {
-    // Use service-role client so RLS never blocks the read
-    const admin = createAdminClient()
-    const { data: clientRow } = await admin
+    // Read client row using the authenticated session — RLS allows users to read their own row
+    const { data: clientRow } = await supabase
       .from('clients')
       .select('id, company_name, credit_balance, subscriptions(*)')
       .eq('user_id', user.id)

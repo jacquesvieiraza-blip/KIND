@@ -245,6 +245,85 @@
     /* BADGE */
     .feature-count { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,102,255,0.08); border: 1px solid rgba(0,102,255,0.15); color: var(--blue); font-size: 0.72rem; font-weight: 700; padding: 4px 12px; border-radius: 100px; margin-bottom: 20px; }
 
+    /* CANVAS */
+    .hero-canvas-wrap { background: var(--navy); height: 120px; position: relative; overflow: hidden; }
+    #demo-canvas { width: 100%; height: 100%; display: block; }
+
+    /* TYPEWRITER */
+    .tw-cursor { display: inline-block; width: 3px; background: #60a5fa; margin-left: 2px; animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* PLATFORM SCROLL SCENE */
+    .platform-scene { background: var(--dark); padding: 100px 48px; }
+    .platform-inner { max-width: 1080px; margin: 0 auto; }
+    .platform-scene-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #60a5fa; margin-bottom: 12px; }
+    .platform-scene-title { font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 48px; }
+    .platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+    .platform-sticky { position: sticky; top: 140px; }
+
+    /* AGENT CARD (scroll scene) */
+    .agent-scene-card {
+      background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 28px; padding: 36px; text-align: center;
+      position: relative; overflow: hidden;
+      box-shadow: 0 0 80px rgba(0,102,255,0.15);
+    }
+    .agent-scene-card::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 70%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    }
+    .scene-avatar {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: linear-gradient(135deg, #1a1a2e, #0f3460);
+      margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;
+      font-size: 2.8rem; position: relative;
+      border: 2px solid rgba(0,102,255,0.3);
+      box-shadow: 0 0 40px rgba(0,102,255,0.2);
+    }
+    .scene-avatar-ring {
+      position: absolute; inset: -8px; border-radius: 50%;
+      border: 1.5px solid rgba(0,102,255,0.2);
+      animation: spin-ring 8s linear infinite;
+    }
+    .scene-avatar-ring::before {
+      content: ''; position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+      width: 6px; height: 6px; background: var(--blue); border-radius: 50%;
+    }
+    @keyframes spin-ring { to { transform: rotate(360deg); } }
+    .scene-name { font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .scene-role { font-size: 0.72rem; color: rgba(255,255,255,0.3); margin-bottom: 16px; }
+    .scene-badges { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+    .scene-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 100px; padding: 5px 12px; font-size: 0.68rem; font-weight: 600; color: rgba(255,255,255,0.45); }
+    .scene-badge.on { color: #34d399; border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.06); }
+    .scene-thinking { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 16px; text-align: left; }
+    .scene-thinking-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 8px; }
+    .scene-thought { font-size: 0.8rem; color: rgba(255,255,255,0.55); line-height: 1.6; min-height: 72px; transition: opacity 0.4s; }
+    .scene-dots { display: inline-flex; gap: 3px; align-items: center; margin-top: 8px; }
+    .scene-dots span { width: 4px; height: 4px; background: var(--blue); border-radius: 50%; animation: typing-dot 1.2s ease-in-out infinite; }
+    .scene-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .scene-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-dot { 0%,80%,100%{transform:scale(0.6);opacity:0.3} 40%{transform:scale(1);opacity:1} }
+
+    /* SCROLL STEPS */
+    .platform-steps { padding: 8px 0; }
+    .platform-step { padding: 48px 0; border-bottom: 1px solid rgba(255,255,255,0.07); opacity: 0.25; transition: opacity 0.5s; }
+    .platform-step:last-child { border-bottom: none; }
+    .platform-step.active { opacity: 1; }
+    .ps-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--blue); margin-bottom: 14px; }
+    .ps-title { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; margin-bottom: 10px; line-height: 1.2; }
+    .ps-desc { font-size: 0.9rem; color: rgba(255,255,255,0.42); line-height: 1.75; }
+    .ps-pills { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+    .ps-pill { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 5px 14px; font-size: 0.72rem; color: rgba(255,255,255,0.45); }
+
+    /* ANIMATED STATS BAR */
+    .demo-stats-bar { background: var(--navy); padding: 48px; }
+    .demo-stats-inner { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+    .demo-stat-item { padding: 32px 24px; text-align: center; }
+    .demo-stat-num { font-size: 2.6rem; font-weight: 900; letter-spacing: -0.04em; color: #fff; line-height: 1; margin-bottom: 8px; }
+    .demo-stat-num span { color: #60a5fa; }
+    .demo-stat-label { font-size: 0.78rem; color: rgba(255,255,255,0.3); line-height: 1.4; }
+
     @media (max-width: 768px) {
       nav { padding: 0 20px; }
       .demo-section { padding: 64px 20px; }
@@ -254,6 +333,9 @@
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
       .chapter-nav { padding: 0 20px; }
       .demo-hero { padding: 72px 20px 56px; }
+      .platform-grid { grid-template-columns: 1fr; }
+      .platform-sticky { position: relative; top: 0; margin-bottom: 40px; }
+      .demo-stats-inner { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -267,6 +349,160 @@
   </a>
   <a href="https://app.get-kind.com/login" class="btn-nav-primary">Start free trial →</a>
 </nav>
+
+<!-- CANVAS NETWORK -->
+<div class="hero-canvas-wrap">
+  <canvas id="demo-canvas"></canvas>
+</div>
+
+<!-- ANIMATED STATS BAR -->
+<div class="demo-stats-bar">
+  <div class="demo-stats-inner">
+    <div class="demo-stat-item">
+      <div class="demo-stat-num"><span class="count-up" data-target="250">0</span>M<span>+</span></div>
+      <div class="demo-stat-label">Verified contacts in database</div>
+    </div>
+    <div class="demo-stat-item">
+      <div class="demo-stat-num"><span class="count-up" data-target="10">&lt;10</span> <span style="font-size:1.4rem">min</span></div>
+      <div class="demo-stat-label">From signup to first leads</div>
+    </div>
+    <div class="demo-stat-item">
+      <div class="demo-stat-num"><span class="count-up" data-target="8">0</span><span>+</span><span style="font-size:1.4rem">%</span></div>
+      <div class="demo-stat-label">Reply rate on top campaigns</div>
+    </div>
+    <div class="demo-stat-item">
+      <div class="demo-stat-num"><span class="count-up" data-target="24">0</span><span>/7</span></div>
+      <div class="demo-stat-label">FIGSY works while you sleep</div>
+    </div>
+  </div>
+</div>
+
+<!-- PLATFORM ANIMATED SCROLL SCENE -->
+<div class="platform-scene">
+  <div class="platform-inner">
+    <div class="platform-scene-label">Full walkthrough</div>
+    <div class="platform-scene-title">Watch K.I.N.D work.</div>
+    <div class="platform-grid">
+
+      <!-- Sticky agent card -->
+      <div class="platform-sticky">
+        <div class="agent-scene-card">
+          <div class="scene-avatar">
+            🤖
+            <div class="scene-avatar-ring"></div>
+          </div>
+          <div class="scene-name">K.I.N.D AI</div>
+          <div class="scene-role">Full-stack AI revenue platform</div>
+          <div class="scene-badges">
+            <span class="scene-badge on">● Live</span>
+            <span class="scene-badge">✦ Powered by Claude</span>
+          </div>
+          <div class="scene-thinking">
+            <div class="scene-thinking-label">Currently demonstrating</div>
+            <div class="scene-thought" id="scene-thought">Connecting to Apollo's 250M+ contact database. Filtering by your ICP — industry, title, company size, geography...</div>
+            <div class="scene-dots"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll steps -->
+      <div class="platform-steps" id="platform-steps">
+
+        <div class="platform-step active" data-thought="Connecting to Apollo's 250M+ contact database. Filtering by your ICP — industry, title, company size, geography. Only verified decision-makers get through.">
+          <div class="ps-num">Feature 01</div>
+          <div class="ps-title">AI-powered lead sourcing</div>
+          <div class="ps-desc">Define your Ideal Customer Profile once. K.I.N.D pulls verified contacts from Apollo's 250M+ database — filtered by industry, seniority, company size, geography, and tech stack. Your ICP can also be auto-filled by Claude from your company profile.</div>
+          <div class="ps-pills">
+            <span class="ps-pill">250M+ contacts</span>
+            <span class="ps-pill">AI ICP Suggest</span>
+            <span class="ps-pill">Verified emails</span>
+            <span class="ps-pill">First leads in &lt;10 mins</span>
+          </div>
+        </div>
+
+        <div class="platform-step" data-thought="Scoring Sarah Chen, VP of Sales at Acme Fintech — 92/100. Strong ICP match: correct title, correct industry, company size fits. Here's why she's a high-priority lead...">
+          <div class="ps-num">Feature 02</div>
+          <div class="ps-title">Claude AI lead scoring</div>
+          <div class="ps-desc">Every lead is scored 0–100 by Claude with written reasoning — not a black box number. You see exactly why a lead scored highly. Prioritise your pipeline by the people most likely to convert.</div>
+          <div class="ps-pills">
+            <span class="ps-pill">0–100 score</span>
+            <span class="ps-pill">Written reasoning</span>
+            <span class="ps-pill">Priority ranking</span>
+          </div>
+        </div>
+
+        <div class="platform-step" data-thought="Writing a personalised email for James Nkosi, MD at Lagos Growth Co. Opening with their recent Series A — never a template. Subject line: question-led, based on what worked before...">
+          <div class="ps-num">Feature 03</div>
+          <div class="ps-title">Hyper-personalised outreach</div>
+          <div class="ps-desc">FIGSY writes a unique email for every single lead — referencing their role, company, recent news, industry signals. A 3-step follow-up sequence fires automatically on Day 1, Day 4, and Day 9. Zero templates. Every message sounds human.</div>
+          <div class="ps-pills">
+            <span class="ps-pill">Zero templates</span>
+            <span class="ps-pill">3-step sequences</span>
+            <span class="ps-pill">24/7 sending</span>
+            <span class="ps-pill">POPIA compliant</span>
+          </div>
+        </div>
+
+        <div class="platform-step" data-thought="Reply received from Priya Patel — positive intent detected. Classified as: interested. Drafting a warm response that moves toward a 15-minute discovery call without being pushy...">
+          <div class="ps-num">Feature 04</div>
+          <div class="ps-title">Intelligent reply handling</div>
+          <div class="ps-desc">FIGSY reads every reply and classifies intent across 5 categories. Interested? It continues the conversation and books the meeting. Objection? It handles it. Opt-out? The contact is permanently suppressed and POPIA-recorded. You only see the warm leads.</div>
+          <div class="ps-pills">
+            <span class="ps-pill">5-category classification</span>
+            <span class="ps-pill">Objection handling</span>
+            <span class="ps-pill">Auto opt-out</span>
+          </div>
+        </div>
+
+        <div class="platform-step" data-thought="Campaign SA Fintech Q2 — reply rate dropped to 0.6% after 42 emails. Pausing automatically. Alerting the client. No more credits wasted on a dead sequence.">
+          <div class="ps-num">Feature 05</div>
+          <div class="ps-title">Self-managing agent intelligence</div>
+          <div class="ps-desc">FIGSY monitors its own performance. If a campaign drops below 1% reply rate after 20+ emails, it pauses automatically and alerts you. Campaign memory learns what subject lines and approaches work for your ICP over time. Every Monday, a full outreach digest lands in your inbox.</div>
+          <div class="ps-pills">
+            <span class="ps-pill">Auto-pauses low performers</span>
+            <span class="ps-pill">Campaign memory</span>
+            <span class="ps-pill">Monday digest</span>
+          </div>
+        </div>
+
+        <div class="platform-step" data-thought="Opening your KPIs dashboard — lead pipeline value $420k, reply rate 5.4% (above 3% industry benchmark), funnel from sourced to interested. Everything in one view.">
+          <div class="ps-num">Feature 06</div>
+          <div class="ps-title">Live KPIs dashboard</div>
+          <div class="ps-desc">Your full pipeline in one screen — leads sourced, scored, contacted, replied, interested. Reply rate benchmarked against industry averages. Pipeline value calculated automatically from deal size estimates. Updated in real time.</div>
+          <div class="ps-pills">
+            <span class="ps-pill">Pipeline funnel</span>
+            <span class="ps-pill">Industry benchmarks</span>
+            <span class="ps-pill">Real-time</span>
+          </div>
+        </div>
+
+        <div class="platform-step" data-thought="Loading your Virtual Assistant — 4 documents indexed. Your pricing guide, service SOP, product FAQ, and client agreement. Ready to answer any question about your business instantly.">
+          <div class="ps-num">Feature 07</div>
+          <div class="ps-title">Virtual Assistant — Milla</div>
+          <div class="ps-desc">Upload your documents — contracts, SOPs, pricing guides, FAQs. Milla reads them and answers questions instantly, citing which document the answer came from. Your team stops searching 40-page PDFs and starts asking. Launching July 2026.</div>
+          <div class="ps-pills">
+            <span class="ps-pill">Document Q&amp;A</span>
+            <span class="ps-pill">Source attribution</span>
+            <span class="ps-pill">July 2026</span>
+          </div>
+        </div>
+
+        <div class="platform-step" data-thought="Vida widget live on your website — visitor just asked about pricing. Classifying intent: interested in the Growth plan. Capturing contact details before handoff to your team.">
+          <div class="ps-num">Feature 08</div>
+          <div class="ps-title">Chatbot Agent — Vida</div>
+          <div class="ps-desc">AI chatbot for your website or WhatsApp. One line of embed code. Vida answers queries, captures leads, and hands off to your team when a prospect is ready to buy. Fully branded in your colours. Launching July 2026.</div>
+          <div class="ps-pills">
+            <span class="ps-pill">Website embed</span>
+            <span class="ps-pill">WhatsApp ready</span>
+            <span class="ps-pill">Lead capture</span>
+            <span class="ps-pill">July 2026</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- CHAPTER NAV -->
 <div class="chapter-nav" id="chapterNav">
@@ -283,7 +519,7 @@
 <!-- HERO -->
 <div class="demo-hero">
   <div class="demo-hero-label">Full Platform Demo</div>
-  <h1>Every feature.<br>One walkthrough.</h1>
+  <h1>Every feature.<br><span id="tw-demo">One walkthrough.</span><span class="tw-cursor"></span></h1>
   <p>See exactly how K.I.N.D finds your ideal clients, runs outreach, handles replies, and books meetings — fully automated.</p>
   <div class="hero-chapters">
     <a href="#lead-gen" class="hero-ch">Lead Generation</a>
@@ -903,29 +1139,117 @@
 </footer>
 
 <script>
-  // Reveal on scroll
+  // ── CANVAS NETWORK ─────────────────────────────────────────────────────────
+  const canvas = document.getElementById('demo-canvas')
+  const ctx = canvas.getContext('2d')
+  let nodes = [], W, H
+
+  function resizeCanvas() {
+    W = canvas.width = canvas.offsetWidth
+    H = canvas.height = canvas.offsetHeight
+    nodes = []
+    const count = Math.floor(W / 55)
+    for (let i = 0; i < count; i++) {
+      nodes.push({ x: Math.random()*W, y: Math.random()*H, vx:(Math.random()-.5)*.5, vy:(Math.random()-.5)*.5, r:Math.random()*2+1.2, pulse:Math.random()*Math.PI*2 })
+    }
+  }
+  function drawCanvas() {
+    ctx.clearRect(0,0,W,H)
+    for (let i=0;i<nodes.length;i++) {
+      for (let j=i+1;j<nodes.length;j++) {
+        const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y, d=Math.sqrt(dx*dx+dy*dy)
+        if (d<140) { ctx.beginPath(); ctx.strokeStyle=`rgba(96,165,250,${0.08*(1-d/140)})`; ctx.lineWidth=0.8; ctx.moveTo(nodes[i].x,nodes[i].y); ctx.lineTo(nodes[j].x,nodes[j].y); ctx.stroke() }
+      }
+    }
+    nodes.forEach(n => {
+      n.pulse+=0.02; const g=(Math.sin(n.pulse)+1)/2
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r+g,0,Math.PI*2)
+      ctx.fillStyle=`rgba(96,165,250,${0.3+g*0.4})`; ctx.fill()
+      n.x+=n.vx; n.y+=n.vy
+      if(n.x<0||n.x>W) n.vx*=-1
+      if(n.y<0||n.y>H) n.vy*=-1
+    })
+    requestAnimationFrame(drawCanvas)
+  }
+  window.addEventListener('resize', resizeCanvas)
+  resizeCanvas(); drawCanvas()
+
+  // ── TYPEWRITER ──────────────────────────────────────────────────────────────
+  const twTarget = document.getElementById('tw-demo')
+  const twPhrases = ['One walkthrough.', 'Every feature.', 'Live demo.', 'See it all.']
+  let twIdx=0, twChar=0, twDeleting=false
+  function typeStep() {
+    const phrase = twPhrases[twIdx]
+    if (twDeleting) {
+      twChar--; twTarget.textContent = phrase.substring(0,twChar)
+      if (twChar===0) { twDeleting=false; twIdx=(twIdx+1)%twPhrases.length; setTimeout(typeStep,400) }
+      else setTimeout(typeStep,40)
+    } else {
+      twChar++; twTarget.textContent = phrase.substring(0,twChar)
+      if (twChar===phrase.length) { setTimeout(()=>{ twDeleting=true; typeStep() },2200) }
+      else setTimeout(typeStep,75)
+    }
+  }
+  setTimeout(typeStep, 1800)
+
+  // ── PLATFORM SCROLL SCENE ──────────────────────────────────────────────────
+  const platformSteps = document.querySelectorAll('.platform-step')
+  const sceneThought = document.getElementById('scene-thought')
+  if (platformSteps.length && sceneThought) {
+    const stepObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return
+        platformSteps.forEach(s => s.classList.remove('active'))
+        e.target.classList.add('active')
+        sceneThought.style.opacity = '0'
+        setTimeout(() => {
+          sceneThought.textContent = e.target.dataset.thought
+          sceneThought.style.opacity = '1'
+        }, 200)
+      })
+    }, { threshold: 0.5, rootMargin: '-10% 0px -40% 0px' })
+    platformSteps.forEach(s => stepObs.observe(s))
+  }
+
+  // ── COUNT-UP STATS ──────────────────────────────────────────────────────────
+  const counters = document.querySelectorAll('.count-up')
+  const countObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return
+      countObs.unobserve(e.target)
+      const target = +e.target.dataset.target
+      const el = e.target
+      let current = 0
+      const step = target / 60
+      const timer = setInterval(() => {
+        current = Math.min(current + step, target)
+        el.textContent = (target === 10 ? '<' : '') + Math.round(current)
+        if (current >= target) clearInterval(timer)
+      }, 20)
+    })
+  }, { threshold: 0.5 })
+  counters.forEach(c => countObs.observe(c))
+
+  // ── SCROLL REVEAL ──────────────────────────────────────────────────────────
   const reveals = document.querySelectorAll('.reveal')
-  const observer = new IntersectionObserver((entries) => {
+  const revObs = new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') })
   }, { threshold: 0.1 })
-  reveals.forEach(el => observer.observe(el))
+  reveals.forEach(el => revObs.observe(el))
 
-  // Chapter nav active state
+  // ── CHAPTER NAV ACTIVE STATE ───────────────────────────────────────────────
   const sections = document.querySelectorAll('[id]')
   const chLinks = document.querySelectorAll('.ch-link')
-  const navObserver = new IntersectionObserver((entries) => {
+  const navObs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
         chLinks.forEach(l => l.classList.remove('active'))
         const active = document.querySelector(`.ch-link[href="#${e.target.id}"]`)
-        if (active) {
-          active.classList.add('active')
-          active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-        }
+        if (active) { active.classList.add('active'); active.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' }) }
       }
     })
   }, { threshold: 0.4 })
-  sections.forEach(s => navObserver.observe(s))
+  sections.forEach(s => navObs.observe(s))
 </script>
 
 </body>

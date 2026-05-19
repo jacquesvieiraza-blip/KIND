@@ -413,10 +413,49 @@ export async function sendWeeklyLeadsDigest(
     consented:         number
   },
   topLeads: LeadRow[],
+  figsy?: {
+    emails_sent:         number
+    total_replies:       number
+    interested_replies:  number
+    active_campaigns:    number
+  },
 ) {
   if (!resend) return
 
   const weekOf = new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  const replyRatePct = figsy && figsy.emails_sent > 0
+    ? Math.round((figsy.total_replies / figsy.emails_sent) * 100)
+    : 0
+
+  const figsySection = figsy ? `
+          <h2 style="font-size:0.9rem;font-weight:600;color:#111;margin:24px 0 8px">FIGSY Outreach This Week</h2>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:8px;overflow:hidden;margin-bottom:8px">
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #f0f0f0">
+                <span style="font-size:0.8rem;color:#888">Emails sent</span>
+                <p style="margin:2px 0 0;font-weight:700;color:#111">${figsy.emails_sent}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #f0f0f0">
+                <span style="font-size:0.8rem;color:#888">Reply rate</span>
+                <p style="margin:2px 0 0;font-weight:700;color:#111">${replyRatePct}% <span style="font-weight:400;font-size:0.75rem;color:#888">(industry avg: 3%)</span></p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;border-bottom:1px solid #f0f0f0">
+                <span style="font-size:0.8rem;color:#888">Interested replies</span>
+                <p style="margin:2px 0 0;font-weight:700;color:#16a34a">${figsy.interested_replies}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px">
+                <span style="font-size:0.8rem;color:#888">Active campaigns</span>
+                <p style="margin:2px 0 0;font-weight:700;color:#111">${figsy.active_campaigns}</p>
+              </td>
+            </tr>
+          </table>` : ''
 
   await resend.emails.send({
     from: FROM,
@@ -456,6 +495,8 @@ export async function sendWeeklyLeadsDigest(
           <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #f0f0f0">
             ${topLeads.slice(0, 10).map(leadCard).join('')}
           </table>` : ''}
+
+          ${figsySection}
 
           <a href="${DASH}/leads"
              style="display:inline-block;margin-top:24px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.9rem">

@@ -19,6 +19,8 @@ function LoginForm() {
     if (searchParams.get('error') === 'confirmation_failed') {
       setError('Email confirmation failed or link expired. Please try signing up again.')
     }
+    const ref = searchParams.get('ref')
+    if (ref) localStorage.setItem('kind_referral', ref)
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {

@@ -43,5 +43,8 @@ export function startCrons(): void {
   // Friday 16:00 UTC — weekly founder digest
   cron.schedule('0 16 * * 5', () => callInternal('/cro/weekly-digest'), { timezone: 'UTC' })
 
-  console.log('[cron] 7 jobs scheduled')
+  // Daily 08:00 UTC — check FIGSY campaign performance
+  cron.schedule('0 8 * * *', () => callInternal('/figsy/check-performance'), { timezone: 'UTC' })
+
+  console.log('[cron] 8 jobs scheduled')
 }

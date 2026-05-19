@@ -1,5 +1,7 @@
 # K.I.N.D — Master Status Document
-*Last updated: 15 May 2026*
+*Last updated: 18 May 2026*
+
+> **⚠️ This document is a historical record of early planning decisions. For current platform status, build state, and to-do list, see `MASTER.md` in the repo root.**
 
 > **Full roadmap:** `docs/KIND_Roadmap.md` — single source of truth for build status, KPIs, revenue targets, product vision, and market expansion plan.
 
@@ -333,39 +335,52 @@
 
 ### Client Portal — app.get-kind.com
 - [x] Login, signup, forgot password (email reset link)
-- [x] Cross-domain auth fixed — signup on get-kind.com, session cookie set on app.get-kind.com via /auth/callback
-- [x] Onboarding flow (/onboard) — company name, industry, user details
+- [x] **No email confirmation** — signup → direct to /onboard
+- [x] Onboarding flow (/onboard) — company name, industry, country, phone, website
 - [x] 14-day trial auto-starts on signup
-- [x] Order form auto-created on signup — client can sign immediately, no admin action needed
-- [x] Trial expiry hard gate — blocks dashboard when trial ends; billing and documents remain accessible
-- [x] Onboarding banner — shows trial days remaining, prompts order form signature
-- [x] Dashboard — leads pipeline, ICP builder, billing, documents, settings
-- [x] ICP builder — Run ICP button calls Apollo, deduplicates, inserts scored leads (L1)
-- [x] Lead table — status filters, AI email draft, CSV export, opt-out blocklist
-- [x] Billing page — Lead Gen ($1/lead, $100/mo min), FIGSY bundle, VA, Chatbot; Paystack payment flow
-- [x] Documents tab — order form signing
-- [x] Welcome email via Resend fires on onboard
+- [x] Trial expiry hard gate — full-screen overlay until payment
+- [x] Dashboard — greeting, stat cards, credit balance, onboarding checklist, referral banner
+- [x] **AI ICP Suggest** — "Suggest ICP with AI" → Claude Haiku fills form from company profile
+- [x] ICP builder — all criteria + auto-name hint + website prefill
+- [x] Lead search auto-fires on ICP save (Apollo) — no manual Run button
+- [x] Lead table — search, filter, bulk actions, CSV export, opt-out blocklist
+- [x] Lead scoring — Claude Haiku 0–100 + reasoning per lead
+- [x] FIGSY — campaign CRUD, Day 1 outreach, 3-step sequences, reply inbox, AI draft
+- [x] Milla (VA) — document upload + RAG chat (locked screen for non-subscribers)
+- [x] Vida (Chatbot) — config, conversations, embed code (locked screen)
+- [x] Billing — Paystack (ZAR), Stripe (USD code ready), credit balance, auto top-up
+- [x] Settings — company profile + **company registration no. + VAT number** (added 18 May)
+- [x] CRM integration — HubSpot, Pipedrive (push on interested reply)
+- [x] Welcome email fires via Resend on onboard
 
 ### Admin Portal — admin.get-kind.com
-- [x] Client list
+- [x] Dashboard — MRR, TTFL, client count, KPI progress bars
+- [x] Clients list — all clients, subscription status, T&Cs
+- [x] **Client detail** — subscriptions, credit balance, grant/refund credits, transaction history, company reg + VAT
+- [x] **Demo Environments** — create/open/extend/expire demo accounts with live Apollo + real leads
 - [x] Order form builder
 - [x] Terms library
-- [x] Roadmap view
+- [x] Roadmap — Phase 1–4 milestone tracking
+- [x] Launch checklist — 13 sections including Google Workspace setup
+- [x] CMO tools — LinkedIn post generator, Apollo prospect finder
 
 ### API — Railway
-- [x] Auth — signup creates trial subscription + order form + sends welcome email
-- [x] ICP run endpoint — Apollo search with full ICP mapping, deduplication, lead insert
-- [x] Subscriptions — usage-based tier handled correctly for Lead Gen and FIGSY
-- [x] Apollo client — full ICP → Apollo param mapping (seniority, company size, geography, keywords)
-- [x] All domain references updated to get-kind.com
+- [x] Auth — signup creates trial subscription + sends welcome email
+- [x] ICP run endpoint — Apollo search, full ICP mapping, deduplication, lead insert, opt-out check
+- [x] Lead scoring — Claude Haiku scores every lead on insert
+- [x] FIGSY routes — campaigns, send-due, reply classification, AI suggest
+- [x] Admin routes — client management, credit grant/refund, demo environment creation
+- [x] AI ICP Suggest — POST /clients/me/suggest-icp → Claude fills from company profile
+- [x] Internal agents — AE, CRO, CMO endpoints
+- [x] All 6 cron jobs built into API (start on boot)
 
 ### Infrastructure
 - [x] A — DNS: GoDaddy records set (A @ → 216.198.79.1, CNAME www/app/admin → Vercel, Resend DNS records)
 - [x] B — Vercel: get-kind.com + www (website), app.get-kind.com (portal), admin.get-kind.com (admin) — all valid. NEXT_PUBLIC_API_URL added to kind-portal.
 - [x] C — Supabase: Site URL → get-kind.com, Redirect URLs → app.get-kind.com/auth/callback + app.get-kind.com/**, last_run_at SQL migration done
-- [x] D — Railway: API deployed at kindapi-production-83cb.up.railway.app — all env vars set
+- [x] D — Railway: API deployed at kindapi-production-e64c.up.railway.app — all env vars set
 - [x] E — Apollo: API key set in Railway
-- [x] F — Paystack: Live secret key set in Railway, webhook → kindapi-production-83cb.up.railway.app/webhook/paystack
+- [x] F — Paystack: Live secret key set in Railway, webhook → kindapi-production-e64c.up.railway.app/webhook/paystack
 - [x] G — Resend: get-kind.com domain verified, API key set in Railway
 
 ### Business Documents
@@ -451,65 +466,41 @@ The core product — autonomous 3-sequence email outreach:
 
 ---
 
-## WHAT STILL NEEDS TO BE DONE
+## WHAT STILL NEEDS TO BE DONE (as of 18 May 2026)
 
-### SECTION A — INFRASTRUCTURE (remaining)
+> For the definitive up-to-date task list, see `MASTER.md` Section 2. The items below are the remaining blockers.
 
----
+### CRITICAL — Run in Supabase SQL Editor
 
-**E — APOLLO** *(5 min)*
+- `supabase/migrations/20260518_credit_transactions_rls.sql` — financial data exposed without this
+- `supabase/migrations/20260518_company_registration.sql` — adds reg no + VAT fields
 
-- apollo.io → Settings → Integrations → API → Create key
-- Paste as `APOLLO_API_KEY` in Railway
+### Complete Paystack KYC
 
----
+- dashboard.paystack.com → Settings → Compliance
+- Can't accept live payments until approved
 
-**F — PAYSTACK** *(10 min)*
+### Set up Google Workspace
 
-- paystack.com → Settings → API Keys → copy Live Secret Key
-- Paste as `PAYSTACK_SECRET_KEY` in Railway
-- Webhooks → Add: `https://your-railway-url.up.railway.app/webhook/paystack`
+- workspace.google.com → Business Starter → get-kind.com domain
+- Required for hello@get-kind.com inbox
 
----
+### Calendar booking link
 
-**G — RESEND** *(15 min)*
+- Create a Calendly or Cal.com page
+- Share the link — "Book a Demo" buttons across the site will be updated
 
-- resend.com → Domains → Add domain: `get-kind.com`
-- Add the DNS records they provide to GoDaddy
-- Wait for green verification tick
-- API Keys → Create key
-- Paste as `RESEND_API_KEY` in Railway
-
----
-
-**B — VERCEL — Add API env var** *(5 min — after Railway is live)*
-
-- kind-portal project → Settings → Environment Variables
-- Add: `NEXT_PUBLIC_API_URL=https://your-railway-url`
-- Redeploy the portal (this will fix the server-side exception error)
-
----
-
-**H — UPLOAD T&CS** *(your content)*
-
-- Admin portal → Terms Library
-- Upload: MSA, POPIA policy, service terms as PDFs
-- These appear inside every client's order form before they sign
-
----
-
-**I — SMOKE TEST** *(before any real client)*
-
-Run through this exact flow before giving the URL to anyone:
+### SMOKE TEST (infrastructure above must be complete first)
 
 1. Visit get-kind.com → click Start free trial
-2. Sign up with a test email
-3. Confirm email → should land on app.get-kind.com/onboard
-4. Complete onboard → check Supabase: `subscriptions` row + `order_forms` row both created
-5. Documents tab → sign the order form
-6. ICP builder → create ICP → click Run ICP → leads appear in pipeline
-7. Billing → click Get started → Paystack opens in ZAR
-8. If anything fails, fix before a real client touches it
+2. Sign up with test email
+3. **No confirmation email** — lands directly on /onboard
+4. Complete onboarding → dashboard loads with 14-day trial banner
+5. Lead Gen → ICP Builder → "Suggest ICP with AI" → form fills
+6. Save ICP → Apollo search fires automatically → leads appear within 2 hours
+7. Billing → select plan → Paystack opens in ZAR → test payment
+8. Admin portal → client visible, credit balance showing
+9. Admin → Demo Environments → create demo → open demo portal
 
 ---
 
@@ -582,7 +573,7 @@ CRM Connector → L2 (POPIA consent) → L3 (AI scoring) → L4 (usage billing) 
 For reference: what a client experiences once everything above is live.
 
 1. Finds get-kind.com → clicks Start free trial
-2. Signs up → confirms email → lands on app.get-kind.com/onboard
+2. Signs up → **no email confirmation** → lands directly on app.get-kind.com/onboard
 3. Completes onboarding (company name, industry)
 4. Banner: "14 days left — sign your Service Agreement"
 5. Documents → reads and signs order form
@@ -627,31 +618,44 @@ For reference: what a client experiences once everything above is live.
 
 ### Client Portal — app.get-kind.com
 - [x] Login, signup, forgot password (email reset link)
-- [x] Cross-domain auth fixed — signup on get-kind.com, session cookie set on app.get-kind.com via /auth/callback
-- [x] Onboarding flow (/onboard) — company name, industry, user details
+- [x] **No email confirmation** — signup → direct to /onboard
+- [x] Onboarding flow (/onboard) — company name, industry, country, phone, website
 - [x] 14-day trial auto-starts on signup
-- [x] Order form auto-created on signup — client can sign immediately, no admin action needed
-- [x] Trial expiry hard gate — blocks dashboard when trial ends; billing and documents remain accessible
-- [x] Onboarding banner — shows trial days remaining, prompts order form signature
-- [x] Dashboard — leads pipeline, ICP builder, billing, documents, settings
-- [x] ICP builder — Run ICP button calls Apollo, deduplicates, inserts scored leads (L1)
-- [x] Lead table — status filters, AI email draft, CSV export, opt-out blocklist
-- [x] Billing page — Lead Gen ($1/lead, $100/mo min), FIGSY bundle, VA, Chatbot; Paystack payment flow
-- [x] Documents tab — order form signing
-- [x] Welcome email via Resend fires on onboard
+- [x] Trial expiry hard gate — full-screen overlay until payment
+- [x] Dashboard — greeting, stat cards, credit balance, onboarding checklist, referral banner
+- [x] **AI ICP Suggest** — "Suggest ICP with AI" → Claude Haiku fills form from company profile
+- [x] ICP builder — all criteria + auto-name hint + website prefill
+- [x] Lead search auto-fires on ICP save (Apollo) — no manual Run button
+- [x] Lead table — search, filter, bulk actions, CSV export, opt-out blocklist
+- [x] Lead scoring — Claude Haiku 0–100 + reasoning per lead
+- [x] FIGSY — campaign CRUD, Day 1 outreach, 3-step sequences, reply inbox, AI draft
+- [x] Milla (VA) — document upload + RAG chat (locked screen for non-subscribers)
+- [x] Vida (Chatbot) — config, conversations, embed code (locked screen)
+- [x] Billing — Paystack (ZAR), Stripe (USD code ready), credit balance, auto top-up
+- [x] Settings — company profile + **company registration no. + VAT number** (added 18 May)
+- [x] CRM integration — HubSpot, Pipedrive (push on interested reply)
+- [x] Welcome email fires via Resend on onboard
 
 ### Admin Portal — admin.get-kind.com
-- [x] Client list
+- [x] Dashboard — MRR, TTFL, client count, KPI progress bars
+- [x] Clients list — all clients, subscription status, T&Cs
+- [x] **Client detail** — subscriptions, credit balance, grant/refund credits, transaction history, company reg + VAT
+- [x] **Demo Environments** — create/open/extend/expire demo accounts with live Apollo + real leads
 - [x] Order form builder
 - [x] Terms library
-- [x] Roadmap view
+- [x] Roadmap — Phase 1–4 milestone tracking
+- [x] Launch checklist — 13 sections including Google Workspace setup
+- [x] CMO tools — LinkedIn post generator, Apollo prospect finder
 
 ### API — Railway
-- [x] Auth — signup creates trial subscription + order form + sends welcome email
-- [x] ICP run endpoint — Apollo search with full ICP mapping, deduplication, lead insert
-- [x] Subscriptions — usage-based tier handled correctly for Lead Gen and FIGSY
-- [x] Apollo client — full ICP → Apollo param mapping (seniority, company size, geography, keywords)
-- [x] All domain references updated to get-kind.com
+- [x] Auth — signup creates trial subscription + sends welcome email
+- [x] ICP run endpoint — Apollo search, full ICP mapping, deduplication, lead insert, opt-out check
+- [x] Lead scoring — Claude Haiku scores every lead on insert
+- [x] FIGSY routes — campaigns, send-due, reply classification, AI suggest
+- [x] Admin routes — client management, credit grant/refund, demo environment creation
+- [x] AI ICP Suggest — POST /clients/me/suggest-icp → Claude fills from company profile
+- [x] Internal agents — AE, CRO, CMO endpoints
+- [x] All 6 cron jobs built into API (start on boot)
 
 ### Business Documents
 - [x] Run costs & cashflow model — docs/run-costs-and-cashflow.md
@@ -772,7 +776,7 @@ Run through this exact flow before giving the URL to anyone:
 
 1. Visit get-kind.com → click Start free trial
 2. Sign up with a test email
-3. Confirm email → should land on app.get-kind.com/onboard
+3. **No confirmation email** → lands directly on app.get-kind.com/onboard
 4. Complete onboard → check Supabase: `subscriptions` row + `order_forms` row both created
 5. Documents tab → sign the order form
 6. ICP builder → create ICP → click Run ICP → leads appear in pipeline
@@ -850,7 +854,7 @@ CRM Connector → L2 (POPIA consent) → L3 (AI scoring) → L4 (usage billing) 
 For reference: what a client experiences once everything above is live.
 
 1. Finds get-kind.com → clicks Start free trial
-2. Signs up → confirms email → lands on app.get-kind.com/onboard
+2. Signs up → **no email confirmation** → lands directly on app.get-kind.com/onboard
 3. Completes onboarding (company name, industry)
 4. Banner: "14 days left — sign your Service Agreement"
 5. Documents → reads and signs order form
@@ -889,21 +893,24 @@ For reference: what a client experiences once everything above is live.
 
 ## THINGS TO REMEMBER — PENDING ACTIONS
 
-> Items Jacques needs to action or provide. Updated each session.
+> Updated 18 May 2026. For current list see `MASTER.md` Section 2.
 
 | # | Item | Status |
 |---|---|---|
-| 1 | **Drop Milla + Vida character images** into `apps/website/` as `milla.png` and `vida.png` | Pending — tomorrow |
-| 2 | Set Railway env vars: FOUNDER_EMAIL, FIGSY_DAILY_SEND_LIMIT=20, FIGSY_REPLY_TO | Pending |
-| 3 | Supabase: set Site URL + redirect URL for auth | Pending |
-| 4 | Paystack webhook registration | Pending |
-| 5 | Run DB migrations 002–005 in Supabase SQL editor | Pending |
-| 6 | Resend: configure inbound routing for replies@ | Pending |
-| 7 | Set up 6 Railway cron jobs | Pending |
-| 8 | Merge branch `claude/ai-business-roadmap-U3OWJ` → main + deploy | Pending |
-| 9 | G2 / Capterra / Product Hunt listing on launch day | Pending |
-| 10 | Meta WhatsApp Business API application | Pending |
-| 11 | Vapi.ai account + Twilio SA +27 number | Pending |
+| 1 | **Run `20260518_credit_transactions_rls.sql`** in Supabase SQL Editor | 🔴 CRITICAL — do now |
+| 2 | **Run `20260518_company_registration.sql`** in Supabase SQL Editor | 🔴 Do now |
+| 3 | **Complete Paystack KYC** — live payments blocked until done | 🔴 Urgent |
+| 4 | **Set up Google Workspace** — hello@get-kind.com | 🔴 Urgent |
+| 5 | **Create Calendly/Cal.com booking page** — share link for "Book a Demo" buttons | 🟡 This week |
+| 6 | Upload Vida + Milla images to `apps/website/` | 🟡 When ready |
+| 7 | Resend: configure inbound routing for replies@ | 🟡 Before first FIGSY campaign |
+| 8 | G2 / Capterra / Product Hunt listing on launch day | 🟢 Launch day |
+| 9 | Meta WhatsApp Business API application | 🟢 Month 2 |
+| 10 | Vapi.ai account + Twilio SA +27 number | 🟢 Month 2 |
+| ✅ | Railway env vars set (FOUNDER_EMAIL, FIGSY vars, etc.) | Done |
+| ✅ | Supabase: Site URL + redirect URLs configured | Done |
+| ✅ | Paystack webhook registered | Done |
+| ✅ | Branch merged to main + deployed | Done |
 
 ---
 

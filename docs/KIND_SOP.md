@@ -1,6 +1,6 @@
 # KIND AI Platform — Standard Operating Procedure
 
-**Version:** 1.0 · **Effective:** May 2026 · **Owner:** Operations
+**Version:** 1.1 · **Effective:** May 2026 · **Updated:** 18 May 2026 · **Owner:** Operations
 
 ---
 
@@ -112,7 +112,7 @@ Log the prospect in your CRM with:
 
 ### 6.1 Creating the Order Form
 
-1. Log into the Admin Portal (`admin.kind.africa`)
+1. Log into the Admin Portal (`admin.get-kind.com`)
 2. Navigate to **Clients** → find the client record
 3. Click **Send Order Form**
 4. Fill in:
@@ -179,9 +179,11 @@ If payment fails:
 
 ### 8.1 Day 1: Account Setup
 
-- [ ] Confirm Supabase client record exists with correct user_id
-- [ ] Confirm subscription row is active in DB
-- [ ] Send welcome email with portal login link and quick-start guide
+> **Note:** Clients now self-onboard. They sign up at get-kind.com, land directly on /onboard (no email confirmation required), and create their own account. The steps below apply to AE-assisted clients where you are walking someone through the process.
+
+- [ ] Confirm Supabase client record exists with correct user_id (auto-created on signup)
+- [ ] Confirm trial subscription row is active in DB (auto-created on onboard)
+- [ ] Welcome email is auto-sent via Resend on onboard completion
 - [ ] Schedule onboarding call (60 min) for Day 2 or 3
 
 ### 8.2 Onboarding Call Agenda (60 min)
@@ -260,7 +262,7 @@ When a lead replies requesting to not be contacted:
 ### 10.3 Data Hosting Disclosure
 
 When clients ask where their data lives:
-- **Client account data + leads:** Supabase PostgreSQL, AWS eu-west-1 (Ireland)
+- **Client account data + leads:** Supabase PostgreSQL, AWS **af-south-1 (Cape Town, South Africa)** — selected specifically for POPIA compliance
 - **AI email drafting:** Anthropic API (US) — no data is stored by Anthropic per their data processing agreement
 - **Payments:** Paystack (Nigeria/South Africa)
 

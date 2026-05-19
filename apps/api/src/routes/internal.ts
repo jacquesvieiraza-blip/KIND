@@ -9,6 +9,7 @@
  *   POST /internal/ae/trial-expiry        — INT-4: send trial expiry emails (day 10/12/14)
  *   GET  /internal/cro/dashboard          — INT-5: revenue + retention dashboard data
  *   POST /internal/cro/weekly-digest      — INT-6: send weekly founder digest email
+ *   POST /internal/figsy/check-performance — pause active campaigns with reply rate < 1%
  */
 
 import { Router, Request, Response } from 'express'
@@ -55,11 +56,15 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
         const email = user?.email
         if (!email) continue
 
-        const [totalRes, newRes, avgRes, consentedRes] = await Promise.all([
+        const [totalRes, newRes, avgRes, consentedRes, figsySentRes, figsyRepliesRes, figsyInterestedRes, figsyCampaignsRes] = await Promise.all([
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('created_at', weekStart),
           db.from('leads').select('score, estimated_deal_value_usd').eq('client_id', client.id).not('score', 'is', null),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'consent_given'),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', weekStart),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', weekStart),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', weekStart),
+          db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
         ])
 
         const scores = (avgRes.data ?? []) as { score: number; estimated_deal_value_usd: number | null }[]
@@ -81,7 +86,12 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
           avg_score:      avgScore,
           pipeline_value: pipelineValue,
           consented:      consentedRes.count ?? 0,
-        }, topLeads ?? [])
+        }, topLeads ?? [], {
+          emails_sent:        figsySentRes.count      ?? 0,
+          total_replies:      figsyRepliesRes.count   ?? 0,
+          interested_replies: figsyInterestedRes.count ?? 0,
+          active_campaigns:   figsyCampaignsRes.count ?? 0,
+        })
 
         sent++
       } catch (err) {
@@ -769,6 +779,82 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
   } catch (err) {
     console.error('[figsy/send-due-all]', err)
     res.status(500).json({ success: false, error: 'FIGSY send-due-all failed' })
+  }
+})
+
+// ── FIGSY CHECK PERFORMANCE ──────────────────────────────────────────────────
+// Pause active campaigns whose reply rate has dropped below 1%.
+internalRouter.post('/figsy/check-performance', async (_req: Request, res: Response) => {
+  try {
+    const { data: campaigns } = await db.from('figsy_campaigns')
+      .select('id, client_id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, opted_out, created_at')
+      .eq('status', 'active')
+      .gt('leads_enrolled', 0)
+      .gte('emails_sent', 20)
+
+    const paused: { id: string; name: string; client_id: string; reply_rate: number }[] = []
+
+    for (const campaign of campaigns ?? []) {
+      const replyRate = campaign.replies_total / campaign.emails_sent
+      if (replyRate < 0.01) {
+        await db.from('figsy_campaigns')
+          .update({ status: 'paused_low_performance' })
+          .eq('id', campaign.id)
+        paused.push({ id: campaign.id, name: campaign.name, client_id: campaign.client_id, reply_rate: replyRate })
+        console.log(`[figsy/check-performance] paused campaign ${campaign.id} (${campaign.name}) — reply rate ${(replyRate * 100).toFixed(2)}%`)
+      }
+    }
+
+    res.json({ success: true, data: { checked: (campaigns ?? []).length, paused: paused.length, campaigns: paused } })
+  } catch (err) {
+    console.error('[figsy/check-performance]', err)
+    res.status(500).json({ success: false, error: 'FIGSY performance check failed' })
+  }
+})
+
+// ── FIGSY MEMORY REFRESH (ALL CLIENTS) ───────────────────────────────────────
+// Call after each campaign analysis cycle to keep FIGSY agent memory current.
+internalRouter.post('/figsy/refresh-memory-all', async (_req: Request, res: Response) => {
+  try {
+    const { data: clients, error: clientsError } = await db.from('clients').select('id')
+    if (clientsError) throw clientsError
+
+    let updated = 0
+
+    for (const client of clients ?? []) {
+      try {
+        const { data: campaigns } = await db.from('figsy_campaigns')
+          .select('emails_sent, replies_total, replies_interested')
+          .eq('client_id', client.id)
+          .gt('emails_sent', 0)
+
+        const rows = campaigns ?? []
+        const total_sent_all_time    = rows.reduce((sum, c) => sum + (c.emails_sent   ?? 0), 0)
+        const total_replies_all_time = rows.reduce((sum, c) => sum + (c.replies_total ?? 0), 0)
+        const avg_reply_rate_30d     = rows.length > 0
+          ? rows.reduce((sum, c) => sum + ((c.replies_total ?? 0) / (c.emails_sent ?? 1)), 0) / rows.length
+          : 0
+
+        const { error: upsertError } = await db.from('figsy_memory')
+          .upsert({
+            client_id:             client.id,
+            best_subject_lines:    [],
+            avg_reply_rate_30d,
+            total_sent_all_time,
+            total_replies_all_time,
+            last_updated:          new Date().toISOString(),
+          }, { onConflict: 'client_id' })
+
+        if (!upsertError) updated++
+      } catch (err) {
+        console.error(`[figsy/refresh-memory-all] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { updated } })
+  } catch (err) {
+    console.error('[figsy/refresh-memory-all]', err)
+    res.status(500).json({ success: false, error: 'FIGSY memory refresh failed' })
   }
 })
 

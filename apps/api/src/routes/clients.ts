@@ -210,3 +210,30 @@ clientRouter.get('/me/notifications', async (req: AuthRequest, res) => {
     res.json({ success: true, data: notifications })
   } catch (err) { console.error(err); res.status(500).json({ success: false, data: [] }) }
 })
+
+async function getClientId(userId: string): Promise<string | null> {
+  const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
+  return data?.id ?? null
+}
+
+clientRouter.get('/referrals', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: referrals } = await db.from('clients')
+      .select('id, company_name, created_at, subscriptions(status)')
+      .eq('referred_by', clientId)
+      .order('created_at', { ascending: false })
+
+    const mapped = (referrals ?? []).map((r: any) => {
+      const subs = r.subscriptions ?? []
+      const hasActive = subs.some((s: any) => s.status === 'active')
+      const hasTrial  = subs.some((s: any) => s.status === 'trialing')
+      const status = hasActive ? 'paying' : hasTrial ? 'trial' : 'churned'
+      return { id: r.id, company_name: r.company_name, status, created_at: r.created_at }
+    })
+
+    res.json({ success: true, data: mapped })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch referrals' }) }
+})

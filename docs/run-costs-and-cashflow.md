@@ -15,8 +15,9 @@ These run whether you have zero clients or one hundred.
 | Apollo.io | Lead data source — 24,000 credits/mo | Professional | $99 |
 | Resend | Transactional email (welcome, POPIA consent) | Free up to 3,000/mo | $0–20 |
 | get-kind.com domain | Domain registration | Annual ~$15 | $1.25 |
+| Google Workspace | hello@get-kind.com mailbox + domain email | Business Starter | $12–18 |
 | **Claude Code (development)** | AI-assisted development — building and maintaining the entire platform | Max plan | **$100–200** |
-| **Total floor** | | | **$255–385/mo** |
+| **Total floor** | | | **$267–403/mo** |
 
 **Note on Claude Code:** This is a founder operating cost — the AI tool used to build and maintain K.I.N.D. It is not a product cost passed to clients. As the platform matures and requires less active development, this cost reduces or stops entirely. It is separate from the Anthropic API cost (which is the in-product cost of L3 lead scoring and F1 FIGSY — those are variable, sub-cent per lead).
 

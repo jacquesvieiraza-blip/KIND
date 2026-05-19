@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D — Meet FIGSY, Your AI Sales Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; overflow-x: hidden; }
+
+    /* ── WARM GRADIENT PALETTE ── */
+    :root {
+      --grad: linear-gradient(160deg, #fef9c3 0%, #fce7f3 45%, #ede9fe 100%);
+      --grad2: linear-gradient(160deg, #fef3c7 0%, #fde8f5 50%, #ddd6fe 100%);
+      --purple: #7c3aed;
+      --indigo: #1e1b4b;
+      --pink: #db2777;
+      --navy: #0f172a;
+      --green: #059669;
+      --yellow: #f59e0b;
+    }
+
+    /* ── SECTION BASE ── */
+    .scene {
+      min-height: 100vh;
+      background: var(--grad);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 60px 48px;
+    }
+    .scene.dark { background: var(--navy); }
+    .scene.alt { background: var(--grad2); }
+    .scene.white { background: #fff; }
+
+    /* ── DECORATIVE SPARKLES ── */
+    .spark { position: absolute; font-size: 1.4rem; opacity: 0; animation: sparkle 3s ease-in-out infinite; }
+    @keyframes sparkle { 0%,100%{opacity:0;transform:scale(0.7) rotate(0deg)} 50%{opacity:0.7;transform:scale(1.1) rotate(15deg)} }
+
+    /* ── FLOATING LABELS ── */
+    .float-label {
+      position: absolute;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-radius: 100px;
+      padding: 8px 16px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--indigo);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.6s, transform 0.6s;
+      white-space: nowrap;
+    }
+    .float-label.visible { opacity: 1; transform: translateY(0); }
+    .float-label .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
+    .float-label .dot.green { background: var(--green); }
+    .float-label .dot.pink { background: var(--pink); }
+    .float-label .dot.yellow { background: var(--yellow); }
+
+    /* ── BOTTOM CARD ── */
+    .agent-card-bottom {
+      background: var(--indigo);
+      border-radius: 20px;
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      max-width: 340px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.7s, transform 0.7s;
+    }
+    .agent-card-bottom.visible { opacity: 1; transform: translateY(0); }
+    .acb-icon { width: 42px; height: 42px; border-radius: 12px; background: var(--purple); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+    .acb-title { font-size: 0.9rem; font-weight: 800; color: #fff; margin-bottom: 2px; }
+    .acb-sub { font-size: 0.68rem; color: rgba(255,255,255,0.4); }
+    .acb-arrow { margin-left: auto; width: 32px; height: 32px; background: rgba(255,255,255,0.08); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem; flex-shrink: 0; }
+    .growth-pill {
+      background: rgba(255,255,255,0.9);
+      border-radius: 100px;
+      padding: 8px 20px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--indigo);
+      margin-top: 14px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.6s 0.3s, transform 0.6s 0.3s;
+    }
+    .growth-pill.visible { opacity: 1; transform: none; }
+
+    /* ── HERO ── */
+    .hero-wrap { position: relative; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 500px; }
+    .hero-img { width: 100%; max-width: 340px; border-radius: 32px; object-fit: cover; object-position: top; display: block; margin: 0 auto; box-shadow: 0 40px 100px rgba(124,58,237,0.25); animation: float 5s ease-in-out infinite; z-index: 2; position: relative; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    .hero-img-fallback { width: 340px; height: 420px; border-radius: 32px; background: linear-gradient(135deg, #ede9fe, #fce7f3); display: flex; align-items: center; justify-content: center; font-size: 5rem; margin: 0 auto; animation: float 5s ease-in-out infinite; }
+
+    /* ── HERO TEXT ── */
+    .hero-text { text-align: center; margin-bottom: 48px; }
+    .hero-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--purple); margin-bottom: 12px; }
+    .hero-h1 { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; color: var(--indigo); letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; }
+    .hero-h1 span { color: var(--purple); }
+    .hero-p { font-size: 1rem; color: rgba(30,27,75,0.5); max-width: 480px; line-height: 1.7; }
+
+    /* ── SECTION HEADING ── */
+    .sec-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--purple); margin-bottom: 10px; }
+    .sec-label.light { color: #a78bfa; }
+    .sec-h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; color: var(--indigo); letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 14px; }
+    .sec-h2.light { color: #fff; }
+    .sec-p { font-size: 0.95rem; color: rgba(30,27,75,0.45); line-height: 1.75; max-width: 520px; }
+    .sec-p.light { color: rgba(255,255,255,0.4); }
+
+    /* ── CHAPTER BADGE ── */
+    .ch-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); border-radius: 100px; padding: 5px 14px; font-size: 0.7rem; font-weight: 700; color: var(--purple); margin-bottom: 14px; }
+    .ch-badge.light { background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.25); color: #a78bfa; }
+
+    /* ── SPLIT LAYOUT ── */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; width: 100%; max-width: 1080px; }
+
+    /* ── APP SHELL ── */
+    .app-shell { background: #fff; border-radius: 20px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 32px 80px rgba(124,58,237,0.12); overflow: hidden; }
+    .titlebar { display: flex; align-items: center; gap: 7px; padding: 10px 16px; background: #f8f8f8; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .dot { width: 9px; height: 9px; border-radius: 50%; }
+    .url-bar { flex: 1; background: rgba(0,0,0,0.05); border-radius: 6px; padding: 3px 10px; font-size: 0.65rem; color: rgba(0,0,0,0.3); margin: 0 10px; }
+    .app-body { padding: 22px; }
+
+    /* ── LEAD TABLE ── */
+    .lead-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+    .lead-table th { text-align: left; padding: 7px 10px; color: rgba(0,0,0,0.3); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .lead-table td { padding: 10px 10px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .lead-table tr { opacity: 0; transform: translateY(8px); transition: opacity 0.4s, transform 0.4s; }
+    .lead-table tr.visible { opacity: 1; transform: none; }
+    .score { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 0.68rem; font-weight: 700; }
+    .score.hi { background: #ecfdf5; color: #059669; }
+    .score.md { background: #fff7ed; color: #d97706; }
+    .stag { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 0.66rem; font-weight: 600; background: #ede9fe; color: #7c3aed; }
+
+    /* ── EMAIL COMPOSE ── */
+    .email-compose { background: #f8f7ff; border-radius: 16px; overflow: hidden; border: 1px solid rgba(124,58,237,0.1); }
+    .email-header { background: var(--indigo); padding: 14px 18px; display: flex; align-items: center; gap: 10px; }
+    .email-av { width: 32px; height: 32px; border-radius: 50%; background: var(--purple); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #fff; font-weight: 700; flex-shrink: 0; }
+    .email-from { font-size: 0.78rem; font-weight: 700; color: #fff; }
+    .email-time { font-size: 0.62rem; color: rgba(255,255,255,0.3); margin-left: auto; }
+    .email-field { padding: 10px 18px; border-bottom: 1px solid rgba(124,58,237,0.07); display: flex; gap: 8px; }
+    .email-field label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(0,0,0,0.25); width: 46px; flex-shrink: 0; padding-top: 2px; }
+    .email-field span { font-size: 0.82rem; color: var(--indigo); }
+    .email-body-wrap { padding: 16px 18px; min-height: 120px; }
+    .email-body-text { font-size: 0.81rem; color: var(--indigo); line-height: 1.7; white-space: pre-wrap; }
+    .email-cursor { display: inline-block; width: 2px; height: 1em; background: var(--purple); margin-left: 1px; vertical-align: text-bottom; animation: blink 0.8s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .ai-btn { display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--purple), #db2777); color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 0.8rem; font-weight: 700; margin: 14px 18px; cursor: pointer; position: relative; overflow: hidden; }
+    .ai-btn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent); transform: translateX(-100%); }
+    .ai-btn.scanning::after { animation: shimmer 1.2s ease-in-out infinite; }
+    @keyframes shimmer { to { transform: translateX(100%); } }
+    .sent-badge { display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #059669; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 100px; margin: 12px 18px; }
+
+    /* ── REPLY CARDS ── */
+    .reply-card { border-radius: 14px; padding: 16px 18px; margin-bottom: 10px; opacity: 0; transform: translateX(20px); transition: opacity 0.5s, transform 0.5s; border: 1px solid; }
+    .reply-card.visible { opacity: 1; transform: none; }
+    .reply-card.interested { background: #f0fdf4; border-color: #bbf7d0; }
+    .reply-card.objection { background: #fff7ed; border-color: #fed7aa; }
+    .reply-card.optout { background: #fef2f2; border-color: #fecaca; }
+    .rc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .rc-name { font-size: 0.85rem; font-weight: 700; color: var(--indigo); }
+    .rc-tag { font-size: 0.65rem; font-weight: 700; padding: 3px 10px; border-radius: 100px; }
+    .tag-i { background: #dcfce7; color: #16a34a; }
+    .tag-o { background: #fff7ed; color: #d97706; }
+    .tag-x { background: #fee2e2; color: #dc2626; }
+    .rc-text { font-size: 0.76rem; color: rgba(0,0,0,0.45); line-height: 1.5; }
+    .rc-action { font-size: 0.7rem; font-weight: 600; margin-top: 8px; }
+    .action-i { color: #059669; }
+    .action-o { color: #d97706; }
+    .action-x { color: #dc2626; }
+
+    /* ── KPI CARDS ── */
+    .kpi-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+    .kpi { border-radius: 16px; padding: 20px; border: 1px solid rgba(124,58,237,0.12); background: rgba(124,58,237,0.04); opacity: 0; transform: translateY(12px); transition: opacity 0.4s, transform 0.4s; }
+    .kpi.visible { opacity: 1; transform: none; }
+    .kpi-lbl { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin-bottom: 5px; }
+    .kpi-val { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; color: var(--purple); margin-bottom: 2px; }
+    .kpi-sub { font-size: 0.68rem; color: rgba(0,0,0,0.35); }
+    .funnel { display: flex; flex-direction: column; gap: 10px; }
+    .funnel-row { display: flex; align-items: center; gap: 12px; }
+    .funnel-lbl { font-size: 0.72rem; font-weight: 600; color: rgba(0,0,0,0.5); width: 90px; flex-shrink: 0; }
+    .funnel-track { flex: 1; background: rgba(124,58,237,0.08); border-radius: 100px; height: 10px; overflow: hidden; }
+    .funnel-fill { height: 100%; border-radius: 100px; width: 0; transition: width 1.2s cubic-bezier(0.4,0,0.2,1); }
+    .funnel-n { font-size: 0.72rem; font-weight: 700; color: var(--indigo); width: 36px; text-align: right; }
+
+    /* ── CHAT ── */
+    .chat-wrap { display: flex; flex-direction: column; gap: 10px; padding: 20px; }
+    .chat-msg { max-width: 78%; opacity: 0; transform: translateY(8px); transition: opacity 0.4s, transform 0.4s; }
+    .chat-msg.bot { align-self: flex-start; }
+    .chat-msg.user { align-self: flex-end; }
+    .chat-msg.visible { opacity: 1; transform: none; }
+    .chat-name { font-size: 0.6rem; font-weight: 700; color: rgba(0,0,0,0.3); margin-bottom: 3px; }
+    .bubble { border-radius: 14px; padding: 10px 14px; font-size: 0.8rem; line-height: 1.6; }
+    .bubble.bot { background: #f3f4f6; color: var(--indigo); border-bottom-left-radius: 4px; }
+    .bubble.user { background: var(--purple); color: #fff; border-bottom-right-radius: 4px; }
+    .chat-input-row { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid rgba(0,0,0,0.06); }
+    .chat-input { flex: 1; background: #f3f4f6; border: none; border-radius: 10px; padding: 9px 14px; font-size: 0.8rem; color: rgba(0,0,0,0.4); }
+    .chat-send { background: var(--purple); color: #fff; border: none; border-radius: 10px; padding: 9px 16px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+
+    /* ── VIDA WIDGET ── */
+    .vida-scene { position: relative; display: flex; justify-content: center; align-items: center; }
+    .vida-bg { background: #e5e7eb; border-radius: 16px; padding: 40px 32px 80px; width: 280px; text-align: center; }
+    .vida-bg-bar { height: 12px; background: rgba(0,0,0,0.08); border-radius: 100px; margin-bottom: 10px; }
+    .vida-widget { position: absolute; bottom: -16px; right: -16px; width: 270px; background: #fff; border-radius: 18px; box-shadow: 0 20px 60px rgba(124,58,237,0.2); overflow: hidden; opacity: 0; transform: translateY(20px) scale(0.95); transition: opacity 0.6s, transform 0.6s; }
+    .vida-widget.visible { opacity: 1; transform: none; }
+    .vida-header { background: var(--indigo); padding: 13px 16px; display: flex; align-items: center; gap: 10px; }
+    .vida-av { width: 30px; height: 30px; border-radius: 50%; background: var(--purple); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .vida-hname { font-size: 0.83rem; font-weight: 700; color: #fff; }
+    .vida-hstatus { font-size: 0.6rem; color: rgba(255,255,255,0.4); }
+    .vida-msgs { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .vida-bot-msg,.vida-user-msg { border-radius: 10px; padding: 8px 12px; font-size: 0.73rem; line-height: 1.5; max-width: 90%; opacity: 0; transform: translateY(6px); transition: opacity 0.4s, transform 0.4s; }
+    .vida-bot-msg { background: #f3f4f6; color: var(--indigo); border-bottom-left-radius: 3px; }
+    .vida-user-msg { background: var(--purple); color: #fff; border-bottom-right-radius: 3px; align-self: flex-end; }
+    .vida-bot-msg.visible,.vida-user-msg.visible { opacity: 1; transform: none; }
+    .vida-footer { padding: 10px 12px; border-top: 1px solid rgba(0,0,0,0.06); display: flex; gap: 8px; }
+    .vida-input { flex: 1; background: #f3f4f6; border: none; border-radius: 8px; padding: 6px 10px; font-size: 0.72rem; color: rgba(0,0,0,0.4); }
+    .vida-send { background: var(--purple); color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 0.72rem; font-weight: 600; }
+
+    /* ── FEAT PILLS ── */
+    .feat-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .feat-pill { background: rgba(124,58,237,0.07); border: 1px solid rgba(124,58,237,0.15); border-radius: 100px; padding: 6px 14px; font-size: 0.73rem; font-weight: 600; color: var(--purple); }
+
+    /* ── STAT CARDS ── */
+    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 28px; }
+    .stat-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); border-radius: 16px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 4px 20px rgba(124,58,237,0.06); opacity: 0; transform: translateY(14px); transition: opacity 0.4s, transform 0.4s; }
+    .stat-card.visible { opacity: 1; transform: none; }
+    .stat-card .n { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; color: var(--purple); }
+    .stat-card .l { font-size: 0.7rem; color: rgba(30,27,75,0.4); margin-top: 4px; }
+
+    /* ── CAMP CARDS ── */
+    .camp-card { background: rgba(255,255,255,0.8); border-radius: 14px; padding: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; opacity: 0; transform: translateY(10px); transition: opacity 0.5s, transform 0.5s; border: 1px solid rgba(124,58,237,0.1); box-shadow: 0 4px 16px rgba(124,58,237,0.06); }
+    .camp-card.visible { opacity: 1; transform: none; }
+    .camp-name { font-size: 0.88rem; font-weight: 700; flex: 1; color: var(--indigo); }
+    .camp-meta { font-size: 0.65rem; color: rgba(0,0,0,0.3); }
+    .camp-stat { text-align: center; min-width: 52px; }
+    .camp-stat-n { font-size: 1.1rem; font-weight: 800; color: var(--indigo); }
+    .camp-stat-n.green { color: var(--green); }
+    .camp-stat-l { font-size: 0.56rem; color: rgba(0,0,0,0.3); text-transform: uppercase; letter-spacing: 0.06em; }
+    .s-tag { font-size: 0.65rem; font-weight: 700; padding: 3px 10px; border-radius: 100px; }
+    .s-active { background: #dcfce7; color: #16a34a; }
+    .s-paused { background: #fef9c3; color: #a16207; }
+
+    /* ── ALERT CARDS ── */
+    .alert-card { border-radius: 14px; padding: 16px 18px; display: flex; gap: 12px; align-items: flex-start; opacity: 0; transform: translateX(20px); transition: opacity 0.5s, transform 0.5s; margin-bottom: 12px; }
+    .alert-card.visible { opacity: 1; transform: none; }
+    .alert-card.success { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .alert-card.warn { background: #fffbeb; border: 1px solid #fde68a; }
+    .alert-card.info { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .alert-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .alert-title { font-size: 0.83rem; font-weight: 700; margin-bottom: 2px; }
+    .alert-card.success .alert-title { color: #065f46; }
+    .alert-card.warn .alert-title { color: #92400e; }
+    .alert-card.info .alert-title { color: #1e40af; }
+    .alert-body { font-size: 0.74rem; line-height: 1.5; }
+    .alert-card.success .alert-body { color: #047857; }
+    .alert-card.warn .alert-body { color: #b45309; }
+    .alert-card.info .alert-body { color: #1d4ed8; }
+
+    /* ── CTA ── */
+    .cta-scene { background: var(--indigo); }
+    .cta-inner { text-align: center; max-width: 580px; }
+    .cta-tag { display: inline-flex; align-items: center; gap: 8px; background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.25); border-radius: 100px; padding: 6px 16px; font-size: 0.72rem; font-weight: 700; color: #a78bfa; margin-bottom: 24px; }
+    .cta-h2 { font-size: clamp(2rem,4vw,3.2rem); font-weight: 900; color: #fff; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 16px; }
+    .cta-p { font-size: 0.95rem; color: rgba(255,255,255,0.4); margin-bottom: 36px; }
+    .cta-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-p { background: var(--purple); color: #fff; font-size: 0.95rem; font-weight: 700; padding: 14px 30px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
+    .btn-p:hover { opacity: 0.85; }
+    .btn-g { background: rgba(255,255,255,0.08); color: #fff; font-size: 0.95rem; font-weight: 600; padding: 14px 30px; border-radius: 100px; text-decoration: none; border: 1px solid rgba(255,255,255,0.15); }
+
+    /* ── PARTNER ── */
+    .partner-stat { background: rgba(255,255,255,0.7); border-radius: 16px; padding: 28px; text-align: center; border: 1px solid rgba(255,255,255,0.9); opacity: 0; transform: translateY(14px); transition: opacity 0.5s, transform 0.5s; }
+    .partner-stat.visible { opacity: 1; transform: none; }
+    .partner-stat .n { font-size: 2.2rem; font-weight: 900; letter-spacing: -0.03em; color: var(--purple); margin-bottom: 6px; }
+    .partner-stat .l { font-size: 0.78rem; color: rgba(30,27,75,0.4); }
+
+    /* ── ANIM FADE ── */
+    .anim-fade { opacity: 0; transform: translateY(12px); transition: opacity 0.5s, transform 0.5s; }
+    .anim-fade.visible { opacity: 1; transform: none; }
+
+    /* ── NAV ── */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 500; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 60px; background: rgba(255,249,195,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(124,58,237,0.08); }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 28px; height: 28px; background: var(--purple); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .logo-text { font-weight: 800; font-size: 0.95rem; color: var(--indigo); }
+    .nav-pill { background: var(--purple); color: #fff; font-size: 0.82rem; font-weight: 700; text-decoration: none; padding: 8px 18px; border-radius: 100px; }
+
+    /* ── TYPEWRITER ── */
+    .tw-cursor { display: inline-block; width: 3px; height: 0.85em; background: var(--purple); margin-left: 3px; vertical-align: text-bottom; animation: blink 1s step-end infinite; }
+    .live-chip { display: inline-flex; align-items: center; gap: 8px; background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.18); border-radius: 100px; padding: 7px 16px; font-size: 0.72rem; font-weight: 600; color: var(--purple); margin-bottom: 22px; }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+
+    footer { background: var(--navy); padding: 32px 48px; text-align: center; }
+    footer p { font-size: 0.76rem; color: rgba(255,255,255,0.2); }
+    footer a { color: rgba(255,255,255,0.3); text-decoration: none; margin: 0 10px; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">⚡</div><span class="logo-text">K.I.N.D</span></a>
+  <a href="https://app.get-kind.com/login" class="nav-pill">Start free →</a>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="scene" style="padding-top:100px">
+  <!-- Sparkles -->
+  <div class="spark" style="top:12%;left:8%;animation-delay:0s">✦</div>
+  <div class="spark" style="top:18%;right:12%;animation-delay:0.8s">✦</div>
+  <div class="spark" style="top:55%;left:5%;animation-delay:1.5s">✦</div>
+  <div class="spark" style="top:30%;right:6%;animation-delay:2.1s">✦</div>
+  <div class="spark" style="bottom:20%;left:14%;animation-delay:0.4s">✦</div>
+
+  <div class="hero-text anim-fade">
+    <div class="live-chip"><span class="live-dot"></span>Platform demo — all features live</div>
+    <div class="hero-label">K.I.N.D Platform</div>
+    <h1 class="hero-h1">Meet <span id="tw-hero">FIGSY.</span><span class="tw-cursor"></span></h1>
+    <p class="hero-p">Your AI Sales Development Rep. Finds leads, writes emails, handles replies and builds your pipeline — automatically, 24/7.</p>
+  </div>
+
+  <div class="hero-wrap">
+    <!-- Floating labels -->
+    <div class="float-label" id="fl1" style="top:-10px;left:-60px"><span class="dot green"></span>AI Lead Gen Agent</div>
+    <div class="float-label" id="fl2" style="top:80px;right:-70px"><span class="dot pink"></span>More Conversations</div>
+    <div class="float-label" id="fl3" style="top:200px;left:-80px"><span class="dot yellow"></span>Qualifies Leads 24/7</div>
+    <div class="float-label" id="fl4" style="bottom:180px;right:-65px"><span class="dot"></span>More Pipeline</div>
+    <div class="float-label" id="fl5" style="bottom:80px;left:-90px"><span class="dot green"></span>Builds Pipeline Automatically</div>
+
+    <img src="ai-agent.jpg" alt="FIGSY — K.I.N.D AI Agent" class="hero-img"
+         onerror="this.style.display='none';document.getElementById('figsy-fb').style.display='flex'" />
+    <div id="figsy-fb" class="hero-img-fallback" style="display:none">🤖</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;align-items:center;margin-top:32px">
+    <div class="agent-card-bottom" id="hero-card">
+      <div class="acb-icon">🤖</div>
+      <div>
+        <div class="acb-title">Meet your AI Lead Gen Agent</div>
+        <div class="acb-sub">Powered by Claude AI</div>
+      </div>
+      <div class="acb-arrow">→</div>
+    </div>
+    <div class="growth-pill" id="growth-pill">Your new teammate for growth 🌱</div>
+  </div>
+</div>
+
+<!-- ── 01 LEAD GEN ── -->
+<div class="scene alt" id="lead-gen">
+  <div class="spark" style="top:10%;right:8%;animation-delay:0.3s">✦</div>
+  <div class="spark" style="bottom:15%;left:6%;animation-delay:1.2s">✦</div>
+  <div class="split">
+    <div>
+      <div class="ch-badge">Chapter 01</div>
+      <div class="sec-label">Lead Generation</div>
+      <h2 class="sec-h2">250M+ verified<br>contacts. Instantly.</h2>
+      <p class="sec-p">Define your Ideal Customer Profile once — industry, job title, company size, geography. K.I.N.D pulls verified contacts from Apollo's 250M+ database. Claude AI can auto-fill your ICP from your website in one click.</p>
+      <div class="feat-pills">
+        <span class="feat-pill">250M+ contacts</span>
+        <span class="feat-pill">AI ICP Suggest</span>
+        <span class="feat-pill">Verified emails</span>
+        <span class="feat-pill">First leads in &lt;10 min</span>
+      </div>
+      <div class="stat-row" style="margin-top:24px">
+        <div class="stat-card" id="sc1"><div class="n">250M<span style="font-size:1.2rem">+</span></div><div class="l">Verified contacts</div></div>
+        <div class="stat-card" id="sc2"><div class="n">&lt;10</div><div class="l">Minutes to first lead</div></div>
+        <div class="stat-card" id="sc3"><div class="n">92<span style="font-size:1.2rem">%</span></div><div class="l">Email deliverability</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="app-shell">
+        <div class="titlebar">
+          <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+          <div class="url-bar">app.get-kind.com/leads</div>
+        </div>
+        <div class="app-body">
+          <div style="background:linear-gradient(135deg,#ede9fe,#fce7f3);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:1rem">✨</span>
+            <div>
+              <div style="font-size:0.72rem;font-weight:700;color:var(--purple)">AI ICP Suggest</div>
+              <div style="font-size:0.62rem;color:rgba(30,27,75,0.4)">Based on your company profile</div>
+            </div>
+            <div style="margin-left:auto;font-size:0.7rem;font-weight:700;color:var(--purple)">Apply →</div>
+          </div>
+          <table class="lead-table" id="lead-table">
+            <thead><tr><th>Name</th><th>Company</th><th>Title</th><th>Score</th><th>Tag</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Sarah Chen</strong></td><td>TechCorp</td><td>VP Sales</td><td><span class="score hi">92</span></td><td><span class="stag">ICP Match</span></td></tr>
+              <tr><td><strong>James Nkosi</strong></td><td>Lagos Growth</td><td>MD</td><td><span class="score hi">88</span></td><td><span class="stag">ICP Match</span></td></tr>
+              <tr><td><strong>Priya Patel</strong></td><td>FinFlow SA</td><td>CEO</td><td><span class="score hi">85</span></td><td><span class="stag">ICP Match</span></td></tr>
+              <tr><td><strong>David Osei</strong></td><td>Accra Retail</td><td>Founder</td><td><span class="score md">71</span></td><td><span class="stag">Good</span></td></tr>
+              <tr><td><strong>Amira Hassan</strong></td><td>Cairo SaaS</td><td>Dir. Growth</td><td><span class="score md">68</span></td><td><span class="stag">Good</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 02 FIGSY OUTREACH ── -->
+<div class="scene" id="figsy-ch">
+  <div class="spark" style="top:8%;left:10%;animation-delay:0.6s">✦</div>
+  <div class="spark" style="bottom:12%;right:8%;animation-delay:1.8s">✦</div>
+  <div class="split" style="direction:rtl">
+    <div style="direction:ltr">
+      <div class="ch-badge">Chapter 02</div>
+      <div class="sec-label">FIGSY AI Outreach</div>
+      <h2 class="sec-h2">Hyper-personalised<br>emails. Zero templates.</h2>
+      <p class="sec-p">FIGSY writes a unique email for every lead — referencing their role, company, and recent news. A 3-step follow-up fires automatically on Day 1, Day 4, and Day 9. Every message sounds human-written.</p>
+      <div class="feat-pills">
+        <span class="feat-pill">Zero templates</span>
+        <span class="feat-pill">3-step sequences</span>
+        <span class="feat-pill">24/7 sending</span>
+        <span class="feat-pill">POPIA compliant</span>
+      </div>
+      <div id="camp-list" style="margin-top:24px">
+        <div class="camp-card" id="camp1">
+          <div style="flex:1"><div class="camp-name">West Africa Founders Q2</div><div class="camp-meta">156 leads · Day 4 sequence</div></div>
+          <div class="camp-stat"><div class="camp-stat-n green">8.2%</div><div class="camp-stat-l">Reply rate</div></div>
+          <span class="s-tag s-active">Active</span>
+        </div>
+        <div class="camp-card" id="camp2">
+          <div style="flex:1"><div class="camp-name">SA Fintech Decision Makers</div><div class="camp-meta">89 leads · Day 1 sequence</div></div>
+          <div class="camp-stat"><div class="camp-stat-n">4.1%</div><div class="camp-stat-l">Reply rate</div></div>
+          <span class="s-tag s-active">Active</span>
+        </div>
+      </div>
+    </div>
+    <div style="direction:ltr">
+      <div class="email-compose">
+        <div class="email-header">
+          <div class="email-av">F</div>
+          <div><div class="email-from">FIGSY on behalf of K.I.N.D</div></div>
+          <div class="email-time">Just now</div>
+        </div>
+        <div class="ai-btn" id="ai-icp-btn">✨ FIGSY is writing your email…</div>
+        <div class="email-field">
+          <label>To</label>
+          <span>James Nkosi &lt;james@lagosgrowth.ng&gt;</span>
+        </div>
+        <div class="email-field">
+          <label>Subject</label>
+          <span id="email-subject"><span id="subj-cursor" class="email-cursor" style="display:none"></span></span>
+        </div>
+        <div class="email-body-wrap">
+          <div class="email-body-text" id="email-body"><span id="body-cursor" class="email-cursor" style="display:none"></span></div>
+        </div>
+        <div id="sent-badge" class="sent-badge" style="display:none">✓ Sent successfully</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 03 REPLY INTELLIGENCE ── -->
+<div class="scene alt" id="intelligence">
+  <div class="spark" style="top:12%;right:10%;animation-delay:0.9s">✦</div>
+  <div class="split">
+    <div>
+      <div class="ch-badge">Chapter 03</div>
+      <div class="sec-label">Reply Intelligence</div>
+      <h2 class="sec-h2">FIGSY reads every<br>reply. You close deals.</h2>
+      <p class="sec-p">Every reply is AI-classified across 5 intent categories. Interested leads get a warm follow-up. Objections are handled. Opt-outs are permanently suppressed. You only see warm leads ready to convert.</p>
+      <div class="feat-pills">
+        <span class="feat-pill">5-category AI classification</span>
+        <span class="feat-pill">Objection handling</span>
+        <span class="feat-pill">Auto opt-out</span>
+      </div>
+    </div>
+    <div id="reply-list">
+      <div class="reply-card interested" id="rc1">
+        <div class="rc-top">
+          <div class="rc-name">Sarah Chen · TechCorp</div>
+          <span class="rc-tag tag-i">● Interested</span>
+        </div>
+        <div class="rc-text">"Yes, this sounds relevant. Can we do a call next week? I have Tuesday or Thursday free."</div>
+        <div class="rc-action action-i">↳ FIGSY booked a discovery call</div>
+      </div>
+      <div class="reply-card objection" id="rc2">
+        <div class="rc-top">
+          <div class="rc-name">David Osei · Accra Retail</div>
+          <span class="rc-tag tag-o">Objection</span>
+        </div>
+        <div class="rc-text">"We already use another tool for this."</div>
+        <div class="rc-action action-o">↳ FIGSY sent a differentiation response</div>
+      </div>
+      <div class="reply-card optout" id="rc3">
+        <div class="rc-top">
+          <div class="rc-name">Mike Peters · Cape Corp</div>
+          <span class="rc-tag tag-x">Opt-out</span>
+        </div>
+        <div class="rc-text">"Please remove me from your list."</div>
+        <div class="rc-action action-x">↳ Suppressed permanently · POPIA logged</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 04 KPIs ── -->
+<div class="scene" id="kpis">
+  <div class="spark" style="top:10%;left:8%;animation-delay:0.4s">✦</div>
+  <div class="spark" style="bottom:18%;right:10%;animation-delay:1.6s">✦</div>
+  <div class="split" style="direction:rtl">
+    <div style="direction:ltr">
+      <div class="ch-badge">Chapter 04</div>
+      <div class="sec-label">KPI Dashboard</div>
+      <h2 class="sec-h2">Your full pipeline.<br>One dashboard.</h2>
+      <p class="sec-p">Live KPIs: leads sourced, emails sent, reply rate vs. industry benchmark, pipeline value. A conversion funnel shows exactly where deals drop off so you know where to focus.</p>
+      <div class="feat-pills">
+        <span class="feat-pill">Live KPIs</span>
+        <span class="feat-pill">Pipeline value</span>
+        <span class="feat-pill">Funnel analytics</span>
+        <span class="feat-pill">Industry benchmarks</span>
+      </div>
+    </div>
+    <div style="direction:ltr">
+      <div class="app-shell">
+        <div class="titlebar">
+          <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+          <div class="url-bar">app.get-kind.com/kpis</div>
+        </div>
+        <div class="app-body">
+          <div class="kpi-row">
+            <div class="kpi" id="kpi1"><div class="kpi-lbl">Pipeline Value</div><div class="kpi-val">R420k</div><div class="kpi-sub">247 active leads</div></div>
+            <div class="kpi" id="kpi2"><div class="kpi-lbl">Reply Rate</div><div class="kpi-val">5.4%</div><div class="kpi-sub">vs 3% industry avg</div></div>
+            <div class="kpi" id="kpi3"><div class="kpi-lbl">Emails Sent</div><div class="kpi-val">1,240</div><div class="kpi-sub">This month</div></div>
+            <div class="kpi" id="kpi4"><div class="kpi-lbl">Interested</div><div class="kpi-val">24</div><div class="kpi-sub">Warm leads ready</div></div>
+          </div>
+          <div style="font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,0,0,0.25);margin-bottom:10px">Conversion Funnel</div>
+          <div class="funnel" id="kpi-funnel">
+            <div class="funnel-row"><span class="funnel-lbl">Sourced</span><div class="funnel-track"><div class="funnel-fill" data-w="100" style="background:var(--purple)"></div></div><span class="funnel-n">247</span></div>
+            <div class="funnel-row"><span class="funnel-lbl">Scored</span><div class="funnel-track"><div class="funnel-fill" data-w="72" style="background:#8b5cf6"></div></div><span class="funnel-n">178</span></div>
+            <div class="funnel-row"><span class="funnel-lbl">Contacted</span><div class="funnel-track"><div class="funnel-fill" data-w="48" style="background:#a78bfa"></div></div><span class="funnel-n">119</span></div>
+            <div class="funnel-row"><span class="funnel-lbl">Replied</span><div class="funnel-track"><div class="funnel-fill" data-w="26" style="background:#c4b5fd"></div></div><span class="funnel-n">64</span></div>
+            <div class="funnel-row"><span class="funnel-lbl">Interested</span><div class="funnel-track"><div class="funnel-fill" data-w="10" style="background:#10b981"></div></div><span class="funnel-n">24</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 05 MILLA (VA) ── -->
+<div class="scene alt" id="milla">
+  <div class="spark" style="top:14%;left:12%;animation-delay:1s">✦</div>
+  <div class="split">
+    <div>
+      <div class="ch-badge">Chapter 05</div>
+      <div class="sec-label">Milla — Virtual Assistant</div>
+      <h2 class="sec-h2">Ask anything.<br>Get instant answers.</h2>
+      <p class="sec-p">Milla is your embedded AI business assistant. Ask about your leads, campaigns, revenue, anything K.I.N.D related. Powered by Claude — available 24/7 inside the portal.</p>
+      <div class="feat-pills">
+        <span class="feat-pill">Powered by Claude</span>
+        <span class="feat-pill">Pipeline queries</span>
+        <span class="feat-pill">Always available</span>
+      </div>
+    </div>
+    <div>
+      <div class="app-shell">
+        <div class="titlebar">
+          <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+          <div class="url-bar">app.get-kind.com/assistant</div>
+        </div>
+        <div class="chat-wrap" id="milla-chat">
+          <div class="chat-msg bot"><div class="chat-name">Milla · AI Assistant</div><div class="bubble bot">Hi! I'm Milla, your K.I.N.D assistant. Ask me anything about your leads, campaigns, or pipeline.</div></div>
+          <div class="chat-msg user"><div class="bubble user">How many interested leads do I have this week?</div></div>
+          <div class="chat-msg bot"><div class="chat-name">Milla</div><div class="bubble bot">You have <strong>24 interested leads</strong> this week — up 60% from last week. 8 have opened your email 3+ times. Want me to show you the top 5 to prioritise?</div></div>
+          <div class="chat-msg user"><div class="bubble user">Yes please!</div></div>
+          <div class="chat-msg bot"><div class="chat-name">Milla</div><div class="bubble bot">Here are your top 5 by engagement score: Sarah Chen (92), James Nkosi (88), Priya Patel (85)… Shall I draft a follow-up for each?</div></div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" placeholder="Ask Milla anything…" />
+          <button class="chat-send">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 06 VIDA (CHATBOT) ── -->
+<div class="scene" id="vida">
+  <div class="spark" style="top:8%;right:8%;animation-delay:0.7s">✦</div>
+  <div class="spark" style="bottom:20%;left:10%;animation-delay:2s">✦</div>
+  <div class="split" style="direction:rtl">
+    <div style="direction:ltr">
+      <div class="ch-badge" style="background:rgba(255,249,195,0.12);border-color:rgba(254,240,138,0.2);color:#fbbf24">Chapter 06</div>
+      <div class="sec-label light">Vida — Website Chatbot</div>
+      <h2 class="sec-h2 light">Turn visitors into<br>conversations.</h2>
+      <p class="sec-p light">Vida sits on your website and engages every visitor instantly — answers questions, qualifies leads, connects to your team. Launching July 2026.</p>
+      <div style="display:inline-block;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.25);border-radius:10px;padding:8px 16px;font-size:0.78rem;color:#fbbf24;font-weight:600;margin-top:16px">Launching July 2026</div>
+    </div>
+    <div style="direction:ltr">
+      <div class="vida-scene" style="min-height:320px">
+        <div class="vida-bg">
+          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(0,0,0,0.3);margin-bottom:10px">Your website</div>
+          <div class="vida-bg-bar"></div><div class="vida-bg-bar"></div><div class="vida-bg-bar" style="width:60%;margin:0 auto"></div>
+        </div>
+        <div class="vida-widget" id="vida-widget">
+          <div class="vida-header">
+            <div class="vida-av">🤖</div>
+            <div><div class="vida-hname">Vida</div><div class="vida-hstatus">● Online · replies instantly</div></div>
+          </div>
+          <div class="vida-msgs" id="vida-msgs">
+            <div class="vida-bot-msg" id="vm1">Hi! I'm Vida. How can I help today?</div>
+            <div class="vida-user-msg" id="vm2">What does K.I.N.D do?</div>
+            <div class="vida-bot-msg" id="vm3">K.I.N.D builds your sales pipeline automatically — AI lead sourcing, personalised outreach, reply handling. First leads in under 10 minutes. Want to try it?</div>
+            <div class="vida-user-msg" id="vm4">Yes!</div>
+            <div class="vida-bot-msg" id="vm5">Start your free 14-day trial → app.get-kind.com/login 🚀</div>
+          </div>
+          <div class="vida-footer"><input class="vida-input" placeholder="Type a message…" /><button class="vida-send">→</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 07 INTELLIGENCE ALERTS ── -->
+<div class="scene alt" id="alerts-sec">
+  <div class="spark" style="top:10%;left:8%;animation-delay:0.5s">✦</div>
+  <div class="split">
+    <div>
+      <div class="ch-badge">Chapter 07</div>
+      <div class="sec-label">Agent Intelligence</div>
+      <h2 class="sec-h2">FIGSY manages<br>itself. Always.</h2>
+      <p class="sec-p">FIGSY monitors its own performance. Campaigns under 1% reply rate are auto-paused before credits are wasted. Campaign memory learns what subject lines work per ICP. Weekly Monday digest sent automatically.</p>
+      <div class="feat-pills">
+        <span class="feat-pill">Auto-pauses low performers</span>
+        <span class="feat-pill">Campaign memory</span>
+        <span class="feat-pill">Monday digest</span>
+        <span class="feat-pill">Escalation alerts</span>
+      </div>
+    </div>
+    <div id="alerts-list">
+      <div class="alert-card success" id="alert1">
+        <div class="alert-icon">✅</div>
+        <div>
+          <div class="alert-title">Campaign performing above benchmark</div>
+          <div class="alert-body">West Africa Founders Q2 is at 8.2% reply rate — 2.7× the industry average. FIGSY is continuing to optimise subject lines.</div>
+        </div>
+      </div>
+      <div class="alert-card warn" id="alert2">
+        <div class="alert-icon">⚠️</div>
+        <div>
+          <div class="alert-title">Campaign auto-paused</div>
+          <div class="alert-body">Cape Retail Q2 dropped to 0.6% reply rate after 42 emails. Paused automatically. Campaign memory updated with learnings.</div>
+        </div>
+      </div>
+      <div class="alert-card info" id="alert3">
+        <div class="alert-icon">📊</div>
+        <div>
+          <div class="alert-title">Monday digest sent</div>
+          <div class="alert-body">Your weekly outreach summary: 156 emails sent, 12.8 reply rate, 8 interested leads. Industry avg: 3%.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 08 PARTNERS ── -->
+<div class="scene" id="partners">
+  <div class="spark" style="top:14%;right:8%;animation-delay:1.1s">✦</div>
+  <div class="spark" style="bottom:16%;left:6%;animation-delay:0.3s">✦</div>
+  <div style="text-align:center;max-width:680px;margin-bottom:60px" class="anim-fade">
+    <div class="ch-badge">Chapter 08</div>
+    <div class="sec-label">Partner Programme</div>
+    <h2 class="sec-h2">Refer clients.<br>Earn recurring commission.</h2>
+    <p class="sec-p" style="margin:0 auto">Partners earn 20% recurring commission on every client referred — paid monthly for as long as they stay.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:780px;width:100%">
+    <div class="partner-stat" id="ps1"><div class="n">20<span style="font-size:1.3rem">%</span></div><div class="l">Recurring commission per referral</div></div>
+    <div class="partner-stat" id="ps2"><div class="n">100</div><div class="l">Credits earned by client referrals — both ways</div></div>
+    <div class="partner-stat" id="ps3"><div class="n">∞</div><div class="l">No cap on referrals or commission</div></div>
+  </div>
+</div>
+
+<!-- ── CTA ── -->
+<div class="scene cta-scene">
+  <div class="cta-inner anim-fade">
+    <div class="cta-tag">✦ Start today — no credit card required</div>
+    <h2 class="cta-h2">Ready to build your pipeline?</h2>
+    <p class="cta-p">14-day free trial. First leads in under 10 minutes. Cancel anytime.</p>
+    <div class="cta-btns">
+      <a href="https://app.get-kind.com/login" class="btn-p">Start free trial →</a>
+      <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="btn-g">Book a demo</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><a href="/">Home</a><a href="pricing.html">Pricing</a><a href="about.html">About</a><a href="trust.html">Trust</a><a href="partners.html">Partners</a><a href="support.html">Support</a></p>
+  <p style="margin-top:8px">© 2026 K.I.N.D. All rights reserved.</p>
+</footer>
+
+<script>
+// ── TYPEWRITER ──────────────────────────────────────────────────────────────
+const twEl = document.getElementById('tw-hero')
+const phrases = ['FIGSY.','your AI SDR.','your pipeline.','your revenue team.']
+let pi=0,ci=0,del=false
+function tw(){
+  const p=phrases[pi]
+  if(del){ci--;twEl.textContent=p.substring(0,ci);if(ci===0){del=false;pi=(pi+1)%phrases.length;setTimeout(tw,400)}else setTimeout(tw,40)}
+  else{ci++;twEl.textContent=p.substring(0,ci);if(ci===p.length)setTimeout(()=>{del=true;tw()},2200);else setTimeout(tw,80)}
+}
+setTimeout(tw,1000)
+
+// ── IN VIEW CHECK ───────────────────────────────────────────────────────────
+function inView(el,offset=80){ const r=el.getBoundingClientRect(); return r.top < window.innerHeight - offset }
+
+// ── COUNT-UP ────────────────────────────────────────────────────────────────
+function countUp(el){
+  if(el.dataset.done) return; el.dataset.done='1'
+  const t=+el.dataset.t; let c=0; const s=t/50
+  const tm=setInterval(()=>{c=Math.min(c+s,t);el.textContent=Math.round(c);if(c>=t)clearInterval(tm)},20)
+}
+
+// ── EMAIL ANIMATION ─────────────────────────────────────────────────────────
+let emailDone=false
+const SUBJECT="Saw you're growing Lagos Growth Co — thought this was relevant"
+const BODY=`Hi James,
+
+Noticed Lagos Growth Co just closed your Series A — congratulations on the raise.
+
+I work with B2B founders across West Africa who are scaling their sales pipeline. We help them find and book meetings with their ideal clients automatically — usually within the first week.
+
+Worth a 15-minute call this week?
+
+Best,
+FIGSY on behalf of K.I.N.D`
+
+function animateEmail(){
+  if(emailDone) return; emailDone=true
+  const sEl=document.getElementById('email-subject')
+  const sCur=document.getElementById('subj-cursor')
+  const bEl=document.getElementById('email-body')
+  const bCur=document.getElementById('body-cursor')
+  const sentBadge=document.getElementById('sent-badge')
+  if(!sEl||!bEl) return
+  document.getElementById('ai-icp-btn').classList.add('scanning')
+  sCur.style.display='inline-block'
+  let si=0
+  function typeSubject(){
+    if(si<SUBJECT.length){sEl.textContent=SUBJECT.substring(0,si+1);si++;setTimeout(typeSubject,35)}
+    else{sCur.style.display='none';bCur.style.display='inline-block';let bi=0;
+      function typeBody(){
+        if(bi<BODY.length){bEl.textContent=BODY.substring(0,bi+1);bi++;setTimeout(typeBody,bi<40?50:12)}
+        else{bCur.style.display='none';setTimeout(()=>{if(sentBadge)sentBadge.style.display='flex'},600)}
+      }
+      setTimeout(typeBody,300)
+    }
+  }
+  setTimeout(typeSubject,500)
+}
+
+// ── FUNNEL ───────────────────────────────────────────────────────────────────
+let funnelDone=false
+function animateFunnel(){
+  if(funnelDone) return; funnelDone=true
+  document.querySelectorAll('.funnel-fill').forEach((f,i)=>{
+    setTimeout(()=>{ f.style.width=f.dataset.w+'%' },i*150+200)
+  })
+}
+
+// ── CHAT ─────────────────────────────────────────────────────────────────────
+function animateChat(id){
+  document.querySelectorAll('#'+id+' .chat-msg').forEach((m,i)=>{
+    if(!m.classList.contains('visible')) setTimeout(()=>m.classList.add('visible'),i*350+100)
+  })
+}
+function animateVida(){
+  const w=document.getElementById('vida-widget')
+  if(w&&!w.classList.contains('visible')){
+    w.classList.add('visible')
+    ;['vm1','vm2','vm3','vm4','vm5'].forEach((id,i)=>{
+      const el=document.getElementById(id); if(el) setTimeout(()=>el.classList.add('visible'),i*500+400)
+    })
+  }
+}
+
+// ── MAIN SCROLL HANDLER ──────────────────────────────────────────────────────
+let triggered={}
+function onScroll(){
+  // hero elements
+  document.querySelectorAll('.anim-fade').forEach(el=>{
+    if(inView(el)&&!el.classList.contains('visible')) el.classList.add('visible')
+  })
+
+  // hero card + pill
+  const hc=document.getElementById('hero-card'); if(hc&&inView(hc,40)) hc.classList.add('visible')
+  const gp=document.getElementById('growth-pill'); if(gp&&inView(gp,40)) gp.classList.add('visible')
+
+  // floating labels (hero)
+  if(!triggered.floats){
+    const fl1=document.getElementById('fl1')
+    if(fl1&&inView(fl1,100)){
+      triggered.floats=true
+      ;['fl1','fl2','fl3','fl4','fl5'].forEach((id,i)=>{
+        setTimeout(()=>{ const el=document.getElementById(id); if(el) el.classList.add('visible') },i*200+100)
+      })
+    }
+  }
+
+  // lead table
+  if(!triggered.leads){ const t=document.getElementById('lead-table'); if(t&&inView(t)){ triggered.leads=true; t.querySelectorAll('tbody tr').forEach((r,i)=>setTimeout(()=>r.classList.add('visible'),i*180+100)) }}
+
+  // stat cards
+  ;['sc1','sc2','sc3'].forEach((id,i)=>{ const el=document.getElementById(id); if(el&&inView(el)&&!el.classList.contains('visible')) setTimeout(()=>el.classList.add('visible'),i*120) })
+
+  // camp cards
+  if(!triggered.camps){['camp1','camp2'].forEach((id,i)=>{ const c=document.getElementById(id); if(c&&inView(c)){triggered.camps=true;setTimeout(()=>c.classList.add('visible'),i*200)}})}
+
+  // email
+  const emailEl=document.getElementById('email-body'); if(emailEl&&inView(emailEl)&&!emailDone) animateEmail()
+
+  // replies
+  if(!triggered.replies){const r1=document.getElementById('rc1');if(r1&&inView(r1)){triggered.replies=true;['rc1','rc2','rc3'].forEach((id,i)=>setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add('visible')},i*280+100))}}
+
+  // kpi cards
+  ;['kpi1','kpi2','kpi3','kpi4'].forEach((id,i)=>{ const el=document.getElementById(id); if(el&&inView(el)&&!el.classList.contains('visible')) setTimeout(()=>el.classList.add('visible'),i*100) })
+
+  // funnel
+  const f=document.getElementById('kpi-funnel'); if(f&&inView(f)) animateFunnel()
+
+  // milla chat
+  const mc=document.getElementById('milla-chat'); if(mc&&inView(mc)) animateChat('milla-chat')
+
+  // vida
+  const vw=document.getElementById('vida-widget'); if(vw&&inView(vw,40)) animateVida()
+
+  // alerts
+  if(!triggered.alerts){const a1=document.getElementById('alert1');if(a1&&inView(a1)){triggered.alerts=true;['alert1','alert2','alert3'].forEach((id,i)=>setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add('visible')},i*280))}}
+
+  // partners
+  if(!triggered.ps){const p1=document.getElementById('ps1');if(p1&&inView(p1)){triggered.ps=true;['ps1','ps2','ps3'].forEach((id,i)=>setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add('visible')},i*200))}}
+}
+
+window.addEventListener('scroll', onScroll, {passive:true})
+setTimeout(onScroll, 200)
+setTimeout(onScroll, 900)
+</script>
+</body>
+</html>

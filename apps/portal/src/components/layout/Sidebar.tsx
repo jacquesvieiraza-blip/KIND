@@ -12,7 +12,8 @@ function SystemStatus() {
   const [status, setStatus] = React.useState<'checking' | 'ok' | 'degraded'>('checking')
 
   React.useEffect(() => {
-    fetch('https://kindapi-production-e64c.up.railway.app/health', { signal: AbortSignal.timeout(5000) })
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+    fetch(`${apiUrl}/health`, { signal: AbortSignal.timeout(5000) })
       .then(r => r.ok ? setStatus('ok') : setStatus('degraded'))
       .catch(() => setStatus('degraded'))
   }, [])

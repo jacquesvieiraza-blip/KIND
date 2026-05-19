@@ -338,6 +338,12 @@ export default function LeadsPage() {
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <p className="text-red-600 font-medium">Could not load leads</p>
             <p className="text-sm text-gray-500">{fetchError}</p>
+            {fetchError === 'Failed to fetch' && (
+              <p className="text-xs text-gray-400 max-w-xs text-center">
+                The K.I.N.D API is not responding. Check that the Railway service is running at{' '}
+                <span className="font-mono">{process.env.NEXT_PUBLIC_API_URL || 'kindapi-production-e64c.up.railway.app'}</span>
+              </p>
+            )}
             <button onClick={() => token && fetchData(token)} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-colors">
               Retry
             </button>

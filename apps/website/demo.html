@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D — Full Platform Demo</title>
+  <meta name="description" content="See every K.I.N.D feature in action — lead generation, FIGSY AI SDR, KPIs, Virtual Assistant, Chatbot Agent and more." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #0066FF;
+      --dark: #0a0a0a;
+      --light: #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+      --navy: #001f4d;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+
+    /* CHAPTER NAV */
+    .chapter-nav { position: sticky; top: 64px; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 48px; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+    .chapter-nav::-webkit-scrollbar { display: none; }
+    .ch-link { white-space: nowrap; font-size: 0.78rem; font-weight: 600; color: rgba(0,0,0,0.4); padding: 12px 14px; border-bottom: 2px solid transparent; text-decoration: none; transition: all .2s; }
+    .ch-link:hover, .ch-link.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    /* HERO */
+    .demo-hero { background: var(--navy); padding: 100px 48px 80px; text-align: center; }
+    .demo-hero-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #60a5fa; margin-bottom: 20px; }
+    .demo-hero h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; color: #fff; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 20px; }
+    .demo-hero p { font-size: 1.05rem; color: rgba(255,255,255,0.45); max-width: 560px; margin: 0 auto 40px; }
+    .hero-chapters { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 700px; margin: 0 auto; }
+    .hero-ch { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 100px; text-decoration: none; transition: all .2s; }
+    .hero-ch:hover { color: #fff; background: rgba(255,255,255,0.12); }
+
+    /* SECTIONS */
+    .demo-section { padding: 100px 48px; max-width: 1100px; margin: 0 auto; }
+    .demo-section.dark { background: var(--dark); max-width: 100%; padding: 100px 48px; }
+    .demo-section.dark .inner { max-width: 1100px; margin: 0 auto; }
+    .demo-section.tinted { background: var(--light); max-width: 100%; padding: 100px 48px; }
+    .demo-section.tinted .inner { max-width: 1100px; margin: 0 auto; }
+
+    .sec-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 12px; }
+    .sec-label.light { color: #60a5fa; }
+    .sec-title { font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 16px; }
+    .sec-title.light { color: #fff; }
+    .sec-sub { font-size: 0.95rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.7; margin-bottom: 56px; }
+    .sec-sub.light { color: rgba(255,255,255,0.4); }
+
+    /* FEATURE GRID */
+    .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
+    .feat-card { background: var(--light); border-radius: 16px; padding: 28px 24px; }
+    .feat-card.dark-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+    .feat-icon { font-size: 1.4rem; margin-bottom: 14px; }
+    .feat-card h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 6px; }
+    .feat-card.dark-card h4 { color: #fff; }
+    .feat-card p { font-size: 0.8rem; color: rgba(0,0,0,0.45); line-height: 1.6; }
+    .feat-card.dark-card p { color: rgba(255,255,255,0.35); }
+
+    /* APP MOCKUP SHELL */
+    .app-shell { background: #fff; border-radius: 16px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 24px 64px rgba(0,0,0,0.1); overflow: hidden; }
+    .app-shell.dark-shell { background: #0f172a; border-color: rgba(255,255,255,0.08); box-shadow: 0 24px 64px rgba(0,0,0,0.4); }
+    .app-titlebar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #f8f8f8; border-bottom: 1px solid rgba(0,0,0,0.08); }
+    .app-titlebar.dark-bar { background: #1e293b; border-bottom-color: rgba(255,255,255,0.06); }
+    .tb-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .tb-url { flex: 1; background: rgba(0,0,0,0.06); border-radius: 6px; padding: 4px 12px; font-size: 0.72rem; color: rgba(0,0,0,0.4); margin: 0 12px; }
+    .tb-url.dark-url { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.3); }
+    .app-content { padding: 28px; }
+
+    /* SPLIT LAYOUT */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    .split.reverse { direction: rtl; }
+    .split.reverse > * { direction: ltr; }
+
+    /* ICP MOCKUP */
+    .icp-form { display: flex; flex-direction: column; gap: 12px; }
+    .icp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .icp-field { background: var(--light); border-radius: 10px; padding: 12px 14px; }
+    .icp-field label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(0,0,0,0.3); display: block; margin-bottom: 4px; }
+    .icp-field .val { font-size: 0.82rem; font-weight: 600; color: var(--dark); }
+    .icp-ai-btn { display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #0066FF, #6633FF); color: #fff; border-radius: 10px; padding: 12px 16px; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+    .score-pill { display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #059669; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 100px; }
+
+    /* LEAD TABLE */
+    .lead-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .lead-table th { text-align: left; padding: 8px 12px; color: rgba(0,0,0,0.3); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .lead-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .lead-table tr:last-child td { border-bottom: none; }
+    .score-badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 0.7rem; font-weight: 700; }
+    .score-high { background: #ecfdf5; color: #059669; }
+    .score-mid { background: #fff7ed; color: #d97706; }
+    .status-tag { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 0.68rem; font-weight: 600; background: #eff6ff; color: #3b82f6; }
+
+    /* CAMPAIGN MOCKUP */
+    .campaign-card { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 16px; }
+    .camp-name { font-size: 0.88rem; font-weight: 700; flex: 1; }
+    .camp-stat { text-align: center; min-width: 60px; }
+    .camp-stat .num { font-size: 1.1rem; font-weight: 800; color: var(--dark); }
+    .camp-stat .lbl { font-size: 0.6rem; color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: 0.06em; }
+    .camp-status { font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 100px; }
+    .s-active { background: #dcfce7; color: #16a34a; }
+    .s-paused { background: #fef9c3; color: #a16207; }
+    .s-autopause { background: #fee2e2; color: #dc2626; }
+
+    /* EMAIL SEQUENCE */
+    .seq-step { display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start; }
+    .seq-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+    .seq-body { flex: 1; background: var(--light); border-radius: 10px; padding: 12px 14px; }
+    .seq-day { font-size: 0.62rem; font-weight: 700; color: rgba(0,0,0,0.3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+    .seq-subject { font-size: 0.82rem; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+    .seq-preview { font-size: 0.75rem; color: rgba(0,0,0,0.45); line-height: 1.5; }
+
+    /* FIGSY AGENT CARD */
+    .agent-card { background: linear-gradient(135deg, #001f4d, #003080); border-radius: 20px; padding: 28px; display: flex; gap: 20px; align-items: flex-start; }
+    .agent-avatar { width: 56px; height: 56px; border-radius: 14px; background: rgba(0,102,255,0.2); border: 1px solid rgba(0,102,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; position: relative; }
+    .agent-dot { position: absolute; bottom: -4px; right: -4px; width: 14px; height: 14px; border-radius: 50%; background: #34d399; border: 2px solid #001f4d; }
+    .agent-info { flex: 1; }
+    .agent-name { font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .agent-role { font-size: 0.72rem; color: rgba(255,255,255,0.35); margin-bottom: 16px; }
+    .agent-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .agent-stat { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; }
+    .agent-stat .n { font-size: 1.2rem; font-weight: 800; color: #fff; }
+    .agent-stat .l { font-size: 0.6rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* MEMORY / ALERT */
+    .alert-card { border-radius: 12px; padding: 16px 18px; display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
+    .alert-card.warn { background: #fff7ed; border: 1px solid #fed7aa; }
+    .alert-card.success { background: #ecfdf5; border: 1px solid #a7f3d0; }
+    .alert-card.info { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .alert-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .alert-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
+    .alert-card.warn .alert-title { color: #9a3412; }
+    .alert-card.success .alert-title { color: #065f46; }
+    .alert-card.info .alert-title { color: #1e40af; }
+    .alert-body { font-size: 0.75rem; line-height: 1.5; }
+    .alert-card.warn .alert-body { color: #c2410c; }
+    .alert-card.success .alert-body { color: #047857; }
+    .alert-card.info .alert-body { color: #1d4ed8; }
+
+    /* KPI STATS */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .kpi-card { border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+    .kpi-card.accent { border-color: rgba(0,102,255,0.2); background: rgba(0,102,255,0.04); }
+    .kpi-card.good { border-color: rgba(16,185,129,0.2); background: rgba(16,185,129,0.04); }
+    .kpi-card.warn { border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.04); }
+    .kpi-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin-bottom: 6px; }
+    .kpi-value { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; color: var(--dark); margin-bottom: 2px; }
+    .kpi-value.blue { color: var(--blue); }
+    .kpi-value.green { color: #059669; }
+    .kpi-value.amber { color: #d97706; }
+    .kpi-sub { font-size: 0.7rem; color: rgba(0,0,0,0.35); }
+
+    /* FUNNEL */
+    .funnel { display: flex; flex-direction: column; gap: 8px; }
+    .funnel-row { display: flex; align-items: center; gap: 14px; }
+    .funnel-label { font-size: 0.75rem; font-weight: 600; color: rgba(0,0,0,0.5); width: 110px; flex-shrink: 0; }
+    .funnel-bar-wrap { flex: 1; background: rgba(0,0,0,0.06); border-radius: 100px; height: 10px; overflow: hidden; }
+    .funnel-bar-fill { height: 100%; border-radius: 100px; }
+    .funnel-num { font-size: 0.75rem; font-weight: 700; color: var(--dark); width: 40px; text-align: right; }
+
+    /* CHAT MOCKUP */
+    .chat-window { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
+    .chat-msg { max-width: 75%; }
+    .chat-msg.user { align-self: flex-end; }
+    .chat-bubble { border-radius: 14px; padding: 10px 14px; font-size: 0.82rem; line-height: 1.5; }
+    .chat-msg.bot .chat-bubble { background: var(--light); color: var(--dark); border-bottom-left-radius: 4px; }
+    .chat-msg.user .chat-bubble { background: var(--blue); color: #fff; border-bottom-right-radius: 4px; }
+    .chat-name { font-size: 0.62rem; font-weight: 700; color: rgba(0,0,0,0.3); margin-bottom: 4px; }
+    .chat-input-row { display: flex; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--border); }
+    .chat-input { flex: 1; background: var(--light); border: none; border-radius: 10px; padding: 10px 14px; font-size: 0.82rem; color: rgba(0,0,0,0.4); }
+    .chat-send { background: var(--blue); color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+
+    /* VIDA WIDGET */
+    .vida-widget { position: relative; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); width: 320px; overflow: hidden; }
+    .vida-header { background: var(--navy); padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+    .vida-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .vida-hname { font-size: 0.88rem; font-weight: 700; color: #fff; }
+    .vida-hstatus { font-size: 0.68rem; color: rgba(255,255,255,0.4); }
+    .vida-messages { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .vida-bot { background: var(--light); border-radius: 12px; border-bottom-left-radius: 4px; padding: 10px 12px; font-size: 0.78rem; color: var(--dark); line-height: 1.5; max-width: 88%; }
+    .vida-user { background: var(--blue); border-radius: 12px; border-bottom-right-radius: 4px; padding: 10px 12px; font-size: 0.78rem; color: #fff; line-height: 1.5; max-width: 88%; align-self: flex-end; }
+    .vida-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+    .vida-input { flex: 1; background: var(--light); border: none; border-radius: 8px; padding: 8px 12px; font-size: 0.78rem; color: rgba(0,0,0,0.4); }
+    .vida-btn { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-size: 0.78rem; font-weight: 600; }
+
+    /* DIGEST EMAIL MOCKUP */
+    .digest-email { background: #f8fafc; border-radius: 16px; padding: 28px; border: 1px solid rgba(0,0,0,0.06); }
+    .digest-header { background: var(--navy); border-radius: 10px; padding: 20px 24px; margin-bottom: 20px; }
+    .digest-header h3 { font-size: 1rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .digest-header p { font-size: 0.75rem; color: rgba(255,255,255,0.4); }
+    .digest-section { margin-bottom: 20px; }
+    .digest-section-title { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin-bottom: 10px; }
+    .digest-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .digest-stat { background: #fff; border-radius: 8px; padding: 12px 14px; border: 1px solid rgba(0,0,0,0.06); }
+    .digest-stat .n { font-size: 1.3rem; font-weight: 800; color: var(--dark); }
+    .digest-stat .l { font-size: 0.65rem; color: rgba(0,0,0,0.35); }
+
+    /* PARTNER */
+    .partner-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .partner-stat { background: var(--light); border-radius: 14px; padding: 24px; text-align: center; }
+    .partner-stat .n { font-size: 2rem; font-weight: 900; letter-spacing: -0.03em; color: var(--dark); margin-bottom: 4px; }
+    .partner-stat .n span { color: var(--blue); }
+    .partner-stat .l { font-size: 0.78rem; color: rgba(0,0,0,0.4); }
+
+    /* ADMIN */
+    .admin-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .admin-row:last-child { border-bottom: none; }
+    .admin-company { font-size: 0.85rem; font-weight: 700; flex: 1; }
+    .admin-sub { font-size: 0.7rem; color: rgba(0,0,0,0.35); }
+    .admin-badge { font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
+    .ab-trial { background: #fef9c3; color: #a16207; }
+    .ab-active { background: #dcfce7; color: #16a34a; }
+    .ab-credits { font-size: 0.78rem; font-weight: 700; color: var(--dark); }
+
+    /* CTA */
+    .demo-cta { background: var(--navy); padding: 100px 48px; text-align: center; }
+    .demo-cta h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 16px; }
+    .demo-cta p { font-size: 1rem; color: rgba(255,255,255,0.4); margin-bottom: 36px; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-cta-primary { background: var(--blue); color: #fff; font-size: 0.95rem; font-weight: 700; padding: 14px 28px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
+    .btn-cta-primary:hover { opacity: 0.85; }
+    .btn-cta-ghost { background: rgba(255,255,255,0.08); color: #fff; font-size: 0.95rem; font-weight: 600; padding: 14px 28px; border-radius: 100px; text-decoration: none; border: 1px solid rgba(255,255,255,0.15); transition: all .2s; }
+    .btn-cta-ghost:hover { background: rgba(255,255,255,0.14); }
+
+    /* FOOTER */
+    footer { background: #0a0a0a; padding: 40px 48px; text-align: center; }
+    footer p { font-size: 0.8rem; color: rgba(255,255,255,0.2); }
+    footer a { color: rgba(255,255,255,0.35); text-decoration: none; margin: 0 12px; font-size: 0.8rem; }
+    footer a:hover { color: rgba(255,255,255,0.7); }
+
+    /* REVEAL */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* BADGE */
+    .feature-count { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,102,255,0.08); border: 1px solid rgba(0,102,255,0.15); color: var(--blue); font-size: 0.72rem; font-weight: 700; padding: 4px 12px; border-radius: 100px; margin-bottom: 20px; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .demo-section { padding: 64px 20px; }
+      .split { grid-template-columns: 1fr; gap: 32px; }
+      .split.reverse { direction: ltr; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .chapter-nav { padding: 0 20px; }
+      .demo-hero { padding: 72px 20px 56px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <a href="https://app.get-kind.com/login" class="btn-nav-primary">Start free trial →</a>
+</nav>
+
+<!-- CHAPTER NAV -->
+<div class="chapter-nav" id="chapterNav">
+  <a href="#lead-gen" class="ch-link active">01 Lead Generation</a>
+  <a href="#figsy" class="ch-link">02 FIGSY AI SDR</a>
+  <a href="#figsy-intelligence" class="ch-link">03 FIGSY Intelligence</a>
+  <a href="#kpis" class="ch-link">04 KPIs Dashboard</a>
+  <a href="#milla" class="ch-link">05 Virtual Assistant</a>
+  <a href="#vida" class="ch-link">06 Chatbot Agent</a>
+  <a href="#admin" class="ch-link">07 Admin Portal</a>
+  <a href="#partners" class="ch-link">08 Partner Programme</a>
+</div>
+
+<!-- HERO -->
+<div class="demo-hero">
+  <div class="demo-hero-label">Full Platform Demo</div>
+  <h1>Every feature.<br>One walkthrough.</h1>
+  <p>See exactly how K.I.N.D finds your ideal clients, runs outreach, handles replies, and books meetings — fully automated.</p>
+  <div class="hero-chapters">
+    <a href="#lead-gen" class="hero-ch">Lead Generation</a>
+    <a href="#figsy" class="hero-ch">FIGSY AI SDR</a>
+    <a href="#figsy-intelligence" class="hero-ch">Agent Intelligence</a>
+    <a href="#kpis" class="hero-ch">KPIs Dashboard</a>
+    <a href="#milla" class="hero-ch">Virtual Assistant</a>
+    <a href="#vida" class="hero-ch">Chatbot Agent</a>
+    <a href="#admin" class="hero-ch">Admin Portal</a>
+    <a href="#partners" class="hero-ch">Partner Programme</a>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- 01. LEAD GENERATION -->
+<!-- ────────────────────────────────────────────────────────── -->
+<div id="lead-gen" style="background:var(--light);padding:100px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="split">
+      <div>
+        <div class="feature-count">Chapter 01</div>
+        <div class="sec-label">Lead Generation</div>
+        <h2 class="sec-title reveal">Find your ideal clients. Automatically.</h2>
+        <p class="sec-sub reveal reveal-delay-1">Define your Ideal Customer Profile — industry, job title, seniority, company size, geography, tech stack. K.I.N.D pulls verified contacts from 250M+ professionals, scores each one with AI, and delivers a ranked list ready for outreach.</p>
+        <div class="feat-grid" style="grid-template-columns:1fr 1fr;margin-top:0">
+          <div class="feat-card reveal reveal-delay-1">
+            <div class="feat-icon">🎯</div>
+            <h4>AI ICP Suggest</h4>
+            <p>Claude analyses your company profile and auto-fills your ICP. One click.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-2">
+            <div class="feat-icon">🔍</div>
+            <h4>250M+ contacts</h4>
+            <p>Apollo.io database. Verified emails. Real decision-makers.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-2">
+            <div class="feat-icon">🧠</div>
+            <h4>AI Lead Scoring</h4>
+            <p>Claude scores each lead 0–100 with written reasoning.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-3">
+            <div class="feat-icon">🛡️</div>
+            <h4>POPIA Compliant</h4>
+            <p>Consent tracking, opt-out blocklist, full audit trail.</p>
+          </div>
+        </div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <div class="app-shell">
+          <div class="app-titlebar">
+            <div class="tb-dot" style="background:#ff5f57"></div>
+            <div class="tb-dot" style="background:#febc2e"></div>
+            <div class="tb-dot" style="background:#28c840"></div>
+            <div class="tb-url">app.get-kind.com/dashboard/leads</div>
+          </div>
+          <div class="app-content">
+            <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,0,0,0.3);margin-bottom:16px">ICP Builder</div>
+            <div class="icp-form">
+              <div class="icp-row">
+                <div class="icp-field">
+                  <label>Industry</label>
+                  <div class="val">Financial Services</div>
+                </div>
+                <div class="icp-field">
+                  <label>Geography</label>
+                  <div class="val">South Africa</div>
+                </div>
+              </div>
+              <div class="icp-row">
+                <div class="icp-field">
+                  <label>Job Titles</label>
+                  <div class="val">CEO, MD, Founder</div>
+                </div>
+                <div class="icp-field">
+                  <label>Company Size</label>
+                  <div class="val">10 – 200 employees</div>
+                </div>
+              </div>
+              <div class="icp-ai-btn">
+                ✦ &nbsp;Suggest ICP with AI
+              </div>
+            </div>
+            <div style="margin-top:20px;font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,0,0,0.3);margin-bottom:10px">Top leads this week</div>
+            <table class="lead-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Title</th>
+                  <th>Score</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Sarah Dlamini</strong></td>
+                  <td style="color:rgba(0,0,0,0.5)">CEO</td>
+                  <td><span class="score-badge score-high">92</span></td>
+                  <td><span class="status-tag">Contacted</span></td>
+                </tr>
+                <tr>
+                  <td><strong>James Nkosi</strong></td>
+                  <td style="color:rgba(0,0,0,0.5)">MD</td>
+                  <td><span class="score-badge score-high">87</span></td>
+                  <td><span class="status-tag">Replied ✓</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Priya Patel</strong></td>
+                  <td style="color:rgba(0,0,0,0.5)">Founder</td>
+                  <td><span class="score-badge score-mid">74</span></td>
+                  <td><span class="status-tag">New</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- 02. FIGSY AI SDR -->
+<!-- ────────────────────────────────────────────────────────── -->
+<div id="figsy" style="background:var(--dark);padding:100px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="split reverse">
+      <div>
+        <div class="feature-count" style="background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.2);color:#60a5fa">Chapter 02</div>
+        <div class="sec-label light">FIGSY — AI SDR</div>
+        <h2 class="sec-title light reveal">Your outreach agent.<br>Running 24/7.</h2>
+        <p class="sec-sub light reveal reveal-delay-1">FIGSY writes a unique, personalised email for every lead — never a template. A 3-step follow-up sequence fires automatically. When a prospect replies, FIGSY reads it, classifies intent, handles objections, and books the meeting. You just show up.</p>
+        <div class="feat-grid" style="grid-template-columns:1fr 1fr;margin-top:0">
+          <div class="feat-card dark-card reveal reveal-delay-1">
+            <div class="feat-icon">✍️</div>
+            <h4>Zero templates</h4>
+            <p>Claude writes a unique email per lead. Role, company, industry signals.</p>
+          </div>
+          <div class="feat-card dark-card reveal reveal-delay-2">
+            <div class="feat-icon">🔄</div>
+            <h4>3-step sequences</h4>
+            <p>Day 1, Day 4, Day 9. Humanised. Each one builds on the last.</p>
+          </div>
+          <div class="feat-card dark-card reveal reveal-delay-2">
+            <div class="feat-icon">💬</div>
+            <h4>Reply handling</h4>
+            <p>5-category classification. Objections handled. Opt-outs blocked.</p>
+          </div>
+          <div class="feat-card dark-card reveal reveal-delay-3">
+            <div class="feat-icon">📅</div>
+            <h4>Meets booked</h4>
+            <p>Interested reply → meeting booked to your calendar instantly.</p>
+          </div>
+        </div>
+      </div>
+      <div class="reveal reveal-delay-1">
+        <div class="app-shell dark-shell">
+          <div class="app-titlebar dark-bar">
+            <div class="tb-dot" style="background:#ff5f57"></div>
+            <div class="tb-dot" style="background:#febc2e"></div>
+            <div class="tb-dot" style="background:#28c840"></div>
+            <div class="tb-url dark-url">app.get-kind.com/dashboard/figsy</div>
+          </div>
+          <div class="app-content">
+            <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.2);margin-bottom:14px">Active Campaigns</div>
+            <div class="campaign-card" style="background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.08)">
+              <div>
+                <div class="camp-name" style="color:#fff">SA Fintech Q2</div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,0.25)">Started 12 May · 48 enrolled</div>
+              </div>
+              <div class="camp-stat"><div class="camp-stat num" style="color:#fff">312</div><div class="camp-stat lbl" style="color:rgba(255,255,255,0.25)">Sent</div></div>
+              <div class="camp-stat"><div class="camp-stat num" style="color:#34d399">6.7%</div><div class="camp-stat lbl" style="color:rgba(255,255,255,0.25)">Reply</div></div>
+              <span class="camp-status s-active">Active</span>
+            </div>
+            <div class="campaign-card" style="background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.08);margin-top:8px">
+              <div>
+                <div class="camp-name" style="color:#fff">Lagos Tech Founders</div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,0.25)">Started 8 May · 32 enrolled</div>
+              </div>
+              <div class="camp-stat"><div class="camp-stat num" style="color:#fff">198</div><div class="camp-stat lbl" style="color:rgba(255,255,255,0.25)">Sent</div></div>
+              <div class="camp-stat"><div class="camp-stat num" style="color:#34d399">4.2%</div><div class="camp-stat lbl" style="color:rgba(255,255,255,0.25)">Reply</div></div>
+              <span class="camp-status s-active">Active</span>
+            </div>
+            <div style="margin-top:20px;font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.2);margin-bottom:12px">Email sequence — SA Fintech Q2</div>
+            <div class="seq-step">
+              <div class="seq-num">1</div>
+              <div class="seq-body" style="background:rgba(255,255,255,0.06)">
+                <div class="seq-day" style="color:rgba(255,255,255,0.25)">Day 1 · Sent</div>
+                <div class="seq-subject" style="color:#fff">Saw you're scaling your fintech — thought this was relevant</div>
+                <div class="seq-preview" style="color:rgba(255,255,255,0.4)">"Hi Sarah, noticed Acme just expanded into payments. Worth 15 minutes this week?"</div>
+              </div>
+            </div>
+            <div class="seq-step">
+              <div class="seq-num" style="background:rgba(0,102,255,0.4)">2</div>
+              <div class="seq-body" style="background:rgba(255,255,255,0.04)">
+                <div class="seq-day" style="color:rgba(255,255,255,0.2)">Day 4 · Scheduled</div>
+                <div class="seq-subject" style="color:rgba(255,255,255,0.7)">Quick follow-up — still relevant?</div>
+                <div class="seq-preview" style="color:rgba(255,255,255,0.3)">Soft check-in. Acknowledges they're busy.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- 03. FIGSY INTELLIGENCE -->
+<!-- ────────────────────────────────────────────────────────── -->
+<div id="figsy-intelligence" style="padding:100px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="feature-count">Chapter 03</div>
+    <div class="sec-label">FIGSY Intelligence</div>
+    <h2 class="sec-title reveal">An agent that thinks,<br>remembers, and self-manages.</h2>
+    <p class="sec-sub reveal reveal-delay-1">Unlike basic automation, FIGSY learns from every campaign, monitors its own performance, auto-pauses dead campaigns before credits are wasted, and sends you a full outreach report every Monday morning — without you asking.</p>
+
+    <div class="split" style="margin-top:48px">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="reveal">
+          <div class="alert-card success">
+            <div class="alert-icon">🧠</div>
+            <div>
+              <div class="alert-title">Campaign memory updated</div>
+              <div class="alert-body">Your avg reply rate over the last 30 days: <strong>5.4%</strong> (industry avg: 3%). Best performing subject line style: question-led openers. Total sent all time: 1,247.</div>
+            </div>
+          </div>
+        </div>
+        <div class="reveal reveal-delay-1">
+          <div class="alert-card warn">
+            <div class="alert-icon">⚠️</div>
+            <div>
+              <div class="alert-title">Campaign auto-paused — low performance</div>
+              <div class="alert-body"><strong>Cape Town Retail Q2</strong> has a 0.6% reply rate after 42 emails. FIGSY paused it automatically. Review your ICP or messaging and reactivate when ready.</div>
+            </div>
+          </div>
+        </div>
+        <div class="reveal reveal-delay-2">
+          <div class="alert-card info">
+            <div class="alert-icon">📬</div>
+            <div>
+              <div class="alert-title">Monday digest sent — 19 May 2026</div>
+              <div class="alert-body">This week: <strong>87 emails sent</strong> · <strong>4 interested replies</strong> · reply rate 4.6% · 2 active campaigns. Full report delivered to your inbox.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal reveal-delay-1">
+        <div class="digest-email">
+          <div class="digest-header">
+            <h3>Your weekly K.I.N.D report</h3>
+            <p>Week of 13 – 19 May 2026</p>
+          </div>
+          <div class="digest-section">
+            <div class="digest-section-title">Lead Generation</div>
+            <div class="digest-stats">
+              <div class="digest-stat"><div class="n">247</div><div class="l">Total leads</div></div>
+              <div class="digest-stat"><div class="n">34</div><div class="l">New this week</div></div>
+              <div class="digest-stat"><div class="n">81</div><div class="l">Avg score</div></div>
+              <div class="digest-stat"><div class="n">$420k</div><div class="l">Pipeline value</div></div>
+            </div>
+          </div>
+          <div class="digest-section">
+            <div class="digest-section-title">FIGSY Outreach</div>
+            <div class="digest-stats">
+              <div class="digest-stat"><div class="n">87</div><div class="l">Emails sent</div></div>
+              <div class="digest-stat"><div class="n" style="color:#059669">4.6%</div><div class="l">Reply rate (avg: 3%)</div></div>
+              <div class="digest-stat"><div class="n">4</div><div class="l">Interested replies</div></div>
+              <div class="digest-stat"><div class="n">2</div><div class="l">Active campaigns</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- 04. KPIs DASHBOARD -->
+<!-- ────────────────────────────────────────────────────────── -->
+<div id="kpis" style="background:var(--light);padding:100px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="feature-count">Chapter 04</div>
+    <div class="sec-label">KPIs Dashboard</div>
+    <h2 class="sec-title reveal">Your entire pipeline.<br>One screen.</h2>
+    <p class="sec-sub reveal reveal-delay-1">Lead pipeline value, FIGSY reply rates benchmarked against industry averages, a live funnel from sourced to interested — all in one dashboard. Updated in real time.</p>
+
+    <div class="app-shell reveal reveal-delay-1">
+      <div class="app-titlebar">
+        <div class="tb-dot" style="background:#ff5f57"></div>
+        <div class="tb-dot" style="background:#febc2e"></div>
+        <div class="tb-dot" style="background:#28c840"></div>
+        <div class="tb-url">app.get-kind.com/dashboard/kpis</div>
+      </div>
+      <div class="app-content">
+        <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,0,0,0.3);margin-bottom:14px">Lead Pipeline</div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">Total Leads</div><div class="kpi-value">247</div><div class="kpi-sub">All time</div></div>
+          <div class="kpi-card accent"><div class="kpi-label">Avg Score</div><div class="kpi-value blue">81</div><div class="kpi-sub">↑ above 70 threshold</div></div>
+          <div class="kpi-card"><div class="kpi-label">POPIA Consented</div><div class="kpi-value">63</div><div class="kpi-sub">Ready for outreach</div></div>
+          <div class="kpi-card good"><div class="kpi-label">Pipeline Value</div><div class="kpi-value green">$420k</div><div class="kpi-sub">Estimated deal value</div></div>
+        </div>
+        <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,0,0,0.3);margin:20px 0 14px">FIGSY Outreach</div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">Emails Sent</div><div class="kpi-value">1,247</div><div class="kpi-sub">All campaigns</div></div>
+          <div class="kpi-card good"><div class="kpi-label">Reply Rate</div><div class="kpi-value green">5.4%</div><div class="kpi-sub">Industry avg: 3%</div></div>
+          <div class="kpi-card accent"><div class="kpi-label">Interested</div><div class="kpi-value blue">24</div><div class="kpi-sub">Warm prospects</div></div>
+          <div class="kpi-card"><div class="kpi-label">Campaigns</div><div class="kpi-value">2</div><div class="kpi-sub">Active now</div></div>
+        </div>
+        <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,0,0,0.3);margin:20px 0 14px">Pipeline Funnel</div>
+        <div class="funnel">
+          <div class="funnel-row"><div class="funnel-label">Total sourced</div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:100%;background:#0066FF"></div></div><div class="funnel-num">247</div></div>
+          <div class="funnel-row"><div class="funnel-label">Scored ≥70</div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:72%;background:#6366f1"></div></div><div class="funnel-num">178</div></div>
+          <div class="funnel-row"><div class="funnel-label">Contacted</div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:48%;background:#8b5cf6"></div></div><div class="funnel-num">119</div></div>
+          <div class="funnel-row"><div class="funnel-label">Replied</div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:26%;background:#a78bfa"></div></div><div class="funnel-num">64</div></div>
+          <div class="funnel-row"><div class="funnel-label">Interested</div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:10%;background:#34d399"></div></div><div class="funnel-num">24</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- 05. VIRTUAL ASSISTANT (MILLA) -->
+<!-- ────────────────────────────────────────────────────────── -->
+<div id="milla" style="padding:100px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="split">
+      <div>
+        <div class="feature-count">Chapter 05</div>
+        <div class="sec-label">Virtual Assistant — Milla</div>
+        <h2 class="sec-title reveal">Your business knowledge.<br>Always on call.</h2>
+        <p class="sec-sub reveal reveal-delay-1">Upload your documents — contracts, SOPs, pricing guides, product docs. Milla learns from them and answers questions instantly. Your team stops searching and starts asking.</p>
+        <div class="feat-grid" style="grid-template-columns:1fr 1fr;margin-top:0">
+          <div class="feat-card reveal reveal-delay-1">
+            <div class="feat-icon">📄</div>
+            <h4>Document upload</h4>
+            <p>PDFs, Word docs, spreadsheets. Milla reads everything.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-2">
+            <div class="feat-icon">🔗</div>
+            <h4>Source attribution</h4>
+            <p>Every answer cites which document it came from.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-2">
+            <div class="feat-icon">⚡</div>
+            <h4>Instant answers</h4>
+            <p>No more searching 40-page PDFs. Just ask.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-3">
+            <div class="feat-icon">🔒</div>
+            <h4>Private by default</h4>
+            <p>Your docs never leave your workspace. RLS protected.</p>
+          </div>
+        </div>
+        <div style="margin-top:20px;background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:14px 18px;font-size:0.78rem;color:#a16207;font-weight:600">
+          Launching July 2026
+        </div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <div class="app-shell">
+          <div class="app-titlebar">
+            <div class="tb-dot" style="background:#ff5f57"></div>
+            <div class="tb-dot" style="background:#febc2e"></div>
+            <div class="tb-dot" style="background:#28c840"></div>
+            <div class="tb-url">app.get-kind.com/dashboard/assistant</div>
+          </div>
+          <div class="chat-window">
+            <div class="chat-msg bot">
+              <div class="chat-name">Milla — Virtual Assistant</div>
+              <div class="chat-bubble">Hi! I've read your 4 uploaded documents. I know your pricing, onboarding SOP, service agreement, and product FAQ. What would you like to know?</div>
+            </div>
+            <div class="chat-msg user">
+              <div class="chat-bubble">What's our refund policy for enterprise clients?</div>
+            </div>
+            <div class="chat-msg bot">
+              <div class="chat-bubble">According to your <strong>Service Agreement (Section 8.3)</strong>, enterprise clients are eligible for a pro-rata refund within 30 days of payment if the service hasn't been used. After 30 days, no refund applies but the account remains active until the period ends.</div>
+            </div>
+            <div class="chat-msg user">
+              <div class="chat-bubble">What's the onboarding timeline?</div>
+            </div>
+            <div class="chat-msg bot">
+              <div class="chat-bubble">From your <strong>Onboarding SOP</strong>: Day 1 — ICP setup and first lead batch. Day 3 — FIGSY campaign launch. Day 7 — first reply review call. Full ramp: 14 days.</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <div class="chat-input">Ask anything about your business…</div>
+            <button class="chat-send">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- 06. CHATBOT AGENT (VIDA) -->
+<!-- ────────────────────────────────────────────────────────── -->
+<div id="vida" style="background:var(--light);padding:100px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="split reverse">
+      <div>
+        <div class="feature-count">Chapter 06</div>
+        <div class="sec-label">Chatbot Agent — Vida</div>
+        <h2 class="sec-title reveal">AI on your website.<br>Capturing leads 24/7.</h2>
+        <p class="sec-sub reveal reveal-delay-1">Vida is a fully configured AI chatbot for your website or WhatsApp. She answers queries, captures lead details, and hands off to your team when it's time to close. One line of embed code — live in minutes.</p>
+        <div class="feat-grid" style="grid-template-columns:1fr 1fr;margin-top:0">
+          <div class="feat-card reveal reveal-delay-1">
+            <div class="feat-icon">🌐</div>
+            <h4>Website embed</h4>
+            <p>One line of code. Works on any website, any platform.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-2">
+            <div class="feat-icon">📱</div>
+            <h4>WhatsApp ready</h4>
+            <p>Same agent, same training — available on WhatsApp too.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-2">
+            <div class="feat-icon">🎨</div>
+            <h4>Fully branded</h4>
+            <p>Your colours, your name, your tone of voice.</p>
+          </div>
+          <div class="feat-card reveal reveal-delay-3">
+            <div class="feat-icon">🤝</div>
+            <h4>Human handoff</h4>
+            <p>Escalates to your team when a lead is ready to buy.</p>
+          </div>
+        </div>
+        <div style="margin-top:20px;background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:14px 18px;font-size:0.78rem;color:#a16207;font-weight:600">
+          Launching July 2026
+        </div>
+      </div>
+      <div class="reveal reveal-delay-2" style="display:flex;justify-content:center">
+        <div style="position:relative">
+          <div style="background:#e5e7eb;border-radius:16px;padding:40px 32px;font-size:0.82rem;color:#6b7280;text-align:center;margin-bottom:16px;width:320px">
+            <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,0,0,0.3);margin-bottom:8px">Your website</div>
+            <div style="height:60px;background:rgba(0,0,0,0.06);border-radius:8px;margin-bottom:8px"></div>
+            <div style="height:40px;background:rgba(0,0,0,0.06);border-radius:8px;width:70%;margin:0 auto"></div>
+          </div>
+          <div class="vida-widget" style="position:absolute;bottom:-20px;right:-20px">
+            <div class="vida-header">
+              <div class="vida-avatar">🤖</div>
+              <div>
+                <div class="vida-hname">Vida</div>
+                <div class="vida-hstatus">● Online — typically replies instantly</div>
+              </div>
+            </div>
+            <div class="vida-messages">
+              <div class="vida-bot">Hi! I'm Vida. How can I help you today?</div>
+              <div class="vida-user">What services do you offer?</div>
+              <div class="vida-bot">We offer AI-powered lead generation, outreach automation, and a virtual assistant. Want me to walk you through pricing?</div>
+            </div>
+            <div class="vida-footer">
+              <input class="vida-input" placeholder="Type a message…" />
+              <button class="vida-btn">→</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- 07. ADMIN PORTAL -->
+<!-- ────────────────────────────────────────────────────────── -->
+<div id="admin" style="background:var(--dark);padding:100px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="feature-count" style="background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.2);color:#60a5fa">Chapter 07</div>
+    <div class="sec-label light">Admin Portal</div>
+    <h2 class="sec-title light reveal">Full visibility over<br>every client.</h2>
+    <p class="sec-sub light reveal reveal-delay-1">The admin dashboard gives your team everything — MRR, client pipeline, credit management, trial monitoring, demo environments for sales, and a weekly AI-written founder digest.</p>
+
+    <div class="split" style="margin-top:48px">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="reveal">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:18px 16px;text-align:center">
+              <div style="font-size:1.6rem;font-weight:900;color:#fff">12</div>
+              <div style="font-size:0.62rem;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.08em">Active clients</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:18px 16px;text-align:center">
+              <div style="font-size:1.6rem;font-weight:900;color:#34d399">R8,400</div>
+              <div style="font-size:0.62rem;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.08em">MRR</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:18px 16px;text-align:center">
+              <div style="font-size:1.6rem;font-weight:900;color:#60a5fa">4</div>
+              <div style="font-size:0.62rem;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.08em">On trial</div>
+            </div>
+          </div>
+        </div>
+        <div class="feat-grid" style="grid-template-columns:1fr 1fr;margin-top:4px">
+          <div class="feat-card dark-card reveal reveal-delay-1">
+            <div class="feat-icon">🎭</div>
+            <h4>Demo Environments</h4>
+            <p>Create a live demo for prospects in one click. Real data, real AI — expires automatically.</p>
+          </div>
+          <div class="feat-card dark-card reveal reveal-delay-1">
+            <div class="feat-icon">🪙</div>
+            <h4>Credit Management</h4>
+            <p>Grant, refund, or adjust credits per client with full transaction history.</p>
+          </div>
+          <div class="feat-card dark-card reveal reveal-delay-2">
+            <div class="feat-icon">⚠️</div>
+            <h4>At-risk Alerts</h4>
+            <p>Daily flag of clients who haven't set up an ICP or run leads after 3 days.</p>
+          </div>
+          <div class="feat-card dark-card reveal reveal-delay-2">
+            <div class="feat-icon">📊</div>
+            <h4>Weekly AI Digest</h4>
+            <p>Claude writes the founder a business summary every Friday afternoon.</p>
+          </div>
+        </div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <div class="app-shell dark-shell">
+          <div class="app-titlebar dark-bar">
+            <div class="tb-dot" style="background:#ff5f57"></div>
+            <div class="tb-dot" style="background:#febc2e"></div>
+            <div class="tb-dot" style="background:#28c840"></div>
+            <div class="tb-url dark-url">admin.get-kind.com/clients</div>
+          </div>
+          <div class="app-content">
+            <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.2);margin-bottom:14px">All Clients</div>
+            <div class="admin-row">
+              <div style="flex:1"><div class="admin-company" style="color:#fff">Acme Fintech</div><div class="admin-sub">admin@acme.co.za · Joined 2 May</div></div>
+              <span class="admin-badge ab-active">Active</span>
+              <div class="ab-credits" style="color:#fff">340 cr</div>
+            </div>
+            <div class="admin-row">
+              <div style="flex:1"><div class="admin-company" style="color:#fff">Lagos Growth Co</div><div class="admin-sub">ceo@lagosgrowth.ng · Joined 8 May</div></div>
+              <span class="admin-badge ab-trial">Trial</span>
+              <div class="ab-credits" style="color:#fff">100 cr</div>
+            </div>
+            <div class="admin-row">
+              <div style="flex:1"><div class="admin-company" style="color:#fff">Cape Retail Ltd</div><div class="admin-sub">ops@caperetail.co.za · Joined 14 May</div></div>
+              <span class="admin-badge ab-trial">Trial</span>
+              <div class="ab-credits" style="color:#fff">85 cr</div>
+            </div>
+            <div class="admin-row">
+              <div style="flex:1"><div class="admin-company" style="color:#fff">Nairobi SaaS</div><div class="admin-sub">founder@nairobi.io · Joined 16 May</div></div>
+              <span class="admin-badge ab-active">Active</span>
+              <div class="ab-credits" style="color:#fff">210 cr</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- 08. PARTNER PROGRAMME -->
+<!-- ────────────────────────────────────────────────────────── -->
+<div id="partners" style="padding:100px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="feature-count">Chapter 08</div>
+    <div class="sec-label">Partner Programme</div>
+    <h2 class="sec-title reveal">Refer clients.<br>Earn recurring commission.</h2>
+    <p class="sec-sub reveal reveal-delay-1">Partners earn 20% recurring commission on every client they refer — paid monthly for as long as the client stays. Clients who refer other clients earn 100 credits each way. Every referral tracked automatically.</p>
+
+    <div class="partner-stats reveal reveal-delay-1">
+      <div class="partner-stat">
+        <div class="n">20<span>%</span></div>
+        <div class="l">Recurring commission on every referral</div>
+      </div>
+      <div class="partner-stat">
+        <div class="n">100</div>
+        <div class="l">Credits earned by client referrals — both ways</div>
+      </div>
+      <div class="partner-stat">
+        <div class="n">∞</div>
+        <div class="l">No cap on referrals or commission earned</div>
+      </div>
+    </div>
+
+    <div class="feat-grid" style="margin-top:32px">
+      <div class="feat-card reveal reveal-delay-1">
+        <div class="feat-icon">🔗</div>
+        <h4>Unique referral link</h4>
+        <p>Every partner gets a unique <code>?ref=</code> link. Tracked through signup automatically.</p>
+      </div>
+      <div class="feat-card reveal reveal-delay-2">
+        <div class="feat-icon">📈</div>
+        <h4>Live referral dashboard</h4>
+        <p>See who you referred, their subscription status, and total commission earned.</p>
+      </div>
+      <div class="feat-card reveal reveal-delay-3">
+        <div class="feat-icon">🤝</div>
+        <h4>Apply in the portal</h4>
+        <p>One-click application from the Partners page. Approved by admin. No paperwork.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="demo-cta">
+  <h2>Ready to build your pipeline?</h2>
+  <p>14-day free trial. No credit card. Cancel anytime.</p>
+  <div class="cta-btns">
+    <a href="https://app.get-kind.com/login" class="btn-cta-primary">Start free trial →</a>
+    <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="btn-cta-ghost">Book a demo</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p style="margin-bottom:12px">
+    <a href="/">Home</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="about.html">About</a>
+    <a href="trust.html">Trust &amp; Security</a>
+    <a href="partners.html">Partners</a>
+    <a href="support.html">Support</a>
+  </p>
+  <p>© 2026 K.I.N.D. All rights reserved.</p>
+</footer>
+
+<script>
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal')
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') })
+  }, { threshold: 0.1 })
+  reveals.forEach(el => observer.observe(el))
+
+  // Chapter nav active state
+  const sections = document.querySelectorAll('[id]')
+  const chLinks = document.querySelectorAll('.ch-link')
+  const navObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        chLinks.forEach(l => l.classList.remove('active'))
+        const active = document.querySelector(`.ch-link[href="#${e.target.id}"]`)
+        if (active) {
+          active.classList.add('active')
+          active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+        }
+      }
+    })
+  }, { threshold: 0.4 })
+  sections.forEach(s => navObserver.observe(s))
+</script>
+
+</body>
+</html>

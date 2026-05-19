@@ -109,9 +109,84 @@ Complete start-to-finish — all paths.
 
 ---
 
-## Note on flowchart
+## Flowchart — All 7 Paths
 
-A visual flowchart does not yet exist — this is the text SOP. If you want a Mermaid diagram or a visual flow built into the admin portal, say the word and it can be added.
+```mermaid
+flowchart TD
+    %% ── ENTRY POINTS ──
+    WEB([get-kind.com\nStart free trial]) --> SIGNUP
+    AE_SEND([AE sends client\nto get-kind.com]) --> SIGNUP
+    AE_DEMO([AE goes to\nadmin.get-kind.com]) --> DEMO_FORM
+
+    %% ── COMMON SIGNUP FLOW ──
+    SIGNUP[app.get-kind.com/login\nSign up with email + password]
+    SIGNUP --> ONBOARD[/onboard\nCompany · Industry · Country · Phone · Website]
+    ONBOARD --> DB_CREATE[(DB: client row created\n14-day trial subscription\nWelcome email via Resend)]
+    DB_CREATE --> DASHBOARD[Dashboard loads\nTrial banner visible]
+
+    %% ── PATH 1: SELF-SERVICE TRIAL ──
+    DASHBOARD --> ICP[Build ICP\nApollo search fires automatically]
+    ICP --> LEADS[Leads appear\nAI scored 0–100]
+    LEADS --> EXPLORE[Explore for 14 days]
+    EXPLORE --> TRIAL_END{Day 14\nTrial expires?}
+    TRIAL_END -->|Yes| OVERLAY[Full-screen overlay\nYour trial has ended]
+    OVERLAY --> BILLING_PAGE[Billing page]
+    BILLING_PAGE --> PAYSTACK[Paystack checkout]
+    PAYSTACK --> PAID{Payment\nsucceeds?}
+    PAID -->|Yes| ACTIVE([Subscription active\nFull access ✅])
+    PAID -->|No| ABANDONED([Trial expired\nNo charge\nAdmin shows as expired])
+    TRIAL_END -->|No — still in trial| EXPLORE
+
+    %% ── PATH 2: AE-ASSISTED ──
+    DB_CREATE --> AE_ALERT[AE sees new client\nin admin portal]
+    AE_ALERT --> AE_CALL[AE calls / emails client\nwalks them through platform]
+    AE_CALL --> BILLING_PAGE
+
+    %% ── PATH 3: PAY DAY 1 ──
+    DASHBOARD --> SKIP_TRIAL[Client goes straight\nto Billing]
+    SKIP_TRIAL --> PAYSTACK
+    PAYSTACK --> PAID
+
+    %% ── PATH 4: TRIAL EXPIRED, NEVER PAID ──
+    OVERLAY -->|Client returns later| BILLING_PAGE
+
+    %% ── PATH 5: UPGRADE TO BUNDLE ──
+    ACTIVE --> UPGRADE[Active client\ngoes to Billing]
+    UPGRADE --> FIGSY_BUNDLE[Selects FIGSY bundle\nPaystack payment]
+    FIGSY_BUNDLE --> NEW_SUB[(New subscription:\nlead_gen_figsy)]
+    NEW_SUB --> FIGSY_UNLOCKED[FIGSY unlocked\non dashboard]
+    FIGSY_UNLOCKED --> ADMIN_CANCEL[Admin cancels\nold Lead Gen sub]
+
+    %% ── PATH 6: FIGSY ADD-ON (MANUAL) ──
+    ACTIVE --> ADDON[Client requests\nFIGSY add-on]
+    ADDON --> AE_MANUAL[AE grants FIGSY\nsubscription in admin portal]
+    AE_MANUAL --> FIGSY_UNLOCKED
+
+    %% ── PATH 7: SALES DEMO ──
+    DEMO_FORM[Fill in: prospect name · company\nindustry · country · expiry · AE]
+    DEMO_FORM --> DEMO_CREATE[(System creates:\nReal Supabase user + client\nAll 4 products active\nApollo ICP runs automatically)]
+    DEMO_CREATE --> DEMO_LEADS[Real leads appear\nwith AI scores]
+    DEMO_LEADS --> OPEN_DEMO[AE clicks Open Demo\nPortal opens as demo client]
+    OPEN_DEMO --> DEMO_WALKTHROUGH[AE walks prospect through\nlive platform]
+    DEMO_WALKTHROUGH --> DEMO_END{Demo outcome}
+    DEMO_END -->|Prospect converts| SIGNUP
+    DEMO_END -->|Expires / AE closes| DEMO_EXPIRED([Demo expired\nAuto or manual])
+
+    %% ── STYLING ──
+    classDef entry fill:#0066FF,color:#fff,stroke:none,rx:8
+    classDef action fill:#f5f5f7,stroke:#d1d5db,color:#0a0a0a
+    classDef db fill:#7c3aed,color:#fff,stroke:none
+    classDef success fill:#059669,color:#fff,stroke:none
+    classDef dead fill:#6b7280,color:#fff,stroke:none
+    classDef decision fill:#d97706,color:#fff,stroke:none
+
+    class WEB,AE_SEND,AE_DEMO entry
+    class SIGNUP,ONBOARD,DASHBOARD,ICP,LEADS,EXPLORE,OVERLAY,BILLING_PAGE,PAYSTACK,AE_ALERT,AE_CALL,SKIP_TRIAL,UPGRADE,FIGSY_BUNDLE,FIGSY_UNLOCKED,ADMIN_CANCEL,ADDON,AE_MANUAL,DEMO_FORM,DEMO_LEADS,OPEN_DEMO,DEMO_WALKTHROUGH action
+    class DB_CREATE,NEW_SUB,DEMO_CREATE db
+    class ACTIVE,DEMO_EXPIRED success
+    class ABANDONED dead
+    class TRIAL_END,PAID,DEMO_END decision
+```
 
 ---
 

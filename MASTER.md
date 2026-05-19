@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 18 May 2026**
+**Single source of truth. Last updated: 19 May 2026**
 **Business: UK registered (Companies House) · Platform: Africa-first, world-ready**
 
 > Everything in one place. Status, roadmap, post-launch plan, expansion, compliance, SOPs, cashflow.
@@ -117,18 +117,22 @@
 | RLS fixed on credit_transactions (was missing — security issue) | ✅ Done |
 | Launch checklist updated — Google Workspace, Paystack KYC, booking link sections | ✅ Done |
 | Client flow SOP updated — removed email confirmation steps, added demo path | ✅ Done |
+| KPIs dashboard — parallel lead + FIGSY stats, funnel, benchmarks | ✅ Done |
+| Referral flow complete — ?ref= persistence, /clients/referrals endpoint, credit audit trail | ✅ Done |
+| **FIGSY agent memory** — `figsy_memory` table, refresh endpoint, all-client cron | ✅ Done 19 May |
+| **FIGSY weekly digest upgrade** — FIGSY outreach stats added to Monday digest email | ✅ Done 19 May |
+| **FIGSY escalation alerts** — auto-pauses campaigns <1% reply rate, notifies client | ✅ Done 19 May |
+| **FIGSY identity card** — named agent card in portal with live stats + auto-pause status | ✅ Done 19 May |
 
 ### Ready Now (say the word)
 | Task | Time |
 |---|---|
 | Fix "Book a Demo" buttons | 5 mins (need your booking URL first) |
 | Update Vida image | 5 mins (need you to upload vida.png) |
-| Add visual flowchart to client-flow-sop.md | 15 mins |
 | Paystack end-to-end test after live key is set | 30 mins |
 | FIGSY campaign end-to-end test | 30 mins |
 | KIND's own FIGSY campaign setup (dogfooding GTM) | 1 hour |
 | GBP pricing on website after Stripe live | 30 mins |
-| KPIs page in portal (/dashboard/kpis) | 1 hour |
 | Fix any errors — share screenshot | Ready |
 
 ---
@@ -170,8 +174,9 @@
 | Item | Notes |
 |---|---|
 | Multi-channel FIGSY | Email + WhatsApp + Voice |
-| ICP self-improvement | After 3+ months live data |
+| ICP self-improvement | After 3+ months live data — feeds figsy_memory |
 | Pipeline forecasting | AI predicts close probability |
+| Meeting notetaker | Auto-join calls, transcribe, action items — VA product extension |
 | SOC 2 Type II | Q1 2027 — external auditor |
 
 ---
@@ -213,6 +218,11 @@
 | Opt-out auto-suppression | Shared blocklist with Lead Gen |
 | CRM deal push on "interested" | HubSpot + Pipedrive |
 | Locked screen | Upgrade + Book a Demo CTAs |
+| **Agent identity card** | Named agent UI in portal — live stats, last active, status |
+| **Campaign memory** | `figsy_memory` table — avg reply rate, total sent, learns per client |
+| **Escalation alerts** | Daily cron auto-pauses campaigns <1% reply rate after 20+ emails |
+| **Weekly outreach digest** | Monday email now includes FIGSY stats (sent, reply rate, interested, campaigns) |
+| **`paused_low_performance` status** | Campaign status when auto-paused — shown as "Auto-paused" in portal |
 
 ### Virtual Assistant (Milla) — Launches July 2026
 | Item | Notes |

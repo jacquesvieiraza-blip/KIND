@@ -649,5 +649,69 @@ figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch replies' }) }
 })
 
+// ── FIGSY MEMORY ─────────────────────────────────────────────────────────────
+
+figsyRouter.post('/memory/refresh', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: campaigns, error } = await db.from('figsy_campaigns')
+      .select('name, emails_sent, replies_total, replies_interested')
+      .eq('client_id', clientId)
+      .gt('emails_sent', 0)
+
+    if (error) throw error
+
+    const rows = campaigns ?? []
+    const total_sent_all_time    = rows.reduce((sum, c) => sum + (c.emails_sent   ?? 0), 0)
+    const total_replies_all_time = rows.reduce((sum, c) => sum + (c.replies_total ?? 0), 0)
+    const avg_reply_rate_30d     = rows.length > 0
+      ? rows.reduce((sum, c) => sum + ((c.replies_total ?? 0) / (c.emails_sent ?? 1)), 0) / rows.length
+      : 0
+
+    const { data: memoryRow, error: upsertError } = await db.from('figsy_memory')
+      .upsert({
+        client_id:             clientId,
+        best_subject_lines:    [],
+        avg_reply_rate_30d,
+        total_sent_all_time,
+        total_replies_all_time,
+        last_updated:          new Date().toISOString(),
+      }, { onConflict: 'client_id' })
+      .select()
+      .single()
+
+    if (upsertError) throw upsertError
+
+    res.json({
+      success: true,
+      data: { avg_reply_rate_30d, total_sent_all_time, total_replies_all_time },
+    })
+  } catch (err) {
+    console.error('[figsy/memory/refresh]', err)
+    res.status(500).json({ success: false, error: 'Failed to refresh FIGSY memory' })
+  }
+})
+
+figsyRouter.get('/memory', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data, error } = await db.from('figsy_memory')
+      .select('*')
+      .eq('client_id', clientId)
+      .maybeSingle()
+
+    if (error) throw error
+
+    res.json({ success: true, data: data ?? null })
+  } catch (err) {
+    console.error('[figsy/memory]', err)
+    res.status(500).json({ success: false, error: 'Failed to fetch FIGSY memory' })
+  }
+})
+
 // Export for use in icps.ts (S5 — FIGSY auto-start)
 export { autoEnrollLead }

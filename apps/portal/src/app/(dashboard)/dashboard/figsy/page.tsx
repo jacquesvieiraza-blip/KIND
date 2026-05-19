@@ -25,18 +25,20 @@ interface Campaign {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  draft:     'Draft',
-  active:    'Active',
-  paused:    'Paused',
-  completed: 'Completed',
-  archived:  'Archived',
+  draft:                  'Draft',
+  active:                 'Active',
+  paused:                 'Paused',
+  completed:              'Completed',
+  archived:               'Archived',
+  paused_low_performance: 'Auto-paused',
 }
 const STATUS_COLORS: Record<string, string> = {
-  draft:     'bg-gray-100 text-gray-600',
-  active:    'bg-green-100 text-green-700',
-  paused:    'bg-amber-100 text-amber-700',
-  completed: 'bg-blue-100 text-blue-700',
-  archived:  'bg-gray-100 text-gray-400',
+  draft:                  'bg-gray-100 text-gray-600',
+  active:                 'bg-green-100 text-green-700',
+  paused:                 'bg-amber-100 text-amber-700',
+  completed:              'bg-blue-100 text-blue-700',
+  archived:               'bg-gray-100 text-gray-400',
+  paused_low_performance: 'bg-red-100 text-red-700',
 }
 
 function replyRate(c: Campaign): string {
@@ -234,6 +236,40 @@ export default function FigsyPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* FIGSY Agent Identity Card */}
+      <div className="bg-gradient-to-br from-[#001f4d] to-[#003080] rounded-2xl p-6 mb-6 flex items-start gap-5">
+        <div className="relative shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-2xl">
+            🤖
+          </div>
+          {/* green pulse dot */}
+          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-[#001f4d]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-white font-bold text-lg tracking-tight">FIGSY</h2>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-400/10 text-green-400 border border-green-400/20">
+              Active
+            </span>
+          </div>
+          <p className="text-white/40 text-xs mb-4">Your AI outreach agent — running 24/7 on your behalf</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white/5 rounded-xl px-4 py-3">
+              <p className="text-white/30 text-xs mb-1">Active campaigns</p>
+              <p className="text-white font-bold text-lg">{campaigns.filter(c => c.status === 'active').length}</p>
+            </div>
+            <div className="bg-white/5 rounded-xl px-4 py-3">
+              <p className="text-white/30 text-xs mb-1">Emails sent</p>
+              <p className="text-white font-bold text-lg">{campaigns.reduce((s, c) => s + c.emails_sent, 0).toLocaleString()}</p>
+            </div>
+            <div className="bg-white/5 rounded-xl px-4 py-3">
+              <p className="text-white/30 text-xs mb-1">Interested replies</p>
+              <p className="text-white font-bold text-lg">{campaigns.reduce((s, c) => s + c.replies_interested, 0)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

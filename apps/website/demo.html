@@ -4,187 +4,223 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>K.I.N.D — Platform Demo</title>
-  <meta name="description" content="See K.I.N.D in action. FIGSY finds leads, writes emails, and books meetings — automatically. Watch the full platform demo." />
-  <meta property="og:title" content="K.I.N.D — Platform Demo" />
-  <meta property="og:description" content="See how K.I.N.D fills your pipeline on autopilot. FIGSY, Milla, Vida — the complete AI revenue platform." />
+  <meta name="description" content="See the K.I.N.D platform in action. FIGSY finds leads, scores them with AI, writes personalised emails and books meetings — automatically." />
+  <meta property="og:title" content="K.I.N.D — See it in action" />
+  <meta property="og:description" content="Watch the full K.I.N.D platform demo. FIGSY, Milla, Vida — your complete AI revenue team." />
   <meta property="og:type" content="website" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #0066FF; --dark: #0a0a0a; --border: rgba(0,0,0,0.08); }
     html { scroll-behavior: smooth; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: #0a0010;
-      color: #fff;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
-    /* ── NAV ── */
+    /* ── NAV (matches index.html) ── */
     nav {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 40px; height: 60px;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      background: rgba(10,0,16,0.92); backdrop-filter: blur(16px);
-      position: sticky; top: 0; z-index: 100;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
     }
     .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-icon {
-      width: 28px; height: 28px; background: #7c3aed; border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 900; color: #fff;
-    }
-    .logo-text { font-weight: 800; font-size: 0.95rem; color: #fff; letter-spacing: -0.01em; }
-    .nav-cta {
-      background: #7c3aed; color: #fff; border: none; border-radius: 8px;
-      padding: 8px 18px; font-size: 0.82rem; font-weight: 700;
-      cursor: pointer; text-decoration: none; transition: background 0.18s;
-    }
-    .nav-cta:hover { background: #6d28d9; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; font-weight: 900; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover, .nav-link.active { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-link.active { color: var(--dark); font-weight: 600; }
+    .nav-right { display: flex; align-items: center; gap: 8px; }
+    .btn-ghost { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 7px 16px; font-size: 0.875rem; font-weight: 600; cursor: pointer; color: var(--dark); text-decoration: none; }
+    .btn-primary { background: var(--dark); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 0.875rem; font-weight: 700; cursor: pointer; text-decoration: none; }
+    .btn-primary:hover { background: #222; }
 
     /* ── HERO ── */
     .hero {
       text-align: center;
-      padding: 64px 24px 40px;
-      position: relative;
-    }
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 50%; transform: translateX(-50%);
-      width: 700px; height: 300px;
-      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.28) 0%, transparent 70%);
-      pointer-events: none;
+      padding: 72px 24px 48px;
+      background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+      border-bottom: 1px solid var(--border);
     }
     .hero-tag {
       display: inline-flex; align-items: center; gap: 7px;
-      border: 1px solid rgba(124,58,237,0.4);
-      background: rgba(124,58,237,0.1);
+      background: #f0f4ff; border: 1px solid rgba(0,102,255,0.15);
       border-radius: 100px; padding: 5px 14px;
-      font-size: 0.73rem; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase; color: #a78bfa;
-      margin-bottom: 22px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--blue); margin-bottom: 24px;
     }
-    .hero-tag span { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; display: inline-block; }
-    h1 {
-      font-size: clamp(2.2rem, 5vw, 3.8rem);
-      font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
-      margin-bottom: 18px;
-    }
-    h1 em { font-style: normal; background: linear-gradient(90deg,#a855f7,#7c3aed,#ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .hero-sub {
-      font-size: 1rem; color: rgba(255,255,255,0.55); max-width: 520px;
-      margin: 0 auto 36px; line-height: 1.65;
-    }
+    .hero-tag span { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; display: inline-block; }
+    h1 { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px; color: var(--dark); }
+    h1 em { font-style: normal; color: var(--blue); }
+    .hero-sub { font-size: 1.05rem; color: rgba(0,0,0,0.5); max-width: 560px; margin: 0 auto 40px; line-height: 1.7; }
+    .hero-stats { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-n { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; color: var(--dark); }
+    .stat-l { font-size: 0.75rem; color: rgba(0,0,0,0.45); margin-top: 2px; }
 
-    /* ── VIDEO FRAME ── */
-    .video-wrap {
-      max-width: 1100px; margin: 0 auto 64px;
-      padding: 0 24px;
+    /* ── VIDEO SECTION ── */
+    .video-section { padding: 64px 24px; background: #07020f; }
+    .video-inner { max-width: 1080px; margin: 0 auto; }
+    .section-label {
+      text-align: center; font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.35); margin-bottom: 12px;
     }
+    .section-heading { text-align: center; font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 8px; }
+    .section-sub { text-align: center; color: rgba(255,255,255,0.4); font-size: 0.9rem; margin-bottom: 40px; }
     .video-frame {
       position: relative; width: 100%; padding-bottom: 56.25%;
-      border-radius: 20px; overflow: hidden;
-      box-shadow: 0 40px 120px rgba(124,58,237,0.35), 0 0 0 1px rgba(124,58,237,0.2);
+      border-radius: 18px; overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(124,58,237,0.25), 0 40px 100px rgba(124,58,237,0.3);
     }
-    .video-frame iframe {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      border: none;
-    }
+    .video-frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 
-    /* ── CTA SECTION ── */
-    .cta-section {
-      text-align: center;
-      padding: 0 24px 80px;
+    /* ── FEATURES ── */
+    .features { padding: 80px 24px; background: #fff; }
+    .features-inner { max-width: 1080px; margin: 0 auto; }
+    .features-head { text-align: center; margin-bottom: 56px; }
+    .features-head h2 { font-size: clamp(1.6rem, 3.5vw, 2.6rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 10px; }
+    .features-head p { color: rgba(0,0,0,0.45); font-size: 0.95rem; }
+    .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .feat-card {
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px; transition: box-shadow .2s, border-color .2s;
     }
-    .cta-section h2 {
-      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-      font-weight: 900; letter-spacing: -0.03em;
-      margin-bottom: 12px;
-    }
-    .cta-section p {
-      color: rgba(255,255,255,0.5); font-size: 0.92rem;
-      margin-bottom: 32px;
-    }
+    .feat-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.14); }
+    .feat-icon { font-size: 1.8rem; margin-bottom: 14px; display: block; }
+    .feat-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.01em; }
+    .feat-card p { font-size: 0.84rem; color: rgba(0,0,0,0.5); line-height: 1.65; }
+    .feat-tag { display: inline-block; margin-top: 12px; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 100px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .tag-live { background: #f0fdf4; color: #16a34a; }
+    .tag-soon { background: #fafafa; color: rgba(0,0,0,0.35); }
+
+    /* ── CTA ── */
+    .cta-section { background: var(--dark); color: #fff; text-align: center; padding: 80px 24px; }
+    .cta-section h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.04em; margin-bottom: 12px; }
+    .cta-section p { color: rgba(255,255,255,0.45); font-size: 0.95rem; margin-bottom: 36px; }
     .cta-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-    .btn-primary {
-      background: linear-gradient(135deg, #7c3aed, #a855f7);
-      color: #fff; text-decoration: none; border-radius: 12px;
-      padding: 14px 32px; font-size: 0.95rem; font-weight: 800;
-      box-shadow: 0 8px 32px rgba(124,58,237,0.45);
-      transition: transform 0.18s, box-shadow 0.18s;
-      display: inline-block;
-    }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(124,58,237,0.55); }
-    .btn-secondary {
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
-      color: #fff; text-decoration: none; border-radius: 12px;
-      padding: 14px 32px; font-size: 0.95rem; font-weight: 700;
-      transition: background 0.18s;
-      display: inline-block;
-    }
-    .btn-secondary:hover { background: rgba(255,255,255,0.12); }
-
-    /* ── AGENTS ROW ── */
-    .agents-row {
-      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
-      margin-bottom: 48px;
-    }
-    .agent-chip {
-      display: flex; align-items: center; gap: 7px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 100px; padding: 7px 16px;
-      font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.7);
-    }
+    .cta-primary { background: #fff; color: var(--dark); text-decoration: none; border-radius: 12px; padding: 14px 32px; font-size: 0.95rem; font-weight: 800; display: inline-block; transition: opacity .2s; }
+    .cta-primary:hover { opacity: 0.88; }
+    .cta-ghost { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; text-decoration: none; border-radius: 12px; padding: 14px 32px; font-size: 0.95rem; font-weight: 700; display: inline-block; transition: background .2s; }
+    .cta-ghost:hover { background: rgba(255,255,255,0.14); }
 
     /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid rgba(255,255,255,0.07);
-      text-align: center; padding: 24px;
-      font-size: 0.75rem; color: rgba(255,255,255,0.25);
-    }
-    footer a { color: rgba(255,255,255,0.35); text-decoration: none; }
+    footer { border-top: 1px solid rgba(255,255,255,0.08); background: var(--dark); text-align: center; padding: 24px; font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+    footer a { color: rgba(255,255,255,0.3); text-decoration: none; }
     footer a:hover { color: rgba(255,255,255,0.6); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero { padding: 48px 20px 36px; }
+      .hero-stats { gap: 24px; }
+      .video-section, .features, .cta-section { padding-left: 16px; padding-right: 16px; }
+    }
   </style>
 </head>
 <body>
 
   <nav>
     <a class="logo" href="/">
-      <div class="logo-icon">K</div>
+      <div class="logo-icon">⚡</div>
       <span class="logo-text">K.I.N.D</span>
     </a>
-    <a class="nav-cta" href="https://app.get-kind.com/login">Start free trial →</a>
+    <div class="nav-links">
+      <a href="/#products" class="nav-link">Products</a>
+      <a href="demo.html" class="nav-link active">Demo</a>
+      <a href="use-cases.html" class="nav-link">Use Cases</a>
+      <a href="pricing.html" class="nav-link">Pricing</a>
+      <a href="about.html" class="nav-link">Company</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://app.get-kind.com/login" class="btn-ghost">Log in</a>
+      <a href="https://app.get-kind.com/login" class="btn-primary">Start free trial</a>
+    </div>
   </nav>
 
+  <!-- HERO -->
   <div class="hero">
     <div class="hero-tag"><span></span>Full Platform Demo</div>
     <h1>Your pipeline,<br/>filled <em>automatically.</em></h1>
-    <p class="hero-sub">Watch FIGSY find leads, score them with AI, write personalised emails, and follow up — while you focus on closing.</p>
-  </div>
-
-  <div class="video-wrap">
-    <div class="video-frame">
-      <iframe
-        src="/platform-video.html"
-        title="K.I.N.D Platform Demo"
-        allowfullscreen
-      ></iframe>
+    <p class="hero-sub">Watch FIGSY find leads, score them with AI, write personalised emails, follow up, and book the meeting — while you focus on closing.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-n">250M+</div><div class="stat-l">B2B contacts</div></div>
+      <div class="stat"><div class="stat-n">5.4%</div><div class="stat-l">Avg reply rate (vs 3% industry)</div></div>
+      <div class="stat"><div class="stat-n">24/7</div><div class="stat-l">Always working</div></div>
+      <div class="stat"><div class="stat-n">$20</div><div class="stat-l">Start from / month</div></div>
     </div>
   </div>
 
+  <!-- VIDEO -->
+  <div class="video-section">
+    <div class="video-inner">
+      <div class="section-label">Platform walkthrough</div>
+      <h2 class="section-heading">See every feature in action</h2>
+      <p class="section-sub">16 scenes · auto-playing · loops continuously</p>
+      <div class="video-frame">
+        <iframe
+          src="/platform-video.html"
+          title="K.I.N.D Platform Demo"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <div class="features">
+    <div class="features-inner">
+      <div class="features-head">
+        <h2>Everything in the platform</h2>
+        <p>Three AI agents working together to fill and manage your pipeline.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-card">
+          <span class="feat-icon">🤖</span>
+          <h3>FIGSY — AI SDR</h3>
+          <p>Finds your ideal clients from 250M+ B2B contacts, scores them with Claude AI, writes personalised emails, follows up automatically, and handles replies.</p>
+          <span class="feat-tag tag-live">Live now</span>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">✨</span>
+          <h3>Milla — AI Business Assistant</h3>
+          <p>Ask anything about your pipeline, leads, reply rates, and campaigns. Get instant answers powered by Claude. Available 24/7 inside the dashboard.</p>
+          <span class="feat-tag tag-live">Live now</span>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">💬</span>
+          <h3>Vida — AI Website Chatbot</h3>
+          <p>Turns every website visitor into a conversation. Qualifies leads, answers questions, and books meetings — without any human support needed.</p>
+          <span class="feat-tag tag-soon">Coming July 2026</span>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">📊</span>
+          <h3>KPI Dashboard</h3>
+          <p>Live pipeline value, reply rates vs industry benchmark, funnel conversion, interested leads — your complete revenue picture in one place.</p>
+          <span class="feat-tag tag-live">Live now</span>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">🧠</span>
+          <h3>FIGSY Intelligence</h3>
+          <p>Campaign memory, auto-pause on underperforming sequences, weekly digest, and self-improving agent logic that gets better over time.</p>
+          <span class="feat-tag tag-live">Live now</span>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">🤝</span>
+          <h3>Partner Programme</h3>
+          <p>Refer clients and earn 20% recurring commission every month. No cap on referrals or earnings. No paperwork.</p>
+          <span class="feat-tag tag-live">Live now</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
   <div class="cta-section">
-    <div class="agents-row">
-      <div class="agent-chip">🤖 FIGSY · AI SDR</div>
-      <div class="agent-chip">✨ Milla · AI Assistant</div>
-      <div class="agent-chip">💬 Vida · AI Chatbot</div>
-      <div class="agent-chip">📊 KPI Dashboard</div>
-      <div class="agent-chip">🤝 Partner Programme</div>
-    </div>
-    <h2>Ready to fill your pipeline?</h2>
-    <p>African-first · POPIA compliant · Start from $20/month</p>
+    <h2>Ready to start?</h2>
+    <p>African-first · POPIA compliant · Start from $20/month · No credit card required</p>
     <div class="cta-btns">
-      <a class="btn-primary" href="https://app.get-kind.com/login">Start free trial →</a>
-      <a class="btn-secondary" href="/">Learn more</a>
+      <a class="cta-primary" href="https://app.get-kind.com/login">Start free trial →</a>
+      <a class="cta-ghost" href="mailto:hello@get-kind.com?subject=Book%20a%20Demo">Book a demo</a>
     </div>
   </div>
 

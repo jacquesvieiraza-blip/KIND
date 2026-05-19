@@ -18,7 +18,7 @@ interface ICPSuggestions {
 function OnboardForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const referredBy = searchParams.get('ref') || undefined
+  const referredBy = searchParams.get('ref') || (typeof window !== 'undefined' ? localStorage.getItem('kind_referral') || undefined : undefined)
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -54,6 +54,7 @@ function OnboardForm() {
     if (!session) { router.push('/login'); return }
     try {
       await api.post('/auth/onboard', { ...form, ...(referredBy ? { referred_by: referredBy } : {}) }, session.access_token)
+      localStorage.removeItem('kind_referral')
       router.push('/dashboard')
     } catch (err) { setError(err instanceof Error ? err.message : 'Onboarding failed') }
     setLoading(false)
@@ -156,6 +157,7 @@ function OnboardForm() {
                   if (!session) { router.push('/login'); return }
                   try {
                     await api.post('/auth/onboard', { ...form, ...(referredBy ? { referred_by: referredBy } : {}) }, session.access_token)
+                    localStorage.removeItem('kind_referral')
                     router.push('/dashboard/billing?source=direct_pay')
                   } catch (err) { setError(err instanceof Error ? err.message : 'Onboarding failed') }
                   setLoading(false)

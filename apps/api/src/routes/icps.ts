@@ -109,9 +109,17 @@ export async function runIcpJob(
     }
 
     if (clientRow && !clientRow.first_icp_run_at) {
+      const now = new Date().toISOString()
       await db.from('clients')
-        .update({ first_icp_run_at: new Date().toISOString(), credit_balance: (clientRow.credit_balance ?? 0) + 100 })
+        .update({ first_icp_run_at: now, credit_balance: (clientRow.credit_balance ?? 0) + 100 })
         .eq('id', clientId)
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount: 100,
+        type: 'referral_bonus',
+        note: 'Welcome bonus — first ICP run',
+        created_at: now,
+      })
 
       if (clientRow.referred_by) {
         const { data: referrer } = await db.from('clients')
@@ -120,6 +128,13 @@ export async function runIcpJob(
           await db.from('clients')
             .update({ credit_balance: (referrer.credit_balance ?? 0) + 100 })
             .eq('id', referrer.id)
+          await db.from('credit_transactions').insert({
+            client_id: referrer.id,
+            amount: 100,
+            type: 'referral_bonus',
+            note: `Referral bonus — ${clientRow.company_name ?? 'a new client'} joined`,
+            created_at: now,
+          })
         }
       }
 

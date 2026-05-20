@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>K.I.N.D — Your pipeline, on autopilot.</title>
-  <meta name="description" content="K.I.N.D finds, qualifies, and books meetings with your ideal clients — automatically. AI lead generation and FIGSY AI SDR for ambitious businesses." />
+  <title>K.I.N.D &mdash; The AI Revenue Team. Unlimited Pipeline.</title>
+  <meta name="description" content="K.I.N.D is your AI revenue team. FIGSY (AI SDR) finds, qualifies, and books meetings. Milla gives you business intelligence. Vida converts your website. Break the Human Ceiling." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -17,7 +17,7 @@
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
-    /* ── NAV ── */
+    /* NAV */
     nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 48px; height: 64px;
@@ -37,7 +37,7 @@
     .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
     .btn-nav-primary:hover { opacity: 0.8; }
 
-    /* ── NAV DROPDOWNS ── */
+    /* NAV DROPDOWNS */
     .nav-item { position: relative; }
     .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
     .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
@@ -58,7 +58,7 @@
     .dd-link:hover .dd-title { color: var(--dark); }
     .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
 
-    /* ── HERO ── */
+    /* HERO */
     .hero {
       max-width: 1080px; margin: 0 auto;
       padding: 80px 48px 0;
@@ -106,7 +106,7 @@
     }
     .btn-hero-ghost:hover { border-color: rgba(0,0,0,0.35); }
 
-    /* ── HERO AGENT IMAGE ── */
+    /* HERO AGENT IMAGE */
     .hero-agent {
       position: relative;
       display: flex; align-items: center; justify-content: center;
@@ -123,7 +123,7 @@
       50% { transform: translateY(-12px); }
     }
 
-    /* ── NODE NETWORK (kept as background strip) ── */
+    /* NODE NETWORK */
     .hero-visual {
       position: relative;
       height: 200px;
@@ -133,14 +133,14 @@
     }
     .hero-visual canvas { width: 100%; height: 100%; }
 
-    /* ── SECTION BASE ── */
+    /* SECTION BASE */
     .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
     .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
     .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
     .s-title { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
     .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
 
-    /* ── PROBLEM SECTION ── */
+    /* PROBLEM SECTION */
     .problem-section {
       background: var(--dark);
       padding: 100px 48px;
@@ -169,7 +169,7 @@
     .prob-card h3 { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
     .prob-card p { font-size: 0.85rem; color: rgba(255,255,255,0.4); line-height: 1.7; }
 
-    /* ── PRODUCTS ── */
+    /* PRODUCTS */
     .prod-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
     .prod {
       background: var(--light);
@@ -195,8 +195,8 @@
     .prod-features { list-style: none; }
     .prod-features li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.83rem; color: rgba(0,0,0,0.5); padding: 5px 0; }
     .prod.featured .prod-features li { color: rgba(255,255,255,0.5); }
-    .prod-features li.g::before { content: "✓"; color: #059669; font-weight: 800; flex-shrink: 0; }
-    .prod-features li.b::before { content: "✓"; color: var(--blue); font-weight: 800; flex-shrink: 0; }
+    .prod-features li.g::before { content: "\2713"; color: #059669; font-weight: 800; flex-shrink: 0; }
+    .prod-features li.b::before { content: "\2713"; color: var(--blue); font-weight: 800; flex-shrink: 0; }
     .prod-waitlist {
       display: inline-block; margin-top: 20px; font-size: 0.8rem; font-weight: 600;
       color: rgba(0,0,0,0.4); border: 1px solid rgba(0,0,0,0.12); padding: 8px 16px;
@@ -204,7 +204,33 @@
     }
     .prod-waitlist:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
 
-    /* ── FIGSY DARK SECTION ── */
+    /* PRODUCTS INTRO BANNER */
+    .products-intro {
+      background: var(--dark);
+      border-radius: 20px;
+      padding: 28px 36px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .products-intro-text {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+    .products-intro-text span { color: #60a5fa; }
+    .products-intro-sub {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.4);
+      max-width: 360px;
+    }
+
+    /* FIGSY DARK SECTION */
     .figsy-section {
       background: var(--dark);
       padding: 100px 48px;
@@ -232,14 +258,137 @@
     .figsy-feat h4 { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
     .figsy-feat p { font-size: 0.8rem; color: rgba(255,255,255,0.35); line-height: 1.6; }
 
-    /* ── HOW IT WORKS ── */
+    /* REASONING LOOP */
+    .reasoning-loop {
+      background: rgba(0,102,255,0.07);
+      border: 1px solid rgba(0,102,255,0.2);
+      border-radius: 20px;
+      padding: 28px 32px;
+      margin: 48px 0 32px;
+    }
+    .reasoning-loop-label {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: #60a5fa; margin-bottom: 14px;
+    }
+    .reasoning-loop-steps {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    }
+    .rl-step {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 100px; padding: 6px 14px;
+      font-size: 0.78rem; color: rgba(255,255,255,0.75); white-space: nowrap;
+    }
+    .rl-arrow {
+      font-size: 0.75rem; color: rgba(0,102,255,0.6); flex-shrink: 0;
+    }
+
+    /* DOGFOOD CALLOUT */
+    .dogfood-callout {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 20px 28px;
+      margin: 32px 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .dogfood-callout-icon {
+      font-size: 1.6rem; flex-shrink: 0;
+    }
+    .dogfood-callout-text {
+      font-size: 0.9rem; color: rgba(255,255,255,0.6); line-height: 1.6;
+    }
+    .dogfood-callout-text strong { color: #fff; }
+
+    /* HOW IT WORKS */
     .hiw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
     .hiw-card { padding: 32px; background: var(--light); border-radius: 20px; }
     .hiw-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
     .hiw-card h3 { font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
     .hiw-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
 
-    /* ── STATS ── */
+    /* LEVEL 3 PROACTIVE SECTION */
+    .level-section {
+      background: var(--dark);
+      padding: 80px 48px;
+    }
+    .level-inner { max-width: 1080px; margin: 0 auto; }
+    .level-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+    .level-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      padding: 36px 32px;
+      position: relative;
+    }
+    .level-card.active-level {
+      background: rgba(0,102,255,0.1);
+      border-color: rgba(0,102,255,0.3);
+    }
+    .level-badge {
+      display: inline-block;
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 100px; margin-bottom: 20px;
+    }
+    .lb-grey { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.35); }
+    .lb-muted { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.35); }
+    .lb-blue { background: rgba(0,102,255,0.18); color: #60a5fa; }
+    .level-num {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.2); margin-bottom: 12px;
+    }
+    .level-card.active-level .level-num { color: #60a5fa; }
+    .level-card h3 { font-size: 1.2rem; font-weight: 800; color: rgba(255,255,255,0.5); letter-spacing: -0.02em; margin-bottom: 10px; }
+    .level-card.active-level h3 { color: #fff; }
+    .level-card p { font-size: 0.85rem; color: rgba(255,255,255,0.28); line-height: 1.7; }
+    .level-card.active-level p { color: rgba(255,255,255,0.55); }
+    .level-kind-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 20px;
+      font-size: 0.75rem; font-weight: 700; color: #60a5fa;
+    }
+
+    /* POPIA TRUST BAND */
+    .popia-band {
+      background: linear-gradient(135deg, #e6f4f1 0%, #e8f0fe 100%);
+      border-top: 1px solid rgba(0,150,100,0.12);
+      border-bottom: 1px solid rgba(0,150,100,0.12);
+      padding: 48px 48px;
+    }
+    .popia-inner {
+      max-width: 1080px; margin: 0 auto;
+      display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: center;
+    }
+    .popia-shield {
+      width: 72px; height: 72px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      box-shadow: 0 4px 20px rgba(0,150,100,0.15);
+      flex-shrink: 0;
+    }
+    .popia-label {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: #059669; margin-bottom: 8px;
+    }
+    .popia-headline {
+      font-size: 1.2rem; font-weight: 800; color: #0a3d2b; letter-spacing: -0.02em; margin-bottom: 10px;
+    }
+    .popia-copy {
+      font-size: 0.9rem; color: #2d5a48; line-height: 1.75; max-width: 680px;
+    }
+    .popia-pills {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;
+    }
+    .popia-pill {
+      background: rgba(5,150,105,0.1); border: 1px solid rgba(5,150,105,0.2);
+      color: #059669; font-size: 0.72rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 100px;
+    }
+
+    /* STATS */
     .stats-section { background: var(--light); padding: 80px 48px; }
     .stats-inner { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
     .stat { padding: 40px 32px; text-align: center; }
@@ -247,7 +396,7 @@
     .stat-num span { color: var(--blue); }
     .stat-label { font-size: 0.82rem; color: rgba(0,0,0,0.4); line-height: 1.5; }
 
-    /* ── PRICING ── */
+    /* PRICING */
     .pricing-section { padding: 100px 48px; }
     .pricing-inner { max-width: 1080px; margin: 0 auto; }
     .pricing-header { text-align: center; margin-bottom: 56px; }
@@ -282,7 +431,7 @@
     .p-card ul { list-style: none; margin-bottom: 32px; }
     .p-card ul li { font-size: 0.83rem; color: rgba(0,0,0,0.55); padding: 6px 0; display: flex; align-items: flex-start; gap: 8px; }
     .p-card.featured ul li { color: rgba(255,255,255,0.55); }
-    .p-card ul li::before { content: "✓"; color: #059669; font-weight: 800; flex-shrink: 0; }
+    .p-card ul li::before { content: "\2713"; color: #059669; font-weight: 800; flex-shrink: 0; }
     .p-btn {
       display: block; text-align: center; padding: 13px 24px;
       border-radius: 100px; font-size: 0.88rem; font-weight: 600;
@@ -296,14 +445,14 @@
     .p-btn-out:hover { border-color: rgba(0,0,0,0.3); }
     .p-vol-note { text-align: center; margin-top: 32px; font-size: 0.8rem; color: rgba(0,0,0,0.3); }
 
-    /* ── ANTI-ALTA STRIP ── */
+    /* ANTI-ALTA STRIP */
     .anti-alta { display:flex; align-items:center; gap:16px; background:var(--light); border-radius:16px; padding:16px 24px; margin-bottom:40px; flex-wrap:wrap; }
     .aa-item { font-size:0.78rem; line-height:1.5; flex:1; min-width:200px; }
     .aa-bad { color:rgba(0,0,0,0.35); text-decoration:line-through; }
     .aa-good { color:var(--dark); font-weight:600; }
     .aa-vs { font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:rgba(0,0,0,0.2); flex-shrink:0; }
 
-    /* ── CTA BANNER ── */
+    /* CTA BANNER */
     .cta-section { padding: 80px 48px 120px; }
     .cta-inner { max-width: 1080px; margin: 0 auto; }
     .cta-banner {
@@ -328,7 +477,46 @@
     .btn-cta-ghost { background: transparent; color: rgba(255,255,255,0.6); font-size: 0.95rem; font-weight: 500; padding: 14px 32px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; transition: all .2s; text-decoration: none; }
     .btn-cta-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
 
-    /* ── FOOTER ── */
+    /* FOUNDER QUOTE */
+    .founder-quote {
+      background: var(--light);
+      border-radius: 20px;
+      padding: 36px 40px;
+      margin-bottom: 56px;
+      position: relative;
+    }
+    .founder-quote::before {
+      content: '\201C';
+      font-size: 5rem; font-weight: 900; color: rgba(0,102,255,0.1);
+      position: absolute; top: 8px; left: 28px; line-height: 1;
+      font-family: Georgia, serif;
+    }
+    .founder-quote-text {
+      font-size: 1.05rem;
+      color: rgba(0,0,0,0.65);
+      line-height: 1.75;
+      font-style: italic;
+      max-width: 680px;
+      padding-left: 8px;
+      margin-bottom: 20px;
+    }
+    .founder-byline {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .founder-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--dark);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+    .founder-name {
+      font-size: 0.85rem; font-weight: 700; color: var(--dark);
+    }
+    .founder-title {
+      font-size: 0.75rem; color: rgba(0,0,0,0.4);
+    }
+
+    /* FOOTER */
     footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
     .footer-inner { max-width: 1080px; margin: 0 auto; }
     .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
@@ -342,7 +530,7 @@
     .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
     .footer-legal a:hover { color: var(--dark); }
 
-    /* ── AUTH MODAL ── */
+    /* AUTH MODAL */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); z-index: 999; align-items: center; justify-content: center; }
     .modal-overlay.open { display: flex; }
     .modal { background: #fff; border-radius: 24px; padding: 40px; width: 100%; max-width: 420px; margin: 24px; box-shadow: 0 32px 80px rgba(0,0,0,0.2); position: relative; }
@@ -366,7 +554,7 @@
     .modal-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: rgba(0,0,0,0.35); }
     .modal-footer a { color: var(--blue); text-decoration: none; }
 
-    /* ── SCROLL REVEAL ── */
+    /* SCROLL REVEAL */
     .reveal {
       opacity: 0;
       transform: translateY(32px);
@@ -377,7 +565,7 @@
     .reveal-delay-2 { transition-delay: 0.2s; }
     .reveal-delay-3 { transition-delay: 0.3s; }
 
-    /* ── HERO LIVE CHIP ── */
+    /* HERO LIVE CHIP */
     .live-chip {
       display: inline-flex; align-items: center; gap: 8px;
       background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
@@ -393,7 +581,7 @@
       50% { opacity: 0.4; transform: scale(0.7); }
     }
 
-    /* ── TYPEWRITER ── */
+    /* TYPEWRITER */
     .tw-cursor {
       display: inline-block; width: 3px; height: 0.85em;
       background: var(--blue); margin-left: 2px; vertical-align: middle;
@@ -401,7 +589,7 @@
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* ── FIGSY SCROLL SCENE ── */
+    /* FIGSY SCROLL SCENE */
     .figsy-scene {
       max-width: 1080px; margin: 0 auto;
       display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
@@ -500,7 +688,7 @@
       font-size: 0.75rem; color: rgba(255,255,255,0.5);
     }
 
-    /* ── VIDEO SECTION ── */
+    /* VIDEO SECTION */
     .video-section { padding: 80px 48px; background: var(--light); }
     .video-inner { max-width: 1080px; margin: 0 auto; }
     .video-header { text-align: center; margin-bottom: 48px; }
@@ -529,11 +717,13 @@
     .video-play-btn svg { margin-left: 4px; }
     .video-caption { font-size: 0.85rem; color: rgba(255,255,255,0.3); }
 
-    /* ── RESPONSIVE ── */
+    /* RESPONSIVE */
     @media (max-width: 1024px) {
       .prod-grid { grid-template-columns: 1fr 1fr; }
       .prod.featured { grid-column: span 2; }
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .popia-inner { grid-template-columns: 1fr; }
+      .popia-shield { display: none; }
     }
     @media (max-width: 768px) {
       nav { padding: 0 24px; }
@@ -541,9 +731,11 @@
       .hero { padding: 64px 24px 0; }
       .section { padding: 64px 24px; }
       .problem-section, .figsy-section, .stats-section, .pricing-section, .cta-section { padding: 64px 24px; }
+      .level-section { padding: 64px 24px; }
+      .popia-band { padding: 48px 24px; }
       .prod-grid { grid-template-columns: 1fr; }
       .prod.featured { grid-column: span 1; grid-template-columns: 1fr; gap: 24px; }
-      .problem-cards, .figsy-flow, .figsy-feats, .hiw-grid, .p-cards { grid-template-columns: 1fr; }
+      .problem-cards, .figsy-flow, .figsy-feats, .hiw-grid, .p-cards, .level-grid { grid-template-columns: 1fr; }
       .stats-inner { grid-template-columns: 1fr 1fr; }
       .footer-grid { grid-template-columns: 1fr; }
       .cta-banner { padding: 48px 28px; }
@@ -557,6 +749,9 @@
       .figsy-sticky { position: static; }
       .figsy-scroll-step { opacity: 1; }
       .video-section { padding: 64px 24px; }
+      .products-intro { padding: 24px; }
+      .reasoning-loop { padding: 20px 20px; }
+      .founder-quote { padding: 28px 24px; }
     }
   </style>
 </head>
@@ -565,9 +760,9 @@
 <!-- AUTH MODAL -->
 <div class="modal-overlay" id="auth-modal">
   <div class="modal">
-    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <button class="modal-close" onclick="closeAuth()">&#x2715;</button>
     <h2 id="auth-title">Welcome to K.I.N.D</h2>
-    <p class="modal-sub" id="auth-sub">Start your 14-day free trial — no card required.</p>
+    <p class="modal-sub" id="auth-sub">Start your 14-day free trial &mdash; no card required.</p>
     <div class="modal-tabs">
       <button class="modal-tab active" id="tab-signup" onclick="switchTab('signup')">Sign up</button>
       <button class="modal-tab" id="tab-login" onclick="switchTab('login')">Log in</button>
@@ -579,7 +774,7 @@
       </div>
       <div class="form-group">
         <label for="auth-password">Password</label>
-        <input type="password" id="auth-password" placeholder="••••••••" required minlength="6" />
+        <input type="password" id="auth-password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" required minlength="6" />
       </div>
       <p class="modal-forgot" id="forgot-link" onclick="handleForgot()">Forgot password?</p>
       <button type="submit" class="btn-form" id="auth-submit">Create account</button>
@@ -592,47 +787,47 @@
 <!-- NAV -->
 <nav>
   <a href="/" class="logo">
-    <div class="logo-icon">⚡</div>
+    <div class="logo-icon">&#x26A1;</div>
     <span class="logo-text">K.I.N.D</span>
   </a>
   <div class="nav-links">
     <div class="nav-item">
-      <a href="#products" class="nav-link">Products <span class="chevron">▾</span></a>
+      <a href="#products" class="nav-link">Products <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown">
-        <a href="#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">K.I.N.D AI — Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
-        <a href="#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
-        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
-        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
+        <a href="#products" class="dd-link"><span class="dd-icon">&#x1F3AF;</span><span><span class="dd-title">K.I.N.D AI &mdash; Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
+        <a href="#figsy" class="dd-link"><span class="dd-icon">&#x1F916;</span><span><span class="dd-title">FIGSY &mdash; AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
+        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#x1F9E0;</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
+        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#x1F4AC;</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot &mdash; one embed away</span></span></a>
       </div>
     </div>
     <a href="demo.html" class="nav-link">Demo</a>
     <div class="nav-item">
-      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown" style="min-width:264px">
-        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
-        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
-        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
-        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
-        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">💻</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
-        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">👥</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">&#x1F4CA;</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">&#x1F3E6;</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">&#x1F3E0;</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">&#x2696;&#xFE0F;</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">&#x1F4BB;</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">&#x1F465;</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
       </div>
     </div>
     <div class="nav-item">
-      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
+      <a href="support.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown">
-        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
-        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#x1F4D6;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">&#x1F6DF;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
         <div class="dd-divider"></div>
-        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
+        <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="dd-link"><span class="dd-icon">&#x1F4C5;</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
       </div>
     </div>
     <div class="nav-item">
-      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
+      <a href="about.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown">
-        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <a href="about.html" class="dd-link"><span class="dd-icon">&#x1F3E2;</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
         <div class="dd-divider"></div>
-        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
-        <a href="partners.html" class="dd-link"><span class="dd-icon">🤝</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">&#x1F512;</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">&#x1F91D;</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
       </div>
     </div>
     <a href="pricing.html" class="nav-link">Pricing</a>
@@ -645,24 +840,21 @@
 
 <!-- HERO -->
 <div class="hero">
-  <!-- Left: text -->
   <div class="hero-text">
-    <div class="live-chip"><span class="live-dot"></span>K.I.N.D AI is live — 14-day free trial</div>
-    <div class="hero-label">⚡ Your AI Revenue Team — Built for Africa. Ready for the world.</div>
-    <h1>Break the Human Ceiling.<br/><span id="tw-target">Your Unlimited Pipeline.</span><span class="tw-cursor" id="tw-cursor" style="display:none"></span></h1>
-    <p class="hero-sub reveal">FIGSY finds your ideal clients, writes personalised emails, follows up, and books meetings — while you focus on closing. Africa-first. World-ready. POPIA compliant. First leads in under 10 minutes.</p>
+    <div class="live-chip"><span class="live-dot"></span>The AI Revenue Team &mdash; Live now</div>
+    <div class="hero-label">&#x26A1; Your AI Revenue Team &mdash; Built for Africa. Ready for the world.</div>
+    <h1>Break the<br/><span id="tw-target">Human Ceiling.</span><span class="tw-cursor" id="tw-cursor" style="display:none"></span></h1>
+    <p class="hero-sub reveal">FIGSY finds your ideal clients, writes hyper-personalised emails, follows up 24/7, and books the meeting. Milla tells you what's working. Vida converts your website visitors. Your AI revenue team &mdash; deployed in 10 minutes.</p>
     <div class="hero-btns reveal reveal-delay-1">
-      <button onclick="openAuth('signup')" class="btn-hero-primary">Start free trial — 14 days free</button>
+      <button onclick="openAuth('signup')" class="btn-hero-primary">Start free trial &mdash; 14 days free</button>
       <a href="#how-it-works" class="btn-hero-ghost">See how it works</a>
     </div>
-    <div style="text-align:center;margin-top:20px">
-      <span style="font-size:0.72rem;color:rgba(0,0,0,0.35)">Data stored in Cape Town, South Africa &nbsp;·&nbsp; POPIA compliant by design &nbsp;·&nbsp; No contracts · Cancel anytime</span>
+    <div style="text-align:left;margin-top:20px">
+      <span style="font-size:0.72rem;color:rgba(0,0,0,0.35)">Data stored in Cape Town, South Africa &nbsp;&middot;&nbsp; POPIA compliant by design &nbsp;&middot;&nbsp; No contracts &middot; Cancel anytime</span>
     </div>
   </div>
-
-  <!-- Right: AI agent image -->
   <div class="hero-agent">
-    <img src="ai-agent.jpg" alt="K.I.N.D AI Lead Gen Agent" class="hero-agent-img" />
+    <img src="ai-agent.jpg" alt="K.I.N.D AI Revenue Team" class="hero-agent-img" />
   </div>
 </div>
 
@@ -671,49 +863,53 @@
   <canvas id="node-canvas"></canvas>
 </div>
 
-<!-- PROBLEM SECTION -->
-<div class="problem-section" id="human-ceiling">
+<!-- THE HUMAN CEILING -->
+<div class="problem-section">
   <div class="problem-inner">
-    <div class="s-label" style="text-align:center;margin-bottom:16px">The Human Ceiling</div>
-    <h2 class="problem-headline">Most founders lose pipeline <em>not to better competitors</em> — but to their own calendar.</h2>
-    <p class="problem-sub">You're running the business. Outreach falls off. Pipeline dries up. K.I.N.D fixes this.</p>
+    <div class="s-label" style="color:#60a5fa;margin-bottom:12px">The Human Ceiling</div>
+    <h2 class="problem-headline">You hit the ceiling when your best people <em>run out of hours.</em></h2>
+    <p class="problem-sub">Every business has one. The point where your best people are too stretched to prospect, follow up, and close &mdash; at the same time. That's the ceiling. FIGSY removes it.</p>
     <div class="problem-cards">
       <div class="prob-card reveal">
         <div class="prob-num">80%<span> of founders</span></div>
-        <h3>Too busy to prospect</h3>
-        <p>You're running the business. Outreach falls off. Pipeline dries up. It's not a skill problem — it's a time problem.</p>
+        <h3>Too stretched to prospect</h3>
+        <p>You're running the business. Outreach falls off. Pipeline dries up. The ceiling isn't a skill problem &mdash; it's a capacity problem. Your best people can't be everywhere at once.</p>
       </div>
       <div class="prob-card reveal reveal-delay-1">
         <div class="prob-num">96%<span> of templates</span></div>
-        <h3>Generic outreach doesn't work</h3>
-        <p>Templates get ignored. Personalisation at scale was impossible — until now. Every K.I.N.D email is unique to the recipient.</p>
+        <h3>Generic outreach hits a wall</h3>
+        <p>Templates get ignored. Mass email is dead. Personalisation at scale was impossible until now. Every K.I.N.D message is unique &mdash; written by AI, indistinguishable from human.</p>
       </div>
       <div class="prob-card reveal reveal-delay-2">
         <div class="prob-num">5x<span> touches needed</span></div>
         <h3>Leads go cold without follow-up</h3>
-        <p>80% of deals need 5+ touches. Nobody has time for that manually. FIGSY follows up automatically, every time.</p>
+        <p>80% of deals need 5+ touches. Nobody has time for that manually. FIGSY follows up autonomously, every time, without being told &mdash; so no lead ever falls through the cracks again.</p>
       </div>
     </div>
     <div style="text-align:center;margin-top:48px">
-      <p class="speed-claim" style="display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-0.01em;border-bottom:2px solid #0066FF;padding-bottom:4px">First leads in under 10 minutes — or your money back.</p>
+      <p style="display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-0.01em;border-bottom:2px solid #0066FF;padding-bottom:4px">When FIGSY, Milla, and Vida are running &mdash; your pipeline growth is unlimited.</p>
     </div>
   </div>
 </div>
 
 <!-- PRODUCTS -->
 <div class="section" id="products">
-  <div class="s-label">Products</div>
-  <div class="s-title">Everything your pipeline needs.</div>
-  <p class="s-sub reveal" style="font-size:1.15rem;font-weight:600;color:rgba(0,0,0,0.7);margin-bottom:8px">You're not buying software. You're hiring a team.</p>
-  <p class="s-sub">Two core products. One platform. Pay only for qualified results.</p>
+  <div class="s-label">The AI Revenue Team</div>
+  <div class="s-title">You're not buying software.</div>
+  <p class="s-sub">You're hiring a team. FIGSY prospects and books. Milla reads the intelligence. Vida converts your website. Three AI teammates. One platform. Unlimited pipeline.</p>
+
+  <div class="products-intro">
+    <div class="products-intro-text">Meet your <span>AI revenue team.</span></div>
+    <div class="products-intro-sub">Deployed in 10 minutes. Running 24/7. Pay only for results &mdash; not seats, not promises.</div>
+  </div>
+
   <div class="prod-grid">
-    <!-- Lead Gen -->
     <div class="prod">
-      <div class="prod-icon">🎯</div>
+      <div class="prod-icon">&#x1F3AF;</div>
       <span class="prod-tag t-blue">K.I.N.D AI</span>
       <h3>AI Lead Generation</h3>
-      <p>ICP-matched B2B leads sourced from 250M+ contacts. We email them first — you only pay when a lead replies positively.</p>
-      <div class="prod-price">$1 <span class="sm">per qualified lead · from $20</span></div>
+      <p>ICP-matched B2B leads sourced from 250M+ verified contacts. FIGSY emails them first &mdash; you only pay when a lead replies positively. Your pipeline starts filling the moment you launch.</p>
+      <div class="prod-price">$1 <span class="sm">per qualified lead &middot; from $20</span></div>
       <ul class="prod-features">
         <li class="g">Apollo-powered lead sourcing</li>
         <li class="g">3-sequence automated outreach</li>
@@ -721,118 +917,40 @@
         <li class="g">3 AI ICP regenerations/month</li>
       </ul>
     </div>
-    <!-- FIGSY -->
     <div class="prod">
-      <div class="prod-icon">🤖</div>
-      <span class="prod-tag t-green">FIGSY — AI SDR Agent</span>
-      <h3>Meet FIGSY. Your AI outreach agent.</h3>
-      <p>FIGSY isn't a template blaster. She finds the right people, writes emails that sound like a real person typed them, follows up on cue, and books the meeting. African-market-native. Runs 24/7. Never calls in sick.</p>
-      <div class="prod-price">$3 <span class="sm">per qualified lead · from $60</span></div>
+      <div class="prod-icon">&#x1F916;</div>
+      <span class="prod-tag t-green">FIGSY &mdash; Your AI SDR Teammate</span>
+      <h3>Meet FIGSY. Your autonomous AI SDR.</h3>
+      <p>FIGSY doesn't wait to be told. She finds the right people, scores them against your ICP (0&ndash;100), writes emails that sound like a real person, follows up proactively, handles replies, and books the meeting. FIGSY Memory learns what works. Campaign Intelligence tells you what to do next.</p>
+      <div class="prod-price">$3 <span class="sm">per qualified lead &middot; from $60</span></div>
       <ul class="prod-features">
         <li class="b">Everything in K.I.N.D AI</li>
         <li class="b">Adaptive reply handling</li>
         <li class="b">Objection management</li>
         <li class="b">Meeting booked to your calendar</li>
-        <li class="b">Campaign memory — learns what works</li>
-        <li class="b">Auto-pauses underperforming campaigns</li>
+        <li class="b">FIGSY Memory &mdash; learns what works</li>
+        <li class="b">Campaign Intelligence &mdash; auto-pauses weak campaigns</li>
         <li class="b">Weekly outreach digest every Monday</li>
         <li class="b">Unlimited ICP regenerations</li>
       </ul>
       <div style="background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:16px 20px;margin-top:20px">
         <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin-bottom:8px">FIGSY's voice</div>
-        <div style="font-size:0.88rem;font-style:italic;color:rgba(0,0,0,0.7);line-height:1.6">"Saw you're leading growth at [Company] — thought what we're doing might be relevant. Worth a 15-minute call this week?"</div>
+        <div style="font-size:0.88rem;font-style:italic;color:rgba(0,0,0,0.7);line-height:1.6">"Saw you're leading growth at [Company] &mdash; thought what we're doing might be relevant. Worth a 15-minute call this week?"</div>
       </div>
     </div>
-    <!-- VA -->
     <div class="prod">
-      <div class="prod-icon">🧠</div>
-      <span class="prod-tag t-purple">Virtual Assistant</span>
-      <h3>AI Virtual Assistant</h3>
-      <p>A Claude-powered assistant trained on your business. Handles scheduling, email drafting, internal Q&amp;A, and document queries.</p>
-      <a href="virtual-assistant.html" class="prod-waitlist">Coming soon — register interest →</a>
+      <div class="prod-icon">&#x1F9E0;</div>
+      <span class="prod-tag t-purple">Milla &mdash; Business Intelligence</span>
+      <h3>Milla's Business Memory</h3>
+      <p>Milla tracks what's working across every campaign, every ICP, every industry signal. She surfaces the intelligence you need to make better decisions &mdash; faster. No dashboards to build. No reports to pull.</p>
+      <a href="virtual-assistant.html" class="prod-waitlist">Coming soon &mdash; register interest &rarr;</a>
     </div>
-    <!-- Chatbot -->
     <div class="prod">
-      <div class="prod-icon">💬</div>
-      <span class="prod-tag t-indigo">Chatbot Agent</span>
-      <h3>AI Chatbot Agent</h3>
-      <p>Fully configured AI chatbot for your website or WhatsApp. Answers queries, captures leads, and hands off to your team.</p>
-      <a href="chatbot-agent.html" class="prod-waitlist">Coming soon — register interest →</a>
-    </div>
-  </div>
-</div>
-
-<!-- FIGSY REASONING LOOP -->
-<div class="section" id="figsy-loop" style="background:#f8f9ff;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
-  <div class="s-label" style="text-align:center">How FIGSY thinks</div>
-  <div class="s-title reveal" style="text-align:center">The FIGSY Reasoning Loop</div>
-  <p class="s-sub reveal reveal-delay-1" style="text-align:center">Every action FIGSY takes follows a closed-loop reasoning cycle — observe, plan, act, learn.</p>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;max-width:960px;margin:48px auto 0">
-    <div class="hiw-card reveal" style="text-align:center">
-      <div class="hiw-num">Observe</div>
-      <h3>Read the signal</h3>
-      <p>FIGSY scans your ICP, your market, and every reply — building a live picture of what's working and who's ready to buy.</p>
-    </div>
-    <div class="hiw-card reveal reveal-delay-1" style="text-align:center">
-      <div class="hiw-num">Plan</div>
-      <h3>Decide the move</h3>
-      <p>Should it follow up? Handle an objection? Book a meeting? FIGSY decides the best next action based on context — not a script.</p>
-    </div>
-    <div class="hiw-card reveal reveal-delay-2" style="text-align:center">
-      <div class="hiw-num">Act</div>
-      <h3>Execute perfectly</h3>
-      <p>Claude writes the email. The calendar invite goes out. The opt-out gets suppressed. Every action is precise and POPIA-safe.</p>
-    </div>
-    <div class="hiw-card reveal reveal-delay-3" style="text-align:center">
-      <div class="hiw-num">Learn</div>
-      <h3>Improve every cycle</h3>
-      <p>FIGSY tracks reply rates, open rates, and booking conversion — and updates its strategy for the next campaign automatically.</p>
-    </div>
-  </div>
-</div>
-
-<!-- POPIA TRUST STRIP -->
-<div style="background:#0a0f1e;padding:40px 24px;text-align:center">
-  <div style="max-width:760px;margin:0 auto">
-    <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#60a5fa;margin-bottom:16px">Compliance built in — not bolted on</div>
-    <p style="font-size:1.1rem;font-weight:500;color:#fff;line-height:1.7;margin:0">Every campaign FIGSY runs is POPIA compliant by default. Opt-outs suppressed permanently. Consent logged automatically. You are protected.</p>
-    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin-top:28px">
-      <span style="background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.25);color:#93c5fd;padding:8px 18px;border-radius:999px;font-size:0.8rem;font-weight:600">✓ Opt-outs suppressed permanently</span>
-      <span style="background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.25);color:#93c5fd;padding:8px 18px;border-radius:999px;font-size:0.8rem;font-weight:600">✓ Consent logged automatically</span>
-      <span style="background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.25);color:#93c5fd;padding:8px 18px;border-radius:999px;font-size:0.8rem;font-weight:600">✓ Data stored in South Africa</span>
-      <span style="background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.25);color:#93c5fd;padding:8px 18px;border-radius:999px;font-size:0.8rem;font-weight:600">✓ GDPR &amp; POPIA compliant by design</span>
-    </div>
-  </div>
-</div>
-
-<!-- REACTIVE TO PROACTIVE SPECTRUM -->
-<div class="section" style="background:#fff;border-bottom:1px solid var(--border)">
-  <div class="s-label" style="text-align:center">Your revenue posture</div>
-  <div class="s-title reveal" style="text-align:center">From reactive to proactive</div>
-  <p class="s-sub reveal reveal-delay-1" style="text-align:center">Most businesses wait for leads. K.I.N.D customers don't.</p>
-  <div style="max-width:800px;margin:48px auto 0;position:relative">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:32px;flex-wrap:wrap">
-      <div style="flex:1;min-width:200px;text-align:left;padding:24px;background:#fff5f5;border:1px solid #fecaca;border-radius:16px">
-        <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#dc2626;margin-bottom:12px">Reactive</div>
-        <h4 style="font-size:1rem;font-weight:700;color:#1a1a2e;margin:0 0 10px">Waiting for inbound</h4>
-        <ul style="list-style:none;padding:0;margin:0;font-size:0.88rem;color:rgba(0,0,0,0.5);line-height:2">
-          <li>⏳ Inconsistent pipeline</li>
-          <li>⏳ Chasing referrals</li>
-          <li>⏳ Outreach falls off when busy</li>
-          <li>⏳ SDR salary: R30k–R60k/mo</li>
-        </ul>
-      </div>
-      <div style="flex:0 0 auto;display:flex;align-items:center;font-size:1.5rem;color:rgba(0,0,0,0.2);align-self:center">→</div>
-      <div style="flex:1;min-width:200px;text-align:left;padding:24px;background:#f0fdf4;border:2px solid #86efac;border-radius:16px">
-        <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#16a34a;margin-bottom:12px">Proactive with K.I.N.D</div>
-        <h4 style="font-size:1rem;font-weight:700;color:#1a1a2e;margin:0 0 10px">Pipeline runs while you sleep</h4>
-        <ul style="list-style:none;padding:0;margin:0;font-size:0.88rem;color:rgba(0,0,0,0.6);line-height:2">
-          <li>✅ Predictable, daily lead flow</li>
-          <li>✅ Outreach at scale, always on</li>
-          <li>✅ FIGSY follows up every time</li>
-          <li>✅ From $20 — pay per result</li>
-        </ul>
-      </div>
+      <div class="prod-icon">&#x1F4AC;</div>
+      <span class="prod-tag t-indigo">Vida &mdash; Website Conversion</span>
+      <h3>Vida converts your visitors.</h3>
+      <p>Vida is your always-on website AI. She answers queries, captures leads, qualifies intent, and hands off to your team &mdash; so no visitor leaves without a conversation. Web and WhatsApp ready.</p>
+      <a href="chatbot-agent.html" class="prod-waitlist">Coming soon &mdash; register interest &rarr;</a>
     </div>
   </div>
 </div>
@@ -842,24 +960,49 @@
 <!-- FIGSY SCROLL SCENE -->
 <div class="figsy-section" id="figsy">
   <div style="max-width:1080px;margin:0 auto 72px;padding:0">
-    <div class="s-label" style="color:#60a5fa">FIGSY — AI SDR</div>
-    <div class="s-title reveal" style="color:#fff">Meet your AI sales rep.</div>
-    <p class="s-sub reveal reveal-delay-1" style="color:rgba(255,255,255,0.4);margin-bottom:0">Fully autonomous. Never sleeps. Never misses a follow-up. FIGSY reads each lead, runs the conversation, and books the meeting — without you.</p>
+    <div class="s-label" style="color:#60a5fa">FIGSY &mdash; Your AI SDR Teammate</div>
+    <div class="s-title reveal" style="color:#fff">Proactive. Autonomous. Never misses a follow-up.</div>
+    <p class="s-sub reveal reveal-delay-1" style="color:rgba(255,255,255,0.4);margin-bottom:0">FIGSY doesn't wait to be told what to do. She finds, scores, writes, sends, follows up, reads every reply, and books the meeting &mdash; entirely on her own. This is what it means to have an AI SDR teammate, not a tool.</p>
+
+    <div class="reasoning-loop">
+      <div class="reasoning-loop-label">FIGSY's Reasoning Loop</div>
+      <div class="reasoning-loop-steps">
+        <span class="rl-step">Scans 250M+ contacts</span>
+        <span class="rl-arrow">&rarr;</span>
+        <span class="rl-step">Scores against ICP (0&ndash;100)</span>
+        <span class="rl-arrow">&rarr;</span>
+        <span class="rl-step">Writes unique email per lead</span>
+        <span class="rl-arrow">&rarr;</span>
+        <span class="rl-step">Sends &amp; tracks</span>
+        <span class="rl-arrow">&rarr;</span>
+        <span class="rl-step">Reads every reply</span>
+        <span class="rl-arrow">&rarr;</span>
+        <span class="rl-step">Books or follows up</span>
+        <span class="rl-arrow">&rarr;</span>
+        <span class="rl-step">Updates Campaign Intelligence</span>
+        <span class="rl-arrow">&rarr;</span>
+        <span class="rl-step">Starts over</span>
+      </div>
+    </div>
+
+    <div class="dogfood-callout">
+      <div class="dogfood-callout-icon">&#x1F44B;</div>
+      <div class="dogfood-callout-text"><strong>By the way &mdash; we found you with FIGSY.</strong> We run the same system on our own business. Every lead K.I.N.D generates for itself goes through the same reasoning loop FIGSY uses for our clients.</div>
+    </div>
   </div>
 
   <div class="figsy-scene">
-    <!-- Sticky character card -->
     <div class="figsy-sticky">
       <div class="figsy-character">
         <div class="figsy-avatar" id="figsy-avatar">
-          <img src="ai-agent.jpg" alt="FIGSY AI Agent" />
+          <img src="ai-agent.jpg" alt="FIGSY AI SDR" />
           <div class="figsy-avatar-ring"></div>
         </div>
         <div class="figsy-name">FIGSY</div>
-        <div class="figsy-role">AI Sales Development Rep</div>
+        <div class="figsy-role">AI Sales Development Rep &middot; Your AI SDR Teammate</div>
         <div class="figsy-status-bar">
-          <span class="figsy-badge on">● Online</span>
-          <span class="figsy-badge">✦ Powered by Claude</span>
+          <span class="figsy-badge on">&#x25CF; Online</span>
+          <span class="figsy-badge">&#x2726; Powered by Claude</span>
         </div>
         <div class="figsy-thinking">
           <div class="figsy-thinking-label">Currently working on</div>
@@ -869,57 +1012,111 @@
       </div>
     </div>
 
-    <!-- Scroll steps -->
     <div class="figsy-steps" id="figsy-steps">
-      <div class="figsy-scroll-step active" data-thought="Scanning 250M+ contacts from Apollo. Filtering by industry, title, geography, and company size to match your ICP exactly.">
+      <div class="figsy-scroll-step active" data-thought="Scanning 250M+ contacts from Apollo. Filtering by industry, title, geography, and company size to match your ICP exactly. Every lead scored 0-100 before a single email goes out.">
         <div class="step-num">Step 01</div>
         <h4>ICP-matched lead sourcing</h4>
-        <p>Apollo's 250M+ verified contacts are searched against your Ideal Customer Profile. Only decision-makers who match your criteria get through.</p>
+        <p>Apollo's 250M+ verified contacts are searched against your Ideal Customer Profile. FIGSY scores every match 0&ndash;100 and only decision-makers who hit the threshold get through. FIGSY Memory refines this score with every campaign.</p>
         <div class="step-detail">
           <span class="step-pill">250M+ contacts</span>
-          <span class="step-pill">ICP filters</span>
+          <span class="step-pill">ICP scoring 0&ndash;100</span>
           <span class="step-pill">Verified emails</span>
+          <span class="step-pill">FIGSY Memory</span>
         </div>
       </div>
-      <div class="figsy-scroll-step" data-thought="Writing a personalised email for Sarah Chen, VP of Sales at TechCorp. Opening with her recent funding round — never a template.">
+      <div class="figsy-scroll-step" data-thought="Writing a personalised email for Sarah Chen, VP of Sales at TechCorp. Opening with her recent funding round — never a template. This is FIGSY being proactive.">
         <div class="step-num">Step 02</div>
         <h4>Hyper-personalised outreach</h4>
-        <p>Claude writes a unique email for every single lead. Role, company context, industry signals — each message sounds like it was written by a human who did their homework.</p>
+        <p>Claude writes a unique email for every single lead. Role, company context, industry signals &mdash; each message sounds like it was written by a human who did their homework. No templates. No spray-and-pray. FIGSY is proactive, not reactive.</p>
         <div class="step-detail">
           <span class="step-pill">Zero templates</span>
           <span class="step-pill">Claude AI writing</span>
           <span class="step-pill">3-sequence follow-up</span>
         </div>
       </div>
-      <div class="figsy-scroll-step" data-thought="Reply received from James M. at Vertex Capital — positive intent. Crafting a response that moves toward a meeting without being pushy.">
+      <div class="figsy-scroll-step" data-thought="Reply received from James M. at Vertex Capital — positive intent. Crafting a response that moves toward a meeting without being pushy. Campaign Intelligence updated.">
         <div class="step-num">Step 03</div>
         <h4>Intelligent reply handling</h4>
-        <p>FIGSY reads every reply. Positive? It continues the conversation naturally. Objection? It handles it. Unsubscribe? Permanently blocked, POPIA recorded.</p>
+        <p>FIGSY reads every reply. Positive? She continues the conversation naturally. Objection? She handles it. Unsubscribe? Permanently suppressed, POPIA consent logged automatically. Every interaction updates Campaign Intelligence.</p>
         <div class="step-detail">
           <span class="step-pill">Reads every reply</span>
           <span class="step-pill">Objection handling</span>
+          <span class="step-pill">Campaign Intelligence</span>
           <span class="step-pill">POPIA compliant</span>
         </div>
       </div>
-      <div class="figsy-scroll-step" data-thought="Booked: 30-min discovery call with James M. on Thursday at 10am. Calendar invite sent. Your CRM has been updated. You just need to show up.">
+      <div class="figsy-scroll-step" data-thought="Booked: 30-min discovery call with James M. on Thursday at 10am. Calendar invite sent. FIGSY Memory updated. You just need to show up.">
         <div class="step-num">Step 04</div>
         <h4>Meeting booked to your calendar</h4>
-        <p>When a prospect is ready, FIGSY books directly into your calendar. You get a notification. You show up to the call. That's it.</p>
+        <p>When a prospect is ready, FIGSY books directly into your calendar. You get a notification. You show up to the call. That's it. FIGSY Memory records what worked so future campaigns start smarter.</p>
         <div class="step-detail">
           <span class="step-pill">Calendar booking</span>
           <span class="step-pill">Instant notification</span>
+          <span class="step-pill">FIGSY Memory updated</span>
           <span class="step-pill">Credit on booking</span>
         </div>
       </div>
-      <div class="figsy-scroll-step" data-thought="Reply rate dropped to 0.6% on campaign 'SA Fintech Q2'. Pausing automatically and alerting the client. No wasted credits.">
+      <div class="figsy-scroll-step" data-thought="Reply rate dropped to 0.6% on campaign 'SA Fintech Q2'. Pausing automatically and alerting. Campaign Intelligence flagging pattern. No wasted credits.">
         <div class="step-num">Step 05</div>
-        <h4>Self-managing agent intelligence</h4>
-        <p>FIGSY monitors its own performance. If a campaign drops below 1% reply rate, it pauses automatically and alerts you — no credits wasted on a dead campaign. Every Monday you get a full outreach digest in your inbox.</p>
+        <h4>Self-managing campaign intelligence</h4>
+        <p>FIGSY monitors her own performance via Campaign Intelligence. If a campaign drops below 1% reply rate, she pauses automatically and alerts you &mdash; no credits wasted on a dead campaign. Every Monday you get a full outreach digest.</p>
         <div class="step-detail">
           <span class="step-pill">Auto-pauses low performers</span>
           <span class="step-pill">Weekly digest</span>
-          <span class="step-pill">Campaign memory</span>
+          <span class="step-pill">Campaign Intelligence</span>
+          <span class="step-pill">FIGSY Memory</span>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEVEL 3: PROACTIVE AI -->
+<div class="level-section">
+  <div class="level-inner">
+    <div style="text-align:center;margin-bottom:56px">
+      <div class="s-label" style="color:#60a5fa;text-align:center">The Spectrum</div>
+      <div class="s-title" style="text-align:center;color:#fff;margin-bottom:12px">Most businesses are stuck at Level 1.</div>
+      <p style="text-align:center;color:rgba(255,255,255,0.4);font-size:1rem;max-width:520px;margin:0 auto">K.I.N.D moves you to Level 3 in 10 minutes.</p>
+    </div>
+    <div class="level-grid">
+      <div class="level-card">
+        <div class="level-num">Level 1</div>
+        <span class="level-badge lb-grey">Reactive</span>
+        <h3>You chase leads.</h3>
+        <p>Your team spends hours sourcing contacts manually, writing outreach from scratch, and chasing people who never reply. Pipeline depends entirely on how much time your people have.</p>
+      </div>
+      <div class="level-card">
+        <div class="level-num">Level 2</div>
+        <span class="level-badge lb-muted">Assisted</span>
+        <h3>Tools help you.</h3>
+        <p>You use platforms to find leads or schedule emails. But someone still has to configure, monitor, write, and decide. You've added technology &mdash; you haven't removed the ceiling.</p>
+      </div>
+      <div class="level-card active-level">
+        <div class="level-num">Level 3</div>
+        <span class="level-badge lb-blue">Proactive</span>
+        <h3>Your AI team does it for you.</h3>
+        <p>FIGSY sources, scores, writes, sends, follows up, and books &mdash; autonomously. Milla reads the intelligence. Vida converts your website. Your pipeline grows whether you're in the office or not.</p>
+        <div class="level-kind-tag">&#x26A1; This is K.I.N.D.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- POPIA TRUST BAND -->
+<div class="popia-band">
+  <div class="popia-inner">
+    <div class="popia-shield">&#x1F512;</div>
+    <div>
+      <div class="popia-label">POPIA Compliance &mdash; Built In, Not Bolted On</div>
+      <div class="popia-headline">Every campaign FIGSY runs is POPIA compliant by default.</div>
+      <p class="popia-copy">Opt-outs suppressed permanently. Consent logged automatically. You are protected. K.I.N.D was built from day one around South African data law &mdash; POPIA isn't a checkbox for us, it's architecture. Every email, every reply, every unsubscribe is recorded with a full audit trail.</p>
+      <div class="popia-pills">
+        <span class="popia-pill">Opt-outs suppressed permanently</span>
+        <span class="popia-pill">Consent logged automatically</span>
+        <span class="popia-pill">Data stored in Cape Town, SA</span>
+        <span class="popia-pill">Full audit trail</span>
+        <span class="popia-pill">GDPR aligned</span>
       </div>
     </div>
   </div>
@@ -929,22 +1126,22 @@
 <div class="section" id="how-it-works">
   <div class="s-label">How it works</div>
   <div class="s-title">Live in minutes.</div>
-  <p class="s-sub">No integrations. No complex setup. Define your ICP, add credits, and K.I.N.D starts working.</p>
+  <p class="s-sub">No integrations. No complex setup. Define your ICP, add credits, and your AI revenue team starts working.</p>
   <div class="hiw-grid">
     <div class="hiw-card">
       <div class="hiw-num">Step 01</div>
       <h3>Define your ICP</h3>
-      <p>Set your Ideal Customer Profile — industry, title, company size, geography. Our AI suggests refinements based on your results.</p>
+      <p>Set your Ideal Customer Profile &mdash; industry, title, company size, geography. FIGSY suggests refinements based on your results. FIGSY Memory stores what works across campaigns.</p>
     </div>
     <div class="hiw-card">
       <div class="hiw-num">Step 02</div>
       <h3>Add credits &amp; launch</h3>
-      <p>Buy a credit bundle — from $20. K.I.N.D sources leads, writes personalised emails, and starts your 3-sequence outreach automatically.</p>
+      <p>Buy a credit bundle &mdash; from $20. FIGSY sources leads, scores them against your ICP, writes personalised emails, and starts your 3-sequence outreach automatically. No input needed.</p>
     </div>
     <div class="hiw-card">
       <div class="hiw-num">Step 03</div>
       <h3>Receive qualified leads</h3>
-      <p>When a prospect replies positively, 1 credit is consumed and you're notified instantly. Upgrade to FIGSY and it books the meeting too.</p>
+      <p>When a prospect replies positively, 1 credit is consumed and you're notified instantly. Upgrade to the Scale plan and FIGSY books the meeting directly to your calendar.</p>
     </div>
   </div>
 </div>
@@ -960,7 +1157,7 @@
     <div class="video-wrap">
       <iframe
         src="figsy-video.html"
-        title="FIGSY — AI Lead Gen Agent by K.I.N.D"
+        title="FIGSY &mdash; AI Lead Gen Agent by K.I.N.D"
         frameborder="0"
         allow="autoplay"
         style="position:absolute;inset:0;width:100%;height:100%;border:0;"
@@ -977,12 +1174,12 @@
       <div class="stat-label">Verified B2B contacts<br/>in the database</div>
     </div>
     <div class="stat reveal reveal-delay-1">
-      <div class="stat-num"><span class="counter" data-target="3" data-suffix="×">0</span></div>
+      <div class="stat-num"><span class="counter" data-target="3" data-suffix="x">0</span></div>
       <div class="stat-label">AI ICP refinements<br/>per month included</div>
     </div>
     <div class="stat reveal reveal-delay-2">
       <div class="stat-num">$<span class="counter" data-target="1" data-suffix="">0</span></div>
-      <div class="stat-label">Per qualified lead<br/>on K.I.N.D AI plan</div>
+      <div class="stat-label">Per qualified lead<br/>on Start plan</div>
     </div>
     <div class="stat reveal reveal-delay-3">
       <div class="stat-num"><span class="counter" data-target="14" data-suffix="">0</span></div>
@@ -1000,18 +1197,17 @@
       <p style="font-size:1rem;color:rgba(0,0,0,0.4);margin-top:8px">Credits consumed only on positive replies. No monthly minimums. Cancel anytime.</p>
     </div>
     <div class="anti-alta">
-      <div class="aa-item aa-bad">Alta AI SDR — from $1,250/mo · USD only · Quarterly locked-in · No trial · No refunds</div>
+      <div class="aa-item aa-bad">Alta AI SDR &mdash; from $1,250/mo &middot; USD only &middot; Quarterly locked-in &middot; No trial &middot; No refunds</div>
       <div class="aa-vs">vs</div>
-      <div class="aa-item aa-good">K.I.N.D — from $20 credit bundle · pay per result · no monthly fee · free trial · cancel anytime</div>
+      <div class="aa-item aa-good">K.I.N.D &mdash; from $20 credit bundle &middot; pay per result &middot; no monthly fee &middot; free trial &middot; cancel anytime</div>
     </div>
     <div class="p-cards">
-      <!-- Start -->
       <div class="p-card">
         <div class="p-plan">Start</div>
-        <h3>Lead Gen Pro</h3>
-        <p>AI-sourced, AI-outreached leads. Pay only when a prospect replies positively.</p>
+        <h3>Start</h3>
+        <p>AI-sourced, AI-outreached leads. Pay only when a prospect replies positively. Your first step to unlimited pipeline.</p>
         <div class="p-price">$1<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/qualified lead</span></div>
-        <div class="p-note">Start from $20 · bundles of 20 credits</div>
+        <div class="p-note">Start from $20 &middot; bundles of 20 credits</div>
         <div class="p-divider"></div>
         <ul>
           <li>Apollo lead sourcing</li>
@@ -1023,35 +1219,33 @@
         </ul>
         <button onclick="openAuth('signup')" class="p-btn p-btn-out">Start free trial</button>
       </div>
-      <!-- Scale -->
       <div class="p-card featured">
         <div class="p-badge">Most popular</div>
         <div class="p-plan">Scale</div>
-        <h3>Lead Gen Advanced</h3>
-        <p>Everything in Lead Gen Pro — plus FIGSY handles replies, books meetings, and learns from every campaign.</p>
+        <h3>Scale</h3>
+        <p>Everything in Start &mdash; plus FIGSY handles all replies, books meetings, and Campaign Intelligence learns from every campaign. Your autonomous AI SDR.</p>
         <div class="p-price">$3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.3)">/qualified lead</span></div>
-        <div class="p-note">Start from $60 · bundles of 20 credits</div>
+        <div class="p-note">Start from $60 &middot; bundles of 20 credits</div>
         <div class="p-divider"></div>
         <ul>
-          <li>Everything in Lead Gen Pro</li>
-          <li>FIGSY handles all replies</li>
+          <li>Everything in Start</li>
+          <li>FIGSY handles all replies autonomously</li>
           <li>Objection management</li>
           <li>Meeting booked to your calendar</li>
-          <li>Adaptive learning per campaign</li>
+          <li>FIGSY Memory &amp; Campaign Intelligence</li>
           <li>Unlimited ICP regenerations</li>
         </ul>
         <button onclick="openAuth('signup')" class="p-btn p-btn-white">Start free trial</button>
       </div>
-      <!-- Dominate -->
       <div class="p-card">
         <div class="p-plan">Dominate</div>
-        <h3>Custom</h3>
-        <p>High-volume campaigns, custom integrations, dedicated support, and tailored pricing.</p>
+        <h3>Dominate</h3>
+        <p>High-volume campaigns, custom integrations, dedicated support, and tailored pricing. For teams that want to own their market.</p>
         <div class="p-price" style="font-size:1.8rem">Let's talk</div>
-        <div class="p-note">Volume discounts · SLA · dedicated AE</div>
+        <div class="p-note">Volume discounts &middot; SLA &middot; dedicated AE</div>
         <div class="p-divider"></div>
         <ul>
-          <li>Everything in FIGSY Advanced</li>
+          <li>Everything in Scale</li>
           <li>CRM integration (HubSpot, Salesforce)</li>
           <li>Custom sending domain setup</li>
           <li>Dedicated account manager</li>
@@ -1061,7 +1255,7 @@
         <a href="mailto:hello@get-kind.com?subject=Enterprise%20Enquiry" class="p-btn p-btn-out">Contact us</a>
       </div>
     </div>
-    <p class="p-vol-note">USD billing · No contracts · Cancel anytime · <a href="mailto:hello@get-kind.com" style="color:rgba(0,0,0,0.3);text-decoration:none">hello@get-kind.com</a></p>
+    <p class="p-vol-note">USD billing &middot; No contracts &middot; Cancel anytime &middot; <a href="mailto:hello@get-kind.com" style="color:rgba(0,0,0,0.3);text-decoration:none">hello@get-kind.com</a></p>
   </div>
 </div>
 
@@ -1069,10 +1263,10 @@
 <div class="cta-section">
   <div class="cta-inner">
     <div class="cta-banner">
-      <h2>Ready to fill your pipeline?</h2>
-      <p>14-day free trial. No credit card. Cancel anytime.</p>
+      <h2>Ready to remove the ceiling?</h2>
+      <p>Your AI revenue team is ready to deploy. 14-day free trial. No card required. First leads in 10 minutes.</p>
       <div class="cta-btns">
-        <button onclick="openAuth('signup')" class="btn-cta-primary">Start free trial →</button>
+        <button onclick="openAuth('signup')" class="btn-cta-primary">Start free trial &rarr;</button>
         <a href="mailto:hello@get-kind.com?subject=Book%20a%20Demo" class="btn-cta-ghost">Book a demo</a>
       </div>
     </div>
@@ -1082,20 +1276,32 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
+
+    <div class="founder-quote">
+      <p class="founder-quote-text">"I built K.I.N.D because I was tired of spending half my week hunting leads instead of closing them. FIGSY is the AI sales rep I wish I had from day one."</p>
+      <div class="founder-byline">
+        <div class="founder-avatar">&#x26A1;</div>
+        <div>
+          <div class="founder-name">Jacques, Founder</div>
+          <div class="founder-title">K.I.N.D &mdash; The AI Revenue Team</div>
+        </div>
+      </div>
+    </div>
+
     <div class="footer-grid">
       <div class="footer-brand">
         <a href="/" class="logo">
-          <div class="logo-icon">⚡</div>
+          <div class="logo-icon">&#x26A1;</div>
           <span class="logo-text">K.I.N.D</span>
         </a>
-        <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation for ambitious businesses.</p>
+        <p>Knowledge. Intelligence. Networks. Delivered. Your AI revenue team &mdash; FIGSY, Milla, and Vida &mdash; built for Africa and ready for the world.</p>
       </div>
       <div class="footer-col">
         <h4>Products</h4>
-        <a href="#products">K.I.N.D AI — Lead Gen</a>
-        <a href="#figsy">FIGSY — AI SDR</a>
-        <a href="virtual-assistant.html">Virtual Assistant</a>
-        <a href="chatbot-agent.html">Chatbot Agent</a>
+        <a href="#products">K.I.N.D AI &mdash; Lead Gen</a>
+        <a href="#figsy">FIGSY &mdash; AI SDR</a>
+        <a href="virtual-assistant.html">Milla &mdash; Business Intelligence</a>
+        <a href="chatbot-agent.html">Vida &mdash; Website Conversion</a>
       </div>
       <div class="footer-col">
         <h4>Company</h4>
@@ -1121,14 +1327,8 @@
         <a href="vs-hiring-an-sdr.html">vs Hiring an SDR</a>
       </div>
     </div>
-    <!-- Founder quote -->
-    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:40px 0 32px;text-align:center">
-      <blockquote style="margin:0;font-size:1.05rem;font-style:italic;color:rgba(255,255,255,0.65);line-height:1.7;max-width:640px;margin:0 auto">"We built K.I.N.D because every founder deserves an outreach machine that never sleeps, never burns out, and always shows up — regardless of budget."</blockquote>
-      <div style="margin-top:16px;font-size:0.82rem;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:0.05em">— The K.I.N.D Founders</div>
-    </div>
-
     <div class="footer-bottom">
-      <p>© 2026 K.I.N.D. All rights reserved.</p>
+      <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
       <div class="footer-legal">
         <a href="https://app.get-kind.com/terms">Terms of Service</a>
         <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
@@ -1216,7 +1416,6 @@
     ctx.clearRect(0, 0, W, H)
     const t = Date.now() * 0.001
 
-    // Draw edges
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const dx = nodes[i].x - nodes[j].x
@@ -1233,7 +1432,6 @@
       }
     }
 
-    // Draw nodes
     nodes.forEach(n => {
       n.pulse += 0.02
       const glow = (Math.sin(n.pulse) + 1) / 2
@@ -1256,7 +1454,7 @@
   initNodes()
   draw()
 
-  // ── SCROLL REVEAL ─────────────────────────────────────────────────────────────
+  // SCROLL REVEAL
   const revealObserver = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
       if (entry.isIntersecting) {
@@ -1267,7 +1465,7 @@
   }, { threshold: 0.12 })
   document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el) })
 
-  // ── STAT COUNTERS ──────────────────────────────────────────────────────────────
+  // STAT COUNTERS
   const counterObserver = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
       if (!entry.isIntersecting) return
@@ -1290,8 +1488,8 @@
   }, { threshold: 0.5 })
   document.querySelectorAll('.counter').forEach(function(el) { counterObserver.observe(el) })
 
-  // ── TYPEWRITER ────────────────────────────────────────────────────────────────
-  var twPhrases = ['on autopilot.', 'while you sleep.', 'without templates.', 'on autopilot.']
+  // TYPEWRITER
+  var twPhrases = ['Human Ceiling.', 'Unlimited Pipeline.', 'Human Ceiling.']
   var twIdx = 0, twCharIdx = 0, twDeleting = false
   var twTarget = document.getElementById('tw-target')
   var twCursor = document.getElementById('tw-cursor')
@@ -1311,7 +1509,7 @@
         twCharIdx++
         twTarget.textContent = phrase.substring(0, twCharIdx)
         if (twCharIdx === phrase.length) {
-          if (twIdx === twPhrases.length - 1) return // stop on last phrase
+          if (twIdx === twPhrases.length - 1) return
           setTimeout(function() { twDeleting = true; typeStep() }, 2200)
         } else { setTimeout(typeStep, 70) }
       }
@@ -1319,7 +1517,7 @@
     setTimeout(typeStep, 1800)
   }
 
-  // ── FIGSY SCROLL STEPS ────────────────────────────────────────────────────────
+  // FIGSY SCROLL STEPS
   var figsySteps = document.querySelectorAll('.figsy-scroll-step')
   var figsyThought = document.getElementById('figsy-thought')
   if (figsySteps.length && figsyThought) {

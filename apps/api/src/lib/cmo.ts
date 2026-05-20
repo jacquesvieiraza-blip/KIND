@@ -21,23 +21,23 @@ export const KIND_BRAND = {
   },
 
   messaging_pillars: [
-    'Speed — first scored leads in 2 hours from signup, not 2 weeks',
-    'AI-native — not a spreadsheet with an AI button bolted on',
-    'African-first — POPIA/NDPR compliant, ZAR billing, built for how African businesses sell',
-    'Full revenue cycle — Lead Gen → FIGSY outreach → VA → Chatbot',
-    'You close the deal. We find the people and start the conversation.',
+    'Break the Human Ceiling — FIGSY removes the bottleneck of founder-led prospecting',
+    'The AI Revenue Team — FIGSY (SDR), Milla (Intelligence), Vida (Website) — not tools, teammates',
+    'Unlimited pipeline — when your AI team is running, pipeline growth has no ceiling',
+    'African-first — POPIA/NDPR compliant by default, ZAR billing, built for how African businesses sell',
+    'You close the deal. FIGSY finds the people, starts the conversation, and books the meeting.',
   ],
 
   tone: {
-    voice:   'Direct, confident, no fluff. Like a senior colleague who gives you the number first.',
-    avoid:   ['Corporate jargon', 'Excessive exclamation marks', '"Revolutionary" or "game-changing"', 'Vague promises'],
-    use:     ['Specific numbers', 'Concrete outcomes', 'Short sentences', 'Active voice'],
+    voice:   'Direct, confident, no fluff. Like a senior colleague who gives you the number first. We found you with FIGSY — and that is exactly the point.',
+    avoid:   ['Corporate jargon', 'Excessive exclamation marks', '"Revolutionary" or "game-changing"', 'Vague promises', 'Calling it "AI-powered" — just show the outcome'],
+    use:     ['Specific numbers', 'Concrete outcomes', 'Short sentences', 'Active voice', 'Honest honesty about what the product does'],
     example_hooks: [
-      'K.I.N.D finds the right people. FIGSY does the talking. You close the deal.',
-      'First leads in 2 hours. Not 2 weeks.',
-      'Built for how African businesses actually sell.',
-      'Your ICP. Your leads. Your pipeline. Automated.',
-      'Stop prospecting. Start closing.',
+      'You are not buying software. You are hiring a team.',
+      'FIGSY found your details. I thought it was only fair to tell you.',
+      'Break the human ceiling — your pipeline should not be limited by how many hours you have.',
+      'First leads in under 10 minutes. Or your money back.',
+      'This email was written by FIGSY. The next one can be about your pipeline.',
     ],
   },
 

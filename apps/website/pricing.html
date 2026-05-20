@@ -336,8 +336,8 @@
 <!-- HERO -->
 <div class="page-hero">
   <div class="eyebrow">Pricing</div>
-  <h1>Pay per result.<br/>Not per seat.</h1>
-  <p>Usage-based pricing for Lead Gen and FIGSY. Flat monthly for VA and Chatbot. No contracts, no hidden fees.</p>
+  <h1>Start. Scale. Dominate.</h1>
+  <p>Three tiers. One AI revenue team. Pay for results, not promises.</p>
   <p style="font-size:0.78rem;color:rgba(0,0,0,0.35);margin-top:16px">Your data stays in Africa — Cape Town servers (Supabase af-south-1) · POPIA compliant by design · No data sold to third parties</p>
 </div>
 
@@ -355,6 +355,14 @@
   <span class="toggle-label" id="label-yearly">Yearly <span class="save-badge">Save 20%</span></span>
 </div>
 
+<!-- POPIA TRUST STRIP -->
+<div style="max-width:860px;margin:0 auto 40px;padding:0 24px">
+  <div style="display:flex;align-items:flex-start;gap:14px;background:linear-gradient(135deg,rgba(16,185,129,0.06) 0%,rgba(5,150,105,0.08) 100%);border:1px solid rgba(16,185,129,0.22);border-radius:16px;padding:20px 24px">
+    <span style="font-size:1.4rem;flex-shrink:0;margin-top:1px">🛡️</span>
+    <p style="font-size:0.875rem;color:rgba(0,0,0,0.65);line-height:1.7;margin:0">Every campaign that runs on K.I.N.D is <strong style="color:#059669">POPIA compliant by default</strong>. Opt-outs suppressed permanently. Consent logged automatically. <strong style="color:rgba(0,0,0,0.75)">You are protected.</strong></p>
+  </div>
+</div>
+
 <!-- PRICING CARDS -->
 <div class="pricing-wrap">
   <div class="anti-alta">
@@ -365,11 +373,11 @@
   <p style="text-align:center;margin-bottom:32px;"><a href="vs-apollo.html" style="font-size:0.9rem;color:var(--blue);text-decoration:none;font-weight:600;">See how we compare →</a></p>
   <div class="pricing-grid">
 
-    <!-- Lead Gen -->
+    <!-- Start -->
     <div class="p-card reveal">
-      <div class="p-plan">Lead Gen</div>
-      <h3>AI Lead Generation</h3>
-      <p class="p-desc">Scored, consented B2B leads matched to your ICP. No duplicates. No contracts.</p>
+      <div class="p-plan">Start</div>
+      <h3>Start</h3>
+      <p class="p-desc">Start building your pipeline. AI-sourced leads delivered to your ICP.</p>
       <div class="p-price">
         $1<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/lead</span>
       </div>
@@ -385,12 +393,12 @@
       <button onclick="openAuth('signup')" class="p-btn p-btn-out">Start free trial</button>
     </div>
 
-    <!-- Lead Gen + FIGSY -->
+    <!-- Scale -->
     <div class="p-card pop reveal reveal-delay-1">
       <div class="pop-pill">Most popular</div>
-      <div class="p-plan">Lead Gen + FIGSY</div>
-      <h3>Full Pipeline Bundle</h3>
-      <p class="p-desc">Leads found and AI outreach running. The complete end-to-end B2B sales system.</p>
+      <div class="p-plan">Scale</div>
+      <h3>Scale</h3>
+      <p class="p-desc">Scale your pipeline with FIGSY. Full autonomous outreach, follow-up, and meeting booking.</p>
       <div class="p-price">
         $3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.3)">/lead</span>
       </div>
@@ -406,24 +414,24 @@
       <a href="mailto:hello@get-kind.com?subject=Lead%20Gen%20+%20FIGSY%20Bundle" class="p-btn p-btn-white">Book a free call →</a>
     </div>
 
-    <!-- VA + Chatbot -->
+    <!-- Dominate -->
     <div class="p-card reveal reveal-delay-2">
-      <div class="p-plan">VA + Chatbot</div>
-      <h3>Assistant Products</h3>
-      <p class="p-desc">Flat monthly subscription. Add to any plan or run standalone. No usage stress.</p>
-      <div class="p-price" id="price-va" style="font-size:1.9rem">
-        from $499<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/mo</span>
+      <div class="p-plan">Dominate</div>
+      <h3>Dominate</h3>
+      <p class="p-desc">Dominate your market. Custom volume, dedicated AE, CRM integration, SLA.</p>
+      <div class="p-price" id="price-va" style="font-size:2rem;letter-spacing:-0.03em">
+        Let's talk
       </div>
-      <div class="p-note">Coming soon — join the waitlist</div>
+      <div class="p-note">Enterprise pricing · Custom SLA · Dedicated AE</div>
       <ul>
-        <li>Virtual Assistant — $750/mo</li>
-        <li>AI Chatbot Agent — $499/mo</li>
-        <li>Custom persona &amp; knowledge base</li>
-        <li>Web &amp; WhatsApp deployment</li>
-        <li>500 interactions/mo included</li>
-        <li>Pro: 2,000 interactions/mo</li>
+        <li>Everything in Scale</li>
+        <li>Custom lead volume</li>
+        <li>Dedicated Account Executive</li>
+        <li>CRM integration (HubSpot, Salesforce)</li>
+        <li>Custom SLA &amp; onboarding</li>
+        <li>Priority support</li>
       </ul>
-      <a href="https://tally.so/r/kind-waitlist" class="p-btn p-btn-out">Join waitlist →</a>
+      <a href="mailto:hello@get-kind.com?subject=Dominate%20Plan%20Enquiry" class="p-btn p-btn-out">Get in touch →</a>
     </div>
 
   </div>
@@ -679,13 +687,7 @@
     labelM.classList.toggle('active', !isYearly)
     labelY.classList.toggle('active', isYearly)
 
-    // VA/Chatbot pricing (coming soon — waitlist only, toggle is informational)
-    const priceVA = document.getElementById('price-va')
-    if (isYearly) {
-      priceVA.innerHTML = 'from $399<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/mo <span style="font-size:0.75rem;color:#059669">20% off</span></span>'
-    } else {
-      priceVA.innerHTML = 'from $499<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/mo</span>'
-    }
+    // Dominate tier — price is always "Let's talk", toggle is informational only
 
     // FIGSY add-on monthly prices
     document.querySelectorAll('.m-price').forEach(el => {
@@ -701,7 +703,7 @@
       : 'From $20 credit bundle · no monthly minimum · pay per result'
     document.getElementById('note-bundle').textContent = isYearly
       ? 'From $60 credit bundle · 20% off on yearly · FIGSY full stack'
-      : 'From $60 credit bundle · no monthly minimum · FIGSY full stack'
+      : 'From $60/mo · FIGSY full stack'
   }
 
   // FAQ accordion

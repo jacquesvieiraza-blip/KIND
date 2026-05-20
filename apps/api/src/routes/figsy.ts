@@ -670,7 +670,7 @@ figsyRouter.post('/memory/refresh', async (req: AuthRequest, res) => {
       ? rows.reduce((sum, c) => sum + ((c.replies_total ?? 0) / (c.emails_sent ?? 1)), 0) / rows.length
       : 0
 
-    const { data: memoryRow, error: upsertError } = await db.from('figsy_memory')
+    const { error: upsertError } = await db.from('figsy_memory')
       .upsert({
         client_id:             clientId,
         best_subject_lines:    [],

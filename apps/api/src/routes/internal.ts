@@ -905,3 +905,379 @@ internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => 
     res.status(500).json({ success: false, error: 'Zero-credits run failed' })
   }
 })
+
+// ── FIGSY AUTO-REPLENISH ──────────────────────────────────────────────────────
+// Call daily. For clients with active campaigns running low on enrollments,
+// surface a notification so they can top up. Also auto-refreshes FIGSY Memory.
+internalRouter.post('/figsy/auto-replenish', async (_req: Request, res: Response) => {
+  try {
+    const founderEmail = process.env.FOUNDER_EMAIL
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id, credit_balance, first_icp_run_at')
+      .not('first_icp_run_at', 'is', null)
+      .gt('credit_balance', 0)
+
+    const alerts: { client_id: string; company_name: string; enrollments_remaining: number }[] = []
+
+    for (const client of clients ?? []) {
+      const { count: activeEnrollments } = await db.from('figsy_enrollments')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', client.id)
+        .in('status', ['enrolled', 'in_progress'])
+
+      const remaining = activeEnrollments ?? 0
+
+      if (remaining < 5 && remaining >= 0) {
+        alerts.push({
+          client_id:            client.id,
+          company_name:         client.company_name ?? '—',
+          enrollments_remaining: remaining,
+        })
+      }
+    }
+
+    if (alerts.length > 0 && founderEmail && resend) {
+      const rows = alerts.map(a =>
+        `<tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0">${a.company_name}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#d97706">${a.enrollments_remaining} left</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0">
+            <a href="https://admin.get-kind.com" style="color:#0066FF;font-size:0.8rem">Review →</a>
+          </td>
+        </tr>`
+      ).join('')
+
+      await resend.emails.send({
+        from: FROM,
+        to:   founderEmail,
+        subject: `FIGSY pipeline alert — ${alerts.length} client${alerts.length > 1 ? 's' : ''} running low on enrollments`,
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#111">
+            <h2>FIGSY Pipeline Alert</h2>
+            <p style="color:#555">${alerts.length} client${alerts.length > 1 ? 's are' : ' is'} running low on active enrollments. FIGSY will run dry without replenishment.</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0f0f0;border-radius:8px">
+              <thead>
+                <tr style="background:#fafafa">
+                  <th style="padding:10px 12px;text-align:left;font-size:0.8rem;color:#888">Client</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.8rem;color:#888">Active enrollments</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`,
+      })
+    }
+
+    res.json({ success: true, data: { checked: (clients ?? []).length, alerts: alerts.length, clients: alerts } })
+  } catch (err) {
+    console.error('[figsy/auto-replenish]', err)
+    res.status(500).json({ success: false, error: 'FIGSY auto-replenish check failed' })
+  }
+})
+
+// ── MILLA MORNING BRIEF ───────────────────────────────────────────────────────
+// Call daily 07:30 UTC. Sends each active client a brief morning intelligence
+// summary: pipeline value, reply rate vs benchmark, leads added today, active campaigns.
+internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Response) => {
+  try {
+    const now       = new Date()
+    const todayUTC  = new Date(now)
+    todayUTC.setUTCHours(0, 0, 0, 0)
+    const weekStart = new Date(now.getTime() - 7 * 86400000).toISOString()
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id')
+      .not('user_id', 'is', null)
+
+    let sent = 0
+
+    for (const client of clients ?? []) {
+      try {
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
+        const email = user?.email
+        if (!email) continue
+
+        const [
+          { count: totalLeads },
+          { count: newToday },
+          { count: activeCampaigns },
+          { count: emailsThisWeek },
+          { count: repliesThisWeek },
+          { count: interestedThisWeek },
+          { data: topScored },
+        ] = await Promise.all([
+          db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
+          db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('created_at', todayUTC.toISOString()),
+          db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', weekStart),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', weekStart),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', weekStart),
+          db.from('leads').select('first_name, last_name, job_title, company, score').eq('client_id', client.id).not('score', 'is', null).order('score', { ascending: false }).limit(3),
+        ])
+
+        const replyRatePct = (emailsThisWeek ?? 0) > 0
+          ? ((repliesThisWeek ?? 0) / (emailsThisWeek ?? 1) * 100).toFixed(1)
+          : '—'
+
+        const topLeadsHtml = (topScored ?? []).length > 0
+          ? `<p style="margin:0 0 8px;font-size:0.8rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em">Top leads right now</p>` +
+            (topScored ?? []).map((l: any) =>
+              `<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:0.85rem">
+                <strong>${l.first_name} ${l.last_name}</strong> · ${l.job_title ?? '—'} at ${l.company ?? '—'}
+                <span style="margin-left:8px;background:#f0f7ff;color:#0066FF;font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:100px">Score ${l.score}</span>
+              </div>`
+            ).join('')
+          : ''
+
+        if (resend) {
+          const dayStr = now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })
+          await resend.emails.send({
+            from: FROM,
+            to:   email,
+            subject: `Milla's morning brief — ${dayStr}`,
+            html: `
+              <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+                <p style="color:#888;font-size:0.78rem;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Milla · Business Intelligence</p>
+                <h2 style="margin-top:0">Good morning${client.company_name ? `, ${client.company_name}` : ''}.</h2>
+                <p style="color:#555;line-height:1.7">Here's your pipeline intelligence for ${dayStr}.</p>
+
+                <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:12px;overflow:hidden;margin-bottom:24px">
+                  <tr>
+                    <td align="center" style="padding:16px 12px">
+                      <p style="margin:0;font-size:1.4rem;font-weight:800;color:#111">${totalLeads ?? 0}</p>
+                      <p style="margin:2px 0 0;font-size:0.7rem;color:#888;text-transform:uppercase">Total leads</p>
+                    </td>
+                    <td align="center" style="padding:16px 12px;border-left:1px solid #ebebeb">
+                      <p style="margin:0;font-size:1.4rem;font-weight:800;color:#059669">+${newToday ?? 0}</p>
+                      <p style="margin:2px 0 0;font-size:0.7rem;color:#888;text-transform:uppercase">Added today</p>
+                    </td>
+                    <td align="center" style="padding:16px 12px;border-left:1px solid #ebebeb">
+                      <p style="margin:0;font-size:1.4rem;font-weight:800;color:#0066FF">${activeCampaigns ?? 0}</p>
+                      <p style="margin:2px 0 0;font-size:0.7rem;color:#888;text-transform:uppercase">Active campaigns</p>
+                    </td>
+                    <td align="center" style="padding:16px 12px;border-left:1px solid #ebebeb">
+                      <p style="margin:0;font-size:1.4rem;font-weight:800;color:#7c3aed">${replyRatePct}%</p>
+                      <p style="margin:2px 0 0;font-size:0.7rem;color:#888;text-transform:uppercase">Reply rate (7d)</p>
+                    </td>
+                  </tr>
+                </table>
+
+                ${interestedThisWeek && (interestedThisWeek ?? 0) > 0
+                  ? `<div style="background:#f0fdf4;border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:14px 18px;margin-bottom:16px">
+                      <p style="margin:0;font-size:0.9rem;color:#059669"><strong>${interestedThisWeek} interested ${(interestedThisWeek ?? 0) === 1 ? 'reply' : 'replies'}</strong> this week. FIGSY is tracking ${(interestedThisWeek ?? 0) === 1 ? 'it' : 'them'} — check your dashboard for the latest.</p>
+                    </div>`
+                  : ''}
+
+                ${topLeadsHtml}
+
+                <a href="https://app.get-kind.com/dashboard"
+                   style="display:inline-block;margin-top:20px;background:#0a0a0a;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
+                  Open dashboard →
+                </a>
+                <p style="color:#bbb;font-size:0.75rem;margin-top:20px">
+                  Milla · K.I.N.D Business Intelligence · <a href="https://app.get-kind.com/settings" style="color:#bbb">Manage notifications</a>
+                </p>
+              </div>`,
+          })
+          sent++
+        }
+      } catch (err) {
+        console.error(`[milla/morning-brief] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { sent } })
+  } catch (err) {
+    console.error('[milla/morning-brief-all]', err)
+    res.status(500).json({ success: false, error: 'Milla morning brief failed' })
+  }
+})
+
+// ── MILLA ANOMALY CHECK ───────────────────────────────────────────────────────
+// Call daily. Detects significant metric changes and alerts clients proactively.
+// Signals: reply rate drop >30%, interested reply spike, no emails sent in 48h on active campaign.
+internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Response) => {
+  try {
+    const now      = new Date()
+    const prev7d   = new Date(now.getTime() - 7  * 86400000).toISOString()
+    const prev14d  = new Date(now.getTime() - 14 * 86400000).toISOString()
+    const last48h  = new Date(now.getTime() - 2  * 86400000).toISOString()
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id')
+      .not('user_id', 'is', null)
+
+    let alertsSent = 0
+
+    for (const client of clients ?? []) {
+      try {
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
+        const email = user?.email
+        if (!email) continue
+
+        const [
+          { count: sent7d },  { count: replied7d },  { count: interested7d },
+          { count: sent14d }, { count: replied14d },
+          { count: activeCampaigns },
+          { count: sentLast48h },
+        ] = await Promise.all([
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', prev7d),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', prev7d),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', prev7d),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', prev14d).lt('sent_at', prev7d),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', prev14d).lt('received_at', prev7d),
+          db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', last48h),
+        ])
+
+        const anomalies: string[] = []
+
+        // Reply rate drop
+        const rate7d  = (sent7d  ?? 0) > 0 ? (replied7d  ?? 0) / (sent7d  ?? 1) : null
+        const rate14d = (sent14d ?? 0) > 0 ? (replied14d ?? 0) / (sent14d ?? 1) : null
+        if (rate7d !== null && rate14d !== null && rate14d > 0) {
+          const drop = (rate14d - rate7d) / rate14d
+          if (drop > 0.3) {
+            anomalies.push(`Reply rate dropped ${Math.round(drop * 100)}% vs last week (${(rate7d * 100).toFixed(1)}% this week vs ${(rate14d * 100).toFixed(1)}% prior week).`)
+          }
+        }
+
+        // Interested reply spike
+        if ((interested7d ?? 0) >= 3) {
+          anomalies.push(`${interested7d} interested replies this week — your hottest leads. Check your dashboard now.`)
+        }
+
+        // Active campaign stalled
+        if ((activeCampaigns ?? 0) > 0 && (sentLast48h ?? 0) === 0) {
+          anomalies.push(`FIGSY has active campaigns but no emails sent in 48 hours. Check your campaign status and credit balance.`)
+        }
+
+        if (anomalies.length === 0 || !resend) continue
+
+        await resend.emails.send({
+          from: FROM,
+          to:   email,
+          subject: `Milla spotted something — ${anomalies.length} signal${anomalies.length > 1 ? 's' : ''} in your pipeline`,
+          html: `
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+              <p style="color:#888;font-size:0.78rem;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Milla · Proactive Intelligence</p>
+              <h2 style="margin-top:0">I spotted ${anomalies.length > 1 ? 'a few things' : 'something'} in your pipeline.</h2>
+              ${anomalies.map(a => `
+                <div style="background:#fafafa;border-left:3px solid #0066FF;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:12px">
+                  <p style="margin:0;font-size:0.9rem;color:#333;line-height:1.6">${a}</p>
+                </div>`).join('')}
+              <a href="https://app.get-kind.com/dashboard"
+                 style="display:inline-block;margin-top:16px;background:#0a0a0a;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
+                Open dashboard →
+              </a>
+              <p style="color:#bbb;font-size:0.75rem;margin-top:20px">Milla · K.I.N.D Business Intelligence</p>
+            </div>`,
+        })
+        alertsSent++
+      } catch (err) {
+        console.error(`[milla/check-anomalies] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { clients_checked: (clients ?? []).length, alerts_sent: alertsSent } })
+  } catch (err) {
+    console.error('[milla/check-anomalies]', err)
+    res.status(500).json({ success: false, error: 'Milla anomaly check failed' })
+  }
+})
+
+// ── CMO: KIND SELF-OUTREACH CAMPAIGN ─────────────────────────────────────────
+// Finds K.I.N.D's own ideal prospects via Apollo and auto-enrolls them in FIGSY.
+// Requires FIGSY_KIND_CLIENT_ID env var — the client_id of K.I.N.D in the system.
+// Finds up to 20 net-new prospects per run. Skips anyone already in the pipeline.
+// Schedule: POST /internal/cmo/self-outreach (call weekly via cron)
+internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) => {
+  try {
+    const kindClientId = process.env.FIGSY_KIND_CLIENT_ID
+    const founderEmail = process.env.FOUNDER_EMAIL
+    if (!kindClientId) {
+      res.status(422).json({ success: false, error: 'FIGSY_KIND_CLIENT_ID not set. Add K.I.N.D\'s own client_id to env.' })
+      return
+    }
+
+    const contacts = await findKindProspects()
+    if (contacts.length === 0) {
+      res.json({ success: true, data: { found: 0, enrolled: 0, message: 'No new prospects found' } })
+      return
+    }
+
+    const { autoEnrollLead } = await import('../lib/figsy')
+    let enrolled = 0
+    let skipped  = 0
+
+    for (const contact of contacts.slice(0, 20)) {
+      if (!contact.email) { skipped++; continue }
+
+      // Skip if already in pipeline
+      const { count: existing } = await db.from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', kindClientId)
+        .eq('email', contact.email)
+      if ((existing ?? 0) > 0) { skipped++; continue }
+
+      // Check opt-out blocklist
+      const { data: blocked } = await db.from('opt_out_blocklist')
+        .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()
+      if (blocked) { skipped++; continue }
+
+      try {
+        // Insert lead into K.I.N.D's pipeline
+        const { data: lead, error: leadError } = await db.from('leads').insert({
+          client_id:  kindClientId,
+          first_name: contact.first_name ?? '',
+          last_name:  contact.last_name  ?? '',
+          email:      contact.email,
+          job_title:  contact.title      ?? null,
+          company:    contact.organization?.name ?? (contact as any).organization_name ?? null,
+          industry:   (contact as any).industry ?? null,
+          country:    contact.country    ?? null,
+          status:     'new',
+          score:      70, // default score for ICP-matched outbound
+          score_reasoning: 'Apollo ICP match — K.I.N.D self-outreach',
+        }).select('id').single()
+
+        if (leadError || !lead) continue
+
+        await autoEnrollLead(lead.id, kindClientId)
+        enrolled++
+      } catch (err) {
+        console.error('[cmo/self-outreach] failed for', contact.email, err)
+        skipped++
+      }
+    }
+
+    // Notify founder
+    if (founderEmail && resend && enrolled > 0) {
+      await resend.emails.send({
+        from: FROM,
+        to:   founderEmail,
+        subject: `FIGSY self-outreach — ${enrolled} new K.I.N.D prospects enrolled`,
+        html: `
+          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+            <h2>K.I.N.D Self-Outreach Update</h2>
+            <p style="color:#555;line-height:1.7">
+              FIGSY just enrolled <strong>${enrolled} new prospects</strong> into K.I.N.D's own outreach pipeline.<br/>
+              Skipped ${skipped} (already in pipeline or no email).
+            </p>
+            <p style="color:#555;line-height:1.7">FIGSY is now sending personalised sequences to each of them automatically. You'll get replies in your inbox.</p>
+            <a href="https://admin.get-kind.com"
+               style="display:inline-block;margin-top:12px;background:#0066FF;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
+              View in admin →
+            </a>
+          </div>`,
+      })
+    }
+
+    res.json({ success: true, data: { found: contacts.length, enrolled, skipped } })
+  } catch (err) {
+    console.error('[cmo/self-outreach]', err)
+    res.status(500).json({ success: false, error: 'K.I.N.D self-outreach failed' })
+  }
+})

@@ -1056,11 +1056,11 @@ function goTo(idx) {
   dots[cur].classList.add('active')
   resetProgress()
   onSceneEnter(idx)
-  document.getElementById('replay-btn').style.display = 'none'
+  document.getElementById('replay-btn').style.display = idx === TOTAL - 1 ? 'block' : 'none'
 }
 
 function next() {
-  goTo(cur < TOTAL - 1 ? cur + 1 : 0); scheduleNext()
+  if (cur < TOTAL - 1) { goTo(cur + 1); scheduleNext() }
 }
 
 function scheduleNext() {

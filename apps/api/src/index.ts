@@ -24,6 +24,7 @@ import { millaRouter } from './routes/milla'
 import { vidaRouter } from './routes/vida'
 import { stripeRouter } from './routes/stripe'
 import { orderFormRouter } from './routes/order-forms'
+import { statsRouter } from './routes/stats'
 import { startCrons } from './cron'
 
 const app = express()
@@ -76,6 +77,7 @@ app.use('/milla',         millaRouter)
 app.use('/vida',          vidaRouter)
 app.use('/stripe',        stripeRouter)
 app.use('/order-forms',   orderFormRouter)
+app.use('/stats',         statsRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => {

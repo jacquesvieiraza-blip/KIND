@@ -46,5 +46,17 @@ export function startCrons(): void {
   // Daily 08:00 UTC — check FIGSY campaign performance
   cron.schedule('0 8 * * *', () => callInternal('/figsy/check-performance'), { timezone: 'UTC' })
 
-  console.log('[cron] 8 jobs scheduled')
+  // Daily 05:00 UTC — FIGSY auto-replenish: alert on campaigns running low
+  cron.schedule('0 5 * * *', () => callInternal('/figsy/auto-replenish'), { timezone: 'UTC' })
+
+  // Daily 07:30 UTC — Milla morning brief to all active clients
+  cron.schedule('30 7 * * *', () => callInternal('/milla/morning-brief-all'), { timezone: 'UTC' })
+
+  // Daily 08:30 UTC — Milla proactive anomaly detection
+  cron.schedule('30 8 * * *', () => callInternal('/milla/check-anomalies'), { timezone: 'UTC' })
+
+  // Monday 06:00 UTC — K.I.N.D self-outreach (FIGSY finds new K.I.N.D prospects)
+  cron.schedule('0 6 * * 1', () => callInternal('/cmo/self-outreach'), { timezone: 'UTC' })
+
+  console.log('[cron] 12 jobs scheduled')
 }

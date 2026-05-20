@@ -284,6 +284,82 @@ export async function sendDay1OutreachBatch(
   }
 }
 
+// Generate a sequence informed by FIGSY Memory (Campaign Intelligence).
+// Falls back to standard generateSequence if no memory exists.
+export async function generateSequenceWithMemory(
+  lead: Lead,
+  clientId: string,
+  senderCompanyName: string,
+  senderIndustry: string | null,
+): Promise<SequenceDraft> {
+  const { data: memory } = await db.from('figsy_memory')
+    .select('best_subject_lines, avg_reply_rate_30d, total_sent_all_time, last_winning_angle')
+    .eq('client_id', clientId)
+    .maybeSingle()
+
+  if (!memory || (memory.total_sent_all_time ?? 0) < 20) {
+    return generateSequence(lead, senderCompanyName, senderIndustry)
+  }
+
+  const memoryContext = [
+    memory.avg_reply_rate_30d != null
+      ? `Your current average reply rate is ${(memory.avg_reply_rate_30d * 100).toFixed(1)}% — keep what's working, improve what isn't.`
+      : null,
+    (memory.best_subject_lines as string[] | null)?.length
+      ? `Subject lines that have worked well: ${(memory.best_subject_lines as string[]).slice(0, 3).join(' | ')}`
+      : null,
+    (memory as any).last_winning_angle
+      ? `Winning angle from last high-performing campaign: ${(memory as any).last_winning_angle}`
+      : null,
+  ].filter(Boolean).join('\n')
+
+  const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person — not an AI.
+
+FIGSY Campaign Intelligence (use this to improve your writing):
+${memoryContext}
+
+Lead details:
+- Name: ${lead.first_name} ${lead.last_name}
+- Title: ${lead.job_title || 'unknown'}
+- Company: ${lead.company || 'unknown'}
+- Industry: ${lead.industry || 'unknown'}
+- Seniority: ${lead.seniority || 'unknown'}
+- Country: ${lead.country || 'unknown'}
+${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
+${lead.score_reasoning ? `- Why they're relevant: ${lead.score_reasoning}` : ''}
+
+Write a 3-email sequence that applies the lessons from Campaign Intelligence above.
+
+Step 1 (Day 0): First touch — under 70 words. Specific observation. One CTA.
+Step 2 (Day 4): Follow-up — new angle, shorter. Acknowledge step 1 was sent.
+Step 3 (Day 9): Final — direct, no pressure, leave it open.
+
+Hard rules:
+- Never say "Hope this finds you well", "I wanted to reach out", "touch base", "synergy", "leverage", "game-changer"
+- No bullet points in the email body
+- No em-dashes (—)
+- Don't mention AI or automation
+- Subject: 4–6 words, lowercase, no punctuation
+- End every email: "Reply STOP to opt out."
+- Sign with a South African-sounding first name
+
+Return ONLY valid JSON:
+{"step1":{"subject":"...","body":"..."},"step2":{"subject":"...","body":"..."},"step3":{"subject":"...","body":"..."}}`
+
+  const message = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const raw = (message.content[0] as { type: string; text: string }).text.trim()
+  try {
+    return JSON.parse(raw) as SequenceDraft
+  } catch {
+    return generateSequence(lead, senderCompanyName, senderIndustry)
+  }
+}
+
 // Auto-enroll a single consented lead into the active campaign (S5 — FIGSY auto-start)
 export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {
   try {
@@ -305,7 +381,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     const { data: client } = await db.from('clients')
       .select('company_name, industry').eq('id', clientId).single()
 
-    const draft = await generateSequence(lead as Lead, client?.company_name ?? '', client?.industry ?? null)
+    const draft = await generateSequenceWithMemory(lead as Lead, clientId, client?.company_name ?? '', client?.industry ?? null)
 
     const { data: enrollment, error } = await db.from('figsy_enrollments').insert({
       campaign_id:    campaign.id,

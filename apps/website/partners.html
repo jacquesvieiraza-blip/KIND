@@ -232,7 +232,7 @@
     .wl-points { list-style: none; margin-bottom: 36px; }
     .wl-points li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; color: rgba(0,0,0,0.6); padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
     .wl-points li:last-child { border-bottom: none; }
-    .wl-points li::before { content: "&#10003;"; color: #059669; font-weight: 800; flex-shrink: 0; margin-top: 2px; }
+    .wl-points li::before { content: "✓"; color: #059669; font-weight: 800; flex-shrink: 0; margin-top: 2px; }
     .btn-wl {
       display: inline-block; background: var(--dark); color: #fff;
       font-size: 0.9rem; font-weight: 600; padding: 13px 28px;
@@ -257,7 +257,7 @@
     .wl-features { list-style: none; }
     .wl-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: rgba(255,255,255,0.5); padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
     .wl-features li:last-child { border-bottom: none; }
-    .wl-features li::before { content: "&#10003;"; color: #34d399; font-weight: 800; flex-shrink: 0; margin-top: 2px; }
+    .wl-features li::before { content: "✓"; color: #34d399; font-weight: 800; flex-shrink: 0; margin-top: 2px; }
 
     /* FORM SECTION */
     .form-section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
@@ -440,7 +440,7 @@
 <div class="hero">
   <div class="hero-label">Partner Programme</div>
   <h1 class="reveal">Grow your revenue.<br/>Help your clients grow theirs.</h1>
-  <p class="hero-sub reveal reveal-delay-1">Refer clients to K.I.N.D and earn recurring commission &mdash; or white-label our AI infrastructure under your brand. Built for agencies, consultants, and sales-adjacent services.</p>
+  <p class="hero-sub reveal reveal-delay-1">Refer clients to K.I.N.D and earn 20% recurring commission. Or white-label our AI platform under your brand at standard K.I.N.D pricing. Built for agencies, consultants, and sales-adjacent services.</p>
   <div class="hero-btns reveal reveal-delay-2">
     <a href="#apply" class="btn-hero-primary">Become a partner &rarr;</a>
     <a href="#rates" class="btn-hero-ghost">See commission rates</a>
@@ -453,25 +453,25 @@
 <div class="section">
   <div class="s-label">Partner types</div>
   <div class="s-title">Find the model that fits you.</div>
-  <p class="s-sub">Three ways to work with K.I.N.D &mdash; from a simple referral link to a fully white-labelled AI platform.</p>
+  <p class="s-sub">Three ways to work with K.I.N.D &mdash; from a simple referral link to a fully white-labelled AI platform. Standard pricing maintained across all partner types.</p>
   <div class="partner-grid">
     <div class="partner-card reveal">
       <div class="partner-card-icon">&#129309;</div>
       <span class="partner-tag t-blue">Referral Partner</span>
       <h3>Refer &amp; earn</h3>
-      <p>Refer clients, earn 20% recurring commission for 12 months. No integration required. Share a link. That&rsquo;s it.</p>
+      <p>Refer clients at K.I.N.D&rsquo;s standard pricing and earn 20% recurring commission for 12 months. No integration required. Share a link. That&rsquo;s it.</p>
     </div>
     <div class="partner-card reveal reveal-delay-1">
       <div class="partner-card-icon">&#127970;</div>
       <span class="partner-tag t-purple">Agency Partner</span>
-      <h3>White-label K.I.N.D</h3>
-      <p>White-label K.I.N.D under your brand. Your clients see your logo. You control the pricing. We handle the infrastructure.</p>
+      <h3>Manage &amp; earn more</h3>
+      <p>Manage K.I.N.D on behalf of your clients. Earn 25&ndash;30% recurring commission. Your clients are invoiced directly by K.I.N.D at standard pricing &mdash; you manage the relationship.</p>
     </div>
     <div class="partner-card reveal reveal-delay-2">
       <div class="partner-card-icon">&#128268;</div>
-      <span class="partner-tag t-green">Technology Partner</span>
-      <h3>Integrate via API</h3>
-      <p>Integrate K.I.N.D into your platform via API. Mutual GTM, co-marketing, and a shared roadmap conversation.</p>
+      <span class="partner-tag t-green">White-label Partner</span>
+      <h3>Your brand, our platform</h3>
+      <p>K.I.N.D under your logo and domain. Premium tier only. K.I.N.D sets the floor price &mdash; your clients pay at or above standard rates. Contract required. Minimum 10 seats.</p>
     </div>
   </div>
 </div>
@@ -508,40 +508,39 @@
     <div class="rates-header reveal">
       <div class="s-label">Commission rates</div>
       <h2 class="s-title">What you earn per client.</h2>
-      <p class="s-sub">Every active client you refer earns you 20% of their monthly subscription &mdash; for 12 months, on every plan.</p>
+      <p class="s-sub">Referral partners earn 20% for 12 months. Agency partners earn 25&ndash;30%. K.I.N.D invoices the client at standard pricing &mdash; you earn on every payment they make.</p>
     </div>
     <table class="rates-table reveal reveal-delay-1">
       <thead>
         <tr>
           <th>Plan</th>
-          <th>Monthly Revenue</th>
-          <th>Your 20% Cut</th>
+          <th>Typical Monthly Spend</th>
+          <th>Referral (20%)</th>
+          <th>Agency (25&ndash;30%)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td class="rate-plan">Lead Gen Starter</td>
+          <td class="rate-plan">Start <span style="font-weight:400;color:rgba(255,255,255,0.3);font-size:0.8rem">($1/lead, from $100/mo)</span></td>
           <td>$100 / mo</td>
-          <td class="rate-cut">$20 / mo per client</td>
+          <td class="rate-cut">$20 / mo</td>
+          <td class="rate-cut">$25&ndash;30 / mo</td>
         </tr>
         <tr>
-          <td class="rate-plan">Lead Gen Pro</td>
-          <td>$200 / mo</td>
-          <td class="rate-cut">$40 / mo per client</td>
-        </tr>
-        <tr>
-          <td class="rate-plan">FIGSY Agent <span style="font-weight:400;color:rgba(255,255,255,0.3);font-size:0.8rem">(credit-based, ~$300/mo avg)</span></td>
+          <td class="rate-plan">Scale <span style="font-weight:400;color:rgba(255,255,255,0.3);font-size:0.8rem">($3/lead, FIGSY included)</span></td>
           <td>&asymp; $300 avg / mo</td>
-          <td class="rate-cut">&asymp; $60 / mo per client</td>
+          <td class="rate-cut">&asymp; $60 / mo</td>
+          <td class="rate-cut">&asymp; $75&ndash;90 / mo</td>
         </tr>
         <tr>
-          <td class="rate-plan">Enterprise</td>
-          <td class="rate-custom">Custom pricing</td>
+          <td class="rate-plan">Dominate <span style="font-weight:400;color:rgba(255,255,255,0.3);font-size:0.8rem">(Enterprise, custom volume)</span></td>
+          <td class="rate-custom">Custom</td>
           <td class="rate-custom">Custom &mdash; <a href="mailto:partners@get-kind.com" style="color:rgba(255,255,255,0.4);text-decoration:underline">email us</a></td>
+          <td class="rate-custom">Custom</td>
         </tr>
       </tbody>
     </table>
-    <p class="rates-note reveal reveal-delay-2">Commission paid monthly after a 30-day client retention window. No cap on earnings. Refer 10 clients on Lead Gen Pro and earn $400 / mo &mdash; passively.</p>
+    <p class="rates-note reveal reveal-delay-2">Commission paid monthly after a 30-day client retention window. No cap on earnings or referrals. K.I.N.D invoices the client directly at standard pricing &mdash; you earn a percentage of every payment they make for 12 months.</p>
   </div>
 </div>
 
@@ -550,17 +549,17 @@
   <div class="wl-inner">
     <div class="wl-text reveal">
       <div class="s-label">White-label</div>
-      <h2>White-label K.I.N.D under your brand.</h2>
-      <p>Your logo. Your domain. Your pricing. We handle every bit of the infrastructure &mdash; AI models, deliverability, data sourcing, and compliance. You sell it as your own.</p>
+      <h2>Your brand. K.I.N.D&rsquo;s engine.</h2>
+      <p>Run K.I.N.D under your logo and domain. We handle the entire infrastructure &mdash; AI models, deliverability, lead sourcing, and compliance. Your clients see your brand. K.I.N.D sets the floor price to protect platform value and compliance standards.</p>
       <ul class="wl-points">
         <li>Your logo and brand throughout the product</li>
-        <li>Your own domain and client-facing URLs</li>
-        <li>You set the pricing &mdash; we invoice you wholesale</li>
-        <li>We handle all infrastructure and uptime</li>
-        <li>Minimum 5 active client seats to qualify</li>
-        <li>Custom pricing based on seat volume</li>
+        <li>Your own domain (e.g. leads.youragency.com)</li>
+        <li>K.I.N.D sets the floor price &mdash; you may not discount below standard rates</li>
+        <li>Minimum 10 active client seats to qualify</li>
+        <li>Contract required &mdash; annual commitment</li>
+        <li>Custom pricing negotiated on volume &mdash; enquiry only</li>
       </ul>
-      <a href="mailto:partners@get-kind.com?subject=White-label+enquiry" class="btn-wl">Talk to us about white-label &rarr;</a>
+      <a href="mailto:partners@get-kind.com?subject=White-label+enquiry" class="btn-wl">Enquire about white-label &rarr;</a>
     </div>
     <div class="wl-card reveal reveal-delay-1">
       <div class="wl-card-label">White-label includes</div>
@@ -569,12 +568,12 @@
         <li>Full platform under your brand identity</li>
         <li>Custom domain setup (e.g. leads.youragency.com)</li>
         <li>Branded client onboarding flow</li>
-        <li>Your own pricing tiers and packaging</li>
         <li>250M+ Apollo-powered lead database</li>
         <li>FIGSY AI SDR included</li>
         <li>POPIA &amp; GDPR-compliant infrastructure</li>
         <li>Dedicated partner support channel</li>
         <li>Priority onboarding within 5 business days</li>
+        <li>Annual contract &middot; minimum 10 seats</li>
       </ul>
     </div>
   </div>

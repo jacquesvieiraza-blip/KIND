@@ -41,7 +41,6 @@ export function SupportWidget() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { setLoading(false); return }
 
-      // Send only last 10 messages to keep context window small
       const payload = history.slice(-10).map(m => ({ role: m.role, content: m.content }))
       const res = await api.post<{ data: { reply: string } }>('/support/chat', { messages: payload }, session.access_token)
       setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }])
@@ -58,10 +57,10 @@ export function SupportWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
       {open && (
-        <div className="w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+        <div className="w-80 sm:w-96 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden transition-colors"
              style={{ height: '480px' }}>
           {/* Header */}
-          <div className="bg-[#0066FF] px-4 py-3.5 flex items-center justify-between shrink-0">
+          <div className="bg-brand-500 px-4 py-3.5 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center">
                 <Zap className="w-4 h-4 text-white" />
@@ -82,8 +81,8 @@ export function SupportWidget() {
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                   m.role === 'user'
-                    ? 'bg-[#0066FF] text-white rounded-br-sm'
-                    : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                    ? 'bg-brand-500 text-white rounded-br-sm'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-sm'
                 }`}>
                   {m.content}
                 </div>
@@ -91,7 +90,7 @@ export function SupportWidget() {
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-bl-sm px-3.5 py-2.5">
                   <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
                 </div>
               </div>
@@ -100,19 +99,19 @@ export function SupportWidget() {
           </div>
 
           {/* Input */}
-          <div className="px-3 py-3 border-t border-gray-100 flex items-center gap-2 shrink-0">
+          <div className="px-3 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2 shrink-0">
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
               placeholder="Ask anything…"
-              className="flex-1 text-sm border border-gray-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/30 focus:border-[#0066FF] bg-gray-50"
+              className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 bg-gray-50 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 transition-colors"
               maxLength={500}
             />
             <button
               onClick={send}
               disabled={!input.trim() || loading}
-              className="w-9 h-9 bg-[#0066FF] hover:bg-[#0055dd] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-colors shrink-0">
+              className="w-9 h-9 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-colors shrink-0">
               <Send className="w-4 h-4 text-white" />
             </button>
           </div>
@@ -122,7 +121,7 @@ export function SupportWidget() {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-14 h-14 bg-[#0066FF] hover:bg-[#0055dd] shadow-lg hover:shadow-xl rounded-full flex items-center justify-center transition-all duration-200 relative">
+        className="w-14 h-14 bg-brand-500 hover:bg-brand-600 shadow-lg hover:shadow-xl rounded-full flex items-center justify-center transition-all duration-200 relative">
         {open
           ? <X className="w-5 h-5 text-white" />
           : <MessageCircle className="w-5 h-5 text-white" />}

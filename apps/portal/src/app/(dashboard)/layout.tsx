@@ -37,7 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } catch { }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-200">
       <Sidebar userEmail={user.email || ''} creditBalance={creditBalance} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
         <TrialExpiredOverlay expired={trialExpired} />

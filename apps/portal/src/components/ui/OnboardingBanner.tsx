@@ -19,25 +19,31 @@ export function OnboardingBanner({ state, trialDaysLeft }: Props) {
 
   const configs = {
     awaiting_payment: {
-      bg:   'bg-amber-50 border-amber-200',
+      bg:   'bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800',
       icon: <CreditCard className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />,
       text: 'Your trial has ended — subscribe to keep your pipeline running.',
       sub:  'Your leads, ICP, and data are all saved. Subscribe in 2 minutes to continue.',
       cta:  <Link href="/dashboard/billing" className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
               <CreditCard className="w-3.5 h-3.5" />Subscribe now
             </Link>,
+      textColor: 'text-gray-900 dark:text-white',
+      subColor:  'text-gray-500 dark:text-amber-200/60',
       dismissable: false,
     },
     trial: {
-      bg:   isUrgent ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200',
+      bg:   isUrgent
+        ? 'bg-red-50 border-red-200 dark:bg-red-950/50 dark:border-red-800'
+        : 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800',
       icon: <Clock className={`w-5 h-5 shrink-0 mt-0.5 ${isUrgent ? 'text-red-500' : 'text-blue-500'}`} />,
       text: trialDaysLeft !== undefined
         ? `Trial: ${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''} remaining.`
         : 'You\'re on a free trial.',
-      sub:  'Subscribe before your trial ends to keep full access. No manual signing — payment is all you need.',
-      cta:  <Link href="/dashboard/billing" className="inline-flex items-center gap-1.5 bg-[#0066FF] hover:bg-[#0055dd] text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+      sub:  'Subscribe before your trial ends to keep full access.',
+      cta:  <Link href="/dashboard/billing" className="inline-flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
               Subscribe now
             </Link>,
+      textColor: 'text-gray-900 dark:text-white',
+      subColor:  'text-gray-500 dark:text-gray-400',
       dismissable: true,
     },
   }
@@ -45,18 +51,18 @@ export function OnboardingBanner({ state, trialDaysLeft }: Props) {
   const cfg = configs[state]
 
   return (
-    <div className={`border rounded-xl px-4 py-3.5 flex items-start justify-between gap-4 ${cfg.bg}`}>
+    <div className={`border rounded-xl px-4 py-3.5 flex items-start justify-between gap-4 transition-colors ${cfg.bg}`}>
       <div className="flex items-start gap-3 flex-1">
         {cfg.icon}
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-900">{cfg.text}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{cfg.sub}</p>
+          <p className={`text-sm font-medium ${cfg.textColor}`}>{cfg.text}</p>
+          <p className={`text-xs mt-0.5 ${cfg.subColor}`}>{cfg.sub}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {cfg.cta}
         {cfg.dismissable && (
-          <button onClick={() => setDismissed(true)} className="p-1 hover:bg-black/5 rounded transition-colors">
+          <button onClick={() => setDismissed(true)} className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded transition-colors">
             <X className="w-4 h-4 text-gray-400" />
           </button>
         )}

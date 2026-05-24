@@ -9,16 +9,18 @@ export function LowCreditsNotice({ balance }: { balance: number }) {
   const isEmpty = balance === 0
 
   return (
-    <div className={`border rounded-xl px-4 py-3.5 flex items-center justify-between gap-4 ${
-      isEmpty ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+    <div className={`border rounded-xl px-4 py-3.5 flex items-center justify-between gap-4 transition-colors ${
+      isEmpty
+        ? 'bg-red-50 border-red-200 dark:bg-red-950/50 dark:border-red-800'
+        : 'bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800'
     }`}>
       <div className="flex items-center gap-3">
         <AlertTriangle className={`w-4 h-4 shrink-0 ${isEmpty ? 'text-red-500' : 'text-amber-500'}`} />
         <div>
-          <p className={`text-sm font-medium ${isEmpty ? 'text-red-900' : 'text-amber-900'}`}>
+          <p className={`text-sm font-medium ${isEmpty ? 'text-red-900 dark:text-red-200' : 'text-amber-900 dark:text-amber-200'}`}>
             {isEmpty ? 'You have no credits remaining — outreach is paused.' : `Low credits: ${balance} remaining.`}
           </p>
-          <p className={`text-xs mt-0.5 ${isEmpty ? 'text-red-700' : 'text-amber-700'}`}>
+          <p className={`text-xs mt-0.5 ${isEmpty ? 'text-red-700 dark:text-red-300/70' : 'text-amber-700 dark:text-amber-300/70'}`}>
             {isEmpty
               ? 'Top up now to resume your outreach pipeline.'
               : 'Top up before you run out to keep your pipeline running without interruption.'}

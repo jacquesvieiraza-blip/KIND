@@ -36,7 +36,7 @@
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 24 May 2026*
+*Last updated: 24 May 2026 (evening)*
 
 | Item | Status | Notes |
 |---|---|---|
@@ -51,6 +51,7 @@
 | RLS on all tables | ✅ Fixed | Re-enabled 18 May |
 | Demo Environments | ✅ Live | Admin → Demo Envs — full sales demo tool |
 | AI ICP Suggest | ✅ Live | "Suggest ICP with AI" → Claude fills form from company profile |
+| ICP Website Scan | ✅ Live | "Scan website" button in ICP form — calls /icps/prefill, pre-fills from URL |
 | FIGSY generateSequenceWithMemory | ✅ Live | Self-improving sequences using campaign history |
 | FIGSY auto-replenish alert | ✅ Live | Daily cron 05:00 UTC |
 | Milla morning brief | ✅ Live | Daily cron 07:30 UTC to all active clients |
@@ -63,13 +64,15 @@
 | Partners page rewrite | ✅ Live | ClickUp/Smartsheet model — standard pricing, commission-based |
 | Pricing page rewrite | ✅ Live | Start/Scale/Dominate + partner callout |
 | Founder name removed from public pages | ✅ Done | "Founder" only — terms.html unchanged |
+| Admin cohort analytics | ✅ Live | /admin/cohorts — signup month, activation, conversion, churn per cohort |
+| Portal Analytics page | ✅ Live | /dashboard/analytics — 6-month trends, ICP breakdown, score dist, top industries |
+| Stripe USD/GBP billing | ✅ Code complete | Billing page auto-activates when `STRIPE_SECRET_KEY` is set in Railway |
 | Paystack webhook | ✅ Set | TEST key — live payments blocked until KYC |
 | Paystack KYC | ⏳ Pending | **Must complete — cannot take live payments** |
 | Google Workspace | ⏳ Pending | **Must set up — no professional email inbox** |
-| Calendar booking link | ⏳ Pending | Buttons exist — need Calendly/Cal.com URL |
+| Calendar booking link | ⏳ Pending | Share Calendly/Cal.com URL — Claude will wire into site + portal in 5 mins |
 | FIGSY_KIND_CLIENT_ID env var | ⏳ Pending | Self-outreach runs but does nothing without this |
 | Resend inbound routing | ⏳ Pending | Needs paid Resend plan — required before FIGSY campaigns |
-| Stripe USD/GBP billing | ⏳ Pending | Code done — needs credentials |
 | Google Calendar OAuth | ⏳ Pending | Code done — needs credentials |
 | Vapi.ai Voice | ⏳ Pending | Code done — needs account |
 | WhatsApp Business API | ⏳ Pending | Code done — Meta 3–7 day approval |
@@ -103,13 +106,18 @@
 
 | # | Task | Env vars to add to Railway |
 |---|---|---|
-| 9 | Stripe USD/GBP | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
+| 9 | **Stripe USD/GBP** — billing page auto-shows when key is set | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
 | 10 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
 | 11 | Vapi.ai Voice | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
 | 12 | WhatsApp Business API | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
 | 13 | Update FOUNDER_EMAIL | Change to `hello@get-kind.com` after Google Workspace is live |
 | 14 | Campaign intent prompt (go live) | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
 | 15 | ICP builder (go live) | `FEATURE_ICP_BUILDER=true` in Railway |
+
+### ⚡ INSTANT — Takes 5 Minutes
+| # | Task | What Claude needs from you |
+|---|---|---|
+| 16 | Wire "Book a Demo" buttons site-wide | Your Calendly/Cal.com URL |
 
 ### Once Live (not urgent)
 
@@ -166,16 +174,19 @@
 | Conversational ICP builder — feature flagged | 24 May |
 | Web Speech API voice input — on both above | 24 May |
 | MASTER.md updated — added GTM strategy + UK registration | 24 May |
+| ICP website scan — "Scan website" button in portal ICP form | 24 May |
+| Admin cohort analytics — /admin/cohorts, monthly grouping, activation/conversion/churn | 24 May |
+| Portal analytics page — /dashboard/analytics, 6-month trends, ICP breakdown, score distribution | 24 May |
+| Stripe billing confirmed fully wired — activates on STRIPE_SECRET_KEY env var | 24 May |
+| MASTER.md full update — reflects all 24 May builds | 24 May |
 
 ### Ready Now (say the word)
 | Task | Time |
 |---|---|
-| Fix "Book a Demo" buttons | 5 mins — need Calendly/Cal.com URL |
+| **Wire "Book a Demo" buttons** | **5 mins** — share your Calendly/Cal.com URL |
 | Paystack end-to-end test after live key | 30 mins |
-| Stripe end-to-end test after credentials | 30 mins |
+| Stripe end-to-end test after credentials | 1 hour |
 | GBP pricing on website after Stripe | 30 mins |
-| Wire website ICP scrape into portal form UI | 2 hours |
-| Admin cohort analytics | 1 day |
 | Fix any error — share screenshot | Ready |
 
 ---
@@ -203,7 +214,7 @@
 | Google Calendar activation | Jacques | Google Cloud OAuth |
 | Stripe activation | Jacques | USD/GBP billing |
 | Pan-African presence: 3 countries | Both | Apollo data covers all |
-| Admin cohort analytics | Claude | Ready to build |
+| Admin cohort analytics | Claude | ✅ Done — /admin/cohorts |
 
 ### Month 3–6 (July–Oct 2026)
 | Item | Notes |

@@ -513,6 +513,89 @@ leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
 })
 
 // ── CSV EXPORT ────────────────────────────────────────────────────────────────
+// ── GET /leads/analytics — monthly time-series for portal analytics page ──────
+leadRouter.get('/analytics', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const [
+      { data: leads },
+      { data: emails },
+      { data: replies },
+      { data: icps },
+    ] = await Promise.all([
+      db.from('leads').select('id, created_at, score, status, icp_id, industry, seniority').eq('client_id', clientId),
+      db.from('figsy_sent_emails').select('id, created_at').eq('client_id', clientId),
+      db.from('figsy_replies').select('id, created_at, classification').eq('client_id', clientId),
+      db.from('icps').select('id, name').eq('client_id', clientId),
+    ])
+
+    // Monthly buckets — last 6 months
+    const months: { key: string; label: string }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(1)
+      d.setMonth(d.getMonth() - i)
+      const key = d.toISOString().slice(0, 7)
+      const label = d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+      months.push({ key, label })
+    }
+
+    const byMonth = months.map(m => {
+      const mLeads   = (leads   || []).filter((l: any) => l.created_at?.slice(0,7) === m.key)
+      const mEmails  = (emails  || []).filter((e: any) => e.created_at?.slice(0,7) === m.key)
+      const mReplies = (replies || []).filter((r: any) => r.created_at?.slice(0,7) === m.key)
+      const mInterested = mReplies.filter((r: any) => r.classification === 'interested')
+      return {
+        month:      m.label,
+        leads:      mLeads.length,
+        emails:     mEmails.length,
+        replies:    mReplies.length,
+        interested: mInterested.length,
+      }
+    })
+
+    // ICP breakdown
+    const icpMap: Record<string, { id: string; name: string; leads: number; avg_score: number }> = {}
+    for (const icp of (icps || [])) {
+      const icpLeads = (leads || []).filter((l: any) => l.icp_id === icp.id)
+      const scores   = icpLeads.map((l: any) => Number(l.score)).filter(Boolean)
+      icpMap[icp.id] = {
+        id:        icp.id,
+        name:      icp.name,
+        leads:     icpLeads.length,
+        avg_score: scores.length ? Math.round(scores.reduce((s: number, v: number) => s + v, 0) / scores.length) : 0,
+      }
+    }
+    const icpBreakdown = Object.values(icpMap).sort((a, b) => b.leads - a.leads).slice(0, 8)
+
+    // Score distribution (buckets: 0–19, 20–39, 40–59, 60–79, 80–100)
+    const scoredLeads = (leads || []).filter((l: any) => l.score != null)
+    const scoreDist = [
+      { label: '0–19',   count: scoredLeads.filter((l: any) => l.score < 20).length },
+      { label: '20–39',  count: scoredLeads.filter((l: any) => l.score >= 20 && l.score < 40).length },
+      { label: '40–59',  count: scoredLeads.filter((l: any) => l.score >= 40 && l.score < 60).length },
+      { label: '60–79',  count: scoredLeads.filter((l: any) => l.score >= 60 && l.score < 80).length },
+      { label: '80–100', count: scoredLeads.filter((l: any) => l.score >= 80).length },
+    ]
+
+    // Top industries
+    const industryCounts: Record<string, number> = {}
+    for (const l of (leads || []) as any[]) {
+      if (l.industry) industryCounts[l.industry] = (industryCounts[l.industry] ?? 0) + 1
+    }
+    const topIndustries = Object.entries(industryCounts)
+      .sort(([,a],[,b]) => b - a).slice(0, 6)
+      .map(([industry, count]) => ({ industry, count }))
+
+    res.json({
+      success: true,
+      data: { byMonth, icpBreakdown, scoreDist, topIndustries },
+    })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch analytics' }) }
+})
+
 leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

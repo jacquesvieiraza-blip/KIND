@@ -1,15 +1,15 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 19 May 2026**
-**Business: UK registered (Companies House) · Platform: Africa-first, world-ready**
+**Single source of truth. Last updated: 24 May 2026**
+**Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
-> Everything in one place. Status, roadmap, post-launch plan, expansion, compliance, SOPs, cashflow.
+> Everything in one place. Status, roadmap, GTM, company registration, expansion, compliance, SOPs, cashflow.
 
 ---
 
 ## TABLE OF CONTENTS
 
 1. [Current Status — What's Live](#1-current-status--whats-live)
-2. [What Jacques Needs To Do](#2-what-jacques-needs-to-do)
+2. [What Founder Needs To Do](#2-what-founder-needs-to-do)
 3. [What Claude Can Do](#3-what-claude-can-do)
 4. [Post-Launch Roadmap — Full Detail](#4-post-launch-roadmap--full-detail)
 5. [What's Built](#5-whats-built)
@@ -29,52 +29,95 @@
 19. [Product Vision — 1, 3, 5 Years](#19-product-vision--1-3-5-years)
 20. [Alta AI SDR — Competitive Audit](#20-alta-ai-sdr--competitive-audit)
 21. [Key Decisions Locked](#21-key-decisions-locked)
+22. [Go-To-Market Strategy](#22-go-to-market-strategy)
+23. [UK Company Registration](#23-uk-company-registration)
 
 ---
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
+*Last updated: 24 May 2026*
+
 | Item | Status | Notes |
 |---|---|---|
-| Website — `get-kind.com` | ✅ Live | Vercel — kind-admin project |
+| Website — `get-kind.com` | ✅ Live | Full rewrite 20 May — new positioning, FIGSY Reasoning Loop, POPIA trust, Start/Scale/Dominate |
 | Client Portal — `app.get-kind.com` | ✅ Live | Vercel — kind-portal project |
 | Admin Dashboard — `admin.get-kind.com` | ✅ Live | Vercel — kind-admin-h5q6 project |
-| Railway API | ✅ Running | kindapi-production-**e64c**.up.railway.app |
-| Supabase — all tables + RLS | ✅ Live | All schema + migrations run. RLS re-enabled on clients, icps, credit_transactions |
-| Supabase auth — no email confirmation | ✅ Live | Signup → instant dashboard, no confirmation email required |
+| Railway API | ✅ Running | kindapi-production-e64c.up.railway.app |
+| Supabase — all tables + RLS | ✅ Live | All schema + migrations run |
+| Supabase auth — no email confirmation | ✅ Live | Signup → instant dashboard |
 | TypeScript build | ✅ Clean | All errors fixed |
-| Cron jobs (6 jobs) | ✅ Built | node-cron in API — starts on boot |
-| RLS on all tables | ✅ Fixed | Re-enabled 18 May — clients, icps, credit_transactions all protected |
+| Cron jobs — 12 jobs | ✅ Running | node-cron in API — starts on boot |
+| RLS on all tables | ✅ Fixed | Re-enabled 18 May |
 | Demo Environments | ✅ Live | Admin → Demo Envs — full sales demo tool |
-| AI ICP Suggest | ✅ Live | "Suggest ICP with AI" button → Claude fills form from company profile |
-| Credit management (admin) | ✅ Live | Admin → Clients → [client] → grant/refund credits, view history |
-| Company registration + VAT fields | ✅ Live | Portal Settings + Admin client detail |
-| Paystack webhook | ✅ Set | But using TEST key — live payments blocked until KYC |
-| Paystack KYC | ⏳ Pending | **Must complete to accept live payments** |
-| Google Workspace | ⏳ Pending | **Must set up — no professional email yet** |
-| "Book a Demo" calendar link | ⏳ Pending | Buttons exist but need your booking URL |
-| Vida image update | ⏳ Pending | Upload vida.png to apps/website/ |
-| Resend inbound routing | ⏳ Pending | Needs paid Resend plan |
+| AI ICP Suggest | ✅ Live | "Suggest ICP with AI" → Claude fills form from company profile |
+| FIGSY generateSequenceWithMemory | ✅ Live | Self-improving sequences using campaign history |
+| FIGSY auto-replenish alert | ✅ Live | Daily cron 05:00 UTC |
+| Milla morning brief | ✅ Live | Daily cron 07:30 UTC to all active clients |
+| Milla anomaly detection | ✅ Live | Daily cron 08:30 UTC |
+| K.I.N.D self-outreach (FIGSY dogfooding) | ✅ Live | Monday cron 06:00 UTC — needs FIGSY_KIND_CLIENT_ID env var |
+| /stats/platform public endpoint | ✅ Live | Live platform stats |
+| Campaign intent prompt | ✅ Built | Feature flagged — FEATURE_CAMPAIGN_INTENT=true to activate |
+| Conversational ICP builder | ✅ Built | Feature flagged — FEATURE_ICP_BUILDER=true to activate |
+| Web Speech API voice input | ✅ Built | On both above — mic button, Chrome/Safari/Edge |
+| Partners page rewrite | ✅ Live | ClickUp/Smartsheet model — standard pricing, commission-based |
+| Pricing page rewrite | ✅ Live | Start/Scale/Dominate + partner callout |
+| Founder name removed from public pages | ✅ Done | "Founder" only — terms.html unchanged |
+| Paystack webhook | ✅ Set | TEST key — live payments blocked until KYC |
+| Paystack KYC | ⏳ Pending | **Must complete — cannot take live payments** |
+| Google Workspace | ⏳ Pending | **Must set up — no professional email inbox** |
+| Calendar booking link | ⏳ Pending | Buttons exist — need Calendly/Cal.com URL |
+| FIGSY_KIND_CLIENT_ID env var | ⏳ Pending | Self-outreach runs but does nothing without this |
+| Resend inbound routing | ⏳ Pending | Needs paid Resend plan — required before FIGSY campaigns |
 | Stripe USD/GBP billing | ⏳ Pending | Code done — needs credentials |
 | Google Calendar OAuth | ⏳ Pending | Code done — needs credentials |
 | Vapi.ai Voice | ⏳ Pending | Code done — needs account |
 | WhatsApp Business API | ⏳ Pending | Code done — Meta 3–7 day approval |
 | G2 / Capterra / Product Hunt | ⏳ Pending | Launch day listings |
-| UK company registration | ⏳ Pending | companieshouse.gov.uk — £50, same day |
+| UK company registration | ⏳ Pending | companieshouse.gov.uk — £50, same day — see Section 23 |
+| Run credit_transactions RLS migration | ⏳ Pending | CRITICAL — financial data partially exposed |
 
 ---
 
-## 2. WHAT JACQUES NEEDS TO DO
+## 2. WHAT FOUNDER NEEDS TO DO
 
-### Urgent — Do This Week
+### 🔴 CRITICAL — Do Immediately
 
-| # | Task | Where | Why |
+| # | Task | Where | Why it's blocking |
 |---|---|---|---|
-| 1 | **Run `20260518_credit_transactions_rls.sql`** | Supabase → SQL Editor | CRITICAL — financial data exposed to cross-client reads until done |
-| 2 | **Run `20260518_company_registration.sql`** | Supabase → SQL Editor | Adds reg no + VAT fields |
-| 3 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Can't take live payments without it |
-| 4 | **Set up Google Workspace** | workspace.google.com | Need hello@get-kind.com to receive sales + support emails |
-| 5 | **Create calendar booking page** | calendly.com or cal.com | Share the link and I'll update all "Book a Demo" buttons |
+| 1 | **Run `20260518_credit_transactions_rls.sql`** | Supabase → SQL Editor | Financial data exposed to cross-client reads |
+| 2 | **Run `20260518_company_registration.sql`** | Supabase → SQL Editor | Portal settings page has fields but columns don't exist |
+| 3 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Zero live payments possible without this |
+| 4 | **Set up Google Workspace** | workspace.google.com | No professional inbox — sales emails going nowhere |
+| 5 | **Add FIGSY_KIND_CLIENT_ID to Railway** | Railway → KIND API → Variables | Self-outreach cron runs but does nothing |
+
+### 🟡 HIGH — Do This Week
+
+| # | Task | Where |
+|---|---|---|
+| 6 | **Create calendar booking link** | calendly.com or cal.com (free) → share link with Claude |
+| 7 | **Register UK company** | companieshouse.gov.uk — £50, same day — see Section 23 |
+| 8 | **Upgrade Resend to paid plan** | resend.com → Billing (needed before first FIGSY campaigns) |
+
+### 🟢 WHEN READY — Activates Built Features
+
+| # | Task | Env vars to add to Railway |
+|---|---|---|
+| 9 | Stripe USD/GBP | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
+| 10 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
+| 11 | Vapi.ai Voice | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
+| 12 | WhatsApp Business API | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
+| 13 | Update FOUNDER_EMAIL | Change to `hello@get-kind.com` after Google Workspace is live |
+| 14 | Campaign intent prompt (go live) | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
+| 15 | ICP builder (go live) | `FEATURE_ICP_BUILDER=true` in Railway |
+
+### Once Live (not urgent)
+
+| # | Task | When |
+|---|---|---|
+| 16 | G2, Capterra, Product Hunt listings | Launch day |
+| 17 | Upload new Vida image | apps/website/vida.png via GitHub |
+| 18 | SOC 2 Type II | Q1 2027 |
 
 ### Google Workspace Setup (step by step)
 1. workspace.google.com → Get started → Business Starter plan → enter domain get-kind.com
@@ -89,51 +132,51 @@
 
 **Important:** FIGSY sends from **Resend** (replies@get-kind.com) — keep separate to protect domain reputation.
 
-### Once Live (not urgent)
-
-| # | Task | When |
-|---|---|---|
-| 6 | Upload new Vida image | apps/website/vida.png via GitHub |
-| 7 | Register UK company — Companies House | companieshouse.gov.uk, £50, same day |
-| 8 | G2, Capterra, Product Hunt listings | Launch day |
-| 9 | Upgrade Resend → enable inbound routing | When first FIGSY campaigns launch |
-| 10 | Stripe account + 4 price IDs | After 5 clients (Phase 2) |
-| 11 | Vapi.ai account + phone number | Month 2 |
-| 12 | Meta WhatsApp Business API | Month 2 (3–7 day approval) |
-| 13 | Google Cloud — Calendar OAuth | Month 2–3 |
-| 14 | SOC 2 Type II | Q1 2027 |
-
 ---
 
 ## 3. WHAT CLAUDE CAN DO
 
-### Built since 17 May 2026
-| Task | Status |
+### Built — Complete History
+| Task | Date |
 |---|---|
-| Demo Environments — full sales demo tool in admin | ✅ Done |
-| AI ICP Suggest — "Suggest ICP with AI" button → Claude fills form | ✅ Done |
-| Credit management — admin grant/refund credits per client + history | ✅ Done |
-| Company registration + VAT number fields in portal + admin | ✅ Done |
-| RLS fixed on credit_transactions (was missing — security issue) | ✅ Done |
-| Launch checklist updated — Google Workspace, Paystack KYC, booking link sections | ✅ Done |
-| Client flow SOP updated — removed email confirmation steps, added demo path | ✅ Done |
-| KPIs dashboard — parallel lead + FIGSY stats, funnel, benchmarks | ✅ Done |
-| Referral flow complete — ?ref= persistence, /clients/referrals endpoint, credit audit trail | ✅ Done |
-| **FIGSY agent memory** — `figsy_memory` table, refresh endpoint, all-client cron | ✅ Done 19 May |
-| **FIGSY weekly digest upgrade** — FIGSY outreach stats added to Monday digest email | ✅ Done 19 May |
-| **FIGSY escalation alerts** — auto-pauses campaigns <1% reply rate, notifies client | ✅ Done 19 May |
-| **FIGSY identity card** — named agent card in portal with live stats + auto-pause status | ✅ Done 19 May |
+| Demo Environments — full sales demo tool in admin | 17 May |
+| AI ICP Suggest — "Suggest ICP with AI" → Claude fills form | 17 May |
+| Credit management — admin grant/refund credits per client + history | 18 May |
+| Company registration + VAT number fields in portal + admin | 18 May |
+| RLS fixed on credit_transactions | 18 May |
+| KPIs dashboard | 18 May |
+| Referral flow — ?ref= persistence, /clients/referrals, credit audit trail | 18 May |
+| FIGSY agent memory — figsy_memory table, refresh endpoint, cron | 19 May |
+| FIGSY weekly digest upgrade — FIGSY stats in Monday email | 19 May |
+| FIGSY escalation alerts — auto-pauses campaigns <1% reply rate | 19 May |
+| FIGSY identity card in portal | 19 May |
+| Full homepage rewrite — new positioning | 20 May |
+| Pricing page — Start/Scale/Dominate | 20 May |
+| About page — Founder Belief, Dogfooding, AI Revenue Team sections | 20 May |
+| Demo page — AI Revenue Team framing | 20 May |
+| Partners page — ClickUp/Smartsheet model, pricing policy fixed | 20–24 May |
+| generateSequenceWithMemory — FIGSY self-improvement | 20 May |
+| Milla morning brief + anomaly detection crons | 20 May |
+| FIGSY auto-replenish cron | 20 May |
+| K.I.N.D self-outreach (CMO cron) | 20 May |
+| /stats/platform public endpoint | 20 May |
+| 12 cron jobs total | 20 May |
+| Founder name removed from all public pages | 20 May |
+| Campaign intent prompt — feature flagged | 24 May |
+| Conversational ICP builder — feature flagged | 24 May |
+| Web Speech API voice input — on both above | 24 May |
+| MASTER.md updated — added GTM strategy + UK registration | 24 May |
 
 ### Ready Now (say the word)
 | Task | Time |
 |---|---|
-| Fix "Book a Demo" buttons | 5 mins (need your booking URL first) |
-| Update Vida image | 5 mins (need you to upload vida.png) |
-| Paystack end-to-end test after live key is set | 30 mins |
-| FIGSY campaign end-to-end test | 30 mins |
-| KIND's own FIGSY campaign setup (dogfooding GTM) | 1 hour |
-| GBP pricing on website after Stripe live | 30 mins |
-| Fix any errors — share screenshot | Ready |
+| Fix "Book a Demo" buttons | 5 mins — need Calendly/Cal.com URL |
+| Paystack end-to-end test after live key | 30 mins |
+| Stripe end-to-end test after credentials | 30 mins |
+| GBP pricing on website after Stripe | 30 mins |
+| Wire website ICP scrape into portal form UI | 2 hours |
+| Admin cohort analytics | 1 day |
+| Fix any error — share screenshot | Ready |
 
 ---
 
@@ -565,14 +608,20 @@ WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
 ```
 
-### Cron Jobs (6 jobs — built into API, auto-starts on boot)
+### Cron Jobs (12 jobs — built into API, auto-starts on boot)
 | Schedule (UTC) | Endpoint | Purpose |
 |---|---|---|
+| 0 5 * * * | POST /internal/figsy/auto-replenish | Alert campaigns running low |
 | 0 6 * * * | POST /internal/ae/nurture | Trial nurture (Days 1/3/5/7/10) |
 | 15 6 * * * | POST /internal/ae/at-risk | At-risk client alerts |
 | 0 7 * * * | POST /internal/ae/trial-expiry | Trial expiry emails (Days 10/12/14) |
-| 0 */2 * * * | POST /figsy/send-due | FIGSY step 2+3 across all clients |
+| 15 7 * * * | POST /internal/ae/zero-credits | Zero credits warning |
+| 30 7 * * * | POST /internal/milla/morning-brief-all | Milla daily digest to all clients |
+| 0 8 * * * | POST /internal/figsy/check-performance | Pause campaigns <1% reply rate |
+| 30 8 * * * | POST /internal/milla/check-anomalies | Anomaly detection |
+| 0 */2 * * * | POST /internal/figsy/send-due-all | FIGSY send due emails all clients |
 | 0 7 * * 1 | POST /internal/digest/weekly | Monday leads digest to clients |
+| 0 6 * * 1 | POST /internal/cmo/self-outreach | K.I.N.D self-outreach (Monday) |
 | 0 16 * * 5 | POST /internal/cro/weekly-digest | Friday founder digest |
 
 ---
@@ -662,5 +711,180 @@ WHATSAPP_VERIFY_TOKEN=
 
 ---
 
+---
+
+## 22. GO-TO-MARKET STRATEGY
+
+### Core GTM Principle
+K.I.N.D sells itself using K.I.N.D. FIGSY finds and contacts our own prospects. Every client we close is proof the product works. Every cold email sent by FIGSY on our behalf is a live demo.
+
+---
+
+### Phase 1 — First 5 Clients (May–June 2026)
+**Goal:** Prove product-market fit. Get 5 paying clients. Make them successful.
+
+**Target ICP (our own):**
+- Founder, CEO, MD, Sales Director, Head of Growth
+- 5–50 employee B2B companies
+- Industries: Professional services, Fintech, Logistics, Tech, Consulting, SaaS, Marketing agencies
+- Geographies: South Africa (primary), Nigeria, Kenya
+- Pain: Founder is the entire sales team. No time to prospect. Follow-ups fall through cracks.
+
+**Channels — in priority order:**
+
+| Channel | Approach | Owner |
+|---------|----------|-------|
+| **FIGSY self-outreach** | K.I.N.D finds its own clients using FIGSY. Monday cron runs Apollo search, auto-enrols prospects. | Automated (needs FIGSY_KIND_CLIENT_ID set) |
+| **Founder's personal network** | Direct outreach to known contacts who fit ICP. Personal message, no pitch — "I built something, want to see it?" | Founder |
+| **LinkedIn organic** | CMO cron generates 3 branded posts weekly. Founder posts. No automation — ToS risk. | Founder posts |
+| **Demo Environments** | Any warm lead gets a live demo in Admin → Demo Envs. Real leads, real platform. | Founder |
+| **Referral programme** | Every signed client gets a referral link (100 credits both ways). Ask for referrals on day 3 of onboarding. | Automated |
+
+**First 5 client playbook (step by step):**
+1. Activate FIGSY self-outreach (set FIGSY_KIND_CLIENT_ID in Railway)
+2. Post 3x per week on LinkedIn — use CMO cron for drafts, personalise before posting
+3. Reach out personally to 10 warm contacts this week
+4. Every interested response → 30-min discovery call (script in Section 16)
+5. Every discovery call → live demo using Demo Environments
+6. Close → Paystack (after KYC) or manual invoice
+7. Day 1–3: onboarding call, ICP together, first leads running
+8. Day 3: ask for referral
+
+**Conversion target:** 40% trial → paid. 5 clients from ~200 outreach touches.
+
+---
+
+### Phase 2 — First 20 Clients (June–July 2026)
+**Trigger:** After 5 paying clients
+
+**Add these channels:**
+- **Stripe activation** → unlock USD/GBP clients (UK, US)
+- **G2 / Capterra / Product Hunt** → listing drives inbound
+- **Content: comparison pages** → SEO via vs-apollo, vs-outreach etc (already live)
+- **Partner programme** → referral partners start sending leads
+- **WhatsApp** → follow up warm leads on WhatsApp after email (after Meta approval)
+
+**FIGSY outreach volume:**
+- Phase 1: 50–100 emails/day (safe, no warmup needed)
+- Phase 2: 200–300/day (consider separate sending subdomain: outreach.get-kind.com)
+- Phase 3: 500+/day (multiple inboxes + warmup tool)
+
+---
+
+### Phase 3 — First 60 Clients (Aug–Oct 2026)
+**Trigger:** After 20 paying clients
+
+**Add these channels:**
+- **Voice** (Vapi.ai) → FIGSY calls the most interested leads after 2 email touches
+- **Pan-African expansion** → Nigeria, Kenya, Ghana outreach (Apollo covers all)
+- **Agency partner programme** → agencies managing K.I.N.D for their clients
+- **Recurring subscription model** → transition from credit bundles to monthly plans
+
+---
+
+### Messaging — What Actually Works
+
+**Cold email subject lines (from KIND_BRAND):**
+- "FIGSY found your details. I thought it was only fair to tell you."
+- "First leads in under 10 minutes — or your money back."
+- "You are not buying software. You are hiring a team."
+- "Break the human ceiling — your pipeline shouldn't be limited by your hours."
+
+**What to avoid:**
+- "Revolutionary" or "game-changing"
+- "AI-powered" — show the outcome instead
+- Excessive exclamation marks
+- Corporate jargon
+- Vague promises
+
+**What works:**
+- Specific numbers (250M contacts, 8% reply rate, <2hr TTFL)
+- Concrete outcomes ("books meetings for you")
+- Short sentences. Active voice.
+- Honest about what it does and doesn't do
+
+---
+
+### Launch Day Checklist (when you're ready to go public)
+
+| # | Action |
+|---|--------|
+| 1 | Paystack KYC complete → live key in Railway |
+| 2 | Google Workspace live → hello@get-kind.com receiving mail |
+| 3 | Calendar booking link live → all "Book a Demo" buttons working |
+| 4 | FIGSY_KIND_CLIENT_ID set → self-outreach running |
+| 5 | Resend paid → inbound routing live → FIGSY replies working |
+| 6 | Run smoke test (Section 18) end-to-end |
+| 7 | Post on LinkedIn: founder story + product launch |
+| 8 | Submit to G2, Capterra, Product Hunt |
+| 9 | First FIGSY batch: 50 emails, monitor reply rate |
+| 10 | First 3 discovery calls booked |
+
+---
+
+## 23. UK COMPANY REGISTRATION
+
+### Why Register in the UK
+- Credibility with UK and international clients
+- Enables Stripe GBP billing (Stripe UK)
+- Required for proper invoicing in GBP
+- Simpler structure than SA PTY for international contracts
+- References as "UK registered" in all legal docs and website footer
+
+### Business Structure
+**Private Limited Company (Ltd)** — standard for UK tech startups
+
+### Step-by-Step Registration (same day, £50)
+
+**Option A — Register directly (slowest, cheapest)**
+1. Go to: https://www.gov.uk/limited-company-formation/register-your-company
+2. Click "Use Companies House online service"
+3. Choose: **Private limited company**
+4. Company name: `KIND AI Ltd` or `K.I.N.D Ltd` (check availability first at https://find-and-update.company-information.service.gov.uk/)
+5. Registered office address: must be a UK address — use a registered address service if needed (e.g. 1st Formations, £39/yr, provides a London address)
+6. Director: your full legal name, date of birth, nationality, usual residential address (this is not public)
+7. Shareholder: yourself, 100 shares at £1 each (£100 share capital)
+8. SIC code: **62012** — Business and domestic software development
+9. Pay £50 online — card or PayPal
+10. Certificate of Incorporation arrives by email same day (usually within hours)
+
+**Option B — Use a formation agent (easiest, ~£50–80)**
+- 1st Formations: https://www.1stformations.co.uk — £52.99 includes registered address
+- Rapid Formations: https://www.rapidformations.co.uk — similar pricing
+- They handle all filing, provide registered address, send you the cert
+- Recommended if you don't have a UK address
+
+**After Incorporation:**
+1. Note down: Company Number (e.g. 12345678) and Registered Address
+2. Add company number to terms.html footer (already has placeholder)
+3. Add to website footer: "K.I.N.D AI Ltd · Registered in England & Wales · No. XXXXXXXX"
+4. Open a UK business bank account (Wise Business is easiest for non-UK residents — free, multi-currency)
+5. Register for VAT (only required once turnover exceeds £90,000/yr — not needed now)
+6. If taking GBP payments: set up Stripe UK account under the company
+
+### What You Need Ready Before Registering
+- [ ] Chosen company name (check availability first)
+- [ ] UK registered address (use a service if needed — ~£39/yr)
+- [ ] Your personal details (DOB, nationality, home address — not public)
+- [ ] £50 payment card
+
+### After Registration — Tell Claude
+Once you have the company number, Claude will:
+- Update terms.html with the registered company number
+- Update website footer across all pages
+- Update about.html legal section
+
+### Annual Requirements (UK Ltd)
+| Requirement | Deadline | Cost |
+|-------------|----------|------|
+| Confirmation Statement | Annually (anniversary of incorporation) | £34 online |
+| Annual Accounts | 9 months after year-end | £0 (file yourself) or ~£300 (accountant) |
+| Corporation Tax return | 12 months after year-end | Pay only if profitable |
+| VAT registration | When turnover hits £90k/yr | Free |
+
+**Note:** If you have zero UK employees and your only director is non-UK resident, you still file but tax is only due on UK-sourced income. Most early revenue will be international. Get an accountant once you hit £10k MRR.
+
+---
+
 *Owner: K.I.N.D founding team*
-*Last updated: 18 May 2026*
+*Last updated: 24 May 2026*

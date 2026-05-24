@@ -159,8 +159,12 @@ export default function ICPPage() {
       if (!session) { setLoading(false); return }
       setToken(session.access_token)
       try {
-        const res = await api.get<{ data: ICP[] }>('/icps', session.access_token)
-        setIcps(res.data || [])
+        const [icpsRes, featuresRes] = await Promise.all([
+          api.get<{ data: ICP[] }>('/icps', session.access_token),
+          api.get<{ campaign_intent: boolean; icp_builder: boolean }>('/features'),
+        ])
+        setIcps(icpsRes.data || [])
+        setIcpBuilderFlag(featuresRes.icp_builder ?? false)
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : 'Failed to load ICPs — please refresh.')
       }
@@ -318,10 +322,20 @@ export default function ICPPage() {
           </div>
           <p className="text-gray-500 text-sm">Define who your ideal customers are. KIND uses this to source and score matching leads.</p>
         </div>
-        <button onClick={startCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
-          <Plus className="w-4 h-4" />New ICP
-        </button>
+        <div className="flex items-center gap-2">
+          {icpBuilderFlag && (
+            <a
+              href="/dashboard/leads/icp/builder"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium hover:bg-purple-100 transition-colors border border-purple-200"
+            >
+              <Sparkles className="w-4 h-4" />Build with AI
+            </a>
+          )}
+          <button onClick={startCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+            <Plus className="w-4 h-4" />New ICP
+          </button>
+        </div>
       </div>
 
       {/* ICP list */}

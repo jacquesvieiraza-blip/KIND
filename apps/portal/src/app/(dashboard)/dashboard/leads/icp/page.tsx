@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, Globe } from 'lucide-react'
 
 const INDUSTRIES = [
   'Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture',
@@ -139,8 +139,12 @@ export default function ICPPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [nameSuggestion, setNameSuggestion] = useState<string | null>(null)
-  const [aiSuggesting, setAiSuggesting]     = useState(false)
-  const [aiSuggestError, setAiSuggestError] = useState<string | null>(null)
+  const [aiSuggesting, setAiSuggesting]         = useState(false)
+  const [aiSuggestError, setAiSuggestError]     = useState<string | null>(null)
+  const [websiteSuggesting, setWebsiteSuggesting] = useState(false)
+  const [websiteUrl, setWebsiteUrl]               = useState('')
+  const [websiteSuggestError, setWebsiteSuggestError] = useState<string | null>(null)
+  const [clientWebsite, setClientWebsite]         = useState('')
   const [icpBuilderFlag, setIcpBuilderFlag] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
@@ -170,6 +174,17 @@ export default function ICPPage() {
       }
       setLoading(false)
     }).catch(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    async function loadClientWebsite() {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await api.get<{ data: { website: string } }>('/clients/me', session.access_token)
+      if (res.data?.website) setClientWebsite(res.data.website)
+    }
+    loadClientWebsite()
   }, [])
 
   function startCreate() {
@@ -269,6 +284,27 @@ export default function ICPPage() {
       setAiSuggestError(err instanceof Error ? err.message : 'AI suggestion failed — please try again.')
     }
     setAiSuggesting(false)
+  }
+
+  async function handleWebsiteScan() {
+    const url = websiteUrl.trim() || clientWebsite
+    if (!url) return
+    setWebsiteSuggesting(true)
+    setWebsiteSuggestError(null)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await api.post<{ data: Partial<ICPFormData> }>('/icps/prefill', { website_url: url }, session.access_token)
+      if (res.data) {
+        setForm(f => ({ ...f, ...res.data }))
+        setPrefillNotice(true)
+      }
+    } catch (err) {
+      setWebsiteSuggestError('Could not scan website — check the URL and try again.')
+    } finally {
+      setWebsiteSuggesting(false)
+    }
   }
 
   const set = (field: keyof ICPFormData) => (val: unknown) => setForm(f => ({ ...f, [field]: val }))
@@ -415,6 +451,29 @@ export default function ICPPage() {
             </button>
           </div>
           {aiSuggestError && <p className="text-xs text-red-500">{aiSuggestError}</p>}
+
+          {/* Website scan button */}
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="url"
+              value={websiteUrl}
+              onChange={e => setWebsiteUrl(e.target.value)}
+              placeholder={clientWebsite || 'https://yourwebsite.com'}
+              className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={handleWebsiteScan}
+              disabled={websiteSuggesting || (!websiteUrl.trim() && !clientWebsite)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            >
+              {websiteSuggesting
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Scanning…</>
+                : <><Globe className="w-3.5 h-3.5" /> Scan website</>
+              }
+            </button>
+          </div>
+          {websiteSuggestError && <p className="text-xs text-red-500 mt-1">{websiteSuggestError}</p>}
 
           {prefillNotice && (
             <div className="flex items-start justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">

@@ -57,6 +57,12 @@ app.use('/webhooks/stripe',  express.raw({ type: 'application/json' }))
 app.use(express.json())
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'kind-api', v: '2026-05-18-b' }))
+app.get('/features', (_req, res) => {
+  res.json({
+    campaign_intent: process.env.FEATURE_CAMPAIGN_INTENT === 'true',
+    icp_builder: process.env.FEATURE_ICP_BUILDER === 'true',
+  })
+})
 app.use('/auth',          authRouter)
 app.use('/clients',       clientRouter)
 app.use('/subscriptions', subscriptionRouter)

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { VoiceMicButton } from '@/components/VoiceMicButton'
 
 interface Reply {
   id: string
@@ -22,6 +23,17 @@ interface Campaign {
   replies_interested: number
   opted_out: number
   created_at: string
+  campaign_intent?: string | null
+  intent_mapped_at?: string | null
+}
+
+interface ParsedIntent {
+  geography_focus: string | null
+  job_title_focus: string | null
+  pain_point: string | null
+  trigger_event: string | null
+  avoid: string | null
+  summary: string
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -56,6 +68,7 @@ export default function FigsyPage() {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newIntent, setNewIntent] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -66,6 +79,9 @@ export default function FigsyPage() {
   const [replyDraft, setReplyDraft] = useState<{ replyId: string; draft: string } | null>(null)
   const [draftingId, setDraftingId] = useState<string | null>(null)
   const [cloningId, setCloningId] = useState<string | null>(null)
+  const [campaignIntentFlag, setCampaignIntentFlag] = useState(false)
+  const [intentSummaries, setIntentSummaries] = useState<Record<string, ParsedIntent>>({})
+  const [parsingIntentId, setParsingIntentId] = useState<string | null>(null)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
@@ -76,11 +92,13 @@ export default function FigsyPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-      const [campaignsRes, subsRes] = await Promise.all([
+      const [campaignsRes, subsRes, featuresRes] = await Promise.all([
         api.get<{ data: Campaign[] }>('/figsy/campaigns', token),
         api.get<{ data: { product: string; status: string }[] }>('/subscriptions', token),
+        api.get<{ campaign_intent: boolean; icp_builder: boolean }>('/features'),
       ])
       setCampaigns(campaignsRes.data ?? [])
+      setCampaignIntentFlag(featuresRes.campaign_intent ?? false)
       const subs = subsRes.data ?? []
       const hasSub = subs.some(
         s => (s.product === 'lead_gen_figsy' || s.product === 'figsy_addon') &&
@@ -115,15 +133,39 @@ export default function FigsyPage() {
     setDraftingId(null)
   }
 
+  async function parseIntent(campaignId: string, intent: string, token: string | undefined) {
+    setParsingIntentId(campaignId)
+    try {
+      const res = await api.post<{ success: boolean; data: { parsed: ParsedIntent; summary: string } }>(
+        `/figsy/campaigns/${campaignId}/parse-intent`,
+        { intent },
+        token,
+      )
+      setIntentSummaries(prev => ({ ...prev, [campaignId]: res.data.parsed }))
+    } catch {
+      // silently ignore parse errors — the intent is still saved
+    }
+    setParsingIntentId(null)
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     if (!newName.trim()) return
     setCreating(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      const res = await api.post<{ data: Campaign }>('/figsy/campaigns', { name: newName.trim() }, session?.access_token)
+      const payload: { name: string; campaign_intent?: string } = { name: newName.trim() }
+      if (campaignIntentFlag && newIntent.trim()) {
+        payload.campaign_intent = newIntent.trim()
+      }
+      const res = await api.post<{ data: Campaign }>('/figsy/campaigns', payload, session?.access_token)
       setCampaigns(prev => [res.data, ...prev])
+      // If intent was provided, also parse it
+      if (campaignIntentFlag && newIntent.trim()) {
+        parseIntent(res.data.id, newIntent.trim(), session?.access_token)
+      }
       setNewName('')
+      setNewIntent('')
       setShowCreate(false)
       toast('Campaign created')
     } catch (err) {
@@ -294,29 +336,52 @@ export default function FigsyPage() {
       {showCreate && (
         <div className="bg-white rounded-xl border border-gray-100 p-5">
           <h2 className="font-semibold text-gray-900 mb-3">New campaign</h2>
-          <form onSubmit={handleCreate} className="flex gap-3">
-            <input
-              type="text"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              placeholder="Campaign name (e.g. Q2 SaaS CTO Outreach)"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={creating || !newName.trim()}
-              className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              {creating ? 'Creating…' : 'Create'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowCreate(false); setNewName('') }}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
+          <form onSubmit={handleCreate} className="space-y-3">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                placeholder="Campaign name (e.g. Q2 SaaS CTO Outreach)"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                autoFocus
+              />
+            </div>
+            {campaignIntentFlag && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  What are we hunting? <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <textarea
+                    value={newIntent}
+                    onChange={e => setNewIntent(e.target.value)}
+                    placeholder="e.g. CFOs at logistics companies in Nigeria struggling with manual month-end reporting — avoid anyone I've already emailed this quarter"
+                    rows={3}
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+                  />
+                  <VoiceMicButton
+                    onTranscript={text => setNewIntent(prev => prev ? `${prev} ${text}` : text)}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={creating || !newName.trim()}
+                className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {creating ? 'Creating…' : 'Create'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowCreate(false); setNewName(''); setNewIntent('') }}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       )}
@@ -425,6 +490,36 @@ export default function FigsyPage() {
                   )}
                 </div>
               </div>
+
+              {/* Campaign intent summary card (Feature A) */}
+              {campaignIntentFlag && (campaign.campaign_intent || intentSummaries[campaign.id]) && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <p className="text-xs font-semibold text-blue-700 mb-1">Hunting for:</p>
+                  {parsingIntentId === campaign.id ? (
+                    <p className="text-xs text-blue-500">Parsing intent…</p>
+                  ) : intentSummaries[campaign.id] ? (
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-blue-800 font-medium">{intentSummaries[campaign.id].summary}</p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                        {intentSummaries[campaign.id].geography_focus && (
+                          <span className="text-[11px] text-blue-600">📍 {intentSummaries[campaign.id].geography_focus}</span>
+                        )}
+                        {intentSummaries[campaign.id].job_title_focus && (
+                          <span className="text-[11px] text-blue-600">👤 {intentSummaries[campaign.id].job_title_focus}</span>
+                        )}
+                        {intentSummaries[campaign.id].pain_point && (
+                          <span className="text-[11px] text-blue-600">⚡ {intentSummaries[campaign.id].pain_point}</span>
+                        )}
+                        {intentSummaries[campaign.id].trigger_event && (
+                          <span className="text-[11px] text-blue-600">🎯 {intentSummaries[campaign.id].trigger_event}</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-blue-700 italic">{campaign.campaign_intent}</p>
+                  )}
+                </div>
+              )}
 
               {/* Stats row */}
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">

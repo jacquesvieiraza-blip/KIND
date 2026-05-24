@@ -160,6 +160,68 @@ export async function runIcpJob(
   return { inserted, skipped }
 }
 
+// ── CONVERSATIONAL ICP BUILDER (Feature B — gated behind FEATURE_ICP_BUILDER) ─
+icpRouter.post('/builder/chat', async (req: AuthRequest, res) => {
+  if (process.env.FEATURE_ICP_BUILDER !== 'true') {
+    res.status(404).json({ success: false, error: 'Not found' }); return
+  }
+  try {
+    const { messages } = z.object({
+      messages: z.array(z.object({
+        role:    z.enum(['user', 'assistant']),
+        content: z.string(),
+      })).min(1),
+    }).parse(req.body)
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const systemPrompt = `You are Milla, K.I.N.D's AI business assistant. You are helping a client build their Ideal Customer Profile (ICP) for B2B lead generation.
+
+Ask questions ONE AT A TIME. Be conversational, not form-like. When you have enough information to build a complete ICP, return the structured ICP.
+
+Questions to ask (not all required — use judgment):
+1. "Who is your ideal client? Describe them — what kind of company, what industry?"
+2. "What size company are you targeting? (e.g. 5-person startup, 50-person SME, 200+ enterprise)"
+3. "Who do you speak to at that company? What's their job title?"
+4. "What geography are you focused on?"
+5. "What's the specific problem you solve for them?"
+6. "Are there any industries or types of companies you want to avoid?"
+
+Valid seniority_levels: ["C-Suite", "VP / Director", "Head of", "Manager", "Senior", "Individual Contributor"]
+Valid company_sizes: ["1–10", "11–50", "51–200", "201–500", "501–1,000", "1,000+"]
+
+When you have enough info (at minimum: industry, job title, geography), respond with JSON:
+{"type":"complete","icp":{"name":"...","industries":[],"job_titles":[],"seniority_levels":[],"company_sizes":[],"geographies":[],"tech_stack":[],"keywords":[],"apollo_only_consented":true},"summary":"[one-line description]"}
+
+Otherwise respond with JSON:
+{"type":"question","content":"[your question]"}`
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+    })
+
+    const raw = (response.content[0] as { type: string; text: string }).text.trim()
+
+    // Try to parse as JSON; if it fails, treat as a question
+    let parsed: { type: 'question'; content: string } | { type: 'complete'; icp: Record<string, unknown>; summary: string }
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      parsed = { type: 'question', content: raw }
+    }
+
+    res.json({ success: true, data: parsed })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[icps/builder/chat]', err)
+    res.status(500).json({ success: false, error: 'Failed to process chat message' })
+  }
+})
+
 icpRouter.get('/', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

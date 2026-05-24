@@ -83,8 +83,9 @@ figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {
 figsyRouter.post('/campaigns', async (req: AuthRequest, res) => {
   try {
     const body = z.object({
-      name:   z.string().min(1),
-      icp_id: z.string().uuid().optional(),
+      name:            z.string().min(1),
+      icp_id:          z.string().uuid().optional(),
+      campaign_intent: z.string().optional(),
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -101,8 +102,9 @@ figsyRouter.post('/campaigns', async (req: AuthRequest, res) => {
 figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
   try {
     const body = z.object({
-      name:   z.string().min(1).optional(),
-      status: z.enum(['draft','active','paused','completed','archived']).optional(),
+      name:            z.string().min(1).optional(),
+      status:          z.enum(['draft','active','paused','completed','archived']).optional(),
+      campaign_intent: z.string().optional(),
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -134,6 +136,72 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to update campaign' })
+  }
+})
+
+// ── PARSE INTENT (Feature A — gated behind FEATURE_CAMPAIGN_INTENT) ──────────
+figsyRouter.post('/campaigns/:id/parse-intent', async (req: AuthRequest, res) => {
+  if (process.env.FEATURE_CAMPAIGN_INTENT !== 'true') {
+    res.status(404).json({ success: false, error: 'Not found' }); return
+  }
+  try {
+    const { intent } = z.object({ intent: z.string().min(1) }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Verify campaign belongs to client
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: `You are an AI assistant helping parse a B2B outreach campaign intent into structured parameters.
+
+Campaign intent from the user:
+"${intent}"
+
+Extract the following fields (leave null if not mentioned):
+- geography_focus: specific country or region (string or null)
+- job_title_focus: specific job title or role (string or null)
+- pain_point: main pain point or problem to address (string or null)
+- trigger_event: trigger event mentioned e.g. "Series A", "hiring spree" (string or null)
+- avoid: anything to avoid e.g. people already emailed, specific companies (string or null)
+
+Also write a one-line summary (max 20 words) of what this campaign is hunting for.
+
+Return ONLY valid JSON:
+{"geography_focus":null,"job_title_focus":null,"pain_point":null,"trigger_event":null,"avoid":null,"summary":"..."}`,
+      }],
+    })
+
+    const raw = (response.content[0] as { type: string; text: string }).text.trim()
+    const parsed = JSON.parse(raw) as {
+      geography_focus: string | null
+      job_title_focus: string | null
+      pain_point: string | null
+      trigger_event: string | null
+      avoid: string | null
+      summary: string
+    }
+
+    // Store the intent and timestamp on the campaign
+    await db.from('figsy_campaigns').update({
+      campaign_intent: intent,
+      intent_mapped_at: new Date().toISOString(),
+    }).eq('id', req.params.id).eq('client_id', clientId)
+
+    res.json({ success: true, data: { parsed, summary: parsed.summary, intent } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[figsy/parse-intent]', err)
+    res.status(500).json({ success: false, error: 'Failed to parse intent' })
   }
 })
 

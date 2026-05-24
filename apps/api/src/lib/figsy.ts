@@ -37,6 +37,7 @@ export async function generateSequence(
   lead: Lead,
   senderCompanyName: string,
   senderIndustry: string | null,
+  campaignIntent?: string,
 ): Promise<SequenceDraft> {
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."
 
@@ -78,7 +79,9 @@ Hard rules (violating any of these makes the email useless):
 - Subject lines: 4–6 words, lowercase, no punctuation, no questions
 - End every email with: "Reply STOP to opt out."
 - Sign off with a real first name (pick a South African-sounding name that fits the sender's industry)
-
+${campaignIntent ? `
+Campaign focus for this batch: ${campaignIntent}
+Use this to personalise the angle, pain point references, and geography signals in your emails.` : ''}
 Return ONLY valid JSON, no markdown:
 {
   "step1": {"subject": "...", "body": "..."},
@@ -291,6 +294,7 @@ export async function generateSequenceWithMemory(
   clientId: string,
   senderCompanyName: string,
   senderIndustry: string | null,
+  campaignIntent?: string,
 ): Promise<SequenceDraft> {
   const { data: memory } = await db.from('figsy_memory')
     .select('best_subject_lines, avg_reply_rate_30d, total_sent_all_time, last_winning_angle')
@@ -298,7 +302,7 @@ export async function generateSequenceWithMemory(
     .maybeSingle()
 
   if (!memory || (memory.total_sent_all_time ?? 0) < 20) {
-    return generateSequence(lead, senderCompanyName, senderIndustry)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent)
   }
 
   const memoryContext = [
@@ -317,7 +321,10 @@ export async function generateSequenceWithMemory(
 
 FIGSY Campaign Intelligence (use this to improve your writing):
 ${memoryContext}
-
+${campaignIntent ? `
+Campaign focus for this batch: ${campaignIntent}
+Use this to personalise the angle, pain point references, and geography signals in your emails.
+` : ''}
 Lead details:
 - Name: ${lead.first_name} ${lead.last_name}
 - Title: ${lead.job_title || 'unknown'}
@@ -364,7 +371,7 @@ Return ONLY valid JSON:
 export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {
   try {
     const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id, name')
+      .select('id, name, campaign_intent')
       .eq('client_id', clientId)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
@@ -381,7 +388,13 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     const { data: client } = await db.from('clients')
       .select('company_name, industry').eq('id', clientId).single()
 
-    const draft = await generateSequenceWithMemory(lead as Lead, clientId, client?.company_name ?? '', client?.industry ?? null)
+    const draft = await generateSequenceWithMemory(
+      lead as Lead,
+      clientId,
+      client?.company_name ?? '',
+      client?.industry ?? null,
+      (campaign as any).campaign_intent ?? undefined,
+    )
 
     const { data: enrollment, error } = await db.from('figsy_enrollments').insert({
       campaign_id:    campaign.id,

@@ -141,6 +141,7 @@ export default function ICPPage() {
   const [nameSuggestion, setNameSuggestion] = useState<string | null>(null)
   const [aiSuggesting, setAiSuggesting]     = useState(false)
   const [aiSuggestError, setAiSuggestError] = useState<string | null>(null)
+  const [icpBuilderFlag, setIcpBuilderFlag] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {

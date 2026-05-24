@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, BarChart2 } from 'lucide-react'
 
 const NAV = [
   { href: '/',              label: 'Dashboard',     icon: LayoutDashboard },
   { href: '/clients',       label: 'Clients',       icon: Users },
+  { href: '/cohorts',       label: 'Cohorts',       icon: BarChart2 },
   { href: '/demo',          label: 'Demo Envs',     icon: MonitorPlay },
   { href: '/terms-library', label: 'Terms Library', icon: FileText },
   { href: '/roadmap',       label: 'Roadmap',       icon: Map },
@@ -17,6 +18,7 @@ const NAV = [
 function pageTitle(pathname: string) {
   if (pathname.startsWith('/clients/')) return 'Client Detail'
   if (pathname.startsWith('/demo'))     return 'Demo Environments'
+  if (pathname.startsWith('/cohorts'))  return 'Cohort Analytics'
   const match = NAV.find(n => n.href !== '/' && pathname.startsWith(n.href))
   return match?.label ?? 'Dashboard'
 }

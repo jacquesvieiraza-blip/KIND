@@ -462,6 +462,26 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       return
     }
 
+    // ── Deduct 1 FIGSY credit per lead enrolled ────────────────────────────────
+    try {
+      const { data: clientBal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+      const newBal = Math.max(0, (clientBal?.credit_balance ?? 0) - 1)
+      await Promise.all([
+        db.from('clients').update({ credit_balance: newBal }).eq('id', clientId),
+        db.from('credit_transactions').insert({
+          client_id: clientId,
+          amount: -1,
+          type: 'usage',
+          plan: 'figsy',
+          note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
+          created_at: new Date().toISOString(),
+        }),
+      ])
+    } catch (creditErr) {
+      console.error('[figsy] autoEnrollLead: credit deduction failed', creditErr)
+      // Non-fatal — enrollment already happened, log and continue
+    }
+
     // Increment campaign enrolled count
     const { data: camp } = await db.from('figsy_campaigns')
       .select('leads_enrolled').eq('id', campaign.id).single()

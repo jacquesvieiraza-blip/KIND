@@ -282,7 +282,17 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).single()
+      .select('company_name, industry, credit_balance').eq('id', clientId).single()
+
+    // ── Credit gate: must have at least 1 credit per lead ─────────────────────
+    const availableCredits = client?.credit_balance ?? 0
+    if (availableCredits < 1) {
+      res.status(402).json({
+        success: false,
+        error: 'Insufficient credits. Top up at app.get-kind.com/dashboard/billing to enroll leads in FIGSY.',
+      })
+      return
+    }
 
     const { data: leads } = await db.from('leads')
       .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
@@ -290,9 +300,16 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
 
     let enrolled = 0
     let skipped  = 0
+    let creditsUsed = 0
 
     for (const lead of leads ?? []) {
       if (!lead.email) { skipped++; continue }
+
+      // Stop if we've run out of credits mid-batch
+      if (creditsUsed >= availableCredits) {
+        skipped++
+        continue
+      }
 
       // Skip if already enrolled
       const { data: existing } = await db.from('figsy_enrollments')
@@ -318,9 +335,27 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
         })
         if (error) { skipped++; continue }
         enrolled++
+        creditsUsed++
       } catch {
         skipped++
       }
+    }
+
+    // ── Deduct credits for all successfully enrolled leads ────────────────────
+    if (enrolled > 0) {
+      const { data: freshBal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+      const newBalance = Math.max(0, (freshBal?.credit_balance ?? 0) - enrolled)
+      await Promise.all([
+        db.from('clients').update({ credit_balance: newBalance }).eq('id', clientId),
+        db.from('credit_transactions').insert({
+          client_id: clientId,
+          amount: -enrolled,
+          type: 'usage',
+          plan: 'figsy',
+          note: `${enrolled} lead${enrolled === 1 ? '' : 's'} enrolled in FIGSY campaign`,
+          created_at: new Date().toISOString(),
+        }),
+      ])
     }
 
     // Bump enrolled count on campaign
@@ -332,7 +367,7 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
         .eq('id', campaign.id)
     }
 
-    res.json({ success: true, data: { enrolled, skipped } })
+    res.json({ success: true, data: { enrolled, skipped, credits_used: creditsUsed, credits_remaining: Math.max(0, availableCredits - creditsUsed) } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to enroll leads' })

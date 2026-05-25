@@ -10,6 +10,14 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export const clientRouter = Router()
 clientRouter.use(requireAuth)
 
+// Lightweight profile check — used by onboard page to skip if already onboarded
+clientRouter.get('/me/profile', async (req: AuthRequest, res) => {
+  try {
+    const { data } = await db.from('clients').select('id, company_name').eq('user_id', req.userId!).maybeSingle()
+    res.json({ success: true, data: data ?? null })
+  } catch { res.json({ success: true, data: null }) }
+})
+
 clientRouter.get('/me', async (req: AuthRequest, res) => {
   try {
     const { data: client, error } = await db.from('clients').select('*, subscriptions(*), usage_metrics(*), auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size').eq('user_id', req.userId!).single()

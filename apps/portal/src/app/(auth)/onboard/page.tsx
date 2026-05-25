@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
@@ -21,8 +21,30 @@ function OnboardForm() {
   const referredBy = searchParams.get('ref') || (typeof window !== 'undefined' ? localStorage.getItem('kind_referral') || undefined : undefined)
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ company_name: '', industry: '', country: 'South Africa', website: '', phone: '' })
+
+  // ── Skip onboarding if client profile already exists ──────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { setChecking(false); return }
+      try {
+        const res = await api.get<{ data: { id: string; company_name: string } | null }>(
+          '/clients/me/profile', session.access_token
+        )
+        if (res.data?.id) {
+          // Already onboarded — go straight to dashboard
+          router.replace('/dashboard')
+          return
+        }
+      } catch {
+        // Profile check failed — show form anyway
+      }
+      setChecking(false)
+    }).catch(() => setChecking(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [prefilling, setPrefilling] = useState(false)
   const [prefillError, setPrefillError] = useState('')
@@ -63,6 +85,12 @@ function OnboardForm() {
   const suggestionTags = icpSuggestions
     ? Object.entries(icpSuggestions).flatMap(([, vals]) => Array.isArray(vals) ? vals : [])
     : []
+
+  if (checking) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+    </div>
+  )
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">

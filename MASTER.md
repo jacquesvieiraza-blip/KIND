@@ -128,22 +128,76 @@ Everything else on the to-do list is secondary to this.
 | `20260525_add_missing_clients_columns.sql` | ✅ Run | Added 11 clients columns: auto_topup, calendar, figsy_credits_remaining |
 | `supabase/MASTER_SCHEMA.sql` | ⚠️ Run ASAP | Master idempotent SQL — covers ALL tables, ALL columns — run once to eliminate all remaining schema drift |
 
-### Outstanding Actions
+---
 
-| Item | Status | Priority |
+### 🔴 NEEDS YOU — Complete list. Every item. Nothing left out.
+
+*Only you can do these. Claude is blocked or it requires your credentials/accounts.*
+
+#### 🔴 Critical — Platform cannot function without these
+
+| # | Task | Where | What breaks without it |
+|---|---|---|---|
+| 1 | **Upgrade Apollo** | app.apollo.io → Settings → Plan & Billing → Basic $49/mo min | Zero leads found. Platform is dead. Nothing works. |
+| 2 | **Confirm RESEND_API_KEY in Railway** | railway.app → KIND API → Variables | Zero emails. No welcome, no nurture, no POPIA consent, no leads digest. Silent. |
+| 3 | **Run supabase/MASTER_SCHEMA.sql** | Supabase → SQL Editor → paste full file → Run | Schema drift. FIGSY, auto top-up, calendar hit silent column errors. |
+| 4 | **Check Railway deploy logs** | railway.app → KIND API → Deployments | If build is failing, no code changes are live — not ours, not anyone's. |
+| 5 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Cannot take a single live ZAR payment. All billing is blocked. |
+| 6 | **Fix Vercel root directories** | Vercel dashboard → each project → Settings → General → Root Directory | Portal/admin/website may be deploying from wrong directory. This is why "nothing was fixed" after code pushes. Set: `apps/portal`, `apps/admin`, `apps/website` |
+
+#### 🟡 High — Do this week
+
+| # | Task | Where | What breaks without it |
+|---|---|---|---|
+| 7 | **Set up Google Workspace** | workspace.google.com → Business Starter | No professional inbox. All sales comms from personal email. DKIM/SPF for deliverability. Step-by-step in Section 2. |
+| 8 | **Confirm ANTHROPIC_API_KEY in Railway** | Railway → KIND API → Variables | AI ICP builder, Milla, lead scoring all silently fail. No error shown to client. |
+| 9 | **Confirm ADMIN_SECRET_KEY in Railway** | Railway → KIND API → Variables | All admin endpoints unprotected. Crons and agent briefs fail silently. |
+| 10 | **Set FIGSY_KIND_CLIENT_ID in Railway** | Railway → KIND API → Variables → paste your client UUID from Supabase | Self-outreach cron runs every Monday but does nothing. K.I.N.D never finds its own clients. |
+| 11 | **Create calendar booking link** | calendly.com or cal.com (free) → create 30-min meeting type → copy URL | All "Book a demo" buttons point to mailto. Give Claude the URL → wired everywhere in 30 min. |
+| 12 | **Deploy netlify-waitlist** | Drag `netlify-waitlist/` folder to app.netlify.com/drop | Soft launch waitlist not live. No sign-ups captured before 31 May. |
+| 13 | **Confirm website Vercel project name** | Vercel dashboard → check which project serves get-kind.com | Listed incorrectly in docs as "kind-admin". Need real name to document correctly. |
+
+#### 🔵 Medium — This month
+
+| # | Task | Where | What it unlocks |
+|---|---|---|---|
+| 14 | **Upgrade Resend to paid plan** | resend.com → Billing | FIGSY reply routing — clients reply to FIGSY emails, system classifies and responds. Without this, replies are lost. |
+| 15 | **Register UK company** | companieshouse.gov.uk → £50, same day → SIC 62012 | Credibility, GBP billing, proper invoicing. Full steps in Section 24. |
+| 16 | **Add Stripe credentials to Railway** | 6 vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, 4× `STRIPE_PRICE_*` | USD/GBP billing page activates immediately. UK/US clients can pay. |
+| 17 | **Create HubSpot Free account** | app.hubspot.com → sign up → create pipeline → share API key with Claude | K.I.N.D's own sales pipeline tracked. Claude auto-syncs prospects. |
+| 18 | **Contact Apollo Partner Programme** | partnerships@apollo.io — before 50 clients | Converts Apollo ToS risk into a commercial agreement. Critical legal protection. See Section 27. |
+| 19 | **Brief a lawyer** | Any commercial solicitor — brief is in docs/legal.md | Apollo managed service clause + client agreement language. Must be done before serious clients. |
+| 20 | **LinkedIn soft launch post + WhatsApp outreach** | LinkedIn personal profile + WhatsApp | First wave of waitlist sign-ups and early clients for 31 May. |
+
+#### ⚪ When ready
+
+| # | Task | Trigger |
 |---|---|---|
-| Run `supabase/MASTER_SCHEMA.sql` | ⚠️ MUST RUN | 🔴 CRITICAL — single paste that fixes everything |
-| `RESEND_API_KEY` in Railway env | ⚠️ CHECK | 🔴 CRITICAL — all emails are silent without this |
-| Paystack KYC | ⏳ Pending | 🔴 CRITICAL — zero live payments without this |
-| Google Workspace | ⏳ Pending | 🟡 HIGH — no professional inbox |
-| Calendar booking link | ⏳ Pending | 🟡 HIGH — "Book a Demo" buttons all broken |
-| `FIGSY_KIND_CLIENT_ID` in Railway | ⏳ Pending | 🟡 HIGH — self-outreach does nothing without this |
-| `ANTHROPIC_API_KEY` in Railway | ⚠️ Confirm set | 🟡 HIGH — AI ICP + Milla + all AI silent without this |
-| `ADMIN_SECRET_KEY` in Railway | ⚠️ Confirm set | 🟡 HIGH — admin endpoints unprotected without this |
-| Resend upgrade to paid plan | ⏳ Pending | 🔵 MEDIUM — required for FIGSY inbound reply routing |
-| UK company registration | ⏳ Pending | 🔵 MEDIUM — needed for credibility + GBP billing |
-| Stripe credentials | ⏳ Pending | 🟢 WHEN READY — USD/GBP billing activates immediately |
-| G2 / Capterra / Product Hunt | ⏳ Pending | ⚪ LAUNCH DAY |
+| 21 | **G2 / Capterra / Product Hunt listings** | Launch day — submit all 3 |
+| 22 | **Upload Vida image** | apps/website/vida.png → add via GitHub |
+| 23 | **Send UK company number to Claude** | After Companies House cert arrives → Claude updates footer + terms everywhere |
+| 24 | **Open Wise Business bank account** | business.wise.com → after UK company incorporated. GBP/USD/ZAR in one account. |
+| 25 | **VAT registration** | Only when turnover hits £90k/yr. Free. HMRC online. |
+
+---
+
+### 🤖 CLAUDE'S READY LIST — Awaiting your authority. Say the word.
+
+*All of these are ready to build. No guesswork. Waiting for explicit go-ahead per item.*
+
+| # | Fix / Feature | Why it matters | Time |
+|---|---|---|---|
+| 1 | **Fix lead overspend** — pass `effectiveBalance` into `runIcpJob` at both call sites | Client with 20 credits can currently receive 50 leads. Direct revenue leak. | 10 min |
+| 2 | **Fix FIGSY 'trialing' gate** — remove `\|\| s.status === 'trialing'` from figsy/page.tsx line 106 | Trial users access FIGSY free. Milla/Vida correctly block this. FIGSY doesn't. | 5 min |
+| 3 | **Align credits.ts bundles to shared constants** — 7 tiers → 2 tiers (20 and 100 only) | Clients see different prices depending on payment path. Violates pricing locked rule. | 15 min |
+| 4 | **Build cancel subscription endpoint** — `POST /subscriptions/:id/cancel` | Billing page says "Cancel anytime" — this is currently a lie. No endpoint exists. | 1 hour |
+| 5 | **Build Milla/Vida recurring monthly billing** — Paystack recurring plan codes + monthly webhook | Clients pay $49 once and are never billed again. Revenue model broken from day one. | 1 day |
+| 6 | **Build lead drip delivery** — queue leads, deliver `daily_drip_rate` per day (default 5), daily cron | All credits consumed in one run. No daily engagement. No reason to top up. See Section 14a. | 1 day |
+| 7 | **Add client lead quantity controls** — `leads_per_run` + `daily_drip_rate` in ICP settings and client settings | Client has zero control over how many leads they receive or how fast. | Half day |
+| 8 | **Build low credit email reminder** — email client when `credit_balance` drops below 5 | No prompt to top up. Clients run dry silently. | 2 hours |
+| 9 | **Wire "Book a demo" buttons** — replace all mailto: links with real Calendly/Cal.com URL | All demo buttons are broken until you send the booking URL (item 11 above). | 30 min |
+| 10 | **Update terms.html real name** — replace founder name with company name + number | Waiting for UK company number from you (item 23 above). | 10 min |
+| 11 | **Full portal dry run** — end-to-end session: signup → ICP → leads → credits → FIGSY → Milla/Vida → billing | Nothing has been tested end-to-end. Cannot be confident before a client demo. | 1 session |
 
 ---
 

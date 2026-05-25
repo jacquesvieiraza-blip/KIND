@@ -43,7 +43,7 @@
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 25 May 2026 (night) — Nightly build complete. Full handover in Section 2.*
+*Last updated: 25 May 2026 (night — full audit complete)*
 
 ### ⛔ WHAT IS BROKEN RIGHT NOW — Platform cannot function without these
 
@@ -53,7 +53,12 @@
 | 2 | **RESEND_API_KEY** — unknown if set in Railway | Zero emails send — no welcome, no POPIA consent, no leads email, no nurture, no digest | **You** — confirm/set in Railway → KIND API → Variables |
 | 3 | **MASTER_SCHEMA.sql not run** | Remaining schema drift — FIGSY, auto top-up, calendar features will hit silent errors | **You** — paste into Supabase SQL Editor and run |
 | 4 | **Railway deploy status unknown** | API changes not live until Railway builds successfully | **You** — check railway.app → KIND API → Deployments |
-| 5 | **Lead overspend bug** — ICP inserts ALL leads found then deducts credits, rather than capping insertion at available credits first | Client with 20 credits can receive 50 leads (30 free) — direct revenue leak | **Claude** — fix `Math.min(apolloResults, creditBalance)` cap BEFORE insert loop in `/icps` route |
+| 5 | **Lead overspend bug — `maxLeads` cap is dead code** | `runIcpJob` accepts `maxLeads` parameter but NEITHER call site passes it. ICP still inserts all leads then deducts. Client with 20 credits can receive 50 leads. Direct revenue leak. | **Claude** (with your authority) — pass `effectiveBalance` from the `/:id/run` handler into `runIcpJob` |
+| 6 | **FIGSY page allows 'trialing' users in** — `figsy/page.tsx` line 106 checks `status === 'active' \|\| status === 'trialing'` | Trial users access FIGSY for free. Milla and Vida correctly block trialing. FIGSY does not. Inconsistent and wrong — FIGSY is a paid product. | **Claude** (with your authority) — remove `\|\| s.status === 'trialing'` from FIGSY access check |
+| 7 | **No cancel subscription endpoint exists** | Billing page says "Cancel anytime from this page" — this is false. No API endpoint. No cancel flow. Clients cannot cancel Milla/Vida subscriptions. | **Claude** (with your authority) — build `POST /subscriptions/:id/cancel` |
+| 8 | **No recurring billing for Milla/Vida** | Subscriptions are one-off Paystack payments. Client pays $49 once and is never billed again. No monthly rebilling. No Paystack plan codes set up. Revenue model is broken from day one. | **Claude** (with your authority) — implement Paystack recurring plan codes + monthly webhook |
+| 9 | **credits.ts bundles ≠ shared constants — pricing inconsistency** | `credits.ts` exposes 7 tiers (10, 20, 40, 75, 100, 200, 500 credits) at prices that differ from the shared constants (20/$20 and 100/$100 only). Clients see different prices depending on payment path. Violates the "pricing locked" rule. | **Claude** (with your authority) — align credits.ts bundles to match shared constants exactly |
+| 10 | **Vercel root directory config — unknown state** | Each app has correct `vercel.json` files locally. But if Vercel projects were created from monorepo root without Root Directory set in dashboard, those files may not be read. This is likely why "portal was not fixed" even after code was pushed to GitHub. | **You** — Vercel dashboard → each project → Settings → General → Root Directory → set `apps/portal`, `apps/admin`, `apps/website` |
 
 ---
 
@@ -230,8 +235,11 @@ Everything else on the to-do list is secondary to this.
 | — | **Admin nav: SALES section** | ✅ Done | New section in sidebar — Scalability + Sales Playbook |
 | — | **HubSpot sync code** | ✅ Code done | Plug-and-play when you share API key |
 | H | **Credit system split** (Lead Gen vs FIGSY separate) | ✅ Done | Portal billing → two balance cards |
-| I | **Milla/Vida access gating** (paid only, no trial) | ✅ Done | portal/assistant and portal/chatbot pages |
+| I | **Milla/Vida access gating** (paid only, `active` only) | ✅ Done | portal/assistant and portal/chatbot — 'trialing' blocked |
 | J | **Netlify waitlist page** | ✅ Done | Drag `netlify-waitlist/` to netlify drop → live |
+| K | **Partner earnings calculator** | ✅ Done | partners.html — 3-scenario earnings (Conservative $139/mo, Realistic $469/mo, Optimistic $1,065/mo) + commission per product |
+| L | **FIGSY access gating** | ❌ Incomplete | figsy/page.tsx still allows 'trialing' users — not fixed. Awaiting authority to fix. |
+| M | **Lead overspend cap** | ❌ Incomplete | `maxLeads` param added to `runIcpJob` but never passed at call sites — dead code. Awaiting authority to fix. |
 
 #### ⏳ STILL WAITING ON YOU BEFORE I CAN FINISH
 
@@ -257,6 +265,24 @@ Everything else on the to-do list is secondary to this.
 
 **Competitor targeting pitch (FIGSY copy — use this when ICPs run):**
 > *"Hi [First Name] — spotted that [Company] uses [Lemlist/Instantly/Clay]. We built K.I.N.D specifically for African businesses doing B2B outreach — fully managed, POPIA compliant, ZAR billing. FIGSY (our AI SDR) runs the whole sequence. Worth a 15-minute call?"*
+
+---
+
+### 🔧 CLAUDE'S BUILD BACKLOG — Do Not Touch Without Founder Authority
+
+*Agreed rule: Claude does not build without explicit permission. Every item below is ready to build — waiting for the word.*
+
+| # | Fix / Feature | What it does | Complexity |
+|---|---|---|---|
+| 1 | **Pass `effectiveBalance` to `runIcpJob`** | Fixes lead overspend — caps insertion at credit balance BEFORE the loop | 10 min |
+| 2 | **Remove `\|\| 'trialing'` from FIGSY access check** | FIGSY page blocks trial users — consistent with Milla/Vida | 5 min |
+| 3 | **Align `credits.ts` bundles to shared constants** | 7 tiers → 2 tiers (20 and 100 only). Removes pricing inconsistency. | 15 min |
+| 4 | **Build `POST /subscriptions/:id/cancel`** | Allows clients to cancel Milla/Vida subscription. Makes "Cancel anytime" promise true. | 1 hour |
+| 5 | **Milla/Vida recurring monthly billing** | Paystack recurring plan codes + monthly webhook rebilling. Without this, one-off payment, never billed again. | 1 day |
+| 6 | **Staggered lead delivery (5/day drip)** | Queue leads, deliver `daily_drip_rate` per day. Prevents all credits burning in one run. See Section 14a for design. | 1 day |
+| 7 | **Low credit email reminder** | Email client when `credit_balance` drops below 5. Drives top-up behaviour. | 2 hours |
+| 8 | **Wire Calendly/Cal.com to "Book a demo" buttons** | All mailto: links replaced with real booking URL. | 30 min (needs your URL) |
+| 9 | **Full portal dry run** | Sign up → ICP → leads → credits deduct → FIGSY gate → Milla/Vida gate → billing flow | Session with founder |
 
 ---
 
@@ -415,6 +441,7 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 | **Admin Portal V2 — compliance tracker** — 5 certs with progress bars, checklists, next steps | 25 May | ✅ |
 | **Admin Portal V2 — client health scoring** — green/amber/red, at-risk filter, leads 14d, FIGSY status, last login | 25 May | ✅ |
 | **Admin Portal V2 — dark restyle all pages** — cmo, cohorts, roadmap, launch, founder — full palette | 25 May | ✅ |
+| **Partner earnings calculator** — `partners.html` — 3-scenario model (Conservative/Realistic/Optimistic) with per-product commission table | 25 May | ✅ |
 | **Pricing constants full rewrite** — `packages/shared/src/constants/index.ts` — credit-based model, Milla $49, Vida $29, Bundle $69 | 25 May | ✅ |
 | **Two-balance credit system** — `figsy_credits_remaining` for FIGSY separate from `credit_balance` for Lead Gen — all routes updated | 25 May | ✅ |
 | **Paystack verify route** — now routes FIGSY topups to `figsy_credits_remaining`, Lead Gen to `credit_balance` | 25 May | ✅ |
@@ -1024,6 +1051,18 @@ These balances NEVER mix. A client can buy Lead Gen credits without FIGSY credit
 - Milla and Vida require `subscription.status === 'active'` — NOT 'trialing'
 
 **Pricing is locked. Never changed. Never increased or decreased.**
+
+### ⚠️ Known Pricing Inconsistency — credits.ts vs shared constants
+
+`apps/api/src/routes/credits.ts` has its own internal BUNDLES object with 7 tiers:
+- Lead Gen: 10/$12, 20/$20, 40/$38, 75/$68, 100/$88, 200/$160, 500/$375
+- FIGSY: 10/$35, 20/$60, 40/$110, 75/$195, 100/$250, 200/$460, 500/$1,100
+
+`packages/shared/src/constants/index.ts` (the single source of truth) only has:
+- Lead Gen: 20/$20 and 100/$100
+- FIGSY: 20/$60 and 100/$300
+
+**These do not match.** The billing page renders from `credits.ts` directly, so clients buying via Paystack see the 7-tier pricing, not the 2-tier pricing. This needs to be aligned. Awaiting authority to fix.
 
 ---
 

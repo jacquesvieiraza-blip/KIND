@@ -35,6 +35,7 @@
 24. [UK Company Registration](#24-uk-company-registration)
 25. [Daily Audit — How It Works](#25-daily-audit--how-it-works)
 26. [Art of the Possible](#26-art-of-the-possible)
+27. [Legal](#27-legal)
 
 ---
 
@@ -1518,6 +1519,41 @@ None of the above is worth building until the **core loop works flawlessly:**
 That loop, working reliably, for 20+ paying clients, is the foundation everything else sits on.
 
 **Build the foundation. Prove the loop. Then build the palace.**
+
+---
+
+## 27. LEGAL
+
+Full legal documents are maintained in `/docs/legal.md`.
+
+**GitHub:** https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/legal.md
+
+### Current Legal Items
+
+| # | Item | Priority | Status |
+|---|---|---|---|
+| 1 | **Apollo.io ToS — managed service vs data reselling** | 🔴 High | Brief prepared — take to lawyer before 50 clients |
+| 2 | **UK company registration** | 🔵 Medium | See Section 24 — £50, same day, companieshouse.gov.uk |
+| 3 | **Client agreement language — managed service clause** | 🔴 High | Lawyer to draft clause clarifying K.I.N.D as managed service provider, not data reseller |
+| 4 | **POPIA compliance** | ✅ Done | Consent flow, opt-out blocklist, DPA published, data stored in Cape Town (af-south-1) |
+| 5 | **GDPR compliance** | ✅ Done | trust.html, dpa.html — Articles 6(1)(f), 17, 13/14 |
+| 6 | **CAN-SPAM / CCPA compliance** | ✅ Done | trust.html, dpa-us.html |
+| 7 | **Apollo Partner Programme** | 🟡 Medium | Contact partnerships@apollo.io before 50 clients — converts ToS risk to commercial agreement |
+| 8 | **SOC 2 Type II** | ⚪ Deferred | Q1 2027 — external auditor |
+| 9 | **VAT registration (UK)** | ⚪ Not yet needed | Only required when turnover hits £90k/yr |
+
+### Apollo ToS — Summary for Quick Reference
+
+K.I.N.D uses Apollo's API to find contacts matching client ICPs, then runs outreach on the client's behalf. The risk: Apollo's ToS restrict data to the subscriber's own use. K.I.N.D's defence: it sells a managed outreach service (the outcome), not Apollo data itself. Clients never receive raw Apollo records — they receive validated, scored, contacted, interested prospects.
+
+**The three options, in order of preference:**
+1. **Apollo Partner Programme** — formal agreement, cleanest resolution, converts risk to relationship
+2. **Client API keys** — each client holds their own Apollo subscription, K.I.N.D is pure software layer
+3. **Current structure** — single K.I.N.D key, defensible at small scale, requires strong client agreement language
+
+**Timeline:** Brief to lawyer now. Apollo partner discussion before 50 clients. Hard resolution before 100 clients.
+
+Full brief: https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/legal.md
 
 ---
 

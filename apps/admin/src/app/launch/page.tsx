@@ -199,60 +199,60 @@ export default function LaunchPage() {
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Rocket className="w-6 h-6 text-indigo-600" /> Pre-Launch Checklist
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Rocket className="w-6 h-6 text-indigo-400" /> Pre-Launch Checklist
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Complete before going live. Critical items must all be done first.</p>
+          <p className="text-white/40 text-sm mt-1">Complete before going live. Critical items must all be done first.</p>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-black text-gray-900">{doneCount}/{allItems.length}</div>
-          <div className="text-xs text-gray-400">items complete</div>
+          <div className="text-3xl font-black text-white">{doneCount}/{allItems.length}</div>
+          <div className="text-xs text-white/30">items complete</div>
           {allCriticalDone && (
-            <div className="mt-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+            <div className="mt-1 text-xs font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-1 rounded-full">
               All critical done — ready to launch
             </div>
           )}
         </div>
       </div>
 
-      <div className="w-full bg-gray-100 rounded-full h-2">
-        <div className="bg-indigo-600 h-2 rounded-full transition-all" style={{ width: `${(doneCount / allItems.length) * 100}%` }} />
+      <div className="w-full bg-white/10 rounded-full h-2">
+        <div className="bg-indigo-400 h-2 rounded-full transition-all" style={{ width: `${(doneCount / allItems.length) * 100}%` }} />
       </div>
 
       {!allCriticalDone && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 bg-amber-400/[0.08] border border-amber-400/20 rounded-xl p-4">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-800">{criticalItems.length - criticalDone} critical items remaining</p>
-            <p className="text-xs text-amber-600 mt-0.5">Complete all critical items before going live.</p>
+            <p className="text-sm font-semibold text-amber-400">{criticalItems.length - criticalDone} critical items remaining</p>
+            <p className="text-xs text-amber-400/70 mt-0.5">Complete all critical items before going live.</p>
           </div>
         </div>
       )}
 
       {SECTIONS.map(section => (
-        <div key={section.title} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/50">
-            <h2 className="font-semibold text-gray-800">{section.title}</h2>
+        <div key={section.title} className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.06] bg-white/[0.02]">
+            <h2 className="font-semibold text-white/80">{section.title}</h2>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-white/[0.04]">
             {section.items.map(item => (
               <div key={item.id} onClick={() => toggle(item.id)}
-                className="flex items-start gap-4 px-6 py-4 cursor-pointer hover:bg-gray-50/60 transition-colors">
+                className="flex items-start gap-4 px-6 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors">
                 <div className="mt-0.5 shrink-0">
-                  {checked[item.id] ? <CheckCircle className="w-5 h-5 text-green-500" /> : <Circle className="w-5 h-5 text-gray-300" />}
+                  {checked[item.id] ? <CheckCircle className="w-5 h-5 text-emerald-400" /> : <Circle className="w-5 h-5 text-white/20" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className={`text-sm font-medium ${checked[item.id] ? 'line-through text-gray-400' : 'text-gray-800'}`}>{item.label}</p>
+                    <p className={`text-sm font-medium ${checked[item.id] ? 'line-through text-white/30' : 'text-white/80'}`}>{item.label}</p>
                     {item.critical && !checked[item.id] && (
-                      <span className="text-xs font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded shrink-0">required</span>
+                      <span className="text-xs font-semibold text-red-400 bg-red-400/10 border border-red-400/20 px-1.5 py-0.5 rounded shrink-0">required</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">{item.detail}</p>
+                  <p className="text-xs text-white/30 mt-0.5">{item.detail}</p>
                   {item.link && (
                     <a href={item.link.url} target="_blank" rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 mt-1">
+                      className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 mt-1">
                       <ExternalLink className="w-3 h-3" /> {item.link.text}
                     </a>
                   )}
@@ -263,7 +263,7 @@ export default function LaunchPage() {
         </div>
       ))}
 
-      <p className="text-center text-xs text-gray-400 pb-8">
+      <p className="text-center text-xs text-white/20 pb-8">
         Progress resets on page refresh — this is a reference checklist, not persistent state.
       </p>
     </div>

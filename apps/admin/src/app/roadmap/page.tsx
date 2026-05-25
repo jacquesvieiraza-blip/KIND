@@ -1,5 +1,4 @@
 import { CheckCircle2, Circle, Clock, DollarSign, Users, TrendingUp, Briefcase, Globe } from 'lucide-react'
-import { AdminNav } from '@/components/AdminNav'
 
 const PHASES = [
   {
@@ -112,16 +111,16 @@ const PHASES = [
 ]
 
 const STATUS_CONFIG = {
-  active: { label: 'In Progress', bg: 'bg-blue-100', text: 'text-blue-700', ring: 'ring-blue-200' },
-  upcoming: { label: 'Upcoming', bg: 'bg-indigo-100', text: 'text-indigo-700', ring: 'ring-indigo-200' },
-  planned: { label: 'Planned', bg: 'bg-gray-100', text: 'text-gray-500', ring: 'ring-gray-200' },
+  active: { label: 'In Progress', bg: 'bg-blue-400/10', text: 'text-blue-400', ring: 'ring-blue-400/20' },
+  upcoming: { label: 'Upcoming', bg: 'bg-indigo-400/10', text: 'text-indigo-400', ring: 'ring-indigo-400/20' },
+  planned: { label: 'Planned', bg: 'bg-white/5', text: 'text-white/40', ring: 'ring-white/10' },
 }
 
 const COLOR_MAP: Record<string, { header: string; accent: string; progress: string }> = {
-  blue: { header: 'bg-blue-600', accent: 'text-blue-600', progress: 'bg-blue-500' },
-  indigo: { header: 'bg-indigo-600', accent: 'text-indigo-600', progress: 'bg-indigo-500' },
-  purple: { header: 'bg-purple-600', accent: 'text-purple-600', progress: 'bg-purple-500' },
-  green: { header: 'bg-green-600', accent: 'text-green-600', progress: 'bg-green-500' },
+  blue: { header: 'bg-blue-500/20 border-blue-400/20', accent: 'text-blue-400', progress: 'bg-blue-400' },
+  indigo: { header: 'bg-indigo-500/20 border-indigo-400/20', accent: 'text-indigo-400', progress: 'bg-indigo-400' },
+  purple: { header: 'bg-purple-500/20 border-purple-400/20', accent: 'text-purple-400', progress: 'bg-purple-400' },
+  green: { header: 'bg-emerald-500/20 border-emerald-400/20', accent: 'text-emerald-400', progress: 'bg-emerald-400' },
 }
 
 export default function AdminRoadmapPage() {
@@ -130,136 +129,132 @@ export default function AdminRoadmapPage() {
   const overallPct = Math.round((completedMilestones.length / totalMilestones.length) * 100)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
+    <div className="px-8 py-8 max-w-6xl mx-auto space-y-8">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-white">AI Business Operation Roadmap</h2>
+        <p className="text-white/40 text-sm mt-1">Strategic milestones from launch to $100K MRR across 4 phases.</p>
+      </div>
 
-      <main className="px-8 py-8 max-w-6xl mx-auto space-y-8">
-        {/* Header */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">AI Business Operation Roadmap</h2>
-          <p className="text-gray-500 text-sm mt-1">Strategic milestones from launch to $100K MRR across 4 phases.</p>
-        </div>
-
-        {/* Overall progress */}
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="font-semibold text-gray-900">Overall Roadmap Progress</h3>
-              <p className="text-sm text-gray-400 mt-0.5">{completedMilestones.length} of {totalMilestones.length} milestones complete</p>
-            </div>
-            <span className="text-3xl font-bold text-gray-900">{overallPct}%</span>
+      {/* Overall progress */}
+      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="font-semibold text-white">Overall Roadmap Progress</h3>
+            <p className="text-sm text-white/30 mt-0.5">{completedMilestones.length} of {totalMilestones.length} milestones complete</p>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-3">
-            <div className="bg-[#0066FF] h-3 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
-          </div>
-          <div className="mt-4 grid grid-cols-4 gap-3">
-            {PHASES.map(p => {
-              const done = p.milestones.filter(m => m.done).length
-              const pct = Math.round((done / p.milestones.length) * 100)
-              const colors = COLOR_MAP[p.color]
-              return (
-                <div key={p.phase} className="text-center">
-                  <p className="text-xs text-gray-400">{p.phase}</p>
-                  <p className={`text-lg font-bold ${colors.accent}`}>{pct}%</p>
-                  <p className="text-xs text-gray-500">{p.label}</p>
-                </div>
-              )
-            })}
-          </div>
+          <span className="text-3xl font-bold text-white">{overallPct}%</span>
         </div>
-
-        {/* Revenue targets strip */}
-        <div className="grid grid-cols-4 gap-4">
-          {[
-            { icon: <DollarSign className="w-4 h-4" />, label: 'Month 2 MRR', value: '$2,500', sub: '5 clients' },
-            { icon: <TrendingUp className="w-4 h-4" />, label: 'Month 4 MRR', value: '$8,000', sub: '20 clients' },
-            { icon: <Globe className="w-4 h-4" />, label: 'Month 6 MRR', value: '$26,000', sub: '60 clients' },
-            { icon: <Briefcase className="w-4 h-4" />, label: 'Month 12 MRR', value: '$100,000', sub: '200+ clients' },
-          ].map(({ icon, label, value, sub }) => (
-            <div key={label} className="bg-white rounded-xl border border-gray-100 p-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">{icon}</div>
-              <p className="text-xl font-bold text-gray-900">{value}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{label}</p>
-              <p className="text-xs text-gray-400">{sub}</p>
-            </div>
-          ))}
+        <div className="w-full bg-white/10 rounded-full h-3">
+          <div className="bg-[#0066FF] h-3 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
         </div>
-
-        {/* Phase cards */}
-        {PHASES.map(phase => {
-          const done = phase.milestones.filter(m => m.done).length
-          const pct = Math.round((done / phase.milestones.length) * 100)
-          const statusCfg = STATUS_CONFIG[phase.status]
-          const colors = COLOR_MAP[phase.color]
-
-          return (
-            <div key={phase.phase} className={`bg-white rounded-xl border border-gray-100 overflow-hidden ring-1 ${statusCfg.ring}`}>
-              {/* Phase header */}
-              <div className={`${colors.header} px-6 py-4 text-white`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white/70 text-xs font-medium uppercase tracking-wider">{phase.phase}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg.bg} ${statusCfg.text}`}>{statusCfg.label}</span>
-                    </div>
-                    <h3 className="text-xl font-bold mt-1">{phase.label} — {phase.months}</h3>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">{phase.mrrTarget}</p>
-                    <p className="text-white/70 text-xs">MRR target · {phase.clientTarget}</p>
-                  </div>
-                </div>
-                <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
-                  <div className="bg-white h-1.5 rounded-full" style={{ width: `${pct}%` }} />
-                </div>
-                <p className="text-white/60 text-xs mt-1">{done}/{phase.milestones.length} milestones · {pct}%</p>
+        <div className="mt-4 grid grid-cols-4 gap-3">
+          {PHASES.map(p => {
+            const done = p.milestones.filter(m => m.done).length
+            const pct = Math.round((done / p.milestones.length) * 100)
+            const colors = COLOR_MAP[p.color]
+            return (
+              <div key={p.phase} className="text-center">
+                <p className="text-xs text-white/30">{p.phase}</p>
+                <p className={`text-lg font-bold ${colors.accent}`}>{pct}%</p>
+                <p className="text-xs text-white/40">{p.label}</p>
               </div>
+            )
+          })}
+        </div>
+      </div>
 
-              {/* Phase body */}
-              <div className="p-6 grid grid-cols-2 gap-6">
-                {/* Milestones */}
+      {/* Revenue targets strip */}
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { icon: <DollarSign className="w-4 h-4" />, label: 'Month 2 MRR', value: '$2,500', sub: '5 clients' },
+          { icon: <TrendingUp className="w-4 h-4" />, label: 'Month 4 MRR', value: '$8,000', sub: '20 clients' },
+          { icon: <Globe className="w-4 h-4" />, label: 'Month 6 MRR', value: '$26,000', sub: '60 clients' },
+          { icon: <Briefcase className="w-4 h-4" />, label: 'Month 12 MRR', value: '$100,000', sub: '200+ clients' },
+        ].map(({ icon, label, value, sub }) => (
+          <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
+            <div className="w-8 h-8 rounded-lg bg-blue-400/10 text-blue-400 flex items-center justify-center mb-3">{icon}</div>
+            <p className="text-xl font-bold text-white">{value}</p>
+            <p className="text-xs text-white/40 mt-0.5">{label}</p>
+            <p className="text-xs text-white/30">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Phase cards */}
+      {PHASES.map(phase => {
+        const done = phase.milestones.filter(m => m.done).length
+        const pct = Math.round((done / phase.milestones.length) * 100)
+        const statusCfg = STATUS_CONFIG[phase.status]
+        const colors = COLOR_MAP[phase.color]
+
+        return (
+          <div key={phase.phase} className={`bg-white/[0.03] rounded-xl border overflow-hidden ring-1 ${statusCfg.ring} border-white/[0.06]`}>
+            {/* Phase header */}
+            <div className={`${colors.header} border-b px-6 py-4`}>
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle2 className={`w-4 h-4 ${colors.accent}`} />
-                    <h4 className="font-medium text-sm text-gray-700">Product Milestones</h4>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-medium uppercase tracking-wider ${colors.accent}`}>{phase.phase}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${statusCfg.bg} ${statusCfg.text}`}>{statusCfg.label}</span>
                   </div>
-                  <ul className="space-y-2">
-                    {phase.milestones.map((m, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-sm">
-                        {m.done
-                          ? <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                          : <Circle className="w-4 h-4 text-gray-300 mt-0.5 shrink-0" />}
-                        <span className={m.done ? 'text-gray-400 line-through' : 'text-gray-700'}>{m.label}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <h3 className={`text-xl font-bold mt-1 ${colors.accent}`}>{phase.label} — {phase.months}</h3>
                 </div>
-
-                {/* Operations */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users className={`w-4 h-4 ${colors.accent}`} />
-                    <h4 className="font-medium text-sm text-gray-700">Operations & Go-To-Market</h4>
-                  </div>
-                  <ul className="space-y-2">
-                    {phase.ops.map((op, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-sm">
-                        <Clock className="w-4 h-4 text-gray-300 mt-0.5 shrink-0" />
-                        <span className="text-gray-600">{op}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="text-right">
+                  <p className={`text-2xl font-bold ${colors.accent}`}>{phase.mrrTarget}</p>
+                  <p className="text-white/40 text-xs">MRR target · {phase.clientTarget}</p>
                 </div>
               </div>
+              <div className="mt-3 w-full bg-white/10 rounded-full h-1.5">
+                <div className={`${colors.progress} h-1.5 rounded-full`} style={{ width: `${pct}%` }} />
+              </div>
+              <p className="text-white/40 text-xs mt-1">{done}/{phase.milestones.length} milestones · {pct}%</p>
             </div>
-          )
-        })}
 
-        {/* Bottom note */}
-        <p className="text-center text-xs text-gray-400 pb-4">
-          Roadmap is a living document — review monthly against MRR actuals and client feedback.
-        </p>
-      </main>
+            {/* Phase body */}
+            <div className="p-6 grid grid-cols-2 gap-6">
+              {/* Milestones */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <CheckCircle2 className={`w-4 h-4 ${colors.accent}`} />
+                  <h4 className="font-medium text-sm text-white/70">Product Milestones</h4>
+                </div>
+                <ul className="space-y-2">
+                  {phase.milestones.map((m, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm">
+                      {m.done
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                        : <Circle className="w-4 h-4 text-white/20 mt-0.5 shrink-0" />}
+                      <span className={m.done ? 'text-white/30 line-through' : 'text-white/70'}>{m.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Operations */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className={`w-4 h-4 ${colors.accent}`} />
+                  <h4 className="font-medium text-sm text-white/70">Operations &amp; Go-To-Market</h4>
+                </div>
+                <ul className="space-y-2">
+                  {phase.ops.map((op, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm">
+                      <Clock className="w-4 h-4 text-white/20 mt-0.5 shrink-0" />
+                      <span className="text-white/50">{op}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Bottom note */}
+      <p className="text-center text-xs text-white/20 pb-4">
+        Roadmap is a living document — review monthly against MRR actuals and client feedback.
+      </p>
     </div>
   )
 }

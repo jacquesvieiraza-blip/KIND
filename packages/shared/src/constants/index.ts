@@ -1,60 +1,54 @@
-// Usage-based pricing model
-// Leads Only:        0-100 leads = $1.00/lead (min $100/mo), 101-500 = $1.00/lead, 500+ = $0.80/lead
-// Leads + FIGSY:     0-100 leads = $3.00/lead (min $300/mo), 101-500 = $2.00/lead, 500+ = $1.20/lead
-// FIGSY add-on:      +$150/mo flat (for existing Leads Only clients upgrading)
+// ─────────────────────────────────────────────────────────────────────────────
+// K.I.N.D Pricing — LOCKED. Never change without authorisation.
+// Lead Gen:   $1/credit (20-credit bundle = $20, 100-credit bundle = $100)
+// FIGSY:      $3/outreach-credit (20-credit bundle = $60, 100-credit bundle = $300)
+// Milla VA:   $49/month flat
+// Vida Chat:  $29/month flat
+// Bundle:     $69/month (Milla + Vida)
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const PRICING = {
   lead_gen: {
-    name: 'AI Lead Generation',
-    description: 'Verified B2B leads sourced and scored against your ICP.',
-    monthly_minimum_usd: 100,
-    monthly_minimum_zar: 1900,
-    includes_leads: 100,
-    tiers: [
-      { label: '0–100 leads',  rate_usd: 1.00, rate_zar: 19 },
-      { label: '101–500 leads', rate_usd: 1.00, rate_zar: 19 },
-      { label: '500+ leads',   rate_usd: 0.80, rate_zar: 15.20 },
+    name: 'K.I.N.D AI — Lead Generation',
+    description: 'AI-sourced, AI-scored B2B leads matched to your ICP. 1 credit = 1 qualified lead found.',
+    credit_rate_usd: 1.00,
+    bundles: [
+      { credits: 20,  price_usd: 20  },
+      { credits: 100, price_usd: 100 },
     ],
-    enterprise: true,
+    trial_credits: 20,
+    trial_days: 14,
   },
-  lead_gen_figsy: {
-    name: 'Lead Gen + FIGSY',
-    description: 'Leads sourced, scored, and FIGSY AI handles outreach and follow-up.',
-    monthly_minimum_usd: 300,
-    monthly_minimum_zar: 5700,
-    includes_leads: 100,
-    tiers: [
-      { label: '0–100 leads',  rate_usd: 3.00, rate_zar: 57 },
-      { label: '101–500 leads', rate_usd: 2.00, rate_zar: 38 },
-      { label: '500+ leads',   rate_usd: 1.20, rate_zar: 22.80 },
+  figsy: {
+    name: 'FIGSY — AI Outreach SDR',
+    description: 'FIGSY handles replies, objections, follow-ups and meeting booking. 1 outreach credit = 1 lead enrolled.',
+    credit_rate_usd: 3.00,
+    bundles: [
+      { credits: 20,  price_usd: 60  },
+      { credits: 100, price_usd: 300 },
     ],
-    enterprise: true,
   },
-} as const
-
-export const FIGSY_ADDON = {
-  name: 'FIGSY Add-on',
-  description: 'Add FIGSY AI outreach to your existing Leads Only plan.',
-  price_usd: 150,
-  price_zar: 2850,
 } as const
 
 export const PRODUCTS = {
   virtual_assistant: {
-    name: 'Virtual Assistant',
-    tiers: {
-      starter:    { price_usd: 750,  price_zar: 14250, messages_per_month: 500   },
-      pro:        { price_usd: 1500, price_zar: 28500, messages_per_month: 2000  },
-      enterprise: { price_usd: 0,    price_zar: 0,     messages_per_month: 0, custom: true },
-    },
+    name: 'Milla — AI Virtual Assistant',
+    description: 'Internal AI assistant trained on your documents and tone. Handles Q&A, drafts, briefings.',
+    price_usd: 49,
+    billing: 'monthly' as const,
   },
   chatbot: {
-    name: 'AI Chatbot Agent',
-    tiers: {
-      starter:    { price_usd: 499,  price_zar: 9481,  conversations_per_month: 500   },
-      pro:        { price_usd: 999,  price_zar: 18981, conversations_per_month: 2000  },
-      enterprise: { price_usd: 0,    price_zar: 0,     conversations_per_month: 0, custom: true },
-    },
+    name: 'Vida — AI Chatbot Agent',
+    description: 'Website chatbot that qualifies leads 24/7 and alerts you when someone is hot.',
+    price_usd: 29,
+    billing: 'monthly' as const,
+  },
+  bundle: {
+    name: 'Milla + Vida Bundle',
+    description: 'Both AI team members at a discount.',
+    price_usd: 69,
+    billing: 'monthly' as const,
+    saves_usd: 9,
   },
 } as const
 

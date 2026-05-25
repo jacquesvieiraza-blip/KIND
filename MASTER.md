@@ -61,6 +61,7 @@
 | 10 | **Vercel root directory config — unknown state** | Each app has correct `vercel.json` files locally. But if Vercel projects were created from monorepo root without Root Directory set in dashboard, those files may not be read. This is likely why "portal was not fixed" even after code was pushed to GitHub. | **You** — Vercel dashboard → each project → Settings → General → Root Directory → set `apps/portal`, `apps/admin`, `apps/website` |
 | 11 | **No lead drip / stagger delivery** | All leads from an ICP run are delivered at once and all credits consumed in one hit. A client who buys 20 credits gets all 20 leads immediately — nothing drips, no daily cadence, no reason to stay engaged. Agreed design: 5 leads/day default. See Section 14a for full design. | **Claude** (with your authority) — build daily drip queue with configurable rate |
 | 12 | **Client cannot control how many leads they want** | No UI or setting exists for a client to say "I want 10 leads this week" or "give me 3 leads per day." ICP runs return whatever Apollo finds, up to the credit balance. Client has zero control over volume or pace. | **Claude** (with your authority) — add `leads_per_run` and `daily_drip_rate` settings to ICP builder and client settings |
+| 13 | **10,000 trial credits anomaly — root cause unknown** | Founder's account was issued 10,000 credits on signup 25 May. Trial should issue 20 credits on first ICP run only. Unknown whether this was a manual admin grant, a code bug, or a one-off. Not investigated or resolved. | **Claude** (with your authority) — audit `credit_transactions` for founder's client ID, identify source, confirm trial credit logic is correct for all new signups |
 
 ---
 
@@ -167,17 +168,19 @@ Everything else on the to-do list is secondary to this.
 | 17 | **Create HubSpot Free account** | app.hubspot.com → sign up → create pipeline → share API key with Claude | K.I.N.D's own sales pipeline tracked. Claude auto-syncs prospects. |
 | 18 | **Contact Apollo Partner Programme** | partnerships@apollo.io — before 50 clients | Converts Apollo ToS risk into a commercial agreement. Critical legal protection. See Section 27. |
 | 19 | **Brief a lawyer** | Any commercial solicitor — brief is in docs/legal.md | Apollo managed service clause + client agreement language. Must be done before serious clients. |
-| 20 | **LinkedIn soft launch post + WhatsApp outreach** | LinkedIn personal profile + WhatsApp | First wave of waitlist sign-ups and early clients for 31 May. |
+| 20 | **LinkedIn soft launch post + WhatsApp outreach to 20–30 contacts** | LinkedIn personal profile + WhatsApp | First wave of waitlist sign-ups and early clients for 31 May soft launch. |
+| 20a | **31 May soft launch — confirm go/no-go** | Review Section 1 broken items. Apollo must be upgraded. Paystack KYC must be complete. Netlify waitlist must be live. These 3 are the minimum bar for soft launch. | If any of the 3 are not done, soft launch is at risk. |
 
 #### ⚪ When ready
 
 | # | Task | Trigger |
 |---|---|---|
-| 21 | **G2 / Capterra / Product Hunt listings** | Launch day — submit all 3 |
-| 22 | **Upload Vida image** | apps/website/vida.png → add via GitHub |
-| 23 | **Send UK company number to Claude** | After Companies House cert arrives → Claude updates footer + terms everywhere |
-| 24 | **Open Wise Business bank account** | business.wise.com → after UK company incorporated. GBP/USD/ZAR in one account. |
-| 25 | **VAT registration** | Only when turnover hits £90k/yr. Free. HMRC online. |
+| 21 | **Build 4 competitor-targeting ICPs** | After Apollo is upgraded — in the portal, build: (1) Lemlist Users Africa — CEO/Founder/Head of Sales, Lemlist tech stack, SA/NG/KE, 1–200 employees. (2) Instantly Users Africa — CEO/Founder/Agency Owner, Instantly, SA/NG/KE, 1–50. (3) Clay Users Africa — Head of Growth/RevOps/Founder, Clay, SA/NG/KE, 11–200. (4) Apollo Sequences Users Africa — Head of Sales/CEO, Apollo, SA/NG/KE, 11–500. Run all 4 immediately. These are the warmest leads possible. |
+| 22 | **G2 / Capterra / Product Hunt listings** | Launch day — submit all 3 |
+| 23 | **Upload Vida image** | apps/website/vida.png → add via GitHub |
+| 24 | **Send UK company number to Claude** | After Companies House cert arrives → Claude updates footer + terms everywhere |
+| 25 | **Open Wise Business bank account** | business.wise.com → after UK company incorporated. GBP/USD/ZAR in one account. |
+| 26 | **VAT registration** | Only when turnover hits £90k/yr. Free. HMRC online. |
 
 ---
 

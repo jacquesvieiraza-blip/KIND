@@ -44,7 +44,17 @@ export function SupportWidget() {
       // Send only last 10 messages to keep context window small
       const payload = history.slice(-10).map(m => ({ role: m.role, content: m.content }))
       const res = await api.post<{ data: { reply: string } }>('/support/chat', { messages: payload }, session.access_token)
-      setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }])
+      // Strip any markdown code fences or JSON the model accidentally emits
+      const raw = res.data.reply ?? ''
+      const clean = raw
+        .replace(/```[\w]*\n?/g, '')   // opening ```json or ```
+        .replace(/```/g, '')            // closing ```
+        .replace(/^\s*\{[\s\S]*\}\s*$/, (match) => {
+          // If the entire reply is a JSON object, try to extract a "content" field
+          try { return (JSON.parse(match) as { content?: string }).content ?? match } catch { return match }
+        })
+        .trim()
+      setMessages(prev => [...prev, { role: 'assistant', content: clean }])
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't connect. Please try again or email hello@get-kind.com." }])
     }

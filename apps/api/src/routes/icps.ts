@@ -240,14 +240,36 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
   }
 })
 
+// Helper: strip fields that may not exist in the live DB schema yet
+// apollo_only_consented column added via 20260525_add_icps_apollo_consent.sql
+async function safeIcpInsert(payload: Record<string, unknown>) {
+  // Try full insert first; if apollo_only_consented column missing, retry without it
+  const { data, error } = await db.from('icps').insert(payload).select().single()
+  if (error && error.message?.includes('apollo_only_consented')) {
+    const { apollo_only_consented: _dropped, ...rest } = payload
+    return db.from('icps').insert(rest).select().single()
+  }
+  return { data, error }
+}
+
+async function safeIcpUpdate(id: string, clientId: string, body: Record<string, unknown>) {
+  const { data, error } = await db.from('icps')
+    .update(body).eq('id', id).eq('client_id', clientId).select().single()
+  if (error && error.message?.includes('apollo_only_consented')) {
+    const { apollo_only_consented: _dropped, ...rest } = body
+    return db.from('icps').update(rest).eq('id', id).eq('client_id', clientId).select().single()
+  }
+  return { data, error }
+}
+
 icpRouter.post('/', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
+    const { data, error } = await safeIcpInsert({ ...body, client_id: clientId })
     if (error) throw error
-    runIcpJob(data.id, clientId, req.userId!).catch(console.error)
+    runIcpJob(data!.id, clientId, req.userId!).catch(console.error)
     res.status(201).json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -269,8 +291,7 @@ icpRouter.patch('/:id', async (req: AuthRequest, res) => {
     const body = icpSchema.partial().parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data, error } = await db.from('icps')
-      .update(body).eq('id', req.params.id).eq('client_id', clientId).select().single()
+    const { data, error } = await safeIcpUpdate(req.params.id, clientId, body as Record<string, unknown>)
     if (error) throw error
     if (!data) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
     res.json({ success: true, data })

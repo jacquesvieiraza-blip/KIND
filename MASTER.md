@@ -1252,5 +1252,274 @@ Morning brief as push notification. Tap to expand. Reply to interested leads fro
 
 ---
 
+### Can We Build This? Yes. At a Later Stage.
+
+Every single piece below is buildable. Nothing requires rethinking the architecture — it all sits on top of what's already there. It is parked deliberately until the core loop works reliably for 20+ paying clients. That is the only gate.
+
+**The platform is already designed for this:**
+- Kanban view → `status` column on `leads` already exists. The data is there.
+- Command palette → pure frontend. Zero backend changes.
+- Activity feed → `figsy_sent_emails`, `figsy_replies`, `leads` — all events already recorded.
+- ICP intelligence → data is accumulating right now. Every reply classified today feeds the engine.
+- Benchmarks → every client running FIGSY today contributes to the dataset.
+- Voice brief → the text is already generated every morning. Just add TTS.
+- PWA → `manifest.json` and service worker on top of the existing portal.
+
+**Nothing depreciates.** Parking this for 3–6 months doesn't break anything. The only thing that changes is the data gets richer — which makes ICP intelligence and benchmarks *more* valuable, not less.
+
+**The flag to start:** Core loop working for 20+ paying clients. Say the word.
+
+---
+
+### The Action Plan — How Each Piece Gets Built
+
+#### Foundation Gates — Must Be True Before Any V2 Feature
+
+| Gate | Why it matters |
+|---|---|
+| 20+ paying clients on platform | Real usage data to build from. Features built on assumptions are wrong features. |
+| Apollo Professional plan live | All lead volume data flows through this. No data = no patterns to learn from. |
+| FIGSY reply classification running cleanly | The entire self-improving loop depends on replies being classified correctly. |
+| figsy_memory table populated (3 months) | The ICP learning engine has nothing to learn from until then. |
+| Resend inbound routing live | FIGSY replies must flow back into the platform. Without this, reply data is lost. |
+
+---
+
+#### Piece 1 — Multiple Views of the Leads Pipeline
+
+**Kanban view** (highest value, build first)
+- `status` column on `leads` becomes the column structure
+- Drag-and-drop via `@dnd-kit/core` — 12kb, no deps
+- Statuses consolidate into pipeline stages: `New → In Sequence → Replied → Interested → Meeting Booked → Closed / Dead`
+- FIGSY updates status automatically. Client can drag manually to override.
+- Requires: migration to add new status values, Kanban component, column-level filters persisted in localStorage
+- **Build time: 2–3 days**
+
+**Score heatmap** (insight view)
+- Industries on X axis, geographies on Y axis, bubble = lead count, colour = avg score
+- Data already exists in `leads` table
+- One API endpoint, one `recharts` chart component
+- **Build time: 1 day**
+
+**Timeline view** (power users)
+- When each FIGSY step fires per lead — Gantt-style row per lead
+- Data already exists in `figsy_sent_emails` and `figsy_enrollments`
+- **Build time: 2 days**
+
+**Order:** Kanban → Heatmap → Timeline
+
+---
+
+#### Piece 2 — Command Palette (Cmd+K)
+
+- Library: `cmdk` — used by Vercel, Linear, Raycast. 7kb.
+- Wrap app in it, define commands — maps to existing routes and API calls
+- Core commands: New ICP, Run ICP, Pause FIGSY, Show hot leads, Add credits, Export leads, View FIGSY inbox, Search leads by name/company
+- Keyboard: Cmd+K opens, Escape closes, arrows navigate, Enter executes
+- Can be built any time — pure frontend, zero backend changes
+- **Build time: 1 day core, 2–3 days full command list**
+
+---
+
+#### Piece 3 — Real-Time Activity Feed
+
+**Option A — Polling (simple)**
+- `useEffect` in portal calling `GET /activity/feed?since=last_seen` every 30 seconds
+- API queries recent activity from `figsy_sent_emails`, `figsy_replies`, `leads`
+- No infrastructure change
+- **Build time: 2 days**
+
+**Option B — WebSockets (real-time, recommended)**
+- Supabase real-time via PostgreSQL LISTEN/NOTIFY — built in, zero extra infrastructure
+- `supabase.channel('activity').on('postgres_changes', ...)` — 20 lines of code
+- Any insert to `figsy_sent_emails`, `figsy_replies`, `leads` fires instantly
+- **Build time: 3 days**
+
+Events to surface: email sent, reply received, lead scored, lead interested, campaign paused, credits low, ICP run complete
+
+**Trigger to start:** After 10+ active clients. The feed is only valuable when things are actually happening.
+
+---
+
+#### Piece 4 — Custom Fields on Leads
+
+- One schema change: `ALTER TABLE leads ADD COLUMN custom_fields jsonb default '{}'` — that's it. Ever.
+- `client_lead_fields` table stores field definitions (name, type, options)
+- "Manage fields" screen in portal settings
+- Lead card renders custom fields below standard ones
+- CSV export includes custom fields as columns
+- Filters support custom field filtering
+- **Build time: 4–5 days**
+
+**Trigger to start:** After first client requests it, or 30+ clients where generic fields aren't enough.
+
+---
+
+#### Piece 5 — Visual Automation Builder
+
+Most complex item on the list. Highest value. Separates a tool from a platform.
+
+**Architecture:**
+- **Triggers:** lead status changes, reply received, credit drops below X, ICP run completes, campaign paused
+- **Actions:** create HubSpot deal, send Slack notification, send email, pause/resume campaign, run ICP, webhook to custom URL
+- **Conditions:** if/then branching — if score > 80, if industry = Fintech, if country = Nigeria
+
+**Builder UI:** React Flow — the library Linear, Retool, and n8n use. Handles visual canvas, drag-and-drop nodes, edge connections. Hard work is the execution engine, not the UI.
+
+**Execution engine:** Automations stored as JSON in `client_automations` table. When a trigger fires, API checks if any automation is listening, evaluates conditions, executes actions in sequence.
+
+**Build time: 2–3 weeks for solid V1**
+
+**Trigger to start:** After 50+ clients. Value compounds with client count — each client's recipes become reusable templates for others.
+
+---
+
+#### Piece 6 — Notification Centre
+
+**Schema:** `notifications` table — `client_id`, `type`, `title`, `body`, `read_at`, `created_at`, `link`
+
+**Triggers that create notifications:**
+- FIGSY campaign auto-paused → "FIGSY paused [Campaign Name] — reply rate below 1%"
+- New hot lead (score 90+) → "New 94-score lead: James Okafor, VP Sales at Paystack"
+- Credits below threshold → "847 credits remaining"
+- ICP run complete → "ICP run found 34 new leads"
+- Reply received → "FIGSY got a reply from Ngozi Adeyemi at Flutterwave"
+- Lead marked Interested → "🎉 Sarah Chen wants to book a call"
+
+**Frontend:** Bell icon in header, red badge, slide-out panel, grouped by day, mark-as-read, click → navigate to relevant page.
+
+**Build time: 3 days total. Can be built any time.**
+
+---
+
+#### Piece 7 — Status Bar (Sidebar Bottom)
+
+One component. Bottom of sidebar. Always visible.
+
+`GET /clients/me/pulse` returns: emails sent today, reply count today, credit balance, system status. Cached 60 seconds. Refreshes on every page navigation.
+
+**Build time: 4 hours. Build this first — it costs almost nothing and makes the portal feel alive.**
+
+---
+
+#### Piece 8 — The ICP That Learns Itself
+
+The data already exists. This is an analysis layer on top.
+
+**The query:** Join `leads` with `figsy_replies` grouped by country/industry/seniority, calculate conversion rate per attribute. Minimum 10 leads per group before surfacing.
+
+Claude reads the output and writes plain-English insight bullets. That's the feature.
+
+**What's needed:**
+- `GET /icps/intelligence` endpoint — runs query, passes to Claude Haiku, returns 3–5 insight bullets
+- "ICP Insights" card on leads page — shown after 3+ months of data, hidden if insufficient
+- "Apply this to my ICP" button — pre-fills ICP form with recommended changes, confirm before saving
+- Weekly cron to push insights as notifications
+
+**Build time: 2 days**
+
+**Trigger to start:** 3 months of live FIGSY campaigns + minimum 200 emails sent + 20 replies classified.
+
+---
+
+#### Piece 9 — Voice-First Morning Brief
+
+The text brief already exists. Milla generates it every morning at 07:30 UTC.
+
+**Adding audio:**
+- TTS provider: ElevenLabs (best quality, ~$5/mo) or OpenAI TTS (cheaper, good quality)
+- One API call: text in → MP3 out
+- MP3 stored in Supabase storage or generated fresh each morning
+- Audio player on portal dashboard — auto-plays between 07:00 and 09:00, dismissable
+- Alternatively: MP3 attached to the morning email
+
+**Build time: 1 day**
+
+**Trigger to start:** After Milla's text brief is proven valuable — check email open rates first.
+
+---
+
+#### Piece 10 — Network Effect Benchmarks
+
+The data already exists across all clients. One aggregation query.
+
+**Privacy gate:** `HAVING COUNT(DISTINCT client_id) >= 5` — minimum 5 clients before any benchmark is shown. Individual data is never identifiable.
+
+**What's needed:**
+- `GET /benchmarks/reply-rates` — aggregation query, returns industry/geo benchmarks
+- Client's own stats vs benchmark on FIGSY analytics page
+- Opt-in setting (default opted-in, can opt out)
+- Privacy statement in settings
+
+**Build time: 2 days**
+
+**Trigger to start:** 20+ clients with FIGSY active + 3 months of reply data.
+
+---
+
+#### Piece 11 — White-Label / Agency Channel
+
+**Architecture:**
+- `white_label_configs` table: `logo_url`, `primary_colour`, `agency_name`, `custom_domain`, `billing_multiplier`
+- `clients.partner_id` foreign key — clients created by an agency carry this
+- Portal detects hostname at load → applies correct theme
+
+**Custom domain:** Agency adds CNAME to Vercel. Portal reads hostname, applies white-label config. Already supported by Vercel.
+
+**Billing:** Agency billed at 2× standard rate. `billing_multiplier` applies to all transactions under that partner.
+
+**Build time: 1 week V1**
+
+**Trigger to start:** When the first agency partner asks for it. Never build until there's a waiting customer.
+
+---
+
+#### Piece 12 — Mobile App
+
+**Build a PWA first. Not a native app.**
+
+A Progressive Web App gives home screen install, push notifications (iOS 16.4+, all Android), offline capability — looks and feels native.
+
+**What's needed:**
+- `manifest.json` with app name, icons, theme colour
+- Service worker for offline caching (`next-pwa` package — 30 min setup)
+- Web Push API for push notifications
+- `push_subscriptions` table for device tokens
+- Morning brief cron sends push notification + email
+
+**Build time: 2 days for PWA + push notifications**
+
+**Native app (if PWA isn't enough):** React Native with Expo. ~60% of portal components are reusable. Build time: 3–4 weeks V1.
+
+**Trigger to start:** PWA — build it alongside notification centre (low cost, high value). Native app — after 100+ clients requesting it.
+
+---
+
+### The Build Order
+
+| Phase | When | What | Why this order |
+|---|---|---|---|
+| **Now (when ready)** | Post 20 clients | Status bar, Notification centre | Near-zero effort, immediate value, portal feels alive |
+| **Phase 2** | Month 3–4 | Kanban view, Command palette | Most visible UX upgrades. Kanban changes how clients think about pipeline. |
+| **Phase 3** | Month 5–6 | Real-time activity feed, Score heatmap | Needs live data to be meaningful. |
+| **Phase 4** | Month 7–9 | ICP intelligence, Benchmarks | Needs 3+ months of reply data. Data moat begins here. |
+| **Phase 5** | Month 10–12 | Visual automation builder | Most complex. Needs stable platform underneath. Unlocks enterprise. |
+| **Phase 6** | Year 2 Q1 | White-label / Agency, PWA, Voice brief | Revenue multiplier. Only build when first agency partner is waiting. |
+| **Year 2+** | 2027 onwards | REEVE, LENA, OTTO agents, Native app | Requires stable platform, rich data, large client base. |
+
+---
+
+### The Most Important Thing In This Entire Section
+
+None of the above is worth building until the **core loop works flawlessly:**
+
+> Client signs up → builds ICP → leads appear in under 2 hours → FIGSY sends Day 1 → reply arrives → client sees it → meeting gets booked.
+
+That loop, working reliably, for 20+ paying clients, is the foundation everything else sits on.
+
+**Build the foundation. Prove the loop. Then build the palace.**
+
+---
+
 *Owner: K.I.N.D founding team*
 *Last updated: 25 May 2026 (evening — full rebuild post all schema fixes)*

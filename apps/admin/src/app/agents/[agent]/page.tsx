@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import AgentBriefSection from './BriefSection'
 
 type AgentId = 'otto' | 'lena' | 'reeve' | 'cmo' | 'cto' | 'cfo'
 
@@ -61,23 +62,6 @@ export default async function AgentPage({ params }: { params: { agent: string } 
 
   if (!agent) notFound()
 
-  // Attempt to fetch the agent's daily brief
-  let briefData: string | null = null
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_RAILWAY_API_URL || process.env.RAILWAY_API_URL || ''
-    if (baseUrl) {
-      const res = await fetch(`${baseUrl}/internal/${agentId}/brief`, {
-        headers: { 'x-admin-token': process.env.ADMIN_API_TOKEN || '' },
-        next: { revalidate: 300 },
-      })
-      if (res.ok) {
-        briefData = await res.text()
-      }
-    }
-  } catch {
-    // endpoint not yet available — show placeholder
-  }
-
   return (
     <main className="px-8 py-6 max-w-5xl space-y-6">
       {/* Agent identity card */}
@@ -94,23 +78,8 @@ export default async function AgentPage({ params }: { params: { agent: string } 
         </div>
       </div>
 
-      {/* Today's Brief */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className={`w-2 h-2 rounded-full ${briefData ? 'bg-emerald-400' : 'bg-white/20'}`} />
-          <h2 className="font-semibold text-white">Today&apos;s Brief</h2>
-        </div>
-        {briefData ? (
-          <div className="text-sm text-white/70 whitespace-pre-wrap font-mono bg-black/20 rounded-lg p-4 border border-white/5">
-            {briefData}
-          </div>
-        ) : (
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-5 text-center">
-            <p className="text-white/40 text-sm">Brief loading — this agent&apos;s daily briefing will appear here once the API endpoint is connected.</p>
-            <p className="text-white/20 text-xs mt-2">Expected endpoint: <code className="text-white/30">GET /api/proxy/internal/{agentId}/brief</code></p>
-          </div>
-        )}
-      </div>
+      {/* Today's Brief — client component for regenerate */}
+      <AgentBriefSection agentId={agentId} agentName={agent.name} />
 
       {/* Recent Actions */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">

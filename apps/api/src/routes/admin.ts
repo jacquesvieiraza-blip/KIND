@@ -351,7 +351,7 @@ adminRouter.post('/setup-demo', async (req: Request, res: Response) => {
     for (const product of ['lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot']) {
       await db.from('subscriptions').upsert({
         client_id: clientId, product, tier: 'starter', status: 'active',
-        billing_interval: 'monthly', amount_usd: 0, amount_zar: 0,
+        billing_interval: 'monthly', amount_zar: 0,
         current_period_start: new Date().toISOString(), current_period_end: periodEnd,
       }, { onConflict: 'client_id,product' })
     }

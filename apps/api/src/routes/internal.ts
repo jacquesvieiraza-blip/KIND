@@ -334,7 +334,7 @@ internalRouter.get('/cro/dashboard', async (_req: Request, res: Response) => {
       { count: totalLeads },
       { count: leadsThisMonth },
     ] = await Promise.all([
-      db.from('subscriptions').select('amount_usd, created_at').eq('status', 'active'),
+      db.from('subscriptions').select('amount_zar, created_at').eq('status', 'active'),
       db.from('subscriptions').select('id, trial_ends_at').eq('status', 'trialing'),
       db.from('subscriptions').select('id, cancelled_at').eq('status', 'cancelled').gte('cancelled_at', monthStart),
       db.from('clients').select('id', { count: 'exact', head: true }),
@@ -342,9 +342,11 @@ internalRouter.get('/cro/dashboard', async (_req: Request, res: Response) => {
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
     ])
 
-    const mrrUsd     = (activeSubs ?? []).reduce((s: number, sub: any) => s + (sub.amount_usd ?? 0), 0)
-    const lastMrrUsd = (activeSubs ?? []).filter((s: any) => s.created_at < monthStart)
-      .reduce((sum: number, sub: any) => sum + (sub.amount_usd ?? 0), 0)
+    const mrrZar     = (activeSubs ?? []).reduce((s: number, sub: any) => s + (sub.amount_zar ?? 0), 0)
+    const mrrUsd     = Math.round(mrrZar / 19)
+    const lastMrrZar = (activeSubs ?? []).filter((s: any) => s.created_at < monthStart)
+      .reduce((sum: number, sub: any) => sum + (sub.amount_zar ?? 0), 0)
+    const lastMrrUsd = Math.round(lastMrrZar / 19)
     const mrrGrowth  = lastMrrUsd > 0 ? Math.round(((mrrUsd - lastMrrUsd) / lastMrrUsd) * 100) : null
 
     // Trials expiring in next 7 days
@@ -398,7 +400,7 @@ internalRouter.post('/cro/weekly-digest', async (_req: Request, res: Response) =
       { count: consentedTotal },
       { data: atRiskClients },
     ] = await Promise.all([
-      db.from('subscriptions').select('amount_usd').eq('status', 'active'),
+      db.from('subscriptions').select('amount_zar').eq('status', 'active'),
       db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
       db.from('clients').select('id', { count: 'exact', head: true }).gte('created_at', weekStart),
       db.from('leads').select('id', { count: 'exact', head: true }),
@@ -407,7 +409,7 @@ internalRouter.post('/cro/weekly-digest', async (_req: Request, res: Response) =
       db.from('clients').select('company_name, first_icp_run_at, created_at').lte('created_at', weekStart),
     ])
 
-    const mrrUsd = (activeSubs ?? []).reduce((s: number, sub: any) => s + (sub.amount_usd ?? 0), 0)
+    const mrrUsd = Math.round((activeSubs ?? []).reduce((s: number, sub: any) => s + (sub.amount_zar ?? 0), 0) / 19)
     const atRisk = (atRiskClients ?? []).filter((c: any) => !c.first_icp_run_at).length
 
     const prompt = `You are the AI chief of staff for K.I.N.D, an African B2B AI platform. Write a brief weekly digest for the founder.

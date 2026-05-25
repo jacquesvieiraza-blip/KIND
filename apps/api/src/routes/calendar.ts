@@ -65,7 +65,13 @@ calendarRouter.get('/callback', async (req, res) => {
     }
 
     // Decode client ID from state
-    const clientId = Buffer.from(state, 'base64').toString('utf-8')
+    let clientId: string
+    try {
+      clientId = Buffer.from(state, 'base64').toString('utf-8')
+      if (!clientId || clientId.length < 10) throw new Error('invalid')
+    } catch {
+      res.status(400).json({ success: false, error: 'Invalid state parameter' }); return
+    }
 
     const tokens = await exchangeCodeForTokens(code)
 

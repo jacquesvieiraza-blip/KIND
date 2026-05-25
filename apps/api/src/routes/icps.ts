@@ -35,6 +35,7 @@ export async function runIcpJob(
   icpId: string,
   clientId: string,
   userId: string,
+  maxLeads?: number,
 ): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
@@ -47,6 +48,12 @@ export async function runIcpJob(
   const insertedIds: string[] = []
 
   for (const contact of contacts) {
+    // Cap insertions at available credits — never insert more leads than the client has credits
+    if (maxLeads !== undefined && inserted >= maxLeads) {
+      skipped++
+      continue
+    }
+
     if (contact.email) {
       const { data: blocked } = await db.from('opt_out_blocklist')
         .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()

@@ -53,6 +53,7 @@
 | 2 | **RESEND_API_KEY** — unknown if set in Railway | Zero emails send — no welcome, no POPIA consent, no leads email, no nurture, no digest | **You** — confirm/set in Railway → KIND API → Variables |
 | 3 | **MASTER_SCHEMA.sql not run** | Remaining schema drift — FIGSY, auto top-up, calendar features will hit silent errors | **You** — paste into Supabase SQL Editor and run |
 | 4 | **Railway deploy status unknown** | API changes not live until Railway builds successfully | **You** — check railway.app → KIND API → Deployments |
+| 5 | **Lead overspend bug** — ICP inserts ALL leads found then deducts credits, rather than capping insertion at available credits first | Client with 20 credits can receive 50 leads (30 free) — direct revenue leak | **Claude** — fix `Math.min(apolloResults, creditBalance)` cap BEFORE insert loop in `/icps` route |
 
 ---
 
@@ -215,6 +216,8 @@ Everything else on the to-do list is secondary to this.
 | **7** | **Create calendar booking link** | 5 min | calendly.com or cal.com (free) → share URL → I wire it everywhere in 5 min |
 | **8** | **Run competitor ICPs** | 5 min | Supabase → SQL Editor → paste `supabase/competitor-icps.sql` → replace UUID with your client ID → Run → then admin portal → ICPs → hit Run on all 4 |
 | **9** | **Google Workspace** | 30 min | workspace.google.com → Business Starter → follow Section 2 step-by-step |
+| **10** | **Deploy netlify-waitlist** | 2 min | Drag `netlify-waitlist/` folder to app.netlify.com/drop → check Netlify Forms dashboard |
+| **11** | **Fix Vercel root directories** | 5 min | Vercel dashboard → each project (portal, admin, website) → Settings → Root Directory → set to `apps/portal`, `apps/admin`, `apps/website` respectively |
 
 #### 🟢 BUILT OVERNIGHT — Ready when you wake up
 
@@ -226,6 +229,9 @@ Everything else on the to-do list is secondary to this.
 | G | **Competitor ICP SQL files** | ✅ Done | supabase/competitor-icps.sql — paste + run after Apollo upgrade |
 | — | **Admin nav: SALES section** | ✅ Done | New section in sidebar — Scalability + Sales Playbook |
 | — | **HubSpot sync code** | ✅ Code done | Plug-and-play when you share API key |
+| H | **Credit system split** (Lead Gen vs FIGSY separate) | ✅ Done | Portal billing → two balance cards |
+| I | **Milla/Vida access gating** (paid only, no trial) | ✅ Done | portal/assistant and portal/chatbot pages |
+| J | **Netlify waitlist page** | ✅ Done | Drag `netlify-waitlist/` to netlify drop → live |
 
 #### ⏳ STILL WAITING ON YOU BEFORE I CAN FINISH
 
@@ -261,6 +267,7 @@ Everything else on the to-do list is secondary to this.
 | 26 | G2, Capterra, Product Hunt listings | Launch day |
 | 27 | Upload Vida image | apps/website/vida.png via GitHub |
 | 28 | SOC 2 Type II | Q1 2027 |
+| 29 | Deploy netlify-waitlist to Netlify | Drag `netlify-waitlist/` folder to app.netlify.com/drop — standalone page, NOT part of website. Captures first/last name, email, company, product interest. Soft launch messaging: 31 May 2026. |
 
 ### Google Workspace Setup (step by step)
 
@@ -408,6 +415,19 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 | **Admin Portal V2 — compliance tracker** — 5 certs with progress bars, checklists, next steps | 25 May | ✅ |
 | **Admin Portal V2 — client health scoring** — green/amber/red, at-risk filter, leads 14d, FIGSY status, last login | 25 May | ✅ |
 | **Admin Portal V2 — dark restyle all pages** — cmo, cohorts, roadmap, launch, founder — full palette | 25 May | ✅ |
+| **Pricing constants full rewrite** — `packages/shared/src/constants/index.ts` — credit-based model, Milla $49, Vida $29, Bundle $69 | 25 May | ✅ |
+| **Two-balance credit system** — `figsy_credits_remaining` for FIGSY separate from `credit_balance` for Lead Gen — all routes updated | 25 May | ✅ |
+| **Paystack verify route** — now routes FIGSY topups to `figsy_credits_remaining`, Lead Gen to `credit_balance` | 25 May | ✅ |
+| **FIGSY auto-enroll deduction** — now deducts from `figsy_credits_remaining` not `credit_balance` | 25 May | ✅ |
+| **Portal billing page** — dual balance display (Lead Gen + FIGSY), correct `$1/lead` and `$3/outreach` descriptions | 25 May | ✅ |
+| **Milla/Vida access gating** — `status === 'active'` ONLY (not 'trialing') — paid products, no trial access | 25 May | ✅ |
+| **FIGSY upgrade gate** — portal FIGSY page shows upgrade banner if no FIGSY credit transactions found | 25 May | ✅ |
+| **Admin product catalog** — updated to show correct credit bundles and Milla/Vida/Bundle subscription pricing | 25 May | ✅ |
+| **Website homepage CTAs** — Milla/Vida cards now show "Book a demo" not "Start free trial" | 25 May | ✅ |
+| **Website pricing page** — "Book a demo →" buttons on FIGSY, Milla, Vida add-on cards | 25 May | ✅ |
+| **virtual-assistant.html** — Milla page updated: $49/mo CTA, links to billing#milla | 25 May | ✅ |
+| **chatbot-agent.html** — Vida page updated: $29/mo CTA, links to billing#vida | 25 May | ✅ |
+| **Netlify waitlist** — `netlify-waitlist/index.html` — standalone soft launch page, 31 May messaging, Netlify Forms | 25 May | ✅ |
 
 ---
 
@@ -432,7 +452,7 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 
 | Item | Owner | Notes |
 |---|---|---|
-| Milla + Vida full launch | Both | Built and waiting |
+| Milla + Vida: LIVE — gated behind paid subscription. Recurring billing needed. | Both | ✅ Live — paid only |
 | Voice agent activation | Founder | Vapi.ai account + Twilio SA number |
 | WhatsApp activation | Founder | Meta Business API (3–7 day approval) |
 | Google Calendar activation | Founder | Google Cloud OAuth |
@@ -444,7 +464,7 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 | Item | Notes |
 |---|---|
 | pgvector upgrade for Milla | At 50+ clients — upgrade from FTS |
-| Recurring subscription model | Credit bundles → monthly plans |
+| Recurring subscription model | Credit bundles → monthly plans. ⚠️ Needed NOW for Milla/Vida monthly billing |
 | US/UK Phase 2 marketing | After 5 SA clients |
 | Africa expansion: Nigeria, Kenya, Ghana, Egypt | Apollo data works well |
 
@@ -506,7 +526,7 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 | **Weekly outreach digest** | Monday email includes FIGSY stats |
 | **`paused_low_performance` status** | Campaign status when auto-paused |
 
-### Virtual Assistant (Milla) — Launches July 2026
+### Virtual Assistant (Milla) — LIVE (gated, paid only)
 
 | Item | Notes |
 |---|---|
@@ -514,7 +534,7 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 | Source attribution | Answers cite which doc |
 | Locked screen | Upgrade + Book a Demo CTAs |
 
-### Chatbot Agent (Vida) — Launches July 2026
+### Chatbot Agent (Vida) — LIVE (gated, paid only)
 
 | Item | Notes |
 |---|---|
@@ -597,8 +617,8 @@ All comparison pages, trust, DPA, DPA-US, pricing, support, about, use-cases, fi
 | **Campaign intent prompt** | Deeper personalisation in FIGSY sequences using intent signals | `FEATURE_CAMPAIGN_INTENT=true` in Railway | Now (feature flag) |
 | **Conversational ICP builder** | Chat-based ICP creation with voice input instead of form | `FEATURE_ICP_BUILDER=true` in Railway | Now (feature flag) |
 | **Portal V2 design** | New sidebar + mission control layout for client portal | `FEATURE_PORTAL_V2=true` in Railway | Now (feature flag) |
-| **Milla VA** | Document upload + RAG chat for clients — answers questions from their own uploaded docs | Nothing — waiting for launch | July 2026 |
-| **Vida chatbot** | Embeddable website + WhatsApp chatbot for K.I.N.D clients' own websites | Nothing — waiting for launch | July 2026 |
+| **Milla VA** | Document upload + RAG chat for clients — answers questions from their own uploaded docs | Nothing — live and gated behind `status === 'active'` | NOW — live and gated |
+| **Vida chatbot** | Embeddable website + WhatsApp chatbot for K.I.N.D clients' own websites | Nothing — live and gated behind `status === 'active'` | NOW — live and gated |
 
 ---
 
@@ -627,6 +647,10 @@ K.I.N.D sells itself using K.I.N.D. FIGSY finds and contacts our own prospects. 
 ---
 
 ### Phase 1 — First 5 Clients (May–June 2026)
+
+**Soft Launch Date: 31 May 2026**
+
+Standalone Netlify waitlist page (`netlify-waitlist/index.html`) captures early sign-ups before the full platform opens. Deploy by dragging folder to app.netlify.com/drop. Waitlist submissions are visible in Netlify dashboard → Forms.
 
 **Goal:** Prove product-market fit. Get 5 paying clients. Make them successful.
 
@@ -953,27 +977,89 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | Agent | Named after | Role | Status |
 |---|---|---|---|
 | **FIGSY** | The founder | AI SDR — outbound email, follow-up, meeting booking | ✅ Live |
-| **Milla** | Founder's daughter | Virtual Assistant — trained on your business | July 2026 |
-| **Vida** | Founder's daughter | Chatbot Agent — website + WhatsApp inbound qualifier | July 2026 |
+| **Milla** | Founder's daughter | Virtual Assistant — trained on your business | ✅ Live (paid only, $49/mo) |
+| **Vida** | Founder's daughter | Chatbot Agent — website + WhatsApp inbound qualifier | ✅ Live (paid only, $29/mo) |
 
 ---
 
 ## 14. PRICING MODEL
 
-### Credit Bundles (current model)
+### Credit Bundles
 
-| Product | Credits | Price USD | Price ZAR |
+| Product | Credits | Price USD | Price ZAR | Notes |
+|---|---|---|---|---|
+| K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 | Free trial = 20 trial credits |
+| K.I.N.D AI — Lead Gen Pro | 100 | $100 | R1,900 | |
+| FIGSY Advanced | 20 | $60 | R1,140 | |
+| FIGSY Advanced | 100 | $300 | R5,700 | |
+
+### Subscription Products (Monthly)
+
+| Product | Price USD/mo | Price ZAR/mo | Access |
 |---|---|---|---|
-| K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 |
-| K.I.N.D AI — Lead Gen Pro | 40 | $40 | R760 |
-| K.I.N.D AI — Lead Gen Pro | 100 | $100 | R1,900 |
-| FIGSY Advanced | 20 | $60 | R1,140 |
-| FIGSY Advanced | 40 | $120 | R2,280 |
-| FIGSY Advanced | 100 | $300 | R5,700 |
+| Milla — AI Virtual Assistant | $49 | R931 | Paid only — NOT included in free trial |
+| Vida — AI Chatbot Agent | $29 | R551 | Paid only — NOT included in free trial |
+| Milla + Vida Bundle | $69 | R1,311 | Paid only — NOT included in free trial |
+
+### Two Separate Credit Balances (CRITICAL)
+
+**Lead Gen credits** (`credit_balance` column):
+- Purchased via Lead Gen bundles ($20/20, $100/100)
+- Deducted 1 per lead found by ICP
+- Free trial grants 20 trial credits (first ICP run only)
+
+**FIGSY credits** (`figsy_credits_remaining` column):
+- Purchased via FIGSY bundles ($60/20, $300/100)
+- Deducted 1 per lead enrolled in outreach sequence
+- Completely separate from Lead Gen credits
+
+These balances NEVER mix. A client can buy Lead Gen credits without FIGSY credits and vice versa.
+
+### Free Trial Scope
+
+**Free trial = Lead Gen ONLY.**
+- 14 days
+- 20 trial credits (granted on first ICP run)
+- FIGSY, Milla, and Vida are PAID add-ons — NOT included in any trial
+- Milla and Vida require `subscription.status === 'active'` — NOT 'trialing'
 
 **Pricing is locked. Never changed. Never increased or decreased.**
 
-**Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once value is proven.
+---
+
+## 14a. LEAD DRIP DESIGN — Staggered Delivery (DESIGNED, NOT YET BUILT)
+
+*Discussed 25 May 2026 — design agreed, not yet built.*
+
+### The Problem
+A client buys 20 credits. An ICP run finds 20 leads. All 20 are delivered at once and all credits are consumed immediately. Client sees no ongoing value — there is no reason to buy again because the credits are gone and the leads are done.
+
+### The Design
+
+**Daily drip rate:** Default 5 leads per day per ICP. Configurable per client in admin.
+
+**How it works:**
+1. ICP runs and finds N leads (capped at credit balance — see overspend bug fix above)
+2. Instead of inserting all N leads immediately, queue them for daily drip
+3. Cron job (daily, 08:00 SAST) delivers up to `daily_drip_rate` leads per active ICP
+4. Leads are delivered until queue is empty or credits run out
+5. When 5 or fewer credits remain → low credit email reminder
+
+**Why this is the right model:**
+- Client doesn't burn all credits in one run
+- Creates a daily "something happened" moment → platform feels alive
+- Reduces risk of client receiving all value upfront then churning
+- Creates natural urgency to top up credits when daily drip slows
+
+**New columns needed (clients table):**
+- `daily_drip_rate` INT DEFAULT 5
+- `lead_queue_paused` BOOLEAN DEFAULT FALSE
+
+**New columns needed (leads table):**
+- `queued_at` TIMESTAMPTZ (when inserted into queue)
+- `delivered_at` TIMESTAMPTZ (when surfaced to client dashboard)
+
+**Status:** Designed only. Not built. Build after lead overspend fix is confirmed working.
 
 ---
 
@@ -1246,12 +1332,13 @@ FEATURE_PORTAL_V2=true
 | 6 | Send POPIA consent to one lead | Email arrives (needs `RESEND_API_KEY`), status → consent_sent |
 | 7 | Export leads as CSV | File downloads with correct columns |
 | 8 | Go to Billing → buy credits | Paystack opens, returns, balance updates (live after KYC) |
-| 9 | Check FIGSY / VA / Chatbot screens | Locked screens show Upgrade + Book a Demo |
+| 9 | Check FIGSY / VA / Chatbot screens | FIGSY: shows upgrade banner (no credit transactions). Milla + Vida: show locked screens with "Unlock Milla — $49/mo" / "Unlock Vida — $29/mo" CTAs. None accessible on free trial. |
 | 10 | Sidebar bottom | Green dot "All systems operational" |
 | 11 | Admin → Demo Envs → create demo | Leads appear → Open Demo → portal opens as demo client |
 | 12 | Admin → Clients → pick client → grant 50 credits | Balance updates, transaction recorded |
 | 13 | Sign out → sign back in | Dashboard loads, no empty loop |
 | 14 | Receive welcome email after step 2 | Arrives from Resend (needs `RESEND_API_KEY`) |
+| 15 | Buy Milla subscription in billing | Milla page becomes accessible. Subscription shows `status=active`. Vida remains locked. |
 
 ---
 
@@ -1470,7 +1557,7 @@ None of these are AI-native, automated, POPIA-compliant, credit-based, and acces
 | Founder name on public pages | "Founder" only — no real name — terms.html unchanged |
 | Market expansion trigger | After 5 paying clients |
 | Compliance | POPIA + GDPR + CAN-SPAM + CCPA |
-| Milla + Vida launch | July 2026 |
+| Milla + Vida | ✅ LIVE — paid subscription, $49/$29 per month. Recurring billing needed. |
 | Payment processor | Paystack (ZAR) → Stripe (USD/GBP) at Phase 2 |
 | AI provider | Anthropic Claude — Haiku for volume, Sonnet for quality |
 | Data source | Apollo.io |
@@ -1482,6 +1569,11 @@ None of these are AI-native, automated, POPIA-compliant, credit-based, and acces
 | CRM | HubSpot + Pipedrive push only. Built-in CRM Year 2. |
 | Multi-year contracts | Will not offer |
 | Error handling policy | Every error must return a readable string — never `[object Object]` |
+| Free trial scope | Lead Gen ONLY — 20 trial credits, 14 days. FIGSY, Milla, Vida are paid upgrades. No trial access. |
+| Milla/Vida subscription check | `status === 'active'` ONLY. 'trialing' does NOT grant access. |
+| Credit balance separation | Two separate balances: `credit_balance` (Lead Gen, $1/lead) and `figsy_credits_remaining` (FIGSY, $3/outreach). Never mixed. |
+| Lead delivery model | Staggered/drip (5 leads/day default). NOT bulk delivery. Prevents credit burn in single run. (Design agreed, build pending) |
+| Soft launch date | 31 May 2026. Netlify waitlist live before then. |
 
 ---
 
@@ -1732,8 +1824,8 @@ Instead of a stats page — a **live ops centre**. Three columns, real-time webs
 | Agent | Role | Status |
 |---|---|---|
 | **FIGSY** | AI SDR — outbound prospecting + sequences | ✅ Live |
-| **Milla** | Virtual Assistant — business knowledge + internal queries | July 2026 |
-| **Vida** | Chatbot — website + WhatsApp inbound qualifier | July 2026 |
+| **Milla** | Virtual Assistant — business knowledge + internal queries | ✅ Live (paid only, $49/mo) |
+| **Vida** | Chatbot — website + WhatsApp inbound qualifier | ✅ Live (paid only, $29/mo) |
 | **REEVE** *(future)* | AI AE — books + runs discovery calls via voice | Year 2 |
 | **LENA** *(future)* | AI CS — onboarding, check-ins, churn prevention | Year 2 |
 | **OTTO** *(future)* | AI Ops — pipeline analysis, revenue forecasting, anomaly escalation | Year 2 |

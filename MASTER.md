@@ -36,6 +36,8 @@
 25. [Daily Audit — How It Works](#25-daily-audit--how-it-works)
 26. [Art of the Possible](#26-art-of-the-possible)
 27. [Legal](#27-legal)
+28. [Founder Admin Portal — Vision & Build](#28-founder-admin-portal--vision--build)
+29. [Scalability — From Founder Sales to a Full Sales Team](#29-scalability--from-founder-sales-to-a-full-sales-team)
 
 ---
 
@@ -2347,6 +2349,143 @@ And writes a 5-bullet founder brief. Emailed to `hello@get-kind.com`. This is th
 | `/roadmap` | Roadmap view | ✅ Live (dark restyle) |
 | `/launch` | Launch checklist | ✅ Live (dark restyle) |
 | `/founder` | Founder digest + agent actions | ✅ Live (dark restyle) |
+
+---
+
+## 29. SCALABILITY — FROM FOUNDER SALES TO A FULL SALES TEAM
+
+*Added 25 May 2026. Critical honest assessment — not a cheerleader view.*
+
+---
+
+### The Core Principle
+
+**Founder-led sales is the highest-converting motion that exists.** You know the product completely, you close on conviction, and there are zero hand-off costs. The mistake most founders make is hiring AEs because they're tired of selling — not because the process is ready to be handed off. That is always the wrong reason.
+
+---
+
+### When You Actually Need AEs — The Real Trigger
+
+All three of these must be true simultaneously before hiring an Account Executive:
+
+| Condition | Why it matters |
+|---|---|
+| **Repeatable, documented sales process** — discovery script, demo flow, objection responses, proposal template | An AE can only run a process that exists. If it's in your head, you can't hire it out. |
+| **More qualified inbound than you can handle** — leads going cold because you lack time | If you're still chasing leads, you need more pipeline. Not more closers. |
+| **3+ months of closed deal data** — sales cycle length, average deal size, conversion by stage | You need this to know what you're hiring for and whether the economics work. |
+
+**K.I.N.D right now:** None of these three are true yet. The process isn't documented, there's no overflow pipeline, and there's no closed deal data. Hiring an AE today means paying someone to watch you figure it out.
+
+---
+
+### The Dead Zone (Where Companies Die)
+
+```
+Founder closes everything          →    Dead Zone    →    AE-led motion
+(works, doesn't scale)                                    (scales, needs infrastructure)
+```
+
+In the dead zone:
+- AE can't close because the product is still changing
+- Sales process is half-documented
+- Founder keeps getting pulled into hard deals anyway
+- AE gets demoralised, leaves after 3 months
+- Founder resents the cost
+
+This typically hits between 10–25 paying clients. The fix is not to rush through it — it's to document the process *before* the hire, not after.
+
+---
+
+### Do You Need Sales Engineers?
+
+**Not yet. Probably not for a long time.**
+
+Sales Engineers exist to handle technical objections during a deal — security questionnaires, integration requirements, custom logic discussions. They make sense when:
+- Average deal size > $5,000
+- Buyer has a procurement process
+- Technical evaluation is a formal stage
+
+K.I.N.D's current buyer is a founder or sales director at a 5–50 person company. They are not running formal security evaluations. The demo is visual and simple. An SE at R50–70k/month base is only justified when losing a deal to a technical objection has real revenue cost.
+
+**SE trigger for K.I.N.D:** When targeting companies with 200+ employees who have procurement processes. Year 2 at earliest. Possibly never if staying SME-focused.
+
+---
+
+### The Economics — Does Hiring an AE Actually Work?
+
+| Role | Base (SA) | OTE | Quota | Break-even pipeline needed |
+|---|---|---|---|---|
+| Junior AE | R35–50k/mo | R70–90k/mo | 5–8× OTE in ARR | 20–30 new clients/month at $80 ARPU |
+| Mid-market AE | R60–80k/mo | R120–160k/mo | 5–8× OTE | 50+ new clients/month |
+| Sales Engineer | R50–70k/mo | R100–130k/mo | Tied to AE quota | Only justifiable at deal sizes >$5k |
+
+**The brutal maths at $80 blended ARPU:** A junior AE needs to close 20–30 new clients per month to hit minimum quota. That requires 60–90 qualified opportunities per month (at 30–40% close rate). FIGSY can generate that pipeline — but only after Apollo is live and volume is proven. Don't hire before the engine is confirmed working.
+
+**Rough rule: Don't hire an AE until $10,000 MRR and growing 20%+ month-on-month.**
+
+---
+
+### K.I.N.D's Sales Scaling Path
+
+```
+Now → 10 clients        Founder closes everything. FIGSY feeds the pipe.
+                        Goal: document every objection, every close, every loss.
+
+10 → 30 clients         Founder + 1 SDR (R20–30k/mo).
+                        SDR qualifies inbound, books discovery calls, founder closes.
+                        Document everything. Build the playbook.
+
+30 → 80 clients         1 Junior AE (R35–50k/mo) running the documented playbook.
+                        Founder closes enterprise/edge cases only.
+                        Target: AE closes 15–20 deals/month independently.
+
+80 → 200 clients        2–3 AEs + 1 SE for larger deals emerging.
+                        Founder moves to partner relationships and enterprise.
+
+200+ clients            Full sales team. Sales manager. Structured territories.
+```
+
+**The SDR hire at 10 clients is the one most founders skip — and shouldn't.** An SDR at R25k/month who qualifies 20 discovery calls per month that you then close is the highest-leverage hire available. They multiply your capacity without requiring you to hand off the close.
+
+---
+
+### Why K.I.N.D's Model is Actually Better for Scaling
+
+K.I.N.D has a structural advantage most B2B SaaS companies don't: **FIGSY generates the pipeline automatically.**
+
+That means future AEs are closers working pre-warmed inbound — not hunters starting from cold. This matters because:
+- Shorter ramp time (leads already know what FIGSY does)
+- Higher close rates (prospect is already sold on the concept)
+- Lower base salary needed (inbound closers cost less than pure hunters)
+- Predictable pipeline volume (FIGSY runs on a schedule)
+
+But the entire model depends on FIGSY generating pipeline at volume. Which depends on Apollo being live at Professional plan. The sales scaling plan starts with the Apollo upgrade — not with a hiring decision.
+
+---
+
+### What to Build BEFORE Hiring Anyone
+
+This is where time is better spent right now:
+
+| Action | Output | Why |
+|---|---|---|
+| Document every sales conversation | Objection-response library | AE playbook raw material |
+| Track every deal in HubSpot (free) | Pipeline data | Know your actual sales cycle + close rate |
+| Identify highest-converting channel | Channel focus | AE works what converts, not everything |
+| Define "qualified" precisely | ICP qualification criteria | Prevents AE wasting time on bad leads |
+| Build the demo into a 20-min script | Repeatable demo flow | AE runs this script, not improvises |
+| Document every loss reason | Loss analysis | Tells you what to fix before scaling |
+
+None of this requires a hire. All of it makes the first hire dramatically more likely to succeed.
+
+---
+
+### The One Rule
+
+> **Don't hire to solve a capacity problem you haven't yet had. Hire to scale a process you've already proven works.**
+
+A documented, proven sales process handed to an AE = fast ramp, high close rate, scalable.
+An undocumented, founder-only process handed to an AE = slow ramp, low close rate, expensive mistake.
 
 ---
 

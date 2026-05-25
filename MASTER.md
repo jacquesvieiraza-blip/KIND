@@ -43,6 +43,17 @@
 
 *Last updated: 25 May 2026 (evening)*
 
+### ⛔ WHAT IS BROKEN RIGHT NOW — Platform cannot function without these
+
+| # | Problem | Impact | Fix |
+|---|---|---|---|
+| 1 | **Apollo free plan** — `api/v1/mixed_people/search` blocked | Zero leads can ever be found. Core product is dead. | **You** — upgrade at app.apollo.io → Settings → Plan & Billing |
+| 2 | **RESEND_API_KEY** — unknown if set in Railway | Zero emails send — no welcome, no POPIA consent, no leads email, no nurture, no digest | **You** — confirm/set in Railway → KIND API → Variables |
+| 3 | **MASTER_SCHEMA.sql not run** | Remaining schema drift — FIGSY, auto top-up, calendar features will hit silent errors | **You** — paste into Supabase SQL Editor and run |
+| 4 | **Railway deploy status unknown** | API changes not live until Railway builds successfully | **You** — check railway.app → KIND API → Deployments |
+
+---
+
 ### Platform & Infrastructure
 
 | Item | Status | Notes |
@@ -113,53 +124,61 @@
 
 ## 2. WHAT FOUNDER NEEDS TO DO
 
+> **🔴 STOP EVERYTHING** — These 4 items are blocking the entire platform. Nothing works at full capacity until they are done.
+
+### 🔴 STOP EVERYTHING — Do These First (Platform is Blocked)
+
+| # | Task | Where | Why it's blocking |
+|---|---|---|---|
+| 1 | **Upgrade Apollo plan** | app.apollo.io → Settings → Plan & Billing | Free plan = zero leads found. Platform cannot find a single prospect. Go Basic ($49/mo) minimum, Professional ($99/mo) recommended. **Every ICP run returns empty until this is done.** |
+| 2 | **Check `RESEND_API_KEY`** | Railway → KIND API → Variables | If missing, zero emails send — no welcome email, no nurture, no POPIA consent, no leads digest. Literally nothing. |
+| 3 | **Check Railway deploy logs** | railway.app → KIND API → Deployments | "Nothing deployed" — check if build is failing silently. Should auto-deploy on every push to `main`. |
+| 4 | **Run `supabase/MASTER_SCHEMA.sql`** | Supabase → SQL Editor | Paste entire file, run once — eliminates all schema drift permanently. ICP saves, FIGSY, Milla all have silent column errors without this. |
+
 ### 🔴 CRITICAL — Do Right Now
 
 | # | Task | Where | Why it's blocking |
 |---|---|---|---|
-| 1 | **Run `supabase/MASTER_SCHEMA.sql`** | Supabase → SQL Editor | Paste entire file, run once — eliminates all schema drift permanently. ICP saves, FIGSY, Milla all have silent column errors without this. |
-| 2 | **Check `RESEND_API_KEY`** | Railway → KIND API → Variables | If missing, zero emails send — no welcome email, no nurture, no POPIA consent, no leads digest. Literally nothing. |
-| 3 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Can't take a single live payment until this is done. |
-| 4 | **Check Railway deploy logs** | railway.app → KIND API → Deployments | "Nothing deployed" — check if build is failing silently. Should auto-deploy on every push to `main`. |
+| 5 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Can't take a single live payment until this is done. |
 
 ### 🟡 HIGH — Do This Week
 
 | # | Task | Where | Why |
 |---|---|---|---|
-| 5 | **Set up Google Workspace** | workspace.google.com | Get hello@get-kind.com inbox live. All sales comms, DKIM/SPF for email deliverability. |
-| 6 | **Confirm `ANTHROPIC_API_KEY` in Railway** | Railway → Variables | AI ICP builder, Milla, lead scoring — all use this. Silent failure if missing. |
-| 7 | **Confirm `ADMIN_SECRET_KEY` in Railway** | Railway → Variables | All /internal/ endpoints hit this. Crons and admin actions fail silently without it. |
-| 8 | **Set `FIGSY_KIND_CLIENT_ID` in Railway** | Railway → Variables | Self-outreach cron runs Monday 06:00 UTC but does nothing without this. Create a demo/production client row in Supabase, copy the UUID. |
-| 9 | **Create calendar booking link** | calendly.com or cal.com (free) | Share the URL with Claude — "Book a Demo" wired site-wide in 5 minutes. |
+| 6 | **Set up Google Workspace** | workspace.google.com | Get hello@get-kind.com inbox live. All sales comms, DKIM/SPF for email deliverability. |
+| 7 | **Confirm `ANTHROPIC_API_KEY` in Railway** | Railway → Variables | AI ICP builder, Milla, lead scoring — all use this. Silent failure if missing. |
+| 8 | **Confirm `ADMIN_SECRET_KEY` in Railway** | Railway → Variables | All /internal/ endpoints hit this. Crons and admin actions fail silently without it. |
+| 9 | **Set `FIGSY_KIND_CLIENT_ID` in Railway** | Railway → Variables | Self-outreach cron runs Monday 06:00 UTC but does nothing without this. Create a demo/production client row in Supabase, copy the UUID. |
+| 10 | **Create calendar booking link** | calendly.com or cal.com (free) | Share the URL with Claude — "Book a Demo" wired site-wide in 5 minutes. |
 
 ### 🔵 MEDIUM — Do This Month
 
 | # | Task | Where | Why |
 |---|---|---|---|
-| 10 | **Upgrade Resend to paid plan** | resend.com → Billing | FIGSY reply routing (inbound webhook) requires paid plan. Without this, you can send emails but never receive replies inside the platform. |
-| 11 | **Register UK company** | companieshouse.gov.uk — £50, same day | Credibility, GBP billing, proper invoicing. See Section 24. |
-| 12 | **Add Stripe credentials** | Railway → Variables | Activates USD/GBP billing page instantly. See env var list below. |
+| 11 | **Upgrade Resend to paid plan** | resend.com → Billing | FIGSY reply routing (inbound webhook) requires paid plan. Without this, you can send emails but never receive replies inside the platform. |
+| 12 | **Register UK company** | companieshouse.gov.uk — £50, same day | Credibility, GBP billing, proper invoicing. See Section 24. |
+| 13 | **Add Stripe credentials** | Railway → Variables | Activates USD/GBP billing page instantly. See env var list below. |
 
 ### 🟢 WHEN READY — Activates Built Features
 
 | # | Task | Env vars to add to Railway |
 |---|---|---|
-| 13 | **Stripe USD/GBP** | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
-| 14 | **Google Calendar OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
-| 15 | **Vapi.ai Voice** | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
-| 16 | **WhatsApp Business API** | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
-| 17 | **Update FOUNDER_EMAIL** | Change to `hello@get-kind.com` after Google Workspace is live |
-| 18 | **Campaign intent prompt (go live)** | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
-| 19 | **ICP builder (go live)** | `FEATURE_ICP_BUILDER=true` in Railway |
-| 20 | **Portal V2 design** | `FEATURE_PORTAL_V2=true` in Railway |
+| 14 | **Stripe USD/GBP** | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
+| 15 | **Google Calendar OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
+| 16 | **Vapi.ai Voice** | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
+| 17 | **WhatsApp Business API** | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
+| 18 | **Update FOUNDER_EMAIL** | Change to `hello@get-kind.com` after Google Workspace is live |
+| 19 | **Campaign intent prompt (go live)** | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
+| 20 | **ICP builder (go live)** | `FEATURE_ICP_BUILDER=true` in Railway |
+| 21 | **Portal V2 design** | `FEATURE_PORTAL_V2=true` in Railway |
 
 ### ⚡ INSTANT — Say the word, Claude does it in 5 minutes
 
 | # | Task | What Claude needs |
 |---|---|---|
-| 21 | Wire "Book a Demo" buttons site-wide | Your Calendly/Cal.com URL |
-| 22 | Add UK company number to footer + terms | Company number from Companies House cert |
-| 23 | Fix any new error | Share screenshot |
+| 22 | Wire "Book a Demo" buttons site-wide | Your Calendly/Cal.com URL |
+| 23 | Add UK company number to footer + terms | Company number from Companies House cert |
+| 24 | Fix any new error | Share screenshot |
 
 ### 📋 TOMORROW'S SESSION — Debrief Agenda
 
@@ -188,9 +207,9 @@
 
 | # | Task | When |
 |---|---|---|
-| 24 | G2, Capterra, Product Hunt listings | Launch day |
-| 25 | Upload Vida image | apps/website/vida.png via GitHub |
-| 26 | SOC 2 Type II | Q1 2027 |
+| 25 | G2, Capterra, Product Hunt listings | Launch day |
+| 26 | Upload Vida image | apps/website/vida.png via GitHub |
+| 27 | SOC 2 Type II | Q1 2027 |
 
 ### Google Workspace Setup (step by step)
 

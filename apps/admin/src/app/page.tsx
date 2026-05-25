@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import { PRICING, PRODUCTS, FIGSY_ADDON } from '@kind/shared'
+import { PRICING, PRODUCTS } from '@kind/shared'
 import { Users, DollarSign, TrendingUp, AlertCircle, Clock, Target, CheckCircle2, XCircle, MinusCircle } from 'lucide-react'
 
 interface ClientRow {
@@ -383,52 +383,70 @@ export default async function AdminPage() {
       {/* Product Catalog */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h2 className="font-semibold text-white mb-1">Product Catalog</h2>
-        <p className="text-xs text-white/40 mb-4">Current pricing model — usage-based for Lead Gen, flat subscription for VA &amp; Chatbot</p>
+        <p className="text-xs text-white/40 mb-4">Credit-based for Lead Gen + FIGSY · Flat monthly for Milla &amp; Vida</p>
         <div className="space-y-3">
-          {Object.entries(PRICING).map(([key, p]) => (
-            <div key={key} className="border border-[#0066FF]/20 rounded-lg p-4 bg-[#0066FF]/5">
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-medium text-sm text-white">{p.name}</p>
-                <span className="text-xs bg-[#0066FF]/20 text-[#4d94ff] px-2 py-0.5 rounded font-medium">Usage-based</span>
+          {/* Lead Gen */}
+          <div className="border border-[#0066FF]/20 rounded-lg p-4 bg-[#0066FF]/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium text-sm text-white">K.I.N.D AI — Lead Generation</p>
+              <span className="text-xs bg-[#0066FF]/20 text-[#4d94ff] px-2 py-0.5 rounded font-medium">Credit-based</span>
+            </div>
+            <p className="text-xs text-white/40 mb-2">1 credit = 1 qualified lead found · 14-day trial includes 20 free credits</p>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-white/60">
+                <span>20 credits</span><span className="font-medium">$20 USD</span>
               </div>
-              <p className="text-xs text-white/40 mb-2">Min ${p.monthly_minimum_usd}/mo · includes {p.includes_leads} leads</p>
-              <div className="space-y-1">
-                {p.tiers.map(t => (
-                  <div key={t.label} className="flex justify-between text-xs text-white/60">
-                    <span>{t.label}</span>
-                    <span className="font-medium">${t.rate_usd}/lead · R{t.rate_zar}/lead</span>
-                  </div>
-                ))}
+              <div className="flex justify-between text-xs text-white/60">
+                <span>100 credits</span><span className="font-medium">$100 USD</span>
               </div>
             </div>
-          ))}
-          <div className="border border-indigo-400/20 rounded-lg p-4 bg-indigo-400/5">
-            <div className="flex items-center justify-between mb-1">
-              <p className="font-medium text-sm text-white">{FIGSY_ADDON.name}</p>
-              <span className="text-xs bg-indigo-400/10 text-indigo-400 px-2 py-0.5 rounded font-medium">Add-on</span>
-            </div>
-            <p className="text-xs text-white/40">{FIGSY_ADDON.description}</p>
-            <p className="text-xs font-medium text-white/70 mt-1">${FIGSY_ADDON.price_usd}/mo · R{FIGSY_ADDON.price_zar}/mo</p>
           </div>
-          {Object.entries(PRODUCTS).map(([key, product]) => (
-            <div key={key} className="border border-white/10 rounded-lg p-4 bg-white/[0.03]">
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-medium text-sm text-white">{product.name}</p>
-                <span className="text-xs bg-white/5 text-white/40 px-2 py-0.5 rounded font-medium">Flat subscription</span>
+          {/* FIGSY */}
+          <div className="border border-indigo-400/20 rounded-lg p-4 bg-indigo-400/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium text-sm text-white">FIGSY — AI Outreach SDR</p>
+              <span className="text-xs bg-indigo-400/10 text-indigo-400 px-2 py-0.5 rounded font-medium">Credit-based</span>
+            </div>
+            <p className="text-xs text-white/40 mb-2">1 outreach credit = 1 lead enrolled in email campaign</p>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-white/60">
+                <span>20 outreach credits</span><span className="font-medium">$60 USD</span>
               </div>
-              <div className="space-y-1">
-                {Object.entries(product.tiers).map(([tier, config]) => {
-                  const c = config as { price_usd: number; custom?: boolean }
-                  return (
-                    <div key={tier} className="flex justify-between text-xs text-white/60">
-                      <span className="capitalize">{tier}</span>
-                      <span className="font-medium">{c.custom ? 'Custom' : `$${c.price_usd}/mo`}</span>
-                    </div>
-                  )
-                })}
+              <div className="flex justify-between text-xs text-white/60">
+                <span>100 outreach credits</span><span className="font-medium">$300 USD</span>
               </div>
             </div>
-          ))}
+          </div>
+          {/* Milla */}
+          <div className="border border-white/10 rounded-lg p-4 bg-white/[0.03]">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium text-sm text-white">Milla — AI Virtual Assistant</p>
+              <span className="text-xs bg-white/5 text-white/40 px-2 py-0.5 rounded font-medium">Flat subscription</span>
+            </div>
+            <div className="flex justify-between text-xs text-white/60">
+              <span>Monthly</span><span className="font-medium">$49/mo USD</span>
+            </div>
+          </div>
+          {/* Vida */}
+          <div className="border border-white/10 rounded-lg p-4 bg-white/[0.03]">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium text-sm text-white">Vida — AI Chatbot Agent</p>
+              <span className="text-xs bg-white/5 text-white/40 px-2 py-0.5 rounded font-medium">Flat subscription</span>
+            </div>
+            <div className="flex justify-between text-xs text-white/60">
+              <span>Monthly</span><span className="font-medium">$29/mo USD</span>
+            </div>
+          </div>
+          {/* Bundle */}
+          <div className="border border-blue-400/20 rounded-lg p-4 bg-blue-400/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium text-sm text-white">Milla + Vida Bundle</p>
+              <span className="text-xs bg-blue-400/10 text-blue-400 px-2 py-0.5 rounded font-medium">Best value</span>
+            </div>
+            <div className="flex justify-between text-xs text-white/60">
+              <span>Monthly (saves $9)</span><span className="font-medium">$69/mo USD</span>
+            </div>
+          </div>
         </div>
       </div>
 

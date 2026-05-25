@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
-import { PRODUCTS, PRICING } from '@kind/shared'
+import { PRODUCTS } from '@kind/shared'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 
 export const subscriptionRouter = Router()
@@ -35,13 +35,11 @@ subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
     if (!paystackData.status || paystackData.data.status !== 'success') {
       res.status(400).json({ success: false, error: 'Payment not successful' }); return
     }
-    const { client_id, product, tier, billing_interval } = paystackData.data.metadata
-    const isUsageBased = product === 'lead_gen' || product === 'lead_gen_figsy'
-    const amountUsd = isUsageBased
-      ? PRICING[product as keyof typeof PRICING].monthly_minimum_usd
-      : (PRODUCTS[product as keyof typeof PRODUCTS]?.tiers[tier as keyof object] as { price_usd: number } | undefined)?.price_usd ?? 0
+    const { client_id, product, billing_interval } = paystackData.data.metadata
+    const productConfig = PRODUCTS[product as keyof typeof PRODUCTS]
+    const amountUsd = productConfig?.price_usd ?? 0
     await db.from('subscriptions').upsert({
-      client_id, product, tier,
+      client_id, product, tier: 'monthly',
       status: 'active',
       billing_interval: billing_interval || 'monthly',
       amount_zar: Math.round(amountUsd * 19),
@@ -58,8 +56,8 @@ subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
 subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
   try {
     const { product, tier, billing_interval } = z.object({
-      product: z.enum(['lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot']),
-      tier: z.enum(['starter', 'advanced', 'pro', 'enterprise', 'usage']),
+      product: z.enum(['virtual_assistant', 'chatbot', 'bundle']),
+      tier: z.enum(['monthly']).default('monthly'),
       billing_interval: z.enum(['monthly', 'annual']).default('monthly'),
     }).parse(req.body)
     const { data: client } = await db.from('clients').select('id, user_id').eq('user_id', req.userId!).single()
@@ -68,11 +66,9 @@ subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
     const token = req.headers.authorization?.replace('Bearer ', '') || ''
     const { data: { user } } = await supabase.auth.getUser(token)
-    // Usage-based products (lead_gen, lead_gen_figsy) use monthly minimum; flat products use their tier price
-    const isUsageBased = product === 'lead_gen' || product === 'lead_gen_figsy'
-    const amountUsd = isUsageBased
-      ? PRICING[product as keyof typeof PRICING].monthly_minimum_usd
-      : (PRODUCTS[product as keyof typeof PRODUCTS]?.tiers[tier as keyof object] as { price_usd: number } | undefined)?.price_usd ?? 0
+    // All subscription products are flat monthly: Milla $49, Vida $29, Bundle $69
+    const productConfig = PRODUCTS[product as keyof typeof PRODUCTS]
+    const amountUsd = productConfig?.price_usd ?? 0
     const amountZarKobo = amountUsd * 19 * 100
     const planCode = PLAN_CODES[product]?.[tier]
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {

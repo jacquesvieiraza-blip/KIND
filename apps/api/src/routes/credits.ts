@@ -18,14 +18,21 @@ const BUNDLES: Record<'kind_ai' | 'figsy', Record<number, number>> = {
 creditRouter.get('/', async (req: AuthRequest, res) => {
   try {
     const { data: client } = await db.from('clients')
-      .select('id, credit_balance').eq('user_id', req.userId!).single()
+      .select('id, credit_balance, figsy_credits_remaining').eq('user_id', req.userId!).single()
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: transactions } = await db.from('credit_transactions')
       .select('*').eq('client_id', client.id)
       .order('created_at', { ascending: false }).limit(50)
 
-    res.json({ success: true, data: { balance: client.credit_balance ?? 0, transactions: transactions ?? [] } })
+    res.json({
+      success: true,
+      data: {
+        balance:                  client.credit_balance ?? 0,
+        figsy_credits_remaining:  client.figsy_credits_remaining ?? 0,
+        transactions:             transactions ?? [],
+      },
+    })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch credits' }) }
 })
 
@@ -110,20 +117,27 @@ creditRouter.post('/verify', async (req: AuthRequest, res) => {
     if (existing) { res.json({ success: true, message: 'Already processed' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('id, credit_balance').eq('id', client_id).single()
+      .select('id, credit_balance, figsy_credits_remaining').eq('id', client_id).single()
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const newBalance = (client.credit_balance ?? 0) + Number(bundle_size)
+    // FIGSY credits go to figsy_credits_remaining; Lead Gen credits go to credit_balance
+    const isFigsy = plan === 'figsy'
+    const columnUpdate = isFigsy
+      ? { figsy_credits_remaining: (client.figsy_credits_remaining ?? 0) + Number(bundle_size) }
+      : { credit_balance:          (client.credit_balance          ?? 0) + Number(bundle_size) }
+    const newBalance = isFigsy
+      ? (client.figsy_credits_remaining ?? 0) + Number(bundle_size)
+      : (client.credit_balance          ?? 0) + Number(bundle_size)
 
     await Promise.all([
-      db.from('clients').update({ credit_balance: newBalance }).eq('id', client_id),
+      db.from('clients').update(columnUpdate).eq('id', client_id),
       db.from('credit_transactions').insert({
         client_id,
         type:      'purchase',
         amount:    Number(bundle_size),
         plan:      plan || null,
         reference,
-        note:      `Purchased ${bundle_size} credits (${plan})`,
+        note:      `Purchased ${bundle_size} ${isFigsy ? 'FIGSY outreach' : 'lead gen'} credits`,
       }),
     ])
 

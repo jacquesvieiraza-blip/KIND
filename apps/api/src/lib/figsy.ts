@@ -464,10 +464,10 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
 
     // ── Deduct 1 FIGSY credit per lead enrolled ────────────────────────────────
     try {
-      const { data: clientBal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
-      const newBal = Math.max(0, (clientBal?.credit_balance ?? 0) - 1)
+      const { data: clientBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
+      const newBal = Math.max(0, (clientBal?.figsy_credits_remaining ?? 0) - 1)
       await Promise.all([
-        db.from('clients').update({ credit_balance: newBal }).eq('id', clientId),
+        db.from('clients').update({ figsy_credits_remaining: newBal }).eq('id', clientId),
         db.from('credit_transactions').insert({
           client_id: clientId,
           amount: -1,

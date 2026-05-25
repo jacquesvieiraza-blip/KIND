@@ -120,6 +120,7 @@ const STRIPE_FIGSY_BUNDLES = [
 export default function BillingPage() {
   const supabase = createClient()
   const [balance, setBalance]           = useState<number | null>(null)
+  const [figsyBalance, setFigsyBalance] = useState<number | null>(null)
   const [transactions, setTransactions] = useState<CreditTransaction[]>([])
   const [loading, setLoading]           = useState(true)
   const [initiating, setInitiating]     = useState<string | null>(null)
@@ -139,8 +140,9 @@ export default function BillingPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { setLoading(false); return }
       try {
-        const res = await api.get<{ data: { balance: number; transactions: CreditTransaction[] } }>('/credits', session.access_token)
+        const res = await api.get<{ data: { balance: number; figsy_credits_remaining: number; transactions: CreditTransaction[] } }>('/credits', session.access_token)
         setBalance(res.data.balance)
+        setFigsyBalance(res.data.figsy_credits_remaining ?? 0)
         setTransactions(res.data.transactions)
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : 'Failed to load billing data — please refresh.')
@@ -284,30 +286,35 @@ export default function BillingPage() {
     <div className="space-y-8 max-w-3xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Billing & Credits</h1>
-        <p className="text-gray-500 text-sm mt-1">Buy credit bundles. 1 credit = 1 qualified lead reply.</p>
+        <p className="text-gray-500 text-sm mt-1">Buy credit bundles. 1 Lead Gen credit = 1 qualified lead found. 1 FIGSY credit = 1 lead enrolled in outreach.</p>
       </div>
 
-      {/* Balance card */}
-      <div className="bg-gradient-to-r from-[#001f4d] to-[#003080] rounded-xl p-6 text-white flex items-center justify-between">
-        <div>
-          <p className="text-white/60 text-sm mb-1">Current balance</p>
-          <div className="flex items-end gap-2">
-            <p className="text-4xl font-bold">{balance ?? 0}</p>
-            <p className="text-white/60 mb-1">credits</p>
+      {/* Balance cards — Lead Gen + FIGSY */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-gradient-to-r from-[#001f4d] to-[#003080] rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-white/60 text-sm">Lead Gen credits</p>
+            <Coins className="w-5 h-5 text-yellow-400" />
           </div>
-          <p className="text-white/40 text-xs mt-1">Credits are consumed only when a lead replies positively</p>
+          <p className="text-4xl font-bold">{balance ?? 0}</p>
+          <p className="text-white/40 text-xs mt-2">1 credit = 1 qualified lead found via ICP</p>
         </div>
-        <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
-          <Coins className="w-8 h-8 text-yellow-400" />
+        <div className="bg-gradient-to-r from-[#1a0040] to-[#2d0070] rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-white/60 text-sm">FIGSY outreach credits</p>
+            <Zap className="w-5 h-5 text-purple-300" />
+          </div>
+          <p className="text-4xl font-bold">{figsyBalance ?? 0}</p>
+          <p className="text-white/40 text-xs mt-2">1 credit = 1 lead enrolled in email campaign</p>
         </div>
       </div>
 
       {/* How credits work */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Zap className="w-4 h-4 text-blue-500" />, title: 'Lead found', sub: 'No credit used', bg: 'bg-blue-50' },
-          { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'Outreach sent', sub: 'No credit used', bg: 'bg-indigo-50' },
-          { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Positive reply', sub: '1 credit consumed', bg: 'bg-green-50' },
+          { icon: <Zap className="w-4 h-4 text-blue-500" />, title: 'ICP runs', sub: '1 credit per lead found', bg: 'bg-blue-50' },
+          { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'FIGSY enrolled', sub: '1 outreach credit per lead', bg: 'bg-indigo-50' },
+          { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Milla & Vida', sub: 'Flat $49/$29/mo', bg: 'bg-green-50' },
         ].map(({ icon, title, sub, bg }) => (
           <div key={title} className="bg-white border border-gray-100 rounded-xl p-4 text-center">
             <div className={`w-8 h-8 ${bg} rounded-full flex items-center justify-center mx-auto mb-2`}>{icon}</div>

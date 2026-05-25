@@ -282,14 +282,14 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry, credit_balance').eq('id', clientId).single()
+      .select('company_name, industry, figsy_credits_remaining').eq('id', clientId).single()
 
-    // ── Credit gate: must have at least 1 credit per lead ─────────────────────
-    const availableCredits = client?.credit_balance ?? 0
+    // ── Credit gate: must have at least 1 FIGSY outreach credit ──────────────
+    const availableCredits = client?.figsy_credits_remaining ?? 0
     if (availableCredits < 1) {
       res.status(402).json({
         success: false,
-        error: 'Insufficient credits. Top up at app.get-kind.com/dashboard/billing to enroll leads in FIGSY.',
+        error: 'Insufficient FIGSY credits. Top up at app.get-kind.com/dashboard/billing#figsy.',
       })
       return
     }
@@ -341,12 +341,12 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
       }
     }
 
-    // ── Deduct credits for all successfully enrolled leads ────────────────────
+    // ── Deduct FIGSY outreach credits for all successfully enrolled leads ──────
     if (enrolled > 0) {
-      const { data: freshBal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
-      const newBalance = Math.max(0, (freshBal?.credit_balance ?? 0) - enrolled)
+      const { data: freshBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
+      const newBalance = Math.max(0, (freshBal?.figsy_credits_remaining ?? 0) - enrolled)
       await Promise.all([
-        db.from('clients').update({ credit_balance: newBalance }).eq('id', clientId),
+        db.from('clients').update({ figsy_credits_remaining: newBalance }).eq('id', clientId),
         db.from('credit_transactions').insert({
           client_id: clientId,
           amount: -enrolled,
@@ -580,18 +580,22 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       // Auto top-up check
       try {
         const { data: clientForTopup } = await db.from('clients')
-          .select('id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
+          .select('id, credit_balance, figsy_credits_remaining, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
           .eq('id', lead.client_id).single()
+        const topupPlan = clientForTopup?.auto_topup_plan ?? 'kind_ai'
+        // Check the right balance column based on which plan the auto-topup is for
+        const currentTopupBal = topupPlan === 'figsy'
+          ? (clientForTopup?.figsy_credits_remaining ?? 0)
+          : (clientForTopup?.credit_balance ?? 0)
         if (clientForTopup?.auto_topup_enabled &&
             clientForTopup.auto_topup_paystack_auth &&
-            (clientForTopup.credit_balance ?? 0) < (clientForTopup.auto_topup_threshold ?? 0)) {
-          const plan = clientForTopup.auto_topup_plan ?? 'kind_ai'
+            currentTopupBal < (clientForTopup.auto_topup_threshold ?? 0)) {
           const bundleSize = clientForTopup.auto_topup_bundle_size ?? 20
           const BUNDLES: Record<string, Record<number, number>> = {
             kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
             figsy:   { 10: 35, 20: 60, 40: 110, 75: 195, 100: 250, 200: 460, 500: 1100 },
           }
-          const amountUsd = BUNDLES[plan]?.[bundleSize]
+          const amountUsd = BUNDLES[topupPlan]?.[bundleSize]
           if (amountUsd) {
             const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.id)
             const topupEmail = user?.email
@@ -605,20 +609,22 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
                 email: topupEmail,
                 amount: amountZarKobo,
                 currency: 'ZAR',
-                metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
+                metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan: topupPlan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
               }),
             })
             const chargeData = await chargeRes.json() as { status: boolean; data: { status: string } }
             if (chargeData.status && chargeData.data?.status === 'success') {
-              const newBal = (clientForTopup.credit_balance ?? 0) + bundleSize
+              const columnUpdate = topupPlan === 'figsy'
+                ? { figsy_credits_remaining: currentTopupBal + bundleSize }
+                : { credit_balance: currentTopupBal + bundleSize }
               await Promise.all([
-                db.from('clients').update({ credit_balance: newBal }).eq('id', clientForTopup.id),
+                db.from('clients').update(columnUpdate).eq('id', clientForTopup.id),
                 db.from('credit_transactions').insert({
                   client_id: clientForTopup.id,
                   type: 'purchase',
                   amount: bundleSize,
-                  plan,
-                  note: `Auto top-up: ${bundleSize} credits (${plan})`,
+                  plan: topupPlan,
+                  note: `Auto top-up: ${bundleSize} ${topupPlan === 'figsy' ? 'FIGSY outreach' : 'lead gen'} credits`,
                 }),
               ])
             }

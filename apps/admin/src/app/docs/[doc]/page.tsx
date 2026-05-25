@@ -4,9 +4,10 @@ import { notFound } from 'next/navigation'
 import { BookOpen, Clock, ExternalLink } from 'lucide-react'
 
 const DOC_MAP: Record<string, { filePath: string; title: string }> = {
-  'master':    { filePath: path.join(process.cwd(), '../../MASTER.md'),                        title: 'MASTER Document' },
-  'run-costs': { filePath: path.join(process.cwd(), '../../docs/run-costs-and-cashflow.md'),  title: 'Run Costs & Cashflow' },
-  'legal':     { filePath: path.join(process.cwd(), '../../docs/legal.md'),                    title: 'Legal' },
+  'master':        { filePath: path.join(process.cwd(), '../../MASTER.md'),                        title: 'MASTER Document' },
+  'run-costs':     { filePath: path.join(process.cwd(), '../../docs/run-costs-and-cashflow.md'),  title: 'Run Costs & Cashflow' },
+  'legal':         { filePath: path.join(process.cwd(), '../../docs/legal.md'),                    title: 'Legal' },
+  'sales-playbook':{ filePath: path.join(process.cwd(), '../../docs/sales-playbook.md'),           title: 'Sales Playbook' },
 }
 
 /** Simple regex-based markdown → HTML renderer (no external deps) */

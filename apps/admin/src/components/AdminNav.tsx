@@ -39,6 +39,13 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: 'SALES',
+    items: [
+      { href: '/scalability',          label: 'Scalability',    icon: TrendingUp },
+      { href: '/docs/sales-playbook',  label: 'Sales Playbook', icon: BookOpen },
+    ],
+  },
+  {
     title: 'TOOLS',
     items: [
       { href: '/cmo',          label: 'CMO Tools',     icon: Megaphone },

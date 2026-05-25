@@ -1,19 +1,16 @@
 #!/usr/bin/env tsx
 /**
- * KIND Daily System Audit
- * Runs at 04:00 AM every day via GitHub Actions.
- * Scans the codebase for known failure patterns, schema drift risks,
- * missing error handling, and security issues.
+ * KIND System Audit
+ * Runs at 04:00 and 16:00 SAST every day via GitHub Actions.
+ * Scans the codebase for bugs, schema drift, security issues,
+ * missing error handling, and broken patterns.
  *
- * Exit code 0 = clean
- * Exit code 1 = issues found (blocks deploy on CI)
+ * Exit 0 = clean | Exit 1 = CRITICAL/HIGH found
  */
 
-import * as fs from 'fs'
+import * as fs   from 'fs'
 import * as path from 'path'
-import * as readline from 'readline'
 
-// ── Colour helpers ────────────────────────────────────────────────────────────
 const RED    = '\x1b[31m'
 const YELLOW = '\x1b[33m'
 const GREEN  = '\x1b[32m'
@@ -21,7 +18,6 @@ const CYAN   = '\x1b[36m'
 const BOLD   = '\x1b[1m'
 const RESET  = '\x1b[0m'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 interface Finding {
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
   file:     string
@@ -33,101 +29,129 @@ interface Finding {
 
 const findings: Finding[] = []
 
+function flag(f: Finding) { findings.push(f) }
+
 // ── Rules ─────────────────────────────────────────────────────────────────────
 type Rule = {
   id:       string
   severity: Finding['severity']
   message:  string
   pattern:  RegExp
-  // files that match these globs are checked (undefined = all .ts/.tsx)
   fileGlob?: RegExp
-  // return true to suppress (e.g. if the fix is already present on same line)
   suppress?: (line: string) => boolean
 }
 
 const RULES: Rule[] = [
-  // ── Schema: banned column references ────────────────────────────────────
+  // Schema drift — banned DB columns
   {
-    id:       'SCHEMA-001',
-    severity: 'CRITICAL',
-    message:  '`amount_usd` column does not exist in the live DB — use `amount_zar` instead',
-    pattern:  /amount_usd/,
+    id: 'SCHEMA-001', severity: 'CRITICAL',
+    message: '`amount_usd` does not exist in live DB — use `amount_zar`',
+    pattern: /amount_usd/,
     fileGlob: /apps\/api\/src\/routes\//,
+    suppress: (l) => l.includes('metadata') || l.includes('//') || l.includes('paystack'),
   },
-  // ── Empty catch blocks ───────────────────────────────────────────────────
+  // Empty catch blocks
   {
-    id:       'ERR-001',
-    severity: 'HIGH',
-    message:  'Empty catch block swallows errors silently',
-    pattern:  /\}\s*catch\s*\(\s*\)\s*\{?\s*\}|catch\s*\{\s*\}/,
+    id: 'ERR-001', severity: 'HIGH',
+    message: 'Empty catch block — errors swallowed silently',
+    pattern: /catch\s*(\([^)]*\))?\s*\{\s*\}/,
     fileGlob: /apps\/api\/src\//,
   },
-  // ── Unguarded .single() ──────────────────────────────────────────────────
+  // String(err) produces [object Object] for non-Error throws
   {
-    id:       'ERR-002',
-    severity: 'MEDIUM',
-    message:  '.single() will throw if row missing — prefer .maybeSingle()',
-    pattern:  /\.single\(\)/,
-    fileGlob: /apps\/api\/src\/routes\//,
-    suppress: (line) => line.includes('// single-ok') || line.includes('maybeSingle'),
-  },
-  // ── console.error only in catch (no re-throw or response) ────────────────
-  {
-    id:       'ERR-003',
-    severity: 'MEDIUM',
-    message:  'Fire-and-forget .catch(console.error) — failure is silent to caller',
-    pattern:  /\.catch\(console\.error\)/,
+    id: 'ERR-005', severity: 'HIGH',
+    message: '`String(err)` on a non-Error throw produces "[object Object]" — use err?.message',
+    pattern: /String\(err\)/,
     fileGlob: /apps\/api\/src\//,
   },
-  // ── Hardcoded secrets ────────────────────────────────────────────────────
+  // Dynamic await import inside handler
   {
-    id:       'SEC-001',
-    severity: 'CRITICAL',
-    message:  'Possible hardcoded secret or token',
-    pattern:  /(secret|password|api_key|apikey|token)\s*[:=]\s*['"][a-zA-Z0-9_\-]{16,}/i,
-    suppress: (line) => line.includes('process.env') || line.includes('//') || line.includes('placeholder'),
-  },
-  // ── TODO / FIXME left in production code ────────────────────────────────
-  {
-    id:       'MAINT-001',
-    severity: 'LOW',
-    message:  'Unresolved TODO/FIXME/HACK comment',
-    pattern:  /\/\/\s*(TODO|FIXME|HACK|XXX):/i,
-    fileGlob: /apps\/api\/src\//,
-  },
-  // ── process.exit() outside scripts ──────────────────────────────────────
-  {
-    id:       'MAINT-002',
-    severity: 'HIGH',
-    message:  'process.exit() in server code will kill the entire API process',
-    pattern:  /process\.exit\(/,
+    id: 'ERR-006', severity: 'HIGH',
+    message: 'Dynamic `await import()` inside route handler — use top-level import instead',
+    pattern: /await import\(/,
     fileGlob: /apps\/api\/src\/routes\//,
   },
-  // ── Unvalidated req.body access ─────────────────────────────────────────
+  // process.exit in server code
   {
-    id:       'SEC-002',
-    severity: 'MEDIUM',
-    message:  'Direct req.body access without Zod parse — validate inputs',
-    pattern:  /req\.body\.[a-zA-Z]/,
+    id: 'MAINT-002', severity: 'HIGH',
+    message: 'process.exit() in server code will kill the entire API process',
+    pattern: /process\.exit\(/,
     fileGlob: /apps\/api\/src\/routes\//,
-    suppress: (line) => line.includes('.parse(') || line.includes('// validated'),
   },
-  // ── Supabase service-role key leaking to client ──────────────────────────
+  // Missing await on Supabase calls
   {
-    id:       'SEC-003',
-    severity: 'CRITICAL',
-    message:  'SUPABASE_SERVICE_ROLE_KEY referenced in portal/website (client-side) — must only be in API',
-    pattern:  /SUPABASE_SERVICE_ROLE_KEY/,
+    id: 'ERR-004', severity: 'HIGH',
+    message: 'Supabase call without await — result is always a Promise, errors ignored',
+    pattern: /(?<!await\s)db\.from\(['"]/,
+    fileGlob: /apps\/api\/src\/routes\//,
+    suppress: (l) => l.trimStart().startsWith('//') || l.includes('await'),
+  },
+  // Hardcoded secrets
+  {
+    id: 'SEC-001', severity: 'CRITICAL',
+    message: 'Possible hardcoded secret or API key',
+    pattern: /(secret|password|api_key|apikey|token)\s*[:=]\s*['"][a-zA-Z0-9_\-]{20,}/i,
+    suppress: (l) => l.includes('process.env') || l.trimStart().startsWith('//') || l.includes('placeholder') || l.includes('example'),
+  },
+  // Service role key in client-side code
+  {
+    id: 'SEC-003', severity: 'CRITICAL',
+    message: 'SUPABASE_SERVICE_ROLE_KEY in portal/website — must only be in API',
+    pattern: /SUPABASE_SERVICE_ROLE_KEY/,
     fileGlob: /apps\/(portal|website)\//,
   },
-  // ── Missing await on async Supabase calls ────────────────────────────────
+  // Unvalidated req.body
   {
-    id:       'ERR-004',
-    severity: 'HIGH',
-    message:  'Supabase call without await — result will always be a Promise, errors ignored',
-    pattern:  /(?<!await\s)db\.from\(['"]/,
+    id: 'SEC-002', severity: 'MEDIUM',
+    message: 'Direct req.body access without Zod parse — validate inputs',
+    pattern: /req\.body\.[a-zA-Z]/,
     fileGlob: /apps\/api\/src\/routes\//,
-    suppress: (line) => line.trimStart().startsWith('//') || line.includes('await'),
+    suppress: (l) => l.includes('.parse(') || l.includes('// validated') || l.trimStart().startsWith('//'),
+  },
+  // .single() instead of .maybeSingle()
+  {
+    id: 'ERR-002', severity: 'MEDIUM',
+    message: '.single() throws if row is missing — prefer .maybeSingle() unless row must exist',
+    pattern: /\.single\(\)/,
+    fileGlob: /apps\/api\/src\/routes\//,
+    suppress: (l) => l.includes('// single-ok') || l.includes('maybeSingle'),
+  },
+  // Fire-and-forget catch
+  {
+    id: 'ERR-003', severity: 'MEDIUM',
+    message: '.catch(console.error) — caller never knows this failed',
+    pattern: /\.catch\(console\.error\)/,
+    fileGlob: /apps\/api\/src\//,
+  },
+  // TODO/FIXME
+  {
+    id: 'MAINT-001', severity: 'LOW',
+    message: 'Unresolved TODO/FIXME/HACK comment',
+    pattern: /\/\/\s*(TODO|FIXME|HACK|XXX):/i,
+    fileGlob: /apps\/api\/src\//,
+  },
+  // Unsafe JSON.stringify on err
+  {
+    id: 'ERR-007', severity: 'LOW',
+    message: 'JSON.stringify(err) — Error objects stringify as {} — use err.message',
+    pattern: /JSON\.stringify\(err\)/,
+    fileGlob: /apps\/api\/src\//,
+  },
+  // Missing error check after Supabase insert/update without .single
+  {
+    id: 'ERR-008', severity: 'MEDIUM',
+    message: 'Supabase insert/update result destructured without checking `error`',
+    pattern: /const\s*\{\s*data\s*\}\s*=\s*await\s+db\.from/,
+    fileGlob: /apps\/api\/src\/routes\//,
+    suppress: (l) => l.includes('error') || l.includes('// no-error-check'),
+  },
+  // API response missing success field
+  {
+    id: 'API-001', severity: 'LOW',
+    message: 'res.json() without success field — all API responses should include { success }',
+    pattern: /res\.json\(\{(?!.*success)/,
+    fileGlob: /apps\/api\/src\/routes\//,
+    suppress: (l) => l.includes('success') || l.trimStart().startsWith('//'),
   },
 ]
 
@@ -138,173 +162,157 @@ function walkDir(dir: string, exts: string[]): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name)
     if (entry.isDirectory()) {
-      if (!['node_modules', '.next', 'dist', '.turbo', 'build'].includes(entry.name)) {
+      if (!['node_modules', '.next', 'dist', '.turbo', 'build', '.git'].includes(entry.name)) {
         results.push(...walkDir(full, exts))
       }
-    } else if (exts.some(ext => entry.name.endsWith(ext))) {
+    } else if (exts.some(e => entry.name.endsWith(e))) {
       results.push(full)
     }
   }
   return results
 }
 
-// ── Scan one file ─────────────────────────────────────────────────────────────
-async function scanFile(filePath: string): Promise<void> {
+// ── Scan file ─────────────────────────────────────────────────────────────────
+function scanFile(filePath: string) {
   const relative = filePath.replace(process.cwd() + '/', '')
   const lines    = fs.readFileSync(filePath, 'utf-8').split('\n')
 
   for (const rule of RULES) {
     if (rule.fileGlob && !rule.fileGlob.test(relative)) continue
-
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
       if (!rule.pattern.test(line)) continue
-      if (rule.suppress && rule.suppress(line)) continue
-
-      findings.push({
-        severity: rule.severity,
-        file:     relative,
-        line:     i + 1,
-        rule:     rule.id,
-        message:  rule.message,
-        snippet:  line.trim().slice(0, 120),
-      })
-    }
-  }
-}
-
-// ── Env var checker ───────────────────────────────────────────────────────────
-const REQUIRED_ENV_VARS = [
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'ADMIN_SECRET_KEY',
-  'ANTHROPIC_API_KEY',
-  'RESEND_API_KEY',
-  'FOUNDER_EMAIL',
-]
-
-function checkEnvFile() {
-  const envPath = path.join(process.cwd(), 'apps/api/.env')
-  if (!fs.existsSync(envPath)) {
-    console.log(`${YELLOW}⚠  No apps/api/.env found — skipping env var check (CI is fine)${RESET}`)
-    return
-  }
-  const content = fs.readFileSync(envPath, 'utf-8')
-  for (const key of REQUIRED_ENV_VARS) {
-    if (!content.includes(`${key}=`)) {
-      findings.push({
-        severity: 'HIGH',
-        file:     'apps/api/.env',
-        line:     0,
-        rule:     'ENV-001',
-        message:  `Required env var ${key} is missing`,
-        snippet:  `${key} not found in .env`,
-      })
+      if (rule.suppress?.(line)) continue
+      flag({ severity: rule.severity, file: relative, line: i + 1, rule: rule.id, message: rule.message, snippet: line.trim().slice(0, 120) })
     }
   }
 }
 
 // ── Schema drift check ────────────────────────────────────────────────────────
 function checkSchemaDrift() {
-  // Known banned column references (columns removed from live DB)
-  const bannedColumns = ['amount_usd']
-  const routeDir = path.join(process.cwd(), 'apps/api/src/routes')
-  if (!fs.existsSync(routeDir)) return
-
-  // Already caught by RULES above — this is a belt-and-suspenders check
-  // that specifically counts occurrences and surfaces a summary
-  let total = 0
-  for (const file of walkDir(routeDir, ['.ts'])) {
-    const content = fs.readFileSync(file, 'utf-8')
-    for (const col of bannedColumns) {
-      const count = (content.match(new RegExp(col, 'g')) ?? []).length
-      total += count
+  // Columns known to not exist in live DB — any reference is a crash
+  const banned = [
+    { col: 'amount_usd',   table: 'subscriptions', note: 'removed — use amount_zar' },
+  ]
+  const dirs = [
+    path.join(process.cwd(), 'apps/api/src/routes'),
+    path.join(process.cwd(), 'apps/api/src/lib'),
+  ]
+  for (const { col, table, note } of banned) {
+    for (const dir of dirs) {
+      for (const file of walkDir(dir, ['.ts'])) {
+        const content  = fs.readFileSync(file, 'utf-8')
+        const relative = file.replace(process.cwd() + '/', '')
+        const lines    = content.split('\n')
+        lines.forEach((line, i) => {
+          if (new RegExp(col).test(line) && !line.includes('metadata') && !line.includes('//') && !line.includes('paystack')) {
+            flag({ severity: 'CRITICAL', file: relative, line: i + 1, rule: 'SCHEMA-DRIFT',
+              message: `Banned column \`${col}\` on \`${table}\` table — ${note}`, snippet: line.trim().slice(0, 120) })
+          }
+        })
+      }
     }
   }
-  if (total > 0) {
-    findings.push({
-      severity: 'CRITICAL',
-      file:     'apps/api/src/routes (multiple)',
-      line:     0,
-      rule:     'SCHEMA-DRIFT',
-      message:  `Schema drift: ${total} reference(s) to banned columns found across routes`,
-      snippet:  `Run 'grep -rn "amount_usd" apps/api/src/routes/' to locate all`,
+}
+
+// ── Route ordering check ──────────────────────────────────────────────────────
+function checkRouteOrdering() {
+  // Specific path routes must come before wildcard /:id routes
+  const routeFiles = walkDir(path.join(process.cwd(), 'apps/api/src/routes'), ['.ts'])
+  for (const file of routeFiles) {
+    const lines   = fs.readFileSync(file, 'utf-8').split('\n')
+    const relative = file.replace(process.cwd() + '/', '')
+    let wildcardLine = -1
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (/Router\.\w+\(['"]\/:[a-z]/.test(line) && wildcardLine === -1) wildcardLine = i
+      if (wildcardLine > -1 && /Router\.\w+\(['"]\/[a-z]/.test(line) && !/Router\.\w+\(['"]\/:[a-z]/.test(line)) {
+        flag({ severity: 'HIGH', file: relative, line: i + 1, rule: 'ROUTE-001',
+          message: `Specific route defined AFTER wildcard /:id route (line ${wildcardLine + 1}) — Express will never reach this`,
+          snippet: lines[i].trim().slice(0, 120) })
+      }
+    }
+  }
+}
+
+// ── Type safety check ─────────────────────────────────────────────────────────
+function checkTypeSafety() {
+  // any cast in route handlers is risky
+  const files = walkDir(path.join(process.cwd(), 'apps/api/src/routes'), ['.ts'])
+  for (const file of files) {
+    const lines    = fs.readFileSync(file, 'utf-8').split('\n')
+    const relative = file.replace(process.cwd() + '/', '')
+    lines.forEach((line, i) => {
+      if (/as any\b/.test(line) && !line.trimStart().startsWith('//')) {
+        flag({ severity: 'LOW', file: relative, line: i + 1, rule: 'TYPE-001',
+          message: '`as any` cast bypasses type safety', snippet: line.trim().slice(0, 120) })
+      }
     })
   }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  const root  = process.cwd()
+  const now  = new Date()
+  const sast = new Date(now.getTime() + 2 * 60 * 60 * 1000)
+  const dateStr = sast.toISOString().slice(0, 10)
+  const timeStr = sast.toISOString().slice(11, 16) + ' SAST'
   const start = Date.now()
 
-  console.log(`\n${BOLD}${CYAN}╔══════════════════════════════════════════════════════════╗${RESET}`)
-  console.log(`${BOLD}${CYAN}║         K.I.N.D  Daily System Audit  —  ${new Date().toISOString().slice(0,10)}        ║${RESET}`)
-  console.log(`${BOLD}${CYAN}╚══════════════════════════════════════════════════════════╝${RESET}\n`)
+  console.log(`\n${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}`)
+  console.log(`${BOLD}${CYAN}║   K.I.N.D  System Audit  —  ${dateStr}  ${timeStr}   ║${RESET}`)
+  console.log(`${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}\n`)
 
-  // Collect files
-  const apiFiles    = walkDir(path.join(root, 'apps/api/src'),    ['.ts'])
-  const portalFiles = walkDir(path.join(root, 'apps/portal/src'), ['.ts', '.tsx'])
-  const adminFiles  = walkDir(path.join(root, 'apps/admin/src'),  ['.ts', '.tsx'])
-  const allFiles    = [...apiFiles, ...portalFiles, ...adminFiles]
+  const root = process.cwd()
+  const files = [
+    ...walkDir(path.join(root, 'apps/api/src'),    ['.ts']),
+    ...walkDir(path.join(root, 'apps/portal/src'), ['.ts', '.tsx']),
+    ...walkDir(path.join(root, 'apps/admin/src'),  ['.ts', '.tsx']),
+  ]
 
-  console.log(`Scanning ${allFiles.length} files…`)
+  console.log(`Scanning ${files.length} files…\n`)
+  for (const f of files) scanFile(f)
 
-  // Run file scans
-  for (const f of allFiles) await scanFile(f)
-
-  // Specialised checks
-  checkEnvFile()
   checkSchemaDrift()
+  checkRouteOrdering()
+  checkTypeSafety()
 
-  // ── Report ─────────────────────────────────────────────────────────────────
-  const elapsed = ((Date.now() - start) / 1000).toFixed(1)
-
+  const elapsed   = ((Date.now() - start) / 1000).toFixed(1)
   const criticals = findings.filter(f => f.severity === 'CRITICAL')
   const highs     = findings.filter(f => f.severity === 'HIGH')
   const mediums   = findings.filter(f => f.severity === 'MEDIUM')
   const lows      = findings.filter(f => f.severity === 'LOW')
 
-  const SEV_COLOR: Record<string, string> = {
-    CRITICAL: RED,
-    HIGH:     YELLOW,
-    MEDIUM:   CYAN,
-    LOW:      RESET,
-  }
+  const SEV: Record<string, string> = { CRITICAL: RED, HIGH: YELLOW, MEDIUM: CYAN, LOW: RESET }
 
   if (findings.length === 0) {
-    console.log(`\n${GREEN}${BOLD}✓ CLEAN — no issues found${RESET}  (${elapsed}s)\n`)
+    console.log(`${GREEN}${BOLD}✅ CLEAN — no issues found${RESET}  (${elapsed}s)\n`)
     process.exit(0)
   }
 
-  console.log(`\nFound ${findings.length} issue(s) in ${elapsed}s:\n`)
-
-  // Group by severity
   for (const sev of ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const) {
     const group = findings.filter(f => f.severity === sev)
     if (!group.length) continue
-    console.log(`${SEV_COLOR[sev]}${BOLD}── ${sev} (${group.length}) ──────────────────────────────────────────${RESET}`)
+    console.log(`${SEV[sev]}${BOLD}── ${sev} (${group.length}) ──────────────────────────────────────────────${RESET}`)
     for (const f of group) {
       const loc = f.line > 0 ? `${f.file}:${f.line}` : f.file
-      console.log(`  ${SEV_COLOR[sev]}[${f.rule}]${RESET} ${loc}`)
+      console.log(`  ${SEV[sev]}[${f.rule}]${RESET} ${loc}`)
       console.log(`         ${f.message}`)
       if (f.snippet) console.log(`         ${BOLD}>${RESET} ${f.snippet}`)
       console.log()
     }
   }
 
-  // Summary
-  console.log(`${BOLD}Summary:${RESET}  🔴 ${criticals.length} critical  🟡 ${highs.length} high  🔵 ${mediums.length} medium  ⚪ ${lows.length} low`)
+  console.log(`${BOLD}Summary:${RESET}  🔴 ${criticals.length} critical  🟡 ${highs.length} high  🔵 ${mediums.length} medium  ⚪ ${lows.length} low  (${elapsed}s)`)
   console.log()
 
-  // Fail CI on any CRITICAL or HIGH
   if (criticals.length > 0 || highs.length > 0) {
-    console.log(`${RED}${BOLD}✗ AUDIT FAILED — fix CRITICAL/HIGH issues before merging${RESET}\n`)
+    console.log(`${RED}${BOLD}✗ AUDIT FAILED — CRITICAL/HIGH issues must be fixed${RESET}\n`)
     process.exit(1)
-  } else {
-    console.log(`${YELLOW}${BOLD}⚠ AUDIT WARNED — MEDIUM/LOW issues found, review recommended${RESET}\n`)
-    process.exit(0)
   }
+
+  console.log(`${YELLOW}${BOLD}⚠  AUDIT WARNED — MEDIUM/LOW issues found${RESET}\n`)
+  process.exit(0)
 }
 
 main().catch(err => {

@@ -43,7 +43,7 @@
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 25 May 2026 (night) — Full session sync complete*
+*Last updated: 25 May 2026 (night) — Nightly build complete. Full handover in Section 2.*
 
 ### ⛔ WHAT IS BROKEN RIGHT NOW — Platform cannot function without these
 
@@ -200,7 +200,40 @@ Everything else on the to-do list is secondary to this.
 
 ### 📋 TOMORROW'S SESSION — Debrief Agenda
 
-*Added 25 May 2026 (evening). Full debrief + action items for next session.*
+*Added 25 May 2026 (evening). Updated 25 May 2026 (night) — nightly build status added.*
+
+#### 🔴 ONLY YOU CAN DO THESE (I am blocked without them)
+
+| # | Task | Time | Where |
+|---|---|---|---|
+| **1** | **Upgrade Apollo** | 5 min | app.apollo.io → Settings → Plan & Billing → Basic $49/mo minimum |
+| **2** | **Confirm RESEND_API_KEY in Railway** | 2 min | railway.app → KIND API → Variables |
+| **3** | **Check Railway deploy logs** | 2 min | railway.app → KIND API → Deployments → confirm green build |
+| **4** | **Run supabase/MASTER_SCHEMA.sql** | 5 min | Supabase → SQL Editor → paste full file → Run |
+| **5** | **Complete Paystack KYC** | 15 min | dashboard.paystack.com → Settings → Compliance |
+| **6** | **Create HubSpot Free account** | 10 min | app.hubspot.com → sign up → create 1 pipeline (Contacted/Discovery/Demo/Proposal/Closed) → share API key |
+| **7** | **Create calendar booking link** | 5 min | calendly.com or cal.com (free) → share URL → I wire it everywhere in 5 min |
+| **8** | **Run competitor ICPs** | 5 min | Supabase → SQL Editor → paste `supabase/competitor-icps.sql` → replace UUID with your client ID → Run → then admin portal → ICPs → hit Run on all 4 |
+| **9** | **Google Workspace** | 30 min | workspace.google.com → Business Starter → follow Section 2 step-by-step |
+
+#### 🟢 BUILT OVERNIGHT — Ready when you wake up
+
+| # | What | Status | Where to see it |
+|---|---|---|---|
+| B | **Sales Playbook** | ✅ Done | admin.get-kind.com/docs/sales-playbook |
+| C | **Founder morning brief email** | ✅ Code done | Activates when RESEND_API_KEY confirmed + Google Workspace live |
+| E | **Scalability tracker page** | ✅ Done | admin.get-kind.com/scalability |
+| G | **Competitor ICP SQL files** | ✅ Done | supabase/competitor-icps.sql — paste + run after Apollo upgrade |
+| — | **Admin nav: SALES section** | ✅ Done | New section in sidebar — Scalability + Sales Playbook |
+| — | **HubSpot sync code** | ✅ Code done | Plug-and-play when you share API key |
+
+#### ⏳ STILL WAITING ON YOU BEFORE I CAN FINISH
+
+| # | What | Waiting for |
+|---|---|---|
+| A | HubSpot sync (activate) | Your HubSpot API key → paste into Railway → live immediately |
+| D | "Book a Demo" wiring | Your Calendly/Cal.com URL → I wire in 30 min |
+| F | HubSpot pipeline view in admin | Same API key as above |
 
 | # | Item | Detail |
 |---|---|---|
@@ -2491,4 +2524,4 @@ An undocumented, founder-only process handed to an AE = slow ramp, low close rat
 ---
 
 *Owner: K.I.N.D founding team*
-*Last updated: 25 May 2026 (evening — full rebuild post all schema fixes)*
+*Last updated: 25 May 2026 (night — nightly build complete)*

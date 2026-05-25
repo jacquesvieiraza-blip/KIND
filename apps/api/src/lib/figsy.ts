@@ -280,7 +280,13 @@ export async function sendDay1OutreachBatch(
         body:          draft.body,
       })
 
-      await db.from('leads').update({ status: 'contacted' }).eq('id', lead.id)
+      // 'contacted' added via migration 20260525_fix_leads_status_and_figsy_memory.sql
+      // If constraint not yet updated, fall back to 'scored' (non-destructive)
+      const { error: statusErr } = await db.from('leads').update({ status: 'contacted' }).eq('id', lead.id)
+      if (statusErr) {
+        console.warn('[day1-outreach] contacted status not in constraint yet, using scored:', statusErr.message)
+        await db.from('leads').update({ status: 'scored' }).eq('id', lead.id)
+      }
     } catch (err) {
       console.error('[day1-outreach] lead', lead.id, err)
     }
@@ -296,10 +302,19 @@ export async function generateSequenceWithMemory(
   senderIndustry: string | null,
   campaignIntent?: string,
 ): Promise<SequenceDraft> {
-  const { data: memory } = await db.from('figsy_memory')
+  // last_winning_angle added via migration 20260525_fix_leads_status_and_figsy_memory.sql
+  // Try with last_winning_angle; if column missing, retry without it (graceful degradation)
+  let memoryResult = await db.from('figsy_memory')
     .select('best_subject_lines, avg_reply_rate_30d, total_sent_all_time, last_winning_angle')
     .eq('client_id', clientId)
     .maybeSingle()
+  if (memoryResult.error?.message?.includes('last_winning_angle')) {
+    memoryResult = await db.from('figsy_memory')
+      .select('best_subject_lines, avg_reply_rate_30d, total_sent_all_time')
+      .eq('client_id', clientId)
+      .maybeSingle()
+  }
+  const { data: memory } = memoryResult
 
   if (!memory || (memory.total_sent_all_time ?? 0) < 20) {
     return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent)

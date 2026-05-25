@@ -58,5 +58,8 @@ export function startCrons(): void {
   // Monday 06:00 UTC — K.I.N.D self-outreach (FIGSY finds new K.I.N.D prospects)
   cron.schedule('0 6 * * 1', () => callInternal('/cmo/self-outreach'), { timezone: 'UTC' })
 
-  console.log('[cron] 12 jobs scheduled')
+  // Daily 05:00 UTC (07:00 SAST) — Founder morning brief
+  cron.schedule('0 5 * * *', () => callInternal('/founder-brief'), { timezone: 'UTC' })
+
+  console.log('[cron] 13 jobs scheduled')
 }

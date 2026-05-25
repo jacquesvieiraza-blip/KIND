@@ -30,7 +30,7 @@
 19. [Tech Stack & Infrastructure](#19-tech-stack--infrastructure)
 20. [Smoke Test Checklist](#20-smoke-test-checklist)
 21. [Product Vision — 1, 3, 5 Years](#21-product-vision--1-3-5-years)
-22. [Competitive Audit — Alta AI SDR](#22-competitive-audit--alta-ai-sdr)
+22. [Competitive Audit — Full Landscape](#22-competitive-audit--full-landscape)
 23. [Key Decisions Locked](#23-key-decisions-locked)
 24. [UK Company Registration](#24-uk-company-registration)
 25. [Daily Audit — How It Works](#25-daily-audit--how-it-works)
@@ -976,17 +976,46 @@ FEATURE_PORTAL_V2=true
 
 ---
 
-## 22. COMPETITIVE AUDIT — ALTA AI SDR
+## 22. COMPETITIVE AUDIT — FULL LANDSCAPE
 
-### Their gaps (our weapons)
+*Last updated: 25 May 2026*
 
-- Zero Africa presence
-- USD-only, quarterly billing, non-refundable, no trial
-- No POPIA/NDPR compliance
+---
+
+### The One-Line Summary
+
+Every competitor below is either a DIY tool built for experienced sales teams, or enterprise software with enterprise pricing. None are fully managed, Africa-first, POPIA-compliant, and accessible to a founder with no sales team. That is the white space K.I.N.D owns.
+
+---
+
+### Competitor Map
+
+| Competitor | Who it's built for | Price/mo | Managed? | Africa? | Lead finding included? |
+|---|---|---|---|---|---|
+| **Alta AI SDR** | Mid-market sales teams | $500+ | Partial | ❌ | ✅ |
+| **Apollo.io** | In-house SDR teams | $49–99 | ❌ DIY | ❌ | ✅ |
+| **Instantly.ai** | Agencies, volume emailers | $37 | ❌ DIY | ❌ | ❌ Bring your own list |
+| **Lemlist** | SDRs, small agencies | $59–99 | ❌ DIY | ❌ | ❌ Bring your own list |
+| **Smartlead.ai** | Agencies, deliverability-focused | $39–94 | ❌ DIY | ❌ | ❌ Bring your own list |
+| **Clay.com** | Sophisticated agencies | $149–800 | ❌ DIY | ❌ | ✅ (50+ sources) |
+| **Salesloft / Outreach** | Enterprise sales teams | $100+/seat | ❌ DIY | ❌ | ❌ |
+| **Local SA alternatives** | — | — | — | ❌ None exist | — |
+| **K.I.N.D** | **Founder-led SA businesses** | **$20–300** | **✅ Fully** | **✅** | **✅** |
+
+---
+
+### 1. Alta AI SDR
+
+**What it is:** AI SDR platform. Finds leads, builds sequences, runs outreach. The closest product category match to K.I.N.D.
+
+**Their gaps — K.I.N.D's weapons:**
+- Zero Africa presence — no POPIA, no NDPR, no ZAR billing
+- USD-only pricing, quarterly billing, non-refundable, no trial
+- Minimum spend puts it out of reach for SME founders
 - No WhatsApp-native strategy
-- No ZAR billing
+- No managed onboarding — requires an SDR to configure and run it
 
-### What we've done from this audit
+**What we've done from this audit:**
 
 | # | Item | Status |
 |---|---|---|
@@ -997,6 +1026,137 @@ FEATURE_PORTAL_V2=true
 | 13 | African language support | Phase B |
 | 14 | SOC 2 Type II | Q1 2027 |
 | 15 | ICP self-improvement | 6 months post-launch |
+
+---
+
+### 2. Apollo.io
+
+**What it is:** Contact database (275M+ contacts) + DIY sequences tool + light CRM. K.I.N.D uses Apollo as its data source via API.
+
+**Relationship to K.I.N.D:** Supplier + partial competitor. Full analysis in Section 26 (Art of the Possible → Apollo — Supplier, Competitor, and Teacher).
+
+**Their gaps:**
+- Self-serve only — no managed service tier
+- US/EU-centric — no Africa-specific compliance tooling
+- Requires SDR skills to operate sequences effectively
+- No ZAR billing
+- Free plan blocks API entirely (minimum $49/mo for API access)
+
+**K.I.N.D's position:** Uses Apollo as the data engine. Wins on the managed service layer Apollo doesn't offer.
+
+---
+
+### 3. Instantly.ai
+
+**What it is:** High-volume cold email sending infrastructure. Mailbox warm-up, multi-inbox rotation, unlimited sending at low cost. Very popular with agencies running outbound for clients.
+
+**Their gaps:**
+- No lead finding — you must bring your own contact list
+- No AI personalisation — template-based only
+- No Africa presence, no POPIA, no ZAR billing
+- Requires expertise to set up correctly (deliverability, warm-up schedules)
+- Tool only — no strategy, no management, no outcome guarantee
+
+**Who uses it:** Cold email agencies, experienced SDRs who already have lists and know what they're doing. Not a founder-led SME product.
+
+**K.I.N.D's position:** K.I.N.D's buyer has never heard of Instantly and doesn't want to learn it. Non-overlapping buyers.
+
+---
+
+### 4. Lemlist
+
+**What it is:** Cold email + LinkedIn sequencing tool with AI personalisation (personalised images, icebreakers, video). More polished than Instantly, popular in Europe.
+
+**Their gaps:**
+- No lead finding built in — bring your own list (or use their add-on "Lemlist database" at extra cost)
+- Self-serve — no managed service
+- No Africa presence, no POPIA, no ZAR billing
+- Pricing in USD/EUR — no local payment options
+- LinkedIn automation risks (against LinkedIn ToS — K.I.N.D deliberately avoids this)
+
+**Who uses it:** SDRs and small agencies in Europe and the US who want a polished outreach tool. Not built for Africa, not managed.
+
+**K.I.N.D's position:** Lemlist targets someone who already has a pipeline process. K.I.N.D's buyer is building one for the first time.
+
+---
+
+### 5. Smartlead.ai
+
+**What it is:** Multi-mailbox cold email infrastructure focused on deliverability at scale. Similar to Instantly but with more agency-oriented features (client sub-accounts, white-label).
+
+**Their gaps:**
+- No lead finding
+- No AI writing — template-based
+- No Africa presence, no POPIA
+- Technical setup required — warm-up schedules, DNS records, inbox rotation
+- White-label is interesting but targets agencies already running high volume
+
+**Who uses it:** Cold email agencies running outbound at scale for multiple clients. Infrastructure-layer product.
+
+**K.I.N.D's position:** Smartlead is the infrastructure. K.I.N.D is the outcome. A client doesn't want to manage infrastructure — they want meetings.
+
+---
+
+### 6. Clay.com
+
+**What it is:** Data enrichment and sequencing workflow platform. Pulls from 50+ data sources (Apollo, LinkedIn, Clearbit, Hunter, Crunchbase, and more), uses AI (including Claude) to enrich and personalise at scale. Used by sophisticated revenue ops teams and high-end agencies.
+
+**Their gaps:**
+- Expensive ($149/mo minimum, up to $800/mo for serious usage)
+- Very steep learning curve — requires a dedicated RevOps person to build and run workflows
+- No managed service — you build the Clay tables yourself
+- No Africa focus, no POPIA, no ZAR billing
+- Not accessible to a founder without sales/data ops experience
+
+**Who uses it:** Growth agencies, revenue ops teams, sales-led Series A/B startups with dedicated operators. Not the same buyer as K.I.N.D at all.
+
+**What K.I.N.D can learn from Clay:**
+- Multi-source data enrichment (50+ providers vs K.I.N.D's single Apollo dependency) — relevant to the Year 2 data strategy
+- Waterfall enrichment logic (try Source A → if no email, try Source B → try Source C) — reduces the Apollo single-point dependency
+- This maps directly to the Clay alternative discussed in `docs/legal.md`
+
+---
+
+### 7. Salesloft / Outreach.io
+
+**What they are:** Enterprise-grade sales engagement platforms. Full sequence management, call recording, Salesforce/HubSpot deep integration, manager dashboards, forecasting. The platforms that run enterprise SDR teams.
+
+**Their gaps vs K.I.N.D:**
+- $100+ per seat per month — minimum viable spend is thousands of dollars monthly
+- Require a dedicated sales ops team to administer
+- Built for companies with 10+ SDRs, not solo founders
+- No Africa presence whatsoever
+
+**K.I.N.D's position:** No overlap at all currently. This is where K.I.N.D's enterprise tier could eventually play (white-label for large SA corporates running outbound at scale) — but that is Year 3+ territory.
+
+---
+
+### 8. Local South Africa / Africa Alternatives
+
+**The honest answer:** None exist that do what K.I.N.D does.
+
+There are:
+- CRM consultants who set up HubSpot or Salesforce for SA companies
+- Manual lead gen agencies that build lists by hand and charge per lead
+- Digital marketing agencies that run LinkedIn or Google ads
+- BPO-style sales development firms that employ human SDRs
+
+None of these are AI-native, automated, POPIA-compliant, credit-based, and accessible at $20/mo.
+
+**This is the gap.** K.I.N.D is the first product in this category built specifically for the African market.
+
+---
+
+### K.I.N.D's Defensible Advantages — Across All Competitors
+
+| Advantage | Why it's defensible |
+|---|---|
+| **Fully managed** | Every competitor is a tool. K.I.N.D is a service. Different buyer, different sales motion, lower churn. |
+| **Africa-first** | POPIA compliance, ZAR billing, Paystack, af-south-1 data residency. No competitor has this. |
+| **FIGSY as a named AI agent** | Not "automated sequences" — a named agent with memory, reasoning loop, and a personality. Emotional stickiness competitors can't replicate without rebuilding. |
+| **Credit model at SME price points** | $20 entry point vs $500+ minimum for alternatives. Unlocks a market that doesn't exist for any competitor. |
+| **Data moat (building now)** | Every sequence run, every reply classified, every ICP scored — accumulates into Africa-specific benchmarks no competitor has. |
+| **POPIA as a feature** | Every competitor treats compliance as a legal footnote. K.I.N.D treats it as a selling point — and in the African market, it's a genuine differentiator. |
 
 ---
 

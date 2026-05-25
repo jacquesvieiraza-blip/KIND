@@ -4,18 +4,46 @@ import { db } from '@kind/db'
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 interface IcpCriteria {
-  job_titles: string[]
+  job_titles:       string[]
   seniority_levels: string[]
-  industries: string[]
-  company_sizes: string[]
-  geographies: string[]
-  keywords: string[]
+  industries:       string[]
+  company_sizes:    string[]
+  geographies:      string[]
+  keywords:         string[]
 }
 
 interface ScoreResult {
-  id: string
-  score: number
+  id:        string
+  score:     number
   reasoning: string
+}
+
+// Strip markdown code fences that Claude sometimes wraps JSON in
+function stripCodeFences(text: string): string {
+  return text
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
+    .trim()
+}
+
+// Parse Claude's JSON response safely — returns empty array on any failure
+function parseScoringResponse(raw: string): ScoreResult[] {
+  try {
+    const cleaned = stripCodeFences(raw)
+    const parsed  = JSON.parse(cleaned)
+    if (!Array.isArray(parsed)) {
+      console.error('[scoring] Claude returned non-array:', raw.slice(0, 200))
+      return []
+    }
+    return parsed.filter((r): r is ScoreResult =>
+      typeof r?.id === 'string' &&
+      typeof r?.score === 'number' &&
+      typeof r?.reasoning === 'string'
+    )
+  } catch (err) {
+    console.error('[scoring] JSON parse failed:', err, '| raw:', raw.slice(0, 200))
+    return []
+  }
 }
 
 export async function scoreLeadsForIcp(
@@ -23,6 +51,13 @@ export async function scoreLeadsForIcp(
   icp: IcpCriteria,
   clientName: string,
 ): Promise<void> {
+  if (!leadIds.length) return
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn('[scoring] ANTHROPIC_API_KEY not set — skipping scoring, leads will stay as "pending"')
+    return
+  }
+
   const BATCH_SIZE = 10
 
   for (let i = 0; i < leadIds.length; i += BATCH_SIZE) {
@@ -34,7 +69,11 @@ export async function scoreLeadsForIcp(
         .select('id, first_name, last_name, job_title, company, industry, seniority, country')
         .in('id', batchIds)
 
-      if (error || !leads?.length) continue
+      if (error) {
+        console.error(`[scoring] batch ${Math.floor(i / BATCH_SIZE) + 1} — leads fetch error:`, error.message)
+        continue
+      }
+      if (!leads?.length) continue
 
       const icpDescription = [
         `Job titles: ${icp.job_titles.join(', ') || 'any'}`,
@@ -47,7 +86,7 @@ export async function scoreLeadsForIcp(
 
       const leadsText = leads
         .map(
-          (l: any, idx: number) =>
+          (l: Record<string, string | null>, idx: number) =>
             `${idx + 1}. id="${l.id}" name="${l.first_name} ${l.last_name}" title="${l.job_title || 'unknown'}" company="${l.company || 'unknown'}" industry="${l.industry || 'unknown'}" seniority="${l.seniority || 'unknown'}" country="${l.country || 'unknown'}"`,
         )
         .join('\n')
@@ -62,36 +101,74 @@ Score each lead from 0 to 100 based on how well they match the ICP. 100 = perfec
 Leads to score:
 ${leadsText}
 
-Return ONLY a JSON array with no markdown, no explanation:
+Return ONLY a JSON array with no markdown, no code fences, no explanation:
 [{"id":"<lead-id>","score":<0-100>,"reasoning":"<one sentence>"}]`
 
       const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model:      'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        messages: [{ role: 'user', content: prompt }],
+        messages:   [{ role: 'user', content: prompt }],
       })
 
-      const raw = (message.content[0] as { type: string; text: string }).text.trim()
-      const results: ScoreResult[] = JSON.parse(raw)
+      const raw     = (message.content[0] as { type: string; text: string }).text.trim()
+      const results = parseScoringResponse(raw)
+
+      if (!results.length) {
+        console.error('[scoring] no valid results from Claude for batch', Math.floor(i / BATCH_SIZE) + 1)
+        // Mark leads as scored with score=50 so they don't stay pending forever
+        const now = new Date().toISOString()
+        await Promise.all(
+          batchIds.map(id =>
+            db.from('leads').update({
+              score:              50,
+              score_reasoning:    'Auto-scored: AI scoring unavailable for this batch',
+              scored_at:          now,
+              status:             'scored',
+              estimated_deal_value_usd: 5000,
+            }).eq('id', id)
+          )
+        )
+        continue
+      }
 
       const now = new Date().toISOString()
 
-      await Promise.all(
+      // Update each lead individually so one failure doesn't block the rest
+      await Promise.allSettled(
         results.map((r) =>
           db
             .from('leads')
             .update({
-              score: r.score,
-              score_reasoning: r.reasoning,
-              scored_at: now,
-              status: 'scored',
+              score:                    r.score,
+              score_reasoning:          r.reasoning,
+              scored_at:                now,
+              status:                   'scored',
               estimated_deal_value_usd: r.score * 100,
             })
-            .eq('id', r.id),
+            .eq('id', r.id)
         ),
       )
+
+      console.log(`[scoring] batch ${Math.floor(i / BATCH_SIZE) + 1}: scored ${results.length} leads`)
     } catch (err) {
-      console.error(`[scoring] batch ${i / BATCH_SIZE + 1} failed:`, err)
+      console.error(`[scoring] batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, err)
+      // Mark these leads as scored with neutral score so they're visible in the UI
+      try {
+        const now = new Date().toISOString()
+        await Promise.allSettled(
+          batchIds.map(id =>
+            db.from('leads').update({
+              score:              50,
+              score_reasoning:    'Auto-scored: scoring error, please review manually',
+              scored_at:          now,
+              status:             'scored',
+              estimated_deal_value_usd: 5000,
+            }).eq('id', id)
+          )
+        )
+      } catch (fallbackErr) {
+        console.error('[scoring] fallback score update also failed:', fallbackErr)
+      }
     }
   }
 }

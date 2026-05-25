@@ -7,6 +7,18 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const FROM     = 'K.I.N.D <hello@get-kind.com>'
 const REPLY_TO = process.env.FIGSY_REPLY_TO || 'hello@get-kind.com'
 
+if (!process.env.RESEND_API_KEY) {
+  console.warn('[figsy] ⚠️  RESEND_API_KEY not set — ALL outreach emails will be silently skipped. Set this in Railway env vars.')
+}
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('[figsy] ⚠️  ANTHROPIC_API_KEY not set — email generation will fail.')
+}
+
+// Strip markdown code fences that Claude sometimes wraps JSON in
+function stripJson(text: string): string {
+  return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+}
+
 interface Lead {
   id: string
   first_name: string
@@ -96,7 +108,12 @@ Return ONLY valid JSON, no markdown:
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
-  return JSON.parse(raw) as SequenceDraft
+  try {
+    return JSON.parse(stripJson(raw)) as SequenceDraft
+  } catch {
+    console.error('[figsy] generateSequence JSON parse failed, raw:', raw.slice(0, 200))
+    throw new Error('Failed to generate email sequence — Claude returned invalid JSON')
+  }
 }
 
 export async function classifyReply(body: string): Promise<{
@@ -126,7 +143,12 @@ Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence"}`
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
-  return JSON.parse(raw)
+  try {
+    return JSON.parse(stripJson(raw))
+  } catch {
+    console.error('[figsy] classifyReply JSON parse failed, raw:', raw.slice(0, 200))
+    return { classification: 'other', reasoning: 'Classification failed — manual review needed' }
+  }
 }
 
 export async function sendSequenceEmail(
@@ -140,6 +162,9 @@ export async function sendSequenceEmail(
   if (!lead.email) throw new Error('Lead has no email')
 
   let messageId: string | undefined
+  if (!resend) {
+    console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} email to ${lead.email} NOT sent (enrollment still recorded)`)
+  }
   if (resend) {
     const result = await resend.emails.send({
       from:     FROM,
@@ -234,7 +259,12 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
-  return JSON.parse(raw) as Day1Draft
+  try {
+    return JSON.parse(stripJson(raw)) as Day1Draft
+  } catch {
+    console.error('[figsy] generateDay1Email JSON parse failed, raw:', raw.slice(0, 200))
+    throw new Error('Failed to generate Day 1 email — Claude returned invalid JSON')
+  }
 }
 
 export async function sendDay1OutreachBatch(
@@ -376,8 +406,9 @@ Return ONLY valid JSON:
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
   try {
-    return JSON.parse(raw) as SequenceDraft
+    return JSON.parse(stripJson(raw)) as SequenceDraft
   } catch {
+    console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
     return generateSequence(lead, senderCompanyName, senderIndustry)
   }
 }
@@ -426,7 +457,10 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       step3_body:     draft.step3.body,
     }).select('id').single()
 
-    if (error || !enrollment) return
+    if (error || !enrollment) {
+      console.error('[figsy] autoEnrollLead: enrollment insert failed', error?.message, 'for lead', leadId)
+      return
+    }
 
     // Increment campaign enrolled count
     const { data: camp } = await db.from('figsy_campaigns')
@@ -447,6 +481,6 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       campaign.id,
     )
   } catch (err) {
-    console.error('[figsy] autoEnrollLead failed:', err)
+    console.error('[figsy] autoEnrollLead failed for lead', leadId, ':', err instanceof Error ? err.message : err)
   }
 }

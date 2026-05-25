@@ -62,6 +62,8 @@ export default function LeadsPage() {
   const [emailDraft, setEmailDraft] = useState<{ leadId: string; draft: string } | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [runningIcp, setRunningIcp] = useState(false)
+  const [runResult, setRunResult] = useState<{ inserted: number; relaxed: string | null } | null>(null)
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkSending, setBulkSending] = useState(false)
@@ -134,7 +136,32 @@ export default function LeadsPage() {
 
   function showToast(message: string, type: 'success' | 'error' = 'success') {
     setToast({ message, type })
-    setTimeout(() => setToast(null), 4000)
+    setTimeout(() => setToast(null), 5000)
+  }
+
+  async function runActiveIcp(tok: string) {
+    const activeIcp = icps.find(i => i.is_active) ?? icps[0]
+    if (!activeIcp) { showToast('Build an ICP first — go to ICP Settings', 'error'); return }
+    setRunningIcp(true)
+    setRunResult(null)
+    try {
+      const res = await api.post<{ data: { inserted: number; skipped: number; total: number; relaxed: string | null } }>(
+        `/icps/${activeIcp.id}/run`, {}, tok
+      )
+      const { inserted, relaxed } = res.data
+      setRunResult({ inserted, relaxed })
+      if (inserted > 0) {
+        showToast(`✓ ${inserted} lead${inserted !== 1 ? 's' : ''} found — scoring now (takes ~30 seconds)`)
+        // Refresh data after a short delay to let scoring start
+        setTimeout(() => fetchData(tok), 3000)
+        setTimeout(() => fetchData(tok), 10000)
+      } else {
+        showToast(relaxed ?? 'No leads found. Try wider criteria in ICP Settings.', 'error')
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to run ICP — please try again', 'error')
+    }
+    setRunningIcp(false)
   }
 
   async function sendConsentEmail(leadId: string) {
@@ -262,6 +289,13 @@ export default function LeadsPage() {
               <Send className="w-4 h-4" />{bulkSending ? 'Sending…' : `Send consent (${selectedIds.size})`}
             </button>
           )}
+          {icps.length > 0 && token && (
+            <button onClick={() => runActiveIcp(token)} disabled={runningIcp}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors">
+              {runningIcp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {runningIcp ? 'Finding leads…' : 'Run ICP'}
+            </button>
+          )}
           <a href="/dashboard/leads/icp"
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-400 transition-colors">
             <Settings2 className="w-4 h-4" />ICP Settings
@@ -354,20 +388,33 @@ export default function LeadsPage() {
             {icps.length === 0 ? (
               <>
                 <p className="text-sm font-medium text-gray-700">No ICP set up yet</p>
-                <p className="text-xs mt-1">Define your ideal customer profile so K.I.N.D knows who to find.</p>
+                <p className="text-xs mt-1 mb-4">Define your ideal customer profile so K.I.N.D knows who to find.</p>
                 <a href="/dashboard/leads/icp"
-                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
                   <Plus className="w-4 h-4" />Build your ICP
                 </a>
               </>
             ) : (
               <>
                 <p className="text-sm font-medium text-gray-700">No leads yet</p>
-                <p className="text-xs mt-1">Your ICP is saved — run it to pull matching leads from Apollo.</p>
-                <a href="/dashboard/leads/icp"
-                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
-                  <Settings2 className="w-4 h-4" />Run your ICP →
-                </a>
+                {runResult?.relaxed ? (
+                  <p className="text-xs mt-1 mb-4 max-w-xs mx-auto text-amber-600">{runResult.relaxed}</p>
+                ) : (
+                  <p className="text-xs mt-1 mb-4">Your ICP is saved — click Run ICP to pull matching leads from Apollo.</p>
+                )}
+                <div className="flex items-center justify-center gap-3">
+                  {token && (
+                    <button onClick={() => runActiveIcp(token)} disabled={runningIcp}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors">
+                      {runningIcp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      {runningIcp ? 'Finding leads…' : 'Run ICP now'}
+                    </button>
+                  )}
+                  <a href="/dashboard/leads/icp"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-400 transition-colors">
+                    <Settings2 className="w-4 h-4" />Adjust ICP
+                  </a>
+                </div>
               </>
             )}
           </div>

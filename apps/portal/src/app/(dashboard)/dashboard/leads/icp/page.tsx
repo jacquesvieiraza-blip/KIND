@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send, Play } from 'lucide-react'
 
 // ── AI Chat panel ─────────────────────────────────────────────────────────────
 function AiChatPanel({ token, onFill }: { token: string; onFill: (data: Partial<ICPFormData>) => void }) {
@@ -218,12 +218,14 @@ export default function ICPPage() {
   const [form, setForm] = useState<ICPFormData>(emptyForm())
   const [saved, setSaved] = useState(false)
   const [showSavedBanner, setShowSavedBanner] = useState(false)
+  const [runBannerMsg, setRunBannerMsg] = useState<string | null>(null)
   const [prefillNotice, setPrefillNotice] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [nameSuggestion, setNameSuggestion] = useState<string | null>(null)
   const [aiSuggesting, setAiSuggesting]     = useState(false)
   const [aiSuggestError, setAiSuggestError] = useState<string | null>(null)
+  const [runningId, setRunningId] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -288,6 +290,30 @@ export default function ICPPage() {
     setShowForm(true)
   }
 
+  async function runIcp(icpId: string) {
+    if (!token) return
+    setRunningId(icpId)
+    setRunBannerMsg(null)
+    try {
+      const res = await api.post<{ data: { inserted: number; skipped: number; total: number; relaxed: string | null } }>(
+        `/icps/${icpId}/run`, {}, token
+      )
+      const { inserted, relaxed } = res.data
+      if (inserted > 0) {
+        setRunBannerMsg(`✅ ${inserted} lead${inserted !== 1 ? 's' : ''} found and being scored — go to Lead Gen to see them.`)
+      } else {
+        setRunBannerMsg(
+          relaxed
+            ? `⚠️ ${relaxed}`
+            : '⚠️ No leads found. Try broadening your criteria — more industries, more geographies, or fewer company size restrictions.'
+        )
+      }
+    } catch (err) {
+      setRunBannerMsg(`❌ ${err instanceof Error ? err.message : 'Failed to run ICP — please try again.'}`)
+    }
+    setRunningId(null)
+  }
+
   async function handleSave() {
     if (!token) return
     // Auto-use the name suggestion if name is still blank
@@ -303,17 +329,21 @@ export default function ICPPage() {
     setSaveError(null)
     const payload = { ...form, name: finalName }
     try {
+      let savedIcp: ICP
       if (editingId) {
         const res = await api.patch<{ data: ICP }>(`/icps/${editingId}`, payload, token)
-        setIcps(prev => prev.map(i => i.id === editingId ? res.data : i))
+        savedIcp = res.data
+        setIcps(prev => prev.map(i => i.id === editingId ? savedIcp : i))
       } else {
         const res = await api.post<{ data: ICP }>('/icps', payload, token)
-        setIcps(prev => [res.data, ...prev])
+        savedIcp = res.data
+        setIcps(prev => [savedIcp, ...prev])
       }
       setSaved(true)
-      setShowSavedBanner(true)
-      setTimeout(() => setShowSavedBanner(false), 8000)
-      setTimeout(() => { setSaved(false); setShowForm(false) }, 1200)
+      setShowForm(false)
+      // Auto-run the ICP immediately after save
+      await runIcp(savedIcp.id)
+      setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       const msg = err instanceof Error
         ? err.message
@@ -427,15 +457,26 @@ export default function ICPPage() {
         </div>
       )}
 
-      {/* Saved banner */}
-      {showSavedBanner && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between">
-          <p className="text-sm text-blue-800">
-            ✅ ICP saved — K.I.N.D is searching for your leads now. Check back in a few minutes.
-          </p>
-          <button onClick={() => setShowSavedBanner(false)} className="ml-4 text-blue-400 hover:text-blue-600 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
+      {/* Run result banner */}
+      {runBannerMsg && (
+        <div className={`border rounded-xl px-4 py-3 flex items-center justify-between ${
+          runBannerMsg.startsWith('✅')
+            ? 'bg-green-50 border-green-200'
+            : runBannerMsg.startsWith('❌')
+            ? 'bg-red-50 border-red-200'
+            : 'bg-amber-50 border-amber-200'
+        }`}>
+          <p className="text-sm font-medium text-gray-800">{runBannerMsg}</p>
+          <div className="flex items-center gap-3 ml-4 shrink-0">
+            {runBannerMsg.startsWith('✅') && (
+              <a href="/dashboard/leads" className="text-xs text-brand-600 hover:text-brand-700 font-medium underline">
+                View leads →
+              </a>
+            )}
+            <button onClick={() => setRunBannerMsg(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -481,6 +522,16 @@ export default function ICPPage() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => runIcp(icp.id)}
+                disabled={runningId === icp.id}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-60 transition-colors"
+              >
+                {runningId === icp.id
+                  ? <><Loader2 className="w-3 h-3 animate-spin" />Running…</>
+                  : <><Play className="w-3 h-3" />Run ICP</>
+                }
+              </button>
               {!icp.is_active && (
                 <button onClick={() => handleActivate(icp.id)}
                   className="text-xs text-brand-600 hover:text-brand-700 font-medium transition-colors">

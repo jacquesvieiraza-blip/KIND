@@ -3,7 +3,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { buildSearchBody, searchPeople } from '../lib/apollo'
+import { searchPeopleWithFallback } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -35,13 +35,12 @@ export async function runIcpJob(
   icpId: string,
   clientId: string,
   userId: string,
-): Promise<{ inserted: number; skipped: number }> {
+): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
 
-  const searchBody = buildSearchBody(icp)
-  const contacts   = await searchPeople(searchBody)
+  const { contacts, relaxed } = await searchPeopleWithFallback(icp)
 
   let inserted = 0
   let skipped  = 0
@@ -160,7 +159,7 @@ export async function runIcpJob(
     }
   }
 
-  return { inserted, skipped }
+  return { inserted, skipped, relaxed }
 }
 
 // /builder/chat removed — superseded by /chat-build (which handles this conversationally)
@@ -319,9 +318,9 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const { inserted, skipped } = await runIcpJob(req.params.id, clientId, req.userId!)
+    const { inserted, skipped, relaxed } = await runIcpJob(req.params.id, clientId, req.userId!)
 
-    res.json({ success: true, data: { inserted, skipped, total: inserted + skipped } })
+    res.json({ success: true, data: { inserted, skipped, total: inserted + skipped, relaxed } })
   } catch (err) {
     console.error(err)
     res.status(500).json({

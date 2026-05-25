@@ -59,6 +59,8 @@
 | 8 | **No recurring billing for Milla/Vida** | Subscriptions are one-off Paystack payments. Client pays $49 once and is never billed again. No monthly rebilling. No Paystack plan codes set up. Revenue model is broken from day one. | **Claude** (with your authority) — implement Paystack recurring plan codes + monthly webhook |
 | 9 | **credits.ts bundles ≠ shared constants — pricing inconsistency** | `credits.ts` exposes 7 tiers (10, 20, 40, 75, 100, 200, 500 credits) at prices that differ from the shared constants (20/$20 and 100/$100 only). Clients see different prices depending on payment path. Violates the "pricing locked" rule. | **Claude** (with your authority) — align credits.ts bundles to match shared constants exactly |
 | 10 | **Vercel root directory config — unknown state** | Each app has correct `vercel.json` files locally. But if Vercel projects were created from monorepo root without Root Directory set in dashboard, those files may not be read. This is likely why "portal was not fixed" even after code was pushed to GitHub. | **You** — Vercel dashboard → each project → Settings → General → Root Directory → set `apps/portal`, `apps/admin`, `apps/website` |
+| 11 | **No lead drip / stagger delivery** | All leads from an ICP run are delivered at once and all credits consumed in one hit. A client who buys 20 credits gets all 20 leads immediately — nothing drips, no daily cadence, no reason to stay engaged. Agreed design: 5 leads/day default. See Section 14a for full design. | **Claude** (with your authority) — build daily drip queue with configurable rate |
+| 12 | **Client cannot control how many leads they want** | No UI or setting exists for a client to say "I want 10 leads this week" or "give me 3 leads per day." ICP runs return whatever Apollo finds, up to the credit balance. Client has zero control over volume or pace. | **Claude** (with your authority) — add `leads_per_run` and `daily_drip_rate` settings to ICP builder and client settings |
 
 ---
 
@@ -283,6 +285,8 @@ Everything else on the to-do list is secondary to this.
 | 7 | **Low credit email reminder** | Email client when `credit_balance` drops below 5. Drives top-up behaviour. | 2 hours |
 | 8 | **Wire Calendly/Cal.com to "Book a demo" buttons** | All mailto: links replaced with real booking URL. | 30 min (needs your URL) |
 | 9 | **Full portal dry run** | Sign up → ICP → leads → credits deduct → FIGSY gate → Milla/Vida gate → billing flow | Session with founder |
+| 10 | **Lead drip delivery** | Queue leads after ICP run, deliver `daily_drip_rate` per day (default 5). Cron job. Requires `daily_drip_rate` column on clients, `queued_at`/`delivered_at` on leads. See Section 14a. | 1 day |
+| 11 | **Client lead quantity control** | Client sets `leads_per_run` (max per ICP run) and `daily_drip_rate` (leads delivered per day) in ICP builder or settings. Admin can override per client. | Half day |
 
 ---
 

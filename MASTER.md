@@ -569,15 +569,43 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 | vida-widget.js | Self-contained embeddable JS |
 | Locked screen | Upgrade + Book a Demo CTAs |
 
+### Client Portal — 22 pages
+
+| Page | What it does |
+|---|---|
+| `/login` | Login page |
+| `/onboard` | Post-signup onboarding — company name, industry, country |
+| `/dashboard` | Main dashboard — credit balance, FIGSY stats, product status cards |
+| `/dashboard/leads` | Leads table — search, filter, bulk actions, CSV export |
+| `/dashboard/leads/icp` | ICP list — all ICPs, run ICP button |
+| `/dashboard/leads/icp/builder` | ICP builder — conversational + form modes |
+| `/dashboard/figsy` | FIGSY — campaigns, enrol, reply inbox. ⚠️ Still allows 'trialing' (known bug) |
+| `/dashboard/figsy/replies` | Unified reply inbox |
+| `/dashboard/assistant` | Milla — document chat. Requires `status === 'active'` only |
+| `/dashboard/chatbot` | Vida — chatbot config + embed code. Requires `status === 'active'` only |
+| `/dashboard/billing` | Billing — buy credits (Paystack/Stripe), buy Milla/Vida/Bundle subscriptions |
+| `/billing/confirm` | Billing confirmation — post-payment return page |
+| `/dashboard/documents` | Document library |
+| `/dashboard/analytics` | Analytics — 6-month trends, ICP breakdown, score distribution |
+| `/dashboard/kpis` | KPI tracker |
+| `/dashboard/usage` | Usage history |
+| `/dashboard/roadmap` | Platform roadmap visible to clients |
+| `/dashboard/referral` | Referral programme — 100 credits both ways |
+| `/dashboard/settings` | Company settings, CRM integration, Google Calendar |
+| `/dashboard/v2` | Portal V2 preview (feature flagged) |
+| `/consent` | POPIA consent page for leads |
+| `/privacy`, `/terms` | Legal pages |
+
 ### Billing
 
 | Item | Notes |
 |---|---|
 | Paystack (ZAR topups) | Test key now — **live after KYC** |
 | Stripe (USD subscriptions) | Built, needs credentials |
-| Credit balance in sidebar + dashboard | Live |
+| Credit balance in sidebar + dashboard | Live — TWO balances: Lead Gen (`credit_balance`) + FIGSY (`figsy_credits_remaining`) |
 | Auto top-up settings | Live (needs `auto_topup_*` columns — covered in MASTER_SCHEMA.sql) |
 | Trial expired overlay | Live |
+| Cancel subscription | ❌ NOT BUILT — "Cancel anytime" shown in UI but no endpoint exists |
 
 ### Settings
 
@@ -588,18 +616,26 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 | CRM integration — HubSpot, Pipedrive | Live |
 | Google Calendar connect | Built, needs credentials |
 
-### Admin Portal
+### Admin Portal — 15 pages
 
-| Item | Notes |
+| Page | What it does |
 |---|---|
-| Dashboard — KPIs, MRR, TTFL, client pipeline | Live |
-| Clients list | All clients, subs, T&Cs |
-| Client detail — subscriptions, credit balance, grant/refund, transaction history | Live |
-| Demo Environments — create/open/extend/expire | Live |
-| Cohort analytics — /admin/cohorts | Live |
-| Roadmap — Phase 1–4 milestone tracking | Live |
-| Launch checklist — 13 sections, 60+ items | Live |
-| CMO tools — LinkedIn post generator, prospect finder | Live |
+| `/` | Dashboard — KPIs, MRR, TTFL, client pipeline, monthly targets |
+| `/clients` | Client list — health scoring, leads 14d, FIGSY status, last login, at-risk filter |
+| `/clients/[id]` | Client detail — subscriptions, credit balance, grant/refund, transaction history |
+| `/agents/[agent]` | AI Exec Team — OTTO, LENA, REEVE, CMO, CTO, CFO — daily Claude briefs |
+| `/revenue` | Live MRR, Conservative/Base/Optimistic scenarios, monthly targets |
+| `/health` | Platform health — Railway/Supabase/Vercel/Paystack status, FIGSY cron status |
+| `/compliance` | 5 cert trackers (GDPR ✅ CCPA ✅ SOC 2 🔵 ISO 27001 🔵 ISO 42001 🔵) |
+| `/docs/[doc]` | Living docs viewer — MASTER.md, run-costs, legal rendered in-app |
+| `/cmo` | CMO tools — LinkedIn post generator, prospect finder |
+| `/cohorts` | Cohort analytics — signup month, activation, conversion, churn |
+| `/demo` | Demo environments — create/open/extend/expire |
+| `/terms-library` | Terms templates |
+| `/roadmap` | Phase 1–4 milestone tracking |
+| `/launch` | Launch checklist — 13 sections, 60+ items |
+| `/founder` | Founder digest + agent actions |
+| `/scalability` | Sales scaling tracker — hiring triggers, AE economics |
 
 ### Internal Founder Agents
 
@@ -619,11 +655,35 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 |---|---|
 | Apply, validate referral code, admin list/approve | Live |
 | Client referral page /dashboard/referral | 100 credits both ways |
-| partners.html | 20% recurring commission |
+| partners.html | 20% referral / 25–30% agency commission — all products listed |
+| Partner earnings calculator | 3-scenario model: Conservative $139/mo, Realistic $469/mo, Optimistic $1,065/mo |
 
-### Website (get-kind.com) — 16+ pages
+### Website (get-kind.com) — 22 pages
 
-All comparison pages, trust, DPA, DPA-US, pricing, support, about, use-cases, figsy-video. ✅
+| Page | Purpose |
+|---|---|
+| index.html | Homepage — full product overview, pricing tiers, agent cards |
+| pricing.html | Full pricing — credit bundles + Milla/Vida/Bundle add-ons + "Book a demo" CTAs |
+| virtual-assistant.html | Milla product page — $49/mo, "Unlock Milla" CTA |
+| chatbot-agent.html | Vida product page — $29/mo, "Unlock Vida" CTA |
+| partners.html | Partner programme — commission rates, 3-scenario earnings calculator |
+| about.html | Founder belief, dogfooding, AI revenue team |
+| demo.html | Demo request page |
+| demo-video.html | Demo video embed |
+| figsy-video.html | FIGSY explainer video |
+| platform-video.html | Full platform walkthrough video |
+| platform-video-standalone.html | Standalone video player |
+| use-cases.html | Use case library |
+| support.html | Support page |
+| trust.html | POPIA, GDPR, CAN-SPAM, CCPA compliance |
+| terms.html | Terms of service ⚠️ Still contains real founder name — deliberately left, to be updated when UK company registered |
+| dpa.html | Data Processing Agreement |
+| dpa-us.html | US DPA addendum (CCPA, VCDPA, CPA) |
+| vs-apollo.html | Comparison — K.I.N.D vs Apollo |
+| vs-hiring-an-sdr.html | Comparison — K.I.N.D vs hiring an SDR |
+| vs-outreach.html | Comparison — K.I.N.D vs Outreach.io |
+| vs-prospecting-manually.html | Comparison — K.I.N.D vs manual prospecting |
+| vs-salesloft.html | Comparison — K.I.N.D vs Salesloft |
 
 ---
 
@@ -646,6 +706,11 @@ All comparison pages, trust, DPA, DPA-US, pricing, support, about, use-cases, fi
 | **Portal V2 design** | New sidebar + mission control layout for client portal | `FEATURE_PORTAL_V2=true` in Railway | Now (feature flag) |
 | **Milla VA** | Document upload + RAG chat for clients — answers questions from their own uploaded docs | Nothing — live and gated behind `status === 'active'` | NOW — live and gated |
 | **Vida chatbot** | Embeddable website + WhatsApp chatbot for K.I.N.D clients' own websites | Nothing — live and gated behind `status === 'active'` | NOW — live and gated |
+
+> ⚠️ **NOT in this table — these are missing builds, not blocked by credentials:**
+> - Cancel subscription endpoint (`POST /subscriptions/:id/cancel`) — no code exists
+> - Milla/Vida recurring monthly billing — no Paystack plan codes, no rebilling
+> - FIGSY 'trialing' gate fix — one line of code, awaiting authority
 
 ---
 
@@ -992,7 +1057,7 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | API auth — admin routes | ✅ Protected | requireAdminKey on all admin endpoints |
 | JWT refresh | ✅ Working | Supabase SSR runs on every portal request |
 | CORS | ✅ Strict | Allowlist: get-kind.com, app.get-kind.com, admin.get-kind.com |
-| Subscription gating | ✅ Defense-in-depth | Frontend locked screens + backend 403 checks |
+| Subscription gating | ⚠️ Partial | Milla + Vida: frontend locked + backend `active` only ✅. FIGSY: frontend upgrade gate ✅ but still allows `trialing` status — backend gate incomplete ❌ |
 | Demo isolation | ✅ Secure | Demo clients are real rows under same RLS as paying clients |
 | Opt-out blocklist | ✅ Enforced | Checked before every lead insert |
 | Daily automated audit | ✅ New | Scans for 17 security/reliability rules every morning and afternoon |
@@ -1234,13 +1299,16 @@ Year 1 ARR: ~$138,000 · Break-even: Month 1
 
 ## 17. CLIENT FLOW — ALL PATHS
 
-1. **Self-service trial** — signup → no email confirmation → /onboard → dashboard → 14-day trial → pay
+1. **Self-service trial** — signup → no email confirmation → /onboard → dashboard → 14-day trial → Lead Gen only (20 trial credits)
 2. **AE-assisted** — same as above, AE helps with order form + payment
 3. **Pay day 1** — signup → skip trial → pay immediately
 4. **Trial expired** — overlay → pay to regain access
-5. **Upgrade** — active client adds FIGSY bundle (manual admin action to cancel old sub)
-6. **FIGSY add-on** — manual process, AE activates via admin
-7. **Sales demo** — Admin → Demo Envs → create demo → open portal as prospect
+5. **Buy Lead Gen credits** — Billing → Paystack → webhook → `credit_balance` topped up
+6. **Buy FIGSY credits** — Billing → Paystack → webhook → `figsy_credits_remaining` topped up
+7. **Buy Milla subscription** — Billing → Paystack → webhook → subscription created `status=active` → Milla unlocked
+8. **Buy Vida subscription** — same as above → Vida unlocked
+9. **Cancel Milla/Vida** — ❌ NOT BUILT — no cancel flow exists yet
+10. **Sales demo** — Admin → Demo Envs → create demo → open portal as prospect
 
 ---
 
@@ -1310,7 +1378,7 @@ Client → Billing → selects plan → Paystack → webhook fires → subscript
 | Lead data | Apollo.io API | Pre-consented contacts first |
 | Email sending | Resend | replies@get-kind.com (FIGSY), hello@get-kind.com (Workspace) |
 | Payments | Paystack (ZAR — live after KYC) + Stripe (USD/GBP — Phase 2) | Credit bundles |
-| Website | Static HTML | apps/website — Vercel (kind-admin) |
+| Website | Static HTML | apps/website — Vercel (confirm project name in dashboard — was incorrectly noted as kind-admin) |
 
 ### Railway API URL
 `https://kindapi-production-e64c.up.railway.app`
@@ -1425,7 +1493,7 @@ Every competitor below is either a DIY tool built for experienced sales teams, o
 | **Clay.com** | Sophisticated agencies | $149–800 | ❌ DIY | ❌ | ✅ (50+ sources) |
 | **Salesloft / Outreach** | Enterprise sales teams | $100+/seat | ❌ DIY | ❌ | ❌ |
 | **Local SA alternatives** | — | — | — | ❌ None exist | — |
-| **K.I.N.D** | **Founder-led SA businesses** | **$20–300** | **✅ Fully** | **✅** | **✅** |
+| **K.I.N.D** | **Founder-led SA businesses** | **$20 credits → $49–69/mo** | **✅ Fully** | **✅** | **✅** |
 
 ---
 
@@ -2251,7 +2319,7 @@ All of these map directly to API endpoints that already exist. The MCP server is
 **Why this is strategically important:**
 - **Anthropic MCP directory** — companies that list early get visibility to every Claude user. A K.I.N.D MCP listed there means any Claude user needing African B2B leads finds K.I.N.D before anything else
 - **Agency and developer adoption** — agencies building AI sales workflows need a lead gen layer. K.I.N.D's MCP becomes that layer without needing to build a full white-label product
-- **Milla uses it internally** — when Milla is built, she calls the K.I.N.D MCP, not the raw database. Same tools external developers use. Build once, powers both internal AI and external integrations
+- **Milla uses it internally** — Milla is already built. When the MCP server is built, Milla calls it instead of the raw database. Same tools external developers use. Build once, powers both internal AI and external integrations
 - **New pricing tier** — API/MCP access as a developer tier. Higher ARPU than a standard client
 - **Two revenue streams** — K.I.N.D sells outcomes to founders AND sells infrastructure to builders. Entirely different market, same platform
 
@@ -2307,7 +2375,8 @@ Full legal documents are maintained in `/docs/legal.md`.
 |---|---|---|---|
 | 1 | **Apollo.io ToS — managed service vs data reselling** | 🔴 High | Brief prepared — take to lawyer before 50 clients |
 | 2 | **UK company registration** | 🔵 Medium | See Section 24 — £50, same day, companieshouse.gov.uk |
-| 3 | **Client agreement language — managed service clause** | 🔴 High | Lawyer to draft clause clarifying K.I.N.D as managed service provider, not data reseller |
+| 3 | **Client agreement language — managed service clause** | 🔴 High | Lawyer to draft clause clarifying K.I.N.D as managed service provider, not data reseller. ⏳ Not started. |
+| 3a | **terms.html — real founder name** | ⚪ Known exception | terms.html lines 129, 280, 293 still contain real name. Deliberately left until UK company registered. Do not remove from public website until company number is confirmed. |
 | 4 | **POPIA compliance** | ✅ Done | Consent flow, opt-out blocklist, DPA published, data stored in Cape Town (af-south-1) |
 | 5 | **GDPR compliance** | ✅ Done | trust.html, dpa.html — Articles 6(1)(f), 17, 13/14 |
 | 6 | **CAN-SPAM / CCPA compliance** | ✅ Done | trust.html, dpa-us.html |
@@ -2342,8 +2411,8 @@ Not a tweaked version of the client portal. A completely different product for a
 
 One living space. Everything operational in one place. Open it in the morning and know exactly what's happening — with clients, the platform, revenue, and the AI exec team.
 
-Current state: V0.5 — basic client management, light theme, horizontal nav.
-Target state: Founder-grade ops centre. Dark sidebar. AI exec team. Living docs. Full revenue picture.
+Current state: **V2 — fully built and live.** Dark sidebar, AI exec team, living docs, revenue page, compliance tracker, health page. All 15 pages live at admin.get-kind.com.
+~~Target state: Founder-grade ops centre. Dark sidebar. AI exec team. Living docs. Full revenue picture.~~ ✅ Done.
 
 ---
 

@@ -3,9 +3,29 @@
 
 ---
 
+## ⚡ 50-CLIENT TRIGGER — ACTION REQUIRED AT THIS MILESTONE
+
+> **When K.I.N.D reaches 50 paying clients, the following legal actions must be executed before onboarding client 51.**
+
+| Action | Who | What to do |
+|---|---|---|
+| **1. Contact Apollo partnerships** | Founder | Email partnerships@apollo.io — request formal partner/reseller agreement. Reference K.I.N.D as a managed outreach service. Provide client count and monthly API volume. |
+| **2. Evaluate data source migration** | Founder + Claude | Compare Apollo partner terms against Cognism and ZoomInfo managed service licences. See data source comparison below. |
+| **3. Lawyer review — client agreements** | Lawyer | Confirm client agreement language is sufficient. Update managed service clause if required. |
+| **4. Decision: Apollo partner OR client API keys** | Founder | Lock in one of the two clean structures before scale makes the decision urgent. |
+
+**Why 50 clients?**
+- Below 50: Apollo is unlikely to flag the usage pattern. Risk is theoretical.
+- Above 50: A single account running 50+ simultaneous ICP searches across different company profiles triggers commercial review. Apollo will reach out. Better to be ahead of it.
+- Above 100: If unresolved, Apollo terminating K.I.N.D's API key shuts down the core product for every client simultaneously. Non-negotiable to have resolved by this point.
+
+---
+
 ## TABLE OF CONTENTS
 
 1. [Apollo.io ToS — Data Licensing & Managed Service Structure](#1-apolloio-tos--data-licensing--managed-service-structure)
+2. [Alternative Data Sources — If Not Apollo](#2-alternative-data-sources--if-not-apollo)
+3. [How Alta SDR and Competitors Handle This](#3-how-alta-sdr-and-competitors-handle-this)
 
 ---
 
@@ -202,5 +222,143 @@ This should not block the launch. It must be on the legal checklist before reach
 ---
 
 *This document is a briefing for legal counsel. It does not constitute legal advice. All ToS references must be verified against current Apollo.io terms before any legal opinion is formed.*
+
+---
+
+## 2. ALTERNATIVE DATA SOURCES — IF NOT APOLLO
+
+If Apollo's partner terms are unworkable, or if K.I.N.D migrates at scale, these are the alternatives. Evaluated specifically for a managed outreach service model.
+
+---
+
+### Option 1 — Cognism *(recommended migration path)*
+
+**What it is:** European B2B contact intelligence platform. Built for compliance from the ground up. GDPR-compliant by design, with CCPA and POPIA-aligned data handling.
+
+**Database size:** 400M+ business profiles globally. Strong European, UK, US, and increasingly African coverage.
+
+**Why it suits K.I.N.D:**
+- Has a formal **agency and managed service programme** — explicitly designed for companies like K.I.N.D that use contact data to run outreach on behalf of clients
+- Contacts are phone-verified and consent-verified (Diamond Data tier) — strongest compliance position of any provider
+- GDPR Article 6(1)(f) legitimate interest basis is built into their data collection — directly supports K.I.N.D's POPIA/GDPR outreach model
+- No ambiguity about managed service use — it is a named use case in their commercial terms
+
+**Pricing:** Enterprise contract, typically $15,000–25,000/year. Requires negotiation. No self-serve API plan.
+
+**When to trigger:** At 50+ clients where Apollo ToS becomes material risk, or if Apollo partner terms are not acceptable.
+
+**Contact:** cognism.com → Book a demo → specify "agency/managed service" use case
+
+---
+
+### Option 2 — ZoomInfo
+
+**What it is:** The largest B2B contact database in the world. 300M+ contacts, 100M+ company profiles. US-dominant but global coverage.
+
+**Why it suits K.I.N.D:**
+- Has a formal **partner and reseller programme** — including managed service providers
+- API access with multi-client usage rights available under negotiated terms
+- Strong US and UK coverage — important for K.I.N.D's Phase 2 market expansion
+
+**Pricing:** Enterprise only. Typically $20,000–50,000+/year depending on volume and use case. Significant investment but legally clean.
+
+**When to trigger:** Phase 2 US/UK expansion (after 5 paying clients), evaluated alongside Cognism.
+
+---
+
+### Option 3 — Clay.com *(data aggregation layer)*
+
+**What it is:** Clay is not a data source — it is a data enrichment platform that aggregates 50+ sources (Apollo, Hunter, LinkedIn, Clearbit, Cognism, etc.) and enriches contact records. Clay has negotiated data agreements with all of its providers.
+
+**Why it suits K.I.N.D:**
+- Using Clay means K.I.N.D's data dependency shifts from Apollo (one provider, one ToS risk) to Clay (one contract covering 50+ sources)
+- Clay has explicit managed service / agency use cases in its terms
+- Better data quality through multi-source enrichment — email + phone + LinkedIn + intent signals combined
+- Clay's pricing is per-row enriched rather than per-contact, which may be more cost-effective at scale
+
+**Pricing:** Usage-based. Starts at $149/mo for 2,000 credits. Scales with volume.
+
+**When to trigger:** Could be implemented now as an additional enrichment layer on top of Apollo, or as a full replacement migration at 50+ clients.
+
+---
+
+### Option 4 — Hunter.io *(targeted, not prospecting)*
+
+**What it is:** Email finder. Give it a company domain, it returns verified email addresses for people at that company.
+
+**Limitation:** Hunter does not provide prospecting (find me VP Sales in Fintech). It only enriches known companies. K.I.N.D would need to know which companies to target first. Not a like-for-like Apollo replacement for ICP-based lead generation.
+
+**Use case:** Supplementary enrichment — if a lead comes in without an email, Hunter can find it. Not a primary data source.
+
+---
+
+### Option 5 — Build a Prospecting Layer on LinkedIn Data *(highest risk, highest quality)*
+
+LinkedIn has the most accurate B2B contact data in the world. Sales Navigator is the gold standard. The problem: LinkedIn's ToS explicitly prohibit scraping, and they actively litigate (hiQ v LinkedIn went to the US Supreme Court).
+
+**The legal path:** LinkedIn Marketing Solutions API — official, licensed, expensive, limited to advertising use cases. Not suitable for K.I.N.D's outreach model.
+
+**The grey path:** Many companies (Instantly, Lemlist, Clay) use LinkedIn data via Phantombuster, ProxyCurl, or similar tools that technically violate LinkedIn's ToS. Widely used in practice. LinkedIn enforces selectively against large-scale scrapers. Not recommended — legal exposure outweighs the data quality benefit.
+
+**Verdict:** Do not use LinkedIn as a primary data source. Apollo/Cognism/ZoomInfo are the right path.
+
+---
+
+### Data Source Comparison at the 50-Client Trigger
+
+| Provider | Coverage | Managed service ToS | Compliance | Cost/yr | Best for |
+|---|---|---|---|---|---|
+| **Apollo (current)** | 250M contacts | Ambiguous — needs partner agreement | Moderate | $1,200 | Launch phase — current |
+| **Cognism** | 400M contacts | Explicit agency programme | Highest (GDPR-first) | $15–25k | Scale phase — recommended |
+| **ZoomInfo** | 300M contacts | Formal reseller programme | Strong | $20–50k | US/UK expansion |
+| **Clay** | 50+ sources | Agency-friendly | Inherited from sources | $2–10k | Enrichment or full replacement |
+| **Hunter** | Email only | Permissive | Good | $400–1,200 | Supplementary only |
+
+---
+
+## 3. HOW ALTA SDR AND COMPETITORS HANDLE THIS
+
+Alta SDR (and similar: 11x.ai, Artisan, Relevance AI) are AI SDR platforms that have navigated the same data question. Here is how they typically handle it:
+
+### The Venture-Backed Approach
+
+Companies like Alta that have raised $10M+ have legal budgets to negotiate formal data agreements before launch. Their typical structure:
+
+- They do **not** hold their own contact database
+- They integrate with Apollo or ZoomInfo under a **formal reseller or white-label API agreement** — meaning each client's data consumption is tracked and billed separately, and the data provider has explicitly licensed the multi-client use case
+- Some require clients to **bring their own list** (CSV import from Apollo, ZoomInfo, etc.) — the AI SDR platform handles the sequencing and outreach, not the data sourcing. This is the simplest legal position: K.I.N.D is pure software, data is the client's responsibility.
+
+### The Bootstrapped Approach (what most smaller tools do)
+
+- Launch on Apollo's standard plan
+- Get to meaningful scale (50–100 clients)
+- Negotiate a partner agreement when Apollo's commercial team reaches out (they always do)
+- Or migrate to Cognism/ZoomInfo when the legal risk becomes material
+
+This is the pragmatic path. It is what K.I.N.D is currently doing.
+
+### The Client API Key Approach
+
+Several AI SDR platforms (Instantly.ai, Smartlead.ai) require clients to connect their own Apollo or data source API key. The platform then executes searches using each client's own licensed account. This structure:
+
+- Eliminates all data ToS risk for the platform entirely
+- Makes the client responsible for their own data licence
+- Adds onboarding friction (client needs to buy Apollo separately, ~$49–99/mo)
+- Is common in the mid-market and enterprise segment
+
+**K.I.N.D's position on this:** Currently using the single API key (bootstrapped approach). At 50 clients, evaluate moving to client API keys OR Apollo partner programme. The client API key model is the cleanest long-term architecture.
+
+### What This Means for K.I.N.D
+
+K.I.N.D is not doing anything that its well-funded competitors haven't done. The difference is those competitors formalised the arrangement. The path is clear:
+
+1. **Launch on Apollo** — current, fine at this scale
+2. **Reach 50 clients** — trigger the 50-client action plan at the top of this document
+3. **Formalise** — Apollo partner agreement or Cognism migration
+4. **Scale clean** — data sourcing is a commercial agreement, not a legal liability
+
+---
+
+*This document is a briefing for legal counsel. It does not constitute legal advice. All ToS references must be verified against current provider terms before any legal opinion is formed.*
 
 *Last updated: 25 May 2026*

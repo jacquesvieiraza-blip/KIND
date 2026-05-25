@@ -161,6 +161,29 @@
 | 22 | Add UK company number to footer + terms | Company number from Companies House cert |
 | 23 | Fix any new error | Share screenshot |
 
+### 📋 TOMORROW'S SESSION — Debrief Agenda
+
+*Added 25 May 2026 (evening). Full debrief + action items for next session.*
+
+| # | Item | Detail |
+|---|---|---|
+| A | **Full session debrief** | Everything built today — admin portal V2, competitive audit, compliance roadmap, Art of the Possible, cashflow model |
+| B | **Upgrade Apollo plan** | app.apollo.io → Settings → Plan & Billing → Basic ($49) minimum, Professional ($99) recommended. **Platform cannot find a single lead without this.** |
+| C | **Build 4 competitor-targeting ICPs** | Once Apollo is upgraded — build these in the portal immediately: |
+| | → ICP 1: Lemlist Users Africa | Titles: CEO/Founder/Head of Sales · Tech stack: Lemlist · Geo: SA, Nigeria, Kenya · Size: 1–200 |
+| | → ICP 2: Instantly/Smartlead Users Africa | Titles: CEO/Founder/Agency Owner · Tech stack: Instantly · Geo: SA, Nigeria, Kenya · Size: 1–50 |
+| | → ICP 3: Clay Users Africa | Titles: Head of Growth/RevOps/Founder · Tech stack: Clay · Geo: SA, Nigeria, Kenya · Size: 11–200 |
+| | → ICP 4: Apollo Sequences Users Africa | Titles: Head of Sales/CEO/Founder · Tech stack: Apollo · Geo: SA, Nigeria, Kenya · Size: 11–500 |
+| D | **Run all 4 ICPs** | After Apollo upgrade — hit Run on all 4. These are the warmest possible leads: already paying for outreach tools, proven buyers. |
+| E | **Admin portal review** | Walk through Founder OS V2 — dark sidebar, AI exec team, compliance tracker, living docs, revenue page, health page |
+| F | **Review compliance plan** | SOC 2 gap assessment (free at vanta.com) · Start AI risk register (Google Doc, free) · Display GDPR + CCPA badges on website |
+| G | **Tomorrow's operational checklist** | Railway deploy logs · RESEND_API_KEY confirmed · MASTER_SCHEMA.sql run · Google Workspace setup |
+
+**Competitor targeting pitch (FIGSY copy — use this when ICPs run):**
+> *"Hi [First Name] — spotted that [Company] uses [Lemlist/Instantly/Clay]. We built K.I.N.D specifically for African businesses doing B2B outreach — fully managed, POPIA compliant, ZAR billing. FIGSY (our AI SDR) runs the whole sequence. Worth a 15-minute call?"*
+
+---
+
 ### Once Live (not urgent)
 
 | # | Task | When |

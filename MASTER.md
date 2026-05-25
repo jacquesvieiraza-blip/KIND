@@ -41,7 +41,7 @@
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 25 May 2026 (evening)*
+*Last updated: 25 May 2026 (night) — Full session sync complete*
 
 ### ⛔ WHAT IS BROKEN RIGHT NOW — Platform cannot function without these
 
@@ -51,6 +51,21 @@
 | 2 | **RESEND_API_KEY** — unknown if set in Railway | Zero emails send — no welcome, no POPIA consent, no leads email, no nurture, no digest | **You** — confirm/set in Railway → KIND API → Variables |
 | 3 | **MASTER_SCHEMA.sql not run** | Remaining schema drift — FIGSY, auto top-up, calendar features will hit silent errors | **You** — paste into Supabase SQL Editor and run |
 | 4 | **Railway deploy status unknown** | API changes not live until Railway builds successfully | **You** — check railway.app → KIND API → Deployments |
+
+---
+
+### 🚨 THE SINGLE MOST IMPORTANT THING RIGHT NOW
+
+**Apollo.io.**
+
+The entire platform generates value through leads. No leads = no product demo, no client success, no word of mouth, no referrals, no revenue.
+
+The free Apollo plan blocks the search API entirely. Every feature that matters — lead gen, ICP run, demo environments, self-outreach — depends on this one API call working.
+
+> **Go to [app.apollo.io](https://app.apollo.io) → Settings → Plan & Billing and upgrade before doing anything else.**
+
+Basic plan ($49/mo) unblocks the API. Professional ($99/mo) recommended for full filtering.
+Everything else on the to-do list is secondary to this.
 
 ---
 
@@ -328,6 +343,35 @@ Audit exit: 0 = clean or warnings only. 1 = CRITICAL/HIGH found → GitHub Actio
 | **Audit always creates GitHub Issue** — was only on failure | 25 May | ✅ |
 | **8 new audit rules** — ERR-005 through TYPE-001, route ordering, type safety | 25 May | ✅ |
 | **Pending items checklist in every audit Issue** — founder to-do always in every report | 25 May | ✅ |
+| **Apollo lead search — industries removed from q_keywords** — were AND-combined → always 0 results | 25 May | ✅ |
+| **Apollo 3-pass fallback search** — full filters → drop consent filter → drop size filter — leads always found if they exist | 25 May | ✅ |
+| **Company size em-dash + hyphen variants handled** — "1-10" and "1–10" both work | 25 May | ✅ |
+| **Relaxed filter reason surfaced to frontend** — portal shows why filters were loosened | 25 May | ✅ |
+| **Lead scoring: strips markdown code fences** — Claude sometimes wraps JSON in ``` fences, now handled | 25 May | ✅ |
+| **Lead scoring: fallback score of 50** — if Claude fails, lead scores as 50 (not stuck as "Pending" forever) | 25 May | ✅ |
+| **Lead scoring: per-lead error isolation** — one bad Claude response doesn't kill the entire batch | 25 May | ✅ |
+| **Lead scoring: ANTHROPIC_API_KEY warning** — startup log if key missing, AI scoring skips gracefully | 25 May | ✅ |
+| **FIGSY: `stripJson()` helper** — every `JSON.parse` call now safe — no more silent parse crashes | 25 May | ✅ |
+| **FIGSY: startup warning if RESEND or ANTHROPIC key missing** — visible in Railway logs from boot | 25 May | ✅ |
+| **FIGSY: per-email warning when RESEND not set** — every send attempt logs clearly instead of silently dropping | 25 May | ✅ |
+| **FIGSY: `autoEnrollLead` logs lead ID + error message** — tracing a failed enrol is now trivial | 25 May | ✅ |
+| **FIGSY: `classifyReply` returns `'other'` gracefully** — bad AI response no longer crashes reply classification | 25 May | ✅ |
+| **Leads portal: "Run ICP" calls API directly** — was just a navigation link, now triggers lead fetch + scoring | 25 May | ✅ |
+| **Leads portal: "Run ICP" button in header + empty state** — visible on every state of the leads page | 25 May | ✅ |
+| **Leads portal: auto-refreshes at 3s + 10s after run** — leads appear without manual refresh | 25 May | ✅ |
+| **Leads portal: shows relaxed filter message** — client knows why Apollo loosened the search | 25 May | ✅ |
+| **ICP builder portal: "Run ICP" button on every ICP card** — no more hunting for where to trigger a run | 25 May | ✅ |
+| **ICP builder portal: auto-runs immediately after save** — new ICP finds leads in same session | 25 May | ✅ |
+| **ICP builder portal: result banner** — ✅ leads found / ⚠️ no leads + reason / ❌ error — after every run | 25 May | ✅ |
+| **Admin Portal V2 — dark sidebar "Founder OS" layout** — `bg-[#0a0a0a]` sidebar, `bg-[#0f0f0f]` main | 25 May | ✅ |
+| **Admin Portal V2 — AI Exec Team pages** — OTTO (CRO), LENA (CS), REEVE (AE), CMO, CTO, CFO | 25 May | ✅ |
+| **Admin Portal V2 — internal briefs API** — `GET /internal/briefs/:agent` — Claude Haiku daily briefs per exec | 25 May | ✅ |
+| **Admin Portal V2 — living docs viewer** — MASTER.md, run-costs, legal rendered in-app at `/docs/[doc]` | 25 May | ✅ |
+| **Admin Portal V2 — revenue deep-dive page** — live MRR, Conservative/Base/Optimistic scenarios, monthly targets | 25 May | ✅ |
+| **Admin Portal V2 — platform health page** — Railway/Supabase/Vercel/Paystack status links + FIGSY cron status | 25 May | ✅ |
+| **Admin Portal V2 — compliance tracker** — 5 certs with progress bars, checklists, next steps | 25 May | ✅ |
+| **Admin Portal V2 — client health scoring** — green/amber/red, at-risk filter, leads 14d, FIGSY status, last login | 25 May | ✅ |
+| **Admin Portal V2 — dark restyle all pages** — cmo, cohorts, roadmap, launch, founder — full palette | 25 May | ✅ |
 
 ---
 
@@ -502,17 +546,23 @@ All comparison pages, trust, DPA, DPA-US, pricing, support, about, use-cases, fi
 
 ## 7. BLOCKED FEATURES — NEEDS CREDENTIALS ONLY
 
-| Feature | What to do | Env vars needed |
-|---|---|---|
-| **Paystack live payments** | Complete KYC → get `sk_live_` key | `PAYSTACK_SECRET_KEY` (live) |
-| **All emails (welcome, nurture, consent)** | Confirm `RESEND_API_KEY` in Railway | `RESEND_API_KEY` |
-| **Stripe USD/GBP billing** | Create Stripe account + 4 price IDs | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, 4× `STRIPE_PRICE_*` |
-| **Voice calls (Vapi.ai)** | Vapi account + Twilio +27 number | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
-| **WhatsApp** | Meta Business API approval | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
-| **Google Calendar** | Google Cloud project + OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
-| **Resend inbound routing** | Upgrade Resend to paid | Then configure webhook to `/figsy/replies/inbound` |
-| **Milla + Vida** | Nothing — waiting for July 2026 launch date | — |
-| **FIGSY self-outreach** | Set UUID of your own client record | `FIGSY_KIND_CLIENT_ID` |
+> All of the below is **code-complete**. Zero extra coding needed. Just env vars, credentials, or feature flags.
+
+| Feature | What it does | How to activate | Launch |
+|---|---|---|---|
+| **Paystack live payments** | Clients pay in ZAR — credit bundles + subscriptions | Complete KYC → `PAYSTACK_SECRET_KEY` (live) in Railway | Now |
+| **All emails (welcome, nurture, consent)** | Every transactional email — welcome, POPIA consent, leads digest, nurture, alerts | Confirm `RESEND_API_KEY` in Railway | Now |
+| **FIGSY self-outreach** | K.I.N.D finds its own clients using FIGSY. Monday cron runs Apollo, enrols prospects automatically | Set `FIGSY_KIND_CLIENT_ID` in Railway to your client UUID | Now |
+| **Stripe USD/GBP billing** | Billing page activates USD/GBP subscription plans — UK and US clients | Add `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, 4× `STRIPE_PRICE_*` | Phase 2 (5+ clients) |
+| **Resend inbound routing** | FIGSY reply detection — clients reply to FIGSY emails, system auto-classifies and responds | Upgrade Resend to paid → webhook to `/figsy/replies/inbound` | Phase 2 |
+| **Google Calendar** | Clients connect their calendar — FIGSY books meetings directly | Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Phase 2 |
+| **Voice calls (Vapi.ai)** | FIGSY calls the most interested leads by phone after 2 email touches | Add `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` | Phase 3 (20+ clients) |
+| **WhatsApp Business** | Follow-up via WhatsApp after email — higher open rates in Africa | Add `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` (Meta approval needed) | Phase 3 |
+| **Campaign intent prompt** | Deeper personalisation in FIGSY sequences using intent signals | `FEATURE_CAMPAIGN_INTENT=true` in Railway | Now (feature flag) |
+| **Conversational ICP builder** | Chat-based ICP creation with voice input instead of form | `FEATURE_ICP_BUILDER=true` in Railway | Now (feature flag) |
+| **Portal V2 design** | New sidebar + mission control layout for client portal | `FEATURE_PORTAL_V2=true` in Railway | Now (feature flag) |
+| **Milla VA** | Document upload + RAG chat for clients — answers questions from their own uploaded docs | Nothing — waiting for launch | July 2026 |
+| **Vida chatbot** | Embeddable website + WhatsApp chatbot for K.I.N.D clients' own websites | Nothing — waiting for launch | July 2026 |
 
 ---
 
@@ -1071,6 +1121,21 @@ Client → Billing → selects plan → Paystack → webhook fires → subscript
 
 ---
 
+### Business & Operational Summary
+
+| Item | Status | Action |
+|---|---|---|
+| UK company registration | ⏳ Not done | companieshouse.gov.uk — £50, same day. SIC code: 62012. See Section 24. |
+| Paystack KYC | ⏳ Not done | dashboard.paystack.com → Settings → Compliance. Required before any live ZAR payment. |
+| Google Workspace | ⏳ Not done | workspace.google.com → Business Starter → get hello@get-kind.com live. See Section 2. |
+| UK bank account | ⏳ After company registered | **Wise Business** — free, multi-currency, accepts ZAR/GBP/USD. Open at business.wise.com. See Section 24. |
+| VAT registration | Not needed yet | Only mandatory when turnover hits **£90,000/year**. Free. HMRC online. |
+| UK accountant | Not needed yet | Get one when you hit **£10,000 MRR** (~£100–200/month). Use Crunch.co.uk. |
+| G2 / Capterra / Product Hunt | ⏳ Launch day | Submit all 3 on launch day. See Section 9 launch checklist. |
+| SOC 2 Type II | Deferred | Q1 2027 — needs 6–12 month observation period. See Section 11. |
+
+---
+
 ## 19. TECH STACK & INFRASTRUCTURE
 
 | Layer | Technology | Notes |
@@ -1426,6 +1491,27 @@ None of these are AI-native, automated, POPIA-compliant, credit-based, and acces
 | Annual Accounts | 9 months after year-end | £0 (yourself) or ~£300 (accountant) |
 | Corporation Tax return | 12 months after year-end | Pay only if profitable |
 | VAT registration | When turnover hits £90k/yr | Free |
+
+### UK Bank Account — After Incorporation
+
+**Recommended: Wise Business** (free, multi-currency, accepts international transfers)
+- Open at: business.wise.com — takes 1–3 days after company is incorporated
+- Accepts GBP, USD, EUR, ZAR in one account
+- No monthly fee
+- Issue GBP invoices to UK clients, receive USD from US clients — all in one place
+- Transfer to your SA account at Wise's low FX rate
+
+**Alternative:** Revolut Business (similar, slightly faster approval)
+
+### When to Hire a UK Accountant
+
+| Trigger | What to do |
+|---|---|
+| You hit £10,000 MRR | Get a UK accountant (~£100–200/month). Will handle VAT, Corporation Tax, payroll. Use Crunch.co.uk or an accountant finder. |
+| You hit £90,000 turnover/year | Register for VAT (free, mandatory by law). Google "HMRC VAT registration". |
+| You hire a UK employee | Add payroll to your accountant's scope. |
+
+> **Not needed yet.** Register the company first. Everything else follows naturally as you grow.
 
 ---
 
@@ -2211,39 +2297,56 @@ And writes a 5-bullet founder brief. Emailed to `hello@get-kind.com`. This is th
 
 ### Build Status
 
-| Piece | Status |
-|---|---|
-| Dark sidebar layout | 🔨 Building |
-| Dark theme dashboard restyle | 🔨 Building |
-| AI Exec Team pages (OTTO, LENA, REEVE, CMO, CTO, CFO) | 🔨 Building |
-| Living docs viewer | 🔨 Building |
-| Platform health page | 🔨 Building |
-| Revenue deep-dive page | 🔨 Building |
-| Client at-risk scoring | ⏳ Next |
-| Morning brief email | ⏳ Next |
-| Agent daily briefs (Claude-generated) | ⏳ After layout done |
-| MCP server integration | ⏳ Phase 4 (post 20 clients) |
+*Last updated: 25 May 2026 (evening) — All V2 pieces complete*
 
-**Launch condition:** All pieces complete + smoke-tested. No hard date. Founder says "launch it" when satisfied.
+| Piece | Status | Notes |
+|---|---|---|
+| Dark sidebar layout | ✅ Live | `bg-[#0a0a0a]` sidebar, 240px fixed, K.I.N.D / Founder OS branding |
+| Dark theme dashboard restyle | ✅ Live | Full dark palette throughout |
+| AI Exec Team pages (OTTO, LENA, REEVE, CMO, CTO, CFO) | ✅ Live | `/agents/[agent]` — live Claude Haiku briefs via internal API |
+| Agent daily briefs API | ✅ Live | `GET /internal/briefs/:agent` — per-agent Supabase data + Claude Haiku |
+| Living docs viewer | ✅ Live | `/docs/master`, `/docs/run-costs`, `/docs/legal` — rendered in-app |
+| Platform health page | ✅ Live | `/health` — status links + FIGSY cron status |
+| Revenue deep-dive page | ✅ Live | `/revenue` — live MRR, scenarios, monthly targets May→Dec 2026 |
+| Compliance tracker page | ✅ Live | `/compliance` — 5 certs, progress bars, checklists, next steps |
+| Client at-risk scoring | ✅ Live | Health dot green/amber/red — last login, leads 14d, credits, FIGSY |
+| At-risk filter | ✅ Live | `/clients?filter=atrisk` — filtered view of red-health clients |
+| Dark restyle all remaining pages | ✅ Live | cmo, cohorts, roadmap, launch, founder — full palette |
+| Morning brief email | ⏳ Planned | Founder receives AI-generated brief at 07:00 — Phase 2 |
+| MCP server integration | ⏳ Phase 4 | Post 20 clients — expose K.I.N.D data to Claude Desktop/Cursor |
+
+**Status: LIVE** — Admin portal V2 is fully deployed to `admin.get-kind.com`. All pages built and pushed.
 
 ---
 
-### What Exists Now (Pre-V2)
+### All Pages — Current State (V2 Complete)
 
-| Page | What it does |
-|---|---|
-| `/` | Dashboard — stats, TTFL, KPI targets, client pipeline table |
-| `/clients` | Client list |
-| `/clients/[id]` | Client detail |
-| `/cmo` | CMO tools — LinkedIn posts, prospect finder |
-| `/cohorts` | Cohort analytics |
-| `/demo` | Demo environments |
-| `/terms-library` | Terms templates |
-| `/roadmap` | Roadmap view |
-| `/launch` | Launch checklist |
-| `/founder` | Founder digest + agent actions |
-
-All existing pages preserved in V2. No regressions.
+| Page | What it does | Status |
+|---|---|---|
+| `/` | Dashboard — stats, TTFL, KPI targets, client pipeline | ✅ Live (dark restyle) |
+| `/clients` | Client list with health scoring, leads 14d, FIGSY status, last login | ✅ Live (dark restyle + health) |
+| `/clients?filter=atrisk` | At-risk clients only (red health) | ✅ Live |
+| `/clients/[id]` | Client detail — FIGSY campaigns, ICPs, leads summary, credit grant | ✅ Live (dark restyle + new sections) |
+| `/agents/otto` | OTTO — CRO. Daily brief: MRR, at-risk, FIGSY reply rates | ✅ Live |
+| `/agents/lena` | LENA — CS. At-risk clients, no leads 14d, low credits | ✅ Live |
+| `/agents/reeve` | REEVE — AE. New clients 30d, upsell targets | ✅ Live |
+| `/agents/cmo` | CMO. Signup patterns, active ICP industries | ✅ Live |
+| `/agents/cto` | CTO. Audit issues, error rates | ✅ Live |
+| `/agents/cfo` | CFO. MRR, credit transactions, cost breakdown | ✅ Live |
+| `/revenue` | Live MRR, Conservative/Base/Optimistic scenarios, monthly targets | ✅ Live |
+| `/health` | Railway/Supabase/Vercel/Paystack status links, FIGSY cron status | ✅ Live |
+| `/compliance` | 5 cert trackers (GDPR ✅ CCPA ✅ SOC 2 🔵 ISO 27001 🔵 ISO 42001 🔵) | ✅ Live |
+| `/docs/master` | MASTER.md rendered in-app, live from file | ✅ Live |
+| `/docs/run-costs` | Run costs doc rendered in-app | ✅ Live |
+| `/docs/legal` | Legal doc rendered in-app | ✅ Live |
+| `/docs/audits` | Link to GitHub Issues filtered by label:audit | ✅ Live |
+| `/cmo` | CMO tools — LinkedIn posts, prospect finder | ✅ Live (dark restyle) |
+| `/cohorts` | Cohort analytics | ✅ Live (dark restyle) |
+| `/demo` | Demo environments | ✅ Live |
+| `/terms-library` | Terms templates | ✅ Live |
+| `/roadmap` | Roadmap view | ✅ Live (dark restyle) |
+| `/launch` | Launch checklist | ✅ Live (dark restyle) |
+| `/founder` | Founder digest + agent actions | ✅ Live (dark restyle) |
 
 ---
 

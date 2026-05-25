@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D — Soft Launch 31 May · Claim Your Spot</title>
+  <meta name="description" content="Your AI revenue team. Soft launching 31 May. First clients get a direct onboarding call and early pricing locked in forever." />
+  <meta property="og:title" content="K.I.N.D — Soft Launch 31 May. Claim Your Spot." />
+  <meta property="og:description" content="AI that finds your ideal B2B clients, sends personalised outreach, handles replies, and books meetings. Fully automated. Soft launching 31 May." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #0066FF;
+      --dark: #060910;
+      --border: rgba(255,255,255,0.08);
+      --text: rgba(255,255,255,0.55);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--dark);
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .bg-glow {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(0,102,255,0.13) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(124,58,237,0.10) 0%, transparent 55%);
+    }
+
+    /* NAV */
+    nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .nav-tag { background: rgba(0,102,255,0.15); border: 1px solid rgba(0,102,255,0.3); color: #60a5fa; font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+    /* HERO */
+    .hero { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 90px 24px 60px; text-align: center; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 16px; font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 28px; }
+    .dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+    h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.08; margin-bottom: 20px; }
+    h1 span { color: #60a5fa; }
+    .sub { font-size: 1.05rem; color: var(--text); line-height: 1.75; max-width: 520px; margin: 0 auto 16px; }
+    .sub strong { color: rgba(255,255,255,0.8); }
+
+    /* FORM CARD */
+    .card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 20px; padding: 36px 32px; max-width: 480px; margin: 36px auto 0; text-align: left; }
+    .card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .card > p { font-size: 0.82rem; color: var(--text); margin-bottom: 24px; line-height: 1.6; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+    .field label { font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.05em; }
+    .field input, .field select {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 11px 14px; font-size: 0.875rem; color: #fff;
+      outline: none; transition: border-color .2s; width: 100%;
+    }
+    .field input::placeholder { color: rgba(255,255,255,0.22); }
+    .field input:focus, .field select:focus { border-color: rgba(0,102,255,0.5); }
+    .field select option { background: #1a1f2e; color: #fff; }
+    .btn {
+      width: 100%; padding: 14px; background: var(--blue); color: #fff;
+      font-size: 0.95rem; font-weight: 700; border: none; border-radius: 12px;
+      cursor: pointer; transition: opacity .2s; margin-top: 6px;
+    }
+    .btn:hover { opacity: 0.85; }
+    .note { text-align: center; font-size: 0.74rem; color: rgba(255,255,255,0.22); margin-top: 10px; }
+
+    /* SUCCESS */
+    .success { display: none; text-align: center; padding: 24px 0; }
+    .success-icon { width: 52px; height: 52px; background: rgba(34,197,94,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 22px; }
+    .success h2 { font-size: 1.15rem; font-weight: 800; margin-bottom: 8px; }
+    .success p { font-size: 0.875rem; color: var(--text); line-height: 1.7; }
+
+    /* FEATURES */
+    .features { position: relative; z-index: 1; max-width: 880px; margin: 72px auto 0; padding: 0 24px 80px; }
+    .feat-label { text-align: center; font-size: 0.72rem; font-weight: 700; color: rgba(255,255,255,0.25); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 32px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .feat { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+    .feat-ico { font-size: 1.5rem; margin-bottom: 10px; }
+    .feat h3 { font-size: 0.87rem; font-weight: 700; margin-bottom: 5px; }
+    .feat p { font-size: 0.78rem; color: var(--text); line-height: 1.6; }
+    .tag { display: inline-block; margin-top: 10px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 6px; }
+    .tag-b { background: rgba(0,102,255,0.2); color: #60a5fa; }
+    .tag-p { background: rgba(124,58,237,0.2); color: #a78bfa; }
+    .tag-g { background: rgba(34,197,94,0.15); color: #4ade80; }
+
+    /* FOOTER */
+    footer { position: relative; z-index: 1; border-top: 1px solid var(--border); padding: 20px 48px; display: flex; align-items: center; justify-content: space-between; }
+    footer p { font-size: 0.76rem; color: rgba(255,255,255,0.22); }
+    footer a { color: rgba(255,255,255,0.22); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,0.45); }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 20px; }
+      .card { padding: 24px 18px; }
+      .row { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      footer { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<nav>
+  <a href="https://get-kind.com" class="logo">
+    <div class="logo-icon">⚡</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <span class="nav-tag">Soft Launch — 31 May</span>
+</nav>
+
+<div class="hero">
+  <div class="badge"><span class="dot"></span>Soft launch · 31 May 2026 · Limited spots</div>
+  <h1>Your AI revenue team.<br/><span>Without the headcount.</span></h1>
+  <p class="sub">K.I.N.D finds your ideal B2B clients, sends personalised outreach, handles replies, and books meetings — fully automated. No SDR. No monthly minimums. Pay per lead found.</p>
+  <p class="sub"><strong>First clients get a direct onboarding call and early pricing locked in forever.</strong></p>
+
+  <div class="card">
+    <h2>Claim your soft launch spot</h2>
+    <p>31 May we open to the first wave. You'll get a personal onboarding call from the founding team and your pricing locked in from day one.</p>
+
+    <form name="kind-waitlist" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="wl-form">
+      <input type="hidden" name="form-name" value="kind-waitlist" />
+      <p style="display:none"><input name="bot-field" /></p>
+
+      <div class="row">
+        <div class="field">
+          <label for="fname">First name</label>
+          <input type="text" id="fname" name="first_name" placeholder="Jacques" required />
+        </div>
+        <div class="field">
+          <label for="lname">Last name</label>
+          <input type="text" id="lname" name="last_name" placeholder="Smith" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="email">Work email</label>
+        <input type="email" id="email" name="email" placeholder="you@company.com" required />
+      </div>
+
+      <div class="field">
+        <label for="company">Company</label>
+        <input type="text" id="company" name="company" placeholder="Acme Ltd" required />
+      </div>
+
+      <div class="field">
+        <label for="interest">What interests you most?</label>
+        <select id="interest" name="interest" required>
+          <option value="" disabled selected>Select one</option>
+          <option value="lead_gen">AI Lead Generation — find qualified leads automatically</option>
+          <option value="figsy">FIGSY — AI SDR that handles all outreach &amp; replies</option>
+          <option value="milla">Milla — AI Virtual Assistant trained on my business</option>
+          <option value="vida">Vida — AI Chatbot for my website</option>
+          <option value="all">All of the above</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn">Reserve my spot &rarr;</button>
+      <p class="note">No credit card. No commitment. Just your spot in the queue.</p>
+    </form>
+
+    <div class="success" id="success">
+      <div class="success-icon">✅</div>
+      <h2>You're in for 31 May.</h2>
+      <p>We'll reach out personally before launch to get you set up.<br/>Expect a call from the founding team.</p>
+    </div>
+  </div>
+</div>
+
+<div class="features">
+  <p class="feat-label">What you get on 31 May</p>
+  <div class="grid">
+    <div class="feat">
+      <div class="feat-ico">🎯</div>
+      <h3>AI Lead Generation</h3>
+      <p>Build your ICP once. K.I.N.D searches 250M+ contacts, scores every match, and delivers verified leads to your pipeline.</p>
+      <span class="tag tag-b">$1/lead</span>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">🤖</div>
+      <h3>FIGSY — AI SDR</h3>
+      <p>Writes personalised emails, handles objections, follows up, and books meetings into your calendar. Fully autonomous.</p>
+      <span class="tag tag-p">$3/outreach credit</span>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">🧠</div>
+      <h3>Milla — AI Assistant</h3>
+      <p>Trained on your business. Answers questions, drafts in your tone, surfaces campaign intelligence 24/7.</p>
+      <span class="tag tag-g">$49/mo</span>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">💬</div>
+      <h3>Vida — Website AI</h3>
+      <p>Qualifies every website visitor, captures leads, and alerts you when someone is ready to buy.</p>
+      <span class="tag tag-g">$29/mo</span>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">📊</div>
+      <h3>Campaign Intelligence</h3>
+      <p>Every campaign improves the next. Reply rates, objection patterns, industry signals — all fed back automatically.</p>
+      <span class="tag tag-b">Included</span>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">🌍</div>
+      <h3>Built for Africa</h3>
+      <p>POPIA and NDPR compliant. ZAR billing available. 10 African markets covered from day one.</p>
+      <span class="tag tag-p">10 markets</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 K.I.N.D · <a href="https://get-kind.com">get-kind.com</a></p>
+  <p><a href="mailto:hello@get-kind.com">hello@get-kind.com</a> &nbsp;·&nbsp; <a href="https://get-kind.com/terms">Terms</a> &nbsp;·&nbsp; <a href="https://get-kind.com/privacy">Privacy</a></p>
+</footer>
+
+<script>
+  document.getElementById('wl-form').addEventListener('submit', async function(e) {
+    e.preventDefault()
+    try {
+      await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(e.target)).toString()
+      })
+    } catch {}
+    document.getElementById('wl-form').style.display = 'none'
+    document.getElementById('success').style.display = 'block'
+  })
+</script>
+</body>
+</html>

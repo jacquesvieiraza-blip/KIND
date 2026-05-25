@@ -290,20 +290,24 @@ export default function ICPPage() {
 
   async function handleSave() {
     if (!token) return
-    if (!form.name.trim()) {
+    // Auto-use the name suggestion if name is still blank
+    const finalName = form.name.trim() || (nameSuggestion ?? '')
+    if (!finalName) {
       setSaveError('Please enter a name for this ICP — e.g. "SA Fintech CTOs"')
       nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       nameInputRef.current?.focus()
       return
     }
+    if (finalName !== form.name) setForm(f => ({ ...f, name: finalName }))
     setSaving(true)
     setSaveError(null)
+    const payload = { ...form, name: finalName }
     try {
       if (editingId) {
-        const res = await api.patch<{ data: ICP }>(`/icps/${editingId}`, form, token)
+        const res = await api.patch<{ data: ICP }>(`/icps/${editingId}`, payload, token)
         setIcps(prev => prev.map(i => i.id === editingId ? res.data : i))
       } else {
-        const res = await api.post<{ data: ICP }>('/icps', form, token)
+        const res = await api.post<{ data: ICP }>('/icps', payload, token)
         setIcps(prev => [res.data, ...prev])
       }
       setSaved(true)
@@ -311,7 +315,12 @@ export default function ICPPage() {
       setTimeout(() => setShowSavedBanner(false), 8000)
       setTimeout(() => { setSaved(false); setShowForm(false) }, 1200)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save ICP — please try again.')
+      const msg = err instanceof Error
+        ? err.message
+        : typeof (err as { message?: string })?.message === 'string'
+          ? (err as { message: string }).message
+          : 'Failed to save ICP — please try again.'
+      setSaveError(msg || 'Failed to save ICP — please try again.')
     }
     setSaving(false)
   }
@@ -351,18 +360,43 @@ export default function ICPPage() {
 
   const set = (field: keyof ICPFormData) => (val: unknown) => setForm(f => ({ ...f, [field]: val }))
 
-  function handleAiFill(data: Partial<ICPFormData>) {
+  // Ensure a value from AI is actually a string array (AI sometimes returns strings or objects)
+  function toStringArray(val: unknown): string[] | null {
+    if (!val) return null
+    if (Array.isArray(val)) {
+      const arr = val.map(v => (typeof v === 'string' ? v : typeof v === 'object' && v && 'label' in v ? String((v as { label: unknown }).label) : String(v))).filter(Boolean)
+      return arr.length ? arr : null
+    }
+    if (typeof val === 'string') {
+      // e.g. "11-50, 51-200" → ["11-50", "51-200"]
+      const arr = val.split(/[,;|]/).map(s => s.trim()).filter(Boolean)
+      return arr.length ? arr : null
+    }
+    return null
+  }
+
+  function handleAiFill(data: Partial<ICPFormData> & Record<string, unknown>) {
     if (!showForm) { setShowForm(true); setEditingId(null) }
+
+    const industries      = toStringArray(data.industries)
+    const job_titles      = toStringArray(data.job_titles)
+    const seniority_levels = toStringArray(data.seniority_levels)
+    const company_sizes   = toStringArray(data.company_sizes)
+    const geographies     = toStringArray(data.geographies)
+    const tech_stack      = toStringArray(data.tech_stack)
+    const keywords        = toStringArray(data.keywords)
+    const name            = typeof data.name === 'string' && data.name.trim() ? data.name.trim() : null
+
     setForm(f => ({
       ...f,
-      ...(data.industries?.length       ? { industries:       data.industries       } : {}),
-      ...(data.job_titles?.length        ? { job_titles:        data.job_titles        } : {}),
-      ...(data.seniority_levels?.length  ? { seniority_levels:  data.seniority_levels  } : {}),
-      ...(data.company_sizes?.length     ? { company_sizes:     data.company_sizes     } : {}),
-      ...(data.geographies?.length       ? { geographies:       data.geographies       } : {}),
-      ...(data.tech_stack?.length        ? { tech_stack:        data.tech_stack        } : {}),
-      ...(data.keywords?.length          ? { keywords:          data.keywords          } : {}),
-      ...(data.name                      ? { name:              data.name              } : {}),
+      ...(industries      ? { industries }      : {}),
+      ...(job_titles      ? { job_titles }      : {}),
+      ...(seniority_levels ? { seniority_levels } : {}),
+      ...(company_sizes   ? { company_sizes }   : {}),
+      ...(geographies     ? { geographies }     : {}),
+      ...(tech_stack      ? { tech_stack }      : {}),
+      ...(keywords        ? { keywords }        : {}),
+      ...(name            ? { name }            : {}),
     }))
   }
 
@@ -542,7 +576,7 @@ export default function ICPPage() {
 
           {saveError && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-              {saveError}
+              {typeof saveError === 'string' ? saveError : JSON.stringify(saveError)}
             </div>
           )}
 

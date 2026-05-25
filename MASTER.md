@@ -175,27 +175,28 @@ Everything else on the to-do list is secondary to this.
 | 11 | **Upgrade Resend to paid plan** | resend.com → Billing | FIGSY reply routing (inbound webhook) requires paid plan. Without this, you can send emails but never receive replies inside the platform. |
 | 12 | **Register UK company** | companieshouse.gov.uk — £50, same day | Credibility, GBP billing, proper invoicing. See Section 24. |
 | 13 | **Add Stripe credentials** | Railway → Variables | Activates USD/GBP billing page instantly. See env var list below. |
+| 14 | **Create HubSpot Free account** | app.hubspot.com → sign up free | Track every prospect conversation for K.I.N.D's own sales pipeline. Share API key with Claude → auto-sync wired in 1 day. See Section 29. |
 
 ### 🟢 WHEN READY — Activates Built Features
 
 | # | Task | Env vars to add to Railway |
 |---|---|---|
-| 14 | **Stripe USD/GBP** | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
-| 15 | **Google Calendar OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
-| 16 | **Vapi.ai Voice** | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
-| 17 | **WhatsApp Business API** | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
-| 18 | **Update FOUNDER_EMAIL** | Change to `hello@get-kind.com` after Google Workspace is live |
-| 19 | **Campaign intent prompt (go live)** | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
-| 20 | **ICP builder (go live)** | `FEATURE_ICP_BUILDER=true` in Railway |
-| 21 | **Portal V2 design** | `FEATURE_PORTAL_V2=true` in Railway |
+| 15 | **Stripe USD/GBP** | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
+| 16 | **Google Calendar OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
+| 17 | **Vapi.ai Voice** | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
+| 18 | **WhatsApp Business API** | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
+| 19 | **Update FOUNDER_EMAIL** | Change to `hello@get-kind.com` after Google Workspace is live |
+| 20 | **Campaign intent prompt (go live)** | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
+| 21 | **ICP builder (go live)** | `FEATURE_ICP_BUILDER=true` in Railway |
+| 22 | **Portal V2 design** | `FEATURE_PORTAL_V2=true` in Railway |
 
 ### ⚡ INSTANT — Say the word, Claude does it in 5 minutes
 
 | # | Task | What Claude needs |
 |---|---|---|
-| 22 | Wire "Book a Demo" buttons site-wide | Your Calendly/Cal.com URL |
-| 23 | Add UK company number to footer + terms | Company number from Companies House cert |
-| 24 | Fix any new error | Share screenshot |
+| 23 | Wire "Book a Demo" buttons site-wide | Your Calendly/Cal.com URL |
+| 24 | Add UK company number to footer + terms | Company number from Companies House cert |
+| 25 | Fix any new error | Share screenshot |
 
 ### 📋 TOMORROW'S SESSION — Debrief Agenda
 
@@ -224,9 +225,9 @@ Everything else on the to-do list is secondary to this.
 
 | # | Task | When |
 |---|---|---|
-| 25 | G2, Capterra, Product Hunt listings | Launch day |
-| 26 | Upload Vida image | apps/website/vida.png via GitHub |
-| 27 | SOC 2 Type II | Q1 2027 |
+| 26 | G2, Capterra, Product Hunt listings | Launch day |
+| 27 | Upload Vida image | apps/website/vida.png via GitHub |
+| 28 | SOC 2 Type II | Q1 2027 |
 
 ### Google Workspace Setup (step by step)
 

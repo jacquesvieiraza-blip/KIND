@@ -351,6 +351,8 @@
       .cta-banner { padding: 48px 28px; }
       .footer-grid { grid-template-columns: 1fr; }
       .rates-table th, .rates-table td { padding: 14px 16px; font-size: 0.82rem; }
+      #calculator { padding: 0 24px; }
+      #calculator > div:nth-child(2) { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
@@ -620,6 +622,74 @@
       </ul>
     </div>
   </div>
+</div>
+
+<!-- EARNINGS CALCULATOR -->
+<div style="max-width:1080px;margin:80px auto 0;padding:0 48px" id="calculator">
+  <div style="margin-bottom:48px">
+    <div class="s-label" style="color:var(--blue)">Earnings calculator</div>
+    <h2 style="font-size:clamp(1.8rem,3vw,2.4rem);font-weight:900;letter-spacing:-0.03em;color:var(--dark);margin-bottom:12px">What could you earn?</h2>
+    <p style="font-size:0.95rem;color:rgba(0,0,0,0.45);max-width:560px;line-height:1.75">Three realistic scenarios based on referral partner (20%) commission. All based on locked K.I.N.D pricing — these numbers don't change.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px" class="reveal">
+
+    <!-- Scenario 1: Conservative -->
+    <div style="background:#f5f5f7;border-radius:24px;padding:36px 28px;position:relative">
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.3);margin-bottom:16px">Scenario 1 — Conservative</div>
+      <h3 style="font-size:1.1rem;font-weight:800;color:var(--dark);margin-bottom:6px">5 active clients</h3>
+      <p style="font-size:0.82rem;color:rgba(0,0,0,0.45);line-height:1.6;margin-bottom:24px">A side hustle. Refer a few businesses you already know. Spend 2&ndash;3 hours a month.</p>
+      <div style="background:#fff;border-radius:14px;padding:20px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(0,0,0,0.55);padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span>3 × Lead Gen ($100 avg)</span><span style="font-weight:600;color:var(--dark)">$60 / mo</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(0,0,0,0.55);padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span>1 × FIGSY ($300 avg)</span><span style="font-weight:600;color:var(--dark)">$60 / mo</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(0,0,0,0.55);padding:6px 0"><span>2 × Milla ($49/mo)</span><span style="font-weight:600;color:var(--dark)">$19.60 / mo</span></div>
+      </div>
+      <div style="text-align:center;padding:16px;background:rgba(0,102,255,0.05);border-radius:12px;border:1px solid rgba(0,102,255,0.12)">
+        <p style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--blue);margin-bottom:4px">Monthly commission</p>
+        <p style="font-size:2.4rem;font-weight:900;letter-spacing:-0.04em;color:var(--dark);line-height:1">$139.60</p>
+        <p style="font-size:0.75rem;color:rgba(0,0,0,0.35);margin-top:4px">&asymp; $1,675 / year</p>
+      </div>
+    </div>
+
+    <!-- Scenario 2: Realistic -->
+    <div style="background:var(--dark);border-radius:24px;padding:36px 28px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(0,102,255,0.2) 0%,transparent 60%);pointer-events:none"></div>
+      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;font-size:0.65rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:4px 14px;border-radius:100px;white-space:nowrap">Most likely</div>
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.3);margin-bottom:16px;position:relative">Scenario 2 — Realistic</div>
+      <h3 style="font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:6px;position:relative">15 active clients</h3>
+      <p style="font-size:0.82rem;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:24px;position:relative">A real income stream. Actively introduce K.I.N.D to your network and close 1&ndash;2 per month.</p>
+      <div style="background:rgba(255,255,255,0.06);border-radius:14px;padding:20px;margin-bottom:16px;position:relative">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(255,255,255,0.5);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span>8 × Lead Gen ($100 avg)</span><span style="font-weight:600;color:#fff">$160 / mo</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(255,255,255,0.5);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span>4 × FIGSY ($300 avg)</span><span style="font-weight:600;color:#fff">$240 / mo</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(255,255,255,0.5);padding:6px 0"><span>5 × Milla + Vida ($69/mo)</span><span style="font-weight:600;color:#fff">$69 / mo</span></div>
+      </div>
+      <div style="text-align:center;padding:16px;background:rgba(0,102,255,0.15);border-radius:12px;border:1px solid rgba(0,102,255,0.25);position:relative">
+        <p style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#60a5fa;margin-bottom:4px">Monthly commission</p>
+        <p style="font-size:2.4rem;font-weight:900;letter-spacing:-0.04em;color:#fff;line-height:1">$469</p>
+        <p style="font-size:0.75rem;color:rgba(255,255,255,0.35);margin-top:4px">&asymp; $5,628 / year</p>
+      </div>
+    </div>
+
+    <!-- Scenario 3: Optimistic -->
+    <div style="background:#f5f5f7;border-radius:24px;padding:36px 28px;position:relative">
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.3);margin-bottom:16px">Scenario 3 — Optimistic</div>
+      <h3 style="font-size:1.1rem;font-weight:800;color:var(--dark);margin-bottom:6px">30 active clients</h3>
+      <p style="font-size:0.82rem;color:rgba(0,0,0,0.45);line-height:1.6;margin-bottom:24px">Full agency partnership. K.I.N.D is a core part of your service offering to clients.</p>
+      <div style="background:#fff;border-radius:14px;padding:20px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(0,0,0,0.55);padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span>15 × Lead Gen ($100 avg)</span><span style="font-weight:600;color:var(--dark)">$300 / mo</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(0,0,0,0.55);padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span>10 × FIGSY ($300 avg)</span><span style="font-weight:600;color:var(--dark)">$600 / mo</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:rgba(0,0,0,0.55);padding:6px 0"><span>12 × Milla + Vida ($69/mo)</span><span style="font-weight:600;color:var(--dark)">$165.60 / mo</span></div>
+      </div>
+      <div style="text-align:center;padding:16px;background:rgba(16,185,129,0.06);border-radius:12px;border:1px solid rgba(16,185,129,0.18)">
+        <p style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#059669;margin-bottom:4px">Monthly commission</p>
+        <p style="font-size:2.4rem;font-weight:900;letter-spacing:-0.04em;color:var(--dark);line-height:1">$1,065.60</p>
+        <p style="font-size:0.75rem;color:rgba(0,0,0,0.35);margin-top:4px">&asymp; $12,787 / year</p>
+      </div>
+    </div>
+
+  </div>
+
+  <p style="font-size:0.78rem;color:rgba(0,0,0,0.35);text-align:center;margin-top:24px">Commission calculated at 20% (referral rate). Agency partners earn 25&ndash;30% — figures above are higher. Based on locked K.I.N.D pricing — prices never change. <a href="#apply" style="color:var(--blue);text-decoration:none;font-weight:600">Apply to partner &rarr;</a></p>
 </div>
 
 <div class="divider"></div>

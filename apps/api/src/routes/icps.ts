@@ -112,16 +112,10 @@ export async function runIcpJob(
 
     if (clientRow && !clientRow.first_icp_run_at) {
       const now = new Date().toISOString()
+      // Mark first run — no additional credit bonus (20 trial credits pre-granted before run)
       await db.from('clients')
-        .update({ first_icp_run_at: now, credit_balance: (clientRow.credit_balance ?? 0) + 100 })
+        .update({ first_icp_run_at: now })
         .eq('id', clientId)
-      await db.from('credit_transactions').insert({
-        client_id: clientId,
-        amount: 100,
-        type: 'referral_bonus',
-        note: 'Welcome bonus — first ICP run',
-        created_at: now,
-      })
 
       if (clientRow.referred_by) {
         const { data: referrer } = await db.from('clients')
@@ -318,7 +312,44 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // Check credit balance before running — must have at least 1 credit
+    const { data: clientCheck } = await db.from('clients')
+      .select('credit_balance, first_icp_run_at').eq('id', clientId).single()
+
+    const isFirstRun = !clientCheck?.first_icp_run_at
+    const currentBalance = clientCheck?.credit_balance ?? 0
+
+    // First-time users: pre-grant 20 trial credits so they can see the platform work
+    if (isFirstRun && currentBalance < 1) {
+      await db.from('clients').update({ credit_balance: 20 }).eq('id', clientId)
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount: 20,
+        type: 'trial_bonus',
+        note: 'Free trial — 20 starter credits',
+        created_at: new Date().toISOString(),
+      })
+    } else if (!isFirstRun && currentBalance < 1) {
+      res.status(402).json({ success: false, error: 'Insufficient credits. Top up at app.get-kind.com/dashboard/billing to continue.' })
+      return
+    }
+
     const { inserted, skipped, relaxed } = await runIcpJob(req.params.id, clientId, req.userId!)
+
+    // Deduct 1 credit per lead inserted
+    if (inserted > 0) {
+      const { data: afterRun } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+      const balanceAfterBonus = afterRun?.credit_balance ?? 0
+      const newBalance = Math.max(0, balanceAfterBonus - inserted)
+      await db.from('clients').update({ credit_balance: newBalance }).eq('id', clientId)
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount: -inserted,
+        type: 'usage',
+        note: `${inserted} lead${inserted === 1 ? '' : 's'} found via ICP search`,
+        created_at: new Date().toISOString(),
+      })
+    }
 
     res.json({ success: true, data: { inserted, skipped, total: inserted + skipped, relaxed } })
   } catch (err) {

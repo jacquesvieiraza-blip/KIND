@@ -114,6 +114,16 @@ authRouter.post('/onboard', async (req, res) => {
         current_period_start: now, current_period_end: trialEnd.toISOString(),
       })
       if (subErr) throw new Error(`Subscription insert failed: ${subErr.message} (${subErr.code})`)
+
+      // Grant 20 free trial credits so new clients can immediately run their first ICP search
+      await db.from('clients').update({ credit_balance: 20 }).eq('id', clientId)
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount: 20,
+        type: 'trial_bonus',
+        note: '14-day free trial — 20 starter credits',
+        created_at: now,
+      }).catch(() => {}) // non-critical, don't fail signup
     }
 
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})

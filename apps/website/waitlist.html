@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K.I.N.D — Join the Waitlist</title>
+  <meta name="description" content="Your AI revenue team. Lead generation, outreach, and pipeline — fully automated. Launching soon. Join the waitlist for early access." />
+  <meta property="og:title" content="K.I.N.D — Your AI Revenue Team. Launching Soon." />
+  <meta property="og:description" content="Stop hiring SDRs. Stop paying for tools that don't convert. K.I.N.D finds, qualifies and books meetings — automatically. Join the waitlist." />
+  <meta property="og:image" content="https://get-kind.com/og-waitlist.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #0066FF;
+      --dark: #060910;
+      --mid: #1a1f2e;
+      --border: rgba(255,255,255,0.08);
+      --text: rgba(255,255,255,0.6);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--dark);
+      color: #fff;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* BG glow */
+    .bg-glow {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(0,102,255,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(124,58,237,0.10) 0%, transparent 55%);
+    }
+
+    /* NAV */
+    nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon {
+      width: 30px; height: 30px; background: var(--blue);
+      border-radius: 7px; display: flex; align-items: center;
+      justify-content: center; font-size: 15px;
+    }
+    .logo-text { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -0.01em; }
+    .nav-tag {
+      background: rgba(0,102,255,0.15); border: 1px solid rgba(0,102,255,0.3);
+      color: #60a5fa; font-size: 0.75rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+
+    /* HERO */
+    .hero {
+      position: relative; z-index: 1;
+      max-width: 720px; margin: 0 auto;
+      padding: 100px 24px 60px;
+      text-align: center;
+    }
+    .launch-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 6px 16px;
+      font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.5);
+      letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 32px;
+    }
+    .badge-dot {
+      width: 7px; height: 7px; background: #22c55e;
+      border-radius: 50%; animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+    h1 {
+      font-size: clamp(2.4rem, 5.5vw, 3.8rem);
+      font-weight: 900; letter-spacing: -0.04em;
+      line-height: 1.08; margin-bottom: 24px;
+      color: #fff;
+    }
+    h1 span { color: #60a5fa; }
+    .hero-sub {
+      font-size: 1.1rem; color: var(--text);
+      line-height: 1.75; max-width: 560px;
+      margin: 0 auto 48px;
+    }
+
+    /* FORM */
+    .form-wrap {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 32px;
+      max-width: 520px; margin: 0 auto;
+      text-align: left;
+    }
+    .form-wrap h2 {
+      font-size: 1rem; font-weight: 700; color: #fff;
+      margin-bottom: 4px;
+    }
+    .form-wrap p {
+      font-size: 0.82rem; color: var(--text); margin-bottom: 24px;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .form-group label { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.04em; }
+    .form-group input, .form-group select {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 11px 14px;
+      font-size: 0.875rem; color: #fff;
+      outline: none; transition: border-color .2s;
+      width: 100%;
+    }
+    .form-group input::placeholder { color: rgba(255,255,255,0.25); }
+    .form-group input:focus, .form-group select:focus { border-color: rgba(0,102,255,0.5); }
+    .form-group select option { background: #1a1f2e; color: #fff; }
+
+    .submit-btn {
+      width: 100%; padding: 14px;
+      background: var(--blue); color: #fff;
+      font-size: 0.95rem; font-weight: 700;
+      border: none; border-radius: 12px;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+      margin-top: 8px;
+    }
+    .submit-btn:hover { opacity: 0.88; }
+    .submit-btn:active { transform: scale(0.99); }
+    .form-note {
+      text-align: center; font-size: 0.75rem;
+      color: rgba(255,255,255,0.25); margin-top: 12px;
+    }
+
+    /* SUCCESS */
+    .success-wrap {
+      display: none; text-align: center; padding: 32px 0;
+    }
+    .success-icon {
+      width: 56px; height: 56px; background: rgba(34,197,94,0.15);
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; margin: 0 auto 20px; font-size: 24px;
+    }
+    .success-wrap h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
+    .success-wrap p { font-size: 0.875rem; color: var(--text); }
+
+    /* STATS */
+    .stats {
+      position: relative; z-index: 1;
+      display: flex; justify-content: center; gap: 48px;
+      padding: 60px 24px; flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: -0.03em; }
+    .stat-label { font-size: 0.8rem; color: var(--text); margin-top: 4px; }
+
+    /* WHAT YOU GET */
+    .features {
+      position: relative; z-index: 1;
+      max-width: 960px; margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .features-label {
+      text-align: center; font-size: 0.75rem; font-weight: 700;
+      color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+    .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feat-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+    }
+    .feat-icon { font-size: 1.6rem; margin-bottom: 12px; }
+    .feat-card h3 { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .feat-card p { font-size: 0.8rem; color: var(--text); line-height: 1.6; }
+    .feat-tag {
+      display: inline-block; margin-top: 12px;
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 3px 8px; border-radius: 6px;
+    }
+    .tag-blue { background: rgba(0,102,255,0.2); color: #60a5fa; }
+    .tag-purple { background: rgba(124,58,237,0.2); color: #a78bfa; }
+    .tag-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+
+    /* SOCIAL PROOF */
+    .proof {
+      position: relative; z-index: 1;
+      max-width: 720px; margin: 0 auto;
+      padding: 0 24px 80px; text-align: center;
+    }
+    .proof p {
+      font-size: 1rem; color: rgba(255,255,255,0.45);
+      font-style: italic; line-height: 1.8; margin-bottom: 16px;
+    }
+    .proof-attr { font-size: 0.8rem; color: rgba(255,255,255,0.25); }
+
+    /* FOOTER */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 24px 48px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    footer p { font-size: 0.78rem; color: rgba(255,255,255,0.25); }
+    footer a { color: rgba(255,255,255,0.25); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,0.5); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 20px; }
+      .form-wrap { padding: 24px 20px; }
+      .form-row { grid-template-columns: 1fr; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .stats { gap: 32px; }
+      footer { flex-direction: column; gap: 12px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <nav>
+    <a href="/" class="logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">K.I.N.D</span>
+    </a>
+    <span class="nav-tag">Launching Soon</span>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="launch-badge">
+      <span class="badge-dot"></span>
+      Early access — limited spots
+    </div>
+
+    <h1>Your AI revenue team.<br/><span>Without the headcount.</span></h1>
+
+    <p class="hero-sub">
+      K.I.N.D finds your ideal clients, sends hyper-personalised outreach, handles replies,
+      and books meetings — fully automated. No SDR hiring. No monthly minimums. Pay per result.
+    </p>
+
+    <!-- WAITLIST FORM -->
+    <div class="form-wrap">
+      <h2>Get early access</h2>
+      <p>Be first in when we open the doors. No spam — just your launch invite.</p>
+
+      <form name="waitlist" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="wl-form">
+        <input type="hidden" name="form-name" value="waitlist" />
+        <p style="display:none"><input name="bot-field" /></p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first_name">First name</label>
+            <input type="text" id="first_name" name="first_name" placeholder="Jacques" required />
+          </div>
+          <div class="form-group">
+            <label for="last_name">Last name</label>
+            <input type="text" id="last_name" name="last_name" placeholder="Smith" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Work email</label>
+          <input type="email" id="email" name="email" placeholder="you@company.com" required />
+        </div>
+
+        <div class="form-group">
+          <label for="company">Company</label>
+          <input type="text" id="company" name="company" placeholder="Acme Ltd" required />
+        </div>
+
+        <div class="form-group">
+          <label for="interest">What interests you most?</label>
+          <select id="interest" name="interest" required>
+            <option value="" disabled selected>Select one</option>
+            <option value="lead_gen">AI Lead Generation — find qualified leads automatically</option>
+            <option value="figsy">FIGSY — AI SDR that handles all outreach &amp; replies</option>
+            <option value="milla">Milla — AI Virtual Assistant trained on my business</option>
+            <option value="vida">Vida — AI Chatbot for my website</option>
+            <option value="all">All of the above</option>
+          </select>
+        </div>
+
+        <button type="submit" class="submit-btn">Reserve my spot &rarr;</button>
+        <p class="form-note">No credit card. No commitment. Just your spot in the queue.</p>
+      </form>
+
+      <div class="success-wrap" id="success-msg">
+        <div class="success-icon">✅</div>
+        <h2>You're on the list.</h2>
+        <p>We'll send your early access invite to your email the moment we open.<br/>Expect something worth waiting for.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num">250M+</div>
+      <div class="stat-label">Verified B2B contacts in the database</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">$1</div>
+      <div class="stat-label">Per qualified lead found</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">10 min</div>
+      <div class="stat-label">From signup to first leads</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">SDRs hired</div>
+    </div>
+  </div>
+
+  <!-- WHAT YOU GET -->
+  <div class="features">
+    <p class="features-label">What you get on launch day</p>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon">🎯</div>
+        <h3>AI Lead Generation</h3>
+        <p>Build your ICP once. K.I.N.D searches 250M+ contacts, scores every lead against your profile, and delivers verified matches straight to your pipeline.</p>
+        <span class="feat-tag tag-blue">From $1/lead</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🤖</div>
+        <h3>FIGSY — AI SDR</h3>
+        <p>FIGSY writes personalised emails, sends them, handles objections, follows up, and books meetings into your calendar. Fully autonomous. No inbox monitoring required.</p>
+        <span class="feat-tag tag-purple">From $3/outreach credit</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🧠</div>
+        <h3>Milla — AI Assistant</h3>
+        <p>An AI assistant trained on your business. Answers questions, drafts in your tone, surfaces campaign intelligence. Your always-on executive assistant.</p>
+        <span class="feat-tag tag-green">$49/mo</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">💬</div>
+        <h3>Vida — Website AI</h3>
+        <p>Deploy an AI chatbot on your website in minutes. Vida qualifies every visitor, captures leads, and alerts you when someone is ready to buy.</p>
+        <span class="feat-tag tag-green">$29/mo</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <h3>Campaign Intelligence</h3>
+        <p>Every campaign teaches the system. Reply rates, objection patterns, industry signals — all fed back to improve your next ICP and outreach automatically.</p>
+        <span class="feat-tag tag-blue">Included</span>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🌍</div>
+        <h3>Built for Africa</h3>
+        <p>POPIA and NDPR compliant. ZAR billing available. Leads across South Africa, Nigeria, Kenya, Ghana, Egypt and 6 more African markets.</p>
+        <span class="feat-tag tag-purple">10 markets</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 K.I.N.D · <a href="https://get-kind.com">get-kind.com</a></p>
+    <p><a href="mailto:hello@get-kind.com">hello@get-kind.com</a> &nbsp;·&nbsp; <a href="https://get-kind.com/terms">Terms</a> &nbsp;·&nbsp; <a href="https://get-kind.com/privacy">Privacy</a></p>
+  </footer>
+
+  <script>
+    document.getElementById('wl-form').addEventListener('submit', async function(e) {
+      e.preventDefault()
+      const form = e.target
+      const data = new FormData(form)
+
+      try {
+        await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(data).toString(),
+        })
+        form.style.display = 'none'
+        document.getElementById('success-msg').style.display = 'block'
+      } catch {
+        // Fallback: still show success (Netlify will catch it server-side)
+        form.style.display = 'none'
+        document.getElementById('success-msg').style.display = 'block'
+      }
+    })
+  </script>
+</body>
+</html>

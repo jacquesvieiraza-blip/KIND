@@ -254,3 +254,59 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     res.json({ success: true, data })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to activate ICP' }) }
 })
+
+// ── CHAT BUILD — conversational ICP builder ───────────────────────────────────
+icpRouter.post('/chat-build', async (req: AuthRequest, res) => {
+  try {
+    const { message, history = [] } = z.object({
+      message: z.string().min(1).max(1000),
+      history: z.array(z.object({ role: z.enum(['user','assistant']), content: z.string() })).max(20).default([]),
+    }).parse(req.body)
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const system = `You are an ICP (Ideal Customer Profile) builder assistant for K.I.N.D, a B2B lead generation platform.
+Your job is to have a short conversation with the user to understand who they want to target, then extract structured ICP data.
+
+Based on the conversation, return a JSON object with:
+- "message": your conversational reply (plain text, friendly, max 2 sentences)
+- "name": suggested ICP name (e.g. "SA SaaS CTOs") — only if confident
+- "industries": array of industries from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy
+- "job_titles": array of job titles (e.g. ["CTO", "Head of Sales"])
+- "seniority_levels": array from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor
+- "company_sizes": array from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+
+- "geographies": array of countries or regions
+- "tech_stack": array of tools they likely use
+- "keywords": array of intent signals (e.g. "hiring", "Series A", "expansion")
+
+Only include fields you're confident about. Leave arrays empty [] if not enough info yet.
+Always respond with valid JSON only — no markdown, no explanation outside the JSON.`
+
+    const messages = [
+      ...history,
+      { role: 'user' as const, content: message },
+    ]
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      system,
+      messages,
+    })
+
+    const raw = (response.content[0] as { type: string; text: string }).text.trim()
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(raw.replace(/^```json\n?/, '').replace(/\n?```$/, ''))
+    } catch {
+      parsed = { message: "Tell me more about who you want to target — industry, job title, company size, location?" }
+    }
+
+    res.json({ success: true, data: parsed })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[icps/chat-build]', err)
+    res.status(500).json({ success: false, error: 'Failed to process message' })
+  }
+})

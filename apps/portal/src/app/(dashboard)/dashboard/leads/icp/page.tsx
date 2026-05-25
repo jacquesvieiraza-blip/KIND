@@ -5,7 +5,90 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send } from 'lucide-react'
+
+// ── AI Chat panel ─────────────────────────────────────────────────────────────
+function AiChatPanel({ token, onFill }: { token: string; onFill: (data: Partial<ICPFormData>) => void }) {
+  const [open, setOpen]     = useState(false)
+  const [input, setInput]   = useState('')
+  const [sending, setSending] = useState(false)
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
+    { role: 'ai', text: "Hi! Describe who you want to target — industry, role, company size, location — and I'll build your ICP automatically." }
+  ])
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+  async function send() {
+    const text = input.trim()
+    if (!text || sending) return
+    setInput('')
+    setMessages(prev => [...prev, { role: 'user', text }])
+    setSending(true)
+    try {
+      const res = await api.post<{ data: Partial<ICPFormData> & { message?: string } }>(
+        '/icps/chat-build', { message: text, history: messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })) }, token
+      )
+      const { message, ...icpFields } = res.data
+      const hasFields = Object.values(icpFields).some(v => Array.isArray(v) ? v.length > 0 : !!v)
+      if (hasFields) onFill(icpFields)
+      setMessages(prev => [...prev, { role: 'ai', text: message || (hasFields ? "I've filled in your ICP form — review it on the right and adjust anything you need." : "Tell me more about your target customers and I'll fill the form for you.") }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', text: "Sorry, couldn't connect — try again in a moment." }])
+    }
+    setSending(false)
+  }
+
+  return (
+    <div className="fixed bottom-24 right-6 z-40">
+      {open && (
+        <div className="w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden mb-3" style={{ height: 380 }}>
+          <div className="bg-brand-500 px-4 py-3 flex items-center justify-between shrink-0">
+            <div>
+              <p className="text-white font-semibold text-sm">AI ICP Builder</p>
+              <p className="text-white/60 text-xs">Describe your target — I'll fill the form</p>
+            </div>
+            <button onClick={() => setOpen(false)} className="p-1 hover:bg-white/10 rounded transition-colors">
+              <X className="w-4 h-4 text-white" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                  m.role === 'user' ? 'bg-brand-500 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                }`}>{m.text}</div>
+              </div>
+            ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+                  <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+          <div className="px-3 py-3 border-t border-gray-100 flex gap-2 items-center shrink-0">
+            <input value={input} onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+              placeholder="e.g. SaaS CTOs in South Africa…"
+              className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 bg-gray-50" />
+            <button onClick={send} disabled={!input.trim() || sending}
+              className="w-9 h-9 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 rounded-xl flex items-center justify-center transition-colors shrink-0">
+              <Send className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        </div>
+      )}
+      <button onClick={() => setOpen(v => !v)}
+        className="w-14 h-14 bg-brand-500 hover:bg-brand-600 shadow-lg rounded-full flex items-center justify-center transition-all duration-200 relative">
+        {open ? <X className="w-5 h-5 text-white" /> : <MessageSquare className="w-5 h-5 text-white" />}
+        {!open && <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse" />}
+      </button>
+    </div>
+  )
+}
 
 const INDUSTRIES = [
   'Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture',
@@ -268,6 +351,21 @@ export default function ICPPage() {
 
   const set = (field: keyof ICPFormData) => (val: unknown) => setForm(f => ({ ...f, [field]: val }))
 
+  function handleAiFill(data: Partial<ICPFormData>) {
+    if (!showForm) { setShowForm(true); setEditingId(null) }
+    setForm(f => ({
+      ...f,
+      ...(data.industries?.length       ? { industries:       data.industries       } : {}),
+      ...(data.job_titles?.length        ? { job_titles:        data.job_titles        } : {}),
+      ...(data.seniority_levels?.length  ? { seniority_levels:  data.seniority_levels  } : {}),
+      ...(data.company_sizes?.length     ? { company_sizes:     data.company_sizes     } : {}),
+      ...(data.geographies?.length       ? { geographies:       data.geographies       } : {}),
+      ...(data.tech_stack?.length        ? { tech_stack:        data.tech_stack        } : {}),
+      ...(data.keywords?.length          ? { keywords:          data.keywords          } : {}),
+      ...(data.name                      ? { name:              data.name              } : {}),
+    }))
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-brand-500" /></div>
 
   if (loadError) return (
@@ -283,6 +381,7 @@ export default function ICPPage() {
   )
 
   return (
+    <>
     <div className="space-y-6 max-w-3xl">
       {/* Error banner — shown for delete/activate errors when form is not open */}
       {saveError && !showForm && (
@@ -461,5 +560,9 @@ export default function ICPPage() {
         </div>
       )}
     </div>
+
+    {/* Floating AI chat bubble — always visible on this page */}
+    {token && <AiChatPanel token={token} onFill={handleAiFill} />}
+  </>
   )
 }

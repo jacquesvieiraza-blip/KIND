@@ -246,7 +246,7 @@ export default function BillingPage() {
     setInitiatingSubscription(product)
     try {
       const res = await api.post<{ success: boolean; authorization_url?: string; message?: string }>(
-        '/subscriptions',
+        '/subscriptions/initiate',
         { product, tier: 'starter', billing_interval: 'monthly' },
         session.access_token
       )

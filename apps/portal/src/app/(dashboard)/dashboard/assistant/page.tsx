@@ -137,7 +137,7 @@ export default function AssistantPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { setHasAccess(false); return }
       api.get<{ data: { product: string; status: string }[] }>('/subscriptions', session.access_token)
-        .then(res => setHasAccess((res.data ?? []).some(s => s.product === 'virtual_assistant' && (s.status === 'active' || s.status === 'trialing'))))
+        .then(res => setHasAccess((res.data ?? []).some(s => s.product === 'virtual_assistant' && s.status === 'active')))
         .catch(() => setHasAccess(false))
     })
   }, [supabase])

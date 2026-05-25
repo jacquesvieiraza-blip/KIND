@@ -633,6 +633,8 @@ K.I.N.D sells itself using K.I.N.D. FIGSY finds and contacts our own prospects. 
 
 ## 11. COMPLIANCE — FULL AUDIT
 
+### Current Status
+
 | Framework | Status | Where |
 |---|---|---|
 | **POPIA** (South Africa) | ✅ Complete | Consent flow, opt-out blocklist, data sovereignty, DPA |
@@ -641,7 +643,161 @@ K.I.N.D sells itself using K.I.N.D. FIGSY finds and contacts our own prospects. 
 | **DPA** published | ✅ Complete | dpa.html — 10 sections |
 | **CCPA** (California) | ✅ Complete | trust.html + dpa.html + dpa-us.html |
 | **US state laws** (VCDPA, CPA, etc.) | ✅ Complete | dpa-us.html Section 1 catch-all |
-| **SOC 2 Type II** | ❌ Deferred | Q1 2027 |
+| **SOC 2 Type II** | ⏳ Q1 2027 | See roadmap below |
+| **ISO 27001** | ⏳ Year 2 | See roadmap below |
+| **ISO 42001** | ⏳ Year 2 | See roadmap below |
+
+---
+
+### Certification Roadmap — How to Get the Badges
+
+The five badges to earn: **SOC 2 Type II · GDPR · CCPA · ISO 27001 · ISO 42001**
+
+GDPR and CCPA are already done — they are regulatory compliance claims, not third-party certifications. The three that require formal audit and certification are SOC 2, ISO 27001, and ISO 42001.
+
+---
+
+#### 1. GDPR — ✅ Done
+**What it is:** EU/UK data protection regulation. Not a certification — a compliance claim backed by documented controls.
+**What K.I.N.D has:** `trust.html`, `dpa.html`, SCCs, legitimate interest basis, data subject rights, af-south-1 data residency.
+**How to display it:** GDPR badge on website = self-attestation of compliance. Legitimate and standard practice.
+**Cost:** £0 — already done.
+**To strengthen:** Get a third-party GDPR compliance assessment from a UK/EU data protection solicitor. ~£500–1,500. Optional but useful for enterprise clients.
+
+---
+
+#### 2. CCPA — ✅ Done
+**What it is:** California Consumer Privacy Act. Applies to any business serving California residents with >$25M revenue OR >100k consumer records. K.I.N.D is below both thresholds currently — but compliance is built in anyway.
+**What K.I.N.D has:** `trust.html`, `dpa-us.html`, opt-out mechanism, data deletion on request.
+**How to display it:** CCPA badge = self-attestation. Standard practice for SaaS.
+**Cost:** £0 — already done.
+
+---
+
+#### 3. SOC 2 Type II — ⏳ Q1 2027
+**What it is:** The gold standard for SaaS security compliance. An independent CPA firm audits your security controls over a 6–12 month observation period. Covers 5 Trust Service Criteria: Security (mandatory), Availability, Processing Integrity, Confidentiality, Privacy.
+**Who asks for it:** Enterprise clients, US companies, any client with their own security review process. Required by most corporate procurement teams above $50k contract value.
+**Type I vs Type II:**
+- Type I = point-in-time snapshot. Faster, cheaper, less valuable.
+- Type II = 6–12 month observation period. Required by serious enterprise buyers. Always aim for this.
+
+**The path:**
+1. **Choose a compliance platform** — Vanta ($15,000–25,000/yr), Drata ($10,000–20,000/yr), or Secureframe ($12,000–20,000/yr). These automate evidence collection, map controls, and connect to your AWS/Vercel/Railway/Supabase infrastructure. **Vanta recommended — best integrations, most enterprise buyers recognise it.**
+2. **Gap assessment** (~Month 1) — Platform scans infrastructure, identifies what's missing. Typical gaps: formal access control policy, incident response plan, vendor risk management, security training records, penetration test.
+3. **Remediation** (~Month 2–4) — Fix the gaps. Write the policies. Run a pen test (~£2,000–5,000 from a UK firm). Implement multi-factor auth, audit logging, formal change management.
+4. **Observation period** (~Month 5–10) — Nothing to do except operate normally. The platform collects evidence continuously.
+5. **Audit** (~Month 11–12) — CPA firm reviews evidence, interviews team, issues the SOC 2 Type II report.
+6. **Report issued** — Share with enterprise prospects under NDA. Display badge on website.
+
+**Cost breakdown:**
+| Item | Cost |
+|---|---|
+| Vanta (Year 1) | ~$20,000 |
+| CPA audit firm | ~$15,000–25,000 |
+| Pen test | ~£2,000–5,000 |
+| Legal (policy review) | ~£1,000–2,000 |
+| **Total Year 1** | **~$40,000–55,000** |
+| Renewal (Year 2+) | ~$25,000–35,000/yr |
+
+**When to start:** When the first enterprise client asks for it OR at 50+ clients. Not before — it's a significant investment and there's no ROI until enterprise buyers are in the funnel.
+
+**K.I.N.D trigger:** Q1 2027 or first enterprise contract requiring it, whichever comes first.
+
+---
+
+#### 4. ISO 27001 — ⏳ Year 2
+**What it is:** International standard for Information Security Management Systems (ISMS). Published by ISO/IEC. Audited by an accredited certification body. More recognised globally than SOC 2 — especially in Europe, Middle East, and Africa.
+
+**Why it matters for K.I.N.D:** African enterprise clients (banks, telecoms, large corporates) are more familiar with ISO 27001 than SOC 2. If K.I.N.D targets Nigerian fintechs, Kenyan banks, or SA corporates at enterprise scale, ISO 27001 opens those doors.
+
+**The path:**
+1. **Gap analysis** — Hire an ISO 27001 consultant or use a platform like Vanta (which covers both SOC 2 and ISO 27001 simultaneously). Identify gaps against the 114 controls in Annex A.
+2. **Build the ISMS** — Document your Information Security Management System. Risk assessment, risk treatment plan, Statement of Applicability, security policies, asset register.
+3. **Internal audit** — Self-audit or hire a consultant.
+4. **Stage 1 audit** — Certification body reviews documentation. ~1 day.
+5. **Stage 2 audit** — Certification body audits implementation. ~2–3 days on-site.
+6. **Certificate issued** — Valid 3 years, with annual surveillance audits.
+
+**Cost breakdown:**
+| Item | Cost |
+|---|---|
+| Consultant (gap analysis + ISMS build) | ~£5,000–15,000 |
+| Certification body (Stage 1 + 2 audit) | ~£5,000–10,000 |
+| Annual surveillance audits | ~£2,000–3,000/yr |
+| **Total Year 1** | **~£10,000–25,000** |
+
+**Efficiency play:** If doing both SOC 2 and ISO 27001, do them simultaneously — they share ~70% of controls. Vanta maps both frameworks from the same evidence. Saves roughly 40% of the total cost vs doing them separately.
+
+**K.I.N.D trigger:** Year 2 (2027) or when first African enterprise contract requires it.
+
+---
+
+#### 5. ISO 42001 — ⏳ Year 2 (Early Mover Opportunity)
+**What it is:** The world's first international standard for AI Management Systems. Published December 2023 by ISO/IEC. Covers responsible AI development, deployment, and governance — bias assessment, transparency, human oversight, AI risk management.
+
+**Why this is significant for K.I.N.D:**
+- ISO 42001 is brand new. Very few companies have it. Being an early certified AI company is a genuine differentiator.
+- As an AI-native product (Claude-powered FIGSY, AI lead scoring, AI email generation), K.I.N.D has a natural story to tell here.
+- EU AI Act (effective 2025) and emerging African AI governance frameworks are moving in this direction. ISO 42001 is the early compliance play.
+- Enterprise buyers asking "is your AI responsible?" will start using ISO 42001 as the benchmark.
+
+**What it covers:**
+- AI policy and governance documentation
+- Risk assessment for AI systems (FIGSY, scoring models, email generation)
+- Transparency about how AI makes decisions
+- Human oversight mechanisms (pause FIGSY, override lead scores)
+- Bias monitoring and mitigation
+- Data quality and training data governance
+- Incident response for AI failures
+
+**The path:** Very similar to ISO 27001. Gap analysis → ISMS-equivalent for AI → audit by accredited body → certificate.
+
+**Current K.I.N.D readiness:**
+- ✅ Human oversight: FIGSY can be paused, leads can be manually overridden
+- ✅ Transparency: email generation reasoning visible (Phase 3 feature)
+- ✅ AI model documentation: Claude Haiku for volume, Sonnet for quality — documented
+- ⏳ Formal AI risk register: not yet created
+- ⏳ Bias assessment for lead scoring: not yet documented
+- ⏳ AI incident response plan: not yet written
+
+**Cost:** Similar to ISO 27001. ~£10,000–20,000 for Year 1 including consultant and audit. Market is early so certification body rates are still reasonable.
+
+**K.I.N.D trigger:** Year 2 — build the AI risk register and bias documentation now (low cost, high value for marketing), pursue formal certification when pursuing enterprise contracts.
+
+---
+
+### The Certification Display Strategy
+
+The badges displayed on the website signal trust. The order to earn them:
+
+| Order | Certification | Trigger | Est. Cost | Timeline |
+|---|---|---|---|---|
+| ✅ Now | GDPR | Done | £0 | Done |
+| ✅ Now | CCPA | Done | £0 | Done |
+| 1 | SOC 2 Type II | First enterprise client OR 50+ clients | ~$50,000 | 12–18 months |
+| 2 | ISO 27001 | Year 2 — African enterprise pipeline | ~£15,000 | 6–12 months |
+| 3 | ISO 42001 | Year 2 — AI governance story | ~£15,000 | 6–12 months |
+
+**Cost-efficient path:** Do SOC 2 + ISO 27001 + ISO 42001 simultaneously in Year 2 using Vanta. Shared controls mean one platform, one compliance programme, three badges. Total Year 2 investment: ~$80,000–100,000. At that point K.I.N.D should have 100+ clients and $10k+ MRR — the ROI is there.
+
+**Before formal certification — what to do now (free):**
+1. Display GDPR and CCPA badges immediately — you're already compliant
+2. Create an `AI Ethics & Governance` page on the website — document how FIGSY works, how lead scoring decisions are made, what human oversight exists. Costs nothing. Directly supports ISO 42001 readiness.
+3. Write the AI risk register (a Google Doc is fine). Identifies K.I.N.D's AI systems, their risks, and mitigations. Use this in enterprise sales conversations now.
+4. SOC 2 readiness tracker — Vanta offers a free trial and gap assessment. Run the gap assessment to know exactly what's needed before committing to the full programme.
+
+---
+
+### Add to Admin Portal — Compliance Tracker Page (`/compliance`)
+
+A compliance dashboard page in the admin portal showing:
+- Current certification status (green/amber/red per badge)
+- Next milestone per certification
+- Cost and timeline to next badge
+- Readiness checklist for SOC 2 (ticked off as controls are implemented)
+- AI governance documentation status (for ISO 42001 prep)
+
+This page is for the Founder's visibility — track progress toward enterprise-grade compliance from one place.
 
 ---
 

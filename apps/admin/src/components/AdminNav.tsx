@@ -52,10 +52,11 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'DOCS',
     items: [
-      { href: '/docs/master',     label: 'MASTER',       icon: BookOpen },
-      { href: '/docs/run-costs',  label: 'Run Costs',    icon: DollarSign },
-      { href: '/docs/legal',      label: 'Legal',        icon: FileText },
+      { href: '/docs/master',     label: 'MASTER',        icon: BookOpen },
+      { href: '/docs/run-costs',  label: 'Run Costs',     icon: DollarSign },
+      { href: '/docs/legal',      label: 'Legal',         icon: FileText },
       { href: '/docs/audits',     label: 'Audit Reports', icon: Bot },
+      { href: '/compliance',      label: 'Compliance',    icon: FileText },
     ],
   },
 ]

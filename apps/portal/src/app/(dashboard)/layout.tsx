@@ -3,9 +3,12 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { SidebarV2 } from '@/components/layout/SidebarV2'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 import { SupportWidget } from '@/components/ui/SupportWidget'
+
+const V2 = process.env.FEATURE_PORTAL_V2 === 'true'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -36,12 +39,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
   } catch { }
 
+  const Nav = V2 ? SidebarV2 : Sidebar
+
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-200">
-      <Sidebar userEmail={user.email || ''} creditBalance={creditBalance} />
+    <div className={`flex h-screen dark:bg-gray-950 transition-colors duration-200 ${V2 ? 'bg-[#f0f2f5]' : 'bg-gray-50'}`}>
+      <Nav userEmail={user.email || ''} creditBalance={creditBalance} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
         <TrialExpiredOverlay expired={trialExpired} />
-        <div className="max-w-7xl space-y-4">
+        <div className={`${V2 ? 'max-w-7xl' : 'max-w-7xl'} space-y-4`}>
           <LowCreditsNotice balance={creditBalance} />
           {children}
         </div>

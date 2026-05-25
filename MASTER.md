@@ -693,14 +693,96 @@ Full audit completed 18 May 2026. All tables and routes checked.
 
 ## 15. REVENUE TARGETS & KPIs
 
-### Month-by-Month MRR Targets
+### ARPU Assumptions
 
-| Month | Target MRR (USD) | New Clients | Cumulative |
-|---|---|---|---|
-| May 2026 (launch) | $2,500 | 5 | 5 |
-| Jun–Jul 2026 | $8,000 | 15 | 20 |
-| Months 5–6 | $26,000 | 40 | 60 |
-| Months 7–12 | $100,000 | 140+ | 200+ |
+| Client Type | Monthly Spend (USD) | Profile |
+|---|---|---|
+| Starter | $20 | Lead Gen 20 only |
+| Growth | $160 | Lead Gen 100 + FIGSY 20 |
+| Scale | $400 | Lead Gen 100 + FIGSY 100 |
+| **Blended ARPU** | **~$80** | Mixed client base |
+
+---
+
+### Three Scenarios — Month by Month
+
+#### 🔵 Conservative (slow start, low outreach volume)
+*Assumptions: 30% trial→paid, 5% monthly churn*
+
+| Month | New Paid | Churned | Total Clients | MRR (USD) |
+|---|---|---|---|---|
+| May 2026 | 3 | 0 | 3 | $240 |
+| Jun 2026 | 4 | 0 | 7 | $560 |
+| Jul 2026 | 6 | 0 | 13 | $1,040 |
+| Aug 2026 | 7 | 1 | 19 | $1,520 |
+| Sep 2026 | 9 | 1 | 27 | $2,160 |
+| Oct 2026 | 10 | 1 | 36 | $2,880 |
+| Nov 2026 | 12 | 2 | 46 | $3,680 |
+| Dec 2026 | 13 | 2 | 57 | $4,560 |
+| **Year 1 end** | | | **~60 clients** | **~$4,800 MRR** |
+
+Year 1 ARR: ~$34,000 · Break-even: Month 2
+
+---
+
+#### 🟡 Base (GTM plan executed, FIGSY self-outreach live)
+*Assumptions: 40% trial→paid, 3% monthly churn*
+
+| Month | New Paid | Churned | Total Clients | MRR (USD) |
+|---|---|---|---|---|
+| May 2026 | 8 | 0 | 8 | $640 |
+| Jun 2026 | 12 | 0 | 20 | $1,600 |
+| Jul 2026 | 16 | 1 | 35 | $2,800 |
+| Aug 2026 | 20 | 1 | 54 | $4,320 |
+| Sep 2026 | 24 | 2 | 76 | $6,080 |
+| Oct 2026 | 28 | 2 | 102 | $8,160 |
+| Nov 2026 | 32 | 3 | 131 | $10,480 |
+| Dec 2026 | 36 | 4 | 163 | $13,040 |
+| **Year 1 end** | | | **~165 clients** | **~$13,200 MRR** |
+
+Year 1 ARR: ~$72,000 · Break-even: Month 1
+
+---
+
+#### 🟢 Optimistic (partner channel + Product Hunt + strong word of mouth)
+*Assumptions: 50% trial→paid, 2% monthly churn*
+
+| Month | New Paid | Churned | Total Clients | MRR (USD) |
+|---|---|---|---|---|
+| May 2026 | 15 | 0 | 15 | $1,200 |
+| Jun 2026 | 25 | 1 | 39 | $3,120 |
+| Jul 2026 | 35 | 2 | 72 | $5,760 |
+| Aug 2026 | 45 | 2 | 115 | $9,200 |
+| Sep 2026 | 50 | 3 | 162 | $12,960 |
+| Oct 2026 | 60 | 5 | 217 | $17,360 |
+| Nov 2026 | 70 | 6 | 281 | $22,480 |
+| Dec 2026 | 75 | 8 | 348 | $27,840 |
+| **Year 1 end** | | | **~350 clients** | **~$28,000 MRR** |
+
+Year 1 ARR: ~$138,000 · Break-even: Month 1
+
+---
+
+### Revenue Milestones
+
+| Milestone | What it unlocks | Base scenario |
+|---|---|---|
+| **$1,000 MRR** | Platform pays for itself | Month 2 |
+| **$5,000 MRR** | Founder salary begins | Month 4 |
+| **$10,000 MRR** | First hire possible | Month 7 |
+| **$25,000 MRR** | Series A conversations | Month 10–12 |
+| **$100,000 MRR** | Market leader, SA dominant | Month 18–24 |
+
+---
+
+### The 4 Levers That Separate Conservative from Optimistic
+
+1. **Apollo plan live** — no API access = zero leads = no product
+2. **FIGSY self-outreach running** — automated pipeline, no manual effort
+3. **Partner channel** — 1 good agency partner = 10 new clients/month
+4. **ARPU uplift** — if average client spends $160 instead of $80, all scenarios double
+
+---
 
 ### Core KPIs (check every Monday)
 
@@ -712,6 +794,7 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | FIGSY reply rate | > 8% | < 3% |
 | ICP built within 24h of signup | > 80% | < 60% |
 | At-risk clients (no ICP after 3 days) | 0 | > 2 |
+| ARPU (blended) | > $80 | < $40 |
 
 ---
 
@@ -724,15 +807,17 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | Supabase | Pro (af-south-1 required) | $25 |
 | Vercel | Pro | $20 |
 | Railway | Usage-based | $10–20 |
-| Apollo.io | Professional (24,000 credits/mo) | $99 |
+| Apollo.io | **Basic minimum / Professional recommended** | $49–99 |
 | Google Workspace | Business Starter (hello@get-kind.com) | $12–18 |
 | Resend | Free → Pro at scale | $0–20 |
 | Domain | Annual | ~$1 |
-| **Total floor (excl. Claude Code)** | | **$167–203/mo** |
+| **Total floor** | | **$117–203/mo** |
 
 **Variable costs per lead:** ~$0.009
 
 **Break-even: 2 clients.**
+
+> ⚠️ Apollo free plan = $0/mo but API access blocked. Platform cannot function. Minimum viable plan is Basic at $49/mo.
 
 ---
 

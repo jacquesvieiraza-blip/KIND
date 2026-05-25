@@ -97,7 +97,7 @@ export default function ChatbotPage() {
     <div className="flex items-center justify-center min-h-[60vh] px-4">
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 max-w-lg w-full p-8 text-center">
         <div className="text-4xl mb-4">💬</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">Unlock the Chatbot Agent</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">Unlock Vida</h1>
         <p className="text-gray-500 text-sm leading-relaxed mb-6">Deploy an AI chatbot on your website or WhatsApp — trained on your business, live in minutes.</p>
         <ul className="text-left space-y-2.5 mb-8">
           {['Answers product questions instantly', 'Captures and qualifies leads 24/7', 'Hands off to your team when needed', 'One-line embed — any website'].map(f => (

@@ -58,8 +58,8 @@ const SUB_NAV: Record<Product, { href: string; label: string; icon: React.ReactN
     { href: '/dashboard/kpis',          label: 'KPIs',       icon: <TrendingUp className="w-4 h-4" /> },
   ],
   more: [
-    { href: '/dashboard/assistant', label: 'Virtual Assistant', icon: <Bot className="w-4 h-4" /> },
-    { href: '/dashboard/chatbot',   label: 'Chatbot Agent',     icon: <MessageSquare className="w-4 h-4" /> },
+    { href: '/dashboard/assistant', label: 'Milla — VA', icon: <Bot className="w-4 h-4" /> },
+    { href: '/dashboard/chatbot',   label: 'Vida — Chatbot',     icon: <MessageSquare className="w-4 h-4" /> },
     { href: '/dashboard/documents', label: 'Documents',          icon: <FileText className="w-4 h-4" /> },
     { href: '/dashboard/roadmap',   label: 'Roadmap',            icon: <Map className="w-4 h-4" /> },
   ],

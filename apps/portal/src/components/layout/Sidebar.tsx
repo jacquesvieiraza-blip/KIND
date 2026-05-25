@@ -62,8 +62,8 @@ const NAV_GROUPS = [
   {
     label: 'PRODUCTS',
     items: [
-      { href: '/dashboard/assistant', label: 'Virtual Assistant', icon: Bot },
-      { href: '/dashboard/chatbot',   label: 'Chatbot Agent',     icon: MessageSquare },
+      { href: '/dashboard/assistant', label: 'Milla — VA', icon: Bot },
+      { href: '/dashboard/chatbot',   label: 'Vida — Chatbot',     icon: MessageSquare },
       { href: '/dashboard/documents', label: 'Documents',          icon: FileText },
     ],
   },

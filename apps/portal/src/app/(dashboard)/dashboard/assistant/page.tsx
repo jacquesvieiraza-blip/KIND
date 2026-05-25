@@ -104,7 +104,7 @@ export default function AssistantPage() {
     <div className="flex items-center justify-center min-h-[60vh] px-4">
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 max-w-lg w-full p-8 text-center">
         <div className="text-4xl mb-4">🧠</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">Unlock the Virtual Assistant</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">Unlock Milla</h1>
         <p className="text-gray-500 text-sm leading-relaxed mb-6">A Claude-powered assistant trained on your business — handles emails, answers queries, and manages follow-ups.</p>
         <ul className="text-left space-y-2.5 mb-8">
           {['Trained on your documents and SOPs', 'Drafts emails in your tone', 'Answers internal and client questions', 'Connects to your calendar (coming soon)'].map(f => (

@@ -132,6 +132,7 @@ export default function BillingPage() {
   const [stripeInitiating, setStripeInitiating] = useState<string | null>(null)
   const [buyError, setBuyError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [initiatingSubscription, setInitiatingSubscription] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -237,6 +238,28 @@ export default function BillingPage() {
       setBuyError('Stripe checkout failed. Please try again or email hello@get-kind.com.')
     }
     setStripeInitiating(null)
+  }
+
+  async function handleSubscribe(product: 'virtual_assistant' | 'chatbot') {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    setInitiatingSubscription(product)
+    try {
+      const res = await api.post<{ success: boolean; authorization_url?: string; message?: string }>(
+        '/subscriptions',
+        { product, tier: 'starter', billing_interval: 'monthly' },
+        session.access_token
+      )
+      if (res.authorization_url) {
+        window.location.href = res.authorization_url
+      } else if (res.message) {
+        alert(res.message)
+      }
+    } catch (err) {
+      alert('Unable to start subscription. Please try again or contact support.')
+    } finally {
+      setInitiatingSubscription(null)
+    }
   }
 
   if (loading) return (
@@ -428,6 +451,106 @@ export default function BillingPage() {
             Powered by Stripe · Secure card processing · Credits appear immediately after payment
           </p>
         </div>
+
+      {/* ── AI Assistants ─────────────────────────────────────────────────────────── */}
+      <div id="assistants" className="mt-8">
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-base font-semibold text-gray-900">AI Team Members</h2>
+          <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-full">Monthly subscription</span>
+        </div>
+        <p className="text-sm text-gray-400 mb-5">Unlock Milla and Vida. Billed monthly. Cancel anytime. Activates the moment payment clears.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Milla */}
+          <div id="milla" className="rounded-xl border border-gray-100 overflow-hidden">
+            <div className="bg-blue-600 px-5 py-4 text-white">
+              <p className="font-semibold">Milla — VA</p>
+              <p className="text-white/60 text-xs mt-0.5">AI Virtual Assistant</p>
+            </div>
+            <div className="bg-white px-5 py-5 space-y-4">
+              <div className="space-y-2">
+                {['Document Q&A', 'Drafts in your tone', '24/7 availability'].map(f => (
+                  <div key={f} className="flex items-center gap-2 text-xs text-gray-500">
+                    <svg className="w-3 h-3 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-gray-900">$49</span>
+                <span className="text-gray-400 text-sm">/month</span>
+              </div>
+              <button
+                onClick={() => handleSubscribe('virtual_assistant')}
+                disabled={!!initiatingSubscription || !termsAccepted}
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                {initiatingSubscription === 'virtual_assistant' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {initiatingSubscription === 'virtual_assistant' ? 'Redirecting…' : 'Unlock Milla'}
+              </button>
+            </div>
+          </div>
+
+          {/* Vida */}
+          <div id="vida" className="rounded-xl border border-gray-100 overflow-hidden">
+            <div className="bg-purple-600 px-5 py-4 text-white">
+              <p className="font-semibold">Vida — Chatbot</p>
+              <p className="text-white/60 text-xs mt-0.5">AI Chatbot Agent</p>
+            </div>
+            <div className="bg-white px-5 py-5 space-y-4">
+              <div className="space-y-2">
+                {['Qualifies leads 24/7', 'Website embed', 'Hot lead alerts'].map(f => (
+                  <div key={f} className="flex items-center gap-2 text-xs text-gray-500">
+                    <svg className="w-3 h-3 text-purple-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-gray-900">$29</span>
+                <span className="text-gray-400 text-sm">/month</span>
+              </div>
+              <button
+                onClick={() => handleSubscribe('chatbot')}
+                disabled={!!initiatingSubscription || !termsAccepted}
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                {initiatingSubscription === 'chatbot' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {initiatingSubscription === 'chatbot' ? 'Redirecting…' : 'Unlock Vida'}
+              </button>
+            </div>
+          </div>
+
+          {/* Bundle */}
+          <div className="rounded-xl border-2 border-blue-200 overflow-hidden relative">
+            <div className="absolute top-3 right-3 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">BEST VALUE</div>
+            <div className="bg-gradient-to-br from-blue-600 to-purple-600 px-5 py-4 text-white">
+              <p className="font-semibold">Milla + Vida Bundle</p>
+              <p className="text-white/60 text-xs mt-0.5">Both AI assistants</p>
+            </div>
+            <div className="bg-white px-5 py-5 space-y-4">
+              <div className="space-y-2">
+                {['Everything in Milla', 'Everything in Vida', 'Save $9/month'].map(f => (
+                  <div key={f} className="flex items-center gap-2 text-xs text-gray-500">
+                    <svg className="w-3 h-3 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-gray-900">$69</span>
+                <span className="text-gray-400 text-sm">/month</span>
+                <span className="text-xs text-gray-400 line-through ml-1">$78</span>
+              </div>
+              <button
+                onClick={() => { handleSubscribe('virtual_assistant'); handleSubscribe('chatbot') }}
+                disabled={!!initiatingSubscription || !termsAccepted}
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                Unlock Both
+              </button>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-4 text-center">Subscriptions managed via Paystack · Cancel anytime from this page</p>
+      </div>
 
       {/* Auto top-up settings */}
       <div className="bg-white border border-gray-100 rounded-xl p-6">

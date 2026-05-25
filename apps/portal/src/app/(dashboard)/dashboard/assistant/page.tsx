@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { Bot } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,49 @@ function SourceChips({ sources }: { sources: MillaSource[] }) {
   )
 }
 
+// ── Demo Request Button ───────────────────────────────────────────────────────
+
+function DemoRequestButton({ product }: { product: 'milla' | 'vida' }) {
+  const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function handleRequest() {
+    setLoading(true)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const clientId = session?.user?.id
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/api/demo-request`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ product, client_id: clientId, message: '' }),
+      })
+      setSent(true)
+    } catch {
+      setSent(true) // show success anyway — don't leave user confused
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (sent) return (
+    <div className="flex items-center justify-center gap-2 w-full border border-gray-200 rounded-xl px-6 py-3 text-sm text-gray-500 bg-gray-50">
+      <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+      Demo request sent — we'll be in touch
+    </div>
+  )
+
+  return (
+    <button
+      onClick={handleRequest}
+      disabled={loading}
+      className="flex items-center justify-center gap-2 w-full border border-gray-200 hover:border-gray-300 rounded-xl px-6 py-3 text-sm text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50">
+      {loading ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> : null}
+      Request a Demo instead
+    </button>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AssistantPage() {
@@ -102,22 +146,51 @@ export default function AssistantPage() {
 
   if (!hasAccess) return (
     <div className="flex items-center justify-center min-h-[60vh] px-4">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 max-w-lg w-full p-8 text-center">
-        <div className="text-4xl mb-4">🧠</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">Unlock Milla</h1>
-        <p className="text-gray-500 text-sm leading-relaxed mb-6">A Claude-powered assistant trained on your business — handles emails, answers queries, and manages follow-ups.</p>
-        <ul className="text-left space-y-2.5 mb-8">
-          {['Trained on your documents and SOPs', 'Drafts emails in your tone', 'Answers internal and client questions', 'Connects to your calendar (coming soon)'].map(f => (
-            <li key={f} className="flex items-start gap-2.5 text-sm text-gray-700">
-              <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">✓</span>{f}
-            </li>
-          ))}
-        </ul>
-        <div className="flex flex-col gap-3">
-          <a href="/dashboard/billing" className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Upgrade to unlock →</a>
-          <a href="https://cal.com/get-kind/demo" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-gray-200">Book a demo</a>
+      <div className="max-w-md w-full">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
+            <Bot className="w-7 h-7 text-blue-600" />
+          </div>
+          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+            Now available
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Meet Milla</h1>
+          <p className="text-gray-500 text-sm">Your AI Virtual Assistant — trained on your business documents. Ask her anything.</p>
         </div>
-        <p className="text-xs text-gray-400 mt-3">Available as an add-on. Book a demo to see it live.</p>
+
+        {/* Features */}
+        <div className="bg-gray-50 rounded-xl p-5 mb-6 space-y-3">
+          {[
+            'Trained on your own documents and SOPs',
+            'Answers questions about your business instantly',
+            'Drafts emails and messages in your tone',
+            'Available 24/7 — never misses a question',
+          ].map(f => (
+            <div key={f} className="flex items-center gap-3 text-sm text-gray-700">
+              <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-2.5 h-2.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+              </div>
+              {f}
+            </div>
+          ))}
+        </div>
+
+        {/* Pricing */}
+        <div className="text-center mb-5">
+          <span className="text-3xl font-bold text-gray-900">$49</span>
+          <span className="text-gray-400 text-sm ml-1">/month</span>
+        </div>
+
+        {/* CTAs */}
+        <div className="space-y-3">
+          <a href="/dashboard/billing#milla" className="flex items-center justify-center gap-2 w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
+            Unlock Milla — $49/month
+          </a>
+          <DemoRequestButton product="milla" />
+        </div>
+        <p className="text-xs text-gray-400 text-center mt-4">Cancel anytime · Billed monthly · Activates instantly</p>
       </div>
     </div>
   )

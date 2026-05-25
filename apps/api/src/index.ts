@@ -27,6 +27,7 @@ import { orderFormRouter } from './routes/order-forms'
 import { statsRouter } from './routes/stats'
 import { internalBriefsRouter } from './routes/internal-briefs'
 import founderBriefRouter from './routes/founder-brief'
+import demoRequestRouter from './routes/demo-request'
 import { startCrons } from './cron'
 
 const app = express()
@@ -88,6 +89,7 @@ app.use('/order-forms',   orderFormRouter)
 app.use('/stats',         statsRouter)
 app.use('/internal/briefs', internalBriefsRouter)
 app.use('/internal', founderBriefRouter)
+app.use('/api', demoRequestRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => {

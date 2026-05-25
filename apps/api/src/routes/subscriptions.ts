@@ -44,8 +44,7 @@ subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
       client_id, product, tier,
       status: 'active',
       billing_interval: billing_interval || 'monthly',
-      amount_usd: amountUsd,
-      amount_zar: amountUsd * 19,
+      amount_zar: Math.round(amountUsd * 19),
       current_period_start: new Date().toISOString(),
       current_period_end: new Date(Date.now() + 30 * 86400000).toISOString(),
     }, { onConflict: 'client_id,product' })

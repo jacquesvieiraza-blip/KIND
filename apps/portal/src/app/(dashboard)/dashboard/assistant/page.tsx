@@ -80,7 +80,7 @@ function SourceChips({ sources }: { sources: MillaSource[] }) {
 
 export default function AssistantPage() {
   const supabase = createClient()
-  const [tab, setTab] = useState<'documents' | 'chat'>('documents')
+  const [tab, setTab] = useState<'documents' | 'chat'>('chat')
   const [toastMsg, setToastMsg] = useState('')
   const [hasAccess, setHasAccess] = useState<boolean | null>(null)
 
@@ -208,8 +208,25 @@ export default function AssistantPage() {
   }, [supabase])
 
   useEffect(() => {
-    if (tab === 'chat') loadSessions()
-  }, [tab, loadSessions])
+    if (tab === 'chat') {
+      loadSessions().then(async () => {
+        // Auto-create a session if none exist so chat is ready immediately
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const res = await api.get<{ data: { id: string }[] }>('/milla/sessions', session.access_token).catch(() => null)
+        if (res && (res.data ?? []).length === 0) {
+          const created = await api.post<{ success: boolean; sessionId: string }>('/milla/sessions', {}, session.access_token).catch(() => null)
+          if (created?.sessionId) {
+            const newSession = { id: created.sessionId, title: null, created_at: new Date().toISOString() }
+            setSessions([newSession])
+            setActiveSession(newSession)
+            setMessages([])
+          }
+        }
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
 
   async function loadMessages(sessionId: string) {
     setMessagesLoading(true)
@@ -424,12 +441,11 @@ export default function AssistantPage() {
       {/* ── Chat tab ──────────────────────────────────────────────────────── */}
       {tab === 'chat' && (
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          {/* No-docs warning */}
+          {/* Soft nudge — documents improve answers but aren't required */}
           {!docsLoading && !hasReadyDoc && (
-            <div className="p-5 bg-amber-50 border-b border-amber-100 flex items-start gap-3">
-              <span className="text-amber-500 text-lg shrink-0">!</span>
-              <p className="text-sm text-amber-800">
-                Add documents on the <button onClick={() => setTab('documents')} className="underline font-medium">Documents tab</button> before chatting with Milla. She needs your business content to give accurate answers.
+            <div className="p-4 bg-blue-50 border-b border-blue-100 flex items-center justify-between gap-3">
+              <p className="text-sm text-blue-700">
+                💡 Milla can answer general questions now. <button onClick={() => setTab('documents')} className="underline font-medium">Add your business documents</button> to get answers grounded in your own data.
               </p>
             </div>
           )}
@@ -486,9 +502,11 @@ export default function AssistantPage() {
                     {messagesLoading ? (
                       <p className="text-sm text-gray-400 text-center py-8">Loading messages…</p>
                     ) : messages.length === 0 ? (
-                      <p className="text-sm text-gray-400 text-center py-8">
-                        No messages yet. Ask Milla anything about your documents.
-                      </p>
+                      <div className="flex justify-start">
+                        <div className="max-w-[80%] bg-gray-50 text-gray-800 border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed">
+                          Hi! I'm Milla, your K.I.N.D business assistant. Ask me anything — about your leads, how to set up FIGSY, what your ICP should look like, or any other business question. How can I help?
+                        </div>
+                      </div>
                     ) : (
                       messages.map(msg => (
                         <div

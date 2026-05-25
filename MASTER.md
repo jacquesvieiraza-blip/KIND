@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 24 May 2026**
+**Single source of truth. Last updated: 25 May 2026**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 > Everything in one place. Status, roadmap, GTM, company registration, expansion, compliance, SOPs, cashflow.
@@ -36,7 +36,7 @@
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 24 May 2026 (evening)*
+*Last updated: 25 May 2026 (morning)*
 
 | Item | Status | Notes |
 |---|---|---|
@@ -78,7 +78,13 @@
 | WhatsApp Business API | ⏳ Pending | Code done — Meta 3–7 day approval |
 | G2 / Capterra / Product Hunt | ⏳ Pending | Launch day listings |
 | UK company registration | ⏳ Pending | companieshouse.gov.uk — £50, same day — see Section 23 |
-| Run credit_transactions RLS migration | ⏳ Pending | CRITICAL — financial data partially exposed |
+| Run credit_transactions RLS migration | ✅ Done | Already applied — confirmed by user 24 May |
+| Portal V2 design (SidebarV2, mission control) | ✅ Built | Feature flagged — `FEATURE_PORTAL_V2=true` to activate |
+| Dark mode (full system) | ✅ Live | DarkModeToggle in all layouts, FOUC prevention |
+| **Signup hotfix** — `amount_zar` NOT NULL | ✅ Fixed | All new signups now work — 25 May |
+| **Full schema drift fix** — `amount_usd` removed | ✅ Fixed | MRR calculations restored — 25 May |
+| **Daily 04:00 AM automated audit** | ✅ Live | `.github/workflows/daily-audit.yml` — opens GitHub Issue on failure |
+| Run `20260525_fix_subscriptions_schema.sql` | ⏳ MUST RUN | Supabase SQL Editor — makes schema drift permanent fix on DB level |
 
 ---
 
@@ -88,7 +94,7 @@
 
 | # | Task | Where | Why it's blocking |
 |---|---|---|---|
-| 1 | **Run `20260518_credit_transactions_rls.sql`** | Supabase → SQL Editor | Financial data exposed to cross-client reads |
+| 1 | **Run `20260525_fix_subscriptions_schema.sql`** | Supabase → SQL Editor | Permanent fix for schema drift — drops phantom `amount_usd`, sets `amount_zar DEFAULT 0` |
 | 2 | **Run `20260518_company_registration.sql`** | Supabase → SQL Editor | Portal settings page has fields but columns don't exist |
 | 3 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Zero live payments possible without this |
 | 4 | **Set up Google Workspace** | workspace.google.com | No professional inbox — sales emails going nowhere |

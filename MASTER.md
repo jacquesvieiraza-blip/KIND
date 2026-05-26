@@ -33,6 +33,8 @@
 22. [Go-To-Market Strategy](#22-go-to-market-strategy)
 23. [UK Company Registration](#23-uk-company-registration)
 24. [Art of Possible — Products We Study](#24-art-of-possible--products-we-study)
+25. [Compliance Certifications Roadmap](#25-compliance-certifications-roadmap)
+26. [Competitor Targeting Strategy](#26-competitor-targeting-strategy)
 
 ---
 
@@ -1000,6 +1002,108 @@ Once you have the company number, Claude will:
 - No lead generation — they manage work, we create new revenue
 - Waitlist — we're live now
 - Price: ~$500–1,000+/mo vs KIND from $20
+
+---
+
+## 25. COMPLIANCE CERTIFICATIONS ROADMAP
+
+*Live tracker: Admin → Compliance*
+
+### The 5 Certifications — What They Are and When to Get Them
+
+| Badge | Status | Trigger | Cost (est.) | Year |
+|-------|--------|---------|-------------|------|
+| GDPR | ✅ Done | Built in from day 1 | £0 | 2026 |
+| CCPA | ✅ Done | Built in from day 1 | £0 | 2026 |
+| SOC 2 Type II | ⏳ Plan | First enterprise contract or 50+ clients | ~$50,000 | Q1 2027 |
+| ISO 27001 | ⏳ Plan | Year 2 — African enterprise pipeline | ~£20,000 | 2027 |
+| ISO 42001 (AI) | ⏳ Plan | Year 2 — AI governance differentiator | ~£15,000 | 2027 |
+
+### Plain English — What Each One Means
+
+**GDPR ✅ + CCPA ✅ — Already Done**
+These aren't third-party certifications — they're regulatory compliance claims. K.I.N.D has all the policies, consent flows, and data rights built in. These badges are live on the website now — fully legitimate.
+
+**SOC 2 Type II** — the one US enterprise buyers actually ask for. An independent accounting firm audits your security controls over 6–12 months and issues a report.
+Path:
+1. Run free Vanta gap assessment at vanta.com — shows exactly what's missing, no commitment
+2. Fix gaps (policies, pen test, MFA everywhere) — 2–4 months
+3. Observation period — operate normally for 6–12 months while Vanta collects evidence
+4. CPA firm audits the evidence → issues the report
+Trigger: first enterprise contract or 50+ clients. Cost: ~$50,000 Year 1 total.
+
+**ISO 27001** — more recognised in Africa, Europe, and the Middle East than SOC 2. Opens Nigerian banks, Kenyan fintechs, and SA corporate procurement. Trigger: Year 2, African enterprise pipeline. Cost: ~£15–25,000.
+
+**ISO 42001** — the world's first standard specifically for AI systems (published Dec 2023). Almost no companies have it yet. As an AI-native product, KIND has a natural story to tell — especially as the EU AI Act and African AI governance frameworks develop.
+**Start now (free):** Create an AI Risk Register (a Google Doc listing each AI model used, what data it processes, and what decisions it influences). Costs nothing — but you can use it in enterprise conversations immediately.
+Trigger: Year 2. Cost: ~£10–15,000.
+
+### The Smart Play: Year 2 Triple Certification
+Do SOC 2 + ISO 27001 + ISO 42001 simultaneously using Vanta. They share ~70% of controls. One compliance programme, three badges — ~40% cheaper than doing them separately.
+
+### What To Do Right Now (Free, Today)
+- [ ] Start AI Risk Register (Google Doc — lists all AI models, data processed, decisions made)
+- [ ] Add GDPR ✅ and CCPA ✅ badges to website trust page
+- [ ] Add compliance page to sales deck — shows enterprise-readiness before you have the certs
+
+---
+
+## 26. COMPETITOR TARGETING STRATEGY
+
+*Competitor ICPs ready to run: `supabase/seeds/competitor_icps.sql`*
+*Requires: Apollo Basic ($49/mo) minimum — free plan blocks tech stack filter*
+
+### The Strategy
+People using Lemlist, Instantly, Clay, or Smartlead in Africa are the warmest possible leads for K.I.N.D. They are already:
+- Paying for outreach tools (proven budget)
+- Buyers in this exact category
+- Likely doing it manually and frustrated
+
+Apollo's `technology_names` filter finds them directly.
+
+### The 4 ICPs — Ready to Fire
+
+**ICP 1 — Lemlist Users (Africa)**
+- Titles: CEO, Founder, Co-Founder, Head of Sales, Head of Marketing
+- Seniority: C-Suite, VP/Director, Manager
+- Geographies: South Africa, Nigeria, Kenya, Ghana, Egypt
+- Tech stack: Lemlist
+- Company size: 1–200 employees
+- Pitch: *"You're doing this yourself with Lemlist. We do it for you — POPIA compliant, ZAR billing, no setup."*
+
+**ICP 2 — Instantly / Smartlead Users (Africa)**
+- Titles: CEO, Founder, Agency Owner, Head of Growth
+- Geographies: South Africa, Nigeria, Kenya
+- Tech stack: Instantly or Smartlead
+- Company size: 1–50 employees
+- Pitch: *"Cold email infrastructure with no strategy is hard. FIGSY is the strategy and the sending — fully managed."*
+
+**ICP 3 — Clay Users (Africa)**
+- Titles: Head of Growth, RevOps, Founder, CEO
+- Geographies: South Africa, Nigeria, Kenya
+- Tech stack: Clay
+- Company size: 11–200 employees
+- Pitch: *"Clay is powerful but complex. K.I.N.D delivers the same enriched, personalised outreach — without needing a RevOps person to run it."*
+
+**ICP 4 — Apollo Sequences Users (Africa)**
+- Titles: Head of Sales, Sales Director, CEO, Founder
+- Geographies: South Africa, Nigeria, Kenya
+- Tech stack: Apollo (sequences)
+- Company size: 11–500 employees
+- Pitch: *"You're paying for Apollo and still managing sequences yourself. K.I.N.D wraps Apollo's data in a fully managed outreach service — you just get the meetings."*
+
+### The Outreach Message (FIGSY Template)
+> "Hi [First Name] — spotted that [Company] uses [Lemlist/Instantly/Clay]. We built K.I.N.D specifically for African businesses doing B2B outreach — fully managed, POPIA compliant, ZAR billing. FIGSY (our AI SDR) runs the whole sequence. Worth a 15-minute call?"
+
+FIGSY reads the `tech_stack` field on the lead and references it in the opening line automatically.
+
+### How to Activate
+1. Upgrade Apollo → Basic ($49/mo) at app.apollo.io → Settings → Plan & Billing
+2. Portal → ICPs → build the 4 ICPs above (or run `supabase/seeds/competitor_icps.sql` with your client_id)
+3. Hit Run — leads start populating immediately
+4. FIGSY campaign → enroll leads → sequences fire automatically
+
+**Estimated pipeline from one run:** ~200 warm prospects across 4 ICPs (Africa-focused, proven buyers).
 
 ---
 

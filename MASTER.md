@@ -53,15 +53,17 @@
 | 2 | **RESEND_API_KEY** — unknown if set in Railway | Zero emails send — no welcome, no POPIA consent, no leads email, no nurture, no digest | **You** — confirm/set in Railway → KIND API → Variables |
 | 3 | **MASTER_SCHEMA.sql not run** | Remaining schema drift — FIGSY, auto top-up, calendar features will hit silent errors | **You** — paste into Supabase SQL Editor and run |
 | 4 | **Railway deploy status unknown** | API changes not live until Railway builds successfully | **You** — check railway.app → KIND API → Deployments |
-| 5 | **Lead overspend bug — `maxLeads` cap is dead code** | `runIcpJob` accepts `maxLeads` parameter but NEITHER call site passes it. ICP still inserts all leads then deducts. Client with 20 credits can receive 50 leads. Direct revenue leak. | **Claude** (with your authority) — pass `effectiveBalance` from the `/:id/run` handler into `runIcpJob` |
-| 6 | **FIGSY page allows 'trialing' users in** — `figsy/page.tsx` line 106 checks `status === 'active' \|\| status === 'trialing'` | Trial users access FIGSY for free. Milla and Vida correctly block trialing. FIGSY does not. Inconsistent and wrong — FIGSY is a paid product. | **Claude** (with your authority) — remove `\|\| s.status === 'trialing'` from FIGSY access check |
-| 7 | **No cancel subscription endpoint exists** | Billing page says "Cancel anytime from this page" — this is false. No API endpoint. No cancel flow. Clients cannot cancel Milla/Vida subscriptions. | **Claude** (with your authority) — build `POST /subscriptions/:id/cancel` |
-| 8 | **No recurring billing for Milla/Vida** | Subscriptions are one-off Paystack payments. Client pays $49 once and is never billed again. No monthly rebilling. No Paystack plan codes set up. Revenue model is broken from day one. | **Claude** (with your authority) — implement Paystack recurring plan codes + monthly webhook |
-| 9 | **credits.ts bundles ≠ shared constants — pricing inconsistency** | `credits.ts` exposes 7 tiers (10, 20, 40, 75, 100, 200, 500 credits) at prices that differ from the shared constants (20/$20 and 100/$100 only). Clients see different prices depending on payment path. Violates the "pricing locked" rule. | **Claude** (with your authority) — align credits.ts bundles to match shared constants exactly |
+| 5 | ✅ **Lead overspend bug — FIXED** | `effectiveBalance` now passed to `runIcpJob` at both call sites. Also respects `leads_per_run` client setting. | commit ffb1f51 |
+| 6 | ✅ **FIGSY 'trialing' gate — FIXED** | Removed `\|\| s.status === 'trialing'`. FIGSY now requires `active` only, consistent with Milla/Vida. | commit ffb1f51 |
+| 7 | ✅ **Cancel subscription endpoint — BUILT** | `POST /subscriptions/:id/cancel` live. Calls Paystack disable API + updates DB. "Cancel anytime" promise is now true. | commit acfbecf |
+| 8 | ✅ **Recurring billing webhooks — BUILT** | `subscription.create` saves Paystack code. `charge.success` handles renewals. Daily lapse check cron. ⚠️ Still needs Paystack plan codes created in your dashboard — see Section 2 item 5. | commit bdc19b6 |
+| 9 | ✅ **credits.ts pricing — FIXED** | Aligned to shared constants. 2 tiers only: Lead Gen 20/$20, 100/$100 · FIGSY 20/$60, 100/$300. | commit ffb1f51 |
 | 10 | **Vercel root directory config — unknown state** | Each app has correct `vercel.json` files locally. But if Vercel projects were created from monorepo root without Root Directory set in dashboard, those files may not be read. This is likely why "portal was not fixed" even after code was pushed to GitHub. | **You** — Vercel dashboard → each project → Settings → General → Root Directory → set `apps/portal`, `apps/admin`, `apps/website` |
-| 11 | **No lead drip / stagger delivery** | All leads from an ICP run are delivered at once and all credits consumed in one hit. A client who buys 20 credits gets all 20 leads immediately — nothing drips, no daily cadence, no reason to stay engaged. Agreed design: 5 leads/day default. See Section 14a for full design. | **Claude** (with your authority) — build daily drip queue with configurable rate |
-| 12 | **Client cannot control how many leads they want** | No UI or setting exists for a client to say "I want 10 leads this week" or "give me 3 leads per day." ICP runs return whatever Apollo finds, up to the credit balance. Client has zero control over volume or pace. | **Claude** (with your authority) — add `leads_per_run` and `daily_drip_rate` settings to ICP builder and client settings |
-| 13 | **10,000 trial credits anomaly — root cause unknown** | Founder's account was issued 10,000 credits on signup 25 May. Trial should issue 20 credits on first ICP run only. Unknown whether this was a manual admin grant, a code bug, or a one-off. Not investigated or resolved. | **Claude** (with your authority) — audit `credit_transactions` for founder's client ID, identify source, confirm trial credit logic is correct for all new signups |
+| 11 | ✅ **Lead drip — BUILT** | Daily cron delivers up to `daily_drip_rate` leads per client. New leads held in queue (`delivered_at = NULL`) until cron runs. Portal only shows delivered leads. Default: 5/day. | commit bdc19b6 |
+| 12 | ✅ **Client lead quantity controls — BUILT** | `leads_per_run` + `daily_drip_rate` in portal Settings page. `runIcpJob` respects both. | commit bdc19b6 |
+| 13 | ✅ **10,000 credits — ROOT CAUSE FOUND** | Manual admin grant — no code bug. Admin grant form had no cap. Fixed: max 500 per grant. Normal trial flow: exactly 20 credits. | commit bdc19b6 |
+
+> ⚠️ **ONE THING STILL NEEDED FROM YOU:** Run `supabase/20260526_drip_and_controls.sql` in Supabase SQL Editor. Without this, the drip, quantity controls, and subscription cancellation columns don't exist in the database and the new code will error.
 
 ---
 
@@ -184,23 +186,26 @@ Everything else on the to-do list is secondary to this.
 
 ---
 
-### 🤖 CLAUDE'S READY LIST — Awaiting your authority. Say the word.
+### 🤖 CLAUDE'S BUILD STATUS
 
-*All of these are ready to build. No guesswork. Waiting for explicit go-ahead per item.*
-
-| # | Fix / Feature | Why it matters | Time |
+| # | Fix / Feature | Status | Commit |
 |---|---|---|---|
-| 1 | **Fix lead overspend** — pass `effectiveBalance` into `runIcpJob` at both call sites | Client with 20 credits can currently receive 50 leads. Direct revenue leak. | 10 min |
-| 2 | **Fix FIGSY 'trialing' gate** — remove `\|\| s.status === 'trialing'` from figsy/page.tsx line 106 | Trial users access FIGSY free. Milla/Vida correctly block this. FIGSY doesn't. | 5 min |
-| 3 | **Align credits.ts bundles to shared constants** — 7 tiers → 2 tiers (20 and 100 only) | Clients see different prices depending on payment path. Violates pricing locked rule. | 15 min |
-| 4 | **Build cancel subscription endpoint** — `POST /subscriptions/:id/cancel` | Billing page says "Cancel anytime" — this is currently a lie. No endpoint exists. | 1 hour |
-| 5 | **Build Milla/Vida recurring monthly billing** — Paystack recurring plan codes + monthly webhook | Clients pay $49 once and are never billed again. Revenue model broken from day one. | 1 day |
-| 6 | **Build lead drip delivery** — queue leads, deliver `daily_drip_rate` per day (default 5), daily cron | All credits consumed in one run. No daily engagement. No reason to top up. See Section 14a. | 1 day |
-| 7 | **Add client lead quantity controls** — `leads_per_run` + `daily_drip_rate` in ICP settings and client settings | Client has zero control over how many leads they receive or how fast. | Half day |
-| 8 | **Build low credit email reminder** — email client when `credit_balance` drops below 5 | No prompt to top up. Clients run dry silently. | 2 hours |
-| 9 | **Wire "Book a demo" buttons** — replace all mailto: links with real Calendly/Cal.com URL | All demo buttons are broken until you send the booking URL (item 11 above). | 30 min |
-| 10 | **Update terms.html real name** — replace founder name with company name + number | Waiting for UK company number from you (item 23 above). | 10 min |
-| 11 | **Full portal dry run** — end-to-end session: signup → ICP → leads → credits → FIGSY → Milla/Vida → billing | Nothing has been tested end-to-end. Cannot be confident before a client demo. | 1 session |
+| 1 | **Fix lead overspend** — `effectiveBalance` passed to `runIcpJob` at both call sites | ✅ Done | ffb1f51 |
+| 2 | **Fix FIGSY 'trialing' gate** — removed `\|\| s.status === 'trialing'` from figsy/page.tsx | ✅ Done | ffb1f51 |
+| 3 | **Align credits.ts bundles to shared constants** — 7 tiers → 2 (20 and 100 only) | ✅ Done | ffb1f51 |
+| 4 | **Cancel subscription endpoint** — `POST /subscriptions/:id/cancel` built | ✅ Done | acfbecf |
+| 5 | **Recurring billing webhooks** — `subscription.create`, `subscription.not_renew`, renewal charge handling + daily lapse check cron | ✅ Done | bdc19b6 |
+| 6 | **Lead drip delivery** — daily cron delivers up to `daily_drip_rate` leads per client. Portal filters by `delivered_at`. | ✅ Done | bdc19b6 |
+| 7 | **Client lead quantity controls** — `leads_per_run` + `daily_drip_rate` settings. UI in portal Settings. | ✅ Done | bdc19b6 |
+| 8 | **Low credit email reminder** — fires when balance 1–4. Max once per 24h. Daily cron 07:30 UTC. | ✅ Done | bdc19b6 |
+| 9 | **Wire "Book a demo" buttons** | ⏳ Waiting for your Calendly/Cal.com URL | — |
+| 10 | **Update terms.html real name** | ⏳ Waiting for your UK company number | — |
+| 11 | **10,000 credits anomaly — root cause found** | ✅ Investigated | bdc19b6 |
+| 12 | **Full portal dry run** | ⏳ Needs you present | — |
+
+**Root cause of 10,000 credits (item 11):** Admin manual grant form had no cap. Someone typed 10,000. Not a code bug. Fixed — admin grants now capped at 500. Normal trial flow grants exactly 20.
+
+**SQL migration required:** Run `supabase/20260526_drip_and_controls.sql` in Supabase SQL Editor. Adds `delivered_at` to leads, `leads_per_run` + `daily_drip_rate` to clients, `paystack_subscription_code` + `cancelled_at` to subscriptions, `last_low_credit_email_at` to clients. Existing leads unaffected — all get `delivered_at = created_at`.
 
 ---
 

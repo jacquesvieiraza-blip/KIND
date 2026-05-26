@@ -113,7 +113,7 @@
 
 ## 2. WHAT FOUNDER NEEDS TO DO
 
-*Updated: 26 May 2026 evening — day-by-day plan*
+*Updated: 26 May 2026 evening — full 5-day plan*
 
 ---
 
@@ -133,6 +133,251 @@
 | Calendly link created + wired site-wide | ✅ |
 | Drip migration applied in Supabase | ✅ |
 | ICP cascade delete migration applied | ✅ |
+
+---
+
+## 📅 5-DAY PLAN — 26–31 MAY 2026
+
+---
+
+### TONIGHT — 26 May (Tuesday)
+**Read MASTER.md on GitHub. Make notes. Come back tomorrow ready.**
+
+**You — 15 minutes max (clear the launch blockers before bed)**
+
+| # | Task | Time | Exact steps |
+|---|---|---|---|
+| 1 | **Stripe webhook secret** | 2 min | Stripe → Developers → Webhooks → Add endpoint → URL: `https://kindapi-production-e64c.up.railway.app/stripe/webhook` → Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` → Copy signing secret → Railway → `STRIPE_WEBHOOK_SECRET` |
+| 2 | **Upgrade Resend to paid** | 2 min | resend.com/billing → Pro ($20/mo) — free plan = 100 emails/day ceiling, FIGSY hits this immediately |
+| 3 | **Fix 4 Stripe prices** | 10 min | Stripe → Products → archive old 40cr + 100cr prices (Lead Gen + FIGSY). Recreate flat: Lead Gen 40cr=$40, 100cr=$100, FIGSY 40cr=$120, 100cr=$300. Copy 4 new price IDs → Railway: `STRIPE_PRICE_LEADGEN_40`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_40`, `STRIPE_PRICE_FIGSY_100` |
+
+**If #1–3 not done tonight, do them first thing tomorrow morning before the smoke test.**
+
+**Claude — tonight**
+- Homepage hero rewrite (new punchy copy, Apex framing)
+- AI reply categorisation prep
+- Smoke test issue log template ready
+
+---
+
+### DAY 1 — 27 May (Wednesday) — SMOKE TEST + OUTREACH START
+
+**This is the most important day. Two things and nothing else.**
+
+---
+
+#### PART 1: SMOKE TEST (morning — 45–60 min)
+
+**Before you start:** Confirm #1–3 from last night are done. Check Railway has `STRIPE_WEBHOOK_SECRET` set.
+
+**Also do first (2 min):**
+- Supabase → SQL Editor → run `supabase/migrations/20260526_platform_status.sql`
+
+**Run every step yourself, as a real paying client:**
+
+| Step | What you do | What must happen | If it fails |
+|---|---|---|---|
+| 1 | Go to get-kind.com → click Sign Up | Lands on app.get-kind.com/login | Tell me — routing issue |
+| 2 | Enter email + password → Sign Up | Goes straight to /onboard — NO confirmation email | Tell me — auth config |
+| 3 | Fill company name, industry, country → Start free trial | Dashboard loads with your company name in the sidebar | Tell me — onboard flow |
+| 4 | Go to Leads → Build ICP → click "Suggest ICP with AI" | Claude fills the form fields automatically within 5 seconds | Tell me — AI ICP suggest |
+| 5 | Adjust ICP → Save & Find Leads | Real leads appear with scores (0–100) within 2 minutes | Tell me — Apollo search |
+| 6 | Select one lead → Send POPIA consent | Confirmation shows, lead status changes to `consent_sent` | Tell me — Resend or consent route |
+| 7 | Leads table → Export CSV | File downloads, opens in Excel, correct columns | Tell me — export route |
+| 8 | Sidebar → Billing → buy smallest credit pack | Stripe checkout opens. Pay. Returns to portal. Credit balance updates. | Tell me — Stripe webhook |
+| 9 | Portal → FIGSY page | Shows locked screen with "Upgrade" and "Book a Demo" buttons | Tell me — subscription gate |
+| 10 | Portal → Milla page | Shows locked screen | Tell me — subscription gate |
+| 11 | Portal → Vida page | Shows locked screen | Tell me — subscription gate |
+| 12 | Sidebar bottom | Green pulsing dot — "All systems operational" | Tell me — health check |
+| 13 | Admin → Demo Envs → Create Demo | Leads populate → click Open Demo → portal opens as demo client in new tab | Tell me — demo env creation |
+| 14 | Admin → Clients → find your test account → Grant 50 credits | Balance updates on client record, transaction appears in history | Tell me — admin grant |
+| 15 | Sign out → sign back in | Dashboard loads cleanly — no redirect loop, no blank screen | Tell me — session handling |
+
+**How to report:** Screenshot + which step number. I fix and redeploy within minutes. Re-run that step only.
+
+---
+
+#### PART 2: OUTREACH (afternoon — 1–2 hours)
+
+**Start this regardless of smoke test results. Run them in parallel.**
+
+**10 warm personal messages — LinkedIn or WhatsApp**
+
+Who to message: people who already know you, know you're building something, would be curious. Ex-colleagues. Business contacts. Friends who run B2B companies. Anyone who's asked "how's the startup going?"
+
+**The message (adapt the tone to how you talk to each person):**
+> *"Hey [name] — been building something for the past few months and finally launched. It's an AI SDR for B2B companies — finds the leads, writes the emails, handles the replies. Managed for you, no setup. 5 minutes to show you? Happy to do a quick call or just send a link."*
+
+**Do NOT send a deck. Do NOT send a pitch. Send a message that sounds like you.**
+
+Target: 10 messages sent by end of day. Aim for 3 responses.
+
+**LinkedIn post #1**
+- Admin → CMO Tools → copy today's drafted post
+- Read it. Change the first line to sound like your voice.
+- Post it. No scheduling. Post it now.
+
+---
+
+**Claude — running Day 1**
+- Fix every smoke test issue as you report them. Real-time.
+- Build: unified reply inbox (Unibox) — first pass
+- Build: deliverability dashboard — first pass
+- Build: AI reply categorisation (hot / warm / cold / wrong person / OOO)
+
+---
+
+### DAY 2 — 28 May (Thursday) — FIXES + MOMENTUM
+
+**You**
+
+| Task | Notes |
+|---|---|
+| **Report any remaining smoke test issues** | Anything still broken from yesterday — send me the screenshot |
+| **Follow up on Day 1 outreach** | Check replies. Respond to anyone who engaged. If someone said "yes" or "maybe" — book a call immediately. Don't let it go cold. |
+| **Send 5 more outreach messages** | Second wave — slightly cooler contacts. People you haven't spoken to in a while but who run B2B businesses. |
+| **Book first discovery call** | If anyone said yes from Day 1 — get it in the calendar. Calendly link is live and wired. |
+| **Apply Supabase migration if missed** | `supabase/migrations/20260526_platform_status.sql` — if not done Day 1 |
+
+**If a call is booked:** Admin → Sales Playbook — read the discovery script before you go in. It has the exact questions and the demo flow.
+
+**Claude — Day 2**
+- All remaining smoke test fixes deployed
+- Build: waterfall enrichment (Apollo → PDL → Hunter fallback)
+- Build: email score pre-send check (score sequence quality before it fires)
+- Technical debt: duplicate route cleanup
+
+---
+
+### DAY 3 — 29 May (Friday) — FIRST CALLS + PIPELINE
+
+**You**
+
+| Task | Notes |
+|---|---|
+| **Run discovery call(s) booked** | Use Sales Playbook script. Goal: understand their current lead gen. Book a demo follow-up. Do NOT pitch on the first call. Listen. |
+| **Follow up on all outreach** | Anyone who hasn't replied after 2 days — one follow-up message: *"Did this land? Happy to send a quick loom instead."* |
+| **LinkedIn post #2** | Admin → CMO Tools → second post of the week |
+| **UK Companies House number** | If approved — paste it to me, I wire it into footer + legal pages in 10 minutes |
+| **Review the week so far** | What's working in outreach? What response are you getting? Tell me and I'll sharpen the FIGSY campaign targeting accordingly. |
+
+**Claude — Day 3**
+- Build: adaptive send volume (auto-reduce per mailbox if domain health dips)
+- Build: homepage hero rewrite deployed
+- Prepare: proposal template for first prospect who's close to signing
+- Technical debt: credit race condition wrapper
+
+---
+
+### DAY 4 — 30 May (Saturday) — REVIEW + PREP
+
+**You (30 min)**
+
+| Task | Notes |
+|---|---|
+| **Count the week** | Outreach messages sent. Replies received. Calls booked. Calls done. Any "yes"? |
+| **Check admin dashboard** | Admin → /status — what's the platform showing? Any anomalies? |
+| **Check FIGSY self-outreach** | Admin → Clients → your own client → FIGSY campaigns — did Monday's self-outreach fire? What's the reply rate? |
+| **Write 3 LinkedIn comments** | Find 3 posts from potential prospects or sector leaders. Leave a comment. This is presence-building, not pitching. |
+| **Prep for Monday calls** | If any discovery calls are booked for next week — re-read the Sales Playbook and prep one sentence about their specific business before the call. |
+
+**Claude — Day 4**
+- Any build items that need deploying
+- Review cron job logs for any silent failures
+- Prepare: week 2 outreach batch (5 more names + messages) so Monday starts immediately
+
+---
+
+### DAY 5 — 31 May (Sunday) — REST + MONDAY SETUP
+
+**You**
+
+| Task | Notes |
+|---|---|
+| **Rest** | You've had a big week. Don't build on a Sunday unless you want to. |
+| **Optional: read MASTER.md again** | See if anything from your notes this week needs updating. Come back with a list. |
+| **Write 10 names for Week 2 outreach** | Just a list on paper — who are the 10 people you'll message Monday morning? |
+
+**Claude — Sunday**
+- Build queue items
+- Week 2 outreach FIGSY campaign refined (based on Day 3 feedback on what's resonating)
+- Any outstanding fixes
+
+---
+
+## BY END OF DAY 31 MAY — WHAT WE NEED TO HAVE
+
+| Target | Status |
+|---|---|
+| Smoke test: all 15 steps passing | — |
+| Platform blockers cleared (Stripe webhook, Resend, prices) | — |
+| 15+ outreach messages sent | — |
+| 3+ replies received | — |
+| 1+ discovery call booked | — |
+| LinkedIn: 2 posts + 3 comments done | — |
+| FIGSY self-outreach running (auto-fires Monday) | ✅ Already live |
+| All smoke test issues fixed and redeployed | — |
+
+---
+
+## MY BUILD QUEUE — NEXT 5 DAYS (Claude)
+
+In priority order. Working through these in parallel with your smoke test and outreach.
+
+| # | What | Why | Target day |
+|---|---|---|---|
+| 1 | **Fix all smoke test issues** | Blocking launch | Day 1–2 as you report them |
+| 2 | **AI reply categorisation** | Extend auto-pause: hot/warm/cold/wrong person/OOO — each routes differently | Day 1 |
+| 3 | **Unified reply inbox (Unibox)** | Admin view of all campaign replies across all clients | Day 1–2 |
+| 4 | **Deliverability dashboard** | Spam rate, inbox %, DNS health per sending domain — in Platform Health | Day 2 |
+| 5 | **Homepage hero rewrite** | Sharper copy for cold visitors — Apex-inspired framing | Day 1 |
+| 6 | **Waterfall enrichment** | Apollo → PDL → Hunter fallback — 20–40% more leads from same ICP | Day 2–3 |
+| 7 | **Email score pre-send** | Score sequence before it fires — flag weak emails before they go out | Day 3 |
+| 8 | **Adaptive send volume** | Auto-reduce per mailbox if domain health dips (Woodpecker model) | Day 3–4 |
+| 9 | **Technical debt — duplicate routes** | Deprecate `/leads/consent/bulk` vs `/leads/bulk-consent` | Day 4 |
+| 10 | **Technical debt — credit race condition** | Wrap credit deduction in DB transaction | Day 4 |
+| 11 | **Proposal template** | Ready for first prospect close to signing | Day 3 (on demand) |
+| 12 | **Week 2 outreach refinement** | Refine FIGSY campaign based on what's resonating in your personal outreach | Day 4–5 |
+
+---
+
+## WHAT'S NOT ON MY LIST (and why)
+
+| Item | Why not now |
+|---|---|
+| Email warmup infrastructure | Requires a third-party warmup pool service — needs a decision on which one (Lemwarm, Mailreach, etc.) before I can build the integration. Ask me and we'll decide together. |
+| LinkedIn automation | ToS risk — always off the table |
+| Milla + Vida launch | July — not touching these until after first 5 clients |
+| MCP server | Phase 3 — after 20+ clients |
+| Conditional sequence branching | Phase 2 — after core loop proven |
+| Mobile app | Year 2 |
+| Revenue forecasting | Needs live data — Year 2 |
+
+---
+
+## QUICK REFERENCE — EVERY LINK YOU NEED
+
+| What | URL |
+|---|---|
+| Website | get-kind.com |
+| Client Portal | app.get-kind.com |
+| Admin | admin.get-kind.com |
+| API | kindapi-production-e64c.up.railway.app |
+| Supabase | supabase.com → kind project |
+| Railway | railway.app → KIND API |
+| Vercel | vercel.com → kind-portal, kind-admin |
+| Stripe | dashboard.stripe.com |
+| Resend | resend.com |
+| Apollo | app.apollo.io |
+| HubSpot | app.hubspot.com |
+| Calendly | calendly.com/jacques-vieiraza/30min |
+| Sales Playbook | admin.get-kind.com/docs/sales-playbook |
+| Admin Status | admin.get-kind.com/status |
+| Demo Envs | admin.get-kind.com/demo |
+
+---
+
+*Updated: 26 May 2026 evening — 5-day sprint plan*
 
 ---
 

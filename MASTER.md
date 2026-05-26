@@ -4,6 +4,50 @@
 
 ---
 
+## 📚 TABLE OF CONTENTS
+
+| # | Section | What's in it |
+|---|---|---|
+| [0](#-section-0--daily-brief) | **🗓️ DAILY BRIEF** | Build log, bugs, founder to-do, Claude to-do, tomorrow, week ahead, blockers |
+| [1](#1-current-status--whats-live) | **CURRENT STATUS — WHAT'S LIVE** | Full live/pending status of every feature |
+| [2](#2-what-founder-needs-to-do) | **WHAT FOUNDER NEEDS TO DO** | Ordered to-do: critical, high, when ready, instant |
+| [3](#3-what-claude-can-do) | **WHAT CLAUDE CAN DO** | Everything built + Claude's full build queue |
+| [4](#4-post-launch-roadmap--full-detail) | **POST-LAUNCH ROADMAP** | Phase 1–4 with dates |
+| [5](#5-whats-built) | **WHAT'S BUILT** | Every feature: portal (15 routes), admin (13 routes), website (22 pages), API, agents |
+| [6](#6-blocked-features--needs-credentials-only) | **BLOCKED FEATURES** | Done code, just needs an env var |
+| [7](#7-will-not-build-yet) | **WILL NOT BUILD YET** | Intentionally deferred |
+| [8](#8-market-expansion--us-uk--africa) | **MARKET EXPANSION** | US, UK, Africa — what's built, what's next |
+| [9](#9-compliance--full-audit) | **COMPLIANCE** | POPIA, GDPR, CAN-SPAM, CASL full audit |
+| [10](#10-security-audit-results) | **SECURITY AUDIT** | Auth, RLS, rate limits, secrets — all findings |
+| [11](#11-agent-naming) | **AGENT NAMING** | FIGSY, Milla, Vida, Ara, Oryn — names + positioning |
+| [12](#12-pricing-model) | **PRICING MODEL** | Credit bundles, subscription tiers, FIGSY pricing |
+| [13](#13-revenue-targets--kpis) | **REVENUE TARGETS & KPIs** | Month-by-month MRR, core KPIs |
+| [14](#14-cashflow-model) | **CASHFLOW MODEL** | Fixed costs, break-even, 12-month projections |
+| [15](#15-client-flow--all-paths) | **CLIENT FLOW** | All 7 client paths from signup to cancel |
+| [16](#16-operations-sop) | **OPERATIONS SOP** | Qual → discovery → demo → proposal → payment → onboard |
+| [17](#17-tech-stack--infrastructure) | **TECH STACK** | Every service, env vars, Railway, Supabase, Vercel |
+| [18](#18-smoke-test-checklist) | **SMOKE TEST CHECKLIST** | 4 tests, 57 steps — must pass before any new builds |
+| [19](#19-product-vision--1-3-5-years) | **PRODUCT VISION** | 1, 3, 5 year roadmap |
+| [20](#20-alta-ai-sdr--competitive-audit) | **ALTA AI SDR AUDIT** | Head-to-head vs competitor |
+| [21](#21-key-decisions-locked) | **KEY DECISIONS LOCKED** | Permanent decisions with dates — never revisit |
+| [22](#22-go-to-market-strategy) | **GO-TO-MARKET** | ICP targeting, outbound, content, partnerships |
+| [23](#23-uk-company-registration) | **UK COMPANY REGISTRATION** | Step-by-step Companies House guide |
+| [24](#24-clickup-competitive-audit--full-comparison--steal-now) | **CLICKUP AUDIT** | Full feature comparison + 8 steal-now items |
+| [25](#25-apex-apexhost-competitive-audit) | **APEX AUDIT** | Dan Martell's AI OS — full breakdown + positioning steal |
+| [26](#26-full-competitor-landscape--all-players) | **COMPETITOR LANDSCAPE** | 31 competitors, 7 tiers — summary tables |
+| [27](#27-art-of-the-possible--full-build-queue--full-build-queue) | **ART OF THE POSSIBLE** | 30 build items, 4 tiers (S1–C32) |
+| [28](#28-art-of-possible--products-we-study) | **PRODUCTS WE STUDY** | Linear, Notion, Clay, ClickUp — deep feature analysis |
+| [29](#29-compliance-certifications-roadmap) | **COMPLIANCE CERTIFICATIONS** | SOC 2, ISO 27001, GDPR rep — roadmap + timelines |
+| [30](#30-competitor-targeting-strategy) | **COMPETITOR TARGETING** | How to steal Lemlist/Instantly/Clay users |
+| [31](#31-ai-learning-capability--built-planned-vision) | **AI LEARNING CAPABILITY** | Memory, learning loops, self-improvement — built + planned |
+| [32](#32-clickup-brain--what-we-studied-what-we-adopted-whats-next) | **CLICKUP BRAIN** | ClickUp AI deep dive — adopted features, gaps, next builds |
+| [33](#33-full-competitive-landscape--every-player-every-layer) | **FULL COMPETITIVE LANDSCAPE** | 917 lines — every competitor with full tables, pricing, gaps |
+| [34](#34-the-unbuilt-future--what-kind-could-become) | **THE UNBUILT FUTURE** | $100M vision — what K.I.N.D could become |
+
+> **Jump tip:** In GitHub, click any section link above. In VS Code, Ctrl+G → type line number.
+
+---
+
 
 ## 🗓️ SECTION 0 — DAILY BRIEF
 *Rewritten at the end of every session. Always current. Read this first — nothing else matters until this is clear.*

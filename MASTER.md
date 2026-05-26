@@ -4,7 +4,45 @@
 
 ---
 
+## TABLE OF CONTENTS
 
+0. [Daily Brief](#-section-0--daily-brief)
+1. [Current Status — What's Live](#1-current-status--whats-live)
+2. [What Founder Needs To Do](#2-what-founder-needs-to-do)
+3. [What Claude Can Do](#3-what-claude-can-do)
+4. [Post-Launch Roadmap — Full Detail](#4-post-launch-roadmap--full-detail)
+5. [What's Built](#5-whats-built)
+6. [Blocked Features — Needs Credentials Only](#6-blocked-features--needs-credentials-only)
+7. [Will Not Build Yet](#7-will-not-build-yet)
+8. [Market Expansion — US, UK & Africa](#8-market-expansion--us-uk--africa)
+9. [Compliance — Full Audit](#9-compliance--full-audit)
+10. [Security Audit Results](#10-security-audit-results)
+11. [Agent Naming](#11-agent-naming)
+12. [Pricing Model](#12-pricing-model)
+13. [Revenue Targets & KPIs](#13-revenue-targets--kpis)
+14. [Cashflow Model](#14-cashflow-model)
+15. [Client Flow — All Paths](#15-client-flow--all-paths)
+16. [Operations SOP](#16-operations-sop)
+17. [Tech Stack & Infrastructure](#17-tech-stack--infrastructure)
+18. [Smoke Test Checklist](#18-smoke-test-checklist)
+19. [Product Vision — 1, 3, 5 Years](#19-product-vision--1-3-5-years)
+20. [Alta AI SDR — Competitive Audit](#20-alta-ai-sdr--competitive-audit)
+21. [Key Decisions Locked](#21-key-decisions-locked)
+22. [Go-To-Market Strategy](#22-go-to-market-strategy)
+23. [UK Company Registration](#23-uk-company-registration)
+24. [ClickUp Competitive Audit — Steal-Now Analysis](#24-clickup-competitive-audit--full-comparison--steal-now)
+25. [Apex (apex.host) Competitive Audit](#25-apex-apexhost-competitive-audit)
+26. [Full Competitor Landscape — All Players](#26-full-competitor-landscape--all-players)
+27. [Art of the Possible — Full Build Queue](#27-art-of-the-possible--full-build-queue--full-build-queue)
+28. [Art of Possible — Products We Study](#28-art-of-possible--products-we-study)
+29. [Compliance Certifications Roadmap](#29-compliance-certifications-roadmap)
+30. [Competitor Targeting Strategy](#30-competitor-targeting-strategy)
+31. [AI Learning Capability — Built, Planned, Vision](#31-ai-learning-capability--built-planned-vision)
+32. [ClickUp Brain — What We Studied, What We Adopted, What's Next](#32-clickup-brain--what-we-studied-what-we-adopted-whats-next)
+33. [Full Competitive Landscape — Every Player, Every Layer](#33-full-competitive-landscape--every-player-every-layer)
+34. [The Unbuilt Future — What K.I.N.D Could Become](#34-the-unbuilt-future--what-kind-could-become)
+
+---
 
 ## 🗓️ SECTION 0 — DAILY BRIEF
 *Rewritten at the end of every session. Always current. Read this first — nothing else matters until this is clear.*

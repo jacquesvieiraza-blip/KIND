@@ -113,7 +113,7 @@
 
 ## 2. WHAT FOUNDER NEEDS TO DO
 
-*Updated: 26 May 2026 evening — full 5-day plan*
+*Updated: 26 May 2026 evening — full 5-day plan including WhatsApp application*
 
 ---
 
@@ -133,6 +133,300 @@
 | Calendly link created + wired site-wide | ✅ |
 | Drip migration applied in Supabase | ✅ |
 | ICP cascade delete migration applied | ✅ |
+
+---
+
+## 📅 5-DAY PLAN — 26–31 MAY 2026
+
+---
+
+### TONIGHT — 26 May (Tuesday)
+**Read MASTER.md on GitHub. Make notes. Come back tomorrow ready.**
+
+**You — 15 minutes max (clear the launch blockers before bed)**
+
+| # | Task | Time | Exact steps |
+|---|---|---|---|
+| 1 | **Stripe webhook secret** | 2 min | Stripe → Developers → Webhooks → Add endpoint → URL: `https://kindapi-production-e64c.up.railway.app/stripe/webhook` → Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` → Copy signing secret → Railway → `STRIPE_WEBHOOK_SECRET` |
+| 2 | **Upgrade Resend to paid** | 2 min | resend.com/billing → Pro ($20/mo) — free plan = 100 emails/day ceiling, FIGSY hits this immediately |
+| 3 | **Fix 4 Stripe prices** | 10 min | Stripe → Products → archive old 40cr + 100cr prices (Lead Gen + FIGSY). Recreate flat: Lead Gen 40cr=$40, 100cr=$100, FIGSY 40cr=$120, 100cr=$300. Copy 4 new price IDs → Railway: `STRIPE_PRICE_LEADGEN_40`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_40`, `STRIPE_PRICE_FIGSY_100` |
+
+**If #1–3 not done tonight, do them first thing tomorrow before the smoke test.**
+
+---
+
+### DAY 1 — 27 May (Wednesday)
+## SMOKE TEST + WHATSAPP APPLICATION + OUTREACH START
+
+**Three parallel tracks. This is your most important day.**
+
+---
+
+#### TRACK 1: LAUNCH BLOCKERS (first, 5 min)
+
+Before anything else — confirm these are done:
+
+| Check | Where |
+|---|---|
+| `STRIPE_WEBHOOK_SECRET` set | Railway → KIND API → Variables |
+| Resend is on paid plan | resend.com/billing → shows "Pro" |
+| 4 Stripe prices are flat rate | Stripe → Products → check 40cr + 100cr prices |
+| `supabase/migrations/20260526_platform_status.sql` run | Supabase → SQL Editor |
+
+If any are missing — do them now before continuing.
+
+---
+
+#### TRACK 2: WHATSAPP BUSINESS API APPLICATION (morning — 20 min to apply, 3–7 days to approve)
+
+**Start this first. It runs in the background while everything else happens. The clock starts when you apply.**
+
+**⚠️ CRITICAL REQUIREMENTS — read before you start:**
+
+| Requirement | Detail |
+|---|---|
+| **Dedicated phone number** | Must be a number NOT currently registered to any WhatsApp account (personal or business). Once you assign it to the Business API, it cannot be used for regular WhatsApp. Get a new SIM or use a number you don't use on WhatsApp. A +27 South African number is recommended for local clients. |
+| **Meta Business Manager account** | Must exist first. Go to business.facebook.com — create one if you haven't already. Use the business name "KIND AI" or "K.I.N.D". |
+| **Business verification documents** | Meta will ask for proof of business. Prepare one of: UK company registration number (when it arrives) OR bank statement showing business name OR utility bill with business name/address. |
+| **Display name** | Must match or be clearly related to your business name. Use "KIND AI" — will be reviewed and approved by Meta. |
+| **IMPORTANT — what WhatsApp Business API can and cannot do** | ✅ CAN: Vida inbound chatbot, client notifications (credits, campaign alerts), warm follow-ups to opted-in contacts. ❌ CANNOT: Cold outreach to new prospects. WhatsApp has strict anti-spam policies — using it for cold email-style sequences will get the account banned. FIGSY uses email for cold outreach. WhatsApp is for inbound and existing client comms only. |
+
+**Step-by-step application (20 minutes):**
+
+| Step | Action |
+|---|---|
+| 1 | Go to **developers.facebook.com** → Log in with your Facebook/Meta account |
+| 2 | Click **My Apps** → **Create App** |
+| 3 | Select app type: **Business** → Next |
+| 4 | App name: `KIND AI` → Enter your business email → Create App |
+| 5 | In the app dashboard → **Add a Product** → Find **WhatsApp** → Click Set Up |
+| 6 | Click **Start using the API** |
+| 7 | Under **Step 1: Add phone number** → Add a Phone Number |
+| 8 | Enter the dedicated number you set aside → Verify via SMS or call |
+| 9 | Set display name: `KIND AI` → Set category: `Business Services` |
+| 10 | **Business Verification**: Settings → Business Settings → Security Centre → Start Verification |
+| 11 | Upload business document (company reg / bank statement) → Submit |
+| 12 | Wait for approval email from Meta (3–7 business days) |
+
+**When approved, you get 3 things → all go into Railway:**
+```
+WHATSAPP_TOKEN=            ← permanent system user token from Meta
+WHATSAPP_PHONE_NUMBER_ID=  ← shown in WhatsApp setup dashboard
+WHATSAPP_VERIFY_TOKEN=     ← you choose this string yourself (e.g. kind_webhook_2026)
+```
+
+**The code is already written. Once these 3 vars are in Railway, Vida's WhatsApp integration goes live.**
+
+---
+
+#### TRACK 3: SMOKE TEST (morning — 45–60 min)
+
+**Do every step yourself, as a real paying client. No shortcuts.**
+
+| Step | What you do | What must happen | If it fails |
+|---|---|---|---|
+| 1 | go to get-kind.com → click Sign Up | Lands on app.get-kind.com/login | Tell me — routing |
+| 2 | Email + password → Sign Up | Goes straight to /onboard — NO confirmation email | Tell me — auth |
+| 3 | Company name, industry, country → Start free trial | Dashboard loads with company name in sidebar | Tell me — onboard |
+| 4 | Leads → Build ICP → "Suggest ICP with AI" | Claude fills form fields within 5 seconds | Tell me — AI suggest |
+| 5 | Save & Find Leads | Real leads with scores (0–100) within 2 minutes | Tell me — Apollo |
+| 6 | Select one lead → Send POPIA consent | Status changes to `consent_sent`, email sent | Tell me — Resend/consent |
+| 7 | Leads table → Export CSV | File downloads, correct columns | Tell me — export |
+| 8 | Billing → buy smallest credit pack | Stripe opens → pay → returns → credit balance updates | Tell me — Stripe webhook |
+| 9 | Portal → FIGSY | Locked screen: Upgrade + Book a Demo | Tell me — gate |
+| 10 | Portal → Milla | Locked screen | Tell me — gate |
+| 11 | Portal → Vida | Locked screen | Tell me — gate |
+| 12 | Sidebar bottom | Green pulsing dot "All systems operational" | Tell me — health |
+| 13 | Admin → Demo Envs → Create Demo | Leads populate → Open Demo → portal opens as demo client | Tell me — demo env |
+| 14 | Admin → Clients → your account → Grant 50 credits | Balance updates, transaction in history | Tell me — admin grant |
+| 15 | Sign out → sign back in | Dashboard loads clean, no loop | Tell me — session |
+
+**Report format:** "Step [N] failed — [what happened]" + screenshot. I fix and redeploy. You retest that step only.
+
+---
+
+#### TRACK 4: OUTREACH (afternoon — 1–2 hours)
+
+**Run this regardless of smoke test status. Don't wait for 100% pass.**
+
+**10 warm personal messages — LinkedIn or WhatsApp personal**
+
+Who: people who know you, know you're building, would be curious. Ex-colleagues. Business contacts. Anyone who's asked "how's the startup going?" B2B founders or sales leaders go first.
+
+**Message template (make it sound like you, not a pitch):**
+> *"Hey [name] — finally launched the thing I've been building. It's an AI SDR for B2B — finds the leads, writes the emails, handles the replies. Fully managed, no setup needed. Got 5 minutes? Happy to show you a quick demo or just send a link."*
+
+Target: 10 sent. Aim for 3 replies. Anyone who says yes → book immediately.
+
+**LinkedIn post #1**
+Admin → CMO Tools → copy the drafted post → change the first line to your voice → post now.
+
+---
+
+**Claude — running all of Day 1:**
+- Fix every smoke test issue in real time as you report them
+- AI reply categorisation (hot / warm / cold / wrong person / OOO)
+- Unified reply inbox (Unibox) — first pass
+- Deliverability dashboard — first pass
+- Homepage hero rewrite
+
+---
+
+### DAY 2 — 28 May (Thursday) — FIXES + MOMENTUM
+
+**You**
+
+| Task | Notes |
+|---|---|
+| **Report remaining smoke test issues** | Screenshot + step number. I fix while you move on. |
+| **WhatsApp: check Meta Business Verification status** | business.facebook.com → Security Centre → check if docs submitted successfully |
+| **Follow up on Day 1 outreach** | Check replies. Anyone who said yes/maybe → book the call immediately. Don't let it go cold. |
+| **5 more outreach messages** | Second wave — slightly cooler contacts. People you haven't spoken to in a while who run B2B companies. |
+| **Book first discovery call** | If anyone said yes on Day 1 — calendar it. Calendly link is live. |
+
+**If a call is booked:** Admin → Sales Playbook → read the discovery script before you go in.
+
+**Claude — Day 2**
+- All smoke test fixes deployed
+- Waterfall enrichment (Apollo → PDL → Hunter fallback)
+- Email score pre-send check
+- Technical debt: duplicate route cleanup
+
+---
+
+### DAY 3 — 29 May (Friday) — FIRST CALLS + PIPELINE
+
+**You**
+
+| Task | Notes |
+|---|---|
+| **Run discovery call(s)** | Sales Playbook script. Goal: understand their lead gen pain. Book a demo follow-up. Listen — don't pitch on call 1. |
+| **Follow up on non-replies** | 2 days no reply → one follow-up: *"Did this land? Happy to send a loom instead."* |
+| **LinkedIn post #2** | Admin → CMO Tools |
+| **UK Companies House number** | If it arrives → paste to me → footer + legal updated in 10 min |
+| **WhatsApp: check application progress** | Look for approval email from Meta. If no response after 5 business days, resubmit documents. |
+
+**Claude — Day 3**
+- Adaptive send volume (auto-reduce per domain if health dips)
+- Proposal template (ready for first prospect close to signing)
+- Technical debt: credit race condition wrapper
+
+---
+
+### DAY 4 — 30 May (Saturday) — REVIEW + PREP
+
+**You (30 min)**
+
+| Task | Notes |
+|---|---|
+| **Count the week** | Messages sent. Replies. Calls booked. Calls done. Any yes? |
+| **Admin → /status** | Check platform snapshot — any anomalies? |
+| **Check FIGSY self-outreach** | Admin → your client → FIGSY campaigns → did Monday self-outreach fire? What's the reply rate? |
+| **3 LinkedIn comments** | Comment on 3 posts from potential prospects or sector leaders. Presence, not pitching. |
+| **Prep for Monday calls** | If calls booked for next week — one sentence of prep per person. |
+
+**Claude — Day 4**
+- Cron job log review — any silent failures?
+- Week 2 outreach batch prep (5 more names + refined messages)
+- Build queue overflow
+
+---
+
+### DAY 5 — 31 May (Sunday) — REST + MONDAY SETUP
+
+**You**
+
+| Task | Notes |
+|---|---|
+| **Rest** | Don't build. |
+| **Write 10 names for Week 2** | Just a list on paper — who are you messaging Monday morning? |
+| **Optional: re-read MASTER.md** | Make notes for the session Monday. |
+
+**Claude — Sunday**
+- Build queue
+- Week 2 FIGSY campaign refinement based on what's resonating in your outreach
+- Any outstanding fixes
+
+---
+
+## BY END OF 31 MAY — TARGETS
+
+| Target | Done? |
+|---|---|
+| Platform blockers cleared (Stripe webhook, Resend, prices) | — |
+| Supabase platform_status migration applied | — |
+| Smoke test: all 15 steps passing | — |
+| WhatsApp Business API application submitted | — |
+| 15+ outreach messages sent | — |
+| 3+ replies received | — |
+| 1+ discovery call booked | — |
+| LinkedIn: 2 posts + 3 comments | — |
+| FIGSY self-outreach running (auto-fires Mondays) | ✅ Live |
+| All smoke test fixes deployed | — |
+
+**WhatsApp expected live date: ~5–6 June** (3–7 business days from Day 1 application)
+
+---
+
+## MY BUILD QUEUE — NEXT 5 DAYS (Claude)
+
+| # | What | Why | Day |
+|---|---|---|---|
+| 1 | **Fix all smoke test issues** | Blocking launch | Day 1–2 real-time |
+| 2 | **AI reply categorisation** | hot / warm / cold / wrong person / OOO — each routes differently | Day 1 |
+| 3 | **Unified reply inbox (Unibox)** | All campaign replies across all clients in one admin view | Day 1–2 |
+| 4 | **Deliverability dashboard** | Spam rate, inbox %, DNS health per domain — in Platform Health | Day 1–2 |
+| 5 | **Homepage hero rewrite** | Sharper copy for cold visitors | Day 1 |
+| 6 | **Waterfall enrichment** | Apollo → PDL → Hunter — 20–40% more leads per ICP | Day 2–3 |
+| 7 | **Email score pre-send** | Score sequence quality before it fires | Day 3 |
+| 8 | **Adaptive send volume** | Auto-reduce per mailbox if domain health dips | Day 3–4 |
+| 9 | **Technical debt — duplicate routes** | Clean before scale | Day 4 |
+| 10 | **Technical debt — credit race condition** | DB transaction wrapper for credit deduction | Day 4 |
+| 11 | **Proposal template** | Ready when first prospect is close | Day 3 on demand |
+| 12 | **Week 2 outreach refinement** | Sharpen FIGSY campaign based on what's resonating | Day 4–5 |
+
+---
+
+## WHAT'S NOT ON MY LIST (and why)
+
+| Item | Why not now | When |
+|---|---|---|
+| Email warmup infrastructure | Need to decide on provider first (Lemwarm, Mailreach, or self-hosted pool) — ask me and we'll pick one together | Phase 2 |
+| WhatsApp code changes | Already built — waiting for your 3 env vars from Meta | When Meta approves |
+| LinkedIn automation | ToS risk — always off the table | Never |
+| Milla + Vida launch | July — after first 5 clients | July 2026 |
+| MCP server | Phase 3 | 20+ clients |
+| Conditional sequence branching | Phase 2 | Core loop proven |
+| Mobile app | Year 2 | — |
+| Revenue forecasting | Needs live data | Year 2 |
+
+---
+
+## QUICK REFERENCE — EVERY LINK YOU NEED
+
+| What | URL |
+|---|---|
+| Website | get-kind.com |
+| Client Portal | app.get-kind.com |
+| Admin | admin.get-kind.com |
+| API | kindapi-production-e64c.up.railway.app |
+| Supabase | supabase.com → kind project |
+| Railway | railway.app → KIND API |
+| Vercel | vercel.com → kind-portal + kind-admin |
+| Stripe | dashboard.stripe.com |
+| Resend | resend.com |
+| Apollo | app.apollo.io |
+| HubSpot | app.hubspot.com |
+| Calendly | calendly.com/jacques-vieiraza/30min |
+| Sales Playbook | admin.get-kind.com/docs/sales-playbook |
+| Admin Status | admin.get-kind.com/status |
+| Demo Envs | admin.get-kind.com/demo |
+| Meta Developers | developers.facebook.com |
+| Meta Business Manager | business.facebook.com |
+
+---
+
+*Updated: 26 May 2026 evening — WhatsApp application added, full 5-day plan*
 
 ---
 
@@ -375,184 +669,6 @@ In priority order. Working through these in parallel with your smoke test and ou
 | Admin Status | admin.get-kind.com/status |
 | Demo Envs | admin.get-kind.com/demo |
 
----
-
-*Updated: 26 May 2026 evening — 5-day sprint plan*
-
----
-
-### 📅 TODAY — 26 May 2026 (EVENING)
-
-**You — 15 minutes total**
-
-| # | Task | Time | How |
-|---|---|---|---|
-| 1 | **Stripe webhook secret** | 2 min | Stripe → Developers → Webhooks → Add endpoint: `https://kindapi-production-e64c.up.railway.app/stripe/webhook` → Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` → Copy signing secret → Railway → `STRIPE_WEBHOOK_SECRET` |
-| 2 | **Upgrade Resend to paid** | 2 min | resend.com/billing → Pro ($20/mo) — free plan caps at 100 emails/day, blocks FIGSY at scale |
-| 3 | **Fix 4 Stripe prices** | 10 min | Stripe → Products → archive old 40cr and 100cr prices for Lead Gen + FIGSY. Recreate flat rate: Lead Gen 40cr=$40, 100cr=$100; FIGSY 40cr=$120, 100cr=$300. Copy 4 new price IDs → Railway: `STRIPE_PRICE_LEADGEN_40`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_40`, `STRIPE_PRICE_FIGSY_100` |
-
-**Claude — running tonight**
-- Homepage hero rewrite (new punchy copy, Apex-inspired framing)
-- AI reply categorisation extension (hot / warm / cold / wrong person / out of office)
-- Email deliverability dashboard (draft, ready for tomorrow's smoke test)
-
----
-
-### 📅 TOMORROW — 27 May 2026 (SMOKE TEST DAY)
-
-**Goal: confirm every path works end-to-end before first real client**
-
-**You — 30–45 minutes**
-
-Run the full smoke test (Section 18). Do each step yourself, as a real client would:
-
-| Step | Action | What to check |
-|---|---|---|
-| 1 | Sign up at get-kind.com | Redirects to app.get-kind.com/login — no confirmation email |
-| 2 | Fill email + password → Sign Up | Lands directly on /onboard — no email gate |
-| 3 | Company name, industry, country → Start free trial | Dashboard loads with your company name |
-| 4 | Build ICP → click "Suggest ICP with AI" | Claude fills the form automatically |
-| 5 | Save & Find Leads | Real leads appear within minutes with scores |
-| 6 | Send POPIA consent to one lead | Email arrives in inbox, lead status → consent_sent |
-| 7 | Export leads as CSV | File downloads, columns correct |
-| 8 | Billing → buy credits | Stripe opens, payment processes, credit balance updates |
-| 9 | FIGSY / Milla / Vida screens | Locked screens show Upgrade + Book a Demo |
-| 10 | Sidebar bottom | Green dot "All systems operational" |
-| 11 | Admin → Demo Envs → create demo | Leads appear → Open Demo → portal opens as demo client in new tab |
-| 12 | Admin → Clients → grant 50 credits | Balance updates, transaction recorded in history |
-| 13 | Sign out → sign back in | Dashboard loads clean, no loop |
-
-**Apply platform_status migration** (2 min — if not done yet)
-- Supabase → SQL Editor → run `supabase/migrations/20260526_platform_status.sql`
-
-**Claude — available immediately**
-- Fix any issue you find during smoke test — share screenshot or describe what broke
-- I fix and redeploy, you retest. Repeat until all 13 pass.
-
----
-
-### 📅 DAY AFTER TOMORROW — 28 May 2026 (OUTREACH DAY)
-
-**Goal: first real conversations in the pipeline**
-
-**You — 1–2 hours**
-
-| # | Task | Time | Notes |
-|---|---|---|---|
-| 1 | **10 warm personal outreach messages** | 1 hour | LinkedIn / WhatsApp to people you know. Not a pitch — "I built something, 5 minutes?" Close network first: ex-colleagues, business contacts, people who've asked "how's the startup going?" |
-| 2 | **Post on LinkedIn** | 15 min | Admin → CMO Tools → copy today's drafted post → personalise the first line → post |
-| 3 | **Reply to any Calendly bookings** | 5 min | Confirm the call, send prep questions: "What does your current lead gen look like?" |
-
-**Claude — running 28 May**
-- Unified reply inbox (Unibox) — admin page showing all campaign replies across all clients
-- Waterfall enrichment fallback (Apollo → PDL → Hunter)
-- Sequence pre-launch email score check
-
----
-
-### 📅 29–30 MAY 2026 (CONSOLIDATION)
-
-**You**
-| Task | Notes |
-|---|---|
-| **Book 3 discovery calls** | From the 10 outreach messages, aim for 3 conversations booked this week |
-| **LinkedIn post #2** | Admin → CMO Tools — second post of the week |
-| **UK Companies House number** | When it arrives — give it to me, I wire it into footer + legal pages in 10 min |
-
-**Claude**
-- Adaptive send volume (reduce per-domain send count if health dips)
-- Technical debt cleanup: duplicate routes, credit race condition wrapper
-- Docs updated to reflect all new builds
-
----
-
-### 📅 WEEK OF 1–7 JUNE 2026
-
-**You**
-| Task | Notes |
-|---|---|
-| **3 discovery calls done** | Run with Sales Playbook script (Admin → Sales Playbook) |
-| **First demo delivered** | Admin → Demo Envs → create → open → walk through live |
-| **Apollo upgrade** | After first client pays → $99/mo Basic → unlocks 1,200 contacts/month |
-| **Wise business account** | After UK company number confirmed — business.wise.com |
-| **Link Wise to Stripe** | Stripe → Settings → Bank accounts |
-| **LinkedIn post #3** | Third post of the week |
-
-**Claude**
-- FIGSY self-outreach campaign actively running (fires Monday 08:00 UTC every week)
-- Any fixes from discovery calls: "the demo showed X didn't work"
-- Proposal template if first client is close to signing
-- G2 / Capterra / Product Hunt copy drafted — ready for you to post on launch day
-
----
-
-### 📅 JUNE 2026 — MONTH TARGET: 5 PAYING CLIENTS
-
-**You — milestone events**
-| Milestone | What happens |
-|---|---|
-| First paid client | Apollo upgrade. Celebrate. |
-| 3 paid clients | Flutterwave key in Railway (ZAR billing live) |
-| 5 paid clients | Phase 2 marketing: US/UK. Google Workspace. WhatsApp Business API application submitted. |
-
-**Claude — June builds (in order of priority)**
-| Build | Phase |
-|---|---|
-| Email warmup infrastructure | Phase 2 — before client 1's first campaign fires |
-| Deliverability dashboard (spam rate, inbox %, DNS health) | Phase 2 |
-| Conditional sequence branching ("if no reply → path B") | Phase 2 |
-| Client churn risk score (0–100) | Phase 2 |
-| Milla + Vida feature flag flip (July launch prep) | June |
-
----
-
-### 📅 JULY 2026 — MILLA + VIDA LAUNCH
-
-**Claude**
-- Flip Milla feature flag — VA goes live for all active subscribers
-- Flip Vida feature flag — Chatbot goes live
-- Monitoring for first week, fix edge cases
-
-**You**
-- Email all existing clients: "Two new agents just joined your team"
-- LinkedIn announcement post
-
----
-
-### 🟢 WHEN READY — Not Time-Sensitive
-
-| Task | Trigger | Notes |
-|---|---|---|
-| Google Workspace | First hire or enterprise client asks | workspace.google.com — I have the full DNS setup guide |
-| Vapi.ai voice agent | When voice demand appears | Key in Railway, agent is built |
-| WhatsApp Business API | Phase 2 (5+ clients) | Meta 3–7 day approval — start process early |
-| Google Calendar OAuth | When discovery calls need auto-booking | Keys in Railway |
-| G2 / Capterra / Product Hunt | Launch day | I draft all copy, you post |
-| SOC 2 Type II | Q1 2027 | External auditor |
-| pgvector upgrade (Milla) | 50+ clients | Supabase extension, I handle migration |
-
----
-
-### ❌ REMOVED — Not Applicable
-| Item | Why |
-|---|---|
-| Paystack KYC | UK-based founder can't complete — Stripe handles payments |
-| Paystack plan codes | Paystack removed from primary payment stack |
-
-### Google Workspace Setup (step by step)
-1. workspace.google.com → Get started → Business Starter plan → enter domain get-kind.com
-2. Add the MX records Google gives you to your DNS (at your domain registrar)
-3. Add the TXT verification record → click Verify in Google
-4. Create mailbox: **hello@get-kind.com**
-5. Forward or alias **privacy@kind.ai** → hello@get-kind.com (referenced in Privacy Policy)
-6. Google Admin → Gmail → Authenticate email → Enable DKIM → add TXT record to DNS
-7. Add SPF record: `v=spf1 include:_spf.google.com ~all` (merge with existing SPF)
-8. Add DMARC: TXT record on `_dmarc.get-kind.com` → `v=DMARC1; p=none; rua=mailto:hello@get-kind.com`
-9. Update `FOUNDER_EMAIL` in Railway to hello@get-kind.com
-
-**Important:** FIGSY sends from **Resend** (replies@get-kind.com) — keep separate to protect domain reputation.
-
----
 
 ## 3. WHAT CLAUDE CAN DO
 

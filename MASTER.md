@@ -744,21 +744,45 @@ WHATSAPP_VERIFY_TOKEN=
 
 ## 19. PRODUCT VISION — 1, 3, 5 YEARS
 
+> **The first-mover window in Africa is 18–24 months.** The moat being built now — the data, the brand, the client relationships — is what makes K.I.N.D unconquerable when bigger players arrive.
+
+> **TTFL (Time to First Lead) is not just a metric. It is the competitive weapon.** Every competitor makes you wait. We deliver in under 2 hours.
+
+> **Data accumulates from Day 1.** Every lead scored, every ICP run, every FIGSY email sent is a proprietary dataset no competitor can buy. By Year 3, that dataset is the product.
+
 ### Year 1 (by May 2027) — $40,000 MRR
 - 150+ paying clients (SA, UK, US, Nigeria, Kenya)
 - Lead Gen + FIGSY proven and reliable
 - Milla (VA) + Vida (Chatbot) live for 30+ clients
 - K.I.N.D's own outbound running entirely on FIGSY
+- **Critical output:** Data. Every client run builds the dataset.
 
 ### Year 2 (2027) — $120,000 MRR / 450 clients
-- Built-in CRM, multi-channel FIGSY, pan-African launch
-- Recurring subscription model primary
+- **Full B2B Revenue OS** — K.I.N.D handles the entire journey from stranger to signed contract
+- Built-in CRM — clients stop needing HubSpot or Salesforce
+- Pipeline forecasting — AI predicts close probability from lead score + FIGSY engagement
+- Multi-channel FIGSY — email, LinkedIn, WhatsApp, voice
+- Pan-African launch: Nigeria, Kenya, Ghana, Egypt
+- Recurring subscription model becomes primary revenue
 
 ### Year 3 (2028) — $300,000 MRR / 1,000 clients
-- Proprietary dataset, predictive ICP, SOC 2 Type II
+- **Data Advantage** — proprietary dataset: leads scored + converted across thousands of African B2B companies
+- Predictive ICP — K.I.N.D tells you who to target before you ask
+- Industry benchmarks — "Companies like yours convert at 3.2% — you're at 1.8%"
+- White-label offering for agencies
+- SOC 2 Type II certified
+
+### Year 4 (2029) — $700,000 MRR / 2,500 clients
+- **The Network Effect** — K.I.N.D sits between buyers and sellers across thousands of companies
+- Warm B2B introductions — K.I.N.D knows who wants to buy and who wants to sell
+- Marketplace dynamics — deals happen on the platform
+- **K.I.N.D becomes a B2B network, not just software**
+- First institutional funding or strategic acquisition interest
 
 ### Year 5 (2030) — Market Leader
-- 5,000+ clients, 10+ countries, IPO-ready
+- 5,000+ clients, 10+ countries, IPO-ready on JSE
+- Or acquisition by global CRM, data, or AI player at $50–100M+
+- **The Salesforce of Africa — AI-native from day one**
 
 ---
 

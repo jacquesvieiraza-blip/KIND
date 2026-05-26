@@ -324,7 +324,7 @@
 | Dark mode (full system) | ✅ Live | DarkModeToggle in all layouts, FOUC prevention |
 | **Signup hotfix** — `amount_zar` NOT NULL | ✅ Fixed | All new signups now work — 25 May |
 | **Full schema drift fix** — `amount_usd` removed | ✅ Fixed | MRR calculations restored — 25 May |
-| **Daily 04:00 AM automated audit** | ✅ Live | `.github/workflows/daily-audit.yml` — opens GitHub Issue on failure |
+| **Daily automated audit — 04:00 + 16:00 SAST** | ✅ Live | `.github/workflows/daily-audit.yml` — opens GitHub Issue on failure. Runs twice daily. |
 | Run `20260525_fix_subscriptions_schema.sql` | ⏳ MUST RUN | Supabase SQL Editor — makes schema drift permanent fix on DB level |
 | **Delete test chatbot/VA subscriptions** | ✅ Done 26 May | SQL: `DELETE FROM subscriptions WHERE product IN ('chatbot','virtual_assistant') AND status='active' AND client_id='187bfb91-1224-4c29-90ea-4c2bdaff0ed1';` |
 | FIGSY inbound webhook fix | ✅ Fixed 26 May | `/replies/inbound` moved before `requireAuth` — was always returning 401 to Resend. Protected by `RESEND_WEBHOOK_SECRET` header. |
@@ -460,6 +460,8 @@
 | FIGSY weekly digest upgrade — FIGSY stats in Monday email | 19 May |
 | FIGSY escalation alerts — auto-pauses campaigns <1% reply rate | 19 May |
 | FIGSY identity card in portal | 19 May |
+| Demo page (/demo) — 8 feature chapters with scroll-triggered animations | 19 May |
+| Platform video (platform-video.html) — 16-scene auto-playing demo (FIGSY + Milla + Vida) | 19 May |
 | Full homepage rewrite — new positioning | 20 May |
 | Pricing page — Start/Scale/Dominate | 20 May |
 | About page — Founder Belief, Dogfooding, AI Revenue Team sections | 20 May |
@@ -481,6 +483,18 @@
 | Portal analytics page — /dashboard/analytics, 6-month trends, ICP breakdown, score distribution | 24 May |
 | Stripe billing confirmed fully wired — activates on STRIPE_SECRET_KEY env var | 24 May |
 | MASTER.md full update — reflects all 24 May builds | 24 May |
+| Admin dark theme full rollout — all pages restyled to dark-first design | 25 May |
+| Admin Founder OS V2 — dark sidebar, grouped sections, Founder OS branding | 25 May |
+| Admin AI exec team pages — /agents/otto, /lena, /reeve, /cmo, /cto, /cfo with agent identity cards + brief API | 25 May |
+| Admin living docs viewer — /docs/* renders MASTER, run-costs, legal as markdown in admin | 25 May |
+| Admin compliance tracker — /compliance with full certification roadmap (SOC2, ISO 27001, ISO 42001) | 25 May |
+| Admin platform health page — /health system-wide monitoring | 25 May |
+| Admin revenue deep-dive — /revenue scenario tracker | 25 May |
+| Internal briefs router — POST /internal/briefs/* AI exec team daily briefs | 25 May |
+| Waitlist landing page — pre-launch interest capture (netlify-waitlist/) | 25 May |
+| Portal V2 full redesign — SidebarV2, Mission Control Dashboard (FEATURE_PORTAL_V2=true) | 25 May |
+| Milla + Vida billing launch — lock screens, demo request, pricing ($49/$39) in portal | 25 May |
+| Sales playbook file — docs/sales-playbook.md: discovery script, objections, demo flow, proposal template | 25 May |
 | Lead drip system — delivered_at column, daily_drip_rate per client, 08:10 UTC cron | 26 May |
 | Credits deduct at delivery — /leads/drip deducts 1 credit per lead on deliver | 26 May |
 | Lead overspend fix — maxLeads cap, leads_per_run respected | 26 May |
@@ -509,6 +523,11 @@
 | Admin HubSpot pipeline page — /hubspot: Kanban by stage, setup guide if key absent | 26 May |
 | Competitor ICP seed configs — supabase/seeds/competitor_icps.sql: Lemlist/Instantly/Clay/Apollo users in Africa | 26 May |
 | Cron stagger — morning brief at 05:05 UTC, no conflict with auto-replenish at 05:00 | 26 May |
+| Stripe 3-tier credit bundles — 40cr tier added, corrected prices across all tiers ($20/$38/$88 Lead Gen, $60/$110/$250 FIGSY) | 26 May |
+| Flutterwave integration — ZAR/NGN/KES/GHS local African payments (Phase 2, code complete) | 26 May |
+| ICP cascade delete migration — leads.icp_id SET NULL on ICP delete | 26 May |
+| Calendly booking link wired — website + landing pages + portal (URL provided by Jacques) | 26 May |
+| 3× daily auto-status system — platform_status table, Admin /status page, crons at 07:10/12:00/19:00 SAST | 26 May |
 | **Credit race condition fix** — unique index on `credit_transactions.reference` + atomic RPC `increment_client_credits` — double-spend impossible | 27 May |
 | **Startup env check** — `lib/startup-check.ts` runs at boot, logs CRITICAL/IMPORTANT/OPTIONAL vars, refuses to start if CRITICAL missing | 27 May |
 | **AI reply categorisation upgrade** — 7 categories: 🔥 Hot / 🌤️ Warm / ❄️ Cold / 🚫 Opted out / 👤 Wrong person / ✈️ OOO / ❓ Other. Replaces 5-category system. Backward compatible (old 'interested'→hot, 'not_interested'→cold) | 27 May |
@@ -793,8 +812,8 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | Agent | Named after | Role | Status |
 |---|---|---|---|
 | **FIGSY** | The founder | AI SDR — outbound email, follow-up, meeting booking | ✅ Live |
-| **Milla** | Founder's daughter | Virtual Assistant — trained on your business | July 2026 |
-| **Vida** | Founder's daughter | Chatbot Agent — website + WhatsApp inbound qualifier | July 2026 |
+| **Milla** | Founder's daughter | Virtual Assistant — trained on your business | Subscription billing live — awaiting Stripe price IDs in Railway |
+| **Vida** | Founder's daughter | Chatbot Agent — website + WhatsApp inbound qualifier | Subscription billing live — awaiting Stripe price IDs in Railway |
 
 ---
 
@@ -805,11 +824,11 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | Product | Credits | Price USD | Price ZAR |
 |---|---|---|---|
 | K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 |
-| K.I.N.D AI — Lead Gen Pro | 40 | $40 | R760 |
-| K.I.N.D AI — Lead Gen Pro | 100 | $100 | R1,900 |
+| K.I.N.D AI — Lead Gen Pro | 40 | $38 | R722 |
+| K.I.N.D AI — Lead Gen Pro | 100 | $88 | R1,672 |
 | FIGSY Advanced | 20 | $60 | R1,140 |
-| FIGSY Advanced | 40 | $120 | R2,280 |
-| FIGSY Advanced | 100 | $300 | R5,700 |
+| FIGSY Advanced | 40 | $110 | R2,090 |
+| FIGSY Advanced | 100 | $250 | R4,750 |
 
 **Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once value is proven.
 
@@ -1000,6 +1019,9 @@ WHATSAPP_VERIFY_TOKEN=
 | 0 7 * * 1 | Mon 09:00 | POST /internal/digest/weekly | Monday leads digest to clients |
 | 0 6 * * 1 | Mon 08:00 | POST /internal/cmo/self-outreach | K.I.N.D self-outreach (Monday) |
 | 0 16 * * 5 | Fri 18:00 | POST /internal/cro/weekly-digest | Friday founder digest |
+| 10 5 * * * | 07:10 | POST /internal/platform/status | Platform status snapshot (morning) |
+| 0 10 * * * | 12:00 | POST /internal/platform/status | Platform status snapshot (midday) |
+| 0 17 * * * | 19:00 | POST /internal/platform/status | Platform status snapshot (evening) |
 
 ---
 
@@ -1262,7 +1284,7 @@ Send them here. I fix in real time.
 | Agent naming | FIGSY (founder) · Milla (daughter) · Vida (daughter) |
 | Market expansion trigger | After 5 paying clients |
 | Compliance | POPIA + GDPR + CAN-SPAM + CCPA |
-| Milla + Vida launch | July 2026 |
+| Milla + Vida launch | ✅ Billing built — needs price IDs | Subscription billing live — awaiting Stripe price IDs in Railway |
 | Payment processor | **Stripe (USD/GBP) — primary**. Founder is UK-based, Paystack requires SA entity. African clients pay in USD via international card. Flutterwave Phase 2 for local African payment methods (M-Pesa etc). |
 | AI provider | Anthropic Claude — Haiku for volume, Sonnet for quality |
 | Data source | Apollo.io |
@@ -2469,8 +2491,8 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | Agent | ClickUp equivalent | K.I.N.D role | Status |
 |-------|------------------|-------------|--------|
 | FIGSY | Super Agent — outbound | AI SDR: finds leads, writes emails, handles replies, learns what works | ✅ Live |
-| Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | July 2026 |
-| Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | July 2026 |
+| Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | Subscription billing live — awaiting Stripe price IDs in Railway |
+| Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | Subscription billing live — awaiting Stripe price IDs in Railway |
 | REEVE | Sales Agent | AE: books discovery calls, follows up pipeline, drafts proposals | Year 2 |
 | LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | Year 2 |
 | OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | Year 2 |
@@ -3744,8 +3766,8 @@ But the BDR is just the beginning.
 
 A growing African SMB needs:
 - Someone to find and contact leads (BDR) → **FIGSY** — *built*
-- Someone to run morning briefings and manage documents (Chief of Staff / VA) → **Milla** — *July 2026*
-- Someone to handle inbound and qualify website visitors (Inbound SDR) → **Vida** — *July 2026*
+- Someone to run morning briefings and manage documents (Chief of Staff / VA) → **Milla** — *Subscription billing live — awaiting Stripe price IDs in Railway*
+- Someone to handle inbound and qualify website visitors (Inbound SDR) → **Vida** — *Subscription billing live — awaiting Stripe price IDs in Railway*
 - Someone to close the deal (Account Executive) → **REEVE** — *Year 2*
 - Someone to retain and grow existing clients (Customer Success) → **LENA** — *Year 2*
 - Someone to watch revenue, flag risk, forecast (CRO) → **OTTO** — *Year 2*

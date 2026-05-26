@@ -36,6 +36,7 @@
 25. [Compliance Certifications Roadmap](#25-compliance-certifications-roadmap)
 26. [Competitor Targeting Strategy](#26-competitor-targeting-strategy)
 27. [AI Learning Capability — Built, Planned, Vision](#27-ai-learning-capability--built-planned-vision)
+28. [ClickUp Brain — What We Studied, What We Adopted, What's Next](#28-clickup-brain--what-we-studied-what-we-adopted-whats-next)
 
 ---
 
@@ -1114,6 +1115,63 @@ Lemlist built their business on this. No budget needed. CMO cron already generat
 - No AI that learns from outcomes — K.I.N.D's figsy_memory compounds over time
 - No POPIA compliance, no ZAR billing, no African contact data
 
+### THE ACTION PLAN — How Each Piece Gets Done
+
+*From May 25 session — "Dont build. Outline how we could do this in action."*
+*Sequence locked. Nothing changes until core loop is proven for 20+ paying clients.*
+
+| Piece | What | How | Time | Phase |
+|-------|------|-----|------|-------|
+| **5** | **Status bar** | `GET /clients/me/pulse` (cached 60s) + sidebar bottom component | **4 hours** | **Build first** |
+| **6** | Notification centre | `notifications` table, bell icon, slide-out panel, click → navigate | 3 days | Any time |
+| **1a** | Kanban view | `@dnd-kit/core` (12kb). Status → columns: `New → In Sequence → Replied → Interested → Meeting Booked → Closed` | 2–3 days | Phase 2 |
+| **1b** | Score heatmap | Industries × geographies, bubble = lead count, colour = score. `recharts`. Data exists already. | 1 day | Phase 2 |
+| **1c** | Timeline | Gantt per lead — when each FIGSY step fires. Data in `figsy_sent_emails`. | 2 days | Phase 3 |
+| **2** | Command palette Cmd+K | `cmdk` library (7kb, Vercel/Linear/Raycast use it). Pure frontend, zero backend changes. | 1–2 days | Phase 2 |
+| **3** | Real-time activity feed | Supabase realtime — `supabase.channel('activity').on('postgres_changes', ...)` — 20 lines. | 3 days | Phase 3 |
+| **4** | Custom lead fields | `ALTER TABLE leads ADD COLUMN custom_fields jsonb default '{}'` + `client_lead_fields` config table | 4–5 days | On request |
+| **7** | Visual automation builder | React Flow canvas. `client_automations` JSON table. Triggers → conditions → actions. | 2–3 weeks | Phase 5 |
+| **8** | ICP that learns itself | SQL: leads × figsy_replies grouped by attribute → Claude Haiku writes 3–5 insight bullets → "Apply to ICP" button | 2 days | Phase 4 |
+| **9** | Voice morning brief | Text already generated. Add ElevenLabs/OpenAI TTS API call → MP3 → audio player on dashboard | 1 day | Post Milla live |
+| **10** | Network benchmarks | Aggregate cross-client query (min 5 clients = privacy gate). "Your industry averages 7.1% — you're at 11.4%" | 2 days | Phase 4 |
+| **11** | White-label / Agency | `white_label_configs` table + `partner_id` FK + Vercel CNAME + billing multiplier | 1 week | On request |
+| **12** | Mobile PWA | `manifest.json` + `next-pwa` + Web Push API + `push_subscriptions` table | 2 days | Phase 3 |
+| **13** | MCP server | `@modelcontextprotocol/sdk` wrapper over existing REST API + `api_keys` table | 3–5 days | Phase 4 |
+
+### LOOK & FEEL DIRECTION
+
+*From May 25 — "I want this to be the best product ever." — not yet built, parked for portal V2.*
+
+**Current state:** Clean. Functional. Dark mode works. But it feels like a tool, not a revenue command centre.
+
+**The direction:**
+
+**Personality per agent.** Each product section feels different — not different branding, different energy:
+- FIGSY: sharp, high-frequency, outbound — intense green pulse
+- Milla: calm, considered, knowledge-based — soft blue glow
+- Vida: reactive, conversion-focused — sharp amber
+
+**Live data everywhere.** Numbers count up. Progress bars fill. Reply rates update in real time. The portal should feel *alive.*
+
+**Status bar — always visible.** Bottom of sidebar. One line: *"FIGSY sent 12 emails today · 2 replies · 847 credits · All systems operational."*
+
+**Progressive disclosure.** Simple by default, powerful on demand. New client sees essentials. Power user accesses everything. ClickUp's model.
+
+**Micro-interactions.** Lead scores 90+: it glows. FIGSY sends a batch: subtle pulse animation. Credits low: balance goes amber. Small moments that make the product feel considered.
+
+### PORTAL V2 — BUILT, DORMANT
+
+**Status: ✅ Built — activate with `FEATURE_PORTAL_V2=true` in Railway.**
+
+Built in background during May 24-25 sessions. Hidden behind a feature flag. Not yet live for clients.
+
+**What it includes:**
+- **SidebarV2** — product switcher at the top (Lead Gen / FIGSY / Products tabs), contextual sub-nav below
+- **Mission Control Dashboard** — 3-column live ops view (FIGSY outbound | Leads pipeline | Intelligence)
+- **Design system tokens** — consistent spacing, colour, typography
+
+When you're ready to show it to clients: add `FEATURE_PORTAL_V2=true` to Railway → redeploy → done.
+
 ---
 
 ## 25. COMPLIANCE CERTIFICATIONS ROADMAP
@@ -1328,5 +1386,120 @@ K.I.N.D is the only platform where the AI SDR gets measurably better the longer 
 ---
 
 *Added: 26 May 2026*
+---
+
+## 28. CLICKUP BRAIN — WHAT WE STUDIED, WHAT WE ADOPTED, WHAT'S NEXT
+
+*This is the "out of the box" session — May 2026. "I don't want to build now. But look at ClickUp's Brain agents and see what they have that we could use."*
+*Full study: `https://clickup.com/brain/agents` and `https://clickup.com/`*
+
+---
+
+### What ClickUp Brain / Super Agents Actually Is
+
+ClickUp's strategic bet: **AI agents with persistent identity, memory, and proactive triggers are the future of work management.**
+
+Their Super Agents are not automations. Automations are: if X → do Y (deterministic, dumb). Super Agents: observe context → break goal into steps → select tools → execute → verify → escalate if uncertain. A reasoning loop. Adaptive.
+
+**What makes them different:**
+
+| Feature | What it means |
+|---------|--------------|
+| Persistent identity | Agents exist as named "people" in your workspace. They remember what happened last session, last week. |
+| Memory — 3 types | Recent/Episodic (last session), Long-term (months), Preference (tone, format, how you work) |
+| Proactive triggers | Fire on a schedule without anyone pressing a button. Monday morning → report sent. Friday → pipeline summary posted. |
+| Escalation logic | When uncertain, the agent stops and asks instead of guessing. Doesn't run blindly. |
+| 500+ skills | Research, task creation, email drafting, scheduling, standup facilitation, sprint planning, risk assessment |
+| Multi-model | Clients choose GPT-5, Claude Opus, o3, Gemini depending on the task |
+| Connected search | Searches ClickUp + Google Drive + GitHub + OneDrive simultaneously |
+
+**ClickUp Brain MAX (desktop):**
+- Talk-to-text AI queries — ~4× faster than typing
+- Cross-tool search across all integrated apps
+- Claims ~1.1 days saved per user per week
+
+---
+
+### The Gap This Exposed in K.I.N.D (May 2026 assessment)
+
+| What ClickUp agents do | What K.I.N.D agents do | Gap |
+|----------------------|----------------------|-----|
+| Persistent identity + memory | Reset every run | ❌ |
+| Proactive scheduled triggers | Human initiates everything | ❌ |
+| Escalation logic (uncertain → ask) | Run blindly regardless | ❌ |
+| Multi-model choice | Hard-wired to one model | ❌ |
+| Meeting notetaker (joins calls, transcribes) | Not built | ❌ |
+
+**One-line version:** ClickUp's agents are proactive, have memory, and escalate when stuck. K.I.N.D's agents were reactive, stateless, and ran blindly. Closing those three gaps is what makes K.I.N.D's AI genuinely competitive.
+
+---
+
+### What We Did About It — What's Built
+
+All three core gaps were closed during the May 2026 build sessions:
+
+| Gap | Fix | Status |
+|-----|-----|--------|
+| No memory | `figsy_memory` table + `generateSequenceWithMemory()` | ✅ Built — 19 May |
+| Runs blindly | Escalation alerts — auto-pauses campaigns <1% reply rate after 20+ emails | ✅ Built — 19 May |
+| No identity | FIGSY identity card in portal — name, avatar, live stats, "Last active X ago" | ✅ Built — 19 May |
+| No proactive digest | Monday weekly digest includes FIGSY stats — sent without prompting | ✅ Built — 19 May |
+
+**What was NOT built (parked):**
+- Multi-model toggle (GPT/Claude/Gemini choice) — not a priority yet
+- Meeting notetaker — "2–3 weeks for a feature clients haven't asked for yet" — park until VA matures
+- Connected cross-tool search — Year 2, when Milla has meaningful document volume
+
+---
+
+### What K.I.N.D Should Eventually Become (The ClickUp Vision Applied)
+
+ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they remember your context, they act without being asked, and they escalate when uncertain.
+
+**K.I.N.D's version of this — the full agent roster:**
+
+| Agent | ClickUp equivalent | K.I.N.D role | Status |
+|-------|------------------|-------------|--------|
+| FIGSY | Super Agent — outbound | AI SDR: finds leads, writes emails, handles replies, learns what works | ✅ Live |
+| Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | July 2026 |
+| Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | July 2026 |
+| REEVE | Sales Agent | AE: books discovery calls, follows up pipeline, drafts proposals | Year 2 |
+| LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | Year 2 |
+| OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | Year 2 |
+
+**Each agent (when fully built):**
+- Named identity card in portal with avatar, live stats, last active timestamp
+- Memory that compounds over time
+- Proactive triggers — fires on schedule, not on demand
+- Escalation logic — pauses and alerts when uncertain instead of running blindly
+
+---
+
+### The Strategic Insight From ClickUp
+
+> *"If a traditional AI agent can run a quick data analysis, a Super Agent is the analyst — who gathers the data, runs the model, interprets the results, and delivers the report in the right format to the right stakeholder, without being explicitly told each step."*
+
+**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Year 2, clients don't use K.I.N.D. They work *with* K.I.N.D.
+
+**The pricing insight:** ClickUp charges $9/user/month for their AI add-on. 1,500 credits included. K.I.N.D charges per outcome ($1/lead, $3/FIGSY credit). This is better — the client pays for results, not for compute. Keep this model.
+
+---
+
+### Parked — Do Not Build Yet
+
+| Item | Why parked | When |
+|------|-----------|------|
+| Multi-model toggle | Clients don't need this yet — they don't know what Claude vs GPT means | Year 2 |
+| Meeting notetaker | No demand yet. VA product must mature first. | Month 6–12 |
+| Connected cross-tool search (Google Drive + GitHub) | Milla needs real document volume first | Year 2 |
+| Full persistent agent memory (episodic + long-term + preference) | `figsy_memory` is Level 1. Deep memory architecture is Year 2. | Year 2 |
+
+---
+
+*Added: 26 May 2026 — "think out the box" session*
+*Source: ClickUp Brain Agents (apex.host + clickup.com/brain/agents)*
+
+---
+
 *Owner: K.I.N.D founding team*
 *Last updated: 26 May 2026 (evening)*

@@ -58,5 +58,14 @@ export function startCrons(): void {
   // Monday 06:00 UTC — K.I.N.D self-outreach (FIGSY finds new K.I.N.D prospects)
   cron.schedule('0 6 * * 1', () => callInternal('/cmo/self-outreach'), { timezone: 'UTC' })
 
-  console.log('[cron] 12 jobs scheduled')
+  // Daily 08:00 UTC — deliver drip leads (up to daily_drip_rate per client)
+  cron.schedule('0 8 * * *', () => callInternal('/leads/drip'), { timezone: 'UTC' })
+
+  // Daily 07:30 UTC — low credit warning (balance 1–4)
+  cron.schedule('30 7 * * *', () => callInternal('/ae/low-credits'), { timezone: 'UTC' })
+
+  // Daily 09:00 UTC — mark lapsed subscriptions (active but period ended)
+  cron.schedule('0 9 * * *', () => callInternal('/subscriptions/check-lapsed'), { timezone: 'UTC' })
+
+  console.log('[cron] 15 jobs scheduled')
 }

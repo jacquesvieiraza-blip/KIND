@@ -3,7 +3,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { buildSearchBody, searchPeople } from '../lib/apollo'
+import { buildSearchBody, searchPeople, searchPeopleWithFallback } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -35,19 +35,31 @@ export async function runIcpJob(
   icpId: string,
   clientId: string,
   userId: string,
-): Promise<{ inserted: number; skipped: number }> {
+  maxLeads?: number,
+): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
 
-  const searchBody = buildSearchBody(icp)
-  const contacts   = await searchPeople(searchBody)
+  // Respect client's leads_per_run setting — cap at whichever is lower: credit balance or per-run limit
+  const { data: clientSettings } = await db.from('clients')
+    .select('leads_per_run').eq('id', clientId).single()
+  const leadsPerRun = clientSettings?.leads_per_run ?? 20
+  const effectiveCap = maxLeads !== undefined ? Math.min(maxLeads, leadsPerRun) : leadsPerRun
+
+  const { contacts, relaxed } = await searchPeopleWithFallback(icp)
 
   let inserted = 0
   let skipped  = 0
   const insertedIds: string[] = []
 
   for (const contact of contacts) {
+    // Cap insertions at effectiveCap (lower of credit balance and leads_per_run setting)
+    if (inserted >= effectiveCap) {
+      skipped++
+      continue
+    }
+
     if (contact.email) {
       const { data: blocked } = await db.from('opt_out_blocklist')
         .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()
@@ -79,6 +91,7 @@ export async function runIcpJob(
       apollo_consented: contact.email_status === 'verified' ||
                         contact.email_status === 'likely_to_engage',
       status:           'pending',
+      delivered_at:     null,   // drip gate — daily cron delivers up to daily_drip_rate per day
     }).select('id').single()
 
     if (insertErr || !newLead) {
@@ -160,7 +173,7 @@ export async function runIcpJob(
     }
   }
 
-  return { inserted, skipped }
+  return { inserted, skipped, relaxed }
 }
 
 icpRouter.get('/', async (req: AuthRequest, res) => {
@@ -245,7 +258,13 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
-    runIcpJob(data.id, clientId, req.userId!).catch(console.error)
+    // Auto-run on creation — only if client has credits
+    db.from('clients').select('credit_balance').eq('id', clientId).single().then(({ data: bal }) => {
+      const autoRunCap = bal?.credit_balance ?? 0
+      if (autoRunCap > 0) {
+        runIcpJob(data.id, clientId, req.userId!, autoRunCap).catch(console.error)
+      }
+    }).catch(console.error)
     res.status(201).json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
@@ -287,9 +306,38 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const { inserted, skipped } = await runIcpJob(req.params.id, clientId, req.userId!)
+    // Check credit balance before running — must have at least 1 credit
+    const { data: clientCheck } = await db.from('clients')
+      .select('credit_balance, first_icp_run_at').eq('id', clientId).single()
 
-    res.json({ success: true, data: { inserted, skipped, total: inserted + skipped } })
+    const isFirstRun = !clientCheck?.first_icp_run_at
+    const currentBalance = clientCheck?.credit_balance ?? 0
+
+    // First-time users: pre-grant 20 trial credits so they can see the platform work
+    if (isFirstRun && currentBalance < 1) {
+      await db.from('clients').update({ credit_balance: 20 }).eq('id', clientId)
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount: 20,
+        type: 'trial_bonus',
+        note: 'Free trial — 20 starter credits',
+        created_at: new Date().toISOString(),
+      })
+    } else if (!isFirstRun && currentBalance < 1) {
+      res.status(402).json({ success: false, error: 'Insufficient credits. Top up at app.get-kind.com/dashboard/billing to continue.' })
+      return
+    }
+
+    // Fetch the balance AFTER any trial grant — this is the hard cap for this run
+    const { data: afterGrant } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+    const effectiveBalance = afterGrant?.credit_balance ?? 0
+
+    const { inserted, skipped, relaxed } = await runIcpJob(req.params.id, clientId, req.userId!, effectiveBalance)
+
+    // NOTE: Credits are deducted at DELIVERY (drip), not at insertion.
+    // The daily /leads/drip cron deducts 1 credit per lead when setting delivered_at.
+
+    res.json({ success: true, data: { inserted, skipped, total: inserted + skipped, relaxed } })
   } catch (err) {
     console.error(err)
     res.status(500).json({

@@ -90,6 +90,40 @@ export function buildSearchBody(icp: {
   return body
 }
 
+export async function searchPeopleWithFallback(
+  icp: Parameters<typeof buildSearchBody>[0],
+  page = 1,
+): Promise<{ contacts: ApolloContact[]; relaxed: string | null }> {
+  // Pass 1 — full query
+  const full = buildSearchBody(icp, page)
+  const contacts1 = await searchPeople(full)
+  if (contacts1.length > 0) return { contacts: contacts1, relaxed: null }
+
+  // Pass 2 — remove consent filter (consent gate was cutting the pool)
+  if (icp.apollo_only_consented) {
+    const relaxed2 = { ...buildSearchBody(icp, page) }
+    delete relaxed2.contact_email_status
+    const contacts2 = await searchPeople(relaxed2)
+    if (contacts2.length > 0) {
+      console.log('[apollo] fallback pass 2: removed consent filter — found', contacts2.length)
+      return { contacts: contacts2, relaxed: 'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.' }
+    }
+  }
+
+  // Pass 3 — remove employee ranges (geo + titles only)
+  const relaxed3 = { ...buildSearchBody(icp, page) }
+  delete relaxed3.contact_email_status
+  delete relaxed3.organization_num_employees_ranges
+  const contacts3 = await searchPeople(relaxed3)
+  if (contacts3.length > 0) {
+    console.log('[apollo] fallback pass 3: removed size + consent filters — found', contacts3.length)
+    return { contacts: contacts3, relaxed: 'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.' }
+  }
+
+  console.log('[apollo] all passes returned 0 — no contacts found for this ICP')
+  return { contacts: [], relaxed: 'No contacts found even with relaxed filters. Try broader job titles or add more geographies.' }
+}
+
 export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContact[]> {
   const apiKey = process.env.APOLLO_API_KEY
   if (!apiKey) throw new Error('APOLLO_API_KEY env var is not set')

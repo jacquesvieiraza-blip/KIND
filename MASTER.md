@@ -37,6 +37,7 @@
 26. [Competitor Targeting Strategy](#26-competitor-targeting-strategy)
 27. [AI Learning Capability — Built, Planned, Vision](#27-ai-learning-capability--built-planned-vision)
 28. [ClickUp Brain — What We Studied, What We Adopted, What's Next](#28-clickup-brain--what-we-studied-what-we-adopted-whats-next)
+29. [Full Competitive Landscape — Every Player, Every Layer](#29-full-competitive-landscape--every-player-every-layer)
 
 ---
 
@@ -1503,3 +1504,919 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 
 *Owner: K.I.N.D founding team*
 *Last updated: 26 May 2026 (evening)*
+
+---
+
+## 29. FULL COMPETITIVE LANDSCAPE — EVERY PLAYER, EVERY LAYER
+
+*Last updated: 26 May 2026*
+*Purpose: Know every competitor cold. Know where we win. Know what to steal.*
+
+> K.I.N.D is not a tool — it is a managed AI outbound service. Most "competitors" are tools clients operate themselves. That distinction is our primary moat.
+
+---
+
+### HOW TO READ THIS SECTION
+
+Competitors are grouped into 7 tiers by category. Each entry covers: what they are, full feature set, pricing, where K.I.N.D wins against them, and what is worth stealing. The master comparison table follows all entries.
+
+---
+
+## TIER 1 — DIRECT OUTBOUND COMPETITORS
+*(These are the closest functional overlaps — email sequence + AI + lead delivery)*
+
+---
+
+### LEMLIST
+
+**What they are:** The gold standard for multichannel cold outreach. Best-in-class personalisation engine. 450M+ contact database bundled on upper tiers. French company, global reach.
+
+**Sequences & Multichannel**
+- Email + LinkedIn profile view + connection request + LinkedIn message + WhatsApp + call reminder — all in one sequence
+- Conditional branching: if no reply after step N, branch to path B
+- AI-generated full sequences from campaign goal + value proposition
+- Multi-model AI: user picks Claude, GPT, or Perplexity per campaign
+- A/B testing across subject lines, body copy, CTAs
+
+**Personalisation (their superpower)**
+- Dynamic text tokens: name, company, role, custom variables per prospect
+- Personalised images: prospect's name on a whiteboard, company logo on a screen, custom mockups — generated per recipient at scale
+- Personalised video thumbnails: individual video links per prospect
+- Landing pages that show prospect-specific content
+- Image personalisation lifts open rates 5–15% vs text-only campaigns
+
+**Deliverability**
+- Lemwarm built-in (email warmup — exchanges real emails with warmed inboxes to protect sender reputation)
+- Included from Email Pro tier upward
+- Deliverability dashboard: spam rate, inbox placement, sender score per mailbox
+
+**Lead Database**
+- 450M+ contacts (bundled on Multichannel Expert and above)
+- Email + phone + LinkedIn data included
+- Waterfall email verification built in
+- No separate Apollo subscription needed on top tiers
+
+**Integrations**
+- HubSpot + Salesforce native 2-way sync
+- Zapier, Make, API
+- MCP server launched 2025 — lets AI tools call Lemlist directly
+
+**Agency Features**
+- Multi-sender: 3–15 sending email accounts depending on plan
+- Agency workspace: manage multiple client accounts under one login
+- Team inbox with assignment routing
+- Role management: Admin, Manager, User
+
+**Pricing**
+- Email Starter: $39/user/month
+- Email Pro: $79/user/month (3 senders + Lemwarm)
+- Multichannel Expert: $99/user/month (5 senders + LinkedIn + 450M DB)
+- Outreach Scale: $159/user/month (15 senders)
+
+**Where K.I.N.D wins**
+- Done-for-you: Lemlist is a tool — clients run it themselves. We run it for them.
+- Zero learning curve: Lemlist requires DNS setup, LinkedIn config, sequence training. Our clients never touch any of it.
+- Credit model: pay per lead delivered, not per seat per month
+- White-label client portal: Lemlist has no client-facing view
+- African market + POPIA: no African focus, no ZAR pricing
+
+**What to steal**
+- Personalised images per lead (name/logo injected into image templates) — massive open rate lift
+- Conditional sequence branching (if no reply → path B)
+- Multi-model AI toggle per campaign
+- Waterfall email verification (Apollo → Hunter → fallback)
+- Unified reply inbox for admin (Art of Possible Piece 6)
+- Template + community library (Art of Possible Piece 15)
+
+---
+
+### INSTANTLY.AI
+
+**What they are:** High-volume email infrastructure. Built for agencies and teams sending millions of cold emails. Core moat: unlimited email accounts at flat rate.
+
+**Infrastructure**
+- Unlimited email account connections — no per-inbox cost
+- Unlimited sending domains
+- Built-in email warmup across all accounts
+- Real-time domain reputation monitoring
+- Unique IP rotation per campaign
+- Smart inbox rotation: distributes sends across accounts to avoid spam triggers
+
+**AI Features (2026)**
+- AI Sales Agent: drop in your URL → reads your business, identifies ICP, builds prospect list, writes personalised outreach, runs follow-ups, books meetings to calendar
+- AI Sequence Optimizer: ML-powered automated optimisation of send timing, subject line variants, sequence structure
+- AI reply categorisation: interested / not now / wrong person / unsubscribe — auto-tags and routes
+
+**Sequences**
+- Multi-step email sequences with delays, time-zone-aware sending
+- Email-only on base plans; LinkedIn + SMS + calls added at higher tiers
+- Built-in B2B lead database (SuperSearch)
+
+**CRM / Inbox**
+- Unibox: unified inbox for all replies across all accounts
+- Lead scoring and tagging
+- Pipeline view with basic deal stages
+
+**Reporting**
+- Per-campaign: open rate, reply rate, bounce rate, unsubscribe rate
+- Account-level health scoring
+- Domain reputation tracking per mailbox
+
+**Pricing**
+- Growth: $37/month (10K emails, 2K contacts)
+- Hypergrowth: $97/month (100K emails, 25K contacts)
+- Light Speed: $358/month (500K emails)
+- Real-world agency cost: $200–400/month with leads + CRM
+
+**Where K.I.N.D wins**
+- End-to-end managed: Instantly requires a human to set up, monitor, optimise daily
+- Purpose-built client portal: Instantly has no client-facing view at all
+- Credit model: Instantly charges flat rate regardless of results
+- African market + compliance: zero African focus or POPIA handling
+
+**What to steal**
+- Unlimited inbox rotation concept for deliverability protection
+- Domain reputation dashboard in Platform Health view
+- AI Sequence Optimizer: auto-tune send timing and subject line variants (our Level 3 AI)
+- Unibox: unified reply inbox for admin (Art of Possible Piece 6)
+- Pre-send inbox placement testing
+
+---
+
+### SMARTLEAD.AI
+
+**What they are:** High-scale email infrastructure for agencies. Like Instantly but with better AI agents and more explicit done-for-you infrastructure options. 100K+ businesses.
+
+**Infrastructure**
+- Unlimited mailboxes + unlimited warmups — flat rate, no per-inbox or per-seat fees
+- Dynamic ESP matching: sends from Gmail-type addresses to Gmail inboxes, Outlook to Outlook
+- Dedicated sending servers (SmartInfra)
+- Pre-send inbox placement testing (SmartDelivery — tests whether email lands in inbox or spam before campaign launches)
+- Done-for-you email infrastructure option (SmartSenders)
+
+**AI Agents**
+- SmartAgents: researches leads, writes personalised emails, updates CRM, improves deliverability — no coding
+- SmartDialer: AI sales calls with full context loaded before the call
+- AI reply manager: categorises hot leads → triggers next steps → syncs to CRM automatically
+
+**Lead Data**
+- SmartProspect: built-in verified B2B lead database
+- Native Clay integration (enrich in Clay, push to Smartlead for sending)
+
+**Agency Features**
+- One account serves entire team — no per-seat overhead
+- Sub-account management for agency clients
+- White-label report exports per client
+
+**Pricing**
+- Basic: $39/month (2K active leads, 6K emails/month)
+- Pro: $94/month (30K leads, 150K emails)
+- Custom agency tier available
+
+**Known weakness:** Most consistent G2/Reddit complaint — campaigns fail to send, warmup pauses unexpectedly, analytics don't load. Not enterprise-grade reliability.
+
+**Where K.I.N.D wins**
+- Reliability: Smartlead's biggest weakness is ours to exploit — our managed service owns reliability end to end
+- Client portal: no client-facing view
+- Outcome pricing: Smartlead charges flat rate; we charge per lead delivered
+- African market + compliance
+
+**What to steal**
+- Multiple ESP matching per recipient domain for deliverability lift
+- Pre-send inbox placement testing before campaign launches
+- SmartSenders model: productise our own domain + inbox setup as a service
+- AI reply categorisation expanded beyond auto-pause (hot/warm/cold/wrong person/out of office)
+
+---
+
+### REPLY.IO
+
+**What they are:** Mid-market multichannel sales engagement. Covers email + LinkedIn + phone + social. Strong deliverability suite.
+
+**Key Features**
+- Full multichannel: email, LinkedIn, phone, WhatsApp, SMS, social in one sequence
+- AI email writer + personalisation engine
+- Full deliverability suite: warmup, spam monitoring, DNS health, Gmail API sending
+- Unified inbox for all channel replies
+- Built-in power dialer with call recording
+- Agency features: sub-accounts, white-label reporting exports
+
+**Pricing:** $60–120/user/month
+
+**What to steal**
+- LinkedIn automation as a sequence step (Art of Possible Piece 9)
+- Deliverability health dashboard in Platform Health (DNS, warmup status, spam rate)
+- White-label reporting export per client
+
+---
+
+### SALESHANDY
+
+**What they are:** High-volume cold email for agencies and scaling teams. 852M+ B2B database, unlimited accounts, AI sequence builder. $25/month entry price.
+
+**Key Features**
+- AI Sequence Copilot: builds full multi-step sequences
+- AI Variants: generates different phrasing for each email automatically
+- Sequence Score: reviews setup and highlights issues before launch
+- Unlimited email warmups at no extra cost
+- Sender rotation across accounts
+- A/Z variants for A/B testing
+- Built-in CRM
+
+**Pricing:** $25/month entry
+
+**What to steal**
+- Sequence Score concept: pre-launch quality check on sequences before they go live
+- A/Z multi-variant testing (not just A/B — test 3–5 variants simultaneously)
+
+---
+
+### QUICKMAIL
+
+**What they are:** Deliverability-first cold email. Best-in-class inbox protection on every plan.
+
+**Key Features**
+- Built-in warmup, throttling, and blacklist monitoring on every plan
+- Auto-rotation that distributes sends across multiple accounts during active sequences
+- Deliverability AI: automatically replaces weak email accounts mid-sequence
+- Reword with AI: adjusts email wording to reduce spam triggers in real time
+- LinkedIn integration across all tiers
+
+**Pricing:** $49/month entry
+
+**What to steal**
+- Blacklist monitoring: alert if our sending domains appear on spam blacklists
+- Auto-replacement of weak sending accounts mid-campaign
+
+---
+
+### KLENTY
+
+**What they are:** AI-powered outreach combining cold email, multichannel workflows, AI research, and ICP-based targeting.
+
+**Key Features**
+- AI SDR: researches accounts across 150+ data sources, builds ICP list automatically
+- Multi-channel sequences: email + LinkedIn + calls + SMS
+- Deliverability insights: shows % of emails landing in Primary Tab per ESP
+- ICP-based targeting built into sequence builder
+
+**Pricing:** $60/user/month
+
+**What to steal**
+- Deliverability tab-placement metric: show clients what % of emails land in Primary vs Promotions vs Spam
+- AI SDR research: pull prospect context from 150+ sources before FIGSY writes the sequence
+
+---
+
+### MAILSHAKE
+
+**What they are:** The simplest cold outreach tool. Email + LinkedIn + dialer. Fastest to first campaign.
+
+**Key Features**
+- Email + LinkedIn sequences in one tool
+- Built-in power dialer
+- Lead Catcher: auto-filters positive replies
+- Very simple UX — no learning curve
+- No free trial
+
+**Pricing:** $58/user/month
+
+**What to steal**
+- Lead Catcher concept: auto-filter and surface positive replies to client dashboard (our auto-pause is step 1 of this)
+
+---
+
+### WOODPECKER
+
+**What they are:** Deliverability-first simple cold email. Inbox rotation, adaptive sending, mailbox warmup.
+
+**Key Features**
+- Inbox rotation built in
+- Adaptive sending: adjusts send volume based on domain health
+- Email warmup per mailbox
+- Email-only — no LinkedIn, no AI
+
+**Pricing:** $39/month
+
+**What to steal**
+- Adaptive sending: reduce volume per mailbox when health dips; increase as it improves. Apply to FIGSY campaign management.
+
+---
+
+## TIER 2 — DATA & ENRICHMENT LAYER
+*(These are the pipes — data providers that feed the sending tools)*
+
+---
+
+### CLAY
+
+**What they are:** The infrastructure layer for modern outbound. Not a sending tool — a data and workflow engine. Clay sits *before* Lemlist/Instantly/FIGSY in the stack. You enrich in Clay, then push to a sender.
+
+**Core: Waterfall Enrichment**
+- 150+ data providers connected (Apollo, Clearbit/Breeze, PDL, Hunter, ZoomInfo, LinkedIn, etc.)
+- Waterfall logic: try Provider A → if no result → try B → try C
+- Yields 20–40% more coverage than any single provider
+- Two credit types (March 2026 split): Data Credits (enrichment lookups) + Actions (platform operations)
+
+**Claygent — AI Research Agent**
+- Autonomous web browsing: reads websites, LinkedIn profiles, news articles, job boards
+- Extracts insights databases cannot: "does this company use HubSpot?", "what is this CFO writing about on LinkedIn?"
+- Navigator: behaves like a real browser user — can interact with pages, scrape niche directories and marketplaces
+- Generates hyper-personalised one-liners per prospect from their own content
+
+**Sculptor — Workflow Builder**
+- Natural language: "build my outbound engine" → Clay builds the workflow
+- Visual GTM workflow builder connecting enrichment → AI research → personalisation → CRM push → sending tool
+
+**Intent Signals**
+- Job change alerts: prospect changed jobs → trigger sequence
+- Website visitor tracking: company visited your site → trigger
+- LinkedIn activity monitoring
+- Funding rounds, hiring signals, tech stack changes
+
+**Pricing (March 2026 — major cost cuts, 50–90% reduction)**
+- Free: 100 Data Credits + 500 Actions/month
+- Launch: $185/month — 2,500 credits + 15,000 actions
+- Growth: $495/month — full waterfall, CRM sync, APIs, 40,000 actions
+
+**Where K.I.N.D wins**
+- Clay is not a client product: designed for SDRs and RevOps teams
+- End-to-end stack: Clay requires Clay + sender + CRM. We are the whole thing.
+- Managed service: Clay is self-serve and technically complex
+
+**What to steal**
+- Waterfall enrichment model: currently Apollo-only. Build: Apollo → PDL → Hunter
+- Intent signal triggers: job change / funding / tech stack change → auto-add to campaign
+- AI research per lead: write one personalised sentence from their website/LinkedIn before FIGSY sequences
+- Workflow builder concept (Art of Possible Piece 5)
+- Template/recipe library (Art of Possible Piece 15)
+
+---
+
+### APOLLO.IO *(our current supplier)*
+
+**What they are:** Our current data source AND a direct competitor. Apollo is building the all-in-one GTM platform: data + sequences + CRM + AI + deal execution.
+
+**Database (core moat)**
+- 210 million business contacts globally
+- 128 million verified emails, 144 million mobile/landline numbers
+- 35 million companies across 100+ countries
+- 65+ filter parameters: industry, title, company size, tech stack, funding, revenue, headcount growth
+- 5.3 million new contacts added monthly; 150 million records updated monthly
+
+**Sequences & AI (2026)**
+- Multi-step email + call + task sequences
+- Now available inside ChatGPT: prospect, enrich, activate sequences from a chat conversation
+- Pocus acquisition: enterprise revenue intelligence — buying signals, prioritised action, intent scoring
+- Contact-level website visitor intelligence: de-anonymise site traffic to individual people (not just companies)
+- AI reply analysis and sentiment scoring
+
+**Pricing**
+- Free: 50 email credits/month
+- Basic: $49/user/month
+- Professional: $99/user/month
+- Organization: $149/user/month (min 5 seats)
+
+**Where K.I.N.D wins**
+- Managed vs self-serve
+- African data specialists: Apollo's African coverage (SA, Nigeria, Kenya) is thin — we can own this data layer
+- No per-seat pricing
+- White-label client portal
+- Done-for-you compliance (POPIA, GDPR practical handling)
+
+**What to steal**
+- Intent data: "this company is actively researching outbound tools right now" — fire immediately
+- Website visitor de-anonymisation: who visited kindai.co.za this week, which individual — trigger outreach
+- 65-parameter ICP builder: our ICP config is basic; Apollo filters by 65 parameters
+- Technology detection: target companies using specific tools
+- Buying signal → auto-sequence trigger (job change, funding, tech change)
+- Revenue intelligence: score and rank lead pipeline by conversion likelihood (Pocus model)
+
+---
+
+### ZOOMINFO
+
+**What they are:** The enterprise B2B data standard. $1B+ revenue. The "database of record" for mid-market and enterprise sales teams.
+
+**Key Features**
+- 260M+ B2B contacts, 100M+ companies
+- Intent data (proprietary + Bombora partnership)
+- Website visitor tracking (company-level)
+- Re-enrichment webhooks: update CRM contacts in real time as data changes
+- Conversation intelligence (acquired Chorus.ai)
+- Sales OS: sequences, call dialer, pipeline management all built in
+- Data certification: SOC2, ISO 27001, GDPR, CCPA
+
+**Pricing:** $15,000–100,000+/year. Enterprise only.
+
+**Where K.I.N.D wins**
+- Price: ZoomInfo is completely inaccessible to SMBs
+- African coverage: near-zero
+- Simplicity and managed service
+
+**What to steal**
+- Re-enrichment webhooks concept: automatically update contact data when records change (rather than static lists)
+- Intent data model: aggregate signals across the web, not just first-party data
+
+---
+
+### COGNISM
+
+**What they are:** GDPR-first B2B data provider. European market leader. Diamond Data — phone-verified mobile numbers for EMEA contacts.
+
+**Key Features**
+- Diamond Data: human-verified mobile numbers (not just data-matched)
+- DNC (Do Not Call) list checking built in
+- GDPR + CCPA compliant data collection and storage
+- Strong EMEA coverage — best European contact data
+
+**Pricing:** $10,000–30,000/year
+
+**What to steal**
+- POPIA-compliant data model: Cognism's GDPR approach should be our template for POPIA compliance
+- Phone-verified contact concept: for high-value prospects, verify phone numbers before adding to campaign
+
+---
+
+### LUSHA
+
+**What they are:** Contact data finder with Chrome extension, intent signals, and basic sequences.
+
+**Key Features**
+- Chrome extension for instant contact lookup from LinkedIn profiles
+- Intent signals via Bombora partnership
+- Email sequence automation (basic)
+- CRM sync
+
+**Pricing:** Free → $29/user/month → Enterprise
+
+**What to steal**
+- Chrome extension for on-the-spot prospect lookup (Year 2 — MCP server enables this)
+
+---
+
+### SEAMLESS.AI
+
+**What they are:** AI-powered real-time contact data builder. Builds contact records on demand rather than serving a static database.
+
+**Key Features**
+- 1.8B+ verified business emails, 414M+ phone numbers
+- AI builds contact data in real time (not static database lookups)
+- 100+ data points per profile, continuously updated
+- AI-powered outreach: always-on AI engagement running across every channel
+
+**What to steal**
+- Real-time data building concept: rather than querying a database, AI researches and builds a contact record fresh on demand
+
+---
+
+### PHANTOMBUSTER
+
+**What they are:** Cloud automation tool for scraping and automating LinkedIn, Twitter/X, Instagram, Facebook, Google Maps, and more via pre-built "Phantom" scripts.
+
+**Key Features**
+- 100+ Phantoms: pre-built scripts for LinkedIn export, connection requests, message sending, post engagement, profile scraping
+- Chain Phantoms into multi-step workflows
+- AI LinkedIn Message Writer: GPT-generated personalised messages from scraped profile data
+- Multi-platform: LinkedIn, Twitter/X, Instagram, Facebook, Google Maps, GitHub, YouTube
+
+**Important limitation:** Violates LinkedIn ToS. Phantoms break regularly when LinkedIn updates its frontend. High ban risk.
+
+**Pricing:** $69/month Starter → $159/month Pro → $439/month Team
+
+**What to steal**
+- Signal monitoring: scrape LinkedIn post commenters who engage with competitor content — these are warm prospects
+- Google Maps scraping for local African business prospect lists (legal in most jurisdictions as public data)
+
+---
+
+## TIER 3 — LINKEDIN AUTOMATION
+*(Specialists in LinkedIn outreach and connection automation)*
+
+---
+
+### WAALAXY
+
+**What they are:** Chrome extension-based LinkedIn automation tool. Simple UI, built for individuals and small teams.
+
+**Key Features**
+- LinkedIn sequences: connection request → message → follow-up
+- Email + LinkedIn combined sequences
+- Pre-built templates for common outreach patterns
+- Simple UI — minimal setup
+
+**Pricing:** Free → $56/month → $112/month
+
+**What to steal**
+- Pre-built LinkedIn sequence templates for common ICP types (adapt for African market)
+
+---
+
+### EXPANDI
+
+**What they are:** Cloud-based LinkedIn automation focused on safe, high-volume outreach.
+
+**Key Features**
+- Dedicated IP per account to reduce ban risk
+- Smart algorithms to mimic human behaviour patterns
+- 300+ connection requests per week safely
+- Hyper-personalised messaging: pull prospect data into messages dynamically
+- Dynamic image personalisation in LinkedIn messages
+
+**Pricing:** $99/month
+
+**What to steal**
+- Safe automation patterns: dedicated IP, human-mimicking behaviour — apply when building our LinkedIn step (Art of Possible Piece 9)
+
+---
+
+### DRIPIFY
+
+**What they are:** Cloud-based LinkedIn automation for sales teams and agencies.
+
+**Key Features**
+- Drip campaign customisation with 20+ personalisation variables
+- Performance analytics per campaign
+- Team management and seat-based access
+- Safety algorithms to avoid LinkedIn restrictions
+
+**Pricing:** $39/month
+
+---
+
+### LAGROWTH MACHINE (LGM)
+
+**What they are:** Multichannel outreach combining LinkedIn + email + calls + voice messages + Twitter/X. Claims 3.5x more replies than single-channel.
+
+**Key Features**
+- True multichannel: LinkedIn, email, calls, voice messages, X (Twitter) — all in one sequence
+- Built-in enrichment: enriches prospects from LinkedIn data before sequencing
+- AI voice: voice message personalisation
+- Conditional branching across all channels
+
+**Pricing:** $50–120/user/month
+
+**What to steal**
+- Voice message personalisation: AI-generated personalised voice message as a sequence step. Unusual, high-engagement. Future.
+- True multichannel sequencing model — all channels in one visual sequence builder
+
+---
+
+## TIER 4 — ENTERPRISE SALES ENGAGEMENT
+*(Built for 50–500 person sales orgs. Expensive. Reference architecture only.)*
+
+---
+
+### OUTREACH.IO
+
+**What they are:** The enterprise sales engagement standard. Deep analytics, sophisticated automation, multi-path cadences.
+
+**Key Features**
+- Kaia AI: real-time coaching during live calls, automated deal summaries, predictive risk scoring
+- Sophisticated sequence branching: conditional steps, trigger-based automation, multi-path cadences
+- Deal management: pipeline view, opportunity scoring, forecast roll-up
+- Enterprise: multi-org support, territory management, advanced RBAC permissions
+- Deep Salesforce + HubSpot bidirectional sync with custom field mapping
+
+**Pricing:** $130–175/user/month. Enterprise contracts only.
+
+**What to steal**
+- Deal risk scoring: "this client account hasn't had contact in 14 days — flag as at-risk"
+- Forecast model: MRR probability vs possible for K.I.N.D's own revenue planning
+- Conditional sequence branching (Art of Possible Piece 5)
+
+---
+
+### SALESLOFT + CLARI
+
+**What they are:** Enterprise sales engagement merged with revenue intelligence. Clari merger (late 2025) added $10T revenue under management.
+
+**Key Features**
+- Cadence: email, phone, LinkedIn, SMS sequences with AI suggested next action
+- Conversations: call recording, transcription, keyword spotting, coaching scorecards
+- Deals + Forecasting (Clari): AI deal scoring, pipeline inspection, board-level revenue forecasting
+- Drift acquisition: chatbot and conversational marketing built in
+- Mobile app: manage cadences, make calls, send emails from phone
+- Strong Salesforce integration
+
+**Pricing:** $75–165/user/month. Enterprise.
+
+**What to steal**
+- Call intelligence: record + transcribe + analyse client onboarding and strategy calls. Know what language works.
+- Churn risk model: apply Clari-style scoring to K.I.N.D clients — "this client is likely to churn in 30 days"
+- Revenue forecasting: AI-predicted MRR for next 90 days for K.I.N.D's own business
+
+---
+
+### CLOSE.IO
+
+**What they are:** CRM purpose-built for outbound sales. Built-in power dialer, SMS, native sequences — no need to stack tools.
+
+**Key Features**
+- Built-in power dialer with call recording and coaching
+- Native SMS sending
+- Multi-step email sequences with reply detection and auto-pause built in
+- Pipeline views: deal stages, activity timeline
+- Designed for SDR/AE teams in high-velocity inside sales
+
+**Pricing:** $49–145/user/month
+
+**What to steal**
+- Power dialer concept: for REEVE (Year 2) — AI SDR that can actually call prospects
+- Activity timeline per client: everything that happened on this account in chronological order
+
+---
+
+### PIPEDRIVE
+
+**What they are:** Visual pipeline-first CRM. Strong deal management, weaker native outbound.
+
+**Key Features**
+- Visual Kanban pipeline with AI insights
+- Email integration (basic sequences)
+- Activity and deal tracking
+- 400+ integrations via marketplace
+- AI deal health scores and next-step suggestions
+
+**Pricing:** $15–100/user/month
+
+**What to steal**
+- Visual pipeline Kanban (Art of Possible Piece 1) — deal stage view for K.I.N.D's own HubSpot pipeline
+- AI deal health score per client account
+
+---
+
+## TIER 5 — REVENUE INTELLIGENCE
+*(Know who to target, when, and why. Intent + conversation + forecasting.)*
+
+---
+
+### GONG.IO
+
+**What they are:** The conversation intelligence leader. Records and analyses every sales call, email, and meeting to improve performance and forecast revenue.
+
+**Key Features**
+- Auto-records and transcribes calls with real-time keyword tracking (competitor mentions, pricing talk, objections)
+- Talk-to-listen ratio, filler word analysis, sentiment tracking
+- Deal Likelihood Score: 300+ data points (conversation signals, communication cadence, stakeholder involvement, timing) → close probability
+- Gong Forecast: AI predicts which deals close this quarter — 95% forecast accuracy at Upwork-level adoption
+- Gong Engage: personalised outreach guided by conversation data
+- 70% faster call insight processing in 2026
+- Delivers 25–30% less forecast variance for teams that fully adopt
+
+**Pricing:** Enterprise — custom, typically $100–200/user/month
+
+**What to steal (Year 2)**
+- Client conversation analysis: record + analyse all K.I.N.D client calls to identify language that converts
+- Forecast variance model: apply to K.I.N.D's own MRR prediction
+
+---
+
+### 6SENSE
+
+**What they are:** AI-driven account-based marketing and intent data platform. Identifies in-market buyers before they raise their hand.
+
+**Key Features**
+- Signalverse engine: processes 1+ trillion signals daily (intent data, web activity, firmographic changes)
+- Assigns buying stage: Awareness / Consideration / Decision / Purchase — per account
+- De-anonymises 100% anonymous web traffic to company and contact level
+- AI orchestration: continuously improves targeting without human intervention
+- Unified revenue operations: sales + marketing from shared intelligence
+
+**Pricing:** $80,000–1M+/year. Enterprise only.
+
+**What to steal**
+- Buying stage model: apply to K.I.N.D prospect pipeline — tag each lead by buying stage, sequence accordingly
+- Intent signal aggregation: web signals + data signals + firmographic changes combined into one score
+
+---
+
+### DEMANDBASE
+
+**What they are:** Enterprise ABM platform combining account intelligence, B2B advertising, and sales tools.
+
+**Key Features**
+- Account identification + intent data (Bombora partnership)
+- Firmographic and technographic intelligence
+- B2B advertising targeting (serve ads to specific accounts)
+- Sales intelligence: who at this account is active right now
+
+**Pricing:** $40,000–250,000/year. Enterprise.
+
+**What to steal**
+- Technographic targeting: "target companies that use HubSpot but not an outbound tool" — add to ICP builder
+
+---
+
+## TIER 6 — CRM PLATFORMS
+*(Relationship management and pipeline tools that include outbound features)*
+
+---
+
+### HUBSPOT SALES HUB *(our current CRM integration)*
+
+**What they are:** The mid-market CRM standard. In 2026 HubSpot launched AEO (AI Engagement Orchestration) and significantly expanded its AI agents.
+
+**Key Features (2026)**
+- Prospecting Agent: monitors for job postings, funding rounds, technology adoption → identifies matching contacts → drafts personalised outreach → response rates 2x industry benchmark
+- Smart Deal Progression: post-call AI analysis — updates CRM fields, drafts follow-up, surfaces action items automatically
+- AI email writer: generates personalised variants per prospect based on CRM data
+- Breeze Intelligence (ex-Clearbit): data enrichment built into CRM
+- Sequences: multi-step email + call tasks with auto-pause on reply
+- Full pipeline management + forecasting
+- Free CRM tier with generous limits
+
+**Pricing:** Free → $90/user/month → Enterprise
+
+**Where K.I.N.D wins**
+- We are the outbound execution layer that HubSpot cannot replace — HubSpot tracks deals, we generate them
+- No done-for-you model; HubSpot is a tool clients operate
+
+**What to steal**
+- Smart Deal Progression: post-campaign-reply AI that suggests next steps and updates client records automatically
+- Prospecting Agent trigger model: signal → identify → draft → send pipeline (this is what FIGSY should evolve into)
+
+---
+
+### SALESFORCE
+
+**What they are:** The enterprise CRM. $35B+ revenue. Einstein AI is their AI layer.
+
+**Key Features**
+- Einstein AI: lead scoring, opportunity scoring, email and call recommendations
+- Agentforce: autonomous agents for sales, service, marketing (launched late 2024)
+- Revenue Cloud: full quote-to-cash
+- Data Cloud: unified customer data platform
+
+**Pricing:** $25–300+/user/month. Enterprise implementations cost $50K–$500K+.
+
+**Where K.I.N.D wins**
+- We are not a CRM. We are the lead generation layer that feeds any CRM.
+- Salesforce is inaccessible to African SMBs at any price point
+
+---
+
+## TIER 7 — NICHE & EMERGING
+*(Specialist tools with specific features worth knowing)*
+
+---
+
+### HUNTER.IO
+
+**What they are:** Domain-based email finder + basic drip sequences. Simple, reliable.
+
+**Key Features**
+- Domain Search: find all email addresses at a company from their domain
+- Email Verifier: batch verify lists
+- Email Finder: first + last name + domain → email
+- Campaigns: basic drip sequences (not a core strength)
+- 450M+ email addresses indexed
+
+**Pricing:** Free → $49/month → $149/month
+
+---
+
+### SNOV.IO
+
+**What they are:** Email finder + drip sequences + LinkedIn automation + basic multichannel.
+
+**Key Features**
+- Email finder, verifier, and drip campaigns in one
+- AI reply sentiment analysis per campaign
+- Unlimited sender accounts
+- LinkedIn messages as a sequence step
+
+**Pricing:** $39/month entry
+
+---
+
+### BOMBORA
+
+**What they are:** The intent data backbone used by ZoomInfo, Demandbase, Lusha, and many others.
+
+**Key Features**
+- Co-op intent data: aggregates content consumption signals from 5,000+ B2B websites
+- Company Surge: shows which companies are actively researching specific topics this week
+- 7,500+ topic categories
+- Powers most third-party intent data products
+
+**Strategic note:** Bombora is infrastructure, not a product. Their data flows through Apollo, ZoomInfo, Demandbase, etc. If we build intent signal triggering, we access Bombora via Apollo (which we already pay for).
+
+---
+
+### LAVENDER
+
+**What they are:** AI email coaching tool. Scores emails before you send them and suggests improvements in real time.
+
+**Key Features**
+- Email Score (0–100) with specific fixes: too long, subject too salesy, opener too formal
+- Personalisation Assistant: pulls prospect data and suggests personalisation angles
+- Chrome extension: works inside Gmail, Outlook, Salesloft, Outreach
+- Team analytics: which reps write the best emails
+
+**Pricing:** Free → $29/user/month → $49/user/month
+
+**What to steal**
+- Email Score concept: before FIGSY launches a sequence, auto-score each email template (length, spam words, personalisation depth, CTA clarity) and flag weak ones
+
+---
+
+### AMPLEMARKET
+
+**What they are:** All-in-one outbound platform with strong deliverability focus and signal-based triggers.
+
+**Key Features**
+- AI Duo: autonomous AI SDR that researches accounts, writes sequences, triggers sends
+- Signal-based triggers: job change, funding, hiring, tech change → auto-sequence
+- Deliverability suite with domain monitoring and warmup
+- Waterfall enrichment across 40+ providers
+
+**What to steal**
+- Signal-based auto-trigger model (job change → sequence): strongly aligned with Art of Possible roadmap
+
+---
+
+### OVERLOOP
+
+**What they are:** Cold email automation with full CRM built in. Good for teams that want one tool for both.
+
+**Key Features**
+- Cold email + LinkedIn automation + phone calls in one sequence
+- Full pipeline and deal management built in
+- No need for separate CRM
+- AI email writer + personalisation engine
+
+**Pricing:** $40–80/user/month
+
+---
+
+## MASTER COMPARISON TABLE
+
+| Feature | K.I.N.D | Lemlist | Clay | Apollo | Instantly | Smartlead | Outreach | Salesloft | HubSpot | Close |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Business model** | Managed SaaS | Self-serve tool | Data infra | Data + tool | Email infra | Email infra | Enterprise | Enterprise | CRM | CRM+outbound |
+| **Done-for-you** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **White-label client portal** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Pay-per-lead / outcome pricing** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **African market + POPIA** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **AI runs campaign autonomously** | ✅ FIGSY | ⚠️ assists | ✅ data only | ⚠️ assists | ✅ AI agent | ✅ SmartAgents | ✅ Kaia | ✅ | ⚠️ assists | ❌ |
+| **AI memory / learning** | ✅ basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Multi-channel (email+LI+call)** | ❌ email only | ✅ | ❌ data only | ✅ | ⚠️ add-on | ⚠️ add-on | ✅ | ✅ | ✅ | ✅ |
+| **Lead database** | ✅ via Apollo | ✅ 450M | ✅ 150+ sources | ✅ 210M | ✅ SuperSearch | ✅ | ❌ | ❌ | ✅ Breeze | ❌ |
+| **Waterfall enrichment** | ❌ Apollo only | ✅ | ✅ 150+ | ⚠️ limited | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Intent signals** | ❌ | ❌ | ✅ | ✅ Pocus | ❌ | ❌ | ✅ | ✅ Clari | ✅ | ❌ |
+| **Email warmup** | ❌ | ✅ Lemwarm | ❌ | ⚠️ basic | ✅ unlimited | ✅ unlimited | ❌ | ❌ | ❌ | ❌ |
+| **Deliverability dashboard** | ❌ | ✅ | ❌ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Unified reply inbox** | ❌ | ✅ | ❌ | ✅ | ✅ Unibox | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Personalised images** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Conditional sequence branching** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Revenue / deal forecasting** | ❌ | ❌ | ❌ | ✅ Pocus | ❌ | ❌ | ✅ | ✅ Clari | ✅ | ⚠️ basic |
+| **Call intelligence** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ SmartDialer | ✅ Kaia | ✅ | ❌ | ✅ |
+| **MCP server** | ❌ Art of Possible | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Mobile app** | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Entry price** | ~$80 ARPU | $39/user | $185/mo | $49/user | $37/mo | $39/mo | $130/user | $75/user | Free | $49/user |
+
+---
+
+## WHERE K.I.N.D IS UNCONTESTED
+
+These features exist in combination **nowhere else in the market**:
+
+1. **Done-for-you managed outbound** — Every competitor is a tool the client operates. We operate it for them. This is the whole model.
+2. **White-label, purpose-built client portal** — No competitor has a clean client-facing dashboard. They all assume the user *is* the client.
+3. **Outcome-based pricing (pay per lead)** — Every competitor charges per seat or flat rate regardless of results. We put skin in the game.
+4. **African B2B market + POPIA** — Zero competitors focus on Africa, have ZAR pricing, or handle POPIA compliance in practice.
+5. **AI that runs the campaign (not assists)** — FIGSY is the SDR. It finds the lead, builds the sequence, sends it, pauses on reply, and learns from results. The rest of the market offers AI "assist" buttons.
+6. **FIGSY Memory** — Our `figsy_memory` table is the only learning loop in this market that improves campaign performance per client over time. No competitor has this.
+
+---
+
+## PRIORITY STEAL LIST — RANKED BY IMPACT
+
+| # | Feature | Steal from | Effort | Phase | Art of Possible |
+|---|---|---|---|---|---|
+| 1 | **Email warmup infrastructure** | Lemlist Lemwarm / Instantly | Medium | Phase 2 | Add new piece |
+| 2 | **Unified reply inbox (Unibox)** | Instantly / Lemlist | Medium | Phase 2 | Piece 6 |
+| 3 | **Deliverability dashboard** | Instantly / Smartlead / Reply.io | Small | Phase 2 | Add to Platform Health |
+| 4 | **AI reply categorisation** | Smartlead / Instantly | Small | Phase 2 | Extend auto-pause |
+| 5 | **Waterfall enrichment (Apollo→PDL→Hunter)** | Clay / Lemlist | Medium | Phase 2 | Add new piece |
+| 6 | **Email Score pre-launch check** | Lavender / Saleshandy | Small | Phase 2 | New feature |
+| 7 | **Personalised images per lead** | Lemlist | Medium | Phase 3 | Add new piece |
+| 8 | **Conditional sequence branching** | Lemlist / Outreach | Medium | Phase 3 | Piece 5 |
+| 9 | **Intent signal triggers** | Clay / Apollo | High | Phase 3 | Add new piece |
+| 10 | **Multi-model AI toggle** | Lemlist | Small | Phase 3 | Piece 8 partial |
+| 11 | **LinkedIn automation steps** | Lemlist / Reply.io / Expandi | High | Phase 3 | Piece 9 |
+| 12 | **Adaptive sending (volume vs domain health)** | Woodpecker | Small | Phase 2 | Infrastructure |
+| 13 | **MCP server** | Lemlist | Medium | Phase 3 | Piece 14 |
+| 14 | **Template + recipe library** | Clay / Lemlist / Klenty | Small | Phase 3 | Piece 15 |
+| 15 | **Pre-send inbox placement test** | Smartlead SmartDelivery | Medium | Phase 3 | New piece |
+| 16 | **3-type memory model (episodic+long-term+preference)** | ClickUp Brain | High | Year 2 | Section 27 Level 2 |
+| 17 | **Contact-level site visitor de-anonymisation** | Apollo Pocus | High | Year 2 | New piece |
+| 18 | **Churn risk scoring** | Clari / Salesloft | High | Year 2 | Admin feature |
+| 19 | **Revenue forecasting** | Clari / Gong | High | Year 2 | New section |
+| 20 | **Call intelligence** | Gong / Salesloft | Very High | Year 2 | Milla feature |
+
+---
+
+*Added: 26 May 2026 — Full competitive audit session*
+*Sources: Live web research across all major platforms, reviews, and pricing pages*

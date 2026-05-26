@@ -697,6 +697,8 @@ PAYSTACK_PLAN_CHATBOT_MONTHLY=
 PAYSTACK_PLAN_CHATBOT_ANNUAL=
 PAYSTACK_PLAN_FIGSY_MONTHLY=
 PAYSTACK_PLAN_FIGSY_ANNUAL=
+FLUTTERWAVE_SECRET_KEY=     ← from Flutterwave dashboard → API Keys
+FLUTTERWAVE_WEBHOOK_HASH=   ← set in Flutterwave webhook settings, copy same string here
 ```
 
 ### Add when ready

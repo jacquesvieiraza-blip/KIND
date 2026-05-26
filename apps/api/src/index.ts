@@ -23,6 +23,7 @@ import { calendarRouter } from './routes/calendar'
 import { millaRouter } from './routes/milla'
 import { vidaRouter } from './routes/vida'
 import { stripeRouter } from './routes/stripe'
+import { flutterwaveRouter } from './routes/flutterwave'
 import { orderFormRouter } from './routes/order-forms'
 import { statsRouter } from './routes/stats'
 import { startCrons } from './cron'
@@ -76,6 +77,7 @@ app.use('/calendar',      calendarRouter)
 app.use('/milla',         millaRouter)
 app.use('/vida',          vidaRouter)
 app.use('/stripe',        stripeRouter)
+app.use('/flutterwave',   flutterwaveRouter)
 app.use('/order-forms',   orderFormRouter)
 app.use('/stats',         statsRouter)
 app.use(errorHandler)

@@ -1,36 +1,397 @@
-# K.I.N.D — Art of Possible
-**Products we study, what we learn, and how we respond.**
-*This is not a threat list — it's a inspiration log. Every product here teaches us something.*
+# K.I.N.D — Art of the Possible
+**Future vision. Inspiration log. Nothing here is built yet unless marked ✅.**
+*Every product, idea, and piece below is parked deliberately until the core loop is proven for 20+ paying clients.*
 
 ---
 
-## HOW TO USE THIS DOC
+## THE ONE RULE
 
-When you find a product that does something interesting:
-1. Drop the URL to Claude
-2. It gets added here with a full breakdown + what we borrow + what we exploit
-3. Read at your own pace — admin → Sales Playbook → Art of Possible (or just open this file)
+> **Build the foundation. Prove the loop. Then build the palace.**
+
+**The loop:**
+Client signs up → builds ICP → leads appear → FIGSY sends Day 1 → reply arrives → client sees it → meeting gets booked.
+
+That loop, working reliably, for 20+ paying clients, is the foundation everything else sits on. None of the pieces below are touched until that's true.
+
+---
+
+## FOUNDATION GATES — Must be true before any V2 feature
+
+| Gate | Why |
+|------|-----|
+| 20+ paying clients | Real usage data. Features built on assumptions are wrong features. |
+| Apollo Professional plan live | No data = no patterns to learn from |
+| FIGSY reply classification running cleanly | Entire self-improving loop depends on this |
+| `figsy_memory` table populated (3 months) | ICP learning engine has nothing until then |
+| Resend inbound routing live | Reply data is lost without this |
 
 ---
 
 ## PRODUCT INDEX
 
-| # | Product | Category | Key lesson | Status | Date |
+| # | Product | Category | Key Lesson | Status | Date |
 |---|---------|----------|------------|--------|------|
 | 1 | [Apex (apex.host)](#1-apex-apexhost) | Autonomous AI founder assistant | "Acts, doesn't just respond" framing | 🟡 Actions pending | 26 May 2026 |
-| 2 | [ClickUp](#2-clickup) | Project management SaaS | Dark premium design system + partner model | ✅ Built | May 2026 |
-| 3 | [Lemlist](#3-lemlist) | Email outreach platform | Sequence engine + reply handling | ✅ Built | May 2026 |
-| 4 | [Instantly](#4-instantly) | Cold email at scale | High-volume warm email + campaign engine | ✅ Built | May 2026 |
-| 5 | [Clay](#5-clay) | Data enrichment + ICP | Multi-source enrichment, ICP fallback logic | ✅ Built | May 2026 |
+| 2 | [ClickUp](#2-clickup) | Project management SaaS | Command centre UI + partner model | ✅ Built (design) | May 2026 |
+| 3 | [Lemlist](#3-lemlist) | Email outreach platform | Personalised images + community + template library | 🟡 Phase 2-3 | May 2026 |
+| 4 | [Instantly](#4-instantly) | Cold email at scale | Campaign auto-pause + domain warming | ✅ Built | May 2026 |
+| 5 | [Clay](#5-clay) | Data enrichment + ICP | Multi-source fallback + ICP as filter system | ✅ Built | May 2026 |
+| 6 | [Apollo](#6-apollo) | Lead data + sequences | Our supplier, partial competitor, and teacher | ✅ Integrated | May 2026 |
+
+---
+
+## THE THREE TEACHERS
+
+The three products that shape K.I.N.D's product thinking most:
+
+### Teacher 1 — ClickUp: The Command Centre
+
+ClickUp didn't build a project tool. They built a command centre. What makes their portal world-class:
+
+- **Multiple views of the same data** — List, Board, Timeline, Calendar, Gantt. Data is identical, the view changes how you think about it
+- **Command palette (Cmd+K)** — Type anything. "Add ICP." "Pause FIGSY." Power users live in it. Makes the product feel like a pro tool
+- **Real-time activity feed** — Every action as it happens. Not a report — live, in a sidebar feed
+- **Sidebar is mission control** — Live stats always visible. Credits. Active campaigns. Health of your revenue operation at a glance
+- **Progressive disclosure** — Simple by default, powerful on demand. New client sees essentials. Power user accesses everything.
+- **Micro-interactions** — When a lead scores 90+, it glows. When FIGSY sends a batch, a subtle pulse. Credits go amber when low. Small moments that make the product feel alive.
+
+**What K.I.N.D builds from this:** Revenue Mission Control (see V2 Vision below)
+
+### Teacher 2 — Lemlist: The Conversion Machine
+
+Lemlist has built one of the most effective cold outreach products in the market. Six lessons:
+
+**1. Personalised images in emails**
+Lemlist's signature move — they pioneered it. Every email contains an image with the prospect's name, company logo, or LinkedIn photo dynamically inserted. A whiteboard that says "Hey [First Name], had an idea for [Company]…" — generated per recipient at send time.
+
+It sounds gimmicky. It isn't. Reply rates go up because it's visually arresting — nobody expects a personalised image in a cold email.
+
+K.I.N.D version: FIGSY's Day 1 email includes a dynamically generated image — prospect's company name on a branded graphic, or a result mock. Not complex — HTML-to-image canvas API. **Phase 3.**
+
+**2. The visual sequence builder**
+Lemlist's sequence UI is genuinely excellent. Every step laid out visually — Day 1 email, Day 3 LinkedIn, Day 7 follow-up, Day 14 breakup. Delays, conditions, branches all visible at once.
+
+K.I.N.D's FIGSY campaigns are configured in code/database. Clients can't see or change the sequence flow. Fine for V1. Eventually clients will want to add steps, change delays, create branches.
+
+K.I.N.D version: **Piece 7 — Visual Automation Builder.** Lemlist proves the demand is real.
+
+**3. Template library by use case**
+Lemlist ships with proven cold email sequences for SaaS, agency, recruiting, consulting. Plug in your company name and you're running in 10 minutes.
+
+K.I.N.D version: When a client builds an ICP targeting "Fintech CTOs in SA," a pre-built FIGSY sequence for that exact profile loads automatically. Tone, length, cadence already calibrated. No thinking required. **Piece 10 — Phase 2, low effort.**
+
+**4. "Icebreaker" first lines**
+Lemlist generates a personalised opening line per prospect from LinkedIn activity or recent company news. The rest of the email is templated.
+
+FIGSY already does this via Claude — and does it better. FIGSY personalises the full email, not just the first line. K.I.N.D wins on depth.
+
+**5. Community — "Lemlist Family"**
+This is Lemlist's biggest differentiator and the thing most people miss. They built a massive community — templates, playbooks, case studies, weekly newsletters, a Slack group with tens of thousands of members. When someone Googles "cold email template for SaaS" — Lemlist is in the results. They made their product the hub of a community, not just a tool.
+
+K.I.N.D version: Become the go-to resource for B2B outreach in South Africa and Africa. Nobody owns that space. Blog posts on "how to do B2B outreach in Nigeria," "POPIA and cold email — what's allowed," "best industries to target in SA." Costs nothing. Compounds over time. **Start now.**
+
+**6. Multi-channel sequences (email + LinkedIn)**
+Lemlist combines email + LinkedIn connection + LinkedIn message in one sequence. K.I.N.D deliberately avoids this — LinkedIn automation is against their ToS. Decision stands. But the principle (multi-surface contact over 3 weeks without spamming any single channel) is right. **Off roadmap unless LinkedIn ToS changes.**
+
+**What Lemlist has that FIGSY already beats:**
+- AI-generated first lines: Lemlist generates one personalised opener. FIGSY personalises the full email. K.I.N.D wins on depth.
+
+### Teacher 3 — Apollo: Supplier, Competitor, and Teacher
+
+Apollo is the most important company in K.I.N.D's world — simultaneously the data source powering the product, a partial competitor, and the most instructive product to study at scale.
+
+**What Apollo actually is:**
+- Contact database — 275M+ professional contacts. This is what K.I.N.D calls via API.
+- Sequences — DIY outreach automation. This is where Apollo overlaps with FIGSY.
+- CRM / pipeline — Deals, calls, Salesforce sync. K.I.N.D doesn't play here yet.
+
+**Where K.I.N.D competes:** FIGSY vs Apollo sequences. But Apollo sells a toolbox to in-house SDR teams. K.I.N.D sells a fully managed outcome to founders who have no SDR. **Non-overlapping buyers.**
+
+**Where K.I.N.D doesn't compete:** Data ownership, enterprise CRM, US/EU enterprise sales tooling.
+
+**What to learn from Apollo:**
+
+| Lesson | Apollo does | K.I.N.D version | When |
+|--------|------------|-----------------|------|
+| Job change alerts | Badge on contact: "just changed companies" — highest intent moment | Badge on lead cards, auto-prioritise in FIGSY | Phase 4 |
+| Sequence analytics | Open rate by subject line, reply rate by day of week, best send time by industry | FIGSY analytics + Benchmarks (Piece 12) | Phase 4 |
+| AI transparency | Show why the AI scored a contact | Show why FIGSY wrote an email the way it did | Phase 3 |
+| Intent spike signals | Companies researching your category | Requires Bombora/G2 data (~$2k/mo) | Year 2 |
+
+**The strategic reality:** Apollo is primarily a supplier. The genuine risk is if Apollo builds a "Done-For-You" managed service tier targeting African SMEs. Currently not their focus. The hedge: the Africa data moat. K.I.N.D's advantage is not the data source — it's what it learns from running thousands of African B2B outreach sequences over time. That dataset is unreplicable regardless of what Apollo builds.
+
+---
+
+## THE V2 VISION — Revenue Mission Control
+
+Instead of a stats page — a live ops centre. Three columns, real-time, everything clickable:
+
+| FIGSY (Outbound) | Leads Pipeline | Intelligence |
+|-----------------|---------------|-------------|
+| Emails sent today | New leads this week | Milla's top queries |
+| Reply rate (live) | Hot leads (score 80+) | Vida conversations |
+| Active campaigns | Pending POPIA consent | Anomalies detected |
+| Next send due | Deals in HubSpot | Weekly performance |
+
+---
+
+## THE AI REVENUE TEAM — Full Roster
+
+| Agent | Role | When |
+|-------|------|------|
+| FIGSY | AI SDR — outbound prospecting + sequences | ✅ Live |
+| Milla | Virtual Assistant — business knowledge + queries | July 2026 |
+| Vida | Chatbot — website + WhatsApp inbound qualifier | July 2026 |
+| REEVE | AI AE — books + runs discovery calls via voice | Year 2 |
+| LENA | AI CS — onboarding, check-ins, churn prevention | Year 2 |
+| OTTO | AI Ops — pipeline analysis, revenue forecasting, anomaly escalation | Year 2 |
+
+Each agent: named identity card in portal, live stats, performance history, memory that compounds.
+
+---
+
+## THE 15 PIECES — What Gets Built and When
+
+### Piece 1 — Multiple Views of the Leads Pipeline
+
+**Kanban (build first):**
+Drag leads through `New → In Sequence → Replied → Interested → Meeting Booked → Closed`.
+FIGSY moves cards automatically; client drags to override.
+Library: `@dnd-kit/core` — 12kb. **2–3 days.**
+
+**Score heatmap:**
+Industries on X, geographies on Y, bubble = lead count, colour = avg score. Data already in leads table. **1 day.**
+
+**Timeline view:**
+When each FIGSY step fires per lead — Gantt-style. Data in `figsy_sent_emails`. **2 days.**
+
+**Trigger:** Post 20 clients, Kanban first.
+
+---
+
+### Piece 2 — Command Palette (Cmd+K)
+
+`cmdk` library — used by Vercel, Linear, Raycast. 7kb. Zero backend changes.
+
+Core commands: `New ICP`, `Run ICP`, `Pause FIGSY`, `Show hot leads`, `Add credits`, `Export leads`, `Search leads`.
+
+**1 day core, 2–3 days full command list.**
+
+---
+
+### Piece 3 — Real-Time Activity Feed
+
+Supabase real-time via PostgreSQL `LISTEN/NOTIFY` — built in, zero extra infrastructure. 20 lines of code.
+
+Any insert to `figsy_sent_emails`, `figsy_replies`, `leads` fires instantly.
+
+Events: email sent, reply received, lead scored, lead interested, campaign paused, credits low, ICP run complete.
+
+**3 days. Trigger: 10+ active clients.**
+
+---
+
+### Piece 4 — Notification Centre
+
+`notifications` table. Triggers: FIGSY campaign auto-paused, new hot lead (score 90+), credits low, ICP run complete, reply received, lead marked Interested.
+
+Bell icon, red badge, slide-out panel, grouped by day, click → navigate.
+
+**3 days. Build any time.**
+
+---
+
+### Piece 5 — Status Bar (Sidebar Bottom)
+
+One component. Bottom of sidebar. Always visible.
+
+*"FIGSY sent 12 emails today · 2 replies · 847 credits · All systems operational."*
+
+`GET /clients/me/pulse` — cached 60 seconds. **4 hours. Build this first — near-zero effort, portal feels alive.**
+
+---
+
+### Piece 6 — Custom Fields on Leads
+
+`ALTER TABLE leads ADD COLUMN custom_fields jsonb default '{}'`.
+`client_lead_fields` defines field types. Lead card renders them. CSV export includes them.
+
+**4–5 days. Trigger: first client requests it.**
+
+---
+
+### Piece 7 — Visual Automation Builder
+
+**Triggers:** lead status change, reply received, credits drop below X, ICP run complete.
+
+**Actions:** create HubSpot deal, send Slack notification, pause/resume campaign, run ICP, webhook.
+
+**Conditions:** if/then branching on any field.
+
+**UI:** React Flow (used by Linear, Retool, n8n). Execution engine: automations stored as JSON in `client_automations` table.
+
+**2–3 weeks V1. Trigger: 50+ clients.**
+
+---
+
+### Piece 8 — The ICP That Learns Itself
+
+After 3 months of data, FIGSY tells you:
+
+> *"Your last 14 replies came from Fintech companies in Lagos, 51–200 employees, HubSpot stack. Your original ICP was 5 countries wide. Your actual buyers are 1 city wide. Want me to narrow it?"*
+
+`GET /icps/intelligence` — joins leads with `figsy_replies`, groups by attribute, calculates conversion rates, Claude Haiku writes 3–5 plain-English insight bullets. "Apply this to my ICP" button pre-fills the form.
+
+**2 days. Trigger: 3 months data + 200 emails sent + 20 replies classified.**
+
+*(This is Level 2 of the AI Learning Capability — see Section 27 of MASTER.md)*
+
+---
+
+### Piece 9 — Personalised Images in Emails *(from Lemlist)*
+
+FIGSY Day 1 email includes a dynamically generated image — prospect's company name on a branded graphic. HTML-to-image canvas API. One image template, personalised per send. Proven reply rate uplift.
+
+**2 days. Phase 3.**
+
+---
+
+### Piece 10 — Sequence Template Library *(from Lemlist)*
+
+When a client builds an ICP targeting "Fintech CTOs in SA," a pre-built, optimised FIGSY sequence for that profile loads automatically. Tone, length, cadence already calibrated. No thinking required. Sequences improve as reply data accumulates.
+
+**3 days. Phase 2.**
+
+---
+
+### Piece 11 — Voice-First Morning Brief
+
+7:30am: Milla reads a 90-second audio summary. ElevenLabs or OpenAI TTS. Text already generated — add one API call for audio. MP3 in Supabase storage or attached to morning email. Audio player on dashboard, auto-plays 07:00–09:00, dismissable.
+
+**1 day. Trigger: after Milla text brief proven — check email open rates first.**
+
+---
+
+### Piece 12 — Network Effect Benchmarks
+
+*"K.I.N.D clients in Fintech South Africa average a 7.1% reply rate. You're at 11.4%. Top 15%."*
+
+Aggregation query across all clients. Privacy gate: minimum 5 clients before any benchmark shown. Individual data never identifiable. Client's stats vs benchmark on FIGSY analytics page.
+
+**2 days. Trigger: 20+ clients + 3 months reply data.**
+
+---
+
+### Piece 13 — White-Label / Agency Channel
+
+Agencies manage outbound for 5–10 clients in one admin view. `white_label_configs` table, `clients.partner_id` FK. Custom domain via Vercel CNAME. Agency billed at 2× standard rate.
+
+**1 week V1. Trigger: first agency partner asks for it. Never build without a waiting customer.**
+
+---
+
+### Piece 14 — MCP Server (K.I.N.D as AI Infrastructure)
+
+**The most strategically interesting piece on this list.**
+
+**What it is:** MCP (Model Context Protocol) is Anthropic's open standard that lets AI assistants connect directly to external products. K.I.N.D builds an MCP server — and any AI assistant (Claude, or any MCP-compatible tool) can call K.I.N.D's capabilities directly.
+
+**What it unlocks:**
+
+A founder has Claude open and types:
+> *"Find me 20 CTOs at fintech companies in Lagos with 50–200 employees."*
+
+Claude calls the K.I.N.D MCP → runs the ICP search → returns scored, POPIA-screened leads → directly in the Claude conversation. No portal login required.
+
+Or an agency building their own AI workflow:
+> *"Every Monday, find 50 new leads matching this profile and enroll them in FIGSY sequence 3."*
+
+Their AI agent calls the K.I.N.D MCP on a schedule. Fully automated. No human in the loop.
+
+**Tools the MCP server would expose:**
+
+| Tool | What it does |
+|------|-------------|
+| `search_leads` | Run an ICP search — returns scored, POPIA-filtered contacts |
+| `get_leads` | Fetch existing leads with filters |
+| `create_icp` | Create a new ICP profile |
+| `run_icp` | Trigger an ICP job |
+| `get_figsy_stats` | FIGSY campaign performance — sent, opens, replies, interested |
+| `enroll_lead` | Enroll a lead in a FIGSY sequence |
+| `pause_campaign` | Pause / resume a campaign |
+| `get_credit_balance` | Check credits remaining |
+| `get_top_leads` | Return highest-scored leads this week |
+
+All of these map to API endpoints that already exist. The MCP server is a structured wrapper around the existing REST API.
+
+**Why this is strategic:**
+
+1. **Anthropic MCP directory** — companies that list early get visibility to every Claude user. A K.I.N.D MCP listed there means any Claude user needing African B2B leads finds K.I.N.D first
+2. **Agency/developer adoption** — agencies building AI sales workflows need a lead gen layer. K.I.N.D's MCP becomes that layer without building a full white-label product
+3. **Milla uses it internally** — when Milla is built, she calls the K.I.N.D MCP. Same tools external developers use. Build once, powers both
+4. **New pricing tier** — API/MCP access as a developer tier. Higher ARPU than standard client
+5. **Two revenue streams** — K.I.N.D sells outcomes to founders AND sells infrastructure to builders
+
+**What's needed:**
+Lightweight Node.js server using `@modelcontextprotocol/sdk`. New `api_keys` table with scoped permissions (read-only vs write). Rate limiting per key. Documentation.
+
+**Build time: 3–5 days for solid V1.**
+
+**Trigger: 20+ paying clients. Core loop proven. Say the word.**
+
+---
+
+### Piece 15 — Mobile App (PWA First)
+
+`manifest.json` + service worker (`next-pwa` — 30 min setup) + Web Push API + `push_subscriptions` table. Home screen install. Push notifications iOS + Android. Morning brief as push notification.
+
+**2 days for PWA. Trigger: build alongside notification centre.**
+
+Native app (React Native + Expo) only after 100+ clients requesting it.
+
+---
+
+## THE BUILD ORDER
+
+| Phase | When | What |
+|-------|------|------|
+| **Now** | Post 20 clients | Status bar (4hrs), Notification centre (3 days), Sequence template library (Piece 10) |
+| **Phase 2** | Month 3–4 | Kanban view (Piece 1), Command palette (Piece 2), Template library |
+| **Phase 3** | Month 5–6 | Real-time activity feed (Piece 3), Score heatmap, Personalised images (Piece 9) |
+| **Phase 4** | Month 7–9 | ICP intelligence (Piece 8), Benchmarks (Piece 12), Job change alerts, MCP server (Piece 14) |
+| **Phase 5** | Month 10–12 | Visual automation builder (Piece 7), LinkedIn DM step |
+| **Phase 6** | Year 2 Q1 | White-label / Agency (Piece 13), PWA (Piece 15), Voice brief (Piece 11) |
+| **Year 2+** | 2027 | REEVE, LENA, OTTO, Native app, Intent data layer |
+
+---
+
+## THE COMMUNITY PLAY — Start Now, Costs Nothing
+
+The single action from the Lemlist lesson that doesn't require 20 clients, zero build time, and compounds from day one:
+
+**Become the go-to resource for B2B outreach in Africa. Nobody owns that space.**
+
+One LinkedIn post or blog article per week:
+- *"How to do B2B cold outreach in South Africa without breaking POPIA"*
+- *"Best industries to target for B2B sales in Nigeria right now"*
+- *"Why your cold email gets no replies — and how to fix it"*
+- *"Apollo vs K.I.N.D — when to use each"*
+- *"What a 9% reply rate looks like — real FIGSY campaign breakdown"*
+
+That content drives SEO, builds trust, and positions K.I.N.D as the category authority before a single paid ad is needed. Lemlist did this. It works. The CMO cron already generates LinkedIn drafts — use them.
+
+---
+
+## PRODUCT ENTRIES — Full Detail
 
 ---
 
 ## 2. ClickUp
 
-**URL:** https://clickup.com  
-**Category:** Project management SaaS  
-**Studied:** May 2026  
-**Status:** ✅ Fully implemented
+**URL:** https://clickup.com
+**Category:** Project management SaaS
+**Studied:** May 2026
+**Status:** ✅ Design system built into K.I.N.D portal and website
 
 ### What We Borrowed
 
@@ -49,6 +410,12 @@ When you find a product that does something interesting:
 - Partners positioned as trusted resellers, not order-takers
 → **Built:** Partners page rebuilt on ClickUp/Smartsheet model (apps/website/partners.html)
 
+**UI Patterns (to build in portal — see Pieces 1-5 above)**
+- Command palette (Cmd+K)
+- Multiple views (Kanban, timeline, heatmap)
+- Real-time activity feed
+- Status bar always visible in sidebar
+
 ### What We Didn't Take
 - Their complexity (ClickUp is notoriously overwhelming) — KIND stays simple
 - Their pricing tier sprawl — KIND has 3 tiers max
@@ -57,41 +424,45 @@ When you find a product that does something interesting:
 
 ## 3. Lemlist
 
-**URL:** https://lemlist.com  
-**Category:** Email outreach platform  
-**Studied:** May 2026  
-**Status:** ✅ Fully implemented
+**URL:** https://lemlist.com
+**Category:** Email outreach platform
+**Studied:** May 2026
+**Status:** Core sequence engine ✅ Built | Personalised images 🟡 Phase 3 | Template library 🟡 Phase 2 | Community play 🟡 Start now
 
 ### What We Borrowed
 
-- **Sequence engine** — multi-step outreach (Day 1, Day 4, Day 7) with personalisation
-- **Reply handling** — when a reply comes in, pause the sequence, notify the client
-- **Campaign-level reporting** — open rate, reply rate, interested vs not interested
-- **Personalisation variables** — `{{firstName}}`, `{{company}}` in templates
-→ **Built:** FIGSY campaign engine + sequences + reply inbox + KPIs
+- **Sequence engine** — multi-step outreach (Day 1, Day 4, Day 9) with personalisation ✅ Built
+- **Reply handling** — when a reply comes in, pause the sequence, notify the client ✅ Built
+- **Campaign-level reporting** — open rate, reply rate, interested vs not interested ✅ Built
+- **Personalisation variables** — `{{firstName}}`, `{{company}}` in templates ✅ Built
+- **Template library by ICP** — pre-built sequences per profile type 🟡 Phase 2 (Piece 10)
+- **Personalised images** — dynamically generated image per prospect 🟡 Phase 3 (Piece 9)
 
-### What We Exploited (Their Gap)
+### What We Exploit (Their Gap)
 - Lemlist is a tool — you still have to write the emails and manage replies manually
 - FIGSY writes the emails AND handles the replies autonomously
-- Lemlist = $59/mo just for the sending tool. KIND = $3/credit, full AI SDR included.
+- Lemlist = $59/mo just for the sending tool. KIND = $1/$3 per credit, full AI SDR included
+- No African contact coverage. No POPIA compliance. No ZAR billing.
+
+### What We Don't Build (Their Feature)
+- **Multi-channel LinkedIn automation** — against LinkedIn ToS. Decision locked. Not building.
 
 ---
 
 ## 4. Instantly
 
-**URL:** https://instantly.ai  
-**Category:** Cold email at scale  
-**Studied:** May 2026  
+**URL:** https://instantly.ai
+**Category:** Cold email at scale
+**Studied:** May 2026
 **Status:** ✅ Fully implemented
 
 ### What We Borrowed
 
-- **Warm-up + deliverability mindset** — send from a clean domain, warm gradually
-- **Volume-based campaign thinking** — 20–100 contacts enrolled per campaign
-- **Auto-pause on low performance** — stop campaigns that aren't working
-→ **Built:** FIGSY auto-replenish alerts + check-performance cron (pauses <1% reply rate campaigns)
+- **Domain warming mindset** — `FIGSY_DAILY_SEND_LIMIT` env var, starts at 20/day ✅ Built
+- **Campaign auto-pause on low performance** — daily cron pauses <1% reply rate campaigns ✅ Built
+- **Volume-based thinking** — 20 → 50 → 150 → 500+ emails/day progression ✅ Built
 
-### What We Exploited (Their Gap)
+### What We Exploit (Their Gap)
 - Instantly requires you to source your own leads — KIND provides them
 - No AI reply handling — KIND's FIGSY reads replies and responds
 - African market: zero focus, zero local data. KIND is built for ZA/NG/KE/GH.
@@ -100,66 +471,75 @@ When you find a product that does something interesting:
 
 ## 5. Clay
 
-**URL:** https://clay.com  
-**Category:** Data enrichment + ICP building  
-**Studied:** May 2026  
+**URL:** https://clay.com
+**Category:** Data enrichment + ICP building
+**Studied:** May 2026
 **Status:** ✅ Fully implemented
 
 ### What We Borrowed
 
-- **Multi-source enrichment fallback** — if one data source fails, try another
-- **ICP as a filter system** — layer filters (industry, title, size, seniority) not just keyword search
-- **Waterfall enrichment** — try best source first, fall back on failure
-→ **Built:** Apollo 3-pass fallback search (full ICP → remove consent filter → remove size filter)
+- **Multi-source enrichment fallback** — Apollo 3-pass search (full ICP → remove consent filter → remove size filter) ✅ Built
+- **ICP as a filter system** — layer filters (industry, title, size, seniority) not just keyword search ✅ Built
+- **Waterfall enrichment** — best source first, fall back on failure ✅ Built
 
-### What We Exploited (Their Gap)
+### What We Exploit (Their Gap)
 - Clay is a power-user tool — requires technical knowledge to set up
 - $149–800/mo just for enrichment. KIND includes enrichment + outreach + management.
 - No African contact coverage. Apollo (our source) covers Africa well.
 
 ---
 
+## 6. Apollo
+
+**URL:** https://app.apollo.io
+**Category:** Lead data + sequences
+**Studied:** Ongoing — Apollo is our primary data source
+**Status:** ✅ Integrated (free plan → upgrade after client 1)
+
+### Our Relationship with Apollo
+
+Apollo is a supplier, a partial competitor, and the most instructive product to study at scale. They power K.I.N.D's entire lead database. K.I.N.D calls their API — Apollo gets paid per credit used.
+
+Where we compete: FIGSY vs Apollo Sequences. Non-overlapping buyers — Apollo sells toolboxes to in-house SDR teams. K.I.N.D sells managed outcomes to founders.
+
+Where we don't compete: Apollo's 275M+ contact database (we depend on it), enterprise CRM, US/EU enterprise tooling.
+
+### What We Learn From Apollo (to build)
+
+- **Job change alerts** → badge on lead cards, auto-prioritise in FIGSY (Phase 4)
+- **Sequence analytics** → reply rate by day of week, best send time by industry (Phase 4)
+- **AI transparency** → show why FIGSY wrote the email the way it did (Phase 3)
+- **Intent signals** → companies researching your category — requires Bombora data (~$2k/mo, Year 2)
+
+### The Strategic Reality
+
+Apollo's moat is 10 years of contact data. K.I.N.D's moat is 10 years of African B2B conversion data — which no amount of money can buy retroactively. Every FIGSY campaign run makes K.I.N.D smarter. That compounds. Apollo can't replicate it.
+
 ---
 
 ## 1. Apex (apex.host)
 
-**URL:** https://apex.host  
-**Founded by:** Dan Martell (SaaS Academy)  
-**Status:** Private beta / waitlist (as of May 2026)  
-**Target customer:** Global SaaS founders  
-
----
+**URL:** https://apex.host
+**Founded by:** Dan Martell (SaaS Academy)
+**Status:** 🟡 Actions pending — copy framing to adopt
+**Studied:** 26 May 2026
 
 ### What It Does
 
-An always-on autonomous AI assistant that runs 24/7 on your own private server. Handles email, calendar, research, content creation, and software building — without being asked. Dan Martell built it as his own "digital twin."
+An always-on autonomous AI assistant that runs 24/7 on a private server. Handles email, calendar, research, content, and software — without being asked. Dan Martell built it as his own "digital twin."
 
 Unlike chatbots (respond) or automation (follow rules) — Apex **acts**.
 
-**Stack:**
-- Self-hosted (data stays on your infrastructure)
-- Multi-channel: Slack, email, WhatsApp, voice
-- 88,000+ lines of custom code
-- Approval mode → gradual autonomy expansion
-- Memory-persistent — gets smarter over time
+**Stack:** Self-hosted, multi-channel (Slack, email, WhatsApp, voice), 88,000+ lines of custom code, approval mode → gradual autonomy expansion, persistent memory.
 
----
-
-### Their Positioning & Messaging
+### Their Positioning
 
 - *"Your personal AI that runs 24/7"*
 - *"Scale your output without scaling your team"*
 - Framed as a digital twin, not a tool
-- Dan Martell's personal brand is the distribution engine (massive SaaS founder audience)
-- Security-first: self-hosted, 1Password integration, audit logs, granular permissions
+- Dan Martell's personal brand is the distribution engine
 
----
-
-### Pricing
-
-Unknown — likely $500–1,000+/month given the positioning and audience. No public pricing (waitlist only).
-
----
+**Pricing:** Unknown — likely $500–1,000+/mo. No public pricing (waitlist only).
 
 ### K.I.N.D vs Apex
 
@@ -168,19 +548,15 @@ Unknown — likely $500–1,000+/month given the positioning and audience. No pu
 | Target customer | African B2B SMBs (5–50 people) | Global SaaS founders |
 | Core job | Find leads, run outreach, book meetings | Run founder's entire workflow |
 | Delivery model | SaaS (we run everything) | Self-hosted (they run it) |
-| Price point | $1–3/credit + $29–49/mo | ~$500–1,000+/mo (est.) |
+| Price point | $1–3/credit + from $20/mo | ~$500–1,000+/mo (est.) |
 | Barrier to entry | Low — signup today | High — waitlist + technical setup |
 | African market | ✅ Built for it | ❌ No African focus |
 | Lead generation | ✅ Core product | ❌ Not a lead gen tool |
 | Outreach SDR | ✅ FIGSY handles replies, sequences, memory | ❌ No SDR function |
-| Distribution | Building | Dan Martell's existing massive audience |
 
----
-
-### What We Borrow
+### What We Borrow (Actions Pending)
 
 **1. "Acts, doesn't just respond" framing**
-This is the most powerful copy insight. Update KIND messaging to emphasise action over assistance:
 
 | Current | Sharpened |
 |---------|-----------|
@@ -189,45 +565,23 @@ This is the most powerful copy insight. Update KIND messaging to emphasise actio
 | "Chatbot agent" | "Vida qualifies every website visitor 24/7 and alerts you when someone's ready to buy." |
 
 **2. Approval mode → autonomy expansion**
-Apex lets users start conservative and gradually hand over more control. KIND already has this (drip rate, daily limits, auto top-up) but doesn't surface it. We should make this explicit in the portal — "You're in control. Expand KIND's autonomy as you get comfortable."
+Already built (drip rate, daily limits, auto top-up) — not surfaced. Add to portal onboarding: *"You're in control. Expand KIND's autonomy as you get comfortable."*
 
 **3. The digital twin angle**
-Apex markets itself as Dan Martell's digital twin. Apply this to Milla: *"Your AI Chief of Staff — trained on your documents, your tone, your business. It knows how you think."*
+Apply to Milla: *"Your AI Chief of Staff — trained on your documents, your tone, your business. It knows how you think."*
 
 **4. Founder as product demo**
-Dan uses himself as the product demo on LinkedIn. You should do the same — post real KIND outputs (FIGSY reply that became a meeting, Milla morning brief screenshot, real leads dashboard). You ARE the use case.
+Post real KIND outputs on LinkedIn. FIGSY reply that became a meeting. Milla morning brief screenshot. Real leads dashboard. You ARE the use case.
 
----
+### Actions
 
-### What We Exploit (Their Gaps)
-
-**1. No African market**
-Apex will never prioritise ZA/NG/KE pricing, POPIA compliance, or African B2B contact data. This entire continent is ours.
-
-**2. Self-hosted = high friction**
-Apex requires technical setup. KIND is signup-and-go. For a 10-person B2B company in Lagos or Cape Town, that's the whole game.
-
-**3. No lead generation**
-Apex helps you manage your work — it doesn't find you new business. KIND does both: finds the lead AND manages the follow-up. That's a complete revenue engine, not a productivity tool.
-
-**4. Waitlist**
-They cannot take clients right now. We can.
-
-**5. Price ceiling**
-Apex will price out SMBs. KIND starts at $20. The same category of "autonomous AI for business" — at 1/25th the entry price.
-
----
-
-### Actions Taken
-
-- [ ] Rewrite homepage hero copy using "acts" framing (Claude can do this — say the word)
+- [ ] Rewrite homepage hero copy using "acts" framing
 - [ ] Add "You're in control" autonomy messaging to portal onboarding
 - [ ] Reframe Milla as "AI Chief of Staff" on website
-- [ ] LinkedIn post: show yourself using KIND as a founder (FIGSY output, morning brief, leads)
-
----
-*Added: 26 May 2026*
+- [ ] LinkedIn post: show yourself using KIND as a founder
 
 ---
 
-*More products added below as you find them...*
+*All of the above is parked deliberately. Nothing depreciates from parking. Parking for 3–6 months means the data gets richer — which makes ICP intelligence and benchmarks more valuable, not less. The gate is 20 paying clients with the core loop proven.*
+
+*Last updated: 26 May 2026*

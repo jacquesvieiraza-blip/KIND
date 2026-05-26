@@ -278,7 +278,10 @@
 |---|---|
 | **Wire "Book a Demo" buttons** | **5 mins** — share your Calendly/Cal.com URL |
 | **Sales playbook skeleton** | 2 hours — discovery script, objection log, demo flow, proposal template |
-| Paystack end-to-end test after live key | 30 mins |
+| **S1: Command palette** (steal from ClickUp) | 4h — Cmd+K search/jump portal + admin |
+| **S2: Activity feed** (steal from ClickUp) | 1 day — timeline of all platform events |
+| **S3: Shareable read-only dashboards** (steal from ClickUp) | 1 day — `/share/:token` for clients/investors |
+| **S4: Scheduled report emails** (steal from ClickUp) | 4h — weekly digest cron to clients |
 | Stripe end-to-end test after credentials | 1 hour |
 | GBP pricing on website after Stripe | 30 mins |
 | Fix any error — share screenshot | Ready |
@@ -1199,4 +1202,75 @@ Once you have the company number, Claude will:
 ---
 
 *Owner: K.I.N.D founding team*
-*Last updated: 26 May 2026 (evening)*
+*Last updated: 27 May 2026*
+
+---
+
+## 24. CLICKUP COMPETITIVE AUDIT — STEAL-NOW ANALYSIS
+
+*ClickUp is a $1B+ general-purpose work OS. K.I.N.D is a vertical AI outbound engine. We don't compete — but there are 6 things worth stealing.*
+
+### Where We Win (don't let ClickUp reps confuse clients)
+| Our Advantage | Why it matters |
+|---|---|
+| Purpose-built for B2B outbound | ClickUp has zero sequence engine, zero lead delivery, zero reply handling |
+| Client portal is actually clean | ClickUp guests see a PM tool. Ours is a real portal. |
+| White label standard | ClickUp charges enterprise rates — we include it |
+| Credit consumption model | No per-seat confusion — pay for what you use |
+| African market + ZAR pricing | ClickUp is not thinking about POPIA or ZAR |
+| FIGSY | AI that does outbound for you, not just assists with tasks |
+
+---
+
+### Steal Now — Tier 1 (this week, all are pure frontend/cron)
+| # | Feature | What it does | Est time |
+|---|---------|-------------|---------|
+| S1 | **Command palette** | Cmd+K: search anything, jump to page, run quick action — portal + admin | 4h |
+| S2 | **Activity feed** | Timeline: lead added / email sent / reply / credit used / sub changed | 1 day |
+| S3 | **Shareable read-only dashboards** | `/share/:token` — client shares live stats link with investor, no login | 1 day |
+| S4 | **Scheduled report emails** | Weekly digest: leads delivered, replies, credit balance — cron already exists | 4h |
+
+*S1–S4 are blocked under "Art of Possible" queue. Say the word and they're built same day.*
+
+---
+
+### Steal at 20+ Clients — Tier 2 (architectural)
+| # | Feature | What it does | Notes |
+|---|---------|-------------|-------|
+| S5 | **3-type memory model** | Split figsy_memory: episodic (recent replies) + long-term (winning angles) + preference (tone/format) | ClickUp's real moat — doubles FIGSY quality |
+| S6 | **Configurable agent triggers** | UI: "Run FIGSY at 9am Mon-Fri" or "on new lead added" — replaces hardcoded cron | Needs `triggers` table + event bus |
+| S7 | **Multi-model toggle** | Per-campaign: Haiku (volume) vs Sonnet (quality) — API already supports both | Low complexity |
+| S8 | **Kanban deal view** | Visual pipeline for own sales + client campaign stages | HubSpot integration already exists |
+
+---
+
+### Year 2 / Not Now
+| Feature | Why parked |
+|---------|-----------|
+| Mobile app | Cost vs priority — not blocking revenue |
+| 500+ AI skill library | Need client volume to know which to build |
+| Multi-agent orchestration (FIGSY + OTTO + LENA parallel) | Section 28 — Year 2 architecture |
+| Meeting notetaker | Month 6-12 in roadmap already |
+| Collaborative docs | Notion/ClickUp territory — not our domain |
+
+---
+
+### The 2 Real Structural Gaps
+
+**Gap 1 — Agent trigger model**
+Ours: hardcoded cron (3x daily, fixed times).
+ClickUp: event-driven — any workspace event can fire an agent.
+Impact: if a client asks "can FIGSY react when something happens?" — the answer is no today.
+Fix: `triggers` table (`type`, `schedule`, `event_type`, `client_id`) + lightweight event bus. Build at 20 clients.
+
+**Gap 2 — Memory granularity**
+Ours: one flat `figsy_memory` table (avg reply rate, winning angles, total sent).
+ClickUp: 3 distinct types — episodic (what happened recently), long-term (docs, naming conventions, rules), preference (tone/format/channel per person).
+Impact: FIGSY can't learn that *this client's ICP* responds to short emails but *that client's* responds to story-driven ones.
+Fix: schema split into `figsy_memory_episodic`, `figsy_memory_longterm`, `figsy_memory_prefs`. Build at 10 clients.
+
+---
+
+## 25. APEX COMPETITIVE AUDIT
+
+*Pending — confirm which Apex: Apex Leads (SA), Apex Group, or other. Claude to complete once confirmed.*

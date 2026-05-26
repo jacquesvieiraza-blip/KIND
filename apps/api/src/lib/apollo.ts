@@ -124,6 +124,14 @@ export async function searchPeopleWithFallback(
   return { contacts: [], relaxed: 'No contacts found even with relaxed filters. Try broader job titles or add more geographies.' }
 }
 
+export class ApolloCreditsExhaustedError extends Error {
+  constructor() { super('Apollo credits exhausted — upgrade plan or wait for monthly reset') }
+}
+
+export class ApolloRateLimitError extends Error {
+  constructor() { super('Apollo rate limit hit — try again in a few minutes') }
+}
+
 export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContact[]> {
   const apiKey = process.env.APOLLO_API_KEY
   if (!apiKey) throw new Error('APOLLO_API_KEY env var is not set')
@@ -134,11 +142,18 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
     body:    JSON.stringify(body),
   })
 
+  if (res.status === 429) throw new ApolloRateLimitError()
+
   if (!res.ok) {
     const text = await res.text()
+    // Apollo returns 422 with "credits" in the message when plan is exhausted
+    if (res.status === 422 && text.toLowerCase().includes('credit')) throw new ApolloCreditsExhaustedError()
+    if (res.status === 402) throw new ApolloCreditsExhaustedError()
     throw new Error(`Apollo API ${res.status}: ${text}`)
   }
 
-  const data = await res.json() as { contacts?: ApolloContact[]; people?: ApolloContact[] }
+  const data = await res.json() as { contacts?: ApolloContact[]; people?: ApolloContact[]; error?: string }
+  // Apollo free plan returns error in body with 200 when credits run out
+  if (data.error?.toLowerCase().includes('credit')) throw new ApolloCreditsExhaustedError()
   return data.contacts ?? data.people ?? []
 }

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { searchPeopleWithFallback } from '../lib/apollo'
+import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -342,6 +342,12 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
 
     res.json({ success: true, data: { inserted, skipped, total: inserted + skipped, relaxed } })
   } catch (err) {
+    if (err instanceof ApolloCreditsExhaustedError) {
+      res.status(402).json({ success: false, error: 'Apollo search credits exhausted. Upgrade your Apollo plan at app.apollo.io or wait for your monthly reset.' }); return
+    }
+    if (err instanceof ApolloRateLimitError) {
+      res.status(429).json({ success: false, error: 'Apollo rate limit hit. Wait a few minutes and try again.' }); return
+    }
     console.error(err)
     res.status(500).json({
       success: false,

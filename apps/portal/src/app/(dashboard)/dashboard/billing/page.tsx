@@ -107,14 +107,16 @@ function BundleCard({
   )
 }
 
-// Stripe credit bundles matching the 4 configured price IDs
+// Stripe credit bundles — 3 tiers each
 const STRIPE_LEADGEN_BUNDLES = [
-  { credits: 20,  priceUsd: 20,  label: '20 credits — $20',  creditType: 'lead_gen' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '' },
-  { credits: 100, priceUsd: 100, label: '100 credits — $100', creditType: 'lead_gen' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '' },
+  { credits: 20,  priceUsd: 20,  label: '20 credits — $20  ($1.00/credit)',  creditType: 'lead_gen' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '' },
+  { credits: 40,  priceUsd: 38,  label: '40 credits — $38  ($0.95/credit)',  creditType: 'lead_gen' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '' },
+  { credits: 100, priceUsd: 88,  label: '100 credits — $88  ($0.88/credit)', creditType: 'lead_gen' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '' },
 ]
 const STRIPE_FIGSY_BUNDLES = [
-  { credits: 20,  priceUsd: 60,  label: '20 outreach credits — $60',  creditType: 'figsy' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '' },
-  { credits: 100, priceUsd: 300, label: '100 outreach credits — $300', creditType: 'figsy' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '' },
+  { credits: 20,  priceUsd: 60,  label: '20 outreach credits — $60  ($3.00/credit)',  creditType: 'figsy' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '' },
+  { credits: 40,  priceUsd: 110, label: '40 outreach credits — $110 ($2.75/credit)',  creditType: 'figsy' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40  || '' },
+  { credits: 100, priceUsd: 250, label: '100 outreach credits — $250 ($2.50/credit)', creditType: 'figsy' as const, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '' },
 ]
 
 export default function BillingPage() {

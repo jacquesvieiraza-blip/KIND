@@ -5,21 +5,30 @@ const stripe = process.env.STRIPE_SECRET_KEY
   : null
 
 // Price IDs — configure via environment variables
-// STRIPE_PRICE_LEADGEN_20  — 20 lead gen credits (~$20)
-// STRIPE_PRICE_LEADGEN_100 — 100 lead gen credits (~$100)
-// STRIPE_PRICE_FIGSY_20    — 20 FIGSY outreach credits (~$60)
-// STRIPE_PRICE_FIGSY_100   — 100 FIGSY outreach credits (~$300)
+// STRIPE_PRICE_LEADGEN_20  — 20 lead gen credits ($20)
+// STRIPE_PRICE_LEADGEN_40  — 40 lead gen credits ($38)
+// STRIPE_PRICE_LEADGEN_100 — 100 lead gen credits ($88)
+// STRIPE_PRICE_FIGSY_20    — 20 FIGSY credits ($60)
+// STRIPE_PRICE_FIGSY_40    — 40 FIGSY credits ($110)
+// STRIPE_PRICE_FIGSY_100   — 100 FIGSY credits ($250)
+
+export const STRIPE_BUNDLES = {
+  lead_gen: [
+    { credits: 20,  price: 20,  priceEnvVar: 'STRIPE_PRICE_LEADGEN_20' },
+    { credits: 40,  price: 38,  priceEnvVar: 'STRIPE_PRICE_LEADGEN_40' },
+    { credits: 100, price: 88,  priceEnvVar: 'STRIPE_PRICE_LEADGEN_100' },
+  ],
+  figsy: [
+    { credits: 20,  price: 60,  priceEnvVar: 'STRIPE_PRICE_FIGSY_20' },
+    { credits: 40,  price: 110, priceEnvVar: 'STRIPE_PRICE_FIGSY_40' },
+    { credits: 100, price: 250, priceEnvVar: 'STRIPE_PRICE_FIGSY_100' },
+  ],
+} as const
 
 export function getStripePriceId(creditType: 'lead_gen' | 'figsy', credits: number): string | null {
-  if (creditType === 'lead_gen') {
-    if (credits === 20)  return process.env.STRIPE_PRICE_LEADGEN_20  || null
-    if (credits === 100) return process.env.STRIPE_PRICE_LEADGEN_100 || null
-  }
-  if (creditType === 'figsy') {
-    if (credits === 20)  return process.env.STRIPE_PRICE_FIGSY_20    || null
-    if (credits === 100) return process.env.STRIPE_PRICE_FIGSY_100   || null
-  }
-  return null
+  const bundle = STRIPE_BUNDLES[creditType].find(b => b.credits === credits)
+  if (!bundle) return null
+  return process.env[bundle.priceEnvVar] || null
 }
 
 export function isStripeConfigured(): boolean {

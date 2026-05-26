@@ -152,7 +152,7 @@
 | 10 | **Create Paystack subscription plans** | Paystack dashboard → Plans | Create VA/Chatbot/FIGSY monthly+annual plans → add plan codes to Railway as `PAYSTACK_PLAN_VA_MONTHLY` etc |
 | 11 | **Add FIGSY_KIND_CLIENT_ID to Railway** | Railway → KIND API → Variables | Your own client UUID — self-outreach cron runs but does nothing without it |
 | 12 | **Create calendar booking link** | calendly.com or cal.com (free) → share URL | Claude will wire every "Book a Demo" button in 5 mins |
-| 13 | **Set up Google Workspace** | workspace.google.com → Business Starter | hello@get-kind.com inbox — step-by-step in Section 2 below |
+| 13 | **Google Workspace** — *not urgent* | Do when: sending formal proposals, first client onboarded, or hiring. Gmail works fine for now. Resend handles all platform emails independently. ~$12/mo when ready. | workspace.google.com → Business Starter |
 | 14 | **Register UK company** | companieshouse.gov.uk — £50 same day | Full step-by-step in Section 23 |
 | 15 | **Upgrade Resend to paid plan** | resend.com → Billing | Free plan = 100 emails/day — blocks FIGSY at scale |
 

@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 25 May 2026**
+**Single source of truth. Last updated: 26 May 2026**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 > Everything in one place. Status, roadmap, GTM, company registration, expansion, compliance, SOPs, cashflow.
@@ -36,7 +36,7 @@
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 25 May 2026 (morning)*
+*Last updated: 26 May 2026*
 
 | Item | Status | Notes |
 |---|---|---|
@@ -47,7 +47,7 @@
 | Supabase — all tables + RLS | ✅ Live | All schema + migrations run |
 | Supabase auth — no email confirmation | ✅ Live | Signup → instant dashboard |
 | TypeScript build | ✅ Clean | All errors fixed |
-| Cron jobs — 12 jobs | ✅ Running | node-cron in API — starts on boot |
+| Cron jobs — 15 jobs | ✅ Running | node-cron in API — starts on boot (staggered — no conflicts) |
 | RLS on all tables | ✅ Fixed | Re-enabled 18 May |
 | Demo Environments | ✅ Live | Admin → Demo Envs — full sales demo tool |
 | AI ICP Suggest | ✅ Live | "Suggest ICP with AI" → Claude fills form from company profile |
@@ -68,6 +68,20 @@
 | Portal Analytics page | ✅ Live | /dashboard/analytics — 6-month trends, ICP breakdown, score dist, top industries |
 | Stripe USD/GBP billing | ✅ Code complete | Billing page auto-activates when `STRIPE_SECRET_KEY` is set in Railway |
 | Paystack webhook | ✅ Set | TEST key — live payments blocked until KYC |
+| Lead drip system | ✅ Live | `delivered_at` on leads, daily_drip_rate per client, 08:10 UTC cron |
+| Credits deduct at delivery | ✅ Live | 1 credit per lead when daily drip delivers it — NOT at insertion |
+| Lead overspend fix | ✅ Live | maxLeads cap + leads_per_run client setting respected |
+| Apollo fallback search | ✅ Live | 3-pass fallback: full → remove consent filter → remove size filter |
+| Low credit warning | ✅ Live | Daily 07:40 UTC — emails clients with 1–4 credits remaining (max 1/24h) |
+| Subscription lapse check | ✅ Live | Daily 09:00 UTC — marks active subs past period end as `lapsed`, emails client |
+| Milla (virtual_assistant) access gate | ✅ Fixed | React hooks violation fixed — no more crash on load |
+| Vida (chatbot) access gate | ✅ Fixed | `active` only — removed trialing (must have paid subscription) |
+| FIGSY trial expiry gate | ✅ Fixed | Backend rejects trialing campaigns with expired current_period_end |
+| Cancel subscription | ✅ Live | `POST /subscriptions/:id/cancel` — Paystack disable + DB update |
+| Recurring billing webhooks | ✅ Live | subscription.create saves paystack_subscription_code, charge.success handles renewals |
+| Admin credit grant cap | ✅ Live | Hard cap 500 credits per grant — prevents accidental large grants |
+| FIGSY trialing gate removed | ✅ Fixed | FIGSY page now requires `active` only (no trialing) |
+| Credit pricing aligned | ✅ Fixed | 2 tiers: Kind AI 20/$20, 100/$100 · FIGSY 20/$60, 100/$300 |
 | Paystack KYC | ⏳ Pending | **Must complete — cannot take live payments** |
 | Google Workspace | ⏳ Pending | **Must set up — no professional email inbox** |
 | Calendar booking link | ⏳ Pending | Share Calendly/Cal.com URL — Claude will wire into site + portal in 5 mins |
@@ -85,6 +99,16 @@
 | **Full schema drift fix** — `amount_usd` removed | ✅ Fixed | MRR calculations restored — 25 May |
 | **Daily 04:00 AM automated audit** | ✅ Live | `.github/workflows/daily-audit.yml` — opens GitHub Issue on failure |
 | Run `20260525_fix_subscriptions_schema.sql` | ⏳ MUST RUN | Supabase SQL Editor — makes schema drift permanent fix on DB level |
+| **Delete test chatbot subscription** | ⏳ MUST DO | Supabase → subscriptions table → delete row where product='chatbot' AND status='active' for your account — that's why Vida shows as unlocked |
+
+### ⚠️ Known Technical Debt (audit findings — log for later)
+| Issue | Severity | Notes |
+|---|---|---|
+| Duplicate /leads/consent/bulk and /leads/bulk-consent routes | Medium | Same functionality, different param names. Pick one and deprecate other |
+| Credit deduction race condition in /leads/drip | Medium | High concurrency could overdraw. Acceptable for current scale — add DB transaction when you have 100+ concurrent clients |
+| ICP delete doesn't cascade leads | High | Deleting an ICP orphans its leads. Add `ON DELETE SET NULL` to icp_id FK in schema |
+| Exchange rate hardcoded at R19/$ in credits.ts | Medium | Update monthly or add daily rate fetch when you have 50+ paying clients |
+| Paystack plan codes env vars empty | High | Recurring billing code is ready but **needs plan codes from Paystack dashboard** — see Section 6 |
 
 ---
 
@@ -185,6 +209,24 @@
 | Portal analytics page — /dashboard/analytics, 6-month trends, ICP breakdown, score distribution | 24 May |
 | Stripe billing confirmed fully wired — activates on STRIPE_SECRET_KEY env var | 24 May |
 | MASTER.md full update — reflects all 24 May builds | 24 May |
+| Lead drip system — delivered_at column, daily_drip_rate per client, 08:10 UTC cron | 26 May |
+| Credits deduct at delivery — /leads/drip deducts 1 credit per lead on deliver | 26 May |
+| Lead overspend fix — maxLeads cap, leads_per_run respected | 26 May |
+| Apollo fallback search — 3-pass: full → remove consent → remove size | 26 May |
+| Low credit warning — /ae/low-credits daily 07:40 UTC | 26 May |
+| Subscription lapse check — /subscriptions/check-lapsed daily 09:00 UTC | 26 May |
+| Milla hooks crash fixed — full page rewrite, all hooks before conditional returns | 26 May |
+| Milla access gate — trialing removed, active-only | 26 May |
+| Vida access gate — trialing removed, active-only | 26 May |
+| FIGSY trial expiry gate — backend rejects expired trialing subs | 26 May |
+| Cancel subscription — POST /subscriptions/:id/cancel | 26 May |
+| Recurring billing webhooks improved — sub.create saves code, charge.success handles renewals | 26 May |
+| Admin credit grant cap — 500 credit max per manual grant | 26 May |
+| Credit pricing aligned — 2 tiers only, matches constants | 26 May |
+| Cron stagger — no two jobs fire at same time (08:10, 07:40 for new jobs) | 26 May |
+| Stats endpoint resilience — Promise.allSettled prevents blank stats panel | 26 May |
+| sub.clients null guard — prevents crash in trial expiry handler | 26 May |
+| Full system audit — 45 issues found, 14 fixed this session | 26 May |
 
 ### Ready Now (say the word)
 | Task | Time |

@@ -131,43 +131,45 @@
 
 ## 2. WHAT FOUNDER NEEDS TO DO
 
-### 🔴 CRITICAL — Do In This Order (Platform Is Blocked Without These)
+### 🔴 CRITICAL — Do In This Order
 
 | # | Task | Where | Why |
 |---|---|---|---|
-| ~~1~~ | ~~Apollo API key~~ | ✅ **Done** — `APOLLO_API_KEY` confirmed in Railway. Free plan (50 contacts/mo) active. **Apollo upgrade path: Monthly $99/mo after client 1 pays → Annual $49/mo when MRR covers $588 upfront.** | — |
-| 2 | **Confirm RESEND_API_KEY in Railway** | railway.app → KIND API → Variables | Zero emails without this — welcome, POPIA, digest, morning brief all dead |
-| 3 | **Check Railway deploy logs** | railway.app → KIND API → Deployments | Confirm green build after all recent code pushes |
-| 4 | **Run `MASTER_SCHEMA.sql`** | Supabase → SQL Editor → paste + Run | Eliminates all schema drift permanently — one paste, done forever |
-| 5 | **Run `20260526_drip_and_controls.sql`** | Supabase → SQL Editor | Adds `delivered_at` to leads, `daily_drip_rate` to clients — drip system needs this |
-| 6 | **Run `20260525_fix_subscriptions_schema.sql`** | Supabase → SQL Editor | Schema drift fix — drops phantom `amount_usd`, sets `amount_zar DEFAULT 0` |
-| 7 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Cannot take a single live ZAR payment without this |
+| ~~1~~ | ~~Apollo API key~~ | ✅ **Done** | — |
+| ~~2~~ | ~~RESEND_API_KEY in Railway~~ | ✅ **Done** | — |
+| ~~3~~ | ~~Railway deploy logs~~ | ✅ **Done — green** | — |
+| ~~4/5/6~~ | ~~SQL migrations~~ | ✅ **Done** — subscriptions schema + drip system applied | — |
+| **7** | **Set up Stripe** | stripe.com → create account → get keys → create 4 prices → add to Railway | Primary payment processor. UK business, bills African + global clients in USD/GBP. Already fully built — activates on env vars. |
+| **8** | **Register UK company** | companieshouse.gov.uk — £50, same day | Required for Stripe UK account + professional credibility. See Section 23. |
 
 ### 🟡 HIGH — Do This Week
 
 | # | Task | Where | Notes |
 |---|---|---|---|
-| 8 | **Create HubSpot account** | app.hubspot.com (free CRM) → Settings → Private Apps → create "KIND AI" → add `HUBSPOT_API_KEY` to Railway | HubSpot sync is fully built — wires itself the moment key is set |
-| 9 | **Register Resend inbound webhook** | Resend dashboard → Webhooks | URL: `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` · Add `RESEND_WEBHOOK_SECRET` to Railway — same string |
-| 10 | **Create Paystack subscription plans** | Paystack dashboard → Plans | Create VA/Chatbot/FIGSY monthly+annual plans → add plan codes to Railway as `PAYSTACK_PLAN_VA_MONTHLY` etc |
-| 11 | **Add FIGSY_KIND_CLIENT_ID to Railway** | Railway → KIND API → Variables | Your own client UUID — self-outreach cron runs but does nothing without it |
-| 12 | **Create calendar booking link** | calendly.com or cal.com (free) → share URL | Claude will wire every "Book a Demo" button in 5 mins |
-| 13 | **Google Workspace** — *not urgent* | Do when: sending formal proposals, first client onboarded, or hiring. Gmail works fine for now. Resend handles all platform emails independently. ~$12/mo when ready. | workspace.google.com → Business Starter |
-| 14 | **Register UK company** | companieshouse.gov.uk — £50 same day | Full step-by-step in Section 23 |
-| 15 | **Upgrade Resend to paid plan** | resend.com → Billing | Free plan = 100 emails/day — blocks FIGSY at scale |
+| 9 | **Create HubSpot account** | app.hubspot.com (free) → Private Apps → "KIND AI" → add `HUBSPOT_API_KEY` to Railway | Fully built — wires itself the moment key is set |
+| 10 | **Register Resend inbound webhook** | Resend dashboard → Webhooks → URL + `RESEND_WEBHOOK_SECRET` in Railway | Enables FIGSY reply processing |
+| 11 | **Add FIGSY_KIND_CLIENT_ID to Railway** | Railway → KIND API → Variables | Your client UUID — self-outreach does nothing without it |
+| 12 | **Create calendar booking link** | calendly.com or cal.com (free) → share URL | Claude wires every Book a Demo button in 5 mins |
+| 13 | **Upgrade Resend to paid plan** | resend.com → Billing | Free = 100 emails/day — blocks FIGSY at scale |
 
-### 🟢 WHEN READY — Activates Built Features
+### 🟢 WHEN READY
 
-| # | Task | Env vars to add to Railway |
+| # | Task | Notes |
 |---|---|---|
-| 16 | **Stripe USD/GBP** — billing page auto-shows when key is set | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
+| 14 | **Wise Business bank account** | business.wise.com — after UK company registered. Free, multi-currency, receives USD/GBP from Stripe. |
+| 15 | **Google Workspace** | ~$12/mo — do when first client or first hire. Gmail fine for now. |
+| 16 | **Flutterwave** (Phase 2 Africa) | For clients needing M-Pesa, local bank transfer, ZAR local cards. UK business can register. Add after first 5 clients. |
 | 17 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
 | 18 | Vapi.ai Voice | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
 | 19 | WhatsApp Business API | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
-| 20 | Wise Business bank account | business.wise.com — after UK company registered | Free, multi-currency |
-| 21 | Update FOUNDER_EMAIL in Railway | Change to `hello@get-kind.com` after Workspace is live | Morning brief + all system emails |
-| 22 | Campaign intent prompt (go live) | `FEATURE_CAMPAIGN_INTENT=true` in Railway | — |
-| 23 | ICP builder (go live) | `FEATURE_ICP_BUILDER=true` in Railway | — |
+| 20 | Campaign intent prompt | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
+| 21 | ICP builder | `FEATURE_ICP_BUILDER=true` in Railway |
+
+### ❌ REMOVED — Not Applicable
+| Item | Why removed |
+|------|-------------|
+| Paystack KYC | Requires SA/NG registered business entity. UK-based founder cannot complete. Not needed — Stripe handles African clients (USD/GBP). |
+| Paystack subscription plan codes | Same reason — Paystack removed from payment stack. |
 
 ### ⚡ INSTANT — Takes 5 Minutes
 | Task | What Claude needs |
@@ -811,7 +813,7 @@ WHATSAPP_VERIFY_TOKEN=
 | Market expansion trigger | After 5 paying clients |
 | Compliance | POPIA + GDPR + CAN-SPAM + CCPA |
 | Milla + Vida launch | July 2026 |
-| Payment processor | Paystack (ZAR) → Stripe (USD/GBP) at Phase 2 |
+| Payment processor | **Stripe (USD/GBP) — primary**. Founder is UK-based, Paystack requires SA entity. African clients pay in USD via international card. Flutterwave Phase 2 for local African payment methods (M-Pesa etc). |
 | AI provider | Anthropic Claude — Haiku for volume, Sonnet for quality |
 | Data source | Apollo.io |
 | Hosting | Supabase af-south-1 + Railway + Vercel |

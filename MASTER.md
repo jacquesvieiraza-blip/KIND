@@ -1271,6 +1271,72 @@ Fix: schema split into `figsy_memory_episodic`, `figsy_memory_longterm`, `figsy_
 
 ---
 
-## 25. APEX COMPETITIVE AUDIT
+## 25. APEX (apex.host) COMPETITIVE AUDIT
 
-*Pending — confirm which Apex: Apex Leads (SA), Apex Group, or other. Claude to complete once confirmed.*
+*Apex is an AI Operating System for founders, built by Dan Martell (SaaS Academy). It is NOT a cold email tool — it's a personal digital twin that runs 24/7 on its own server and takes autonomous action across an entire business.*
+*Still on waitlist — no public pricing. Built on 88,000+ lines of custom code. Self-hosted.*
+
+### What Apex Does
+| Category | Capability |
+|---|---|
+| Email | Triages inbox, drafts + sends responses, manages follow-ups — without you |
+| Calendar | Books meetings, protects deep work blocks, declines requests |
+| Messaging | Monitors Slack / WhatsApp / Telegram — responds, filters noise |
+| KPI monitoring | Watches metrics, flags anomalies, sends daily briefings |
+| Actions | Makes calls, builds apps, handles purchases, creates content |
+| Memory | Compounding context — gets smarter over time |
+| Infrastructure | Self-hosted — founder owns all data |
+| Channels | Single agent across email + voice + Slack + WhatsApp |
+
+---
+
+### Where We Win
+| Our Advantage | Why it matters |
+|---|---|
+| **Outbound sequences** | Apex has zero sequence engine, zero lead sourcing, zero reply handling |
+| **Multi-client platform** | Apex = 1 founder's personal OS. K.I.N.D = agency serving 50+ clients |
+| **Client portal** | Apex has no client-facing concept — ours is purpose-built |
+| **Live today** | Apex is still on waitlist. We are live and purchasable now |
+| **Africa + POPIA** | Apex is not thinking about ZAR, POPIA, or pan-African expansion |
+| **Credit model** | Transparent consumption billing — Apex has no pricing model public |
+
+---
+
+### Steal Now — Language (zero build time, immediate impact)
+| What to steal | Old K.I.N.D copy | New K.I.N.D copy |
+|---|---|---|
+| **AI OS framing** | "AI outbound platform" | "AI Revenue OS — one system, all your outbound, running 24/7" |
+| **Acts, doesn't chat** | "AI-powered sequences" | "FIGSY doesn't draft emails. It sends them." |
+| **Compounding context** | "AI memory" | "FIGSY gets smarter with every campaign it runs" |
+| **24/7 framing** | "Automated outreach" | "FIGSY runs 24/7. Even when you're asleep." |
+
+*→ Update website hero + pricing page copy to adopt this language. Say the word.*
+
+---
+
+### Steal Soon — Features
+| Feature | Apex version | K.I.N.D version | Status |
+|---|---|---|---|
+| Daily briefing | Founder gets full KPI brief | Clients get: leads delivered, replies, balance, next send | Built for founder — extend to clients (Month 1) |
+| Anomaly alerts | Flags KPI drops unprompted | FIGSY flags reply rate drop, low credits | ✅ Already built |
+| Multi-channel single agent | Email + WhatsApp + voice = 1 agent | FIGSY on all channels = 1 identity | Month 2 roadmap |
+| Compounding memory | Learns tone/format/timing per person | 3-type memory model (episodic/long-term/preference) | Build at 10 clients |
+
+---
+
+### Don't Steal
+| Feature | Why not |
+|---|---|
+| Self-hosted deployment | Kills SaaS model. af-south-1 + RLS is our POPIA answer |
+| Personal inbox/calendar | Not our domain — Milla assists, she doesn't replace your Gmail |
+| App building / purchases | Too broad — we go deep on outbound, not wide on everything |
+
+---
+
+### The Sharpest Steal — Positioning
+Apex is winning on brand. "AI OS that runs 24/7 and acts for you" is a better story than "cold email tool."
+
+**Today:** *"K.I.N.D is an AI outbound platform for B2B businesses."*
+**Should be:** *"K.I.N.D is your AI Revenue OS — FIGSY finds your clients, books the meetings, and reports back. 24/7. No SDR required."*
+
+Same product. 10x the perception. Update this across website, deck, and GTM when smoke tests are done.

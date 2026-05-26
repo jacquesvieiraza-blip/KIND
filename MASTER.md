@@ -274,7 +274,7 @@
 | Supabase — all tables + RLS | ✅ Live | All schema + migrations run |
 | Supabase auth — no email confirmation | ✅ Live | Signup → instant dashboard |
 | TypeScript build | ✅ Clean | All errors fixed |
-| Cron jobs — 16 jobs | ✅ Running | node-cron in API — starts on boot (staggered — no conflicts) |
+| Cron jobs — 19 jobs | ✅ Running | node-cron in API — starts on boot (staggered — no conflicts) |
 | RLS on all tables | ✅ Fixed | Re-enabled 18 May |
 | Demo Environments | ✅ Live | Admin → Demo Envs — full sales demo tool |
 | AI ICP Suggest | ✅ Live | "Suggest ICP with AI" → Claude fills form from company profile |
@@ -309,7 +309,7 @@
 | Admin credit grant cap | ✅ Live | Hard cap 500 credits per grant — prevents accidental large grants |
 | FIGSY trialing gate removed | ✅ Fixed | FIGSY page now requires `active` only (no trialing) |
 | Credit pricing aligned | ✅ Fixed | 2 tiers: Kind AI 20/$20, 100/$100 · FIGSY 20/$60, 100/$300 |
-| Paystack KYC | ⏳ Pending | **Must complete — cannot take live payments** |
+| ~~Paystack KYC~~ | ❌ Removed | Paystack not applicable — requires SA entity. Stripe is primary. |
 | Google Workspace | ⏳ Pending | **Must set up — no professional email inbox** |
 | Calendar booking link | ⏳ Pending | Share Calendly/Cal.com URL — Claude will wire into site + portal in 5 mins |
 | FIGSY_KIND_CLIENT_ID env var | ⏳ Pending | Self-outreach runs but does nothing without this |
@@ -363,7 +363,7 @@
 |---|---|---|
 | Duplicate /leads/consent/bulk and /leads/bulk-consent routes | Medium | Same functionality, different param names. Pick one and deprecate other. NOTE: all other "duplicate" routes were GET+POST on same path — correct REST, not bugs. |
 | ~~Credit deduction race condition in /credits/verify~~ | ✅ **Fixed 27 May** | Unique DB index on `credit_transactions.reference` + atomic `increment_client_credits()` RPC — double-spend impossible |
-| ICP delete doesn't cascade leads | High | Deleting an ICP orphans its leads. Add `ON DELETE SET NULL` to icp_id FK in schema |
+| ~~ICP delete doesn't cascade leads~~ | ✅ **Fixed 26 May** | Migration `20260526_icp_cascade.sql` — leads.icp_id SET NULL on ICP delete |
 | Exchange rate hardcoded at R19/$ in credits.ts | Medium | Update monthly or add daily rate fetch when you have 50+ paying clients |
 | ~~Paystack plan codes env vars empty~~ | ~~High~~ | **Removed** — Paystack not applicable. Stripe handles all billing. |
 | Agent trigger model — hardcoded cron | Medium | FIGSY runs 3x daily on fixed times. No event-driven triggers yet. Build at 20 clients. |
@@ -470,7 +470,7 @@
 | FIGSY auto-replenish cron | 20 May |
 | K.I.N.D self-outreach (CMO cron) | 20 May |
 | /stats/platform public endpoint | 20 May |
-| 12 cron jobs total | 20 May |
+| 12 cron jobs total | 20 May | *(final count: 19 as of 26 May — 3× daily auto-status, founder brief, and additional monitoring crons added)* |
 | Founder name removed from all public pages | 20 May |
 | Campaign intent prompt — feature flagged | 24 May |
 | Conversational ICP builder — feature flagged | 24 May |
@@ -555,7 +555,7 @@
 ### Month 1–2 (June 2026)
 | Item | Owner | Notes |
 |---|---|---|
-| Milla + Vida full launch | Both | Built and waiting |
+| Milla + Vida full launch | Both | Subscription billing live — self-serve via Stripe |
 | Voice agent activation | Jacques | Vapi.ai account + Twilio SA number |
 | WhatsApp activation | Jacques | Meta Business API (3–7 day approval) |
 | Google Calendar activation | Jacques | Google Cloud OAuth |
@@ -625,14 +625,14 @@
 | **Weekly outreach digest** | Monday email now includes FIGSY stats (sent, reply rate, interested, campaigns) |
 | **`paused_low_performance` status** | Campaign status when auto-paused — shown as "Auto-paused" in portal |
 
-### Virtual Assistant (Milla) — Launches July 2026
+### Virtual Assistant (Milla) — Subscription billing live — awaiting Stripe price IDs in Railway
 | Item | Notes |
 |---|---|
 | Document upload + RAG chat | FTS now, pgvector at 50+ clients |
 | Source attribution | Answers cite which doc |
 | Locked screen | Upgrade + Book a Demo CTAs |
 
-### Chatbot Agent (Vida) — Launches July 2026
+### Chatbot Agent (Vida) — Subscription billing live — awaiting Stripe price IDs in Railway
 | Item | Notes |
 |---|---|
 | Config, conversations, embed code | Full |
@@ -642,7 +642,7 @@
 ### Billing
 | Item | Notes |
 |---|---|
-| Paystack (ZAR topups) | Test key now — **live after KYC** |
+| ~~Paystack (ZAR topups)~~ | Removed — requires SA entity. Stripe is primary. |
 | Stripe (USD subscriptions) | Built, needs credentials |
 | Credit balance in sidebar + dashboard | Live |
 | Auto top-up settings | Live |
@@ -703,13 +703,13 @@ All comparison pages, trust, DPA, DPA-US, pricing, support, about, use-cases, fi
 
 | Feature | What to do | Env vars needed |
 |---|---|---|
-| **Paystack live payments** | Complete KYC → get sk_live_ key | PAYSTACK_SECRET_KEY (live) |
+| ~~Paystack~~ | Removed — requires SA entity. Not applicable. Stripe is primary. | — |
 | **Stripe USD/GBP billing** | Create Stripe account + 4 price IDs | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, 4× STRIPE_PRICE_* |
 | **Voice calls (Vapi.ai)** | Vapi account + Twilio +27 number | VAPI_API_KEY, VAPI_PHONE_NUMBER_ID, VAPI_ASSISTANT_ID, VAPI_WEBHOOK_SECRET |
 | **WhatsApp** | Meta Business API approval | WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN |
 | **Google Calendar** | Google Cloud project + OAuth | GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI |
 | **Resend inbound routing** | Upgrade Resend to paid | Then configure webhook to /figsy/replies/inbound |
-| **Milla + Vida** | Nothing — waiting for July 2026 launch date | — |
+| **Milla + Vida subscriptions** | Self-serve billing LIVE — Stripe checkout built. Awaiting Jacques to create Stripe recurring prices ($49 Milla, $39 Vida) and add price IDs to Railway | STRIPE_PRICE_MILLA_MONTHLY, STRIPE_PRICE_VIDA_MONTHLY |
 
 ---
 
@@ -896,7 +896,7 @@ Summary:
 Executive summary, recommended products, pricing, timeline, next steps.
 
 ### Phase 5: Payment
-Client → Billing → selects plan → Paystack → webhook fires → subscription active.
+Client → Billing → selects plan → Stripe checkout → webhook fires → subscription active.
 
 ### Phase 6: Onboarding (Days 1–5)
 - Day 1: confirm record + subscription, send welcome email
@@ -924,7 +924,7 @@ Client → Billing → selects plan → Paystack → webhook fires → subscript
 | AI | Anthropic Claude (Haiku + Sonnet) | Haiku for volume, Sonnet for quality |
 | Lead data | Apollo.io API | Pre-consented contacts first |
 | Email sending | Resend | replies@get-kind.com (FIGSY), hello@get-kind.com (Workspace) |
-| Payments | Paystack (ZAR — live after KYC) + Stripe (USD/GBP — Phase 2) | Credit bundles |
+| Payments | Stripe (USD/GBP — primary, live) + Flutterwave (ZAR/NGN/KES/GHS — Phase 2, code complete) | Credit bundles + subscriptions |
 | Website | Static HTML | apps/website — Vercel (kind-admin) |
 
 ### Railway API URL
@@ -937,8 +937,8 @@ SUPABASE_SERVICE_ROLE_KEY
 ANTHROPIC_API_KEY
 APOLLO_API_KEY
 RESEND_API_KEY
-PAYSTACK_SECRET_KEY          ← test key now — update to live key after KYC
-PAYSTACK_WEBHOOK_SECRET
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
 ADMIN_SECRET_KEY
 FOUNDER_EMAIL                ← update to hello@get-kind.com after Workspace
 FIGSY_REPLY_TO=replies@get-kind.com
@@ -951,12 +951,12 @@ PORTAL_URL=https://app.get-kind.com
 RESEND_WEBHOOK_SECRET=          ← same string registered in Resend webhook dashboard
 FIGSY_KIND_CLIENT_ID=           ← your own client UUID (find in Supabase clients table)
 HUBSPOT_API_KEY=                ← from HubSpot → Settings → Private Apps → "KIND AI"
-PAYSTACK_PLAN_VA_MONTHLY=       ← from Paystack Plans dashboard
-PAYSTACK_PLAN_VA_ANNUAL=
-PAYSTACK_PLAN_CHATBOT_MONTHLY=
-PAYSTACK_PLAN_CHATBOT_ANNUAL=
-PAYSTACK_PLAN_FIGSY_MONTHLY=
-PAYSTACK_PLAN_FIGSY_ANNUAL=
+STRIPE_PRICE_LEADGEN_40=        ← 40-credit Lead Gen bundle
+STRIPE_PRICE_FIGSY_40=          ← 40-credit FIGSY bundle  
+STRIPE_PRICE_MILLA_MONTHLY=     ← Milla $49/mo subscription
+STRIPE_PRICE_VIDA_MONTHLY=      ← Vida $39/mo subscription
+NEXT_PUBLIC_STRIPE_PRICE_MILLA_MONTHLY=
+NEXT_PUBLIC_STRIPE_PRICE_VIDA_MONTHLY=
 FLUTTERWAVE_SECRET_KEY=     ← from Flutterwave dashboard → API Keys
 FLUTTERWAVE_WEBHOOK_HASH=   ← set in Flutterwave webhook settings, copy same string here
 ```
@@ -981,7 +981,7 @@ WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
 ```
 
-### Cron Jobs (16 jobs — built into API, auto-starts on boot)
+### Cron Jobs (19 jobs — built into API, auto-starts on boot)
 | Schedule (UTC) | SAST | Endpoint | Purpose |
 |---|---|---|---|
 | 5 5 * * * | 07:05 | POST /internal/founder-brief | Founder morning brief email |
@@ -1032,8 +1032,8 @@ WHATSAPP_VERIFY_TOKEN=
 #### 💳 Billing
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 8 | Go to Billing → buy credits | Paystack payment page opens | Nothing opens / error |
-| 8b | Complete test payment | Returns to portal, balance updated | Stuck on Paystack / balance unchanged |
+| 8 | Go to Billing → buy credits | Stripe checkout opens | Nothing opens / error |
+| 8b | Complete test payment | Returns to portal, balance updated | Stuck on Stripe / balance unchanged |
 
 #### 🔒 Gated Features
 | # | Do this | Pass ✅ | Fail ❌ |
@@ -1206,7 +1206,7 @@ Send them here. I fix in real time.
 | FIGSY add-on — AE activates via admin | ✅ Built |
 | Sales demo — Admin → Demo Envs → open portal as prospect | ✅ Built |
 | Opt-out — lead replies stop → auto-blocklist | ✅ Built |
-| Auto top-up — credits hit threshold → Paystack charges | ✅ Built |
+| Auto top-up — credits hit threshold → Stripe charges | ✅ Built |
 | Subscription lapse — period ends → marked lapsed → email sent | ✅ Built |
 
 ---
@@ -1311,7 +1311,7 @@ K.I.N.D sells itself using K.I.N.D. FIGSY finds and contacts our own prospects. 
 3. Reach out personally to 10 warm contacts this week
 4. Every interested response → 30-min discovery call (script in Section 16)
 5. Every discovery call → live demo using Demo Environments
-6. Close → Paystack (after KYC) or manual invoice
+6. Close → Stripe checkout or manual invoice
 7. Day 1–3: onboarding call, ICP together, first leads running
 8. Day 3: ask for referral
 
@@ -1374,7 +1374,7 @@ K.I.N.D sells itself using K.I.N.D. FIGSY finds and contacts our own prospects. 
 
 | # | Action |
 |---|--------|
-| 1 | Paystack KYC complete → live key in Railway |
+| 1 | Stripe fully activated (keys + prices + webhook secret in Railway) |
 | 2 | Google Workspace live → hello@get-kind.com receiving mail |
 | 3 | Calendar booking link live → all "Book a Demo" buttons working |
 | 4 | FIGSY_KIND_CLIENT_ID set → self-outreach running |
@@ -1524,7 +1524,7 @@ Once you have the company number, Claude will:
 | POPIA compliance | ❌ Not South Africa specific | ❌ Not built (noted in Section 9) |
 | Billing / subscriptions | ⚠️ Their own billing — not yours to control | ✅ Stripe — credits + subscriptions |
 | Credit system | ❌ No native credit model | ✅ Built (credit_balance, transactions) |
-| Background jobs | ❌ Not exposed | ✅ 16 cron jobs (Railway) |
+| Background jobs | ❌ Not exposed | ✅ 19 cron jobs (Railway) |
 | Email sending | ⚠️ Notifications only — not outbound campaigns | ✅ Resend + FIGSY sequences |
 | Sequence engine | ❌ No outbound email sequences | ✅ Built (multi-step, variable days) |
 | Reply detection | ❌ Not built | ✅ Built (auto-pause on reply) |
@@ -2576,7 +2576,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | HIPAA / SOC2 / GDPR | ✅ Enterprise | ❌ SOC2 Q1 2027 | ⚠️ Roadmapped |
 | POPIA | ❌ Not SA-specific | ✅ Full POPIA compliance built | ✅ We win |
 | Credit system | ❌ No credit model | ✅ Built (credit_balance, transactions) | ✅ We win |
-| Background jobs | ❌ Not exposed | ✅ 16 cron jobs (Railway) | ✅ We win |
+| Background jobs | ❌ Not exposed | ✅ 19 cron jobs (Railway) | ✅ We win |
 | Email sending (outbound sequences) | ❌ Notifications only | ✅ Resend + FIGSY sequences | ✅ We win |
 | Sequence engine | ❌ No outbound sequences | ✅ Built (multi-step, variable days) | ✅ We win |
 | Reply detection | ❌ Not built | ✅ Auto-pause on reply | ✅ We win |

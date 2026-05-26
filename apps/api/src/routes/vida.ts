@@ -182,6 +182,34 @@ portalRouter.get('/stats', async (req: AuthRequest, res) => {
 
 const widgetRouter = Router()
 
+// Simple in-memory rate limiter for public widget message endpoint
+// 20 messages per IP per minute — prevents bot abuse without a package dep
+const _widgetRateMap = new Map<string, { count: number; resetAt: number }>()
+const WIDGET_RATE_LIMIT = 20
+const WIDGET_RATE_WINDOW_MS = 60_000
+function widgetRateLimit(req: any, res: any, next: any) {
+  const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ?? req.ip ?? 'unknown'
+  const now = Date.now()
+  const entry = _widgetRateMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _widgetRateMap.set(ip, { count: 1, resetAt: now + WIDGET_RATE_WINDOW_MS })
+    return next()
+  }
+  entry.count++
+  if (entry.count > WIDGET_RATE_LIMIT) {
+    res.setHeader('Retry-After', '60')
+    res.status(429).json({ success: false, error: 'Too many requests' }); return
+  }
+  next()
+}
+// Prune stale entries every 5 min to avoid memory leak
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, e] of _widgetRateMap.entries()) {
+    if (now > e.resetAt) _widgetRateMap.delete(ip)
+  }
+}, 300_000)
+
 // GET /vida/widget/:clientId/config
 widgetRouter.get('/:clientId/config', async (req, res) => {
   try {
@@ -244,7 +272,7 @@ const SendMessageSchema = z.object({
 })
 
 // POST /vida/widget/:clientId/session/:sessionId/message
-widgetRouter.post('/:clientId/session/:sessionId/message', async (req, res) => {
+widgetRouter.post('/:clientId/session/:sessionId/message', widgetRateLimit, async (req, res) => {
   try {
     const { clientId, sessionId } = req.params
 

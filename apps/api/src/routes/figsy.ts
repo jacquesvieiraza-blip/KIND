@@ -6,6 +6,184 @@ import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead } fr
 import { pushDealToCrm } from '../lib/crm'
 
 export const figsyRouter = Router()
+
+// ── INBOUND REPLY WEBHOOK — must be registered BEFORE requireAuth ─────────────
+// Called by Resend when a prospect replies to a FIGSY sequence email.
+// No JWT auth — protected by RESEND_WEBHOOK_SECRET header check instead.
+figsyRouter.post('/replies/inbound', async (req, res) => {
+  // Verify webhook secret so random actors can't post fake replies
+  const secret = process.env.RESEND_WEBHOOK_SECRET
+  if (secret && req.headers['x-webhook-secret'] !== secret) {
+    res.status(401).json({ error: 'Unauthorized' }); return
+  }
+
+  try {
+    const payload = req.body as {
+      from: string
+      subject?: string
+      text?: string
+      html?: string
+    }
+
+    const fromEmail = payload.from?.toLowerCase().trim()
+    const body = payload.text || payload.html?.replace(/<[^>]+>/g, ' ') || ''
+
+    if (!fromEmail || !body) { res.status(200).json({ received: true }); return }
+
+    // Find lead by email
+    const { data: lead } = await db.from('leads')
+      .select('id, client_id').eq('email', fromEmail).maybeSingle()
+    if (!lead) { res.status(200).json({ received: true }); return }
+
+    // Find active enrollment
+    const { data: enrollment } = await db.from('figsy_enrollments')
+      .select('id, campaign_id')
+      .eq('lead_id', lead.id)
+      .in('status', ['enrolled', 'in_progress'])
+      .order('enrolled_at', { ascending: false })
+      .limit(1).maybeSingle()
+
+    // Classify reply
+    const { classification, reasoning } = await classifyReply(body)
+
+    // Store reply
+    const { data: reply } = await db.from('figsy_replies').insert({
+      enrollment_id:               enrollment?.id ?? null,
+      campaign_id:                 enrollment?.campaign_id ?? null,
+      lead_id:                     lead.id,
+      client_id:                   lead.client_id,
+      from_email:                  fromEmail,
+      subject:                     payload.subject ?? null,
+      body,
+      classification,
+      classification_reasoning:    reasoning,
+      raw_payload:                 payload,
+      processed_at:                new Date().toISOString(),
+    }).select('id').single()
+
+    // Handle opt-out — pause enrollment and add to blocklist
+    if (classification === 'opt_out') {
+      if (enrollment) {
+        await db.from('figsy_enrollments')
+          .update({ status: 'opted_out' }).eq('id', enrollment.id)
+      }
+      await db.from('opt_out_blocklist').upsert({
+        email:  fromEmail,
+        reason: 'replied_opt_out',
+      }, { onConflict: 'email', ignoreDuplicates: false })
+      await db.from('leads').update({
+        status: 'opted_out', opted_out_at: new Date().toISOString(),
+      }).eq('email', fromEmail)
+
+      if (enrollment?.campaign_id) {
+        const { data: camp } = await db.from('figsy_campaigns')
+          .select('opted_out, replies_total').eq('id', enrollment.campaign_id).single()
+        if (camp) {
+          await db.from('figsy_campaigns').update({
+            opted_out:    (camp.opted_out    ?? 0) + 1,
+            replies_total:(camp.replies_total?? 0) + 1,
+          }).eq('id', enrollment.campaign_id)
+        }
+      }
+    }
+
+    // Handle interested — pause sequence, bump stats, push deal to CRM
+    if (classification === 'interested' && enrollment) {
+      await db.from('figsy_enrollments')
+        .update({ status: 'replied' }).eq('id', enrollment.id)
+
+      const { data: camp } = await db.from('figsy_campaigns')
+        .select('replies_interested, replies_total').eq('id', enrollment.campaign_id).single()
+      if (camp) {
+        await db.from('figsy_campaigns').update({
+          replies_interested: (camp.replies_interested ?? 0) + 1,
+          replies_total:      (camp.replies_total       ?? 0) + 1,
+        }).eq('id', enrollment.campaign_id)
+      }
+
+      // F2-2 — push deal/opportunity to client's CRM
+      const { data: leadFull } = await db.from('leads')
+        .select('id, first_name, last_name, email, job_title, company, linkedin_url, country, score')
+        .eq('id', lead.id).single()
+      const { data: client } = await db.from('clients')
+        .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).single()
+
+      if (client?.crm_sync_enabled && client?.crm_type && client?.crm_api_key && leadFull) {
+        const leadName = `${leadFull.first_name} ${leadFull.last_name}`.trim()
+        pushDealToCrm(client.crm_type, client.crm_api_key, {
+          ...leadFull,
+          phone: null,
+        }, {
+          lead_name:     leadName,
+          company:       leadFull.company,
+          reply_snippet: body.slice(0, 300),
+        }).then(result => {
+          if (result.success && result.deal_id && enrollment) {
+            db.from('figsy_enrollments').update({
+              crm_deal_id:   result.deal_id,
+              crm_pushed_at: new Date().toISOString(),
+            }).eq('id', enrollment.id).then(() => {})
+          }
+        }).catch(console.error)
+      }
+
+      // Auto top-up check
+      try {
+        const { data: clientForTopup } = await db.from('clients')
+          .select('id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
+          .eq('id', lead.client_id).single()
+        if (clientForTopup?.auto_topup_enabled &&
+            clientForTopup.auto_topup_paystack_auth &&
+            (clientForTopup.credit_balance ?? 0) < (clientForTopup.auto_topup_threshold ?? 0)) {
+          const plan = clientForTopup.auto_topup_plan ?? 'kind_ai'
+          const bundleSize = clientForTopup.auto_topup_bundle_size ?? 20
+          const BUNDLES: Record<string, Record<number, number>> = {
+            kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
+            figsy:   { 10: 35, 20: 60, 40: 110, 75: 195, 100: 250, 200: 460, 500: 1100 },
+          }
+          const amountUsd = BUNDLES[plan]?.[bundleSize]
+          if (amountUsd) {
+            const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.id)
+            const topupEmail = user?.email
+            if (!topupEmail) throw new Error('No email for auto-topup client')
+            const amountZarKobo = Math.round(amountUsd * 19 * 100)
+            const chargeRes = await fetch('https://api.paystack.co/transaction/charge_authorization', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                authorization_code: clientForTopup.auto_topup_paystack_auth,
+                email: topupEmail,
+                amount: amountZarKobo,
+                currency: 'ZAR',
+                metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
+              }),
+            })
+            const chargeData = await chargeRes.json() as { status: boolean; data: { status: string } }
+            if (chargeData.status && chargeData.data?.status === 'success') {
+              const newBal = (clientForTopup.credit_balance ?? 0) + bundleSize
+              await Promise.all([
+                db.from('clients').update({ credit_balance: newBal }).eq('id', clientForTopup.id),
+                db.from('credit_transactions').insert({
+                  client_id: clientForTopup.id,
+                  type: 'purchase',
+                  amount: bundleSize,
+                  plan,
+                  note: `Auto top-up: ${bundleSize} credits (${plan})`,
+                }),
+              ])
+            }
+          }
+        }
+      } catch (autoErr) { console.error('[auto-topup]', autoErr) }
+    }
+
+    res.status(200).json({ received: true, id: reply?.id })
+  } catch (err) {
+    console.error('[figsy/inbound]', err)
+    res.status(200).json({ received: true }) // Always 200 to webhook provider
+  }
+})
+
 figsyRouter.use(requireAuth)
 
 async function getClientId(userId: string): Promise<string | null> {
@@ -364,175 +542,6 @@ figsyRouter.get('/campaigns/:id/replies', async (req: AuthRequest, res) => {
     if (error) throw error
     res.json({ success: true, data })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch replies' }) }
-})
-
-// Inbound reply webhook (called by Resend or email provider)
-figsyRouter.post('/replies/inbound', async (req, res) => {
-  try {
-    const payload = req.body as {
-      from: string
-      subject?: string
-      text?: string
-      html?: string
-    }
-
-    const fromEmail = payload.from?.toLowerCase().trim()
-    const body = payload.text || payload.html?.replace(/<[^>]+>/g, ' ') || ''
-
-    if (!fromEmail || !body) { res.status(200).json({ received: true }); return }
-
-    // Find lead by email
-    const { data: lead } = await db.from('leads')
-      .select('id, client_id').eq('email', fromEmail).maybeSingle()
-    if (!lead) { res.status(200).json({ received: true }); return }
-
-    // Find active enrollment
-    const { data: enrollment } = await db.from('figsy_enrollments')
-      .select('id, campaign_id')
-      .eq('lead_id', lead.id)
-      .in('status', ['enrolled', 'in_progress'])
-      .order('enrolled_at', { ascending: false })
-      .limit(1).maybeSingle()
-
-    // Classify reply
-    const { classification, reasoning } = await classifyReply(body)
-
-    // Store reply
-    const { data: reply } = await db.from('figsy_replies').insert({
-      enrollment_id:               enrollment?.id ?? null,
-      campaign_id:                 enrollment?.campaign_id ?? null,
-      lead_id:                     lead.id,
-      client_id:                   lead.client_id,
-      from_email:                  fromEmail,
-      subject:                     payload.subject ?? null,
-      body,
-      classification,
-      classification_reasoning:    reasoning,
-      raw_payload:                 payload,
-      processed_at:                new Date().toISOString(),
-    }).select('id').single()
-
-    // Handle opt-out — pause enrollment and add to blocklist
-    if (classification === 'opt_out') {
-      if (enrollment) {
-        await db.from('figsy_enrollments')
-          .update({ status: 'opted_out' }).eq('id', enrollment.id)
-      }
-      await db.from('opt_out_blocklist').upsert({
-        email:  fromEmail,
-        reason: 'replied_opt_out',
-      }, { onConflict: 'email', ignoreDuplicates: false })
-      await db.from('leads').update({
-        status: 'opted_out', opted_out_at: new Date().toISOString(),
-      }).eq('email', fromEmail)
-
-      if (enrollment?.campaign_id) {
-        const { data: camp } = await db.from('figsy_campaigns')
-          .select('opted_out, replies_total').eq('id', enrollment.campaign_id).single()
-        if (camp) {
-          await db.from('figsy_campaigns').update({
-            opted_out:    (camp.opted_out    ?? 0) + 1,
-            replies_total:(camp.replies_total?? 0) + 1,
-          }).eq('id', enrollment.campaign_id)
-        }
-      }
-    }
-
-    // Handle interested — pause sequence, bump stats, push deal to CRM
-    if (classification === 'interested' && enrollment) {
-      await db.from('figsy_enrollments')
-        .update({ status: 'replied' }).eq('id', enrollment.id)
-
-      const { data: camp } = await db.from('figsy_campaigns')
-        .select('replies_interested, replies_total').eq('id', enrollment.campaign_id).single()
-      if (camp) {
-        await db.from('figsy_campaigns').update({
-          replies_interested: (camp.replies_interested ?? 0) + 1,
-          replies_total:      (camp.replies_total       ?? 0) + 1,
-        }).eq('id', enrollment.campaign_id)
-      }
-
-      // F2-2 — push deal/opportunity to client's CRM
-      const { data: leadFull } = await db.from('leads')
-        .select('id, first_name, last_name, email, job_title, company, linkedin_url, country, score')
-        .eq('id', lead.id).single()
-      const { data: client } = await db.from('clients')
-        .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).single()
-
-      if (client?.crm_sync_enabled && client?.crm_type && client?.crm_api_key && leadFull) {
-        const leadName = `${leadFull.first_name} ${leadFull.last_name}`.trim()
-        pushDealToCrm(client.crm_type, client.crm_api_key, {
-          ...leadFull,
-          phone: null,
-        }, {
-          lead_name:     leadName,
-          company:       leadFull.company,
-          reply_snippet: body.slice(0, 300),
-        }).then(result => {
-          if (result.success && result.deal_id && enrollment) {
-            db.from('figsy_enrollments').update({
-              crm_deal_id:   result.deal_id,
-              crm_pushed_at: new Date().toISOString(),
-            }).eq('id', enrollment.id).then(() => {})
-          }
-        }).catch(console.error)
-      }
-
-      // Auto top-up check
-      try {
-        const { data: clientForTopup } = await db.from('clients')
-          .select('id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
-          .eq('id', lead.client_id).single()
-        if (clientForTopup?.auto_topup_enabled &&
-            clientForTopup.auto_topup_paystack_auth &&
-            (clientForTopup.credit_balance ?? 0) < (clientForTopup.auto_topup_threshold ?? 0)) {
-          const plan = clientForTopup.auto_topup_plan ?? 'kind_ai'
-          const bundleSize = clientForTopup.auto_topup_bundle_size ?? 20
-          const BUNDLES: Record<string, Record<number, number>> = {
-            kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
-            figsy:   { 10: 35, 20: 60, 40: 110, 75: 195, 100: 250, 200: 460, 500: 1100 },
-          }
-          const amountUsd = BUNDLES[plan]?.[bundleSize]
-          if (amountUsd) {
-            const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.id)
-            const topupEmail = user?.email
-            if (!topupEmail) throw new Error('No email for auto-topup client')
-            const amountZarKobo = Math.round(amountUsd * 19 * 100)
-            const chargeRes = await fetch('https://api.paystack.co/transaction/charge_authorization', {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                authorization_code: clientForTopup.auto_topup_paystack_auth,
-                email: topupEmail,
-                amount: amountZarKobo,
-                currency: 'ZAR',
-                metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
-              }),
-            })
-            const chargeData = await chargeRes.json() as { status: boolean; data: { status: string } }
-            if (chargeData.status && chargeData.data?.status === 'success') {
-              const newBal = (clientForTopup.credit_balance ?? 0) + bundleSize
-              await Promise.all([
-                db.from('clients').update({ credit_balance: newBal }).eq('id', clientForTopup.id),
-                db.from('credit_transactions').insert({
-                  client_id: clientForTopup.id,
-                  type: 'purchase',
-                  amount: bundleSize,
-                  plan,
-                  note: `Auto top-up: ${bundleSize} credits (${plan})`,
-                }),
-              ])
-            }
-          }
-        }
-      } catch (autoErr) { console.error('[auto-topup]', autoErr) }
-    }
-
-    res.status(200).json({ received: true, id: reply?.id })
-  } catch (err) {
-    console.error('[figsy/inbound]', err)
-    res.status(200).json({ received: true }) // Always 200 to webhook provider
-  }
 })
 
 // ── AI FOLLOW-UP DRAFT ────────────────────────────────────────────────────────

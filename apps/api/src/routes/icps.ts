@@ -3,7 +3,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { buildSearchBody, searchPeople, searchPeopleWithFallback } from '../lib/apollo'
+import { searchPeopleWithFallback } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -259,12 +259,15 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
     // Auto-run on creation — only if client has credits
-    db.from('clients').select('credit_balance').eq('id', clientId).single().then(({ data: bal }) => {
-      const autoRunCap = bal?.credit_balance ?? 0
-      if (autoRunCap > 0) {
-        runIcpJob(data.id, clientId, req.userId!, autoRunCap).catch(console.error)
-      }
-    }).catch(console.error)
+    ;(async () => {
+      try {
+        const { data: bal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+        const autoRunCap = bal?.credit_balance ?? 0
+        if (autoRunCap > 0) {
+          await runIcpJob(data.id, clientId, req.userId!, autoRunCap)
+        }
+      } catch (autoErr) { console.error('[icp auto-run]', autoErr) }
+    })()
     res.status(201).json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

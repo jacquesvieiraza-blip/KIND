@@ -865,30 +865,41 @@ END $$;
 
 ---
 
-### 🧪 TEST 3 — Payments
-*Goal: Full payment flow end-to-end. Run AFTER Test 2.*
-*Pre-req: Stripe webhook secret must be set in Railway (`STRIPE_WEBHOOK_SECRET`).*
-*Pre-req: 4 Stripe price IDs must be in Railway.*
+### 🧪 TEST 3 — Payments (Full Stripe Flow)
+*Goal: Full Stripe payment flow — credits + both agent subscriptions.*
+*Pre-req: `STRIPE_WEBHOOK_SECRET` in Railway.*
+*Pre-req: 6 Stripe price IDs in Railway (4 credit + 2 subscription).*
+*Test card: `4242 4242 4242 4242` · any future expiry · any CVC · any postcode*
 
-#### 💳 Stripe — Credit Purchase
+#### 💳 Credit Purchase
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 35 | Go to Billing → buy credits → select Stripe | Stripe checkout opens | Nothing / Paystack opens instead |
-| 36 | Use Stripe test card `4242 4242 4242 4242` | Payment accepted | Declined / error |
-| 37 | Return to portal | Credits added to balance | Balance unchanged |
-| 38 | Check credit transaction history | Purchase entry appears | Nothing recorded |
+| 35 | Billing → Lead Gen → select 20 credits → Buy | Stripe checkout opens | Nothing opens — `STRIPE_PRICE_LEADGEN_20` missing |
+| 36 | Complete with test card | Payment accepted | Declined — wrong test mode key |
+| 37 | Return to portal | Balance +20 credits | Unchanged — webhook not firing |
+| 38 | Transaction history | Purchase entry appears | Missing — webhook issue |
 
-#### 💳 Paystack — Credit Purchase
+#### 🤖 Milla Subscription
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 39 | Go to Billing → buy credits → Paystack | Paystack opens with ZAR amount | Nothing opens |
-| 40 | Complete test payment | Returns to portal, credits added | Stuck / credits not added |
+| 39 | Billing → Milla card → **Unlock Milla — $49/month** | Stripe checkout opens in **subscription mode** (shows "£/$/€49 per month") | Nothing — `STRIPE_PRICE_MILLA_MONTHLY` missing |
+| 40 | Complete with test card | Redirects to `/dashboard/assistant?subscribed=1` | Stuck on Stripe |
+| 41 | Milla page loads — no upgrade prompt | Full Milla dashboard visible | Still shows upgrade prompt — webhook not firing |
+| 42 | Go back to Billing | Milla card shows green **Subscribed** badge | Still shows buy button |
+
+#### 💬 Vida Subscription
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 43 | Billing → Vida card → **Unlock Vida — $39/month** | Stripe checkout opens in **subscription mode** | Nothing — `STRIPE_PRICE_VIDA_MONTHLY` missing |
+| 44 | Complete with test card | Redirects to `/dashboard/chatbot?subscribed=1` | Stuck on Stripe |
+| 45 | Vida page loads — no upgrade prompt | Full Vida config page visible | Still shows upgrade prompt — webhook not firing |
+| 46 | Go back to Billing | Vida card shows green **Subscribed** badge | Still shows buy button |
 
 #### 🔄 Auto Top-Up
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 41 | Admin → reduce test account credits to 2 | Balance shows 2 | Error |
-| 42 | Wait for next credit warning cron (07:40 UTC) OR trigger manually | Warning email received | No email |
+| 47 | Admin → reduce test account credits to 2 | Balance shows 2 | Error |
+| 48 | Enable auto top-up in Billing settings → save | Saved confirmation | Error |
 
 ---
 
@@ -898,27 +909,27 @@ END $$;
 #### ⚠️ Zero Credits
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 43 | Admin → set credits to 0 | Portal shows credit warning / top-up prompt | No warning |
-| 44 | Try to run lead search with 0 credits | Blocked with clear message | Runs anyway / silent fail |
+| 49 | Admin → set credits to 0 | Portal shows credit warning / top-up prompt | No warning |
+| 50 | Try to run lead search with 0 credits | Blocked with clear message | Runs anyway / silent fail |
 
 #### 🚫 Opt-Out / Unsubscribe Flow
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 45 | In Leads → manually block a lead | Lead status → `opted_out` | Nothing |
-| 46 | Try to send POPIA consent to that blocked lead | Blocked — cannot send to opted-out lead | Sends anyway |
-| 47 | Check opt-out blocklist in Supabase | Lead email appears in `opt_out_blocklist` | Not there |
+| 51 | In Leads → manually block a lead | Lead status → `opted_out` | Nothing |
+| 52 | Try to send POPIA consent to that blocked lead | Blocked — cannot send to opted-out lead | Sends anyway |
+| 53 | Check opt-out blocklist in Supabase | Lead email appears in `opt_out_blocklist` | Not there |
 
 #### 🔁 Session & Auth
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 48 | Open portal in private/incognito tab | Redirects to login | Shows dashboard to unauthenticated user |
-| 49 | Let session expire (or clear cookies) → reload | Redirects to login cleanly | Blank screen / crash |
+| 54 | Open portal in private/incognito tab | Redirects to login | Shows dashboard to unauthenticated user |
+| 55 | Let session expire (or clear cookies) → reload | Redirects to login cleanly | Blank screen / crash |
 
 #### 📧 Email Delivery Check
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 50 | Check Gmail for welcome email | Received, renders correctly | Missing / in spam |
-| 51 | Check Gmail for POPIA consent email (from step 6) | Received, unsubscribe link works | Missing / broken link |
+| 56 | Check Gmail for welcome email | Received, renders correctly | Missing / in spam |
+| 57 | Check Gmail for POPIA consent email (from step 6) | Received, unsubscribe link works | Missing / broken link |
 
 ---
 

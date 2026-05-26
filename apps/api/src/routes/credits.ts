@@ -9,9 +9,10 @@ creditRouter.use(requireAuth)
 if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('PAYSTACK_SECRET_KEY is required')
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY
 
+// Pricing locked — two tiers only. Must match packages/shared/src/constants/index.ts exactly.
 const BUNDLES: Record<'kind_ai' | 'figsy', Record<number, number>> = {
-  kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
-  figsy:   { 10: 35, 20: 60, 40: 110, 75: 195, 100: 250, 200: 460, 500: 1100 },
+  kind_ai: { 20: 20, 100: 100 },
+  figsy:   { 20: 60, 100: 300 },
 }
 
 // ── GET balance + transaction history ─────────────────────────────────────────

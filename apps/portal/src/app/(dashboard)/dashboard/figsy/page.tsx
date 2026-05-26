@@ -103,7 +103,7 @@ export default function FigsyPage() {
       const subs = subsRes.data ?? []
       const hasSub = subs.some(
         s => (s.product === 'lead_gen_figsy' || s.product === 'figsy_addon') &&
-             (s.status === 'active' || s.status === 'trialing')
+             s.status === 'active'
       )
       setHasFigsySub(hasSub)
     } catch (err) {

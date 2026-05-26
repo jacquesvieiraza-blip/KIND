@@ -269,7 +269,13 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data, error } = await safeIcpInsert({ ...body, client_id: clientId })
     if (error) throw error
-    runIcpJob(data!.id, clientId, req.userId!).catch(console.error)
+    // Fetch balance before auto-run — cap insertions so credits are never over-spent
+    const { data: clientBalance } = await db.from('clients')
+      .select('credit_balance').eq('id', clientId).single()
+    const autoRunCap = clientBalance?.credit_balance ?? 0
+    if (autoRunCap > 0) {
+      runIcpJob(data!.id, clientId, req.userId!, autoRunCap).catch(console.error)
+    }
     res.status(201).json({ success: true, data })
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -341,7 +347,11 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
       return
     }
 
-    const { inserted, skipped, relaxed } = await runIcpJob(req.params.id, clientId, req.userId!)
+    // Fetch the balance AFTER any trial grant — this is the hard cap for this run
+    const { data: afterGrant } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+    const effectiveBalance = afterGrant?.credit_balance ?? 0
+
+    const { inserted, skipped, relaxed } = await runIcpJob(req.params.id, clientId, req.userId!, effectiveBalance)
 
     // Deduct 1 credit per lead inserted
     if (inserted > 0) {

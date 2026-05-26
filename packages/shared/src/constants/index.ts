@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // K.I.N.D Pricing — LOCKED. Never change without authorisation.
-// Lead Gen:   $1/credit (20-credit bundle = $20, 100-credit bundle = $100)
-// FIGSY:      $3/outreach-credit (20-credit bundle = $60, 100-credit bundle = $300)
+// Lead Gen:   $1/credit flat (no volume discounts — annual plans only)
+// FIGSY:      $3/outreach-credit flat (no volume discounts — annual plans only)
 // Milla VA:   $49/month flat
 // Vida Chat:  $29/month flat
 // Bundle:     $69/month (Milla + Vida)
@@ -14,6 +14,7 @@ export const PRICING = {
     credit_rate_usd: 1.00,
     bundles: [
       { credits: 20,  price_usd: 20  },
+      { credits: 40,  price_usd: 40  },
       { credits: 100, price_usd: 100 },
     ],
     trial_credits: 20,
@@ -25,6 +26,7 @@ export const PRICING = {
     credit_rate_usd: 3.00,
     bundles: [
       { credits: 20,  price_usd: 60  },
+      { credits: 40,  price_usd: 120 },
       { credits: 100, price_usd: 300 },
     ],
   },

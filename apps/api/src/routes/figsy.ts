@@ -88,8 +88,8 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       }
     }
 
-    // Handle interested — pause sequence, bump stats, push deal to CRM
-    if (classification === 'interested' && enrollment) {
+    // Handle hot — pause sequence, bump stats, push deal to CRM
+    if (classification === 'hot' && enrollment) {
       await db.from('figsy_enrollments')
         .update({ status: 'replied' }).eq('id', enrollment.id)
 
@@ -213,7 +213,7 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
     ] = await Promise.all([
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'interested'),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'hot'),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out'),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
@@ -619,8 +619,8 @@ figsyRouter.post('/replies/:replyId/suggest', async (req: AuthRequest, res) => {
       .single()
     if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
 
-    if (reply.classification !== 'interested') {
-      res.status(400).json({ error: 'Only available for interested replies' }); return
+    if (reply.classification !== 'hot' && reply.classification !== 'interested') {
+      res.status(400).json({ error: 'Only available for hot/interested replies' }); return
     }
 
     const lead = Array.isArray(reply.leads) ? reply.leads[0] : reply.leads

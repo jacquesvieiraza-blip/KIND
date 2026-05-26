@@ -1,4 +1,6 @@
 import 'dotenv/config'
+import { runStartupCheck } from './lib/startup-check'
+runStartupCheck()
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'

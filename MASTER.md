@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 26 May 2026 (evening)**
+**Single source of truth. Last updated: 27 May 2026 (overnight build)**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 > Everything in one place. Status, roadmap, GTM, company registration, expansion, compliance, SOPs, cashflow.
@@ -121,7 +121,7 @@
 ### ⚠️ Known Technical Debt (audit findings — log for later)
 | Issue | Severity | Notes |
 |---|---|---|
-| Duplicate /leads/consent/bulk and /leads/bulk-consent routes | Medium | Same functionality, different param names. Pick one and deprecate other |
+| Duplicate /leads/consent/bulk and /leads/bulk-consent routes | Medium | Same functionality, different param names. Pick one and deprecate other. NOTE: all other "duplicate" routes were GET+POST on same path — correct REST, not bugs. |
 | Credit deduction race condition in /leads/drip | Medium | High concurrency could overdraw. Acceptable for current scale — add DB transaction when you have 100+ concurrent clients |
 | ICP delete doesn't cascade leads | High | Deleting an ICP orphans its leads. Add `ON DELETE SET NULL` to icp_id FK in schema |
 | Exchange rate hardcoded at R19/$ in credits.ts | Medium | Update monthly or add daily rate fetch when you have 50+ paying clients |
@@ -265,6 +265,13 @@
 | Admin HubSpot pipeline page — /hubspot: Kanban by stage, setup guide if key absent | 26 May |
 | Competitor ICP seed configs — supabase/seeds/competitor_icps.sql: Lemlist/Instantly/Clay/Apollo users in Africa | 26 May |
 | Cron stagger — morning brief at 05:05 UTC, no conflict with auto-replenish at 05:00 | 26 May |
+| **Credit race condition fix** — unique index on `credit_transactions.reference` + atomic RPC `increment_client_credits` — double-spend impossible | 27 May |
+| **Startup env check** — `lib/startup-check.ts` runs at boot, logs CRITICAL/IMPORTANT/OPTIONAL vars, refuses to start if CRITICAL missing | 27 May |
+| **AI reply categorisation upgrade** — 7 categories: 🔥 Hot / 🌤️ Warm / ❄️ Cold / 🚫 Opted out / 👤 Wrong person / ✈️ OOO / ❓ Other. Replaces 5-category system. Backward compatible (old 'interested'→hot, 'not_interested'→cold) | 27 May |
+| **Unibox (admin)** — `/unibox` in admin dashboard: all FIGSY replies across all clients, filtered by classification, hot-sorted. Added to nav | 27 May |
+| **Portal reply inbox upgrade** — new Hot/Warm/Cold/Wrong person/OOO labels + emoji, actionable summary bar, sorted by priority | 27 May |
+| **Homepage hero rewrite** — outcome-first: "Stop chasing leads. Let FIGSY book them." — website + landing | 27 May |
+| **Duplicate routes audit** — investigated all flagged routes: all were different HTTP methods (GET+POST) on same path. No true duplicates. Technical debt entry updated. | 27 May |
 
 ### Ready Now (say the word)
 | Task | Time |

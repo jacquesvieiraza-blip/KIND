@@ -96,34 +96,61 @@ Return ONLY valid JSON, no markdown:
   return JSON.parse(raw) as SequenceDraft
 }
 
+export type ReplyClassification =
+  | 'hot'           // 🔥 Ready to talk — wants a call, asks next steps, agrees to meet
+  | 'warm'          // 🌤️ Interested but not now — open to future conversation
+  | 'cold'          // ❄️ Not relevant — politely declines, wrong timing, not a fit
+  | 'opt_out'       // 🚫 Stop emailing — explicit unsubscribe request
+  | 'wrong_person'  // 👤 Not the right contact — forwarded, CC'd someone else, refers elsewhere
+  | 'out_of_office' // ✈️ Auto-reply or OOO
+  | 'other'         // ❓ Unclear, bounce, spam, or unclassifiable
+
 export async function classifyReply(body: string): Promise<{
-  classification: 'interested' | 'not_interested' | 'opt_out' | 'out_of_office' | 'other'
+  classification: ReplyClassification
   reasoning: string
 }> {
-  const prompt = `Classify this email reply from a B2B cold outreach recipient.
+  const prompt = `You are classifying a B2B cold outreach reply for a sales team.
+Your classification determines how they handle the lead — be precise.
 
 Reply:
 """
-${body.slice(0, 1000)}
+${body.slice(0, 1200)}
 """
 
 Classify as exactly one of:
-- "interested": They want to learn more, ask a question, or agree to a call
-- "not_interested": They politely decline, say not now, or not relevant
-- "opt_out": They explicitly ask to be removed, say stop emailing, or unsubscribe
-- "out_of_office": Auto-reply or OOO message
-- "other": Anything else (bounce, spam, unclear)
+- "hot": Prospect wants to talk NOW — asks for a call, agrees to meet, asks about pricing/details, or says yes
+- "warm": Prospect is interested but not ready — says "maybe later", "reach me in Q3", "send me more info", asks a question without committing
+- "cold": Not a fit right now — politely declines, says not relevant, bad timing with no openness
+- "opt_out": Explicitly wants to be removed — "unsubscribe", "stop emailing me", "remove me from your list"
+- "wrong_person": Not the right contact — "I'm not the decision maker", "try [name]", forwards to someone else
+- "out_of_office": Automated OOO reply, holiday message, or auto-responder
+- "other": Bounce, spam filter response, completely unclear, or unrelated
 
-Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence"}`
+Rules:
+- If they ask ANY question, lean toward "hot" or "warm", not "cold"
+- If they give a future date, use "warm" not "cold"
+- "opt_out" requires explicit unsubscribe language
+- OOO messages are almost always automated and short
+
+Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max"}`
 
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 128,
+    max_tokens: 150,
     messages: [{ role: 'user', content: prompt }],
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
-  return JSON.parse(raw)
+  const parsed = JSON.parse(raw) as { classification: string; reasoning: string }
+
+  // Normalise legacy values that might come back from old prompts
+  const legacyMap: Record<string, ReplyClassification> = {
+    interested:     'hot',
+    not_interested: 'cold',
+  }
+  const classification = (legacyMap[parsed.classification] ?? parsed.classification) as ReplyClassification
+
+  return { classification, reasoning: parsed.reasoning }
 }
 
 export async function sendSequenceEmail(

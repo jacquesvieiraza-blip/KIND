@@ -752,21 +752,198 @@ WHATSAPP_VERIFY_TOKEN=
 
 ## 18. SMOKE TEST CHECKLIST
 
-| Step | Action | Pass condition |
-|---|---|---|
-| 1 | Sign up at get-kind.com | Redirects to app.get-kind.com/login |
-| 2 | Fill email + password → Sign Up | **No confirmation email** — lands directly on /onboard |
-| 3 | Fill company name, industry, country → Start free trial | Dashboard loads with company name |
-| 4 | Build ICP — click "Suggest ICP with AI" | Claude fills form fields automatically |
-| 5 | Adjust and click Save & Find Leads | Leads appear within minutes with scores |
-| 6 | Send POPIA consent to one lead | Email arrives, status → consent_sent |
-| 7 | Export leads as CSV | File downloads with correct columns |
-| 8 | Go to Billing → buy credits | Paystack opens, returns, balance updates |
-| 9 | Check FIGSY / VA / Chatbot screens | Locked screens show Upgrade + Book a Demo |
-| 10 | Sidebar bottom | Green dot "All systems operational" |
-| 11 | Admin → Demo Envs → create demo | Leads appear → Open Demo → portal opens as demo client |
-| 12 | Admin → Clients → pick client → grant 50 credits | Balance updates, transaction recorded |
-| 13 | Sign out → sign back in | Dashboard loads, no empty loop |
+*Updated: 27 May 2026 — full 4-test suite. Run in order. Do not skip.*
+*Account: Brand new Gmail — never used on K.I.N.D before.*
+*URL: https://app.get-kind.com*
+
+---
+
+### 🧪 TEST 1 — Core Platform (Fresh Signup)
+*Goal: Verify the full client journey from signup to first leads, no prior state.*
+
+#### 🔐 Auth
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 1 | Go to `get-kind.com` → click Sign Up | Lands on signup page | Page error / broken link |
+| 2 | Enter new Gmail + password → Sign Up | Goes straight to `/onboard` — **no confirmation email** | Stuck, error, or asks to confirm email |
+| 3 | Fill company name, industry, country → Start free trial | Dashboard loads with your company name | Error or blank screen |
+
+#### 🎯 Leads & ICP
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 4 | Go to Leads → Build ICP → click **"Suggest ICP with AI"** | Claude fills the form automatically | Spinner hangs / empty fields |
+| 5 | Adjust anything → **Save & Find Leads** | Leads appear within 2–3 min with scores | No leads / error |
+| 6 | Click one lead → **Send POPIA consent** | Status changes to `consent_sent` | Nothing happens |
+| 7 | **Export CSV** | File downloads, correct columns | Error or empty file |
+
+#### 💳 Billing
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 8 | Go to Billing → buy credits | Paystack payment page opens | Nothing opens / error |
+| 8b | Complete test payment | Returns to portal, balance updated | Stuck on Paystack / balance unchanged |
+
+#### 🔒 Gated Features
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 9 | Click FIGSY in sidebar | Shows **Upgrade** prompt — not dashboard | Crashes or shows FIGSY dashboard |
+| 10 | Click Assistant (Milla) in sidebar | Shows **Upgrade** prompt | Crashes |
+| 11 | Click Chatbot (Vida) in sidebar | Shows **Upgrade** prompt | Crashes |
+
+#### 📊 Platform Health
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 12 | Bottom of sidebar | 🟢 "All systems operational" | Red dot / missing |
+| 13 | Check Gmail inbox (the account you signed up with) | Welcome email received | Nothing arrives |
+
+#### 🛠️ Admin Check (admin.get-kind.com)
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 14 | Admin → Clients → find new test account | Appears in list | Not there |
+| 15 | Admin → Unibox | Page loads (empty is fine) | 404 or crash |
+| 16 | Admin → grant test account **10,000 credits** | Balance shows 10,000 in portal | Error / wrong balance |
+| 17 | Sign out → sign back in | Dashboard loads clean | Loop / blank screen |
+
+---
+
+### 🧪 TEST 2 — Agents (FIGSY, Milla, Vida)
+*Goal: Full agent experience as a paying client. Run AFTER Test 1.*
+*Pre-req: Run this SQL in Supabase to unlock all agents for the test account.*
+
+**SQL — paste in Supabase SQL Editor, replace email:**
+```sql
+-- Replace with your test Gmail address
+DO $$
+DECLARE
+  v_client_id uuid;
+BEGIN
+  SELECT id INTO v_client_id FROM public.clients
+    WHERE user_id = (
+      SELECT id FROM auth.users WHERE email = 'YOUR_TEST_EMAIL@gmail.com'
+    );
+
+  INSERT INTO public.subscriptions (client_id, product, status, current_period_end)
+  VALUES
+    (v_client_id, 'figsy',             'active', now() + interval '30 days'),
+    (v_client_id, 'virtual_assistant', 'active', now() + interval '30 days'),
+    (v_client_id, 'chatbot',           'active', now() + interval '30 days')
+  ON CONFLICT DO NOTHING;
+END $$;
+```
+
+#### 🔥 FIGSY — AI SDR
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 18 | Click FIGSY in sidebar | FIGSY dashboard loads — NOT upgrade prompt | Still shows upgrade / crashes |
+| 19 | Create a new campaign | Campaign appears in list with status `draft` | Error saving |
+| 20 | Enrol a lead into the campaign | Lead appears in campaign, status `enrolled` | Error |
+| 21 | Click **Pause** on an active campaign | Status changes to `Paused` | Button missing / error |
+| 22 | Click **Resume** on a paused campaign | Status changes back to `Active` | Error |
+| 23 | Click **Delete** on a draft campaign | Campaign removed, confirmation shown | Error |
+| 24 | Go to FIGSY → Replies inbox | Page loads (empty is fine) | 404 or crash |
+| 25 | Check reply labels show new categories | 🔥 Hot / 🌤️ Warm / ❄️ Cold / ✈️ OOO etc | Old labels / missing |
+
+#### ✋ Lead Actions (Stop + Block)
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 26 | Go to Leads → click one lead → **Block lead** | Lead status → `opted_out`, removed from pipeline | Nothing / error |
+| 27 | Confirm blocked lead does NOT re-appear in leads list | Lead gone / marked blocked | Still shows in active leads |
+
+#### 🤖 Milla — Virtual Assistant
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 28 | Click Assistant in sidebar | Milla dashboard loads | Upgrade prompt / crashes |
+| 29 | Upload a test document (any PDF or .txt) | Status shows `Processing` → then `Ready` | Error uploading |
+| 30 | Start a new chat session → ask "What services do we offer?" | Milla replies using the document | Error / blank |
+| 31 | Ask a follow-up question in same session | Milla maintains context | Starts from scratch |
+
+#### 💬 Vida — Chatbot Agent
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 32 | Click Chatbot in sidebar | Vida config page loads | Upgrade prompt / crashes |
+| 33 | Fill bot name, greeting message → Save config | Config saves, confirmation shown | Error |
+| 34 | Copy the embed code shown | Code appears in UI | Nothing shown |
+
+---
+
+### 🧪 TEST 3 — Payments
+*Goal: Full payment flow end-to-end. Run AFTER Test 2.*
+*Pre-req: Stripe webhook secret must be set in Railway (`STRIPE_WEBHOOK_SECRET`).*
+*Pre-req: 4 Stripe price IDs must be in Railway.*
+
+#### 💳 Stripe — Credit Purchase
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 35 | Go to Billing → buy credits → select Stripe | Stripe checkout opens | Nothing / Paystack opens instead |
+| 36 | Use Stripe test card `4242 4242 4242 4242` | Payment accepted | Declined / error |
+| 37 | Return to portal | Credits added to balance | Balance unchanged |
+| 38 | Check credit transaction history | Purchase entry appears | Nothing recorded |
+
+#### 💳 Paystack — Credit Purchase
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 39 | Go to Billing → buy credits → Paystack | Paystack opens with ZAR amount | Nothing opens |
+| 40 | Complete test payment | Returns to portal, credits added | Stuck / credits not added |
+
+#### 🔄 Auto Top-Up
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 41 | Admin → reduce test account credits to 2 | Balance shows 2 | Error |
+| 42 | Wait for next credit warning cron (07:40 UTC) OR trigger manually | Warning email received | No email |
+
+---
+
+### 🧪 TEST 4 — Edge Cases & Compliance
+*Goal: Test failure states, opt-outs, and compliance flows.*
+
+#### ⚠️ Zero Credits
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 43 | Admin → set credits to 0 | Portal shows credit warning / top-up prompt | No warning |
+| 44 | Try to run lead search with 0 credits | Blocked with clear message | Runs anyway / silent fail |
+
+#### 🚫 Opt-Out / Unsubscribe Flow
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 45 | In Leads → manually block a lead | Lead status → `opted_out` | Nothing |
+| 46 | Try to send POPIA consent to that blocked lead | Blocked — cannot send to opted-out lead | Sends anyway |
+| 47 | Check opt-out blocklist in Supabase | Lead email appears in `opt_out_blocklist` | Not there |
+
+#### 🔁 Session & Auth
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 48 | Open portal in private/incognito tab | Redirects to login | Shows dashboard to unauthenticated user |
+| 49 | Let session expire (or clear cookies) → reload | Redirects to login cleanly | Blank screen / crash |
+
+#### 📧 Email Delivery Check
+| # | Do this | Pass ✅ | Fail ❌ |
+|---|---------|---------|---------|
+| 50 | Check Gmail for welcome email | Received, renders correctly | Missing / in spam |
+| 51 | Check Gmail for POPIA consent email (from step 6) | Received, unsubscribe link works | Missing / broken link |
+
+---
+
+### 🚨 How to report failures
+**Format: Step # — what you saw — screenshot if possible**
+
+Send them here. I fix in real time.
+
+---
+
+### ✅ Client Flowchart — Status
+*Section 15 — up to date as of 27 May 2026*
+
+| Flow | Status |
+|------|--------|
+| Self-service trial → signup → onboard → dashboard → 14-day trial → pay | ✅ Verified |
+| AE-assisted → order form + payment | ✅ Built |
+| Pay day 1 — skip trial | ✅ Built |
+| Trial expired → overlay → pay to regain | ✅ Built |
+| Upgrade — add FIGSY bundle | ✅ Built (admin action) |
+| FIGSY add-on — AE activates via admin | ✅ Built |
+| Sales demo — Admin → Demo Envs → open portal as prospect | ✅ Built |
+| Opt-out — lead replies stop → auto-blocklist | ✅ Built |
+| Auto top-up — credits hit threshold → Paystack charges | ✅ Built |
+| Subscription lapse — period ends → marked lapsed → email sent | ✅ Built |
 
 ---
 

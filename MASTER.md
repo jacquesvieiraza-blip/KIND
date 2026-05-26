@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 26 May 2026**
+**Single source of truth. Last updated: 26 May 2026 (evening)**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 > Everything in one place. Status, roadmap, GTM, company registration, expansion, compliance, SOPs, cashflow.
@@ -36,7 +36,7 @@
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 26 May 2026*
+*Last updated: 26 May 2026 (evening)*
 
 | Item | Status | Notes |
 |---|---|---|
@@ -47,7 +47,7 @@
 | Supabase — all tables + RLS | ✅ Live | All schema + migrations run |
 | Supabase auth — no email confirmation | ✅ Live | Signup → instant dashboard |
 | TypeScript build | ✅ Clean | All errors fixed |
-| Cron jobs — 15 jobs | ✅ Running | node-cron in API — starts on boot (staggered — no conflicts) |
+| Cron jobs — 16 jobs | ✅ Running | node-cron in API — starts on boot (staggered — no conflicts) |
 | RLS on all tables | ✅ Fixed | Re-enabled 18 May |
 | Demo Environments | ✅ Live | Admin → Demo Envs — full sales demo tool |
 | AI ICP Suggest | ✅ Live | "Suggest ICP with AI" → Claude fills form from company profile |
@@ -100,6 +100,22 @@
 | **Daily 04:00 AM automated audit** | ✅ Live | `.github/workflows/daily-audit.yml` — opens GitHub Issue on failure |
 | Run `20260525_fix_subscriptions_schema.sql` | ⏳ MUST RUN | Supabase SQL Editor — makes schema drift permanent fix on DB level |
 | **Delete test chatbot/VA subscriptions** | ✅ Done 26 May | SQL: `DELETE FROM subscriptions WHERE product IN ('chatbot','virtual_assistant') AND status='active' AND client_id='187bfb91-1224-4c29-90ea-4c2bdaff0ed1';` |
+| FIGSY inbound webhook fix | ✅ Fixed 26 May | `/replies/inbound` moved before `requireAuth` — was always returning 401 to Resend. Protected by `RESEND_WEBHOOK_SECRET` header. |
+| Bulk export row cap | ✅ Fixed 26 May | `/leads/bulk-export` now caps at 5,000 rows + `X-Export-Truncated` header |
+| Widget rate limiting | ✅ Fixed 26 May | Public `/vida/widget/:clientId/session/:sessionId/message` — 20 req/IP/min in-memory limiter |
+| Founder morning brief | ✅ Built 26 May | Daily 07:05 SAST — platform health, FIGSY 24h, revenue, alerts. Sends to `FOUNDER_EMAIL`. |
+| Admin scalability page | ✅ Built 26 May | `/scalability` in admin — stage tracker, hire checklist, infra triggers |
+| HubSpot full sync | ✅ Built 26 May | `lib/hubspot.ts` — signup→contact, payment→deal closed, FIGSY reply→timeline. No-op if `HUBSPOT_API_KEY` unset. |
+| Admin HubSpot pipeline page | ✅ Built 26 May | `/hubspot` in admin — Kanban by stage, shows "Connect HubSpot" guide if key absent |
+| Competitor ICP seed configs | ✅ Built 26 May | `supabase/seeds/competitor_icps.sql` — 4 configs: Lemlist/Instantly/Clay/Apollo users in ZA/NG/KE/GH/EG. Ready to run when Apollo upgraded. |
+| **Apollo upgrade** | ⏳ #1 BLOCKER | **$49/mo at app.apollo.io → Settings → Plan & Billing. Every lead, every demo, entire platform dead without this.** |
+| **Confirm RESEND_API_KEY in Railway** | ⏳ BLOCKER | Zero emails send without this. Welcome, POPIA, digest, brief — all dead. |
+| **Check Railway deploy logs** | ⏳ ACTION | Confirm green build after all code changes — railway.app → KIND API → Deployments |
+| **Run `MASTER_SCHEMA.sql`** | ⏳ MUST RUN | Supabase SQL Editor → paste full file → eliminates all schema drift permanently |
+| **Run `20260526_drip_and_controls.sql`** | ⏳ MUST RUN | Supabase SQL Editor — adds `delivered_at` to leads + `daily_drip_rate` to clients |
+| **HubSpot account + API key** | ⏳ Pending | app.hubspot.com (free) → Settings → Private Apps → "KIND AI" → add `HUBSPOT_API_KEY` to Railway |
+| **Register Resend webhook** | ⏳ Pending | Resend dashboard → Webhooks → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` + set `RESEND_WEBHOOK_SECRET` in Railway |
+| **Paystack plan codes** | ⏳ Pending | Create plans in Paystack dashboard → add `PAYSTACK_PLAN_VA_MONTHLY` etc to Railway |
 
 ### ⚠️ Known Technical Debt (audit findings — log for later)
 | Issue | Severity | Notes |
@@ -114,48 +130,57 @@
 
 ## 2. WHAT FOUNDER NEEDS TO DO
 
-### 🔴 CRITICAL — Do Immediately
+### 🔴 CRITICAL — Do In This Order (Platform Is Blocked Without These)
 
-| # | Task | Where | Why it's blocking |
+| # | Task | Where | Why |
 |---|---|---|---|
-| 1 | **Run `20260525_fix_subscriptions_schema.sql`** | Supabase → SQL Editor | Permanent fix for schema drift — drops phantom `amount_usd`, sets `amount_zar DEFAULT 0` |
-| 2 | **Run `20260518_company_registration.sql`** | Supabase → SQL Editor | Portal settings page has fields but columns don't exist |
-| 3 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Zero live payments possible without this |
-| 4 | **Set up Google Workspace** | workspace.google.com | No professional inbox — sales emails going nowhere |
-| 5 | **Add FIGSY_KIND_CLIENT_ID to Railway** | Railway → KIND API → Variables | Self-outreach cron runs but does nothing |
+| 1 | **Upgrade Apollo** | app.apollo.io → Settings → Plan & Billing → $49/mo minimum | **#1 blocker. Every ICP run, every lead, every demo = dead without this. Nothing moves.** |
+| 2 | **Confirm RESEND_API_KEY in Railway** | railway.app → KIND API → Variables | Zero emails without this — welcome, POPIA, digest, morning brief all dead |
+| 3 | **Check Railway deploy logs** | railway.app → KIND API → Deployments | Confirm green build after all recent code pushes |
+| 4 | **Run `MASTER_SCHEMA.sql`** | Supabase → SQL Editor → paste + Run | Eliminates all schema drift permanently — one paste, done forever |
+| 5 | **Run `20260526_drip_and_controls.sql`** | Supabase → SQL Editor | Adds `delivered_at` to leads, `daily_drip_rate` to clients — drip system needs this |
+| 6 | **Run `20260525_fix_subscriptions_schema.sql`** | Supabase → SQL Editor | Schema drift fix — drops phantom `amount_usd`, sets `amount_zar DEFAULT 0` |
+| 7 | **Complete Paystack KYC** | dashboard.paystack.com → Settings → Compliance | Cannot take a single live ZAR payment without this |
 
 ### 🟡 HIGH — Do This Week
 
-| # | Task | Where |
-|---|---|---|
-| 6 | **Create calendar booking link** | calendly.com or cal.com (free) → share link with Claude |
-| 7 | **Register UK company** | companieshouse.gov.uk — £50, same day — see Section 23 |
-| 8 | **Upgrade Resend to paid plan** | resend.com → Billing (needed before first FIGSY campaigns) |
+| # | Task | Where | Notes |
+|---|---|---|---|
+| 8 | **Create HubSpot account** | app.hubspot.com (free CRM) → Settings → Private Apps → create "KIND AI" → add `HUBSPOT_API_KEY` to Railway | HubSpot sync is fully built — wires itself the moment key is set |
+| 9 | **Register Resend inbound webhook** | Resend dashboard → Webhooks | URL: `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` · Add `RESEND_WEBHOOK_SECRET` to Railway — same string |
+| 10 | **Create Paystack subscription plans** | Paystack dashboard → Plans | Create VA/Chatbot/FIGSY monthly+annual plans → add plan codes to Railway as `PAYSTACK_PLAN_VA_MONTHLY` etc |
+| 11 | **Add FIGSY_KIND_CLIENT_ID to Railway** | Railway → KIND API → Variables | Your own client UUID — self-outreach cron runs but does nothing without it |
+| 12 | **Create calendar booking link** | calendly.com or cal.com (free) → share URL | Claude will wire every "Book a Demo" button in 5 mins |
+| 13 | **Set up Google Workspace** | workspace.google.com → Business Starter | hello@get-kind.com inbox — step-by-step in Section 2 below |
+| 14 | **Register UK company** | companieshouse.gov.uk — £50 same day | Full step-by-step in Section 23 |
+| 15 | **Upgrade Resend to paid plan** | resend.com → Billing | Free plan = 100 emails/day — blocks FIGSY at scale |
 
 ### 🟢 WHEN READY — Activates Built Features
 
 | # | Task | Env vars to add to Railway |
 |---|---|---|
-| 9 | **Stripe USD/GBP** — billing page auto-shows when key is set | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
-| 10 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
-| 11 | Vapi.ai Voice | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
-| 12 | WhatsApp Business API | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
-| 13 | Update FOUNDER_EMAIL | Change to `hello@get-kind.com` after Google Workspace is live |
-| 14 | Campaign intent prompt (go live) | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
-| 15 | ICP builder (go live) | `FEATURE_ICP_BUILDER=true` in Railway |
+| 16 | **Stripe USD/GBP** — billing page auto-shows when key is set | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_LEADGEN_20`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_20`, `STRIPE_PRICE_FIGSY_100` |
+| 17 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
+| 18 | Vapi.ai Voice | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
+| 19 | WhatsApp Business API | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
+| 20 | Wise Business bank account | business.wise.com — after UK company registered | Free, multi-currency |
+| 21 | Update FOUNDER_EMAIL in Railway | Change to `hello@get-kind.com` after Workspace is live | Morning brief + all system emails |
+| 22 | Campaign intent prompt (go live) | `FEATURE_CAMPAIGN_INTENT=true` in Railway | — |
+| 23 | ICP builder (go live) | `FEATURE_ICP_BUILDER=true` in Railway | — |
 
 ### ⚡ INSTANT — Takes 5 Minutes
-| # | Task | What Claude needs from you |
-|---|---|---|
-| 16 | Wire "Book a Demo" buttons site-wide | Your Calendly/Cal.com URL |
+| Task | What Claude needs |
+|---|---|
+| Wire "Book a Demo" buttons site-wide | Your Calendly/Cal.com URL |
+| Wire company number into site + legal docs | Your UK Companies House number (after registration) |
 
 ### Once Live (not urgent)
-
 | # | Task | When |
 |---|---|---|
-| 16 | G2, Capterra, Product Hunt listings | Launch day |
-| 17 | Upload new Vida image | apps/website/vida.png via GitHub |
-| 18 | SOC 2 Type II | Q1 2027 |
+| 24 | G2, Capterra, Product Hunt listings | Launch day |
+| 25 | Upload new Vida image | apps/website/vida.png via GitHub |
+| 26 | SOC 2 Type II | Q1 2027 |
+| 27 | Answer 5 sales questions | When you have 20 min — becomes the AE playbook |
 
 ### Google Workspace Setup (step by step)
 1. workspace.google.com → Get started → Business Starter plan → enter domain get-kind.com
@@ -227,11 +252,22 @@
 | Stats endpoint resilience — Promise.allSettled prevents blank stats panel | 26 May |
 | sub.clients null guard — prevents crash in trial expiry handler | 26 May |
 | Full system audit — 45 issues found, 14 fixed this session | 26 May |
+| FIGSY inbound webhook fix — moved before requireAuth, RESEND_WEBHOOK_SECRET header check | 26 May |
+| Bulk export row cap — 5,000 rows max + X-Export-Truncated header | 26 May |
+| Widget rate limiting — 20 req/IP/min in-memory, no new package dep | 26 May |
+| TypeScript unused import + PromiseLike error fixes in icps.ts | 26 May |
+| Founder morning brief — POST /internal/founder-brief, daily 07:05 SAST dark HTML email | 26 May |
+| Admin scalability page — /scalability: stage tracker, hire checklist, infra triggers | 26 May |
+| HubSpot full sync — lib/hubspot.ts: signup→contact, payment→deal closed, FIGSY reply→timeline, pipeline view | 26 May |
+| Admin HubSpot pipeline page — /hubspot: Kanban by stage, setup guide if key absent | 26 May |
+| Competitor ICP seed configs — supabase/seeds/competitor_icps.sql: Lemlist/Instantly/Clay/Apollo users in Africa | 26 May |
+| Cron stagger — morning brief at 05:05 UTC, no conflict with auto-replenish at 05:00 | 26 May |
 
 ### Ready Now (say the word)
 | Task | Time |
 |---|---|
 | **Wire "Book a Demo" buttons** | **5 mins** — share your Calendly/Cal.com URL |
+| **Sales playbook skeleton** | 2 hours — discovery script, objection log, demo flow, proposal template |
 | Paystack end-to-end test after live key | 30 mins |
 | Stripe end-to-end test after credentials | 1 hour |
 | GBP pricing on website after Stripe | 30 mins |
@@ -647,6 +683,19 @@ FIGSY_DAILY_SEND_LIMIT=20
 PORTAL_URL=https://app.get-kind.com
 ```
 
+### Add urgently (unlocks built features)
+```
+RESEND_WEBHOOK_SECRET=          ← same string registered in Resend webhook dashboard
+FIGSY_KIND_CLIENT_ID=           ← your own client UUID (find in Supabase clients table)
+HUBSPOT_API_KEY=                ← from HubSpot → Settings → Private Apps → "KIND AI"
+PAYSTACK_PLAN_VA_MONTHLY=       ← from Paystack Plans dashboard
+PAYSTACK_PLAN_VA_ANNUAL=
+PAYSTACK_PLAN_CHATBOT_MONTHLY=
+PAYSTACK_PLAN_CHATBOT_ANNUAL=
+PAYSTACK_PLAN_FIGSY_MONTHLY=
+PAYSTACK_PLAN_FIGSY_ANNUAL=
+```
+
 ### Add when ready
 ```
 STRIPE_SECRET_KEY=
@@ -667,21 +716,25 @@ WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
 ```
 
-### Cron Jobs (12 jobs — built into API, auto-starts on boot)
-| Schedule (UTC) | Endpoint | Purpose |
-|---|---|---|
-| 0 5 * * * | POST /internal/figsy/auto-replenish | Alert campaigns running low |
-| 0 6 * * * | POST /internal/ae/nurture | Trial nurture (Days 1/3/5/7/10) |
-| 15 6 * * * | POST /internal/ae/at-risk | At-risk client alerts |
-| 0 7 * * * | POST /internal/ae/trial-expiry | Trial expiry emails (Days 10/12/14) |
-| 15 7 * * * | POST /internal/ae/zero-credits | Zero credits warning |
-| 30 7 * * * | POST /internal/milla/morning-brief-all | Milla daily digest to all clients |
-| 0 8 * * * | POST /internal/figsy/check-performance | Pause campaigns <1% reply rate |
-| 30 8 * * * | POST /internal/milla/check-anomalies | Anomaly detection |
-| 0 */2 * * * | POST /internal/figsy/send-due-all | FIGSY send due emails all clients |
-| 0 7 * * 1 | POST /internal/digest/weekly | Monday leads digest to clients |
-| 0 6 * * 1 | POST /internal/cmo/self-outreach | K.I.N.D self-outreach (Monday) |
-| 0 16 * * 5 | POST /internal/cro/weekly-digest | Friday founder digest |
+### Cron Jobs (16 jobs — built into API, auto-starts on boot)
+| Schedule (UTC) | SAST | Endpoint | Purpose |
+|---|---|---|---|
+| 5 5 * * * | 07:05 | POST /internal/founder-brief | Founder morning brief email |
+| 0 5 * * * | 07:00 | POST /internal/figsy/auto-replenish | Alert campaigns running low |
+| 0 6 * * * | 08:00 | POST /internal/ae/nurture | Trial nurture (Days 1/3/5/7/10) |
+| 15 6 * * * | 08:15 | POST /internal/ae/at-risk | At-risk client alerts |
+| 0 7 * * * | 09:00 | POST /internal/ae/trial-expiry | Trial expiry emails (Days 10/12/14) |
+| 15 7 * * * | 09:15 | POST /internal/ae/zero-credits | Zero credits warning |
+| 30 7 * * * | 09:30 | POST /internal/milla/morning-brief-all | Milla daily digest to all clients |
+| 40 7 * * * | 09:40 | POST /internal/ae/low-credits | Low credit warning (1–4 remaining) |
+| 0 8 * * * | 10:00 | POST /internal/figsy/check-performance | Pause campaigns <1% reply rate |
+| 10 8 * * * | 10:10 | POST /internal/leads/drip | Deliver daily leads, deduct credits |
+| 30 8 * * * | 10:30 | POST /internal/milla/check-anomalies | Anomaly detection |
+| 0 9 * * * | 11:00 | POST /internal/subscriptions/check-lapsed | Mark lapsed subs, email clients |
+| 0 */2 * * * | every 2h | POST /internal/figsy/send-due-all | FIGSY send due emails all clients |
+| 0 7 * * 1 | Mon 09:00 | POST /internal/digest/weekly | Monday leads digest to clients |
+| 0 6 * * 1 | Mon 08:00 | POST /internal/cmo/self-outreach | K.I.N.D self-outreach (Monday) |
+| 0 16 * * 5 | Fri 18:00 | POST /internal/cro/weekly-digest | Friday founder digest |
 
 ---
 
@@ -946,4 +999,4 @@ Once you have the company number, Claude will:
 ---
 
 *Owner: K.I.N.D founding team*
-*Last updated: 24 May 2026*
+*Last updated: 26 May 2026 (evening)*

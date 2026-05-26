@@ -53,6 +53,49 @@ subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
   }
 })
 
+// ── CANCEL subscription ────────────────────────────────────────────────────────
+subscriptionRouter.post('/:id/cancel', async (req: AuthRequest, res) => {
+  try {
+    const { data: client } = await db.from('clients').select('id').eq('user_id', req.userId!).single()
+    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Verify this subscription belongs to this client
+    const { data: sub } = await db.from('subscriptions')
+      .select('id, product, status, paystack_subscription_code')
+      .eq('id', req.params.id)
+      .eq('client_id', client.id)
+      .single()
+
+    if (!sub) { res.status(404).json({ success: false, error: 'Subscription not found' }); return }
+    if (sub.status === 'cancelled') { res.status(400).json({ success: false, error: 'Subscription already cancelled' }); return }
+
+    // If there is a Paystack subscription code, cancel it with Paystack
+    if (sub.paystack_subscription_code) {
+      await fetch(`https://api.paystack.co/subscription/disable`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: sub.paystack_subscription_code, token: sub.paystack_subscription_code }),
+      })
+    }
+
+    // Mark cancelled in DB — access continues until current_period_end
+    await db.from('subscriptions')
+      .update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+      })
+      .eq('id', sub.id)
+
+    res.json({
+      success: true,
+      message: `${sub.product} subscription cancelled. Access continues until end of current billing period.`,
+    })
+  } catch (err) {
+    console.error('[subscriptions/cancel]', err)
+    res.status(500).json({ success: false, error: 'Failed to cancel subscription' })
+  }
+})
+
 subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
   try {
     const { product, tier, billing_interval } = z.object({

@@ -7,8 +7,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 export const subscriptionRouter = Router()
 subscriptionRouter.use(requireAuth)
 
-if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('PAYSTACK_SECRET_KEY is required')
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY
+// Paystack is legacy — kept for webhook compatibility only. No longer required.
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || ''
 const PLAN_CODES: Record<string, Record<string, string>> = {
   lead_gen: { starter: process.env.PAYSTACK_PLAN_LEAD_GEN_STARTER || '', advanced: process.env.PAYSTACK_PLAN_LEAD_GEN_ADVANCED || '', enterprise: process.env.PAYSTACK_PLAN_LEAD_GEN_ENTERPRISE || '' },
   lead_gen_figsy: { starter: process.env.PAYSTACK_PLAN_FIGSY_STARTER || '', advanced: process.env.PAYSTACK_PLAN_FIGSY_ADVANCED || '', enterprise: process.env.PAYSTACK_PLAN_FIGSY_ENTERPRISE || '' },

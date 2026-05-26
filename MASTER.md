@@ -1,8 +1,224 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 27 May 2026 (overnight build)**
+**Single source of truth. Last updated: 27 May 2026**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
-> Everything in one place. Status, roadmap, GTM, company registration, expansion, compliance, SOPs, cashflow.
+---
+
+## 🗓️ SECTION 0 — DAILY BRIEF
+*This section is rewritten at the end of every session. It is always current. Read this first. Nothing else matters until this is clear.*
+*Protocol: Claude reads this section at the start of every session before touching anything else.*
+
+---
+
+### 📅 Today — 27 May 2026
+
+---
+
+### ✅ What Was Built Today
+
+| Item | Detail |
+|------|--------|
+| Credit race condition fix | Unique index on `credit_transactions.reference` + atomic `increment_client_credits()` RPC. Double-spend now impossible. Migration: `20260526_credit_race_condition_fix.sql` — **user confirmed run.** |
+| Startup env check | `apps/api/src/lib/startup-check.ts` — API refuses to boot if CRITICAL env vars missing. Logs all var status at startup. |
+| AI reply 7-category upgrade | 🔥 Hot / 🌤️ Warm / ❄️ Cold / 🚫 Opted out / 👤 Wrong person / ✈️ OOO / ❓ Other. Backward compatible. Old 'interested'→hot, 'not_interested'→cold. |
+| Admin Unibox | `/unibox` in admin — all FIGSY replies across all clients, filter by category, hot-sorted, limit 200. Added to admin nav. |
+| Portal reply inbox upgrade | Emoji labels, actionable summary bar (Hot + Warm count), sorted by priority. |
+| Self-serve Stripe subscriptions | Billing page: Milla ($49/mo) + Vida ($39/mo) subscribe buttons → `POST /stripe/subscribe` → Stripe checkout → webhook → DB activation. |
+| Stripe webhook handlers | `customer.subscription.created/updated` → DB upsert. `customer.subscription.deleted` → mark cancelled. `invoice.payment_failed` → log. |
+| Paystack removed from billing UI | Portal billing page is Stripe-only. Paystack API routes preserved (legacy data) but zero client-facing UI. |
+| Milla upgrade screen updated | "Unlock Milla — $49/month →" → `/dashboard/billing`. Demo option retained. |
+| Vida upgrade screen updated | "Unlock Vida — $39/month →" → `/dashboard/billing`. Demo option retained. |
+| Homepage hero rewrite | "Stop chasing leads. Let FIGSY book them." — website + landing both updated. |
+| Full 4-test smoke suite | MASTER.md Section 18: 57 steps across Test 1–4. Ready to run. |
+| ClickUp competitive audit | Section 24 — full feature comparison tables + steal-now list (S1–S8) + 2 structural gaps. |
+| Apex (apex.host) competitive audit | Section 25 — positioning steal: "AI Revenue OS" framing. Full comparison table. |
+| Full competitor landscape (Sections 26+33) | K.I.N.D vs 31 competitors across 7 tiers. Every feature mapped. Master table. |
+| Art of the Possible (Sections 27+28) | 30 build items across 4 tiers. Deep-dive on 15 "Possible" pieces. |
+| MASTER.md full audit + sync | All 27 May builds logged. Paystack references fixed. Technical debt updated. |
+| Roadmap flowchart | `docs/roadmap-flowchart.html` — dark mode, Day 1–5 execution plan with pass/fail branches. |
+| Client journey flowchart | `docs/client-flow-visual.html` — all 7 client paths, entry to exit, Stripe-updated. |
+| Sections 28–34 restored | Pulled from `main` branch: Art of Possible deep dives, Compliance roadmap, Competitor Targeting, AI Learning, ClickUp Brain, Full Competitive Landscape (917 lines), The Unbuilt Future. |
+| Daily Brief system (Section 0) | This section — rewritten every session. First thing to read, last thing updated. |
+
+---
+
+### 🐛 Bugs Fixed Today
+
+| Bug | Fix | Status |
+|-----|-----|--------|
+| Credit double-spend (TOCTOU race) | Unique DB index + atomic RPC — two concurrent requests can no longer both credit the same reference | ✅ Fixed |
+| Paystack on billing page | Paystack removed entirely — Stripe-only | ✅ Fixed |
+| Milla upgrade screen linked to wrong place | Now → /dashboard/billing with correct pricing | ✅ Fixed |
+| Vida upgrade screen missing pricing | $39/month shown, correct button text | ✅ Fixed |
+| MASTER.md sections 28–34 missing from branch | Pulled from main — all restored | ✅ Fixed |
+| Paystack in technical debt | Removed from debt list — Paystack is gone | ✅ Fixed |
+| Paystack subscription webhook references | Updated to Stripe webhook documentation | ✅ Fixed |
+
+---
+
+### 📝 What Changed / Updated Today
+
+| Item | What changed |
+|------|-------------|
+| Section 1 (Current Status) | Date updated. All 27 May builds added. Paystack rows fixed. 27 May stripe migration rows added. |
+| Section 2 (Founder To Do) | Added 7b (Stripe Milla/Vida prices) and 7c (run stripe_subscription_id migration). Paystack tasks removed. |
+| Section 3 (Claude Can Do) | S1–S4 steal-now items added to Ready Now queue. Paystack entry removed. |
+| Section 4 (Roadmap) | Paystack KYC removed. 27 May builds marked done. Smoke tests added as in-progress. |
+| Section 18 (Smoke Tests) | Test 3 updated: Paystack rows removed, replaced with Milla sub (steps 39-42) + Vida sub (steps 43-46). Test 4 renumbered 49-57. |
+| Section 21 (Key Decisions) | Payment processor: Stripe primary confirmed. Paystack removed. |
+| Technical Debt | Race condition marked fixed. Paystack debt removed. New debt: trigger model + memory model. |
+| TOC | Sections 24–34 all added and linked. |
+| docs/DEPLOYMENT_GUIDE.md | Deprecation banner added — references MASTER.md as current truth. |
+| docs/client-flow-sop.md | Still on 18 May — mermaid chart is stale. Visual HTML version is current. |
+
+---
+
+### 🔴 FOUNDER — YOUR TO-DO LIST (ordered, do in this sequence)
+
+**Before Test 1 tomorrow (check these tonight):**
+| # | Task | Where | Done? |
+|---|------|--------|-------|
+| T1 | Confirm `RESEND_API_KEY` is set in Railway | Railway → KIND API → Variables | ☐ |
+| T2 | Confirm Railway build is green | railway.app → KIND API → Deployments | ☐ |
+| T3 | Run `20260525_fix_subscriptions_schema.sql` if not already done | Supabase SQL Editor | ☐ |
+| T4 | Run `20260526_drip_and_controls.sql` if not already done | Supabase SQL Editor | ☐ |
+
+**Before Test 2 (after Test 1 passes):**
+| # | Task | Where | Done? |
+|---|------|--------|-------|
+| T5 | Create new Gmail for smoke testing | gmail.com | ☐ |
+| T6 | Run agent-unlock SQL for test Gmail | Supabase SQL Editor — see Section 18 Test 2 | ☐ |
+| T7 | Grant 10,000 credits to test account | Admin portal → test client → grant credits | ☐ |
+
+**Before Test 3 (after Test 2 passes):**
+| # | Task | Where | Done? |
+|---|------|--------|-------|
+| T8 | Create Milla product in Stripe — Recurring $49/month — copy Price ID | Stripe dashboard | ☐ |
+| T9 | Create Vida product in Stripe — Recurring $39/month — copy Price ID | Stripe dashboard | ☐ |
+| T10 | Add to Railway (NOT in chat): `STRIPE_PRICE_MILLA_MONTHLY`, `NEXT_PUBLIC_STRIPE_PRICE_MILLA_MONTHLY` | Railway | ☐ |
+| T11 | Add to Railway (NOT in chat): `STRIPE_PRICE_VIDA_MONTHLY`, `NEXT_PUBLIC_STRIPE_PRICE_VIDA_MONTHLY` | Railway | ☐ |
+| T12 | Run `20260527_stripe_subscription_id.sql` | Supabase SQL Editor | ☐ |
+
+**This week (non-blocking for tests):**
+| # | Task | Where | Done? |
+|---|------|--------|-------|
+| T13 | Register UK company | companieshouse.gov.uk — £50, same day — Section 23 | ☐ |
+| T14 | Create HubSpot account + get API key | app.hubspot.com (free) → Private Apps → "KIND AI" → add `HUBSPOT_API_KEY` to Railway | ☐ |
+| T15 | Register Resend inbound webhook | Resend dashboard → Webhooks → Railway URL + set `RESEND_WEBHOOK_SECRET` | ☐ |
+| T16 | Add `FIGSY_KIND_CLIENT_ID` to Railway | Your client UUID from Supabase clients table | ☐ |
+| T17 | Create calendar booking link | calendly.com or cal.com — share URL and Claude wires every demo button in 5 mins | ☐ |
+
+---
+
+### 🤖 CLAUDE — MY TO-DO LIST (nothing starts until smoke tests pass)
+
+**Blocked on smoke tests:**
+| # | Task | Priority | Section |
+|---|------|----------|---------|
+| C1 | Build S1: Command palette (Cmd+K) | 🔴 High | Art of Possible #1 |
+| C2 | Build S2: Activity feed | 🔴 High | Art of Possible #2 |
+| C3 | Build S3: Shareable dashboards (`/share/:token`) | 🔴 High | Art of Possible #3 |
+| C4 | Build S4: Scheduled report emails (weekly client digest) | 🔴 High | Art of Possible #4 |
+| C5 | Website positioning rewrite — "AI Revenue OS" framing | 🔴 High | Apex steal |
+| C6 | Fix any Test 1–4 failures in real time | 🔴 Critical | Section 18 |
+
+**Ready when you say go:**
+| # | Task | Priority |
+|---|------|----------|
+| C7 | Deliverability dashboard (SPF/DKIM/DMARC status per domain) | 🟡 Medium |
+| C8 | Email score pre-send check | 🟡 Medium |
+| C9 | Adaptive send volume (auto-adjust on domain health) | 🟡 Medium |
+| C10 | Client morning brief (extend founder brief to all clients) | 🟡 Medium |
+| C11 | Wire Calendly URL site-wide (5 min job — need URL from you) | 🟢 Quick |
+| C12 | Wire UK company number into footer + legal (5 min — need number) | 🟢 Quick |
+
+---
+
+### 📋 TOMORROW — DAY 1 STEP BY STEP
+
+**Morning (before testing):**
+1. Check Railway build is green — no red deployments
+2. Confirm Resend API key is set
+3. Create new Gmail account (do not use your real email)
+
+**Test 1 — Core Platform (Steps 1–17, Section 18):**
+4. Sign up at `app.get-kind.com` with new Gmail
+5. Complete onboarding (company, industry, country, phone, website)
+6. Check welcome email received in Gmail
+7. Build ICP — click "Suggest with AI" — check it pre-fills
+8. Save ICP — check leads appear in dashboard
+9. Click one lead → Send POPIA consent — check status changes
+10. Go to FIGSY → Create sequence — check it generates copy
+11. Check FIGSY campaign status shows Scheduled/Active
+12. Go to Admin → confirm test client appears
+13. Go to Admin → Unibox → confirm it loads (may be empty — that's fine)
+14. Run through remaining steps 14–17 (billing page loads, credit balance visible, settings page loads, logout + login works)
+
+**Report any failure as:** `T1-Step7 — what you saw` → Claude fixes in <15 min
+
+---
+
+### 📅 WEEK AHEAD — DAY BY DAY
+
+| Day | Date | Plan |
+|-----|------|------|
+| **Day 1** | Wed 28 May | Test 1 — Core Platform (17 steps). Fix any failures. |
+| **Day 2** | Thu 29 May | SQL unlock for test account → Test 2 — Agents (17 steps). |
+| **Day 3** | Fri 30 May | Stripe price IDs in Railway → Test 3 — Payments (14 steps) → Test 4 — Edge cases (9 steps). |
+| **Day 4** | Sat 31 May | All tests green → Claude builds S1–S5 (command palette, feed, dashboards, digest, positioning). |
+| **Day 5** | Sun 1 June | Review steals live. GTM prep: G2/PH/Capterra. First 5 client targets. UK registration. |
+| **Week 2** | 2–7 June | First paid client. FIGSY self-outreach running. Scope S6–S10. |
+
+---
+
+### 🚨 OPEN ISSUES / BLOCKERS
+
+| # | Issue | Owner | Blocking |
+|---|-------|-------|---------|
+| B1 | `RESEND_API_KEY` — confirm it's set | Jacques | Test 1 email steps |
+| B2 | `MASTER_SCHEMA.sql` — confirm run | Jacques | Schema integrity |
+| B3 | Stripe price IDs for Milla + Vida | Jacques | Test 3 |
+| B4 | `20260527_stripe_subscription_id.sql` not yet run | Jacques | Test 3 |
+| B5 | UK company not yet registered | Jacques | Stripe full activation |
+| B6 | `FIGSY_KIND_CLIENT_ID` not set | Jacques | Self-outreach |
+| B7 | docs/client-flow-sop.md stale (18 May) | Claude | Documentation accuracy |
+
+---
+
+### 🔒 KEY DECISIONS LOCKED THIS SESSION
+
+| Decision | Outcome |
+|----------|---------|
+| Payment processor | Stripe only. Paystack requires SA entity — not applicable. |
+| Milla pricing | $49/month recurring via Stripe |
+| Vida pricing | $39/month recurring via Stripe |
+| Smoke test sequence | Test 1 → 2 → 3 → 4 — in order, no skipping |
+| Build sequence | Smoke tests first. Zero new features until all 4 tests pass. |
+| Competitor steals | S1–S5 queued for Day 4 (31 May) — after tests pass |
+| Apex positioning | "AI Revenue OS" — apply after smoke tests |
+
+---
+
+### 📌 HOW THIS SECTION WORKS (protocol)
+
+**Claude must do this at the end of every session:**
+1. Rewrite "What Was Built Today" with everything from the session
+2. Rewrite "Bugs Fixed" with everything fixed
+3. Rewrite "What Changed" with every file/section touched
+4. Update "Founder To-Do" — tick off completed items, add new ones
+5. Update "Claude To-Do" — tick off completed items, add new ones
+6. Rewrite "Tomorrow — Day by Day" with next session's steps
+7. Update "Week Ahead" dates
+8. Update "Open Issues" — close resolved ones, add new ones
+9. Update "Key Decisions Locked"
+10. Push to branch immediately — this is the last commit of every session
+
+**Jacques must do at the start of every session:**
+1. Read Section 0 only — everything you need is here
+2. Tell Claude what got done from Founder To-Do
+3. Claude reads Section 0, updates it, then works
+
+**This section replaces scrolling through the conversation history. It IS the conversation history.**
 
 ---
 

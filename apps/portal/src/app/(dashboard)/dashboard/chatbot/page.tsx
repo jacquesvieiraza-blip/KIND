@@ -106,11 +106,15 @@ export default function ChatbotPage() {
             </li>
           ))}
         </ul>
-        <div className="flex flex-col gap-3">
-          <a href="/dashboard/billing" className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Upgrade to unlock →</a>
-          <a href="https://cal.com/get-kind/demo" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-gray-200">Book a demo</a>
+        <div className="text-center mb-4">
+          <span className="text-3xl font-bold text-gray-900">$39</span>
+          <span className="text-gray-400 text-sm ml-1">/month</span>
         </div>
-        <p className="text-xs text-gray-400 mt-3">Available as an add-on. Book a demo to see it live.</p>
+        <div className="flex flex-col gap-3">
+          <a href="/dashboard/billing" className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Unlock Vida — $39/month →</a>
+          <a href="https://cal.com/get-kind/demo" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-gray-200">Request a demo instead</a>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>
       </div>
     </div>
   )

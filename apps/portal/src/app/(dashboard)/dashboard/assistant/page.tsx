@@ -273,12 +273,12 @@ export default function AssistantPage() {
           <span className="text-gray-400 text-sm ml-1">/month</span>
         </div>
         <div className="space-y-3">
-          <a href="/dashboard/billing#milla" className="flex items-center justify-center gap-2 w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
-            Unlock Milla — $49/month
+          <a href="/dashboard/billing" className="flex items-center justify-center gap-2 w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
+            Unlock Milla — $49/month →
           </a>
           <DemoRequestButton product="milla" />
         </div>
-        <p className="text-xs text-gray-400 text-center mt-4">Cancel anytime · Billed monthly · Activates instantly</p>
+        <p className="text-xs text-gray-400 text-center mt-4">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>
       </div>
     </div>
   )

@@ -67,5 +67,8 @@ export function startCrons(): void {
   // Daily 09:00 UTC — mark lapsed subscriptions (active but period ended)
   cron.schedule('0 9 * * *', () => callInternal('/subscriptions/check-lapsed'), { timezone: 'UTC' })
 
-  console.log('[cron] 15 jobs scheduled')
+  // Daily 05:00 UTC — founder morning brief (07:00 SAST)
+  cron.schedule('0 5 * * *', () => callInternal('/founder-brief'), { timezone: 'UTC' })
+
+  console.log('[cron] 16 jobs scheduled')
 }

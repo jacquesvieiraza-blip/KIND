@@ -2,17 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, TrendingUp, GitMerge } from 'lucide-react'
 
 const NAV = [
-  { href: '/',              label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/clients',       label: 'Clients',       icon: Users },
-  { href: '/demo',          label: 'Demo Envs',     icon: MonitorPlay },
-  { href: '/terms-library', label: 'Terms Library', icon: FileText },
-  { href: '/roadmap',       label: 'Roadmap',       icon: Map },
-  { href: '/scalability',   label: 'Scalability',   icon: TrendingUp },
-  { href: '/cmo',           label: 'CMO Tools',     icon: Megaphone },
-  { href: '/launch',        label: 'Launch',        icon: Rocket },
+  { href: '/',              label: 'Dashboard',        icon: LayoutDashboard },
+  { href: '/clients',       label: 'Clients',          icon: Users },
+  { href: '/demo',          label: 'Demo Envs',        icon: MonitorPlay },
+  { href: '/terms-library', label: 'Terms Library',    icon: FileText },
+  { href: '/roadmap',       label: 'Roadmap',          icon: Map },
+  { href: '/scalability',   label: 'Scalability',      icon: TrendingUp },
+  { href: '/cmo',           label: 'CMO Tools',        icon: Megaphone },
+  { href: '/launch',        label: 'Launch',           icon: Rocket },
+  { href: '/hubspot',       label: 'HubSpot Pipeline', icon: GitMerge },
 ]
 
 function pageTitle(pathname: string) {

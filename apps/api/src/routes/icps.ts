@@ -41,6 +41,12 @@ export async function runIcpJob(
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
 
+  // Respect client's leads_per_run setting — cap at whichever is lower: credit balance or per-run limit
+  const { data: clientSettings } = await db.from('clients')
+    .select('leads_per_run').eq('id', clientId).single()
+  const leadsPerRun = clientSettings?.leads_per_run ?? 20
+  const effectiveCap = maxLeads !== undefined ? Math.min(maxLeads, leadsPerRun) : leadsPerRun
+
   const { contacts, relaxed } = await searchPeopleWithFallback(icp)
 
   let inserted = 0
@@ -48,8 +54,8 @@ export async function runIcpJob(
   const insertedIds: string[] = []
 
   for (const contact of contacts) {
-    // Cap insertions at available credits — never insert more leads than the client has credits
-    if (maxLeads !== undefined && inserted >= maxLeads) {
+    // Cap insertions at effectiveCap (lower of credit balance and leads_per_run setting)
+    if (inserted >= effectiveCap) {
       skipped++
       continue
     }
@@ -85,6 +91,7 @@ export async function runIcpJob(
       apollo_consented: contact.email_status === 'verified' ||
                         contact.email_status === 'likely_to_engage',
       status:           'pending',
+      delivered_at:     null,   // drip gate — daily cron delivers up to daily_drip_rate per day
     }).select('id').single()
 
     if (insertErr || !newLead) {

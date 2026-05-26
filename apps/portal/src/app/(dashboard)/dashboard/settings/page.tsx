@@ -17,6 +17,8 @@ interface ClientData {
   crm_type: string
   crm_api_key: string
   crm_sync_enabled: boolean
+  leads_per_run: number
+  daily_drip_rate: number
 }
 
 interface CalendarStatus {
@@ -29,7 +31,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [form, setForm] = useState({ company_name: '', industry: '', country: 'South Africa', website: '', phone: '', company_registration: '', vat_number: '' })
+  const [form, setForm] = useState({ company_name: '', industry: '', country: 'South Africa', website: '', phone: '', company_registration: '', vat_number: '', leads_per_run: 20, daily_drip_rate: 5 })
   const [crm, setCrm] = useState({ crm_type: 'none', crm_api_key: '', crm_sync_enabled: false })
   const [crmSaving, setCrmSaving] = useState(false)
   const [crmSaved, setCrmSaved] = useState(false)
@@ -48,7 +50,7 @@ export default function SettingsPage() {
       try {
         const res = await api.get<{ data: ClientData }>('/clients/me', session.access_token)
         const c = res.data
-        setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '' })
+        setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '', leads_per_run: c.leads_per_run ?? 20, daily_drip_rate: c.daily_drip_rate ?? 5 })
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false })
       } catch { setSaveError('Failed to load your profile. Please refresh.') }
 
@@ -193,6 +195,37 @@ export default function SettingsPage() {
             Save changes
           </button>
         </form>
+      </div>
+
+      {/* Lead Delivery Settings */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">Lead Delivery</h2>
+        <p className="text-gray-500 text-sm mt-0.5">Control how many leads you receive and how fast they arrive.</p>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Leads per ICP run <span className="text-gray-400 font-normal">(max)</span></label>
+            <input
+              type="number" min={1} max={100}
+              value={form.leads_per_run ?? 20}
+              onChange={(e) => setForm({ ...form, leads_per_run: Number(e.target.value) })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <p className="text-xs text-gray-400 mt-1">Maximum leads found per ICP run. Must have enough credits.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Daily lead delivery rate</label>
+            <input
+              type="number" min={1} max={50}
+              value={form.daily_drip_rate ?? 5}
+              onChange={(e) => setForm({ ...form, daily_drip_rate: Number(e.target.value) })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <p className="text-xs text-gray-400 mt-1">How many leads are revealed in your dashboard each day.</p>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-4">Changes take effect on the next ICP run and daily delivery.</p>
       </div>
 
       {/* Integrations heading */}

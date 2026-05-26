@@ -1283,3 +1283,167 @@ internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) =
     res.status(500).json({ success: false, error: 'K.I.N.D self-outreach failed' })
   }
 })
+
+// ── LOW CREDIT REMINDER — fires daily, warns clients with balance < 5 ─────────
+internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
+  try {
+    const now = new Date()
+    const oneDayAgo = new Date(now.getTime() - 86400000).toISOString()
+
+    // Only clients who have used the platform (first ICP run done), have 1-4 credits,
+    // and haven't been emailed about low credits in the past 24 hours
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id, credit_balance, last_low_credit_email_at')
+      .gt('credit_balance', 0)
+      .lt('credit_balance', 5)
+      .not('first_icp_run_at', 'is', null)
+      .not('user_id', 'is', null)
+
+    let sent = 0
+
+    for (const client of clients ?? []) {
+      try {
+        // Don't spam — max once per 24 hours
+        if (client.last_low_credit_email_at && client.last_low_credit_email_at > oneDayAgo) continue
+
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
+        const email = user?.email
+        if (!email || !resend) continue
+
+        await resend.emails.send({
+          from: FROM,
+          to: email,
+          subject: `Low credits — ${client.credit_balance} credit${client.credit_balance === 1 ? '' : 's'} remaining`,
+          html: `
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+              <h2>You're running low on credits</h2>
+              <p style="color:#555;line-height:1.7">
+                Hi ${client.company_name ?? 'there'},<br/><br/>
+                You have <strong>${client.credit_balance} lead credit${client.credit_balance === 1 ? '' : 's'}</strong> remaining.
+                Top up now to keep your ICP running and leads flowing.
+              </p>
+              <a href="${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard/billing"
+                 style="display:inline-block;margin-top:12px;background:#0066FF;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
+                Top up credits →
+              </a>
+              <p style="color:#9ca3af;font-size:0.8rem;margin-top:24px">K.I.N.D · <a href="https://get-kind.com" style="color:#9ca3af">get-kind.com</a></p>
+            </div>`,
+        })
+
+        await db.from('clients')
+          .update({ last_low_credit_email_at: now.toISOString() })
+          .eq('id', client.id)
+
+        sent++
+      } catch (err) {
+        console.error(`[low-credits] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { sent } })
+  } catch (err) {
+    console.error('[low-credits]', err)
+    res.status(500).json({ success: false, error: 'Low-credits run failed' })
+  }
+})
+
+// ── LEAD DRIP DELIVERY — fires daily, delivers up to daily_drip_rate leads per client ──
+internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
+  try {
+    // Get all active clients with undelivered leads
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id, daily_drip_rate')
+      .not('first_icp_run_at', 'is', null)
+
+    let totalDelivered = 0
+
+    for (const client of clients ?? []) {
+      try {
+        const drip = client.daily_drip_rate ?? 5
+
+        // Find undelivered leads for this client, oldest first
+        const { data: pending } = await db.from('leads')
+          .select('id')
+          .eq('client_id', client.id)
+          .is('delivered_at', null)
+          .order('created_at', { ascending: true })
+          .limit(drip)
+
+        if (!pending || pending.length === 0) continue
+
+        const ids = pending.map(l => l.id)
+        const now = new Date().toISOString()
+
+        await db.from('leads')
+          .update({ delivered_at: now })
+          .in('id', ids)
+
+        totalDelivered += ids.length
+      } catch (err) {
+        console.error(`[leads/drip] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { clients_processed: (clients ?? []).length, total_delivered: totalDelivered } })
+  } catch (err) {
+    console.error('[leads/drip]', err)
+    res.status(500).json({ success: false, error: 'Lead drip failed' })
+  }
+})
+
+// ── SUBSCRIPTION LAPSE CHECK — fires daily, marks overdue active subscriptions as lapsed ──
+internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Response) => {
+  try {
+    const now = new Date().toISOString()
+
+    // Active subscriptions whose billing period has ended — no renewal charge received
+    const { data: lapsed, error } = await db.from('subscriptions')
+      .update({ status: 'lapsed' })
+      .eq('status', 'active')
+      .lt('current_period_end', now)
+      .select('id, client_id, product')
+
+    if (error) throw error
+
+    // For each lapsed subscription, notify the client
+    for (const sub of lapsed ?? []) {
+      try {
+        const { data: client } = await db.from('clients')
+          .select('user_id, company_name').eq('id', sub.client_id).single()
+        if (!client?.user_id || !resend) continue
+
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id)
+        const email = user?.email
+        if (!email) continue
+
+        const productLabel = sub.product === 'virtual_assistant' ? 'Milla' : sub.product === 'chatbot' ? 'Vida' : sub.product
+
+        await resend.emails.send({
+          from: FROM,
+          to: email,
+          subject: `Your ${productLabel} subscription has lapsed`,
+          html: `
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+              <h2>Your ${productLabel} subscription has lapsed</h2>
+              <p style="color:#555;line-height:1.7">
+                Hi ${client.company_name ?? 'there'},<br/><br/>
+                Your <strong>${productLabel}</strong> subscription couldn't be renewed. Access has been paused.
+                Renew now to restore access.
+              </p>
+              <a href="${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard/billing"
+                 style="display:inline-block;margin-top:12px;background:#0066FF;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
+                Renew subscription →
+              </a>
+            </div>`,
+        })
+      } catch (err) {
+        console.error(`[subscriptions/lapsed] notify failed for sub ${sub.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { lapsed: (lapsed ?? []).length } })
+  } catch (err) {
+    console.error('[subscriptions/check-lapsed]', err)
+    res.status(500).json({ success: false, error: 'Subscription lapse check failed' })
+  }
+})

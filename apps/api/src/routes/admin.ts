@@ -290,6 +290,8 @@ adminRouter.post('/clients/:id/credits', async (req: Request, res: Response) => 
     if (!['manual_grant', 'refund'].includes(type)) {
       res.status(400).json({ success: false, error: 'type must be manual_grant or refund' }); return
     }
+    // Hard cap on manual grants — prevents accidental 10,000-credit grants
+    if (amount > 500) { res.status(400).json({ success: false, error: 'Maximum manual grant is 500 credits. Use multiple grants if needed.' }); return }
 
     const { data: client, error: clientErr } = await db
       .from('clients').select('id, credit_balance').eq('id', req.params.id).single()

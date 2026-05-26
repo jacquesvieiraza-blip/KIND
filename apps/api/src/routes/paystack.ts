@@ -16,8 +16,10 @@ paystackRouter.post('/', async (req: Request, res: Response) => {
   await db.from('paystack_events').insert({ event_type: event.event, payload: event })
   try {
     switch (event.event) {
-      case 'charge.success': await handleChargeSuccess(event.data); break
-      case 'subscription.disable': await handleSubscriptionDisable(event.data); break
+      case 'charge.success':         await handleChargeSuccess(event.data); break
+      case 'subscription.create':    await handleSubscriptionCreate(event.data); break
+      case 'subscription.disable':   await handleSubscriptionDisable(event.data); break
+      case 'subscription.not_renew': await handleSubscriptionNotRenew(event.data); break
       case 'invoice.payment_failed': await handlePaymentFailed(event.data); break
     }
   } catch (err) { console.error('Webhook error:', err) }
@@ -26,16 +28,68 @@ paystackRouter.post('/', async (req: Request, res: Response) => {
 
 async function handleChargeSuccess(data: Record<string, unknown>) {
   const metadata = data.metadata as Record<string, string> | null
-  if (!metadata?.client_id) return
+  if (!metadata?.client_id || !metadata?.product) return
+
+  const now = new Date()
   const periodEnd = new Date()
   periodEnd.setMonth(periodEnd.getMonth() + 1)
-  await db.from('subscriptions').upsert({ client_id: metadata.client_id, product: metadata.product, tier: metadata.tier, status: 'active', billing_interval: metadata.billing_interval || 'monthly', amount_zar: (data.amount as number) || 0, current_period_start: new Date().toISOString(), current_period_end: periodEnd.toISOString() }, { onConflict: 'client_id,product' })
+
+  // Subscription renewal via Paystack recurring charge — update period dates and reactivate
+  const subCode = (data.subscription as Record<string, string>)?.subscription_code
+  if (subCode) {
+    // This is a recurring charge (renewal) — extend the period
+    await db.from('subscriptions')
+      .update({
+        status: 'active',
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+      })
+      .eq('paystack_subscription_code', subCode)
+    return
+  }
+
+  // First-time charge (no sub code yet — subscription.create fires separately)
+  await db.from('subscriptions').upsert({
+    client_id: metadata.client_id,
+    product: metadata.product,
+    tier: metadata.tier || 'monthly',
+    status: 'active',
+    billing_interval: metadata.billing_interval || 'monthly',
+    amount_zar: (data.amount as number) || 0,
+    current_period_start: now.toISOString(),
+    current_period_end: periodEnd.toISOString(),
+  }, { onConflict: 'client_id,product' })
+}
+
+// Fires when Paystack creates a recurring subscription — save the subscription code
+async function handleSubscriptionCreate(data: Record<string, unknown>) {
+  const subCode = data.subscription_code as string
+  const metadata = (data.metadata as Record<string, string>) ?? {}
+  const clientId = metadata.client_id
+  const product = metadata.product
+  if (!subCode || !clientId || !product) return
+
+  await db.from('subscriptions')
+    .update({ paystack_subscription_code: subCode })
+    .eq('client_id', clientId)
+    .eq('product', product)
+}
+
+// Fires when client cancels renewal but keeps access to period end
+async function handleSubscriptionNotRenew(data: Record<string, unknown>) {
+  const subCode = data.subscription_code as string
+  if (!subCode) return
+  await db.from('subscriptions')
+    .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+    .eq('paystack_subscription_code', subCode)
 }
 
 async function handleSubscriptionDisable(data: Record<string, unknown>) {
   const code = data.subscription_code as string
   if (!code) return
-  await db.from('subscriptions').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('paystack_subscription_code', code)
+  await db.from('subscriptions')
+    .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+    .eq('paystack_subscription_code', code)
 }
 
 async function handlePaymentFailed(data: Record<string, unknown>) {

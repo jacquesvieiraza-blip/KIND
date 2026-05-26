@@ -130,6 +130,7 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
 
     let query = db.from('leads').select('*', { count: 'exact' })
       .eq('client_id', clientId)
+      .not('delivered_at', 'is', null)   // drip gate — only show delivered leads
       .order('score', { ascending: false, nullsFirst: false })
       .range((Number(page) - 1) * Number(limit), Number(page) * Number(limit) - 1)
 

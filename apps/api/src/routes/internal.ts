@@ -18,6 +18,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
+import { getHubspotPipelineView } from '../lib/hubspot'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -1691,5 +1692,26 @@ internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Re
   } catch (err) {
     console.error('[subscriptions/check-lapsed]', err)
     res.status(500).json({ success: false, error: 'Subscription lapse check failed' })
+  }
+})
+
+// ── HUBSPOT PIPELINE VIEW ─────────────────────────────────────────────────────
+// Returns HubSpot deals grouped by stage. Protected by ADMIN_SECRET.
+// Returns { connected: false } if HUBSPOT_API_KEY is not set.
+internalRouter.get('/hubspot/pipeline', async (_req: Request, res: Response) => {
+  if (!process.env.HUBSPOT_API_KEY) {
+    res.json({ success: true, data: { connected: false } })
+    return
+  }
+  try {
+    const pipeline = await getHubspotPipelineView()
+    if (!pipeline) {
+      res.status(500).json({ success: false, error: 'Failed to fetch HubSpot pipeline' })
+      return
+    }
+    res.json({ success: true, data: { connected: true, ...pipeline } })
+  } catch (err) {
+    console.error('[hubspot/pipeline]', err)
+    res.status(500).json({ success: false, error: 'HubSpot pipeline fetch failed' })
   }
 })

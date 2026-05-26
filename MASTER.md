@@ -99,7 +99,7 @@
 | **Full schema drift fix** — `amount_usd` removed | ✅ Fixed | MRR calculations restored — 25 May |
 | **Daily 04:00 AM automated audit** | ✅ Live | `.github/workflows/daily-audit.yml` — opens GitHub Issue on failure |
 | Run `20260525_fix_subscriptions_schema.sql` | ⏳ MUST RUN | Supabase SQL Editor — makes schema drift permanent fix on DB level |
-| **Delete test chatbot subscription** | ⏳ MUST DO | Supabase → subscriptions table → delete row where product='chatbot' AND status='active' for your account — that's why Vida shows as unlocked |
+| **Delete test chatbot/VA subscriptions** | ✅ Done 26 May | SQL: `DELETE FROM subscriptions WHERE product IN ('chatbot','virtual_assistant') AND status='active' AND client_id='187bfb91-1224-4c29-90ea-4c2bdaff0ed1';` |
 
 ### ⚠️ Known Technical Debt (audit findings — log for later)
 | Issue | Severity | Notes |

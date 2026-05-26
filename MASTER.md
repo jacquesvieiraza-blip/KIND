@@ -32,6 +32,7 @@
 21. [Key Decisions Locked](#21-key-decisions-locked)
 22. [Go-To-Market Strategy](#22-go-to-market-strategy)
 23. [UK Company Registration](#23-uk-company-registration)
+24. [Art of Possible — Products We Study](#24-art-of-possible--products-we-study)
 
 ---
 
@@ -975,6 +976,30 @@ Once you have the company number, Claude will:
 | VAT registration | When turnover hits £90k/yr | Free |
 
 **Note:** If you have zero UK employees and your only director is non-UK resident, you still file but tax is only due on UK-sourced income. Most early revenue will be international. Get an accountant once you hit £10k MRR.
+
+---
+
+## 24. ART OF POSSIBLE — PRODUCTS WE STUDY
+
+*Products we study, what we learn, and how we respond. Not a threat list — an inspiration log.*
+*Full detail in: `docs/art-of-possible.md` (also readable at admin → Docs → Art of Possible)*
+
+| # | Product | URL | Category | Key Lesson | Date |
+|---|---------|-----|----------|------------|------|
+| 1 | Apex | apex.host | Autonomous AI founder assistant | "Acts, doesn't just respond" — copy framing + self-hosted digital twin positioning | 26 May 2026 |
+
+### Top Lessons To Act On (from Apex)
+1. **Rewrite copy to emphasise action** — FIGSY doesn't send emails, it *books meetings*. Milla doesn't answer questions, it *runs your morning brief*. (Claude can do this now)
+2. **Surface autonomy controls** — "You're in control. Expand KIND's autonomy as you get comfortable." Add to portal onboarding.
+3. **Founder as product demo** — Post real KIND outputs on LinkedIn. You ARE the use case.
+4. **Reframe Milla** — "Your AI Chief of Staff — trained on your documents, your tone, your business."
+
+### Gaps They Have That We Own
+- No African market focus (we own ZA/NG/KE/GH)
+- High friction (self-hosted) vs KIND's signup-and-go
+- No lead generation — they manage work, we create new revenue
+- Waitlist — we're live now
+- Price: ~$500–1,000+/mo vs KIND from $20
 
 ---
 

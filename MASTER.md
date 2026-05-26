@@ -31,12 +31,14 @@
 21. [Key Decisions Locked](#21-key-decisions-locked)
 22. [Go-To-Market Strategy](#22-go-to-market-strategy)
 23. [UK Company Registration](#23-uk-company-registration)
+24. [ClickUp Competitive Audit — Steal-Now Analysis](#24-clickup-competitive-audit--steal-now-analysis)
+25. [Apex (apex.host) Competitive Audit](#25-apexapexhost-competitive-audit)
 
 ---
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 26 May 2026 (evening)*
+*Last updated: 27 May 2026 (overnight build + competitive audit)*
 
 | Item | Status | Notes |
 |---|---|---|
@@ -67,7 +69,7 @@
 | Admin cohort analytics | ✅ Live | /admin/cohorts — signup month, activation, conversion, churn per cohort |
 | Portal Analytics page | ✅ Live | /dashboard/analytics — 6-month trends, ICP breakdown, score dist, top industries |
 | Stripe USD/GBP billing | ✅ Code complete | Billing page auto-activates when `STRIPE_SECRET_KEY` is set in Railway |
-| Paystack webhook | ✅ Set | TEST key — live payments blocked until KYC |
+| Paystack | ❌ Removed from billing UI | Stripe-only. Paystack requires SA entity — not applicable. API routes preserved for legacy data only. |
 | Lead drip system | ✅ Live | `delivered_at` on leads, daily_drip_rate per client, 08:10 UTC cron |
 | Credits deduct at delivery | ✅ Live | 1 credit per lead when daily drip delivers it — NOT at insertion |
 | Lead overspend fix | ✅ Live | maxLeads cap + leads_per_run client setting respected |
@@ -77,8 +79,8 @@
 | Milla (virtual_assistant) access gate | ✅ Fixed | React hooks violation fixed — no more crash on load |
 | Vida (chatbot) access gate | ✅ Fixed | `active` only — removed trialing (must have paid subscription) |
 | FIGSY trial expiry gate | ✅ Fixed | Backend rejects trialing campaigns with expired current_period_end |
-| Cancel subscription | ✅ Live | `POST /subscriptions/:id/cancel` — Paystack disable + DB update |
-| Recurring billing webhooks | ✅ Live | subscription.create saves paystack_subscription_code, charge.success handles renewals |
+| Cancel subscription | ✅ Live | `POST /subscriptions/:id/cancel` — DB status update + Stripe cancel |
+| Recurring billing webhooks | ✅ Live | `customer.subscription.created/updated` → DB upsert. `customer.subscription.deleted` → mark cancelled. `invoice.payment_failed` → log warning |
 | Admin credit grant cap | ✅ Live | Hard cap 500 credits per grant — prevents accidental large grants |
 | FIGSY trialing gate removed | ✅ Fixed | FIGSY page now requires `active` only (no trialing) |
 | Credit pricing aligned | ✅ Fixed | 2 tiers: Kind AI 20/$20, 100/$100 · FIGSY 20/$60, 100/$300 |
@@ -116,16 +118,31 @@
 | **Run `20260526_drip_and_controls.sql`** | ⏳ MUST RUN | Supabase SQL Editor — adds `delivered_at` to leads + `daily_drip_rate` to clients |
 | **HubSpot account + API key** | ⏳ Pending | app.hubspot.com (free) → Settings → Private Apps → "KIND AI" → add `HUBSPOT_API_KEY` to Railway |
 | **Register Resend webhook** | ⏳ Pending | Resend dashboard → Webhooks → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` + set `RESEND_WEBHOOK_SECRET` in Railway |
-| **Paystack plan codes** | ⏳ Pending | Create plans in Paystack dashboard → add `PAYSTACK_PLAN_VA_MONTHLY` etc to Railway |
+| **Stripe price IDs — Milla + Vida** | ⏳ MUST DO BEFORE TEST 3 | Stripe dashboard → create Milla ($49/mo recurring) + Vida ($39/mo recurring) → copy Price IDs → add to Railway as `STRIPE_PRICE_MILLA_MONTHLY` + `STRIPE_PRICE_VIDA_MONTHLY` + `NEXT_PUBLIC_` versions |
+| **Run `20260527_stripe_subscription_id.sql`** | ⏳ MUST RUN | Supabase SQL Editor — adds `stripe_subscription_id` column to subscriptions table |
+| **Credit race condition fix** | ✅ Fixed 27 May | Unique index on `credit_transactions.reference` + atomic `increment_client_credits()` RPC. Migration `20260526_credit_race_condition_fix.sql` — user confirmed run. |
+| **Startup env check** | ✅ Built 27 May | `apps/api/src/lib/startup-check.ts` — logs CRITICAL/IMPORTANT/OPTIONAL at boot, refuses to start if CRITICAL missing |
+| **AI reply 7-category upgrade** | ✅ Built 27 May | 🔥 Hot / 🌤️ Warm / ❄️ Cold / 🚫 Opted out / 👤 Wrong person / ✈️ OOO / ❓ Other. Backward-compat: old 'interested'→hot, 'not_interested'→cold |
+| **Admin Unibox** | ✅ Built 27 May | `/unibox` in admin — all FIGSY replies across all clients, filter by classification, hot-sorted, limit 200. Added to admin nav. |
+| **Portal reply inbox upgrade** | ✅ Built 27 May | Emoji labels, actionable summary bar (Hot + Warm count), sorted by priority |
+| **Homepage hero rewrite** | ✅ Built 27 May | "Stop chasing leads. Let FIGSY book them." — website + landing |
+| **Self-serve Stripe subscriptions — Milla + Vida** | ✅ Built 27 May | Billing page: Milla ($49/mo) + Vida ($39/mo) subscribe buttons → `POST /stripe/subscribe` → Stripe checkout → webhook → DB activation |
+| **Paystack fully removed from billing UI** | ✅ Done 27 May | Portal billing page Stripe-only. Paystack API routes preserved (legacy) but no client-facing UI. |
+| **Milla upgrade screen updated** | ✅ Done 27 May | "Unlock Milla — $49/month →" → /dashboard/billing. Demo request button retained. |
+| **Vida upgrade screen updated** | ✅ Done 27 May | "Unlock Vida — $39/month →" → /dashboard/billing. Demo request button retained. |
+| **ClickUp competitive audit** | ✅ Done 27 May | Section 24 — steal-now list S1–S8, 2 structural gaps documented |
+| **Apex (apex.host) competitive audit** | ✅ Done 27 May | Section 25 — positioning steal: "AI Revenue OS" framing |
 
 ### ⚠️ Known Technical Debt (audit findings — log for later)
 | Issue | Severity | Notes |
 |---|---|---|
 | Duplicate /leads/consent/bulk and /leads/bulk-consent routes | Medium | Same functionality, different param names. Pick one and deprecate other. NOTE: all other "duplicate" routes were GET+POST on same path — correct REST, not bugs. |
-| Credit deduction race condition in /leads/drip | Medium | High concurrency could overdraw. Acceptable for current scale — add DB transaction when you have 100+ concurrent clients |
+| ~~Credit deduction race condition in /credits/verify~~ | ✅ **Fixed 27 May** | Unique DB index on `credit_transactions.reference` + atomic `increment_client_credits()` RPC — double-spend impossible |
 | ICP delete doesn't cascade leads | High | Deleting an ICP orphans its leads. Add `ON DELETE SET NULL` to icp_id FK in schema |
 | Exchange rate hardcoded at R19/$ in credits.ts | Medium | Update monthly or add daily rate fetch when you have 50+ paying clients |
-| Paystack plan codes env vars empty | High | Recurring billing code is ready but **needs plan codes from Paystack dashboard** — see Section 6 |
+| ~~Paystack plan codes env vars empty~~ | ~~High~~ | **Removed** — Paystack not applicable. Stripe handles all billing. |
+| Agent trigger model — hardcoded cron | Medium | FIGSY runs 3x daily on fixed times. No event-driven triggers yet. Build at 20 clients. |
+| Memory model — flat figsy_memory table | Medium | Single table. ClickUp/Apex have 3-type model (episodic/long-term/preference). Build at 10 clients. |
 
 ---
 
@@ -139,7 +156,9 @@
 | ~~2~~ | ~~RESEND_API_KEY in Railway~~ | ✅ **Done** | — |
 | ~~3~~ | ~~Railway deploy logs~~ | ✅ **Done — green** | — |
 | ~~4/5/6~~ | ~~SQL migrations~~ | ✅ **Done** — subscriptions schema + drip system applied | — |
-| **7** | **Set up Stripe** | stripe.com → create account → get keys → create 4 prices → add to Railway | Primary payment processor. UK business, bills African + global clients in USD/GBP. Already fully built — activates on env vars. |
+| **7** | **Set up Stripe** | stripe.com → create account → get keys → create 6 prices (4 credit bundles + Milla $49/mo + Vida $39/mo) → add to Railway | Primary payment processor. UK business, bills African + global clients in USD/GBP. Already fully built — activates on env vars. |
+| **7b** | **Add Milla + Vida subscription prices to Railway** | Stripe dashboard → create recurring products → add `STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`, + NEXT_PUBLIC versions | Required before Test 3. Do NOT paste IDs in chat — add directly to Railway. |
+| **7c** | **Run `20260527_stripe_subscription_id.sql`** | Supabase SQL Editor — paste and run | Adds `stripe_subscription_id` column to subscriptions — required for Milla/Vida webhook processing |
 | **8** | **Register UK company** | companieshouse.gov.uk — £50, same day | Required for Stripe UK account + professional credibility. See Section 23. |
 
 ### 🟡 HIGH — Do This Week
@@ -297,8 +316,14 @@
 | Demo Environments | Claude | ✅ Done |
 | AI ICP Suggest | Claude | ✅ Done |
 | Credit management in admin | Claude | ✅ Done |
-| Paystack KYC → live key | Jacques | ⏳ Pending |
+| Self-serve Stripe subscriptions (Milla + Vida) | Claude | ✅ Done 27 May |
+| 7-category reply classification + Unibox | Claude | ✅ Done 27 May |
+| Credit race condition fix | Claude | ✅ Done 27 May |
+| Startup env check | Claude | ✅ Done 27 May |
+| Stripe keys in Railway | Jacques | ⏳ Pending — required for Test 3 |
+| Stripe Milla + Vida price IDs in Railway | Jacques | ⏳ Pending — required for Test 3 |
 | Google Workspace | Jacques | ⏳ Pending |
+| Smoke tests pass (Tests 1–4) | Jacques + Claude | ⏳ Starting 28 May |
 | First 5 paying clients | Jacques | ⏳ Pending |
 | FIGSY campaigns live (own GTM) | Both | ⏳ Pending |
 

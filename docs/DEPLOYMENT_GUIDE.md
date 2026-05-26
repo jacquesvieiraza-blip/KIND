@@ -1,8 +1,10 @@
 # KIND AI Platform — Deployment Guide
 
+> ⚠️ **Last updated: 18 May 2026. This doc may reference Paystack (removed 27 May) and pre-Stripe billing. For current deployment steps, see `MASTER.md` Section 17 (Tech Stack) and Section 2 (What Founder Needs To Do). This file is preserved for historical reference.**
+
 **Version:** 2.0 · **Date:** May 2026  
 **Time required:** ~90 minutes end-to-end (first time)  
-**Prerequisites:** Accounts on Supabase, Vercel, Railway, Paystack, Anthropic, Apollo
+**Prerequisites:** Accounts on Supabase, Vercel, Railway, Stripe, Anthropic, Apollo (Paystack removed — not required)
 
 ---
 

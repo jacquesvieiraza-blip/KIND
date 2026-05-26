@@ -1625,6 +1625,254 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 
 ---
 
+---
+
+### CLICKUP vs K.I.N.D — FULL DETAILED COMPARISON
+
+*Note: ClickUp is a $1B+ general-purpose work OS. K.I.N.D is a vertical AI outbound platform. This is not a "we're behind" analysis — it is a feature map to know exactly where we differ and what to steal.*
+
+---
+
+#### 🧠 AI / AGENTS
+
+| Feature | ClickUp | K.I.N.D | Gap |
+|---|---|---|---|
+| AI model | GPT-5, Claude Opus 4.1, o3, o1-mini (switchable) | Claude Haiku (fixed) | ⚠️ Multi-model — Year 2 |
+| AI memory — episodic | ✅ Recent interactions, conversations | ❌ Not built | ❌ Year 2 |
+| AI memory — long-term | ✅ Docs, past tickets, rules, naming conventions | ✅ figsy_memory (reply stats, winning angles) | ⚠️ Partial |
+| AI memory — preference | ✅ Tone, format, channel preferences per person | ❌ Not built | ❌ Year 2 |
+| Agent triggers — manual | ✅ @mention, DM, assign as task | ❌ N/A (different model) | — |
+| Agent triggers — scheduled | ✅ Hourly / daily / weekly / monthly / custom | ⚠️ Cron (3× daily) — hardcoded | ⚠️ Phase 3 |
+| Agent triggers — automated | ✅ Any workspace event via Automations | ❌ Not built | ❌ Phase 3 |
+| Agent skills | ✅ 500+ prebuilt + custom | FIGSY only — sequences + reply analysis | ❌ Year 2 |
+| Multi-agent orchestration | ✅ Multiple agents in parallel | ❌ Not built | ❌ Year 2 |
+| Agent identity | ✅ Named workspace members, persistent | ✅ FIGSY identity card (built May '26) | ✅ Done |
+| Agent escalation | ✅ Auto-pause, ask for help, route to human | ✅ Auto-pause on low performance | ✅ Done |
+| AI notetaker | ✅ Joins Zoom/Teams, transcribes, creates tasks | ❌ Not built | ❌ Parked |
+| Multi-model toggle | ✅ Per-task: GPT-5 vs Claude vs o3 | ❌ Fixed Haiku | ❌ Year 2 |
+| AI in mobile | ✅ Brain everywhere, dictation | ❌ No mobile app | ❌ Year 2+ |
+
+**Gap summary:** ClickUp's memory model (3 types) is far more granular. We have 1 flat table. Their scheduled triggers run independently — ours are hardcoded cron jobs. The 500+ skill library is the real moat we need to build toward.
+
+---
+
+#### 🖥️ CLIENT PORTAL (what clients see)
+
+| Feature | ClickUp | K.I.N.D | Status |
+|---|---|---|---|
+| Dedicated client portal | ⚠️ Hacked via guest access — complex | ✅ Purpose-built (NextAuth, dashboard) | ✅ We win |
+| White labeling | ❌ Enterprise only — ClickUp brand shows | ✅ Fully white-labeled | ✅ We win |
+| Custom domain | ❌ Not available | ✅ Built | ✅ We win |
+| Client onboarding flow | ❌ Manual per-client setup | ✅ Automated provisioning | ✅ We win |
+| Campaign status view | ❌ Not purpose-built | ✅ Built | ✅ We win |
+| Credit balance / usage | ❌ Not built | ✅ Built | ✅ We win |
+| Lead delivery dashboard | ❌ Not built | ✅ Built | ✅ We win |
+| Client self-service top-up | ❌ Not built | ✅ Stripe credit top-up | ✅ We win |
+| Clean non-PM UX | ❌ Clients see full PM interface | ✅ Stripped-back, purpose-built | ✅ We win |
+| Guest seat cost | ❌ Costs extra per plan | ✅ No per-client seat pricing | ✅ We win |
+| File approval workflow | ❌ Not native | ❌ Not built | Both gap |
+| Contract / e-sign | ❌ Not built | ❌ Not built | Both gap |
+| Invoicing in portal | ❌ Not built | ❌ Not built (Stripe external) | Both gap |
+| Messaging in portal | ❌ Not native | ❌ Not built | Both gap |
+| Mobile client app | ❌ Guests get full ClickUp — overkill | ❌ No mobile | Both gap |
+| Notification / alerts | ⚠️ Email only | ⚠️ Not built properly | Both gap |
+| Real-time data refresh | ✅ Live dashboard widgets | ⚠️ Polling / page refresh | ⚠️ Phase 2 |
+
+**Verdict:** We win the client portal category. ClickUp's is a workaround. Ours is purpose-built. The gaps: file approvals, contracts, in-portal messaging, mobile.
+
+---
+
+#### ⚙️ BACKEND / PLATFORM
+
+| Feature | ClickUp | K.I.N.D | Status |
+|---|---|---|---|
+| Database | Proprietary cloud | Supabase (Postgres, Cape Town) | ✅ |
+| API | Full REST + webhooks + Enterprise API | REST API (Express) | ✅ |
+| Webhooks — outbound | ✅ Any workspace event | ✅ Stripe inbound | ⚠️ Phase 2 expand |
+| Realtime | ✅ Live updates everywhere | ⚠️ Supabase realtime not wired yet | ⚠️ Phase 2 |
+| File storage | ✅ Native (60MB free) | ❌ No file storage | ❌ Phase 3 |
+| Multi-tenancy | ✅ Workspace isolation | ✅ Per-client RLS (Supabase) | ✅ |
+| Roles / permissions | ✅ Owner, Admin, Member, Guest + custom | ⚠️ Basic — admin vs client | ⚠️ Phase 2 |
+| Audit log | ✅ Enterprise | ❌ Not built | ❌ Phase 3 |
+| HIPAA / SOC2 / GDPR | ✅ Enterprise | ❌ SOC2 Q1 2027 | ⚠️ Roadmapped |
+| POPIA | ❌ Not SA-specific | ✅ Full POPIA compliance built | ✅ We win |
+| Credit system | ❌ No credit model | ✅ Built (credit_balance, transactions) | ✅ We win |
+| Background jobs | ❌ Not exposed | ✅ 16 cron jobs (Railway) | ✅ We win |
+| Email sending (outbound sequences) | ❌ Notifications only | ✅ Resend + FIGSY sequences | ✅ We win |
+| Sequence engine | ❌ No outbound sequences | ✅ Built (multi-step, variable days) | ✅ We win |
+| Reply detection | ❌ Not built | ✅ Auto-pause on reply | ✅ We win |
+| ICP management | ❌ Not built | ✅ Built (ICP cascade, attributes) | ✅ We win |
+| Lead sourcing | ❌ Not built | ✅ Apollo integration | ✅ We win |
+| Platform status snapshots | ❌ Not built | ✅ 3× daily (platform_status table) | ✅ We win |
+
+---
+
+#### 🛠️ ADMIN END
+
+| Feature | ClickUp | K.I.N.D | Status |
+|---|---|---|---|
+| Admin dashboard | ✅ Full workspace analytics | ✅ Built (K.I.N.D Admin portal) | ✅ |
+| Client health view | ⚠️ Task-based, not client-health | ✅ At-risk client tracking | ✅ We win |
+| Revenue dashboard | ⚠️ Time billing reports only | ✅ Revenue page | ✅ We win |
+| AI exec team view | ❌ Not built | ✅ /agents/otto, /lena, /reeve, /cmo, /cto, /cfo | ✅ We win |
+| Cohort tracking | ❌ Not built | ✅ /cohorts | ✅ We win |
+| Lead pipeline view | ❌ Not built | ✅ HubSpot integration | ✅ We win |
+| Scalability modelling | ❌ Not built | ✅ /scalability | ✅ We win |
+| Terms library | ❌ Not built | ✅ /terms-library | ✅ We win |
+| Doc viewer (internal) | ✅ ClickUp Docs — full collaborative editor | ✅ Markdown renderer (/docs/*) | ⚠️ Theirs is richer |
+| Roadmap views | ✅ Gantt, Board, multiple views | ✅ /roadmap (static) | ⚠️ Theirs is richer |
+| Compliance tracking | ✅ Enterprise dashboard | ✅ /compliance page | ⚠️ Theirs is deeper |
+| Scheduled report emails | ✅ Emailed on schedule | ❌ Not built | ❌ Phase 2 |
+| Workload / capacity view | ✅ Full team management | ❌ N/A (no internal team yet) | N/A |
+| Goals / OKR tracking | ✅ Full goal folders, progress | ❌ Not built | ❌ Phase 3 |
+| Kanban for deals | ✅ Full Kanban on any list | ⚠️ HubSpot for pipeline only | ⚠️ Phase 2 (Art of Possible Piece 1) |
+| Custom dashboard widgets | ✅ 100+ widget types | ⚠️ Fixed layout | ⚠️ Phase 2 |
+| Public shareable dashboards | ✅ Read-only links | ❌ Not built | ❌ Phase 2 |
+
+---
+
+#### 📱 VIEWS / UX
+
+| Feature | ClickUp | K.I.N.D | Status |
+|---|---|---|---|
+| Views | ✅ 15+ (List, Board, Gantt, Calendar, Map…) | Pages-based — no view switching | ❌ Phase 3 |
+| Global search | ✅ Searches Gmail too (2026) | ❌ Not built | ❌ Phase 3 (Piece 2) |
+| Command palette | ✅ Built in | ❌ Not built | ❌ Phase 3 (Piece 3) |
+| Activity feed | ✅ Realtime | ❌ Not built | ❌ Phase 2 (Piece 7) |
+| Mobile app | ✅ iOS + Android | ❌ None | ❌ Year 2+ |
+| Dark mode | ✅ | ✅ Dark-first design | ✅ |
+| Keyboard shortcuts | ✅ Full | ❌ Not built | ❌ Phase 3 |
+| Team chat | ✅ Full async + AI summaries | ❌ Not built | ❌ N/A |
+| Collaborative whiteboards | ✅ | ❌ Not built | ❌ N/A |
+| Forms builder | ✅ Full | ❌ Not built | ❌ Phase 3 |
+| Template library | ✅ 1,000+ community templates | ❌ Not built | ❌ Phase 3 (Piece 15) |
+
+---
+
+#### 💰 PRICING MODEL
+
+| | ClickUp | K.I.N.D |
+|---|---|---|
+| Model | Per-seat / per-user / per-month | Per-client SaaS + credit consumption |
+| Free tier | ✅ Free Forever (limited) | ❌ No free tier |
+| Entry price | $7/user/month | ~$80/month blended ARPU |
+| AI add-on | $9/user/month extra | ✅ Included |
+| White label | ❌ Enterprise only (expensive) | ✅ Standard |
+| African market pricing | ❌ Not localised | ✅ ZAR-aware |
+| Credit / outcome model | ❌ Not applicable | ✅ Core mechanic |
+
+---
+
+#### 🏆 WHERE WE WIN vs ClickUp
+
+| Win | Why it matters |
+|---|---|
+| Purpose-built for B2B outbound | ClickUp has zero sequence engine, zero lead delivery, zero reply handling |
+| Client portal is actually clean | ClickUp guests see a PM tool — ours is a real portal |
+| White label is standard | ClickUp charges enterprise rates for this |
+| Credit model | No per-seat confusion — pay for what you use |
+| African market + POPIA | Nobody at ClickUp is thinking about this |
+| FIGSY | AI that does outbound *for* you — ClickUp's AI assists, it does not execute |
+
+---
+
+#### 🔴 WHERE TO STEAL FROM CLICKUP
+
+**Steal now (Phase 2–3):**
+
+| Feature | Why | Art of Possible |
+|---|---|---|
+| Command palette | Global search + quick actions | Piece 3 |
+| Scheduled agent triggers (event-driven, not cron) | Our hardcoded cron is fragile — theirs fires on any event | New piece |
+| 3-type memory (episodic + long-term + preference) | We have 1 flat table — major upgrade | Section 27 Level 2 |
+| Activity feed (realtime) | Every action shown live | Piece 7 |
+| Shareable read-only dashboards | For clients + investors | New piece |
+
+**Steal when >20 clients:**
+
+| Feature | Why | Art of Possible |
+|---|---|---|
+| Multi-model toggle | Let campaign choose Claude vs GPT per need | Piece 8 (partial) |
+| Kanban view | Deals pipeline, campaign stages | Piece 1 |
+| Scheduled report emails | Daily/weekly digest pushed to clients | New piece |
+| File approval workflow | Client approves copy before send | New piece |
+
+**Long term / Year 2+:**
+
+| Feature | Why | Notes |
+|---|---|---|
+| Mobile app | High cost, low priority | Year 2+ |
+| Meeting notetaker | Joins calls, transcribes, creates tasks | Parked (Section 28) |
+| 500+ modular skill library | FIGSY vertical skills | Year 2 |
+| Multi-agent orchestration | FIGSY + OTTO + LENA in parallel | Year 2 |
+
+---
+
+### INFOGRAPHIC TABLES — PRINT / DECK READY
+
+*These are simplified versions of the above tables, formatted for slide decks, pitch decks, and visual use.*
+
+---
+
+#### INFOGRAPHIC 1 — WHERE WE WIN (6 moats)
+
+| # | MOAT | CLICKUP | K.I.N.D |
+|---|---|---|---|
+| 1 | Done-for-you | ❌ Self-serve tool | ✅ We run it for you |
+| 2 | Client portal | ❌ PM tool (confusing) | ✅ Purpose-built |
+| 3 | White label | ❌ Enterprise only | ✅ Standard |
+| 4 | Pricing | ❌ Per seat / per month | ✅ Pay per lead |
+| 5 | Africa + POPIA | ❌ Not built | ✅ Day 1 |
+| 6 | AI execution | ❌ AI assists | ✅ AI does |
+
+---
+
+#### INFOGRAPHIC 2 — AI CAPABILITIES SNAPSHOT
+
+| Capability | ClickUp | K.I.N.D |
+|---|---|---|
+| AI runs campaign end-to-end | ❌ | ✅ FIGSY |
+| AI memory | ✅ 3 types | ✅ 1 type (growing) |
+| Agent identity | ✅ Named members | ✅ FIGSY identity card |
+| Agent escalation | ✅ | ✅ Auto-pause |
+| Multi-model AI | ✅ GPT-5, Claude, o3 | ❌ Haiku (Year 2) |
+| Proactive triggers | ✅ Any event | ⚠️ 3× daily cron |
+| 500+ skills | ✅ | ❌ (Year 2) |
+
+---
+
+#### INFOGRAPHIC 3 — CLIENT PORTAL SCORECARD
+
+| Feature | ClickUp | K.I.N.D |
+|---|---|---|
+| Purpose-built | ❌ | ✅ |
+| White-label | ❌ | ✅ |
+| Lead dashboard | ❌ | ✅ |
+| Campaign status | ❌ | ✅ |
+| Credit top-up | ❌ | ✅ |
+| Automated onboarding | ❌ | ✅ |
+| Per-client seat cost | ❌ Charges extra | ✅ Free |
+
+**Score: K.I.N.D 7 / ClickUp 0**
+
+---
+
+#### INFOGRAPHIC 4 — PRICING COMPARISON
+
+| | ClickUp | K.I.N.D |
+|---|---|---|
+| Base | $7/user/month | ~$80/client/month |
+| AI | +$9/user/month | ✅ Included |
+| White label | Enterprise (~$1,200+/year) | ✅ Included |
+| African pricing | ❌ | ✅ ZAR |
+| Pay per result | ❌ | ✅ |
+
+---
+
+*Added: 26 May 2026 — full ClickUp comparison + infographic tables*
+
+---
+
 *Added: 26 May 2026 — "think out the box" session*
 *Source: ClickUp Brain Agents (apex.host + clickup.com/brain/agents)*
 
@@ -2480,29 +2728,78 @@ Competitors are grouped into 7 tiers by category. Each entry covers: what they a
 
 ## MASTER COMPARISON TABLE
 
-| Feature | K.I.N.D | Lemlist | Clay | Apollo | Instantly | Smartlead | Outreach | Salesloft | HubSpot | Close |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Business model** | Managed SaaS | Self-serve tool | Data infra | Data + tool | Email infra | Email infra | Enterprise | Enterprise | CRM | CRM+outbound |
-| **Done-for-you** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **White-label client portal** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Pay-per-lead / outcome pricing** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **African market + POPIA** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **AI runs campaign autonomously** | ✅ FIGSY | ⚠️ assists | ✅ data only | ⚠️ assists | ✅ AI agent | ✅ SmartAgents | ✅ Kaia | ✅ | ⚠️ assists | ❌ |
-| **AI memory / learning** | ✅ basic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Multi-channel (email+LI+call)** | ❌ email only | ✅ | ❌ data only | ✅ | ⚠️ add-on | ⚠️ add-on | ✅ | ✅ | ✅ | ✅ |
-| **Lead database** | ✅ via Apollo | ✅ 450M | ✅ 150+ sources | ✅ 210M | ✅ SuperSearch | ✅ | ❌ | ❌ | ✅ Breeze | ❌ |
-| **Waterfall enrichment** | ❌ Apollo only | ✅ | ✅ 150+ | ⚠️ limited | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Intent signals** | ❌ | ❌ | ✅ | ✅ Pocus | ❌ | ❌ | ✅ | ✅ Clari | ✅ | ❌ |
-| **Email warmup** | ❌ | ✅ Lemwarm | ❌ | ⚠️ basic | ✅ unlimited | ✅ unlimited | ❌ | ❌ | ❌ | ❌ |
-| **Deliverability dashboard** | ❌ | ✅ | ❌ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Unified reply inbox** | ❌ | ✅ | ❌ | ✅ | ✅ Unibox | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Personalised images** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Conditional sequence branching** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Revenue / deal forecasting** | ❌ | ❌ | ❌ | ✅ Pocus | ❌ | ❌ | ✅ | ✅ Clari | ✅ | ⚠️ basic |
-| **Call intelligence** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ SmartDialer | ✅ Kaia | ✅ | ❌ | ✅ |
-| **MCP server** | ❌ Art of Possible | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Mobile app** | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Entry price** | ~$80 ARPU | $39/user | $185/mo | $49/user | $37/mo | $39/mo | $130/user | $75/user | Free | $49/user |
+*Full landscape — all major competitors. ✅ = has it | ❌ = does not | ⚠️ = partial*
+
+| Feature | **K.I.N.D** | ClickUp | Lemlist | Clay | Apollo | Instantly | Smartlead | Outreach | Salesloft | HubSpot | Close |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **Business model** | Managed SaaS | Work OS | Outreach tool | Data infra | Data + tool | Email infra | Email infra | Enterprise | Enterprise | CRM | CRM+outbound |
+| **Done-for-you** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **White-label client portal** | ✅ | ❌ Enterprise | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Pay-per-lead / outcome pricing** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **African market + POPIA** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **AI runs campaign autonomously** | ✅ FIGSY | ⚠️ assists | ⚠️ assists | ✅ data only | ⚠️ assists | ✅ AI agent | ✅ SmartAgents | ✅ Kaia | ✅ | ⚠️ assists | ❌ |
+| **AI memory / learning** | ✅ basic | ✅ 3 types | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Agent identity (named)** | ✅ FIGSY | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Kaia | ✅ | ❌ | ❌ |
+| **Agent escalation** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Multi-model AI** | ❌ (Year 2) | ✅ GPT-5/Claude/o3 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Sequence engine** | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Multi-channel (email+LI+call)** | ❌ email only | ❌ | ✅ | ❌ | ✅ | ⚠️ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
+| **Lead database** | ✅ via Apollo | ❌ | ✅ 450M | ✅ 150+ | ✅ 210M | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
+| **Waterfall enrichment** | ❌ Apollo only | ❌ | ✅ | ✅ 150+ | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Intent signals** | ❌ | ❌ | ❌ | ✅ | ✅ Pocus | ❌ | ❌ | ✅ | ✅ Clari | ✅ | ❌ |
+| **Email warmup** | ❌ | ❌ | ✅ Lemwarm | ❌ | ⚠️ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Deliverability dashboard** | ❌ | ❌ | ✅ | ❌ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Unified reply inbox** | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ Unibox | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Personalised images** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Conditional sequence branching** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Activity feed (realtime)** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Command palette** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Revenue / deal forecasting** | ❌ | ❌ | ❌ | ❌ | ✅ Pocus | ❌ | ❌ | ✅ | ✅ Clari | ✅ | ⚠️ |
+| **Call intelligence** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ Kaia | ✅ | ❌ | ✅ |
+| **Goals / OKR tracking** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Custom dashboard widgets** | ⚠️ fixed | ✅ 100+ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ⚠️ |
+| **Shareable dashboards** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **MCP server** | ❌ Planned | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Mobile app** | ❌ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **POPIA / African compliance** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Entry price** | ~$80 ARPU | $7/user | $39/user | $185/mo | $49/user | $37/mo | $39/mo | $130/user | $75/user | Free | $49/user |
+
+---
+
+---
+
+### INFOGRAPHIC TABLE — SIMPLIFIED MASTER (deck/pitch ready)
+
+*Key: ✅ = yes | ❌ = no | ⚠️ = partial*
+
+| | K.I.N.D | ClickUp | Lemlist | Apollo | Instantly | Outreach |
+|---|---|---|---|---|---|---|
+| Done-for-you | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| White-label client portal | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Pay per lead (outcome pricing) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Africa + POPIA | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| AI runs campaign autonomously | ✅ | ⚠️ | ⚠️ | ⚠️ | ✅ | ✅ |
+| AI memory / learning | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Lead database | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| Sequence engine | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Email warmup | ❌ | ❌ | ✅ | ⚠️ | ✅ | ❌ |
+| Multichannel (LI + call) | ❌ | ❌ | ✅ | ✅ | ⚠️ | ✅ |
+| Revenue forecasting | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Mobile app | ❌ | ✅ | ❌ | ✅ | ❌ | ✅ |
+| **Entry price** | **~$80/mo** | **$7/user** | **$39/user** | **$49/user** | **$37/mo** | **$130/user** |
+
+---
+
+### INFOGRAPHIC TABLE — K.I.N.D MOATS (6 uncontested wins)
+
+| Moat | What it means | Every competitor |
+|---|---|---|
+| ✅ Done-for-you | We run the campaigns. They provide tools you run yourself. | ❌ All self-serve |
+| ✅ White-label portal | Our client portal carries your brand. | ❌ None have it |
+| ✅ Outcome pricing | You pay per lead delivered. | ❌ All charge per seat/flat rate |
+| ✅ Africa + POPIA | Built for this market from Day 1. | ❌ None focus on Africa |
+| ✅ AI that executes | FIGSY is the SDR. Others have AI "assist" buttons. | ❌ None run end-to-end |
+| ✅ FIGSY Memory | Gets smarter per client over time. | ❌ All send static sequences |
 
 ---
 

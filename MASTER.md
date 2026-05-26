@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 26 May 2026 (evening — post-audit session)**
+**Single source of truth. Last updated: 26 May 2026 (evening — full competitive audit + vision session)**
 **Business: UK registration IN PROGRESS (Companies House) · Platform: Africa-first, world-ready**
 **Auto-status: Admin → /status updates 3× daily (07:05, 12:00, 19:00 SAST)**
 
@@ -113,59 +113,186 @@
 
 ## 2. WHAT FOUNDER NEEDS TO DO
 
-*Updated: 26 May 2026 evening*
+*Updated: 26 May 2026 evening — day-by-day plan*
 
-### ✅ DONE — Complete
-| # | Task | Done |
-|---|---|---|
-| 1 | Apollo API key in Railway | ✅ |
-| 2 | RESEND_API_KEY in Railway | ✅ |
-| 3 | Railway green build | ✅ |
-| 4–6 | All SQL migrations applied | ✅ |
-| 7 | Stripe account + 6 prices + keys in Railway | ✅ |
-| 7b | NEXT_PUBLIC Stripe vars in Vercel | ✅ |
-| 8 | UK company registration | ✅ In progress today |
-| 9 | HubSpot account + API key in Railway | ✅ |
-| 10 | Resend inbound webhook + secret in Railway | ✅ |
-| 11 | FIGSY_KIND_CLIENT_ID in Railway | ✅ |
-| 12 | Calendly link created + wired site-wide | ✅ |
+---
+
+### ✅ ALL DONE TO DATE
+| Task | Done |
+|---|---|
+| Apollo API key in Railway | ✅ |
+| RESEND_API_KEY in Railway | ✅ |
+| Railway green build | ✅ |
+| All SQL migrations applied | ✅ |
+| Stripe account + 6 prices + keys in Railway | ✅ |
+| NEXT_PUBLIC Stripe vars in Vercel | ✅ |
+| UK company registration submitted | ✅ In progress — awaiting Companies House |
+| HubSpot account + API key in Railway | ✅ |
+| Resend inbound webhook + secret in Railway | ✅ |
+| FIGSY_KIND_CLIENT_ID in Railway | ✅ |
+| Calendly link created + wired site-wide | ✅ |
 | Drip migration applied in Supabase | ✅ |
-| ICP cascade delete applied in Supabase | ✅ |
+| ICP cascade delete migration applied | ✅ |
 
-### 🔴 DO TODAY — Launch Blockers
+---
+
+### 📅 TODAY — 26 May 2026 (EVENING)
+
+**You — 15 minutes total**
+
 | # | Task | Time | How |
 |---|---|---|---|
-| A | **Stripe webhook secret** | 2 min | Stripe → Developers → Webhooks → Add endpoint: `https://kindapi-production-e64c.up.railway.app/stripe/webhook` → Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` → Copy secret → Railway as `STRIPE_WEBHOOK_SECRET` |
-| B | **Upgrade Resend to paid** | 2 min | resend.com/billing → Pro ($20/mo) |
-| C | **Fix 4 Stripe prices** | 10 min | Old prices had volume discounts. Archive + recreate: Lead Gen 40cr=$40, Lead Gen 100cr=$100, FIGSY 40cr=$120, FIGSY 100cr=$300. Update 4 Railway env vars. |
-| D | **Give me UK Companies House number** | 1 min | When approved — I wire it into footer + legal pages |
+| 1 | **Stripe webhook secret** | 2 min | Stripe → Developers → Webhooks → Add endpoint: `https://kindapi-production-e64c.up.railway.app/stripe/webhook` → Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` → Copy signing secret → Railway → `STRIPE_WEBHOOK_SECRET` |
+| 2 | **Upgrade Resend to paid** | 2 min | resend.com/billing → Pro ($20/mo) — free plan caps at 100 emails/day, blocks FIGSY at scale |
+| 3 | **Fix 4 Stripe prices** | 10 min | Stripe → Products → archive old 40cr and 100cr prices for Lead Gen + FIGSY. Recreate flat rate: Lead Gen 40cr=$40, 100cr=$100; FIGSY 40cr=$120, 100cr=$300. Copy 4 new price IDs → Railway: `STRIPE_PRICE_LEADGEN_40`, `STRIPE_PRICE_LEADGEN_100`, `STRIPE_PRICE_FIGSY_40`, `STRIPE_PRICE_FIGSY_100` |
 
-### 🟡 THIS WEEK
+**Claude — running tonight**
+- Homepage hero rewrite (new punchy copy, Apex-inspired framing)
+- AI reply categorisation extension (hot / warm / cold / wrong person / out of office)
+- Email deliverability dashboard (draft, ready for tomorrow's smoke test)
+
+---
+
+### 📅 TOMORROW — 27 May 2026 (SMOKE TEST DAY)
+
+**Goal: confirm every path works end-to-end before first real client**
+
+**You — 30–45 minutes**
+
+Run the full smoke test (Section 18). Do each step yourself, as a real client would:
+
+| Step | Action | What to check |
+|---|---|---|
+| 1 | Sign up at get-kind.com | Redirects to app.get-kind.com/login — no confirmation email |
+| 2 | Fill email + password → Sign Up | Lands directly on /onboard — no email gate |
+| 3 | Company name, industry, country → Start free trial | Dashboard loads with your company name |
+| 4 | Build ICP → click "Suggest ICP with AI" | Claude fills the form automatically |
+| 5 | Save & Find Leads | Real leads appear within minutes with scores |
+| 6 | Send POPIA consent to one lead | Email arrives in inbox, lead status → consent_sent |
+| 7 | Export leads as CSV | File downloads, columns correct |
+| 8 | Billing → buy credits | Stripe opens, payment processes, credit balance updates |
+| 9 | FIGSY / Milla / Vida screens | Locked screens show Upgrade + Book a Demo |
+| 10 | Sidebar bottom | Green dot "All systems operational" |
+| 11 | Admin → Demo Envs → create demo | Leads appear → Open Demo → portal opens as demo client in new tab |
+| 12 | Admin → Clients → grant 50 credits | Balance updates, transaction recorded in history |
+| 13 | Sign out → sign back in | Dashboard loads clean, no loop |
+
+**Apply platform_status migration** (2 min — if not done yet)
+- Supabase → SQL Editor → run `supabase/migrations/20260526_platform_status.sql`
+
+**Claude — available immediately**
+- Fix any issue you find during smoke test — share screenshot or describe what broke
+- I fix and redeploy, you retest. Repeat until all 13 pass.
+
+---
+
+### 📅 DAY AFTER TOMORROW — 28 May 2026 (OUTREACH DAY)
+
+**Goal: first real conversations in the pipeline**
+
+**You — 1–2 hours**
+
 | # | Task | Time | Notes |
 |---|---|---|---|
-| E | Wise business account | 15 min | business.wise.com — needs UK company number |
-| F | Link Wise to Stripe | 5 min | Stripe → Settings → Bank accounts |
-| G | LinkedIn 3× per week | Daily | Admin → CMO Tools → copy draft → personalise + post |
-| H | 10 warm personal outreach messages | This week | LinkedIn/WhatsApp — "I built something, want to see it?" |
-| I | 3 discovery calls booked | This week | Admin → Sales Playbook for script |
+| 1 | **10 warm personal outreach messages** | 1 hour | LinkedIn / WhatsApp to people you know. Not a pitch — "I built something, 5 minutes?" Close network first: ex-colleagues, business contacts, people who've asked "how's the startup going?" |
+| 2 | **Post on LinkedIn** | 15 min | Admin → CMO Tools → copy today's drafted post → personalise the first line → post |
+| 3 | **Reply to any Calendly bookings** | 5 min | Confirm the call, send prep questions: "What does your current lead gen look like?" |
 
-### 🟢 WHEN READY — Not Blocking
-| # | Task | Notes |
+**Claude — running 28 May**
+- Unified reply inbox (Unibox) — admin page showing all campaign replies across all clients
+- Waterfall enrichment fallback (Apollo → PDL → Hunter)
+- Sequence pre-launch email score check
+
+---
+
+### 📅 29–30 MAY 2026 (CONSOLIDATION)
+
+**You**
+| Task | Notes |
+|---|---|
+| **Book 3 discovery calls** | From the 10 outreach messages, aim for 3 conversations booked this week |
+| **LinkedIn post #2** | Admin → CMO Tools — second post of the week |
+| **UK Companies House number** | When it arrives — give it to me, I wire it into footer + legal pages in 10 min |
+
+**Claude**
+- Adaptive send volume (reduce per-domain send count if health dips)
+- Technical debt cleanup: duplicate routes, credit race condition wrapper
+- Docs updated to reflect all new builds
+
+---
+
+### 📅 WEEK OF 1–7 JUNE 2026
+
+**You**
+| Task | Notes |
+|---|---|
+| **3 discovery calls done** | Run with Sales Playbook script (Admin → Sales Playbook) |
+| **First demo delivered** | Admin → Demo Envs → create → open → walk through live |
+| **Apollo upgrade** | After first client pays → $99/mo Basic → unlocks 1,200 contacts/month |
+| **Wise business account** | After UK company number confirmed — business.wise.com |
+| **Link Wise to Stripe** | Stripe → Settings → Bank accounts |
+| **LinkedIn post #3** | Third post of the week |
+
+**Claude**
+- FIGSY self-outreach campaign actively running (fires Monday 08:00 UTC every week)
+- Any fixes from discovery calls: "the demo showed X didn't work"
+- Proposal template if first client is close to signing
+- G2 / Capterra / Product Hunt copy drafted — ready for you to post on launch day
+
+---
+
+### 📅 JUNE 2026 — MONTH TARGET: 5 PAYING CLIENTS
+
+**You — milestone events**
+| Milestone | What happens |
+|---|---|
+| First paid client | Apollo upgrade. Celebrate. |
+| 3 paid clients | Flutterwave key in Railway (ZAR billing live) |
+| 5 paid clients | Phase 2 marketing: US/UK. Google Workspace. WhatsApp Business API application submitted. |
+
+**Claude — June builds (in order of priority)**
+| Build | Phase |
+|---|---|
+| Email warmup infrastructure | Phase 2 — before client 1's first campaign fires |
+| Deliverability dashboard (spam rate, inbox %, DNS health) | Phase 2 |
+| Conditional sequence branching ("if no reply → path B") | Phase 2 |
+| Client churn risk score (0–100) | Phase 2 |
+| Milla + Vida feature flag flip (July launch prep) | June |
+
+---
+
+### 📅 JULY 2026 — MILLA + VIDA LAUNCH
+
+**Claude**
+- Flip Milla feature flag — VA goes live for all active subscribers
+- Flip Vida feature flag — Chatbot goes live
+- Monitoring for first week, fix edge cases
+
+**You**
+- Email all existing clients: "Two new agents just joined your team"
+- LinkedIn announcement post
+
+---
+
+### 🟢 WHEN READY — Not Time-Sensitive
+
+| Task | Trigger | Notes |
 |---|---|---|
-| 14 | Google Workspace | After first client or hire. Gmail fine for now. |
-| 15 | Apollo upgrade | After client 1 pays → $99/mo → annual at scale |
-| 16 | Flutterwave (Phase 2) | After 5 clients — add `FLUTTERWAVE_SECRET_KEY` to Railway |
-| 17 | Vapi.ai voice | Add `VAPI_API_KEY` to Railway |
-| 18 | WhatsApp Business API | Meta 3–7 day approval |
-| 19 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| 20 | G2, Capterra, Product Hunt | Launch day listings |
-| 21 | SOC 2 Type II | Q1 2027 |
+| Google Workspace | First hire or enterprise client asks | workspace.google.com — I have the full DNS setup guide |
+| Vapi.ai voice agent | When voice demand appears | Key in Railway, agent is built |
+| WhatsApp Business API | Phase 2 (5+ clients) | Meta 3–7 day approval — start process early |
+| Google Calendar OAuth | When discovery calls need auto-booking | Keys in Railway |
+| G2 / Capterra / Product Hunt | Launch day | I draft all copy, you post |
+| SOC 2 Type II | Q1 2027 | External auditor |
+| pgvector upgrade (Milla) | 50+ clients | Supabase extension, I handle migration |
+
+---
 
 ### ❌ REMOVED — Not Applicable
 | Item | Why |
 |---|---|
-| Paystack KYC | UK-based founder can't complete — Stripe handles payments instead |
-| Paystack plan codes | Paystack removed from payment stack |
+| Paystack KYC | UK-based founder can't complete — Stripe handles payments |
+| Paystack plan codes | Paystack removed from primary payment stack |
 
 ### Google Workspace Setup (step by step)
 1. workspace.google.com → Get started → Business Starter plan → enter domain get-kind.com

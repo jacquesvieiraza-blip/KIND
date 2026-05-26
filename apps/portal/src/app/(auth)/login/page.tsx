@@ -30,7 +30,7 @@ function LoginForm() {
     setMessage('')
     if (mode === 'signup') {
       try {
-        const res = await fetch('https://kindapi-production-e64c.up.railway.app/auth/signup', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -52,7 +52,7 @@ function LoginForm() {
       } else {
         // Check if client profile exists — redirect to onboard if not yet set up
         try {
-          const res = await fetch(`https://kindapi-production-e64c.up.railway.app/clients/me`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/clients/me`, {
             headers: { Authorization: `Bearer ${data.session?.access_token}` },
           })
           if (res.status === 404) {

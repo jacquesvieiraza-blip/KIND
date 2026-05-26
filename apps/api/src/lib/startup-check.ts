@@ -20,9 +20,9 @@ const REQUIRED_VARS: VarSpec[] = [
   { key: 'SUPABASE_SERVICE_ROLE_KEY', level: 'critical',  description: 'Supabase service role key' },
   { key: 'ANTHROPIC_API_KEY',         level: 'critical',  description: 'Claude AI — FIGSY sequences, reply classification' },
 
-  // Payments
-  { key: 'PAYSTACK_SECRET_KEY',       level: 'critical',  description: 'Paystack — credit top-ups' },
+  // Payments — Stripe is primary. Paystack removed (requires SA entity).
   { key: 'STRIPE_SECRET_KEY',         level: 'important', description: 'Stripe — subscription billing' },
+  { key: 'PAYSTACK_SECRET_KEY',       level: 'optional',  description: 'Paystack — legacy only, not in use (removed from billing UI)' },
   { key: 'STRIPE_WEBHOOK_SECRET',     level: 'important', description: 'Stripe webhook validation — payments not activated without this' },
 
   // Email

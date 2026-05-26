@@ -234,9 +234,14 @@
 | Paystack on billing page | 27 May | Removed entirely — Stripe-only |
 | Milla/Vida linked to wrong page | 27 May | Both now → `/dashboard/billing` with correct pricing |
 | Stale Paystack refs in MASTER.md | 27 May | All 8+ locations fixed in full audit |
-| Cron count wrong in docs (16 → 19) | 27 May | Fixed — 3 status snapshot crons were missing from count |
+| Cron count wrong in docs (19 → 16) | 27 May | Corrected — actual cron.ts has 16 jobs. The 3 "status snapshot" crons were planned but never built. |
 | ICP cascade delete debt — shown as open | 27 May | Marked fixed in technical debt section |
 | Sections 28–34 missing from branch | 27 May | Restored from `main` |
+| **PAYSTACK_SECRET_KEY marked CRITICAL in startup-check** | 27 May | **Fixed** — Paystack removed; was causing API to refuse boot if key absent. Moved to optional. |
+| **Login page hardcoded API URLs (2 instances)** | 27 May | **Fixed** — Now uses `NEXT_PUBLIC_API_URL` env var with Railway URL as fallback |
+| **Admin Unibox TypeScript error** | 27 May | **Fixed** — Supabase join type cast via `unknown` — no runtime impact, build now clean |
+| **analytics + cohorts pages marked ✅ Live** | 27 May | **Fixed in MASTER** — Pages never existed. Stale `.next` type cache was misleading. Both marked ⏳ Not built. |
+| **Stale `.next` type cache files** | 27 May | **Cleaned** — Deleted 3 stale cached type files (analytics, v2, icp/builder) from portal `.next/types` |
 
 ---
 
@@ -466,7 +471,7 @@
 | Supabase — all tables + RLS | ✅ Live | All schema + migrations run |
 | Supabase auth — no email confirmation | ✅ Live | Signup → instant dashboard |
 | TypeScript build | ✅ Clean | All errors fixed |
-| Cron jobs — 19 jobs | ✅ Running | node-cron in API — starts on boot (staggered — no conflicts) |
+| Cron jobs — 16 jobs | ✅ Running | node-cron in API — starts on boot (staggered — no conflicts) |
 | RLS on all tables | ✅ Fixed | Re-enabled 18 May |
 | Demo Environments | ✅ Live | Admin → Demo Envs — full sales demo tool |
 | AI ICP Suggest | ✅ Live | "Suggest ICP with AI" → Claude fills form from company profile |
@@ -483,8 +488,8 @@
 | Partners page rewrite | ✅ Live | ClickUp/Smartsheet model — standard pricing, commission-based |
 | Pricing page rewrite | ✅ Live | Start/Scale/Dominate + partner callout |
 | Founder name removed from public pages | ✅ Done | "Founder" only — terms.html unchanged |
-| Admin cohort analytics | ✅ Live | /admin/cohorts — signup month, activation, conversion, churn per cohort |
-| Portal Analytics page | ✅ Live | /dashboard/analytics — 6-month trends, ICP breakdown, score dist, top industries |
+| Admin cohort analytics | ⏳ Not built | Route `/admin/cohorts` does not exist — code was planned but never created. Build at 10+ clients. |
+| Portal Analytics page | ⏳ Not built | Route `/dashboard/analytics` does not exist — stale `.next` type was misleading. Build at 10+ clients. |
 | Stripe USD/GBP billing | ✅ Code complete | Billing page auto-activates when `STRIPE_SECRET_KEY` is set in Railway |
 | Paystack | ❌ Removed from billing UI | Stripe-only. Paystack requires SA entity — not applicable. API routes preserved for legacy data only. |
 | Lead drip system | ✅ Live | `delivered_at` on leads, daily_drip_rate per client, 08:10 UTC cron |
@@ -772,7 +777,7 @@
 | Google Calendar activation | Jacques | Google Cloud OAuth |
 | Stripe activation | Jacques | USD/GBP billing |
 | Pan-African presence: 3 countries | Both | Apollo data covers all |
-| Admin cohort analytics | Claude | ✅ Done — /admin/cohorts |
+| Admin cohort analytics | Claude | ⏳ Planned — build at 10+ clients |
 
 ### Month 3–6 (July–Oct 2026)
 | Item | Notes |
@@ -1240,7 +1245,7 @@ WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_VERIFY_TOKEN=
 ```
 
-### Cron Jobs (19 jobs — built into API, auto-starts on boot)
+### Cron Jobs (16 jobs — built into API, auto-starts on boot)
 | Schedule (UTC) | SAST | Endpoint | Purpose |
 |---|---|---|---|
 | 5 5 * * * | 07:05 | POST /internal/founder-brief | Founder morning brief email |
@@ -1786,7 +1791,7 @@ Once you have the company number, Claude will:
 | POPIA compliance | ❌ Not South Africa specific | ❌ Not built (noted in Section 9) |
 | Billing / subscriptions | ⚠️ Their own billing — not yours to control | ✅ Stripe — credits + subscriptions |
 | Credit system | ❌ No native credit model | ✅ Built (credit_balance, transactions) |
-| Background jobs | ❌ Not exposed | ✅ 19 cron jobs (Railway) |
+| Background jobs | ❌ Not exposed | ✅ 16 cron jobs (Railway) |
 | Email sending | ⚠️ Notifications only — not outbound campaigns | ✅ Resend + FIGSY sequences |
 | Sequence engine | ❌ No outbound email sequences | ✅ Built (multi-step, variable days) |
 | Reply detection | ❌ Not built | ✅ Built (auto-pause on reply) |
@@ -2838,7 +2843,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | HIPAA / SOC2 / GDPR | ✅ Enterprise | ❌ SOC2 Q1 2027 | ⚠️ Roadmapped |
 | POPIA | ❌ Not SA-specific | ✅ Full POPIA compliance built | ✅ We win |
 | Credit system | ❌ No credit model | ✅ Built (credit_balance, transactions) | ✅ We win |
-| Background jobs | ❌ Not exposed | ✅ 19 cron jobs (Railway) | ✅ We win |
+| Background jobs | ❌ Not exposed | ✅ 16 cron jobs (Railway) | ✅ We win |
 | Email sending (outbound sequences) | ❌ Notifications only | ✅ Resend + FIGSY sequences | ✅ We win |
 | Sequence engine | ❌ No outbound sequences | ✅ Built (multi-step, variable days) | ✅ We win |
 | Reply detection | ❌ Not built | ✅ Auto-pause on reply | ✅ We win |

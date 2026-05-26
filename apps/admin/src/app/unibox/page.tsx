@@ -66,7 +66,7 @@ async function getReplies(filter?: string): Promise<ReplyRow[]> {
   }
 
   const { data } = await query
-  return (data ?? []) as ReplyRow[]
+  return (data ?? []) as unknown as ReplyRow[]
 }
 
 async function getCounts(): Promise<Record<string, number>> {

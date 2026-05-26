@@ -109,7 +109,7 @@
 | Admin HubSpot pipeline page | ✅ Built 26 May | `/hubspot` in admin — Kanban by stage, shows "Connect HubSpot" guide if key absent |
 | Competitor ICP seed configs | ✅ Built 26 May | `supabase/seeds/competitor_icps.sql` — 4 configs: Lemlist/Instantly/Clay/Apollo users in ZA/NG/KE/GH/EG. Ready to run when Apollo upgraded. |
 | Apollo free plan handling | ✅ Fixed 26 May | Clean 402/429 errors when credits exhausted or rate limited. Safe to use free plan (50 credits/mo) until paid upgrade. |
-| **Apollo — free plan active** | ⏳ USE NOW | Apollo bills **annually** (~$588/yr). Use free plan (50 credits/mo) for demos + own outreach now. Upgrade to monthly billing (~$99/mo) when first client pays. |
+| **Apollo `APOLLO_API_KEY` in Railway** | ✅ Done | Free plan active. 50 contacts/month — enough for demos + KIND's own outreach now. |
 | **Confirm RESEND_API_KEY in Railway** | ⏳ BLOCKER | Zero emails send without this. Welcome, POPIA, digest, brief — all dead. |
 | **Check Railway deploy logs** | ⏳ ACTION | Confirm green build after all code changes — railway.app → KIND API → Deployments |
 | **Run `MASTER_SCHEMA.sql`** | ⏳ MUST RUN | Supabase SQL Editor → paste full file → eliminates all schema drift permanently |
@@ -135,7 +135,7 @@
 
 | # | Task | Where | Why |
 |---|---|---|---|
-| 1 | **Apollo — confirm free plan API key is in Railway** | app.apollo.io → Settings → API Keys → copy key → Railway `APOLLO_API_KEY`. Free = 50 contacts/mo (enough for demos + own outreach). Upgrade to monthly (~$99/mo, no annual lock-in) when first client pays. Annual ($49/mo) only when MRR covers the $588 upfront. | Platform works now with free plan — code handles credit limits cleanly |
+| ~~1~~ | ~~Apollo API key~~ | ✅ **Done** — `APOLLO_API_KEY` confirmed in Railway. Free plan (50 contacts/mo) active. **Apollo upgrade path: Monthly $99/mo after client 1 pays → Annual $49/mo when MRR covers $588 upfront.** | — |
 | 2 | **Confirm RESEND_API_KEY in Railway** | railway.app → KIND API → Variables | Zero emails without this — welcome, POPIA, digest, morning brief all dead |
 | 3 | **Check Railway deploy logs** | railway.app → KIND API → Deployments | Confirm green build after all recent code pushes |
 | 4 | **Run `MASTER_SCHEMA.sql`** | Supabase → SQL Editor → paste + Run | Eliminates all schema drift permanently — one paste, done forever |

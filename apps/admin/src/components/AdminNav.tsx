@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, TrendingUp, GitMerge } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, TrendingUp, GitMerge, BookOpen } from 'lucide-react'
 
 const NAV = [
   { href: '/',              label: 'Dashboard',        icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const NAV = [
   { href: '/terms-library', label: 'Terms Library',    icon: FileText },
   { href: '/roadmap',       label: 'Roadmap',          icon: Map },
   { href: '/scalability',   label: 'Scalability',      icon: TrendingUp },
+  { href: '/playbook',      label: 'Playbook',         icon: BookOpen },
   { href: '/cmo',           label: 'CMO Tools',        icon: Megaphone },
   { href: '/launch',        label: 'Launch',           icon: Rocket },
   { href: '/hubspot',       label: 'HubSpot Pipeline', icon: GitMerge },

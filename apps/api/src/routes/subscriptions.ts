@@ -37,7 +37,7 @@ subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
     }
     const { client_id, product, billing_interval } = paystackData.data.metadata
     const productConfig = PRODUCTS[product as keyof typeof PRODUCTS]
-    const amountUsd = productConfig?.price_usd ?? 0
+    const amountUsd = (productConfig as any)?.price_usd ?? 0
     await db.from('subscriptions').upsert({
       client_id, product, tier: 'monthly',
       status: 'active',
@@ -111,7 +111,7 @@ subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
     const { data: { user } } = await supabase.auth.getUser(token)
     // All subscription products are flat monthly: Milla $49, Vida $29, Bundle $69
     const productConfig = PRODUCTS[product as keyof typeof PRODUCTS]
-    const amountUsd = productConfig?.price_usd ?? 0
+    const amountUsd = (productConfig as any)?.price_usd ?? 0
     const amountZarKobo = amountUsd * 19 * 100
     const planCode = PLAN_CODES[product]?.[tier]
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {

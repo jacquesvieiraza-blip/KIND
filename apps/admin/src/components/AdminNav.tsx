@@ -6,6 +6,7 @@ import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, 
 
 const NAV = [
   { href: '/',              label: 'Dashboard',        icon: LayoutDashboard },
+  { href: '/status',        label: 'Status',           icon: TrendingUp },
   { href: '/clients',       label: 'Clients',          icon: Users },
   { href: '/demo',          label: 'Demo Envs',        icon: MonitorPlay },
   { href: '/terms-library', label: 'Terms Library',    icon: FileText },

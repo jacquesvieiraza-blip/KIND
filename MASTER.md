@@ -1,6 +1,7 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 26 May 2026 (evening)**
-**Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
+**Single source of truth. Last updated: 26 May 2026 (evening — post-audit session)**
+**Business: UK registration IN PROGRESS (Companies House) · Platform: Africa-first, world-ready**
+**Auto-status: Admin → /status updates 3× daily (07:05, 12:00, 19:00 SAST)**
 
 > Everything in one place. Status, roadmap, GTM, company registration, expansion, compliance, SOPs, cashflow.
 
@@ -36,87 +37,61 @@
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 26 May 2026 (evening)*
+*Last updated: 26 May 2026 (evening — post full audit session)*
+*Auto-status page: Admin → /status (updates 07:05, 12:00, 19:00 SAST)*
 
+### Infrastructure
 | Item | Status | Notes |
 |---|---|---|
-| Website — `get-kind.com` | ✅ Live | Full rewrite 20 May — new positioning, FIGSY Reasoning Loop, POPIA trust, Start/Scale/Dominate |
-| Client Portal — `app.get-kind.com` | ✅ Live | Vercel — kind-portal project |
-| Admin Dashboard — `admin.get-kind.com` | ✅ Live | Vercel — kind-admin-h5q6 project |
-| Railway API | ✅ Running | kindapi-production-e64c.up.railway.app |
-| Supabase — all tables + RLS | ✅ Live | All schema + migrations run |
-| Supabase auth — no email confirmation | ✅ Live | Signup → instant dashboard |
-| TypeScript build | ✅ Clean | All errors fixed |
-| Cron jobs — 16 jobs | ✅ Running | node-cron in API — starts on boot (staggered — no conflicts) |
-| RLS on all tables | ✅ Fixed | Re-enabled 18 May |
-| Demo Environments | ✅ Live | Admin → Demo Envs — full sales demo tool |
-| AI ICP Suggest | ✅ Live | "Suggest ICP with AI" → Claude fills form from company profile |
-| ICP Website Scan | ✅ Live | "Scan website" button in ICP form — calls /icps/prefill, pre-fills from URL |
-| FIGSY generateSequenceWithMemory | ✅ Live | Self-improving sequences using campaign history |
-| FIGSY auto-replenish alert | ✅ Live | Daily cron 05:00 UTC |
-| Milla morning brief | ✅ Live | Daily cron 07:30 UTC to all active clients |
-| Milla anomaly detection | ✅ Live | Daily cron 08:30 UTC |
-| K.I.N.D self-outreach (FIGSY dogfooding) | ✅ Live | Monday cron 06:00 UTC — needs FIGSY_KIND_CLIENT_ID env var |
-| /stats/platform public endpoint | ✅ Live | Live platform stats |
-| Campaign intent prompt | ✅ Built | Feature flagged — FEATURE_CAMPAIGN_INTENT=true to activate |
-| Conversational ICP builder | ✅ Built | Feature flagged — FEATURE_ICP_BUILDER=true to activate |
-| Web Speech API voice input | ✅ Built | On both above — mic button, Chrome/Safari/Edge |
-| Partners page rewrite | ✅ Live | ClickUp/Smartsheet model — standard pricing, commission-based |
-| Pricing page rewrite | ✅ Live | Start/Scale/Dominate + partner callout |
-| Founder name removed from public pages | ✅ Done | "Founder" only — terms.html unchanged |
-| Admin cohort analytics | ✅ Live | /admin/cohorts — signup month, activation, conversion, churn per cohort |
-| Portal Analytics page | ✅ Live | /dashboard/analytics — 6-month trends, ICP breakdown, score dist, top industries |
-| Stripe USD/GBP billing | ✅ Code complete | Billing page auto-activates when `STRIPE_SECRET_KEY` is set in Railway |
-| Paystack webhook | ✅ Set | TEST key — live payments blocked until KYC |
-| Lead drip system | ✅ Live | `delivered_at` on leads, daily_drip_rate per client, 08:10 UTC cron |
-| Credits deduct at delivery | ✅ Live | 1 credit per lead when daily drip delivers it — NOT at insertion |
-| Lead overspend fix | ✅ Live | maxLeads cap + leads_per_run client setting respected |
-| Apollo fallback search | ✅ Live | 3-pass fallback: full → remove consent filter → remove size filter |
-| Low credit warning | ✅ Live | Daily 07:40 UTC — emails clients with 1–4 credits remaining (max 1/24h) |
-| Subscription lapse check | ✅ Live | Daily 09:00 UTC — marks active subs past period end as `lapsed`, emails client |
-| Milla (virtual_assistant) access gate | ✅ Fixed | React hooks violation fixed — no more crash on load |
-| Vida (chatbot) access gate | ✅ Fixed | `active` only — removed trialing (must have paid subscription) |
-| FIGSY trial expiry gate | ✅ Fixed | Backend rejects trialing campaigns with expired current_period_end |
-| Cancel subscription | ✅ Live | `POST /subscriptions/:id/cancel` — Paystack disable + DB update |
-| Recurring billing webhooks | ✅ Live | subscription.create saves paystack_subscription_code, charge.success handles renewals |
-| Admin credit grant cap | ✅ Live | Hard cap 500 credits per grant — prevents accidental large grants |
-| FIGSY trialing gate removed | ✅ Fixed | FIGSY page now requires `active` only (no trialing) |
-| Credit pricing aligned | ✅ Fixed | 2 tiers: Kind AI 20/$20, 100/$100 · FIGSY 20/$60, 100/$300 |
-| Paystack KYC | ⏳ Pending | **Must complete — cannot take live payments** |
-| Google Workspace | ⏳ Pending | **Must set up — no professional email inbox** |
-| Calendar booking link | ⏳ Pending | Share Calendly/Cal.com URL — Claude will wire into site + portal in 5 mins |
-| FIGSY_KIND_CLIENT_ID env var | ⏳ Pending | Self-outreach runs but does nothing without this |
-| Resend inbound routing | ⏳ Pending | Needs paid Resend plan — required before FIGSY campaigns |
-| Google Calendar OAuth | ⏳ Pending | Code done — needs credentials |
-| Vapi.ai Voice | ⏳ Pending | Code done — needs account |
-| WhatsApp Business API | ⏳ Pending | Code done — Meta 3–7 day approval |
-| G2 / Capterra / Product Hunt | ⏳ Pending | Launch day listings |
-| UK company registration | ⏳ Pending | companieshouse.gov.uk — £50, same day — see Section 23 |
-| Run credit_transactions RLS migration | ✅ Done | Already applied — confirmed by user 24 May |
-| Portal V2 design (SidebarV2, mission control) | ✅ Built | Feature flagged — `FEATURE_PORTAL_V2=true` to activate |
-| Dark mode (full system) | ✅ Live | DarkModeToggle in all layouts, FOUC prevention |
-| **Signup hotfix** — `amount_zar` NOT NULL | ✅ Fixed | All new signups now work — 25 May |
-| **Full schema drift fix** — `amount_usd` removed | ✅ Fixed | MRR calculations restored — 25 May |
-| **Daily 04:00 AM automated audit** | ✅ Live | `.github/workflows/daily-audit.yml` — opens GitHub Issue on failure |
-| Run `20260525_fix_subscriptions_schema.sql` | ⏳ MUST RUN | Supabase SQL Editor — makes schema drift permanent fix on DB level |
-| **Delete test chatbot/VA subscriptions** | ✅ Done 26 May | SQL: `DELETE FROM subscriptions WHERE product IN ('chatbot','virtual_assistant') AND status='active' AND client_id='187bfb91-1224-4c29-90ea-4c2bdaff0ed1';` |
-| FIGSY inbound webhook fix | ✅ Fixed 26 May | `/replies/inbound` moved before `requireAuth` — was always returning 401 to Resend. Protected by `RESEND_WEBHOOK_SECRET` header. |
-| Bulk export row cap | ✅ Fixed 26 May | `/leads/bulk-export` now caps at 5,000 rows + `X-Export-Truncated` header |
-| Widget rate limiting | ✅ Fixed 26 May | Public `/vida/widget/:clientId/session/:sessionId/message` — 20 req/IP/min in-memory limiter |
-| Founder morning brief | ✅ Built 26 May | Daily 07:05 SAST — platform health, FIGSY 24h, revenue, alerts. Sends to `FOUNDER_EMAIL`. |
-| Admin scalability page | ✅ Built 26 May | `/scalability` in admin — stage tracker, hire checklist, infra triggers |
-| HubSpot full sync | ✅ Built 26 May | `lib/hubspot.ts` — signup→contact, payment→deal closed, FIGSY reply→timeline. No-op if `HUBSPOT_API_KEY` unset. |
-| Admin HubSpot pipeline page | ✅ Built 26 May | `/hubspot` in admin — Kanban by stage, shows "Connect HubSpot" guide if key absent |
-| Competitor ICP seed configs | ✅ Built 26 May | `supabase/seeds/competitor_icps.sql` — 4 configs: Lemlist/Instantly/Clay/Apollo users in ZA/NG/KE/GH/EG. Ready to run when Apollo upgraded. |
-| Apollo free plan handling | ✅ Fixed 26 May | Clean 402/429 errors when credits exhausted or rate limited. Safe to use free plan (50 credits/mo) until paid upgrade. |
-| **Apollo `APOLLO_API_KEY` in Railway** | ✅ Done | Free plan active. 50 contacts/month — enough for demos + KIND's own outreach now. |
-| **Confirm RESEND_API_KEY in Railway** | ⏳ BLOCKER | Zero emails send without this. Welcome, POPIA, digest, brief — all dead. |
-| **Check Railway deploy logs** | ⏳ ACTION | Confirm green build after all code changes — railway.app → KIND API → Deployments |
-| **Run `MASTER_SCHEMA.sql`** | ⏳ MUST RUN | Supabase SQL Editor → paste full file → eliminates all schema drift permanently |
-| **Run `20260526_drip_and_controls.sql`** | ⏳ MUST RUN | Supabase SQL Editor — adds `delivered_at` to leads + `daily_drip_rate` to clients |
-| **HubSpot account + API key** | ⏳ Pending | app.hubspot.com (free) → Settings → Private Apps → "KIND AI" → add `HUBSPOT_API_KEY` to Railway |
-| **Register Resend webhook** | ⏳ Pending | Resend dashboard → Webhooks → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` + set `RESEND_WEBHOOK_SECRET` in Railway |
-| **Paystack plan codes** | ⏳ Pending | Create plans in Paystack dashboard → add `PAYSTACK_PLAN_VA_MONTHLY` etc to Railway |
+| Website — `get-kind.com` | ✅ Live | 22 pages, all CTAs wired to Calendly |
+| Client Portal — `app.get-kind.com` | ✅ Live | 21 pages, TypeScript clean |
+| Admin Dashboard — `admin.get-kind.com` | ✅ Live | 18 pages, TypeScript clean |
+| Railway API | ✅ Running | kindapi-production-e64c.up.railway.app — 25 routes |
+| Supabase — 19 migrations, all RLS | ✅ Live | Clean, no schema drift |
+| TypeScript build — all apps | ✅ Clean | API, Portal, Admin all error-free |
+| Cron jobs — 16 jobs, no conflicts | ✅ Running | All staggered, no two fire at same minute |
+
+### Payments
+| Item | Status | Notes |
+|---|---|---|
+| Stripe account | ✅ Live | Keys in Railway |
+| Stripe 6 prices created | ✅ Live | Lead Gen 20/40/100cr, FIGSY 20/40/100cr |
+| Stripe portal billing | ✅ Live | NEXT_PUBLIC vars in Vercel |
+| **Stripe webhook secret** | ⏳ TODO | Add `STRIPE_WEBHOOK_SECRET` to Railway — payments confirmed but not activated without it |
+| Flutterwave | ✅ Built | Dormant until `FLUTTERWAVE_SECRET_KEY` added (Phase 2) |
+| Paystack | ✅ Legacy | Webhook compat only — not primary |
+
+### Integrations
+| Item | Status | Notes |
+|---|---|---|
+| Resend API key | ✅ Live | Emails working |
+| Resend inbound webhook | ✅ Live | FIGSY replies processing via `RESEND_WEBHOOK_SECRET` |
+| **Resend paid plan** | ⏳ TODO | Free = 100 emails/day — blocks FIGSY sequences at scale |
+| HubSpot | ✅ Live | `HUBSPOT_API_KEY` in Railway — syncing signups, payments, replies |
+| Apollo | ✅ Live | Free plan (50 contacts/month) — enough for demos + own outreach |
+| Calendly | ✅ Live | Wired across all 20 website pages + portal FIGSY page |
+| FIGSY_KIND_CLIENT_ID | ✅ Live | Self-outreach fires Monday 06:00 UTC |
+
+### Features
+| Item | Status | Notes |
+|---|---|---|
+| Lead drip system | ✅ Live | `delivered_at`, `daily_drip_rate`, 08:10 UTC cron |
+| ICP cascade delete | ✅ Live | Leads set NULL on ICP delete — no orphaned rows |
+| 3-tier Stripe billing (20/40/100cr) | ✅ Live | Flat $1/$3 per credit — no volume discounts |
+| Flat pricing enforced | ✅ Done | $1/lead, $3/FIGSY — annual plans only for discounts |
+| Competitor ICP seeds | ✅ Ready | 4 configs in supabase/seeds/ — fire when Apollo upgraded |
+| Sales playbook | ✅ Live | Admin → Sales Playbook (full discovery script, objections, demo flow) |
+| HubSpot pipeline view | ✅ Live | Admin → HubSpot |
+| Admin status page | ✅ Built | Auto-updates 3× daily — 07:05, 12:00, 19:00 SAST |
+| 3× daily MASTER.md status updates | ✅ Built | Cron writes to platform_status table → admin reads it |
+
+### Known Technical Debt
+| Issue | Severity | Plan |
+|---|---|---|
+| Duplicate /leads/consent/bulk routes | Medium | Deprecate one post-launch |
+| Credit deduction race condition | Medium | Add DB transaction at 100+ concurrent clients |
+| Exchange rate hardcoded R19/$ | Medium | Update monthly or add rate fetch at 50+ clients |
+| Stripe 40cr and 100cr prices need recreating | 🔴 HIGH | Old prices had volume discounts — archive + recreate at flat rate, update 4 Railway vars |
 
 ### ⚠️ Known Technical Debt (audit findings — log for later)
 | Issue | Severity | Notes |
@@ -131,59 +106,59 @@
 
 ## 2. WHAT FOUNDER NEEDS TO DO
 
-### 🔴 CRITICAL — Do In This Order
+*Updated: 26 May 2026 evening*
 
-| # | Task | Where | Why |
+### ✅ DONE — Complete
+| # | Task | Done |
+|---|---|---|
+| 1 | Apollo API key in Railway | ✅ |
+| 2 | RESEND_API_KEY in Railway | ✅ |
+| 3 | Railway green build | ✅ |
+| 4–6 | All SQL migrations applied | ✅ |
+| 7 | Stripe account + 6 prices + keys in Railway | ✅ |
+| 7b | NEXT_PUBLIC Stripe vars in Vercel | ✅ |
+| 8 | UK company registration | ✅ In progress today |
+| 9 | HubSpot account + API key in Railway | ✅ |
+| 10 | Resend inbound webhook + secret in Railway | ✅ |
+| 11 | FIGSY_KIND_CLIENT_ID in Railway | ✅ |
+| 12 | Calendly link created + wired site-wide | ✅ |
+| Drip migration applied in Supabase | ✅ |
+| ICP cascade delete applied in Supabase | ✅ |
+
+### 🔴 DO TODAY — Launch Blockers
+| # | Task | Time | How |
 |---|---|---|---|
-| ~~1~~ | ~~Apollo API key~~ | ✅ **Done** | — |
-| ~~2~~ | ~~RESEND_API_KEY in Railway~~ | ✅ **Done** | — |
-| ~~3~~ | ~~Railway deploy logs~~ | ✅ **Done — green** | — |
-| ~~4/5/6~~ | ~~SQL migrations~~ | ✅ **Done** — subscriptions schema + drip system applied | — |
-| **7** | **Set up Stripe** | stripe.com → create account → get keys → create 4 prices → add to Railway | Primary payment processor. UK business, bills African + global clients in USD/GBP. Already fully built — activates on env vars. |
-| **8** | **Register UK company** | companieshouse.gov.uk — £50, same day | Required for Stripe UK account + professional credibility. See Section 23. |
+| A | **Stripe webhook secret** | 2 min | Stripe → Developers → Webhooks → Add endpoint: `https://kindapi-production-e64c.up.railway.app/stripe/webhook` → Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` → Copy secret → Railway as `STRIPE_WEBHOOK_SECRET` |
+| B | **Upgrade Resend to paid** | 2 min | resend.com/billing → Pro ($20/mo) |
+| C | **Fix 4 Stripe prices** | 10 min | Old prices had volume discounts. Archive + recreate: Lead Gen 40cr=$40, Lead Gen 100cr=$100, FIGSY 40cr=$120, FIGSY 100cr=$300. Update 4 Railway env vars. |
+| D | **Give me UK Companies House number** | 1 min | When approved — I wire it into footer + legal pages |
 
-### 🟡 HIGH — Do This Week
-
-| # | Task | Where | Notes |
+### 🟡 THIS WEEK
+| # | Task | Time | Notes |
 |---|---|---|---|
-| 9 | **Create HubSpot account** | app.hubspot.com (free) → Private Apps → "KIND AI" → add `HUBSPOT_API_KEY` to Railway | Fully built — wires itself the moment key is set |
-| 10 | **Register Resend inbound webhook** | Resend dashboard → Webhooks → URL + `RESEND_WEBHOOK_SECRET` in Railway | Enables FIGSY reply processing |
-| 11 | **Add FIGSY_KIND_CLIENT_ID to Railway** | Railway → KIND API → Variables | Your client UUID — self-outreach does nothing without it |
-| 12 | **Create calendar booking link** | calendly.com or cal.com (free) → share URL | Claude wires every Book a Demo button in 5 mins |
-| 13 | **Upgrade Resend to paid plan** | resend.com → Billing | Free = 100 emails/day — blocks FIGSY at scale |
+| E | Wise business account | 15 min | business.wise.com — needs UK company number |
+| F | Link Wise to Stripe | 5 min | Stripe → Settings → Bank accounts |
+| G | LinkedIn 3× per week | Daily | Admin → CMO Tools → copy draft → personalise + post |
+| H | 10 warm personal outreach messages | This week | LinkedIn/WhatsApp — "I built something, want to see it?" |
+| I | 3 discovery calls booked | This week | Admin → Sales Playbook for script |
 
-### 🟢 WHEN READY
-
+### 🟢 WHEN READY — Not Blocking
 | # | Task | Notes |
 |---|---|---|
-| 14 | **Wise Business bank account** | business.wise.com — after UK company registered. Free, multi-currency, receives USD/GBP from Stripe. |
-| 15 | **Google Workspace** | ~$12/mo — do when first client or first hire. Gmail fine for now. |
-| 16 | **Flutterwave** (Phase 2 Africa) | For clients needing M-Pesa, local bank transfer, ZAR local cards. UK business can register. Add after first 5 clients. |
-| 17 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
-| 18 | Vapi.ai Voice | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
-| 19 | WhatsApp Business API | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
-| 20 | Campaign intent prompt | `FEATURE_CAMPAIGN_INTENT=true` in Railway |
-| 21 | ICP builder | `FEATURE_ICP_BUILDER=true` in Railway |
+| 14 | Google Workspace | After first client or hire. Gmail fine for now. |
+| 15 | Apollo upgrade | After client 1 pays → $99/mo → annual at scale |
+| 16 | Flutterwave (Phase 2) | After 5 clients — add `FLUTTERWAVE_SECRET_KEY` to Railway |
+| 17 | Vapi.ai voice | Add `VAPI_API_KEY` to Railway |
+| 18 | WhatsApp Business API | Meta 3–7 day approval |
+| 19 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| 20 | G2, Capterra, Product Hunt | Launch day listings |
+| 21 | SOC 2 Type II | Q1 2027 |
 
 ### ❌ REMOVED — Not Applicable
-| Item | Why removed |
-|------|-------------|
-| Paystack KYC | Requires SA/NG registered business entity. UK-based founder cannot complete. Not needed — Stripe handles African clients (USD/GBP). |
-| Paystack subscription plan codes | Same reason — Paystack removed from payment stack. |
-
-### ⚡ INSTANT — Takes 5 Minutes
-| Task | What Claude needs |
+| Item | Why |
 |---|---|
-| Wire "Book a Demo" buttons site-wide | Your Calendly/Cal.com URL |
-| Wire company number into site + legal docs | Your UK Companies House number (after registration) |
-
-### Once Live (not urgent)
-| # | Task | When |
-|---|---|---|
-| 24 | G2, Capterra, Product Hunt listings | Launch day |
-| 25 | Upload new Vida image | apps/website/vida.png via GitHub |
-| 26 | SOC 2 Type II | Q1 2027 |
-| 27 | Answer 5 sales questions | When you have 20 min — becomes the AE playbook |
+| Paystack KYC | UK-based founder can't complete — Stripe handles payments instead |
+| Paystack plan codes | Paystack removed from payment stack |
 
 ### Google Workspace Setup (step by step)
 1. workspace.google.com → Get started → Business Starter plan → enter domain get-kind.com

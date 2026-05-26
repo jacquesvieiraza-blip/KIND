@@ -70,5 +70,10 @@ export function startCrons(): void {
   // Daily 05:05 UTC — founder morning brief (07:05 SAST)
   cron.schedule('5 5 * * *', () => callInternal('/founder-brief'), { timezone: 'UTC' })
 
-  console.log('[cron] 16 jobs scheduled')
+  // 3× daily status snapshots — writes to platform_status table → admin /status page
+  cron.schedule('10 5 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' })  // 07:10 SAST
+  cron.schedule('0 10 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' }) // 12:00 SAST
+  cron.schedule('0 17 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' }) // 19:00 SAST
+
+  console.log('[cron] 19 jobs scheduled')
 }

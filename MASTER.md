@@ -63,7 +63,7 @@
 | 12 | ✅ **Client lead quantity controls — BUILT** | `leads_per_run` + `daily_drip_rate` in portal Settings page. `runIcpJob` respects both. | commit bdc19b6 |
 | 13 | ✅ **10,000 credits — ROOT CAUSE FOUND** | Manual admin grant — no code bug. Admin grant form had no cap. Fixed: max 500 per grant. Normal trial flow: exactly 20 credits. | commit bdc19b6 |
 
-> ⚠️ **ONE THING STILL NEEDED FROM YOU:** Run `supabase/20260526_drip_and_controls.sql` in Supabase SQL Editor. Without this, the drip, quantity controls, and subscription cancellation columns don't exist in the database and the new code will error.
+> ✅ `supabase/20260526_drip_and_controls.sql` — run 26 May. Drip, quantity controls, and subscription columns are live.
 
 ---
 
@@ -130,6 +130,7 @@ Everything else on the to-do list is secondary to this.
 | `20260525_fix_leads_status_and_figsy_memory.sql` | ✅ Run | `ALTER TYPE lead_status ADD VALUE 'contacted'`, added `last_winning_angle` to figsy_memory |
 | `20260525_add_missing_clients_columns.sql` | ✅ Run | Added 11 clients columns: auto_topup, calendar, figsy_credits_remaining |
 | `supabase/MASTER_SCHEMA.sql` | ⚠️ Run ASAP | Master idempotent SQL — covers ALL tables, ALL columns — run once to eliminate all remaining schema drift |
+| `supabase/20260526_drip_and_controls.sql` | ✅ Run 26 May | delivered_at on leads, leads_per_run + daily_drip_rate on clients, paystack_subscription_code + cancelled_at on subscriptions, last_low_credit_email_at on clients |
 
 ---
 
@@ -159,6 +160,9 @@ Everything else on the to-do list is secondary to this.
 | 11 | **Create calendar booking link** | calendly.com or cal.com (free) → create 30-min meeting type → copy URL | All "Book a demo" buttons point to mailto. Give Claude the URL → wired everywhere in 30 min. |
 | 12 | **Deploy netlify-waitlist** | Drag `netlify-waitlist/` folder to app.netlify.com/drop | Soft launch waitlist not live. No sign-ups captured before 31 May. |
 | 13 | **Confirm website Vercel project name** | Vercel dashboard → check which project serves get-kind.com | Listed incorrectly in docs as "kind-admin". Need real name to document correctly. |
+| 14 | **Send Calendly/Cal.com booking URL to Claude** | Create free account at calendly.com or cal.com → 30-min meeting type → paste URL here | Claude wires it to all "Book a demo" buttons in 30 min. Currently all broken. |
+| 15 | **Send UK company number to Claude** | After Companies House cert arrives → paste number here | Claude updates terms.html + footer everywhere. 10 min job. |
+| 16 | **Full portal dry run — together** | Block 30 min with Claude in session | Sign up → ICP → leads → credits deduct → FIGSY gate → Milla/Vida gate → billing flow. Nothing tested end-to-end yet. |
 
 #### 🔵 Medium — This month
 

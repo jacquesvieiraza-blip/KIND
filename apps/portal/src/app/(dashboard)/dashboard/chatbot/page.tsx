@@ -86,7 +86,7 @@ export default function ChatbotPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { setHasAccess(false); return }
       api.get<{ data: { product: string; status: string }[] }>('/subscriptions', session.access_token)
-        .then(res => setHasAccess((res.data ?? []).some(s => s.product === 'chatbot' && (s.status === 'active' || s.status === 'trialing'))))
+        .then(res => setHasAccess((res.data ?? []).some(s => s.product === 'chatbot' && s.status === 'active')))
         .catch(() => setHasAccess(false))
     })
   }, [supabase])

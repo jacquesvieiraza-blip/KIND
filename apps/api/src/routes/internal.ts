@@ -253,6 +253,7 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
       if (!sub.trial_ends_at) continue
       const trialEnd  = new Date(sub.trial_ends_at)
       const daysLeft  = Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000)
+      if (!sub.clients) continue
       const client    = Array.isArray(sub.clients) ? sub.clients[0] : sub.clients as any
       if (!client?.user_id) continue
 

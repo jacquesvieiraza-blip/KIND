@@ -11,7 +11,7 @@
 
 ---
 
-### 📅 SESSION DATE — 27 May 2026
+### 📅 SESSION DATE — 26 May 2026 (overnight) → 27 May 2026 (current)
 
 ---
 
@@ -164,6 +164,7 @@
 | **Sections 28–34 restored** | Pulled from `main` — Art of Possible deep dives, Compliance, Competitor Targeting, AI Learning, ClickUp Brain, Full Competitive Landscape (917 lines), The Unbuilt Future |
 | **Daily Brief system** | Section 0 — living top-of-file, rewritten every session |
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
+| **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
 ---
 
@@ -827,16 +828,22 @@
 | CRM integration — HubSpot, Pipedrive | Live |
 | Google Calendar connect | Built, needs credentials |
 
-### Admin Portal
-| Item | Notes |
-|---|---|
-| Dashboard — KPIs, MRR, TTFL, client pipeline | Live |
-| Clients list | All clients, subs, T&Cs |
-| **Client detail** — subscriptions, credit balance, grant/refund form, transaction history, company reg, VAT | New — 18 May |
-| **Demo Environments** — create/open/extend/expire | New — 18 May |
-| Roadmap — Phase 1–4 milestone tracking | Live |
-| Launch checklist — 13 sections, 60+ items | Live |
-| CMO tools — LinkedIn post generator, prospect finder | Live |
+### Admin Portal — 12 Routes (`admin.get-kind.com`)
+| Route | Item | Status |
+|---|---|---|
+| `/` | Dashboard — KPIs, MRR, TTFL, client pipeline | ✅ Live |
+| `/clients` | Clients list — all clients, subs, T&Cs | ✅ Live |
+| `/clients/[id]` | Client detail — subscriptions, credit balance, grant/refund form, transactions, company reg, VAT | ✅ Live (18 May) |
+| `/demo` | Demo Environments — create/open/extend/expire, AE tracking | ✅ Live (18 May) |
+| `/launch` | Launch checklist — 13 sections, 60+ items | ✅ Live |
+| `/roadmap` | Roadmap — Phase 1–4 milestone tracking | ✅ Live |
+| `/cmo` | CMO tools — LinkedIn post generator, prospect finder | ✅ Live |
+| `/founder` | Founder OS V2 — AI exec team, internal briefs, revenue, health, waitlist | ✅ Live (25 May) |
+| `/playbook` | Sales playbook — full AE guide | ✅ Live (25 May) |
+| `/terms-library` | Terms library — compliance doc store | ✅ Live (25 May) |
+| `/hubspot` | HubSpot pipeline — Kanban by stage, shows connect guide if key absent | ✅ Live (26 May) |
+| `/scalability` | Scalability tracker — stage tracker, hire checklist, infra triggers | ✅ Live (26 May) |
+| `/unibox` | Admin Unibox — all FIGSY replies across all clients, filter by classification, hot-sorted | ✅ Live (27 May) |
 
 ### Demo Environments
 | Item | Notes |
@@ -865,8 +872,50 @@
 | Client referral page /dashboard/referral | 100 credits both ways |
 | partners.html | 20% recurring commission |
 
-### Website (get-kind.com) — 16+ pages
-All comparison pages, trust, DPA, DPA-US, pricing, support, about, use-cases, figsy-video. ✅
+### Client Portal — 15 Routes (`app.get-kind.com`)
+| Route | Item | Status |
+|---|---|---|
+| `/login` | Auth — email/password login | ✅ Live |
+| `/onboard` | Onboarding — post-signup flow | ✅ Live |
+| `/dashboard` | Dashboard home — KPIs, credits, trial status | ✅ Live |
+| `/dashboard/leads` | Leads — ICP builder, lead table, score, CSV export | ✅ Live |
+| `/dashboard/figsy` | FIGSY — AI SDR campaigns, sequences, reply inbox | ✅ Live |
+| `/dashboard/assistant` | Milla — AI virtual assistant (Milla) — gated | ✅ Live |
+| `/dashboard/chatbot` | Vida — chatbot agent config + embed — gated | ✅ Live |
+| `/dashboard/documents` | Documents — upload, RAG, source attribution | ✅ Live |
+| `/dashboard/kpis` | KPI Dashboard — client's own metrics | ✅ Live |
+| `/dashboard/usage` | Usage — credit history, top-up | ✅ Live |
+| `/dashboard/billing` | Billing — Stripe subscriptions, Milla/Vida subscribe buttons | ✅ Live |
+| `/dashboard/billing/confirm` | Billing confirm — post-Stripe redirect | ✅ Live |
+| `/dashboard/roadmap` | Roadmap — client-facing build roadmap | ✅ Live |
+| `/dashboard/referral` | Referral — 100 credits both ways | ✅ Live |
+| `/dashboard/settings` | Settings — company profile, CRM integrations, calendar | ✅ Live |
+
+### Website (get-kind.com) — 22 Pages
+| Page | URL | Status |
+|---|---|---|
+| Homepage | `/` | ✅ Live |
+| About | `/about.html` | ✅ Live |
+| Pricing | `/pricing.html` | ✅ Live |
+| Support | `/support.html` | ✅ Live |
+| Terms | `/terms.html` | ✅ Live |
+| Trust & Privacy | `/trust.html` | ✅ Live |
+| DPA (UK/EU) | `/dpa.html` | ✅ Live |
+| DPA (US) | `/dpa-us.html` | ✅ Live |
+| Use Cases | `/use-cases.html` | ✅ Live |
+| Partners | `/partners.html` | ✅ Live |
+| FIGSY (AI SDR) | `/chatbot-agent.html` | ✅ Live |
+| Virtual Assistant | `/virtual-assistant.html` | ✅ Live |
+| Demo | `/demo.html` | ✅ Live |
+| Demo Video | `/demo-video.html` | ✅ Live |
+| FIGSY Video | `/figsy-video.html` | ✅ Live |
+| Platform Video | `/platform-video.html` | ✅ Live |
+| Platform Video (standalone) | `/platform-video-standalone.html` | ✅ Live |
+| vs Apollo | `/vs-apollo.html` | ✅ Live |
+| vs Outreach | `/vs-outreach.html` | ✅ Live |
+| vs Salesloft | `/vs-salesloft.html` | ✅ Live |
+| vs Hiring an SDR | `/vs-hiring-an-sdr.html` | ✅ Live |
+| vs Prospecting Manually | `/vs-prospecting-manually.html` | ✅ Live |
 
 ---
 

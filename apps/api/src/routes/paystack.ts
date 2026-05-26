@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { db } from '@kind/db'
+import { syncPaymentToHubspot } from '../lib/hubspot'
 
 export const paystackRouter = Router()
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!
@@ -30,6 +31,11 @@ async function handleChargeSuccess(data: Record<string, unknown>) {
   const periodEnd = new Date()
   periodEnd.setMonth(periodEnd.getMonth() + 1)
   await db.from('subscriptions').upsert({ client_id: metadata.client_id, product: metadata.product, tier: metadata.tier, status: 'active', billing_interval: metadata.billing_interval || 'monthly', amount_zar: (data.amount as number) || 0, current_period_start: new Date().toISOString(), current_period_end: periodEnd.toISOString() }, { onConflict: 'client_id,product' })
+
+  // Sync payment to HubSpot CRM (no-op if HUBSPOT_API_KEY not set)
+  const amountZar = Math.round((data.amount as number) / 100) // Paystack sends kobo
+  const plan = metadata.product ?? metadata.plan ?? 'kind_ai'
+  syncPaymentToHubspot(metadata.client_id, amountZar, plan).catch(console.error)
 }
 
 async function handleSubscriptionDisable(data: Record<string, unknown>) {

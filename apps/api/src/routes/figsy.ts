@@ -4,6 +4,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
+import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 
 export const figsyRouter = Router()
 
@@ -126,6 +127,15 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
           }
         }).catch(console.error)
       }
+
+      // Sync interested reply to HubSpot (no-op if HUBSPOT_API_KEY not set)
+      syncFigsyInterestedToHubspot({
+        lead_email:    fromEmail,
+        lead_name:     leadFull ? `${leadFull.first_name} ${leadFull.last_name}`.trim() : '',
+        company:       leadFull?.company ?? '',
+        client_id:     lead.client_id,
+        reply_snippet: body.slice(0, 300),
+      }).catch(console.error)
 
       // Auto top-up check
       try {

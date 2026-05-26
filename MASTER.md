@@ -108,7 +108,8 @@
 | HubSpot full sync | ✅ Built 26 May | `lib/hubspot.ts` — signup→contact, payment→deal closed, FIGSY reply→timeline. No-op if `HUBSPOT_API_KEY` unset. |
 | Admin HubSpot pipeline page | ✅ Built 26 May | `/hubspot` in admin — Kanban by stage, shows "Connect HubSpot" guide if key absent |
 | Competitor ICP seed configs | ✅ Built 26 May | `supabase/seeds/competitor_icps.sql` — 4 configs: Lemlist/Instantly/Clay/Apollo users in ZA/NG/KE/GH/EG. Ready to run when Apollo upgraded. |
-| **Apollo upgrade** | ⏳ #1 BLOCKER | **$49/mo at app.apollo.io → Settings → Plan & Billing. Every lead, every demo, entire platform dead without this.** |
+| Apollo free plan handling | ✅ Fixed 26 May | Clean 402/429 errors when credits exhausted or rate limited. Safe to use free plan (50 credits/mo) until paid upgrade. |
+| **Apollo — free plan active** | ⏳ USE NOW | Apollo bills **annually** (~$588/yr). Use free plan (50 credits/mo) for demos + own outreach now. Upgrade to monthly billing (~$99/mo) when first client pays. |
 | **Confirm RESEND_API_KEY in Railway** | ⏳ BLOCKER | Zero emails send without this. Welcome, POPIA, digest, brief — all dead. |
 | **Check Railway deploy logs** | ⏳ ACTION | Confirm green build after all code changes — railway.app → KIND API → Deployments |
 | **Run `MASTER_SCHEMA.sql`** | ⏳ MUST RUN | Supabase SQL Editor → paste full file → eliminates all schema drift permanently |
@@ -134,7 +135,7 @@
 
 | # | Task | Where | Why |
 |---|---|---|---|
-| 1 | **Upgrade Apollo** | app.apollo.io → Settings → Plan & Billing → $49/mo minimum | **#1 blocker. Every ICP run, every lead, every demo = dead without this. Nothing moves.** |
+| 1 | **Apollo — confirm free plan API key is in Railway** | app.apollo.io → Settings → API Keys → copy key → Railway `APOLLO_API_KEY`. Free = 50 contacts/mo (enough for demos + own outreach). Upgrade to monthly (~$99/mo, no annual lock-in) when first client pays. Annual ($49/mo) only when MRR covers the $588 upfront. | Platform works now with free plan — code handles credit limits cleanly |
 | 2 | **Confirm RESEND_API_KEY in Railway** | railway.app → KIND API → Variables | Zero emails without this — welcome, POPIA, digest, morning brief all dead |
 | 3 | **Check Railway deploy logs** | railway.app → KIND API → Deployments | Confirm green build after all recent code pushes |
 | 4 | **Run `MASTER_SCHEMA.sql`** | Supabase → SQL Editor → paste + Run | Eliminates all schema drift permanently — one paste, done forever |
@@ -585,7 +586,7 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | Supabase | Pro (af-south-1 required) | $25 |
 | Vercel | Pro | $20 |
 | Railway | Usage-based | $10–20 |
-| Apollo.io | Professional (24,000 credits/mo) | $99 |
+| Apollo.io | Free now (50 credits/mo) → Monthly Basic ($99/mo) when client 1 pays → Annual ($49/mo) when MRR covers $588 upfront | $0 → $99 |
 | Google Workspace | Business Starter (hello@get-kind.com) | $12–18 |
 | Resend | Free → Pro at scale | $0–20 |
 | Domain | Annual | ~$1 |

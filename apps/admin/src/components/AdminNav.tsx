@@ -15,7 +15,12 @@ const NAV = [
   { href: '/playbook',      label: 'Playbook',         icon: BookOpen },
   { href: '/cmo',           label: 'CMO Tools',        icon: Megaphone },
   { href: '/launch',        label: 'Launch',           icon: Rocket },
-  { href: '/hubspot',       label: 'HubSpot Pipeline', icon: GitMerge },
+  { href: '/hubspot',              label: 'HubSpot Pipeline', icon: GitMerge },
+  { href: '/docs/art-of-possible', label: 'Art of Possible',  icon: BookOpen },
+  { href: '/docs/master',          label: 'MASTER',            icon: FileText },
+  { href: '/docs/sop',             label: 'SOP',               icon: FileText },
+  { href: '/docs/client-flow',     label: 'Client Flow',       icon: FileText },
+  { href: '/docs/deployment',      label: 'Deployment',        icon: FileText },
 ]
 
 function pageTitle(pathname: string) {

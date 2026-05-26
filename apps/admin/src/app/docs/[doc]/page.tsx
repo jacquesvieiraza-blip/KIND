@@ -9,6 +9,10 @@ const DOC_MAP: Record<string, { filePath: string; title: string }> = {
   'legal':         { filePath: path.join(process.cwd(), '../../docs/legal.md'),                    title: 'Legal' },
   'sales-playbook':{ filePath: path.join(process.cwd(), '../../docs/sales-playbook.md'),           title: 'Sales Playbook' },
   'art-of-possible': { filePath: path.join(process.cwd(), '../../docs/art-of-possible.md'),       title: 'Art of Possible' },
+  'sop':             { filePath: path.join(process.cwd(), '../../docs/KIND_SOP.md'),               title: 'Standard Operating Procedures' },
+  'client-flow':     { filePath: path.join(process.cwd(), '../../docs/client-flow-sop.md'),        title: 'Client Flow' },
+  'roadmap':         { filePath: path.join(process.cwd(), '../../docs/KIND_Roadmap.md'),           title: 'Product Roadmap' },
+  'deployment':      { filePath: path.join(process.cwd(), '../../docs/DEPLOYMENT_GUIDE.md'),       title: 'Deployment Guide' },
 }
 
 /** Simple regex-based markdown → HTML renderer (no external deps) */

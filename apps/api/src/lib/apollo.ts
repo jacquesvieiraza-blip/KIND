@@ -13,22 +13,13 @@ const SENIORITY_MAP: Record<string, string[]> = {
 }
 
 // ── Company size mapping (Apollo uses "min,max" ranges) ───────────────────────
-// Handles both em-dash (–) and regular hyphen (-) variants stored by the portal
 const EMPLOYEE_RANGE_MAP: Record<string, string> = {
   '1–10':      '1,10',
-  '1-10':      '1,10',
   '11–50':     '11,50',
-  '11-50':     '11,50',
   '51–200':    '51,200',
-  '51-200':    '51,200',
   '201–500':   '201,500',
-  '201-500':   '201,500',
   '501–1,000': '501,1000',
-  '501-1,000': '501,1000',
-  '501–1000':  '501,1000',
-  '501-1000':  '501,1000',
   '1,000+':    '1001,1000000',
-  '1000+':     '1001,1000000',
 }
 
 export interface ApolloContact {
@@ -61,14 +52,7 @@ interface ApolloSearchBody {
   q_keywords?:                         string
 }
 
-// ── Build the search body from an ICP record ──────────────────────────────────
-// Strategy:
-//   1. Job titles, seniority, geography, company size → direct Apollo filters
-//   2. tech_stack + free-text keywords → q_keywords (user intent, not industry)
-//   3. Industries are NOT put into q_keywords — Apollo q_keywords is AND-based
-//      so "SaaS Fintech Healthtech" would match contacts mentioning ALL of them.
-//      Industry filtering is handled by Apollo's industry tag system via person_titles
-//      and the overall profile match, which is more accurate.
+// Build the search body from an ICP record
 export function buildSearchBody(icp: {
   job_titles:            string[]
   seniority_levels:      string[]
@@ -88,9 +72,7 @@ export function buildSearchBody(icp: {
   if (seniorities.length)
     body.person_seniorities = seniorities
 
-  const employeeRanges = icp.company_sizes
-    .map(s => EMPLOYEE_RANGE_MAP[s.trim()] ?? EMPLOYEE_RANGE_MAP[s.replace(/–/g, '-').trim()])
-    .filter(Boolean) as string[]
+  const employeeRanges = icp.company_sizes.map(s => EMPLOYEE_RANGE_MAP[s]).filter(Boolean)
   if (employeeRanges.length)
     body.organization_num_employees_ranges = employeeRanges
 
@@ -101,21 +83,13 @@ export function buildSearchBody(icp: {
   if (icp.apollo_only_consented)
     body.contact_email_status = ['verified', 'likely_to_engage']
 
-  // Only use tech_stack + free-text keywords in q_keywords — NOT industries
-  // Industries as q_keywords creates AND logic that returns 0 results
-  const kw = [...icp.tech_stack, ...icp.keywords].filter(Boolean)
+  const kw = [...icp.industries, ...icp.tech_stack, ...icp.keywords].filter(Boolean)
   if (kw.length)
     body.q_keywords = kw.join(' ')
 
   return body
 }
 
-// ── Search with automatic fallback ────────────────────────────────────────────
-// If the full search returns 0 results, we progressively relax constraints:
-//   Pass 1: Full query (all filters)
-//   Pass 2: Remove email consent filter (wider pool, still same titles/geo)
-//   Pass 3: Remove employee ranges (very broad — titles + geo only)
-// Each pass logs what was relaxed so the founder can tune the ICP.
 export async function searchPeopleWithFallback(
   icp: Parameters<typeof buildSearchBody>[0],
   page = 1,
@@ -150,6 +124,14 @@ export async function searchPeopleWithFallback(
   return { contacts: [], relaxed: 'No contacts found even with relaxed filters. Try broader job titles or add more geographies.' }
 }
 
+export class ApolloCreditsExhaustedError extends Error {
+  constructor() { super('Apollo credits exhausted — upgrade plan or wait for monthly reset') }
+}
+
+export class ApolloRateLimitError extends Error {
+  constructor() { super('Apollo rate limit hit — try again in a few minutes') }
+}
+
 export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContact[]> {
   const apiKey = process.env.APOLLO_API_KEY
   if (!apiKey) throw new Error('APOLLO_API_KEY env var is not set')
@@ -160,11 +142,18 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
     body:    JSON.stringify(body),
   })
 
+  if (res.status === 429) throw new ApolloRateLimitError()
+
   if (!res.ok) {
     const text = await res.text()
+    // Apollo returns 422 with "credits" in the message when plan is exhausted
+    if (res.status === 422 && text.toLowerCase().includes('credit')) throw new ApolloCreditsExhaustedError()
+    if (res.status === 402) throw new ApolloCreditsExhaustedError()
     throw new Error(`Apollo API ${res.status}: ${text}`)
   }
 
-  const data = await res.json() as { contacts?: ApolloContact[]; people?: ApolloContact[] }
+  const data = await res.json() as { contacts?: ApolloContact[]; people?: ApolloContact[]; error?: string }
+  // Apollo free plan returns error in body with 200 when credits run out
+  if (data.error?.toLowerCase().includes('credit')) throw new ApolloCreditsExhaustedError()
   return data.contacts ?? data.people ?? []
 }

@@ -4,469 +4,20 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
+import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 
 export const figsyRouter = Router()
-figsyRouter.use(requireAuth)
 
-async function getClientId(userId: string): Promise<string | null> {
-  const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
-  return data?.id ?? null
-}
-
-// ── KPIs ──────────────────────────────────────────────────────────────────────
-figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    const [
-      sentRes, repliesRes, interestedRes, optOutRes,
-      activeCampaignsRes, totalLeadsRes, leadsContactedRes, avgScoreRes,
-    ] = await Promise.all([
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'interested'),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out'),
-      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'contacted'),
-      db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null),
-    ])
-
-    const totalSent        = sentRes.count ?? 0
-    const totalReplied     = repliesRes.count ?? 0
-    const interested       = interestedRes.count ?? 0
-    const optOuts          = optOutRes.count ?? 0
-    const activeCampaigns  = activeCampaignsRes.count ?? 0
-    const totalLeads       = totalLeadsRes.count ?? 0
-    const leadsContacted   = leadsContactedRes.count ?? 0
-
-    const scores = (avgScoreRes.data ?? []) as { score: number }[]
-    const avgScore = scores.length
-      ? Math.round(scores.reduce((sum, l) => sum + (l.score || 0), 0) / scores.length)
-      : 0
-
-    const replyRate     = totalSent > 0 ? totalReplied / totalSent : 0
-    const interestedRate = totalSent > 0 ? interested / totalSent : 0
-
-    res.json({
-      success: true,
-      data: {
-        totalSent,
-        totalReplied,
-        replyRate,
-        interested,
-        interestedRate,
-        optOuts,
-        activeCampaigns,
-        totalLeads,
-        leadsContacted,
-        avgScore,
-      },
-    })
-  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch KPIs' }) }
-})
-
-// ── CAMPAIGNS ────────────────────────────────────────────────────────────────
-
-figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data, error } = await db.from('figsy_campaigns')
-      .select('*').eq('client_id', clientId).order('created_at', { ascending: false })
-    if (error) throw error
-    res.json({ success: true, data })
-  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch campaigns' }) }
-})
-
-figsyRouter.post('/campaigns', async (req: AuthRequest, res) => {
-  try {
-    const body = z.object({
-      name:            z.string().min(1),
-      icp_id:          z.string().uuid().optional(),
-      campaign_intent: z.string().optional(),
-    }).parse(req.body)
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data, error } = await db.from('figsy_campaigns')
-      .insert({ ...body, client_id: clientId }).select().single()
-    if (error) throw error
-    res.status(201).json({ success: true, data })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error(err); res.status(500).json({ success: false, error: 'Failed to create campaign' })
-  }
-})
-
-figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
-  try {
-    const body = z.object({
-      name:            z.string().min(1).optional(),
-      status:          z.enum(['draft','active','paused','completed','archived']).optional(),
-      campaign_intent: z.string().optional(),
-    }).parse(req.body)
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    // F1-9: gate activation behind a FIGSY-enabled subscription
-    if (body.status === 'active') {
-      const { data: sub } = await db.from('subscriptions')
-        .select('product, status')
-        .eq('client_id', clientId)
-        .in('product', ['lead_gen_figsy', 'figsy_addon'])
-        .in('status', ['active', 'trialing'])
-        .maybeSingle()
-
-      if (!sub) {
-        res.status(403).json({
-          success: false,
-          error: 'FIGSY requires an active subscription. Upgrade to Lead Gen + FIGSY or add the FIGSY add-on.',
-          upgrade_url: 'https://app.get-kind.com/dashboard/billing',
-        })
-        return
-      }
-    }
-
-    const { data, error } = await db.from('figsy_campaigns')
-      .update(body).eq('id', req.params.id).eq('client_id', clientId).select().single()
-    if (error) throw error
-    if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-    res.json({ success: true, data })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error(err); res.status(500).json({ success: false, error: 'Failed to update campaign' })
-  }
-})
-
-// ── PARSE INTENT (Feature A — gated behind FEATURE_CAMPAIGN_INTENT) ──────────
-figsyRouter.post('/campaigns/:id/parse-intent', async (req: AuthRequest, res) => {
-  if (process.env.FEATURE_CAMPAIGN_INTENT !== 'true') {
-    res.status(404).json({ success: false, error: 'Not found' }); return
-  }
-  try {
-    const { intent } = z.object({ intent: z.string().min(1) }).parse(req.body)
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    // Verify campaign belongs to client
-    const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id').eq('id', req.params.id).eq('client_id', clientId).single()
-    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-
-    const Anthropic = (await import('@anthropic-ai/sdk')).default
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: `You are an AI assistant helping parse a B2B outreach campaign intent into structured parameters.
-
-Campaign intent from the user:
-"${intent}"
-
-Extract the following fields (leave null if not mentioned):
-- geography_focus: specific country or region (string or null)
-- job_title_focus: specific job title or role (string or null)
-- pain_point: main pain point or problem to address (string or null)
-- trigger_event: trigger event mentioned e.g. "Series A", "hiring spree" (string or null)
-- avoid: anything to avoid e.g. people already emailed, specific companies (string or null)
-
-Also write a one-line summary (max 20 words) of what this campaign is hunting for.
-
-Return ONLY valid JSON:
-{"geography_focus":null,"job_title_focus":null,"pain_point":null,"trigger_event":null,"avoid":null,"summary":"..."}`,
-      }],
-    })
-
-    const raw = (response.content[0] as { type: string; text: string }).text.trim()
-    const parsed = JSON.parse(raw) as {
-      geography_focus: string | null
-      job_title_focus: string | null
-      pain_point: string | null
-      trigger_event: string | null
-      avoid: string | null
-      summary: string
-    }
-
-    // Store the intent and timestamp on the campaign
-    await db.from('figsy_campaigns').update({
-      campaign_intent: intent,
-      intent_mapped_at: new Date().toISOString(),
-    }).eq('id', req.params.id).eq('client_id', clientId)
-
-    res.json({ success: true, data: { parsed, summary: parsed.summary, intent } })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error('[figsy/parse-intent]', err)
-    res.status(500).json({ success: false, error: 'Failed to parse intent' })
-  }
-})
-
-// ── CLONE CAMPAIGN ────────────────────────────────────────────────────────────
-figsyRouter.post('/campaigns/:campaignId/clone', async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    const { data: original, error: fetchErr } = await db.from('figsy_campaigns')
-      .select('name, icp_id, status, settings')
-      .eq('id', req.params.campaignId)
-      .eq('client_id', clientId)
-      .single()
-
-    if (fetchErr || !original) {
-      res.status(404).json({ success: false, error: 'Campaign not found' }); return
-    }
-
-    const { data: newCampaign, error: insertErr } = await db.from('figsy_campaigns')
-      .insert({
-        name:      `${original.name} (copy)`,
-        icp_id:    original.icp_id ?? null,
-        status:    'draft',
-        settings:  original.settings ?? null,
-        client_id: clientId,
-      })
-      .select()
-      .single()
-
-    if (insertErr) throw insertErr
-    res.status(201).json({ success: true, campaign: newCampaign })
-  } catch (err) {
-    console.error(err); res.status(500).json({ success: false, error: 'Failed to clone campaign' })
-  }
-})
-
-figsyRouter.delete('/campaigns/:id', async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { error } = await db.from('figsy_campaigns')
-      .delete().eq('id', req.params.id).eq('client_id', clientId)
-    if (error) throw error
-    res.json({ success: true })
-  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete campaign' }) }
-})
-
-// ── ENROLLMENTS ───────────────────────────────────────────────────────────────
-
-figsyRouter.get('/campaigns/:id/enrollments', async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id').eq('id', req.params.id).eq('client_id', clientId).single()
-    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-    const { data, error } = await db.from('figsy_enrollments')
-      .select('*, leads(first_name,last_name,email,job_title,company,score)')
-      .eq('campaign_id', req.params.id)
-      .order('enrolled_at', { ascending: false })
-    if (error) throw error
-    res.json({ success: true, data })
-  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch enrollments' }) }
-})
-
-// Enroll one or more leads into a campaign
-figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
-  try {
-    const { lead_ids } = z.object({
-      lead_ids: z.array(z.string().uuid()).min(1).max(50),
-    }).parse(req.body)
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).single()
-    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-
-    const { data: client } = await db.from('clients')
-      .select('company_name, industry, figsy_credits_remaining').eq('id', clientId).single()
-
-    // ── Credit gate: must have at least 1 FIGSY outreach credit ──────────────
-    const availableCredits = client?.figsy_credits_remaining ?? 0
-    if (availableCredits < 1) {
-      res.status(402).json({
-        success: false,
-        error: 'Insufficient FIGSY credits. Top up at app.get-kind.com/dashboard/billing#figsy.',
-      })
-      return
-    }
-
-    const { data: leads } = await db.from('leads')
-      .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
-      .in('id', lead_ids).eq('client_id', clientId)
-
-    let enrolled = 0
-    let skipped  = 0
-    let creditsUsed = 0
-
-    for (const lead of leads ?? []) {
-      if (!lead.email) { skipped++; continue }
-
-      // Stop if we've run out of credits mid-batch
-      if (creditsUsed >= availableCredits) {
-        skipped++
-        continue
-      }
-
-      // Skip if already enrolled
-      const { data: existing } = await db.from('figsy_enrollments')
-        .select('id').eq('campaign_id', campaign.id).eq('lead_id', lead.id).maybeSingle()
-      if (existing) { skipped++; continue }
-
-      try {
-        const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null)
-
-        const { error } = await db.from('figsy_enrollments').insert({
-          campaign_id:    campaign.id,
-          lead_id:        lead.id,
-          client_id:      clientId,
-          status:         'enrolled',
-          current_step:   0,
-          next_send_at:   new Date().toISOString(),
-          step1_subject:  draft.step1.subject,
-          step1_body:     draft.step1.body,
-          step2_subject:  draft.step2.subject,
-          step2_body:     draft.step2.body,
-          step3_subject:  draft.step3.subject,
-          step3_body:     draft.step3.body,
-        })
-        if (error) { skipped++; continue }
-        enrolled++
-        creditsUsed++
-      } catch {
-        skipped++
-      }
-    }
-
-    // ── Deduct FIGSY outreach credits for all successfully enrolled leads ──────
-    if (enrolled > 0) {
-      const { data: freshBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
-      const newBalance = Math.max(0, (freshBal?.figsy_credits_remaining ?? 0) - enrolled)
-      await Promise.all([
-        db.from('clients').update({ figsy_credits_remaining: newBalance }).eq('id', clientId),
-        db.from('credit_transactions').insert({
-          client_id: clientId,
-          amount: -enrolled,
-          type: 'usage',
-          plan: 'figsy',
-          note: `${enrolled} lead${enrolled === 1 ? '' : 's'} enrolled in FIGSY campaign`,
-          created_at: new Date().toISOString(),
-        }),
-      ])
-    }
-
-    // Bump enrolled count on campaign
-    const { data: camp } = await db.from('figsy_campaigns')
-      .select('leads_enrolled').eq('id', campaign.id).single()
-    if (camp && enrolled > 0) {
-      await db.from('figsy_campaigns')
-        .update({ leads_enrolled: (camp.leads_enrolled ?? 0) + enrolled })
-        .eq('id', campaign.id)
-    }
-
-    res.json({ success: true, data: { enrolled, skipped, credits_used: creditsUsed, credits_remaining: Math.max(0, availableCredits - creditsUsed) } })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error(err); res.status(500).json({ success: false, error: 'Failed to enroll leads' })
-  }
-})
-
-// Preview AI-generated sequence for a single lead (no send)
-figsyRouter.post('/campaigns/:id/preview-sequence', async (req: AuthRequest, res) => {
-  try {
-    const { lead_id } = z.object({ lead_id: z.string().uuid() }).parse(req.body)
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    const { data: lead } = await db.from('leads')
-      .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
-      .eq('id', lead_id).eq('client_id', clientId).single()
-    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
-
-    const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).single()
-
-    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null)
-    res.json({ success: true, data: draft })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error(err); res.status(500).json({ success: false, error: 'Failed to generate sequence preview' })
-  }
-})
-
-// ── SEND NEXT STEP (manual trigger or cron) ───────────────────────────────────
-figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    // Domain warming cap — FIGSY_DAILY_SEND_LIMIT env var limits total sends per day across all clients
-    const dailyLimit = process.env.FIGSY_DAILY_SEND_LIMIT ? parseInt(process.env.FIGSY_DAILY_SEND_LIMIT, 10) : null
-    let remaining = 20 // default batch size
-    if (dailyLimit !== null && !isNaN(dailyLimit)) {
-      const todayUTC = new Date()
-      todayUTC.setUTCHours(0, 0, 0, 0)
-      const { count } = await db.from('figsy_sent_emails')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', todayUTC.toISOString())
-      const sentToday = count ?? 0
-      remaining = Math.max(0, dailyLimit - sentToday)
-      if (remaining === 0) {
-        res.json({ success: true, data: { sent: 0, capped: true, daily_limit: dailyLimit } })
-        return
-      }
-    }
-
-    const now = new Date().toISOString()
-    const { data: due } = await db.from('figsy_enrollments')
-      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
-      .eq('client_id', clientId)
-      .in('status', ['enrolled', 'in_progress'])
-      .lte('next_send_at', now)
-      .limit(remaining)
-
-    let sent = 0
-    for (const enrollment of due ?? []) {
-      const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
-      if (!lead?.email) continue
-      const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
-      if (nextStep > 3) continue
-      const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
-      const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
-      if (!subject || !body) continue
-      try {
-        await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, enrollment.campaign_id)
-        sent++
-      } catch (err) {
-        console.error('[figsy/send-due]', err)
-      }
-    }
-
-    res.json({ success: true, data: { sent, ...(dailyLimit !== null ? { daily_limit: dailyLimit } : {}) } })
-  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to send due emails' }) }
-})
-
-// ── REPLIES ───────────────────────────────────────────────────────────────────
-
-figsyRouter.get('/campaigns/:id/replies', async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id').eq('id', req.params.id).eq('client_id', clientId).single()
-    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-    const { data, error } = await db.from('figsy_replies')
-      .select('*').eq('campaign_id', req.params.id).order('received_at', { ascending: false })
-    if (error) throw error
-    res.json({ success: true, data })
-  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch replies' }) }
-})
-
-// Inbound reply webhook (called by Resend or email provider)
+// ── INBOUND REPLY WEBHOOK — must be registered BEFORE requireAuth ─────────────
+// Called by Resend when a prospect replies to a FIGSY sequence email.
+// No JWT auth — protected by RESEND_WEBHOOK_SECRET header check instead.
 figsyRouter.post('/replies/inbound', async (req, res) => {
+  // Verify webhook secret so random actors can't post fake replies
+  const secret = process.env.RESEND_WEBHOOK_SECRET
+  if (secret && req.headers['x-webhook-secret'] !== secret) {
+    res.status(401).json({ error: 'Unauthorized' }); return
+  }
+
   try {
     const payload = req.body as {
       from: string
@@ -577,25 +128,30 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         }).catch(console.error)
       }
 
+      // Sync interested reply to HubSpot (no-op if HUBSPOT_API_KEY not set)
+      syncFigsyInterestedToHubspot({
+        lead_email:    fromEmail,
+        lead_name:     leadFull ? `${leadFull.first_name} ${leadFull.last_name}`.trim() : '',
+        company:       leadFull?.company ?? '',
+        client_id:     lead.client_id,
+        reply_snippet: body.slice(0, 300),
+      }).catch(console.error)
+
       // Auto top-up check
       try {
         const { data: clientForTopup } = await db.from('clients')
-          .select('id, credit_balance, figsy_credits_remaining, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
+          .select('id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
           .eq('id', lead.client_id).single()
-        const topupPlan = clientForTopup?.auto_topup_plan ?? 'kind_ai'
-        // Check the right balance column based on which plan the auto-topup is for
-        const currentTopupBal = topupPlan === 'figsy'
-          ? (clientForTopup?.figsy_credits_remaining ?? 0)
-          : (clientForTopup?.credit_balance ?? 0)
         if (clientForTopup?.auto_topup_enabled &&
             clientForTopup.auto_topup_paystack_auth &&
-            currentTopupBal < (clientForTopup.auto_topup_threshold ?? 0)) {
+            (clientForTopup.credit_balance ?? 0) < (clientForTopup.auto_topup_threshold ?? 0)) {
+          const plan = clientForTopup.auto_topup_plan ?? 'kind_ai'
           const bundleSize = clientForTopup.auto_topup_bundle_size ?? 20
           const BUNDLES: Record<string, Record<number, number>> = {
             kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
             figsy:   { 10: 35, 20: 60, 40: 110, 75: 195, 100: 250, 200: 460, 500: 1100 },
           }
-          const amountUsd = BUNDLES[topupPlan]?.[bundleSize]
+          const amountUsd = BUNDLES[plan]?.[bundleSize]
           if (amountUsd) {
             const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.id)
             const topupEmail = user?.email
@@ -609,22 +165,20 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
                 email: topupEmail,
                 amount: amountZarKobo,
                 currency: 'ZAR',
-                metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan: topupPlan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
+                metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
               }),
             })
             const chargeData = await chargeRes.json() as { status: boolean; data: { status: string } }
             if (chargeData.status && chargeData.data?.status === 'success') {
-              const columnUpdate = topupPlan === 'figsy'
-                ? { figsy_credits_remaining: currentTopupBal + bundleSize }
-                : { credit_balance: currentTopupBal + bundleSize }
+              const newBal = (clientForTopup.credit_balance ?? 0) + bundleSize
               await Promise.all([
-                db.from('clients').update(columnUpdate).eq('id', clientForTopup.id),
+                db.from('clients').update({ credit_balance: newBal }).eq('id', clientForTopup.id),
                 db.from('credit_transactions').insert({
                   client_id: clientForTopup.id,
                   type: 'purchase',
                   amount: bundleSize,
-                  plan: topupPlan,
-                  note: `Auto top-up: ${bundleSize} ${topupPlan === 'figsy' ? 'FIGSY outreach' : 'lead gen'} credits`,
+                  plan,
+                  note: `Auto top-up: ${bundleSize} credits (${plan})`,
                 }),
               ])
             }
@@ -638,6 +192,366 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     console.error('[figsy/inbound]', err)
     res.status(200).json({ received: true }) // Always 200 to webhook provider
   }
+})
+
+figsyRouter.use(requireAuth)
+
+async function getClientId(userId: string): Promise<string | null> {
+  const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
+  return data?.id ?? null
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const [
+      sentRes, repliesRes, interestedRes, optOutRes,
+      activeCampaignsRes, totalLeadsRes, leadsContactedRes, avgScoreRes,
+    ] = await Promise.all([
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'interested'),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out'),
+      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'contacted'),
+      db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null),
+    ])
+
+    const totalSent        = sentRes.count ?? 0
+    const totalReplied     = repliesRes.count ?? 0
+    const interested       = interestedRes.count ?? 0
+    const optOuts          = optOutRes.count ?? 0
+    const activeCampaigns  = activeCampaignsRes.count ?? 0
+    const totalLeads       = totalLeadsRes.count ?? 0
+    const leadsContacted   = leadsContactedRes.count ?? 0
+
+    const scores = (avgScoreRes.data ?? []) as { score: number }[]
+    const avgScore = scores.length
+      ? Math.round(scores.reduce((sum, l) => sum + (l.score || 0), 0) / scores.length)
+      : 0
+
+    const replyRate     = totalSent > 0 ? totalReplied / totalSent : 0
+    const interestedRate = totalSent > 0 ? interested / totalSent : 0
+
+    res.json({
+      success: true,
+      data: {
+        totalSent,
+        totalReplied,
+        replyRate,
+        interested,
+        interestedRate,
+        optOuts,
+        activeCampaigns,
+        totalLeads,
+        leadsContacted,
+        avgScore,
+      },
+    })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch KPIs' }) }
+})
+
+// ── CAMPAIGNS ────────────────────────────────────────────────────────────────
+
+figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data, error } = await db.from('figsy_campaigns')
+      .select('*').eq('client_id', clientId).order('created_at', { ascending: false })
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch campaigns' }) }
+})
+
+figsyRouter.post('/campaigns', async (req: AuthRequest, res) => {
+  try {
+    const body = z.object({
+      name:   z.string().min(1),
+      icp_id: z.string().uuid().optional(),
+    }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data, error } = await db.from('figsy_campaigns')
+      .insert({ ...body, client_id: clientId }).select().single()
+    if (error) throw error
+    res.status(201).json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to create campaign' })
+  }
+})
+
+figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
+  try {
+    const body = z.object({
+      name:   z.string().min(1).optional(),
+      status: z.enum(['draft','active','paused','completed','archived']).optional(),
+    }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // F1-9: gate activation behind a FIGSY-enabled subscription
+    if (body.status === 'active') {
+      const { data: sub } = await db.from('subscriptions')
+        .select('product, status, current_period_end')
+        .eq('client_id', clientId)
+        .in('product', ['lead_gen_figsy', 'figsy_addon'])
+        .in('status', ['active', 'trialing'])
+        .maybeSingle()
+
+      // Also reject if trial has expired (status='trialing' but period ended)
+      const trialExpired = sub?.status === 'trialing' &&
+        sub?.current_period_end && new Date(sub.current_period_end) < new Date()
+
+      if (!sub || trialExpired) {
+        res.status(403).json({
+          success: false,
+          error: 'FIGSY requires an active subscription. Upgrade to Lead Gen + FIGSY or add the FIGSY add-on.',
+          upgrade_url: 'https://app.get-kind.com/dashboard/billing',
+        })
+        return
+      }
+    }
+
+    const { data, error } = await db.from('figsy_campaigns')
+      .update(body).eq('id', req.params.id).eq('client_id', clientId).select().single()
+    if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    res.json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to update campaign' })
+  }
+})
+
+// ── CLONE CAMPAIGN ────────────────────────────────────────────────────────────
+figsyRouter.post('/campaigns/:campaignId/clone', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: original, error: fetchErr } = await db.from('figsy_campaigns')
+      .select('name, icp_id, status, settings')
+      .eq('id', req.params.campaignId)
+      .eq('client_id', clientId)
+      .single()
+
+    if (fetchErr || !original) {
+      res.status(404).json({ success: false, error: 'Campaign not found' }); return
+    }
+
+    const { data: newCampaign, error: insertErr } = await db.from('figsy_campaigns')
+      .insert({
+        name:      `${original.name} (copy)`,
+        icp_id:    original.icp_id ?? null,
+        status:    'draft',
+        settings:  original.settings ?? null,
+        client_id: clientId,
+      })
+      .select()
+      .single()
+
+    if (insertErr) throw insertErr
+    res.status(201).json({ success: true, campaign: newCampaign })
+  } catch (err) {
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to clone campaign' })
+  }
+})
+
+figsyRouter.delete('/campaigns/:id', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { error } = await db.from('figsy_campaigns')
+      .delete().eq('id', req.params.id).eq('client_id', clientId)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete campaign' }) }
+})
+
+// ── ENROLLMENTS ───────────────────────────────────────────────────────────────
+
+figsyRouter.get('/campaigns/:id/enrollments', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    const { data, error } = await db.from('figsy_enrollments')
+      .select('*, leads(first_name,last_name,email,job_title,company,score)')
+      .eq('campaign_id', req.params.id)
+      .order('enrolled_at', { ascending: false })
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch enrollments' }) }
+})
+
+// Enroll one or more leads into a campaign
+figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
+  try {
+    const { lead_ids } = z.object({
+      lead_ids: z.array(z.string().uuid()).min(1).max(50),
+    }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    const { data: client } = await db.from('clients')
+      .select('company_name, industry').eq('id', clientId).single()
+
+    const { data: leads } = await db.from('leads')
+      .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
+      .in('id', lead_ids).eq('client_id', clientId)
+
+    let enrolled = 0
+    let skipped  = 0
+
+    for (const lead of leads ?? []) {
+      if (!lead.email) { skipped++; continue }
+
+      // Skip if already enrolled
+      const { data: existing } = await db.from('figsy_enrollments')
+        .select('id').eq('campaign_id', campaign.id).eq('lead_id', lead.id).maybeSingle()
+      if (existing) { skipped++; continue }
+
+      try {
+        const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null)
+
+        const { error } = await db.from('figsy_enrollments').insert({
+          campaign_id:    campaign.id,
+          lead_id:        lead.id,
+          client_id:      clientId,
+          status:         'enrolled',
+          current_step:   0,
+          next_send_at:   new Date().toISOString(),
+          step1_subject:  draft.step1.subject,
+          step1_body:     draft.step1.body,
+          step2_subject:  draft.step2.subject,
+          step2_body:     draft.step2.body,
+          step3_subject:  draft.step3.subject,
+          step3_body:     draft.step3.body,
+        })
+        if (error) { skipped++; continue }
+        enrolled++
+      } catch {
+        skipped++
+      }
+    }
+
+    // Bump enrolled count on campaign
+    const { data: camp } = await db.from('figsy_campaigns')
+      .select('leads_enrolled').eq('id', campaign.id).single()
+    if (camp && enrolled > 0) {
+      await db.from('figsy_campaigns')
+        .update({ leads_enrolled: (camp.leads_enrolled ?? 0) + enrolled })
+        .eq('id', campaign.id)
+    }
+
+    res.json({ success: true, data: { enrolled, skipped } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to enroll leads' })
+  }
+})
+
+// Preview AI-generated sequence for a single lead (no send)
+figsyRouter.post('/campaigns/:id/preview-sequence', async (req: AuthRequest, res) => {
+  try {
+    const { lead_id } = z.object({ lead_id: z.string().uuid() }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead } = await db.from('leads')
+      .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
+      .eq('id', lead_id).eq('client_id', clientId).single()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const { data: client } = await db.from('clients')
+      .select('company_name, industry').eq('id', clientId).single()
+
+    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null)
+    res.json({ success: true, data: draft })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to generate sequence preview' })
+  }
+})
+
+// ── SEND NEXT STEP (manual trigger or cron) ───────────────────────────────────
+figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Domain warming cap — FIGSY_DAILY_SEND_LIMIT env var limits total sends per day across all clients
+    const dailyLimit = process.env.FIGSY_DAILY_SEND_LIMIT ? parseInt(process.env.FIGSY_DAILY_SEND_LIMIT, 10) : null
+    let remaining = 20 // default batch size
+    if (dailyLimit !== null && !isNaN(dailyLimit)) {
+      const todayUTC = new Date()
+      todayUTC.setUTCHours(0, 0, 0, 0)
+      const { count } = await db.from('figsy_sent_emails')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', todayUTC.toISOString())
+      const sentToday = count ?? 0
+      remaining = Math.max(0, dailyLimit - sentToday)
+      if (remaining === 0) {
+        res.json({ success: true, data: { sent: 0, capped: true, daily_limit: dailyLimit } })
+        return
+      }
+    }
+
+    const now = new Date().toISOString()
+    const { data: due } = await db.from('figsy_enrollments')
+      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
+      .eq('client_id', clientId)
+      .in('status', ['enrolled', 'in_progress'])
+      .lte('next_send_at', now)
+      .limit(remaining)
+
+    let sent = 0
+    for (const enrollment of due ?? []) {
+      const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
+      if (!lead?.email) continue
+      const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
+      if (nextStep > 3) continue
+      const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
+      const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
+      if (!subject || !body) continue
+      try {
+        await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, enrollment.campaign_id)
+        sent++
+      } catch (err) {
+        console.error('[figsy/send-due]', err)
+      }
+    }
+
+    res.json({ success: true, data: { sent, ...(dailyLimit !== null ? { daily_limit: dailyLimit } : {}) } })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to send due emails' }) }
+})
+
+// ── REPLIES ───────────────────────────────────────────────────────────────────
+
+figsyRouter.get('/campaigns/:id/replies', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    const { data, error } = await db.from('figsy_replies')
+      .select('*').eq('campaign_id', req.params.id).order('received_at', { ascending: false })
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch replies' }) }
 })
 
 // ── AI FOLLOW-UP DRAFT ────────────────────────────────────────────────────────

@@ -1,315 +1,485 @@
-# K.I.N.D — Sales Playbook
-**Living document. Started 25 May 2026. Add to this after every call.**
+# KIND Sales Playbook
 
-> This document becomes the AE hiring playbook. Every objection you handle, every line that closes a deal, every loss reason — write it here. By the time you hire an SDR, this is their training manual.
-
----
-
-## TABLE OF CONTENTS
-
-1. [ICP — Who We're Selling To](#1-icp--who-were-selling-to)
-2. [Qualification Criteria](#2-qualification-criteria)
-3. [Channel Priority](#3-channel-priority)
-4. [Discovery Call Script](#4-discovery-call-script)
-5. [Demo Flow (20-minute script)](#5-demo-flow-20-minute-script)
-6. [Objection-Response Library](#6-objection-response-library)
-7. [Proposal Template](#7-proposal-template)
-8. [Closing Techniques](#8-closing-techniques)
-9. [Loss Reasons Log](#9-loss-reasons-log)
-10. [Win Reasons Log](#10-win-reasons-log)
-11. [Follow-Up Cadence](#11-follow-up-cadence)
-12. [Pricing & Negotiation Rules](#12-pricing--negotiation-rules)
+> Version 1.0 — May 2026 · For internal use only
 
 ---
 
-## 1. ICP — Who We're Selling To
+## SECTION 1: ICP & QUALIFICATION
 
-**Primary buyer:**
-- Title: Founder, CEO, MD, Sales Director, Head of Growth
-- Company size: 5–50 employees
-- Company type: B2B — they sell to other businesses
-- Geography: South Africa (primary), Nigeria, Kenya (secondary)
-- Industries: Professional services, Fintech, SaaS, Consulting, Logistics, Marketing agencies
+### Our Ideal Customer Profile (ICP)
 
-**The pain they have:**
-- Founder is the entire sales function
-- No time to prospect consistently
-- Follow-ups fall through the cracks
-- No system — all in their head or a spreadsheet
-- Have tried cold email before, it didn't work (no system, no data, no follow-through)
+| Attribute | Definition |
+|---|---|
+| **Title** | Founder, CEO, MD, Sales Director |
+| **Company size** | 5–50 employees |
+| **Business model** | B2B only |
+| **Primary markets** | South Africa, Nigeria, Kenya |
+| **Secondary markets** | Ghana, Zimbabwe, diaspora |
+| **Industries** | Professional services, Fintech, Logistics, Tech, Consulting, SaaS, Marketing agencies |
+| **Pain point** | Founder IS the sales team — no scalable outbound motion |
+| **Growth stage** | Post-revenue, wants to scale |
 
-**The trigger that makes them buy:**
-- Growth is stalled and they know pipeline is the problem
-- They just lost a key client and need to replace revenue
-- Investor pressure to show pipeline
-- Hired a salesperson who is struggling to find leads
-- Competitor is growing and they don't know how
+### Qualification Criteria — MUST have all 3
 
-**Who is NOT the buyer:**
-- B2C companies (they don't need B2B leads)
-- Companies under 6 months old with no proven product
-- Companies already running outbound at scale (they need Clay/Instantly, not K.I.N.D)
-- Anyone who wants to do it themselves — K.I.N.D is fully managed
+1. **Has a sales function** — they are actively trying to find new clients (even if the "function" is just the founder doing cold DMs)
+2. **B2B** — they sell to businesses, not consumers
+3. **Founder-led sales pain** — the founder/director is the bottleneck; there's no system, no pipeline visibility, no consistent outbound
 
----
+### Disqualify If
 
-## 2. Qualification Criteria
-
-Run through these in the first 5 minutes. If they fail 2+, politely close.
-
-| Criteria | Pass | Fail |
-|---|---|---|
-| Business type | B2B — sells to companies | B2C only |
-| Revenue stage | Has paying clients already | Pre-revenue, idea stage |
-| Pipeline problem | Agrees prospecting is a bottleneck | "We have enough leads" |
-| Decision maker | Person on the call can buy | Needs 3 committee approvals |
-| Budget | $20–300/mo is accessible | Hard "no budget" on any spend |
-| Timeline | Wants to start within 30 days | "Maybe next quarter" |
+- B2C only (no B2B component)
+- Under 6 months old with zero revenue (no proof of product-market fit yet)
+- Requires custom software development as part of their core need
+- Expects a managed service where KIND does the selling for them (they need to own the tool)
 
 ---
 
-## 3. Channel Priority
+## SECTION 2: DISCOVERY CALL SCRIPT (30–45 min)
 
-**Where deals come from (track this and update):**
-
-| Channel | Leads | Demos | Closed | Close rate | Notes |
-|---|---|---|---|---|---|
-| FIGSY self-outreach | — | — | — | — | Starts when FIGSY_KIND_CLIENT_ID set |
-| Personal network | — | — | — | — | Highest close rate, limited volume |
-| LinkedIn organic | — | — | — | — | Slow build, compound over time |
-| Referrals | — | — | — | — | Ask every client Day 3 |
-| Inbound (website) | — | — | — | — | Small now, grows with SEO |
-
-> Fill in numbers as deals progress. This tells you where to focus.
+> **Before the call:** Review their LinkedIn, website, and any notes from how they booked (cold outreach? Referral? Inbound?). Have the demo environment ready.
 
 ---
-
-## 4. Discovery Call Script
-
-**Duration: 30–45 minutes**
-**Goal: Qualify the prospect AND make them feel understood.**
 
 ### Opening (2 min)
-> "Thanks for making the time. I want to make sure this is useful for you, so I'm going to ask a few questions first — then I'll show you exactly what K.I.N.D does and whether it's the right fit. Sound good?"
 
-### Discovery Questions (15–20 min)
+"[Name], good to connect. I've blocked 30–45 minutes for us — does that still work on your end?
 
-**Start here — understand their world:**
-
-1. *"Walk me through how you currently find new clients. What does that process look like today?"*
-   - Listen for: cold calling, referrals only, LinkedIn manually, no system
-   - Red flag: "We have a full SDR team and pipeline is great"
-
-2. *"Where does your pipeline break down most — finding people, getting responses, following up, or closing?"*
-   - Most founders say "finding people" or "following up"
-   - This tells you which K.I.N.D feature to lead with in the demo
-
-3. *"Have you tried outbound before? What happened?"*
-   - Common answer: "Tried cold email, got nothing" — this is your moment
-   - Ask: "What did the emails look like?" (usually generic templates with no personalisation)
-
-4. *"What markets and job titles are you going after?"*
-   - This seeds the ICP conversation
-   - If they know exactly → they're ready for K.I.N.D
-   - If vague → opportunity to show how AI ICP builder works
-
-5. *"If you had 20 qualified meetings booked this month, would you have capacity to run them?"*
-   - Yes → they're a real buyer, pipeline is the bottleneck
-   - No → they have other problems, might not be ready
-
-6. *"What's your current revenue? Where do you want to be in 12 months?"*
-   - Understand the gap
-   - Frame K.I.N.D as the bridge
-
-### Transition to demo (1 min)
-> "Based on what you've told me — [echo back their specific pain] — let me show you exactly how K.I.N.D handles that. Give me 15 minutes and I'll show you your first leads."
+Here's what I'd like to do: spend the first part understanding your current sales setup and where you're getting stuck, then I'll show you exactly what KIND does and whether it makes sense for you. If it doesn't fit, I'll tell you. Sound good?"
 
 ---
 
-## 5. Demo Flow (20-minute script)
+### Rapport (3 min)
 
-**Use Admin → Demo Environments. Real leads, zero risk to live data.**
+"Before we get into the weeds — give me the 30-second version: what does [Company] do and who do you sell to?"
 
-### Minute 0–2: Set the scene
-> "I'm not going to show you slides. I'm going to show you the actual platform finding real leads for a company that looks like yours. Watch what happens."
+*(Listen. Take notes. Probe if B2B isn't immediately clear.)*
 
-### Minute 2–8: Build the ICP live
-- Open Demo Environment → new ICP
-- Click "Suggest ICP with AI" — type their company description
-- Watch Claude fill in the form
-- Adjust one field with them (makes it feel collaborative)
-- Hit Save
+"And team size right now — roughly how many people?"
 
-> "This took 3 minutes. Most clients get their first leads within 10 minutes of signing up."
-
-### Minute 8–14: Show the leads appearing
-- Run the ICP — Apollo results come in
-- Point out: scored 0–100, reasoning visible, company size/industry/title matches
-- Show one lead card in detail
-- Show the POPIA consent flow
-- *"These are real people at real companies who match exactly what you described."*
-
-### Minute 14–18: Show FIGSY
-- Go to FIGSY section
-- Show a campaign — Day 1, Day 3, Day 7 sequence
-- Show a sample email — personalised, not a template
-- Show reply inbox — how a classified reply looks
-- *"FIGSY sends, follows up, classifies replies, and tells you who's interested. You just take the meeting."*
-
-### Minute 18–20: Close
-> "That's K.I.N.D. You build your ICP, leads appear, FIGSY does the outreach, you take the calls. The question is — does this match what you need?"
-
-**Listen. Don't fill silence.**
+"Where are you in terms of growth — are you actively trying to push sales right now or more consolidating what you have?"
 
 ---
 
-## 6. Objection-Response Library
+### Pain Discovery (15 min)
 
-*Add to this after every call. Over time this becomes the most valuable part of the document.*
-
-### "It's too expensive"
-> "What's your current cost of finding a qualified lead? If a salesperson spends 40 hours to book 5 meetings, that's 8 hours per meeting at their hourly rate. K.I.N.D starts at $20. The maths tends to work out."
-
-### "I'm not sure it works for our industry"
-> "What industry are you in? [Answer]. We've run ICP searches for [similar industry]. Apollo has 275 million contacts — if your buyers exist, we can find them. Let me show you a live search right now."
-
-### "We tried cold email before and it didn't work"
-> "Tell me what you tried. [Listen]. The issue with most cold email is it's generic — same email to everyone, no follow-up system, no data on what works. FIGSY personalises every email via AI and follows up automatically. It's a different category."
-
-### "I need to think about it"
-> "Of course. What specifically are you thinking through? Is it the price, whether it'll work for your industry, or something else?" [Isolate the real objection]
-
-### "Can we try it for free?"
-> "We have a 14-day trial — you can sign up today at no cost, build your ICP, see your first leads, and decide from there. No card required upfront."
-
-### "We already use [Apollo/Instantly/Lemlist]"
-> "Those are great tools — but they're DIY. You still have to build the lists, write the emails, manage the follow-ups, track the replies. K.I.N.D is fully managed — you tell us who to target, we do everything else. Different product for a different buyer."
-
-### "I don't have time to set this up"
-> "That's exactly why we built it the way we did. Onboarding is one 60-minute call. After that, we do the setup with you. Most clients have their first leads within 10 minutes of finishing that call."
-
-### "I need to speak to my partner/co-founder"
-> "Totally understand. What would help you present this internally? I can send a one-page summary. Or — would it be easier to have a 20-minute call with both of you together?"
-
-*[ADD NEW OBJECTIONS HERE AS THEY COME UP]*
+Work through these 5 questions. Don't rush. The gold is in the follow-up probes.
 
 ---
 
-## 7. Proposal Template
+**Q1: How do you currently find and qualify new clients?**
 
-**Send within 24 hours of demo. Keep it to one page.**
+*Follow-up probes:*
+- "Is that mostly inbound, referrals, or are you doing any outbound?"
+- "When you say referrals — how often does that actually happen? Weekly? Monthly?"
+- "And when you do reach out cold — what does that process look like right now?"
+- "Who actually does that outreach? You personally?"
 
----
-
-**K.I.N.D — Proposal for [Company Name]**
-*Prepared for [Name] · [Date]*
-
-**What we discussed:**
-[2 sentences on their specific pain — use their words, not yours]
-
-**What K.I.N.D will do:**
-- Find [X] qualified leads matching your ICP every [timeframe]
-- FIGSY runs a 3-step personalised outreach sequence to each lead
-- Replies are classified and interested prospects are flagged for you
-- Your only job: take the meeting
-
-**Recommended starting point:**
-[Product name] — [Credits] credits — $[Price]/mo
-
-*This gives you [X] lead searches and [Y] FIGSY emails per month. Enough to run [Z] active outreach campaigns simultaneously.*
-
-**What happens next:**
-1. Sign up at app.get-kind.com (14-day free trial, no card required)
-2. 60-minute onboarding call — we build your ICP together
-3. First leads appear within 10 minutes
-
-**Pricing:**
-[Insert relevant plan — pricing is locked, never negotiate]
-
-*Questions? Reply to this email or book a call: [calendar link]*
+*What you're listening for:* founder doing it themselves, inconsistency, no real system, reliance on luck/referrals.
 
 ---
 
-## 8. Closing Techniques
+**Q2: Where does your pipeline break down most often?**
 
-**Assumptive close:**
-> "Let's get you set up — the trial is free so there's no risk. What email should I use for your account?"
+*Follow-up probes:*
+- "Is it finding the right people to talk to, getting them to respond, or converting them after they show interest?"
+- "If you had to pick one stage that's the biggest problem — top of funnel, middle, or close — which would it be?"
+- "What does your pipeline actually look like right now — do you track it anywhere?"
 
-**Timeline close:**
-> "If you start today, you'll have your first leads by [day]. Do you want to aim for that?"
-
-**Pain close:**
-> "You said [their specific pain]. Every week that goes on, that's another week of pipeline you're not building. What's holding you back from starting today?"
-
-**The trial close:**
-> "There's a 14-day free trial with no card required. The worst case is you spend 60 minutes with us and decide it's not for you. What do you have to lose?"
+*What you're listening for:* no visibility, deals going cold, founder chasing, inconsistent follow-up.
 
 ---
 
-## 9. Loss Reasons Log
+**Q3: Have you tried outbound before? What happened?**
 
-*Log every lost deal. Patterns here tell you what to fix.*
+*Follow-up probes:*
+- "What tools or methods did you use?"
+- "How many contacts did you reach out to? What was the reply rate?"
+- "What made you stop — was it the results, the time, or something else?"
+- "Did you use any tools like Apollo, Lemlist, Instantly?"
 
-| Date | Company | Stage lost | Reason given | Real reason (your read) | What to do differently |
-|---|---|---|---|---|---|
-| — | — | — | — | — | — |
-
----
-
-## 10. Win Reasons Log
-
-*Log every closed deal. What actually made them buy?*
-
-| Date | Company | Plan | Channel | What closed them | Time from first contact |
-|---|---|---|---|---|---|
-| — | — | — | — | — | — |
+*What you're listening for:* bad past experience to address, what they tried vs what KIND does differently (Africa-first data, AI scoring, FIGSY sequences).
 
 ---
 
-## 11. Follow-Up Cadence
+**Q4: What markets and job titles are you targeting?**
 
-**After a discovery call (no demo booked):**
-- Day 1: Send one-line email — "Great speaking. Here's a 2-min overview: [link]. Happy to do a quick demo this week."
-- Day 4: Follow up — "Did you get a chance to look?"
-- Day 9: Final — "Still happy to show you — if timing isn't right, no problem."
+*Follow-up probes:*
+- "Is it primarily SA, or are you already looking at other African markets?"
+- "When you say [title] — is that at enterprise, mid-market, SME?"
+- "Do you have a well-defined ICP written down somewhere, or is it more intuitive right now?"
 
-**After a demo (no decision):**
-- Day 1: Send proposal (within 24 hours)
-- Day 3: "Any questions on the proposal?"
-- Day 7: "Still happy to answer anything — or happy to get you set up on the trial if easier."
-- Day 14: Final follow-up. If no reply, close the deal in HubSpot as Lost.
-
-**After closed lost:**
-- 30 days: "Checking in — has anything changed on your end?"
-- 90 days: One more touch. Then archive.
+*What you're listening for:* vague ICP = perfect use case for KIND's AI ICP builder. Also validating whether KIND's data covers their market.
 
 ---
 
-## 12. Pricing & Negotiation Rules
+**Q5: What's your budget for sales infrastructure this year?**
 
-**Pricing is locked. This is not negotiable and is documented in MASTER.md Section 23.**
+*Follow-up probes:*
+- "Are you currently paying for any outbound tools — LinkedIn Sales Nav, Apollo, email tools?"
+- "Is this something you've allocated for or would need to justify internally?"
+- "If this worked exactly as promised — let's say you had a consistent flow of qualified leads every week — what would that be worth to you in new revenue?"
 
-| Product | Credits | Price USD | Price ZAR |
+*What you're listening for:* budget signal, willingness to invest, and getting them to anchor to the value (not the cost) before you show pricing.
+
+---
+
+### Demo Pivot (5 min)
+
+"Okay — based on everything you've told me, here's what I'm hearing:
+
+[Summarise their 2–3 biggest pains in their own words.]
+
+That's exactly what KIND was built to solve. Let me show you what your platform would look like. I'm going to use one of our demo environments — this is a live, working version of the product. Give me 20 minutes and you'll see whether this fits or not."
+
+*(Launch demo — see Section 3.)*
+
+---
+
+### Close (5 min)
+
+"So — what stood out to you? What questions do you have?"
+
+*(Handle objections — see Section 4.)*
+
+"Here's what I'd suggest as a next step: we set you up on a 14-day trial. No credit card lock-in, you can cancel any time, credits don't expire. I'll send you a short proposal with exactly what we'd recommend based on what you've told me today. Can we get that sorted now or do you need a day to check in with someone?"
+
+If they want time: "Of course. When specifically would be a good time for me to follow up — tomorrow morning or Thursday?"
+
+*(Book a specific time. Never say "I'll send it over and you can get back to me.")*
+
+---
+
+## SECTION 3: DEMO FLOW (30 min)
+
+> **Setup:** Have a Demo Environment open in the Admin portal before the call. Use the demo env feature to spin up a fresh instance. Keep it clean — no test data clutter.
+
+---
+
+### Step 1 — Context Set (2 min)
+
+"I'm going to show you exactly what your platform would look like from day one. This isn't a mockup — it's a live environment. Watch how fast this goes."
+
+*Open the Admin portal → Demo Envs → Create Demo → Open Demo in new tab.*
+
+"This is your KIND dashboard. Everything from here is yours to configure."
+
+---
+
+### Step 2 — ICP Builder (5 min)
+
+Navigate to: **ICP Builder**
+
+"The first thing you do when you sign up is define who you're after. Now, you could do this manually — or you can let the AI do it."
+
+*Click "Suggest ICP with AI".*
+
+"Watch this — I'm going to type in a description of their business [use their company type from the discovery call] and KIND's AI will fill the entire form."
+
+*Show the AI populating: industry, company size, geography, job titles, pain points.*
+
+"You can edit any of this. But most clients just review it, make small adjustments, and they're done in 3 minutes. Previously this would take hours of research."
+
+---
+
+### Step 3 — Leads with Scores (7 min)
+
+Navigate to: **Lead Gen**
+
+"Based on your ICP, KIND pulls leads from our Africa-first database. You can see each lead has a score — that's not a random number. Click on any lead."
+
+*Show lead scoring reasoning:*
+
+"It's showing you exactly why this person scored 87 — company size matches, job title matches, they're in your target geography, their LinkedIn suggests they're actively hiring sales roles. That's intent data."
+
+"You're not just getting a list. You're getting a qualified shortlist with reasoning. Your SDR — or you — only focuses on the people most likely to convert."
+
+---
+
+### Step 4 — FIGSY Campaign Creation (8 min)
+
+Navigate to: **FIGSY (AI SDR)**
+
+"This is where the outbound happens. FIGSY is your AI sales rep. Let me show you how fast you can launch a campaign."
+
+*Click "New Campaign"*
+
+"You pick the sequence type — cold outreach, follow-up, re-engagement. You describe your offer in plain English, and FIGSY writes the sequence. Let me show you the preview."
+
+*Show the multi-step sequence: email 1, follow-up, breakup email.*
+
+"You review it, edit anything you want, approve — and FIGSY runs it. It sends at human-like intervals, tracks opens and replies, and routes hot replies to your inbox. Our average reply rate across campaigns is 8%. Industry average for cold email is 2–3%."
+
+---
+
+### Step 5 — Billing / Credits (3 min)
+
+Navigate to: **Billing**
+
+"Quick note on how pricing works — it's a credit model. You top up when you need more. No monthly retainer trap. No 12-month contract. Credits don't expire, so you're never losing money."
+
+*Show the credit bundle tiers.*
+
+"You start with a free trial. After that, most clients on 5–50 leads per week run on the Starter bundle. I'll include the right bundle in the proposal based on what you've told me today."
+
+---
+
+### Step 6 — Close (5 min)
+
+"That's it. That's your platform. ICP defined, leads scored, sequences running — in under a week from today."
+
+"The average client on KIND has their first leads delivered within 2 hours of completing setup. First replies typically come in within 3–5 business days."
+
+"What questions do you have before I put together your proposal?"
+
+---
+
+## SECTION 4: OBJECTION HANDLING
+
+---
+
+**"We already use Lemlist / Instantly / Apollo."**
+
+"Those are great tools — and they're built for global markets. The problem is their data in Africa is thin. SA, NG, KE contacts are often out of date, wrong email addresses, wrong titles. KIND's database is built specifically for the African B2B market, and our scoring layer tells you which leads are actually worth reaching out to. It's not a replacement for your sequencer — it's the missing intelligence layer. A lot of our clients use KIND's leads and scoring, then push to their existing tool. But most switch to FIGSY because it's already connected."
+
+---
+
+**"We don't have budget."**
+
+"I hear you. Can I ask — what are you currently spending on your sales effort? Even if it's just your own time? Because at your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in the first month. Our Starter bundle is [X credits / R[price]] — that's less than one client acquisition on the old way. We also have a 14-day trial so you can prove the ROI before you commit anything."
+
+---
+
+**"We do this in-house."**
+
+"That's great — it means you have an outbound motion already. The question is: is it consistent? Most in-house outbound at small companies is ad hoc — a few hundred contacts when someone has spare time, then nothing for 6 weeks. KIND makes it systematic. You keep your people, you just give them better infrastructure. What does your current weekly outreach volume look like?"
+
+---
+
+**"I need to think about it."**
+
+"Totally fair. What specifically is giving you pause? Is it the price, the timing, or something about the product that didn't land? I'd rather spend 5 minutes addressing that now than you sit with a question that could have been answered. What's the one thing holding you back?"
+
+*(Probe, don't accept "I just need time" at face value. There's always a real objection underneath.)*
+
+---
+
+**"It's too expensive."**
+
+"Compared to what — what were you expecting? [Let them answer.] Okay, so let's put this in context: one new client closed from KIND pays for [X months] of subscription. You said your average deal is [amount from discovery]. If KIND gets you one extra deal in the next 90 days, it's already ROI positive. We also have the credit model — you're not locked in. You top up when you need to. Want to try the starter tier first and scale up as you see results?"
+
+---
+
+**"We're not ready yet."**
+
+"What would 'ready' look like for you? In my experience, 'not ready' usually means one of three things: the product isn't built yet, the team isn't in place, or you're not sure the ICP is locked. Which one is it? Because two of those three actually make you the perfect KIND client right now — our ICP builder and lead gen are exactly how you figure out who to go after. You don't need to have it all figured out first."
+
+---
+
+**"How do I know the leads are good?"**
+
+"Fair challenge. The honest answer is: every data source has errors. What KIND does differently is show you exactly why each lead scored the way it did. You can see the reasoning — so you're not flying blind. And on the outbound side, our 8% reply rate isn't marketing copy — it's our actual average across campaigns. We can also set your trial up with a small batch of leads in your exact ICP so you see the quality before you commit."
+
+---
+
+**"What's the reply rate?"**
+
+"Our average across campaigns is 8%. Cold email industry average is 2–3%. The reason ours is higher: the emails are personalised by FIGSY based on each prospect's profile, they come from sequences that respect timing and channel, and the leads themselves are pre-scored so you're not emailing people who are never going to respond. Results will vary by industry and offer — but 8% is a fair benchmark."
+
+---
+
+**"Is my data safe? What about POPIA?"**
+
+"Great question — and one we take seriously. KIND is POPIA compliant. We have a built-in consent workflow that captures and stores consent records for every contact. Your client data stays in your environment — we don't sell or share it. We're hosted on infrastructure compliant with South African data residency requirements. I can send you our data processing agreement if you want to review it with your legal team — most clients find it straightforward."
+
+---
+
+## SECTION 5: PROPOSAL TEMPLATE
+
+---
+
+**Subject line:** KIND Proposal — [Company Name] — [Date]
+
+---
+
+### Executive Summary
+
+[Company] is currently relying on [founder-led / ad hoc / referral-only] sales to grow, which means pipeline is inconsistent and growth is capped by how many hours [Name] personally has to spend on outreach. KIND gives [Company] a systematic, AI-powered outbound function — automated lead generation, scored by relevance, with FIGSY running personalised campaigns in the background. The expected outcome is a consistent pipeline of qualified leads within the first week, without adding headcount.
+
+---
+
+### Recommended Products
+
+Based on our discovery conversation, here's what we recommend:
+
+| Product | Why it fits [Company] |
+|---|---|
+| **Lead Gen (ICP + Scoring)** | [Their ICP is currently undefined / they're wasting time on unqualified leads — AI ICP builder solves this] |
+| **FIGSY AI SDR** | [They have no consistent outbound motion — FIGSY runs campaigns while they focus on closing] |
+| **[Milla / Vida — if applicable]** | [If they mentioned inbound / website qualification needs] |
+
+---
+
+### Pricing
+
+| Tier | Credits | Best for | Price |
 |---|---|---|---|
-| Lead Gen Pro | 20 | $20 | R380 |
-| Lead Gen Pro | 100 | $100 | R1,900 |
-| FIGSY Advanced | 20 | $60 | R1,140 |
-| FIGSY Advanced | 100 | $300 | R5,700 |
+| Starter | 500 credits | 5–15 leads/week | R[X] |
+| Growth | 1,500 credits | 15–40 leads/week | R[X] |
+| Pro | 5,000 credits | 40+ leads/week | R[X] |
 
-**Never:**
-- Discount the price
-- Offer "pay what you can"
-- Give free credits to close a deal
-- Create a custom plan
+**Recommended for [Company]:** [Tier] — [reason based on their target volume from discovery].
 
-**Always:**
-- Point to the 14-day free trial as the risk reducer
-- Offer to start on the smallest plan and upgrade
-- Remind them: 2 paying clients = platform pays for itself
-
-*If a prospect cannot afford $20, they are not the right prospect.*
+Credits are flexible — top up as needed, never expire, no long-term contract.
 
 ---
 
-*Last updated: 25 May 2026*
-*Add to this document after every sales call. This is the company's institutional sales knowledge.*
+### What Happens Next
+
+| Day | Action |
+|---|---|
+| Day 1 | You sign up, start 14-day trial |
+| Day 2–3 | 30-min onboarding call — we configure your ICP, set up FIGSY |
+| Day 3–5 | First batch of scored leads delivered to your dashboard |
+| Day 5–7 | First campaign launched, sequences running |
+| Week 2 | First replies in your inbox |
+
+---
+
+### Risk Reversal
+
+- 14-day free trial — no credit card required upfront
+- Credit model — you pay per use, no monthly lock-in
+- No long-term contract — cancel any time
+- If after the trial the leads don't meet your ICP standards, we'll work with you to rebuild the ICP before you pay a cent
+
+---
+
+### Next Step
+
+**One action:** Click the link below to start your 14-day trial and book your onboarding call.
+
+→ [KIND sign-up link]
+→ Or reply to this email and I'll set it up with you on a call.
+
+---
+
+## SECTION 6: FOLLOW-UP SEQUENCES
+
+> **Rule:** Always have a specific next step booked before ending a call. These templates are for when that falls through.
+
+---
+
+### Same Day After Call
+
+**Subject:** Quick recap — [Company Name] + KIND
+
+Hi [Name],
+
+Great speaking today. As promised — attached is the proposal with my recommendations based on what you shared.
+
+Quick summary:
+- **Problem:** [1-line summary of their pain from the call]
+- **Recommended:** [Product(s)]
+- **Next step:** 14-day trial, onboarding call booked for [date if agreed] / [book here: link]
+
+Any questions, just reply here.
+
+[Your name]
+
+---
+
+### Day 2 — No Reply
+
+**Subject:** Re: Quick recap — [Company Name] + KIND
+
+Hi [Name],
+
+Checking in on the proposal — did you get a chance to look at it?
+
+One thing I didn't mention on the call: most clients have their first leads delivered within 2 hours of completing setup. The trial costs nothing to start.
+
+Worth 15 minutes this week to get it running?
+
+[Your name]
+
+---
+
+### Day 5 — Breakup Email
+
+**Subject:** Closing the loop
+
+Hi [Name],
+
+I'm going to assume the timing isn't right and close this off on my end.
+
+If that changes — pipeline going cold, you're ready to start outbound, or you just want to see the product again — my calendar is always open: [link].
+
+Best of luck with [Company].
+
+[Your name]
+
+---
+
+## SECTION 7: LOSS REASON TRACKER
+
+Fill this in after every lost deal. Review weekly. Patterns will emerge.
+
+### Loss Log
+
+| Date | Company | Stage Lost | Reason Category | What I'd Do Differently |
+|---|---|---|---|---|
+| | | | | |
+| | | | | |
+| | | | | |
+
+**Stage options:** Outreach → Discovery Booked → Demo Given → Proposal Sent → Negotiation → Closed Lost
+
+---
+
+### 8 Most Common B2B SaaS Loss Reasons
+
+1. **No budget / no budget authority** — Spoke to someone who couldn't approve spend. Always qualify financial authority in discovery.
+2. **Wrong timing** — Genuine "not now" — company in freeze, just signed a competitor. Note and re-engage in 90 days.
+3. **Champion left** — Main contact changed jobs or role. Build relationships with 2 people in the account.
+4. **Competitor already in** — Another tool already embedded, switching cost too high. Probe for incumbent tools early.
+5. **ICP mismatch** — Deal should have been disqualified earlier. Review qualification criteria.
+6. **Product gap** — Something they needed, KIND didn't have. Log for product team.
+7. **No urgency** — Pain wasn't acute enough. Didn't tie the cost of inaction to a real number in discovery.
+8. **Proposal too slow** — Took more than 48 hours to send proposal after demo. Same-day or next-day is the standard.
+
+---
+
+## SECTION 8: WIN METRICS
+
+Track these weekly. Review every Monday morning. Adjust activity if you're falling short — don't wait for month-end.
+
+### Weekly Targets
+
+| Metric | Weekly Target | How to Measure |
+|---|---|---|
+| Outreach sent | 50 | Tracked in FIGSY or manually |
+| Discovery calls booked | 5 | Calendar |
+| Demos given | 3 | CRM / calendar |
+| Proposals sent | 2 | Email sent folder |
+| Deals closed | 1 | Stripe / Paystack |
+| Pipeline value | R50,000 | Active proposals × average deal size |
+
+### Conversion Benchmarks
+
+| Stage | Conversion Rate | What to aim for |
+|---|---|---|
+| Outreach → Discovery booked | 10% | 5 calls from 50 outreaches |
+| Discovery → Demo | 60% | 3 demos from 5 calls |
+| Demo → Proposal | 67% | 2 proposals from 3 demos |
+| Proposal → Close | 50% | 1 close from 2 proposals |
+
+### Lagging Indicators to Watch
+
+- **Average deal size** — target R5,000–R15,000 MRR per client
+- **Time from first contact to close** — target under 14 days
+- **Churn rate** — target under 5% monthly
+- **NPS** — ask after 30 days
+
+---
+
+> *This playbook is a living document. Update it when you find something that works better. Review quarterly.*

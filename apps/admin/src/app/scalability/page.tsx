@@ -1,194 +1,302 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import Link from 'next/link'
-import { TrendingUp } from 'lucide-react'
+import { CheckCircle2, Circle, TrendingUp, Users, Zap, Server, AlertTriangle } from 'lucide-react'
+import { AdminNav } from '@/components/AdminNav'
 
 async function getClientCount(): Promise<number> {
   try {
-    const db = createClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
     )
-    const { count } = await db.from('clients').select('*', { count: 'exact', head: true })
-    return count || 0
-  } catch { return 0 }
+    const { count } = await supabase.from('clients').select('id', { count: 'exact', head: true })
+    return count ?? 0
+  } catch {
+    return 0
+  }
 }
 
-type Stage = { label: string; range: string; min: number; max: number; hire: string; focus: string }
-
-const STAGES: Stage[] = [
-  { label: 'Founder Sales', range: '0–10 clients', min: 0, max: 10, hire: 'No hire yet', focus: 'Close everything yourself. Document every call.' },
-  { label: 'SDR Support', range: '10–30 clients', min: 10, max: 30, hire: '1 × SDR (R20–30k/mo)', focus: 'SDR qualifies inbound, you close. Build the playbook.' },
-  { label: 'First AE', range: '30–80 clients', min: 30, max: 80, hire: '1 × Junior AE (R35–50k/mo)', focus: 'AE runs documented playbook. You close edge cases only.' },
-  { label: 'Sales Team', range: '80–200 clients', min: 80, max: 200, hire: '2–3 AEs + 1 SE', focus: 'Structured pipeline. Founder moves to partners + enterprise.' },
-  { label: 'Full Org', range: '200+ clients', min: 200, max: 9999, hire: 'Sales manager + territories', focus: 'Market leader motion.' },
+const STAGES = [
+  {
+    number: 1,
+    label: 'Proof',
+    range: '0–5 clients',
+    current: true,
+    color: 'blue',
+    milestones: [
+      { label: 'Platform built', done: true },
+      { label: 'First outreach live', done: true },
+      { label: 'First 3 paying clients', done: false },
+      { label: 'Case study documented', done: false },
+    ],
+  },
+  {
+    number: 2,
+    label: 'Traction',
+    range: '5–20 clients',
+    current: false,
+    color: 'indigo',
+    milestones: [
+      { label: 'Hire 1 SDR', done: false },
+      { label: 'First partner channel', done: false },
+      { label: 'Expand to 3 African markets', done: false },
+    ],
+  },
+  {
+    number: 3,
+    label: 'Scale',
+    range: '20–100 clients',
+    current: false,
+    color: 'purple',
+    milestones: [
+      { label: 'Hire Head of Sales', done: false },
+      { label: 'Agency white-label offering', done: false },
+      { label: 'Series A conversations', done: false },
+    ],
+  },
+  {
+    number: 4,
+    label: 'Dominate',
+    range: '100+ clients',
+    current: false,
+    color: 'green',
+    milestones: [
+      { label: 'Multi-country ops team', done: false },
+      { label: 'Platform API (sell to other SaaS)', done: false },
+      { label: 'Strategic acquirer conversations', done: false },
+    ],
+  },
 ]
 
-const PRE_HIRE_CHECKLIST = [
-  { item: 'Sales process fully documented in writing', done: false, blocker: true },
-  { item: 'Discovery script written and tested', done: false, blocker: true },
-  { item: 'Demo flow is a repeatable 20-min script', done: false, blocker: true },
-  { item: 'Objection-response library built', done: false, blocker: false },
-  { item: 'All deals tracked in HubSpot with loss reasons', done: false, blocker: true },
-  { item: '3+ months of closed deal data', done: false, blocker: true },
-  { item: 'FIGSY pipeline generating overflow (more leads than you can handle)', done: false, blocker: true },
-  { item: 'Apollo Professional plan live', done: false, blocker: true },
-  { item: '$10,000 MRR reached', done: false, blocker: true },
-  { item: 'Growing 20%+ month-on-month', done: false, blocker: false },
+const HIRE_CHECKLIST = [
+  { role: 'First SDR', trigger: 'MRR hits R25,000/mo consistently', done: false },
+  { role: 'First CSM', trigger: '10+ clients onboarded', done: false },
+  { role: 'Head of Sales', trigger: 'Pipeline > R1M', done: false },
+  { role: 'CTO', trigger: 'Tech team > 3 contractors', done: false },
+  { role: 'Series A prep', trigger: 'MRR > R150,000/mo', done: false },
 ]
 
-const HIRE_TRIGGERS = [
-  { label: 'Repeatable documented sales process', description: 'Discovery script, demo flow, objection responses, proposal template all written down' },
-  { label: 'Overflow pipeline', description: 'More qualified leads coming in than you can personally handle — leads going cold' },
-  { label: '3+ months of deal data', description: 'You know your average sales cycle, close rate per channel, deal size distribution' },
+const INFRA_TRIGGERS = [
+  {
+    current: 'Railway Starter',
+    trigger: '5 clients',
+    action: 'Upgrade to Pro',
+    urgency: 'soon',
+  },
+  {
+    current: 'Supabase Free',
+    trigger: '10k rows',
+    action: 'Upgrade to Pro',
+    urgency: 'soon',
+  },
+  {
+    current: 'Resend Free',
+    trigger: '100 clients',
+    action: 'Upgrade to Pro ($20/mo)',
+    urgency: 'later',
+  },
+  {
+    current: 'Single API instance',
+    trigger: '50 clients',
+    action: 'Add Redis queue',
+    urgency: 'later',
+  },
+  {
+    current: 'Manual deployments',
+    trigger: '20 clients',
+    action: 'Add CI/CD (GitHub Actions)',
+    urgency: 'later',
+  },
 ]
+
+const COLOR_MAP: Record<string, { ring: string; badge: string; badgeText: string; dot: string; bar: string; stageBg: string; stageText: string }> = {
+  blue:   { ring: 'ring-blue-200',   badge: 'bg-blue-100',   badgeText: 'text-blue-700',   dot: 'bg-blue-500',   bar: 'bg-blue-500',   stageBg: 'bg-blue-600',   stageText: 'text-blue-600' },
+  indigo: { ring: 'ring-indigo-200', badge: 'bg-indigo-100', badgeText: 'text-indigo-700', dot: 'bg-indigo-400', bar: 'bg-indigo-500', stageBg: 'bg-indigo-600', stageText: 'text-indigo-600' },
+  purple: { ring: 'ring-purple-200', badge: 'bg-purple-100', badgeText: 'text-purple-700', dot: 'bg-purple-400', bar: 'bg-purple-500', stageBg: 'bg-purple-600', stageText: 'text-purple-600' },
+  green:  { ring: 'ring-green-200',  badge: 'bg-green-100',  badgeText: 'text-green-700',  dot: 'bg-green-400',  bar: 'bg-green-500',  stageBg: 'bg-green-600',  stageText: 'text-green-600' },
+}
 
 export default async function ScalabilityPage() {
   const clientCount = await getClientCount()
-  const currentStage = STAGES.find(s => clientCount >= s.min && clientCount < s.max) || STAGES[0]
-  const currentStageIndex = STAGES.indexOf(currentStage)
+  const STAGE_1_TARGET = 5
+  const stagePct = Math.min(Math.round((clientCount / STAGE_1_TARGET) * 100), 100)
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Scalability Tracker</h1>
-        <p className="text-white/40 text-sm mt-1">Founder sales → full sales team. Where you are. What comes next.</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <AdminNav />
 
-      {/* Current Stage */}
-      <div className="bg-[#0066FF]/10 border border-[#0066FF]/20 rounded-xl p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs text-[#0066FF] font-semibold uppercase tracking-wider mb-1">Current Stage</p>
-            <h2 className="text-xl font-bold text-white">{currentStage.label}</h2>
-            <p className="text-white/50 text-sm mt-1">{currentStage.range} · {clientCount} clients now</p>
+      <main className="px-8 py-8 max-w-6xl mx-auto space-y-8">
+        {/* Header */}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Scalability Framework</h2>
+          <p className="text-gray-500 text-sm mt-1">Stage tracker, hiring triggers, and infrastructure scaling decisions.</p>
+        </div>
+
+        {/* Current Stage Banner */}
+        <div className="bg-[#001f4d] rounded-xl p-6 text-white">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-white/50 text-xs font-medium uppercase tracking-widest mb-1">Current Stage</p>
+              <h3 className="text-2xl font-bold">Stage 1 — Proof of Concept</h3>
+              <p className="text-white/60 text-sm mt-1">Focus: land first 3 paying clients and document a case study.</p>
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-bold">{clientCount}<span className="text-white/40 text-lg font-normal"> / 5</span></p>
+              <p className="text-white/50 text-xs mt-0.5">clients onboarded</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-white/30 mb-1">Next hire</p>
-            <p className="text-sm text-white/70 font-medium">{STAGES[currentStageIndex + 1]?.hire || 'Full team'}</p>
+          <div className="mt-5 w-full bg-white/10 rounded-full h-2.5">
+            <div
+              className="bg-blue-400 h-2.5 rounded-full transition-all"
+              style={{ width: `${stagePct}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-1.5">
+            <p className="text-white/40 text-xs">{clientCount} of {STAGE_1_TARGET} clients · {stagePct}% to Stage 2</p>
+            <p className="text-white/40 text-xs">{STAGE_1_TARGET - clientCount} remaining</p>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-[#0066FF]/20">
-          <p className="text-sm text-white/60"><span className="text-white font-medium">Focus right now:</span> {currentStage.focus}</p>
-        </div>
-      </div>
 
-      {/* Scaling Path */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-        <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-6">The Scaling Path</h2>
-        <div className="space-y-0">
-          {STAGES.map((stage, i) => {
-            const isActive = i === currentStageIndex
-            const isPast = i < currentStageIndex
-            const isFuture = i > currentStageIndex
-            return (
-              <div key={stage.label} className="flex gap-4">
-                {/* Line + dot */}
-                <div className="flex flex-col items-center">
-                  <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-1 ${isActive ? 'bg-[#0066FF]' : isPast ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                  {i < STAGES.length - 1 && <div className={`w-px flex-1 my-1 ${isPast ? 'bg-emerald-400/40' : 'bg-white/10'}`} style={{minHeight:'32px'}} />}
-                </div>
-                {/* Content */}
-                <div className={`pb-6 ${isFuture ? 'opacity-40' : ''}`}>
-                  <div className="flex items-center gap-3 mb-0.5">
-                    <p className={`text-sm font-semibold ${isActive ? 'text-white' : isPast ? 'text-emerald-400' : 'text-white/60'}`}>{stage.label}</p>
-                    <span className="text-xs text-white/30">{stage.range}</span>
-                    {isActive && <span className="text-[10px] bg-[#0066FF]/20 text-[#0066FF] px-2 py-0.5 rounded-full font-medium">YOU ARE HERE</span>}
+        {/* Scaling Path Tracker */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Scaling Path Tracker</h3>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4">
+            {STAGES.map((stage, idx) => {
+              const colors = COLOR_MAP[stage.color]
+              const doneMilestones = stage.milestones.filter(m => m.done).length
+              return (
+                <div
+                  key={stage.number}
+                  className={`bg-white rounded-xl border overflow-hidden ${stage.current ? `ring-2 ${colors.ring} border-transparent` : 'border-gray-100'}`}
+                >
+                  {/* Stage header */}
+                  <div className={`${stage.current ? colors.stageBg : 'bg-gray-700'} px-4 py-3 text-white`}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-xs font-medium uppercase tracking-wider text-white/70">Stage {stage.number}</span>
+                      {stage.current && (
+                        <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">Current</span>
+                      )}
+                    </div>
+                    <p className="font-bold text-base">{stage.label}</p>
+                    <p className="text-white/60 text-xs">{stage.range}</p>
                   </div>
-                  <p className="text-xs text-white/40 mb-1">Hire: {stage.hire}</p>
-                  <p className="text-xs text-white/50">{stage.focus}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
 
-      {/* Two columns */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Hire Triggers */}
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-          <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">The 3 Hire Triggers</h2>
-          <p className="text-xs text-white/30 mb-4">All 3 must be true before hiring an AE. Not 2 out of 3.</p>
-          <div className="space-y-4">
-            {HIRE_TRIGGERS.map((trigger, i) => (
-              <div key={i} className="flex gap-3">
-                <div className="w-5 h-5 rounded border border-white/20 flex-shrink-0 mt-0.5 flex items-center justify-center">
-                  <span className="text-white/20 text-xs">{i + 1}</span>
+                  {/* Milestones */}
+                  <div className="p-4">
+                    <ul className="space-y-2.5">
+                      {stage.milestones.map((m, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          {m.done
+                            ? <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                            : <Circle className="w-4 h-4 text-gray-300 mt-0.5 shrink-0" />}
+                          <span className={m.done ? 'text-gray-400 line-through' : (stage.current ? 'text-gray-700' : 'text-gray-400')}>
+                            {m.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {!stage.current && (
+                      <div className="mt-3 pt-3 border-t border-gray-50">
+                        <p className="text-xs text-gray-300 italic">Unlocks after Stage {idx}</p>
+                      </div>
+                    )}
+                    {stage.current && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-400">{doneMilestones}/{stage.milestones.length} complete</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-white/80 font-medium">{trigger.label}</p>
-                  <p className="text-xs text-white/40 mt-0.5">{trigger.description}</p>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* When to Hire Checklist */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-5 h-5 text-indigo-600" />
+            <h3 className="text-lg font-semibold text-gray-900">When to Hire Checklist</h3>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
+            {HIRE_CHECKLIST.map((item, i) => (
+              <div key={i} className="flex items-center gap-4 px-6 py-4">
+                <div className="flex-shrink-0">
+                  <Circle className="w-5 h-5 text-gray-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-gray-900">{item.role}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Trigger: {item.trigger}</p>
+                </div>
+                <div className="flex-shrink-0">
+                  <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Not yet</span>
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-4 pt-4 border-t border-white/[0.06]">
-            <p className="text-xs text-amber-400/80">⚠️ Don&apos;t hire to solve a capacity problem you haven&apos;t had yet. Hire to scale a process you&apos;ve already proven.</p>
-          </div>
+          <p className="text-xs text-gray-400 mt-2 px-1">Hire when the trigger is consistently met for 30 days — not just one good month.</p>
         </div>
 
-        {/* Pre-hire checklist */}
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-          <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">Pre-Hire Checklist</h2>
-          <p className="text-xs text-white/30 mb-4">Complete before any sales hire. Red = blocker.</p>
-          <div className="space-y-2">
-            {PRE_HIRE_CHECKLIST.map((check, i) => (
-              <div key={i} className="flex items-start gap-2.5">
-                <div className={`w-4 h-4 rounded border flex-shrink-0 mt-0.5 ${check.done ? 'bg-emerald-400 border-emerald-400' : check.blocker ? 'border-red-400/50' : 'border-white/20'}`} />
-                <p className={`text-xs ${check.done ? 'text-white/40 line-through' : check.blocker ? 'text-white/70' : 'text-white/50'}`}>
-                  {check.item}
-                  {check.blocker && !check.done && <span className="ml-1.5 text-red-400/70 text-[10px]">blocker</span>}
-                </p>
-              </div>
-            ))}
+        {/* Infrastructure Scaling Triggers */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Server className="w-5 h-5 text-purple-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Infrastructure Scaling Triggers</h3>
           </div>
-          <p className="text-xs text-white/20 mt-4">0 / {PRE_HIRE_CHECKLIST.length} complete</p>
+
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/3">Current</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">Trigger</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Action Required</th>
+                  <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Priority</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {INFRA_TRIGGERS.map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span className="font-medium text-gray-900">{row.current}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-600 font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{row.trigger}</span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">{row.action}</td>
+                    <td className="px-6 py-4 text-right">
+                      {row.urgency === 'soon' ? (
+                        <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                          <AlertTriangle className="w-3 h-3" />
+                          Soon
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Later</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-400 mt-2 px-1">Upgrade proactively — don't wait for outages. Budget upgrades at each stage gate.</p>
         </div>
-      </div>
 
-      {/* Economics */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-        <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">SA Market Salary Benchmarks</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/[0.06]">
-              {['Role', 'Base/mo', 'OTE/mo', 'Quota', 'Break-even pipeline'].map(h => (
-                <th key={h} className="text-left px-0 py-2 text-xs text-white/30 uppercase tracking-wider pr-6">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/[0.04]">
-            {[
-              ['Junior AE', 'R35–50k', 'R70–90k', '5–8× OTE in ARR', '20–30 clients/mo at $80 ARPU'],
-              ['Mid-market AE', 'R60–80k', 'R120–160k', '5–8× OTE', '50+ clients/mo'],
-              ['Sales Engineer', 'R50–70k', 'R100–130k', 'Tied to AE', 'Deal size >$5k to justify'],
-              ['SDR (first hire)', 'R20–30k', 'R35–45k', '20 qualified calls/mo', '~2–3 closed deals/mo from their pipeline'],
-            ].map(([role, base, ote, quota, be]) => (
-              <tr key={role}>
-                <td className="py-3 text-white font-medium pr-6">{role}</td>
-                <td className="py-3 text-white/60 pr-6">{base}</td>
-                <td className="py-3 text-white/60 pr-6">{ote}</td>
-                <td className="py-3 text-white/60 pr-6">{quota}</td>
-                <td className="py-3 text-white/40 text-xs">{be}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Links */}
-      <div className="flex gap-4">
-        <Link href="/docs/master" className="text-xs text-[#0066FF] hover:text-blue-400 transition-colors">
-          Read Section 29 in MASTER →
-        </Link>
-        <Link href="/clients" className="text-xs text-white/40 hover:text-white/60 transition-colors">
-          View all clients →
-        </Link>
-      </div>
+        {/* Bottom note */}
+        <p className="text-center text-xs text-gray-400 pb-4">
+          Scalability framework — review at each stage gate. Next review: first paying client.
+        </p>
+      </main>
     </div>
   )
 }

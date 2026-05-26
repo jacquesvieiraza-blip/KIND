@@ -3,7 +3,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { searchPeopleWithFallback } from '../lib/apollo'
+import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -126,10 +126,16 @@ export async function runIcpJob(
 
     if (clientRow && !clientRow.first_icp_run_at) {
       const now = new Date().toISOString()
-      // Mark first run — no additional credit bonus (20 trial credits pre-granted before run)
       await db.from('clients')
-        .update({ first_icp_run_at: now })
+        .update({ first_icp_run_at: now, credit_balance: (clientRow.credit_balance ?? 0) + 100 })
         .eq('id', clientId)
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount: 100,
+        type: 'referral_bonus',
+        note: 'Welcome bonus — first ICP run',
+        created_at: now,
+      })
 
       if (clientRow.referred_by) {
         const { data: referrer } = await db.from('clients')
@@ -169,8 +175,6 @@ export async function runIcpJob(
 
   return { inserted, skipped, relaxed }
 }
-
-// /builder/chat removed — superseded by /chat-build (which handles this conversationally)
 
 icpRouter.get('/', async (req: AuthRequest, res) => {
   try {
@@ -247,54 +251,28 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
   }
 })
 
-// Helper: strip fields that may not exist in the live DB schema yet
-// apollo_only_consented column added via 20260525_add_icps_apollo_consent.sql
-async function safeIcpInsert(payload: Record<string, unknown>) {
-  // Try full insert first; if apollo_only_consented column missing, retry without it
-  const { data, error } = await db.from('icps').insert(payload).select().single()
-  if (error && error.message?.includes('apollo_only_consented')) {
-    const { apollo_only_consented: _dropped, ...rest } = payload
-    return db.from('icps').insert(rest).select().single()
-  }
-  return { data, error }
-}
-
-async function safeIcpUpdate(id: string, clientId: string, body: Record<string, unknown>) {
-  const { data, error } = await db.from('icps')
-    .update(body).eq('id', id).eq('client_id', clientId).select().single()
-  if (error && error.message?.includes('apollo_only_consented')) {
-    const { apollo_only_consented: _dropped, ...rest } = body
-    return db.from('icps').update(rest).eq('id', id).eq('client_id', clientId).select().single()
-  }
-  return { data, error }
-}
-
 icpRouter.post('/', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data, error } = await safeIcpInsert({ ...body, client_id: clientId })
+    const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
-    // Fetch balance before auto-run — cap insertions so credits are never over-spent
-    const { data: clientBalance } = await db.from('clients')
-      .select('credit_balance').eq('id', clientId).single()
-    const autoRunCap = clientBalance?.credit_balance ?? 0
-    if (autoRunCap > 0) {
-      runIcpJob(data!.id, clientId, req.userId!, autoRunCap).catch(console.error)
-    }
+    // Auto-run on creation — only if client has credits
+    ;(async () => {
+      try {
+        const { data: bal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+        const autoRunCap = bal?.credit_balance ?? 0
+        if (autoRunCap > 0) {
+          await runIcpJob(data.id, clientId, req.userId!, autoRunCap)
+        }
+      } catch (autoErr) { console.error('[icp auto-run]', autoErr) }
+    })()
     res.status(201).json({ success: true, data })
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      const msg = err.errors.map(e => e.message).join(', ')
-      res.status(400).json({ success: false, error: msg }); return
-    }
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/create]', err)
-    const msg = err instanceof Error
-      ? err.message
-      : (err as { message?: string })?.message
-        ? String((err as { message: string }).message)
-        : JSON.stringify(err) || 'Failed to save ICP'
+    const msg = err instanceof Error ? err.message : String(err)
     res.status(500).json({ success: false, error: msg })
   }
 })
@@ -304,14 +282,13 @@ icpRouter.patch('/:id', async (req: AuthRequest, res) => {
     const body = icpSchema.partial().parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data, error } = await safeIcpUpdate(req.params.id, clientId, body as Record<string, unknown>)
+    const { data, error } = await db.from('icps')
+      .update(body).eq('id', req.params.id).eq('client_id', clientId).select().single()
     if (error) throw error
     if (!data) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
     res.json({ success: true, data })
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ success: false, error: err.errors.map(e => e.message).join(', ') }); return
-    }
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to update ICP' })
   }
 })
@@ -360,23 +337,17 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
 
     const { inserted, skipped, relaxed } = await runIcpJob(req.params.id, clientId, req.userId!, effectiveBalance)
 
-    // Deduct 1 credit per lead inserted
-    if (inserted > 0) {
-      const { data: afterRun } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
-      const balanceAfterBonus = afterRun?.credit_balance ?? 0
-      const newBalance = Math.max(0, balanceAfterBonus - inserted)
-      await db.from('clients').update({ credit_balance: newBalance }).eq('id', clientId)
-      await db.from('credit_transactions').insert({
-        client_id: clientId,
-        amount: -inserted,
-        type: 'usage',
-        note: `${inserted} lead${inserted === 1 ? '' : 's'} found via ICP search`,
-        created_at: new Date().toISOString(),
-      })
-    }
+    // NOTE: Credits are deducted at DELIVERY (drip), not at insertion.
+    // The daily /leads/drip cron deducts 1 credit per lead when setting delivered_at.
 
     res.json({ success: true, data: { inserted, skipped, total: inserted + skipped, relaxed } })
   } catch (err) {
+    if (err instanceof ApolloCreditsExhaustedError) {
+      res.status(402).json({ success: false, error: 'Apollo search credits exhausted. Upgrade your Apollo plan at app.apollo.io or wait for your monthly reset.' }); return
+    }
+    if (err instanceof ApolloRateLimitError) {
+      res.status(429).json({ success: false, error: 'Apollo rate limit hit. Wait a few minutes and try again.' }); return
+    }
     console.error(err)
     res.status(500).json({
       success: false,

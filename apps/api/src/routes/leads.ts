@@ -90,13 +90,14 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const [total, scored, consented, exported_, optedOut] = await Promise.all([
+    // Use allSettled so one failed count doesn't blank the whole stats panel
+    const [total, scored, consented, exported_, optedOut] = (await Promise.allSettled([
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('score', 'is', null),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'consent_given'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'exported'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'opted_out'),
-    ])
+    ])).map(r => r.status === 'fulfilled' ? r.value : { count: 0 })
 
     const { data: avgData } = await db.from('leads').select('score, estimated_deal_value_usd')
       .eq('client_id', clientId).not('score', 'is', null)
@@ -482,10 +483,12 @@ leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    const EXPORT_LIMIT = 5000
     let query = db.from('leads')
       .select('first_name,last_name,email,phone,job_title,company,industry,country,score,status,created_at')
       .eq('client_id', clientId)
       .order('score', { ascending: false, nullsFirst: false })
+      .limit(EXPORT_LIMIT)
 
     if (leadIds && leadIds.length > 0) {
       query = query.in('id', leadIds)
@@ -495,6 +498,10 @@ leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
     if (error) throw error
 
     const date = new Date().toISOString().slice(0, 10)
+    if ((data?.length ?? 0) >= EXPORT_LIMIT) {
+      res.setHeader('X-Export-Truncated', 'true')
+      res.setHeader('X-Export-Limit', String(EXPORT_LIMIT))
+    }
     const headers = ['first_name', 'last_name', 'email', 'phone', 'job_title', 'company', 'industry', 'country', 'score', 'status', 'created_at']
     const rows = (data || []).map((l: any) => [
       l.first_name, l.last_name, l.email || '', l.phone || '',

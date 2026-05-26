@@ -18,6 +18,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
+import { getHubspotPipelineView } from '../lib/hubspot'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -253,6 +254,7 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
       if (!sub.trial_ends_at) continue
       const trialEnd  = new Date(sub.trial_ends_at)
       const daysLeft  = Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000)
+      if (!sub.clients) continue
       const client    = Array.isArray(sub.clients) ? sub.clients[0] : sub.clients as any
       if (!client?.user_id) continue
 
@@ -1284,7 +1286,7 @@ internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) =
   }
 })
 
-// ── LOW CREDIT REMINDER — fires daily, warns clients with balance < 5 ─────────
+// ── LOW CREDIT WARNING — fires daily, warns clients with 1–4 credits remaining ──
 internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
   try {
     const now = new Date()
@@ -1348,11 +1350,12 @@ internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
 })
 
 // ── LEAD DRIP DELIVERY — fires daily, delivers up to daily_drip_rate leads per client ──
+// Credits are deducted HERE (at delivery), not at insertion.
 internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
   try {
     // Get all active clients with undelivered leads
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, user_id, daily_drip_rate')
+      .select('id, company_name, user_id, daily_drip_rate, credit_balance')
       .not('first_icp_run_at', 'is', null)
 
     let totalDelivered = 0
@@ -1360,6 +1363,13 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
     for (const client of clients ?? []) {
       try {
         const drip = client.daily_drip_rate ?? 5
+        const balance = client.credit_balance ?? 0
+
+        // Can't deliver leads to a client with no credits
+        if (balance < 1) continue
+
+        // Deliver up to min(drip_rate, credit_balance) leads
+        const toDeliver = Math.min(drip, balance)
 
         // Find undelivered leads for this client, oldest first
         const { data: pending } = await db.from('leads')
@@ -1367,16 +1377,32 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
           .eq('client_id', client.id)
           .is('delivered_at', null)
           .order('created_at', { ascending: true })
-          .limit(drip)
+          .limit(toDeliver)
 
         if (!pending || pending.length === 0) continue
 
-        const ids = pending.map(l => l.id)
+        const ids = pending.map((l: { id: string }) => l.id)
         const now = new Date().toISOString()
 
+        // Set delivered_at on these leads
         await db.from('leads')
           .update({ delivered_at: now })
           .in('id', ids)
+
+        // Deduct 1 credit per delivered lead
+        const newBalance = Math.max(0, balance - ids.length)
+        await db.from('clients')
+          .update({ credit_balance: newBalance })
+          .eq('id', client.id)
+
+        // Record the credit transaction
+        await db.from('credit_transactions').insert({
+          client_id: client.id,
+          amount: -ids.length,
+          type: 'usage',
+          note: `${ids.length} lead${ids.length === 1 ? '' : 's'} delivered`,
+          created_at: now,
+        })
 
         totalDelivered += ids.length
       } catch (err) {
@@ -1388,6 +1414,227 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('[leads/drip]', err)
     res.status(500).json({ success: false, error: 'Lead drip failed' })
+  }
+})
+
+// ── FOUNDER MORNING BRIEF — daily 07:00 SAST (05:00 UTC) platform digest ────────
+internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
+  try {
+    const founderEmail = process.env.FOUNDER_EMAIL || 'jacques.vieiraza@gmail.com'
+    const now     = new Date()
+    const ago24h  = new Date(now.getTime() - 86400000).toISOString()
+    const dateStr = now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+    const [
+      totalClientsRes,
+      newClientsRes,
+      totalLeadsRes,
+      newLeadsRes,
+      figsySentRes,
+      figsyRepliesRes,
+      figsyInterestedRes,
+      figsyOptOutsRes,
+      activeCampaignsRes,
+      creditPurchasesRes,
+      lowCreditClientsRes,
+      expiredSubsRes,
+    ] = await Promise.allSettled([
+      db.from('clients').select('id', { count: 'exact', head: true }),
+      db.from('clients').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
+      db.from('leads').select('id', { count: 'exact', head: true }),
+      db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', ago24h),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).gte('received_at', ago24h),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('classification', 'interested').gte('received_at', ago24h),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('classification', 'opt_out').gte('received_at', ago24h),
+      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      db.from('credit_transactions').select('amount').eq('type', 'purchase').gte('created_at', ago24h),
+      db.from('clients').select('id, company_name, credit_balance').lt('credit_balance', 5).not('first_icp_run_at', 'is', null),
+      db.from('subscriptions').select('id, client_id, product, clients(company_name)').eq('status', 'lapsed').gte('updated_at', ago24h),
+    ])
+
+    const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
+      r.status === 'fulfilled' ? r.value : fallback
+
+    const totalClients     = val(totalClientsRes, { count: 0 } as any).count ?? 0
+    const newClients       = val(newClientsRes,   { count: 0 } as any).count ?? 0
+    const totalLeads       = val(totalLeadsRes,   { count: 0 } as any).count ?? 0
+    const newLeads         = val(newLeadsRes,      { count: 0 } as any).count ?? 0
+    const figsySent        = val(figsySentRes,     { count: 0 } as any).count ?? 0
+    const figsyReplies     = val(figsyRepliesRes,  { count: 0 } as any).count ?? 0
+    const figsyInterested  = val(figsyInterestedRes, { count: 0 } as any).count ?? 0
+    const figsyOptOuts     = val(figsyOptOutsRes,  { count: 0 } as any).count ?? 0
+    const activeCampaigns  = val(activeCampaignsRes, { count: 0 } as any).count ?? 0
+    const purchaseTxns     = val(creditPurchasesRes, { data: [] } as any).data ?? []
+    const lowCreditClients = val(lowCreditClientsRes, { data: [] } as any).data ?? []
+    const expiredSubs      = val(expiredSubsRes, { data: [] } as any).data ?? []
+
+    const revenueToday = (purchaseTxns as { amount: number }[]).reduce((s, t) => s + (t.amount ?? 0), 0)
+    const replyRatePct = figsySent > 0 ? ((figsyReplies / figsySent) * 100).toFixed(1) : '—'
+
+    // ── Low-credit clients list ──────────────────────────────────────────────
+    const lowCreditRows = (lowCreditClients as { id: string; company_name: string | null; credit_balance: number }[])
+      .map(c => `
+        <tr>
+          <td style="padding:7px 14px;border-bottom:1px solid #1e2030;color:#e2e8f0;font-size:0.85rem">${c.company_name ?? '—'}</td>
+          <td style="padding:7px 14px;border-bottom:1px solid #1e2030;color:#f59e0b;font-size:0.85rem;font-weight:700">${c.credit_balance} credits</td>
+        </tr>`).join('')
+
+    // ── Expired subscriptions list ──────────────────────────────────────────
+    const expiredSubRows = (expiredSubs as { id: string; product: string | null; clients: { company_name: string | null } | { company_name: string | null }[] | null }[])
+      .map(s => {
+        const client = Array.isArray(s.clients) ? s.clients[0] : s.clients
+        return `
+        <tr>
+          <td style="padding:7px 14px;border-bottom:1px solid #1e2030;color:#e2e8f0;font-size:0.85rem">${client?.company_name ?? '—'}</td>
+          <td style="padding:7px 14px;border-bottom:1px solid #1e2030;color:#f87171;font-size:0.85rem">${s.product ?? '—'} lapsed</td>
+        </tr>`
+      }).join('')
+
+    const alertsSection = (lowCreditRows || expiredSubRows)
+      ? `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:4px">
+        <thead>
+          <tr style="background:#1e2030">
+            <th style="padding:8px 14px;text-align:left;font-size:0.75rem;color:#6366f1;letter-spacing:0.06em;text-transform:uppercase">Client</th>
+            <th style="padding:8px 14px;text-align:left;font-size:0.75rem;color:#6366f1;letter-spacing:0.06em;text-transform:uppercase">Issue</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lowCreditRows}
+          ${expiredSubRows}
+        </tbody>
+      </table>`
+      : `<p style="color:#64748b;font-size:0.85rem;margin:0;padding:12px 0">No active alerts — all systems healthy.</p>`
+
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#070b12;font-family:'Segoe UI',Helvetica,Arial,sans-serif">
+  <div style="max-width:620px;margin:0 auto;padding:32px 16px">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);border-radius:14px 14px 0 0;padding:28px 32px 24px">
+      <p style="margin:0 0 4px;color:rgba(255,255,255,0.65);font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase">K.I.N.D Platform Intelligence</p>
+      <h1 style="margin:0;color:#fff;font-size:1.5rem;font-weight:700;line-height:1.2">Good morning ☀️</h1>
+      <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:0.9rem">${dateStr}</p>
+    </div>
+
+    <!-- Platform Health -->
+    <div style="background:#0f1117;border-left:1px solid #1e2030;border-right:1px solid #1e2030;padding:24px 32px 20px">
+      <p style="margin:0 0 14px;font-size:0.7rem;font-weight:700;color:#6366f1;letter-spacing:0.12em;text-transform:uppercase">🧠 Platform Health</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#161b27;border-radius:10px;overflow:hidden;margin-bottom:4px">
+        <tr>
+          <td align="center" style="padding:18px 12px;border-right:1px solid #1e2030">
+            <p style="margin:0;font-size:1.6rem;font-weight:800;color:#fff">${totalClients.toLocaleString()}</p>
+            <p style="margin:3px 0 0;font-size:0.7rem;color:#64748b;text-transform:uppercase">Total clients</p>
+            ${newClients > 0 ? `<p style="margin:4px 0 0;font-size:0.75rem;color:#34d399;font-weight:600">+${newClients} today</p>` : ''}
+          </td>
+          <td align="center" style="padding:18px 12px">
+            <p style="margin:0;font-size:1.6rem;font-weight:800;color:#fff">${totalLeads.toLocaleString()}</p>
+            <p style="margin:3px 0 0;font-size:0.7rem;color:#64748b;text-transform:uppercase">Total leads</p>
+            ${newLeads > 0 ? `<p style="margin:4px 0 0;font-size:0.75rem;color:#34d399;font-weight:600">+${newLeads} today</p>` : ''}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- FIGSY Performance -->
+    <div style="background:#0f1117;border-left:1px solid #1e2030;border-right:1px solid #1e2030;padding:20px 32px">
+      <p style="margin:0 0 14px;font-size:0.7rem;font-weight:700;color:#6366f1;letter-spacing:0.12em;text-transform:uppercase">📧 FIGSY Performance (last 24h)</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#161b27;border-radius:10px;overflow:hidden;margin-bottom:4px">
+        <tr>
+          <td align="center" style="padding:16px 8px;border-right:1px solid #1e2030">
+            <p style="margin:0;font-size:1.3rem;font-weight:700;color:#fff">${figsySent.toLocaleString()}</p>
+            <p style="margin:3px 0 0;font-size:0.68rem;color:#64748b;text-transform:uppercase">Sent</p>
+          </td>
+          <td align="center" style="padding:16px 8px;border-right:1px solid #1e2030">
+            <p style="margin:0;font-size:1.3rem;font-weight:700;color:#fff">${figsyReplies.toLocaleString()}</p>
+            <p style="margin:3px 0 0;font-size:0.68rem;color:#64748b;text-transform:uppercase">Replies</p>
+          </td>
+          <td align="center" style="padding:16px 8px;border-right:1px solid #1e2030">
+            <p style="margin:0;font-size:1.3rem;font-weight:700;color:#6366f1">${replyRatePct}%</p>
+            <p style="margin:3px 0 0;font-size:0.68rem;color:#64748b;text-transform:uppercase">Reply rate</p>
+          </td>
+          <td align="center" style="padding:16px 8px;border-right:1px solid #1e2030">
+            <p style="margin:0;font-size:1.3rem;font-weight:700;color:#34d399">${figsyInterested.toLocaleString()}</p>
+            <p style="margin:3px 0 0;font-size:0.68rem;color:#64748b;text-transform:uppercase">Interested</p>
+          </td>
+          <td align="center" style="padding:16px 8px">
+            <p style="margin:0;font-size:1.3rem;font-weight:700;color:#f87171">${figsyOptOuts.toLocaleString()}</p>
+            <p style="margin:3px 0 0;font-size:0.68rem;color:#64748b;text-transform:uppercase">Opt-outs</p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:10px 0 0;font-size:0.8rem;color:#475569">${activeCampaigns} active campaign${activeCampaigns !== 1 ? 's' : ''} running</p>
+    </div>
+
+    <!-- Revenue -->
+    <div style="background:#0f1117;border-left:1px solid #1e2030;border-right:1px solid #1e2030;padding:20px 32px">
+      <p style="margin:0 0 14px;font-size:0.7rem;font-weight:700;color:#6366f1;letter-spacing:0.12em;text-transform:uppercase">💰 Revenue (last 24h)</p>
+      <div style="background:#161b27;border-radius:10px;padding:18px 22px;display:flex;align-items:center">
+        <p style="margin:0;font-size:1.8rem;font-weight:800;color:${revenueToday > 0 ? '#34d399' : '#64748b'}">${revenueToday > 0 ? `R${revenueToday.toLocaleString()}` : 'R0'}</p>
+        <p style="margin:0 0 0 14px;font-size:0.8rem;color:#64748b">credits purchased today<br/>${purchaseTxns.length} transaction${purchaseTxns.length !== 1 ? 's' : ''}</p>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div style="background:#0f1117;border-left:1px solid #1e2030;border-right:1px solid #1e2030;padding:20px 32px">
+      <p style="margin:0 0 14px;font-size:0.7rem;font-weight:700;color:#f59e0b;letter-spacing:0.12em;text-transform:uppercase">⚠️ Alerts</p>
+      <div style="background:#161b27;border-radius:10px;overflow:hidden">
+        ${alertsSection}
+      </div>
+    </div>
+
+    <!-- Today's Priority -->
+    <div style="background:#0f1117;border:1px solid #1e2030;border-top:none;border-radius:0 0 14px 14px;padding:20px 32px 28px">
+      <p style="margin:0 0 14px;font-size:0.7rem;font-weight:700;color:#6366f1;letter-spacing:0.12em;text-transform:uppercase">📋 Today's Priority</p>
+      <div style="background:#161b27;border-radius:10px;padding:16px 20px">
+        <p style="margin:0 0 8px;color:#e2e8f0;font-size:0.875rem;line-height:1.6">1. Apollo upgrade → leads live.</p>
+        <p style="margin:0 0 8px;color:#e2e8f0;font-size:0.875rem;line-height:1.6">2. Check Railway deploy.</p>
+        <p style="margin:0;color:#e2e8f0;font-size:0.875rem;line-height:1.6">3. HubSpot setup.</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p style="margin:20px 0 0;text-align:center;color:#334155;font-size:0.75rem">
+      K.I.N.D · Founder Morning Brief · <a href="https://admin.get-kind.com" style="color:#6366f1;text-decoration:none">admin.get-kind.com</a>
+    </p>
+
+  </div>
+</body>
+</html>`
+
+    const stats = {
+      total_clients:     totalClients,
+      new_clients_24h:   newClients,
+      total_leads:       totalLeads,
+      new_leads_24h:     newLeads,
+      figsy_sent_24h:    figsySent,
+      figsy_replies_24h: figsyReplies,
+      figsy_reply_rate:  replyRatePct,
+      figsy_interested_24h: figsyInterested,
+      figsy_opt_outs_24h:   figsyOptOuts,
+      active_campaigns:  activeCampaigns,
+      revenue_today:     revenueToday,
+      low_credit_clients: (lowCreditClients as any[]).length,
+      expired_subs_24h:  (expiredSubs as any[]).length,
+    }
+
+    if (resend) {
+      await resend.emails.send({
+        from: FROM,
+        to:   founderEmail,
+        subject: `☀️ KIND Morning Brief — ${dateStr}`,
+        html,
+      })
+    }
+
+    res.json({ success: true, stats })
+  } catch (err) {
+    console.error('[founder-brief]', err)
+    res.status(500).json({ success: false, error: 'Founder morning brief failed' })
   }
 })
 
@@ -1406,7 +1653,7 @@ internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Re
     if (error) throw error
 
     // For each lapsed subscription, notify the client
-    for (const sub of lapsed ?? []) {
+    for (const sub of (lapsed ?? []) as { id: string; client_id: string; product: string }[]) {
       try {
         const { data: client } = await db.from('clients')
           .select('user_id, company_name').eq('id', sub.client_id).single()
@@ -1437,7 +1684,7 @@ internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Re
             </div>`,
         })
       } catch (err) {
-        console.error(`[subscriptions/lapsed] notify failed for sub ${sub.id}:`, err)
+        console.error(`[subscriptions/lapsed] notify failed for sub ${(sub as { id: string }).id}:`, err)
       }
     }
 
@@ -1445,5 +1692,26 @@ internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Re
   } catch (err) {
     console.error('[subscriptions/check-lapsed]', err)
     res.status(500).json({ success: false, error: 'Subscription lapse check failed' })
+  }
+})
+
+// ── HUBSPOT PIPELINE VIEW ─────────────────────────────────────────────────────
+// Returns HubSpot deals grouped by stage. Protected by ADMIN_SECRET.
+// Returns { connected: false } if HUBSPOT_API_KEY is not set.
+internalRouter.get('/hubspot/pipeline', async (_req: Request, res: Response) => {
+  if (!process.env.HUBSPOT_API_KEY) {
+    res.json({ success: true, data: { connected: false } })
+    return
+  }
+  try {
+    const pipeline = await getHubspotPipelineView()
+    if (!pipeline) {
+      res.status(500).json({ success: false, error: 'Failed to fetch HubSpot pipeline' })
+      return
+    }
+    res.json({ success: true, data: { connected: true, ...pipeline } })
+  } catch (err) {
+    console.error('[hubspot/pipeline]', err)
+    res.status(500).json({ success: false, error: 'HubSpot pipeline fetch failed' })
   }
 })

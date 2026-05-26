@@ -35,6 +35,7 @@
 24. [Art of Possible — Products We Study](#24-art-of-possible--products-we-study)
 25. [Compliance Certifications Roadmap](#25-compliance-certifications-roadmap)
 26. [Competitor Targeting Strategy](#26-competitor-targeting-strategy)
+27. [AI Learning Capability — Built, Planned, Vision](#27-ai-learning-capability--built-planned-vision)
 
 ---
 
@@ -986,22 +987,51 @@ Once you have the company number, Claude will:
 *Products we study, what we learn, and how we respond. Not a threat list — an inspiration log.*
 *Full detail in: `docs/art-of-possible.md` (also readable at admin → Docs → Art of Possible)*
 
-| # | Product | URL | Category | Key Lesson | Date |
-|---|---------|-----|----------|------------|------|
-| 1 | Apex | apex.host | Autonomous AI founder assistant | "Acts, doesn't just respond" — copy framing + self-hosted digital twin positioning | 26 May 2026 |
+| # | Product | URL | Category | Key Lesson | Status | Date |
+|---|---------|-----|----------|------------|--------|------|
+| 1 | Apex | apex.host | Autonomous AI founder assistant | "Acts, doesn't just respond" — copy framing + digital twin positioning | 🟡 Actions pending | 26 May 2026 |
+| 2 | ClickUp | clickup.com | Project management SaaS | Dark premium design + partner model | ✅ Built | May 2026 |
+| 3 | Lemlist | lemlist.com | Email outreach platform | Sequence engine + reply handling | ✅ Built | May 2026 |
+| 4 | Instantly | instantly.ai | Cold email at scale | Volume-based campaign engine + auto-pause | ✅ Built | May 2026 |
+| 5 | Clay | clay.com | Data enrichment + ICP | Multi-source enrichment fallback logic | ✅ Built | May 2026 |
 
-### Top Lessons To Act On (from Apex)
-1. **Rewrite copy to emphasise action** — FIGSY doesn't send emails, it *books meetings*. Milla doesn't answer questions, it *runs your morning brief*. (Claude can do this now)
+### What We've Built From Studying These Products
+
+**From ClickUp:**
+- Dark premium website design (apps/website/index.html)
+- Partner/referral programme modelled on ClickUp/Smartsheet
+- 3-tier pricing max (Start / Scale / Dominate) — not their sprawl
+
+**From Lemlist:**
+- FIGSY 3-step sequence engine (Day 1 / Day 4 / Day 9)
+- Reply classification + pause on reply
+- Campaign-level KPIs: open rate, reply rate, interested %
+- `{{firstName}}` / `{{company}}` personalisation variables
+
+**From Instantly:**
+- Campaign auto-pause on <1% reply rate (daily cron)
+- `FIGSY_DAILY_SEND_LIMIT` env var (domain warming cap)
+- Volume-based thinking — 20 to 500+ emails/day
+
+**From Clay:**
+- Apollo 3-pass fallback search (full ICP → remove consent filter → remove size filter)
+- ICP as layered filter system (industry + title + size + seniority)
+- Multi-source enrichment planning (Apollo primary + fallback)
+
+### Top Lessons Still To Act On (from Apex)
+1. **Rewrite copy to emphasise action** — "FIGSY finds the lead, writes the email, handles the reply, books the meeting — you just show up." (Claude can do this now)
 2. **Surface autonomy controls** — "You're in control. Expand KIND's autonomy as you get comfortable." Add to portal onboarding.
 3. **Founder as product demo** — Post real KIND outputs on LinkedIn. You ARE the use case.
 4. **Reframe Milla** — "Your AI Chief of Staff — trained on your documents, your tone, your business."
 
 ### Gaps They Have That We Own
 - No African market focus (we own ZA/NG/KE/GH)
-- High friction (self-hosted) vs KIND's signup-and-go
-- No lead generation — they manage work, we create new revenue
-- Waitlist — we're live now
-- Price: ~$500–1,000+/mo vs KIND from $20
+- High friction products (Apex = self-hosted, Clay = power-user tool) vs KIND's signup-and-go
+- No lead generation in Apex or Instantly — they send to leads you source. KIND sources AND sends.
+- Lemlist/Instantly: you still write the emails. FIGSY writes AND handles replies.
+- Clay: $149–800/mo just for enrichment. KIND includes enrichment + outreach + management.
+- Apex: waitlist only. We're live now.
+- Price: Apex ~$500–1,000+/mo, Clay $149–800+/mo vs KIND from $20
 
 ---
 
@@ -1107,5 +1137,115 @@ FIGSY reads the `tech_stack` field on the lead and references it in the opening 
 
 ---
 
+---
+
+## 27. AI LEARNING CAPABILITY — BUILT, PLANNED, VISION
+
+*This is one of K.I.N.D's core long-term moats. Every other competitor sends static sequences. K.I.N.D gets smarter with every email sent.*
+
+---
+
+### Level 1 — Per-Client FIGSY Memory (BUILT — 19-20 May 2026)
+
+**What it is:** FIGSY remembers what works for each client and gets better over time.
+
+**Where it lives:** `figsy_memory` table + `generateSequenceWithMemory()` in `apps/api/src/lib/figsy.ts`
+
+**How it works:**
+- After every reply, FIGSY updates its memory for that client:
+  - `best_subject_lines` — subject lines that generated replies
+  - `avg_reply_rate_30d` — rolling 30-day reply rate
+  - `total_sent_all_time` — total emails sent
+  - `last_winning_angle` — the angle/hook that generated the last high-response campaign
+- After 20+ emails sent, all new sequences are generated using `generateSequenceWithMemory()` instead of the base `generateSequence()`
+- Claude (Haiku) reads the memory context and writes sequences that replicate what worked and avoid what didn't
+- Falls back to standard sequence if memory query fails
+
+**What this means for clients:** FIGSY on Month 3 is measurably better than FIGSY on Day 1. Same client, same product, compounding improvement.
+
+**Memory refresh:** Cron + manual endpoint (`POST /internal/figsy/refresh-memory`) recalculates the memory table from live reply data.
+
+**Escalation logic (also built):** Daily cron auto-pauses any campaign that falls below 1% reply rate after 20+ sends. This forces a reset and prevents burning domain reputation on failing sequences.
+
+---
+
+### Level 2 — ICP Learning Loop (PLANNED — 6 months post-launch)
+
+**What it is:** Monthly AI review of reply data to auto-refine the ICP criteria. FIGSY tells you who's actually responding, not who you thought would respond.
+
+**How it works (to build):**
+1. Monthly cron pulls all replies per ICP (positive, negative, neutral)
+2. Claude analyses patterns: which industries/titles/company sizes are converting, which aren't
+3. Generates a refined ICP recommendation
+4. Emails the founder: "Based on last month, your ICP is converting best from [industry] / [title] — here's a suggested refinement."
+5. Founder approves in portal → ICP updates automatically
+
+**Why this matters:** Most B2B companies spend months refining their ICP manually from intuition. K.I.N.D does it from data — automatically. This is a feature no competitor has.
+
+**Status:** Not built. Roadmapped for Month 6–12 (Nov 2026 – May 2027) once live reply data exists.
+
+---
+
+### Level 3 — Adaptive Per-Campaign Learning (PLANNED — Phase C)
+
+**What it is:** Within-campaign adaptation. FIGSY adjusts subject lines and openers in real time based on what's working in the current batch.
+
+**How it works (to build):**
+- After Day 1 emails, scan reply rates by subject line variant
+- If one subject line variant is outperforming, weight remaining sends toward it
+- This is a mini A/B test that auto-resolves without the founder doing anything
+
+**Related — A/B subject line testing (also planned):**
+- Send 2 variants to first 20% of leads
+- Pick winner by 48h open rate
+- Send winner to remaining 80%
+
+**Status:** Not built. Phase C roadmap item.
+
+---
+
+### Level 4 — Platform-Level Intelligence (Vision — Year 3, 2028)
+
+*We park this until we have 500+ active clients. Do not build before then.*
+
+**What it becomes:** K.I.N.D has data that no individual sales team will ever have. By 2028:
+
+- **Proprietary dataset:** Leads scored, contacted, and converted across thousands of African B2B companies
+- **Predictive ICP:** K.I.N.D tells you who to target before you ask — based on patterns from companies like yours
+- **Industry benchmarks:** "Companies in your industry convert at 3.2% via FIGSY. You're at 1.8%. Here's what the top performers do differently."
+- **Cross-client learning:** FIGSY learns from what's working across ALL clients in your industry — not just yours
+
+**Why this is a moat:** Apollo sells data. Lemlist sends emails. Salesforce stores what happened. K.I.N.D learns from outcomes at scale — and that data accumulates forever.
+
+**The compounding advantage:** Every new client makes the platform smarter for every other client in their industry. This is the network effect that makes K.I.N.D defensible at scale.
+
+---
+
+### The AI Learning Stack — Summary
+
+| Level | What it does | Status | Timeline |
+|-------|-------------|--------|----------|
+| 1 | FIGSY learns per-client — subject lines, angles, reply rates | ✅ **BUILT** | Live since 20 May 2026 |
+| 2 | ICP auto-refines from reply data — monthly AI review | ❌ Planned | Month 6–12 post-launch |
+| 3 | Per-campaign adaptive sending — A/B subject lines | ❌ Planned | Phase C (Month 3+) |
+| 4 | Platform learns across all clients — predictive ICP, benchmarks | 🔵 Vision | Year 3 (2028) — when 500+ clients |
+
+---
+
+### Connection to Competitor Positioning
+
+Every competitor sends static, dumb sequences:
+- **Lemlist:** You write the emails. Lemlist sends them.
+- **Instantly:** Volume + warmup. Zero intelligence.
+- **Clay:** Smart enrichment. No sequence intelligence.
+- **Apollo Sequences:** Decent but you manage everything.
+
+K.I.N.D is the only platform where the AI SDR gets measurably better the longer you use it. That is the moat. That is the selling point. That is what "FIGSY learns" means.
+
+**Copy to use:** *"FIGSY gets smarter every month. Month 1: baseline. Month 3: it knows your best angles. Month 6: it knows your ICP better than you do."*
+
+---
+
+*Added: 26 May 2026*
 *Owner: K.I.N.D founding team*
 *Last updated: 26 May 2026 (evening)*

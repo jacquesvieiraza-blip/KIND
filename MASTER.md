@@ -50,7 +50,7 @@
 
 ---
 
-### 📅 SESSION DATE — 26 May 2026 (overnight) → 27 May 2026 (current)
+### 📅 SESSION DATE — 27 May 2026 (portal facelift session)
 
 ---
 
@@ -205,6 +205,28 @@
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
+#### 27 May 2026 — Portal Facelift Session (THIS SESSION)
+| Built / Fixed | Detail |
+|---------------|--------|
+| **Full portal code audit** | 94 issues found across 20 files — critical bugs, old colours, mock data, undefined CSS classes |
+| **Sidebar — complete rebuild** | Larger agent photos: w-14 h-14 main card, w-10 h-10 in dropdown. Dropdown restored. Lead Gen as primary section (always shown). Agents as subscription upgrades (gated). Beta badge removed. |
+| **Sidebar active-nav bug fixed** | "People" + "ICP Builder" both highlighted simultaneously — fixed with `exact: true` flag. `/dashboard/leads` now uses exact match only. Account nav also fixed (startsWith + '/'). |
+| **Locked agent routing bug fixed** | Clicking locked FIGSY/Milla/Vida → was going to billing. Now routes to each agent's own page (upgrade banner). |
+| **SupportWidget + AskFigsyButton collision fixed** | Both were `fixed bottom-6 right-6` — stacked on same pixel. SupportWidget removed from layout.tsx entirely. |
+| **SupportWidget.tsx deleted** | Orphaned file — not imported anywhere. Removed. |
+| **TrialExpiredOverlay CTA button fixed** | `bg-[#F5F0FF]0` artifact (invisible button) → `bg-[#7C3AED]` — upgrade flow now visible. |
+| **Global colour replacement — 32 files** | All `#0066FF` old blue → `#7C3AED` violet. All `#001f4d`/`#003080` dark navy → warm dark violet `#1A0F47`/`#0F0929`. |
+| **brand-500/brand-600 undefined Tailwind classes fixed** | `brand-500` → `[#7C3AED]`, `brand-600` → `[#6D28D9]`, `brand-700` → `[#5B21B6]` across 7 pages — buttons, spinners, focus rings all now visible. |
+| **Tailwind config updated** | Full `brand` colour scale added: 50 (warm peach) → 900 (sidebar dark). `kind-gradient` + `kind-gradient-vivid` background images added. |
+| **Warm brand palette applied** | Page bg: `linear-gradient(135deg, #FFF5EE → #EDE6FF)`. Sidebar: `#1E1152 → #160D3D` (softer deep violet). Cards: `bg-white/80 backdrop-blur border-purple-100/60` across all 25 dashboard pages. |
+| **FIGSY page: 🤖 emoji → real photo** | Agent identity card now shows `figsy.png` with ring + pulse dot. Unlock wall + empty state also updated. |
+| **Chatbot default colour fixed** | Default widget colour was `#0066FF` (old blue) → now `#7C3AED`. All new chatbots default to brand violet. |
+| **Agent photo correct cropping** | `object-cover object-top` on all agent images — faces show correctly. |
+| **Meetings Booked metric added** | KPIs page — violet hero card, benchmark vs Alta AI 3–5% target. |
+| **Sequence branching UI added** | Campaign `[id]` page — `on_reply: stop/skip_next/continue` visual branch pills between steps. |
+| **AskFigsyButton dark theme** | `#0F0929` dark pill, real FIGSY photo, violet user messages. |
+| **Dashboard rebuilt as Mission Control** | Single command view: hero row, 5-stat command bar, active campaigns + hot replies columns. |
+
 ---
 
 ### 🐛 ALL BUGS FIXED — COMPLETE LOG
@@ -242,6 +264,13 @@
 | **Admin Unibox TypeScript error** | 27 May | **Fixed** — Supabase join type cast via `unknown` — no runtime impact, build now clean |
 | **analytics + cohorts pages marked ✅ Live** | 27 May | **Fixed in MASTER** — Pages never existed. Stale `.next` type cache was misleading. Both marked ⏳ Not built. |
 | **Stale `.next` type cache files** | 27 May | **Cleaned** — Deleted 3 stale cached type files (analytics, v2, icp/builder) from portal `.next/types` |
+| **Sidebar: People + ICP Builder both active** | 27 May (this session) | `exact: true` flag on `/dashboard` and `/dashboard/leads` nav items — startsWith was matching parent as prefix of child |
+| **Locked agent routes to billing** | 27 May (this session) | Routes now go to agent's own page (upgrade banner), not `/dashboard/billing` |
+| **SupportWidget + AskFigsyButton overlap** | 27 May (this session) | SupportWidget removed from layout entirely — AskFigsyButton is sole floating widget |
+| **TrialExpiredOverlay CTA button invisible** | 27 May (this session) | `bg-[#F5F0FF]0` → `bg-[#7C3AED]` — was caused by `bg-blue-50` partial match on `bg-blue-500` during global replacement |
+| **brand-500/brand-600 undefined classes in 7 pages** | 27 May (this session) | Global replace — buttons, spinners, focus rings all visible now |
+| **FIGSY identity card showing 🤖 emoji** | 27 May (this session) | Replaced with real `figsy.png` photo on agent card, unlock wall, and empty state |
+| **Chatbot default colour #0066FF** | 27 May (this session) | New chatbots default to `#7C3AED` — old blue was client-facing in embed widget |
 
 ---
 
@@ -305,6 +334,28 @@
 ---
 
 ### 🤖 CLAUDE — MY BUILD QUEUE
+
+**✅ COMPLETED THIS SESSION:**
+| # | Build | Status |
+|---|-------|--------|
+| ✅ | Full portal code audit (94 issues) | Done — all critical bugs fixed this session |
+| ✅ | Sidebar rebuild — larger photos, dropdown, subscription-aware | Done |
+| ✅ | Global colour cleanup — 32 files | Done |
+| ✅ | Soft warm palette applied (matches brand image) | Done |
+| ✅ | FIGSY page: real photo, sequence branching UI | Done |
+| ✅ | Dashboard Mission Control rebuild | Done |
+| ✅ | Meetings Booked metric (Alta benchmark) | Done |
+| ✅ | SupportWidget deleted (orphaned) | Done |
+
+**REMAINING — PORTAL (not blocked by smoke tests):**
+| # | Build | What | Priority |
+|---|-------|------|----------|
+| P1 | Wire AskFigsyButton to `/figsy/chat` API | Currently returns hardcoded response — API endpoint exists | 🔴 High |
+| P2 | Knowledge base tabs → API (`/figsy/knowledge/*`) | All 7 tabs save local state only — data not persisted | 🔴 High |
+| P3 | Campaign `[id]` sequence save → API | `saveSequence()` is a stub — edits are lost | 🔴 High |
+| P4 | Campaign `[id]` audience + settings save → API | No API call wired | 🔴 High |
+| P5 | Chat history persistence | AskFigsyButton resets on page reload — will auto-fix when P1 done | 🟡 Medium |
+| P6 | NotificationBell theme | Still uses white/gray (mismatches dark sidebar) | 🟡 Medium |
 
 **BLOCKED — nothing starts until all 4 smoke tests pass:**
 | # | Build | What | Time |
@@ -455,6 +506,55 @@
 3. Claude reads Section 0, updates it, then starts work
 
 **Why this exists:** Across multiple conversation windows and context resets, things get dropped. Section 0 is the immune system — it cannot be stale because it is rewritten, not appended.
+
+---
+
+### 🎯 BENCHMARKS — ALWAYS CHECK AGAINST THESE
+
+#### Alta AI SDR — Performance Benchmark
+*Our performance checkpoint. Every FIGSY metric should aim to beat or match Alta.*
+
+| Metric | Alta AI SDR | K.I.N.D FIGSY | Gap |
+|--------|-------------|--------------|-----|
+| Reply rate | 18–24% | Not yet tracked | Track in KPIs |
+| Meeting-booked rate | **3–5%** | Not tracked | 🔴 Need to build tracking |
+| Sequence logic | Behaviour-based branching (replied/opened/clicked) | Linear 3-step (Day 1/4/9) | 🟡 Branching UI built, API pending |
+| Personalisation | Role + company + recent signal | Role + company | Gap — add signal detection |
+| Multi-channel | Email + LinkedIn + Phone | Email only (Voice/WhatsApp blocked pending creds) | Gap — credentials needed |
+
+**What we've done to close the gap (this session):**
+- ✅ Meetings Booked metric now visible on KPIs page with "Alta: 3–5%" benchmark
+- ✅ Sequence branching UI added (`on_reply: stop/skip_next/continue`) — API wiring pending
+- ✅ Dashboard Mission Control — single-screen view of all metrics (was split across 4 pages)
+
+**Still needed vs Alta:**
+- Track meetings booked from Hot replies (requires `/figsy/replies` Hot count → booking rate)
+- Real open-rate data (currently estimated heuristic)
+- Intent signal detection (hiring, funding, job changes → trigger outreach)
+
+---
+
+#### ClickUp — Design/UX Benchmark
+*Our look and feel checkpoint. Every portal interaction should feel as fluid as ClickUp.*
+
+| Feature | ClickUp | K.I.N.D Status | Priority |
+|---------|---------|----------------|----------|
+| **Command palette** (Cmd+K) | ✅ Core UX — power users live in it | ❌ Not built | S1 — Day 4 |
+| **Activity feed** | ✅ Everything has a timeline | ❌ Not built | S2 — Day 4 |
+| **Single priority view** | ✅ One screen, zero navigation | ✅ Built (Mission Control dashboard) | ✅ Done this session |
+| **Soft warm palette** | ✅ Airy, light, non-harsh | ✅ Applied (warm peach→lavender gradient) | ✅ Done this session |
+| **Agent photos as real faces** | ✅ Human faces build trust | ✅ Real PNG photos in sidebar + widgets | ✅ Done this session |
+| **Shareable dashboards** | ✅ Read-only `/share/:token` link | ❌ Not built | S3 — Day 4 |
+| **Scheduled report emails** | ✅ Weekly digest to team | ⚠️ Cron exists, email not wired | S4 — Day 4 |
+| **This week vs last week** | ✅ Always shown | ❌ Not built | C13 — after 10 clients |
+| **Modular widget layout** | ✅ Drag and rearrange | ❌ Not built | Year 2 |
+
+**Steal-now list (S1–S5 — queued for Day 4, 31 May):**
+- **S1:** Command palette — Cmd+K anywhere in portal/admin. Search leads, campaigns, nav. 4 hours.
+- **S2:** Activity feed — Timeline on every page. Lead added / email sent / reply received / credit used. 1 day.
+- **S3:** Shareable dashboards — `/share/:token` link, read-only, no login. Show to investors/team. 1 day.
+- **S4:** Scheduled report emails — Weekly digest from cron that already exists. 4 hours.
+- **S5:** "AI Revenue OS" positioning rewrite — Apex steal. Website, pricing, demo pages. 2 hours.
 
 ---
 

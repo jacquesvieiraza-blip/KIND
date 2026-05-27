@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import { Flame, ThermometerSun, Snowflake, Ban, UserX, Plane, HelpCircle, Inbox } from 'lucide-react'
+import { ReplyForm } from '@/components/ReplyForm'
 
 interface ReplyRow {
   id: string
@@ -208,6 +209,9 @@ export default async function UniboxPage({
                       <span>{reply.from_email}</span>
                       {client?.company_name && <span>Client: {client.company_name}</span>}
                     </div>
+                    {reply.classification !== 'sent_reply' && (
+                      <ReplyForm replyId={reply.id} fromEmail={reply.from_email} />
+                    )}
                   </div>
                 </details>
               )

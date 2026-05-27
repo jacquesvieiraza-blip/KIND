@@ -38,9 +38,10 @@ interface CohortData {
 }
 
 async function getCohorts(): Promise<{ cohorts: CohortData[]; summary: { totalClients: number; totalConverted: number; avgConversion: number; avgChurn: number } }> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { cohorts: [], summary: { totalClients: 0, totalConverted: 0, avgConversion: 0, avgChurn: 0 } }
   const db = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false } }
   )
 

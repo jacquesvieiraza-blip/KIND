@@ -19,9 +19,13 @@ interface LeadCountRow {
 }
 
 async function getAdminStats() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[admin] Missing Supabase env vars — check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Railway')
+    return null
+  }
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false } }
   )
 
@@ -303,6 +307,21 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
 
 export default async function AdminPage() {
   const stats = await getAdminStats()
+
+  if (!stats) {
+    return (
+      <div className="px-8 py-16 max-w-2xl mx-auto text-center">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8">
+          <h1 className="text-xl font-bold text-amber-800 mb-2">Configuration Required</h1>
+          <p className="text-amber-700 text-sm">
+            Admin dashboard requires <code className="bg-amber-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code> and{' '}
+            <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> to be set in Railway environment variables.
+          </p>
+          <p className="text-amber-600 text-xs mt-3">Add these in Railway → kind/admin → Variables, then redeploy.</p>
+        </div>
+      </div>
+    )
+  }
 
   const avgTtflDisplay = stats.avgTtfl !== null ? `${stats.avgTtfl.toFixed(1)} hrs` : '—'
   const avgTtflColor = ttflBgColor(stats.avgTtfl)

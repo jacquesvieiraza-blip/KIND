@@ -8,9 +8,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar,
 } from 'recharts'
 import {
-  Loader2, Users, Send, MessageSquare, ThumbsUp,
-  TrendingUp, BarChart2, Target, Star, Mail, Calendar,
-  UserMinus, Linkedin,
+  Loader2, Users, Send, MessageSquare,
+  TrendingUp, BarChart2, Target, Star, Calendar,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────

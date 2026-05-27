@@ -91,9 +91,10 @@ function getCurrentTarget() {
 }
 
 async function getRevStats() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false } }
   )
 
@@ -118,6 +119,7 @@ async function getRevStats() {
 
 export default async function RevenuePage() {
   const stats = await getRevStats()
+  if (!stats) return <div className="p-8 text-amber-600">Missing env vars — add SUPABASE_SERVICE_ROLE_KEY in Railway admin service.</div>
   const current = getCurrentTarget()
   const mrrPct = Math.min((stats.mrrUsd / current.mrrTarget) * 100, 100)
   const clientPct = Math.min((stats.totalClients / current.clientTarget) * 100, 100)

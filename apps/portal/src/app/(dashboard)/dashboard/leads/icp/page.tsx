@@ -378,7 +378,11 @@ export default function ICPPage() {
   async function handleSave() {
     if (!token) return
     // Auto-use the name suggestion if name is still blank
-    const finalName = form.name.trim() || (nameSuggestion ?? '')
+    // In ABM mode, default name to first company name if blank
+    const abmDefaultName = abmMode
+      ? abmCompanies.split('\n').map(s => s.trim()).filter(Boolean)[0] ?? ''
+      : null
+    const finalName = form.name.trim() || (nameSuggestion ?? abmDefaultName ?? '')
     if (!finalName) {
       setSaveError('Please enter a name for this ICP — e.g. "SA Fintech CTOs"')
       nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -388,7 +392,10 @@ export default function ICPPage() {
     if (finalName !== form.name) setForm(f => ({ ...f, name: finalName }))
     setSaving(true)
     setSaveError(null)
-    const payload = { ...form, name: finalName }
+    const abmOrgNames = abmMode
+      ? abmCompanies.split('\n').map(s => s.trim()).filter(Boolean)
+      : undefined
+    const payload = { ...form, name: finalName, ...(abmOrgNames?.length ? { organization_names: abmOrgNames } : {}) }
     try {
       let savedIcp: ICP
       if (editingId) {
@@ -639,6 +646,29 @@ export default function ICPPage() {
               {aiSuggesting ? 'Thinking…' : 'Suggest ICP with AI'}
             </button>
           </div>
+
+          {/* ABM / Standard toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => { setAbmMode(false); setPreviewCount(null); setPreviewSamples([]) }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                !abmMode ? 'bg-white text-gray-900 shadow-sm' : 'text-[#7B6FA0] hover:text-gray-700'
+              }`}
+            >
+              Standard Search
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAbmMode(true); setPreviewCount(null); setPreviewSamples([]) }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                abmMode ? 'bg-white text-gray-900 shadow-sm' : 'text-[#7B6FA0] hover:text-gray-700'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              ABM — Named Accounts
+            </button>
+          </div>
           {aiSuggestError && <p className="text-xs text-red-500">{aiSuggestError}</p>}
 
           {prefillNotice && (
@@ -646,6 +676,47 @@ export default function ICPPage() {
               <p className="text-sm text-blue-800">✨ We pre-filled your ICP from your website — review and adjust as needed.</p>
               <button onClick={() => setPrefillNotice(false)} className="ml-3 text-blue-400 hover:text-[#7C3AED] transition-colors shrink-0">
                 <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* ABM — Named Accounts form */}
+          {abmMode && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ICP Name <span className="text-[#9B8EC4] font-normal text-xs">(optional)</span></label>
+                <input ref={nameInputRef} type="text" value={form.name} onChange={e => set('name')(e.target.value)}
+                  placeholder="e.g. ABM — SA Banks"
+                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Target Company Names</label>
+                <textarea
+                  value={abmCompanies}
+                  onChange={e => {
+                    setAbmCompanies(e.target.value)
+                    setPreviewCount(null)
+                    setPreviewSamples([])
+                  }}
+                  rows={6}
+                  placeholder={'Naspers\nMTN Group\nDiscovery Health'}
+                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-y font-mono"
+                />
+                <p className="text-xs text-[#9B8EC4] mt-1">Enter one company name per line.</p>
+              </div>
+              <button
+                type="button"
+                disabled={!abmCompanies.trim() || !token}
+                onClick={() => {
+                  if (!token) return
+                  const orgNames = abmCompanies.split('\n').map(s => s.trim()).filter(Boolean)
+                  if (orgNames.length === 0) return
+                  fetchPreviewCount(form, token, orgNames)
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <Users2 className="w-4 h-4" />
+                Find contacts at these companies
               </button>
             </div>
           )}
@@ -702,6 +773,8 @@ export default function ICPPage() {
             </div>
           )}
 
+          {!abmMode && (
+            <>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ICP Name *</label>
             <input ref={nameInputRef} type="text" value={form.name} onChange={e => set('name')(e.target.value)}
@@ -758,6 +831,8 @@ export default function ICPPage() {
               <p className="text-[#7B6FA0] text-xs mt-0.5">Only surface leads who have already opted in on Apollo. Faster compliance, fewer rejections.</p>
             </label>
           </div>
+            </>
+          )}
 
           {saveError && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">

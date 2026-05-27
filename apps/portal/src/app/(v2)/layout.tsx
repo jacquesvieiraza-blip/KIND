@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { SidebarV2Preview } from '@/components/layout/SidebarV2Preview'
 
-// Completely isolated layout — own sidebar, no subscription checks, no payment gates
 export default async function V2RootLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

@@ -176,10 +176,10 @@ export async function runIcpJob(
   return { inserted, skipped, relaxed }
 }
 
-// Preview count — returns total matching leads for an ICP config without saving
+// Preview count — returns total matching leads + 3 sample contacts for an ICP config without saving
 icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
   try {
-    const { previewCount } = await import('../lib/apollo')
+    const { previewCount, buildSearchBody, searchPeople } = await import('../lib/apollo')
     const body = req.body as {
       job_titles?: string[]
       seniority_levels?: string[]
@@ -191,7 +191,7 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
       apollo_only_consented?: boolean
       intent_signals?: string[]
     }
-    const count = await previewCount({
+    const icpArg = {
       job_titles:            body.job_titles ?? [],
       seniority_levels:      body.seniority_levels ?? [],
       company_sizes:         body.company_sizes ?? [],
@@ -201,10 +201,32 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
       keywords:              body.keywords ?? [],
       apollo_only_consented: body.apollo_only_consented ?? true,
       intent_signals:        body.intent_signals ?? [],
-    })
-    res.json({ success: true, data: { count } })
+    }
+
+    // Run count + sample contacts in parallel (per_page:1 for count, per_page:3 for samples)
+    const [count, sampleData] = await Promise.all([
+      previewCount(icpArg),
+      (async () => {
+        try {
+          const searchBody = buildSearchBody(icpArg, 1)
+          searchBody.per_page = 3
+          const contacts = await searchPeople(searchBody)
+          return contacts.slice(0, 3).map(c => ({
+            first_name:   c.first_name,
+            last_name:    c.last_name,
+            title:        c.title,
+            company:      c.organization_name ?? c.organization?.name ?? null,
+            linkedin_url: c.linkedin_url,
+          }))
+        } catch {
+          return []
+        }
+      })(),
+    ])
+
+    res.json({ success: true, data: { count, samples: sampleData } })
   } catch (err) {
-    res.json({ success: true, data: { count: 0 } }) // Never fail hard — count is optional
+    res.json({ success: true, data: { count: 0, samples: [] } }) // Never fail hard
   }
 })
 

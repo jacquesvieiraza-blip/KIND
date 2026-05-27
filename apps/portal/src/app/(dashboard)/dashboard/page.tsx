@@ -126,6 +126,51 @@ export default async function DashboardPage() {
 
       <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
 
+      {/* ── Proactive FIGSY prompt — W8 ────────────────────────────────────── */}
+      <div className="bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] rounded-2xl p-6 text-white mb-6 shadow-lg shadow-purple-900/20">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">FIGSY is ready</p>
+            <h2 className="text-xl font-bold mb-1">Who should we target today?</h2>
+            <p className="text-white/70 text-sm mb-4">
+              Describe your ideal prospect and FIGSY will find matching leads from 250M+ contacts.
+            </p>
+            <a href="/dashboard/leads/icp"
+              className="inline-flex items-center gap-2 bg-white text-[#7C3AED] font-semibold text-sm px-4 py-2 rounded-xl hover:bg-white/90 transition-colors shadow-sm">
+              <Target className="w-4 h-4" />
+              Build your ICP → Find leads
+            </a>
+          </div>
+          <div className="hidden sm:grid grid-cols-3 gap-3 text-center shrink-0">
+            {[
+              { label: 'Leads found', value: leadStats?.total ?? 0 },
+              { label: 'Hot replies', value: hotReplies.length },
+              { label: 'Campaigns', value: figsyCampaigns.length },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-white/10 rounded-xl px-3 py-2.5">
+                <p className="text-xl font-bold">{value}</p>
+                <p className="text-[11px] text-white/60 font-medium mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Quick action chips — W8 ───────────────────────────────────────── */}
+      <div className="flex gap-2 flex-wrap mb-6">
+        {[
+          { label: '🔥 Review hot replies', href: '/dashboard/figsy', show: hotReplies.length > 0 },
+          { label: '✉️ Launch a campaign', href: '/dashboard/figsy', show: true },
+          { label: '👥 View my leads', href: '/dashboard/leads', show: (leadStats?.total ?? 0) > 0 },
+          { label: '⚙️ Update my ICP', href: '/dashboard/leads/icp', show: true },
+        ].filter(item => item.show).map(item => (
+          <a key={item.label} href={item.href}
+            className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-white/80 border border-purple-100/60 text-gray-700 hover:border-[#7C3AED]/40 hover:text-[#7C3AED] transition-colors shadow-sm backdrop-blur-sm">
+            {item.label}
+          </a>
+        ))}
+      </div>
+
       {/* ── HERO ROW — FIGSY greeting + compass progress ──────────────── */}
       <div className="flex items-start gap-4 bg-white rounded-2xl border border-[#EDE9FE] px-5 py-4 shadow-sm">
         <div className="relative shrink-0">

@@ -234,6 +234,7 @@ export default function ICPPage() {
   const [aiSuggestError, setAiSuggestError] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [previewCount, setPreviewCount] = useState<number | null>(null)
+  const [previewSamples, setPreviewSamples] = useState<Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }>>([])
   const [previewLoading, setPreviewLoading] = useState(false)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -266,12 +267,13 @@ export default function ICPPage() {
     if (!currentToken) return
     const hasAnyCriteria = currentForm.industries.length > 0 || currentForm.job_titles.length > 0 ||
       currentForm.seniority_levels.length > 0 || currentForm.geographies.length > 0
-    if (!hasAnyCriteria) { setPreviewCount(null); return }
+    if (!hasAnyCriteria) { setPreviewCount(null); setPreviewSamples([]); return }
 
     setPreviewLoading(true)
     try {
-      const res = await api.post<{ data: { count: number } }>('/icps/preview-count', currentForm, currentToken)
+      const res = await api.post<{ data: { count: number; samples: Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }> } }>('/icps/preview-count', currentForm, currentToken)
       setPreviewCount(res.data.count)
+      setPreviewSamples(res.data.samples ?? [])
     } catch {
       // Silently fail — count is a nice-to-have
     }
@@ -553,7 +555,7 @@ export default function ICPPage() {
 
           {/* Live count banner */}
           {showForm && (previewLoading || previewCount !== null) && (
-            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+            <div className={`px-4 py-3 rounded-xl border transition-all ${
               previewLoading
                 ? 'bg-gray-50 border-gray-100'
                 : previewCount === 0
@@ -561,23 +563,44 @@ export default function ICPPage() {
                 : 'bg-[#F5F0FF] border-purple-200'
             }`}>
               {previewLoading ? (
-                <>
+                <div className="flex items-center gap-3">
                   <Loader2 className="w-4 h-4 text-[#9B8EC4] animate-spin shrink-0" />
                   <p className="text-sm text-[#9B8EC4]">Searching Apollo database…</p>
-                </>
+                </div>
               ) : previewCount === 0 ? (
-                <>
+                <div className="flex items-center gap-3">
                   <Users2 className="w-4 h-4 text-amber-500 shrink-0" />
                   <p className="text-sm text-amber-700">No exact matches yet — try broadening your filters.</p>
-                </>
+                </div>
               ) : (
-                <>
-                  <Users2 className="w-4 h-4 text-[#7C3AED] shrink-0" />
-                  <p className="text-sm text-[#7C3AED] font-semibold">
-                    <span className="text-lg font-bold">{previewCount!.toLocaleString()}</span> matching leads found
-                  </p>
-                  <span className="ml-auto text-xs text-[#9B8EC4]">Live · Apollo</span>
-                </>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users2 className="w-4 h-4 text-[#7C3AED] shrink-0" />
+                    <p className="text-sm text-[#7C3AED] font-semibold">
+                      <span className="text-lg font-bold">{previewCount!.toLocaleString()}</span> matching leads found
+                    </p>
+                    <span className="ml-auto text-xs text-[#9B8EC4]">Live · Apollo</span>
+                  </div>
+                  {previewSamples.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      {previewSamples.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2">
+                          <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                            <span className="text-[10px] font-bold text-[#7C3AED]">{s.first_name?.[0] ?? '?'}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-gray-900 truncate">{s.first_name} {s.last_name}</p>
+                            <p className="text-[11px] text-[#9B8EC4] truncate">{[s.title, s.company].filter(Boolean).join(' · ')}</p>
+                          </div>
+                          {s.linkedin_url && (
+                            <a href={s.linkedin_url} target="_blank" rel="noopener noreferrer"
+                              className="text-[10px] font-bold px-1.5 py-0.5 bg-[#0077B5]/10 text-[#0077B5] rounded border border-[#0077B5]/20 shrink-0">in</a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

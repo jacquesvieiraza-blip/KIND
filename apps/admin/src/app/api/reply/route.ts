@@ -12,9 +12,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing replyId or body' }, { status: 400 })
     }
 
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ success: false, error: 'Supabase env vars not configured' }, { status: 500 })
+    }
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ success: false, error: 'RESEND_API_KEY not configured' }, { status: 500 })
+    }
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
       { auth: { persistSession: false } }
     )
 
@@ -28,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Reply not found' }, { status: 404 })
     }
 
-    const resend = new Resend(process.env.RESEND_API_KEY!)
+    const resend = new Resend(process.env.RESEND_API_KEY)
 
     const reSubject = reply.subject?.startsWith('Re:')
       ? reply.subject

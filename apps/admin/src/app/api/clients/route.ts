@@ -12,6 +12,9 @@ function adminDb() {
 }
 
 export async function GET() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'Missing Supabase config' }, { status: 500 })
+  }
   const db = adminDb()
   const { data, error } = await db
     .from('clients')

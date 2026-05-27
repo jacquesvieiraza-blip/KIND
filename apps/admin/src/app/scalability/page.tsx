@@ -5,9 +5,10 @@ import { CheckCircle2, Circle, TrendingUp, Users, Zap, Server, AlertTriangle } f
 
 async function getClientCount(): Promise<number> {
   try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return 0
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
       { auth: { persistSession: false } }
     )
     const { count } = await supabase.from('clients').select('id', { count: 'exact', head: true })

@@ -11,7 +11,10 @@ function adminDb() {
   )
 }
 
+const MISSING = () => NextResponse.json({ error: 'Missing Supabase config' }, { status: 500 })
+
 export async function GET() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return MISSING()
   const db = adminDb()
   const { data, error } = await db
     .from('agreement_templates')
@@ -22,6 +25,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return MISSING()
   const db = adminDb()
   const body = await req.json()
   const { name, description, file_path, file_url, sort_order } = body

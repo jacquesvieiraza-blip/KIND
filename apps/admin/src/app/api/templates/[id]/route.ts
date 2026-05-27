@@ -11,7 +11,10 @@ function adminDb() {
   )
 }
 
+const MISSING = () => NextResponse.json({ error: 'Missing Supabase config' }, { status: 500 })
+
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return MISSING()
   const db = adminDb()
   const { error } = await db.from('agreement_templates').delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -19,6 +22,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return MISSING()
   const db = adminDb()
   const body = await req.json()
   const { data, error } = await db

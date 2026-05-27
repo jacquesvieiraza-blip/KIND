@@ -465,7 +465,7 @@ export default function LeadsPage() {
     if (!token) return
     setBulkExporting(true)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leads/bulk-export`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/leads/bulk-export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ leadIds: Array.from(selectedIds) }),

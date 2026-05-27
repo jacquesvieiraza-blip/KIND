@@ -515,7 +515,7 @@ export default function FigsyPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
+                    <a href={`/dashboard/figsy/${campaign.id}`} className="font-semibold text-gray-900 hover:text-[#0066FF] transition-colors">{campaign.name}</a>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[campaign.status]}`}>
                       {STATUS_LABELS[campaign.status]}
                     </span>

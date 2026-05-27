@@ -206,7 +206,7 @@
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
-#### 27 May 2026 — Portal Facelift Session (THIS SESSION)
+#### 27 May 2026 — Portal Facelift + API Wiring + ClickUp Steals (Evening Session)
 | Built / Fixed | Detail |
 |---------------|--------|
 | **Full portal code audit** | 94 issues found across 20 files — critical bugs, old colours, mock data, undefined CSS classes |
@@ -235,6 +235,8 @@
 | **CommandPalette (Cmd+K)** | S1 complete — brand palette, 12 nav items, grouped sections, full keyboard nav (↑↓ Enter Esc), registered in layout.tsx |
 | **ActivityFeed component** | S2 complete — 6 event types, relative timestamps, skeleton loading, integrated into dashboard home |
 | **Shareable /share/[token] dashboard** | S3 complete — public read-only, outside auth group, OG image, K.I.N.D branding, 4 metric cards + SVG chart |
+| **Demo Playbook (Section 35)** | Full live sales demo script — 10 scenes, narration, smoke test coverage map, objection responses, 30-min agenda, pre-demo setup checklist, post-demo reset. Inspired by Rachel at Alta. |
+| **AskFigsyButton restricted to lead-gen mode** | Floating FIGSY widget on portal shows limited "lead gen helper" capability — full FIGSY features require subscription upgrade (see FIGSY gating decision below) |
 
 ---
 
@@ -428,28 +430,32 @@
 
 ### 📋 TOMORROW — STEP BY STEP (Day 1, 28 May 2026)
 
+> Demo Playbook is Section 35. Read it before doing anything. Your demo environment setup (S1–S12 pre-demo checklist) IS your smoke test setup.
+
 **Before you start:**
-1. Check Railway build is green
-2. Confirm `RESEND_API_KEY` is in Railway
-3. Create new Gmail — never used on K.I.N.D before
+1. Merge `claude/ai-business-roadmap-U3OWJ` → `main` on GitHub (if not done tonight)
+2. Check Railway build is green after merge
+3. Confirm `RESEND_API_KEY` is in Railway
+4. Create new Gmail — never used on K.I.N.D before
 
 **Run Test 1 — Core Platform (Section 18, Steps 1–17):**
-4. Sign up at `app.get-kind.com` with new Gmail
-5. Complete onboarding (company name, industry, country, phone, website)
-6. Confirm welcome email + POPIA notice in Gmail inbox
-7. Go to Leads → Build ICP → click "Suggest with AI" → check it pre-fills
-8. Save ICP → confirm leads start appearing
-9. Check lead scores (0–100) and reasoning visible
-10. Click one lead → Send POPIA consent → status changes to `consent_sent`
-11. Go to FIGSY → Create sequence → check Claude generates copy
-12. Check campaign shows as Scheduled / Active
-13. Go to Billing → confirm credit balance visible, Stripe buy buttons show
-14. Go to Admin → confirm test client appears in client list
-15. Admin → Unibox → confirm page loads (may be empty — that's fine)
-16. Admin → grant yourself 100 credits → confirm balance updates in portal
-17. Logout → login again → confirm session persists correctly
+> See also Section 35 Scene 1–6 for demo narration of each step.
+5. Sign up at `app.get-kind.com` with new Gmail
+6. Complete onboarding (company name, industry, country, phone, website)
+7. Confirm welcome email + POPIA notice in Gmail inbox
+8. Go to Leads → Build ICP → click "Suggest with AI" → check it pre-fills
+9. Save ICP → confirm leads start appearing
+10. Check lead scores (0–100) and reasoning visible
+11. Click one lead → Send POPIA consent → status changes to `consent_sent`
+12. Go to FIGSY in sidebar → confirm upgrade/lock screen shows (not FIGSY dashboard — you haven't unlocked)
+13. Press Cmd+K → confirm command palette opens, keyboard nav works
+14. Go to Billing → confirm credit balance visible, Stripe buy buttons show
+15. Go to Admin → confirm test client appears in client list
+16. Admin → Unibox → confirm page loads (may be empty — that's fine)
+17. Admin → grant yourself 100 credits → confirm balance updates in portal
+18. Logout → login again → confirm session persists correctly
 
-**Report failures as:** `T1-Step7 — what you saw` → I fix in <15 minutes
+**Report failures as:** `T1-Step8 — what you saw` → I fix in <15 minutes
 
 ---
 
@@ -460,7 +466,7 @@
 | Day 1 | Wed 28 May | Test 1 — Core Platform (17 steps). Fix all failures. | Both |
 | Day 2 | Thu 29 May | SQL agent unlock → grant credits → Test 2 — Agents (17 steps) | Both |
 | Day 3 | Fri 30 May | Stripe prices in Railway → stripe_subscription_id SQL → Test 3 + 4 (23 steps) | Both |
-| Day 4 | Sat 31 May | All tests green → Claude builds C2–C6 (S1–S5 steals + positioning rewrite) | Claude |
+| Day 4 | Sat 31 May | All tests green → Claude builds S4 (weekly report email) + S5 (AI Revenue OS rewrite) | Claude |
 | Day 5 | Sun 1 June | Review live. GTM prep. UK registration. First 5 client targets. Scope C10–C16. | Jacques |
 | Week 2 | 2–7 June | First paid client. FIGSY self-outreach running. Build C10 (3-type memory). | Both |
 
@@ -491,7 +497,8 @@
 | Vida pricing | $39/month recurring via Stripe | 27 May |
 | Smoke test order | Test 1 → 2 → 3 → 4 — in order, no skipping | 27 May |
 | Build sequence | Zero new features until all 4 tests pass | 27 May |
-| Art of Possible | S1–S5 queued for Day 4 (31 May) — post smoke tests | 27 May |
+| Art of Possible steals S1–S3 | ✅ Built 27 May evening — S4 + S5 queued for Day 4 (31 May) | 27 May |
+| AskFigsyButton (floating widget) | Shows on all portal pages for all users. Mode: lead-gen helper only. Full FIGSY features (campaigns, inbox, knowledge, sequences) require FIGSY subscription — upgrade wall enforced. | 27 May |
 | Apex positioning | "AI Revenue OS" — apply after smoke tests | 27 May |
 | LinkedIn automation | Will not build — ToS risk, permanent ban | Locked |
 | AI provider | Claude Haiku (volume) + Sonnet (quality) | Locked |
@@ -558,22 +565,22 @@
 
 | Feature | ClickUp | K.I.N.D Status | Priority |
 |---------|---------|----------------|----------|
-| **Command palette** (Cmd+K) | ✅ Core UX — power users live in it | ❌ Not built | S1 — Day 4 |
-| **Activity feed** | ✅ Everything has a timeline | ❌ Not built | S2 — Day 4 |
-| **Single priority view** | ✅ One screen, zero navigation | ✅ Built (Mission Control dashboard) | ✅ Done this session |
-| **Soft warm palette** | ✅ Airy, light, non-harsh | ✅ Applied (warm peach→lavender gradient) | ✅ Done this session |
-| **Agent photos as real faces** | ✅ Human faces build trust | ✅ Real PNG photos in sidebar + widgets | ✅ Done this session |
-| **Shareable dashboards** | ✅ Read-only `/share/:token` link | ❌ Not built | S3 — Day 4 |
-| **Scheduled report emails** | ✅ Weekly digest to team | ⚠️ Cron exists, email not wired | S4 — Day 4 |
+| **Command palette** (Cmd+K) | ✅ Core UX — power users live in it | ✅ Built — `CommandPalette.tsx`, Cmd+K registered in layout | ✅ Done 27 May |
+| **Activity feed** | ✅ Everything has a timeline | ✅ Built — `ActivityFeed.tsx`, integrated into dashboard home | ✅ Done 27 May |
+| **Single priority view** | ✅ One screen, zero navigation | ✅ Built (Mission Control dashboard) | ✅ Done 27 May |
+| **Soft warm palette** | ✅ Airy, light, non-harsh | ✅ Applied (warm peach→lavender gradient) | ✅ Done 27 May |
+| **Agent photos as real faces** | ✅ Human faces build trust | ✅ Real PNG photos in sidebar + widgets | ✅ Done 27 May |
+| **Shareable dashboards** | ✅ Read-only `/share/:token` link | ✅ Built — `/share/[token]/page.tsx`, public route, OG image | ✅ Done 27 May |
+| **Scheduled report emails** | ✅ Weekly digest to team | ⚠️ Cron exists, email not wired | S4 — next up |
 | **This week vs last week** | ✅ Always shown | ❌ Not built | C13 — after 10 clients |
 | **Modular widget layout** | ✅ Drag and rearrange | ❌ Not built | Year 2 |
 
-**Steal-now list (S1–S5 — queued for Day 4, 31 May):**
-- **S1:** Command palette — Cmd+K anywhere in portal/admin. Search leads, campaigns, nav. 4 hours.
-- **S2:** Activity feed — Timeline on every page. Lead added / email sent / reply received / credit used. 1 day.
-- **S3:** Shareable dashboards — `/share/:token` link, read-only, no login. Show to investors/team. 1 day.
-- **S4:** Scheduled report emails — Weekly digest from cron that already exists. 4 hours.
-- **S5:** "AI Revenue OS" positioning rewrite — Apex steal. Website, pricing, demo pages. 2 hours.
+**Steal-now list status:**
+- **S1 ✅ DONE:** Command palette — `CommandPalette.tsx`, Cmd+K, keyboard nav, 12 nav items, brand palette.
+- **S2 ✅ DONE:** Activity feed — `ActivityFeed.tsx`, 6 event types, integrated into dashboard home.
+- **S3 ✅ DONE:** Shareable dashboards — `/share/[token]`, public, OG image, outside auth group.
+- **S4 ⏳ NEXT:** Scheduled report emails — Weekly digest from cron that already exists. 4 hours.
+- **S5 ⏳ NEXT:** "AI Revenue OS" positioning rewrite — Apex steal. Website, pricing, demo pages. 2 hours.
 
 ---
 
@@ -857,9 +864,9 @@
 |---|---|
 | **Wire "Book a Demo" buttons** | **5 mins** — share your Calendly/Cal.com URL |
 | **Sales playbook skeleton** | 2 hours — discovery script, objection log, demo flow, proposal template |
-| **S1: Command palette** (steal from ClickUp) | 4h — Cmd+K search/jump portal + admin |
-| **S2: Activity feed** (steal from ClickUp) | 1 day — timeline of all platform events |
-| **S3: Shareable read-only dashboards** (steal from ClickUp) | 1 day — `/share/:token` for clients/investors |
+| ~~**S1: Command palette**~~ | ✅ Done 27 May — `CommandPalette.tsx`, Cmd+K |
+| ~~**S2: Activity feed**~~ | ✅ Done 27 May — `ActivityFeed.tsx`, integrated into dashboard |
+| ~~**S3: Shareable read-only dashboards**~~ | ✅ Done 27 May — `/share/[token]`, OG image |
 | **S4: Scheduled report emails** (steal from ClickUp) | 4h — weekly digest cron to clients |
 | Stripe end-to-end test after credentials | 1 hour |
 | GBP pricing on website after Stripe | 30 mins |
@@ -883,6 +890,8 @@
 | Stripe keys in Railway | Jacques | ⏳ Pending — required for Test 3 |
 | Stripe Milla + Vida price IDs in Railway | Jacques | ⏳ Pending — required for Test 3 |
 | Google Workspace | Jacques | ⏳ Pending |
+| Portal facelift + API wiring + S1-S3 ClickUp steals | Claude | ✅ Done 27 May |
+| Demo Playbook (Section 35) | Claude | ✅ Done 27 May |
 | Smoke tests pass (Tests 1–4) | Jacques + Claude | ⏳ Starting 28 May |
 | First 5 paying clients | Jacques | ⏳ Pending |
 | FIGSY campaigns live (own GTM) | Both | ⏳ Pending |

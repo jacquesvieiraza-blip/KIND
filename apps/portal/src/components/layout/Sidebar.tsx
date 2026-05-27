@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
-  ChevronDown, BarChart2, BookOpen, Brain, Search, TrendingUp,
+  ChevronDown, BarChart2, Brain, Search, TrendingUp,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
@@ -25,12 +25,13 @@ interface AgentDef {
   id: AgentId
   name: string
   role: string
-  gradient: string
+  gradient: string          // fallback gradient when image missing
   ringColor: string
   initial: string
   description: string
   nav: NavItem[]
   available: boolean
+  accentColor: string       // agent brand colour for active ring / pills
 }
 
 const AGENTS: AgentDef[] = [
@@ -39,7 +40,8 @@ const AGENTS: AgentDef[] = [
     name: 'FIGSY',
     role: 'AI SDR',
     gradient: 'from-[#0066FF] to-[#003d99]',
-    ringColor: 'ring-blue-400/30',
+    ringColor: 'ring-[#0066FF]/20',
+    accentColor: '#0066FF',
     initial: 'F',
     description: 'Outbound campaigns & sequences',
     available: true,
@@ -56,7 +58,8 @@ const AGENTS: AgentDef[] = [
     name: 'Milla',
     role: 'Virtual Assistant',
     gradient: 'from-purple-500 to-purple-900',
-    ringColor: 'ring-purple-400/30',
+    ringColor: 'ring-purple-400/20',
+    accentColor: '#7c3aed',
     initial: 'M',
     description: 'Email, scheduling & knowledge',
     available: false,
@@ -71,7 +74,8 @@ const AGENTS: AgentDef[] = [
     name: 'Vida',
     role: 'Chatbot Agent',
     gradient: 'from-teal-400 to-cyan-700',
-    ringColor: 'ring-teal-400/30',
+    ringColor: 'ring-teal-400/20',
+    accentColor: '#0d9488',
     initial: 'V',
     description: 'Website & WhatsApp inbound',
     available: false,
@@ -82,11 +86,11 @@ const AGENTS: AgentDef[] = [
   },
 ]
 
-// Lead Gen is a standalone product — separate nav section
+// Lead Gen — standalone product section
 const LEAD_GEN_NAV: NavItem[] = [
-  { href: '/dashboard/leads',           label: 'People',         icon: Users },
-  { href: '/dashboard/leads/icp',       label: 'ICP Builder',    icon: TrendingUp },
-  { href: '/dashboard/leads/linkedin',  label: 'LinkedIn Import', icon: Search },
+  { href: '/dashboard/leads',          label: 'People',          icon: Users },
+  { href: '/dashboard/leads/icp',      label: 'ICP Builder',     icon: TrendingUp },
+  { href: '/dashboard/leads/linkedin', label: 'LinkedIn Import', icon: Search },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
@@ -96,30 +100,23 @@ const BOTTOM_NAV: NavItem[] = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
-function AgentAvatar({
-  agent,
-  size = 'md',
-}: {
-  agent: AgentDef
-  size?: 'sm' | 'md' | 'lg'
-}) {
-  const sizes = { sm: 'w-8 h-8', md: 'w-11 h-11', lg: 'w-14 h-14' }
-  const textSizes = { sm: 'text-xs', md: 'text-sm', lg: 'text-lg' }
+// ── Agent avatar ──────────────────────────────────────────────────────────────
+
+function AgentAvatar({ agent, size = 'md' }: { agent: AgentDef; size?: 'sm' | 'md' | 'lg' }) {
+  const sizes     = { sm: 'w-8 h-8',   md: 'w-11 h-11', lg: 'w-14 h-14' }
+  const textSizes = { sm: 'text-xs',   md: 'text-sm',   lg: 'text-lg' }
   return (
-    <div
-      className={`${sizes[size]} rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ringColor} shadow-lg`}
-    >
+    <div className={`${sizes[size]} rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ringColor} shadow-sm`}>
       <img
         src={`/agents/${agent.id}.svg`}
         alt={agent.name}
         className="w-full h-full object-cover"
         onError={(e) => {
-          // Fallback to gradient initial if image fails to load
           const target = e.currentTarget
           target.style.display = 'none'
           const parent = target.parentElement
           if (parent) {
-            parent.classList.add(`bg-gradient-to-br`, agent.gradient, 'flex', 'items-center', 'justify-center', `font-bold`, 'text-white', textSizes[size])
+            parent.classList.add('bg-gradient-to-br', agent.gradient, 'flex', 'items-center', 'justify-center', 'font-bold', 'text-white', textSizes[size])
             parent.textContent = agent.initial
           }
         }}
@@ -127,6 +124,8 @@ function AgentAvatar({
     </div>
   )
 }
+
+// ── System status pill ────────────────────────────────────────────────────────
 
 function SystemStatus() {
   const [status, setStatus] = React.useState<'checking' | 'ok' | 'degraded'>('checking')
@@ -136,17 +135,17 @@ function SystemStatus() {
       .then(r => r.ok ? setStatus('ok') : setStatus('degraded'))
       .catch(() => setStatus('degraded'))
   }, [])
-  const dot =
-    status === 'ok' ? 'bg-green-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-gray-500'
-  const label =
-    status === 'ok' ? 'All systems operational' : status === 'degraded' ? 'Service disruption' : 'Checking…'
+  const dot   = status === 'ok' ? 'bg-green-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-gray-300'
+  const label = status === 'ok' ? 'All systems operational' : status === 'degraded' ? 'Service disruption' : 'Checking…'
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5">
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f6ff]">
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot} ${status === 'ok' ? 'animate-pulse' : ''}`} />
-      <span className="text-[11px] text-white/35">{label}</span>
+      <span className="text-[11px] text-slate-400">{label}</span>
     </div>
   )
 }
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 
 export function Sidebar({
   userEmail,
@@ -156,10 +155,11 @@ export function Sidebar({
   creditBalance?: number
 }) {
   const pathname = usePathname()
-  const router = useRouter()
+  const router   = useRouter()
   const supabase = createClient()
+
   const [activeId, setActiveId] = useState<AgentId>('figsy')
-  const [open, setOpen] = useState(false)
+  const [open, setOpen]         = useState(false)
   const [unreadCount, setUnreadCount] = React.useState(0)
 
   const agent = AGENTS.find(a => a.id === activeId)!
@@ -189,81 +189,84 @@ export function Sidebar({
   }
 
   return (
-    <aside className="w-[220px] bg-[#001228] flex flex-col shrink-0 border-r border-white/5">
-      {/* Logo */}
-      <div className="px-4 pt-5 pb-4 flex items-center gap-2 border-b border-white/5">
-        <div className="w-6 h-6 rounded-md bg-[#0066FF] flex items-center justify-center">
-          <Zap className="w-3.5 h-3.5 text-white" />
+    <aside className="w-[224px] bg-white flex flex-col shrink-0 border-r border-[#e8eeff]">
+
+      {/* ── Logo ─────────────────────────────────────────────────────────── */}
+      <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-[#eef2ff]">
+        <div className="w-7 h-7 rounded-lg bg-[#0066FF] flex items-center justify-center shadow-sm shadow-blue-300/40">
+          <Zap className="w-4 h-4 text-white" />
         </div>
-        <span className="text-white font-bold text-sm tracking-tight">K.I.N.D</span>
+        <span className="text-[#0d1f4c] font-bold text-sm tracking-tight">K.I.N.D</span>
+        <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#eff6ff] text-[#0066FF]">Beta</span>
       </div>
 
-      {/* Active Agent Card */}
+      {/* ── Active agent card ─────────────────────────────────────────────── */}
       <div className="px-3 pt-3 pb-1">
         <button
           onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-[#f4f8ff] hover:bg-[#eaf2ff] border border-[#ddeaff] transition-all group"
         >
           <AgentAvatar agent={agent} size="md" />
           <div className="flex-1 text-left min-w-0">
-            <p className="text-white font-semibold text-sm leading-tight">{agent.name}</p>
-            <p className="text-white/45 text-[11px] mt-0.5">{agent.role}</p>
+            <p className="text-[#0d1f4c] font-semibold text-sm leading-tight">{agent.name}</p>
+            <p className="text-slate-400 text-[11px] mt-0.5">{agent.role}</p>
           </div>
           <ChevronDown
-            className={`w-4 h-4 text-white/30 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           />
         </button>
 
         {/* Switcher dropdown */}
         {open && (
-          <div className="mt-1.5 rounded-xl bg-[#001f4d] border border-white/8 overflow-hidden shadow-xl">
-            <p className="text-[10px] text-white/30 px-3 pt-2.5 pb-1 font-semibold uppercase tracking-wider">
+          <div className="mt-1.5 rounded-xl bg-white border border-[#ddeaff] overflow-hidden shadow-xl shadow-blue-100/60 z-50">
+            <p className="text-[10px] text-slate-400 px-3 pt-2.5 pb-1.5 font-semibold uppercase tracking-wider">
               Your AI Agents
             </p>
             {AGENTS.map(a => (
               <button
                 key={a.id}
-                onClick={() => {
-                  setActiveId(a.id)
-                  setOpen(false)
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/6 transition-colors ${
-                  a.id === activeId ? 'bg-white/4' : ''
+                onClick={() => { setActiveId(a.id); setOpen(false) }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#f4f8ff] transition-colors ${
+                  a.id === activeId ? 'bg-[#f0f6ff]' : ''
                 }`}
               >
                 <AgentAvatar agent={a} size="sm" />
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-white text-xs font-medium leading-tight">{a.name}</p>
-                  <p className="text-white/35 text-[10px]">{a.description}</p>
+                  <p className="text-[#0d1f4c] text-xs font-semibold leading-tight">{a.name}</p>
+                  <p className="text-slate-400 text-[10px] mt-0.5 truncate">{a.description}</p>
                 </div>
                 {!a.available && (
-                  <span className="text-[9px] text-white/30 bg-white/8 px-1.5 py-0.5 rounded-full shrink-0">
+                  <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full shrink-0 font-medium">
                     Soon
                   </span>
                 )}
                 {a.id === activeId && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF] shrink-0" />
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: a.accentColor }} />
                 )}
               </button>
             ))}
+            <div className="mx-3 mb-2 mt-1 border-t border-[#eef2ff]" />
+            <p className="text-[10px] text-slate-400 px-3 pb-2.5 leading-relaxed">
+              Milla & Vida unlock with a subscription →{' '}
+              <Link href="/dashboard/billing" className="text-[#0066FF] font-medium" onClick={() => setOpen(false)}>Billing</Link>
+            </p>
           </div>
         )}
       </div>
 
-      {/* Agent nav */}
+      {/* ── Agent nav ─────────────────────────────────────────────────────── */}
       <nav className="flex-1 px-3 pt-2 pb-2 space-y-0.5 overflow-y-auto">
         {agent.nav.map(({ href, label, icon: Icon, badge }) => {
-          const active =
-            pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           const showUnread = badge === 'unread' && unreadCount > 0
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] transition-colors ${
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${
                 active
-                  ? 'bg-[#0066FF] text-white font-semibold'
-                  : 'text-white/55 hover:text-white hover:bg-white/6'
+                  ? 'bg-[#0066FF] text-white shadow-sm shadow-blue-300/30'
+                  : 'text-slate-500 hover:text-[#0d1f4c] hover:bg-[#f0f6ff]'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -275,31 +278,25 @@ export function Sidebar({
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
-              {badge && badge !== 'unread' && (
-                <span className="text-[10px] bg-[#0066FF]/25 text-blue-300 px-1.5 py-0.5 rounded-full font-medium">
-                  {badge}
-                </span>
-              )}
             </Link>
           )
         })}
 
-        {/* Lead Gen — standalone product section */}
-        <div className="!my-3 border-t border-white/6" />
-        <p className="text-[10px] text-white/25 px-3 pt-1 pb-1 font-semibold uppercase tracking-wider">
+        {/* ── Lead Gen section ──────────────────────────────────────────── */}
+        <div className="!my-3 border-t border-[#eef2ff]" />
+        <p className="text-[10px] text-slate-400 px-3 pt-1 pb-1.5 font-semibold uppercase tracking-wider">
           Lead Gen
         </p>
         {LEAD_GEN_NAV.map(({ href, label, icon: Icon }) => {
-          const active =
-            pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] transition-colors ${
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${
                 active
-                  ? 'bg-[#0066FF] text-white font-semibold'
-                  : 'text-white/55 hover:text-white hover:bg-white/6'
+                  ? 'bg-[#0066FF] text-white shadow-sm shadow-blue-300/30'
+                  : 'text-slate-500 hover:text-[#0d1f4c] hover:bg-[#f0f6ff]'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -308,21 +305,18 @@ export function Sidebar({
           )
         })}
 
-        {/* Platform nav — smaller, secondary */}
-        <div className="!my-3 border-t border-white/6" />
-
-        {/* Common nav — smaller, secondary */}
+        {/* ── Secondary nav ─────────────────────────────────────────────── */}
+        <div className="!my-3 border-t border-[#eef2ff]" />
         {BOTTOM_NAV.map(({ href, label, icon: Icon }) => {
-          const active =
-            pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] transition-colors ${
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${
                 active
-                  ? 'bg-white/10 text-white/90 font-medium'
-                  : 'text-white/35 hover:text-white/60 hover:bg-white/4'
+                  ? 'bg-[#eff6ff] text-[#0066FF]'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-[#f4f8ff]'
               }`}
             >
               <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -332,22 +326,22 @@ export function Sidebar({
         })}
       </nav>
 
-      {/* Bottom strip */}
-      <div className="px-3 pb-3 pt-2 border-t border-white/5 space-y-1.5">
+      {/* ── Footer strip ──────────────────────────────────────────────────── */}
+      <div className="px-3 pb-3 pt-2 border-t border-[#eef2ff] space-y-1.5">
         <div className="px-3 flex items-center justify-between">
-          <p className="text-white/30 text-[11px] truncate">{userEmail}</p>
+          <p className="text-slate-400 text-[11px] truncate">{userEmail}</p>
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
             <NotificationBell />
-            <div className="flex items-center gap-1 bg-white/8 rounded-full px-2 py-0.5">
-              <Coins className="w-3 h-3 text-yellow-400" />
-              <span className="text-[11px] font-semibold text-white">{creditBalance}</span>
+            <div className="flex items-center gap-1 bg-[#f0f6ff] border border-[#ddeaff] rounded-full px-2 py-0.5">
+              <Coins className="w-3 h-3 text-yellow-500" />
+              <span className="text-[11px] font-bold text-[#0066FF]">{creditBalance}</span>
             </div>
           </div>
         </div>
         <SystemStatus />
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-white/30 hover:text-white/60 hover:bg-white/4 transition-colors"
+          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-slate-400 hover:text-slate-600 hover:bg-[#f4f8ff] transition-colors"
         >
           <LogOut className="w-3.5 h-3.5 shrink-0" />
           Sign out

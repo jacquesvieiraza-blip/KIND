@@ -62,7 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {children}
         </div>
       </main>
-      <AskFigsyButton />
+      <AskFigsyButton hasFigsy={hasFigsy} />
       <CommandPalette />
     </div>
   )

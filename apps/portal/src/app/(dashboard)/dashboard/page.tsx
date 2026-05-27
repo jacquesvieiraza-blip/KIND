@@ -12,6 +12,7 @@ if (process.env.FEATURE_PORTAL_V2 === 'true') {
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
+import { OnboardingChecklist } from '@/components/ui/OnboardingChecklist'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
 import {
   Target, Inbox, ArrowRight, Zap,
@@ -139,7 +140,7 @@ export default async function DashboardPage() {
     <div className="space-y-4 max-w-6xl">
 
       {/* Onboarding */}
-      <OnboardingChecklist hasCompanyName={!!companyName} hasIcps={icpCount > 0} hasLeads={(stats?.total ?? 0) > 0} hasFigsyCampaigns={figsyCount > 0} />
+      <OnboardingChecklist hasCompanyName={!!companyName} hasIcps={icpCount > 0} hasLeads={(leadStats?.total ?? 0) > 0} hasFigsyCampaigns={figsyCampaigns.length > 0} />
       <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
 
       {/* ── Proactive FIGSY prompt — W8 ────────────────────────────────────── */}

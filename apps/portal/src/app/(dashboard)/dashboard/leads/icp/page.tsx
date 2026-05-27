@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send, Users2 } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send, Users2, Play } from 'lucide-react'
 
 // ── AI Chat panel ─────────────────────────────────────────────────────────────
 function AiChatPanel({ token, onFill }: { token: string; onFill: (data: Partial<ICPFormData>) => void }) {

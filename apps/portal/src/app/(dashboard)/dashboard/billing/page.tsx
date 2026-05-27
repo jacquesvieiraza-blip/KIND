@@ -122,6 +122,8 @@ export default function BillingPage() {
   const [buyError, setBuyError]           = useState<string | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
 
+  const [figsyBalance, setFigsyBalance] = useState<number | null>(null)
+
   // Credit purchases
   const [selectedLeadGen, setSelectedLeadGen] = useState(STRIPE_LEADGEN_BUNDLES[0].credits)
   const [selectedFigsy, setSelectedFigsy]     = useState(STRIPE_FIGSY_BUNDLES[0].credits)

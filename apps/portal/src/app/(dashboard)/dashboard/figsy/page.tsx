@@ -114,6 +114,15 @@ interface CampaignSettings {
   review_required?: boolean
 }
 
+interface ParsedIntent {
+  summary?: string
+  geography_focus?: string
+  job_title_focus?: string
+  pain_point?: string
+  trigger_event?: string
+  [key: string]: string | undefined
+}
+
 interface Campaign {
   id: string
   name: string
@@ -125,6 +134,7 @@ interface Campaign {
   opted_out: number
   created_at: string
   settings?: CampaignSettings | null
+  campaign_intent?: string | null
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -177,6 +187,9 @@ export default function FigsyPage() {
   const [expandedSettings, setExpandedSettings] = useState<string | null>(null)
   const [campaignSettingsMap, setCampaignSettingsMap] = useState<Record<string, CampaignSettings>>({})
   const [savingSettings, setSavingSettings] = useState<string | null>(null)
+  const [campaignIntentFlag, setCampaignIntentFlag] = useState<boolean>(false)
+  const [parsingIntentId, setParsingIntentId] = useState<string | null>(null)
+  const [intentSummaries, setIntentSummaries] = useState<Record<string, ParsedIntent>>({})
 
   const toast = (msg: string) => {
     setToastMsg(msg)

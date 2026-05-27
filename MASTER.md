@@ -41,6 +41,7 @@
 32. [ClickUp Brain — What We Studied, What We Adopted, What's Next](#32-clickup-brain--what-we-studied-what-we-adopted-whats-next)
 33. [Full Competitive Landscape — Every Player, Every Layer](#33-full-competitive-landscape--every-player-every-layer)
 34. [The Unbuilt Future — What K.I.N.D Could Become](#34-the-unbuilt-future--what-kind-could-become)
+35. [Demo Playbook — Live Sales Demo & Smoke Test](#35-demo-playbook--live-sales-demo--smoke-test)
 
 ---
 
@@ -4535,3 +4536,368 @@ Every decision we make now should be evaluated against this future:
 *Written: 26 May 2026 — imagination session*
 *This section should be reread at every major inflection point: first 10 clients, first 50, first 100, first funding round, first expansion market.*
 *Nothing here is guaranteed. All of it is possible. Some of it is inevitable.*
+
+---
+
+## 35. DEMO PLAYBOOK — LIVE SALES DEMO & SMOKE TEST
+
+*Written: 27 May 2026. Use this for every demo. Run it first as a smoke test — same steps.*
+*This is your Rachel moment. Run your own real environment. Real data. Real AI. No slides.*
+*URL: https://app.get-kind.com — your own account, your own ICP, your own leads.*
+
+---
+
+### 🎯 THE PHILOSOPHY
+
+Rachel from Alta demoed her own live environment. No deck. No mockup. The product was the pitch.
+
+That is how you demo K.I.N.D.
+
+Every screen you show is a real client screen. Every AI output is real. Every number is live. When they ask "does this actually work?" — you're already in it.
+
+**The story you're telling:**
+> "You have one problem. Pipeline. You need consistent meetings in your calendar from people who actually want to buy. K.I.N.D is the AI Revenue Team that fills that pipeline — FIGSY finds and reaches out, Milla handles your documents and research, Vida converts your website visitors. You run the business. They run the outreach."
+
+**Golden rule:** Every screen transition has a sentence. Never silence. Keep talking.
+
+---
+
+### 🛠️ PRE-DEMO SETUP (Do this once, not during the demo)
+
+| # | Task | Why it matters |
+|---|------|----------------|
+| S1 | Sign up at `app.get-kind.com` with a REAL email you check | Welcome email is part of the demo |
+| S2 | Complete onboarding fully — company name, industry, country | Dashboard shows your company — looks real |
+| S3 | Run the SQL in Section 18 Test 2 to unlock FIGSY + Milla + Vida | All three agents accessible |
+| S4 | Admin → grant yourself **10,000 credits** | Unlimited during demo |
+| S5 | Build one real ICP — your actual target market | Leads that look relevant during demo |
+| S6 | Let leads load (15–20 min after ICP saved) | Live data in the pipeline |
+| S7 | Create one campaign — named "Demo Campaign" | Something to show in FIGSY |
+| S8 | Upload one document to Milla (your pitch deck PDF, or a 1-page brief) | Milla has context to answer from |
+| S9 | Save a Vida chatbot config (bot name: "Kind Assistant", simple greeting) | Embed code is visible and copyable |
+| S10 | Open demo in a clean Chrome window — no dev tools, no extensions visible | Looks like a client environment |
+| S11 | Zoom in to 110% in browser — everything slightly larger, easier to read on screen share | Professional presentation |
+| S12 | Close all tabs except the portal | No distractions in the browser bar |
+
+> **Note:** Once setup is done, this environment is permanently ready. You never rebuild it. You just open a tab and go.
+
+---
+
+### 🎬 THE DEMO — SCENE BY SCENE
+
+**Total runtime: 18–22 minutes**
+**Order: Home → Leads → FIGSY → Inbox → Knowledge → Billing → Milla → Vida → Share link**
+
+---
+
+#### SCENE 1 — The Dashboard (2 min)
+*URL: `/dashboard`*
+*Smoke Test: Steps 2, 3, 17*
+
+**Open to:** The Mission Control dashboard — hero stats visible at the top.
+
+**Say:** *"This is your command centre. Everything your AI Revenue Team is doing right now, on one screen. No clicking around."*
+
+Point to:
+- The **credit balance** (top right, gold) → *"These are your fuel credits. Every lead enriched, every email sent, every consent — one credit."*
+- The **active campaigns** column → *"FIGSY's live campaigns, with reply counts next to each one."*
+- The **hot replies** column → *"These are people who replied saying they want to talk. FIGSY already flagged them as 🔥 Hot. Your job is just to close."*
+- The **system status** dot at the bottom of the sidebar → *"Green means all systems are running. FIGSY is working right now."*
+
+**Smoke check:** Dashboard loads ✅ / Credit balance shows ✅ / System status green ✅
+
+---
+
+#### SCENE 2 — Leads & ICP Builder (4 min)
+*URL: `/dashboard/leads` then `/dashboard/leads/icp`*
+*Smoke Test: Steps 4, 5, 6, 7*
+
+**Navigate:** Click **People** in the sidebar.
+
+**Say:** *"Your pipeline starts here. Not with a spreadsheet. Not with a VA copying from LinkedIn. K.I.N.D pulls real, enriched contacts — founders, heads of sales, decision makers — matched to exactly who you want to reach."*
+
+Show the **lead list** — scores, names, companies, industries visible.
+
+**Say:** *"Every lead has an AI score — 0 to 100 — based on how closely they match your ideal client profile. High scores at the top. FIGSY only reaches out to the right ones."*
+
+Click one lead. Show the detail panel.
+
+**Say:** *"Name, title, company, location, LinkedIn — fully enriched. One click, you can send them a POPIA consent notice. That's your legal cover in South Africa — the system handles compliance automatically."*
+
+Click **Send POPIA consent** (or show the button). 
+
+**Say:** *"Status updates to 'consent sent'. It's tracked. You're covered. No spreadsheet to maintain."*
+
+Navigate to **ICP Builder** (`/dashboard/leads/icp`).
+
+**Say:** *"How does it know who to find? Your ICP. Instead of spending hours defining it yourself, you click one button."*
+
+Click **Suggest with AI** (or show the pre-filled version).
+
+**Say:** *"Claude reads your company profile and suggests who you should be targeting — industry, seniority, company size, location. You review, adjust, save. Apollo finds the contacts. Takes 2 minutes instead of 2 weeks of Googling."*
+
+**Smoke check:** Leads visible with scores ✅ / ICP suggest AI fills form ✅ / POPIA consent sends ✅ / CSV export downloads ✅
+
+---
+
+#### SCENE 3 — FIGSY: The AI SDR (5 min)
+*URL: `/dashboard/figsy`*
+*Smoke Test: Steps 18, 19, 20, 21, 22, 25*
+
+**Navigate:** Click **FIGSY** in the sidebar agent card.
+
+**Say:** *"This is FIGSY. Your AI Sales Development Representative. He doesn't take holidays. He doesn't forget to follow up. And he gets better the longer he works — he reads his own past campaigns and adjusts."*
+
+Show the **FIGSY dashboard** — active campaigns visible.
+
+**Say:** *"Every campaign runs on a sequence — Day 1, Day 4, Day 9. Each email is personalised to the lead, not copy-paste. FIGSY writes it. You set the tone once in the Knowledge Base."*
+
+Click a campaign to open it. Show the **sequence steps** with branch pills.
+
+**Say:** *"And it's not just 'send email, wait, send email'. If someone replies, FIGSY stops automatically. If someone's out of office, it skips to the next step. No one gets chased when they've already responded."*
+
+Show the **Audience tab** — lead score sliders.
+
+**Say:** *"You control who gets contacted. Min score 60 — only warm leads. Daily limit — you decide the pace. Too aggressive? Dial it back. This is your control panel."*
+
+Go back to the main FIGSY page. Show the **mode toggle** (Autopilot vs Co-pilot).
+
+**Say:** *"Two modes. Autopilot — FIGSY sends when ready. Co-pilot — FIGSY queues every message for your review before it goes. New clients often start in co-pilot. Once they trust it, they flip to autopilot."*
+
+If co-pilot mode active, point to the amber badge: *"See this badge — Co-pilot: review before send. That means FIGSY has messages ready and waiting for your approval."*
+
+**Smoke check:** FIGSY dashboard loads ✅ / Create campaign works ✅ / Enrol lead works ✅ / Pause/Resume works ✅
+
+---
+
+#### SCENE 4 — FIGSY Inbox: Where Meetings Live (2 min)
+*URL: `/dashboard/figsy/replies`*
+*Smoke Test: Step 24, 25*
+
+**Navigate:** Click **Inbox** under FIGSY.
+
+**Say:** *"Every reply FIGSY gets comes here. But it's not a raw inbox — it's categorised by AI before you see it."*
+
+Point to the category labels:
+- 🔥 Hot → *"This person wants to talk. Book them."*
+- 🌤️ Warm → *"Interested but not urgent. Needs a nudge."*
+- ❄️ Cold → *"Not right now. FIGSY stops the sequence automatically."*
+- 🚫 Opted out → *"They said stop. FIGSY blocked them. You're POPIA compliant."*
+- ✈️ OOO → *"Out of office. FIGSY waits and follows up when they're back."*
+
+**Say:** *"Your job is the 🔥 Hot list. Those are your next 10 conversations. Everything else is handled."*
+
+**Smoke check:** Inbox loads ✅ / Category labels visible ✅
+
+---
+
+#### SCENE 5 — Knowledge Base (1 min)
+*URL: `/dashboard/knowledge`*
+*Smoke Test: (functional — not in original 57 steps, but wired this session)*
+
+**Navigate:** Click **Knowledge** under FIGSY in the sidebar.
+
+**Say:** *"This is FIGSY's brain. Your pitch, your keywords, your tone of voice — all set once. Every email he writes pulls from this. Change it here and every future campaign updates automatically."*
+
+Show the **Pitch tab** quickly — company pitch visible.
+
+**Say:** *"No more briefing an SDR agency for three weeks. You write your pitch once. FIGSY never forgets it."*
+
+*Don't linger here. Move on.*
+
+---
+
+#### SCENE 6 — Billing & Credits (1 min)
+*URL: `/dashboard/billing`*
+*Smoke Test: Steps 8, 8b, 39–46*
+
+**Navigate:** Click **Billing** in the Account section of sidebar.
+
+**Say:** *"Pricing is simple. Credits for lead gen and FIGSY outreach. Subscriptions for Milla and Vida. No per-seat chaos. No surprise invoices."*
+
+Point to the credit bundles.
+
+**Say:** *"Top up when you need to. Set auto top-up and never run dry. Every credit is traceable — what it was used for, when."*
+
+Show the Milla / Vida subscription cards.
+
+**Say:** *"Milla and Vida are $49 and $39 a month. One click, Stripe handles it — you're live in under a minute."*
+
+**Smoke check:** Billing page loads ✅ / Stripe checkout opens ✅ / Balance updates after payment ✅
+
+---
+
+#### SCENE 7 — Milla: Virtual Assistant (2 min)
+*URL: `/dashboard/assistant`*
+*Smoke Test: Steps 28, 29, 30, 31*
+
+**Navigate:** Click **Milla** in the agent switcher (dropdown).
+
+**Say:** *"FIGSY fills your pipeline. Milla runs your back office. She's your AI virtual assistant — but she works from your documents. Upload your proposal template, your rate card, your company overview. She reads it all."*
+
+Show a chat session.
+
+**Say:** *"Watch this."*
+
+Type: *"What services do we offer?"* — let Milla respond.
+
+**Say:** *"She answered from your documents. Not the internet. Not generic AI output. Your content. She's been briefed on your business."*
+
+Ask a follow-up: *"What would you recommend for a retail company?"*
+
+**Say:** *"Context carries. She remembers the conversation. That's the difference between a chatbot and an assistant."*
+
+**Smoke check:** Milla loads ✅ / Document upload works ✅ / Chat responds from document context ✅
+
+---
+
+#### SCENE 8 — Vida: Chatbot Agent (1 min)
+*URL: `/dashboard/chatbot`*
+*Smoke Test: Steps 32, 33, 34*
+
+**Navigate:** Switch to **Vida** in the agent switcher.
+
+**Say:** *"Vida lives on your website. She's the chat widget your visitors talk to — except she's not reading from a FAQ doc. She's trained on your business, handles objections, qualifies leads, and hands off to you when someone's ready to buy."*
+
+Show the **config page** — bot name, greeting message, brand colour.
+
+**Say:** *"Fully branded. Takes 5 minutes to set up."*
+
+Show the **embed code** panel.
+
+**Say:** *"Copy this. Paste it into your website. Done. Vida is live."*
+
+**Smoke check:** Vida config loads ✅ / Config saves ✅ / Embed code visible ✅
+
+---
+
+#### SCENE 9 — The Share Link (30 sec)
+*URL: `/share/[token]`*
+*Smoke Test: (S3 — built this session)*
+
+**Say:** *"Last thing — if you have investors, a sales manager, or a board you report to, you don't need to add them as users. You share a link."*
+
+Open a shareable dashboard link.
+
+**Say:** *"Read-only. No login. Shows campaign performance, reply rates, pipeline value. Professional. Shareable in a WhatsApp in 5 seconds."*
+
+---
+
+#### SCENE 10 — The Close (1 min)
+
+**Say:** *"Three agents. One platform. FIGSY books the meetings. Milla handles the research and documents. Vida converts your website traffic. You run the business."*
+
+*Pause.*
+
+**Say:** *"This isn't automation. This is an AI Revenue Team. What would you pay a junior SDR who works 24/7, never forgets a follow-up, and gets smarter every week?"*
+
+Let them answer.
+
+**If they ask about pricing:** → *"We start at [X]. Credits-based — you only pay for what you use. There's no annual lock-in."*
+
+**If they ask about POPIA:** → *"Built in. Consent tracking, opt-out blocklist, automatic stop on request. Every step is auditable."*
+
+**If they ask about integration:** → *"Apollo for data. Resend for email. Stripe for billing. We connect to your HubSpot — contacts, deals, FIGSY activity all sync."*
+
+---
+
+### 🧪 SMOKE TEST COVERAGE MAP
+
+*Every scene above maps to Section 18 steps. Run the demo = run the smoke test.*
+
+| Scene | Steps Covered | What you're testing |
+|-------|--------------|---------------------|
+| Scene 1 (Dashboard) | 17 | Session, load, system status |
+| Scene 2 (Leads + ICP) | 4, 5, 6, 7 | AI ICP, lead scoring, POPIA consent, CSV export |
+| Scene 3 (FIGSY) | 18, 19, 20, 21, 22, 25 | Campaign creation, enrol, pause, resume, reply categories |
+| Scene 4 (Inbox) | 24, 25 | Inbox load, AI categorisation |
+| Scene 5 (Knowledge) | — | Data persistence (wired this session) |
+| Scene 6 (Billing) | 8, 8b, 35–46 | Stripe checkout, webhook, balance update, subscriptions |
+| Scene 7 (Milla) | 28, 29, 30, 31 | Assistant load, doc upload, chat, context |
+| Scene 8 (Vida) | 32, 33, 34 | Config save, embed code |
+| Scene 9 (Share link) | — | S3 public route |
+| Pre-demo setup | 1, 2, 3, 9, 10, 11, 12, 13, 14, 15, 16 | Auth, onboard, email delivery, admin, credits, gating |
+
+---
+
+### ❌ COMMON FAILURE POINTS + LIVE FIXES
+
+*Things that go wrong in a demo. What to do when they do.*
+
+| What breaks | Live fix (say this) | What to fix after |
+|-------------|---------------------|-------------------|
+| ICP Suggest hangs | *"The AI is processing — takes about 10 seconds."* Wait 15s. If still blank, reload the tab and show a saved ICP. | Check `ANTHROPIC_API_KEY` in Railway |
+| Leads don't appear after ICP | *"Leads come in batches — Apollo is running the search right now. Let me show you what a full pipeline looks like..."* → Go to a pre-seeded account | Check Apollo key + cron |
+| POPIA consent doesn't send | *"Email delivery is via Resend — let me check that's configured."* Note for later. | Check `RESEND_API_KEY` in Railway |
+| Stripe checkout doesn't open | *"The payment link needs a Stripe price ID — that's a one-time setup. Let me show you the dashboard instead."* | Add missing price ID to Railway |
+| Chat doesn't respond | *"One moment — the AI sometimes takes a second on the first message."* Wait 5s. If nothing, note it. | Check API health endpoint |
+| Session expired mid-demo | Don't panic. Log back in. Say: *"Automatic security timeout — logs you out after inactivity."* | It's expected behaviour |
+| Page won't load | Open incognito tab, navigate directly. Say: *"Let me open a fresh window."* | Usually cache |
+| Milla has no context | Upload the document right now in front of them. Say: *"Watch how fast she learns."* | It's actually a good live demo moment |
+
+---
+
+### 📊 WHAT NUMBERS TO HAVE READY
+
+*Know these off the top of your head. No scrambling.*
+
+| Stat | Value | Where it comes from |
+|------|-------|---------------------|
+| Reply rate benchmark | 18–24% | Alta AI SDR (our benchmark) |
+| Meeting booked rate | 3–5% | Alta AI SDR (our benchmark — track vs this) |
+| Time to first lead | 2–3 minutes after ICP saved | Apollo enrichment |
+| Time to first email draft | < 30 seconds | Claude Haiku sequence generation |
+| Daily lead delivery | Set by you (daily_drip_rate) | Your control panel |
+| Lead scoring model | 0–100, Claude Haiku | AI-powered, not rule-based |
+| Compliance | POPIA full audit trail | Built in |
+| Hosting | South Africa (Supabase af-south-1) | Data residency |
+| AI provider | Anthropic Claude | Not OpenAI |
+
+---
+
+### 🕐 30-MINUTE DEMO AGENDA (for a scheduled call)
+
+| Min | What |
+|-----|------|
+| 0–2 | Intro: *"Let me just show you the product — I'll explain as we go."* Open dashboard. |
+| 2–6 | Leads + ICP Builder — the intelligence layer |
+| 6–11 | FIGSY — campaigns, branching, inbox, co-pilot mode |
+| 11–13 | Knowledge base — *"FIGSY's brain"* |
+| 13–15 | Milla — document chat |
+| 15–16 | Vida — embed widget |
+| 16–17 | Billing — *"here's how pricing works"* |
+| 17–18 | Share link — *"investor / manager reporting"* |
+| 18–22 | Questions + close |
+| 22–30 | *If hot:* Screen share their website. Show where Vida would live. Walk the onboarding steps with them. |
+
+---
+
+### 🔁 AFTER EVERY DEMO — RESET CHECKLIST
+
+| # | Task |
+|---|------|
+| 1 | Clear any test leads you enrolled to keep pipeline clean |
+| 2 | Archive "Demo Campaign" if you created a new one |
+| 3 | Check your credit balance — top up if below 1,000 |
+| 4 | Note what broke — report to Claude |
+| 5 | If they asked a question you couldn't answer — add it to objections list below |
+
+---
+
+### 💬 OBJECTION RESPONSES
+
+| Objection | Response |
+|-----------|----------|
+| *"We already use Lemlist / Instantly / Apollo"* | *"Those are tools. K.I.N.D is a team. Lemlist sends emails. FIGSY decides who gets contacted, reads the reply, categorises it, and adjusts. That's a different product entirely."* |
+| *"Is this POPIA compliant?"* | *"Yes. Consent tracking, opt-out blocklist, automatic stop on request — built into every step. Every action is logged."* |
+| *"We're a small team"* | *"That's exactly who this is for. One person with K.I.N.D does the outbound work of a 3-person SDR team. No hiring. No management. No sick days."* |
+| *"Can I see results first?"* | *"We offer a free trial with lead credits. You run a real campaign. You see real replies. You decide."* |
+| *"What if the AI sounds weird?"* | *"You control the tone in the Knowledge Base. Professional, conversational, formal — you set it once. And in Co-pilot mode you approve every email before it sends."* |
+| *"How is this different from ChatGPT?"* | *"ChatGPT is a text box. This is a workflow. FIGSY reads your ICP, pulls matching leads from Apollo, writes personalised emails, sends them, reads the replies, categorises them, and surfaces the hot ones for you. ChatGPT doesn't do any of that."* |
+| *"Is my data safe?"* | *"Hosted on Supabase in South Africa (af-south-1). Row-level security — no client can see another client's data. HTTPS everywhere. We can provide a DPA."* |
+
+---
+
+*Section 35 written: 27 May 2026 — after Rachel at Alta showed what a real live demo looks like.*
+*Update after every major product change. This is a living document.*
+

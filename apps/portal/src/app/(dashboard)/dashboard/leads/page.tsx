@@ -88,6 +88,41 @@ function ApolloBadge({ consented }: { consented: boolean }) {
     : null
 }
 
+// ── Buying signal badges ──────────────────────────────────────────────────────
+// Derive signals from lead data (score, job title hints, company fields)
+function BuyingSignals({ lead }: { lead: Lead }) {
+  const signals: { label: string; color: string }[] = []
+
+  // High score = strong fit signal
+  if ((lead.score ?? 0) >= 80)
+    signals.push({ label: '🔥 High fit', color: 'bg-red-50 text-red-600' })
+
+  // Apollo consented = already opted in
+  if (lead.apollo_consented)
+    signals.push({ label: '✓ GDPR', color: 'bg-green-50 text-green-600' })
+
+  // Job title signals (hiring/growth keywords)
+  const title = (lead.job_title ?? '').toLowerCase()
+  if (title.includes('head of') || title.includes('vp') || title.includes('chief'))
+    signals.push({ label: '👤 Decision maker', color: 'bg-purple-50 text-purple-600' })
+
+  // Recent company activity (placeholder — replace with LinkedIn scrape data)
+  if ((lead.score ?? 0) >= 70 && lead.company)
+    signals.push({ label: '📈 Growth signal', color: 'bg-amber-50 text-amber-600' })
+
+  if (signals.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {signals.slice(0, 2).map(s => (
+        <span key={s.label} className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${s.color}`}>
+          {s.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 // ── Tab definitions ───────────────────────────────────────────────────────────
 type TabId = 'all' | 'pending_review' | 'consented' | 'in_figsy' | 'opted_out'
 
@@ -598,7 +633,7 @@ export default function LeadsPage() {
                         className="rounded border-gray-300"
                       />
                     </th>
-                    {['Lead', 'Phone', 'Company', 'Score', 'Pipeline Stage', 'Source', 'Actions'].map(h => (
+                    {['Lead', 'Company', 'Score', 'Pipeline Stage', 'Source', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -624,9 +659,7 @@ export default function LeadsPage() {
                         <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
                         <p className="text-xs text-gray-400">{lead.job_title || '—'}</p>
                         {lead.email && <p className="text-xs text-gray-400">{lead.email}</p>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm text-gray-700">{lead.phone || '—'}</p>
+                        <BuyingSignals lead={lead} />
                       </td>
                       <td className="px-4 py-3">
                         <p className="text-gray-700">{lead.company || '—'}</p>

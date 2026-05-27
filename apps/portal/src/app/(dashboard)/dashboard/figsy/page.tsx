@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { Zap, Users, ShieldCheck, BookOpen, Target, Globe, Briefcase, Coffee, TrendingUp, X, ChevronRight } from 'lucide-react'
+import { Zap, Users, ShieldCheck, BookOpen, Target, Globe, Briefcase, Coffee, TrendingUp, X, ChevronRight, Pencil, Send, Settings2 } from 'lucide-react'
 
 // ── Campaign templates ────────────────────────────────────────────
 interface CampaignTemplate {
@@ -108,6 +108,12 @@ interface Reply {
   received_at: string
 }
 
+interface CampaignSettings {
+  system_prompt?: string | null
+  daily_send_limit?: number | null
+  review_required?: boolean
+}
+
 interface Campaign {
   id: string
   name: string
@@ -118,6 +124,7 @@ interface Campaign {
   replies_interested: number
   opted_out: number
   created_at: string
+  settings?: CampaignSettings | null
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -165,6 +172,9 @@ export default function FigsyPage() {
   const [mode, setMode] = useState<'autopilot' | 'copilot'>('autopilot')
   const [showTemplates, setShowTemplates] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<CampaignTemplate | null>(null)
+  const [expandedSettings, setExpandedSettings] = useState<string | null>(null)
+  const [campaignSettingsMap, setCampaignSettingsMap] = useState<Record<string, CampaignSettings>>({})
+  const [savingSettings, setSavingSettings] = useState<string | null>(null)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
@@ -273,6 +283,38 @@ export default function FigsyPage() {
     } catch {
       toast('Failed to delete campaign')
     }
+  }
+
+  function getSettingsForCampaign(campaign: Campaign): CampaignSettings {
+    return campaignSettingsMap[campaign.id] ?? {
+      system_prompt:    campaign.settings?.system_prompt ?? null,
+      daily_send_limit: campaign.settings?.daily_send_limit ?? null,
+      review_required:  campaign.settings?.review_required ?? false,
+    }
+  }
+
+  async function handleSaveSettings(campaign: Campaign) {
+    const settings = getSettingsForCampaign(campaign)
+    setSavingSettings(campaign.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.patch<{ data: Campaign }>(`/figsy/campaigns/${campaign.id}`, {
+        system_prompt:    settings.system_prompt,
+        daily_send_limit: settings.daily_send_limit,
+        review_required:  settings.review_required,
+      }, session?.access_token)
+      setCampaigns(prev => prev.map(c => c.id === campaign.id ? res.data : c))
+      // Clear local override since campaign now has updated settings
+      setCampaignSettingsMap(prev => {
+        const next = { ...prev }
+        delete next[campaign.id]
+        return next
+      })
+      toast('Campaign settings saved')
+    } catch {
+      toast('Failed to save settings')
+    }
+    setSavingSettings(null)
   }
 
   const activeCampaign = campaigns.find(c => c.status === 'active')
@@ -677,6 +719,89 @@ export default function FigsyPage() {
                   </ol>
                 </div>
               )}
+
+              {/* Advanced settings panel — W10, W11, W12 */}
+              <div className="mt-3 pt-3 border-t border-purple-100/60">
+                <button
+                  onClick={() => setExpandedSettings(expandedSettings === campaign.id ? null : campaign.id)}
+                  className="text-xs font-medium text-[#7B6FA0] hover:text-gray-700 transition-colors flex items-center gap-1.5"
+                >
+                  <Settings2 className="w-3 h-3" />
+                  {expandedSettings === campaign.id ? '▲' : '▼'} Advanced settings
+                </button>
+
+                {expandedSettings === campaign.id && (() => {
+                  const campaignSettings = getSettingsForCampaign(campaign)
+                  const setCampaignSettings = (updater: (s: CampaignSettings) => CampaignSettings) => {
+                    setCampaignSettingsMap(prev => ({
+                      ...prev,
+                      [campaign.id]: updater(prev[campaign.id] ?? {
+                        system_prompt:    campaign.settings?.system_prompt ?? null,
+                        daily_send_limit: campaign.settings?.daily_send_limit ?? null,
+                        review_required:  campaign.settings?.review_required ?? false,
+                      }),
+                    }))
+                  }
+                  return (
+                    <div className="mt-3 space-y-4 p-4 bg-[#F5F0FF]/40 rounded-xl border border-purple-100/60">
+                      {/* W10 — Custom FIGSY prompt */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+                          <Pencil className="w-3 h-3" /> Custom instructions for FIGSY
+                        </label>
+                        <textarea
+                          value={campaignSettings.system_prompt ?? ''}
+                          onChange={e => setCampaignSettings(s => ({ ...s, system_prompt: e.target.value || null }))}
+                          rows={3}
+                          placeholder="e.g. Always mention our 14-day free trial. Focus on South African market. Don't use em-dashes."
+                          className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-none bg-white"
+                        />
+                        <p className="text-[11px] text-[#9B8EC4] mt-1">FIGSY will follow these instructions when writing emails for this campaign.</p>
+                      </div>
+
+                      {/* W11 — Daily send limit slider */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5"><Send className="w-3 h-3" /> New prospects per day</span>
+                          <span className="text-[#7C3AED] font-bold">{campaignSettings.daily_send_limit ?? 50}</span>
+                        </label>
+                        <input
+                          type="range" min={1} max={200} step={1}
+                          value={campaignSettings.daily_send_limit ?? 50}
+                          onChange={e => setCampaignSettings(s => ({ ...s, daily_send_limit: parseInt(e.target.value) }))}
+                          className="w-full accent-[#7C3AED]"
+                        />
+                        <div className="flex justify-between text-[11px] text-[#9B8EC4] mt-1">
+                          <span>1 (careful)</span><span>50 (default)</span><span>200 (max)</span>
+                        </div>
+                      </div>
+
+                      {/* W12 — Quality gate / Co-pilot toggle */}
+                      <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                        <input
+                          type="checkbox"
+                          id={`review-${campaign.id}`}
+                          checked={campaignSettings.review_required ?? false}
+                          onChange={e => setCampaignSettings(s => ({ ...s, review_required: e.target.checked }))}
+                          className="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
+                        />
+                        <label htmlFor={`review-${campaign.id}`} className="text-xs cursor-pointer">
+                          <span className="font-semibold text-gray-900">✋ Co-pilot mode — review before send</span>
+                          <p className="text-[#9B8EC4] mt-0.5">FIGSY drafts every email for your approval before it goes out. Recommended for new campaigns.</p>
+                        </label>
+                      </div>
+
+                      <button
+                        onClick={() => handleSaveSettings(campaign)}
+                        disabled={savingSettings === campaign.id}
+                        className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+                      >
+                        {savingSettings === campaign.id ? 'Saving…' : 'Save settings'}
+                      </button>
+                    </div>
+                  )
+                })()}
+              </div>
 
               {/* Replies toggle */}
               <div className="mt-3 pt-3 border-t border-purple-100/60">

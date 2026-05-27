@@ -289,8 +289,11 @@ figsyRouter.post('/campaigns', async (req: AuthRequest, res) => {
 figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
   try {
     const body = z.object({
-      name:   z.string().min(1).optional(),
-      status: z.enum(['draft','active','paused','completed','archived']).optional(),
+      name:             z.string().min(1).optional(),
+      status:           z.enum(['draft','active','paused','completed','archived']).optional(),
+      system_prompt:    z.string().max(2000).nullable().optional(),
+      daily_send_limit: z.number().int().min(0).max(500).nullable().optional(),
+      review_required:  z.boolean().optional(),
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -318,8 +321,24 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
       }
     }
 
+    // Build update payload — merge settings fields into existing settings JSONB
+    const dbUpdate: Record<string, unknown> = {}
+    if (body.name !== undefined) dbUpdate.name = body.name
+    if (body.status !== undefined) dbUpdate.status = body.status
+
+    const settingsUpdate: Record<string, unknown> = {}
+    if (body.system_prompt !== undefined) settingsUpdate.system_prompt = body.system_prompt
+    if (body.daily_send_limit !== undefined) settingsUpdate.daily_send_limit = body.daily_send_limit
+    if (body.review_required !== undefined) settingsUpdate.review_required = body.review_required
+
+    if (Object.keys(settingsUpdate).length > 0) {
+      const { data: existing } = await db.from('figsy_campaigns')
+        .select('settings').eq('id', req.params.id).eq('client_id', clientId).single()
+      dbUpdate.settings = { ...(existing?.settings ?? {}), ...settingsUpdate }
+    }
+
     const { data, error } = await db.from('figsy_campaigns')
-      .update(body).eq('id', req.params.id).eq('client_id', clientId).select().single()
+      .update(dbUpdate).eq('id', req.params.id).eq('client_id', clientId).select().single()
     if (error) throw error
     if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
     res.json({ success: true, data })
@@ -654,6 +673,63 @@ Output ONLY the email body. No subject line. No preamble.`,
   } catch (err) {
     console.error('[figsy/replies/suggest]', err)
     res.status(500).json({ success: false, error: 'Failed to generate suggestion' })
+  }
+})
+
+// ── SEND MANUAL REPLY FROM UNIBOX ─────────────────────────────────────────────
+figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { body: replyBody } = z.object({
+      body: z.string().min(1).max(5000),
+    }).parse(req.body)
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, from_email, subject, lead_id, client_id')
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .single()
+
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    const { Resend: ResendCls } = await import('resend')
+    const resendInst = process.env.RESEND_API_KEY ? new ResendCls(process.env.RESEND_API_KEY) : null
+
+    if (!resendInst) {
+      res.status(503).json({ success: false, error: 'Email sending not configured' })
+      return
+    }
+
+    const reSubject = reply.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply.subject ?? 'Your enquiry'}`
+    const fromAddr  = 'K.I.N.D <hello@get-kind.com>'
+
+    const { data: sendResult, error: sendError } = await resendInst.emails.send({
+      from:    fromAddr,
+      to:      reply.from_email,
+      subject: reSubject,
+      text:    replyBody,
+    })
+
+    if (sendError) throw sendError
+
+    // Log the sent reply
+    await db.from('figsy_replies').insert({
+      client_id:      clientId,
+      from_email:     fromAddr,
+      subject:        reSubject,
+      body:           replyBody,
+      classification: 'sent_reply',
+      processed_at:   new Date().toISOString(),
+      lead_id:        reply.lead_id,
+    })
+
+    res.json({ success: true, data: { sent: true, resend_id: (sendResult as any)?.id } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[figsy/send-reply]', err)
+    res.status(500).json({ success: false, error: 'Failed to send reply' })
   }
 })
 

@@ -50,7 +50,7 @@ export function AskFigsyButton() {
       >
         <div className="relative">
           <div className="w-8 h-8 rounded-xl overflow-hidden ring-2 ring-[#7C3AED]/30">
-            <img src="/agents/figsy.svg" alt="FIGSY" className="w-full h-full object-cover" />
+            <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover" />
           </div>
           <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0F0929] animate-pulse" />
         </div>
@@ -63,7 +63,7 @@ export function AskFigsyButton() {
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
             <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 ring-2 ring-[#7C3AED]/25 shadow-sm">
-              <img src="/agents/figsy.svg" alt="FIGSY" className="w-full h-full object-cover" />
+              <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1">
               <p className="text-white font-bold text-sm leading-tight">FIGSY</p>

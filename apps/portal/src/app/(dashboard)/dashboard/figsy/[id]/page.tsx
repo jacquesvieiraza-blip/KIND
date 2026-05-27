@@ -31,8 +31,9 @@ interface SequenceStep {
   subject_hint: string
   body_hint: string
   channel: 'email' | 'linkedin' | 'sms'
-  condition?: 'no_reply' | 'opened' | 'clicked'
+  condition?: 'no_reply' | 'opened' | 'clicked' | 'always'
   promptOverride?: string
+  on_reply: 'stop' | 'skip_next' | 'continue'
 }
 
 const DEFAULT_STEPS: SequenceStep[] = [
@@ -44,6 +45,7 @@ const DEFAULT_STEPS: SequenceStep[] = [
     subject_hint: 'Personalised opening — reference their company or role',
     body_hint: 'Introduce yourself, state your value prop clearly, end with a soft CTA. Under 80 words.',
     condition: undefined,
+    on_reply: 'stop',
   },
   {
     step: 2,
@@ -53,6 +55,7 @@ const DEFAULT_STEPS: SequenceStep[] = [
     subject_hint: 'Re: original subject or new angle',
     body_hint: 'Reference the first email briefly. Add one new value point or social proof. Under 60 words.',
     condition: 'no_reply',
+    on_reply: 'stop',
   },
   {
     step: 3,
@@ -62,6 +65,7 @@ const DEFAULT_STEPS: SequenceStep[] = [
     subject_hint: 'Breakup email',
     body_hint: 'Acknowledge they may be busy. Leave the door open. Under 50 words.',
     condition: 'no_reply',
+    on_reply: 'stop',
   },
 ]
 
@@ -75,6 +79,7 @@ const CONDITION_LABEL: Record<string, string> = {
   no_reply: 'If no reply',
   opened:   'If email opened',
   clicked:  'If link clicked',
+  always:   'Always (regardless of opens)',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -88,13 +93,11 @@ const STATUS_COLORS: Record<string, string> = {
 function StepCard({
   step,
   index,
-  isLast,
   onUpdate,
   onDelete,
 }: {
   step: SequenceStep
   index: number
-  isLast: boolean
   onUpdate: (s: SequenceStep) => void
   onDelete: () => void
 }) {
@@ -103,153 +106,161 @@ function StepCard({
   const channelMeta = CHANNEL_META[step.channel]
 
   return (
-    <div className="relative">
-      {/* Connector line */}
-      {!isLast && (
-        <div className="absolute left-6 top-full w-0.5 h-6 bg-gray-200 z-10" />
-      )}
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Step header */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+      >
+        {/* Step number badge */}
+        <div className="w-10 h-10 rounded-xl bg-[#7C3AED] flex items-center justify-center shrink-0 shadow-md shadow-purple-200">
+          <span className="text-white font-bold text-sm">{step.step}</span>
+        </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {/* Step header */}
-        <button
-          onClick={() => setExpanded(e => !e)}
-          className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-        >
-          {/* Step number badge */}
-          <div className="w-10 h-10 rounded-xl bg-[#0066FF] flex items-center justify-center shrink-0 shadow-md shadow-blue-200">
-            <span className="text-white font-bold text-sm">{step.step}</span>
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-gray-900 text-sm">{step.label}</span>
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${channelMeta.color}`}>
-                {channelMeta.label}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-gray-900 text-sm">{step.label}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${channelMeta.color}`}>
+              {channelMeta.label}
+            </span>
+            {step.condition && (
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                {CONDITION_LABEL[step.condition]}
               </span>
-              {step.condition && (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                  {CONDITION_LABEL[step.condition]}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {step.delay_days === 0 ? 'Sends immediately' : `Sends on Day ${step.delay_days}`}
-              {step.promptOverride ? ' · Custom prompt' : ' · FIGSY default'}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={e => { e.stopPropagation(); onDelete() }}
-              className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-              title="Remove step"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-            <ChevronRight className={`w-4 h-4 text-gray-300 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-          </div>
-        </button>
-
-        {/* Step body */}
-        {expanded && (
-          <div className="px-5 pb-5 border-t border-gray-50 pt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              {/* Channel */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Channel</label>
-                <select
-                  value={step.channel}
-                  onChange={e => onUpdate({ ...step, channel: e.target.value as SequenceStep['channel'] })}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
-                >
-                  <option value="email">📧 Email</option>
-                  <option value="linkedin" disabled>💼 LinkedIn (coming soon)</option>
-                  <option value="sms" disabled>📱 SMS (coming soon)</option>
-                </select>
-              </div>
-              {/* Delay */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  Send on day
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={90}
-                  value={step.delay_days}
-                  onChange={e => onUpdate({ ...step, delay_days: parseInt(e.target.value) || 0 })}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
-            </div>
-
-            {/* Condition */}
-            {index > 0 && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Send condition</label>
-                <select
-                  value={step.condition ?? 'no_reply'}
-                  onChange={e => onUpdate({ ...step, condition: e.target.value as SequenceStep['condition'] })}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
-                >
-                  <option value="no_reply">If no reply to previous step</option>
-                  <option value="opened">If previous email was opened</option>
-                  <option value="clicked">If link was clicked</option>
-                </select>
-              </div>
             )}
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {step.delay_days === 0 ? 'Sends immediately' : `Sends on Day ${step.delay_days}`}
+            {step.promptOverride ? ' · Custom prompt' : ' · FIGSY default'}
+          </p>
+        </div>
 
-            {/* Hints */}
-            <div className="space-y-2">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Subject guidance</label>
-                <input
-                  value={step.subject_hint}
-                  onChange={e => onUpdate({ ...step, subject_hint: e.target.value })}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="What should the subject line achieve?"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Body guidance</label>
-                <textarea
-                  value={step.body_hint}
-                  onChange={e => onUpdate({ ...step, body_hint: e.target.value })}
-                  rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
-                  placeholder="What should the body achieve? Tone, length, CTA?"
-                />
-              </div>
-            </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={e => { e.stopPropagation(); onDelete() }}
+            className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+            title="Remove step"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+          <ChevronRight className={`w-4 h-4 text-gray-300 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        </div>
+      </button>
 
-            {/* Prompt override */}
+      {/* Step body */}
+      {expanded && (
+        <div className="px-5 pb-5 border-t border-gray-50 pt-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Channel */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-gray-500">Custom prompt override</label>
-                <button
-                  onClick={() => setEditingPrompt(e => !e)}
-                  className="text-xs text-[#0066FF] hover:underline"
-                >
-                  {editingPrompt ? 'Done' : 'Edit prompt'}
-                </button>
-              </div>
-              {editingPrompt ? (
-                <textarea
-                  value={step.promptOverride ?? ''}
-                  onChange={e => onUpdate({ ...step, promptOverride: e.target.value || undefined })}
-                  rows={4}
-                  placeholder="Leave blank to use FIGSY default. Override here to control exactly how this step is written…"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-y"
-                />
-              ) : (
-                <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
-                  {step.promptOverride ? `"${step.promptOverride.slice(0, 80)}…"` : 'Using FIGSY default prompt — click Edit prompt to override'}
-                </p>
-              )}
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Channel</label>
+              <select
+                value={step.channel}
+                onChange={e => onUpdate({ ...step, channel: e.target.value as SequenceStep['channel'] })}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
+              >
+                <option value="email">📧 Email</option>
+                <option value="linkedin" disabled>💼 LinkedIn (coming soon)</option>
+                <option value="sms" disabled>📱 SMS (coming soon)</option>
+              </select>
+            </div>
+            {/* Delay */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                Send on day
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={90}
+                value={step.delay_days}
+                onChange={e => onUpdate({ ...step, delay_days: parseInt(e.target.value) || 0 })}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              />
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Condition */}
+          {index > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Send condition</label>
+              <select
+                value={step.condition ?? 'no_reply'}
+                onChange={e => onUpdate({ ...step, condition: e.target.value as SequenceStep['condition'] })}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
+              >
+                <option value="no_reply">If no reply to previous step</option>
+                <option value="opened">If previous email was opened</option>
+                <option value="clicked">If link was clicked</option>
+                <option value="always">Always (regardless of opens)</option>
+              </select>
+            </div>
+          )}
+
+          {/* On reply */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">When prospect replies to this step</label>
+            <select
+              value={step.on_reply}
+              onChange={e => onUpdate({ ...step, on_reply: e.target.value as SequenceStep['on_reply'] })}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
+            >
+              <option value="stop">Stop sequence — reply received ✓</option>
+              <option value="skip_next">Skip next step, continue later</option>
+              <option value="continue">Keep sending next steps</option>
+            </select>
+          </div>
+
+          {/* Hints */}
+          <div className="space-y-2">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Subject guidance</label>
+              <input
+                value={step.subject_hint}
+                onChange={e => onUpdate({ ...step, subject_hint: e.target.value })}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                placeholder="What should the subject line achieve?"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Body guidance</label>
+              <textarea
+                value={step.body_hint}
+                onChange={e => onUpdate({ ...step, body_hint: e.target.value })}
+                rows={2}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
+                placeholder="What should the body achieve? Tone, length, CTA?"
+              />
+            </div>
+          </div>
+
+          {/* Prompt override */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-gray-500">Custom prompt override</label>
+              <button
+                onClick={() => setEditingPrompt(e => !e)}
+                className="text-xs text-[#7C3AED] hover:underline"
+              >
+                {editingPrompt ? 'Done' : 'Edit prompt'}
+              </button>
+            </div>
+            {editingPrompt ? (
+              <textarea
+                value={step.promptOverride ?? ''}
+                onChange={e => onUpdate({ ...step, promptOverride: e.target.value || undefined })}
+                rows={4}
+                placeholder="Leave blank to use FIGSY default. Override here to control exactly how this step is written…"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-y"
+              />
+            ) : (
+              <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+                {step.promptOverride ? `"${step.promptOverride.slice(0, 80)}…"` : 'Using FIGSY default prompt — click Edit prompt to override'}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -299,6 +310,7 @@ export default function CampaignDetailPage() {
       subject_hint: 'Continue the conversation',
       body_hint: 'Add new value. Keep it brief.',
       condition: 'no_reply',
+      on_reply: 'stop',
     }])
   }
 
@@ -330,7 +342,7 @@ export default function CampaignDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-[#0066FF]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
       </div>
     )
   }
@@ -339,7 +351,7 @@ export default function CampaignDetailPage() {
     return (
       <div className="text-center py-24 text-gray-400">
         <p>Campaign not found.</p>
-        <Link href="/dashboard/figsy" className="text-[#0066FF] hover:underline text-sm mt-2 block">← Back to campaigns</Link>
+        <Link href="/dashboard/figsy" className="text-[#7C3AED] hover:underline text-sm mt-2 block">← Back to campaigns</Link>
       </div>
     )
   }
@@ -363,7 +375,7 @@ export default function CampaignDetailPage() {
               <button
                 onClick={toggleStatus}
                 disabled={activatingId}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
               >
                 {activatingId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 {campaign.status === 'paused' ? 'Resume' : 'Activate'}
@@ -373,7 +385,7 @@ export default function CampaignDetailPage() {
               <button
                 onClick={toggleStatus}
                 disabled={activatingId}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
               >
                 {activatingId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pause className="w-4 h-4" />}
                 Pause
@@ -432,7 +444,7 @@ export default function CampaignDetailPage() {
               <button
                 onClick={saveSequence}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
               >
                 {saving ? (
                   <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</>
@@ -454,24 +466,41 @@ export default function CampaignDetailPage() {
           )}
 
           {/* Sequence flow */}
-          <div className="space-y-6">
-            {steps.map((step, index) => (
-              <StepCard
-                key={step.step}
-                step={step}
-                index={index}
-                isLast={index === steps.length - 1}
-                onUpdate={updated => updateStep(index, updated)}
-                onDelete={() => removeStep(index)}
-              />
-            ))}
+          <div className="flex flex-col">
+            {steps.map((step, index) => {
+              const isLast = index === steps.length - 1
+              return (
+                <div key={step.step}>
+                  <StepCard
+                    step={step}
+                    index={index}
+                    onUpdate={updated => updateStep(index, updated)}
+                    onDelete={() => removeStep(index)}
+                  />
+                  {!isLast && (
+                    <div className="relative flex flex-col items-center my-1">
+                      {/* vertical line */}
+                      <div className="w-0.5 h-4 bg-[#EDE9FE]" />
+                      {/* branch pill */}
+                      <div className="flex items-center gap-3 py-1.5 px-3 rounded-full bg-[#F5F0FF] border border-[#EDE9FE] text-[10px] font-semibold">
+                        <span className="text-emerald-600">If replied → {step.on_reply === 'stop' ? 'Stop' : step.on_reply === 'skip_next' ? 'Skip next' : 'Continue'}</span>
+                        <span className="text-gray-300">·</span>
+                        <span className="text-[#7C3AED]">If no reply → Next step</span>
+                      </div>
+                      {/* vertical line */}
+                      <div className="w-0.5 h-4 bg-[#EDE9FE]" />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           {/* Add step */}
           {steps.length < 7 && (
             <button
               onClick={addStep}
-              className="mt-6 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm font-medium text-gray-400 hover:border-[#0066FF]/40 hover:text-[#0066FF] transition-all"
+              className="mt-6 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm font-medium text-gray-400 hover:border-[#7C3AED]/40 hover:text-[#7C3AED] transition-all"
             >
               <Plus className="w-4 h-4" /> Add step
             </button>
@@ -492,7 +521,7 @@ export default function CampaignDetailPage() {
                 <div className="flex items-center gap-3">
                   <input
                     type="range" min={0} max={100} step={5} defaultValue={60}
-                    className="flex-1 accent-[#0066FF]"
+                    className="flex-1 accent-[#7C3AED]"
                   />
                   <span className="text-sm font-bold text-gray-900 w-8">60</span>
                 </div>
@@ -504,7 +533,7 @@ export default function CampaignDetailPage() {
                 <div className="flex items-center gap-3">
                   <input
                     type="range" min={1} max={50} step={1} defaultValue={10}
-                    className="flex-1 accent-[#0066FF]"
+                    className="flex-1 accent-[#7C3AED]"
                   />
                   <span className="text-sm font-bold text-gray-900 w-12">10/day</span>
                 </div>
@@ -519,7 +548,7 @@ export default function CampaignDetailPage() {
                       key={src}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                         src === 'All consented leads'
-                          ? 'bg-[#0066FF] text-white border-[#0066FF]'
+                          ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
                           : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -531,7 +560,7 @@ export default function CampaignDetailPage() {
             </div>
 
             <div className="mt-5 pt-4 border-t border-gray-50">
-              <button className="w-full py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              <button className="w-full py-2.5 bg-[#7C3AED] hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors">
                 Save audience settings
               </button>
             </div>
@@ -546,9 +575,9 @@ export default function CampaignDetailPage() {
               </p>
             ) : (
               <div className="flex gap-3">
-                <div className="flex-1 bg-blue-50 rounded-xl p-3 text-center">
-                  <p className="text-xl font-bold text-[#0066FF]">{campaign.leads_enrolled}</p>
-                  <p className="text-xs text-blue-600">Enrolled</p>
+                <div className="flex-1 bg-purple-50 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-[#7C3AED]">{campaign.leads_enrolled}</p>
+                  <p className="text-xs text-purple-600">Enrolled</p>
                 </div>
                 <div className="flex-1 bg-green-50 rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-green-700">{campaign.emails_sent}</p>
@@ -574,14 +603,14 @@ export default function CampaignDetailPage() {
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Campaign name</label>
               <input
                 defaultValue={campaign.name}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-2">Sending mode</label>
               <div className="grid grid-cols-2 gap-2">
-                <button className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-[#0066FF] bg-blue-50 text-sm font-semibold text-[#0066FF]">
+                <button className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-[#7C3AED] bg-purple-50 text-sm font-semibold text-[#7C3AED]">
                   <Zap className="w-4 h-4" /> Auto-Pilot
                 </button>
                 <button className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-amber-400">
@@ -595,7 +624,7 @@ export default function CampaignDetailPage() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Send between</p>
-                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-200">
                     <option>08:00</option>
                     <option>09:00</option>
                     <option>10:00</option>
@@ -603,7 +632,7 @@ export default function CampaignDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-1">and</p>
-                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200">
+                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-200">
                     <option>17:00</option>
                     <option>18:00</option>
                     <option>19:00</option>
@@ -613,7 +642,7 @@ export default function CampaignDetailPage() {
             </div>
 
             <div className="pt-2 flex gap-3">
-              <button className="flex-1 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              <button className="flex-1 py-2.5 bg-[#7C3AED] hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors">
                 Save settings
               </button>
               {campaign.status !== 'active' && (

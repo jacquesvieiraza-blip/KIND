@@ -108,7 +108,7 @@ function AgentAvatar({ agent, size = 'md' }: { agent: AgentDef; size?: 'sm' | 'm
   return (
     <div className={`${sizes[size]} rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ringColor} shadow-sm`}>
       <img
-        src={`/agents/${agent.id}.svg`}
+        src={`/agents/${agent.id}.png`}
         alt={agent.name}
         className="w-full h-full object-cover"
         onError={(e) => {

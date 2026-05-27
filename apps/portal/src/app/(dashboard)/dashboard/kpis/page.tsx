@@ -31,6 +31,8 @@ interface FigsyKPIs {
   totalLeads: number
   leadsContacted: number
   avgScore: number
+  meetingsBooked?: number
+  meetingBookedRate?: number  // meetings / sent × 100
 }
 
 function MetricCard({
@@ -47,7 +49,7 @@ function MetricCard({
 }) {
   const border = accent ? 'border-green-200 bg-green-50/30' : warn ? 'border-amber-200 bg-amber-50/30' : 'border-gray-100 bg-white'
   const valColor = accent ? 'text-green-700' : warn ? 'text-amber-700' : muted ? 'text-gray-400' : 'text-gray-900'
-  const iconBg = accent ? 'bg-green-100 text-green-600' : warn ? 'bg-amber-100 text-amber-600' : muted ? 'bg-gray-50 text-gray-300' : 'bg-gray-100 text-gray-500'
+  const iconBg = accent ? 'bg-green-100 text-green-600' : warn ? 'bg-amber-100 text-amber-600' : muted ? 'bg-gray-50 text-gray-300' : 'bg-[#7C3AED]/10 text-[#7C3AED]'
   return (
     <div className={`rounded-xl border p-5 ${border}`}>
       <div className="flex items-start justify-between mb-3">
@@ -163,7 +165,7 @@ export default function KPIsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-[#0066FF]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
       </div>
     )
   }
@@ -181,6 +183,11 @@ export default function KPIsPage() {
   const contacted = f.leadsContacted > 0 ? f.leadsContacted : f.totalSent > 0 ? Math.ceil(f.totalSent / 3) : 0
   const meetingRate = f.interested > 0 ? ((f.interested / Math.max(contacted, 1)) * 0.4) : 0
   const oneInEvery = f.interested > 0 && f.totalReplied > 0 ? Math.round(f.totalReplied / f.interested) : null
+
+  // Meetings booked derived values
+  const meetingBookedRateDecimal = (f.meetingBookedRate ?? 0) / 100
+  const meetingsBookedAccent = meetingBookedRateDecimal >= 0.03
+  const meetingsBookedWarn = !meetingsBookedAccent && f.meetingBookedRate !== undefined && meetingBookedRateDecimal < 0.01
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -217,6 +224,27 @@ export default function KPIsPage() {
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Email Outreach</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Special meetings booked hero card — first in grid */}
+          <div className="col-span-full md:col-span-2 rounded-xl border-2 border-[#7C3AED]/20 bg-[#F5F0FF] p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-[#7C3AED] uppercase tracking-wider mb-1">Meetings Booked</p>
+                <p className="text-4xl font-bold text-[#1E0A5C]">{figsy?.meetingsBooked ?? 0}</p>
+                <p className="text-sm text-[#7C3AED]/70 mt-1">
+                  {figsy?.meetingBookedRate !== undefined
+                    ? `${(figsy.meetingBookedRate).toFixed(1)}% booking rate`
+                    : 'No data yet'
+                  }
+                  {' '}
+                  <span className="text-gray-400">· Alta target: 3–5%</span>
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-[#7C3AED]" />
+              </div>
+            </div>
+          </div>
+
           <MetricCard
             label="Emails sent"
             value={f.totalSent.toLocaleString()}
@@ -249,6 +277,14 @@ export default function KPIsPage() {
             sub="permanently suppressed"
             icon={<MinusCircle className="w-4 h-4" />}
             warn={f.optOuts > 0}
+          />
+          <MetricCard
+            label="Meetings booked"
+            value={String(f.meetingsBooked ?? 0)}
+            sub={`${(meetingBookedRateDecimal * 100).toFixed(1)}% booking rate`}
+            icon={<Calendar className="w-4 h-4" />}
+            accent={meetingsBookedAccent}
+            warn={meetingsBookedWarn}
           />
         </div>
       </div>
@@ -322,6 +358,12 @@ export default function KPIsPage() {
               <p className="text-xs text-gray-400 mb-3">vs B2B cold outreach industry averages</p>
               <BenchmarkRow label="Reply rate" value={f.replyRate} good={0.08} ok={0.03} />
               <BenchmarkRow label="Interested rate" value={f.interestedRate} good={0.02} ok={0.005} />
+              <BenchmarkRow
+                label="Meeting booking rate"
+                value={meetingBookedRateDecimal}
+                good={0.03}
+                ok={0.01}
+              />
             </div>
           )}
 

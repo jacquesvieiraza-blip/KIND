@@ -1599,24 +1599,157 @@ Send them here. I fix in real time.
 ---
 
 ## 20. ALTA AI SDR — COMPETITIVE AUDIT
+*Full analysis completed 27 May 2026. Sources: 93-page deck · 26-min Fathom transcript · altahq.com website · 28+ portal screenshots.*
+*Use this as the performance and product benchmark for every FIGSY build decision.*
+
+---
+
+### What Alta Actually Is
+
+Alta is not an "SDR tool" — they've deliberately repositioned as an **"AI GTM System of Actions"** and **"AI Revenue Workforce"**. The framing: not a feature, not an automation, but an AI team that replaces or augments your entire revenue function.
+
+**Four named agents with 3D avatars, job titles, and personas:**
+| Agent | Role | What they do |
+|-------|------|-------------|
+| **Katie** | Outbound SDR | Email + LinkedIn + SMS sequences, prospecting, personalisation |
+| **Alex** | Inbound Calling Agent | Qualifies inbound leads, books meetings, follows up via voice |
+| **Luna** | RevOps Intelligence | Insights, anomaly detection, forecasting, CRM sync |
+| **Taylor** | Solutions Engineer | Onboarding, technical enablement |
+
+**Their moat claim**: Built by the team that built **monday.com's internal "BigBrain" revenue platform**. Not an OpenAI wrapper. Proprietary data models.
+
+**Tagline**: *"The #1 Data-Driven AI Revenue Workforce"*
+
+**The problem they open with** (deck, slide 1): *"Sales teams spend only 35.6% of their time actually selling. The other 64.4% is admin, research, CRM, follow-up — everything else."*
+
+---
+
+### The Demo — How Rachelle Ran It (Fathom transcript, 26 minutes)
+
+**The most important technique: 6 minutes of discovery BEFORE touching the product.**
+
+She asked:
+- What brought you here / what are you struggling with
+- What AI tools do you currently use
+- Does your manager know you're exploring this
+- How many people on your team
+- CRM? (→ Salesforce)
+- Timeline?
+- Which region?
+
+By the time she opened her screen she knew: **0.8x pipeline coverage vs 3-4x goal** (Smartsheet EMEA), Salesforce, telecom vertical is hot, manager is Tyron, global implementation constraint, 4-day week. She built the entire demo around that context. **Not a generic walkthrough — a mirror of the prospect's exact problem.**
+
+**Demo sequence:**
+| Step | What she showed | Why it worked |
+|------|-----------------|---------------|
+| Problem reframe | "You have 0.8x pipeline — Alta clients typically get to 3–4x" | Made the problem quantified and urgent |
+| Katie dashboard | Campaign overview, metrics front-and-centre, no clutter | Instant clarity — no training needed |
+| Sequence builder | Branching paths based on LinkedIn acceptance + email reply | "It reacts to them, not just fires blindly" |
+| Knowledge / Compass | Uploaded their ICP, positioning, personas — Katie learns from it | "She knows your pitch before you send" |
+| Co-pilot mode | Every message queued for approval before send | Removes "I don't trust AI to send without me" objection |
+| Performance page | 18–24% reply rate benchmark shown | Credible, specific, comparable |
+| Alex (calling) | Live call simulation, qualifies and books | Extended the vision beyond email |
+
+---
+
+### Alta's Performance Numbers (from deck + transcript)
+| Metric | Alta benchmark |
+|--------|---------------|
+| Reply rate | **18–24%** |
+| Meeting-booked rate | **3–5%** |
+| Pipeline coverage improvement | 0.8x → 3–4x (Smartsheet case) |
+| Time to first outreach | Same day after ICP upload |
+| Personalisation depth | LinkedIn post reference, recent news, job change signals |
+
+---
+
+### Alta's Portal — Visual Design (from 28 screenshots)
+| Element | Alta's choice |
+|---------|--------------|
+| Base background | **Pure white `#FFFFFF`** |
+| Sidebar background | White / very light grey — no dark background |
+| Accent / primary buttons | Medium purple `~#6B5CE7` |
+| Section banners / preview panels | Soft lavender `~#EAE7F8` |
+| Agent avatar background | Light lavender square |
+| Text colour | Dark grey / near-black |
+| Tags | Colour-coded (green, orange, red, grey) on white |
+| Agent visuals | **3D illustrated avatars** — professionally designed, distinctive |
+| Sidebar items | **4 only** — Inbox, Calls, Assistants, Workflows |
+| Stats presentation | Front and centre, no clutter, large numbers |
+| Emotional tone | Airy, clean, friendly — not a "hacker tool" |
+
+**The emotional effect**: Purple signals intelligence/AI without feeling cold. White base makes it approachable. 3D avatars create personality. Clean = trusted. Trust = revenue.
+
+---
+
+### What Alta Has That K.I.N.D Doesn't (Gap Analysis)
+
+#### 🔴 Critical Product Gaps
+| # | Alta feature | Impact | K.I.N.D status |
+|---|-------------|--------|----------------|
+| 1 | **Behaviour-based sequence branching** — if LinkedIn connected → different path; if no reply → follow up; if replied → stop or branch | Higher conversion — smarter outreach | UI built 27 May, API wiring pending |
+| 2 | **Meetings booked as headline metric** — headline KPI, not buried | This is what clients care about, not "reply rate" | KPI card built 27 May, real tracking pending |
+| 3 | **Co-pilot mode** — every AI draft queued for human approval before send | Removes trust objection — "I'm in control" | Not built |
+| 4 | **"Ask Alta" always-accessible floating CTA** | AI help always one click away regardless of screen | AskFigsyButton built, not always shown to gated users |
+| 5 | **Knowledge / Compass system** — upload ICP, positioning, personas, and Katie learns from them | Agent becomes progressively smarter | Knowledge base exists, not connected to sequences |
+| 6 | **Social signal detection** — hiring, funding, LinkedIn activity → trigger outreach | Intent-based targeting, not just static ICP match | Not built |
+| 7 | **Performance benchmarking built-in** — "your reply rate vs industry average" shown inline | Gives clients context, makes gaps visible | Added to KPIs page 27 May |
+
+#### 🟡 UX/Trust Gaps
+| # | Alta feature | K.I.N.D status |
+|---|-------------|----------------|
+| 8 | **4 sidebar items** — Inbox, Calls, Assistants, Workflows | K.I.N.D has 11+ items — addressed in sidebar rebuild |
+| 9 | **3D agent avatars** in sidebar with name + job title visible at login | Real PNG photos now in sidebar (27 May) — 3D pending assets |
+| 10 | **Click-through interactive demo** (Storylane/Navattic) | Not built — separate product tour |
+| 11 | **Discovery-first sales motion** — 6 min discovery before product | This is a GTM technique, not a build item |
+
+#### ✅ What K.I.N.D Has That Alta Doesn't
+| # | K.I.N.D advantage |
+|---|------------------|
+| 1 | **Self-serve** — no sales call required. Alta won't quote without a demo. |
+| 2 | **Transparent pricing** — Alta refuses to show prices publicly |
+| 3 | **POPIA compliance** — Africa-native, built-in consent flow. Alta has none. |
+| 4 | **Affordable for SMBs** — Alta is enterprise contract only ($thousands/mo) |
+| 5 | **Milla (document Q&A)** — Alta has no VA equivalent |
+| 6 | **Vida (chatbot)** — Alta has no chatbot equivalent |
+| 7 | **No implementation project** — K.I.N.D works day one. Alta has an "implementation team." |
+| 8 | **Africa-first** — ZAR billing, WhatsApp, local market knowledge |
+| 9 | **Real human agent photos** — more trustworthy than 3D avatars for SMB market |
+
+---
+
+### What We've Done From This Audit (27 May 2026)
+| # | Item | Status |
+|---|------|--------|
+| 1 | Sequence branching UI — `on_reply: stop/skip_next/continue` between steps | ✅ Built — API wiring pending |
+| 2 | Meetings Booked headline KPI — violet card, "Alta: 3–5%" benchmark | ✅ Built |
+| 3 | Dashboard Mission Control — single screen, all metrics | ✅ Built |
+| 4 | Real agent photos in sidebar + widget (not 3D, not SVG, not emoji) | ✅ Built |
+| 5 | Soft warm palette — matches Alta's airy feel + K.I.N.D brand | ✅ Applied |
+| 6 | AskFigsyButton — always-accessible, dark branded, real photo | ✅ Built |
+| 7 | Performance benchmark on KPIs page | ✅ Built |
+
+### Still To Build From This Audit
+| # | Item | Priority |
+|---|------|----------|
+| 8 | Co-pilot mode — approval queue before FIGSY sends | 🔴 High |
+| 9 | Knowledge base tabs wired to API — so Kate learns from K.I.N.D config | 🔴 High |
+| 10 | Sequence branching API wiring | 🔴 High |
+| 11 | Real meetings booked tracking (Hot replies → booking rate) | 🟡 Medium |
+| 12 | Intent signal detection (hiring, funding, job change → trigger) | 🟡 Medium — at 10+ clients |
+| 13 | 3D agent avatar assets (FIGSY, Milla, Vida) | 🟢 When assets ready |
+| 14 | Interactive click-through product demo | 🟢 After smoke tests |
+
+---
 
 ### Their gaps (our weapons)
 - Zero Africa presence
 - USD-only, quarterly billing, non-refundable, no trial
 - No POPIA/NDPR compliance
 - No WhatsApp-native strategy
-- No ZAR billing
-
-### What we've done from this audit
-| # | Item | Status |
-|---|---|---|
-| 1–9 | Team narrative, agents, compliance, comparison pages, DPA, partners | ✅ Done |
-| 10 | G2/Capterra/Product Hunt | Launch day |
-| 11 | Voice agent (FIGSY calls) | Month 2 |
-| 12 | WhatsApp channel | Month 2 |
-| 13 | African language support | Phase B |
-| 14 | SOC 2 Type II | Q1 2027 |
-| 15 | ICP self-improvement | 6 months post-launch |
+- Enterprise only — SMBs can't afford or access them
+- Sales-assisted only — no self-serve
+- No VA (Milla) or chatbot (Vida) equivalent
 
 ---
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { Lead, LeadStats, ICP, LeadStatus } from '@kind/shared'
@@ -9,8 +9,67 @@ import {
   Users, TrendingUp, ShieldCheck, Download, Search,
   Mail, Ban, Sparkles, Loader2, ExternalLink,
   CheckCircle, Clock, XCircle, Plus, Settings2,
-  DollarSign, Send, X, ChevronDown, AlertTriangle,
+  DollarSign, Send, X, ChevronDown, AlertTriangle, Copy,
 } from 'lucide-react'
+
+// ── Enrichment types ──────────────────────────────────────────────────────────
+interface EnrichmentData {
+  lead_id: string
+  recent_signal: string
+  company_context: string
+  opening_line: string
+  enrichment_score: number
+  enriched_at: string
+  cached?: boolean
+}
+
+// ── Enrichment score badge ────────────────────────────────────────────────────
+function EnrichmentScoreBadge({ score }: { score: number }) {
+  const cls = score >= 7
+    ? 'bg-green-100 text-green-700'
+    : score >= 5
+    ? 'bg-amber-100 text-amber-700'
+    : 'bg-red-100 text-red-700'
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+      {score}/10
+    </span>
+  )
+}
+
+// ── Enrichment panel (shown below a row when enriched) ────────────────────────
+function EnrichmentPanel({ data, onCopy }: { data: EnrichmentData; onCopy: (text: string) => void }) {
+  return (
+    <div className="bg-[#F5F0FF]/60 border border-purple-100 rounded-xl p-4 mt-2 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-[#7C3AED] uppercase tracking-wide">AI Enrichment</span>
+        <div className="flex items-center gap-2">
+          <EnrichmentScoreBadge score={data.enrichment_score} />
+          <span className="text-[10px] text-[#9B8EC4]">signal strength</span>
+        </div>
+      </div>
+      <div className="space-y-1.5 text-sm">
+        <p><span className="font-medium text-gray-700">🎯 Signal:</span>{' '}<span className="text-gray-600">{data.recent_signal}</span></p>
+        <p><span className="font-medium text-gray-700">🏢 Context:</span>{' '}<span className="text-gray-600">{data.company_context}</span></p>
+      </div>
+      <div>
+        <p className="font-medium text-gray-700 text-sm mb-1">✉️ Opening line:</p>
+        <div className="flex items-start gap-2">
+          <code className="flex-1 block bg-white border border-purple-100 rounded-lg px-3 py-2 text-xs text-gray-800 font-mono leading-relaxed">
+            {data.opening_line}
+          </code>
+          <button
+            onClick={() => onCopy(data.opening_line)}
+            title="Copy opening line"
+            className="p-1.5 rounded-md bg-white border border-purple-100 hover:border-purple-300 text-[#7C3AED] transition-colors shrink-0"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── Score badge ───────────────────────────────────────────────────────────────
 function ScoreBadge({ score }: { score: number | null }) {
@@ -301,6 +360,12 @@ export default function LeadsPage() {
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false)
   const [showMarkAs, setShowMarkAs] = useState(false)
 
+  // Enrichment state
+  const [enrichedLeads, setEnrichedLeads] = useState<Record<string, EnrichmentData>>({})
+  const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set())
+  const [enrichErrors, setEnrichErrors] = useState<Record<string, string>>({})
+  const [expandedEnrichments, setExpandedEnrichments] = useState<Set<string>>(new Set())
+
   // Tab state — drives the statusFilter automatically
   const [activeTab, setActiveTab] = useState<TabId>('all')
 
@@ -375,6 +440,29 @@ export default function LeadsPage() {
       showToast(err instanceof Error ? err.message : 'Failed to block lead', 'error')
     }
     setActionLoading(null)
+  }
+
+  async function enrichLead(leadId: string) {
+    if (!token || enrichingIds.has(leadId)) return
+    setEnrichingIds(prev => new Set(prev).add(leadId))
+    setEnrichErrors(prev => { const next = { ...prev }; delete next[leadId]; return next })
+    try {
+      const res = await api.post<{ data: EnrichmentData }>(`/leads/${leadId}/enrich`, {}, token)
+      setEnrichedLeads(prev => ({ ...prev, [leadId]: res.data }))
+      setExpandedEnrichments(prev => new Set(prev).add(leadId))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Enrichment failed — try again'
+      setEnrichErrors(prev => ({ ...prev, [leadId]: msg }))
+    }
+    setEnrichingIds(prev => { const next = new Set(prev); next.delete(leadId); return next })
+  }
+
+  function toggleEnrichment(leadId: string) {
+    setExpandedEnrichments(prev => {
+      const next = new Set(prev)
+      next.has(leadId) ? next.delete(leadId) : next.add(leadId)
+      return next
+    })
   }
 
   function showToast(message: string, type: 'success' | 'error' = 'success') {
@@ -746,7 +834,8 @@ export default function LeadsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {tableLeads.map(lead => (
-                    <tr key={lead.id} className={`hover:bg-gray-50 transition-colors ${lead.status === 'opted_out' ? 'opacity-50' : ''}`}>
+                    <React.Fragment key={lead.id}>
+                    <tr className={`hover:bg-gray-50 transition-colors ${lead.status === 'opted_out' ? 'opacity-50' : ''}`}>
                       <td className="px-4 py-3">
                         {lead.status !== 'opted_out' && lead.email && (
                           <input
@@ -838,10 +927,38 @@ export default function LeadsPage() {
                               className="p-1.5 rounded-md hover:bg-red-50 text-red-400 transition-colors disabled:opacity-40">
                               {actionLoading === `block-${lead.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
                             </button>
+                            {/* Enrich button */}
+                            <button
+                              onClick={() => enrichedLeads[lead.id] ? toggleEnrichment(lead.id) : enrichLead(lead.id)}
+                              disabled={enrichingIds.has(lead.id)}
+                              title={enrichedLeads[lead.id] ? (expandedEnrichments.has(lead.id) ? 'Hide enrichment' : 'Show enrichment') : 'Enrich with AI research'}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-purple-300 text-purple-600 bg-white hover:bg-purple-50 text-xs font-medium transition-colors disabled:opacity-40"
+                            >
+                              {enrichingIds.has(lead.id)
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Sparkles className="w-3 h-3" />}
+                              {enrichingIds.has(lead.id) ? 'Enriching…' : enrichedLeads[lead.id] ? (expandedEnrichments.has(lead.id) ? 'Hide' : 'Show') : 'Enrich'}
+                            </button>
                           </div>
+                        )}
+                        {/* Enrichment error inline (outside opted_out guard so it always shows) */}
+                        {enrichErrors[lead.id] && (
+                          <p className="text-[10px] text-red-500 mt-1">{enrichErrors[lead.id]}</p>
                         )}
                       </td>
                     </tr>
+                    {/* Enrichment expanded row */}
+                    {enrichedLeads[lead.id] && expandedEnrichments.has(lead.id) && (
+                      <tr className="bg-[#F9F7FF]">
+                        <td colSpan={9} className="px-6 pb-4 pt-0">
+                          <EnrichmentPanel
+                            data={enrichedLeads[lead.id]}
+                            onCopy={text => { navigator.clipboard.writeText(text); showToast('Copied to clipboard ✓') }}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

@@ -364,6 +364,101 @@ leadRouter.get('/blocklist', async (_req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch blocklist' }) }
 })
 
+// ── AI ENRICHMENT ─────────────────────────────────────────────────────────────
+leadRouter.post('/:id/enrich', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead, error: leadErr } = await db.from('leads')
+      .select('*').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (leadErr || !lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    // Check for cached enrichment less than 7 days old
+    try {
+      const { data: existing } = await db.from('lead_enrichment')
+        .select('*').eq('lead_id', req.params.id).maybeSingle()
+
+      if (existing?.enriched_at) {
+        const enrichedAt = new Date(existing.enriched_at)
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        if (enrichedAt > sevenDaysAgo) {
+          res.json({ success: true, data: existing, cached: true }); return
+        }
+      }
+    } catch (cacheErr: any) {
+      // Table doesn't exist yet — fall through to Claude call
+      if (!String(cacheErr?.message ?? '').includes('does not exist')) {
+        console.error('[leads/enrich] cache check error', cacheErr)
+      }
+    }
+
+    const prompt = `You are a B2B sales researcher. Given the following lead profile, generate research that will help a sales rep reach out at exactly the right moment.
+
+Lead profile:
+- Name: ${lead.first_name} ${lead.last_name}
+- Title: ${lead.job_title || 'unknown'}
+- Company: ${lead.company || 'unknown'}
+- LinkedIn: ${lead.linkedin_url || 'not available'}
+- Industry: ${lead.industry || 'unknown'}
+- Country: ${lead.country || 'unknown'}
+- Seniority: ${lead.seniority || 'unknown'}
+
+Generate a JSON object with EXACTLY these fields (no extra text, no markdown, just valid JSON):
+{
+  "recent_signal": "One sentence about a timely reason to reach out now — e.g. funding round, product launch, leadership change, hiring surge, or industry trend affecting them",
+  "company_context": "One sentence summarising what the company does and their current growth/market position",
+  "opening_line": "A personalised first line for a cold email, max 20 words, referencing something specific about them or their company. Do NOT start with I or We.",
+  "enrichment_score": <integer 1-10 rating how strong the outreach signal is, where 10 = perfect timing>
+}
+
+Output ONLY the JSON object, nothing else.`
+
+    const message = await anthropic.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+
+    const rawText = (message.content[0] as { type: string; text: string }).text.trim()
+    let enrichment: { recent_signal: string; company_context: string; opening_line: string; enrichment_score: number }
+    try {
+      enrichment = JSON.parse(rawText)
+    } catch {
+      // Try to extract JSON from the response if wrapped in markdown
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('Claude returned invalid JSON')
+      enrichment = JSON.parse(jsonMatch[0])
+    }
+
+    // Validate enrichment_score
+    enrichment.enrichment_score = Math.max(1, Math.min(10, Math.round(Number(enrichment.enrichment_score) || 5)))
+
+    const row = {
+      lead_id:          req.params.id,
+      recent_signal:    enrichment.recent_signal,
+      company_context:  enrichment.company_context,
+      opening_line:     enrichment.opening_line,
+      enrichment_score: enrichment.enrichment_score,
+      enriched_at:      new Date().toISOString(),
+    }
+
+    try {
+      const { error: upsertErr } = await db.from('lead_enrichment')
+        .upsert(row, { onConflict: 'lead_id' })
+      if (upsertErr) throw upsertErr
+    } catch (dbErr: any) {
+      const msg = String(dbErr?.message ?? '')
+      if (msg.includes('does not exist') || msg.includes('relation') || msg.includes('42P01')) {
+        res.status(503).json({ success: false, error: 'Run migrations first' }); return
+      }
+      throw dbErr
+    }
+
+    res.json({ success: true, data: row, cached: false })
+  } catch (err) { console.error('[leads/enrich]', err); res.status(500).json({ success: false, error: 'Failed to enrich lead' }) }
+})
+
 // ── AI EMAIL DRAFT ─────────────────────────────────────────────────────────────
 leadRouter.post('/:id/draft-email', async (req: AuthRequest, res) => {
   try {

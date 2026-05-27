@@ -264,3 +264,106 @@ WHERE table_schema = 'public'
   AND column_name IN ('delivered_at', 'daily_drip_rate')
 ORDER BY table_name, column_name;
 
+
+-- ════════════════════════════════════════════════════════════════════════════════
+-- 2026-05-27 ADDITIONS — Built from Alta competitive analysis + audit fixes
+-- Last updated: 2026-05-27
+-- ════════════════════════════════════════════════════════════════════════════════
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- 20260527_stripe_subscription_id.sql
+-- ────────────────────────────────────────────────────────────────────────────
+ALTER TABLE public.subscriptions
+  ADD COLUMN IF NOT EXISTS stripe_subscription_id text;
+
+CREATE INDEX IF NOT EXISTS subscriptions_stripe_id_idx
+  ON public.subscriptions (stripe_subscription_id)
+  WHERE stripe_subscription_id IS NOT NULL;
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- ABM named-account targeting in ICP builder
+-- ────────────────────────────────────────────────────────────────────────────
+ALTER TABLE public.icps
+  ADD COLUMN IF NOT EXISTS organization_names text[] DEFAULT '{}';
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Lead enrichment (AI research columns per lead)
+-- ────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.lead_enrichment (
+  lead_id           text PRIMARY KEY REFERENCES public.leads(id) ON DELETE CASCADE,
+  recent_signal     text,
+  company_context   text,
+  opening_line      text,
+  enrichment_score  int CHECK (enrichment_score BETWEEN 1 AND 10),
+  enriched_at       timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS lead_enrichment_enriched_at_idx
+  ON public.lead_enrichment (enriched_at DESC);
+
+ALTER TABLE public.lead_enrichment ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role bypass" ON public.lead_enrichment
+  FOR ALL USING (true);
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- FIGSY voice calls (006_voice_calls.sql — from packages/db/migrations)
+-- ────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.figsy_calls (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  enrollment_id     uuid NOT NULL REFERENCES public.figsy_enrollments(id) ON DELETE CASCADE,
+  lead_id           uuid NOT NULL REFERENCES public.leads(id) ON DELETE CASCADE,
+  campaign_id       uuid NOT NULL REFERENCES public.figsy_campaigns(id) ON DELETE CASCADE,
+  client_id         uuid NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
+  vapi_call_id      text,
+  status            text NOT NULL DEFAULT 'initiated'
+                      CHECK (status IN ('initiated','ringing','in_progress','ended','failed')),
+  outcome           text
+                      CHECK (outcome IN ('answered','voicemail','no_answer','failed') OR outcome IS NULL),
+  duration_seconds  integer,
+  transcript        text,
+  recording_url     text,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  ended_at          timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_figsy_calls_enrollment_id ON public.figsy_calls(enrollment_id);
+CREATE INDEX IF NOT EXISTS idx_figsy_calls_lead_id       ON public.figsy_calls(lead_id);
+CREATE INDEX IF NOT EXISTS idx_figsy_calls_campaign_id   ON public.figsy_calls(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_figsy_calls_client_id     ON public.figsy_calls(client_id);
+CREATE INDEX IF NOT EXISTS idx_figsy_calls_vapi_call_id  ON public.figsy_calls(vapi_call_id);
+
+ALTER TABLE public.figsy_calls ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role bypass" ON public.figsy_calls
+  FOR ALL USING (true);
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- Webhook trigger log (audit trail for webhook-enrolled leads)
+-- ────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.webhook_triggers (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id    uuid NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
+  campaign_id  uuid NOT NULL REFERENCES public.figsy_campaigns(id) ON DELETE CASCADE,
+  email        text NOT NULL,
+  payload      jsonb,
+  status       text DEFAULT 'received' CHECK (status IN ('received','enrolled','failed')),
+  error        text,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_triggers_client_id
+  ON public.webhook_triggers (client_id, created_at DESC);
+
+ALTER TABLE public.webhook_triggers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role bypass" ON public.webhook_triggers
+  FOR ALL USING (true);
+
+-- Verify new columns and tables
+SELECT table_name, column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name IN ('icps','lead_enrichment','figsy_calls','webhook_triggers','subscriptions')
+  AND column_name IN ('organization_names','lead_id','vapi_call_id','stripe_subscription_id','email')
+ORDER BY table_name, column_name;

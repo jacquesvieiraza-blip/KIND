@@ -33,13 +33,13 @@ const STATUS_META: Record<FeatureStatus, { label: string; icon: React.ReactNode;
   },
   building: {
     label: 'Building',
-    icon: <Clock className="w-4 h-4 text-blue-500" />,
-    labelClass: 'bg-blue-50 text-blue-700',
+    icon: <Clock className="w-4 h-4 text-purple-500" />,
+    labelClass: 'bg-[#F5F0FF] text-[#6D28D9]',
   },
   planned: {
     label: 'Planned',
     icon: <Circle className="w-4 h-4 text-gray-300" />,
-    labelClass: 'bg-gray-50 text-gray-500',
+    labelClass: 'bg-gray-50 text-[#7B6FA0]',
   },
 }
 
@@ -49,8 +49,8 @@ const PRODUCTS: ProductRoadmap[] = [
     name: 'AI Lead Generation',
     icon: <Users className="w-5 h-5" />,
     tagline: 'Precision B2B leads, scored and POPIA-compliant.',
-    accentClass: 'text-blue-600',
-    bgClass: 'bg-blue-600',
+    accentClass: 'text-[#7C3AED]',
+    bgClass: 'bg-[#7C3AED]',
     features: [
       { label: 'Lead discovery & search', status: 'live' },
       { label: 'AI lead scoring (0–100)', status: 'live' },
@@ -72,7 +72,7 @@ const PRODUCTS: ProductRoadmap[] = [
     icon: <Zap className="w-5 h-5" />,
     tagline: 'Autonomous outreach — personalise, send, follow up, book meetings.',
     accentClass: 'text-amber-600',
-    bgClass: 'bg-[#0066FF]',
+    bgClass: 'bg-[#7C3AED]',
     features: [
       { label: 'AI-personalised email generation (per lead)', status: 'live' },
       { label: '3-step outreach sequences', status: 'live' },
@@ -166,7 +166,7 @@ function StatusBadge({ status, isNew }: { status: FeatureStatus; isNew?: boolean
   return (
     <div className="flex items-center gap-1.5">
       {isNew && (
-        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#0066FF] text-white uppercase tracking-wide">
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#7C3AED] text-white uppercase tracking-wide">
           New
         </span>
       )}
@@ -188,12 +188,12 @@ export default function RoadmapPage() {
     <div className="space-y-8 max-w-5xl">
       {/* Page header */}
       <div className="flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0066FF] to-[#003d99] flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#6D28D9] flex items-center justify-center shrink-0">
           <BarChart2 className="w-5 h-5 text-white" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Product Roadmap</h1>
-          <p className="text-gray-500 text-sm mt-1">What's live, what we're building, and what's coming next across all K.I.N.D agents.</p>
+          <p className="text-[#7B6FA0] text-sm mt-1">What's live, what we're building, and what's coming next across all K.I.N.D agents.</p>
         </div>
       </div>
 
@@ -201,23 +201,23 @@ export default function RoadmapPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { icon: <CheckCircle2 className="w-5 h-5 text-green-500" />, label: 'Live features', value: live, sub: 'Available now', bg: 'bg-green-50' },
-          { icon: <Sparkles className="w-5 h-5 text-[#0066FF]" />, label: 'Just shipped', value: newCount, sub: 'This sprint', bg: 'bg-blue-50' },
+          { icon: <Sparkles className="w-5 h-5 text-[#7C3AED]" />, label: 'Just shipped', value: newCount, sub: 'This sprint', bg: 'bg-[#F5F0FF]' },
           { icon: <Clock className="w-5 h-5 text-amber-500" />, label: 'In development', value: building, sub: 'Shipping soon', bg: 'bg-amber-50' },
-          { icon: <Circle className="w-5 h-5 text-gray-400" />, label: 'Planned', value: planned, sub: 'On the horizon', bg: 'bg-gray-50' },
+          { icon: <Circle className="w-5 h-5 text-[#9B8EC4]" />, label: 'Planned', value: planned, sub: 'On the horizon', bg: 'bg-gray-50' },
         ].map(({ icon, label, value, sub, bg }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3">
+          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4 flex items-center gap-3">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${bg} shrink-0`}>{icon}</div>
             <div>
               <p className="text-xl font-bold text-gray-900">{value}</p>
               <p className="text-xs font-medium text-gray-600">{label}</p>
-              <p className="text-[11px] text-gray-400">{sub}</p>
+              <p className="text-[11px] text-[#9B8EC4]">{sub}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Coming soon highlights */}
-      <div className="bg-gradient-to-br from-[#001228] to-[#003080] rounded-2xl p-6 text-white">
+      <div className="bg-gradient-to-br from-[#1A0F47] to-[#0F0929] rounded-2xl p-6 text-white">
         <div className="flex items-center gap-2 mb-1">
           <Zap className="w-4 h-4 text-blue-300" />
           <h2 className="font-bold text-white">Shipping next</h2>
@@ -250,7 +250,7 @@ export default function RoadmapPage() {
           const newFeatures = product.features.filter(f => f.new).length
 
           return (
-            <div key={product.key} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div key={product.key} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
               {/* Product header */}
               <div className={`${product.bgClass} px-5 py-4 text-white`}>
                 <div className="flex items-center justify-between">
@@ -292,14 +292,14 @@ export default function RoadmapPage() {
                           <span className={`text-sm ${
                             feature.status === 'live'     ? 'text-gray-800 font-medium' :
                             feature.status === 'building' ? 'text-gray-700' :
-                                                           'text-gray-400'
+                                                           'text-[#9B8EC4]'
                           }`}>
                             {feature.label}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 shrink-0 ml-4">
                           {feature.eta && (
-                            <span className="text-xs text-gray-400 hidden sm:block">{feature.eta}</span>
+                            <span className="text-xs text-[#9B8EC4] hidden sm:block">{feature.eta}</span>
                           )}
                           <StatusBadge status={feature.status} isNew={feature.new} />
                         </div>
@@ -314,14 +314,14 @@ export default function RoadmapPage() {
       </div>
 
       {/* Feedback CTA */}
-      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 flex items-center justify-between gap-4">
+      <div className="bg-gray-50 border border-purple-100/60 rounded-xl p-6 flex items-center justify-between gap-4">
         <div>
           <h3 className="font-bold text-gray-900">Have a feature request?</h3>
-          <p className="text-sm text-gray-500 mt-0.5">We build based on what our clients need. Tell us what would help your business most.</p>
+          <p className="text-sm text-[#7B6FA0] mt-0.5">We build based on what our clients need. Tell us what would help your business most.</p>
         </div>
         <a
           href="mailto:hello@get-kind.com?subject=Feature+Request"
-          className="flex items-center gap-2 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shrink-0"
+          className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shrink-0"
         >
           Request a feature <ChevronRight className="w-4 h-4" />
         </a>

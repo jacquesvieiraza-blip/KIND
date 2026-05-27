@@ -50,12 +50,12 @@ function SourceCard({
       href={href}
       className={`flex items-start gap-4 p-4 rounded-2xl border transition-all group ${
         active
-          ? 'border-[#0066FF]/30 bg-blue-50/30 hover:bg-blue-50/50'
-          : 'border-gray-100 bg-white hover:border-gray-200'
+          ? 'border-[#7C3AED]/30 bg-[#F5F0FF]/30 hover:bg-[#F5F0FF]/50'
+          : 'border-purple-100/60 bg-white hover:border-purple-100/80'
       }`}
     >
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-        active ? 'bg-[#0066FF] text-white' : 'bg-gray-100 text-gray-500'
+        active ? 'bg-[#7C3AED] text-white' : 'bg-gray-100 text-[#7B6FA0]'
       }`}>
         {icon}
       </div>
@@ -66,15 +66,15 @@ function SourceCard({
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
               badge === 'Live' ? 'bg-green-100 text-green-700' :
               badge === 'Beta' ? 'bg-amber-100 text-amber-700' :
-                                 'bg-gray-100 text-gray-400'
+                                 'bg-gray-100 text-[#9B8EC4]'
             }`}>
               {badge}
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{description}</p>
+        <p className="text-xs text-[#9B8EC4] mt-0.5 leading-relaxed">{description}</p>
       </div>
-      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#0066FF] transition-colors shrink-0 mt-1" />
+      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#7C3AED] transition-colors shrink-0 mt-1" />
     </Link>
   )
 }
@@ -83,13 +83,13 @@ function FunnelBar({ label, value, max, color }: { label: string; value: number;
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0
   return (
     <div className="flex items-center gap-3">
-      <p className="text-xs text-gray-500 w-32 text-right shrink-0">{label}</p>
+      <p className="text-xs text-[#7B6FA0] w-32 text-right shrink-0">{label}</p>
       <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(pct, pct > 0 ? 3 : 0)}%` }} />
       </div>
       <div className="flex items-center gap-1.5 w-20 shrink-0">
         <span className="text-sm font-bold text-gray-900">{value.toLocaleString()}</span>
-        {pct > 0 && <span className="text-xs text-gray-400">({pct}%)</span>}
+        {pct > 0 && <span className="text-xs text-[#9B8EC4]">({pct}%)</span>}
       </div>
     </div>
   )
@@ -127,7 +127,7 @@ export default function LeadGenOverviewPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-[#0066FF]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
       </div>
     )
   }
@@ -135,9 +135,9 @@ export default function LeadGenOverviewPage() {
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Product header */}
-      <div className="bg-gradient-to-br from-[#001228] to-[#003080] rounded-2xl p-6">
+      <div className="bg-gradient-to-br from-[#1A0F47] to-[#0F0929] rounded-2xl p-6">
         <div className="flex items-start gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-[#0066FF] flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/30">
+          <div className="w-14 h-14 rounded-2xl bg-[#7C3AED] flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/30">
             <Users className="w-7 h-7 text-white" />
           </div>
           <div className="flex-1">
@@ -172,12 +172,12 @@ export default function LeadGenOverviewPage() {
         {/* Left: quick actions + sources */}
         <div className="space-y-4">
           {/* Quick actions */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <h2 className="text-sm font-bold text-gray-900 mb-3">Quick actions</h2>
             <div className="space-y-2">
               <Link
                 href="/dashboard/leads"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold transition-colors"
               >
                 <Users className="w-4 h-4" />
                 View all leads
@@ -185,16 +185,16 @@ export default function LeadGenOverviewPage() {
               </Link>
               <Link
                 href="/dashboard/leads/icp"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100/80 hover:bg-gray-50 text-gray-700 text-sm font-medium transition-colors"
               >
-                <Settings2 className="w-4 h-4 text-gray-500" />
+                <Settings2 className="w-4 h-4 text-[#7B6FA0]" />
                 {icps.length > 0 ? `Manage ICPs (${icps.length})` : 'Build your first ICP'}
-                <ChevronRight className="w-3.5 h-3.5 ml-auto text-gray-400" />
+                <ChevronRight className="w-3.5 h-3.5 ml-auto text-[#9B8EC4]" />
               </Link>
               {s.consented > 0 && (
                 <Link
                   href="/dashboard/figsy"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-blue-100 hover:bg-blue-50 text-[#0066FF] text-sm font-medium transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 hover:bg-[#F5F0FF] text-[#7C3AED] text-sm font-medium transition-colors"
                 >
                   <Zap className="w-4 h-4" />
                   Send to FIGSY
@@ -205,7 +205,7 @@ export default function LeadGenOverviewPage() {
           </div>
 
           {/* Lead sources */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <h2 className="text-sm font-bold text-gray-900 mb-3">Lead sources</h2>
             <div className="space-y-2">
               <SourceCard
@@ -239,10 +239,10 @@ export default function LeadGenOverviewPage() {
         {/* Right: pipeline funnel + ICP list */}
         <div className="lg:col-span-2 space-y-4">
           {/* Pipeline funnel */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-gray-900">Lead pipeline</h2>
-              <Link href="/dashboard/kpis" className="text-xs text-[#0066FF] hover:underline flex items-center gap-0.5">
+              <Link href="/dashboard/kpis" className="text-xs text-[#7C3AED] hover:underline flex items-center gap-0.5">
                 Full report <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
@@ -250,7 +250,7 @@ export default function LeadGenOverviewPage() {
               <FunnelBar label="Total leads"    value={s.total}     max={s.total}  color="bg-gray-300" />
               <FunnelBar label="AI scored"      value={s.scored}    max={s.total}  color="bg-blue-400" />
               <FunnelBar label="Consented"      value={s.consented} max={s.total}  color="bg-indigo-500" />
-              <FunnelBar label="Ready for FIGSY" value={s.consented} max={s.total} color="bg-[#0066FF]" />
+              <FunnelBar label="Ready for FIGSY" value={s.consented} max={s.total} color="bg-[#7C3AED]" />
             </div>
 
             {/* Avg score */}
@@ -259,7 +259,7 @@ export default function LeadGenOverviewPage() {
                 <Star className="w-4 h-4 text-amber-500" />
                 <p className="text-sm text-gray-700">
                   Average lead score: <span className="font-bold text-gray-900">{s.avg_score}/100</span>
-                  <span className="text-gray-400 ml-2 text-xs">
+                  <span className="text-[#9B8EC4] ml-2 text-xs">
                     {s.avg_score >= 70 ? '— High quality' : s.avg_score >= 50 ? '— Good fit' : '— Building'}
                   </span>
                 </p>
@@ -268,12 +268,12 @@ export default function LeadGenOverviewPage() {
           </div>
 
           {/* ICP list */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-gray-900">Ideal Customer Profiles</h2>
               <Link
                 href="/dashboard/leads/icp"
-                className="flex items-center gap-1.5 text-xs font-medium text-[#0066FF] hover:underline"
+                className="flex items-center gap-1.5 text-xs font-medium text-[#7C3AED] hover:underline"
               >
                 <Plus className="w-3.5 h-3.5" /> New ICP
               </Link>
@@ -283,10 +283,10 @@ export default function LeadGenOverviewPage() {
               <div className="text-center py-8">
                 <Target className="w-8 h-8 mx-auto mb-3 text-gray-200" />
                 <p className="text-sm font-medium text-gray-600 mb-1">No ICPs yet</p>
-                <p className="text-xs text-gray-400 mb-4">Define who you want to target so K.I.N.D knows who to find.</p>
+                <p className="text-xs text-[#9B8EC4] mb-4">Define who you want to target so K.I.N.D knows who to find.</p>
                 <Link
                   href="/dashboard/leads/icp"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Build your ICP
                 </Link>
@@ -297,14 +297,14 @@ export default function LeadGenOverviewPage() {
                   <Link
                     key={icp.id}
                     href="/dashboard/leads/icp"
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-100 hover:border-[#0066FF]/20 hover:bg-blue-50/20 transition-all group"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl border border-purple-100/60 hover:border-[#7C3AED]/20 hover:bg-[#F5F0FF]/20 transition-all group"
                   >
                     <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                      <Target className="w-4 h-4 text-[#0066FF]" />
+                      <Target className="w-4 h-4 text-[#7C3AED]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{icp.name}</p>
-                      <p className="text-xs text-gray-400 truncate">
+                      <p className="text-xs text-[#9B8EC4] truncate">
                         {[
                           icp.industries.slice(0, 2).join(', '),
                           icp.job_titles.slice(0, 2).join(', '),

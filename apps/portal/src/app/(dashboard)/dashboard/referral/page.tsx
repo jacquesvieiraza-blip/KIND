@@ -69,7 +69,7 @@ export default function ReferralPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
       </div>
     )
   }
@@ -79,13 +79,13 @@ export default function ReferralPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Refer a business, earn free credits</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="text-[#7B6FA0] text-sm mt-1">
           Share your unique link. When a business signs up and pays their first invoice, you both get 100 free credits.
         </p>
       </div>
 
       {/* How it works */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
         <h2 className="font-semibold text-gray-900 mb-5">How it works</h2>
         <div className="space-y-4">
           {[
@@ -106,12 +106,12 @@ export default function ReferralPage() {
             },
           ].map((item, i) => (
             <div key={item.step} className="flex items-start gap-4">
-              <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-sm font-bold text-brand-600">{item.step}</span>
+              <div className="w-8 h-8 rounded-full bg-[#F5F0FF] flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-sm font-bold text-[#6D28D9]">{item.step}</span>
               </div>
               <div className="flex-1">
                 <p className="font-medium text-gray-900 text-sm">{item.title}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{item.description}</p>
+                <p className="text-sm text-[#7B6FA0] mt-0.5">{item.description}</p>
               </div>
               {i < 2 && (
                 <ArrowRight className="w-4 h-4 text-gray-300 mt-1 shrink-0" />
@@ -122,7 +122,7 @@ export default function ReferralPage() {
       </div>
 
       {/* Referral link */}
-      <div className="bg-gradient-to-r from-[#001f4d] to-[#003080] rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl p-6 text-white">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
             <Gift className="w-5 h-5 text-white" />
@@ -140,7 +140,7 @@ export default function ReferralPage() {
             </div>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white text-[#001f4d] text-xs font-semibold hover:bg-white/90 transition-colors shrink-0"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white text-[#0F0929] text-xs font-semibold hover:bg-white/90 transition-colors shrink-0"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copied!' : 'Copy link'}
@@ -154,21 +154,21 @@ export default function ReferralPage() {
       {/* Referrals table */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <Users className="w-4 h-4 text-gray-400" />
+          <Users className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="font-semibold text-gray-900">Your referrals</h2>
           {referrals.length > 0 && (
-            <span className="ml-auto text-xs text-gray-400">{referrals.length} total</span>
+            <span className="ml-auto text-xs text-[#9B8EC4]">{referrals.length} total</span>
           )}
         </div>
 
         {referrals.length > 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Business</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Joined</th>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-[#9B8EC4] uppercase tracking-wide">Business</th>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-[#9B8EC4] uppercase tracking-wide">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-[#9B8EC4] uppercase tracking-wide">Joined</th>
                 </tr>
               </thead>
               <tbody>
@@ -178,13 +178,13 @@ export default function ReferralPage() {
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize
                         ${r.status === 'paying'  ? 'bg-green-50 text-green-700' : ''}
-                        ${r.status === 'trial'   ? 'bg-blue-50 text-blue-700'  : ''}
-                        ${r.status === 'churned' ? 'bg-gray-100 text-gray-500' : ''}
+                        ${r.status === 'trial'   ? 'bg-[#F5F0FF] text-[#6D28D9]'  : ''}
+                        ${r.status === 'churned' ? 'bg-gray-100 text-[#7B6FA0]' : ''}
                       `}>
                         {r.status}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-400 text-xs">
+                    <td className="px-5 py-3.5 text-[#9B8EC4] text-xs">
                       {new Date(r.created_at).toLocaleDateString('en-GB', { dateStyle: 'medium' })}
                     </td>
                   </tr>
@@ -193,10 +193,10 @@ export default function ReferralPage() {
             </table>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-dashed border-gray-200 p-10 text-center">
+          <div className="bg-white rounded-xl border border-dashed border-purple-100/80 p-10 text-center">
             <Gift className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-500">No referrals yet</p>
-            <p className="text-xs text-gray-400 mt-1">Share your link above to start earning credits.</p>
+            <p className="text-sm font-medium text-[#7B6FA0]">No referrals yet</p>
+            <p className="text-xs text-[#9B8EC4] mt-1">Share your link above to start earning credits.</p>
           </div>
         )}
       </div>

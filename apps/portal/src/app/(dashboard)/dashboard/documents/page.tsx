@@ -57,7 +57,7 @@ export default function DocumentsPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+      <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
     </div>
   )
 
@@ -65,7 +65,7 @@ export default function DocumentsPage() {
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Documents & Agreements</h1>
-        <p className="text-gray-500 text-sm mt-1">Your legal agreements with K.I.N.D.</p>
+        <p className="text-[#7B6FA0] text-sm mt-1">Your legal agreements with K.I.N.D.</p>
       </div>
 
       {/* Acceptance record */}
@@ -86,11 +86,11 @@ export default function DocumentsPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex items-start gap-3">
-          <Shield className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+        <div className="bg-[#F5F0FF] border border-purple-200 rounded-xl p-5 flex items-start gap-3">
+          <Shield className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold text-blue-800">No purchase yet</p>
-            <p className="text-blue-700 text-sm mt-1 leading-relaxed">
+            <p className="text-[#6D28D9] text-sm mt-1 leading-relaxed">
               Your acceptance of K.I.N.D's terms will be recorded automatically when you
               complete your first purchase on the Billing page. No manual signing required.
             </p>
@@ -99,28 +99,28 @@ export default function DocumentsPage() {
       )}
 
       {/* Legal documents */}
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
+        <div className="px-6 py-4 border-b border-purple-100/60">
           <h2 className="font-semibold text-gray-900">Legal documents</h2>
-          <p className="text-xs text-gray-400 mt-0.5">These documents govern your relationship with K.I.N.D.</p>
+          <p className="text-xs text-[#9B8EC4] mt-0.5">These documents govern your relationship with K.I.N.D.</p>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-purple-100/50">
           {DOCS.map(doc => (
             <div key={doc.title} className="px-6 py-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4 text-blue-600" />
+                <div className="w-9 h-9 rounded-lg bg-[#F5F0FF] flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-[#7C3AED]" />
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 text-sm">{doc.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{doc.description}</p>
+                  <p className="text-xs text-[#9B8EC4] mt-0.5">{doc.description}</p>
                 </div>
               </div>
               <a
                 href={doc.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-[#0066FF] hover:underline font-medium shrink-0">
+                className="flex items-center gap-1.5 text-xs text-[#7C3AED] hover:underline font-medium shrink-0">
                 <ExternalLink className="w-3.5 h-3.5" />Read
               </a>
             </div>
@@ -129,13 +129,13 @@ export default function DocumentsPage() {
       </div>
 
       {/* Legal note */}
-      <div className="flex items-start gap-2 text-xs text-gray-400">
+      <div className="flex items-start gap-2 text-xs text-[#9B8EC4]">
         <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
         <p>
           Electronic acceptance via payment is legally equivalent to a handwritten signature under
           ECTA No. 25 of 2002. Your IP address and payment timestamp are recorded as proof of acceptance.
           Questions? Email{' '}
-          <a href="mailto:hello@get-kind.com" className="text-[#0066FF] hover:underline">hello@get-kind.com</a>.
+          <a href="mailto:hello@get-kind.com" className="text-[#7C3AED] hover:underline">hello@get-kind.com</a>.
         </p>
       </div>
     </div>

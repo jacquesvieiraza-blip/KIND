@@ -46,7 +46,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } catch { }
 
   return (
-    <div className="flex h-screen bg-[#FFFBF5]">
+    <div className="flex h-screen" style={{ background: 'linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%)' }}>
       <Sidebar
         userEmail={user.email || ''}
         creditBalance={creditBalance}

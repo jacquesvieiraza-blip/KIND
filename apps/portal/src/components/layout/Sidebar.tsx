@@ -21,7 +21,7 @@ interface AgentDef {
   accent: string
   ring: string
   price?: string
-  nav: { href: string; label: string; icon: React.ElementType; badge?: 'unread' }[]
+  nav: { href: string; label: string; icon: React.ElementType; badge?: 'unread'; exact?: boolean }[]
 }
 
 const AGENTS: AgentDef[] = [
@@ -70,8 +70,8 @@ const AGENT_HREFS: Record<AgentId, string> = {
 }
 
 const LEAD_GEN_NAV = [
-  { href: '/dashboard',                label: 'Home',            icon: Home },
-  { href: '/dashboard/leads',          label: 'People',          icon: Users },
+  { href: '/dashboard',                label: 'Home',            icon: Home,        exact: true },
+  { href: '/dashboard/leads',          label: 'People',          icon: Users,       exact: true },
   { href: '/dashboard/leads/icp',      label: 'ICP Builder',     icon: TrendingUp },
   { href: '/dashboard/leads/linkedin', label: 'LinkedIn Import', icon: Search },
 ]
@@ -150,10 +150,12 @@ export function Sidebar({
     router.refresh()
   }
 
-  function NavLink({ href, label, icon: Icon, badge }: {
-    href: string; label: string; icon: React.ElementType; badge?: 'unread'
+  function NavLink({ href, label, icon: Icon, badge, exact }: {
+    href: string; label: string; icon: React.ElementType; badge?: 'unread'; exact?: boolean
   }) {
-    const active     = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+    const active = exact
+      ? pathname === href
+      : pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
     const showUnread = badge === 'unread' && unreadCount > 0
     return (
       <Link
@@ -178,7 +180,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="w-[240px] bg-[#0F0929] flex flex-col shrink-0 border-r border-white/[0.06]">
+    <aside className="w-[240px] flex flex-col shrink-0 border-r border-white/[0.08]" style={{ background: "linear-gradient(180deg, #1E1152 0%, #160D3D 100%)" }}>
 
       {/* ── Logo ──────────────────────────────────────────────────── */}
       <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-white/[0.06]">
@@ -313,7 +315,7 @@ export function Sidebar({
         {/* ── Account ─────────────────────────────────────────────── */}
         <div className="!mt-5 border-t border-white/[0.06] !pt-3 space-y-0.5">
           {ACCOUNT_NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+            const active = pathname === href || pathname.startsWith(href + '/')
             return (
               <Link
                 key={href}

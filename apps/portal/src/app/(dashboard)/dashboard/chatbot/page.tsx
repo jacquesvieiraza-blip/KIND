@@ -51,13 +51,13 @@ interface VidaStats {
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const COLOR_PRESETS = ['#0066FF', '#7c3aed', '#059669', '#dc2626', '#f59e0b', '#111827']
+const COLOR_PRESETS = ['#7C3AED', '#059669', '#059669', '#dc2626', '#f59e0b', '#111827']
 
 const OUTCOME_STYLES: Record<string, string> = {
   hot_lead:   'bg-red-100 text-red-700',
   interested: 'bg-amber-100 text-amber-700',
   browsing:   'bg-gray-100 text-gray-600',
-  spam:       'bg-gray-100 text-gray-400',
+  spam:       'bg-gray-100 text-[#9B8EC4]',
 }
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -91,14 +91,14 @@ export default function ChatbotPage() {
     })
   }, [supabase])
 
-  if (hasAccess === null) return <div className="flex items-center justify-center min-h-[60vh]"><p className="text-sm text-gray-400">Loading…</p></div>
+  if (hasAccess === null) return <div className="flex items-center justify-center min-h-[60vh]"><p className="text-sm text-[#9B8EC4]">Loading…</p></div>
 
   if (!hasAccess) return (
     <div className="flex items-center justify-center min-h-[60vh] px-4">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 max-w-lg w-full p-8 text-center">
+      <div className="bg-white rounded-2xl shadow-lg border border-purple-100/60 max-w-lg w-full p-8 text-center">
         <div className="text-4xl mb-4">💬</div>
         <h1 className="text-2xl font-bold text-gray-900 mb-3">Unlock the Chatbot Agent</h1>
-        <p className="text-gray-500 text-sm leading-relaxed mb-6">Deploy an AI chatbot on your website or WhatsApp — trained on your business, live in minutes.</p>
+        <p className="text-[#7B6FA0] text-sm leading-relaxed mb-6">Deploy an AI chatbot on your website or WhatsApp — trained on your business, live in minutes.</p>
         <ul className="text-left space-y-2.5 mb-8">
           {['Answers product questions instantly', 'Captures and qualifies leads 24/7', 'Hands off to your team when needed', 'One-line embed — any website'].map(f => (
             <li key={f} className="flex items-start gap-2.5 text-sm text-gray-700">
@@ -108,13 +108,13 @@ export default function ChatbotPage() {
         </ul>
         <div className="text-center mb-4">
           <span className="text-3xl font-bold text-gray-900">$39</span>
-          <span className="text-gray-400 text-sm ml-1">/month</span>
+          <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
         </div>
         <div className="flex flex-col gap-3">
-          <a href="/dashboard/billing" className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Unlock Vida — $39/month →</a>
-          <a href="https://cal.com/get-kind/demo" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-gray-200">Request a demo instead</a>
+          <a href="/dashboard/billing" className="inline-block w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Unlock Vida — $39/month →</a>
+          <a href="https://cal.com/get-kind/demo" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-purple-100/80">Request a demo instead</a>
         </div>
-        <p className="text-xs text-gray-400 mt-3">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>
+        <p className="text-xs text-[#9B8EC4] mt-3">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>
       </div>
     </div>
   )
@@ -124,23 +124,23 @@ export default function ChatbotPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          Vida <span className="text-sm font-normal text-gray-400 ml-1">— AI Chatbot Agent</span>
+          Vida <span className="text-sm font-normal text-[#9B8EC4] ml-1">— AI Chatbot Agent</span>
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <p className="text-sm text-[#7B6FA0] mt-0.5">
           Qualify inbound leads and answer questions on your website and WhatsApp.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-purple-100/80">
         {(['configure', 'conversations', 'embed'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
               tab === t
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-[#7C3AED] text-[#7C3AED]'
+                : 'border-transparent text-[#7B6FA0] hover:text-gray-700'
             }`}
           >
             {t === 'embed' ? 'Embed' : t.charAt(0).toUpperCase() + t.slice(1)}
@@ -175,7 +175,7 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
     bot_name:      'Vida',
     greeting:      'Hi! How can I help you today?',
     system_prompt: null,
-    primary_color: '#0066FF',
+    primary_color: '#7C3AED',
     collect_email: true,
     collect_phone: false,
     notify_email:  null,
@@ -229,15 +229,15 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
-        <p className="text-sm text-gray-400">Loading config…</p>
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-10 text-center">
+        <p className="text-sm text-[#9B8EC4]">Loading config…</p>
       </div>
     )
   }
 
   return (
     <form onSubmit={handleSave} className="space-y-5">
-      <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6 space-y-5">
 
         {/* Bot name */}
         <div>
@@ -246,7 +246,7 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
             type="text"
             value={config.bot_name ?? ''}
             onChange={e => setConfig(c => ({ ...c, bot_name: e.target.value }))}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
             placeholder="Vida"
           />
         </div>
@@ -258,7 +258,7 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
             type="text"
             value={config.greeting ?? ''}
             onChange={e => setConfig(c => ({ ...c, greeting: e.target.value }))}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
             placeholder="Hi! How can I help you today?"
           />
         </div>
@@ -270,10 +270,10 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
             value={config.system_prompt ?? ''}
             onChange={e => setConfig(c => ({ ...c, system_prompt: e.target.value }))}
             rows={4}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+            className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
             placeholder="e.g. You help companies understand how K.I.N.D's AI tools can grow their pipeline..."
           />
-          <p className="text-xs text-gray-400 mt-1">Custom instructions for Vida's persona and knowledge.</p>
+          <p className="text-xs text-[#9B8EC4] mt-1">Custom instructions for Vida's persona and knowledge.</p>
         </div>
 
         {/* Primary color */}
@@ -294,10 +294,10 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
             ))}
             <input
               type="text"
-              value={config.primary_color ?? '#0066FF'}
+              value={config.primary_color ?? '#7C3AED'}
               onChange={e => setConfig(c => ({ ...c, primary_color: e.target.value }))}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-28 font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
-              placeholder="#0066FF"
+              className="border border-purple-100/80 rounded-lg px-3 py-1.5 text-sm w-28 font-mono focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="#7C3AED"
             />
           </div>
         </div>
@@ -325,17 +325,17 @@ function ConfigureTab({ toast }: { toast: (msg: string) => void }) {
             type="email"
             value={config.notify_email ?? ''}
             onChange={e => setConfig(c => ({ ...c, notify_email: e.target.value }))}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
             placeholder="you@company.com"
           />
-          <p className="text-xs text-gray-400 mt-1">We'll email you when Vida identifies a hot lead.</p>
+          <p className="text-xs text-[#9B8EC4] mt-1">We'll email you when Vida identifies a hot lead.</p>
         </div>
       </div>
 
       <button
         type="submit"
         disabled={saving}
-        className="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+        className="px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
       >
         {saving ? 'Saving…' : 'Save configuration'}
       </button>
@@ -358,13 +358,13 @@ function Toggle({
     <div className="flex items-center justify-between gap-4">
       <div>
         <p className="text-sm font-medium text-gray-700">{label}</p>
-        <p className="text-xs text-gray-400">{description}</p>
+        <p className="text-xs text-[#9B8EC4]">{description}</p>
       </div>
       <button
         type="button"
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          checked ? 'bg-blue-600' : 'bg-gray-200'
+          checked ? 'bg-[#7C3AED]' : 'bg-gray-200'
         }`}
       >
         <span
@@ -426,8 +426,8 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
-        <p className="text-sm text-gray-400">Loading conversations…</p>
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-10 text-center">
+        <p className="text-sm text-[#9B8EC4]">Loading conversations…</p>
       </div>
     )
   }
@@ -443,29 +443,29 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
             { label: 'Interested',      value: stats.interested },
             { label: 'Avg lead score',  value: stats.avgScore ? `${stats.avgScore}/100` : '—' },
           ].map(({ label, value }) => (
-            <div key={label} className="bg-white rounded-xl border border-gray-100 p-4">
+            <div key={label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4">
               <p className="text-2xl font-bold text-gray-900">{value}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+              <p className="text-xs text-[#9B8EC4] mt-0.5">{label}</p>
             </div>
           ))}
         </div>
       )}
 
       {/* Sessions table */}
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
         {sessions.length === 0 ? (
           <div className="p-10 text-center">
-            <p className="text-gray-500 font-medium mb-1">No conversations yet</p>
-            <p className="text-sm text-gray-400">Once your widget is live, chat sessions will appear here.</p>
+            <p className="text-[#7B6FA0] font-medium mb-1">No conversations yet</p>
+            <p className="text-sm text-[#9B8EC4]">Once your widget is live, chat sessions will appear here.</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-left">
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Visitor</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Email</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Outcome</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Date</th>
+              <tr className="border-b border-purple-100/60 text-left">
+                <th className="px-5 py-3 text-xs font-medium text-[#7B6FA0] uppercase tracking-wide">Visitor</th>
+                <th className="px-5 py-3 text-xs font-medium text-[#7B6FA0] uppercase tracking-wide">Email</th>
+                <th className="px-5 py-3 text-xs font-medium text-[#7B6FA0] uppercase tracking-wide">Outcome</th>
+                <th className="px-5 py-3 text-xs font-medium text-[#7B6FA0] uppercase tracking-wide">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -476,9 +476,9 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
                   className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <td className="px-5 py-3 font-medium text-gray-900">
-                    {s.visitor_name || <span className="text-gray-400 font-normal">Anonymous</span>}
+                    {s.visitor_name || <span className="text-[#9B8EC4] font-normal">Anonymous</span>}
                   </td>
-                  <td className="px-5 py-3 text-gray-500">{s.visitor_email || '—'}</td>
+                  <td className="px-5 py-3 text-[#7B6FA0]">{s.visitor_email || '—'}</td>
                   <td className="px-5 py-3">
                     {s.outcome ? (
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${OUTCOME_STYLES[s.outcome] ?? 'bg-gray-100 text-gray-600'}`}>
@@ -488,7 +488,7 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
                       <span className="text-gray-300 text-xs">—</span>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-gray-400 text-xs">
+                  <td className="px-5 py-3 text-[#9B8EC4] text-xs">
                     {new Date(s.created_at).toLocaleDateString()}
                   </td>
                 </tr>
@@ -503,18 +503,18 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-end z-50">
           <div className="bg-white h-full w-full max-w-md flex flex-col shadow-2xl">
             {/* Panel header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-purple-100/60">
               <div>
                 <p className="font-semibold text-gray-900">
                   {selectedSession.visitor_name || 'Anonymous visitor'}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-[#9B8EC4] mt-0.5">
                   {selectedSession.visitor_email || 'No email'} &middot; {new Date(selectedSession.created_at).toLocaleString()}
                 </p>
               </div>
               <button
                 onClick={() => { setSelected(null); setMessages([]) }}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors text-lg leading-none"
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-[#9B8EC4] transition-colors text-lg leading-none"
               >
                 &times;
               </button>
@@ -523,15 +523,15 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
               {loadingMsgs ? (
-                <p className="text-sm text-gray-400 text-center mt-10">Loading transcript…</p>
+                <p className="text-sm text-[#9B8EC4] text-center mt-10">Loading transcript…</p>
               ) : messages.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center mt-10">No messages in this session.</p>
+                <p className="text-sm text-[#9B8EC4] text-center mt-10">No messages in this session.</p>
               ) : (
                 messages.map(m => (
                   <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       m.role === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-sm'
+                        ? 'bg-[#7C3AED] text-white rounded-br-sm'
                         : 'bg-gray-100 text-gray-800 rounded-bl-sm'
                     }`}>
                       {m.content}
@@ -543,13 +543,13 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
 
             {/* Outcome badge */}
             {selectedSession.outcome && (
-              <div className="px-5 py-3 border-t border-gray-100 flex items-center gap-2">
-                <span className="text-xs text-gray-500">Outcome:</span>
+              <div className="px-5 py-3 border-t border-purple-100/60 flex items-center gap-2">
+                <span className="text-xs text-[#7B6FA0]">Outcome:</span>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${OUTCOME_STYLES[selectedSession.outcome] ?? 'bg-gray-100 text-gray-600'}`}>
                   {OUTCOME_LABELS[selectedSession.outcome] ?? selectedSession.outcome}
                 </span>
                 {selectedSession.lead_score !== null && (
-                  <span className="text-xs text-gray-400 ml-auto">Score: {selectedSession.lead_score}/100</span>
+                  <span className="text-xs text-[#9B8EC4] ml-auto">Score: {selectedSession.lead_score}/100</span>
                 )}
               </div>
             )}
@@ -591,10 +591,10 @@ function EmbedTab() {
 
   return (
     <div className="space-y-5">
-      <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6 space-y-4">
         <div>
           <h2 className="font-semibold text-gray-900 mb-1">Embed Vida on your website</h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[#7B6FA0]">
             Paste this snippet before the <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">&lt;/body&gt;</code> tag on your website.
             Vida will appear as a chat bubble in the bottom-right corner.
           </p>
@@ -612,9 +612,9 @@ function EmbedTab() {
           </button>
         </div>
 
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+        <div className="bg-[#F5F0FF] border border-purple-100 rounded-xl p-4">
           <p className="text-xs font-semibold text-blue-800 mb-2">How it works</p>
-          <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+          <ol className="text-xs text-[#6D28D9] space-y-1 list-decimal list-inside">
             <li>Copy the snippet above and paste it before <code className="bg-blue-100 px-1 rounded font-mono">&lt;/body&gt;</code> on every page</li>
             <li>Vida automatically loads your branding and greeting from the Configure tab</li>
             <li>Visitors can chat instantly — no login required</li>

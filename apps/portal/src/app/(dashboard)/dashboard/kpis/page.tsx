@@ -47,8 +47,8 @@ function MetricCard({
   warn?: boolean
   muted?: boolean
 }) {
-  const border = accent ? 'border-green-200 bg-green-50/30' : warn ? 'border-amber-200 bg-amber-50/30' : 'border-gray-100 bg-white'
-  const valColor = accent ? 'text-green-700' : warn ? 'text-amber-700' : muted ? 'text-gray-400' : 'text-gray-900'
+  const border = accent ? 'border-green-200 bg-green-50/30' : warn ? 'border-amber-200 bg-amber-50/30' : 'border-purple-100/60 bg-white'
+  const valColor = accent ? 'text-green-700' : warn ? 'text-amber-700' : muted ? 'text-[#9B8EC4]' : 'text-gray-900'
   const iconBg = accent ? 'bg-green-100 text-green-600' : warn ? 'bg-amber-100 text-amber-600' : muted ? 'bg-gray-50 text-gray-300' : 'bg-[#7C3AED]/10 text-[#7C3AED]'
   return (
     <div className={`rounded-xl border p-5 ${border}`}>
@@ -63,8 +63,8 @@ function MetricCard({
         )}
       </div>
       <p className={`text-2xl font-bold ${valColor}`}>{value}</p>
-      <p className="text-sm text-gray-500 mt-0.5">{label}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      <p className="text-sm text-[#7B6FA0] mt-0.5">{label}</p>
+      {sub && <p className="text-xs text-[#9B8EC4] mt-1">{sub}</p>}
     </div>
   )
 }
@@ -85,7 +85,7 @@ function FunnelStep({
         <span className="text-gray-600 font-medium">{label}</span>
         <div className="flex items-center gap-2">
           <span className="font-bold text-gray-900">{value.toLocaleString()}</span>
-          {pct > 0 && <span className="text-gray-400">({pct}%)</span>}
+          {pct > 0 && <span className="text-[#9B8EC4]">({pct}%)</span>}
         </div>
       </div>
       <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
@@ -112,7 +112,7 @@ function BenchmarkRow({
   const colors = {
     great:    { dot: 'bg-green-400', text: 'text-green-700', label: 'Great' },
     good:     { dot: 'bg-amber-400', text: 'text-amber-700', label: 'Good' },
-    building: { dot: 'bg-gray-300',  text: 'text-gray-400',  label: 'Building' },
+    building: { dot: 'bg-gray-300',  text: 'text-[#9B8EC4]',  label: 'Building' },
   }[status]
 
   return (
@@ -195,12 +195,12 @@ export default function KPIsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Performance</h1>
-          <p className="text-gray-500 text-sm mt-1">Live outreach metrics and pipeline data across all agents.</p>
+          <p className="text-[#7B6FA0] text-sm mt-1">Live outreach metrics and pipeline data across all agents.</p>
         </div>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 border border-purple-100/80 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
@@ -209,7 +209,7 @@ export default function KPIsPage() {
 
       {/* FIGSY status banner */}
       {f.activeCampaigns > 0 && (
-        <div className="flex items-center gap-3 bg-gradient-to-r from-[#001f4d] to-[#003080] rounded-xl px-5 py-3.5">
+        <div className="flex items-center gap-3 bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl px-5 py-3.5">
           <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shrink-0" />
           <p className="text-sm text-white/80">
             FIGSY is running <span className="text-white font-semibold">{f.activeCampaigns} active campaign{f.activeCampaigns !== 1 ? 's' : ''}</span> — outreach is live
@@ -220,8 +220,8 @@ export default function KPIsPage() {
       {/* Email outreach metrics — 5 columns */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Mail className="w-4 h-4 text-gray-400" />
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Email Outreach</h2>
+          <Mail className="w-4 h-4 text-[#9B8EC4]" />
+          <h2 className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">Email Outreach</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {/* Special meetings booked hero card — first in grid */}
@@ -236,7 +236,7 @@ export default function KPIsPage() {
                     : 'No data yet'
                   }
                   {' '}
-                  <span className="text-gray-400">· Alta target: 3–5%</span>
+                  <span className="text-[#9B8EC4]">· Alta target: 3–5%</span>
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">
@@ -292,8 +292,8 @@ export default function KPIsPage() {
       {/* Lead pipeline metrics — 4 columns */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-gray-400" />
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Lead Pipeline</h2>
+          <Target className="w-4 h-4 text-[#9B8EC4]" />
+          <h2 className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">Lead Pipeline</h2>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard label="Total leads" value={l.total.toLocaleString()} icon={<Users className="w-4 h-4" />} />
@@ -325,9 +325,9 @@ export default function KPIsPage() {
       {/* LinkedIn placeholder — coming soon */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Linkedin className="w-4 h-4 text-gray-400" />
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">LinkedIn Outreach</h2>
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Coming soon</span>
+          <Linkedin className="w-4 h-4 text-[#9B8EC4]" />
+          <h2 className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">LinkedIn Outreach</h2>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-[#9B8EC4]">Coming soon</span>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {['Connection requests', 'Accepted', 'Messages sent', 'Replies'].map(label => (
@@ -339,7 +339,7 @@ export default function KPIsPage() {
       {/* Funnel + Benchmarks */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Funnel */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5 space-y-3">
           <h2 className="text-sm font-bold text-gray-900 mb-4">Pipeline funnel</h2>
           <FunnelStep label="Total leads" value={l.total} max={l.total} color="bg-blue-400" pct={100} />
           <FunnelStep label="AI scored" value={l.scored} max={l.total} color="bg-indigo-400" />
@@ -353,9 +353,9 @@ export default function KPIsPage() {
         <div className="space-y-4">
           {/* Benchmarks */}
           {f.totalSent > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
               <h2 className="text-sm font-bold text-gray-900 mb-1">Outreach benchmarks</h2>
-              <p className="text-xs text-gray-400 mb-3">vs B2B cold outreach industry averages</p>
+              <p className="text-xs text-[#9B8EC4] mb-3">vs B2B cold outreach industry averages</p>
               <BenchmarkRow label="Reply rate" value={f.replyRate} good={0.08} ok={0.03} />
               <BenchmarkRow label="Interested rate" value={f.interestedRate} good={0.02} ok={0.005} />
               <BenchmarkRow
@@ -368,10 +368,10 @@ export default function KPIsPage() {
           )}
 
           {/* Key insights */}
-          <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5 space-y-3">
             <h2 className="text-sm font-bold text-gray-900">Key insights</h2>
             {l.total === 0 ? (
-              <p className="text-sm text-gray-400">Build your first ICP in Lead Gen to start seeing metrics here.</p>
+              <p className="text-sm text-[#9B8EC4]">Build your first ICP in Lead Gen to start seeing metrics here.</p>
             ) : (
               <>
                 <p className="text-sm text-gray-700">
@@ -394,7 +394,7 @@ export default function KPIsPage() {
                   </p>
                 )}
                 {f.optOuts > 0 && (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-[#7B6FA0]">
                     {f.optOuts} lead{f.optOuts !== 1 ? 's have' : ' has'} opted out and {f.optOuts !== 1 ? 'are' : 'is'} permanently blocked.
                   </p>
                 )}

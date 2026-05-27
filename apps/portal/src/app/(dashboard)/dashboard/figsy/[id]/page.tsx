@@ -70,7 +70,7 @@ const DEFAULT_STEPS: SequenceStep[] = [
 ]
 
 const CHANNEL_META = {
-  email:    { label: 'Email',    color: 'bg-blue-100 text-blue-700',   dot: 'bg-blue-500' },
+  email:    { label: 'Email',    color: 'bg-blue-100 text-[#6D28D9]',   dot: 'bg-[#7C3AED]' },
   linkedin: { label: 'LinkedIn', color: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-500' },
   sms:      { label: 'SMS',     color: 'bg-green-100 text-green-700',  dot: 'bg-green-500' },
 }
@@ -86,8 +86,8 @@ const STATUS_COLORS: Record<string, string> = {
   draft:     'bg-gray-100 text-gray-600',
   active:    'bg-green-100 text-green-700',
   paused:    'bg-amber-100 text-amber-700',
-  completed: 'bg-blue-100 text-blue-700',
-  archived:  'bg-gray-100 text-gray-400',
+  completed: 'bg-blue-100 text-[#6D28D9]',
+  archived:  'bg-gray-100 text-[#9B8EC4]',
 }
 
 function StepCard({
@@ -106,7 +106,7 @@ function StepCard({
   const channelMeta = CHANNEL_META[step.channel]
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 shadow-sm overflow-hidden">
       {/* Step header */}
       <button
         onClick={() => setExpanded(e => !e)}
@@ -129,7 +129,7 @@ function StepCard({
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-[#9B8EC4] mt-0.5">
             {step.delay_days === 0 ? 'Sends immediately' : `Sends on Day ${step.delay_days}`}
             {step.promptOverride ? ' · Custom prompt' : ' · FIGSY default'}
           </p>
@@ -153,11 +153,11 @@ function StepCard({
           <div className="grid grid-cols-2 gap-3">
             {/* Channel */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Channel</label>
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Channel</label>
               <select
                 value={step.channel}
                 onChange={e => onUpdate({ ...step, channel: e.target.value as SequenceStep['channel'] })}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
+                className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
               >
                 <option value="email">📧 Email</option>
                 <option value="linkedin" disabled>💼 LinkedIn (coming soon)</option>
@@ -166,7 +166,7 @@ function StepCard({
             </div>
             {/* Delay */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">
                 Send on day
               </label>
               <input
@@ -175,7 +175,7 @@ function StepCard({
                 max={90}
                 value={step.delay_days}
                 onChange={e => onUpdate({ ...step, delay_days: parseInt(e.target.value) || 0 })}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200"
               />
             </div>
           </div>
@@ -183,11 +183,11 @@ function StepCard({
           {/* Condition */}
           {index > 0 && (
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Send condition</label>
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Send condition</label>
               <select
                 value={step.condition ?? 'no_reply'}
                 onChange={e => onUpdate({ ...step, condition: e.target.value as SequenceStep['condition'] })}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
+                className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
               >
                 <option value="no_reply">If no reply to previous step</option>
                 <option value="opened">If previous email was opened</option>
@@ -199,11 +199,11 @@ function StepCard({
 
           {/* On reply */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">When prospect replies to this step</label>
+            <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">When prospect replies to this step</label>
             <select
               value={step.on_reply}
               onChange={e => onUpdate({ ...step, on_reply: e.target.value as SequenceStep['on_reply'] })}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
+              className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
             >
               <option value="stop">Stop sequence — reply received ✓</option>
               <option value="skip_next">Skip next step, continue later</option>
@@ -214,21 +214,21 @@ function StepCard({
           {/* Hints */}
           <div className="space-y-2">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Subject guidance</label>
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1">Subject guidance</label>
               <input
                 value={step.subject_hint}
                 onChange={e => onUpdate({ ...step, subject_hint: e.target.value })}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 placeholder="What should the subject line achieve?"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Body guidance</label>
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1">Body guidance</label>
               <textarea
                 value={step.body_hint}
                 onChange={e => onUpdate({ ...step, body_hint: e.target.value })}
                 rows={2}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
+                className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 placeholder="What should the body achieve? Tone, length, CTA?"
               />
             </div>
@@ -237,7 +237,7 @@ function StepCard({
           {/* Prompt override */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-500">Custom prompt override</label>
+              <label className="text-xs font-semibold text-[#7B6FA0]">Custom prompt override</label>
               <button
                 onClick={() => setEditingPrompt(e => !e)}
                 className="text-xs text-[#7C3AED] hover:underline"
@@ -251,10 +251,10 @@ function StepCard({
                 onChange={e => onUpdate({ ...step, promptOverride: e.target.value || undefined })}
                 rows={4}
                 placeholder="Leave blank to use FIGSY default. Override here to control exactly how this step is written…"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-y"
+                className="w-full text-sm border border-purple-100/80 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-y"
               />
             ) : (
-              <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+              <p className="text-xs text-[#9B8EC4] bg-[#F5EEFF]/60 rounded-lg px-3 py-2">
                 {step.promptOverride ? `"${step.promptOverride.slice(0, 80)}…"` : 'Using FIGSY default prompt — click Edit prompt to override'}
               </p>
             )}
@@ -349,7 +349,7 @@ export default function CampaignDetailPage() {
 
   if (!campaign) {
     return (
-      <div className="text-center py-24 text-gray-400">
+      <div className="text-center py-24 text-[#9B8EC4]">
         <p>Campaign not found.</p>
         <Link href="/dashboard/figsy" className="text-[#7C3AED] hover:underline text-sm mt-2 block">← Back to campaigns</Link>
       </div>
@@ -360,13 +360,13 @@ export default function CampaignDetailPage() {
     <div className="space-y-5 max-w-3xl">
       {/* Back link + header */}
       <div>
-        <Link href="/dashboard/figsy" className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-3">
+        <Link href="/dashboard/figsy" className="flex items-center gap-1.5 text-sm text-[#9B8EC4] hover:text-gray-700 transition-colors mb-3">
           <ArrowLeft className="w-4 h-4" /> All campaigns
         </Link>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">{campaign.name}</h1>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[campaign.status] ?? 'bg-gray-100 text-gray-500'}`}>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[campaign.status] ?? 'bg-gray-100 text-[#7B6FA0]'}`}>
               {campaign.status}
             </span>
           </div>
@@ -403,9 +403,9 @@ export default function CampaignDetailPage() {
           { label: 'Replies',   value: campaign.replies_total },
           { label: 'Interested',value: campaign.replies_interested },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 text-center">
+          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4 text-center">
             <p className="text-xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+            <p className="text-xs text-[#9B8EC4] mt-0.5">{label}</p>
           </div>
         ))}
       </div>
@@ -423,7 +423,7 @@ export default function CampaignDetailPage() {
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
               activeTab === value
                 ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                : 'text-[#7B6FA0] hover:text-gray-700'
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -438,7 +438,7 @@ export default function CampaignDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-bold text-gray-900">Email Sequence</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Configure how FIGSY reaches out to each lead over time.</p>
+              <p className="text-xs text-[#9B8EC4] mt-0.5">Configure how FIGSY reaches out to each lead over time.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -500,7 +500,7 @@ export default function CampaignDetailPage() {
           {steps.length < 7 && (
             <button
               onClick={addStep}
-              className="mt-6 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm font-medium text-gray-400 hover:border-[#7C3AED]/40 hover:text-[#7C3AED] transition-all"
+              className="mt-6 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-purple-100/80 rounded-xl text-sm font-medium text-[#9B8EC4] hover:border-[#7C3AED]/40 hover:text-[#7C3AED] transition-all"
             >
               <Plus className="w-4 h-4" /> Add step
             </button>
@@ -511,13 +511,13 @@ export default function CampaignDetailPage() {
       {/* ── Audience tab ─────────────────────────────────────────── */}
       {activeTab === 'audience' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <h2 className="text-sm font-bold text-gray-900 mb-1">Audience configuration</h2>
-            <p className="text-xs text-gray-400 mb-4">FIGSY auto-enrolls all consented leads that match these criteria.</p>
+            <p className="text-xs text-[#9B8EC4] mb-4">FIGSY auto-enrolls all consented leads that match these criteria.</p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Minimum lead score</label>
+                <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Minimum lead score</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="range" min={0} max={100} step={5} defaultValue={60}
@@ -525,11 +525,11 @@ export default function CampaignDetailPage() {
                   />
                   <span className="text-sm font-bold text-gray-900 w-8">60</span>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Only enroll leads with score ≥ 60</p>
+                <p className="text-xs text-[#9B8EC4] mt-1">Only enroll leads with score ≥ 60</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Daily enrollment limit</label>
+                <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Daily enrollment limit</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="range" min={1} max={50} step={1} defaultValue={10}
@@ -537,11 +537,11 @@ export default function CampaignDetailPage() {
                   />
                   <span className="text-sm font-bold text-gray-900 w-12">10/day</span>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Control the rate of new enrollments to avoid spikes</p>
+                <p className="text-xs text-[#9B8EC4] mt-1">Control the rate of new enrollments to avoid spikes</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2">Source filter</label>
+                <label className="block text-xs font-semibold text-[#7B6FA0] mb-2">Source filter</label>
                 <div className="flex flex-wrap gap-2">
                   {['All consented leads', 'Apollo only', 'High score (80+)', 'Specific ICP'].map(src => (
                     <button
@@ -549,7 +549,7 @@ export default function CampaignDetailPage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                         src === 'All consented leads'
                           ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          : 'bg-white text-gray-600 border-purple-100/80 hover:border-gray-300'
                       }`}
                     >
                       {src}
@@ -566,11 +566,11 @@ export default function CampaignDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <h2 className="text-sm font-bold text-gray-900 mb-1">Enrolled leads</h2>
-            <p className="text-xs text-gray-400 mb-3">{campaign.leads_enrolled} leads currently enrolled in this campaign.</p>
+            <p className="text-xs text-[#9B8EC4] mb-3">{campaign.leads_enrolled} leads currently enrolled in this campaign.</p>
             {campaign.leads_enrolled === 0 ? (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-[#9B8EC4]">
                 No leads enrolled yet. Activate the campaign to start auto-enrolling consented leads.
               </p>
             ) : (
@@ -596,43 +596,43 @@ export default function CampaignDetailPage() {
       {/* ── Settings tab ─────────────────────────────────────────── */}
       {activeTab === 'settings' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5 space-y-4">
             <h2 className="text-sm font-bold text-gray-900">Campaign settings</h2>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Campaign name</label>
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Campaign name</label>
               <input
                 defaultValue={campaign.name}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
+                className="w-full border border-purple-100/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-2">Sending mode</label>
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-2">Sending mode</label>
               <div className="grid grid-cols-2 gap-2">
                 <button className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-[#7C3AED] bg-purple-50 text-sm font-semibold text-[#7C3AED]">
                   <Zap className="w-4 h-4" /> Auto-Pilot
                 </button>
-                <button className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-amber-400">
+                <button className="flex items-center gap-2 px-4 py-3 rounded-xl border border-purple-100/80 text-sm font-medium text-gray-600 hover:border-amber-400">
                   <Users className="w-4 h-4" /> Co-Pilot
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Sending window</label>
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Sending window</label>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Send between</p>
-                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-200">
+                  <p className="text-xs text-[#9B8EC4] mb-1">Send between</p>
+                  <select className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-200">
                     <option>08:00</option>
                     <option>09:00</option>
                     <option>10:00</option>
                   </select>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">and</p>
-                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-200">
+                  <p className="text-xs text-[#9B8EC4] mb-1">and</p>
+                  <select className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-200">
                     <option>17:00</option>
                     <option>18:00</option>
                     <option>19:00</option>

@@ -11,7 +11,7 @@ import {
 // ── Sparkline chart (pure SVG, no library) ───────────────────────────────────
 function SparklineChart({
   data,
-  color = '#0066FF',
+  color = '#7C3AED',
   height = 56,
 }: {
   data: { label: string; value: number }[]
@@ -81,7 +81,7 @@ const AGENT_PRODUCTS = [
     subtitle: 'AI Virtual Assistant',
     price:    49,
     icon:     Bot,
-    color:    'bg-blue-600',
+    color:    'bg-[#7C3AED]',
     features: ['Trained on your documents & SOPs', 'Answers questions about your business instantly', 'Drafts emails in your tone & voice', 'Available 24/7 — never misses a question'],
   },
   {
@@ -96,7 +96,7 @@ const AGENT_PRODUCTS = [
 ]
 
 function printReceipt(tx: CreditTransaction) {
-  const html = `<!DOCTYPE html><html><head><title>K.I.N.D Receipt</title><style>body{font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto}h1{font-size:20px;font-weight:bold;margin-bottom:4px}.logo{color:#0066FF;font-weight:bold;font-size:18px;margin-bottom:24px}table{width:100%;border-collapse:collapse;margin-top:16px}td{padding:8px 0;border-bottom:1px solid #eee;font-size:14px}td:last-child{text-align:right;font-weight:500}.footer{font-size:12px;color:#888;margin-top:32px}@media print{button{display:none}}</style></head><body>
+  const html = `<!DOCTYPE html><html><head><title>K.I.N.D Receipt</title><style>body{font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto}h1{font-size:20px;font-weight:bold;margin-bottom:4px}.logo{color:#7C3AED;font-weight:bold;font-size:18px;margin-bottom:24px}table{width:100%;border-collapse:collapse;margin-top:16px}td{padding:8px 0;border-bottom:1px solid #eee;font-size:14px}td:last-child{text-align:right;font-weight:500}.footer{font-size:12px;color:#888;margin-top:32px}@media print{button{display:none}}</style></head><body>
 <div class="logo">⚡ K.I.N.D</div>
 <h1>Credit Purchase Receipt</h1>
 <p style="color:#666;font-size:14px">${new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'long' })}</p>
@@ -107,7 +107,7 @@ function printReceipt(tx: CreditTransaction) {
 <tr><td>Transaction ID</td><td style="font-size:11px">${tx.id}</td></tr>
 </table>
 <div class="footer">K.I.N.D AI · get-kind.com · hello@get-kind.com<br>Questions? Reply to this email.</div>
-<br><button onclick="window.print()" style="margin-top:16px;padding:10px 20px;background:#0066FF;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px">Print / Save as PDF</button>
+<br><button onclick="window.print()" style="margin-top:16px;padding:10px 20px;background:#7C3AED;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px">Print / Save as PDF</button>
 </body></html>`
   const w = window.open('', '_blank')
   if (w) { w.document.write(html); w.document.close() }
@@ -236,7 +236,7 @@ export default function BillingPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+      <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
     </div>
   )
 
@@ -244,8 +244,8 @@ export default function BillingPage() {
     <div className="flex items-center justify-center h-64">
       <div className="text-center">
         <p className="text-red-600 font-medium mb-2">Could not load billing</p>
-        <p className="text-sm text-gray-500 mb-4">{loadError}</p>
-        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">Retry</button>
+        <p className="text-sm text-[#7B6FA0] mb-4">{loadError}</p>
+        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm">Retry</button>
       </div>
     </div>
   )
@@ -258,11 +258,11 @@ export default function BillingPage() {
     <div className="space-y-8 max-w-3xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Billing & Credits</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage credits and agent subscriptions.</p>
+        <p className="text-[#7B6FA0] text-sm mt-1">Manage credits and agent subscriptions.</p>
       </div>
 
       {/* Balance */}
-      <div className="bg-gradient-to-r from-[#001f4d] to-[#003080] rounded-xl p-6 text-white flex items-center justify-between">
+      <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl p-6 text-white flex items-center justify-between">
         <div>
           <p className="text-white/60 text-sm mb-1">Current balance</p>
           <div className="flex items-end gap-2">
@@ -279,28 +279,28 @@ export default function BillingPage() {
       {/* How credits work */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Zap className="w-4 h-4 text-blue-500" />, title: 'Lead found', sub: 'No credit used', bg: 'bg-blue-50' },
+          { icon: <Zap className="w-4 h-4 text-purple-500" />, title: 'Lead found', sub: 'No credit used', bg: 'bg-[#F5F0FF]' },
           { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'Outreach sent', sub: 'No credit used', bg: 'bg-indigo-50' },
           { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Lead delivered', sub: '1 credit consumed', bg: 'bg-green-50' },
         ].map(({ icon, title, sub, bg }) => (
-          <div key={title} className="bg-white border border-gray-100 rounded-xl p-4 text-center">
+          <div key={title} className="bg-white border border-purple-100/60 rounded-xl p-4 text-center">
             <div className={`w-8 h-8 ${bg} rounded-full flex items-center justify-center mx-auto mb-2`}>{icon}</div>
             <p className="text-sm font-medium text-gray-900">{title}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+            <p className="text-xs text-[#9B8EC4] mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
 
       {/* Terms */}
-      <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
+      <div className="bg-white border border-purple-100/80 rounded-xl px-5 py-4">
         <label className="flex items-start gap-3 cursor-pointer select-none">
           <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
-            className="mt-0.5 rounded border-gray-300 text-brand-500 focus:ring-brand-500 shrink-0" />
+            className="mt-0.5 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED] shrink-0" />
           <span className="text-sm text-gray-700 leading-relaxed">
             I have read and agree to the{' '}
-            <a href="https://get-kind.com/terms" target="_blank" rel="noopener noreferrer" className="text-[#0066FF] hover:underline font-medium">Terms of Service</a>
+            <a href="https://get-kind.com/terms" target="_blank" rel="noopener noreferrer" className="text-[#7C3AED] hover:underline font-medium">Terms of Service</a>
             {' '}and{' '}
-            <a href="https://get-kind.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#0066FF] hover:underline font-medium">Privacy Policy</a>.
+            <a href="https://get-kind.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#7C3AED] hover:underline font-medium">Privacy Policy</a>.
             {' '}My acceptance is recorded with a timestamp and is legally binding under ECTA No. 25 of 2002.
           </span>
         </label>
@@ -318,7 +318,7 @@ export default function BillingPage() {
       {/* ── CREDIT BUNDLES ──────────────────────────────────────────────────── */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Top up credits</h2>
-        <p className="text-sm text-gray-400 mb-4">One-time purchase · Credits never expire · Billed in USD via Stripe</p>
+        <p className="text-sm text-[#9B8EC4] mb-4">One-time purchase · Credits never expire · Billed in USD via Stripe</p>
 
         {!stripeReady && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 text-sm text-amber-700 mb-4">
@@ -328,56 +328,56 @@ export default function BillingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Lead Gen */}
-          <div className="rounded-xl overflow-hidden border border-gray-100">
-            <div className="bg-[#0066FF] px-5 py-4 text-white">
+          <div className="rounded-xl overflow-hidden border border-purple-100/60">
+            <div className="bg-[#7C3AED] px-5 py-4 text-white">
               <p className="font-semibold">K.I.N.D AI — Lead Gen</p>
               <p className="text-white/60 text-xs mt-0.5">Sourcing + scoring + delivery</p>
             </div>
             <div className="bg-white px-5 py-5 space-y-4">
               <div className="relative">
                 <select value={selectedLeadGen} onChange={e => setSelectedLeadGen(Number(e.target.value))}
-                  className="w-full appearance-none border border-gray-200 rounded-lg px-4 py-2.5 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
+                  className="w-full appearance-none border border-purple-100/80 rounded-lg px-4 py-2.5 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
                   {STRIPE_LEADGEN_BUNDLES.map(b => (
                     <option key={b.credits} value={b.credits}>{b.credits} credits — ${b.priceUsd}</option>
                   ))}
                 </select>
-                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-[#9B8EC4] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
               <button
                 onClick={() => handleCreditBuy(leadGenBundle.priceId, leadGenBundle.credits, 'lead_gen')}
                 disabled={!!creditInitiating || !termsAccepted || !leadGenBundle.priceId}
-                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#0066FF] hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 {creditInitiating === `lead_gen_${selectedLeadGen}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
                 Buy {selectedLeadGen} credits — ${leadGenBundle.priceUsd}
               </button>
-              <p className="text-xs text-gray-400 text-center">Credits never expire</p>
+              <p className="text-xs text-[#9B8EC4] text-center">Credits never expire</p>
             </div>
           </div>
 
           {/* FIGSY */}
-          <div className="rounded-xl overflow-hidden border border-gray-100">
-            <div className="bg-[#001f4d] px-5 py-4 text-white">
+          <div className="rounded-xl overflow-hidden border border-purple-100/60">
+            <div className="bg-[#0F0929] px-5 py-4 text-white">
               <p className="font-semibold">FIGSY Advanced</p>
               <p className="text-white/60 text-xs mt-0.5">Full outreach — AI SDR credits</p>
             </div>
             <div className="bg-white px-5 py-5 space-y-4">
               <div className="relative">
                 <select value={selectedFigsy} onChange={e => setSelectedFigsy(Number(e.target.value))}
-                  className="w-full appearance-none border border-gray-200 rounded-lg px-4 py-2.5 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
+                  className="w-full appearance-none border border-purple-100/80 rounded-lg px-4 py-2.5 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
                   {STRIPE_FIGSY_BUNDLES.map(b => (
                     <option key={b.credits} value={b.credits}>{b.credits} credits — ${b.priceUsd}</option>
                   ))}
                 </select>
-                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-[#9B8EC4] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
               <button
                 onClick={() => handleCreditBuy(figsyBundle.priceId, figsyBundle.credits, 'figsy')}
                 disabled={!!creditInitiating || !termsAccepted || !figsyBundle.priceId}
-                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#001f4d] hover:bg-[#002a6e] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#0F0929] hover:bg-[#1A0F47] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 {creditInitiating === `figsy_${selectedFigsy}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
                 Buy {selectedFigsy} credits — ${figsyBundle.priceUsd}
               </button>
-              <p className="text-xs text-gray-400 text-center">Credits never expire</p>
+              <p className="text-xs text-[#9B8EC4] text-center">Credits never expire</p>
             </div>
           </div>
         </div>
@@ -386,7 +386,7 @@ export default function BillingPage() {
       {/* ── AGENT SUBSCRIPTIONS ─────────────────────────────────────────────── */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">AI Agents</h2>
-        <p className="text-sm text-gray-400 mb-4">Monthly subscriptions · Cancel anytime · Activates instantly after payment</p>
+        <p className="text-sm text-[#9B8EC4] mb-4">Monthly subscriptions · Cancel anytime · Activates instantly after payment</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {AGENT_PRODUCTS.map(agent => {
@@ -396,7 +396,7 @@ export default function BillingPage() {
             const Icon          = agent.icon
 
             return (
-              <div key={agent.key} className="rounded-xl overflow-hidden border border-gray-100">
+              <div key={agent.key} className="rounded-xl overflow-hidden border border-purple-100/60">
                 <div className={`${agent.color} px-5 py-4 text-white`}>
                   <div className="flex items-center gap-2">
                     <Icon className="w-4 h-4" />
@@ -423,7 +423,7 @@ export default function BillingPage() {
 
                   <div className="text-center mb-4">
                     <span className="text-3xl font-bold text-gray-900">${agent.price}</span>
-                    <span className="text-gray-400 text-sm ml-1">/month</span>
+                    <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
                   </div>
 
                   {isActive ? (
@@ -444,7 +444,7 @@ export default function BillingPage() {
                       </button>
                       <button
                         onClick={() => handleDemoRequest(agent.key)}
-                        className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-300 rounded-xl px-4 py-2.5 transition-colors">
+                        className="w-full flex items-center justify-center gap-2 text-sm text-[#7B6FA0] hover:text-gray-800 border border-purple-100/80 hover:border-gray-300 rounded-xl px-4 py-2.5 transition-colors">
                         Request a demo instead
                       </button>
                     </div>
@@ -457,45 +457,45 @@ export default function BillingPage() {
       </div>
 
       {/* ── AUTO TOP-UP ─────────────────────────────────────────────────────── */}
-      <div className="bg-white border border-gray-100 rounded-xl p-6">
+      <div className="bg-white border border-purple-100/60 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-base font-semibold text-gray-900">Auto top-up</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Automatically recharge when balance drops below your threshold.</p>
+            <p className="text-xs text-[#9B8EC4] mt-0.5">Automatically recharge when balance drops below your threshold.</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={autoTopup.enabled} onChange={e => setAutoTopup(p => ({ ...p, enabled: e.target.checked }))} className="sr-only peer" />
-            <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:bg-[#0066FF] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
+            <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:bg-[#7C3AED] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
           </label>
         </div>
         {autoTopup.enabled && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-1.5">Recharge when below</p>
+                <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Recharge when below</p>
                 <select value={autoTopup.threshold} onChange={e => setAutoTopup(p => ({ ...p, threshold: Number(e.target.value) }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
+                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none">
                   {[5, 10, 20, 50].map(v => <option key={v} value={v}>{v} credits</option>)}
                 </select>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-1.5">Plan</p>
+                <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Plan</p>
                 <select value={autoTopup.plan} onChange={e => setAutoTopup(p => ({ ...p, plan: e.target.value as 'kind_ai' | 'figsy' }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
+                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none">
                   <option value="kind_ai">K.I.N.D AI</option>
                   <option value="figsy">FIGSY</option>
                 </select>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-1.5">Recharge amount</p>
+                <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Recharge amount</p>
                 <select value={autoTopup.bundle_size} onChange={e => setAutoTopup(p => ({ ...p, bundle_size: Number(e.target.value) }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
+                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none">
                   {[10, 20, 40, 75, 100, 200].map(v => <option key={v} value={v}>{v} credits</option>)}
                 </select>
               </div>
             </div>
             <button onClick={saveAutoTopup} disabled={savingTopup}
-              className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
+              className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
               {savingTopup ? <Loader2 className="w-4 h-4 animate-spin" /> : topupSaved ? <Check className="w-4 h-4" /> : null}
               {topupSaved ? 'Saved!' : 'Save settings'}
             </button>
@@ -524,16 +524,16 @@ export default function BillingPage() {
         return (
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Credit balance over time</h2>
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-5 text-sm">
-                  <span className="text-gray-500">Top-ups: <span className="font-semibold text-green-600">+{totalTopUps}</span></span>
-                  <span className="text-gray-500">Used: <span className="font-semibold text-red-500">−{totalSpent}</span></span>
-                  <span className="text-gray-500">Balance: <span className="font-semibold text-gray-900">{balance ?? 0}</span></span>
+                  <span className="text-[#7B6FA0]">Top-ups: <span className="font-semibold text-green-600">+{totalTopUps}</span></span>
+                  <span className="text-[#7B6FA0]">Used: <span className="font-semibold text-red-500">−{totalSpent}</span></span>
+                  <span className="text-[#7B6FA0]">Balance: <span className="font-semibold text-gray-900">{balance ?? 0}</span></span>
                 </div>
               </div>
-              <SparklineChart data={points} color="#0066FF" height={64} />
-              <div className="flex items-center justify-between mt-2 text-[10px] text-gray-400">
+              <SparklineChart data={points} color="#7C3AED" height={64} />
+              <div className="flex items-center justify-between mt-2 text-[10px] text-[#9B8EC4]">
                 <span>{points[0]?.label}</span>
                 <span>Now</span>
               </div>
@@ -546,19 +546,19 @@ export default function BillingPage() {
       {transactions.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Credit history</h2>
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
             {transactions.map((tx, i) => (
               <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 text-sm ${i < transactions.length - 1 ? 'border-b border-gray-50' : ''}`}>
                 <div>
                   <p className="font-medium text-gray-800">{tx.note || tx.type}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
+                  <p className="text-xs text-[#9B8EC4] mt-0.5">{new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
                 </div>
                 <div className="flex items-center">
                   <span className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
                     {tx.amount > 0 ? '+' : ''}{tx.amount}
                   </span>
                   {tx.type === 'purchase' && (
-                    <button onClick={() => printReceipt(tx)} className="ml-3 text-xs text-blue-500 hover:underline shrink-0">Receipt</button>
+                    <button onClick={() => printReceipt(tx)} className="ml-3 text-xs text-purple-500 hover:underline shrink-0">Receipt</button>
                   )}
                 </div>
               </div>

@@ -32,11 +32,11 @@ export function OnboardingChecklist({ hasCompanyName, hasIcps, hasLeads, hasFigs
   const progress   = Math.round((completedCount / steps.length) * 100)
 
   return (
-    <div className="bg-white rounded-xl border-t-4 border-indigo-500 border border-gray-100 shadow-sm px-5 py-4">
+    <div className="bg-white rounded-xl border-t-4 border-indigo-500 border border-purple-100/60 shadow-sm px-5 py-4">
       <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-sm font-semibold text-gray-900">Get started with K.I.N.D</p>
-          <p className="text-xs text-gray-400 mt-0.5">{completedCount} of {steps.length} complete</p>
+          <p className="text-xs text-[#9B8EC4] mt-0.5">{completedCount} of {steps.length} complete</p>
         </div>
         {/* Progress bar */}
         <div className="w-28 h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -56,7 +56,7 @@ export function OnboardingChecklist({ hasCompanyName, hasIcps, hasLeads, hasFigs
               <span className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
             )}
             {step.done ? (
-              <span className="text-gray-400 line-through">{step.label}</span>
+              <span className="text-[#9B8EC4] line-through">{step.label}</span>
             ) : (
               <Link href={step.href} className="text-gray-700 hover:text-indigo-600 hover:underline transition-colors">
                 {step.label}
@@ -67,8 +67,8 @@ export function OnboardingChecklist({ hasCompanyName, hasIcps, hasLeads, hasFigs
       </ul>
 
       {incomplete.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-xs text-gray-400">
+        <div className="mt-3 pt-3 border-t border-purple-100/60">
+          <p className="text-xs text-[#9B8EC4]">
             Next up:{' '}
             <Link href={incomplete[0].href} className="text-indigo-600 font-medium hover:underline">
               {incomplete[0].label}

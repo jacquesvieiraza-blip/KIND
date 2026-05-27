@@ -14,7 +14,7 @@ import {
 
 // ── Score badge ───────────────────────────────────────────────────────────────
 function ScoreBadge({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-gray-400 text-xs">—</span>
+  if (score === null) return <span className="text-[#9B8EC4] text-xs">—</span>
   const color = score >= SCORE_THRESHOLDS.high
     ? 'bg-green-100 text-green-700'
     : score >= SCORE_THRESHOLDS.medium
@@ -26,23 +26,23 @@ function ScoreBadge({ score }: { score: number | null }) {
 // ── Pipeline stage chip (colored dot + label) ─────────────────────────────────
 const STAGE_META: Record<string, { label: string; dotCls: string; textCls: string }> = {
   pending:       { label: 'New',            dotCls: 'bg-gray-400',    textCls: 'text-gray-600' },
-  scored:        { label: 'AI Scored',      dotCls: 'bg-blue-500',    textCls: 'text-blue-700' },
+  scored:        { label: 'AI Scored',      dotCls: 'bg-[#7C3AED]',    textCls: 'text-[#6D28D9]' },
   consent_sent:  { label: 'Awaiting Consent', dotCls: 'bg-indigo-500', textCls: 'text-indigo-700' },
   consent_given: { label: 'Consented',      dotCls: 'bg-green-500',   textCls: 'text-green-700' },
   exported:      { label: 'In Pipeline',    dotCls: 'bg-purple-500',  textCls: 'text-purple-700' },
   rejected:      { label: 'Rejected',       dotCls: 'bg-red-400',     textCls: 'text-red-600' },
-  opted_out:     { label: 'Opted Out',      dotCls: 'bg-gray-300',    textCls: 'text-gray-400' },
+  opted_out:     { label: 'Opted Out',      dotCls: 'bg-gray-300',    textCls: 'text-[#9B8EC4]' },
 }
 
 // Keep STATUS_META for the filter dropdown labels
 const STATUS_META: Record<string, { label: string; icon: React.ReactNode; cls: string }> = {
   pending:       { label: 'Pending',   icon: <Clock className="w-3 h-3" />,       cls: 'bg-gray-100 text-gray-600' },
-  scored:        { label: 'Scored',    icon: <TrendingUp className="w-3 h-3" />,  cls: 'bg-blue-100 text-blue-700' },
+  scored:        { label: 'Scored',    icon: <TrendingUp className="w-3 h-3" />,  cls: 'bg-blue-100 text-[#6D28D9]' },
   consent_sent:  { label: 'Sent',      icon: <Mail className="w-3 h-3" />,         cls: 'bg-indigo-100 text-indigo-700' },
   consent_given: { label: 'Consented', icon: <CheckCircle className="w-3 h-3" />, cls: 'bg-green-100 text-green-700' },
   exported:      { label: 'Exported',  icon: <Download className="w-3 h-3" />,    cls: 'bg-purple-100 text-purple-700' },
   rejected:      { label: 'Rejected',  icon: <XCircle className="w-3 h-3" />,     cls: 'bg-red-100 text-red-700' },
-  opted_out:     { label: 'Opted out', icon: <Ban className="w-3 h-3" />,         cls: 'bg-gray-100 text-gray-400' },
+  opted_out:     { label: 'Opted out', icon: <Ban className="w-3 h-3" />,         cls: 'bg-gray-100 text-[#9B8EC4]' },
 }
 
 function PipelineStageChip({ status }: { status: string }) {
@@ -119,7 +119,7 @@ function JobPostingsBadge({ lead }: { lead: Lead }) {
 // ── Apollo badge ──────────────────────────────────────────────────────────────
 function ApolloBadge({ consented }: { consented: boolean }) {
   return consented
-    ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-600 font-medium">✓ Apollo</span>
+    ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-[#F5F0FF] text-[#7C3AED] font-medium">✓ Apollo</span>
     : null
 }
 
@@ -222,12 +222,12 @@ function tabToStatusFilter(tab: TabId): string {
 function EmptyState({ tab, hasIcps }: { tab: TabId; hasIcps: boolean }) {
   if (!hasIcps) {
     return (
-      <div className="text-center py-20 text-gray-400">
+      <div className="text-center py-20 text-[#9B8EC4]">
         <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
         <p className="text-sm font-medium text-gray-700">No ICP set up yet</p>
         <p className="text-xs mt-1">Define your ideal customer profile so K.I.N.D knows who to find.</p>
         <a href="/dashboard/leads/icp"
-          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-sm font-medium hover:bg-[#6D28D9] transition-colors">
           <Plus className="w-4 h-4" />Build your ICP
         </a>
       </div>
@@ -241,7 +241,7 @@ function EmptyState({ tab, hasIcps }: { tab: TabId; hasIcps: boolean }) {
       body: 'Your ICP is saved — run it to pull matching leads from Apollo.',
       cta: (
         <a href="/dashboard/leads/icp"
-          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-sm font-medium hover:bg-[#6D28D9] transition-colors">
           <Settings2 className="w-4 h-4" />Run your ICP →
         </a>
       ),
@@ -270,7 +270,7 @@ function EmptyState({ tab, hasIcps }: { tab: TabId; hasIcps: boolean }) {
 
   const m = messages[tab]
   return (
-    <div className="text-center py-20 text-gray-400">
+    <div className="text-center py-20 text-[#9B8EC4]">
       {m.icon}
       <p className="text-sm font-medium text-gray-700">{m.title}</p>
       <p className="text-xs mt-1">{m.body}</p>
@@ -479,7 +479,7 @@ export default function LeadsPage() {
   )
 
   const statCards = [
-    { label: 'Total Leads',      value: stats?.total ?? 0,              icon: <Users className="w-5 h-5" />,       color: 'bg-blue-50 text-blue-600' },
+    { label: 'Total Leads',      value: stats?.total ?? 0,              icon: <Users className="w-5 h-5" />,       color: 'bg-[#F5F0FF] text-[#7C3AED]' },
     { label: 'Avg Score',        value: `${stats?.avg_score ?? 0}/100`, icon: <TrendingUp className="w-5 h-5" />,  color: 'bg-indigo-50 text-indigo-600' },
     { label: 'POPIA Consented',  value: stats?.consented ?? 0,          icon: <ShieldCheck className="w-5 h-5" />, color: 'bg-green-50 text-green-600' },
     { label: 'Pipeline Value',   value: `$${(stats?.pipeline_value_usd ?? 0).toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, color: 'bg-purple-50 text-purple-600' },
@@ -505,7 +505,7 @@ export default function LeadsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">People</h1>
-          <p className="text-gray-500 text-sm mt-1">AI-scored B2B leads, POPIA-compliant and ready for outreach.</p>
+          <p className="text-[#7B6FA0] text-sm mt-1">AI-scored B2B leads, POPIA-compliant and ready for outreach.</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.size > 0 && (
@@ -514,7 +514,7 @@ export default function LeadsPage() {
             </button>
           )}
           <a href="/dashboard/leads/icp"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-400 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-purple-100/80 text-sm font-medium text-gray-700 hover:border-gray-400 transition-colors">
             <Settings2 className="w-4 h-4" />ICP Settings
           </a>
           <button onClick={exportCSV}
@@ -527,18 +527,18 @@ export default function LeadsPage() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map(({ label, value, icon, color }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-100 p-5">
+          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${color}`}>{icon}</div>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+            <p className="text-sm text-[#7B6FA0] mt-0.5">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Compliance notice */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3">
-        <ShieldCheck className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-        <p className="text-xs text-blue-700">
+      <div className="bg-[#F5F0FF] border border-purple-100 rounded-xl px-4 py-3 flex items-start gap-3">
+        <ShieldCheck className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
+        <p className="text-xs text-[#6D28D9]">
           <strong>POPIA & GDPR compliant.</strong> All leads are sourced from Apollo with consent filters active.
           Opt-out requests are permanently blocked across all clients. Only send outreach to <strong>Consented</strong> leads.
         </p>
@@ -561,7 +561,7 @@ export default function LeadsPage() {
               <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-semibold ${
                 isActive
                   ? 'bg-white/25 text-inherit'
-                  : 'bg-gray-100 text-gray-500'
+                  : 'bg-gray-100 text-[#7B6FA0]'
               }`}>
                 {count}
               </span>
@@ -592,23 +592,23 @@ export default function LeadsPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4">
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-48">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9B8EC4]" />
             <input type="text" placeholder="Search leads…" value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              className="w-full pl-9 pr-3 py-2 text-sm border border-purple-100/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
           </div>
           {/* Only show status filter when on "All" tab so it doesn't conflict */}
           {activeTab === 'all' && (
             <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+              className="px-3 py-2 text-sm border border-purple-100/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white">
               <option value="">All statuses</option>
               {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           )}
           <select value={minScore} onChange={e => { setMinScore(e.target.value); setPage(1) }}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+            className="px-3 py-2 text-sm border border-purple-100/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white">
             <option value="">Any score</option>
             <option value="80">Score 80+</option>
             <option value="60">Score 60+</option>
@@ -616,36 +616,36 @@ export default function LeadsPage() {
           </select>
           {icps.length > 0 && (
             <select value={icpFilter} onChange={e => { setIcpFilter(e.target.value); setPage(1) }}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+              className="px-3 py-2 text-sm border border-purple-100/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white">
               <option value="">All ICPs</option>
               {icps.map(icp => <option key={icp.id} value={icp.id}>{icp.name}</option>)}
             </select>
           )}
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 px-3 py-2 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 px-3 py-2 border border-purple-100/80 rounded-lg hover:border-gray-300 transition-colors">
             <input type="checkbox" checked={apolloOnly} onChange={e => { setApolloOnly(e.target.checked); setPage(1) }}
-              className="rounded border-gray-300 text-brand-500 focus:ring-brand-500" />
+              className="rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED]" />
             Apollo consented only
           </label>
         </div>
       </div>
 
       {/* Lead table */}
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+            <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
           </div>
         ) : fetchError ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <p className="text-red-600 font-medium">Could not load leads</p>
-            <p className="text-sm text-gray-500">{fetchError}</p>
+            <p className="text-sm text-[#7B6FA0]">{fetchError}</p>
             {fetchError === 'Failed to fetch' && (
-              <p className="text-xs text-gray-400 max-w-xs text-center">
+              <p className="text-xs text-[#9B8EC4] max-w-xs text-center">
                 The K.I.N.D API is not responding. Check that the Railway service is running at{' '}
                 <span className="font-mono">{process.env.NEXT_PUBLIC_API_URL || 'kindapi-production-e64c.up.railway.app'}</span>
               </p>
             )}
-            <button onClick={() => token && fetchData(token)} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-colors">
+            <button onClick={() => token && fetchData(token)} className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm hover:bg-[#6D28D9] transition-colors">
               Retry
             </button>
           </div>
@@ -656,7 +656,7 @@ export default function LeadsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-purple-100/60">
                     <th className="px-4 py-3 w-10" colSpan={1}>
                       <input
                         type="checkbox"
@@ -669,7 +669,7 @@ export default function LeadsPage() {
                       />
                     </th>
                     {['Lead', 'Company', 'Score', 'Pipeline Stage', 'Technographics', 'Job Postings', 'Source', 'Actions'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#7B6FA0] uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -692,13 +692,13 @@ export default function LeadsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
-                        <p className="text-xs text-gray-400">{lead.job_title || '—'}</p>
-                        {lead.email && <p className="text-xs text-gray-400">{lead.email}</p>}
+                        <p className="text-xs text-[#9B8EC4]">{lead.job_title || '—'}</p>
+                        {lead.email && <p className="text-xs text-[#9B8EC4]">{lead.email}</p>}
                         <BuyingSignals lead={lead} />
                       </td>
                       <td className="px-4 py-3">
                         <p className="text-gray-700">{lead.company || '—'}</p>
-                        <p className="text-xs text-gray-400">{lead.country || ''}</p>
+                        <p className="text-xs text-[#9B8EC4]">{lead.country || ''}</p>
                       </td>
                       <td className="px-4 py-3"><ScoreBadge score={lead.score} /></td>
                       <td className="px-4 py-3">
@@ -715,7 +715,7 @@ export default function LeadsPage() {
                         <ApolloBadge consented={lead.apollo_consented} />
                         {lead.linkedin_url && (
                           <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 ml-1 text-xs text-blue-500 hover:underline">
+                            className="inline-flex items-center gap-1 ml-1 text-xs text-purple-500 hover:underline">
                             <ExternalLink className="w-3 h-3" />
                           </a>
                         )}
@@ -775,13 +775,13 @@ export default function LeadsPage() {
               </table>
             </div>
             {total > 50 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-                <p className="text-xs text-gray-400">Showing {Math.min(page * 50, total)} of {total} leads</p>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-purple-100/60">
+                <p className="text-xs text-[#9B8EC4]">Showing {Math.min(page * 50, total)} of {total} leads</p>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                    className="px-3 py-1.5 text-xs border border-gray-200 rounded-md hover:border-gray-400 disabled:opacity-40 transition-colors">Previous</button>
+                    className="px-3 py-1.5 text-xs border border-purple-100/80 rounded-md hover:border-gray-400 disabled:opacity-40 transition-colors">Previous</button>
                   <button onClick={() => setPage(p => p + 1)} disabled={page * 50 >= total}
-                    className="px-3 py-1.5 text-xs border border-gray-200 rounded-md hover:border-gray-400 disabled:opacity-40 transition-colors">Next</button>
+                    className="px-3 py-1.5 text-xs border border-purple-100/80 rounded-md hover:border-gray-400 disabled:opacity-40 transition-colors">Next</button>
                 </div>
               </div>
             )}
@@ -817,7 +817,7 @@ export default function LeadsPage() {
                 {bulkStatusLoading ? 'Updating…' : 'Mark as…'}<ChevronDown className="w-3.5 h-3.5" />
               </button>
               {showMarkAs && (
-                <div className="absolute bottom-full mb-1 left-0 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden text-gray-900 min-w-36">
+                <div className="absolute bottom-full mb-1 left-0 bg-white rounded-lg shadow-xl border border-purple-100/60 overflow-hidden text-gray-900 min-w-36">
                   {(['consent_sent', 'consent_given', 'exported', 'rejected'] as const).map(s => (
                     <button key={s} onClick={() => bulkMarkAs(s)}
                       className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 capitalize transition-colors">
@@ -846,7 +846,7 @@ export default function LeadsPage() {
               <Sparkles className="w-5 h-5 text-purple-600" />
               <h3 className="font-semibold text-gray-900">AI-generated outreach email</h3>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-72 overflow-y-auto">
+            <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-72 overflow-y-auto">
               {emailDraft.draft}
             </div>
             <div className="flex items-center gap-3">
@@ -855,11 +855,11 @@ export default function LeadsPage() {
                 Copy to clipboard
               </button>
               <button onClick={() => setEmailDraft(null)}
-                className="px-4 py-2.5 border border-gray-200 text-sm font-medium rounded-xl hover:border-gray-400 transition-colors">
+                className="px-4 py-2.5 border border-purple-100/80 text-sm font-medium rounded-xl hover:border-gray-400 transition-colors">
                 Close
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-3 text-center">Review before sending. Only send to POPIA-consented leads.</p>
+            <p className="text-xs text-[#9B8EC4] mt-3 text-center">Review before sending. Only send to POPIA-consented leads.</p>
           </div>
         </div>
       )}

@@ -8,13 +8,13 @@ export default function TermsPage() {
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-100 px-8 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-bold text-gray-900">
-          <Zap className="w-5 h-5 text-[#0066FF]" />K.I.N.D
+          <Zap className="w-5 h-5 text-[#7C3AED]" />K.I.N.D
         </Link>
         <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Back to dashboard →</Link>
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p className="text-gray-500 text-sm mb-8">Last updated: May 2026 · Full version at <a href="https://get-kind.com/terms" className="text-[#0066FF] hover:underline" target="_blank" rel="noopener noreferrer">get-kind.com/terms</a></p>
+        <p className="text-gray-500 text-sm mb-8">Last updated: May 2026 · Full version at <a href="https://get-kind.com/terms" className="text-[#7C3AED] hover:underline" target="_blank" rel="noopener noreferrer">get-kind.com/terms</a></p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>
@@ -59,7 +59,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">9. Contact</h2>
-            <p>Questions: <a href="mailto:hello@get-kind.com" className="text-[#0066FF] hover:underline">hello@get-kind.com</a></p>
+            <p>Questions: <a href="mailto:hello@get-kind.com" className="text-[#7C3AED] hover:underline">hello@get-kind.com</a></p>
           </section>
         </div>
       </main>

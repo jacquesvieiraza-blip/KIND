@@ -129,33 +129,33 @@ export default function SettingsPage() {
     setCrmTesting(false)
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-brand-500" /></div>
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" /></div>
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage your business profile and integrations.</p>
+        <p className="text-[#7B6FA0] text-sm mt-1">Manage your business profile and integrations.</p>
       </div>
 
       {/* Business Profile */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
         <h2 className="font-semibold mb-4">Business Profile</h2>
         <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
             <input type="text" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
             <input type="text" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
             <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+              className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]">
               {SUPPORTED_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -163,12 +163,12 @@ export default function SettingsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
               <input type="url" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
               <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -176,19 +176,19 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Company Registration No.</label>
               <input type="text" value={form.company_registration} onChange={(e) => setForm({ ...form, company_registration: e.target.value })}
                 placeholder="e.g. 2023/123456/07"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">VAT Number <span className="text-gray-400 font-normal">(optional)</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">VAT Number <span className="text-[#9B8EC4] font-normal">(optional)</span></label>
               <input type="text" value={form.vat_number} onChange={(e) => setForm({ ...form, vat_number: e.target.value })}
                 placeholder="e.g. 4123456789"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
             </div>
           </div>
           {saved && <p className="text-green-600 text-sm">Saved!</p>}
           {saveError && <p className="text-red-600 text-sm">{saveError}</p>}
           <button type="submit" disabled={saving}
-            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors disabled:opacity-60">
+            className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors disabled:opacity-60">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save changes
           </button>
@@ -198,16 +198,16 @@ export default function SettingsPage() {
       {/* Integrations heading */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900">Integrations</h2>
-        <p className="text-gray-500 text-sm mt-0.5">Connect external tools to supercharge FIGSY.</p>
+        <p className="text-[#7B6FA0] text-sm mt-0.5">Connect external tools to supercharge FIGSY.</p>
       </div>
 
       {/* CRM Integration */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
         <div className="flex items-center gap-2 mb-1">
-          <Link2 className="w-4 h-4 text-gray-400" />
+          <Link2 className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="font-semibold">CRM Integration</h2>
         </div>
-        <p className="text-sm text-gray-400 mb-5">
+        <p className="text-sm text-[#9B8EC4] mb-5">
           When a lead gives consent, they're automatically pushed to your CRM.
         </p>
         <form onSubmit={handleCrmSave} className="space-y-4">
@@ -216,7 +216,7 @@ export default function SettingsPage() {
             <select
               value={crm.crm_type}
               onChange={e => setCrm({ ...crm, crm_type: e.target.value, crm_api_key: '', crm_sync_enabled: false })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             >
               <option value="none">No CRM — not connected</option>
               <option value="hubspot">HubSpot</option>
@@ -235,9 +235,9 @@ export default function SettingsPage() {
                   value={crm.crm_api_key}
                   onChange={e => { setCrm({ ...crm, crm_api_key: e.target.value }); setCrmTestResult(null) }}
                   placeholder={crm.crm_type === 'hubspot' ? 'pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' : 'Your Pipedrive API key'}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] font-mono"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-[#9B8EC4] mt-1">
                   {crm.crm_type === 'hubspot'
                     ? 'Create a Private App in HubSpot → Settings → Integrations → Private Apps. Scopes needed: crm.objects.contacts.write'
                     : 'Find your API key in Pipedrive → Settings → Personal preferences → API'}
@@ -249,7 +249,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleCrmTest}
                   disabled={crmTesting || !crm.crm_api_key}
-                  className="px-4 py-2 border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-sm text-gray-700 rounded-lg transition-colors"
+                  className="px-4 py-2 border border-purple-100/80 hover:bg-gray-50 disabled:opacity-50 text-sm text-gray-700 rounded-lg transition-colors"
                 >
                   {crmTesting ? <span className="flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Testing…</span> : 'Test connection'}
                 </button>
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={crm.crm_sync_enabled}
                   onChange={e => setCrm({ ...crm, crm_sync_enabled: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                  className="w-4 h-4 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED]"
                 />
                 <span className="text-sm text-gray-700">
                   Auto-sync consented leads to {crm.crm_type === 'hubspot' ? 'HubSpot' : 'Pipedrive'}
@@ -281,7 +281,7 @@ export default function SettingsPage() {
           <button
             type="submit"
             disabled={crmSaving}
-            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors disabled:opacity-60"
           >
             {crmSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save integration
@@ -290,9 +290,9 @@ export default function SettingsPage() {
       </div>
 
       {/* Google Calendar */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
         <div className="flex items-center gap-2 mb-1">
-          <Calendar className="w-4 h-4 text-gray-400" />
+          <Calendar className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="font-semibold">Google Calendar</h2>
           {calendarStatus?.connected && (
             <span className="ml-auto flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
@@ -300,7 +300,7 @@ export default function SettingsPage() {
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-400 mb-5">
+        <p className="text-sm text-[#9B8EC4] mb-5">
           When FIGSY gets an interested reply, it can generate a calendar booking link to include in the AI reply suggestion.
         </p>
         {calendarStatus?.connected ? (
@@ -310,7 +310,7 @@ export default function SettingsPage() {
         ) : (
           <a
             href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://kindapi-production-e64c.up.railway.app'}/calendar/connect`}
-            className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors"
+            className="inline-flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors"
           >
             <Calendar className="w-4 h-4" /> Connect Google Calendar
           </a>
@@ -319,15 +319,15 @@ export default function SettingsPage() {
 
       {/* WhatsApp — only show when active */}
       {whatsappStatus?.configured && (
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
           <div className="flex items-center gap-2 mb-1">
-            <MessageCircle className="w-4 h-4 text-gray-400" />
+            <MessageCircle className="w-4 h-4 text-[#9B8EC4]" />
             <h2 className="font-semibold">WhatsApp Business</h2>
             <span className="ml-auto flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <CheckCircle className="w-3 h-3" /> Active
             </span>
           </div>
-          <p className="text-sm text-gray-400 mb-3">
+          <p className="text-sm text-[#9B8EC4] mb-3">
             Vida handles inbound WhatsApp messages — qualifying leads, answering questions, and handing warm prospects to your team.
           </p>
           <p className="text-sm text-green-600">WhatsApp Business API is active. Vida is live on WhatsApp.</p>
@@ -336,15 +336,15 @@ export default function SettingsPage() {
 
       {/* Voice (Vapi) — only show when active */}
       {vapiStatus?.configured && (
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
           <div className="flex items-center gap-2 mb-1">
-            <Phone className="w-4 h-4 text-gray-400" />
+            <Phone className="w-4 h-4 text-[#9B8EC4]" />
             <h2 className="font-semibold">Voice Calls (FIGSY)</h2>
             <span className="ml-auto flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <CheckCircle className="w-3 h-3" /> Active
             </span>
           </div>
-          <p className="text-sm text-gray-400 mb-3">
+          <p className="text-sm text-[#9B8EC4] mb-3">
             FIGSY places follow-up calls using Vapi.ai — leaving voicemails, qualifying interest, and booking meetings.
           </p>
           <p className="text-sm text-green-600">Vapi is active. FIGSY will call leads on day 4 of the sequence.</p>

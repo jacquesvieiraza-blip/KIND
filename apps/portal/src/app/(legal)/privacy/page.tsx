@@ -8,7 +8,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-100 px-8 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-bold text-gray-900">
-          <Zap className="w-5 h-5 text-[#0066FF]" />K.I.N.D
+          <Zap className="w-5 h-5 text-[#7C3AED]" />K.I.N.D
         </Link>
         <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Back to dashboard →</Link>
       </header>
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Who we are</h2>
             <p>K.I.N.D AI (Pty) Ltd ("KIND") operates the KIND AI Platform. We are a responsible party under POPIA and, where applicable, a data controller under GDPR. Registered address: South Africa.</p>
-            <p className="mt-2">Contact: <a href="mailto:privacy@kind.ai" className="text-[#0066FF] hover:underline">privacy@kind.ai</a></p>
+            <p className="mt-2">Contact: <a href="mailto:privacy@kind.ai" className="text-[#7C3AED] hover:underline">privacy@kind.ai</a></p>
           </section>
 
           <section>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
             <p><strong>Under POPIA:</strong> right to access, correct, delete your personal information; right to object to processing; right to lodge a complaint with the Information Regulator (South Africa).</p>
             <p className="mt-2"><strong>Under GDPR (EU/UK users):</strong> right to access, rectification, erasure, portability, restriction, object to processing; right to lodge a complaint with your national supervisory authority.</p>
             <p className="mt-2"><strong>Under CCPA (California, US):</strong> right to know, delete, opt-out of sale of personal information. KIND does not sell personal information.</p>
-            <p className="mt-2">To exercise any right: <a href="mailto:privacy@kind.ai" className="text-[#0066FF] hover:underline">privacy@kind.ai</a> — we respond within 30 days.</p>
+            <p className="mt-2">To exercise any right: <a href="mailto:privacy@kind.ai" className="text-[#7C3AED] hover:underline">privacy@kind.ai</a> — we respond within 30 days.</p>
           </section>
 
           <section>
@@ -77,8 +77,8 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">10. Contact</h2>
-            <p>Data protection enquiries: <a href="mailto:privacy@kind.ai" className="text-[#0066FF] hover:underline">privacy@kind.ai</a><br />
-            General enquiries: <a href="mailto:hello@kind.ai" className="text-[#0066FF] hover:underline">hello@kind.ai</a></p>
+            <p>Data protection enquiries: <a href="mailto:privacy@kind.ai" className="text-[#7C3AED] hover:underline">privacy@kind.ai</a><br />
+            General enquiries: <a href="mailto:hello@kind.ai" className="text-[#7C3AED] hover:underline">hello@kind.ai</a></p>
           </section>
         </div>
       </main>

@@ -101,9 +101,9 @@ function autoMap(headers: string[]): Record<string, string> {
 
 function Step({ n, label, active, done }: { n: number; label: string; active: boolean; done: boolean }) {
   return (
-    <div className={`flex items-center gap-2 ${active ? 'text-gray-900' : done ? 'text-green-600' : 'text-gray-400'}`}>
+    <div className={`flex items-center gap-2 ${active ? 'text-gray-900' : done ? 'text-green-600' : 'text-[#9B8EC4]'}`}>
       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-        done ? 'bg-green-100 text-green-600' : active ? 'bg-[#0066FF] text-white' : 'bg-gray-100 text-gray-400'
+        done ? 'bg-green-100 text-green-600' : active ? 'bg-[#7C3AED] text-white' : 'bg-gray-100 text-[#9B8EC4]'
       }`}>
         {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : n}
       </div>
@@ -209,15 +209,15 @@ export default function LinkedInImportPage() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <Link href="/dashboard/leads" className="text-gray-400 hover:text-gray-600 transition-colors">
+            <Link href="/dashboard/leads" className="text-[#9B8EC4] hover:text-gray-600 transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#7C3AED] flex items-center justify-center">
               <Linkedin className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-xl font-bold text-gray-900">LinkedIn CSV Import</h1>
           </div>
-          <p className="text-sm text-gray-500 ml-11">
+          <p className="text-sm text-[#7B6FA0] ml-11">
             Import leads from LinkedIn Sales Navigator exports — AI-scored and ready for FIGSY.
           </p>
         </div>
@@ -236,18 +236,18 @@ export default function LinkedInImportPage() {
       {step === 'upload' && (
         <div className="space-y-4">
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
+          <div className="bg-[#F5F0FF] border border-purple-100 rounded-xl p-5">
             <div className="flex items-start gap-3">
-              <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <Info className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-blue-900 mb-2">How to export from LinkedIn Sales Navigator</p>
-                <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+                <ol className="text-xs text-[#6D28D9] space-y-1 list-decimal list-inside">
                   <li>Go to Sales Navigator → Lists → Lead lists</li>
                   <li>Select your list → click <strong>Export</strong> in the top-right</li>
                   <li>Choose <strong>Export to CSV</strong></li>
                   <li>Download and upload the file below</li>
                 </ol>
-                <p className="text-xs text-blue-600 mt-2">
+                <p className="text-xs text-[#7C3AED] mt-2">
                   Don&apos;t have Sales Navigator?{' '}
                   <a href="https://www.linkedin.com/sales" target="_blank" rel="noopener noreferrer" className="underline font-medium">
                     Get started →
@@ -264,17 +264,17 @@ export default function LinkedInImportPage() {
             onDrop={onDrop}
             onClick={() => fileRef.current?.click()}
             className={`cursor-pointer rounded-2xl border-2 border-dashed transition-all py-16 flex flex-col items-center justify-center gap-4 ${
-              dragging ? 'border-[#0066FF] bg-blue-50' : 'border-gray-200 bg-gray-50 hover:border-[#0066FF]/50 hover:bg-blue-50/30'
+              dragging ? 'border-[#7C3AED] bg-[#F5F0FF]' : 'border-purple-100/80 bg-gray-50 hover:border-[#7C3AED]/50 hover:bg-[#F5F0FF]/30'
             }`}
           >
             <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center">
-              <Upload className="w-7 h-7 text-[#0066FF]" />
+              <Upload className="w-7 h-7 text-[#7C3AED]" />
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-gray-800">Drag & drop your CSV file here</p>
-              <p className="text-xs text-gray-400 mt-1">or click to browse</p>
+              <p className="text-xs text-[#9B8EC4] mt-1">or click to browse</p>
             </div>
-            <p className="text-xs text-gray-400 bg-white border border-gray-200 px-3 py-1.5 rounded-full">
+            <p className="text-xs text-[#9B8EC4] bg-white border border-purple-100/80 px-3 py-1.5 rounded-full">
               LinkedIn Sales Navigator export (.csv)
             </p>
           </div>
@@ -301,12 +301,12 @@ export default function LinkedInImportPage() {
       {/* ── STEP 2: Map columns ────────────────────────────────────────────── */}
       {step === 'map' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-sm font-bold text-gray-900">Column mapping</h2>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  <span className="font-medium text-blue-600">{fileName}</span>
+                <p className="text-xs text-[#9B8EC4] mt-0.5">
+                  <span className="font-medium text-[#7C3AED]">{fileName}</span>
                   {' — '}{rows.length} rows detected
                 </p>
               </div>
@@ -320,20 +320,20 @@ export default function LinkedInImportPage() {
                 <div key={header} className="flex items-center gap-3">
                   <div className="w-44 shrink-0">
                     <p className="text-xs font-medium text-gray-700 truncate" title={header}>{header}</p>
-                    <p className="text-[10px] text-gray-400 truncate">{rows[0]?.[header] || '—'}</p>
+                    <p className="text-[10px] text-[#9B8EC4] truncate">{rows[0]?.[header] || '—'}</p>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                   <div className="relative flex-1">
                     <select
                       value={mapping[header] ?? '--ignore--'}
                       onChange={e => setMapping(m => ({ ...m, [header]: e.target.value }))}
-                      className="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white pr-7"
+                      className="w-full appearance-none border border-purple-100/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white pr-7"
                     >
                       {LEAD_FIELDS.map(f => (
                         <option key={f.key} value={f.key}>{f.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#9B8EC4] pointer-events-none" />
                   </div>
                   {mapping[header] && mapping[header] !== '--ignore--' && (
                     <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
@@ -346,14 +346,14 @@ export default function LinkedInImportPage() {
           <div className="flex items-center justify-between">
             <button
               onClick={() => setStep('upload')}
-              className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm text-[#7B6FA0] hover:text-gray-700 border border-purple-100/80 rounded-lg transition-colors"
             >
               ← Back
             </button>
             <button
               onClick={() => setStep('preview')}
               disabled={mappedCount === 0}
-              className="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
+              className="px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
             >
               Review {previewLeads.length} leads <ArrowRight className="w-4 h-4" />
             </button>
@@ -372,11 +372,11 @@ export default function LinkedInImportPage() {
           )}
 
           {/* Summary */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-gray-900">Import preview</h2>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">{previewLeads.length} leads ready to import</span>
+                <span className="text-xs text-[#7B6FA0]">{previewLeads.length} leads ready to import</span>
               </div>
             </div>
 
@@ -387,20 +387,20 @@ export default function LinkedInImportPage() {
                 { label: 'With LinkedIn', count: previewLeads.filter(l => l.linkedin_url).length },
                 { label: 'With company',  count: previewLeads.filter(l => l.company).length },
               ].map(({ label, count }) => (
-                <div key={label} className="bg-gray-50 rounded-xl p-3 text-center">
+                <div key={label} className="bg-[#F5EEFF]/60 rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-gray-900">{count}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                  <p className="text-xs text-[#7B6FA0] mt-0.5">{label}</p>
                 </div>
               ))}
             </div>
 
             {/* Preview table */}
-            <div className="overflow-x-auto rounded-xl border border-gray-100">
+            <div className="overflow-x-auto rounded-xl border border-purple-100/60">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-purple-100/60 bg-gray-50">
                     {['Name', 'Job Title', 'Company', 'Email', 'LinkedIn'].map(h => (
-                      <th key={h} className="px-3 py-2.5 text-left text-gray-500 font-semibold uppercase tracking-wide">
+                      <th key={h} className="px-3 py-2.5 text-left text-[#7B6FA0] font-semibold uppercase tracking-wide">
                         {h}
                       </th>
                     ))}
@@ -414,10 +414,10 @@ export default function LinkedInImportPage() {
                       </td>
                       <td className="px-3 py-2.5 text-gray-600 truncate max-w-32">{l.job_title || '—'}</td>
                       <td className="px-3 py-2.5 text-gray-600">{l.company || '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-500 truncate max-w-36">{l.email || '—'}</td>
+                      <td className="px-3 py-2.5 text-[#7B6FA0] truncate max-w-36">{l.email || '—'}</td>
                       <td className="px-3 py-2.5">
                         {l.linkedin_url
-                          ? <a href={l.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View ↗</a>
+                          ? <a href={l.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline">View ↗</a>
                           : <span className="text-gray-300">—</span>
                         }
                       </td>
@@ -425,7 +425,7 @@ export default function LinkedInImportPage() {
                   ))}
                   {previewLeads.length > 8 && (
                     <tr>
-                      <td colSpan={5} className="px-3 py-2.5 text-center text-gray-400 italic">
+                      <td colSpan={5} className="px-3 py-2.5 text-center text-[#9B8EC4] italic">
                         + {previewLeads.length - 8} more leads…
                       </td>
                     </tr>
@@ -448,14 +448,14 @@ export default function LinkedInImportPage() {
             <button
               onClick={() => setStep('map')}
               disabled={step === 'importing'}
-              className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg transition-colors disabled:opacity-40"
+              className="px-4 py-2 text-sm text-[#7B6FA0] hover:text-gray-700 border border-purple-100/80 rounded-lg transition-colors disabled:opacity-40"
             >
               ← Back
             </button>
             <button
               onClick={handleImport}
               disabled={step === 'importing' || previewLeads.length === 0}
-              className="px-6 py-2.5 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
+              className="px-6 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
             >
               {step === 'importing'
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Importing {previewLeads.length} leads…</>
@@ -468,12 +468,12 @@ export default function LinkedInImportPage() {
 
       {/* ── STEP 4: Done ───────────────────────────────────────────────────── */}
       {step === 'done' && result && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-8 text-center">
           <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-8 h-8 text-green-500" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Import complete!</h2>
-          <p className="text-gray-500 text-sm mb-6">
+          <p className="text-[#7B6FA0] text-sm mb-6">
             Your LinkedIn leads are now in the system and being AI-scored.
           </p>
 
@@ -486,16 +486,16 @@ export default function LinkedInImportPage() {
               <p className="text-2xl font-bold text-amber-700">{result.skipped}</p>
               <p className="text-xs text-amber-600 mt-0.5">Skipped (dups)</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4">
+            <div className="bg-[#F5EEFF]/60 rounded-xl p-4">
               <p className="text-2xl font-bold text-gray-700">{result.errors}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Errors</p>
+              <p className="text-xs text-[#7B6FA0] mt-0.5">Errors</p>
             </div>
           </div>
 
           <div className="flex items-center justify-center gap-3">
             <Link
               href="/dashboard/leads"
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors"
             >
               <Users className="w-4 h-4" /> View leads
             </Link>
@@ -508,7 +508,7 @@ export default function LinkedInImportPage() {
                 setMapping({})
                 setResult(null)
               }}
-              className="px-5 py-2.5 border border-gray-200 hover:border-gray-400 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+              className="px-5 py-2.5 border border-purple-100/80 hover:border-gray-400 text-gray-700 text-sm font-medium rounded-xl transition-colors"
             >
               Import another file
             </button>

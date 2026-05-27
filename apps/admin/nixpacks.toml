@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+# Navigate to monorepo root to install all workspace deps
+cmds = ["cd ../../ && yarn install --frozen-lockfile"]
+
+[phases.build]
+# Build only the admin app via turborepo
+cmds = ["cd ../../ && npx turbo run build --filter=@kind/admin"]
+
+[start]
+# next start honours the PORT env var injected by Railway
+cmd = "npx next start -p $PORT"

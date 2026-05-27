@@ -280,6 +280,25 @@ export default function CampaignDetailPage() {
   const [activatingId, setActivatingId] = useState(false)
   const [activeTab, setActiveTab] = useState<'sequence' | 'audience' | 'settings'>('sequence')
 
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  // Audience controlled state
+  const [minScore, setMinScore]     = useState(50)
+  const [maxScore, setMaxScore]     = useState(100)
+  const [dailyLimit, setDailyLimit] = useState(5)
+  const [savingAudience, setSavingAudience] = useState(false)
+
+  // Settings controlled state
+  const [campaignName, setCampaignName] = useState('')
+  const [savingSettings, setSavingSettings] = useState(false)
+  const [archiving, setArchiving]           = useState(false)
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3500)
+  }
+
   useEffect(() => {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession()
@@ -288,6 +307,12 @@ export default function CampaignDetailPage() {
       try {
         const res = await api.get<{ data: Campaign }>(`/figsy/campaigns/${id}`, session.access_token)
         setCampaign(res.data)
+        setCampaignName(res.data.name)
+        // Initialize audience sliders from campaign if fields exist
+        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number }
+        setMinScore(c.min_score ?? 50)
+        setMaxScore(c.max_score ?? 100)
+        setDailyLimit(c.daily_limit ?? 5)
       } catch {
         // campaign not found — go back
       }
@@ -320,12 +345,61 @@ export default function CampaignDetailPage() {
   }
 
   async function saveSequence() {
+    if (!token) return
     setSaving(true)
-    // POST to /figsy/campaigns/:id/sequence (when backend supports it)
-    await new Promise(r => setTimeout(r, 600))
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
-    setSaving(false)
+    try {
+      await api.put(`/figsy/campaigns/${id}/sequence`, { steps }, token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+      showToast('Sequence saved')
+    } catch (err) {
+      showToast((err as Error).message || 'Failed to save sequence', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function saveAudience() {
+    if (!token) return
+    setSavingAudience(true)
+    try {
+      await api.put(`/figsy/campaigns/${id}/audience`, {
+        min_score: minScore,
+        max_score: maxScore,
+        daily_limit: dailyLimit,
+      }, token)
+      showToast('Audience settings saved')
+    } catch (err) {
+      showToast((err as Error).message || 'Failed to save audience settings', 'error')
+    } finally {
+      setSavingAudience(false)
+    }
+  }
+
+  async function saveSettings() {
+    if (!token) return
+    setSavingSettings(true)
+    try {
+      const res = await api.put<{ data: Campaign }>(`/figsy/campaigns/${id}`, { name: campaignName }, token)
+      setCampaign(res.data)
+      showToast('Settings saved')
+    } catch (err) {
+      showToast((err as Error).message || 'Failed to save settings', 'error')
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
+  async function archiveCampaign() {
+    if (!token) return
+    setArchiving(true)
+    try {
+      await api.post(`/figsy/campaigns/${id}/archive`, {}, token)
+      router.push('/dashboard/figsy')
+    } catch (err) {
+      showToast((err as Error).message || 'Failed to archive campaign', 'error')
+      setArchiving(false)
+    }
   }
 
   async function toggleStatus() {
@@ -358,6 +432,18 @@ export default function CampaignDetailPage() {
 
   return (
     <div className="space-y-5 max-w-3xl">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all ${
+          toast.type === 'error'
+            ? 'bg-red-600 text-white'
+            : 'bg-[#7C3AED] text-white'
+        }`}>
+          {toast.type === 'error' ? <AlertTriangle className="w-4 h-4 shrink-0" /> : <Check className="w-4 h-4 shrink-0" />}
+          {toast.message}
+        </div>
+      )}
+
       {/* Back link + header */}
       <div>
         <Link href="/dashboard/figsy" className="flex items-center gap-1.5 text-sm text-[#9B8EC4] hover:text-gray-700 transition-colors mb-3">
@@ -520,22 +606,26 @@ export default function CampaignDetailPage() {
                 <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Minimum lead score</label>
                 <div className="flex items-center gap-3">
                   <input
-                    type="range" min={0} max={100} step={5} defaultValue={60}
+                    type="range" min={0} max={100} step={5}
+                    value={minScore}
+                    onChange={e => setMinScore(Number(e.target.value))}
                     className="flex-1 accent-[#7C3AED]"
                   />
-                  <span className="text-sm font-bold text-gray-900 w-8">60</span>
+                  <span className="text-sm font-bold text-gray-900 w-8">{minScore}</span>
                 </div>
-                <p className="text-xs text-[#9B8EC4] mt-1">Only enroll leads with score ≥ 60</p>
+                <p className="text-xs text-[#9B8EC4] mt-1">Only enroll leads with score ≥ {minScore}</p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Daily enrollment limit</label>
                 <div className="flex items-center gap-3">
                   <input
-                    type="range" min={1} max={50} step={1} defaultValue={10}
+                    type="range" min={1} max={50} step={1}
+                    value={dailyLimit}
+                    onChange={e => setDailyLimit(Number(e.target.value))}
                     className="flex-1 accent-[#7C3AED]"
                   />
-                  <span className="text-sm font-bold text-gray-900 w-12">10/day</span>
+                  <span className="text-sm font-bold text-gray-900 w-12">{dailyLimit}/day</span>
                 </div>
                 <p className="text-xs text-[#9B8EC4] mt-1">Control the rate of new enrollments to avoid spikes</p>
               </div>
@@ -560,8 +650,12 @@ export default function CampaignDetailPage() {
             </div>
 
             <div className="mt-5 pt-4 border-t border-gray-50">
-              <button className="w-full py-2.5 bg-[#7C3AED] hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors">
-                Save audience settings
+              <button
+                onClick={saveAudience}
+                disabled={savingAudience}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#7C3AED] hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                {savingAudience ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : 'Save audience settings'}
               </button>
             </div>
           </div>
@@ -602,7 +696,8 @@ export default function CampaignDetailPage() {
             <div>
               <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Campaign name</label>
               <input
-                defaultValue={campaign.name}
+                value={campaignName}
+                onChange={e => setCampaignName(e.target.value)}
                 className="w-full border border-purple-100/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
               />
             </div>
@@ -642,13 +737,20 @@ export default function CampaignDetailPage() {
             </div>
 
             <div className="pt-2 flex gap-3">
-              <button className="flex-1 py-2.5 bg-[#7C3AED] hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors">
-                Save settings
+              <button
+                onClick={saveSettings}
+                disabled={savingSettings}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#7C3AED] hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                {savingSettings ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : 'Save settings'}
               </button>
               {campaign.status !== 'active' && (
                 <button
-                  className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium rounded-xl transition-colors border border-red-100"
+                  onClick={archiveCampaign}
+                  disabled={archiving}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 text-sm font-medium rounded-xl transition-colors border border-red-100"
                 >
+                  {archiving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                   Archive campaign
                 </button>
               )}

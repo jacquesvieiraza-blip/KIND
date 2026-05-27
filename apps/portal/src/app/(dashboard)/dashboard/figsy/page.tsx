@@ -384,7 +384,7 @@ export default function FigsyPage() {
             {mode === 'autopilot' ? (
               <p>I run fully on your behalf — generating emails, enrolling leads, and following up automatically. No approval needed.</p>
             ) : (
-              <p>I draft every email and sequence before it goes out. You review and approve each one. More control, same intelligence.</p>
+              <p>Co-pilot — you approve every message before it sends</p>
             )}
           </div>
         </div>
@@ -520,6 +520,11 @@ export default function FigsyPage() {
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[campaign.status]}`}>
                       {STATUS_LABELS[campaign.status]}
                     </span>
+                    {mode === 'copilot' && campaign.status === 'active' && campaign.emails_sent > 0 && (
+                      <span className="bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                        Co-pilot: review before send
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-[#9B8EC4] mt-0.5">
                     Created {new Date(campaign.created_at).toLocaleDateString()}

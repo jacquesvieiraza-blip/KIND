@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { X, Send, Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { api } from '@/lib/api'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -9,6 +11,7 @@ interface Message {
 }
 
 export function AskFigsyButton() {
+  const supabase = createClient()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([
@@ -31,13 +34,20 @@ export function AskFigsyButton() {
     setMessages(prev => [...prev, { role: 'user', content: userMsg }])
     setLoading(true)
 
-    // Simulate AI response (replace with actual API call to /figsy/chat)
-    await new Promise(r => setTimeout(r, 1200))
-    const responses: Record<string, string> = {
-      default: "Great question! Based on your current pipeline, I'd recommend focusing on your warmest leads first — they're most likely to convert. Want me to draft an outreach sequence?",
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.post<{ data: { reply: string } }>(
+        '/figsy/chat',
+        { messages: [...messages, { role: 'user', content: userMsg }].slice(-10) },
+        session?.access_token,
+      )
+      setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }])
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: "Sorry, I couldn't connect right now. Try again in a moment." },
+      ])
     }
-    const key = Object.keys(responses).find(k => userMsg.toLowerCase().includes(k)) ?? 'default'
-    setMessages(prev => [...prev, { role: 'assistant', content: responses[key] }])
     setLoading(false)
   }
 

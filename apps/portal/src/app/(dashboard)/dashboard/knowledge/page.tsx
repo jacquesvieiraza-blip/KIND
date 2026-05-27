@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   BookOpen, Target, Zap, Ban, MessageSquare, Brain, Settings2,
   Plus, Trash2, Save, CheckCircle2, ChevronDown, ChevronRight,
-  Sparkles, Globe, FileText, Upload,
+  Sparkles, Globe, Loader2,
 } from 'lucide-react'
+import { api } from '@/lib/api'
+import { createClient } from '@/lib/supabase/client'
 
 type Tab = 'pitch' | 'keywords' | 'signals' | 'dnc' | 'messaging' | 'context' | 'prompts'
 
@@ -35,22 +37,65 @@ const TABS: { value: Tab; label: string; icon: React.ElementType; description: s
 function SavedBadge() {
   return (
     <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-      <CheckCircle2 className="w-3.5 h-3.5" /> Saved
+      <CheckCircle2 className="w-3.5 h-3.5" /> Saved ✓
     </span>
   )
 }
 
+function ErrorBadge() {
+  return (
+    <span className="flex items-center gap-1 text-xs text-red-600 font-medium">
+      Failed to save — try again
+    </span>
+  )
+}
+
+async function getToken(): Promise<string | undefined> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token
+}
+
 function PitchTab() {
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [pitch, setPitch] = useState('')
   const [product, setProduct] = useState('')
   const [painPoints, setPainPoints] = useState('')
   const [differentiators, setDifferentiators] = useState('')
 
-  function save() {
-    // In production: POST to /figsy/knowledge/pitch
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = await getToken()
+        const res = await api.get<{ pitch?: string; product?: string; pain_points?: string; differentiators?: string }>('/figsy/knowledge/pitch', token)
+        if (res.pitch !== undefined) setPitch(res.pitch)
+        if (res.product !== undefined) setProduct(res.product)
+        if (res.pain_points !== undefined) setPainPoints(res.pain_points)
+        if (res.differentiators !== undefined) setDifferentiators(res.differentiators)
+      } catch {
+        // Leave form with default/empty state on error
+      }
+    }
+    load()
+  }, [])
+
+  async function save() {
+    setSaving(true)
+    setSaved(false)
+    setSaveError(false)
+    try {
+      const token = await getToken()
+      await api.post('/figsy/knowledge/pitch', { pitch, product, pain_points: painPoints, differentiators }, token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 4000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -96,12 +141,14 @@ function PitchTab() {
         />
       </div>
       <div className="flex items-center justify-between pt-2">
-        {saved ? <SavedBadge /> : <span />}
+        {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
           onClick={save}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors"
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
-          <Save className="w-4 h-4" /> Save pitch
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Save pitch'}
         </button>
       </div>
     </div>
@@ -110,10 +157,52 @@ function PitchTab() {
 
 function KeywordsTab() {
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [positive, setPositive] = useState('')
   const [negative, setNegative] = useState('')
   const [industries, setIndustries] = useState('')
   const [titles, setTitles] = useState('')
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = await getToken()
+        const res = await api.get<{ keywords?: string[]; titles?: string[]; industries?: string[]; positive?: string[]; negative?: string[] }>('/figsy/knowledge/keywords', token)
+        if (res.titles !== undefined) setTitles(res.titles.join(', '))
+        if (res.industries !== undefined) setIndustries(res.industries.join(', '))
+        if (res.positive !== undefined) setPositive(res.positive.join(', '))
+        if (res.negative !== undefined) setNegative(res.negative.join(', '))
+      } catch {
+        // Leave form with default/empty state on error
+      }
+    }
+    load()
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    setSaveError(false)
+    try {
+      const token = await getToken()
+      const toArr = (s: string) => s.split(',').map(v => v.trim()).filter(Boolean)
+      await api.post('/figsy/knowledge/keywords', {
+        keywords: [...toArr(titles), ...toArr(industries), ...toArr(positive), ...toArr(negative)],
+        titles: toArr(titles),
+        industries: toArr(industries),
+        positive: toArr(positive),
+        negative: toArr(negative),
+      }, token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 4000)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -162,30 +251,73 @@ function KeywordsTab() {
         />
       </div>
       <div className="flex items-center justify-between pt-2">
-        {saved ? <SavedBadge /> : <span />}
+        {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
-          onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 3000) }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors"
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
-          <Save className="w-4 h-4" /> Save keywords
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Save keywords'}
         </button>
       </div>
     </div>
   )
 }
 
+const DEFAULT_SIGNALS = [
+  { id: '1', label: 'Company is hiring salespeople', enabled: true },
+  { id: '2', label: 'Recent LinkedIn post about growth', enabled: true },
+  { id: '3', label: 'Job posting for marketing roles', enabled: false },
+  { id: '4', label: 'Announced a new product or feature', enabled: true },
+  { id: '5', label: 'Raised a funding round', enabled: false },
+  { id: '6', label: 'Company headcount growing rapidly', enabled: true },
+]
+
 function SignalsTab() {
-  const signals = [
-    { id: '1', label: 'Company is hiring salespeople', enabled: true },
-    { id: '2', label: 'Recent LinkedIn post about growth', enabled: true },
-    { id: '3', label: 'Job posting for marketing roles', enabled: false },
-    { id: '4', label: 'Announced a new product or feature', enabled: true },
-    { id: '5', label: 'Raised a funding round', enabled: false },
-    { id: '6', label: 'Company headcount growing rapidly', enabled: true },
-  ]
   const [enabled, setEnabled] = useState<Record<string, boolean>>(
-    Object.fromEntries(signals.map(s => [s.id, s.enabled]))
+    Object.fromEntries(DEFAULT_SIGNALS.map(s => [s.id, s.enabled]))
   )
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = await getToken()
+        const res = await api.get<{ signals?: string[] }>('/figsy/knowledge/signals', token)
+        if (res.signals && res.signals.length > 0) {
+          const map: Record<string, boolean> = Object.fromEntries(DEFAULT_SIGNALS.map(s => [s.id, false]))
+          DEFAULT_SIGNALS.forEach(s => {
+            map[s.id] = res.signals!.includes(s.label)
+          })
+          setEnabled(map)
+        }
+      } catch {
+        // Leave form with default state on error
+      }
+    }
+    load()
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    setSaveError(false)
+    try {
+      const token = await getToken()
+      const activeSignals = DEFAULT_SIGNALS.filter(s => enabled[s.id]).map(s => s.label)
+      await api.post('/figsy/knowledge/signals', { signals: activeSignals }, token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 4000)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -194,7 +326,7 @@ function SignalsTab() {
         <p className="text-xs text-amber-700">Buying signals help FIGSY prioritise leads who are most likely to convert right now.</p>
       </div>
       <div className="space-y-2">
-        {signals.map(signal => (
+        {DEFAULT_SIGNALS.map(signal => (
           <div key={signal.id} className="flex items-center justify-between px-4 py-3 bg-white border border-purple-100/60 rounded-xl">
             <span className="text-sm text-gray-700">{signal.label}</span>
             <button
@@ -210,9 +342,15 @@ function SignalsTab() {
           </div>
         ))}
       </div>
-      <div className="pt-2 flex justify-end">
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors">
-          <Save className="w-4 h-4" /> Save signals
+      <div className="pt-2 flex items-center justify-between">
+        {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Save signals'}
         </button>
       </div>
     </div>
@@ -220,17 +358,64 @@ function SignalsTab() {
 }
 
 function DNCTab() {
-  const [entries, setEntries] = useState<DNCEntry[]>([
-    { id: '1', value: 'competitor.com', type: 'domain' },
-    { id: '2', value: 'partner@example.com', type: 'email' },
-  ])
+  const [entries, setEntries] = useState<DNCEntry[]>([])
   const [newValue, setNewValue] = useState('')
   const [newType, setNewType] = useState<DNCEntry['type']>('email')
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = await getToken()
+        const res = await api.get<{ entries?: string[] }>('/figsy/knowledge/dnc', token)
+        if (res.entries && res.entries.length > 0) {
+          const loaded: DNCEntry[] = res.entries.map((v, i) => {
+            let type: DNCEntry['type'] = 'email'
+            if (v.includes('@')) type = 'email'
+            else if (v.includes('.')) type = 'domain'
+            else type = 'company'
+            return { id: String(i + 1), value: v, type }
+          })
+          setEntries(loaded)
+        } else {
+          setEntries([
+            { id: '1', value: 'competitor.com', type: 'domain' },
+            { id: '2', value: 'partner@example.com', type: 'email' },
+          ])
+        }
+      } catch {
+        setEntries([
+          { id: '1', value: 'competitor.com', type: 'domain' },
+          { id: '2', value: 'partner@example.com', type: 'email' },
+        ])
+      }
+    }
+    load()
+  }, [])
 
   function addEntry() {
     if (!newValue.trim()) return
     setEntries(prev => [...prev, { id: Date.now().toString(), value: newValue.trim(), type: newType }])
     setNewValue('')
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    setSaveError(false)
+    try {
+      const token = await getToken()
+      await api.post('/figsy/knowledge/dnc', { entries: entries.map(e => e.value) }, token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 4000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -291,6 +476,18 @@ function DNCTab() {
       {entries.length === 0 && (
         <p className="text-center text-sm text-[#9B8EC4] py-6">No DNC entries yet. Add emails, domains, or company names above.</p>
       )}
+
+      <div className="pt-2 flex items-center justify-between">
+        {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Save DNC list'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -300,6 +497,41 @@ function MessagingTab() {
   const [length, setLength] = useState('concise')
   const [persona, setPersona] = useState('')
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = await getToken()
+        const res = await api.get<{ tone?: string; length?: string; style?: string; persona?: string }>('/figsy/knowledge/messaging', token)
+        if (res.tone !== undefined) setTone(res.tone)
+        if (res.length !== undefined) setLength(res.length)
+        if (res.style !== undefined) setPersona(res.style)
+        if (res.persona !== undefined) setPersona(res.persona)
+      } catch {
+        // Leave form with default state on error
+      }
+    }
+    load()
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    setSaveError(false)
+    try {
+      const token = await getToken()
+      await api.post('/figsy/knowledge/messaging', { tone, length, style: persona }, token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 4000)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -355,12 +587,14 @@ function MessagingTab() {
         />
       </div>
       <div className="flex items-center justify-between pt-2">
-        {saved ? <SavedBadge /> : <span />}
+        {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
-          onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 3000) }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors"
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
-          <Save className="w-4 h-4" /> Save messaging
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Save messaging'}
         </button>
       </div>
     </div>
@@ -368,11 +602,36 @@ function MessagingTab() {
 }
 
 function ContextTab() {
-  const [urls, setUrls] = useState<TrainingUrl[]>([
-    { id: '1', url: 'https://get-kind.com', label: 'Main website', status: 'trained' },
-  ])
+  const [urls, setUrls] = useState<TrainingUrl[]>([])
   const [newUrl, setNewUrl] = useState('')
   const [newLabel, setNewLabel] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = await getToken()
+        const res = await api.get<{ url?: string; context?: string; urls?: { url: string; label?: string; status?: string }[] }>('/figsy/knowledge/context', token)
+        if (res.urls && res.urls.length > 0) {
+          setUrls(res.urls.map((u, i) => ({
+            id: String(i + 1),
+            url: u.url,
+            label: u.label || u.url,
+            status: (u.status as TrainingUrl['status']) || 'pending',
+          })))
+        } else if (res.url) {
+          setUrls([{ id: '1', url: res.url, label: res.context || res.url, status: 'trained' }])
+        } else {
+          setUrls([{ id: '1', url: 'https://get-kind.com', label: 'Main website', status: 'trained' }])
+        }
+      } catch {
+        setUrls([{ id: '1', url: 'https://get-kind.com', label: 'Main website', status: 'trained' }])
+      }
+    }
+    load()
+  }, [])
 
   function addUrl() {
     if (!newUrl.trim()) return
@@ -384,6 +643,27 @@ function ContextTab() {
     }])
     setNewUrl('')
     setNewLabel('')
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    setSaveError(false)
+    try {
+      const token = await getToken()
+      const primary = urls[0]
+      await api.post('/figsy/knowledge/context', {
+        url: primary?.url || '',
+        context: primary?.label || '',
+      }, token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 4000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -441,18 +721,73 @@ function ContextTab() {
           </div>
         ))}
       </div>
+
+      <div className="pt-2 flex items-center justify-between">
+        {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Save context'}
+        </button>
+      </div>
     </div>
   )
 }
 
+const PROMPT_STEPS = [
+  { step: 1, label: 'Step 1 — First touch', default: 'Write a personalised cold outreach email. Reference their company and role. Keep it under 80 words. No fluff.' },
+  { step: 2, label: 'Step 2 — Follow-up (Day 4)', default: 'Write a brief follow-up referencing the first email. Add a soft value point. Keep it under 60 words.' },
+  { step: 3, label: 'Step 3 — Final touch (Day 9)', default: 'Write a final breakup email. Acknowledge they may be busy. Leave the door open. Under 50 words.' },
+]
+
 function PromptsTab() {
-  const steps = [
-    { step: 1, label: 'Step 1 — First touch', default: 'Write a personalised cold outreach email. Reference their company and role. Keep it under 80 words. No fluff.' },
-    { step: 2, label: 'Step 2 — Follow-up (Day 4)', default: 'Write a brief follow-up referencing the first email. Add a soft value point. Keep it under 60 words.' },
-    { step: 3, label: 'Step 3 — Final touch (Day 9)', default: 'Write a final breakup email. Acknowledge they may be busy. Leave the door open. Under 50 words.' },
-  ]
   const [overrides, setOverrides] = useState<Record<number, string>>({})
   const [expanded, setExpanded] = useState<number | null>(1)
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = await getToken()
+        const res = await api.get<{ system_prompt?: string; overrides?: Record<string, string> }>('/figsy/knowledge/prompts', token)
+        if (res.overrides) {
+          const loaded: Record<number, string> = {}
+          Object.entries(res.overrides).forEach(([k, v]) => {
+            loaded[Number(k)] = v
+          })
+          setOverrides(loaded)
+        } else if (res.system_prompt) {
+          setOverrides({ 1: res.system_prompt })
+        }
+      } catch {
+        // Leave form with default/empty state on error
+      }
+    }
+    load()
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    setSaveError(false)
+    try {
+      const token = await getToken()
+      const systemPrompt = Object.values(overrides).filter(Boolean).join('\n\n')
+      await api.post('/figsy/knowledge/prompts', { system_prompt: systemPrompt, overrides }, token)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 4000)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -460,7 +795,7 @@ function PromptsTab() {
         <Settings2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         <p className="text-xs text-amber-700">Override FIGSY's default prompts for each sequence step. Leave blank to use the default.</p>
       </div>
-      {steps.map(({ step, label, default: def }) => (
+      {PROMPT_STEPS.map(({ step, label, default: def }) => (
         <div key={step} className="border border-purple-100/60 rounded-xl overflow-hidden bg-white">
           <button
             onClick={() => setExpanded(expanded === step ? null : step)}
@@ -492,9 +827,15 @@ function PromptsTab() {
           )}
         </div>
       ))}
-      <div className="pt-2 flex justify-end">
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors">
-          <Save className="w-4 h-4" /> Save prompts
+      <div className="pt-2 flex items-center justify-between">
+        {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving…' : 'Save prompts'}
         </button>
       </div>
     </div>
@@ -536,7 +877,7 @@ export default function KnowledgePage() {
         {/* Sidebar tabs */}
         <div className="w-52 shrink-0">
           <nav className="space-y-1">
-            {TABS.map(({ value, label, icon: Icon, description }) => (
+            {TABS.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
                 onClick={() => setActiveTab(value)}

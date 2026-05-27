@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
+import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
 import {
   Target, Inbox, ArrowRight, Zap,
   Calendar, TrendingUp, Mail, ChevronRight,
@@ -388,6 +389,18 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ── ACTIVITY FEED ─────────────────────────────────────────────── */}
+      {(() => {
+        const mockEvents: ActivityEvent[] = [
+          { id: '1', type: 'email_sent',       description: 'FIGSY sent Day 1 email to Sarah Chen at Acme Corp',       timestamp: new Date(Date.now() - 8 * 60000).toISOString() },
+          { id: '2', type: 'reply_received',   description: "Hot reply from Marcus Williams — \"Interested, let's chat\"", timestamp: new Date(Date.now() - 23 * 60000).toISOString() },
+          { id: '3', type: 'lead_added',       description: '12 new leads added from ICP: Cape Town Fintechs',         timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
+          { id: '4', type: 'credit_used',      description: '3 credits used — 3 leads delivered',                      timestamp: new Date(Date.now() - 5 * 3600000).toISOString() },
+          { id: '5', type: 'campaign_created', description: 'Campaign "Q2 SA Outreach" created',                       timestamp: new Date(Date.now() - 24 * 3600000).toISOString() },
+        ]
+        return <ActivityFeed events={mockEvents} />
+      })()}
 
     </div>
   )

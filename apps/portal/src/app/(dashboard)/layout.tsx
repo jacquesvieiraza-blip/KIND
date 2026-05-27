@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 import { AskFigsyButton } from '@/components/ui/AskFigsyButton'
+import { CommandPalette } from '@/components/ui/CommandPalette'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -62,6 +63,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </main>
       <AskFigsyButton />
+      <CommandPalette />
     </div>
   )
 }

@@ -45,7 +45,7 @@
 
   /* Card — base surface */
   .ds-card {
-    @apply rounded-ds-lg border;
+    @apply rounded-xl border;
     background-color: rgb(var(--surface-raised));
     border-color: rgb(var(--border));
   }

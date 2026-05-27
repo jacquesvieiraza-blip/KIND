@@ -146,7 +146,7 @@ export default async function MissionControlPage() {
         </div>
 
         {/* Key metrics row */}
-        <div className="relative mt-7 grid grid-cols-4 gap-px bg-white/10 rounded-ds-lg overflow-hidden">
+        <div className="relative mt-7 grid grid-cols-4 gap-px bg-white/10 rounded-xl overflow-hidden">
           {[
             { label: 'Total Leads',    value: (leadStats?.total ?? 0).toLocaleString() },
             { label: 'Pipeline Value', value: `$${(leadStats?.pipeline_value_usd ?? 0).toLocaleString()}` },

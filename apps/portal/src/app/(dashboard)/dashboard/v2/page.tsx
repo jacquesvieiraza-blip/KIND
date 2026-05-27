@@ -4,304 +4,365 @@ import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import Link from 'next/link'
 import {
-  Users, Zap, TrendingUp, ShieldCheck, Coins, MessageSquare,
-  ArrowRight, Target, Play, Inbox, BarChart2, AlertCircle,
-  ChevronRight, Activity,
+  ArrowRight, Zap, MessageSquare, Bot, Play, Inbox,
+  TrendingUp, Users, Mail, Flame, ChevronRight, Circle,
+  CheckCircle2, Clock, Settings,
 } from 'lucide-react'
 
-// ── Type helpers ────────────────────────────────────────────────────────────
-interface LeadStats { total: number; scored: number; consented: number; avg_score: number; pipeline_value_usd: number }
-interface FigsyKPIs { totalSent: number; totalReplied: number; replyRate: number; interested: number; activeCampaigns: number }
-interface Campaign { id: string; name: string; status: string; leads_enrolled?: number }
-interface Lead { id: string; first_name: string; last_name: string; company: string | null; job_title: string | null; score: number | null }
-
-// ── Small metric chip ───────────────────────────────────────────────────────
-function Chip({ label, value, accent = false }: { label: string; value: string | number; accent?: boolean }) {
-  return (
-    <div className={`rounded-ds-md px-4 py-3 border ${accent ? 'bg-brand-500/10 border-brand-500/20 dark:bg-brand-500/15' : 'ds-card'}`}>
-      <p className={`text-2xl font-bold tracking-tight ${accent ? 'text-brand-500' : 'text-gray-900 dark:text-white'}`}>
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </p>
-      <p className="text-xs ds-text-muted mt-0.5">{label}</p>
-    </div>
-  )
+interface FigsyKPIs {
+  totalSent: number
+  totalReplied: number
+  replyRate: number
+  interested: number
+  activeCampaigns: number
 }
 
-// ── Section header ──────────────────────────────────────────────────────────
-function SectionHeader({ title, href, linkLabel }: { title: string; href?: string; linkLabel?: string }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">{title}</h2>
-      {href && (
-        <Link href={href} className="text-xs text-brand-500 hover:text-brand-600 font-medium flex items-center gap-1 transition-colors">
-          {linkLabel ?? 'View all'}<ChevronRight className="w-3.5 h-3.5" />
-        </Link>
-      )}
-    </div>
-  )
+interface Campaign {
+  id: string
+  name: string
+  status: string
+  created_at: string
 }
 
-// ── Status badge ────────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    active:              'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400',
-    paused:              'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-    paused_low_performance: 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400',
-    draft:               'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
-    completed:           'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400',
-  }
-  const label: Record<string, string> = {
-    active: 'Active', paused: 'Paused', paused_low_performance: 'Auto-paused',
-    draft: 'Draft', completed: 'Done',
-  }
+interface Reply {
+  id: string
+  from_email: string
+  classification: string
+  processed_at: string
+  leads?: { first_name?: string; last_name?: string } | null
+}
+
+// ── Agent status pill ────────────────────────────────────────────────────────
+function AgentStatus({ live }: { live: boolean }) {
   return (
-    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${map[status] ?? 'bg-gray-100 text-gray-500'}`}>
-      {label[status] ?? status}
+    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
+      live
+        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+        : 'bg-gray-100 text-gray-400 border border-gray-200'
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+      {live ? 'Active' : 'Coming soon'}
     </span>
   )
 }
 
-// ── Score ring ──────────────────────────────────────────────────────────────
-function ScoreRing({ score }: { score: number | null }) {
-  if (!score) return <span className="text-xs text-gray-400">—</span>
-  const color = score >= 80 ? 'text-green-500' : score >= 60 ? 'text-blue-500' : score >= 40 ? 'text-amber-500' : 'text-gray-400'
-  return <span className={`text-sm font-bold ${color}`}>{score}</span>
+// ── Metric pill inside agent card ────────────────────────────────────────────
+function AgentMetric({ label, value, highlight = false }: { label: string; value: string | number; highlight?: boolean }) {
+  return (
+    <div className="text-center">
+      <p className={`text-xl font-bold tracking-tight ${highlight ? 'text-[#7C3AED]' : 'text-gray-900'}`}>
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </p>
+      <p className="text-xs text-gray-400 mt-0.5 whitespace-nowrap">{label}</p>
+    </div>
+  )
 }
 
-export default async function MissionControlPage() {
+// ── Hot reply badge ──────────────────────────────────────────────────────────
+function ClassBadge({ cls }: { cls: string }) {
+  const map: Record<string, string> = {
+    hot: 'bg-red-50 text-red-600 border border-red-200',
+    interested: 'bg-red-50 text-red-600 border border-red-200',
+    warm: 'bg-amber-50 text-amber-600 border border-amber-200',
+    cold: 'bg-blue-50 text-blue-500 border border-blue-200',
+    not_interested: 'bg-blue-50 text-blue-500 border border-blue-200',
+    opt_out: 'bg-rose-50 text-rose-600 border border-rose-200',
+  }
+  const labels: Record<string, string> = {
+    hot: '🔥 Hot', interested: '🔥 Hot', warm: '🌤 Warm',
+    cold: '❄️ Cold', not_interested: '❄️ Cold', opt_out: '🚫 Opt out',
+  }
+  return (
+    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${map[cls] ?? 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+      {labels[cls] ?? cls}
+    </span>
+  )
+}
+
+export default async function V2Home() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   let companyName   = ''
   let creditBalance = 0
-  let leadStats:  LeadStats | null = null
-  let figsyKpis:  FigsyKPIs | null = null
-  let campaigns:  Campaign[]       = []
-  let topLeads:   Lead[]           = []
-  let icpCount    = 0
+  let figsyKpis: FigsyKPIs | null = null
+  let campaigns: Campaign[] = []
+  let recentReplies: Reply[] = []
 
   if (user) {
     const { data: clientRow } = await supabase
-      .from('clients').select('company_name, credit_balance').eq('user_id', user.id).maybeSingle()
+      .from('clients')
+      .select('company_name, credit_balance, id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
     companyName   = clientRow?.company_name ?? ''
     creditBalance = clientRow?.credit_balance ?? 0
 
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
-      const [lsRes, fkRes, campRes, leadsRes, icpRes] = await Promise.allSettled([
-        api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
+      const [kpiRes, campRes] = await Promise.allSettled([
         api.get<{ data: FigsyKPIs }>('/figsy/kpis', session.access_token),
         api.get<{ data: Campaign[] }>('/figsy/campaigns', session.access_token),
-        api.get<{ data: Lead[] }>('/leads?limit=5&sort=score&order=desc', session.access_token),
-        api.get<{ data: unknown[] }>('/icps', session.access_token),
       ])
-      if (lsRes.status   === 'fulfilled') leadStats = lsRes.value.data
-      if (fkRes.status   === 'fulfilled') figsyKpis = fkRes.value.data
-      if (campRes.status === 'fulfilled') campaigns  = (campRes.value.data ?? []).slice(0, 4)
-      if (leadsRes.status === 'fulfilled') topLeads  = (leadsRes.value.data ?? []).slice(0, 5)
-      if (icpRes.status  === 'fulfilled') icpCount   = (icpRes.value.data ?? []).length
+      if (kpiRes.status === 'fulfilled')  figsyKpis = kpiRes.value.data
+      if (campRes.status === 'fulfilled') campaigns = (campRes.value.data ?? []).slice(0, 5)
+    }
+
+    if (clientRow?.id) {
+      const { data: replies } = await supabase
+        .from('figsy_replies')
+        .select('id, from_email, classification, processed_at, leads(first_name, last_name)')
+        .eq('client_id', clientRow.id)
+        .in('classification', ['hot', 'interested', 'warm'])
+        .order('processed_at', { ascending: false })
+        .limit(5)
+      recentReplies = (replies ?? []) as Reply[]
     }
   }
 
-  const hour     = new Date().getHours()
+  const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const firstName = companyName || user?.email?.split('@')[0] || 'there'
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length
+  const hotReplies = recentReplies.filter(r => r.classification === 'hot' || r.classification === 'interested').length
 
   return (
-    <div className="space-y-ds-6 max-w-7xl">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
 
-      {/* ── Mission header ──────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-ds-2xl bg-gradient-to-br from-[#05091a] via-[#001f4d] to-[#003580] px-8 py-7 text-white">
-        {/* Texture */}
-        <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
-          style={{ backgroundImage: 'radial-gradient(circle, white 1.5px, transparent 1.5px)', backgroundSize: '28px 28px' }} />
-        {/* Glow */}
-        <div className="absolute -top-24 -right-24 w-80 h-80 bg-brand-500/25 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-12 left-1/3 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative flex items-start justify-between gap-6">
+        {/* ── Greeting ──────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-white/45 text-sm font-medium">
-              {greeting}{companyName ? `, ${companyName}` : ''} · Mission Control
-            </p>
-            <h1 className="text-2xl font-bold mt-1 tracking-tight">
-              {activeCampaigns > 0
-                ? `${activeCampaigns} campaign${activeCampaigns !== 1 ? 's' : ''} running`
-                : icpCount > 0
-                  ? 'Pipeline ready — start outreach'
-                  : 'Set up your pipeline'}
+            <h1 className="text-2xl font-bold text-gray-900">
+              {greeting}, {firstName} 👋
             </h1>
-            <p className="text-white/35 text-sm mt-1.5">
-              {leadStats?.total
-                ? `${leadStats.total.toLocaleString()} leads · $${(leadStats.pipeline_value_usd ?? 0).toLocaleString()} pipeline`
-                : 'Build your ICP to start receiving leads'}
+            <p className="text-sm text-gray-500 mt-0.5">
+              Your AI sales team is{activeCampaigns > 0 ? ' working' : ' ready to launch'}
             </p>
           </div>
-
-          {/* Live status */}
-          <div className="shrink-0 flex items-center gap-2 bg-white/8 border border-white/10 rounded-ds-md px-4 py-2.5">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-white/60 text-xs font-medium">Live</span>
+          <div className="flex items-center gap-3">
+            {hotReplies > 0 && (
+              <Link href="/dashboard/inbox"
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm">
+                <Flame className="w-4 h-4" />
+                {hotReplies} hot {hotReplies === 1 ? 'reply' : 'replies'}
+              </Link>
+            )}
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-500">
+              <span className="font-semibold text-[#7C3AED]">{creditBalance.toLocaleString()}</span>
+              <span>credits</span>
+            </div>
           </div>
         </div>
 
-        {/* Key metrics row */}
-        <div className="relative mt-7 grid grid-cols-4 gap-px bg-white/10 rounded-xl overflow-hidden">
-          {[
-            { label: 'Total Leads',    value: (leadStats?.total ?? 0).toLocaleString() },
-            { label: 'Pipeline Value', value: `$${(leadStats?.pipeline_value_usd ?? 0).toLocaleString()}` },
-            { label: 'Avg Score',      value: leadStats?.avg_score ? `${leadStats.avg_score}/100` : '—' },
-            { label: 'FIGSY Sent',     value: (figsyKpis?.totalSent ?? 0).toLocaleString() },
-          ].map(m => (
-            <div key={m.label} className="bg-white/[0.05] px-5 py-3.5 backdrop-blur-sm">
-              <p className="text-white/40 text-[11px] uppercase tracking-widest font-semibold mb-1">{m.label}</p>
-              <p className="text-xl font-bold tracking-tight">{m.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+        {/* ── Agent cards ───────────────────────────────────────────────── */}
+        <div className="grid grid-cols-3 gap-5">
 
-      {/* ── Two-column mission grid ──────────────────────────────────────── */}
-      <div className="grid grid-cols-5 gap-ds-6">
-
-        {/* ── Left: Lead pipeline ───────────────────────── */}
-        <div className="col-span-3 space-y-ds-4">
-
-          {/* Lead Gen stats */}
-          <div className="ds-card p-5 shadow-ds-sm">
-            <SectionHeader title="Lead Pipeline" href="/dashboard/leads" linkLabel="All leads" />
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <Chip label="Total Leads"  value={leadStats?.total ?? 0} accent />
-              <Chip label="Scored"       value={leadStats?.scored ?? 0} />
-              <Chip label="POPIA Ready"  value={leadStats?.consented ?? 0} />
-            </div>
-
-            {/* No ICP state */}
-            {icpCount === 0 && (
-              <Link href="/dashboard/leads/icp"
-                className="flex items-center justify-between p-4 rounded-ds-md bg-brand-50 dark:bg-brand-950/40 border border-brand-100 dark:border-brand-800 hover:border-brand-200 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
-                    <Target className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-brand-700 dark:text-brand-300">Build your first ICP</p>
-                    <p className="text-xs text-brand-500/70 dark:text-brand-400/60">Define your ideal customer to start receiving leads</p>
-                  </div>
+          {/* FIGSY */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+            {/* Card header */}
+            <div className="bg-gradient-to-br from-[#7C3AED] to-[#6025c0] px-5 py-5 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-28 h-28 bg-white/10 rounded-full" />
+              <div className="absolute -bottom-4 right-8 w-16 h-16 bg-white/5 rounded-full" />
+              <div className="relative">
+                <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                  <span className="text-2xl">🤖</span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-brand-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            )}
+                <h2 className="text-white font-bold text-lg leading-tight">FIGSY</h2>
+                <p className="text-white/60 text-xs mt-0.5">AI Sales Development Rep</p>
+              </div>
+            </div>
 
-            {/* Top leads table */}
-            {topLeads.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Top scored leads</p>
-                <div className="space-y-1">
-                  {topLeads.map(lead => (
-                    <div key={lead.id}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-ds-md hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {lead.first_name} {lead.last_name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {lead.job_title ?? '—'}{lead.company ? ` · ${lead.company}` : ''}
-                        </p>
-                      </div>
-                      <ScoreRing score={lead.score} />
+            {/* Status + metrics */}
+            <div className="px-5 py-4 flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <AgentStatus live={true} />
+                <span className="text-xs text-gray-400">{activeCampaigns} active</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 py-3 border-y border-gray-100 mb-4">
+                <AgentMetric label="Sent" value={figsyKpis?.totalSent ?? 0} />
+                <AgentMetric label="Replied" value={figsyKpis?.totalReplied ?? 0} />
+                <AgentMetric label="Hot leads" value={figsyKpis?.interested ?? 0} highlight />
+              </div>
+
+              <div className="space-y-1.5 flex-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Campaigns</p>
+                {campaigns.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-2">No campaigns yet</p>
+                ) : (
+                  campaigns.slice(0, 3).map(c => (
+                    <div key={c.id} className="flex items-center justify-between py-1.5">
+                      <p className="text-sm text-gray-700 truncate pr-2">{c.name}</p>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                        c.status === 'active'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>{c.status === 'active' ? 'Live' : 'Draft'}</span>
                     </div>
-                  ))}
+                  ))
+                )}
+              </div>
+
+              <Link href="/dashboard/figsy"
+                className="mt-4 w-full flex items-center justify-center gap-2 bg-[#7C3AED] hover:bg-[#6025c0] text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
+                Open FIGSY <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Milla */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-br from-[#0ea5e9] to-[#0284c7] px-5 py-5 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-28 h-28 bg-white/10 rounded-full" />
+              <div className="relative">
+                <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                  <span className="text-2xl">💼</span>
                 </div>
+                <h2 className="text-white font-bold text-lg">Milla</h2>
+                <p className="text-white/60 text-xs mt-0.5">Virtual Executive Assistant</p>
               </div>
-            )}
-
-            {topLeads.length === 0 && icpCount > 0 && (
-              <div className="flex items-center justify-center py-8 text-sm text-gray-400 dark:text-gray-600">
-                Searching for leads — check back shortly
-              </div>
-            )}
-          </div>
-
-          {/* Credits + secondary metrics */}
-          <div className="grid grid-cols-3 gap-3">
-            <Chip label="Credits"         value={creditBalance} />
-            <Chip label="POPIA Consented" value={leadStats?.consented ?? 0} />
-            <Chip label="Avg Score"       value={leadStats?.avg_score ? `${leadStats.avg_score}/100` : '—'} />
-          </div>
-        </div>
-
-        {/* ── Right: FIGSY status ──────────────────────── */}
-        <div className="col-span-2 space-y-ds-4">
-
-          {/* FIGSY KPIs */}
-          <div className="ds-card p-5 shadow-ds-sm">
-            <SectionHeader title="FIGSY Outreach" href="/dashboard/figsy" linkLabel="Campaigns" />
-
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <Chip label="Sent"       value={figsyKpis?.totalSent ?? 0} />
-              <Chip label="Replies"    value={figsyKpis?.totalReplied ?? 0} />
-              <Chip label="Reply rate" value={figsyKpis?.replyRate ? `${(figsyKpis.replyRate * 100).toFixed(1)}%` : '—'} />
-              <Chip label="Interested" value={figsyKpis?.interested ?? 0} accent />
             </div>
 
-            {/* Campaign list */}
-            {campaigns.length === 0 ? (
-              <Link href="/dashboard/figsy"
-                className="flex items-center justify-between p-3.5 rounded-ds-md bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                    <Play className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Start first campaign</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            ) : (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Campaigns</p>
-                {campaigns.map(c => (
-                  <div key={c.id}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-ds-md hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <p className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate pr-2">{c.name}</p>
-                    <StatusBadge status={c.status} />
+            <div className="px-5 py-4 flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <AgentStatus live={false} />
+              </div>
+
+              <div className="flex-1 space-y-3">
+                {[
+                  'Calendar & meeting management',
+                  'Email drafting & follow-ups',
+                  'Research & briefing documents',
+                  'Task delegation & tracking',
+                ].map(feat => (
+                  <div key={feat} className="flex items-start gap-2.5">
+                    <Circle className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
+                    <p className="text-sm text-gray-400">{feat}</p>
                   </div>
                 ))}
               </div>
+
+              <button disabled
+                className="mt-4 w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 text-sm font-semibold py-2.5 rounded-xl cursor-not-allowed">
+                Coming soon
+              </button>
+            </div>
+          </div>
+
+          {/* Vida */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-br from-[#10b981] to-[#059669] px-5 py-5 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-28 h-28 bg-white/10 rounded-full" />
+              <div className="relative">
+                <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                  <span className="text-2xl">💬</span>
+                </div>
+                <h2 className="text-white font-bold text-lg">Vida</h2>
+                <p className="text-white/60 text-xs mt-0.5">Website Chatbot Agent</p>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <AgentStatus live={false} />
+              </div>
+
+              <div className="flex-1 space-y-3">
+                {[
+                  '24/7 website visitor engagement',
+                  'Lead capture & qualification',
+                  'Product FAQ & demo booking',
+                  'Handoff to human reps',
+                ].map(feat => (
+                  <div key={feat} className="flex items-start gap-2.5">
+                    <Circle className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
+                    <p className="text-sm text-gray-400">{feat}</p>
+                  </div>
+                ))}
+              </div>
+
+              <button disabled
+                className="mt-4 w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 text-sm font-semibold py-2.5 rounded-xl cursor-not-allowed">
+                Coming soon
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bottom row: activity + quick actions ──────────────────────── */}
+        <div className="grid grid-cols-3 gap-5">
+
+          {/* Recent hot replies */}
+          <div className="col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Recent replies</h3>
+              <Link href="/dashboard/inbox" className="text-xs text-[#7C3AED] hover:underline font-medium flex items-center gap-1">
+                View all <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {recentReplies.length === 0 ? (
+              <div className="py-8 text-center">
+                <Inbox className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">Replies will appear here as leads respond</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentReplies.map(r => {
+                  const lead = Array.isArray(r.leads) ? r.leads[0] : r.leads
+                  const name = lead
+                    ? `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || r.from_email
+                    : r.from_email
+                  return (
+                    <div key={r.id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
+                          <span className="text-sm font-semibold text-gray-500">
+                            {name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{name}</p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(r.processed_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                          </p>
+                        </div>
+                      </div>
+                      <ClassBadge cls={r.classification} />
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
 
-          {/* Inbox shortcut */}
-          <Link href="/dashboard/figsy/replies"
-            className="ds-card p-5 shadow-ds-sm flex items-center justify-between hover:border-brand-200 dark:hover:border-brand-700 hover:shadow-ds-md transition-all group">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-950 rounded-ds-md flex items-center justify-center">
-                <Inbox className="w-4 h-4 text-indigo-500" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">Reply Inbox</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Review and respond</p>
-              </div>
+          {/* Quick actions */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h3 className="font-semibold text-gray-900 mb-4">Quick actions</h3>
+            <div className="space-y-2">
+              {[
+                { href: '/dashboard/figsy', icon: <Play className="w-4 h-4" />, label: 'New campaign', color: 'bg-[#7C3AED]/10 text-[#7C3AED]' },
+                { href: '/dashboard/leads/icp', icon: <Users className="w-4 h-4" />, label: 'Build ICP', color: 'bg-blue-50 text-blue-600' },
+                { href: '/dashboard/inbox', icon: <Inbox className="w-4 h-4" />, label: 'Check inbox', color: 'bg-amber-50 text-amber-600' },
+                { href: '/dashboard/analytics', icon: <TrendingUp className="w-4 h-4" />, label: 'View analytics', color: 'bg-emerald-50 text-emerald-600' },
+                { href: '/dashboard/settings', icon: <Settings className="w-4 h-4" />, label: 'Settings', color: 'bg-gray-100 text-gray-600' },
+              ].map(({ href, icon, label, color }) => (
+                <Link key={href} href={href}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+                    {icon}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{label}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-300 ml-auto group-hover:text-gray-400 group-hover:translate-x-0.5 transition-all" />
+                </Link>
+              ))}
             </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all" />
-          </Link>
-
-          {/* Low credits warning */}
-          {creditBalance <= 10 && (
-            <Link href="/dashboard/billing"
-              className="flex items-center justify-between p-4 rounded-ds-md bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 hover:border-red-300 transition-colors group">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                  {creditBalance === 0 ? 'No credits — outreach paused' : `${creditBalance} credits left`}
-                </p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-red-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-            </Link>
-          )}
+          </div>
         </div>
-      </div>
 
+      </div>
     </div>
   )
 }

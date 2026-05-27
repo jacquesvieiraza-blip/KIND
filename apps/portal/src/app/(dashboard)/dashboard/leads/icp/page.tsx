@@ -269,8 +269,27 @@ export default function ICPPage() {
   }, [])
 
   // Debounced preview count — fires 800ms after last form change
-  const fetchPreviewCount = useCallback(async (currentForm: ICPFormData, currentToken: string) => {
+  const fetchPreviewCount = useCallback(async (currentForm: ICPFormData, currentToken: string, orgNames?: string[]) => {
     if (!currentToken) return
+
+    // ABM mode: only requires organization_names
+    if (orgNames && orgNames.length > 0) {
+      setPreviewLoading(true)
+      try {
+        const res = await api.post<{ data: { count: number; samples: Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }> } }>(
+          '/icps/preview-count',
+          { ...currentForm, organization_names: orgNames },
+          currentToken
+        )
+        setPreviewCount(res.data.count)
+        setPreviewSamples(res.data.samples ?? [])
+      } catch {
+        // Silently fail
+      }
+      setPreviewLoading(false)
+      return
+    }
+
     const hasAnyCriteria = currentForm.industries.length > 0 || currentForm.job_titles.length > 0 ||
       currentForm.seniority_levels.length > 0 || currentForm.geographies.length > 0
     if (!hasAnyCriteria) { setPreviewCount(null); setPreviewSamples([]); return }

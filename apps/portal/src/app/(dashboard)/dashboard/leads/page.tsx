@@ -309,6 +309,7 @@ export default function LeadsPage() {
   const [apolloOnly, setApolloOnly] = useState(false)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [revivalFilter, setRevivalFilter] = useState(false)
 
   const fetchData = useCallback(async (tok: string) => {
     setLoading(true)
@@ -347,6 +348,7 @@ export default function LeadsPage() {
     setStatusFilter(tabToStatusFilter(tab))
     setPage(1)
     setSelectedIds(new Set())
+    setRevivalFilter(false)
   }
 
   async function updateStatus(leadId: string, status: Lead['status']) {
@@ -469,9 +471,11 @@ export default function LeadsPage() {
     setBulkStatusLoading(false)
   }
 
-  const filteredLeads = leads.filter(l =>
-    !search || `${l.first_name} ${l.last_name} ${l.company} ${l.job_title}`.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredLeads = leads.filter(l => {
+    if (search && !`${l.first_name} ${l.last_name} ${l.company} ${l.job_title}`.toLowerCase().includes(search.toLowerCase())) return false
+    if (revivalFilter && l.status !== 'scored') return false
+    return true
+  })
 
   // For the Pending Review tab: leads with score >= 70 and status pending/scored
   const pendingReviewLeads = filteredLeads.filter(
@@ -626,8 +630,41 @@ export default function LeadsPage() {
               className="rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED]" />
             Apollo consented only
           </label>
+          <button
+            onClick={() => { setRevivalFilter(r => !r); setPage(1) }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              revivalFilter
+                ? 'bg-amber-500 text-white border-amber-500'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-amber-400 hover:text-amber-600'
+            }`}
+          >
+            ♻️ Revival
+            {!revivalFilter && leads.filter(l => l.status === 'scored').length > 0 && (
+              <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full text-[10px] font-bold">
+                {leads.filter(l => l.status === 'scored').length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Revival campaign banner — W15 */}
+      {revivalFilter && filteredLeads.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-amber-800">
+              ♻️ {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''} ready for revival
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              These leads were scored but never contacted. Alta data shows 53% engagement on revival campaigns.
+            </p>
+          </div>
+          <a href="/dashboard/figsy?template=revival"
+            className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors shrink-0">
+            Start revival campaign →
+          </a>
+        </div>
+      )}
 
       {/* Lead table */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">

@@ -78,6 +78,26 @@ const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     steps: 5,
     suggestedTone: 'Consultative, specific',
   },
+  {
+    id: 'revival',
+    name: 'Unresponsive Revival',
+    description: 'Re-engage leads who were scored but never replied. Alta shows 53% engagement on these campaigns — often higher than cold outreach.',
+    category: 'Nurture',
+    icon: TrendingUp,
+    tags: ['2 steps', 'Revival', 'High-intent'],
+    steps: 2,
+    suggestedTone: 'Direct, honest, low-pressure',
+  },
+  {
+    id: 'inbound-qualify',
+    name: 'Inbound Qualify',
+    description: 'Follow up with leads who signed up or showed interest. Strike while the interest is warm.',
+    category: 'Nurture',
+    icon: Zap,
+    tags: ['2 steps', 'Inbound', 'Warm'],
+    steps: 2,
+    suggestedTone: 'Helpful, consultative',
+  },
 ]
 
 interface Reply {

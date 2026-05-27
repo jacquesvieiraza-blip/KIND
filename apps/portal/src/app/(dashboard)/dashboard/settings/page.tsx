@@ -222,6 +222,37 @@ export default function SettingsPage() {
         <p className="text-[#7B6FA0] text-sm mt-0.5">Connect external tools to supercharge FIGSY.</p>
       </div>
 
+      {/* Writing Style — W14 */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Pencil className="w-4 h-4 text-[#9B8EC4]" />
+          <h2 className="font-semibold">FIGSY Writing Style</h2>
+        </div>
+        <p className="text-sm text-[#9B8EC4] mb-4">
+          Paste 2–3 of your best-performing cold emails below. FIGSY will match your tone and style when generating sequences.
+        </p>
+        <div className="space-y-3">
+          <textarea
+            value={writingStyle}
+            onChange={e => setWritingStyle(e.target.value)}
+            rows={8}
+            placeholder={`Paste your best emails here. Example:\n\nSubject: quick question\n\nHi Sarah,\n\nI noticed Acme recently expanded into fintech — we work with companies at exactly that inflection point...\n\n---\n\nPaste another email below`}
+            className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-none font-mono text-xs leading-relaxed"
+          />
+          {writingStyleSaved && <p className="text-green-600 text-xs font-medium">✓ Style saved — FIGSY will use this for your next sequence</p>}
+          {writingStyleError && <p className="text-red-600 text-xs">{writingStyleError}</p>}
+          <button
+            type="button"
+            disabled={writingStyleSaving}
+            onClick={handleSaveWritingStyle}
+            className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-4 py-2 text-sm transition-colors disabled:opacity-60"
+          >
+            {writingStyleSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save writing style
+          </button>
+        </div>
+      </div>
+
       {/* CRM Integration */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
         <div className="flex items-center gap-2 mb-1">

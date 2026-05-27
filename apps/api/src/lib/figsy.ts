@@ -38,6 +38,19 @@ export async function generateSequence(
   senderCompanyName: string,
   senderIndustry: string | null,
 ): Promise<SequenceDraft> {
+  // ── Signal detection — pick the best personalization hook ─────────────────
+  const signals: string[] = []
+  if (lead.tech_stack && lead.tech_stack.length > 0) {
+    signals.push(`Uses ${lead.tech_stack.slice(0, 2).join(' and ')} in their tech stack`)
+  }
+  if (lead.industry) {
+    signals.push(`Works in ${lead.industry}`)
+  }
+  if (lead.score_reasoning) {
+    signals.push(lead.score_reasoning)
+  }
+  const bestSignal = signals[0] ?? null
+
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."
 
 Lead details:
@@ -47,13 +60,13 @@ Lead details:
 - Industry: ${lead.industry || 'unknown'}
 - Seniority: ${lead.seniority || 'unknown'}
 - Country: ${lead.country || 'unknown'}
+${bestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${bestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
-${lead.score_reasoning ? `- Why they're relevant: ${lead.score_reasoning}` : ''}
 
 Write a 3-email sequence:
 
 Step 1 (Day 0) — First touch:
-- Open with a specific, genuine observation about their role, company, or a problem they likely face. Not generic — make them feel seen.
+- MANDATORY: Open with a specific observation using the personalization signal provided above. If they use Salesforce, reference it. If they're in fintech, reference it. Make them feel like you actually looked them up — because we did.
 - One sentence on what ${senderCompanyName} does and why it matters to them specifically.
 - One soft CTA: quick call, 15 minutes.
 - Max 70 words. No subject line tricks. Subject should feel like a colleague's email.
@@ -340,6 +353,19 @@ export async function generateSequenceWithMemory(
       : null,
   ].filter(Boolean).join('\n')
 
+  // ── Signal detection — pick the best personalization hook ─────────────────
+  const memSignals: string[] = []
+  if (lead.tech_stack && lead.tech_stack.length > 0) {
+    memSignals.push(`Uses ${lead.tech_stack.slice(0, 2).join(' and ')} in their tech stack`)
+  }
+  if (lead.industry) {
+    memSignals.push(`Works in ${lead.industry}`)
+  }
+  if (lead.score_reasoning) {
+    memSignals.push(lead.score_reasoning)
+  }
+  const memBestSignal = memSignals[0] ?? null
+
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person — not an AI.
 
 FIGSY Campaign Intelligence (use this to improve your writing):
@@ -352,12 +378,12 @@ Lead details:
 - Industry: ${lead.industry || 'unknown'}
 - Seniority: ${lead.seniority || 'unknown'}
 - Country: ${lead.country || 'unknown'}
+${memBestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${memBestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
-${lead.score_reasoning ? `- Why they're relevant: ${lead.score_reasoning}` : ''}
 
 Write a 3-email sequence that applies the lessons from Campaign Intelligence above.
 
-Step 1 (Day 0): First touch — under 70 words. Specific observation. One CTA.
+Step 1 (Day 0): First touch — under 70 words. MANDATORY: Open with the personalization signal above. One CTA.
 Step 2 (Day 4): Follow-up — new angle, shorter. Acknowledge step 1 was sent.
 Step 3 (Day 9): Final — direct, no pressure, leave it open.
 

@@ -736,5 +736,33 @@ figsyRouter.get('/memory', async (req: AuthRequest, res) => {
   }
 })
 
+// Preview the signal that FIGSY would use for a lead (for display in leads table)
+figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead } = await db.from('leads')
+      .select('tech_stack, industry, score_reasoning, company')
+      .eq('id', req.params.leadId)
+      .eq('client_id', clientId)
+      .single()
+
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const signals: string[] = []
+    if (lead.tech_stack && Array.isArray(lead.tech_stack) && lead.tech_stack.length > 0) {
+      signals.push(`Uses ${(lead.tech_stack as string[]).slice(0, 2).join(' and ')}`)
+    }
+    if (lead.score_reasoning) signals.push(lead.score_reasoning)
+    if (lead.industry) signals.push(`${lead.industry} sector`)
+
+    res.json({ success: true, data: { signal: signals[0] ?? null, all_signals: signals } })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to get signal preview' })
+  }
+})
+
 // Export for use in icps.ts (S5 — FIGSY auto-start)
 export { autoEnrollLead }

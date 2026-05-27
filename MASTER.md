@@ -422,17 +422,20 @@
 | W6 | **Social proof slot on login page** | 3 logo slots + testimonial placeholder below login form. Drop real logo when T36 is done. | ✅ Done |
 | W7 | **Demo wow-moment narration update** | Update Section 35 demo script with W1 as Scene 1. "Watch this number. Type your ICP. This is live." | ⏳ After W1 ships to prod |
 
-**Round 2 — NEXT (Low effort / High impact from 28-screenshot analysis):**
-| # | Build | What | Effort | Alta parallel |
-|---|-------|------|--------|--------------|
-| W8 | **Proactive home screen** | Replace passive dashboard landing with "Who should FIGSY target today?" prompt + 7-day flow metrics on load. Alta's home screen is the first thing Rachelle showed. | Low | Alta: "Who should we target today?" with CRM chips |
-| W9 | **Campaign templates library** | 5 named templates: Cold Outbound Email, Post-Event Follow-up, CSV Revival, Inbound Qualify, Unresponsive Nurture. Reduces time-to-first-campaign dramatically. | Low | Alta: 9 templates — first thing after audience source |
-| W10 | **Editable FIGSY prompt per campaign** | Expose Claude system prompt as editable text field in campaign settings. Power users tune voice + constraints per campaign. | Low | Alta: per-step editable prompt, version history, tone selector |
-| W11 | **Daily send quota slider** | "New prospects to contact per day" (0–200 slider). Alta shows this at 5 in demo. Reduces risk for cautious users. | Low | Alta: slider on campaign launch, set to 5 in demo |
-| W12 | **Quality gate toggle** | "Hold messages below quality threshold for review" toggle. Builds trust in autopilot mode. | Low | Alta: "Hold low-quality messages for review" toggle |
-| W13 | **W1 upgrade: show 3 real contact names** | Currently shows COUNT. Alta shows actual names (name, title, company, LinkedIn icon) populating in real time. Upgrade preview to show 3 sample contacts from Apollo. | Low-Med | Alta's single most impactful demo moment |
-| W14 | **Email style training from sent emails** | Gmail/Outlook sent folder sync — last 50–100 emails → teach FIGSY each rep's writing style. Alta does this. MCP/Gmail API route. | Medium | Alta: Messaging tab stores actual sent emails to train Katie |
-| W15 | **Unresponsive revival as named campaign type** | "Revival" as first-class campaign type — surfaces 53% engagement rate in demo (Alta's best-performing template). | Low | Alta: 1,045 prospects, 53% engagement, 44 replies |
+**Round 2 — SHIPPED 27 May 2026:**
+| # | Build | What | Status |
+|---|-------|------|--------|
+| W8 | **Proactive home screen** | Purple gradient "Who should FIGSY target today?" card, 3 live stat chips, quick action strip. | ✅ Done |
+| W9 | **Campaign templates library** | Was already built. Expanded with Unresponsive Revival + Inbound Qualify templates. | ✅ Already existed + expanded |
+| W10 | **Editable FIGSY prompt per campaign** | Custom instructions textarea in campaign settings. Stored in campaign `settings` JSONB. | ✅ Done |
+| W11 | **Daily send quota slider** | 1–200 slider per campaign (default 50). | ✅ Done |
+| W12 | **Quality gate / Co-pilot toggle** | "✋ Co-pilot mode — review before send" amber checkbox in campaign settings. | ✅ Done |
+| W13 | **ICP preview: 3 real contact names** | API returns `{count, samples[]}`. Contact cards: avatar initial · name · title·company · `in` badge. | ✅ Done |
+| W14 | **Email style training (textarea)** | Paste 2–3 best emails in Settings → FIGSY adapts tone. Stored in localStorage. | ✅ Done |
+| W15 | **Unresponsive revival campaign type** | Revival filter on leads page (scored-not-contacted). 53% benchmark banner. Revival template added. | ✅ Done |
+| W2 | **Signal tokens in FIGSY sequences** | `generateSequence` detects best signal (tech stack → industry → score_reasoning). Step 1 MANDATORY opens with it. | ✅ Done |
+| Unibox | **Two-way reply from admin Unibox** | `ReplyForm` client component + `/api/reply` admin Route Handler via Resend + service role. | ✅ Done |
+| W7 | **Demo narration update (Section 35)** | Scene 1 scripted: "Watch this number." Apollo live preview as opening argument. Recovery scripts included. | ✅ Done |
 
 **NEXT UP (smoke tests + steals):**
 | # | Build | What | Time |
@@ -1893,29 +1896,30 @@ Alta has WhatsApp inside sequences only. K.I.N.D has Vida — a full WhatsApp ch
 | 5 | Soft warm palette | ✅ Applied |
 | 6 | AskFigsyButton — always-accessible, dark branded | ✅ Built |
 | 7 | Performance benchmark on KPIs page | ✅ Built |
-| 8 | W1: Live ICP lead count ("X matching leads") | ✅ Built — upgrade to names = W13 |
-| 9 | W3: Intent signals in ICP builder (4 signal types) | ✅ Built |
-| 10 | W5: LinkedIn `in` badge on every lead row | ✅ Built |
-| 11 | W6: Social proof slot on login page | ✅ Built |
+| 8 | W1: Live ICP lead count ("X matching leads") | ✅ Built |
+| 9 | W13: ICP preview upgraded to show 3 real contact names + LinkedIn badges | ✅ Built |
+| 10 | W3: Intent signals in ICP builder (4 signal types) | ✅ Built |
+| 11 | W5: LinkedIn `in` badge on every lead row | ✅ Built |
+| 12 | W6: Social proof slot on login page | ✅ Built |
+| 13 | W8: Proactive home screen — "Who should FIGSY target today?" | ✅ Built |
+| 14 | W9: Campaign templates (8 total + Revival + Inbound Qualify) | ✅ Built |
+| 15 | W10: Editable FIGSY prompt per campaign (custom instructions textarea) | ✅ Built |
+| 16 | W11: Daily send quota slider (1–200 per campaign) | ✅ Built |
+| 17 | W12: Co-pilot quality gate toggle per campaign | ✅ Built |
+| 18 | W14: Email style training textarea in settings | ✅ Built |
+| 19 | W15: Unresponsive revival filter + campaign type (53% benchmark) | ✅ Built |
+| 20 | W2: Signal tokens — FIGSY opens every Step 1 with best personalization signal | ✅ Built |
+| 21 | Unibox two-way reply — `ReplyForm` + admin `/api/reply` via Resend | ✅ Built |
+| 22 | W7: Demo narration Scene 1 scripted in Section 35 | ✅ Built |
 
-### Still To Build From This Audit
-| # | Item | Effort | Priority |
-|---|------|--------|----------|
-| W8 | Proactive home screen ("Who to target today?") | Low | 🔴 High — demo impact |
-| W9 | Campaign templates (5 named) | Low | 🔴 High — demo impact |
-| W10 | Editable FIGSY prompt per campaign | Low | 🟡 Medium |
-| W11 | Daily send quota slider (0–200) | Low | 🟡 Medium |
-| W12 | Quality gate toggle | Low | 🟡 Medium |
-| W13 | W1 upgrade: show 3 real contact names in ICP preview | Low-Med | 🔴 High — closes biggest demo gap |
-| W14 | Email style training from sent emails (Gmail sync) | Medium | 🟡 Medium |
-| W15 | Unresponsive revival campaign type (named, 53% benchmark) | Low | 🟡 Medium |
-| W2 | Signal tokens in FIGSY sequences (`{{signal_*}}`) | High | 🟡 Medium |
-| — | Unibox two-way reply (match Alta's inbox) | High | 🟡 Medium |
-| — | Persistent prospect database / CRM-lite view | Medium | 🟡 Medium — at 5+ clients |
+### Still To Build (Long-term / Tier 3)
+| # | Item | Effort | When |
+|---|------|--------|------|
+| — | Persistent prospect database / CRM-lite view | Medium | At 5+ clients |
 | — | Visual sequence builder (node tree) | High | 🟢 Long-term |
-| — | LinkedIn automation (connection + message) | High | 🟢 Long-term — ban risk |
+| — | LinkedIn automation (connection + message) | High | 🟢 Requires API partner approval |
 | — | Social signals audience source (LinkedIn post scraping) | High | 🟢 Long-term |
-| — | AI enrichment columns (custom research step) | High | 🟢 Long-term |
+| — | AI enrichment columns (custom research step per sequence) | High | 🟢 Long-term |
 | — | AI voice calls (Alex equivalent) | High | 🟢 Lowest priority for Africa/SMB |
 
 ---

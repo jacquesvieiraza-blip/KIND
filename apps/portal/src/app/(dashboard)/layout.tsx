@@ -38,7 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } catch { }
 
   return (
-    <div className="flex h-screen bg-[#f7faff]">
+    <div className="flex h-screen bg-[#FFFBF5]">
       <Sidebar userEmail={user.email || ''} creditBalance={creditBalance} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
         <TrialExpiredOverlay expired={trialExpired} />

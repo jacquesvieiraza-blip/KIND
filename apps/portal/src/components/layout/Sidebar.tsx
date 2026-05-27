@@ -25,13 +25,13 @@ interface AgentDef {
   id: AgentId
   name: string
   role: string
-  gradient: string          // fallback gradient when image missing
+  gradient: string
   ringColor: string
   initial: string
   description: string
   nav: NavItem[]
   available: boolean
-  accentColor: string       // agent brand colour for active ring / pills
+  accentColor: string
 }
 
 const AGENTS: AgentDef[] = [
@@ -39,9 +39,9 @@ const AGENTS: AgentDef[] = [
     id: 'figsy',
     name: 'FIGSY',
     role: 'AI SDR',
-    gradient: 'from-[#0066FF] to-[#003d99]',
-    ringColor: 'ring-[#0066FF]/20',
-    accentColor: '#0066FF',
+    gradient: 'from-[#7C3AED] to-[#4C1D95]',
+    ringColor: 'ring-[#7C3AED]/30',
+    accentColor: '#7C3AED',
     initial: 'F',
     description: 'Outbound campaigns & sequences',
     available: true,
@@ -57,9 +57,9 @@ const AGENTS: AgentDef[] = [
     id: 'milla',
     name: 'Milla',
     role: 'Virtual Assistant',
-    gradient: 'from-purple-500 to-purple-900',
-    ringColor: 'ring-purple-400/20',
-    accentColor: '#7c3aed',
+    gradient: 'from-pink-400 to-purple-600',
+    ringColor: 'ring-pink-400/30',
+    accentColor: '#F472B6',
     initial: 'M',
     description: 'Email, scheduling & knowledge',
     available: false,
@@ -73,9 +73,9 @@ const AGENTS: AgentDef[] = [
     id: 'vida',
     name: 'Vida',
     role: 'Chatbot Agent',
-    gradient: 'from-teal-400 to-cyan-700',
-    ringColor: 'ring-teal-400/20',
-    accentColor: '#0d9488',
+    gradient: 'from-teal-400 to-cyan-600',
+    ringColor: 'ring-teal-400/30',
+    accentColor: '#14B8A6',
     initial: 'V',
     description: 'Website & WhatsApp inbound',
     available: false,
@@ -135,12 +135,12 @@ function SystemStatus() {
       .then(r => r.ok ? setStatus('ok') : setStatus('degraded'))
       .catch(() => setStatus('degraded'))
   }, [])
-  const dot   = status === 'ok' ? 'bg-green-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-gray-300'
+  const dot   = status === 'ok' ? 'bg-emerald-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-purple-400/40'
   const label = status === 'ok' ? 'All systems operational' : status === 'degraded' ? 'Service disruption' : 'Checking…'
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f6ff]">
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5">
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot} ${status === 'ok' ? 'animate-pulse' : ''}`} />
-      <span className="text-[11px] text-slate-400">{label}</span>
+      <span className="text-[11px] text-purple-300/50">{label}</span>
     </div>
   )
 }
@@ -189,54 +189,54 @@ export function Sidebar({
   }
 
   return (
-    <aside className="w-[224px] bg-white flex flex-col shrink-0 border-r border-[#e8eeff]">
+    <aside className="w-[224px] bg-[#0F0929] flex flex-col shrink-0 border-r border-white/[0.06]">
 
       {/* ── Logo ─────────────────────────────────────────────────────────── */}
-      <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-[#eef2ff]">
-        <div className="w-7 h-7 rounded-lg bg-[#0066FF] flex items-center justify-center shadow-sm shadow-blue-300/40">
+      <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-white/[0.06]">
+        <div className="w-7 h-7 rounded-lg bg-[#7C3AED] flex items-center justify-center shadow-sm shadow-purple-950/80">
           <Zap className="w-4 h-4 text-white" />
         </div>
-        <span className="text-[#0d1f4c] font-bold text-sm tracking-tight">K.I.N.D</span>
-        <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#eff6ff] text-[#0066FF]">Beta</span>
+        <span className="text-white font-bold text-sm tracking-tight">K.I.N.D</span>
+        <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#7C3AED]/20 text-purple-300 border border-[#7C3AED]/25">Beta</span>
       </div>
 
       {/* ── Active agent card ─────────────────────────────────────────────── */}
       <div className="px-3 pt-3 pb-1">
         <button
           onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-[#f4f8ff] hover:bg-[#eaf2ff] border border-[#ddeaff] transition-all group"
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] transition-all group"
         >
           <AgentAvatar agent={agent} size="md" />
           <div className="flex-1 text-left min-w-0">
-            <p className="text-[#0d1f4c] font-semibold text-sm leading-tight">{agent.name}</p>
-            <p className="text-slate-400 text-[11px] mt-0.5">{agent.role}</p>
+            <p className="text-white font-semibold text-sm leading-tight">{agent.name}</p>
+            <p className="text-purple-300/50 text-[11px] mt-0.5">{agent.role}</p>
           </div>
           <ChevronDown
-            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-purple-300/30 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           />
         </button>
 
         {/* Switcher dropdown */}
         {open && (
-          <div className="mt-1.5 rounded-xl bg-white border border-[#ddeaff] overflow-hidden shadow-xl shadow-blue-100/60 z-50">
-            <p className="text-[10px] text-slate-400 px-3 pt-2.5 pb-1.5 font-semibold uppercase tracking-wider">
+          <div className="mt-1.5 rounded-xl bg-[#1A0F47] border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/60 z-50">
+            <p className="text-[10px] text-purple-400/40 px-3 pt-2.5 pb-1.5 font-semibold uppercase tracking-wider">
               Your AI Agents
             </p>
             {AGENTS.map(a => (
               <button
                 key={a.id}
                 onClick={() => { setActiveId(a.id); setOpen(false) }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#f4f8ff] transition-colors ${
-                  a.id === activeId ? 'bg-[#f0f6ff]' : ''
+                className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.06] transition-colors ${
+                  a.id === activeId ? 'bg-white/[0.06]' : ''
                 }`}
               >
                 <AgentAvatar agent={a} size="sm" />
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-[#0d1f4c] text-xs font-semibold leading-tight">{a.name}</p>
-                  <p className="text-slate-400 text-[10px] mt-0.5 truncate">{a.description}</p>
+                  <p className="text-white text-xs font-semibold leading-tight">{a.name}</p>
+                  <p className="text-purple-300/40 text-[10px] mt-0.5 truncate">{a.description}</p>
                 </div>
                 {!a.available && (
-                  <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full shrink-0 font-medium">
+                  <span className="text-[9px] text-purple-400/50 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded-full shrink-0 font-medium">
                     Soon
                   </span>
                 )}
@@ -245,10 +245,10 @@ export function Sidebar({
                 )}
               </button>
             ))}
-            <div className="mx-3 mb-2 mt-1 border-t border-[#eef2ff]" />
-            <p className="text-[10px] text-slate-400 px-3 pb-2.5 leading-relaxed">
+            <div className="mx-3 mb-2 mt-1 border-t border-white/[0.06]" />
+            <p className="text-[10px] text-purple-300/35 px-3 pb-2.5 leading-relaxed">
               Milla & Vida unlock with a subscription →{' '}
-              <Link href="/dashboard/billing" className="text-[#0066FF] font-medium" onClick={() => setOpen(false)}>Billing</Link>
+              <Link href="/dashboard/billing" className="text-purple-300/70 font-medium hover:text-purple-200 transition-colors" onClick={() => setOpen(false)}>Billing</Link>
             </p>
           </div>
         )}
@@ -265,15 +265,15 @@ export function Sidebar({
               href={href}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${
                 active
-                  ? 'bg-[#0066FF] text-white shadow-sm shadow-blue-300/30'
-                  : 'text-slate-500 hover:text-[#0d1f4c] hover:bg-[#f0f6ff]'
+                  ? 'bg-[#7C3AED] text-white shadow-sm shadow-purple-900/60'
+                  : 'text-purple-200/55 hover:text-white hover:bg-white/[0.07]'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
               <span className="flex-1">{label}</span>
               {showUnread && (
                 <span className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                  active ? 'bg-white text-[#0066FF]' : 'bg-red-500 text-white'
+                  active ? 'bg-white text-[#7C3AED]' : 'bg-red-500 text-white'
                 }`}>
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
@@ -283,8 +283,8 @@ export function Sidebar({
         })}
 
         {/* ── Lead Gen section ──────────────────────────────────────────── */}
-        <div className="!my-3 border-t border-[#eef2ff]" />
-        <p className="text-[10px] text-slate-400 px-3 pt-1 pb-1.5 font-semibold uppercase tracking-wider">
+        <div className="!my-3 border-t border-white/[0.06]" />
+        <p className="text-[10px] text-purple-400/35 px-3 pt-1 pb-1.5 font-semibold uppercase tracking-wider">
           Lead Gen
         </p>
         {LEAD_GEN_NAV.map(({ href, label, icon: Icon }) => {
@@ -295,8 +295,8 @@ export function Sidebar({
               href={href}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${
                 active
-                  ? 'bg-[#0066FF] text-white shadow-sm shadow-blue-300/30'
-                  : 'text-slate-500 hover:text-[#0d1f4c] hover:bg-[#f0f6ff]'
+                  ? 'bg-[#7C3AED] text-white shadow-sm shadow-purple-900/60'
+                  : 'text-purple-200/55 hover:text-white hover:bg-white/[0.07]'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -306,7 +306,7 @@ export function Sidebar({
         })}
 
         {/* ── Secondary nav ─────────────────────────────────────────────── */}
-        <div className="!my-3 border-t border-[#eef2ff]" />
+        <div className="!my-3 border-t border-white/[0.06]" />
         {BOTTOM_NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
@@ -315,8 +315,8 @@ export function Sidebar({
               href={href}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${
                 active
-                  ? 'bg-[#eff6ff] text-[#0066FF]'
-                  : 'text-slate-400 hover:text-slate-600 hover:bg-[#f4f8ff]'
+                  ? 'bg-white/[0.10] text-purple-200'
+                  : 'text-purple-300/35 hover:text-purple-200 hover:bg-white/[0.05]'
               }`}
             >
               <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -327,21 +327,21 @@ export function Sidebar({
       </nav>
 
       {/* ── Footer strip ──────────────────────────────────────────────────── */}
-      <div className="px-3 pb-3 pt-2 border-t border-[#eef2ff] space-y-1.5">
+      <div className="px-3 pb-3 pt-2 border-t border-white/[0.06] space-y-1.5">
         <div className="px-3 flex items-center justify-between">
-          <p className="text-slate-400 text-[11px] truncate">{userEmail}</p>
+          <p className="text-purple-300/35 text-[11px] truncate">{userEmail}</p>
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
             <NotificationBell />
-            <div className="flex items-center gap-1 bg-[#f0f6ff] border border-[#ddeaff] rounded-full px-2 py-0.5">
-              <Coins className="w-3 h-3 text-yellow-500" />
-              <span className="text-[11px] font-bold text-[#0066FF]">{creditBalance}</span>
+            <div className="flex items-center gap-1 bg-[#F59E0B]/10 border border-[#F59E0B]/25 rounded-full px-2 py-0.5">
+              <Coins className="w-3 h-3 text-[#F59E0B]" />
+              <span className="text-[11px] font-bold text-[#F59E0B]">{creditBalance}</span>
             </div>
           </div>
         </div>
         <SystemStatus />
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-slate-400 hover:text-slate-600 hover:bg-[#f4f8ff] transition-colors"
+          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-purple-300/35 hover:text-purple-200 hover:bg-white/[0.05] transition-colors"
         >
           <LogOut className="w-3.5 h-3.5 shrink-0" />
           Sign out

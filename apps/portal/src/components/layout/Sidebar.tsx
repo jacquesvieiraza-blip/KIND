@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
-  ChevronDown, BarChart2, BookOpen, Brain,
+  ChevronDown, BarChart2, BookOpen, Brain, Search, TrendingUp,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
@@ -41,12 +41,11 @@ const AGENTS: AgentDef[] = [
     gradient: 'from-[#0066FF] to-[#003d99]',
     ringColor: 'ring-blue-400/30',
     initial: 'F',
-    description: 'Outbound prospecting & sequences',
+    description: 'Outbound campaigns & sequences',
     available: true,
     nav: [
       { href: '/dashboard',               label: 'Home',        icon: Home },
       { href: '/dashboard/figsy',         label: 'Campaigns',   icon: Target },
-      { href: '/dashboard/leads',         label: 'People',      icon: Users },
       { href: '/dashboard/figsy/replies', label: 'Inbox',       icon: Inbox },
       { href: '/dashboard/kpis',          label: 'Performance', icon: BarChart },
       { href: '/dashboard/knowledge',     label: 'Knowledge',   icon: Brain },
@@ -81,6 +80,12 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare },
     ],
   },
+]
+
+// Lead Gen is a standalone product — separate nav section
+const LEAD_GEN_NAV: NavItem[] = [
+  { href: '/dashboard/leads',     label: 'People',    icon: Users },
+  { href: '/dashboard/leads/icp', label: 'ICP Builder', icon: TrendingUp },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
@@ -251,7 +256,31 @@ export function Sidebar({
           )
         })}
 
-        {/* Divider */}
+        {/* Lead Gen — standalone product section */}
+        <div className="!my-3 border-t border-white/6" />
+        <p className="text-[10px] text-white/25 px-3 pt-1 pb-1 font-semibold uppercase tracking-wider">
+          Lead Gen
+        </p>
+        {LEAD_GEN_NAV.map(({ href, label, icon: Icon }) => {
+          const active =
+            pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] transition-colors ${
+                active
+                  ? 'bg-[#0066FF] text-white font-semibold'
+                  : 'text-white/55 hover:text-white hover:bg-white/6'
+              }`}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="flex-1">{label}</span>
+            </Link>
+          )
+        })}
+
+        {/* Platform nav — smaller, secondary */}
         <div className="!my-3 border-t border-white/6" />
 
         {/* Common nav — smaller, secondary */}

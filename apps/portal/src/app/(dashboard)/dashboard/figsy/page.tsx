@@ -3,7 +3,82 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { Zap, Users, ShieldCheck } from 'lucide-react'
+import { Zap, Users, ShieldCheck, BookOpen, Target, Globe, Briefcase, Coffee, TrendingUp, X, ChevronRight } from 'lucide-react'
+
+// ── Campaign templates ────────────────────────────────────────────
+interface CampaignTemplate {
+  id: string
+  name: string
+  description: string
+  category: string
+  icon: React.ElementType
+  tags: string[]
+  steps: number
+  suggestedTone: string
+}
+
+const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
+  {
+    id: 'cold-intro',
+    name: 'Cold Introduction',
+    description: 'Introduce your product to a new audience. Three-step sequence: hook, value, breakup.',
+    category: 'Outreach',
+    icon: Target,
+    tags: ['3 steps', 'Cold', 'B2B'],
+    steps: 3,
+    suggestedTone: 'Professional, concise',
+  },
+  {
+    id: 'saas-trial',
+    name: 'SaaS Trial Push',
+    description: 'Invite decision-makers to start a free trial. Emphasise time-to-value and ROI.',
+    category: 'Outreach',
+    icon: Zap,
+    tags: ['3 steps', 'SaaS', 'Trial'],
+    steps: 3,
+    suggestedTone: 'Direct, benefit-focused',
+  },
+  {
+    id: 'event-followup',
+    name: 'Event Follow-Up',
+    description: 'Follow up with leads you met at a conference or webinar while the context is fresh.',
+    category: 'Nurture',
+    icon: Coffee,
+    tags: ['2 steps', 'Warm', 'Event'],
+    steps: 2,
+    suggestedTone: 'Friendly, personal',
+  },
+  {
+    id: 'reactivation',
+    name: 'Lead Reactivation',
+    description: 'Re-engage leads who went cold. Acknowledge the gap and lead with something new.',
+    category: 'Nurture',
+    icon: TrendingUp,
+    tags: ['2 steps', 'Warm', 'Re-engage'],
+    steps: 2,
+    suggestedTone: 'Casual, curious',
+  },
+  {
+    id: 'linkedin-warmup',
+    name: 'LinkedIn Warm Intro',
+    description: 'Connect on LinkedIn first, then follow up with email. Multi-touch approach.',
+    category: 'Multi-channel',
+    icon: Globe,
+    tags: ['3 steps', 'LinkedIn', 'Email'],
+    steps: 3,
+    suggestedTone: 'Professional, familiar',
+  },
+  {
+    id: 'enterprise-abm',
+    name: 'Enterprise ABM',
+    description: 'Account-based outreach for high-value targets. Highly personalised, longer sequence.',
+    category: 'Advanced',
+    icon: Briefcase,
+    tags: ['5 steps', 'Enterprise', 'ABM'],
+    steps: 5,
+    suggestedTone: 'Consultative, specific',
+  },
+]
 
 interface Reply {
   id: string
@@ -68,6 +143,8 @@ export default function FigsyPage() {
   const [draftingId, setDraftingId] = useState<string | null>(null)
   const [cloningId, setCloningId] = useState<string | null>(null)
   const [mode, setMode] = useState<'autopilot' | 'copilot'>('autopilot')
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<CampaignTemplate | null>(null)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
@@ -328,26 +405,46 @@ export default function FigsyPage() {
             FIGSY outreach sequences for your scored, consented leads.
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          + New campaign
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTemplates(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-lg transition-colors"
+          >
+            <BookOpen className="w-4 h-4" /> Templates
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            + New campaign
+          </button>
+        </div>
       </div>
-
-      {/* --- removed old inline upgrade banner (replaced by full-page wall above) --- */}
 
       {/* Create form */}
       {showCreate && (
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-900 mb-3">New campaign</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-semibold text-gray-900">
+                {selectedTemplate ? `From template: ${selectedTemplate.name}` : 'New campaign'}
+              </h2>
+              {selectedTemplate && (
+                <p className="text-xs text-gray-400 mt-0.5">{selectedTemplate.description}</p>
+              )}
+            </div>
+            {selectedTemplate && (
+              <button onClick={() => setSelectedTemplate(null)} className="text-xs text-gray-400 hover:text-gray-600">
+                Clear template
+              </button>
+            )}
+          </div>
           <form onSubmit={handleCreate} className="flex gap-3">
             <input
               type="text"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              placeholder="Campaign name (e.g. Q2 SaaS CTO Outreach)"
+              placeholder={selectedTemplate ? `e.g. ${selectedTemplate.name} — Q3 2026` : 'Campaign name (e.g. Q2 SaaS CTO Outreach)'}
               className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
               autoFocus
             />
@@ -360,7 +457,7 @@ export default function FigsyPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setShowCreate(false); setNewName('') }}
+              onClick={() => { setShowCreate(false); setNewName(''); setSelectedTemplate(null) }}
               className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 rounded-lg transition-colors"
             >
               Cancel
@@ -490,6 +587,57 @@ export default function FigsyPage() {
                 ))}
               </div>
 
+              {/* Multi-metric progress bar */}
+              {(campaign.leads_enrolled > 0 || campaign.emails_sent > 0) && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-xs font-medium text-gray-500">Campaign progress</p>
+                    <p className="text-xs text-gray-400">
+                      {campaign.emails_sent > 0 && campaign.leads_enrolled > 0
+                        ? `${Math.round((campaign.emails_sent / (campaign.leads_enrolled * 3)) * 100)}% of sequence complete`
+                        : 'Not started'}
+                    </p>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100 overflow-hidden flex gap-0.5">
+                    {/* Enrolled segment */}
+                    {campaign.leads_enrolled > 0 && (
+                      <div
+                        className="h-full bg-blue-300 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, (campaign.leads_enrolled / Math.max(campaign.leads_enrolled, 1)) * 60)}%` }}
+                        title={`${campaign.leads_enrolled} enrolled`}
+                      />
+                    )}
+                    {/* Sent segment */}
+                    {campaign.emails_sent > 0 && (
+                      <div
+                        className="h-full bg-[#0066FF] rounded-full transition-all"
+                        style={{ width: `${Math.min(40, (campaign.emails_sent / Math.max(campaign.leads_enrolled * 3, 1)) * 40)}%` }}
+                        title={`${campaign.emails_sent} sent`}
+                      />
+                    )}
+                    {/* Interested segment */}
+                    {campaign.replies_interested > 0 && (
+                      <div
+                        className="h-full bg-green-500 rounded-full transition-all"
+                        style={{ width: `${Math.min(20, (campaign.replies_interested / Math.max(campaign.emails_sent, 1)) * 20 * 10)}%` }}
+                        title={`${campaign.replies_interested} interested`}
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 mt-1.5">
+                    <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                      <span className="w-2 h-2 rounded-full bg-blue-300" /> Enrolled
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                      <span className="w-2 h-2 rounded-full bg-[#0066FF]" /> Sent
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                      <span className="w-2 h-2 rounded-full bg-green-500" /> Interested
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* How it works — only on draft campaigns */}
               {campaign.status === 'draft' && (
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
@@ -564,6 +712,69 @@ export default function FigsyPage() {
       {toastMsg && (
         <div className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg z-50">
           {toastMsg}
+        </div>
+      )}
+
+      {/* Template library modal */}
+      {showTemplates && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">Campaign Templates</h3>
+                <p className="text-sm text-gray-400 mt-0.5">Pick a template to pre-configure your campaign strategy.</p>
+              </div>
+              <button onClick={() => setShowTemplates(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {CAMPAIGN_TEMPLATES.map(template => {
+                const Icon = template.icon
+                return (
+                  <button
+                    key={template.id}
+                    onClick={() => {
+                      setSelectedTemplate(template)
+                      setShowTemplates(false)
+                      setShowCreate(true)
+                      setNewName(template.name)
+                    }}
+                    className="text-left p-4 rounded-xl border border-gray-100 hover:border-[#0066FF]/30 hover:bg-blue-50/30 transition-all group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-[#0066FF]/8 group-hover:bg-[#0066FF]/15 flex items-center justify-center shrink-0 transition-colors">
+                        <Icon className="w-4.5 h-4.5 text-[#0066FF]" style={{ width: '18px', height: '18px' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-semibold text-sm text-gray-900">{template.name}</p>
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#0066FF] transition-colors shrink-0" />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{template.description}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {template.tags.map(tag => (
+                            <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+              <p className="text-xs text-gray-400">Or create a blank campaign without a template.</p>
+              <button
+                onClick={() => { setShowTemplates(false); setShowCreate(true) }}
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Skip template →
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

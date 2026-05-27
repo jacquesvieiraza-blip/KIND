@@ -6,7 +6,7 @@ import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
 import {
   Users, TrendingUp, ShieldCheck, Coins, Target,
   Inbox, BarChart, CheckCircle2, Circle, ArrowRight,
-  Zap, Bot, MessageSquare, ChevronRight,
+  Zap, Bot, MessageSquare, ChevronRight, BookOpen, Brain,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -199,6 +199,7 @@ export default async function DashboardPage() {
     { done: icpCount > 0,               label: 'Define your ICP',           href: '/dashboard/leads/icp' },
     { done: (stats?.total ?? 0) > 0,    label: 'Import your first leads',   href: '/dashboard/leads' },
     { done: figsyCount > 0,             label: 'Launch a FIGSY campaign',   href: '/dashboard/figsy' },
+    { done: false,                      label: 'Train FIGSY — add your pitch & keywords', href: '/dashboard/knowledge' },
   ]
   const compassDone = compassSteps.filter(s => s.done).length
 

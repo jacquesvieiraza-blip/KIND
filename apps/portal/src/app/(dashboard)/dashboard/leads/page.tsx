@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import type { Lead, LeadStats, ICP } from '@kind/shared'
+import type { Lead, LeadStats, ICP, LeadStatus } from '@kind/shared'
 import { SCORE_THRESHOLDS } from '@kind/shared'
 import {
   Users, TrendingUp, ShieldCheck, Download, Search,
   Mail, Ban, Sparkles, Loader2, ExternalLink,
   CheckCircle, Clock, XCircle, Plus, Settings2,
-  DollarSign, Send, X, ChevronDown,
+  DollarSign, Send, X, ChevronDown, AlertTriangle,
 } from 'lucide-react'
 
 // ── Score badge ───────────────────────────────────────────────────────────────
@@ -23,7 +23,18 @@ function ScoreBadge({ score }: { score: number | null }) {
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>{score}</span>
 }
 
-// ── Status chip ───────────────────────────────────────────────────────────────
+// ── Pipeline stage chip (colored dot + label) ─────────────────────────────────
+const STAGE_META: Record<string, { label: string; dotCls: string; textCls: string }> = {
+  pending:       { label: 'New',            dotCls: 'bg-gray-400',    textCls: 'text-gray-600' },
+  scored:        { label: 'AI Scored',      dotCls: 'bg-blue-500',    textCls: 'text-blue-700' },
+  consent_sent:  { label: 'Awaiting Consent', dotCls: 'bg-indigo-500', textCls: 'text-indigo-700' },
+  consent_given: { label: 'Consented',      dotCls: 'bg-green-500',   textCls: 'text-green-700' },
+  exported:      { label: 'In Pipeline',    dotCls: 'bg-purple-500',  textCls: 'text-purple-700' },
+  rejected:      { label: 'Rejected',       dotCls: 'bg-red-400',     textCls: 'text-red-600' },
+  opted_out:     { label: 'Opted Out',      dotCls: 'bg-gray-300',    textCls: 'text-gray-400' },
+}
+
+// Keep STATUS_META for the filter dropdown labels
 const STATUS_META: Record<string, { label: string; icon: React.ReactNode; cls: string }> = {
   pending:       { label: 'Pending',   icon: <Clock className="w-3 h-3" />,       cls: 'bg-gray-100 text-gray-600' },
   scored:        { label: 'Scored',    icon: <TrendingUp className="w-3 h-3" />,  cls: 'bg-blue-100 text-blue-700' },
@@ -34,12 +45,39 @@ const STATUS_META: Record<string, { label: string; icon: React.ReactNode; cls: s
   opted_out:     { label: 'Opted out', icon: <Ban className="w-3 h-3" />,         cls: 'bg-gray-100 text-gray-400' },
 }
 
-function StatusChip({ status }: { status: string }) {
-  const m = STATUS_META[status] ?? { label: status, icon: null, cls: 'bg-gray-100 text-gray-600' }
+function PipelineStageChip({ status }: { status: string }) {
+  const m = STAGE_META[status] ?? { label: status, dotCls: 'bg-gray-400', textCls: 'text-gray-600' }
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${m.cls}`}>
-      {m.icon}{m.label}
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`w-2 h-2 rounded-full shrink-0 ${m.dotCls}`} />
+      <span className={`text-xs font-medium ${m.textCls}`}>{m.label}</span>
     </span>
+  )
+}
+
+// ── Campaign progress micro-bar ───────────────────────────────────────────────
+function CampaignMicroBar({ lead }: { lead: Lead }) {
+  if (lead.status !== 'consent_given' && lead.status !== 'exported') return null
+
+  // Derive segment states from available lead fields
+  const enrolled  = lead.status === 'consent_given' || lead.status === 'exported'
+  const sent      = !!lead.outreach_sent_at || lead.status === 'exported'
+  const replied   = lead.crm_synced // proxy: synced to CRM means they replied/engaged
+
+  return (
+    <div className="flex items-center gap-1 mt-1" title="Enrolled → Sent → Replied">
+      {[
+        { active: enrolled, label: 'Enrolled' },
+        { active: sent,     label: 'Sent' },
+        { active: replied,  label: 'Replied' },
+      ].map(({ active, label }) => (
+        <div
+          key={label}
+          title={label}
+          className={`h-1 w-5 rounded-full ${active ? 'bg-green-400' : 'bg-gray-200'}`}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -50,6 +88,128 @@ function ApolloBadge({ consented }: { consented: boolean }) {
     : null
 }
 
+// ── Tab definitions ───────────────────────────────────────────────────────────
+type TabId = 'all' | 'pending_review' | 'consented' | 'in_figsy' | 'opted_out'
+
+interface TabDef {
+  id: TabId
+  label: string
+  getCount: (leads: Lead[], stats: LeadStats | null, total: number) => number
+  pillCls: string
+  activePillCls: string
+}
+
+const TABS: TabDef[] = [
+  {
+    id: 'all',
+    label: 'All',
+    getCount: (_l, _s, total) => total,
+    pillCls: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100',
+    activePillCls: 'bg-gray-900 text-white',
+  },
+  {
+    id: 'pending_review',
+    label: 'Pending Review',
+    getCount: (leads) => leads.filter(l => l.score !== null && l.score >= 70 && (l.status === 'pending' || l.status === 'scored')).length,
+    pillCls: 'text-amber-700 hover:bg-amber-50',
+    activePillCls: 'bg-amber-500 text-white',
+  },
+  {
+    id: 'consented',
+    label: 'Consented',
+    getCount: (_l, stats) => stats?.consented ?? 0,
+    pillCls: 'text-green-700 hover:bg-green-50',
+    activePillCls: 'bg-green-600 text-white',
+  },
+  {
+    id: 'in_figsy',
+    label: 'In FIGSY',
+    getCount: (leads) => leads.filter(l => l.apollo_consented && (l.status === 'consent_given' || l.status === 'consent_sent')).length,
+    pillCls: 'text-indigo-700 hover:bg-indigo-50',
+    activePillCls: 'bg-indigo-600 text-white',
+  },
+  {
+    id: 'opted_out',
+    label: 'Opted Out',
+    getCount: (_l, stats) => stats?.opted_out ?? 0,
+    pillCls: 'text-red-600 hover:bg-red-50',
+    activePillCls: 'bg-red-600 text-white',
+  },
+]
+
+// Map tab → status filter value(s) for the API call
+function tabToStatusFilter(tab: TabId): string {
+  switch (tab) {
+    case 'pending_review': return 'pending,scored'
+    case 'consented':      return 'consent_given'
+    case 'in_figsy':       return 'consent_given,consent_sent'
+    case 'opted_out':      return 'opted_out'
+    default:               return ''
+  }
+}
+
+// ── Empty state per tab ───────────────────────────────────────────────────────
+function EmptyState({ tab, hasIcps }: { tab: TabId; hasIcps: boolean }) {
+  if (!hasIcps) {
+    return (
+      <div className="text-center py-20 text-gray-400">
+        <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+        <p className="text-sm font-medium text-gray-700">No ICP set up yet</p>
+        <p className="text-xs mt-1">Define your ideal customer profile so K.I.N.D knows who to find.</p>
+        <a href="/dashboard/leads/icp"
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+          <Plus className="w-4 h-4" />Build your ICP
+        </a>
+      </div>
+    )
+  }
+
+  const messages: Record<TabId, { icon: React.ReactNode; title: string; body: string; cta?: React.ReactNode }> = {
+    all: {
+      icon: <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />,
+      title: 'No leads yet',
+      body: 'Your ICP is saved — run it to pull matching leads from Apollo.',
+      cta: (
+        <a href="/dashboard/leads/icp"
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
+          <Settings2 className="w-4 h-4" />Run your ICP →
+        </a>
+      ),
+    },
+    pending_review: {
+      icon: <TrendingUp className="w-10 h-10 mx-auto mb-3 opacity-30" />,
+      title: 'No high-quality leads waiting',
+      body: 'All scored leads (70+) have already been reviewed or contacted.',
+    },
+    consented: {
+      icon: <ShieldCheck className="w-10 h-10 mx-auto mb-3 opacity-30" />,
+      title: 'No consented leads yet',
+      body: 'Send consent emails to your best leads and track responses here.',
+    },
+    in_figsy: {
+      icon: <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />,
+      title: 'No leads in FIGSY yet',
+      body: 'Apollo-consented leads that have been enrolled in a sequence will appear here.',
+    },
+    opted_out: {
+      icon: <Ban className="w-10 h-10 mx-auto mb-3 opacity-30" />,
+      title: 'No opted-out leads',
+      body: 'Leads who request removal will be listed here and permanently blocked.',
+    },
+  }
+
+  const m = messages[tab]
+  return (
+    <div className="text-center py-20 text-gray-400">
+      {m.icon}
+      <p className="text-sm font-medium text-gray-700">{m.title}</p>
+      <p className="text-xs mt-1">{m.body}</p>
+      {m.cta}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function LeadsPage() {
   const supabase = createClient()
   const [token, setToken] = useState<string | null>(null)
@@ -68,6 +228,9 @@ export default function LeadsPage() {
   const [bulkExporting, setBulkExporting] = useState(false)
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false)
   const [showMarkAs, setShowMarkAs] = useState(false)
+
+  // Tab state — drives the statusFilter automatically
+  const [activeTab, setActiveTab] = useState<TabId>('all')
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('')
@@ -108,6 +271,14 @@ export default function LeadsPage() {
     })
   }, [fetchData])
 
+  // When tab changes, update statusFilter and reset page
+  function handleTabChange(tab: TabId) {
+    setActiveTab(tab)
+    setStatusFilter(tabToStatusFilter(tab))
+    setPage(1)
+    setSelectedIds(new Set())
+  }
+
   async function updateStatus(leadId: string, status: Lead['status']) {
     if (!token) return
     setActionLoading(`status-${leadId}`)
@@ -125,7 +296,7 @@ export default function LeadsPage() {
     setActionLoading(`block-${leadId}`)
     try {
       await api.post(`/leads/${leadId}/optout`, { reason: 'manual_block' }, token)
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: 'opted_out' } : l))
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: 'opted_out' as LeadStatus } : l))
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to block lead', 'error')
     }
@@ -142,7 +313,7 @@ export default function LeadsPage() {
     setActionLoading(`consent-${leadId}`)
     try {
       await api.post(`/leads/${leadId}/consent`, {}, token)
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: 'consent_sent' as Lead['status'] } : l))
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: 'consent_sent' as LeadStatus } : l))
       showToast('Consent email sent ✓')
     } catch {
       showToast('Failed to send — try again', 'error')
@@ -219,7 +390,7 @@ export default function LeadsPage() {
     setShowMarkAs(false)
     try {
       await api.post<{ success: boolean; updated: number }>('/leads/bulk-status', { leadIds: Array.from(selectedIds), status }, token)
-      setLeads(prev => prev.map(l => selectedIds.has(l.id) ? { ...l, status: status as Lead['status'] } : l))
+      setLeads(prev => prev.map(l => selectedIds.has(l.id) ? { ...l, status: status as LeadStatus } : l))
       showToast(`Marked ${selectedIds.size} leads as ${status}`)
       setSelectedIds(new Set())
     } catch (err) {
@@ -232,12 +403,22 @@ export default function LeadsPage() {
     !search || `${l.first_name} ${l.last_name} ${l.company} ${l.job_title}`.toLowerCase().includes(search.toLowerCase())
   )
 
+  // For the Pending Review tab: leads with score >= 70 and status pending/scored
+  const pendingReviewLeads = filteredLeads.filter(
+    l => l.score !== null && l.score >= 70 && (l.status === 'pending' || l.status === 'scored')
+  )
+
   const statCards = [
     { label: 'Total Leads',      value: stats?.total ?? 0,              icon: <Users className="w-5 h-5" />,       color: 'bg-blue-50 text-blue-600' },
     { label: 'Avg Score',        value: `${stats?.avg_score ?? 0}/100`, icon: <TrendingUp className="w-5 h-5" />,  color: 'bg-indigo-50 text-indigo-600' },
     { label: 'POPIA Consented',  value: stats?.consented ?? 0,          icon: <ShieldCheck className="w-5 h-5" />, color: 'bg-green-50 text-green-600' },
     { label: 'Pipeline Value',   value: `$${(stats?.pipeline_value_usd ?? 0).toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, color: 'bg-purple-50 text-purple-600' },
   ]
+
+  // Leads to show in table (for pending_review tab, further filter by score)
+  const tableLeads = activeTab === 'pending_review'
+    ? pendingReviewLeads
+    : filteredLeads
 
   return (
     <div className="space-y-6">
@@ -253,8 +434,8 @@ export default function LeadsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI Lead Generation</h1>
-          <p className="text-gray-500 text-sm mt-1">Precision-targeted B2B leads, AI-scored and POPIA-compliant.</p>
+          <h1 className="text-2xl font-bold text-gray-900">People</h1>
+          <p className="text-gray-500 text-sm mt-1">AI-scored B2B leads, POPIA-compliant and ready for outreach.</p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.size > 0 && (
@@ -293,6 +474,53 @@ export default function LeadsPage() {
         </p>
       </div>
 
+      {/* ── Tab bar ── */}
+      <div className="flex items-center gap-1 flex-wrap">
+        {TABS.map(tab => {
+          const count = tab.getCount(leads, stats, total)
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                isActive ? tab.activePillCls : tab.pillCls
+              }`}
+            >
+              {tab.label}
+              <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                isActive
+                  ? 'bg-white/25 text-inherit'
+                  : 'bg-gray-100 text-gray-500'
+              }`}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Pending Review banner */}
+      {activeTab === 'pending_review' && pendingReviewLeads.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+          <p className="text-sm text-amber-800 font-medium">
+            {pendingReviewLeads.length} high-quality lead{pendingReviewLeads.length !== 1 ? 's' : ''} waiting for your approval to enroll in FIGSY
+          </p>
+          {pendingReviewLeads.length > 0 && (
+            <button
+              onClick={() => {
+                const eligible = pendingReviewLeads.filter(l => l.email && l.status !== 'opted_out')
+                setSelectedIds(new Set(eligible.map(l => l.id)))
+              }}
+              className="ml-auto text-xs font-semibold text-amber-700 hover:text-amber-900 underline whitespace-nowrap"
+            >
+              Select all
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-100 p-4">
         <div className="flex flex-wrap gap-3">
@@ -301,11 +529,14 @@ export default function LeadsPage() {
             <input type="text" placeholder="Search leads…" value={search} onChange={e => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </div>
-          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
-            <option value="">All statuses</option>
-            {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-          </select>
+          {/* Only show status filter when on "All" tab so it doesn't conflict */}
+          {activeTab === 'all' && (
+            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+              <option value="">All statuses</option>
+              {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          )}
           <select value={minScore} onChange={e => { setMinScore(e.target.value); setPage(1) }}
             className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
             <option value="">Any score</option>
@@ -348,29 +579,8 @@ export default function LeadsPage() {
               Retry
             </button>
           </div>
-        ) : filteredLeads.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
-            <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            {icps.length === 0 ? (
-              <>
-                <p className="text-sm font-medium text-gray-700">No ICP set up yet</p>
-                <p className="text-xs mt-1">Define your ideal customer profile so K.I.N.D knows who to find.</p>
-                <a href="/dashboard/leads/icp"
-                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
-                  <Plus className="w-4 h-4" />Build your ICP
-                </a>
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-medium text-gray-700">No leads yet</p>
-                <p className="text-xs mt-1">Your ICP is saved — run it to pull matching leads from Apollo.</p>
-                <a href="/dashboard/leads/icp"
-                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
-                  <Settings2 className="w-4 h-4" />Run your ICP →
-                </a>
-              </>
-            )}
-          </div>
+        ) : tableLeads.length === 0 ? (
+          <EmptyState tab={activeTab} hasIcps={icps.length > 0} />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -378,19 +588,36 @@ export default function LeadsPage() {
                 <thead>
                   <tr className="border-b border-gray-100">
                     <th className="px-4 py-3 w-10">
-                      <input type="checkbox" checked={filteredLeads.length > 0 && selectedIds.size === filteredLeads.filter(l => l.status !== 'opted_out' && l.email).length} onChange={e => { const eligible = filteredLeads.filter(l => l.status !== 'opted_out' && l.email); setSelectedIds(e.target.checked ? new Set(eligible.map(l => l.id)) : new Set()) }} className="rounded border-gray-300" />
+                      <input
+                        type="checkbox"
+                        checked={tableLeads.length > 0 && selectedIds.size === tableLeads.filter(l => l.status !== 'opted_out' && l.email).length}
+                        onChange={e => {
+                          const eligible = tableLeads.filter(l => l.status !== 'opted_out' && l.email)
+                          setSelectedIds(e.target.checked ? new Set(eligible.map(l => l.id)) : new Set())
+                        }}
+                        className="rounded border-gray-300"
+                      />
                     </th>
-                    {['Lead', 'Phone', 'Company', 'Score', 'Status', 'Source', 'Actions'].map(h => (
+                    {['Lead', 'Phone', 'Company', 'Score', 'Pipeline Stage', 'Source', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filteredLeads.map(lead => (
+                  {tableLeads.map(lead => (
                     <tr key={lead.id} className={`hover:bg-gray-50 transition-colors ${lead.status === 'opted_out' ? 'opacity-50' : ''}`}>
                       <td className="px-4 py-3">
                         {lead.status !== 'opted_out' && lead.email && (
-                          <input type="checkbox" checked={selectedIds.has(lead.id)} onChange={e => setSelectedIds(prev => { const next = new Set(prev); e.target.checked ? next.add(lead.id) : next.delete(lead.id); return next })} className="rounded border-gray-300" />
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(lead.id)}
+                            onChange={e => setSelectedIds(prev => {
+                              const next = new Set(prev)
+                              e.target.checked ? next.add(lead.id) : next.delete(lead.id)
+                              return next
+                            })}
+                            className="rounded border-gray-300"
+                          />
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -406,7 +633,10 @@ export default function LeadsPage() {
                         <p className="text-xs text-gray-400">{lead.country || ''}</p>
                       </td>
                       <td className="px-4 py-3"><ScoreBadge score={lead.score} /></td>
-                      <td className="px-4 py-3"><StatusChip status={lead.status} /></td>
+                      <td className="px-4 py-3">
+                        <PipelineStageChip status={lead.status} />
+                        <CampaignMicroBar lead={lead} />
+                      </td>
                       <td className="px-4 py-3">
                         <ApolloBadge consented={lead.apollo_consented} />
                         {lead.linkedin_url && (

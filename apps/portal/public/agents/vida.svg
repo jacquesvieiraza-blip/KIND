@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d9488"/>
+      <stop offset="100%" style="stop-color:#065f46"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FDDBB4"/>
+      <stop offset="100%" style="stop-color:#F5C28A"/>
+    </linearGradient>
+    <linearGradient id="top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#14b8a6"/>
+      <stop offset="100%" style="stop-color:#0d9488"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#065f46" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <circle cx="256" cy="220" r="145" fill="white" opacity="0.07"/>
+
+  <!-- Body / teal and white casual top -->
+  <ellipse cx="256" cy="440" rx="140" ry="80" fill="url(#top)"/>
+  <rect x="116" y="370" width="280" height="80" rx="20" fill="url(#top)"/>
+  <!-- White stripe on top -->
+  <rect x="220" y="360" width="72" height="80" rx="10" fill="white" opacity="0.25"/>
+  <!-- V-neck -->
+  <polygon points="220,348 256,390 292,348 274,362 256,400 238,362" fill="white" opacity="0.8"/>
+
+  <!-- Neck -->
+  <rect x="234" y="322" width="44" height="28" rx="8" fill="url(#skin)"/>
+
+  <!-- Head -->
+  <ellipse cx="256" cy="252" rx="108" ry="118" fill="url(#skin)" filter="url(#shadow)"/>
+
+  <!-- Curly dark hair with teal tips -->
+  <!-- Base hair mass -->
+  <circle cx="200" cy="205" r="55" fill="#1a1a1a"/>
+  <circle cx="256" cy="178" r="58" fill="#1a1a1a"/>
+  <circle cx="312" cy="205" r="55" fill="#1a1a1a"/>
+  <!-- Top curls -->
+  <circle cx="220" cy="158" r="38" fill="#2d2d2d"/>
+  <circle cx="258" cy="145" r="38" fill="#2d2d2d"/>
+  <circle cx="296" cy="158" r="38" fill="#2d2d2d"/>
+  <!-- Teal tips on curls (ends) -->
+  <circle cx="165" cy="222" r="22" fill="#14b8a6"/>
+  <circle cx="190" cy="175" r="18" fill="#0d9488"/>
+  <circle cx="220" cy="148" r="16" fill="#14b8a6"/>
+  <circle cx="256" cy="138" r="16" fill="#0f766e"/>
+  <circle cx="295" cy="148" r="16" fill="#14b8a6"/>
+  <circle cx="325" cy="172" r="18" fill="#0d9488"/>
+  <circle cx="350" cy="222" r="22" fill="#14b8a6"/>
+  <!-- Side volume -->
+  <ellipse cx="152" cy="262" rx="28" ry="50" fill="#1a1a1a"/>
+  <ellipse cx="360" cy="262" rx="28" ry="50" fill="#1a1a1a"/>
+  <!-- Teal curl tips on sides -->
+  <ellipse cx="140" cy="288" rx="16" ry="22" fill="#14b8a6"/>
+  <ellipse cx="372" cy="288" rx="16" ry="22" fill="#14b8a6"/>
+
+  <!-- Ears (visible through hair gaps) -->
+  <ellipse cx="153" cy="260" rx="16" ry="20" fill="url(#skin)"/>
+  <ellipse cx="359" cy="260" rx="16" ry="20" fill="url(#skin)"/>
+
+  <!-- Eyes - bright, open, warm -->
+  <ellipse cx="218" cy="252" rx="24" ry="22" fill="white"/>
+  <ellipse cx="294" cy="252" rx="24" ry="22" fill="white"/>
+  <!-- Irises - warm brown -->
+  <circle cx="220" cy="254" r="14" fill="#5c3d1e"/>
+  <circle cx="296" cy="254" r="14" fill="#5c3d1e"/>
+  <!-- Pupils -->
+  <circle cx="221" cy="255" r="8" fill="#1a0a00"/>
+  <circle cx="297" cy="255" r="8" fill="#1a0a00"/>
+  <!-- Eye shine (bigger = friendlier) -->
+  <circle cx="226" cy="248" r="4.5" fill="white"/>
+  <circle cx="302" cy="248" r="4.5" fill="white"/>
+  <circle cx="224" cy="256" r="2" fill="white" opacity="0.6"/>
+  <circle cx="300" cy="256" r="2" fill="white" opacity="0.6"/>
+
+  <!-- Eyebrows - friendly arched -->
+  <path d="M194 234 Q218 224 244 232" stroke="#3d2008" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M268 232 Q294 224 320 234" stroke="#3d2008" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- Nose - small, friendly -->
+  <path d="M248 274 Q256 286 264 274" stroke="#d4956a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <circle cx="246" cy="279" r="3.5" fill="#c07850" opacity="0.4"/>
+  <circle cx="266" cy="279" r="3.5" fill="#c07850" opacity="0.4"/>
+
+  <!-- Big bright open smile -->
+  <path d="M214 308 Q256 342 298 308" stroke="#b05a2a" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Teeth - wider smile -->
+  <path d="M222 311 Q256 336 290 311" fill="white" opacity="0.95"/>
+
+  <!-- Cheek blush (more pronounced = approachable) -->
+  <ellipse cx="185" cy="292" rx="26" ry="14" fill="#FFB085" opacity="0.4"/>
+  <ellipse cx="327" cy="292" rx="26" ry="14" fill="#FFB085" opacity="0.4"/>
+
+  <!-- Chat bubble floating near -->
+  <rect x="320" y="150" width="85" height="55" rx="14" fill="white" opacity="0.95"/>
+  <polygon points="338,205 360,205 344,225" fill="white" opacity="0.95"/>
+  <!-- Chat bubble content -->
+  <rect x="332" y="163" width="50" height="5" rx="2.5" fill="#0d9488"/>
+  <rect x="332" y="173" width="38" height="5" rx="2.5" fill="#14b8a6" opacity="0.7"/>
+  <rect x="332" y="183" width="44" height="5" rx="2.5" fill="#14b8a6" opacity="0.5"/>
+
+  <!-- Welcoming hands gesture (subtle) -->
+  <!-- Left hand reaching forward -->
+  <ellipse cx="155" cy="390" rx="28" ry="16" fill="url(#skin)" transform="rotate(-20 155 390)"/>
+  <!-- Right hand -->
+  <ellipse cx="357" cy="390" rx="28" ry="16" fill="url(#skin)" transform="rotate(20 357 390)"/>
+</svg>

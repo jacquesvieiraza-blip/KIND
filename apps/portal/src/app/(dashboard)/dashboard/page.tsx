@@ -82,6 +82,7 @@ function CompassStep({
 }
 
 function AgentTeamCard({
+  agentId,
   initial,
   gradient,
   name,
@@ -91,6 +92,7 @@ function AgentTeamCard({
   active,
   comingSoon,
 }: {
+  agentId: string
   initial: string
   gradient: string
   name: string
@@ -106,9 +108,9 @@ function AgentTeamCard({
       className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50/60 transition-all group"
     >
       <div
-        className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm`}
+        className={`w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-sm ring-1 ring-black/5`}
       >
-        {initial}
+        <img src={`/agents/${agentId}.svg`} alt={name} className="w-full h-full object-cover" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -214,8 +216,8 @@ export default async function DashboardPage() {
         <div className="flex items-start gap-4">
           {/* FIGSY avatar */}
           <div className="relative shrink-0">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0066FF] to-[#003d99] flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
-              F
+            <div className="w-14 h-14 rounded-2xl overflow-hidden ring-2 ring-blue-400/30 shadow-lg shadow-blue-500/20">
+              <img src="/agents/figsy.svg" alt="FIGSY" className="w-full h-full object-cover" />
             </div>
             <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-white" />
           </div>
@@ -303,6 +305,7 @@ export default async function DashboardPage() {
           </div>
           <div className="space-y-2">
             <AgentTeamCard
+              agentId="figsy"
               initial="F"
               gradient="from-[#0066FF] to-[#003d99]"
               name="FIGSY"
@@ -312,6 +315,7 @@ export default async function DashboardPage() {
               active={hasFigsy}
             />
             <AgentTeamCard
+              agentId="milla"
               initial="M"
               gradient="from-purple-500 to-purple-900"
               name="Milla"
@@ -322,6 +326,7 @@ export default async function DashboardPage() {
               comingSoon={!hasVA}
             />
             <AgentTeamCard
+              agentId="vida"
               initial="V"
               gradient="from-teal-400 to-cyan-700"
               name="Vida"

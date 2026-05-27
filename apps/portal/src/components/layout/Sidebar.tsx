@@ -97,12 +97,27 @@ function AgentAvatar({
   agent: AgentDef
   size?: 'sm' | 'md' | 'lg'
 }) {
-  const sizes = { sm: 'w-8 h-8 text-xs', md: 'w-11 h-11 text-sm', lg: 'w-14 h-14 text-lg' }
+  const sizes = { sm: 'w-8 h-8', md: 'w-11 h-11', lg: 'w-14 h-14' }
+  const textSizes = { sm: 'text-xs', md: 'text-sm', lg: 'text-lg' }
   return (
     <div
-      className={`${sizes[size]} rounded-xl bg-gradient-to-br ${agent.gradient} flex items-center justify-center font-bold text-white shrink-0 ring-2 ${agent.ringColor} shadow-lg`}
+      className={`${sizes[size]} rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ringColor} shadow-lg`}
     >
-      {agent.initial}
+      <img
+        src={`/agents/${agent.id}.svg`}
+        alt={agent.name}
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          // Fallback to gradient initial if image fails to load
+          const target = e.currentTarget
+          target.style.display = 'none'
+          const parent = target.parentElement
+          if (parent) {
+            parent.classList.add(`bg-gradient-to-br`, agent.gradient, 'flex', 'items-center', 'justify-center', `font-bold`, 'text-white', textSizes[size])
+            parent.textContent = agent.initial
+          }
+        }}
+      />
     </div>
   )
 }

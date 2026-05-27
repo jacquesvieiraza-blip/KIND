@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#4c1d95"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FDDBB4"/>
+      <stop offset="100%" style="stop-color:#F5C28A"/>
+    </linearGradient>
+    <linearGradient id="blazer" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9d5cf6"/>
+      <stop offset="100%" style="stop-color:#6d28d9"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#4c1d95" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <circle cx="256" cy="220" r="145" fill="white" opacity="0.06"/>
+
+  <!-- Body / soft purple blazer -->
+  <ellipse cx="256" cy="440" rx="140" ry="80" fill="url(#blazer)"/>
+  <rect x="116" y="370" width="280" height="80" rx="20" fill="url(#blazer)"/>
+  <polygon points="210,340 256,380 302,340 280,360 256,395 232,360" fill="white" opacity="0.85"/>
+
+  <!-- Neck -->
+  <rect x="234" y="320" width="44" height="30" rx="8" fill="url(#skin)"/>
+
+  <!-- Head -->
+  <ellipse cx="256" cy="250" rx="105" ry="115" fill="url(#skin)" filter="url(#shadow)"/>
+
+  <!-- Auburn hair in neat bun -->
+  <!-- Main hair -->
+  <ellipse cx="256" cy="160" rx="105" ry="50" fill="#8B4513"/>
+  <ellipse cx="256" cy="155" rx="103" ry="46" fill="#A0522D"/>
+  <!-- Side sweeps -->
+  <rect x="150" y="170" width="18" height="65" rx="9" fill="#8B4513"/>
+  <rect x="344" y="170" width="18" height="65" rx="9" fill="#8B4513"/>
+  <!-- Bun on top -->
+  <circle cx="256" cy="120" r="42" fill="#A0522D"/>
+  <circle cx="256" cy="118" r="38" fill="#8B4513"/>
+  <!-- Bun highlight -->
+  <circle cx="244" cy="108" r="10" fill="#C4712D" opacity="0.5"/>
+  <!-- Hair band -->
+  <ellipse cx="256" cy="152" rx="48" ry="12" fill="#6d28d9" opacity="0.7"/>
+
+  <!-- Ears -->
+  <ellipse cx="150" cy="256" rx="17" ry="21" fill="url(#skin)"/>
+  <ellipse cx="362" cy="256" rx="17" ry="21" fill="url(#skin)"/>
+
+  <!-- Glasses frames -->
+  <!-- Left lens -->
+  <rect x="186" y="232" width="54" height="42" rx="14" fill="none" stroke="#4c1d95" stroke-width="5"/>
+  <!-- Right lens -->
+  <rect x="272" y="232" width="54" height="42" rx="14" fill="none" stroke="#4c1d95" stroke-width="5"/>
+  <!-- Bridge -->
+  <line x1="240" y1="253" x2="272" y2="253" stroke="#4c1d95" stroke-width="4.5"/>
+  <!-- Temple arms -->
+  <line x1="186" y1="253" x2="158" y2="258" stroke="#4c1d95" stroke-width="4" stroke-linecap="round"/>
+  <line x1="326" y1="253" x2="354" y2="258" stroke="#4c1d95" stroke-width="4" stroke-linecap="round"/>
+  <!-- Lens tint -->
+  <rect x="190" y="236" width="46" height="34" rx="10" fill="#7c3aed" opacity="0.12"/>
+  <rect x="276" y="236" width="46" height="34" rx="10" fill="#7c3aed" opacity="0.12"/>
+
+  <!-- Eyes behind glasses -->
+  <ellipse cx="213" cy="253" rx="18" ry="16" fill="white"/>
+  <ellipse cx="299" cy="253" rx="18" ry="16" fill="white"/>
+  <circle cx="215" cy="255" r="10" fill="#4c1d95"/>
+  <circle cx="301" cy="255" r="10" fill="#4c1d95"/>
+  <circle cx="216" cy="256" r="5.5" fill="#1e0a4f"/>
+  <circle cx="302" cy="256" r="5.5" fill="#1e0a4f"/>
+  <circle cx="220" cy="250" r="3" fill="white"/>
+  <circle cx="306" cy="250" r="3" fill="white"/>
+
+  <!-- Eyebrows - neat, arched -->
+  <path d="M192 228 Q213 218 236 226" stroke="#6B3A2A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M276 226 Q299 218 320 228" stroke="#6B3A2A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Nose -->
+  <path d="M248 275 Q256 285 264 275" stroke="#d4956a" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Warm thoughtful smile -->
+  <path d="M224 308 Q256 334 288 308" stroke="#c0754a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M231 311 Q256 328 281 311" fill="white" opacity="0.85"/>
+
+  <!-- Cheek blush -->
+  <ellipse cx="186" cy="290" rx="20" ry="10" fill="#FFB085" opacity="0.3"/>
+  <ellipse cx="326" cy="290" rx="20" ry="10" fill="#FFB085" opacity="0.3"/>
+
+  <!-- Calendar icon (held) -->
+  <rect x="300" y="358" width="75" height="62" rx="10" fill="#4c1d95"/>
+  <rect x="303" y="361" width="69" height="56" rx="8" fill="white" opacity="0.95"/>
+  <rect x="303" y="361" width="69" height="16" rx="8" fill="#7c3aed"/>
+  <!-- Calendar dots -->
+  <circle cx="320" cy="394" r="4" fill="#7c3aed"/>
+  <circle cx="337" cy="394" r="4" fill="#7c3aed"/>
+  <circle cx="354" cy="394" r="4" fill="#7c3aed"/>
+  <circle cx="320" cy="408" r="4" fill="#a78bfa"/>
+  <circle cx="337" cy="408" r="4" fill="#7c3aed"/>
+</svg>

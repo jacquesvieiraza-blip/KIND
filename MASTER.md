@@ -4749,6 +4749,8 @@ Every screen you show is a real client screen. Every AI output is real. Every nu
 
 **Golden rule:** Every screen transition has a sentence. Never silence. Keep talking.
 
+**The new Scene 1 rule (post-W1 build):** Don't open with slides, pricing, or your pitch. Open the ICP builder and let Apollo's live data be the opening argument. The number counts up. Names appear. You haven't said a single feature yet. The prospect is already leaning forward. *Then* you explain what FIGSY does with those leads.
+
 ---
 
 ### 🛠️ PRE-DEMO SETUP (Do this once, not during the demo)
@@ -4779,7 +4781,33 @@ Every screen you show is a real client screen. Every AI output is real. Every nu
 
 ---
 
-#### SCENE 1 — The Dashboard (2 min)
+#### 🎬 Scene 1 — The Wow Moment (ICP Builder, 90 seconds)
+
+**What you do:** Open the ICP Builder. Start filling in 2–3 fields.
+
+**Narration:**
+> "I'm going to show you something before we talk about price or features. Watch this number in the corner."
+> *(Type: Job Title = "Head of Sales", Industry = "Fintech", Geography = "South Africa")*
+> "Do you see that? That's not a demo number. That's live data from Apollo right now. [X,XXX] real people matching exactly what you just described."
+> *(Wait for the 3 sample names to appear)*
+> "And those three names — those are real people. That's Kagiso at [Company], that's Thabo at [Company]. These are leads you could be talking to by Thursday."
+> "That's what K.I.N.D does. You describe who you want. We find them."
+
+**Why this works:**
+- The number moves as you type — it feels alive, not canned
+- Real names make it visceral — it's not abstract anymore
+- "By Thursday" anchors the speed advantage vs Alta's days-to-first-outreach
+- The silence when names appear is more powerful than anything you say
+
+**What to watch for:** If the count returns 0, widen geography to "Sub-Saharan Africa" — usually fixes it. If the sample contacts load slowly, say "giving Apollo a moment to check 250 million records" — the pause becomes drama.
+
+**Transition:**
+> "Now let me show you what happens next. We take that list and FIGSY writes every email, handles every reply, and books the meetings — without you touching it."
+> *(Navigate to Campaigns)*
+
+---
+
+#### SCENE 2 — The Dashboard (2 min)
 *URL: `/dashboard`*
 *Smoke Test: Steps 2, 3, 17*
 
@@ -4797,7 +4825,7 @@ Point to:
 
 ---
 
-#### SCENE 2 — Leads & ICP Builder (4 min)
+#### SCENE 3 — Leads & ICP Builder (4 min)
 *URL: `/dashboard/leads` then `/dashboard/leads/icp`*
 *Smoke Test: Steps 4, 5, 6, 7*
 
@@ -4829,7 +4857,7 @@ Click **Suggest with AI** (or show the pre-filled version).
 
 ---
 
-#### SCENE 3 — FIGSY: The AI SDR (5 min)
+#### SCENE 4 — FIGSY: The AI SDR (5 min)
 *URL: `/dashboard/figsy`*
 *Smoke Test: Steps 18, 19, 20, 21, 22, 25*
 
@@ -4859,7 +4887,7 @@ If co-pilot mode active, point to the amber badge: *"See this badge — Co-pilot
 
 ---
 
-#### SCENE 4 — FIGSY Inbox: Where Meetings Live (2 min)
+#### SCENE 5 — FIGSY Inbox: Where Meetings Live (2 min)
 *URL: `/dashboard/figsy/replies`*
 *Smoke Test: Step 24, 25*
 
@@ -4880,7 +4908,7 @@ Point to the category labels:
 
 ---
 
-#### SCENE 5 — Knowledge Base (1 min)
+#### SCENE 6 — Knowledge Base (1 min)
 *URL: `/dashboard/knowledge`*
 *Smoke Test: (functional — not in original 57 steps, but wired this session)*
 
@@ -4896,7 +4924,7 @@ Show the **Pitch tab** quickly — company pitch visible.
 
 ---
 
-#### SCENE 6 — Billing & Credits (1 min)
+#### SCENE 7 — Billing & Credits (1 min)
 *URL: `/dashboard/billing`*
 *Smoke Test: Steps 8, 8b, 39–46*
 
@@ -4916,7 +4944,7 @@ Show the Milla / Vida subscription cards.
 
 ---
 
-#### SCENE 7 — Milla: Virtual Assistant (2 min)
+#### SCENE 8 — Milla: Virtual Assistant (2 min)
 *URL: `/dashboard/assistant`*
 *Smoke Test: Steps 28, 29, 30, 31*
 
@@ -4940,7 +4968,7 @@ Ask a follow-up: *"What would you recommend for a retail company?"*
 
 ---
 
-#### SCENE 8 — Vida: Chatbot Agent (1 min)
+#### SCENE 9 — Vida: Chatbot Agent (1 min)
 *URL: `/dashboard/chatbot`*
 *Smoke Test: Steps 32, 33, 34*
 
@@ -4960,7 +4988,7 @@ Show the **embed code** panel.
 
 ---
 
-#### SCENE 9 — The Share Link (30 sec)
+#### SCENE 10 — The Share Link (30 sec)
 *URL: `/share/[token]`*
 *Smoke Test: (S3 — built this session)*
 
@@ -4972,7 +5000,7 @@ Open a shareable dashboard link.
 
 ---
 
-#### SCENE 10 — The Close (1 min)
+#### SCENE 11 — The Close (1 min)
 
 **Say:** *"Three agents. One platform. FIGSY books the meetings. Milla handles the research and documents. Vida converts your website traffic. You run the business."*
 
@@ -4996,15 +5024,16 @@ Let them answer.
 
 | Scene | Steps Covered | What you're testing |
 |-------|--------------|---------------------|
-| Scene 1 (Dashboard) | 17 | Session, load, system status |
-| Scene 2 (Leads + ICP) | 4, 5, 6, 7 | AI ICP, lead scoring, POPIA consent, CSV export |
-| Scene 3 (FIGSY) | 18, 19, 20, 21, 22, 25 | Campaign creation, enrol, pause, resume, reply categories |
-| Scene 4 (Inbox) | 24, 25 | Inbox load, AI categorisation |
-| Scene 5 (Knowledge) | — | Data persistence (wired this session) |
-| Scene 6 (Billing) | 8, 8b, 35–46 | Stripe checkout, webhook, balance update, subscriptions |
-| Scene 7 (Milla) | 28, 29, 30, 31 | Assistant load, doc upload, chat, context |
-| Scene 8 (Vida) | 32, 33, 34 | Config save, embed code |
-| Scene 9 (Share link) | — | S3 public route |
+| Scene 1 (ICP Wow Moment) | 5, 6 | Live Apollo count, sample contact names appear |
+| Scene 2 (Dashboard) | 17 | Session, load, system status |
+| Scene 3 (Leads + ICP) | 4, 5, 6, 7 | AI ICP, lead scoring, POPIA consent, CSV export |
+| Scene 4 (FIGSY) | 18, 19, 20, 21, 22, 25 | Campaign creation, enrol, pause, resume, reply categories |
+| Scene 5 (Inbox) | 24, 25 | Inbox load, AI categorisation |
+| Scene 6 (Knowledge) | — | Data persistence (wired this session) |
+| Scene 7 (Billing) | 8, 8b, 35–46 | Stripe checkout, webhook, balance update, subscriptions |
+| Scene 8 (Milla) | 28, 29, 30, 31 | Assistant load, doc upload, chat, context |
+| Scene 9 (Vida) | 32, 33, 34 | Config save, embed code |
+| Scene 10 (Share link) | — | S3 public route |
 | Pre-demo setup | 1, 2, 3, 9, 10, 11, 12, 13, 14, 15, 16 | Auth, onboard, email delivery, admin, credits, gating |
 
 ---
@@ -5041,6 +5070,8 @@ Let them answer.
 | Compliance | POPIA full audit trail | Built in |
 | Hosting | South Africa (Supabase af-south-1) | Data residency |
 | AI provider | Anthropic Claude | Not OpenAI |
+| ICP preview count (live) | Fill in: Head of Sales + Fintech + South Africa | Whatever Apollo returns — don't fake it |
+| Sample contact names | Auto-populated when ICP filled | Real names from Apollo |
 
 ---
 

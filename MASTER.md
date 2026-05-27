@@ -352,6 +352,7 @@
 **When ready — non-blocking:**
 | # | Task | Notes | ✓ |
 |---|------|-------|---|
+| T36 | Get permission from first paying client to use their logo | One email: "Can we use your logo on our site?" — Claude has the component ready (W6) | ☐ |
 | T22 | Create calendar booking link | calendly.com or cal.com — Claude wires every demo button in 5 mins | ☐ |
 | T23 | Share UK company number with Claude | Wire into footer + legal in 5 mins after registration | ☐ |
 | T24 | Upgrade Apollo plan | $49/mo Basic — unlocks tech stack filter for competitor ICPs | ☐ |
@@ -407,6 +408,18 @@
 | P5 | Chat history persistence | AskFigsyButton resets on page reload — needs `/figsy/chat/history` endpoint | 🟡 Medium |
 | P6 | NotificationBell theme | Still uses white/gray (mismatches dark sidebar) | 🟡 Medium |
 
+**🔴 ALTA COMPETITIVE — Build these before next demo:**
+*Source: Jacques' live Alta demo analysis, 28 May 2026. Close the gap where it matters.*
+| # | Build | What | Time | Gap closes |
+|---|-------|------|------|-----------|
+| W1 | **Live ICP count "wow moment"** | ICP builder: type title/geo/industry → live counter "We found X matching companies" from Apollo preview API → "Generate [X] leads →" CTA. This is the single scene that sells the demo. | 4h | Alta's "971 contacts in 30 seconds" moment |
+| W2 | **Signal tokens in FIGSY sequences** | Surface Apollo trigger data (recent hire, job change, company growth, funding) as `{{signal_*}}` tokens in email copy. AI auto-selects best available signal per lead and inserts it. Apollo already returns this — just needs surfacing. | 1 day | Alta's Luna signal scoring — "most impressive demo moment" |
+| W3 | **Intent filters in ICP builder** | New filter group "Signals" in ICP form: recently funded / hiring SDRs / headcount growth >20% / new CTO or VP Sales hire. Apollo already supports these filters. | 4h | Alta's signal-based personalization visible at ICP stage |
+| W4 | **CRM on all plans** | Move HubSpot read/write off Dominate gate → available on Growth+. Basic one-way write (signup → contact) on Start. Update pricing page, billing gate logic, and MASTER pricing table. | 30 min | Alta: HubSpot native, not gated. Kills us on the comparison table. |
+| W5 | **LinkedIn URL on every lead** | Apollo already returns `linkedin_url`. Show as a column in leads table + one-click copy. Client does LinkedIn step manually with FIGSY-generated message. Bridges the LinkedIn gap without automation policy risk. | 2h | Alta's LinkedIn channel — without the ban risk |
+| W6 | **Social proof on homepage** | Wire slot for 1 real client logo + quote on homepage hero. Just the HTML/component — Jacques fills the content when first client agrees. | 20 min | Alta: Snowflake/Monday logos. Trust signal we can't fake but can prep for. |
+| W7 | **Demo wow-moment narration** | Update Section 35 (Demo Playbook) + Section 36 (Admin Playbook) with W1 as Scene 1. "Watch this number. Type your ICP. This is live." Script the narration beat-for-beat. | 30 min | After W1 ships — makes the wow land |
+
 **NEXT UP (smoke tests + steals):**
 | # | Build | What | Time |
 |---|-------|------|------|
@@ -424,7 +437,7 @@
 | C11 | Deliverability dashboard | SPF/DKIM/DMARC status, bounce rate, blacklist check per domain |
 | C12 | Email score pre-send | Score sequence before it fires — flag weak copy |
 | C13 | Adaptive send volume | Auto-adjust daily sends based on domain health |
-| C14 | Intent signal detection | Job changes, funding, hiring → trigger FIGSY outreach |
+| C14 | Intent signal detection (upgrade of W2/W3) | Job changes, funding, hiring → auto-trigger FIGSY outreach without manual ICP update |
 | C15 | Client morning brief email | Extend founder brief to all active clients |
 | C16 | Multi-model toggle per campaign | Haiku (volume) vs Sonnet (quality) per campaign |
 

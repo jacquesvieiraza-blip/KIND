@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -8,11 +8,66 @@ import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
-  BarChart2, Brain, Search, TrendingUp, Lock, ChevronRight,
+  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
-// ── Nav definitions ───────────────────────────────────────────────────────────
+type AgentId = 'figsy' | 'milla' | 'vida'
+
+interface AgentDef {
+  id: AgentId
+  name: string
+  role: string
+  accent: string
+  ring: string
+  price?: string
+  nav: { href: string; label: string; icon: React.ElementType; badge?: 'unread' }[]
+}
+
+const AGENTS: AgentDef[] = [
+  {
+    id: 'figsy',
+    name: 'FIGSY',
+    role: 'AI SDR',
+    accent: '#7C3AED',
+    ring: 'ring-[#7C3AED]/30',
+    nav: [
+      { href: '/dashboard/figsy',         label: 'Campaigns',   icon: Target },
+      { href: '/dashboard/figsy/replies',  label: 'Inbox',       icon: Inbox,  badge: 'unread' },
+      { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
+      { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },
+    ],
+  },
+  {
+    id: 'milla',
+    name: 'Milla',
+    role: 'Virtual Assistant',
+    accent: '#F472B6',
+    ring: 'ring-pink-400/30',
+    price: '$49/mo',
+    nav: [
+      { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
+      { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+    ],
+  },
+  {
+    id: 'vida',
+    name: 'Vida',
+    role: 'Chatbot Agent',
+    accent: '#14B8A6',
+    ring: 'ring-teal-400/30',
+    price: '$39/mo',
+    nav: [
+      { href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare },
+    ],
+  },
+]
+
+const AGENT_HREFS: Record<AgentId, string> = {
+  figsy: '/dashboard/figsy',
+  milla: '/dashboard/assistant',
+  vida:  '/dashboard/chatbot',
+}
 
 const LEAD_GEN_NAV = [
   { href: '/dashboard',                label: 'Home',            icon: Home },
@@ -21,30 +76,12 @@ const LEAD_GEN_NAV = [
   { href: '/dashboard/leads/linkedin', label: 'LinkedIn Import', icon: Search },
 ]
 
-const FIGSY_NAV = [
-  { href: '/dashboard/figsy',          label: 'Campaigns',   icon: Target },
-  { href: '/dashboard/figsy/replies',  label: 'Inbox',       icon: Inbox,  badge: 'unread' as const },
-  { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
-  { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },
-]
-
-const MILLA_NAV = [
-  { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
-  { href: '/dashboard/documents', label: 'Documents', icon: FileText },
-]
-
-const VIDA_NAV = [
-  { href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare },
-]
-
 const ACCOUNT_NAV = [
   { href: '/dashboard/usage',    label: 'Usage',    icon: BarChart2 },
   { href: '/dashboard/roadmap',  label: 'Roadmap',  icon: Map },
   { href: '/dashboard/billing',  label: 'Billing',  icon: CreditCard },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
-
-// ── System status ─────────────────────────────────────────────────────────────
 
 function SystemStatus() {
   const [status, setStatus] = React.useState<'checking' | 'ok' | 'degraded'>('checking')
@@ -64,8 +101,6 @@ function SystemStatus() {
   )
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-
 export function Sidebar({
   userEmail,
   creditBalance = 0,
@@ -82,11 +117,19 @@ export function Sidebar({
   const pathname = usePathname()
   const router   = useRouter()
   const supabase = createClient()
+
+  const [activeId, setActiveId] = useState<AgentId>('figsy')
+  const [open, setOpen]         = useState(false)
   const [unreadCount, setUnreadCount] = React.useState(0)
 
+  const isUnlocked = (id: AgentId) => id === 'figsy' ? hasFigsy : id === 'milla' ? hasMilla : hasVida
+  const agent = AGENTS.find(a => a.id === activeId)!
+  const unlocked = isUnlocked(activeId)
+
   React.useEffect(() => {
+    if (!hasFigsy) return
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session || !hasFigsy) return
+      if (!session) return
       try {
         const url = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
         const res = await fetch(`${url}/figsy/replies/unread`, {
@@ -107,11 +150,11 @@ export function Sidebar({
     router.refresh()
   }
 
-  function NavLink({
-    href, label, icon: Icon, badge,
-  }: { href: string; label: string; icon: React.ElementType; badge?: 'unread' }) {
-    const active      = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-    const showUnread  = badge === 'unread' && unreadCount > 0
+  function NavLink({ href, label, icon: Icon, badge }: {
+    href: string; label: string; icon: React.ElementType; badge?: 'unread'
+  }) {
+    const active     = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+    const showUnread = badge === 'unread' && unreadCount > 0
     return (
       <Link
         href={href}
@@ -134,65 +177,10 @@ export function Sidebar({
     )
   }
 
-  // Agent upgrade card — shows when not subscribed
-  function AgentUpgradeCard({
-    id, name, role, price, accent, href,
-  }: { id: string; name: string; role: string; price: string; accent: string; href: string }) {
-    return (
-      <Link
-        href={href}
-        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/[0.06] hover:border-white/[0.14] hover:bg-white/[0.04] transition-all group"
-      >
-        <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-white/10 shrink-0 relative">
-          <img
-            src={`/agents/${id}.png`}
-            alt={name}
-            className="w-full h-full object-cover object-top opacity-50 group-hover:opacity-70 transition-opacity"
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-            <Lock className="w-2.5 h-2.5 text-white/70" />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-purple-200/50 text-xs font-semibold group-hover:text-purple-200 transition-colors">{name}</p>
-            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ color: accent, background: `${accent}18` }}>{role}</span>
-          </div>
-          <p className="text-purple-300/30 text-[10px] group-hover:text-purple-300/50 transition-colors">{price} · Unlock →</p>
-        </div>
-        <ChevronRight className="w-3 h-3 text-purple-300/20 group-hover:text-purple-300/50 transition-colors shrink-0" />
-      </Link>
-    )
-  }
-
-  // Active agent section header
-  function AgentHeader({ id, name, role, accentDot }: { id: string; name: string; role: string; accentDot: string }) {
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08]">
-        <div className="w-7 h-7 rounded-lg overflow-hidden ring-1 ring-[#7C3AED]/30 shrink-0">
-          <img
-            src={`/agents/${id}.png`}
-            alt={name}
-            className="w-full h-full object-cover object-top"
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-white text-xs font-semibold">{name}</p>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: accentDot }} />
-          </div>
-          <p className="text-purple-300/40 text-[10px]">{role} · Active</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <aside className="w-[224px] bg-[#0F0929] flex flex-col shrink-0 border-r border-white/[0.06]">
+    <aside className="w-[240px] bg-[#0F0929] flex flex-col shrink-0 border-r border-white/[0.06]">
 
-      {/* ── Logo ──────────────────────────────────────────────────────── */}
+      {/* ── Logo ──────────────────────────────────────────────────── */}
       <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-white/[0.06]">
         <div className="w-7 h-7 rounded-lg bg-[#7C3AED] flex items-center justify-center shadow-sm shadow-purple-950/80">
           <Zap className="w-4 h-4 text-white" />
@@ -202,73 +190,128 @@ export function Sidebar({
 
       <nav className="flex-1 px-3 pt-3 pb-2 space-y-0.5 overflow-y-auto">
 
-        {/* ── LEAD GEN — standard product ───────────────────────────── */}
+        {/* ── LEAD GEN — primary product ─────────────────────────── */}
         <p className="text-[10px] text-purple-400/40 px-3 pb-1.5 font-semibold uppercase tracking-wider">
           Lead Gen
         </p>
         {LEAD_GEN_NAV.map(item => <NavLink key={item.href} {...item} />)}
 
-        {/* ── AI AGENTS ─────────────────────────────────────────────── */}
-        <div className="!mt-4">
-          <p className="text-[10px] text-purple-400/40 px-3 pb-1.5 font-semibold uppercase tracking-wider">
+        {/* ── AI AGENTS — dropdown switcher ──────────────────────── */}
+        <div className="!mt-5">
+          <p className="text-[10px] text-purple-400/40 px-3 pb-2 font-semibold uppercase tracking-wider">
             AI Agents
           </p>
 
-          {/* FIGSY */}
-          {hasFigsy ? (
-            <div className="space-y-0.5">
-              <AgentHeader id="figsy" name="FIGSY" role="AI SDR" accentDot="#7C3AED" />
-              <div className="pl-1 space-y-0.5 mt-1">
-                {FIGSY_NAV.map(item => <NavLink key={item.href} {...item} />)}
-              </div>
+          {/* Active agent card — large */}
+          <button
+            onClick={() => setOpen(o => !o)}
+            className="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.10] border border-white/[0.09] transition-all group"
+          >
+            {/* Large photo */}
+            <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-md`}>
+              <img
+                src={`/agents/${agent.id}.png`}
+                alt={agent.name}
+                className="w-full h-full object-cover object-top"
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+              />
             </div>
-          ) : (
-            <AgentUpgradeCard
-              id="figsy" name="FIGSY" role="AI SDR"
-              price="Add FIGSY" accent="#7C3AED"
-              href="/dashboard/billing"
-            />
+            <div className="flex-1 text-left min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="text-white font-bold text-sm">{agent.name}</p>
+                {unlocked
+                  ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  : <Lock className="w-3 h-3 text-purple-300/40" />
+                }
+              </div>
+              <p className="text-purple-300/50 text-xs">{agent.role}</p>
+              {!unlocked && agent.price && (
+                <p className="text-[10px] text-purple-300/35 mt-0.5">{agent.price} · Tap to unlock</p>
+              )}
+            </div>
+            <ChevronDown className={`w-4 h-4 text-purple-300/30 transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Dropdown */}
+          {open && (
+            <div className="mt-1.5 rounded-xl bg-[#1A0F47] border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/60 z-50">
+              <p className="text-[10px] text-purple-400/40 px-3 pt-3 pb-1.5 font-semibold uppercase tracking-wider">
+                Your AI Team
+              </p>
+              {AGENTS.map(a => {
+                const locked = !isUnlocked(a.id)
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => {
+                      setActiveId(a.id)
+                      setOpen(false)
+                      if (locked) router.push(AGENT_HREFS[a.id])
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-3 hover:bg-white/[0.06] transition-colors ${
+                      a.id === activeId ? 'bg-white/[0.06]' : ''
+                    }`}
+                  >
+                    {/* Medium photo in dropdown */}
+                    <div className={`w-10 h-10 rounded-xl overflow-hidden shrink-0 ring-2 ${locked ? 'ring-white/10 opacity-50' : a.ring}`}>
+                      <img
+                        src={`/agents/${a.id}.png`}
+                        alt={a.name}
+                        className="w-full h-full object-cover object-top"
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                      />
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className={`text-xs font-semibold leading-tight ${locked ? 'text-purple-200/40' : 'text-white'}`}>
+                          {a.name}
+                        </p>
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                          style={{ color: a.accent, background: `${a.accent}18` }}
+                        >
+                          {a.role}
+                        </span>
+                      </div>
+                      <p className="text-purple-300/35 text-[10px] mt-0.5">
+                        {locked ? `${a.price} · Unlock →` : 'Active'}
+                      </p>
+                    </div>
+                    {locked
+                      ? <Lock className="w-3 h-3 text-purple-300/25 shrink-0" />
+                      : a.id === activeId && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: a.accent }} />
+                    }
+                  </button>
+                )
+              })}
+              <div className="mx-3 my-2 border-t border-white/[0.06]" />
+              <p className="text-[10px] text-purple-300/30 px-3 pb-3 leading-relaxed">
+                Unlock agents from{' '}
+                <Link href="/dashboard/billing" className="text-purple-300/60 font-medium hover:text-purple-200 transition-colors" onClick={() => setOpen(false)}>
+                  Billing →
+                </Link>
+              </p>
+            </div>
           )}
 
-          {/* Milla */}
-          <div className="mt-1.5">
-            {hasMilla ? (
-              <div className="space-y-0.5">
-                <AgentHeader id="milla" name="Milla" role="Virtual Assistant" accentDot="#F472B6" />
-                <div className="pl-1 space-y-0.5 mt-1">
-                  {MILLA_NAV.map(item => <NavLink key={item.href} {...item} />)}
-                </div>
-              </div>
-            ) : (
-              <AgentUpgradeCard
-                id="milla" name="Milla" role="VA"
-                price="$49/mo" accent="#F472B6"
-                href="/dashboard/billing"
-              />
-            )}
-          </div>
-
-          {/* Vida */}
-          <div className="mt-1.5">
-            {hasVida ? (
-              <div className="space-y-0.5">
-                <AgentHeader id="vida" name="Vida" role="Chatbot" accentDot="#14B8A6" />
-                <div className="pl-1 space-y-0.5 mt-1">
-                  {VIDA_NAV.map(item => <NavLink key={item.href} {...item} />)}
-                </div>
-              </div>
-            ) : (
-              <AgentUpgradeCard
-                id="vida" name="Vida" role="Chatbot"
-                price="$39/mo" accent="#14B8A6"
-                href="/dashboard/billing"
-              />
-            )}
-          </div>
+          {/* Active agent nav — only if subscribed */}
+          {unlocked ? (
+            <div className="mt-1.5 space-y-0.5">
+              {agent.nav.map(item => <NavLink key={item.href} {...item} />)}
+            </div>
+          ) : (
+            <Link
+              href={AGENT_HREFS[activeId]}
+              className="mt-2 flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-white/[0.08] text-xs text-purple-300/40 hover:text-purple-200 hover:border-white/[0.14] transition-all"
+            >
+              <Lock className="w-3 h-3" />
+              View upgrade options
+            </Link>
+          )}
         </div>
 
-        {/* ── Account ────────────────────────────────────────────────── */}
-        <div className="!mt-4 border-t border-white/[0.06] !pt-3 space-y-0.5">
+        {/* ── Account ─────────────────────────────────────────────── */}
+        <div className="!mt-5 border-t border-white/[0.06] !pt-3 space-y-0.5">
           {ACCOUNT_NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             return (
@@ -290,7 +333,7 @@ export function Sidebar({
 
       </nav>
 
-      {/* ── Footer ────────────────────────────────────────────────────── */}
+      {/* ── Footer ────────────────────────────────────────────────── */}
       <div className="px-3 pb-3 pt-2 border-t border-white/[0.06] space-y-1.5">
         <div className="px-3 flex items-center justify-between">
           <p className="text-purple-300/35 text-[11px] truncate">{userEmail}</p>

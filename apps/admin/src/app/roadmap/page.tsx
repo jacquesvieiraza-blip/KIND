@@ -129,58 +129,24 @@ export default function AdminRoadmapPage() {
   const overallPct = Math.round((completedMilestones.length / totalMilestones.length) * 100)
 
   return (
+    <div className="px-8 py-8 max-w-6xl mx-auto space-y-8">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">AI Business Operation Roadmap</h2>
+        <p className="text-gray-500 text-sm mt-1">Strategic milestones from launch to $100K MRR across 4 phases.</p>
+      </div>
 
-      <div className="px-8 py-8 max-w-6xl mx-auto space-y-8">
-        {/* Header */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">AI Business Operation Roadmap</h2>
-          <p className="text-gray-500 text-sm mt-1">Strategic milestones from launch to $100K MRR across 4 phases.</p>
+      {/* Overall progress */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="font-semibold text-gray-900">Overall Roadmap Progress</h3>
+            <p className="text-sm text-gray-400 mt-0.5">{completedMilestones.length} of {totalMilestones.length} milestones complete</p>
+          </div>
+          <span className="text-3xl font-bold text-gray-900">{overallPct}%</span>
         </div>
-
-        {/* Overall progress */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="font-semibold text-gray-900">Overall Roadmap Progress</h3>
-              <p className="text-sm text-gray-400 mt-0.5">{completedMilestones.length} of {totalMilestones.length} milestones complete</p>
-            </div>
-            <span className="text-3xl font-bold text-gray-900">{overallPct}%</span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-3">
-            <div className="bg-[#7C3AED] h-3 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
-          </div>
-          <div className="mt-4 grid grid-cols-4 gap-3">
-            {PHASES.map(p => {
-              const done = p.milestones.filter(m => m.done).length
-              const pct = Math.round((done / p.milestones.length) * 100)
-              const colors = COLOR_MAP[p.color]
-              return (
-                <div key={p.phase} className="text-center">
-                  <p className="text-xs text-gray-400">{p.phase}</p>
-                  <p className={`text-lg font-bold ${colors.accent}`}>{pct}%</p>
-                  <p className="text-xs text-gray-500">{p.label}</p>
-                </div>
-              )
-            })}
-          </div>
-          <span className="text-3xl font-bold text-white">{overallPct}%</span>
-        </div>
-
-        {/* Revenue targets strip */}
-        <div className="grid grid-cols-4 gap-4">
-          {[
-            { icon: <DollarSign className="w-4 h-4" />, label: 'Month 2 MRR', value: '$2,500', sub: '5 clients' },
-            { icon: <TrendingUp className="w-4 h-4" />, label: 'Month 4 MRR', value: '$8,000', sub: '20 clients' },
-            { icon: <Globe className="w-4 h-4" />, label: 'Month 6 MRR', value: '$26,000', sub: '60 clients' },
-            { icon: <Briefcase className="w-4 h-4" />, label: 'Month 12 MRR', value: '$100,000', sub: '200+ clients' },
-          ].map(({ icon, label, value, sub }) => (
-            <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">{icon}</div>
-              <p className="text-xl font-bold text-gray-900">{value}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{label}</p>
-              <p className="text-xs text-gray-400">{sub}</p>
-            </div>
-          ))}
+        <div className="w-full bg-gray-100 rounded-full h-3">
+          <div className="bg-[#7C3AED] h-3 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
         </div>
         <div className="mt-4 grid grid-cols-4 gap-3">
           {PHASES.map(p => {
@@ -189,9 +155,9 @@ export default function AdminRoadmapPage() {
             const colors = COLOR_MAP[p.color]
             return (
               <div key={p.phase} className="text-center">
-                <p className="text-xs text-white/30">{p.phase}</p>
+                <p className="text-xs text-gray-400">{p.phase}</p>
                 <p className={`text-lg font-bold ${colors.accent}`}>{pct}%</p>
-                <p className="text-xs text-white/40">{p.label}</p>
+                <p className="text-xs text-gray-500">{p.label}</p>
               </div>
             )
           })}
@@ -206,11 +172,11 @@ export default function AdminRoadmapPage() {
           { icon: <Globe className="w-4 h-4" />, label: 'Month 6 MRR', value: '$26,000', sub: '60 clients' },
           { icon: <Briefcase className="w-4 h-4" />, label: 'Month 12 MRR', value: '$100,000', sub: '200+ clients' },
         ].map(({ icon, label, value, sub }) => (
-          <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-            <div className="w-8 h-8 rounded-lg bg-blue-400/10 text-blue-400 flex items-center justify-center mb-3">{icon}</div>
-            <p className="text-xl font-bold text-white">{value}</p>
-            <p className="text-xs text-white/40 mt-0.5">{label}</p>
-            <p className="text-xs text-white/30">{sub}</p>
+          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">{icon}</div>
+            <p className="text-xl font-bold text-gray-900">{value}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+            <p className="text-xs text-gray-400">{sub}</p>
           </div>
         ))}
       </div>
@@ -223,7 +189,7 @@ export default function AdminRoadmapPage() {
         const colors = COLOR_MAP[phase.color]
 
         return (
-          <div key={phase.phase} className={`bg-white/[0.03] rounded-xl border overflow-hidden ring-1 ${statusCfg.ring} border-white/[0.06]`}>
+          <div key={phase.phase} className={`bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden ring-1 ${statusCfg.ring}`}>
             {/* Phase header */}
             <div className={`${colors.header} border-b px-6 py-4`}>
               <div className="flex items-center justify-between">
@@ -236,19 +202,53 @@ export default function AdminRoadmapPage() {
                 </div>
                 <div className="text-right">
                   <p className={`text-2xl font-bold ${colors.accent}`}>{phase.mrrTarget}</p>
-                  <p className="text-white/40 text-xs">MRR target · {phase.clientTarget}</p>
+                  <p className="text-gray-500 text-xs">MRR target · {phase.clientTarget}</p>
                 </div>
               </div>
-              <div className="mt-3 w-full bg-white/10 rounded-full h-1.5">
+              <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
                 <div className={`${colors.progress} h-1.5 rounded-full`} style={{ width: `${pct}%` }} />
               </div>
-              <p className="text-white/40 text-xs mt-1">{done}/{phase.milestones.length} milestones · {pct}%</p>
+              <p className="text-gray-400 text-xs mt-1">{done}/{phase.milestones.length} milestones · {pct}%</p>
             </div>
 
-        {/* Bottom note */}
-        <p className="text-center text-xs text-gray-400 pb-4">
-          Roadmap is a living document — review monthly against MRR actuals and client feedback.
-        </p>
+            {/* Milestones + Ops */}
+            <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Milestones */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Milestones</p>
+                <ul className="space-y-2">
+                  {phase.milestones.map((m, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      {m.done
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                        : <Circle className="w-4 h-4 text-gray-300 mt-0.5 shrink-0" />}
+                      <span className={`text-sm ${m.done ? 'text-gray-700' : 'text-gray-400'}`}>{m.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Ops */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Operations</p>
+                <ul className="space-y-2">
+                  {phase.ops.map((op, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${colors.progress}`} />
+                      <span className="text-sm text-gray-500">{op}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Bottom note */}
+      <p className="text-center text-xs text-gray-400 pb-4">
+        Roadmap is a living document — review monthly against MRR actuals and client feedback.
+      </p>
     </div>
   )
 }

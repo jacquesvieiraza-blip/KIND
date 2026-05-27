@@ -305,7 +305,7 @@ export default async function AdminPage() {
   const stats = await getAdminStats()
 
   const avgTtflDisplay = stats.avgTtfl !== null ? `${stats.avgTtfl.toFixed(1)} hrs` : '—'
-  const avgTtflColorCls = ttflBgColor(stats.avgTtfl)
+  const avgTtflColor = ttflBgColor(stats.avgTtfl)
 
   return (
     <div className="px-8 py-6 max-w-6xl mx-auto space-y-6">
@@ -399,95 +399,31 @@ export default async function AdminPage() {
               <div key={key} className="border border-purple-100 rounded-xl p-4 bg-purple-50/30">
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-medium text-sm text-gray-900">{p.name}</p>
-                  <span className="text-xs bg-[#7C3AED]/10 text-[#7C3AED] px-2 py-0.5 rounded-full font-semibold">Usage-based</span>
+                  <span className="text-xs bg-[#7C3AED]/10 text-[#7C3AED] px-2 py-0.5 rounded-full font-semibold">Credit-based</span>
                 </div>
-                <p className="text-xs text-gray-400 mb-2">Min ${p.monthly_minimum_usd}/mo · includes {p.includes_leads} leads</p>
+                <p className="text-xs text-gray-400 mb-2">${p.credit_rate_usd}/credit · {p.bundles.length} bundle options</p>
                 <div className="space-y-1">
-                  {p.tiers.map(t => (
-                    <div key={t.label} className="flex justify-between text-xs text-gray-600">
-                      <span>{t.label}</span>
-                      <span className="font-medium">${t.rate_usd}/lead · R{t.rate_zar}/lead</span>
+                  {p.bundles.map(b => (
+                    <div key={b.credits} className="flex justify-between text-xs text-gray-600">
+                      <span>{b.credits} credits</span>
+                      <span className="font-medium">${b.price_usd} USD</span>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
-            <div className="border border-purple-200 rounded-xl p-4 bg-purple-50/50">
-              <div className="flex items-center justify-between mb-1">
-                <p className="font-medium text-sm text-gray-900">{FIGSY_ADDON.name}</p>
-                <span className="text-xs bg-[#7C3AED] text-white px-2 py-0.5 rounded-full font-semibold">Add-on</span>
-              </div>
-              <p className="text-xs text-gray-400">{FIGSY_ADDON.description}</p>
-              <p className="text-xs font-medium text-gray-700 mt-1">${FIGSY_ADDON.price_usd}/mo · R{FIGSY_ADDON.price_zar}/mo</p>
-            </div>
             {Object.entries(PRODUCTS).map(([key, product]) => (
               <div key={key} className="border border-gray-100 rounded-xl p-4 bg-gray-50/40">
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-medium text-sm text-gray-900">{product.name}</p>
                   <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">Flat</span>
                 </div>
-                <div className="space-y-1">
-                  {Object.entries(product.tiers).map(([tier, config]) => {
-                    const c = config as { price_usd: number; custom?: boolean }
-                    return (
-                      <div key={tier} className="flex justify-between text-xs text-gray-600">
-                        <span className="capitalize">{tier}</span>
-                        <span className="font-medium">{c.custom ? 'Custom' : `$${c.price_usd}/mo`}</span>
-                      </div>
-                    )
-                  })}
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span>Monthly</span>
+                  <span className="font-medium">${product.price_usd}/mo</span>
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-white/60">
-                <span>100 credits</span><span className="font-medium">$100 USD</span>
-              </div>
-            </div>
-          </div>
-          {/* FIGSY */}
-          <div className="border border-indigo-400/20 rounded-lg p-4 bg-indigo-400/5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-medium text-sm text-white">FIGSY — AI Outreach SDR</p>
-              <span className="text-xs bg-indigo-400/10 text-indigo-400 px-2 py-0.5 rounded font-medium">Credit-based</span>
-            </div>
-            <p className="text-xs text-white/40 mb-2">1 outreach credit = 1 lead enrolled in email campaign</p>
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs text-white/60">
-                <span>20 outreach credits</span><span className="font-medium">$60 USD</span>
-              </div>
-              <div className="flex justify-between text-xs text-white/60">
-                <span>100 outreach credits</span><span className="font-medium">$300 USD</span>
-              </div>
-            </div>
-          </div>
-          {/* Milla */}
-          <div className="border border-white/10 rounded-lg p-4 bg-white/[0.03]">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-medium text-sm text-white">Milla — AI Virtual Assistant</p>
-              <span className="text-xs bg-white/5 text-white/40 px-2 py-0.5 rounded font-medium">Flat subscription</span>
-            </div>
-            <div className="flex justify-between text-xs text-white/60">
-              <span>Monthly</span><span className="font-medium">$49/mo USD</span>
-            </div>
-          </div>
-          {/* Vida */}
-          <div className="border border-white/10 rounded-lg p-4 bg-white/[0.03]">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-medium text-sm text-white">Vida — AI Chatbot Agent</p>
-              <span className="text-xs bg-white/5 text-white/40 px-2 py-0.5 rounded font-medium">Flat subscription</span>
-            </div>
-            <div className="flex justify-between text-xs text-white/60">
-              <span>Monthly</span><span className="font-medium">$29/mo USD</span>
-            </div>
-          </div>
-          {/* Bundle */}
-          <div className="border border-blue-400/20 rounded-lg p-4 bg-blue-400/5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-medium text-sm text-white">Milla + Vida Bundle</p>
-              <span className="text-xs bg-blue-400/10 text-blue-400 px-2 py-0.5 rounded font-medium">Best value</span>
-            </div>
-            <div className="flex justify-between text-xs text-white/60">
-              <span>Monthly (saves $9)</span><span className="font-medium">$69/mo USD</span>
-            </div>
+            ))}
           </div>
         </div>
 

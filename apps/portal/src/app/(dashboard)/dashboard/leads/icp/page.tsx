@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send, Users2 } from 'lucide-react'
 
 // ── AI Chat panel ─────────────────────────────────────────────────────────────
 function AiChatPanel({ token, onFill }: { token: string; onFill: (data: Partial<ICPFormData>) => void }) {
@@ -99,6 +99,13 @@ const INDUSTRIES = [
 const SENIORITY_LEVELS = ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor']
 
 const COMPANY_SIZES = ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+']
+
+const INTENT_SIGNALS = [
+  { value: 'recently_funded',  label: '💰 Recently funded',    desc: 'Seed, Series A–D rounds' },
+  { value: 'hiring_sdrs',      label: '📣 Hiring sales reps',  desc: 'Actively posting SDR/AE roles' },
+  { value: 'headcount_growth', label: '📈 Growing headcount',  desc: 'Team size increasing' },
+  { value: 'new_executive',    label: '👔 New executive hire',  desc: 'New C-suite or VP in last 90 days' },
+]
 
 const TECH_STACK_OPTIONS = [
   'Salesforce', 'HubSpot', 'Pipedrive', 'Zoho', 'Slack', 'Microsoft 365', 'Google Workspace',
@@ -205,6 +212,7 @@ const emptyForm = (): ICPFormData => ({
   tech_stack: [],
   keywords: [],
   apollo_only_consented: true,
+  intent_signals: [],
 })
 
 export default function ICPPage() {
@@ -225,6 +233,9 @@ export default function ICPPage() {
   const [aiSuggesting, setAiSuggesting]     = useState(false)
   const [aiSuggestError, setAiSuggestError] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const [previewCount, setPreviewCount] = useState<number | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (form.name.trim()) { setNameSuggestion(null); return }

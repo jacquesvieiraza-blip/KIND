@@ -176,6 +176,38 @@ export async function runIcpJob(
   return { inserted, skipped, relaxed }
 }
 
+// Preview count — returns total matching leads for an ICP config without saving
+icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
+  try {
+    const { previewCount } = await import('../lib/apollo')
+    const body = req.body as {
+      job_titles?: string[]
+      seniority_levels?: string[]
+      company_sizes?: string[]
+      geographies?: string[]
+      industries?: string[]
+      tech_stack?: string[]
+      keywords?: string[]
+      apollo_only_consented?: boolean
+      intent_signals?: string[]
+    }
+    const count = await previewCount({
+      job_titles:            body.job_titles ?? [],
+      seniority_levels:      body.seniority_levels ?? [],
+      company_sizes:         body.company_sizes ?? [],
+      geographies:           body.geographies ?? [],
+      industries:            body.industries ?? [],
+      tech_stack:            body.tech_stack ?? [],
+      keywords:              body.keywords ?? [],
+      apollo_only_consented: body.apollo_only_consented ?? true,
+      intent_signals:        body.intent_signals ?? [],
+    })
+    res.json({ success: true, data: { count } })
+  } catch (err) {
+    res.json({ success: true, data: { count: 0 } }) // Never fail hard — count is optional
+  }
+})
+
 icpRouter.get('/', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

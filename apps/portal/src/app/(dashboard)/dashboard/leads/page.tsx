@@ -715,8 +715,9 @@ export default function LeadsPage() {
                         <ApolloBadge consented={lead.apollo_consented} />
                         {lead.linkedin_url && (
                           <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 ml-1 text-xs text-purple-500 hover:underline">
-                            <ExternalLink className="w-3 h-3" />
+                            className="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#0077B5]/10 text-[#0077B5] hover:bg-[#0077B5]/20 transition-colors border border-[#0077B5]/20"
+                            title="View LinkedIn profile">
+                            in
                           </a>
                         )}
                       </td>

@@ -108,6 +108,30 @@ function LoginForm() {
             </button>
           </p>
         </div>
+
+        {/* Social proof strip — W6 */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-400 mb-3 uppercase tracking-wider font-medium">Trusted by growing businesses</p>
+          <div className="flex items-center justify-center gap-6 flex-wrap">
+            {/* Logo slot 1 — replace src with real client logo when T36 is done */}
+            <div className="w-24 h-8 bg-gray-100 rounded-md flex items-center justify-center opacity-40">
+              <span className="text-[10px] text-gray-400 font-medium">Your logo</span>
+            </div>
+            <div className="w-24 h-8 bg-gray-100 rounded-md flex items-center justify-center opacity-40">
+              <span className="text-[10px] text-gray-400 font-medium">Your logo</span>
+            </div>
+            <div className="w-24 h-8 bg-gray-100 rounded-md flex items-center justify-center opacity-40">
+              <span className="text-[10px] text-gray-400 font-medium">Your logo</span>
+            </div>
+          </div>
+          {/* Testimonial slot */}
+          <blockquote className="mt-6 max-w-sm mx-auto">
+            <p className="text-xs text-gray-500 italic leading-relaxed">
+              &ldquo;K.I.N.D helped us source 200 qualified leads in our first week — without a single cold call.&rdquo;
+            </p>
+            <footer className="mt-2 text-[11px] text-gray-400 font-medium">— First client (coming soon)</footer>
+          </blockquote>
+        </div>
       </div>
     </div>
   )

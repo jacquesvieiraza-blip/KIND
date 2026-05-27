@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 27 May 2026 — 22:15 SAST (evening build session)**
+**Single source of truth. Last updated: 28 May 2026 — Admin redesign + FIGSY gating + Admin Portal Playbook**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 ---
@@ -42,6 +42,7 @@
 33. [Full Competitive Landscape — Every Player, Every Layer](#33-full-competitive-landscape--every-player-every-layer)
 34. [The Unbuilt Future — What K.I.N.D Could Become](#34-the-unbuilt-future--what-kind-could-become)
 35. [Demo Playbook — Live Sales Demo & Smoke Test](#35-demo-playbook--live-sales-demo--smoke-test)
+36. [Admin Portal Playbook — How to Use Every Route](#36-admin-portal-playbook--how-to-use-every-route)
 
 ---
 
@@ -51,7 +52,7 @@
 
 ---
 
-### 📅 SESSION DATE — 27 May 2026 — Evening Build (portal facelift + API wiring + ClickUp steals)
+### 📅 SESSION DATE — 28 May 2026 — Admin redesign + FIGSY widget gating + Admin Portal Playbook
 
 ---
 
@@ -206,6 +207,18 @@
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
+#### 28 May 2026 — Admin Redesign + FIGSY Gating + Admin Portal Playbook
+| Built / Fixed | Detail |
+|---------------|--------|
+| **Admin portal full visual redesign** | Sidebar navigation (dark `#0F0929` purple) replacing flat navy top bar. Portal-matching warm lavender gradient body. Inter font. All 13 pages updated. |
+| **Admin card style** | All cards → `bg-white/80 backdrop-blur rounded-2xl border-white/60 shadow-sm`. Tables: purple-50 dividers, `hover:bg-purple-50/30`. |
+| **Admin colour system** | All `#0066FF` → `#7C3AED`. All `bg-gray-50` page wrappers removed. Purple accent throughout. |
+| **AdminSidebar component** | `apps/admin/src/components/AdminSidebar.tsx` — replaces top nav bar. 13 nav items, purple active state. K.I.N.D logo pill. Live status indicator. |
+| **Layout shell** | `apps/admin/src/app/layout.tsx` → provides sidebar + gradient shell. All pages strip their own `<AdminNav />` calls. |
+| **Pre-existing JSX bugs fixed** | 10+ missing `</div>` closing tags in Playbook, Demo, Roadmap, Scalability, Terms Library pages — these were bugs in the original source. All fixed. TypeScript clean. |
+| **AskFigsyButton lead-gen gating** | Non-FIGSY subscribers: lead-gen helper mode only. Different greeting, placeholder, status label, sends `mode: 'lead_gen'` to API. Upgrade strip → `/dashboard/billing`. FIGSY subscribers: full access, unchanged. `hasFigsy` prop from layout (was already being computed). |
+| **Section 36 — Admin Portal Playbook** | Full how-to guide for every admin route. Daily workflow, common task recipes, when to use what. |
+
 #### 27 May 2026 — Portal Facelift + API Wiring + ClickUp Steals (Evening Session)
 | Built / Fixed | Detail |
 |---------------|--------|
@@ -282,12 +295,15 @@
 | **brand-500/brand-600 undefined classes in 7 pages** | 27 May (this session) | Global replace — buttons, spinners, focus rings all visible now |
 | **FIGSY identity card showing 🤖 emoji** | 27 May (this session) | Replaced with real `figsy.png` photo on agent card, unlock wall, and empty state |
 | **Chatbot default colour #0066FF** | 27 May (this session) | New chatbots default to `#7C3AED` — old blue was client-facing in embed widget |
+| **Admin portal broken JSX (10+ missing `</div>`)** | 28 May | Playbook ScriptBlock, Table, IcpContent, DiscoveryContent, DemoContent, ObjectionContent, ProposalContent, FollowUpContent + page wrappers in Roadmap/Scalability/Terms — all fixed |
+| **AskFigsyButton no gating** | 28 May | Non-subscribers now get lead-gen mode only — upgrade strip shown. `hasFigsy` prop wired from layout. |
+| **Admin nav bar cramped / mismatched** | 28 May | Replaced with dark sidebar — all 13 nav items visible, portal-matching design |
 
 ---
 
 ### 🔴 FOUNDER — YOUR TO-DO LIST
 
-> **27 May — Evening session. Kids down. Time to work. Do these in order.**
+> **28 May — Morning. Everything built. Do these in order. Admin Portal Playbook is Section 36 — read it after you deploy.**
 
 **RIGHT NOW — merge & deploy (10 mins):**
 | # | Task | Where | ✓ |
@@ -355,7 +371,17 @@
 
 ### 🤖 CLAUDE — MY BUILD QUEUE
 
-**✅ COMPLETED THIS SESSION (27 May — full day):**
+**✅ COMPLETED THIS SESSION (28 May):**
+| # | Build | Status |
+|---|-------|--------|
+| ✅ | Admin portal full visual redesign | Done — sidebar, gradient, purple accents, all 13 pages |
+| ✅ | AdminSidebar component | Done — `apps/admin/src/components/AdminSidebar.tsx` |
+| ✅ | AskFigsyButton lead-gen gating | Done — `hasFigsy` prop, mode flag to API, upgrade strip |
+| ✅ | Admin pre-existing JSX bug fixes | Done — 10+ broken closing divs in Playbook/Demo/Roadmap/Scalability/Terms |
+| ✅ | Section 36 — Admin Portal Playbook | Done — full how-to for all 13 routes + recipes |
+| ✅ | MASTER.md full audit + update | Done — cross-referenced all current state |
+
+**✅ COMPLETED PREVIOUS SESSION (27 May — full day):**
 | # | Build | Status |
 |---|-------|--------|
 | ✅ | Full portal code audit (94 issues) | Done — all critical bugs fixed |
@@ -428,15 +454,21 @@
 
 ---
 
-### 📋 TOMORROW — STEP BY STEP (Day 1, 28 May 2026)
+### 📋 TODAY — STEP BY STEP (28 May 2026)
 
-> Demo Playbook is Section 35. Read it before doing anything. Your demo environment setup (S1–S12 pre-demo checklist) IS your smoke test setup.
+> Demo Playbook is Section 35. Admin Portal Playbook is Section 36. Read both before doing anything.
 
-**Before you start:**
-1. Merge `claude/ai-business-roadmap-U3OWJ` → `main` on GitHub (if not done tonight)
+**Deploy (do first — 10 min):**
+1. Merge `claude/ai-business-roadmap-U3OWJ` → `main` on GitHub
 2. Check Railway build is green after merge
-3. Confirm `RESEND_API_KEY` is in Railway
+3. Check Vercel portal + admin both deploy successfully
+4. Confirm `RESEND_API_KEY` is in Railway
+
+**Before Test 1:**
 4. Create new Gmail — never used on K.I.N.D before
+
+**Run Test 1 — Core Platform (Section 18, Steps 1–17):**
+> See also Section 35 Scene 1–6 for demo narration of each step.
 
 **Run Test 1 — Core Platform (Section 18, Steps 1–17):**
 > See also Section 35 Scene 1–6 for demo narration of each step.
@@ -1000,7 +1032,7 @@
 | CRM integration — HubSpot, Pipedrive | Live |
 | Google Calendar connect | Built, needs credentials |
 
-### Admin Portal — 12 Routes (`admin.get-kind.com`)
+### Admin Portal — 13 Routes (`admin.get-kind.com`) — Redesigned 28 May (purple sidebar, portal-matching palette)
 | Route | Item | Status |
 |---|---|---|
 | `/` | Dashboard — KPIs, MRR, TTFL, client pipeline | ✅ Live |
@@ -4909,4 +4941,454 @@ Let them answer.
 
 *Section 35 written: 27 May 2026 — after Rachel at Alta showed what a real live demo looks like.*
 *Update after every major product change. This is a living document.*
+
+---
+
+## 36. ADMIN PORTAL PLAYBOOK — HOW TO USE EVERY ROUTE
+
+*URL: `admin.get-kind.com` (or localhost:3001 locally)*
+*This is your operations cockpit. Not client-facing — founder + team only.*
+*Written: 28 May 2026. Update whenever a new admin route ships.*
+
+---
+
+### 🗂️ QUICK REFERENCE — ALL 13 ROUTES AT A GLANCE
+
+| Route | What it's for | Open it when… |
+|-------|--------------|---------------|
+| `/` | Platform health — MRR, TTFL, clients, KPIs | First thing every morning |
+| `/unibox` | All FIGSY replies across every client | A new lead batch ran / client complains about replies |
+| `/clients` | List of every client + subscription status | Checking who's on what, T&Cs status |
+| `/clients/[id]` | Single client detail — credits, subs, company info | Client asks for credit top-up / subscription issue |
+| `/demo` | Create + manage demo environments for prospects | Before a sales call |
+| `/playbook` | Full AE sales guide — discovery, demo, objections, close | Before any sales call. Coach new AEs. |
+| `/terms-library` | Upload legal PDFs — MSA, Offer Doc, SLAs | When a client asks for signed docs / new version available |
+| `/roadmap` | Phase 1–4 milestone tracker | Weekly review — are we on track? |
+| `/scalability` | Stage gates, hire checklist, infra triggers | When deciding whether to hire or upgrade infra |
+| `/cmo` | LinkedIn post generator, prospect finder | Creating content / prospecting for K.I.N.D itself |
+| `/launch` | Pre-launch checklist — 60+ items across 13 categories | Before going public / after every major release |
+| `/hubspot` | HubSpot pipeline Kanban by stage | Pipeline review / deal tracking |
+| `/founder` | Agent digests, CS follow-up triggers, demo request sends | Daily operations — see who needs attention |
+
+---
+
+### 📅 DAILY WORKFLOW — IN THIS ORDER
+
+**Morning (5 min):**
+1. Open `/` — check MRR delta, any new clients, TTFL on new joins
+2. Open `/unibox` — scan hot 🔥 and warm 🌤️ replies — anything actionable?
+3. Open `/founder` — read the digest — any at-risk clients?
+
+**Before a sales call:**
+1. Open `/demo` → Create Demo → enter prospect company + name → Open Demo
+2. Open `/playbook` → review discovery questions + demo flow
+3. Bookmark the magic link — send after call as follow-up
+
+**Weekly (Friday 30 min):**
+1. `/` — check KPI progress vs target. Are we on track for the month?
+2. `/clients` — review full list. Anyone past due? Any T&Cs not accepted?
+3. `/roadmap` — mark completed milestones. Are phase gates met?
+4. `/scalability` — has anything triggered a stage change?
+5. `/hubspot` — move deals, update stage
+
+---
+
+### 📖 ROUTE-BY-ROUTE GUIDE
+
+---
+
+#### `/` — Dashboard
+
+**What you see:**
+- 5 stat cards: Total Clients · MRR (USD) · Active Subs · Past Due · Avg TTFL
+- KPI Progress bar for the current month (MRR vs target, clients vs target)
+- Monthly Revenue Targets table — May→Dec 2026, RAG status per month
+- Core KPI Targets: TTFL, CVR, Churn, Reply Rate, Interested Rate, NPS
+- Client Pipeline Health table — every client with TTFL, total leads, leads this month, status
+- Product Catalog — all pricing tiers
+- Total Leads counter
+
+**What to do here:**
+- **Avg TTFL > 4 hrs** → Check which new client it is → open `/clients/[id]` → trigger at-risk alert in `/founder`
+- **MRR behind target** → Open `/hubspot` → check what's stuck in pipeline
+- **Past Due > 0** → Open `/clients` → find who's past due → email them manually
+- **New client today** → Click into `/clients/[id]` → check T&Cs accepted → check subscription started
+
+**Colour coding on TTFL:**
+- 🟢 Green = < 2 hrs (excellent)
+- 🟡 Amber = 2–6 hrs (acceptable)
+- 🔴 Red = > 6 hrs (intervention needed)
+
+---
+
+#### `/unibox` — Unified Reply Inbox
+
+**What you see:**
+All FIGSY email replies across ALL clients — sorted hot → warm → cold → other. Up to 200 most recent. Expandable rows show full reply body + AI reasoning.
+
+**Classification guide:**
+| Label | Meaning | Action |
+|-------|---------|--------|
+| 🔥 Hot | Interested, wants to know more | Forward to client ASAP. Note in HubSpot. |
+| 🌤️ Warm | Positive but not ready | Client should nurture. Note timing. |
+| ❄️ Cold | Not interested | No action needed. Normal attrition. |
+| 🚫 Opted out | "Remove me" | Verify opt-out blocklist updated. |
+| 👤 Wrong person | Referred to someone else | Client to follow up with new contact. |
+| ✈️ OOO | Out of office | FIGSY auto-handles. Check back date. |
+| ❓ Other | Unclear | Read body. Decide manually. |
+
+**Common task: spot-check a client's replies**
+1. Filter by category (🔥 or 🌤️)
+2. Look for company name in the client column
+3. If a client has multiple hot replies but hasn't converted → trigger CS follow-up from `/founder`
+
+---
+
+#### `/clients` — All Clients
+
+**What you see:**
+Grid of stat chips (Active / On Trial / T&Cs Accepted / No Credits) → full table of every client with country, status, T&Cs date, active products, and a Manage link.
+
+**Tasks:**
+- **Grant credits**: Click Manage → `/clients/[id]` → credit grant form
+- **Check T&Cs**: Look at T&Cs column. If blank → client hasn't accepted → email them the link
+- **See active products**: Product badges show what each client has (lead_gen_figsy, virtual_assistant, chatbot, etc.)
+- **Filter mentally**: Active = paying. Trial = 14-day clock ticking. No Credits = needs top-up or purchase.
+
+---
+
+#### `/clients/[id]` — Client Detail
+
+**What you see:**
+- Company info — name, industry, country, website, phone, reg number, VAT
+- T&Cs status — accepted at timestamp + IP
+- Subscription list — product, tier, status, amount
+- Credit balance
+- Credit grant / refund form
+- Full transaction history
+
+**Common tasks:**
+
+**Grant free credits (e.g. trial extension, goodwill):**
+1. Enter amount (max 500 per grant)
+2. Type = `manual_grant`
+3. Add note: "Trial extension — client was blocked by X"
+4. Submit
+
+**Refund credits after an error:**
+1. Type = `refund`
+2. Amount = credits to restore
+3. Note: describe what went wrong
+
+**Check if a client's leads are actually running:**
+- Look at credit transaction history — if no `lead_delivery` transactions, leads aren't being delivered
+- This means: ICP not activated, or drip rate is 0, or no Apollo results
+
+**Cancel a subscription manually:**
+- Not in the UI yet — do via Stripe dashboard directly, then update the `subscriptions` table status in Supabase
+
+---
+
+#### `/demo` — Demo Environments
+
+**What you see:**
+Active demo list — company name, industry, prospect name, AE, created date, expiry, leads count, expired/active status. Plus a Create Demo form.
+
+**Before a sales call — Create a Demo:**
+1. Click **Create Demo**
+2. Enter: Company name, Industry, Country, Prospect name, your name as AE
+3. Submit — system creates a real Supabase user + client + 4 products + runs Apollo ICP job → real leads
+4. Wait ~30–60 seconds for leads to populate
+5. Click **Open Demo** — magic link opens the portal as that prospect (no password needed)
+6. Leave this tab open during your call — this IS what you demo
+
+**During the call:**
+- Show the Dashboard → real credits, real leads
+- Walk through ICP Builder → show AI suggest
+- Open Leads → show actual companies matching their ICP
+- Open FIGSY → show campaign flow
+- If they ask about Milla/Vida → show the upgrade screen (honest: "this is the subscription path")
+
+**After the call:**
+- If they want to trial: hand them the magic link → they start from this real environment
+- If they passed: click Expire → removes from active list
+- If they need more time: click Extend → adds 7 days
+
+**Important:** Demo environments use real Apollo credits (KIND's quota). Don't create demos for non-serious prospects.
+
+---
+
+#### `/playbook` — Sales Playbook
+
+**What you see:**
+Full AE guide in expandable sections: ICP profile, discovery questions with probes, demo flow script, objection handling, proposal template, follow-up emails, loss tracker, win metrics.
+
+**Use it:**
+- **Before your first call**: Read ICP + Discovery sections. Internalize the probes.
+- **During call (on second screen)**: Keep the discovery questions visible. Follow the flow.
+- **Objection in real-time**: Jump to Objection Handling section. Every common one is there with exact wording.
+- **Writing a proposal**: Copy the Proposal section template. Fill in their specifics.
+- **Training a new AE**: Walk them through this before their first call. It's their entire playbook.
+- **After a loss**: Go to Loss Tracker section. Add the reason. Patterns reveal what to fix.
+
+**Discovery call structure (memorise this):**
+```
+0–2 min   Opening: "Confirm time, set agenda"
+2–5 min   Rapport: what they do, team, stage
+5–20 min  5 discovery questions + probes
+20–25 min Demo pivot: summarise pain → bridge to demo
+25–55 min Demo (see /demo route)
+55–60 min Close: next step, trial booking
+```
+
+---
+
+#### `/terms-library` — Legal Document Store
+
+**What you see:**
+Upload panel for required docs → list of uploaded templates with download/delete controls.
+
+**Required docs to upload (if not already there):**
+| Document | Notes |
+|----------|-------|
+| KIND Master Services Agreement | Core legal agreement |
+| KIND Client Offer Document | Commercial offer |
+| Exhibit A — Chatbot SLA | Vida SLA |
+| Exhibit B — FIGSY SLA | FIGSY SLA |
+| Exhibit C — Virtual Assistant SLA | Milla SLA |
+
+**Process when a client needs signed docs:**
+1. Download the relevant templates from here
+2. Fill in client details (company name, date, products selected)
+3. Send via email or DocuSign
+4. Once signed: upload the signed version somewhere accessible (Supabase Storage or Google Drive)
+5. Mark `terms_accepted_at` in the client's Supabase record if not auto-set
+
+**Storage note:** PDFs go into Supabase Storage bucket `agreement-templates`. Create it if absent: Supabase → Storage → New bucket → `agreement-templates` → Public.
+
+---
+
+#### `/roadmap` — Phase Tracker
+
+**What you see:**
+4 phases (Foundation → Growth → Scale → Dominate) with milestone checklists, MRR targets, client targets, status indicators.
+
+**How to use it:**
+- Each milestone has a ✅ done / ⏳ in progress / ○ not started marker
+- **Do not edit the code to update this** — tell Claude "mark X as done on the roadmap" → 2 min code change
+- Review weekly against actual MRR + client count
+- Phase 1 target: $2,500 MRR / 5 clients by end May 2026
+- Phase 2 target: $10,000 MRR / 25 clients by end Jun 2026
+
+**Current phase:** Phase 1 — Foundation (active)
+
+---
+
+#### `/scalability` — Stage Gates & Hire Triggers
+
+**What you see:**
+Current stage (0–3 based on client count). For each stage: what infra to upgrade, who to hire, what processes to formalise. Capacity math (leads/day, requests/sec). Trigger thresholds.
+
+**Stage reference:**
+| Stage | Clients | MRR | Hire |
+|-------|---------|-----|------|
+| 0 — Solo | 1–5 | <$1K | Just you |
+| 1 — Early traction | 6–20 | $1K–$5K | Part-time CS |
+| 2 — Growth | 21–60 | $5K–$20K | Full-time AE |
+| 3 — Scale | 61–150 | $20K–$60K | Head of CS, DevOps |
+
+**Use it:**
+- Hit 6 clients → re-read Stage 1 section → start the CS hire process
+- Hit 21 clients → re-read Stage 2 → hire decisions become urgent
+- Infra triggers are automatic (Railway scales) but budget approval is yours
+
+---
+
+#### `/cmo` — CMO Tools
+
+**What you see:**
+- LinkedIn Post Generator: enter topic → Claude writes 3 branded posts
+- Prospect Finder: enter role/company type/region → Apollo search → list of prospects with email
+
+**LinkedIn posts:**
+- Use 3× per week minimum
+- Generated posts match K.I.N.D tone: founder voice, authentic, no corporate fluff
+- Review before posting — they're starting points, not final copy
+- Best topics: client wins, founder lessons, product announcements, industry takes
+
+**Prospect finder (K.I.N.D's own outbound):**
+- Use this to find your own leads — founders, sales directors, head of growth at SA/NG/KE SMEs
+- This feeds into FIGSY for K.I.N.D's own outreach cron (Monday 06:00 UTC)
+- Export results and manually add to FIGSY campaign if needed
+
+---
+
+#### `/launch` — Pre-Launch Checklist
+
+**What you see:**
+13 sections, 60+ checklist items covering: Supabase migrations, Railway env vars, DNS, Stripe, FIGSY API, auth, security, legal, monitoring.
+
+**When to use:**
+- Before going live with a new client (check their section is complete)
+- After every major deploy (re-check anything that could have broken)
+- When you hire someone new — this is their onboarding checklist
+
+**How to mark items done:**
+- Items are `useState` checkboxes — state resets on refresh (not persisted)
+- This is intentional — it forces a fresh review each time
+- Critical items have a red **CRITICAL** badge — never skip those
+
+**Current state:**
+- Most items should now be green after smoke tests
+- Blockers: Stripe price IDs, HubSpot API key, UK company number
+
+---
+
+#### `/hubspot` — HubSpot Pipeline
+
+**What you see:**
+If `HUBSPOT_API_KEY` is in Railway: full Kanban board by pipeline stage with deal count + total value per column.
+If key is absent: setup guide showing exactly how to get and add the key.
+
+**Pipeline stages:**
+| Stage | Meaning |
+|-------|---------|
+| Appointment Scheduled | Demo booked |
+| Qualified to Buy | Passed discovery, demo done |
+| Presentation Scheduled | Proposal sent |
+| Decision Maker Bought In | Champion convinced, escalating |
+| Contract Sent | Proposal accepted, legal in progress |
+| Closed Won | Paying client |
+| Closed Lost | Won't buy — note reason |
+
+**Workflow:**
+1. Demo call done → move to "Qualified to Buy"
+2. Proposal sent → move to "Presentation Scheduled"
+3. Signed → move to "Contract Sent"
+4. First payment received → "Closed Won"
+5. Weekly: triage anything stuck for >7 days in same stage
+
+**Integration:** HubSpot auto-syncs on: new signup → contact created. Stripe payment → deal created. FIGSY hot reply → timeline event. So the pipeline fills automatically — you just need to move deals forward manually.
+
+---
+
+#### `/founder` — Founder Operations
+
+**What you see:**
+- 7-day digest: total clients, new leads, agent actions breakdown (support/cs/ae)
+- Recent agent action log with timestamps
+- CS Follow-up trigger form: enter client ID + step (day1/day3/day7) → sends personalised email
+- Demo Request form: manually send a demo request to any prospect
+
+**Daily use:**
+1. Read the digest — is anything surprising? Unexpected drop in leads?
+2. If a trial client hasn't activated after 24h → CS Follow-up → Day 1 email
+3. If a client is quiet after 3 days → Day 3 email
+4. If approaching trial end → Day 7 email (strong push to convert)
+
+**CS email timing guide:**
+| Day | Trigger | Email |
+|-----|---------|-------|
+| Day 1 | Signed up, no ICP created | "Let's get your first leads" |
+| Day 3 | ICP created, no campaign | "Your leads are ready — here's how to launch FIGSY" |
+| Day 7 | Trial ending soon | "5 days left — here's what you haven't tried yet" |
+
+**Finding client IDs:**
+- Go to `/clients` → click Manage → the URL is `/clients/[UUID]` — that UUID is the client ID
+- Or: Supabase → clients table → id column
+
+**Demo request form:**
+- Use this when a cold prospect asks for a demo via LinkedIn/email but hasn't booked via Calendly
+- Enter their name, email, company → sends a personalised "Demo Request" email
+- Tracks via HubSpot automatically
+
+---
+
+### 🍳 COMMON RECIPES — STEP BY STEP
+
+---
+
+**Recipe 1: New client just signed up — onboarding check (5 min)**
+1. `/clients` → find them → click Manage
+2. Check T&Cs accepted (column should show a date)
+3. Check subscription status (should be `trialing`)
+4. Check credit balance (should have trial credits — default depends on plan)
+5. If any of the above is wrong → fix in Supabase or Stripe directly
+6. `/founder` → CS Follow-up → Day 1 email → send
+
+---
+
+**Recipe 2: Client says "I have no leads" (10 min)**
+1. `/clients/[id]` → check credit balance. Zero? → Grant credits → investigate why drip stopped
+2. Supabase → `icps` table → filter by client_id → is there an active ICP? (`is_active = true`)
+3. If no active ICP → email client: "Your ICP isn't activated — log in and click Activate"
+4. If ICP active but no leads → check `daily_drip_rate` on the client row — should be 10–50
+5. If drip rate is 0 → update it manually in Supabase
+6. Wait until the next day's 08:10 UTC cron — leads will flow
+
+---
+
+**Recipe 3: FIGSY reply needs urgent attention (2 min)**
+1. `/unibox` → filter 🔥 Hot
+2. Find the relevant client's company in the "Client" column
+3. Expand the row → read the reply body + AI reasoning
+4. Forward to client by email: "You have a hot reply from [Lead Name] at [Company] — reply within 24 hours"
+5. Note in HubSpot timeline if relevant
+
+---
+
+**Recipe 4: Prospect call in 30 min (5 min)**
+1. `/demo` → Create Demo → enter their company, industry, name, your name → submit
+2. Wait for "leads populated" confirmation (~30–60s)
+3. Click Open Demo → confirm portal loads with real leads
+4. `/playbook` → skim discovery questions section
+5. You're ready
+
+---
+
+**Recipe 5: Client wants to cancel (10 min)**
+1. `/clients/[id]` → note their subscription IDs
+2. Stripe Dashboard → Subscriptions → find by client email → Cancel (at period end, not immediately)
+3. Supabase → `subscriptions` → update `status` to `cancelled` (or wait for webhook)
+4. Send personal email from Jacques: ask why, offer 2-week extension if it's cost-related
+5. Log reason in HubSpot → Closed Lost (with reason tag)
+
+---
+
+**Recipe 6: Before a major release / deployment**
+1. `/launch` → go through ALL sections → mark items complete
+2. Pay special attention to: Supabase migrations run, Railway env vars set, CORS configured
+3. After deploy: run Smoke Test 1 (Section 18 of this doc) with a fresh Gmail
+4. If all 4 smoke tests pass → you're live
+
+---
+
+### 🚨 WHEN THINGS GO WRONG — ADMIN TRIAGE
+
+| Symptom | First place to check | Action |
+|---------|---------------------|--------|
+| Client can't log in | Supabase → Auth → Users | Check email exists, not banned |
+| Client has no leads after 48h | Supabase → `icps` table | Check `is_active`, `daily_drip_rate` |
+| Credits went to zero overnight | `/clients/[id]` → transaction history | Check for unexpected deductions — grant refund if error |
+| FIGSY campaign stuck at 0 sends | API logs (Railway) | Check `RESEND_API_KEY` is set |
+| New client payment not activating subscription | Stripe → Webhooks | Check webhook is receiving events — resend if needed |
+| Admin page shows blank data | Railway API logs | Check Supabase env vars in Railway |
+| Demo environment not loading | `/demo` → check expiry | Re-create if expired. Check Apollo quota. |
+| HubSpot shows "not connected" | Railway → `HUBSPOT_API_KEY` | Add the key — see Section 2 of this doc |
+
+---
+
+### 🔐 ACCESS NOTES
+
+- Admin portal is NOT auth-gated by default (no login screen)
+- Access control is by URL obscurity + Railway private networking
+- Before going public: add basic auth or IP allowlist to admin Railway service
+- Never share the admin URL in any public-facing material
+- The admin Supabase client uses `SUPABASE_SERVICE_ROLE_KEY` — full access to all data
+
+---
+
+*Section 36 written: 28 May 2026.*
+*Update when new admin routes ship. Keep recipes in sync with actual UI.*
+*This is the playbook Jacques hands to a new AE or ops hire on Day 1.*
 

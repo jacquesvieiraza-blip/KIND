@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
-  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown,
+  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 import { DarkModeToggle } from '@/components/ui/DarkModeToggle'
@@ -33,10 +33,11 @@ const AGENTS: AgentDef[] = [
     accent: '#7C3AED',
     ring: 'ring-[#7C3AED]/30',
     nav: [
-      { href: '/dashboard/figsy',         label: 'Campaigns',   icon: Target },
+      { href: '/dashboard/figsy',           label: 'Campaigns',   icon: Target },
       { href: '/dashboard/inbox',           label: 'Inbox',       icon: Inbox,  badge: 'unread' },
-      { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
-      { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },
+      { href: '/dashboard/kpis',            label: 'Performance', icon: BarChart },
+      { href: '/dashboard/knowledge',       label: 'Knowledge',   icon: Brain },
+      { href: '/dashboard/figsy/webhooks',  label: 'Webhooks',    icon: Webhook },
     ],
   },
   {

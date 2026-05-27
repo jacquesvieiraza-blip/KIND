@@ -23,6 +23,7 @@ async function getAdminStats() {
     console.error('[admin] Missing Supabase env vars — check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Railway')
     return null
   }
+  try {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -104,6 +105,10 @@ async function getAdminStats() {
     clients: clientsWithTtfl as ClientRow[],
     leadCountMap,
     monthLeadMap,
+  }
+  } catch (err) {
+    console.error('[admin] getAdminStats failed:', err)
+    return null
   }
 }
 

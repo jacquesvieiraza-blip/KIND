@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { Zap, Users, ShieldCheck } from 'lucide-react'
 
 interface Reply {
   id: string
@@ -66,6 +67,7 @@ export default function FigsyPage() {
   const [replyDraft, setReplyDraft] = useState<{ replyId: string; draft: string } | null>(null)
   const [draftingId, setDraftingId] = useState<string | null>(null)
   const [cloningId, setCloningId] = useState<string | null>(null)
+  const [mode, setMode] = useState<'autopilot' | 'copilot'>('autopilot')
 
   const toast = (msg: string) => {
     setToastMsg(msg)
@@ -270,14 +272,60 @@ export default function FigsyPage() {
         </div>
       </div>
 
+      {/* Mode toggle — Auto-Pilot vs Co-Pilot */}
+      <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <div className="flex items-start gap-4">
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">FIGSY Mode</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMode('autopilot')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                  mode === 'autopilot'
+                    ? 'bg-[#0066FF] text-white border-[#0066FF] shadow-md shadow-blue-200'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                Auto-Pilot
+              </button>
+              <button
+                onClick={() => setMode('copilot')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                  mode === 'copilot'
+                    ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Co-Pilot
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 text-sm text-gray-500 leading-relaxed">
+            {mode === 'autopilot' ? (
+              <p>I run fully on your behalf — generating emails, enrolling leads, and following up automatically. No approval needed.</p>
+            ) : (
+              <p>I draft every email and sequence before it goes out. You review and approve each one. More control, same intelligence.</p>
+            )}
+          </div>
+        </div>
+        {mode === 'copilot' && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
+            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-700 font-medium">Co-Pilot mode: I will draft sequences for your approval before any email is sent. Check the Inbox for drafts waiting on you.</p>
+          </div>
+        )}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            🤖 FIGSY <span className="text-sm font-normal text-gray-400 ml-1">— AI SDR</span>
+            Campaigns <span className="text-sm font-normal text-gray-400 ml-1">— {campaigns.length} total</span>
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Automated outreach sequences for your scored, consented leads.
+            FIGSY outreach sequences for your scored, consented leads.
           </p>
         </div>
         <button

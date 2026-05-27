@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone } from 'lucide-react'
+import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, Pencil } from 'lucide-react'
 
 interface ClientData {
   company_name: string
@@ -40,6 +40,10 @@ export default function SettingsPage() {
   const [calendarStatus, setCalendarStatus] = useState<CalendarStatus | null>(null)
   const [whatsappStatus, setWhatsappStatus] = useState<{ configured: boolean } | null>(null)
   const [vapiStatus, setVapiStatus] = useState<{ configured: boolean } | null>(null)
+  const [writingStyle, setWritingStyle]             = useState('')
+  const [writingStyleSaving, setWritingStyleSaving] = useState(false)
+  const [writingStyleSaved, setWritingStyleSaved]   = useState(false)
+  const [writingStyleError, setWritingStyleError]   = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -72,6 +76,10 @@ export default function SettingsPage() {
         setVapiStatus({ configured: false })
       }
 
+      // Load writing style from localStorage
+      const savedStyle = localStorage.getItem('kind_writing_style')
+      if (savedStyle) setWritingStyle(savedStyle)
+
       setLoading(false)
     }
     load()
@@ -91,6 +99,19 @@ export default function SettingsPage() {
       setSaveError(err instanceof Error ? err.message : 'Failed to save — please try again.')
     }
     setSaving(false)
+  }
+
+  async function handleSaveWritingStyle() {
+    setWritingStyleSaving(true)
+    setWritingStyleError(null)
+    try {
+      localStorage.setItem('kind_writing_style', writingStyle)
+      setWritingStyleSaved(true)
+      setTimeout(() => setWritingStyleSaved(false), 3000)
+    } catch {
+      setWritingStyleError('Failed to save — please try again.')
+    }
+    setWritingStyleSaving(false)
   }
 
   async function handleCrmSave(e: React.FormEvent) {

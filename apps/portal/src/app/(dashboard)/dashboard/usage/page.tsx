@@ -6,6 +6,55 @@ import { api } from '@/lib/api'
 import { Coins, TrendingUp, Users, ShieldCheck, Loader2, ArrowUpRight, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 
+// ── Bar chart (weekly usage) — pure SVG ────────────────────────────────────────
+function UsageBarChart({ transactions }: { transactions: CreditTransaction[] }) {
+  if (transactions.length === 0) return null
+
+  // Group consumed credits by week
+  const weeks: Record<string, number> = {}
+  for (const tx of transactions) {
+    if (tx.amount >= 0) continue // skip top-ups, only show usage
+    const d = new Date(tx.created_at)
+    // ISO week start (Monday)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    const monday = new Date(d)
+    monday.setDate(diff)
+    const key = monday.toISOString().slice(0, 10)
+    weeks[key] = (weeks[key] ?? 0) + Math.abs(tx.amount)
+  }
+
+  const sorted = Object.entries(weeks).sort((a, b) => a[0].localeCompare(b[0])).slice(-8)
+  if (sorted.length < 2) return null
+
+  const maxVal = Math.max(...sorted.map(([, v]) => v), 1)
+  const W = 400
+  const H = 80
+  const barW = Math.floor((W - sorted.length * 4) / sorted.length)
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full" style={{ height: H + 24 }}>
+        {sorted.map(([week, val], i) => {
+          const x = i * (barW + 4)
+          const barH = Math.max(3, Math.round((val / maxVal) * H))
+          const y = H - barH
+          const label = new Date(week).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+          return (
+            <g key={week}>
+              <rect x={x} y={y} width={barW} height={barH} rx="3" fill="#0066FF" opacity="0.8" />
+              <text x={x + barW / 2} y={H + 14} textAnchor="middle" fontSize="9" fill="#9ca3af">{label}</text>
+              {val > 0 && (
+                <text x={x + barW / 2} y={y - 3} textAnchor="middle" fontSize="9" fill="#374151" fontWeight="600">{val}</text>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
 interface CreditTransaction { id: string; type: string; amount: number; plan: string | null; note: string | null; created_at: string }
 interface LeadStats { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number }
 interface UsageData {
@@ -179,6 +228,25 @@ export default function UsagePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Weekly credit usage bar chart */}
+      {transactions.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-gray-900">Weekly credit usage</h2>
+            <span className="text-xs text-gray-400">Last 8 weeks</span>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-100 p-5">
+            {transactions.some(t => t.amount < 0) ? (
+              <UsageBarChart transactions={transactions} />
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-sm text-gray-400">No credits used yet — chart will appear here once you start using FIGSY.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

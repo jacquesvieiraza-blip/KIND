@@ -46,7 +46,7 @@ const AGENTS: AgentDef[] = [
     nav: [
       { href: '/dashboard',               label: 'Home',        icon: Home },
       { href: '/dashboard/figsy',         label: 'Campaigns',   icon: Target },
-      { href: '/dashboard/figsy/replies', label: 'Inbox',       icon: Inbox },
+      { href: '/dashboard/figsy/replies', label: 'Inbox',       icon: Inbox,   badge: 'unread' },
       { href: '/dashboard/kpis',          label: 'Performance', icon: BarChart },
       { href: '/dashboard/knowledge',     label: 'Knowledge',   icon: Brain },
     ],
@@ -84,8 +84,9 @@ const AGENTS: AgentDef[] = [
 
 // Lead Gen is a standalone product — separate nav section
 const LEAD_GEN_NAV: NavItem[] = [
-  { href: '/dashboard/leads',     label: 'People',    icon: Users },
-  { href: '/dashboard/leads/icp', label: 'ICP Builder', icon: TrendingUp },
+  { href: '/dashboard/leads',           label: 'People',         icon: Users },
+  { href: '/dashboard/leads/icp',       label: 'ICP Builder',    icon: TrendingUp },
+  { href: '/dashboard/leads/linkedin',  label: 'LinkedIn Import', icon: Search },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
@@ -159,8 +160,27 @@ export function Sidebar({
   const supabase = createClient()
   const [activeId, setActiveId] = useState<AgentId>('figsy')
   const [open, setOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = React.useState(0)
 
   const agent = AGENTS.find(a => a.id === activeId)!
+
+  // Fetch unread reply count for Inbox badge
+  React.useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return
+      try {
+        const url = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+        const res = await fetch(`${url}/figsy/replies/unread`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          signal: AbortSignal.timeout(5000),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setUnreadCount(data?.data?.count ?? 0)
+        }
+      } catch { /* silent */ }
+    })
+  }, [supabase])
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -235,6 +255,7 @@ export function Sidebar({
         {agent.nav.map(({ href, label, icon: Icon, badge }) => {
           const active =
             pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+          const showUnread = badge === 'unread' && unreadCount > 0
           return (
             <Link
               key={href}
@@ -247,7 +268,14 @@ export function Sidebar({
             >
               <Icon className="w-4 h-4 shrink-0" />
               <span className="flex-1">{label}</span>
-              {badge && (
+              {showUnread && (
+                <span className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                  active ? 'bg-white text-[#0066FF]' : 'bg-red-500 text-white'
+                }`}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+              {badge && badge !== 'unread' && (
                 <span className="text-[10px] bg-[#0066FF]/25 text-blue-300 px-1.5 py-0.5 rounded-full font-medium">
                   {badge}
                 </span>

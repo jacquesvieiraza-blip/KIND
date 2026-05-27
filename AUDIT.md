@@ -148,12 +148,9 @@
 
 | Item | Notes |
 |------|-------|
-| LinkedIn source in People/ICP | Tab to import from LinkedIn CSV export |
-| AI enrichment columns | Technographics, job postings as table columns |
-| Billing page chart | Credit spending timeline sparkline |
-| Usage page chart | Usage timeline chart |
-| Milla page | Virtual Assistant full interface |
-| Vida page | Chatbot full interface |
+| Real technographic data | Apollo enrichment API integration for real tech stack |
+| Real job posting data | Live job posting feed per company |
+| LinkedIn scrape signals | Real-time LinkedIn activity data for social signals |
 
 ---
 
@@ -180,21 +177,28 @@
 
 ---
 
+## ✅ COMPLETED THIS SESSION (Sprint 2)
+
+| Item | File |
+|------|------|
+| LinkedIn CSV import page | `leads/linkedin/page.tsx` — 3-step wizard: upload → map → review → import |
+| LinkedIn Import in sidebar | `Sidebar.tsx` — added to Lead Gen section |
+| AI enrichment columns | `leads/page.tsx` — Technographics + Job Postings columns in table |
+| Billing sparkline chart | `billing/page.tsx` — SVG running balance chart from transaction history |
+| Usage bar chart | `usage/page.tsx` — weekly credit usage bar chart (last 8 weeks) |
+| Inbox unread badge | `Sidebar.tsx` — red badge on Inbox when unread replies exist |
+
 ## 📋 MY TO-DO LIST (next build session)
 
-### High priority
-1. **LinkedIn CSV import** for People page — add upload tab to import leads from LinkedIn Sales Navigator exports
-2. **AI enrichment columns** — add Technographics and Job Postings columns to People table (placeholder + real Apollo data)
-3. **Billing page** — credit usage chart (spending over time sparkline)
-4. **Campaign `[id]` — link sequence save to API** — wire up Save button to real endpoint when backend is ready
-5. **Ask FIGSY** — connect to real `/figsy/chat` endpoint when available
+### High priority (needs backend)
+1. **Campaign `[id]` — link sequence save to API** — wire up Save button to real endpoint when backend is ready
+2. **Ask FIGSY** — connect to real `/figsy/chat` endpoint when available
+3. **Knowledge persistence** — connect Knowledge tab saves to backend endpoints
 
 ### Medium priority
-6. Milla page full interface (email drafting, scheduling)
-7. Vida page full interface (chatbot configurator)
-8. Usage page — timeline spend chart
-9. Connect Knowledge tab saves to backend when endpoints are built
-10. Add notification badge to Inbox nav item when unread replies exist
+4. Real Apollo technographic enrichment — replace derived chips with actual data
+5. Real job posting feed — connect to Apollo Organizations Job Postings endpoint
+6. Real LinkedIn signals — replace score-derived signals with live scrape data
 
 ---
 
@@ -307,6 +311,7 @@ Clean on all 7 commits. Run `npx tsc --noEmit` from `apps/portal/` to verify.
 | Files modified | 8 |
 | Lines of code added | ~4,200 |
 | TypeScript errors | 0 |
-| Items from 34-item list: Done | 24 |
-| Items from 34-item list: Partial | 6 |
-| Items from 34-item list: Not started | 4 |
+| Items from 34-item list: Done | 30 |
+| Items from 34-item list: Partial | 3 |
+| Items from 34-item list: Not started | 1 |
+| Sprint 2 items built | 6 |

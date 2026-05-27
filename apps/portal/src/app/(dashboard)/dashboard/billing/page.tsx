@@ -8,6 +8,50 @@ import {
   Shield, CreditCard, Bot, MessageSquare, CheckCircle,
 } from 'lucide-react'
 
+// ── Sparkline chart (pure SVG, no library) ───────────────────────────────────
+function SparklineChart({
+  data,
+  color = '#0066FF',
+  height = 56,
+}: {
+  data: { label: string; value: number }[]
+  color?: string
+  height?: number
+}) {
+  if (data.length < 2) return null
+  const W = 400
+  const H = height
+  const pad = 4
+  const values = data.map(d => d.value)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+
+  const pts = data.map((d, i) => ({
+    x: pad + (i / (data.length - 1)) * (W - pad * 2),
+    y: H - pad - ((d.value - min) / range) * (H - pad * 2),
+  }))
+
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L${(W - pad).toFixed(1)},${H} L${pad},${H} Z`
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height }} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`sg-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#sg-${color.replace('#', '')})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} />
+      ))}
+    </svg>
+  )
+}
+
 interface CreditTransaction {
   id: string
   type: string
@@ -458,6 +502,45 @@ export default function BillingPage() {
           </div>
         )}
       </div>
+
+      {/* ── SPENDING SPARKLINE ──────────────────────────────────────────────── */}
+      {transactions.length >= 2 && (() => {
+        // Build running balance from transactions (most recent last for chart)
+        const sorted = [...transactions].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        let running = (balance ?? 0)
+        // Reconstruct by working backwards from current balance
+        const points: { label: string; value: number }[] = []
+        const rev = [...sorted].reverse()
+        let bal = balance ?? 0
+        for (const tx of rev) {
+          bal -= tx.amount
+          points.unshift({ label: new Date(tx.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), value: Math.max(0, bal) })
+        }
+        points.push({ label: 'Now', value: balance ?? 0 })
+        if (points.length < 2) return null
+        const totalSpent = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0)
+        const totalTopUps = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0)
+        running = running // silence unused var warning
+        return (
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Credit balance over time</h2>
+            <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-5 text-sm">
+                  <span className="text-gray-500">Top-ups: <span className="font-semibold text-green-600">+{totalTopUps}</span></span>
+                  <span className="text-gray-500">Used: <span className="font-semibold text-red-500">−{totalSpent}</span></span>
+                  <span className="text-gray-500">Balance: <span className="font-semibold text-gray-900">{balance ?? 0}</span></span>
+                </div>
+              </div>
+              <SparklineChart data={points} color="#0066FF" height={64} />
+              <div className="flex items-center justify-between mt-2 text-[10px] text-gray-400">
+                <span>{points[0]?.label}</span>
+                <span>Now</span>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── TRANSACTION HISTORY ─────────────────────────────────────────────── */}
       {transactions.length > 0 && (

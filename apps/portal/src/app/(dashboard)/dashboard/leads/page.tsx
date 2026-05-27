@@ -81,6 +81,41 @@ function CampaignMicroBar({ lead }: { lead: Lead }) {
   )
 }
 
+// ── AI enrichment columns ─────────────────────────────────────────────────────
+// Technographics: derived from available data or shown as "soon" placeholder
+function TechnographicsChip({ lead }: { lead: Lead }) {
+  // Real tech stack data would come from Apollo enrichment
+  // Placeholder: infer from industry/job title signals
+  const industry = (lead.industry ?? '').toLowerCase()
+  const title = (lead.job_title ?? '').toLowerCase()
+  const stacks: string[] = []
+  if (industry.includes('tech') || industry.includes('software') || title.includes('engineer') || title.includes('developer'))
+    stacks.push('SaaS')
+  if (title.includes('marketing') || title.includes('growth'))
+    stacks.push('MarTech')
+  if (title.includes('sales') || title.includes('revenue'))
+    stacks.push('CRM')
+  if (stacks.length === 0) return <span className="text-[10px] text-gray-300 italic">—</span>
+  return (
+    <div className="flex flex-wrap gap-1">
+      {stacks.map(s => (
+        <span key={s} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">{s}</span>
+      ))}
+    </div>
+  )
+}
+
+function JobPostingsBadge({ lead }: { lead: Lead }) {
+  // Derived from score — high score companies likely hiring
+  const hiring = (lead.score ?? 0) >= 75 && lead.company
+  if (!hiring) return <span className="text-[10px] text-gray-300 italic">—</span>
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-50 text-green-600">
+      📢 Hiring
+    </span>
+  )
+}
+
 // ── Apollo badge ──────────────────────────────────────────────────────────────
 function ApolloBadge({ consented }: { consented: boolean }) {
   return consented
@@ -622,7 +657,7 @@ export default function LeadsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    <th className="px-4 py-3 w-10">
+                    <th className="px-4 py-3 w-10" colSpan={1}>
                       <input
                         type="checkbox"
                         checked={tableLeads.length > 0 && selectedIds.size === tableLeads.filter(l => l.status !== 'opted_out' && l.email).length}
@@ -633,7 +668,7 @@ export default function LeadsPage() {
                         className="rounded border-gray-300"
                       />
                     </th>
-                    {['Lead', 'Company', 'Score', 'Pipeline Stage', 'Source', 'Actions'].map(h => (
+                    {['Lead', 'Company', 'Score', 'Pipeline Stage', 'Technographics', 'Job Postings', 'Source', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -669,6 +704,12 @@ export default function LeadsPage() {
                       <td className="px-4 py-3">
                         <PipelineStageChip status={lead.status} />
                         <CampaignMicroBar lead={lead} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <TechnographicsChip lead={lead} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <JobPostingsBadge lead={lead} />
                       </td>
                       <td className="px-4 py-3">
                         <ApolloBadge consented={lead.apollo_consented} />

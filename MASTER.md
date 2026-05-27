@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 28 May 2026 — Admin redesign + FIGSY gating + Admin Portal Playbook**
+**Single source of truth. Last updated: 27 May 2026 — W1–W6 shipped + Alta deep-dive analysis (28-screenshot live demo)**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 ---
@@ -409,16 +409,30 @@
 | P6 | NotificationBell theme | Still uses white/gray (mismatches dark sidebar) | 🟡 Medium |
 
 **🔴 ALTA COMPETITIVE — Build these before next demo:**
-*Source: Jacques' live Alta demo analysis, 28 May 2026. Close the gap where it matters.*
-| # | Build | What | Time | Gap closes |
-|---|-------|------|------|-----------|
-| W1 | **Live ICP count "wow moment"** | ICP builder: type title/geo/industry → live counter "We found X matching companies" from Apollo preview API → "Generate [X] leads →" CTA. This is the single scene that sells the demo. | 4h | Alta's "971 contacts in 30 seconds" moment |
-| W2 | **Signal tokens in FIGSY sequences** | Surface Apollo trigger data (recent hire, job change, company growth, funding) as `{{signal_*}}` tokens in email copy. AI auto-selects best available signal per lead and inserts it. Apollo already returns this — just needs surfacing. | 1 day | Alta's Luna signal scoring — "most impressive demo moment" |
-| W3 | **Intent filters in ICP builder** | New filter group "Signals" in ICP form: recently funded / hiring SDRs / headcount growth >20% / new CTO or VP Sales hire. Apollo already supports these filters. | 4h | Alta's signal-based personalization visible at ICP stage |
-| W4 | **CRM on all plans** | Move HubSpot read/write off Dominate gate → available on Growth+. Basic one-way write (signup → contact) on Start. Update pricing page, billing gate logic, and MASTER pricing table. | 30 min | Alta: HubSpot native, not gated. Kills us on the comparison table. |
-| W5 | **LinkedIn URL on every lead** | Apollo already returns `linkedin_url`. Show as a column in leads table + one-click copy. Client does LinkedIn step manually with FIGSY-generated message. Bridges the LinkedIn gap without automation policy risk. | 2h | Alta's LinkedIn channel — without the ban risk |
-| W6 | **Social proof on homepage** | Wire slot for 1 real client logo + quote on homepage hero. Just the HTML/component — Jacques fills the content when first client agrees. | 20 min | Alta: Snowflake/Monday logos. Trust signal we can't fake but can prep for. |
-| W7 | **Demo wow-moment narration** | Update Section 35 (Demo Playbook) + Section 36 (Admin Playbook) with W1 as Scene 1. "Watch this number. Type your ICP. This is live." Script the narration beat-for-beat. | 30 min | After W1 ships — makes the wow land |
+*Source: Jacques' live Alta demo (Rachelle Shapiro, 27 May 2026). 28 screenshots + Fathom transcript. Section 20 has full feature map.*
+
+**Round 1 — SHIPPED 27 May 2026:**
+| # | Build | What | Status |
+|---|-------|------|--------|
+| W1 | **Live ICP count "wow moment"** | Debounced Apollo preview — "X matching leads found" banner, 800ms after input. Live Apollo data. | ✅ Done — shows count. Upgrade to names → W13 |
+| W2 | **Signal tokens in FIGSY sequences** | `{{signal_*}}` tokens in email copy — recent hire, funding, job change. AI picks best signal per lead. | ⏳ Pending — 1 day |
+| W3 | **Intent filters in ICP builder** | 4 signal buttons: recently funded / hiring SDRs / headcount growth / new executive. Apollo funding + keyword fields. | ✅ Done |
+| W4 | **CRM on all plans** | Confirm HubSpot ungated in settings. Code audit confirmed: no plan gate exists. | ✅ Already ungated |
+| W5 | **LinkedIn `in` badge on every lead** | `in` badge in LinkedIn blue on all leads in table. Apollo already returns `linkedin_url`. | ✅ Done |
+| W6 | **Social proof slot on login page** | 3 logo slots + testimonial placeholder below login form. Drop real logo when T36 is done. | ✅ Done |
+| W7 | **Demo wow-moment narration update** | Update Section 35 demo script with W1 as Scene 1. "Watch this number. Type your ICP. This is live." | ⏳ After W1 ships to prod |
+
+**Round 2 — NEXT (Low effort / High impact from 28-screenshot analysis):**
+| # | Build | What | Effort | Alta parallel |
+|---|-------|------|--------|--------------|
+| W8 | **Proactive home screen** | Replace passive dashboard landing with "Who should FIGSY target today?" prompt + 7-day flow metrics on load. Alta's home screen is the first thing Rachelle showed. | Low | Alta: "Who should we target today?" with CRM chips |
+| W9 | **Campaign templates library** | 5 named templates: Cold Outbound Email, Post-Event Follow-up, CSV Revival, Inbound Qualify, Unresponsive Nurture. Reduces time-to-first-campaign dramatically. | Low | Alta: 9 templates — first thing after audience source |
+| W10 | **Editable FIGSY prompt per campaign** | Expose Claude system prompt as editable text field in campaign settings. Power users tune voice + constraints per campaign. | Low | Alta: per-step editable prompt, version history, tone selector |
+| W11 | **Daily send quota slider** | "New prospects to contact per day" (0–200 slider). Alta shows this at 5 in demo. Reduces risk for cautious users. | Low | Alta: slider on campaign launch, set to 5 in demo |
+| W12 | **Quality gate toggle** | "Hold messages below quality threshold for review" toggle. Builds trust in autopilot mode. | Low | Alta: "Hold low-quality messages for review" toggle |
+| W13 | **W1 upgrade: show 3 real contact names** | Currently shows COUNT. Alta shows actual names (name, title, company, LinkedIn icon) populating in real time. Upgrade preview to show 3 sample contacts from Apollo. | Low-Med | Alta's single most impactful demo moment |
+| W14 | **Email style training from sent emails** | Gmail/Outlook sent folder sync — last 50–100 emails → teach FIGSY each rep's writing style. Alta does this. MCP/Gmail API route. | Medium | Alta: Messaging tab stores actual sent emails to train Katie |
+| W15 | **Unresponsive revival as named campaign type** | "Revival" as first-class campaign type — surfaces 53% engagement rate in demo (Alta's best-performing template). | Low | Alta: 1,045 prospects, 53% engagement, 44 replies |
 
 **NEXT UP (smoke tests + steals):**
 | # | Build | What | Time |
@@ -1672,7 +1686,7 @@ Send them here. I fix in real time.
 ---
 
 ## 20. ALTA AI SDR — COMPETITIVE AUDIT
-*Full analysis completed 27 May 2026. Sources: 93-page deck · 26-min Fathom transcript · altahq.com website · 28+ portal screenshots.*
+*Deep analysis completed 27 May 2026. Sources: 93-page deck · 26-min Fathom transcript (Rachelle Shapiro / Jacques Vieira) · altahq.com · **28 live product screenshots · KIND_vs_Alta_Full_Analysis.docx***
 *Use this as the performance and product benchmark for every FIGSY build decision.*
 
 ---
@@ -1681,19 +1695,19 @@ Send them here. I fix in real time.
 
 Alta is not an "SDR tool" — they've deliberately repositioned as an **"AI GTM System of Actions"** and **"AI Revenue Workforce"**. The framing: not a feature, not an automation, but an AI team that replaces or augments your entire revenue function.
 
-**Four named agents with 3D avatars, job titles, and personas:**
+**Four named agents (+ custom persona visible):**
 | Agent | Role | What they do |
 |-------|------|-------------|
 | **Katie** | Outbound SDR | Email + LinkedIn + SMS sequences, prospecting, personalisation |
 | **Alex** | Inbound Calling Agent | Qualifies inbound leads, books meetings, follows up via voice |
-| **Luna** | RevOps Intelligence | Insights, anomaly detection, forecasting, CRM sync |
-| **Taylor** | Solutions Engineer | Onboarding, technical enablement |
+| **Luna** | RevOps Intelligence | Insights, anomaly detection, forecasting, CRM sync, "Suggest Campaigns" |
+| **Taylor Solutions** | Custom persona | White-label / client-specific agent naming visible in demo |
 
 **Their moat claim**: Built by the team that built **monday.com's internal "BigBrain" revenue platform**. Not an OpenAI wrapper. Proprietary data models.
 
 **Tagline**: *"The #1 Data-Driven AI Revenue Workforce"*
 
-**The problem they open with** (deck, slide 1): *"Sales teams spend only 35.6% of their time actually selling. The other 64.4% is admin, research, CRM, follow-up — everything else."*
+**Entry price**: ~$1,250+/month. Quarterly contract. Zero free trial. Sales-assisted only — no self-serve sign-up.
 
 ---
 
@@ -1701,128 +1715,249 @@ Alta is not an "SDR tool" — they've deliberately repositioned as an **"AI GTM 
 
 **The most important technique: 6 minutes of discovery BEFORE touching the product.**
 
-She asked:
-- What brought you here / what are you struggling with
-- What AI tools do you currently use
-- Does your manager know you're exploring this
-- How many people on your team
-- CRM? (→ Salesforce)
-- Timeline?
-- Which region?
+She asked: What brought you here / what AI tools do you use / does your manager know / how many on your team / CRM / timeline / region?
 
 By the time she opened her screen she knew: **0.8x pipeline coverage vs 3-4x goal** (Smartsheet EMEA), Salesforce, telecom vertical is hot, manager is Tyron, global implementation constraint, 4-day week. She built the entire demo around that context. **Not a generic walkthrough — a mirror of the prospect's exact problem.**
+
+**This is Jacques. He is K.I.N.D's exact target user.** Working AE. Uses Claude and ZoomInfo/Sales Nav but finds them too manual. Needs automated lead generation. He could start K.I.N.D today for $20 — no call, no demo, no approval from Tyron.
 
 **Demo sequence:**
 | Step | What she showed | Why it worked |
 |------|-----------------|---------------|
 | Problem reframe | "You have 0.8x pipeline — Alta clients typically get to 3–4x" | Made the problem quantified and urgent |
-| Katie dashboard | Campaign overview, metrics front-and-centre, no clutter | Instant clarity — no training needed |
-| Sequence builder | Branching paths based on LinkedIn acceptance + email reply | "It reacts to them, not just fires blindly" |
-| Knowledge / Compass | Uploaded their ICP, positioning, personas — Katie learns from it | "She knows your pitch before you send" |
-| Co-pilot mode | Every message queued for approval before send | Removes "I don't trust AI to send without me" objection |
-| Performance page | 18–24% reply rate benchmark shown | Credible, specific, comparable |
-| Alex (calling) | Live call simulation, qualifies and books | Extended the vision beyond email |
+| Home screen | "Who should we target today?" + 7-day flow metrics | Proactive, action-first — not a passive dashboard |
+| Compass / Agent Training | Website URL → auto-generated pitch, keywords, signals, messaging | "She knows your pitch before you send" |
+| ICP builder with live names | Filters set → real contact names populate in right panel | Single most impactful demo moment |
+| Visual sequence builder | Node tree, LinkedIn steps, branch on reply/accept | "It reacts to them, not just fires blindly" |
+| AI enrichment column | Custom research step per prospect — "What CRM do they use?" | Emails reference fetched data, not guesses |
+| Co-pilot mode | Every message queued for approval before send | Removes "I don't trust AI" objection |
+| Unified inbox | All channels, AI-classified labels, full thread history | "You see everything in one place" |
+| Performance dashboard | 9-metric time-series chart, rep-level breakdown | 18–24% reply rate benchmark — credible and specific |
 
 ---
 
-### Alta's Performance Numbers (from deck + transcript)
-| Metric | Alta benchmark |
-|--------|---------------|
-| Reply rate | **18–24%** |
-| Meeting-booked rate | **3–5%** |
-| Pipeline coverage improvement | 0.8x → 3–4x (Smartsheet case) |
-| Time to first outreach | Same day after ICP upload |
-| Personalisation depth | LinkedIn post reference, recent news, job change signals |
+### Alta's Full Product — 13 Subsystems (from 28 screenshots)
+
+#### 3.1 Proactive Home Screen
+"Who should we target today?" natural language input on load. CRM-derived quick-start chips: *Closed lost deals / Revive Last Year Contacts / ICP Highest Revenue / Upcoming Renewals*. Rolling 7-day metrics: Prospects 3,165 · Contacted 2,126 · Engagement 39% · Reply 4% · Bounce 8%. "Approve (50)" co-pilot button — users pulled into action immediately. **K.I.N.D's dashboard is passive. This is not.**
+
+#### 3.2 Agent Training (Compass)
+Enter website URL → Alta scrapes and auto-generates: **8 configuration tabs** — Pitch, Keywords, Signals, DNC list, Context, Messaging examples, Connector settings, Prompts. Left-panel chatbot guides setup. Messaging tab pulls actual sent emails from team inboxes to train Katie's writing style per rep. **This is what makes it feel like a team member, not a tool.**
+
+#### 3.3 Five Audience Source Types
+| Source | What it does |
+|--------|-------------|
+| **Search** | 250M+ contacts via Apollo/ZoomInfo/LinkedIn/PeopleDataLabs waterfall |
+| **Existing audience** | Reuse saved lists from previous campaigns |
+| **ABM** | Account-based targeting of specific named companies |
+| **CSV** | Upload your own list — Katie qualifies automatically |
+| **Social Signals** | Prospects who liked/commented/shared LinkedIn posts matching your keywords |
+| **Webhook** | External triggers (form fills, CRM updates, Zapier) start campaigns automatically |
+
+#### 3.4 ICP Builder with Live Name Preview ⭐ (most impactful demo moment)
+Filters: company size, industry, revenue range, job title (include/exclude), location. As filters are applied, **real named contacts populate in the right panel** — name, job title, company, LinkedIn icon, data source badge. "10 out of 971" visible with Apollo/ZoomInfo/LinkedIn source icons. This makes the product feel alive before a single campaign is launched. **K.I.N.D W1 shows count. This shows names. W13 closes the gap.**
+
+#### 3.5 Social Signals Discovery
+Dedicated audience mode — scrapes LinkedIn for prospects engaging with relevant posts. 4 modes: Search posts by keyword / Specific companies / Specific creators / Specific posts. Filter by engagement: Post / Comments / Shares / Reactions. Time window: All time / Last 30/90/180 days. Alta's own tracked keywords: *AI Sales Agent, Revenue Operations, Data-Driven Growth, Intelligent Automation, Outbound Pipeline, AI Calling Agent.*
+
+#### 3.6 Campaign Templates (9 pre-built)
+Magic Node (AI-powered Beta) · Inbound Form Submitted (Omni-channel) · LinkedIn Only · Pre-Event · Email Only Outbound · LinkedIn Only Outbound · Omni-channel Outbound · Event-Driven · Social Signals LinkedIn · LinkedIn Pre-Event (2 variants) · Start from scratch. **K.I.N.D has zero templates. W9 closes this.**
+
+#### 3.7 Visual Sequence Builder (Node Tree)
+Not a list — a **branching node tree** with lines between steps. Toggle Tree/List view. Actions at each node:
+- Email
+- LinkedIn: Connection Request (with/without message, Personalized, Templated) | Message (Personalized, Templated, **Voice Message**) | Like a Post | View Profile (Beta)
+- Call (AI voice via Alex) · SMS (Beta) · WhatsApp · Manual Task · API Connect (webhook mid-sequence)
+- Conditions: Is Connected | custom Condition
+
+Each step has: editable system prompt · word count control · version history · tone selector · Refine button. **The sequence automates social warming** — "Like a Post" fires before "Send a Message" to get on the prospect's radar first.
+
+**Live example (Seth Houston):** Wed May 20 connection request → Thu May 21 accepted → Thu May 21 AI message → Fri May 22 follow-up with calendar → Fri May 22 Seth replies "I scheduled for next Wednesday at 10am" → Sun May 24 AI confirms. **Full cycle: 4 days. Zero human involvement.**
+
+#### 3.8 AI Enrichment Columns
+Custom research step insertable anywhere in the sequence. Define a prompt: *"What CRM does this company use?" / "Are they hiring in sales?" / "What did they post about last month?"* Alta runs it per prospect, stores the result as a named field, syncs to the prospect table, injects as a variable in subsequent message steps. Output format: Text / Number / Boolean / List. **This is what separates research from writing — emails reference actually fetched data, not inferred context.**
+
+#### 3.9 Campaign Launch Settings
+Auto-Pilot vs Co-Pilot mode toggle · "Hold low-quality messages for review" toggle · "Auto-refine low quality messages" toggle · Enrich Prospects toggle · **New Prospects to Contact Daily slider (0–200, set to 5 in demo)** · Select Reps (multi-user campaign assignment).
+
+#### 3.10 Unified Inbox
+All channels: Email | LinkedIn | Calls | WhatsApp tabs. 2,312 unread in Rachelle's account. Left panel: All / Unread (1,773) / Replied / Archived. **AI-classified labels**: Meeting Booked · Positive · Nurturing · Bad Timing · Reply Needed · Irrelevant · Out Of Office · Need Follow-up · Automatic Reply. Right panel: full conversation thread per prospect with entire sequence history. Reply tools: "Use next message" (AI drafts) / "Help me reply" (human override with AI assist) / Attach File. **K.I.N.D Unibox is read-only. This has two-way reply.**
+
+#### 3.11 People Database (CRM-lite)
+Persistent prospect database — 60,845 contacts tracked in Rachelle's account alone. Tabs: All / Main / Waiting for Review / Completed / Rejected / My Prospects. Columns: Name, Company, Campaign, Signals, Pipeline Status, Date. Exportable. **This grows with every campaign — it becomes your CRM.**
+
+#### 3.12 Campaigns List View
+Named saved views: Main View / Active / London-2025 / GTM / Social signals / Rachelle / Test. Each row: name, visual engagement/reply progress bar, status badge (Active/Paused/Draft), data source icon, reps, tags. Tooltip on hover: "Qualified 1,344". **"Suggest Campaigns" button powered by Luna** recommends what to run next.
+
+#### 3.13 Performance Dashboard
+9-metric time-series chart over 3+ months: New Contacted Prospects · Emails Sent · Opened · Clicked · Replied · Bounced · LinkedIn Connection Requests · Accepted · Messages · LinkedIn Replied. Prospect Status bar chart: New 5,069 · Pending Outreach 7,795 · Pending Reply 11,267 · Interested 405 · Not Interested 456 · Meeting Booked 158 · Unsubscribed 167 · No Response 4,833 · Bounced/Invalid 1,061. Campaign Performance section. Rep-level breakdown.
 
 ---
 
-### Alta's Portal — Visual Design (from 28 screenshots)
+### Alta's Real Performance Data (Rachelle's Live Account — Not a Deck)
+*This is Rachelle's real account used to sell Alta to prospects. The product eating its own cooking.*
+
+| Metric | Value |
+|--------|-------|
+| Total prospects in database | **60,845** |
+| Meetings booked (all time) | **158** |
+| UK LinkedIn campaign — prospects | 6,538 (1,344 processed) |
+| UK LinkedIn campaign — reply rate | **6%** (87 replies, 12 booked meetings) |
+| Netherlands campaign | 29 replies, 7 booked meetings |
+| Event campaign (Tel Aviv, London) | 3,387 contacts, 50 replies, **30 event attendees** |
+| Unresponsive revival campaign | 1,045 prospects, **53% engagement**, 44 replies |
+| Seth Houston LinkedIn sequence | Connection → booked meeting: **4 days, fully automated** |
+
+**What this tells us**: Alta's own reply rate in a live account is 6% — their claimed benchmark of 18-24% is aspirational or blended across best-case campaigns. Our Unibox data can be used to benchmark similarly.
+
+---
+
+### Alta's Portal — Visual Design
 | Element | Alta's choice |
 |---------|--------------|
-| Base background | **Pure white `#FFFFFF`** |
+| Base background | Pure white `#FFFFFF` |
 | Sidebar background | White / very light grey — no dark background |
-| Accent / primary buttons | Medium purple `~#6B5CE7` |
-| Section banners / preview panels | Soft lavender `~#EAE7F8` |
-| Agent avatar background | Light lavender square |
-| Text colour | Dark grey / near-black |
-| Tags | Colour-coded (green, orange, red, grey) on white |
-| Agent visuals | **3D illustrated avatars** — professionally designed, distinctive |
-| Sidebar items | **4 only** — Inbox, Calls, Assistants, Workflows |
-| Stats presentation | Front and centre, no clutter, large numbers |
+| Accent / primary | Medium purple `~#6B5CE7` |
+| Section banners | Soft lavender `~#EAE7F8` |
+| Agent visuals | 3D illustrated avatars — professionally designed |
+| Sidebar items | 4 only — Inbox, Calls, Assistants, Workflows |
 | Emotional tone | Airy, clean, friendly — not a "hacker tool" |
 
-**The emotional effect**: Purple signals intelligence/AI without feeling cold. White base makes it approachable. 3D avatars create personality. Clean = trusted. Trust = revenue.
+---
+
+### Full Feature Comparison Table
+| Feature | K.I.N.D | Alta |
+|---------|---------|------|
+| Email outreach | ✅ | ✅ |
+| LinkedIn outreach | ❌ | ✅ |
+| AI voice calls | ❌ | ✅ |
+| SMS outreach | ❌ | Beta |
+| WhatsApp outreach | ✅ (Vida — standalone) | Sequences only |
+| Social signals audience source | ❌ | ✅ |
+| ABM mode (named account targeting) | ❌ | ✅ |
+| CSV audience upload | ✅ | ✅ |
+| Webhook-triggered campaigns | ❌ | ✅ |
+| **Live contact preview in ICP builder** | ⚡ Count only (W1) | ✅ Names + company + LinkedIn icon |
+| Visual sequence builder (node tree) | ❌ | ✅ |
+| Conditional sequence branching | ❌ | ✅ |
+| AI enrichment columns (research step) | ❌ | ✅ |
+| Campaign templates library | ❌ | ✅ (9 templates) |
+| Email style training from sent emails | ❌ | ✅ |
+| Editable per-step AI prompts | ❌ | ✅ |
+| Daily send throttle / quota control | ❌ | ✅ |
+| Quality gate (hold low-quality) | ❌ | ✅ |
+| Auto-refine low quality messages | ❌ | ✅ |
+| **Proactive home screen** | ❌ (passive) | ✅ "Who to target today?" |
+| Suggest campaigns (AI recommendation) | ❌ | ✅ (Luna) |
+| Unified multi-channel inbox | ⚡ Read-only | ✅ Two-way reply |
+| AI reply classification (labels) | ✅ (Unibox) | ✅ |
+| AI-assisted reply drafting in inbox | ❌ | ✅ |
+| Persistent prospect database (CRM-lite) | ❌ | ✅ (60,845 in Rachelle's account) |
+| Analytics: time-series multi-metric | Basic | ✅ (9 metrics) |
+| Rep-level performance breakdown | ❌ | ✅ |
+| CRM integration (HubSpot / Pipedrive) | ✅ All plans | ✅ All plans |
+| Agent persona customisation | ❌ | ✅ |
+| SOC2 / ISO certified | ❌ | ✅ |
+| **Pay-per-result pricing** | ✅ | ❌ |
+| **Free trial (no card required)** | ✅ | ❌ (no trial at all) |
+| **Entry price** | **$20 today** | **~$1,250/mo, quarterly contract** |
+| **Individual AE self-serve** | ✅ | ❌ (sales call required) |
+| **Africa-first (POPIA native)** | ✅ | ❌ |
+| **WhatsApp as standalone chatbot** | ✅ (Vida) | In sequences only |
 
 ---
 
-### What Alta Has That K.I.N.D Doesn't (Gap Analysis)
+### Where K.I.N.D Wins — Our Structural Moats
 
-#### 🔴 Critical Product Gaps
-| # | Alta feature | Impact | K.I.N.D status |
-|---|-------------|--------|----------------|
-| 1 | **Behaviour-based sequence branching** — if LinkedIn connected → different path; if no reply → follow up; if replied → stop or branch | Higher conversion — smarter outreach | UI built 27 May, API wiring pending |
-| 2 | **Meetings booked as headline metric** — headline KPI, not buried | This is what clients care about, not "reply rate" | KPI card built 27 May, real tracking pending |
-| 3 | **Co-pilot mode** — every AI draft queued for human approval before send | Removes trust objection — "I'm in control" | Not built |
-| 4 | **"Ask Alta" always-accessible floating CTA** | AI help always one click away regardless of screen | AskFigsyButton built, not always shown to gated users |
-| 5 | **Knowledge / Compass system** — upload ICP, positioning, personas, and Katie learns from them | Agent becomes progressively smarter | Knowledge base exists, not connected to sequences |
-| 6 | **Social signal detection** — hiring, funding, LinkedIn activity → trigger outreach | Intent-based targeting, not just static ICP match | Not built |
-| 7 | **Performance benchmarking built-in** — "your reply rate vs industry average" shown inline | Gives clients context, makes gaps visible | Added to KPIs page 27 May |
+#### 1. Pricing is a structural moat, not a discount
+Alta starts at ~$1,250/month on a quarterly contract with no free trial. An AE like Jacques cannot self-serve — he needs Tyron's approval, then his VP's, then procurement, then a global rollout decision. **K.I.N.D costs $20 to start today.** The Jacques-type user can prove results next Thursday in Tyron's office with real pipeline, not a demo recording. This is not temporary. Alta cannot undercut this without destroying their unit economics.
 
-#### 🟡 UX/Trust Gaps
-| # | Alta feature | K.I.N.D status |
-|---|-------------|----------------|
-| 8 | **4 sidebar items** — Inbox, Calls, Assistants, Workflows | K.I.N.D has 11+ items — addressed in sidebar rebuild |
-| 9 | **3D agent avatars** in sidebar with name + job title visible at login | Real PNG photos now in sidebar (27 May) — 3D pending assets |
-| 10 | **Click-through interactive demo** (Storylane/Navattic) | Not built — separate product tour |
-| 11 | **Discovery-first sales motion** — 6 min discovery before product | This is a GTM technique, not a build item |
+#### 2. Africa and POPIA as an uncontested market
+Alta is built for global B2B teams. K.I.N.D is built from day one around South African data law. Data stored in Cape Town. POPIA compliance is architectural, not a checkbox. No competitor at this price point serves this market. Alta's demo even showed MTN and Hicell Telecommunication in their database — SA companies in an Alta account — yet K.I.N.D has POPIA credibility and trust Alta cannot replicate at equivalent price.
 
-#### ✅ What K.I.N.D Has That Alta Doesn't
-| # | K.I.N.D advantage |
-|---|------------------|
-| 1 | **Self-serve** — no sales call required. Alta won't quote without a demo. |
-| 2 | **Transparent pricing** — Alta refuses to show prices publicly |
-| 3 | **POPIA compliance** — Africa-native, built-in consent flow. Alta has none. |
-| 4 | **Affordable for SMBs** — Alta is enterprise contract only ($thousands/mo) |
-| 5 | **Milla (document Q&A)** — Alta has no VA equivalent |
-| 6 | **Vida (chatbot)** — Alta has no chatbot equivalent |
-| 7 | **No implementation project** — K.I.N.D works day one. Alta has an "implementation team." |
-| 8 | **Africa-first** — ZAR billing, WhatsApp, local market knowledge |
-| 9 | **Real human agent photos** — more trustworthy than 3D avatars for SMB market |
+#### 3. Speed to first lead
+K.I.N.D: define ICP → add $20 in credits → FIGSY starts. **10 minutes.** Alta: train Katie, configure 8 pitch tabs, set up connectors, onboard with customer success manager, schedule setup calls. **Days to weeks.** 
+
+#### 4. WhatsApp as a standalone product
+Alta has WhatsApp inside sequences only. K.I.N.D has Vida — a full WhatsApp chatbot product that operates independently. In Africa, WhatsApp has 90%+ penetration. This is not a feature, it's a separate distribution channel Alta doesn't have.
 
 ---
 
-### What We've Done From This Audit (27 May 2026)
+### What We've Done From This Audit
 | # | Item | Status |
 |---|------|--------|
-| 1 | Sequence branching UI — `on_reply: stop/skip_next/continue` between steps | ✅ Built — API wiring pending |
+| 1 | Sequence branching UI — `on_reply: stop/skip_next/continue` | ✅ Built — API wiring pending |
 | 2 | Meetings Booked headline KPI — violet card, "Alta: 3–5%" benchmark | ✅ Built |
 | 3 | Dashboard Mission Control — single screen, all metrics | ✅ Built |
-| 4 | Real agent photos in sidebar + widget (not 3D, not SVG, not emoji) | ✅ Built |
-| 5 | Soft warm palette — matches Alta's airy feel + K.I.N.D brand | ✅ Applied |
-| 6 | AskFigsyButton — always-accessible, dark branded, real photo | ✅ Built |
+| 4 | Real agent photos in sidebar + widget | ✅ Built |
+| 5 | Soft warm palette | ✅ Applied |
+| 6 | AskFigsyButton — always-accessible, dark branded | ✅ Built |
 | 7 | Performance benchmark on KPIs page | ✅ Built |
+| 8 | W1: Live ICP lead count ("X matching leads") | ✅ Built — upgrade to names = W13 |
+| 9 | W3: Intent signals in ICP builder (4 signal types) | ✅ Built |
+| 10 | W5: LinkedIn `in` badge on every lead row | ✅ Built |
+| 11 | W6: Social proof slot on login page | ✅ Built |
 
 ### Still To Build From This Audit
-| # | Item | Priority |
-|---|------|----------|
-| 8 | Co-pilot mode — approval queue before FIGSY sends | 🔴 High |
-| 9 | Knowledge base tabs wired to API — so Kate learns from K.I.N.D config | 🔴 High |
-| 10 | Sequence branching API wiring | 🔴 High |
-| 11 | Real meetings booked tracking (Hot replies → booking rate) | 🟡 Medium |
-| 12 | Intent signal detection (hiring, funding, job change → trigger) | 🟡 Medium — at 10+ clients |
-| 13 | 3D agent avatar assets (FIGSY, Milla, Vida) | 🟢 When assets ready |
-| 14 | Interactive click-through product demo | 🟢 After smoke tests |
+| # | Item | Effort | Priority |
+|---|------|--------|----------|
+| W8 | Proactive home screen ("Who to target today?") | Low | 🔴 High — demo impact |
+| W9 | Campaign templates (5 named) | Low | 🔴 High — demo impact |
+| W10 | Editable FIGSY prompt per campaign | Low | 🟡 Medium |
+| W11 | Daily send quota slider (0–200) | Low | 🟡 Medium |
+| W12 | Quality gate toggle | Low | 🟡 Medium |
+| W13 | W1 upgrade: show 3 real contact names in ICP preview | Low-Med | 🔴 High — closes biggest demo gap |
+| W14 | Email style training from sent emails (Gmail sync) | Medium | 🟡 Medium |
+| W15 | Unresponsive revival campaign type (named, 53% benchmark) | Low | 🟡 Medium |
+| W2 | Signal tokens in FIGSY sequences (`{{signal_*}}`) | High | 🟡 Medium |
+| — | Unibox two-way reply (match Alta's inbox) | High | 🟡 Medium |
+| — | Persistent prospect database / CRM-lite view | Medium | 🟡 Medium — at 5+ clients |
+| — | Visual sequence builder (node tree) | High | 🟢 Long-term |
+| — | LinkedIn automation (connection + message) | High | 🟢 Long-term — ban risk |
+| — | Social signals audience source (LinkedIn post scraping) | High | 🟢 Long-term |
+| — | AI enrichment columns (custom research step) | High | 🟢 Long-term |
+| — | AI voice calls (Alex equivalent) | High | 🟢 Lowest priority for Africa/SMB |
 
 ---
 
-### Their gaps (our weapons)
+### Sales Battlecard — When a Prospect Mentions Alta
+
+**Acknowledge and redirect:**
+*"Alta is a solid product — it's built for revenue teams that have budget and time for enterprise onboarding. K.I.N.D is built for people who need pipeline now, not next quarter."*
+
+**Key differentiators to lead with:**
+1. You can start today for $20. No demo call. No quarterly contract. No procurement.
+2. 14-day free trial — no card required. Alta has no trial at all.
+3. You only pay when a lead replies positively. Alta charges ~$1,250/month whether or not it works.
+4. FIGSY is live in 10 minutes. Alta requires training sessions and customer success onboarding.
+5. Built for Africa — POPIA native, data stored in Cape Town. Alta is not.
+
+**If they ask about LinkedIn:**
+*"LinkedIn is on our roadmap. For most of our users, email outreach is already generating qualified leads before we even get there. And at $1/lead, you can run 200 campaigns worth of data to know what works before you'd spend the first month on Alta."*
+
+**If they ask about voice calling:**
+*"Alex is impressive but voice calling works best for inbound qualification at scale — that's a different motion from what most individual AEs need. WhatsApp via Vida is live today and significantly more relevant for the African market."*
+
+**If they say Alta has better analytics:**
+*"The metrics that matter are qualified leads and meetings booked — and those are on your K.I.N.D dashboard today. The 9-metric time-series chart is great for a revenue ops team justifying budget. You need to justify pipeline."*
+
+**If they say Alta has more features:**
+*"It does — and it should, at $1,250/month. K.I.N.D gets you the 20% of features that deliver 80% of the results, starting today, for $20. If after 3 months of K.I.N.D you need LinkedIn automation and AI voice calls, we'll have built them by then — funded by real clients."*
+
+**The close for the Jacques-type prospect:**
+*"You have a meeting with your manager next Thursday. Start a K.I.N.D trial today, run a 200-prospect campaign this week, and walk into that meeting with real replies and booked meetings — not a demo recording asking for $1,250/month. That's your business case."*
+
+---
+
+### Alta's Gaps (Our Weapons)
 - Zero Africa presence
-- USD-only, quarterly billing, non-refundable, no trial
+- USD-only, quarterly billing, non-refundable, **no trial**
 - No POPIA/NDPR compliance
-- No WhatsApp-native strategy
-- Enterprise only — SMBs can't afford or access them
+- No WhatsApp-native standalone product
+- Enterprise-only — SMBs cannot access
 - Sales-assisted only — no self-serve
-- No VA (Milla) or chatbot (Vida) equivalent
+- No VA (Milla) or standalone chatbot (Vida) equivalent
+- No pay-per-result pricing — fixed monthly fee regardless of outcome
 
 ---
 

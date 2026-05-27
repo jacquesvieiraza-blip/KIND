@@ -1,5 +1,4 @@
 import { CheckCircle2, Circle, Clock, DollarSign, Users, TrendingUp, Briefcase, Globe } from 'lucide-react'
-import { AdminNav } from '@/components/AdminNav'
 
 const PHASES = [
   {
@@ -130,10 +129,8 @@ export default function AdminRoadmapPage() {
   const overallPct = Math.round((completedMilestones.length / totalMilestones.length) * 100)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
 
-      <main className="px-8 py-8 max-w-6xl mx-auto space-y-8">
+      <div className="px-8 py-8 max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div>
           <h2 className="text-2xl font-bold text-gray-900">AI Business Operation Roadmap</h2>
@@ -141,7 +138,7 @@ export default function AdminRoadmapPage() {
         </div>
 
         {/* Overall progress */}
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="font-semibold text-gray-900">Overall Roadmap Progress</h3>
@@ -150,7 +147,7 @@ export default function AdminRoadmapPage() {
             <span className="text-3xl font-bold text-gray-900">{overallPct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-3">
-            <div className="bg-[#0066FF] h-3 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
+            <div className="bg-[#7C3AED] h-3 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
           </div>
           <div className="mt-4 grid grid-cols-4 gap-3">
             {PHASES.map(p => {
@@ -176,7 +173,7 @@ export default function AdminRoadmapPage() {
             { icon: <Globe className="w-4 h-4" />, label: 'Month 6 MRR', value: '$26,000', sub: '60 clients' },
             { icon: <Briefcase className="w-4 h-4" />, label: 'Month 12 MRR', value: '$100,000', sub: '200+ clients' },
           ].map(({ icon, label, value, sub }) => (
-            <div key={label} className="bg-white rounded-xl border border-gray-100 p-4">
+            <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">{icon}</div>
               <p className="text-xl font-bold text-gray-900">{value}</p>
               <p className="text-xs text-gray-500 mt-0.5">{label}</p>
@@ -259,7 +256,6 @@ export default function AdminRoadmapPage() {
         <p className="text-center text-xs text-gray-400 pb-4">
           Roadmap is a living document — review monthly against MRR actuals and client feedback.
         </p>
-      </main>
     </div>
   )
 }

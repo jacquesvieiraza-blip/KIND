@@ -97,7 +97,7 @@ export default function FounderPage() {
               { label: 'CS actions',         value: digest.agent_actions_7d.cs },
               { label: 'AE actions',         value: digest.agent_actions_7d.ae },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-white rounded-xl border border-gray-100 p-4">
+              <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
                 <p className="text-2xl font-bold text-gray-900">{value}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{label}</p>
               </div>
@@ -105,11 +105,11 @@ export default function FounderPage() {
           </div>
 
           {/* Recent logs */}
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
               <h2 className="font-semibold text-gray-900">Recent agent actions</h2>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-purple-50">
               {digest.recent_logs.length === 0 ? (
                 <p className="px-5 py-8 text-sm text-gray-400 text-center">No actions yet.</p>
               ) : digest.recent_logs.map(log => (
@@ -130,7 +130,7 @@ export default function FounderPage() {
       {/* Manual triggers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* CS follow-up */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
           <h2 className="font-semibold text-gray-900 mb-4">Trigger CS follow-up</h2>
           <form onSubmit={sendCsFollowup} className="space-y-3">
             <input value={csClientId} onChange={e => setCsClientId(e.target.value)} placeholder="Client UUID" required
@@ -150,7 +150,7 @@ export default function FounderPage() {
         </div>
 
         {/* AE demo request */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
           <h2 className="font-semibold text-gray-900 mb-4">Trigger AE demo email</h2>
           <form onSubmit={sendDemoRequest} className="space-y-3">
             <input value={demoName} onChange={e => setDemoName(e.target.value)} placeholder="Prospect name" required

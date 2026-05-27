@@ -2,4 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-gray-50 text-gray-900; }
+html, body, #__next { height: 100%; }
+
+body {
+  background: linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%);
+  background-attachment: fixed;
+  @apply text-gray-900;
+}

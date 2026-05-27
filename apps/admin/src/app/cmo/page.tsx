@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { AdminNav } from '@/components/AdminNav'
 import { Loader2, Copy, Check, Linkedin, Search } from 'lucide-react'
 
 function adminPost<T>(path: string, body?: unknown): Promise<T> {
@@ -91,9 +90,7 @@ export default function CmoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
-      <main className="px-8 py-6 max-w-5xl space-y-8">
+      <div className="px-8 py-6 max-w-5xl space-y-8">
 
         <div>
           <h1 className="text-2xl font-bold text-gray-900">CMO Tools</h1>
@@ -101,7 +98,7 @@ export default function CmoPage() {
         </div>
 
         {/* ── LinkedIn Post Generator ─────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-1">
             <Linkedin className="w-5 h-5 text-[#0A66C2]" />
             <h2 className="font-semibold text-gray-900">LinkedIn Post Generator</h2>
@@ -111,7 +108,7 @@ export default function CmoPage() {
           <button
             onClick={generatePosts}
             disabled={postsLoading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
           >
             {postsLoading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
@@ -129,7 +126,7 @@ export default function CmoPage() {
               {posts.map((post, i) => (
                 <div key={i} className="border border-blue-100 rounded-xl bg-blue-50/30 p-4 flex flex-col">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-semibold text-[#0066FF] bg-blue-100 px-2 py-0.5 rounded">{post.day}</span>
+                    <span className="text-xs font-semibold text-[#7C3AED] bg-blue-100 px-2 py-0.5 rounded">{post.day}</span>
                     <button
                       onClick={() => copyPost(i, post.text)}
                       className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors px-2 py-1 rounded hover:bg-white"
@@ -149,7 +146,7 @@ export default function CmoPage() {
         </div>
 
         {/* ── Prospect Finder ──────────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-1">
             <Search className="w-5 h-5 text-indigo-600" />
             <h2 className="font-semibold text-gray-900">Prospect Finder</h2>
@@ -180,15 +177,15 @@ export default function CmoPage() {
             <div className="mt-5 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-purple-100">
                     {['Name', 'Title', 'Company', 'Country', 'Email'].map(h => (
-                      <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-purple-50">
                   {prospects.map((p, i) => (
-                    <tr key={i} className="hover:bg-gray-50 transition-colors">
+                    <tr key={i} className="hover:bg-purple-50/30 transition-colors">
                       <td className="px-3 py-3 font-medium text-gray-900">
                         {[p.first_name, p.last_name].filter(Boolean).join(' ') || '—'}
                       </td>
@@ -197,7 +194,7 @@ export default function CmoPage() {
                       <td className="px-3 py-3 text-gray-500">{p.country ?? '—'}</td>
                       <td className="px-3 py-3">
                         {p.email ? (
-                          <a href={`mailto:${p.email}`} className="text-[#0066FF] hover:underline">{p.email}</a>
+                          <a href={`mailto:${p.email}`} className="text-[#7C3AED] hover:underline">{p.email}</a>
                         ) : '—'}
                       </td>
                     </tr>
@@ -207,8 +204,6 @@ export default function CmoPage() {
             </div>
           )}
         </div>
-
-      </main>
     </div>
   )
 }

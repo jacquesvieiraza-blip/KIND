@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import { AdminNav } from '@/components/AdminNav'
 import { Flame, ThermometerSun, Snowflake, Ban, UserX, Plane, HelpCircle, Inbox } from 'lucide-react'
 
 interface ReplyRow {
@@ -114,8 +113,6 @@ export default async function UniboxPage({
   const actionable    = hotCount + warmCount
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Header */}
@@ -218,6 +215,5 @@ export default async function UniboxPage({
           </div>
         )}
       </div>
-    </div>
   )
 }

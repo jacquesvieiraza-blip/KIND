@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import { CheckCircle2, Circle, TrendingUp, Users, Zap, Server, AlertTriangle } from 'lucide-react'
-import { AdminNav } from '@/components/AdminNav'
 
 async function getClientCount(): Promise<number> {
   try {
@@ -124,10 +123,8 @@ export default async function ScalabilityPage() {
   const stagePct = Math.min(Math.round((clientCount / STAGE_1_TARGET) * 100), 100)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
 
-      <main className="px-8 py-8 max-w-6xl mx-auto space-y-8">
+      <div className="px-8 py-8 max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Scalability Framework</h2>
@@ -251,19 +248,19 @@ export default async function ScalabilityPage() {
             <h3 className="text-lg font-semibold text-gray-900">Infrastructure Scaling Triggers</h3>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/3">Current</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">Trigger</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Action Required</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Action Required</th>
                   <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">Priority</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-purple-50">
                 {INFRA_TRIGGERS.map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={i} className="hover:bg-purple-50/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Zap className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -296,7 +293,6 @@ export default async function ScalabilityPage() {
         <p className="text-center text-xs text-gray-400 pb-4">
           Scalability framework — review at each stage gate. Next review: first paying client.
         </p>
-      </main>
     </div>
   )
 }

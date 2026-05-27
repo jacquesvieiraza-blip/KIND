@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AdminNav } from '@/components/AdminNav'
 import { Loader2, GitMerge, AlertCircle, DollarSign, Columns } from 'lucide-react'
 
 interface PipelineStage {
@@ -78,10 +77,8 @@ export default function HubspotPage() {
   const openValue   = openDeals?.reduce((s, st) => s + st.totalValue, 0) ?? 0
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
 
-      <main className="px-8 py-6 max-w-7xl space-y-6">
+      <div className="px-8 py-6 max-w-7xl space-y-6">
 
         <div className="flex items-center justify-between">
           <div>
@@ -118,7 +115,7 @@ export default function HubspotPage() {
               variable in your Railway service to enable automatic CRM sync.
             </p>
             <div className="bg-gray-50 rounded-xl border border-gray-100 p-5 text-left max-w-lg mx-auto space-y-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Setup Instructions</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Setup Instructions</p>
               <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
                 <li>Go to your HubSpot account → Settings → Integrations → Private Apps</li>
                 <li>Create a new Private App with scopes: <code className="bg-gray-100 px-1 rounded text-xs font-mono">crm.objects.contacts.write</code>, <code className="bg-gray-100 px-1 rounded text-xs font-mono">crm.objects.companies.write</code>, <code className="bg-gray-100 px-1 rounded text-xs font-mono">crm.objects.deals.write</code></li>
@@ -134,19 +131,19 @@ export default function HubspotPage() {
         {!loading && data?.connected && data.stages && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Total Deals</p>
                 <p className="text-2xl font-bold text-gray-900">{totalDeals}</p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Open Pipeline</p>
                 <p className="text-2xl font-bold text-gray-900">{formatValue(openValue)}</p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Closed Won</p>
                 <p className="text-2xl font-bold text-green-600">{formatValue(closedWon?.totalValue ?? 0)}</p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Total Value</p>
                 <p className="text-2xl font-bold text-gray-900">{formatValue(totalValue)}</p>
               </div>
@@ -209,8 +206,6 @@ export default function HubspotPage() {
             </div>
           </div>
         )}
-
-      </main>
     </div>
   )
 }

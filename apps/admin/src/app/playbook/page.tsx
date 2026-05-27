@@ -10,7 +10,6 @@ import {
   TrendingUp,
   ChevronDown,
 } from 'lucide-react'
-import { AdminNav } from '@/components/AdminNav'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -28,7 +27,7 @@ interface Section {
 
 function ScriptBlock({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-[#001f4d]/5 border border-[#001f4d]/10 rounded-lg p-4 font-mono text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+    <div className="bg-purple-50/40 border border-purple-100 rounded-xl p-4 font-mono text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
       {children}
     </div>
   )
@@ -65,7 +64,7 @@ function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
     <div className="overflow-x-auto rounded-lg border border-gray-100">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50 border-b border-gray-100">
+          <tr className="bg-gray-50 border-b border-purple-100">
             {headers.map((h) => (
               <th key={h} className="text-left px-4 py-2.5 font-medium text-gray-600 text-xs uppercase tracking-wide">
                 {h}
@@ -201,7 +200,7 @@ function DiscoveryContent() {
         ].map(({ phase, time, desc }) => (
           <div key={phase} className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="font-semibold text-gray-800 text-sm">{phase}</p>
-            <p className="text-[#0066FF] font-bold text-lg">{time}</p>
+            <p className="text-[#7C3AED] font-bold text-lg">{time}</p>
             <p className="text-xs text-gray-400">{desc}</p>
           </div>
         ))}
@@ -219,7 +218,7 @@ Here's what I'd like to do: spend the first part understanding your current sale
         {questions.map((item, i) => (
           <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-[#0066FF] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+              <span className="w-6 h-6 rounded-full bg-[#7C3AED] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                 {i + 1}
               </span>
               <p className="font-medium text-gray-800 text-sm">{item.q}</p>
@@ -522,7 +521,7 @@ function ProposalContent() {
           Click the link to start your 14-day trial and book your onboarding call. Or reply to this email and I&#39;ll set it up on a call.
         </p>
         <div className="flex items-center justify-center gap-2 mt-2">
-          <span className="text-[#0066FF] font-medium text-sm">→ KIND sign-up link</span>
+          <span className="text-[#7C3AED] font-medium text-sm">→ KIND sign-up link</span>
         </div>
       </div>
     </div>
@@ -665,7 +664,7 @@ function WinMetricsContent() {
             { metric: 'Pipeline Value', target: 'R50,000+', color: 'teal' },
           ].map(({ metric, target }) => (
             <div key={metric} className="bg-white border border-gray-100 rounded-xl p-4 text-center">
-              <p className="text-2xl font-bold text-[#0066FF]">{target}</p>
+              <p className="text-2xl font-bold text-[#7C3AED]">{target}</p>
               <p className="text-xs text-gray-500 mt-1">{metric}</p>
             </div>
           ))}
@@ -784,10 +783,8 @@ export default function PlaybookPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
 
-      <main className="px-8 py-8 max-w-5xl mx-auto space-y-6">
+      <div className="px-8 py-8 max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -797,13 +794,13 @@ export default function PlaybookPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-[#0066FF]" />
+            <BookOpen className="w-5 h-5 text-[#7C3AED]" />
             <span className="text-xs text-gray-400 font-medium">Internal use only</span>
           </div>
         </div>
 
         {/* Quick-nav strip */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Jump to section</p>
           <div className="flex flex-wrap gap-2">
             {sections.map((s) => {
@@ -859,7 +856,6 @@ export default function PlaybookPage() {
         <p className="text-center text-xs text-gray-400 pb-4">
           This playbook is a living document — update it when you find something that works better. Review quarterly.
         </p>
-      </main>
     </div>
   )
 }

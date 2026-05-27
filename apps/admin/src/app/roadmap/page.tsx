@@ -129,24 +129,58 @@ export default function AdminRoadmapPage() {
   const overallPct = Math.round((completedMilestones.length / totalMilestones.length) * 100)
 
   return (
-    <div className="px-8 py-8 max-w-6xl mx-auto space-y-8">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-white">AI Business Operation Roadmap</h2>
-        <p className="text-white/40 text-sm mt-1">Strategic milestones from launch to $100K MRR across 4 phases.</p>
-      </div>
 
-      {/* Overall progress */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="font-semibold text-white">Overall Roadmap Progress</h3>
-            <p className="text-sm text-white/30 mt-0.5">{completedMilestones.length} of {totalMilestones.length} milestones complete</p>
+      <div className="px-8 py-8 max-w-6xl mx-auto space-y-8">
+        {/* Header */}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">AI Business Operation Roadmap</h2>
+          <p className="text-gray-500 text-sm mt-1">Strategic milestones from launch to $100K MRR across 4 phases.</p>
+        </div>
+
+        {/* Overall progress */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-900">Overall Roadmap Progress</h3>
+              <p className="text-sm text-gray-400 mt-0.5">{completedMilestones.length} of {totalMilestones.length} milestones complete</p>
+            </div>
+            <span className="text-3xl font-bold text-gray-900">{overallPct}%</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-3">
+            <div className="bg-[#7C3AED] h-3 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
+          </div>
+          <div className="mt-4 grid grid-cols-4 gap-3">
+            {PHASES.map(p => {
+              const done = p.milestones.filter(m => m.done).length
+              const pct = Math.round((done / p.milestones.length) * 100)
+              const colors = COLOR_MAP[p.color]
+              return (
+                <div key={p.phase} className="text-center">
+                  <p className="text-xs text-gray-400">{p.phase}</p>
+                  <p className={`text-lg font-bold ${colors.accent}`}>{pct}%</p>
+                  <p className="text-xs text-gray-500">{p.label}</p>
+                </div>
+              )
+            })}
           </div>
           <span className="text-3xl font-bold text-white">{overallPct}%</span>
         </div>
-        <div className="w-full bg-white/10 rounded-full h-3">
-          <div className="bg-[#0066FF] h-3 rounded-full transition-all" style={{ width: `${overallPct}%` }} />
+
+        {/* Revenue targets strip */}
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { icon: <DollarSign className="w-4 h-4" />, label: 'Month 2 MRR', value: '$2,500', sub: '5 clients' },
+            { icon: <TrendingUp className="w-4 h-4" />, label: 'Month 4 MRR', value: '$8,000', sub: '20 clients' },
+            { icon: <Globe className="w-4 h-4" />, label: 'Month 6 MRR', value: '$26,000', sub: '60 clients' },
+            { icon: <Briefcase className="w-4 h-4" />, label: 'Month 12 MRR', value: '$100,000', sub: '200+ clients' },
+          ].map(({ icon, label, value, sub }) => (
+            <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">{icon}</div>
+              <p className="text-xl font-bold text-gray-900">{value}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+              <p className="text-xs text-gray-400">{sub}</p>
+            </div>
+          ))}
         </div>
         <div className="mt-4 grid grid-cols-4 gap-3">
           {PHASES.map(p => {
@@ -211,50 +245,10 @@ export default function AdminRoadmapPage() {
               <p className="text-white/40 text-xs mt-1">{done}/{phase.milestones.length} milestones · {pct}%</p>
             </div>
 
-            {/* Phase body */}
-            <div className="p-6 grid grid-cols-2 gap-6">
-              {/* Milestones */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle2 className={`w-4 h-4 ${colors.accent}`} />
-                  <h4 className="font-medium text-sm text-white/70">Product Milestones</h4>
-                </div>
-                <ul className="space-y-2">
-                  {phase.milestones.map((m, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm">
-                      {m.done
-                        ? <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-                        : <Circle className="w-4 h-4 text-white/20 mt-0.5 shrink-0" />}
-                      <span className={m.done ? 'text-white/30 line-through' : 'text-white/70'}>{m.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Operations */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Users className={`w-4 h-4 ${colors.accent}`} />
-                  <h4 className="font-medium text-sm text-white/70">Operations &amp; Go-To-Market</h4>
-                </div>
-                <ul className="space-y-2">
-                  {phase.ops.map((op, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm">
-                      <Clock className="w-4 h-4 text-white/20 mt-0.5 shrink-0" />
-                      <span className="text-white/50">{op}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )
-      })}
-
-      {/* Bottom note */}
-      <p className="text-center text-xs text-white/20 pb-4">
-        Roadmap is a living document — review monthly against MRR actuals and client feedback.
-      </p>
+        {/* Bottom note */}
+        <p className="text-center text-xs text-gray-400 pb-4">
+          Roadmap is a living document — review monthly against MRR actuals and client feedback.
+        </p>
     </div>
   )
 }

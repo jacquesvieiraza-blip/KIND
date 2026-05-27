@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { AdminNav } from '@/components/AdminNav'
 import { Plus, ExternalLink, Calendar, Trash2, Loader2, Users, RefreshCw, CheckCircle, Clock, XCircle } from 'lucide-react'
 
 interface Demo {
@@ -149,16 +148,14 @@ export default function DemoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
-
+    <>
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium bg-gray-900 text-white">
           {toast}
         </div>
       )}
 
-      <main className="px-8 py-8 max-w-6xl mx-auto space-y-6">
+      <div className="px-8 py-8 max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Demo Environments</h2>
@@ -169,7 +166,7 @@ export default function DemoPage() {
               <RefreshCw className="w-4 h-4" />
             </button>
             <button onClick={() => { setShowForm(true); setCreateError(null) }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0066FF] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
               <Plus className="w-4 h-4" />New Demo
             </button>
           </div>
@@ -177,7 +174,7 @@ export default function DemoPage() {
 
         {/* Create form */}
         {showForm && (
-          <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
             <h3 className="font-semibold text-gray-900 mb-5">Create Demo Environment</h3>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -248,7 +245,7 @@ export default function DemoPage() {
 
               <div className="flex items-center gap-3 pt-1">
                 <button type="submit" disabled={creating}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#0066FF] text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors">
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors">
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   {creating ? 'Creating…' : 'Create Demo Environment'}
                 </button>
@@ -276,15 +273,15 @@ export default function DemoPage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100">
+                <tr className="border-b border-purple-100">
                   {['Prospect', 'Demo Company', 'Industry / Country', 'Leads', 'Created by', 'Expiry', 'Status', 'Actions'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-purple-50">
                 {demos.map(demo => (
-                  <tr key={demo.id} className={`hover:bg-gray-50 transition-colors ${demo.expired ? 'opacity-50' : ''}`}>
+                  <tr key={demo.id} className={`hover:bg-purple-50/30 transition-colors ${demo.expired ? 'opacity-50' : ''}`}>
                     <td className="px-4 py-3 font-medium text-gray-900">{demo.prospect_name}</td>
                     <td className="px-4 py-3 text-gray-700">{demo.company_name}</td>
                     <td className="px-4 py-3">
@@ -327,7 +324,7 @@ export default function DemoPage() {
                       <div className="flex items-center gap-2">
                         {!demo.expired && (
                           <button onClick={() => openDemo(demo.id)} disabled={openingId === demo.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0066FF] text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors">
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7C3AED] text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors">
                             {openingId === demo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
                             Open Demo
                           </button>
@@ -346,7 +343,7 @@ export default function DemoPage() {
             </table>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   )
 }

@@ -2,92 +2,20 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  LayoutDashboard,
-  Activity,
-  DollarSign,
-  HeartPulse,
-  Users,
-  AlertTriangle,
-  Bot,
-  TrendingUp,
-  BookOpen,
-  Palette,
-  Users2,
-  MonitorPlay,
-  FileText,
-  Rocket,
-  Map,
-  GitMerge,
-  File,
-  Calculator,
-  Scale,
-  Workflow,
-  GitBranch,
-  Server,
-  ShieldCheck,
-} from 'lucide-react'
+import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, TrendingUp, GitMerge, BookOpen, Inbox } from 'lucide-react'
 
-const SECTIONS = [
-  {
-    label: 'OVERVIEW',
-    items: [
-      { href: '/',        label: 'Dashboard',       icon: LayoutDashboard },
-      { href: '/status',  label: 'Status',          icon: Activity },
-      { href: '/revenue', label: 'Revenue',         icon: DollarSign },
-      { href: '/health',  label: 'Platform Health', icon: HeartPulse },
-    ],
-  },
-  {
-    label: 'CLIENTS',
-    items: [
-      { href: '/clients',              label: 'All Clients', icon: Users },
-      { href: '/clients?filter=atrisk', label: 'At-Risk',   icon: AlertTriangle },
-    ],
-  },
-  {
-    label: 'AI EXEC TEAM',
-    items: [
-      { href: '/agents/otto',  label: 'OTTO — CRO', icon: Bot },
-      { href: '/agents/lena',  label: 'LENA — CS',  icon: Bot },
-      { href: '/agents/reeve', label: 'REEVE — AE', icon: Bot },
-      { href: '/agents/cmo',   label: 'CMO',        icon: Bot },
-      { href: '/agents/cto',   label: 'CTO',        icon: Bot },
-      { href: '/agents/cfo',   label: 'CFO',        icon: Bot },
-    ],
-  },
-  {
-    label: 'SALES',
-    items: [
-      { href: '/scalability',           label: 'Scalability',     icon: TrendingUp },
-      { href: '/docs/sales-playbook',   label: 'Sales Playbook',  icon: BookOpen },
-      { href: '/docs/art-of-possible',  label: 'Art of Possible', icon: BookOpen },
-    ],
-  },
-  {
-    label: 'TOOLS',
-    items: [
-      { href: '/cmo',          label: 'CMO Tools',       icon: Palette },
-      { href: '/cohorts',      label: 'Cohorts',         icon: Users2 },
-      { href: '/demo',         label: 'Demo Envs',       icon: MonitorPlay },
-      { href: '/terms-library',label: 'Terms Library',   icon: FileText },
-      { href: '/launch',       label: 'Launch',          icon: Rocket },
-      { href: '/roadmap',      label: 'Roadmap',         icon: Map },
-      { href: '/hubspot',      label: 'HubSpot Pipeline',icon: GitMerge },
-    ],
-  },
-  {
-    label: 'DOCS',
-    items: [
-      { href: '/docs/master',      label: 'MASTER',     icon: File },
-      { href: '/docs/run-costs',   label: 'Run Costs',  icon: Calculator },
-      { href: '/docs/legal',       label: 'Legal',      icon: Scale },
-      { href: '/docs/sop',         label: 'SOP',        icon: Workflow },
-      { href: '/docs/client-flow', label: 'Client Flow',icon: GitBranch },
-      { href: '/docs/deployment',  label: 'Deployment', icon: Server },
-      { href: '/compliance',       label: 'Compliance', icon: ShieldCheck },
-    ],
-  },
+const NAV = [
+  { href: '/',              label: 'Dashboard',        icon: LayoutDashboard },
+  { href: '/unibox',        label: 'Unibox',           icon: Inbox },
+  { href: '/clients',       label: 'Clients',          icon: Users },
+  { href: '/demo',          label: 'Demo Envs',        icon: MonitorPlay },
+  { href: '/terms-library', label: 'Terms Library',    icon: FileText },
+  { href: '/roadmap',       label: 'Roadmap',          icon: Map },
+  { href: '/scalability',   label: 'Scalability',      icon: TrendingUp },
+  { href: '/playbook',      label: 'Playbook',         icon: BookOpen },
+  { href: '/cmo',           label: 'CMO Tools',        icon: Megaphone },
+  { href: '/launch',        label: 'Launch',           icon: Rocket },
+  { href: '/hubspot',       label: 'HubSpot Pipeline', icon: GitMerge },
 ]
 
 function isActive(pathname: string, href: string): boolean {

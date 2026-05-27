@@ -30,7 +30,7 @@ function LoginForm() {
     setMessage('')
     if (mode === 'signup') {
       try {
-        const res = await fetch('https://kindapi-production-e64c.up.railway.app/auth/signup', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -52,7 +52,7 @@ function LoginForm() {
       } else {
         // Check if client profile exists — redirect to onboard if not yet set up
         try {
-          const res = await fetch(`https://kindapi-production-e64c.up.railway.app/clients/me`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/clients/me`, {
             headers: { Authorization: `Bearer ${data.session?.access_token}` },
           })
           if (res.status === 404) {
@@ -78,7 +78,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-brand-900">K.I.N.D</h1>
+          <h1 className="text-3xl font-bold text-gray-900">K.I.N.D</h1>
           <p className="text-gray-500 mt-1">AI Intelligence Platform</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -87,26 +87,50 @@ function LoginForm() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="you@company.com" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" placeholder="you@company.com" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="••••••••" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" placeholder="••••••••" />
             </div>
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">{error}</p>}
             {message && <p className="text-green-600 text-sm bg-green-50 rounded-lg px-3 py-2">{message}</p>}
             <button type="submit" disabled={loading}
-              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-60">
+              className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-60">
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
           </form>
           <p className="text-center text-sm text-gray-500 mt-4">
             {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-            <button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="text-brand-500 font-medium hover:underline">
+            <button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="text-[#7C3AED] font-medium hover:underline">
               {mode === 'login' ? 'Sign up' : 'Sign in'}
             </button>
           </p>
+        </div>
+
+        {/* Social proof strip — W6 */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-400 mb-3 uppercase tracking-wider font-medium">Trusted by growing businesses</p>
+          <div className="flex items-center justify-center gap-6 flex-wrap">
+            {/* Logo slot 1 — replace src with real client logo when T36 is done */}
+            <div className="w-24 h-8 bg-gray-100 rounded-md flex items-center justify-center opacity-40">
+              <span className="text-[10px] text-gray-400 font-medium">Your logo</span>
+            </div>
+            <div className="w-24 h-8 bg-gray-100 rounded-md flex items-center justify-center opacity-40">
+              <span className="text-[10px] text-gray-400 font-medium">Your logo</span>
+            </div>
+            <div className="w-24 h-8 bg-gray-100 rounded-md flex items-center justify-center opacity-40">
+              <span className="text-[10px] text-gray-400 font-medium">Your logo</span>
+            </div>
+          </div>
+          {/* Testimonial slot */}
+          <blockquote className="mt-6 max-w-sm mx-auto">
+            <p className="text-xs text-gray-500 italic leading-relaxed">
+              &ldquo;K.I.N.D helped us source 200 qualified leads in our first week — without a single cold call.&rdquo;
+            </p>
+            <footer className="mt-2 text-[11px] text-gray-400 font-medium">— First client (coming soon)</footer>
+          </blockquote>
         </div>
       </div>
     </div>

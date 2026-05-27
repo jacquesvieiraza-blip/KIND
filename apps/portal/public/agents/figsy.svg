@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066FF"/>
+      <stop offset="100%" style="stop-color:#003d99"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FDDBB4"/>
+      <stop offset="100%" style="stop-color:#F5C28A"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="blazer" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a8f"/>
+      <stop offset="100%" style="stop-color:#0d2063"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#003d99" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+
+  <!-- Glow halo -->
+  <circle cx="256" cy="220" r="145" fill="white" opacity="0.06"/>
+
+  <!-- Body / blazer -->
+  <ellipse cx="256" cy="440" rx="140" ry="80" fill="url(#blazer)"/>
+  <rect x="116" y="370" width="280" height="80" rx="20" fill="url(#blazer)"/>
+
+  <!-- Collar / shirt -->
+  <polygon points="210,340 256,380 302,340 280,360 256,395 232,360" fill="white" opacity="0.9"/>
+
+  <!-- Lightning bolt pin on blazer -->
+  <polygon points="162,358 172,335 178,345 188,322 178,345 184,345" fill="#FFD700"/>
+
+  <!-- Neck -->
+  <rect x="232" y="320" width="48" height="30" rx="8" fill="url(#skin)"/>
+
+  <!-- Head -->
+  <ellipse cx="256" cy="248" rx="110" ry="120" fill="url(#skin)" filter="url(#shadow)"/>
+
+  <!-- Hair - short, with blue highlights at sides -->
+  <ellipse cx="256" cy="152" rx="110" ry="48" fill="url(#hair)"/>
+  <ellipse cx="256" cy="148" rx="108" ry="44" fill="#1a1a2e"/>
+  <!-- Side hair -->
+  <rect x="146" y="168" width="22" height="60" rx="11" fill="#1a1a2e"/>
+  <rect x="344" y="168" width="22" height="60" rx="11" fill="#1a1a2e"/>
+  <!-- Blue highlights -->
+  <rect x="148" y="175" width="8" height="40" rx="4" fill="#4d9fff" opacity="0.8"/>
+  <rect x="356" y="175" width="8" height="40" rx="4" fill="#4d9fff" opacity="0.8"/>
+
+  <!-- Ears -->
+  <ellipse cx="148" cy="254" rx="18" ry="22" fill="url(#skin)"/>
+  <ellipse cx="364" cy="254" rx="18" ry="22" fill="url(#skin)"/>
+
+  <!-- Eyes - confident, slightly upward look -->
+  <ellipse cx="218" cy="244" rx="22" ry="20" fill="white"/>
+  <ellipse cx="294" cy="244" rx="22" ry="20" fill="white"/>
+  <!-- Irises -->
+  <circle cx="220" cy="246" r="13" fill="#1a3a8f"/>
+  <circle cx="296" cy="246" r="13" fill="#1a3a8f"/>
+  <!-- Pupils -->
+  <circle cx="221" cy="247" r="7" fill="#0d1b4f"/>
+  <circle cx="297" cy="247" r="7" fill="#0d1b4f"/>
+  <!-- Eye shine -->
+  <circle cx="226" cy="241" r="3.5" fill="white"/>
+  <circle cx="302" cy="241" r="3.5" fill="white"/>
+  <!-- Eyelashes/brow -->
+  <path d="M196 228 Q218 220 240 228" stroke="#1a1a2e" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M272 228 Q294 220 316 228" stroke="#1a1a2e" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- Nose -->
+  <path d="M248 268 Q256 280 264 268" stroke="#d4956a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Warm confident smile -->
+  <path d="M220 302 Q256 330 292 302" stroke="#c0754a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <!-- Teeth -->
+  <path d="M228 306 Q256 324 284 306" fill="white" opacity="0.9"/>
+
+  <!-- Cheek blush -->
+  <ellipse cx="190" cy="284" rx="22" ry="12" fill="#FFB085" opacity="0.35"/>
+  <ellipse cx="322" cy="284" rx="22" ry="12" fill="#FFB085" opacity="0.35"/>
+
+  <!-- Glowing tablet in hand area -->
+  <rect x="310" y="360" width="70" height="50" rx="8" fill="#0a1f5c"/>
+  <rect x="313" y="363" width="64" height="44" rx="6" fill="#1a56db"/>
+  <rect x="317" y="367" width="20" height="3" rx="1.5" fill="white" opacity="0.7"/>
+  <rect x="317" y="374" width="30" height="3" rx="1.5" fill="white" opacity="0.5"/>
+  <rect x="317" y="381" width="25" height="3" rx="1.5" fill="white" opacity="0.5"/>
+  <circle cx="351" cy="394" r="6" fill="#4d9fff" opacity="0.8"/>
+
+  <!-- "F" initial badge at bottom -->
+  <circle cx="256" cy="490" r="0" fill="none"/>
+</svg>

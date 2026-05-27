@@ -88,7 +88,7 @@ function OnboardForm() {
 
   if (checking) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+      <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
     </div>
   )
 
@@ -96,7 +96,7 @@ function OnboardForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-brand-900">K.I.N.D</h1>
+          <h1 className="text-3xl font-bold text-gray-900">K.I.N.D</h1>
           <p className="text-gray-500 mt-1">Let's set up your business profile</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -105,17 +105,17 @@ function OnboardForm() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
               <input type="text" required value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Acme Corp" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" placeholder="Acme Corp" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
               <input type="text" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Financial Services, Real Estate..." />
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" placeholder="Financial Services, Real Estate..." />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
               <select required value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]">
                 {SUPPORTED_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -123,12 +123,12 @@ function OnboardForm() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
                 <input type="url" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="https://..." />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" placeholder="https://..." />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                 <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="+27 ..." />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" placeholder="+27 ..." />
               </div>
             </div>
 
@@ -138,7 +138,7 @@ function OnboardForm() {
                   type="button"
                   onClick={handlePrefill}
                   disabled={prefilling}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-60"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-[#7C3AED] border border-purple-200 rounded-lg hover:bg-[#F5F0FF] transition-colors disabled:opacity-60"
                 >
                   {prefilling ? <Loader2 className="w-3 h-3 animate-spin" /> : '✨'}
                   {prefilling ? 'Analysing website…' : 'Pre-fill ICP from website'}
@@ -173,7 +173,7 @@ function OnboardForm() {
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">{error}</p>}
             <div className="flex flex-col gap-2">
               <button type="submit" disabled={loading}
-                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-60">
+                className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-60">
                 {loading ? 'Setting up...' : 'Start free trial →'}
               </button>
               <button type="button" disabled={loading}
@@ -190,7 +190,7 @@ function OnboardForm() {
                   } catch (err) { setError(err instanceof Error ? err.message : 'Onboarding failed') }
                   setLoading(false)
                 }}
-                className="w-full bg-white hover:bg-gray-50 text-brand-600 font-medium rounded-lg px-4 py-2.5 text-sm transition-colors border border-brand-200 disabled:opacity-60">
+                className="w-full bg-white hover:bg-gray-50 text-[#6D28D9] font-medium rounded-lg px-4 py-2.5 text-sm transition-colors border border-purple-200 disabled:opacity-60">
                 {loading ? 'Setting up...' : 'Pay now — skip trial →'}
               </button>
               <p className="text-xs text-gray-400 text-center">Free trial: full access, no credit card needed</p>

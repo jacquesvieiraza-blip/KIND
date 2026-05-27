@@ -31,15 +31,13 @@ export function OnboardingBanner({ state, trialDaysLeft }: Props) {
       dismissable: false,
     },
     trial: {
-      bg:   isUrgent
-        ? 'bg-red-50 border-red-200 dark:bg-red-950/50 dark:border-red-800'
-        : 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800',
-      icon: <Clock className={`w-5 h-5 shrink-0 mt-0.5 ${isUrgent ? 'text-red-500' : 'text-blue-500'}`} />,
+      bg:   isUrgent ? 'bg-red-50 border-red-200' : 'bg-[#F5F0FF] border-purple-200',
+      icon: <Clock className={`w-5 h-5 shrink-0 mt-0.5 ${isUrgent ? 'text-red-500' : 'text-purple-500'}`} />,
       text: trialDaysLeft !== undefined
         ? `Trial: ${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''} remaining.`
         : 'You\'re on a free trial.',
-      sub:  'Subscribe before your trial ends to keep full access.',
-      cta:  <Link href="/dashboard/billing" className="inline-flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+      sub:  'Subscribe before your trial ends to keep full access. No manual signing — payment is all you need.',
+      cta:  <Link href="/dashboard/billing" className="inline-flex items-center gap-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
               Subscribe now
             </Link>,
       textColor: 'text-gray-900 dark:text-white',
@@ -55,15 +53,15 @@ export function OnboardingBanner({ state, trialDaysLeft }: Props) {
       <div className="flex items-start gap-3 flex-1">
         {cfg.icon}
         <div className="flex-1">
-          <p className={`text-sm font-medium ${cfg.textColor}`}>{cfg.text}</p>
-          <p className={`text-xs mt-0.5 ${cfg.subColor}`}>{cfg.sub}</p>
+          <p className="text-sm font-medium text-gray-900">{cfg.text}</p>
+          <p className="text-xs text-[#7B6FA0] mt-0.5">{cfg.sub}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {cfg.cta}
         {cfg.dismissable && (
-          <button onClick={() => setDismissed(true)} className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded transition-colors">
-            <X className="w-4 h-4 text-gray-400" />
+          <button onClick={() => setDismissed(true)} className="p-1 hover:bg-black/5 rounded transition-colors">
+            <X className="w-4 h-4 text-[#9B8EC4]" />
           </button>
         )}
       </div>

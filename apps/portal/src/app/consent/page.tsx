@@ -56,7 +56,7 @@ function ConsentContent() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 max-w-md w-full text-center">
         {state === 'prompt' && (
           <>
-            <Zap className="w-10 h-10 text-[#0066FF] mx-auto mb-4" />
+            <Zap className="w-10 h-10 text-[#7C3AED] mx-auto mb-4" />
             <h1 className="text-xl font-bold text-gray-900 mb-2">Data consent request</h1>
             <p className="text-gray-600 text-sm leading-relaxed mb-6">
               A company has shared your contact details with us for B2B outreach purposes.
@@ -65,7 +65,7 @@ function ConsentContent() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => submitConsent(true)}
-                className="flex-1 px-4 py-2.5 bg-[#0066FF] text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-[#7C3AED] text-white text-sm font-semibold rounded-xl hover:bg-[#6D28D9] transition-colors"
               >
                 Yes, I consent
               </button>
@@ -81,7 +81,7 @@ function ConsentContent() {
 
         {state === 'loading' && (
           <>
-            <Loader2 className="w-10 h-10 text-[#0066FF] animate-spin mx-auto mb-4" />
+            <Loader2 className="w-10 h-10 text-[#7C3AED] animate-spin mx-auto mb-4" />
             <p className="text-gray-600 text-sm">Processing your request…</p>
           </>
         )}
@@ -146,14 +146,14 @@ export default function ConsentPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b border-gray-100 px-8 py-4">
         <div className="flex items-center gap-2 font-bold text-gray-900 w-fit">
-          <Zap className="w-5 h-5 text-[#0066FF]" />
+          <Zap className="w-5 h-5 text-[#7C3AED]" />
           K.I.N.D
         </div>
       </header>
 
       <Suspense fallback={
         <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-10 h-10 text-[#0066FF] animate-spin" />
+          <Loader2 className="w-10 h-10 text-[#7C3AED] animate-spin" />
         </main>
       }>
         <ConsentContent />

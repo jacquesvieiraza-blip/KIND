@@ -50,6 +50,8 @@ interface ApolloSearchBody {
   person_locations?:                   string[]
   contact_email_status?:               string[]
   q_keywords?:                         string
+  organization_latest_funding_stage_cd?: string[]
+  q_organization_keyword_tags?:          string[]
 }
 
 // Build the search body from an ICP record
@@ -62,6 +64,7 @@ export function buildSearchBody(icp: {
   tech_stack:            string[]
   keywords:              string[]
   apollo_only_consented: boolean
+  intent_signals?:       string[]
 }, page = 1): ApolloSearchBody {
   const body: ApolloSearchBody = { page, per_page: 50 }
 
@@ -87,7 +90,56 @@ export function buildSearchBody(icp: {
   if (kw.length)
     body.q_keywords = kw.join(' ')
 
+  // Intent signals
+  if (icp.intent_signals && icp.intent_signals.length > 0) {
+    const fundingStages: string[] = []
+    const orgKwTags: string[] = []
+
+    for (const signal of icp.intent_signals) {
+      if (signal === 'recently_funded') {
+        fundingStages.push('seed', 'series_a', 'series_b', 'series_c', 'series_d')
+      }
+      if (signal === 'hiring_sdrs') {
+        orgKwTags.push('hiring sales development')
+      }
+      if (signal === 'headcount_growth') {
+        orgKwTags.push('growing team')
+      }
+      if (signal === 'new_executive') {
+        orgKwTags.push('new ceo new cto new vp')
+      }
+    }
+
+    if (fundingStages.length) body.organization_latest_funding_stage_cd = fundingStages
+    if (orgKwTags.length) {
+      const existing = body.q_keywords ?? ''
+      body.q_keywords = [existing, ...orgKwTags].filter(Boolean).join(' ')
+    }
+  }
+
   return body
+}
+
+// Returns total matching leads for an ICP (uses per_page:1 to minimise credit use)
+export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): Promise<number> {
+  const apiKey = process.env.APOLLO_API_KEY
+  if (!apiKey) return 0
+
+  const body = buildSearchBody(icp, 1)
+  body.per_page = 1
+
+  try {
+    const res = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+      body:    JSON.stringify(body),
+    })
+    if (!res.ok) return 0
+    const data = await res.json() as { pagination?: { total_entries?: number } }
+    return data.pagination?.total_entries ?? 0
+  } catch {
+    return 0
+  }
 }
 
 export async function searchPeopleWithFallback(

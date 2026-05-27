@@ -6,42 +6,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#0066FF', 600: '#0052cc', 700: '#003d99', 900: '#001f4d' },
-        // Design system semantic tokens (maps to CSS vars for light/dark)
-        surface:  'rgb(var(--surface) / <alpha-value>)',
-        'surface-raised': 'rgb(var(--surface-raised) / <alpha-value>)',
-        'surface-overlay': 'rgb(var(--surface-overlay) / <alpha-value>)',
-        border:   'rgb(var(--border) / <alpha-value>)',
-        'border-strong': 'rgb(var(--border-strong) / <alpha-value>)',
-        text:     'rgb(var(--text) / <alpha-value>)',
-        'text-muted':  'rgb(var(--text-muted) / <alpha-value>)',
-        'text-faint':  'rgb(var(--text-faint) / <alpha-value>)',
+        // K.I.N.D soft brand palette — warm peach → lavender
+        brand: {
+          50:  '#FFF5EE',   // warm peach (page bg start)
+          100: '#F5EEFF',   // soft lavender (page bg end)
+          200: '#E9D8FF',   // lavender tint (card borders)
+          300: '#D4B8FF',   // mid lavender
+          400: '#A78BFA',   // soft violet
+          500: '#7C3AED',   // primary violet
+          600: '#6D28D9',   // hover violet
+          700: '#5B21B6',   // deep violet
+          800: '#2D1B69',   // dark violet (sidebar alt)
+          900: '#1A0F47',   // sidebar dark
+        },
       },
-      spacing: {
-        // Design system spacing scale
-        'ds-1': '4px',
-        'ds-2': '8px',
-        'ds-3': '12px',
-        'ds-4': '16px',
-        'ds-5': '20px',
-        'ds-6': '24px',
-        'ds-8': '32px',
-        'ds-10': '40px',
-        'ds-12': '48px',
-        'ds-16': '64px',
-      },
-      borderRadius: {
-        'ds-sm':  '8px',
-        'ds-md':  '12px',
-        'ds-lg':  '16px',
-        'ds-xl':  '20px',
-        'ds-2xl': '24px',
-      },
-      boxShadow: {
-        'ds-sm': '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)',
-        'ds-md': '0 4px 12px 0 rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06)',
-        'ds-lg': '0 10px 30px 0 rgb(0 0 0 / 0.10), 0 4px 8px -4px rgb(0 0 0 / 0.08)',
-        'ds-brand': '0 4px 16px 0 rgb(0 102 255 / 0.25)',
+      backgroundImage: {
+        // Warm peach → lavender — the hero gradient
+        'kind-gradient': 'linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 50%, #F0E8FF 100%)',
+        'kind-gradient-vivid': 'linear-gradient(135deg, #FFD4B2 0%, #F9C8FF 50%, #C4B5FD 100%)',
       },
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
     },

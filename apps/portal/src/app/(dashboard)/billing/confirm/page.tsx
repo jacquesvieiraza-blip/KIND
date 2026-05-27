@@ -44,12 +44,12 @@ function ConfirmContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 max-w-md w-full text-center">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 shadow-sm p-10 max-w-md w-full text-center">
         {status === 'loading' && (
           <>
-            <Loader2 className="w-12 h-12 animate-spin text-brand-500 mx-auto mb-4" />
+            <Loader2 className="w-12 h-12 animate-spin text-[#7C3AED] mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-900 mb-2">Verifying payment…</h2>
-            <p className="text-gray-500 text-sm">Please wait — this takes just a moment.</p>
+            <p className="text-[#7B6FA0] text-sm">Please wait — this takes just a moment.</p>
           </>
         )}
         {status === 'success' && (
@@ -60,9 +60,9 @@ function ConfirmContent() {
             <h2 className="text-xl font-bold text-gray-900 mb-2">
               {type === 'credit' ? 'Credits added!' : 'Payment confirmed!'}
             </h2>
-            <p className="text-gray-500 text-sm mb-6">{message}</p>
+            <p className="text-[#7B6FA0] text-sm mb-6">{message}</p>
             <Link href="/dashboard/billing"
-              className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors">
+              className="inline-flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors">
               {type === 'credit' ? 'View balance →' : 'Go to billing →'}
             </Link>
           </>
@@ -73,15 +73,15 @@ function ConfirmContent() {
               <XCircle className="w-8 h-8 text-red-500" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
-            <p className="text-gray-500 text-sm mb-6">{message}</p>
+            <p className="text-[#7B6FA0] text-sm mb-6">{message}</p>
             <div className="flex gap-3 justify-center">
-              <Link href="/dashboard/billing" className="text-sm text-brand-500 hover:underline font-medium">Try again</Link>
+              <Link href="/dashboard/billing" className="text-sm text-[#7C3AED] hover:underline font-medium">Try again</Link>
               <span className="text-gray-300">·</span>
-              <a href="mailto:hello@get-kind.com" className="text-sm text-gray-500 hover:underline">Contact support</a>
+              <a href="mailto:hello@get-kind.com" className="text-sm text-[#7B6FA0] hover:underline">Contact support</a>
             </div>
           </>
         )}
-        {reference && <p className="text-xs text-gray-400 mt-6">Reference: {reference}</p>}
+        {reference && <p className="text-xs text-[#9B8EC4] mt-6">Reference: {reference}</p>}
       </div>
     </div>
   )
@@ -89,7 +89,7 @@ function ConfirmContent() {
 
 export default function BillingConfirmPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-brand-500" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" /></div>}>
       <ConfirmContent />
     </Suspense>
   )

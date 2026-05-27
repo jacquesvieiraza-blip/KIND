@@ -13,7 +13,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
         <p className="text-gray-500 text-sm mb-6">We hit an unexpected error. Please try again or contact us.</p>
         <div className="flex gap-3 justify-center">
           <button onClick={reset}
-            className="bg-[#0066FF] hover:bg-[#0055dd] text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
+            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
             Try again
           </button>
           <Link href="/dashboard"

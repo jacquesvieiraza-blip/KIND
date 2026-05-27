@@ -56,6 +56,7 @@ export interface ICP {
   tech_stack: string[]
   keywords: string[]
   apollo_only_consented: boolean
+  intent_signals: string[]
   is_active: boolean
   last_run_at: string | null
   created_at: string
@@ -137,6 +138,7 @@ export interface ICPFormData {
   tech_stack: string[]
   keywords: string[]
   apollo_only_consented: boolean
+  intent_signals: string[]
 }
 
 export interface ApiSuccess<T> { success: true; data: T }

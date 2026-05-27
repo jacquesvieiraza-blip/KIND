@@ -6,6 +6,55 @@ import { api } from '@/lib/api'
 import { Coins, TrendingUp, Users, ShieldCheck, Loader2, ArrowUpRight, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 
+// ── Bar chart (weekly usage) — pure SVG ────────────────────────────────────────
+function UsageBarChart({ transactions }: { transactions: CreditTransaction[] }) {
+  if (transactions.length === 0) return null
+
+  // Group consumed credits by week
+  const weeks: Record<string, number> = {}
+  for (const tx of transactions) {
+    if (tx.amount >= 0) continue // skip top-ups, only show usage
+    const d = new Date(tx.created_at)
+    // ISO week start (Monday)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    const monday = new Date(d)
+    monday.setDate(diff)
+    const key = monday.toISOString().slice(0, 10)
+    weeks[key] = (weeks[key] ?? 0) + Math.abs(tx.amount)
+  }
+
+  const sorted = Object.entries(weeks).sort((a, b) => a[0].localeCompare(b[0])).slice(-8)
+  if (sorted.length < 2) return null
+
+  const maxVal = Math.max(...sorted.map(([, v]) => v), 1)
+  const W = 400
+  const H = 80
+  const barW = Math.floor((W - sorted.length * 4) / sorted.length)
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full" style={{ height: H + 24 }}>
+        {sorted.map(([week, val], i) => {
+          const x = i * (barW + 4)
+          const barH = Math.max(3, Math.round((val / maxVal) * H))
+          const y = H - barH
+          const label = new Date(week).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+          return (
+            <g key={week}>
+              <rect x={x} y={y} width={barW} height={barH} rx="3" fill="#7C3AED" opacity="0.8" />
+              <text x={x + barW / 2} y={H + 14} textAnchor="middle" fontSize="9" fill="#9ca3af">{label}</text>
+              {val > 0 && (
+                <text x={x + barW / 2} y={y - 3} textAnchor="middle" fontSize="9" fill="#374151" fontWeight="600">{val}</text>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
 interface CreditTransaction { id: string; type: string; amount: number; plan: string | null; note: string | null; created_at: string }
 interface LeadStats { total: number; scored: number; consented: number; exported: number; avg_score: number; pipeline_value_usd: number }
 interface UsageData {
@@ -61,7 +110,7 @@ export default function UsagePage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+      <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
     </div>
   )
 
@@ -69,8 +118,8 @@ export default function UsagePage() {
     <div className="flex items-center justify-center h-64">
       <div className="text-center">
         <p className="text-red-600 font-medium mb-2">Could not load usage data</p>
-        <p className="text-sm text-gray-500 mb-4">{loadError}</p>
-        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-colors">
+        <p className="text-sm text-[#7B6FA0] mb-4">{loadError}</p>
+        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm hover:bg-[#6D28D9] transition-colors">
           Retry
         </button>
       </div>
@@ -92,30 +141,30 @@ export default function UsagePage() {
     <div className="space-y-8 max-w-3xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Usage</h1>
-        <p className="text-gray-500 text-sm mt-1">Credits, lead pipeline, and outreach performance.</p>
+        <p className="text-[#7B6FA0] text-sm mt-1">Credits, lead pipeline, and outreach performance.</p>
       </div>
 
       {/* Lead usage this billing period */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-gray-900">Leads this billing period</h2>
           {periodStart && periodEnd && (
-            <span className="text-xs text-gray-400">{periodStart} – {periodEnd}</span>
+            <span className="text-xs text-[#9B8EC4]">{periodStart} – {periodEnd}</span>
           )}
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gray-50 rounded-xl p-4 text-center">
+          <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-center">
             <p className="text-3xl font-bold text-gray-900">{leadsThisPeriod}</p>
-            <p className="text-xs text-gray-500 mt-1">Leads used</p>
+            <p className="text-xs text-[#7B6FA0] mt-1">Leads used</p>
           </div>
-          <div className="bg-gray-50 rounded-xl p-4 text-center">
+          <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-center">
             <p className="text-3xl font-bold text-gray-900">{INCLUDED_LEADS}</p>
-            <p className="text-xs text-gray-500 mt-1">Included</p>
+            <p className="text-xs text-[#7B6FA0] mt-1">Included</p>
           </div>
           <div className={`rounded-xl p-4 text-center ${overageLeads > 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
             <p className={`text-3xl font-bold ${overageLeads > 0 ? 'text-amber-700' : 'text-gray-900'}`}>{overageLeads}</p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[#7B6FA0] mt-1">
               Overage {overageLeads > 0 ? `· $${overageCost.toFixed(2)}` : ''}
             </p>
           </div>
@@ -123,13 +172,13 @@ export default function UsagePage() {
 
         {/* Progress bar */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-[#7B6FA0]">
             <span>{leadsThisPeriod} of {INCLUDED_LEADS} included leads used</span>
             <span>{progressPct.toFixed(0)}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2.5">
             <div
-              className={`h-2.5 rounded-full transition-all ${overageLeads > 0 ? 'bg-amber-500' : 'bg-brand-500'}`}
+              className={`h-2.5 rounded-full transition-all ${overageLeads > 0 ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -149,13 +198,13 @@ export default function UsagePage() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'Balance', value: balance, icon: <Coins className="w-5 h-5" />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-          { label: 'Credits purchased', value: totalPurchased, icon: <ArrowUpRight className="w-5 h-5" />, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Credits purchased', value: totalPurchased, icon: <ArrowUpRight className="w-5 h-5" />, color: 'text-[#7C3AED]', bg: 'bg-[#F5F0FF]' },
           { label: 'Credits used', value: totalSpent, icon: <TrendingUp className="w-5 h-5" />, color: 'text-green-600', bg: 'bg-green-50' },
         ].map(({ label, value, icon, color, bg }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-100 p-5">
+          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${bg} ${color}`}>{icon}</div>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+            <p className="text-sm text-[#7B6FA0] mt-0.5">{label}</p>
           </div>
         ))}
       </div>
@@ -166,16 +215,16 @@ export default function UsagePage() {
           <h2 className="text-base font-semibold text-gray-900 mb-3">Lead pipeline</h2>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'Total leads', value: stats.total, icon: <Users className="w-4 h-4" />, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { label: 'Total leads', value: stats.total, icon: <Users className="w-4 h-4" />, color: 'text-[#7C3AED]', bg: 'bg-[#F5F0FF]' },
               { label: 'Scored', value: stats.scored, icon: <TrendingUp className="w-4 h-4" />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
               { label: 'POPIA consented', value: stats.consented, icon: <ShieldCheck className="w-4 h-4" />, color: 'text-green-600', bg: 'bg-green-50' },
               { label: 'Pipeline value', value: `$${stats.pipeline_value_usd.toLocaleString()}`, icon: <Coins className="w-4 h-4" />, color: 'text-purple-600', bg: 'bg-purple-50' },
             ].map(({ label, value, icon, color, bg }) => (
-              <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4">
+              <div key={label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4 flex items-center gap-4">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${bg} ${color}`}>{icon}</div>
                 <div>
                   <p className="text-xl font-bold text-gray-900">{value}</p>
-                  <p className="text-xs text-gray-500">{label}</p>
+                  <p className="text-xs text-[#7B6FA0]">{label}</p>
                 </div>
               </div>
             ))}
@@ -183,12 +232,31 @@ export default function UsagePage() {
         </div>
       )}
 
+      {/* Weekly credit usage bar chart */}
+      {transactions.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-gray-900">Weekly credit usage</h2>
+            <span className="text-xs text-[#9B8EC4]">Last 8 weeks</span>
+          </div>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
+            {transactions.some(t => t.amount < 0) ? (
+              <UsageBarChart transactions={transactions} />
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-sm text-[#9B8EC4]">No credits used yet — chart will appear here once you start using FIGSY.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Outreach performance — placeholder until FIGSY is live */}
       <div>
         <h2 className="text-base font-semibold text-gray-900 mb-3">Outreach performance</h2>
-        <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center">
-          <p className="text-sm font-medium text-gray-500">Outreach metrics available once FIGSY is active</p>
-          <p className="text-xs text-gray-400 mt-1">Email send rate, reply rate, and positive reply rate will appear here.</p>
+        <div className="bg-white rounded-xl border border-dashed border-purple-100/80 p-8 text-center">
+          <p className="text-sm font-medium text-[#7B6FA0]">Outreach metrics available once FIGSY is active</p>
+          <p className="text-xs text-[#9B8EC4] mt-1">Email send rate, reply rate, and positive reply rate will appear here.</p>
         </div>
       </div>
 
@@ -196,12 +264,12 @@ export default function UsagePage() {
       {transactions.length > 0 ? (
         <div>
           <h2 className="text-base font-semibold text-gray-900 mb-3">Credit history</h2>
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
             {transactions.map((tx, i) => (
               <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 text-sm ${i < transactions.length - 1 ? 'border-b border-gray-50' : ''}`}>
                 <div>
                   <p className="font-medium text-gray-800">{TYPE_LABEL[tx.type] ?? tx.type}{tx.plan ? ` · ${tx.plan === 'kind_ai' ? 'K.I.N.D AI' : 'FIGSY'}` : ''}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
+                  <p className="text-xs text-[#9B8EC4] mt-0.5">{new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
                 </div>
                 <span className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
                   {tx.amount > 0 ? '+' : ''}{tx.amount}
@@ -213,9 +281,9 @@ export default function UsagePage() {
       ) : (
         <div>
           <h2 className="text-base font-semibold text-gray-900 mb-3">Credit history</h2>
-          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-sm text-gray-400">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-8 text-center text-sm text-[#9B8EC4]">
             No transactions yet.{' '}
-            <Link href="/dashboard/billing" className="text-brand-500 hover:underline">Top up credits →</Link>
+            <Link href="/dashboard/billing" className="text-[#7C3AED] hover:underline">Top up credits →</Link>
           </div>
         </div>
       )}

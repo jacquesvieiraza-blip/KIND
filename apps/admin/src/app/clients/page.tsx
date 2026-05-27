@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-import { Users, AlertTriangle, CreditCard, Activity } from 'lucide-react'
 
 interface Subscription { status: string; product: string }
 interface Client {
@@ -159,125 +158,83 @@ export default async function ClientsPage({
   }
 
   return (
-    <div className="p-8 space-y-6">
-      {/* Header */}
+    <div className="px-8 py-6 max-w-6xl mx-auto space-y-6">
+
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
-            {atRiskOnly ? 'At-Risk Clients' : 'All Clients'}
-          </h1>
-          <p className="text-white/40 text-sm mt-1">
-            {clients.length} client{clients.length !== 1 ? 's' : ''}
-            {atRiskOnly && ' flagged at-risk'}
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">All Clients</h1>
+          <p className="text-gray-500 text-sm mt-0.5">{clients.length} client{clients.length !== 1 ? 's' : ''} total</p>
         </div>
-        {atRiskOnly && (
-          <Link href="/clients" className="text-sm text-white/40 hover:text-white/70 transition-colors">
-            ← All Clients
-          </Link>
-        )}
       </div>
 
       {/* Summary strip */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          {
-            label: 'Active',
-            value: counts.active,
-            icon: <Activity className="w-4 h-4 text-emerald-400" />,
-            val_color: 'text-emerald-400',
-          },
-          {
-            label: 'On Trial',
-            value: counts.trial,
-            icon: <CreditCard className="w-4 h-4 text-blue-400" />,
-            val_color: 'text-blue-400',
-          },
-          {
-            label: 'At-Risk',
-            value: counts.atRisk,
-            icon: <AlertTriangle className="w-4 h-4 text-red-400" />,
-            val_color: 'text-red-400',
-            href: '/clients?filter=atrisk',
-          },
-          {
-            label: 'No Credits',
-            value: counts.noCredits,
-            icon: <Users className="w-4 h-4 text-white/30" />,
-            val_color: 'text-white/60',
-          },
-        ].map(({ label, value, icon, val_color, href }) => {
-          const inner = (
-            <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 hover:bg-white/[0.05] transition-colors">
-              <div className="flex items-center gap-2 mb-2">{icon}<span className="text-xs text-white/40">{label}</span></div>
-              <p className={`text-2xl font-bold ${val_color}`}>{value}</p>
-            </div>
-          )
-          return href ? <Link key={label} href={href}>{inner}</Link> : inner
-        })}
+          { label: 'Active',         value: counts.active,        color: 'text-green-600' },
+          { label: 'On Trial',       value: counts.trial,         color: 'text-[#7C3AED]' },
+          { label: 'T&Cs Accepted',  value: counts.termsAccepted, color: 'text-[#7C3AED]' },
+          { label: 'No Credits',     value: counts.noCredits,     color: 'text-gray-400' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4 text-center">
+            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+            <p className="text-xs text-gray-500 mt-1">{label}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
+      {/* Client table */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
         {clients.length === 0 ? (
-          <div className="text-center py-16">
-            <Users className="w-10 h-10 mx-auto mb-3 text-white/20" />
-            <p className="text-sm text-white/30">
-              {atRiskOnly ? 'No at-risk clients — all good!' : 'No clients yet'}
-            </p>
+          <div className="text-center py-16 text-gray-400">
+            <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">No clients yet</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06]">
-                {['Company', 'Joined', 'MRR Credits', 'Leads (14d)', 'FIGSY', 'Health', 'Last Login', ''].map(h => (
-                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-white/30 uppercase tracking-wider">{h}</th>
+              <tr className="border-b border-purple-100">
+                {['Company', 'Country', 'Status', 'T&Cs', 'Active Products', 'Actions'].map(h => (
+                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-purple-50">
               {clients.map(client => {
-                const rowBg = client.health === 'red' ? 'bg-red-400/[0.03]' : ''
-                const activeSubs = (client.subscriptions || []).filter(s => s.status === 'active' || s.status === 'trialing')
+                const st = clientStatus(client)
+                const activeProducts = (client.subscriptions || []).filter(s => s.status === 'active' || s.status === 'trialing')
 
                 return (
-                  <tr key={client.id} className={`hover:bg-white/[0.03] transition-colors ${rowBg}`}>
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-white">{client.company_name}</p>
-                      {client.industry && <p className="text-xs text-white/30 mt-0.5">{client.industry}</p>}
+                  <tr key={client.id} className="hover:bg-purple-50/30 transition-colors">
+                    <td className="px-5 py-3">
+                      <p className="font-medium text-gray-900">{client.company_name}</p>
+                      {client.industry && <p className="text-xs text-gray-400">{client.industry}</p>}
                     </td>
-                    <td className="px-5 py-3.5 text-white/50 text-xs">
-                      {new Date(client.created_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}
+                    <td className="px-5 py-3 text-gray-600">{client.country}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${st.color}`}>
+                        {st.icon}{st.label}
+                      </span>
                     </td>
-                    <td className="px-5 py-3.5">
-                      {client.mrr_this_month > 0
-                        ? <span className="text-emerald-400 font-medium">{client.mrr_this_month}</span>
-                        : <span className="text-white/30">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {client.leads_14d > 0
-                        ? <span className="text-white font-medium">{client.leads_14d}</span>
-                        : <span className="text-white/30">0</span>}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {client.figsy_active > 0 ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">
-                          Active
+                    <td className="px-5 py-3">
+                      {client.terms_accepted_at ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          {new Date(client.terms_accepted_at).toLocaleDateString('en-ZA')}
                         </span>
                       ) : (
-                        <span className="text-white/30 text-xs">Off</span>
+                        <span className="text-xs text-gray-400">Not accepted</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className={`w-2.5 h-2.5 rounded-full ${HEALTH_DOT[client.health]}`} />
+                    <td className="px-5 py-3">
+                      {activeProducts.length > 0
+                        ? activeProducts.map(s => <span key={s.product} className="text-xs bg-purple-50 text-[#7C3AED] border border-purple-100 px-1.5 py-0.5 rounded-full mr-1 font-medium">{s.product.replace('_', ' ')}</span>)
+                        : <span className="text-xs text-gray-400">None</span>
+                      }
                     </td>
-                    <td className="px-5 py-3.5">
-                      <LastLoginCell days={client.last_login_days} />
-                    </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3">
                       <Link href={`/clients/${client.id}`}
-                        className="text-xs text-[#0066FF] hover:text-blue-400 font-medium transition-colors">
-                        View →
+                        className="text-xs text-[#7C3AED] hover:text-purple-800 font-semibold">
+                        Manage →
                       </Link>
                     </td>
                   </tr>

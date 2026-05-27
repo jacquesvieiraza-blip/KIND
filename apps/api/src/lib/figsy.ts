@@ -51,6 +51,19 @@ export async function generateSequence(
   senderIndustry: string | null,
   campaignIntent?: string,
 ): Promise<SequenceDraft> {
+  // ── Signal detection — pick the best personalization hook ─────────────────
+  const signals: string[] = []
+  if (lead.tech_stack && lead.tech_stack.length > 0) {
+    signals.push(`Uses ${lead.tech_stack.slice(0, 2).join(' and ')} in their tech stack`)
+  }
+  if (lead.industry) {
+    signals.push(`Works in ${lead.industry}`)
+  }
+  if (lead.score_reasoning) {
+    signals.push(lead.score_reasoning)
+  }
+  const bestSignal = signals[0] ?? null
+
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."
 
 Lead details:
@@ -60,13 +73,13 @@ Lead details:
 - Industry: ${lead.industry || 'unknown'}
 - Seniority: ${lead.seniority || 'unknown'}
 - Country: ${lead.country || 'unknown'}
+${bestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${bestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
-${lead.score_reasoning ? `- Why they're relevant: ${lead.score_reasoning}` : ''}
 
 Write a 3-email sequence:
 
 Step 1 (Day 0) — First touch:
-- Open with a specific, genuine observation about their role, company, or a problem they likely face. Not generic — make them feel seen.
+- MANDATORY: Open with a specific observation using the personalization signal provided above. If they use Salesforce, reference it. If they're in fintech, reference it. Make them feel like you actually looked them up — because we did.
 - One sentence on what ${senderCompanyName} does and why it matters to them specifically.
 - One soft CTA: quick call, 15 minutes.
 - Max 70 words. No subject line tricks. Subject should feel like a colleague's email.
@@ -116,39 +129,61 @@ Return ONLY valid JSON, no markdown:
   }
 }
 
+export type ReplyClassification =
+  | 'hot'           // 🔥 Ready to talk — wants a call, asks next steps, agrees to meet
+  | 'warm'          // 🌤️ Interested but not now — open to future conversation
+  | 'cold'          // ❄️ Not relevant — politely declines, wrong timing, not a fit
+  | 'opt_out'       // 🚫 Stop emailing — explicit unsubscribe request
+  | 'wrong_person'  // 👤 Not the right contact — forwarded, CC'd someone else, refers elsewhere
+  | 'out_of_office' // ✈️ Auto-reply or OOO
+  | 'other'         // ❓ Unclear, bounce, spam, or unclassifiable
+
 export async function classifyReply(body: string): Promise<{
-  classification: 'interested' | 'not_interested' | 'opt_out' | 'out_of_office' | 'other'
+  classification: ReplyClassification
   reasoning: string
 }> {
-  const prompt = `Classify this email reply from a B2B cold outreach recipient.
+  const prompt = `You are classifying a B2B cold outreach reply for a sales team.
+Your classification determines how they handle the lead — be precise.
 
 Reply:
 """
-${body.slice(0, 1000)}
+${body.slice(0, 1200)}
 """
 
 Classify as exactly one of:
-- "interested": They want to learn more, ask a question, or agree to a call
-- "not_interested": They politely decline, say not now, or not relevant
-- "opt_out": They explicitly ask to be removed, say stop emailing, or unsubscribe
-- "out_of_office": Auto-reply or OOO message
-- "other": Anything else (bounce, spam, unclear)
+- "hot": Prospect wants to talk NOW — asks for a call, agrees to meet, asks about pricing/details, or says yes
+- "warm": Prospect is interested but not ready — says "maybe later", "reach me in Q3", "send me more info", asks a question without committing
+- "cold": Not a fit right now — politely declines, says not relevant, bad timing with no openness
+- "opt_out": Explicitly wants to be removed — "unsubscribe", "stop emailing me", "remove me from your list"
+- "wrong_person": Not the right contact — "I'm not the decision maker", "try [name]", forwards to someone else
+- "out_of_office": Automated OOO reply, holiday message, or auto-responder
+- "other": Bounce, spam filter response, completely unclear, or unrelated
 
-Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence"}`
+Rules:
+- If they ask ANY question, lean toward "hot" or "warm", not "cold"
+- If they give a future date, use "warm" not "cold"
+- "opt_out" requires explicit unsubscribe language
+- OOO messages are almost always automated and short
+
+Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max"}`
 
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 128,
+    max_tokens: 150,
     messages: [{ role: 'user', content: prompt }],
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
-  try {
-    return JSON.parse(stripJson(raw))
-  } catch {
-    console.error('[figsy] classifyReply JSON parse failed, raw:', raw.slice(0, 200))
-    return { classification: 'other', reasoning: 'Classification failed — manual review needed' }
+  const parsed = JSON.parse(raw) as { classification: string; reasoning: string }
+
+  // Normalise legacy values that might come back from old prompts
+  const legacyMap: Record<string, ReplyClassification> = {
+    interested:     'hot',
+    not_interested: 'cold',
   }
+  const classification = (legacyMap[parsed.classification] ?? parsed.classification) as ReplyClassification
+
+  return { classification, reasoning: parsed.reasoning }
 }
 
 export async function sendSequenceEmail(
@@ -362,6 +397,19 @@ export async function generateSequenceWithMemory(
       : null,
   ].filter(Boolean).join('\n')
 
+  // ── Signal detection — pick the best personalization hook ─────────────────
+  const memSignals: string[] = []
+  if (lead.tech_stack && lead.tech_stack.length > 0) {
+    memSignals.push(`Uses ${lead.tech_stack.slice(0, 2).join(' and ')} in their tech stack`)
+  }
+  if (lead.industry) {
+    memSignals.push(`Works in ${lead.industry}`)
+  }
+  if (lead.score_reasoning) {
+    memSignals.push(lead.score_reasoning)
+  }
+  const memBestSignal = memSignals[0] ?? null
+
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person — not an AI.
 
 FIGSY Campaign Intelligence (use this to improve your writing):
@@ -377,12 +425,12 @@ Lead details:
 - Industry: ${lead.industry || 'unknown'}
 - Seniority: ${lead.seniority || 'unknown'}
 - Country: ${lead.country || 'unknown'}
+${memBestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${memBestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
-${lead.score_reasoning ? `- Why they're relevant: ${lead.score_reasoning}` : ''}
 
 Write a 3-email sequence that applies the lessons from Campaign Intelligence above.
 
-Step 1 (Day 0): First touch — under 70 words. Specific observation. One CTA.
+Step 1 (Day 0): First touch — under 70 words. MANDATORY: Open with the personalization signal above. One CTA.
 Step 2 (Day 4): Follow-up — new angle, shorter. Acknowledge step 1 was sent.
 Step 3 (Day 9): Final — direct, no pressure, leave it open.
 

@@ -112,35 +112,34 @@ creditRouter.post('/verify', async (req: AuthRequest, res) => {
 
     const { client_id, plan, bundle_size } = paystackData.data.metadata
 
-    // Idempotency: skip if reference already processed
-    const { data: existing } = await db.from('credit_transactions')
-      .select('id').eq('reference', reference).maybeSingle()
-    if (existing) { res.json({ success: true, message: 'Already processed' }); return }
+    // Atomic insert: the unique index on credit_transactions.reference
+    // is the true idempotency guard. If two requests race here, only one
+    // insert will succeed — the other gets a unique-violation error which
+    // we catch and treat as "already processed". No read-modify-write race.
+    const { error: insertError } = await db.from('credit_transactions').insert({
+      client_id,
+      type:      'purchase',
+      amount:    Number(bundle_size),
+      plan:      plan || null,
+      reference,
+      note:      `Purchased ${bundle_size} credits (${plan})`,
+    })
 
-    const { data: client } = await db.from('clients')
-      .select('id, credit_balance, figsy_credits_remaining').eq('id', client_id).single()
-    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    if (insertError) {
+      // 23505 = unique_violation — reference already processed (race condition or retry)
+      if (insertError.code === '23505') {
+        res.json({ success: true, message: 'Already processed' }); return
+      }
+      throw insertError
+    }
 
-    // FIGSY credits go to figsy_credits_remaining; Lead Gen credits go to credit_balance
-    const isFigsy = plan === 'figsy'
-    const columnUpdate = isFigsy
-      ? { figsy_credits_remaining: (client.figsy_credits_remaining ?? 0) + Number(bundle_size) }
-      : { credit_balance:          (client.credit_balance          ?? 0) + Number(bundle_size) }
-    const newBalance = isFigsy
-      ? (client.figsy_credits_remaining ?? 0) + Number(bundle_size)
-      : (client.credit_balance          ?? 0) + Number(bundle_size)
-
-    await Promise.all([
-      db.from('clients').update(columnUpdate).eq('id', client_id),
-      db.from('credit_transactions').insert({
-        client_id,
-        type:      'purchase',
-        amount:    Number(bundle_size),
-        plan:      plan || null,
-        reference,
-        note:      `Purchased ${bundle_size} ${isFigsy ? 'FIGSY outreach' : 'lead gen'} credits`,
-      }),
-    ])
+    // Atomic credit increment via Supabase RPC — avoids read-modify-write race
+    const { data: newBalanceData, error: rpcError } = await db.rpc('increment_client_credits', {
+      p_client_id: client_id,
+      p_amount:    Number(bundle_size),
+    })
+    if (rpcError) throw rpcError
+    const newBalance = newBalanceData as number
 
     // Store auth code for auto top-up if present
     if (paystackData.data.authorization?.reusable && paystackData.data.authorization?.authorization_code) {

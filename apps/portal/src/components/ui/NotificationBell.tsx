@@ -17,7 +17,7 @@ interface Notification {
 const TYPE_META: Record<string, { icon: React.ReactNode; color: string }> = {
   low_credits:        { icon: <CreditCard className="w-4 h-4" />,  color: 'text-amber-500 bg-amber-50' },
   interested_reply:   { icon: <Zap className="w-4 h-4" />,         color: 'text-green-600 bg-green-50' },
-  new_consented_lead: { icon: <ShieldCheck className="w-4 h-4" />, color: 'text-blue-600 bg-blue-50' },
+  new_consented_lead: { icon: <ShieldCheck className="w-4 h-4" />, color: 'text-[#7C3AED] bg-[#F5F0FF]' },
   trial_expiring:     { icon: <Clock className="w-4 h-4" />,       color: 'text-red-500 bg-red-50' },
 }
 
@@ -66,19 +66,19 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-9 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+        <div className="absolute right-0 top-9 w-80 bg-white rounded-xl shadow-2xl border border-purple-100/60 z-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-purple-100/60 flex items-center justify-between">
             <p className="font-semibold text-gray-900 text-sm">Notifications</p>
             <button onClick={() => setOpen(false)} className="p-1 hover:bg-gray-100 rounded">
-              <X className="w-3.5 h-3.5 text-gray-400" />
+              <X className="w-3.5 h-3.5 text-[#9B8EC4]" />
             </button>
           </div>
           {notifications.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-gray-400">All clear — nothing to action.</div>
+            <div className="px-4 py-8 text-center text-sm text-[#9B8EC4]">All clear — nothing to action.</div>
           ) : (
             <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto">
               {notifications.map(n => {
-                const meta = TYPE_META[n.type] ?? { icon: <Bell className="w-4 h-4" />, color: 'text-gray-500 bg-gray-50' }
+                const meta = TYPE_META[n.type] ?? { icon: <Bell className="w-4 h-4" />, color: 'text-[#7B6FA0] bg-gray-50' }
                 return (
                   <div key={n.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start gap-3">
@@ -87,18 +87,18 @@ export function NotificationBell() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900">{n.title}</p>
-                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{n.message}</p>
+                        <p className="text-xs text-[#7B6FA0] mt-0.5 leading-relaxed">{n.message}</p>
                         {n.type === 'low_credits' && (
-                          <Link href="/dashboard/billing" className="text-xs text-blue-600 hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>Top up →</Link>
+                          <Link href="/dashboard/billing" className="text-xs text-[#7C3AED] hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>Top up →</Link>
                         )}
                         {n.type === 'interested_reply' && (
-                          <Link href="/dashboard/figsy" className="text-xs text-blue-600 hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>View in FIGSY →</Link>
+                          <Link href="/dashboard/figsy" className="text-xs text-[#7C3AED] hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>View in FIGSY →</Link>
                         )}
                         {n.type === 'new_consented_lead' && (
-                          <Link href="/dashboard/leads" className="text-xs text-blue-600 hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>View leads →</Link>
+                          <Link href="/dashboard/leads" className="text-xs text-[#7C3AED] hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>View leads →</Link>
                         )}
                         {n.type === 'trial_expiring' && (
-                          <Link href="/dashboard/billing" className="text-xs text-blue-600 hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>Add billing →</Link>
+                          <Link href="/dashboard/billing" className="text-xs text-[#7C3AED] hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>Add billing →</Link>
                         )}
                       </div>
                     </div>

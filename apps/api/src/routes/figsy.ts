@@ -88,8 +88,8 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       }
     }
 
-    // Handle interested — pause sequence, bump stats, push deal to CRM
-    if (classification === 'interested' && enrollment) {
+    // Handle hot — pause sequence, bump stats, push deal to CRM
+    if (classification === 'hot' && enrollment) {
       await db.from('figsy_enrollments')
         .update({ status: 'replied' }).eq('id', enrollment.id)
 
@@ -213,7 +213,7 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
     ] = await Promise.all([
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'interested'),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'hot'),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out'),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
@@ -289,8 +289,11 @@ figsyRouter.post('/campaigns', async (req: AuthRequest, res) => {
 figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
   try {
     const body = z.object({
-      name:   z.string().min(1).optional(),
-      status: z.enum(['draft','active','paused','completed','archived']).optional(),
+      name:             z.string().min(1).optional(),
+      status:           z.enum(['draft','active','paused','completed','archived']).optional(),
+      system_prompt:    z.string().max(2000).nullable().optional(),
+      daily_send_limit: z.number().int().min(0).max(500).nullable().optional(),
+      review_required:  z.boolean().optional(),
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -318,8 +321,24 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
       }
     }
 
+    // Build update payload — merge settings fields into existing settings JSONB
+    const dbUpdate: Record<string, unknown> = {}
+    if (body.name !== undefined) dbUpdate.name = body.name
+    if (body.status !== undefined) dbUpdate.status = body.status
+
+    const settingsUpdate: Record<string, unknown> = {}
+    if (body.system_prompt !== undefined) settingsUpdate.system_prompt = body.system_prompt
+    if (body.daily_send_limit !== undefined) settingsUpdate.daily_send_limit = body.daily_send_limit
+    if (body.review_required !== undefined) settingsUpdate.review_required = body.review_required
+
+    if (Object.keys(settingsUpdate).length > 0) {
+      const { data: existing } = await db.from('figsy_campaigns')
+        .select('settings').eq('id', req.params.id).eq('client_id', clientId).single()
+      dbUpdate.settings = { ...(existing?.settings ?? {}), ...settingsUpdate }
+    }
+
     const { data, error } = await db.from('figsy_campaigns')
-      .update(body).eq('id', req.params.id).eq('client_id', clientId).select().single()
+      .update(dbUpdate).eq('id', req.params.id).eq('client_id', clientId).select().single()
     if (error) throw error
     if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
     res.json({ success: true, data })
@@ -619,8 +638,8 @@ figsyRouter.post('/replies/:replyId/suggest', async (req: AuthRequest, res) => {
       .single()
     if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
 
-    if (reply.classification !== 'interested') {
-      res.status(400).json({ error: 'Only available for interested replies' }); return
+    if (reply.classification !== 'hot' && reply.classification !== 'interested') {
+      res.status(400).json({ error: 'Only available for hot/interested replies' }); return
     }
 
     const lead = Array.isArray(reply.leads) ? reply.leads[0] : reply.leads
@@ -654,6 +673,63 @@ Output ONLY the email body. No subject line. No preamble.`,
   } catch (err) {
     console.error('[figsy/replies/suggest]', err)
     res.status(500).json({ success: false, error: 'Failed to generate suggestion' })
+  }
+})
+
+// ── SEND MANUAL REPLY FROM UNIBOX ─────────────────────────────────────────────
+figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { body: replyBody } = z.object({
+      body: z.string().min(1).max(5000),
+    }).parse(req.body)
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, from_email, subject, lead_id, client_id')
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .single()
+
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    const { Resend: ResendCls } = await import('resend')
+    const resendInst = process.env.RESEND_API_KEY ? new ResendCls(process.env.RESEND_API_KEY) : null
+
+    if (!resendInst) {
+      res.status(503).json({ success: false, error: 'Email sending not configured' })
+      return
+    }
+
+    const reSubject = reply.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply.subject ?? 'Your enquiry'}`
+    const fromAddr  = 'K.I.N.D <hello@get-kind.com>'
+
+    const { data: sendResult, error: sendError } = await resendInst.emails.send({
+      from:    fromAddr,
+      to:      reply.from_email,
+      subject: reSubject,
+      text:    replyBody,
+    })
+
+    if (sendError) throw sendError
+
+    // Log the sent reply
+    await db.from('figsy_replies').insert({
+      client_id:      clientId,
+      from_email:     fromAddr,
+      subject:        reSubject,
+      body:           replyBody,
+      classification: 'sent_reply',
+      processed_at:   new Date().toISOString(),
+      lead_id:        reply.lead_id,
+    })
+
+    res.json({ success: true, data: { sent: true, resend_id: (sendResult as any)?.id } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[figsy/send-reply]', err)
+    res.status(500).json({ success: false, error: 'Failed to send reply' })
   }
 })
 
@@ -733,6 +809,34 @@ figsyRouter.get('/memory', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error('[figsy/memory]', err)
     res.status(500).json({ success: false, error: 'Failed to fetch FIGSY memory' })
+  }
+})
+
+// Preview the signal that FIGSY would use for a lead (for display in leads table)
+figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead } = await db.from('leads')
+      .select('tech_stack, industry, score_reasoning, company')
+      .eq('id', req.params.leadId)
+      .eq('client_id', clientId)
+      .single()
+
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const signals: string[] = []
+    if (lead.tech_stack && Array.isArray(lead.tech_stack) && lead.tech_stack.length > 0) {
+      signals.push(`Uses ${(lead.tech_stack as string[]).slice(0, 2).join(' and ')}`)
+    }
+    if (lead.score_reasoning) signals.push(lead.score_reasoning)
+    if (lead.industry) signals.push(`${lead.industry} sector`)
+
+    res.json({ success: true, data: { signal: signals[0] ?? null, all_signals: signals } })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to get signal preview' })
   }
 })
 

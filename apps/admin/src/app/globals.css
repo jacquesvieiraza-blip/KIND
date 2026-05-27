@@ -2,23 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #0f0f0f;
-  color: white;
-}
+html, body, #__next { height: 100%; }
 
-/* Scrollbar styling for dark theme */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+body {
+  background: linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%);
+  background-attachment: fixed;
+  @apply text-gray-900;
 }

@@ -230,11 +230,11 @@ export default function LaunchPage() {
       )}
 
       {SECTIONS.map(section => (
-        <div key={section.title} className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/[0.06] bg-white/[0.02]">
-            <h2 className="font-semibold text-white/80">{section.title}</h2>
+        <div key={section.title} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/50">
+            <h2 className="font-semibold text-gray-800">{section.title}</h2>
           </div>
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-purple-50">
             {section.items.map(item => (
               <div key={item.id} onClick={() => toggle(item.id)}
                 className="flex items-start gap-4 px-6 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors">

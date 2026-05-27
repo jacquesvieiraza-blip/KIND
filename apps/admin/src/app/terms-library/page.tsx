@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { FileText, Upload, Trash2, ExternalLink, Loader2, CheckCircle } from 'lucide-react'
-import { AdminNav } from '@/components/AdminNav'
 
 interface Template {
   id: string
@@ -90,10 +89,8 @@ export default function TermsLibraryPage() {
   const allUploaded = REQUIRED_DOCS.every(d => uploadedNames.includes(d.name))
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
 
-      <main className="px-8 py-8 max-w-4xl mx-auto space-y-6">
+      <div className="px-8 py-8 max-w-4xl mx-auto space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Agreement Template Library</h2>
           <p className="text-gray-500 text-sm mt-1">
@@ -154,7 +151,7 @@ export default function TermsLibraryPage() {
                     </>
                   ) : (
                     <button onClick={() => triggerUpload(doc.name)} disabled={isUploading}
-                      className="flex items-center gap-2 bg-[#0066FF] hover:bg-[#0055dd] text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60">
+                      className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#0055dd] text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60">
                       {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : succeeded ? <CheckCircle className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
                       {isUploading ? 'Uploading…' : succeeded ? 'Done!' : 'Upload PDF'}
                     </button>
@@ -170,7 +167,6 @@ export default function TermsLibraryPage() {
           <strong>Note:</strong> PDFs are stored in Supabase Storage bucket <code className="bg-blue-100 px-1 rounded">agreement-templates</code>.
           Create this bucket in your Supabase dashboard → Storage → New bucket → name: <code className="bg-blue-100 px-1 rounded">agreement-templates</code> → Public.
         </div>
-      </main>
     </div>
   )
 }

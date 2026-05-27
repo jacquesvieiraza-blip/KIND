@@ -90,7 +90,7 @@ export default function CmoPage() {
   }
 
   return (
-    <div className="p-8 max-w-5xl space-y-8">
+      <div className="px-8 py-6 max-w-5xl space-y-8">
 
       <div>
         <h1 className="text-2xl font-bold text-white">CMO Tools</h1>
@@ -105,106 +105,115 @@ export default function CmoPage() {
         </div>
         <p className="text-xs text-white/30 mb-5">Claude generates 3 branded posts using K.I.N.D&apos;s voice — Mon / Wed / Fri cadence</p>
 
-        <button
-          onClick={generatePosts}
-          disabled={postsLoading}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {postsLoading ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
-          ) : (
-            'Generate 3 LinkedIn Posts'
+        {/* ── LinkedIn Post Generator ─────────────────────────────────────── */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+            <h2 className="font-semibold text-gray-900">LinkedIn Post Generator</h2>
+          </div>
+          <p className="text-xs text-gray-400 mb-5">Claude generates 3 branded posts using K.I.N.D&apos;s voice — Mon / Wed / Fri cadence</p>
+
+          <button
+            onClick={generatePosts}
+            disabled={postsLoading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {postsLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+            ) : (
+              'Generate 3 LinkedIn Posts'
+            )}
+          </button>
+
+          {postsError && (
+            <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">{postsError}</p>
           )}
         </button>
 
-        {postsError && (
-          <p className="mt-3 text-sm text-red-400 bg-red-400/[0.08] border border-red-400/20 rounded-lg px-4 py-2">{postsError}</p>
-        )}
-
-        {posts.length > 0 && (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {posts.map((post, i) => (
-              <div key={i} className="border border-white/[0.08] rounded-xl bg-white/[0.02] p-4 flex flex-col">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-[#0066FF] bg-blue-400/10 border border-blue-400/20 px-2 py-0.5 rounded">{post.day}</span>
-                  <button
-                    onClick={() => copyPost(i, post.text)}
-                    className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition-colors px-2 py-1 rounded hover:bg-white/5"
-                  >
-                    {copied === i ? (
-                      <><Check className="w-3.5 h-3.5 text-emerald-400" /> Copied</>
-                    ) : (
-                      <><Copy className="w-3.5 h-3.5" /> Copy</>
-                    )}
-                  </button>
+          {posts.length > 0 && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {posts.map((post, i) => (
+                <div key={i} className="border border-blue-100 rounded-xl bg-blue-50/30 p-4 flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-[#7C3AED] bg-blue-100 px-2 py-0.5 rounded">{post.day}</span>
+                    <button
+                      onClick={() => copyPost(i, post.text)}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors px-2 py-1 rounded hover:bg-white"
+                    >
+                      {copied === i ? (
+                        <><Check className="w-3.5 h-3.5 text-green-500" /> Copied</>
+                      ) : (
+                        <><Copy className="w-3.5 h-3.5" /> Copy</>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed flex-1">{post.text}</p>
                 </div>
-                <p className="text-sm text-white/60 whitespace-pre-wrap leading-relaxed flex-1">{post.text}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Prospect Finder ──────────────────────────────────────────────── */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-1">
-          <Search className="w-5 h-5 text-indigo-400" />
-          <h2 className="font-semibold text-white">Prospect Finder</h2>
-        </div>
-        <p className="text-xs text-white/30 mb-5">Apollo search using K.I.N.D&apos;s own ICP — B2B founders &amp; sales directors at African SMEs. Results emailed to you.</p>
-
-        <button
-          onClick={findProspects}
-          disabled={prospectLoading}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {prospectLoading ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Searching…</>
-          ) : (
-            'Find Prospects for K.I.N.D'
+              ))}
+            </div>
           )}
-        </button>
+        </div>
 
-        {prospectError && (
-          <p className="mt-3 text-sm text-red-400 bg-red-400/[0.08] border border-red-400/20 rounded-lg px-4 py-2">{prospectError}</p>
-        )}
-
-        {prospectMsg && (
-          <p className="mt-3 text-sm text-white/60 bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-2">{prospectMsg}</p>
-        )}
-
-        {prospects.length > 0 && (
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  {['Name', 'Title', 'Company', 'Country', 'Email'].map(h => (
-                    <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-white/30 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {prospects.map((p, i) => (
-                  <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-3 py-3 font-medium text-white">
-                      {[p.first_name, p.last_name].filter(Boolean).join(' ') || '—'}
-                    </td>
-                    <td className="px-3 py-3 text-white/50">{p.title ?? '—'}</td>
-                    <td className="px-3 py-3 text-white/50">{p.organization?.name ?? p.organization_name ?? '—'}</td>
-                    <td className="px-3 py-3 text-white/50">{p.country ?? '—'}</td>
-                    <td className="px-3 py-3">
-                      {p.email ? (
-                        <a href={`mailto:${p.email}`} className="text-[#0066FF] hover:underline">{p.email}</a>
-                      ) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* ── Prospect Finder ──────────────────────────────────────────────── */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Search className="w-5 h-5 text-indigo-600" />
+            <h2 className="font-semibold text-gray-900">Prospect Finder</h2>
           </div>
         )}
       </div>
 
+          <button
+            onClick={findProspects}
+            disabled={prospectLoading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {prospectLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Searching…</>
+            ) : (
+              'Find Prospects for K.I.N.D'
+            )}
+          </button>
+
+          {prospectError && (
+            <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">{prospectError}</p>
+          )}
+
+          {prospectMsg && (
+            <p className="mt-3 text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-lg px-4 py-2">{prospectMsg}</p>
+          )}
+
+          {prospects.length > 0 && (
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-purple-100">
+                    {['Name', 'Title', 'Company', 'Country', 'Email'].map(h => (
+                      <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-purple-50">
+                  {prospects.map((p, i) => (
+                    <tr key={i} className="hover:bg-purple-50/30 transition-colors">
+                      <td className="px-3 py-3 font-medium text-gray-900">
+                        {[p.first_name, p.last_name].filter(Boolean).join(' ') || '—'}
+                      </td>
+                      <td className="px-3 py-3 text-gray-500">{p.title ?? '—'}</td>
+                      <td className="px-3 py-3 text-gray-500">{p.organization?.name ?? p.organization_name ?? '—'}</td>
+                      <td className="px-3 py-3 text-gray-500">{p.country ?? '—'}</td>
+                      <td className="px-3 py-3">
+                        {p.email ? (
+                          <a href={`mailto:${p.email}`} className="text-[#7C3AED] hover:underline">{p.email}</a>
+                        ) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
     </div>
   )
 }

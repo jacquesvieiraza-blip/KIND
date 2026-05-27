@@ -176,6 +176,60 @@ export async function runIcpJob(
   return { inserted, skipped, relaxed }
 }
 
+// Preview count — returns total matching leads + 3 sample contacts for an ICP config without saving
+icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
+  try {
+    const { previewCount, buildSearchBody, searchPeople } = await import('../lib/apollo')
+    const body = req.body as {
+      job_titles?: string[]
+      seniority_levels?: string[]
+      company_sizes?: string[]
+      geographies?: string[]
+      industries?: string[]
+      tech_stack?: string[]
+      keywords?: string[]
+      apollo_only_consented?: boolean
+      intent_signals?: string[]
+    }
+    const icpArg = {
+      job_titles:            body.job_titles ?? [],
+      seniority_levels:      body.seniority_levels ?? [],
+      company_sizes:         body.company_sizes ?? [],
+      geographies:           body.geographies ?? [],
+      industries:            body.industries ?? [],
+      tech_stack:            body.tech_stack ?? [],
+      keywords:              body.keywords ?? [],
+      apollo_only_consented: body.apollo_only_consented ?? true,
+      intent_signals:        body.intent_signals ?? [],
+    }
+
+    // Run count + sample contacts in parallel (per_page:1 for count, per_page:3 for samples)
+    const [count, sampleData] = await Promise.all([
+      previewCount(icpArg),
+      (async () => {
+        try {
+          const searchBody = buildSearchBody(icpArg, 1)
+          searchBody.per_page = 3
+          const contacts = await searchPeople(searchBody)
+          return contacts.slice(0, 3).map(c => ({
+            first_name:   c.first_name,
+            last_name:    c.last_name,
+            title:        c.title,
+            company:      c.organization_name ?? c.organization?.name ?? null,
+            linkedin_url: c.linkedin_url,
+          }))
+        } catch {
+          return []
+        }
+      })(),
+    ])
+
+    res.json({ success: true, data: { count, samples: sampleData } })
+  } catch (err) {
+    res.json({ success: true, data: { count: 0, samples: [] } }) // Never fail hard
+  }
+})
+
 icpRouter.get('/', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

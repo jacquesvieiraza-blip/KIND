@@ -24,7 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[status] ?? 'bg-gray-100 text-gray-500'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[status] ?? 'bg-gray-100 text-[#7B6FA0]'}`}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   )
@@ -35,13 +35,13 @@ function SourceChips({ sources }: { sources: MillaSource[] }) {
   const names = [...new Set(sources.map(s => s.document_name))]
   return (
     <div className="mt-2">
-      <button onClick={() => setExpanded(v => !v)} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+      <button onClick={() => setExpanded(v => !v)} className="text-xs text-[#9B8EC4] hover:text-gray-600 transition-colors">
         {expanded ? '▲' : '▼'} Based on: {names.join(', ')}
       </button>
       {expanded && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {names.map(name => (
-            <span key={name} className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium">{name}</span>
+            <span key={name} className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F5F0FF] text-[#7C3AED] text-xs font-medium">{name}</span>
           ))}
         </div>
       )}
@@ -65,14 +65,14 @@ function DemoRequestButton({ product }: { product: 'milla' | 'vida' }) {
     } catch { setSent(true) } finally { setLoading(false) }
   }
   if (sent) return (
-    <div className="flex items-center justify-center gap-2 w-full border border-gray-200 rounded-xl px-6 py-3 text-sm text-gray-500 bg-gray-50">
+    <div className="flex items-center justify-center gap-2 w-full border border-purple-100/80 rounded-xl px-6 py-3 text-sm text-[#7B6FA0] bg-gray-50">
       <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
       Demo request sent — we'll be in touch
     </div>
   )
   return (
     <button onClick={handleRequest} disabled={loading}
-      className="flex items-center justify-center gap-2 w-full border border-gray-200 hover:border-gray-300 rounded-xl px-6 py-3 text-sm text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50">
+      className="flex items-center justify-center gap-2 w-full border border-purple-100/80 hover:border-gray-300 rounded-xl px-6 py-3 text-sm text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50">
       {loading ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> : null}
       Request a Demo instead
     </button>
@@ -239,7 +239,7 @@ export default function AssistantPage() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (hasAccess === null) return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <p className="text-sm text-gray-400">Loading…</p>
+      <p className="text-sm text-[#9B8EC4]">Loading…</p>
     </div>
   )
 
@@ -248,21 +248,21 @@ export default function AssistantPage() {
     <div className="flex items-center justify-center min-h-[60vh] px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
-            <Bot className="w-7 h-7 text-blue-600" />
+          <div className="w-14 h-14 rounded-2xl bg-[#F5F0FF] flex items-center justify-center mx-auto mb-4">
+            <Bot className="w-7 h-7 text-[#7C3AED]" />
           </div>
-          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+          <div className="inline-flex items-center gap-2 bg-[#F5F0FF] text-[#6D28D9] text-xs font-semibold px-3 py-1 rounded-full mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED] inline-block" />
             Now available
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Meet Milla</h1>
-          <p className="text-gray-500 text-sm">Your AI Virtual Assistant — trained on your business documents. Ask her anything.</p>
+          <p className="text-[#7B6FA0] text-sm">Your AI Virtual Assistant — trained on your business documents. Ask her anything.</p>
         </div>
-        <div className="bg-gray-50 rounded-xl p-5 mb-6 space-y-3">
+        <div className="bg-[#F5EEFF]/60 rounded-xl p-5 mb-6 space-y-3">
           {['Trained on your own documents and SOPs','Answers questions about your business instantly','Drafts emails and messages in your tone','Available 24/7 — never misses a question'].map(f => (
             <div key={f} className="flex items-center gap-3 text-sm text-gray-700">
               <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-2.5 h-2.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                <svg className="w-2.5 h-2.5 text-[#7C3AED]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
               </div>
               {f}
             </div>
@@ -270,15 +270,15 @@ export default function AssistantPage() {
         </div>
         <div className="text-center mb-5">
           <span className="text-3xl font-bold text-gray-900">$49</span>
-          <span className="text-gray-400 text-sm ml-1">/month</span>
+          <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
         </div>
         <div className="space-y-3">
-          <a href="/dashboard/billing#milla" className="flex items-center justify-center gap-2 w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
-            Unlock Milla — $49/month
+          <a href="/dashboard/billing" className="flex items-center justify-center gap-2 w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
+            Unlock Milla — $49/month →
           </a>
           <DemoRequestButton product="milla" />
         </div>
-        <p className="text-xs text-gray-400 text-center mt-4">Cancel anytime · Billed monthly · Activates instantly</p>
+        <p className="text-xs text-[#9B8EC4] text-center mt-4">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>
       </div>
     </div>
   )
@@ -291,13 +291,13 @@ export default function AssistantPage() {
       )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Milla — Virtual Assistant</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Train Milla on your business documents, then ask questions and get grounded answers.</p>
+        <p className="text-sm text-[#7B6FA0] mt-0.5">Train Milla on your business documents, then ask questions and get grounded answers.</p>
       </div>
 
-      <div className="flex gap-1 border-b border-gray-100">
+      <div className="flex gap-1 border-b border-purple-100/60">
         {(['documents', 'chat'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${tab === t ? 'bg-white border border-b-white border-gray-100 text-gray-900 -mb-px' : 'text-gray-500 hover:text-gray-700'}`}>
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${tab === t ? 'bg-white border border-b-white border-purple-100/60 text-gray-900 -mb-px' : 'text-[#7B6FA0] hover:text-gray-700'}`}>
             {t === 'documents' ? 'Documents' : 'Chat'}
           </button>
         ))}
@@ -305,15 +305,15 @@ export default function AssistantPage() {
 
       {tab === 'documents' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-gray-100">
-            <div className="px-5 py-4 border-b border-gray-100">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60">
+            <div className="px-5 py-4 border-b border-purple-100/60">
               <h2 className="font-semibold text-gray-900 text-sm">Uploaded documents</h2>
             </div>
-            {docsLoading ? <div className="p-8 text-center text-sm text-gray-400">Loading…</div>
+            {docsLoading ? <div className="p-8 text-center text-sm text-[#9B8EC4]">Loading…</div>
               : documents.length === 0 ? (
                 <div className="p-10 text-center">
-                  <p className="text-gray-500 font-medium">No documents yet</p>
-                  <p className="text-sm text-gray-400 mt-1">Add your first document to train Milla on your business.</p>
+                  <p className="text-[#7B6FA0] font-medium">No documents yet</p>
+                  <p className="text-sm text-[#9B8EC4] mt-1">Add your first document to train Milla on your business.</p>
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-50">
@@ -322,13 +322,13 @@ export default function AssistantPage() {
                       <div className="flex items-center gap-3 min-w-0">
                         <div>
                           <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{doc.type.toUpperCase()} · {new Date(doc.created_at).toLocaleDateString()}</p>
+                          <p className="text-xs text-[#9B8EC4] mt-0.5">{doc.type.toUpperCase()} · {new Date(doc.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <StatusBadge status={doc.status} />
                         <button onClick={() => handleDeleteDoc(doc.id)} disabled={deletingId === doc.id}
-                          className="px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-500 text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
+                          className="px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-[#7B6FA0] text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
                           {deletingId === doc.id ? '…' : 'Delete'}
                         </button>
                       </div>
@@ -337,31 +337,31 @@ export default function AssistantPage() {
                 </ul>
               )}
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
             <h2 className="font-semibold text-gray-900 text-sm mb-4">Add document</h2>
             <form onSubmit={handleDocSubmit} className="space-y-4">
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Document name</label>
                   <input type="text" value={docName} onChange={e => setDocName(e.target.value)} placeholder="e.g. Pricing Deck Q2 2026"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                    className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
                   <select value={docType} onChange={e => setDocType(e.target.value as typeof docType)}
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
+                    className="border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
                     <option value="txt">Text</option><option value="pdf">PDF</option>
                     <option value="url">URL</option><option value="other">Other</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Content <span className="text-gray-400 font-normal">(paste extracted text)</span></label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Content <span className="text-[#9B8EC4] font-normal">(paste extracted text)</span></label>
                 <textarea value={docContent} onChange={e => setDocContent(e.target.value)} placeholder="Paste the full text content of your document here…"
-                  rows={8} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-y" />
+                  rows={8} className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-y" />
               </div>
               <button type="submit" disabled={submitting || !docName.trim() || !docContent.trim()}
-                className="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+                className="px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
                 {submitting ? 'Uploading…' : 'Upload document'}
               </button>
             </form>
@@ -370,30 +370,30 @@ export default function AssistantPage() {
       )}
 
       {tab === 'chat' && (
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
           {!docsLoading && !hasReadyDoc && (
-            <div className="p-4 bg-blue-50 border-b border-blue-100">
-              <p className="text-sm text-blue-700">
+            <div className="p-4 bg-[#F5F0FF] border-b border-purple-100">
+              <p className="text-sm text-[#6D28D9]">
                 💡 Milla can answer general questions now. <button onClick={() => setTab('documents')} className="underline font-medium">Add your business documents</button> to get answers grounded in your own data.
               </p>
             </div>
           )}
           <div className="flex h-[68vh]">
-            <div className="w-56 border-r border-gray-100 flex flex-col shrink-0">
-              <div className="px-3 py-3 border-b border-gray-100">
+            <div className="w-56 border-r border-purple-100/60 flex flex-col shrink-0">
+              <div className="px-3 py-3 border-b border-purple-100/60">
                 <button onClick={handleNewSession} disabled={creatingSession}
-                  className="w-full px-3 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">
+                  className="w-full px-3 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">
                   {creatingSession ? 'Creating…' : '+ New chat'}
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto">
-                {sessionsLoading ? <p className="text-xs text-gray-400 p-4">Loading…</p>
-                  : sessions.length === 0 ? <p className="text-xs text-gray-400 p-4">No sessions yet.</p>
+                {sessionsLoading ? <p className="text-xs text-[#9B8EC4] p-4">Loading…</p>
+                  : sessions.length === 0 ? <p className="text-xs text-[#9B8EC4] p-4">No sessions yet.</p>
                   : sessions.map(s => (
                     <button key={s.id} onClick={() => selectSession(s)}
-                      className={`w-full text-left px-3 py-2.5 text-xs transition-colors border-b border-gray-50 ${activeSession?.id === s.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+                      className={`w-full text-left px-3 py-2.5 text-xs transition-colors border-b border-gray-50 ${activeSession?.id === s.id ? 'bg-[#F5F0FF] text-[#6D28D9] font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
                       <p className="truncate">{s.title ?? 'Untitled chat'}</p>
-                      <p className="text-gray-400 mt-0.5">{new Date(s.created_at).toLocaleDateString()}</p>
+                      <p className="text-[#9B8EC4] mt-0.5">{new Date(s.created_at).toLocaleDateString()}</p>
                     </button>
                   ))
                 }
@@ -403,24 +403,24 @@ export default function AssistantPage() {
               {!activeSession ? (
                 <div className="flex-1 flex items-center justify-center text-center p-8">
                   <div>
-                    <p className="text-gray-500 font-medium">Select a chat or start a new one</p>
-                    <p className="text-sm text-gray-400 mt-1">Milla will answer questions using your uploaded documents.</p>
+                    <p className="text-[#7B6FA0] font-medium">Select a chat or start a new one</p>
+                    <p className="text-sm text-[#9B8EC4] mt-1">Milla will answer questions using your uploaded documents.</p>
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-                    {messagesLoading ? <p className="text-sm text-gray-400 text-center py-8">Loading messages…</p>
+                    {messagesLoading ? <p className="text-sm text-[#9B8EC4] text-center py-8">Loading messages…</p>
                       : messages.length === 0 ? (
                         <div className="flex justify-start">
-                          <div className="max-w-[80%] bg-gray-50 text-gray-800 border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed">
+                          <div className="max-w-[80%] bg-gray-50 text-gray-800 border border-purple-100/60 rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed">
                             Hi! I'm Milla, your K.I.N.D business assistant. Ask me anything — about your leads, how to set up FIGSY, what your ICP should look like, or any other business question. How can I help?
                           </div>
                         </div>
                       ) : messages.map(msg => (
                         <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-1' : ''}`}>
-                            <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-[#0066FF] text-white rounded-br-sm' : 'bg-gray-50 text-gray-800 border border-gray-100 rounded-bl-sm'}`}>
+                            <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-[#7C3AED] text-white rounded-br-sm' : 'bg-gray-50 text-gray-800 border border-purple-100/60 rounded-bl-sm'}`}>
                               {msg.content}
                             </div>
                             {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && <SourceChips sources={msg.sources} />}
@@ -430,20 +430,20 @@ export default function AssistantPage() {
                     }
                     {sending && (
                       <div className="flex justify-start">
-                        <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-2.5">
-                          <span className="text-xs text-gray-400">Milla is thinking…</span>
+                        <div className="bg-gray-50 border border-purple-100/60 rounded-2xl rounded-bl-sm px-4 py-2.5">
+                          <span className="text-xs text-[#9B8EC4]">Milla is thinking…</span>
                         </div>
                       </div>
                     )}
                     <div ref={messagesEndRef} />
                   </div>
-                  <form onSubmit={handleSend} className="px-4 py-3 border-t border-gray-100 flex gap-3 items-end">
+                  <form onSubmit={handleSend} className="px-4 py-3 border-t border-purple-100/60 flex gap-3 items-end">
                     <textarea value={chatInput} onChange={e => setChatInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e) } }}
                       placeholder="Ask Milla anything…" rows={2}
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none" />
+                      className="flex-1 border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none" />
                     <button type="submit" disabled={sending || !chatInput.trim()}
-                      className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors shrink-0">
+                      className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors shrink-0">
                       {sending ? '…' : 'Send'}
                     </button>
                   </form>

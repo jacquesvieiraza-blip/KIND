@@ -3,7 +3,102 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { VoiceMicButton } from '@/components/VoiceMicButton'
+import { Zap, Users, ShieldCheck, BookOpen, Target, Globe, Briefcase, Coffee, TrendingUp, X, ChevronRight, Pencil, Send, Settings2 } from 'lucide-react'
+
+// ── Campaign templates ────────────────────────────────────────────
+interface CampaignTemplate {
+  id: string
+  name: string
+  description: string
+  category: string
+  icon: React.ElementType
+  tags: string[]
+  steps: number
+  suggestedTone: string
+}
+
+const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
+  {
+    id: 'cold-intro',
+    name: 'Cold Introduction',
+    description: 'Introduce your product to a new audience. Three-step sequence: hook, value, breakup.',
+    category: 'Outreach',
+    icon: Target,
+    tags: ['3 steps', 'Cold', 'B2B'],
+    steps: 3,
+    suggestedTone: 'Professional, concise',
+  },
+  {
+    id: 'saas-trial',
+    name: 'SaaS Trial Push',
+    description: 'Invite decision-makers to start a free trial. Emphasise time-to-value and ROI.',
+    category: 'Outreach',
+    icon: Zap,
+    tags: ['3 steps', 'SaaS', 'Trial'],
+    steps: 3,
+    suggestedTone: 'Direct, benefit-focused',
+  },
+  {
+    id: 'event-followup',
+    name: 'Event Follow-Up',
+    description: 'Follow up with leads you met at a conference or webinar while the context is fresh.',
+    category: 'Nurture',
+    icon: Coffee,
+    tags: ['2 steps', 'Warm', 'Event'],
+    steps: 2,
+    suggestedTone: 'Friendly, personal',
+  },
+  {
+    id: 'reactivation',
+    name: 'Lead Reactivation',
+    description: 'Re-engage leads who went cold. Acknowledge the gap and lead with something new.',
+    category: 'Nurture',
+    icon: TrendingUp,
+    tags: ['2 steps', 'Warm', 'Re-engage'],
+    steps: 2,
+    suggestedTone: 'Casual, curious',
+  },
+  {
+    id: 'linkedin-warmup',
+    name: 'LinkedIn Warm Intro',
+    description: 'Connect on LinkedIn first, then follow up with email. Multi-touch approach.',
+    category: 'Multi-channel',
+    icon: Globe,
+    tags: ['3 steps', 'LinkedIn', 'Email'],
+    steps: 3,
+    suggestedTone: 'Professional, familiar',
+  },
+  {
+    id: 'enterprise-abm',
+    name: 'Enterprise ABM',
+    description: 'Account-based outreach for high-value targets. Highly personalised, longer sequence.',
+    category: 'Advanced',
+    icon: Briefcase,
+    tags: ['5 steps', 'Enterprise', 'ABM'],
+    steps: 5,
+    suggestedTone: 'Consultative, specific',
+  },
+  {
+    id: 'revival',
+    name: 'Unresponsive Revival',
+    description: 'Re-engage leads who were scored but never replied. Alta shows 53% engagement on these campaigns — often higher than cold outreach.',
+    category: 'Nurture',
+    icon: TrendingUp,
+    tags: ['2 steps', 'Revival', 'High-intent'],
+    steps: 2,
+    suggestedTone: 'Direct, honest, low-pressure',
+  },
+  {
+    id: 'inbound-qualify',
+    name: 'Inbound Qualify',
+    description: 'Follow up with leads who signed up or showed interest. Strike while the interest is warm.',
+    category: 'Nurture',
+    icon: Zap,
+    tags: ['2 steps', 'Inbound', 'Warm'],
+    steps: 2,
+    suggestedTone: 'Helpful, consultative',
+  },
+]
 
 interface Reply {
   id: string
@@ -11,6 +106,12 @@ interface Reply {
   body: string
   classification: 'interested' | 'not_now' | 'opt_out' | 'out_of_office' | 'other'
   received_at: string
+}
+
+interface CampaignSettings {
+  system_prompt?: string | null
+  daily_send_limit?: number | null
+  review_required?: boolean
 }
 
 interface Campaign {
@@ -23,17 +124,7 @@ interface Campaign {
   replies_interested: number
   opted_out: number
   created_at: string
-  campaign_intent?: string | null
-  intent_mapped_at?: string | null
-}
-
-interface ParsedIntent {
-  geography_focus: string | null
-  job_title_focus: string | null
-  pain_point: string | null
-  trigger_event: string | null
-  avoid: string | null
-  summary: string
+  settings?: CampaignSettings | null
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -48,8 +139,8 @@ const STATUS_COLORS: Record<string, string> = {
   draft:                  'bg-gray-100 text-gray-600',
   active:                 'bg-green-100 text-green-700',
   paused:                 'bg-amber-100 text-amber-700',
-  completed:              'bg-blue-100 text-blue-700',
-  archived:               'bg-gray-100 text-gray-400',
+  completed:              'bg-blue-100 text-[#6D28D9]',
+  archived:               'bg-gray-100 text-[#9B8EC4]',
   paused_low_performance: 'bg-red-100 text-red-700',
 }
 
@@ -80,9 +171,12 @@ export default function FigsyPage() {
   const [replyDraft, setReplyDraft] = useState<{ replyId: string; draft: string } | null>(null)
   const [draftingId, setDraftingId] = useState<string | null>(null)
   const [cloningId, setCloningId] = useState<string | null>(null)
-  const [campaignIntentFlag, setCampaignIntentFlag] = useState(false)
-  const [intentSummaries, setIntentSummaries] = useState<Record<string, ParsedIntent>>({})
-  const [parsingIntentId, setParsingIntentId] = useState<string | null>(null)
+  const [mode, setMode] = useState<'autopilot' | 'copilot'>('autopilot')
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<CampaignTemplate | null>(null)
+  const [expandedSettings, setExpandedSettings] = useState<string | null>(null)
+  const [campaignSettingsMap, setCampaignSettingsMap] = useState<Record<string, CampaignSettings>>({})
+  const [savingSettings, setSavingSettings] = useState<string | null>(null)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
@@ -231,18 +325,52 @@ export default function FigsyPage() {
     }
   }
 
+  function getSettingsForCampaign(campaign: Campaign): CampaignSettings {
+    return campaignSettingsMap[campaign.id] ?? {
+      system_prompt:    campaign.settings?.system_prompt ?? null,
+      daily_send_limit: campaign.settings?.daily_send_limit ?? null,
+      review_required:  campaign.settings?.review_required ?? false,
+    }
+  }
+
+  async function handleSaveSettings(campaign: Campaign) {
+    const settings = getSettingsForCampaign(campaign)
+    setSavingSettings(campaign.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.patch<{ data: Campaign }>(`/figsy/campaigns/${campaign.id}`, {
+        system_prompt:    settings.system_prompt,
+        daily_send_limit: settings.daily_send_limit,
+        review_required:  settings.review_required,
+      }, session?.access_token)
+      setCampaigns(prev => prev.map(c => c.id === campaign.id ? res.data : c))
+      // Clear local override since campaign now has updated settings
+      setCampaignSettingsMap(prev => {
+        const next = { ...prev }
+        delete next[campaign.id]
+        return next
+      })
+      toast('Campaign settings saved')
+    } catch {
+      toast('Failed to save settings')
+    }
+    setSavingSettings(null)
+  }
+
   const activeCampaign = campaigns.find(c => c.status === 'active')
 
   /* ── Upgrade wall ─────────────────────────────────────────────── */
   if (!loading && !hasFigsySub) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] px-4">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 max-w-lg w-full p-8 text-center">
-          <div className="text-4xl mb-4">🤖</div>
+        <div className="bg-white rounded-2xl shadow-lg border border-purple-100/60 max-w-lg w-full p-8 text-center">
+          <div className="w-20 h-20 rounded-2xl overflow-hidden ring-2 ring-[#7C3AED]/30 mx-auto mb-5">
+            <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-3">
             Unlock FIGSY — Your AI Outreach Agent
           </h1>
-          <p className="text-gray-500 text-sm leading-relaxed mb-6">
+          <p className="text-[#7B6FA0] text-sm leading-relaxed mb-6">
             FIGSY writes personalised cold emails, follows up automatically, and books meetings — while you focus on closing.
           </p>
 
@@ -263,7 +391,7 @@ export default function FigsyPage() {
           </ul>
 
           {/* Pricing */}
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">
+          <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wide mb-5">
             From R 60 / 20 outreach credits
           </p>
 
@@ -271,7 +399,7 @@ export default function FigsyPage() {
           <div className="flex flex-col gap-3">
             <a
               href="/dashboard/billing"
-              className="inline-block w-full bg-[#0066FF] hover:bg-blue-700 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center"
+              className="inline-block w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center"
             >
               Upgrade to FIGSY →
             </a>
@@ -279,7 +407,7 @@ export default function FigsyPage() {
               href="https://calendly.com/jacques-vieiraza/30min"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-gray-200"
+              className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-purple-100/80"
             >
               Book a demo
             </a>
@@ -350,13 +478,12 @@ export default function FigsyPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* FIGSY Agent Identity Card */}
-      <div className="bg-gradient-to-br from-[#001f4d] to-[#003080] rounded-2xl p-6 mb-6 flex items-start gap-5">
+      <div className="bg-gradient-to-br from-[#1A0F47] to-[#0F0929] rounded-2xl p-6 mb-6 flex items-start gap-5">
         <div className="relative shrink-0">
-          <div className="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-2xl">
-            🤖
+          <div className="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-[#7C3AED]/40 shadow-md">
+            <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
           </div>
-          {/* green pulse dot */}
-          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-[#001f4d]" />
+          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-[#0F0929] animate-pulse" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-1">
@@ -383,76 +510,119 @@ export default function FigsyPage() {
         </div>
       </div>
 
+      {/* Mode toggle — Auto-Pilot vs Co-Pilot */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4">
+        <div className="flex items-start gap-4">
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider mb-2">FIGSY Mode</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMode('autopilot')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                  mode === 'autopilot'
+                    ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-md shadow-purple-200'
+                    : 'bg-white text-gray-600 border-purple-100/80 hover:border-gray-300'
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                Auto-Pilot
+              </button>
+              <button
+                onClick={() => setMode('copilot')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                  mode === 'copilot'
+                    ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200'
+                    : 'bg-white text-gray-600 border-purple-100/80 hover:border-gray-300'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Co-Pilot
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 text-sm text-[#7B6FA0] leading-relaxed">
+            {mode === 'autopilot' ? (
+              <p>I run fully on your behalf — generating emails, enrolling leads, and following up automatically. No approval needed.</p>
+            ) : (
+              <p>Co-pilot — you approve every message before it sends</p>
+            )}
+          </div>
+        </div>
+        {mode === 'copilot' && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
+            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-700 font-medium">Co-Pilot mode: I will draft sequences for your approval before any email is sent. Check the Inbox for drafts waiting on you.</p>
+          </div>
+        )}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            🤖 FIGSY <span className="text-sm font-normal text-gray-400 ml-1">— AI SDR</span>
+            Campaigns <span className="text-sm font-normal text-[#9B8EC4] ml-1">— {campaigns.length} total</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Automated outreach sequences for your scored, consented leads.
+          <p className="text-sm text-[#7B6FA0] mt-0.5">
+            FIGSY outreach sequences for your scored, consented leads.
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          + New campaign
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTemplates(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-purple-100/80 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-lg transition-colors"
+          >
+            <BookOpen className="w-4 h-4" /> Templates
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            + New campaign
+          </button>
+        </div>
       </div>
-
-      {/* --- removed old inline upgrade banner (replaced by full-page wall above) --- */}
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-900 mb-3">New campaign</h2>
-          <form onSubmit={handleCreate} className="space-y-3">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                placeholder="Campaign name (e.g. Q2 SaaS CTO Outreach)"
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-                autoFocus
-              />
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-semibold text-gray-900">
+                {selectedTemplate ? `From template: ${selectedTemplate.name}` : 'New campaign'}
+              </h2>
+              {selectedTemplate && (
+                <p className="text-xs text-[#9B8EC4] mt-0.5">{selectedTemplate.description}</p>
+              )}
             </div>
-            {campaignIntentFlag && (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  What are we hunting? <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <textarea
-                    value={newIntent}
-                    onChange={e => setNewIntent(e.target.value)}
-                    placeholder="e.g. CFOs at logistics companies in Nigeria struggling with manual month-end reporting — avoid anyone I've already emailed this quarter"
-                    rows={3}
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
-                  />
-                  <VoiceMicButton
-                    onTranscript={text => setNewIntent(prev => prev ? `${prev} ${text}` : text)}
-                  />
-                </div>
-              </div>
+            {selectedTemplate && (
+              <button onClick={() => setSelectedTemplate(null)} className="text-xs text-[#9B8EC4] hover:text-gray-600">
+                Clear template
+              </button>
             )}
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={creating || !newName.trim()}
-                className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {creating ? 'Creating…' : 'Create'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowCreate(false); setNewName(''); setNewIntent('') }}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+          </div>
+          <form onSubmit={handleCreate} className="flex gap-3">
+            <input
+              type="text"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              placeholder={selectedTemplate ? `e.g. ${selectedTemplate.name} — Q3 2026` : 'Campaign name (e.g. Q2 SaaS CTO Outreach)'}
+              className="flex-1 border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={creating || !newName.trim()}
+              className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {creating ? 'Creating…' : 'Create'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowCreate(false); setNewName(''); setSelectedTemplate(null) }}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
           </form>
         </div>
       )}
@@ -474,27 +644,27 @@ export default function FigsyPage() {
 
       {/* Campaign list */}
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
-          <p className="text-sm text-gray-400">Loading campaigns…</p>
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-10 text-center">
+          <p className="text-sm text-[#9B8EC4]">Loading campaigns…</p>
         </div>
       ) : loadError ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-10 text-center">
           <p className="text-sm font-medium text-red-600 mb-1">Could not load campaigns</p>
-          <p className="text-xs text-gray-500 mb-4">{loadError}</p>
-          <button onClick={loadCampaigns} className="px-4 py-2 bg-[#0066FF] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+          <p className="text-xs text-[#7B6FA0] mb-4">{loadError}</p>
+          <button onClick={loadCampaigns} className="px-4 py-2 bg-[#7C3AED] text-white text-sm font-medium rounded-lg hover:bg-[#6D28D9] transition-colors">
             Retry
           </button>
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-10 text-center">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-10 text-center">
           <span className="text-4xl mb-3 block">🤖</span>
           <p className="text-gray-600 font-medium mb-1">No campaigns yet</p>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-[#9B8EC4] mb-4">
             Create a campaign to start sending personalised outreach to your consented leads.
           </p>
           <button
             onClick={() => setShowCreate(true)}
-            className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium rounded-lg transition-colors"
           >
             + Create first campaign
           </button>
@@ -502,16 +672,21 @@ export default function FigsyPage() {
       ) : (
         <div className="space-y-4">
           {campaigns.map(campaign => (
-            <div key={campaign.id} className="bg-white rounded-xl border border-gray-100 p-5">
+            <div key={campaign.id} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
+                    <a href={`/dashboard/figsy/${campaign.id}`} className="font-semibold text-gray-900 hover:text-[#7C3AED] transition-colors">{campaign.name}</a>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[campaign.status]}`}>
                       {STATUS_LABELS[campaign.status]}
                     </span>
+                    {mode === 'copilot' && campaign.status === 'active' && campaign.emails_sent > 0 && (
+                      <span className="bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                        Co-pilot: review before send
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-[#9B8EC4] mt-0.5">
                     Created {new Date(campaign.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -546,7 +721,7 @@ export default function FigsyPage() {
                   <button
                     onClick={() => handleClone(campaign.id)}
                     disabled={cloningId === campaign.id}
-                    className="px-3 py-1.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-500 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-[#F5F0FF] hover:text-[#7C3AED] text-[#7B6FA0] text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
                     title="Clone campaign"
                   >
                     {cloningId === campaign.id ? '…' : 'Clone'}
@@ -554,7 +729,7 @@ export default function FigsyPage() {
                   {campaign.status !== 'active' && (
                     <button
                       onClick={() => handleDelete(campaign.id)}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-500 text-xs font-medium rounded-lg transition-colors"
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-[#7B6FA0] text-xs font-medium rounded-lg transition-colors"
                     >
                       Delete
                     </button>
@@ -601,18 +776,69 @@ export default function FigsyPage() {
                   { label: 'Reply rate', value: replyRate(campaign) },
                   { label: 'Interested', value: interestedRate(campaign) },
                 ].map(({ label, value }) => (
-                  <div key={label} className="bg-gray-50 rounded-lg p-3">
+                  <div key={label} className="bg-[#F5EEFF]/60 rounded-lg p-3">
                     <p className="text-lg font-bold text-gray-900">{value}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+                    <p className="text-xs text-[#9B8EC4] mt-0.5">{label}</p>
                   </div>
                 ))}
               </div>
 
+              {/* Multi-metric progress bar */}
+              {(campaign.leads_enrolled > 0 || campaign.emails_sent > 0) && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-xs font-medium text-[#7B6FA0]">Campaign progress</p>
+                    <p className="text-xs text-[#9B8EC4]">
+                      {campaign.emails_sent > 0 && campaign.leads_enrolled > 0
+                        ? `${Math.round((campaign.emails_sent / (campaign.leads_enrolled * 3)) * 100)}% of sequence complete`
+                        : 'Not started'}
+                    </p>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100 overflow-hidden flex gap-0.5">
+                    {/* Enrolled segment */}
+                    {campaign.leads_enrolled > 0 && (
+                      <div
+                        className="h-full bg-blue-300 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, (campaign.leads_enrolled / Math.max(campaign.leads_enrolled, 1)) * 60)}%` }}
+                        title={`${campaign.leads_enrolled} enrolled`}
+                      />
+                    )}
+                    {/* Sent segment */}
+                    {campaign.emails_sent > 0 && (
+                      <div
+                        className="h-full bg-[#7C3AED] rounded-full transition-all"
+                        style={{ width: `${Math.min(40, (campaign.emails_sent / Math.max(campaign.leads_enrolled * 3, 1)) * 40)}%` }}
+                        title={`${campaign.emails_sent} sent`}
+                      />
+                    )}
+                    {/* Interested segment */}
+                    {campaign.replies_interested > 0 && (
+                      <div
+                        className="h-full bg-green-500 rounded-full transition-all"
+                        style={{ width: `${Math.min(20, (campaign.replies_interested / Math.max(campaign.emails_sent, 1)) * 20 * 10)}%` }}
+                        title={`${campaign.replies_interested} interested`}
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 mt-1.5">
+                    <span className="flex items-center gap-1 text-[10px] text-[#9B8EC4]">
+                      <span className="w-2 h-2 rounded-full bg-blue-300" /> Enrolled
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-[#9B8EC4]">
+                      <span className="w-2 h-2 rounded-full bg-[#7C3AED]" /> Sent
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-[#9B8EC4]">
+                      <span className="w-2 h-2 rounded-full bg-green-500" /> Interested
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* How it works — only on draft campaigns */}
               {campaign.status === 'draft' && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <div className="mt-4 p-4 bg-[#F5F0FF] rounded-lg border border-purple-100">
                   <p className="text-xs font-semibold text-blue-800 mb-2">How FIGSY works once you activate:</p>
-                  <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+                  <ol className="text-xs text-[#6D28D9] space-y-1 list-decimal list-inside">
                     <li>Every consented lead is automatically enrolled</li>
                     <li>Claude generates a personalised 3-step email sequence per lead</li>
                     <li>Step 1 sends immediately — step 2 after 4 days, step 3 after 9 days</li>
@@ -622,14 +848,97 @@ export default function FigsyPage() {
                 </div>
               )}
 
+              {/* Advanced settings panel — W10, W11, W12 */}
+              <div className="mt-3 pt-3 border-t border-purple-100/60">
+                <button
+                  onClick={() => setExpandedSettings(expandedSettings === campaign.id ? null : campaign.id)}
+                  className="text-xs font-medium text-[#7B6FA0] hover:text-gray-700 transition-colors flex items-center gap-1.5"
+                >
+                  <Settings2 className="w-3 h-3" />
+                  {expandedSettings === campaign.id ? '▲' : '▼'} Advanced settings
+                </button>
+
+                {expandedSettings === campaign.id && (() => {
+                  const campaignSettings = getSettingsForCampaign(campaign)
+                  const setCampaignSettings = (updater: (s: CampaignSettings) => CampaignSettings) => {
+                    setCampaignSettingsMap(prev => ({
+                      ...prev,
+                      [campaign.id]: updater(prev[campaign.id] ?? {
+                        system_prompt:    campaign.settings?.system_prompt ?? null,
+                        daily_send_limit: campaign.settings?.daily_send_limit ?? null,
+                        review_required:  campaign.settings?.review_required ?? false,
+                      }),
+                    }))
+                  }
+                  return (
+                    <div className="mt-3 space-y-4 p-4 bg-[#F5F0FF]/40 rounded-xl border border-purple-100/60">
+                      {/* W10 — Custom FIGSY prompt */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+                          <Pencil className="w-3 h-3" /> Custom instructions for FIGSY
+                        </label>
+                        <textarea
+                          value={campaignSettings.system_prompt ?? ''}
+                          onChange={e => setCampaignSettings(s => ({ ...s, system_prompt: e.target.value || null }))}
+                          rows={3}
+                          placeholder="e.g. Always mention our 14-day free trial. Focus on South African market. Don't use em-dashes."
+                          className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-none bg-white"
+                        />
+                        <p className="text-[11px] text-[#9B8EC4] mt-1">FIGSY will follow these instructions when writing emails for this campaign.</p>
+                      </div>
+
+                      {/* W11 — Daily send limit slider */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5"><Send className="w-3 h-3" /> New prospects per day</span>
+                          <span className="text-[#7C3AED] font-bold">{campaignSettings.daily_send_limit ?? 50}</span>
+                        </label>
+                        <input
+                          type="range" min={1} max={200} step={1}
+                          value={campaignSettings.daily_send_limit ?? 50}
+                          onChange={e => setCampaignSettings(s => ({ ...s, daily_send_limit: parseInt(e.target.value) }))}
+                          className="w-full accent-[#7C3AED]"
+                        />
+                        <div className="flex justify-between text-[11px] text-[#9B8EC4] mt-1">
+                          <span>1 (careful)</span><span>50 (default)</span><span>200 (max)</span>
+                        </div>
+                      </div>
+
+                      {/* W12 — Quality gate / Co-pilot toggle */}
+                      <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                        <input
+                          type="checkbox"
+                          id={`review-${campaign.id}`}
+                          checked={campaignSettings.review_required ?? false}
+                          onChange={e => setCampaignSettings(s => ({ ...s, review_required: e.target.checked }))}
+                          className="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
+                        />
+                        <label htmlFor={`review-${campaign.id}`} className="text-xs cursor-pointer">
+                          <span className="font-semibold text-gray-900">✋ Co-pilot mode — review before send</span>
+                          <p className="text-[#9B8EC4] mt-0.5">FIGSY drafts every email for your approval before it goes out. Recommended for new campaigns.</p>
+                        </label>
+                      </div>
+
+                      <button
+                        onClick={() => handleSaveSettings(campaign)}
+                        disabled={savingSettings === campaign.id}
+                        className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+                      >
+                        {savingSettings === campaign.id ? 'Saving…' : 'Save settings'}
+                      </button>
+                    </div>
+                  )
+                })()}
+              </div>
+
               {/* Replies toggle */}
-              <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="mt-3 pt-3 border-t border-purple-100/60">
                 <button
                   onClick={() => {
                     if (expandedReplies === campaign.id) { setExpandedReplies(null) }
                     else { setExpandedReplies(campaign.id); loadReplies(campaign.id) }
                   }}
-                  className="text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
+                  className="text-xs font-medium text-[#7B6FA0] hover:text-gray-700 transition-colors flex items-center gap-1"
                 >
                   {expandedReplies === campaign.id ? '▲' : '▼'} View replies ({campaign.replies_total ?? 0})
                 </button>
@@ -637,15 +946,15 @@ export default function FigsyPage() {
                 {expandedReplies === campaign.id && (
                   <div className="mt-3 space-y-2">
                     {!campaignReplies[campaign.id] ? (
-                      <p className="text-xs text-gray-400">Loading…</p>
+                      <p className="text-xs text-[#9B8EC4]">Loading…</p>
                     ) : campaignReplies[campaign.id].length === 0 ? (
-                      <p className="text-xs text-gray-400">No replies yet.</p>
+                      <p className="text-xs text-[#9B8EC4]">No replies yet.</p>
                     ) : (
                       campaignReplies[campaign.id].map(reply => (
                         <div key={reply.id} className={`rounded-lg px-3 py-2.5 text-xs border ${
                           reply.classification === 'interested' ? 'bg-green-50 border-green-200' :
                           reply.classification === 'opt_out'    ? 'bg-red-50 border-red-100' :
-                          'bg-gray-50 border-gray-100'
+                          'bg-gray-50 border-purple-100/60'
                         }`}>
                           <div className="flex items-center justify-between gap-2">
                             <div>
@@ -666,7 +975,7 @@ export default function FigsyPage() {
                               </button>
                             )}
                           </div>
-                          <p className="text-gray-500 mt-1 leading-relaxed line-clamp-2">{reply.body.slice(0, 200)}</p>
+                          <p className="text-[#7B6FA0] mt-1 leading-relaxed line-clamp-2">{reply.body.slice(0, 200)}</p>
                         </div>
                       ))
                     )}
@@ -685,16 +994,79 @@ export default function FigsyPage() {
         </div>
       )}
 
+      {/* Template library modal */}
+      {showTemplates && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-purple-100/60">
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">Campaign Templates</h3>
+                <p className="text-sm text-[#9B8EC4] mt-0.5">Pick a template to pre-configure your campaign strategy.</p>
+              </div>
+              <button onClick={() => setShowTemplates(false)} className="text-[#9B8EC4] hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {CAMPAIGN_TEMPLATES.map(template => {
+                const Icon = template.icon
+                return (
+                  <button
+                    key={template.id}
+                    onClick={() => {
+                      setSelectedTemplate(template)
+                      setShowTemplates(false)
+                      setShowCreate(true)
+                      setNewName(template.name)
+                    }}
+                    className="text-left p-4 rounded-xl border border-purple-100/60 hover:border-[#7C3AED]/30 hover:bg-[#F5F0FF]/30 transition-all group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-[#7C3AED]/8 group-hover:bg-[#7C3AED]/15 flex items-center justify-center shrink-0 transition-colors">
+                        <Icon className="w-4.5 h-4.5 text-[#7C3AED]" style={{ width: '18px', height: '18px' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-semibold text-sm text-gray-900">{template.name}</p>
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#7C3AED] transition-colors shrink-0" />
+                        </div>
+                        <p className="text-xs text-[#7B6FA0] mt-0.5 leading-relaxed">{template.description}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {template.tags.map(tag => (
+                            <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-[#7B6FA0] font-medium">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="px-6 py-4 border-t border-purple-100/60 flex items-center justify-between">
+              <p className="text-xs text-[#9B8EC4]">Or create a blank campaign without a template.</p>
+              <button
+                onClick={() => { setShowTemplates(false); setShowCreate(true) }}
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Skip template →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {replyDraft && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
             <h3 className="font-semibold text-gray-900 mb-3">✨ AI-drafted follow-up</h3>
-            <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-64 overflow-y-auto">{replyDraft.draft}</div>
+            <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-64 overflow-y-auto">{replyDraft.draft}</div>
             <div className="flex gap-3">
               <button onClick={() => { navigator.clipboard.writeText(replyDraft.draft) }} className="flex-1 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">Copy to clipboard</button>
-              <button onClick={() => setReplyDraft(null)} className="px-4 py-2.5 border border-gray-200 text-sm font-medium rounded-xl hover:border-gray-400 transition-colors">Close</button>
+              <button onClick={() => setReplyDraft(null)} className="px-4 py-2.5 border border-purple-100/80 text-sm font-medium rounded-xl hover:border-gray-400 transition-colors">Close</button>
             </div>
-            <p className="text-xs text-gray-400 mt-3 text-center">Review before sending. Add your name and signature.</p>
+            <p className="text-xs text-[#9B8EC4] mt-3 text-center">Review before sending. Add your name and signature.</p>
           </div>
         </div>
       )}

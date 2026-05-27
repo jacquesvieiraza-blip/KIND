@@ -22,7 +22,7 @@ export function ReferralBanner({ referralCode }: Props) {
   }
 
   return (
-    <div className="bg-gradient-to-r from-[#001f4d] to-[#003080] rounded-xl p-5 flex items-start justify-between gap-4 text-white">
+    <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl p-5 flex items-start justify-between gap-4 text-white">
       <div className="flex items-start gap-4 flex-1">
         <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0 mt-0.5">
           <Gift className="w-5 h-5 text-white" />
@@ -38,7 +38,7 @@ export function ReferralBanner({ referralCode }: Props) {
             </div>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white text-[#001f4d] text-xs font-semibold hover:bg-white/90 transition-colors shrink-0">
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white text-[#0F0929] text-xs font-semibold hover:bg-white/90 transition-colors shrink-0">
               {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copied!' : 'Copy link'}
             </button>

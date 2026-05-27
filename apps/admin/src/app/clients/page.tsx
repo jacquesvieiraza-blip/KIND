@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { Users, ShieldCheck } from 'lucide-react'
 
 interface Subscription { status: string; product: string }
 interface Client {
@@ -128,6 +129,14 @@ async function getEnrichedClients(): Promise<EnrichedClient[]> {
   })
 }
 
+function clientStatus(client: Client): { label: string; color: string; icon: string } {
+  const subs = client.subscriptions ?? []
+  if (subs.some(s => s.status === 'active'))    return { label: 'Active',   color: 'bg-emerald-50 text-emerald-700 border border-emerald-200', icon: '●' }
+  if (subs.some(s => s.status === 'trialing'))  return { label: 'Trial',    color: 'bg-blue-50 text-blue-700 border border-blue-200',       icon: '◐' }
+  if (subs.some(s => s.status === 'past_due'))  return { label: 'Past due', color: 'bg-red-50 text-red-600 border border-red-200',          icon: '!' }
+  return { label: 'No plan', color: 'bg-gray-100 text-gray-400 border border-gray-200', icon: '○' }
+}
+
 const HEALTH_DOT: Record<'green' | 'amber' | 'red', string> = {
   green: 'bg-emerald-400',
   amber: 'bg-amber-400',
@@ -155,7 +164,8 @@ export default async function ClientsPage({
     active:  allClients.filter(c => c.subscriptions?.some(s => s.status === 'active')).length,
     trial:   allClients.filter(c => c.subscriptions?.some(s => s.status === 'trialing')).length,
     atRisk:  allClients.filter(c => c.health === 'red').length,
-    noCredits: allClients.filter(c => (c.credit_balance || 0) < 1).length,
+    noCredits:     allClients.filter(c => (c.credit_balance || 0) < 1).length,
+    termsAccepted: allClients.filter(c => c.terms_accepted_at !== null).length,
   }
 
   return (

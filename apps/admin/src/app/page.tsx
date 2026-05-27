@@ -113,14 +113,14 @@ async function getAdminStats() {
 }
 
 function ttflColor(hours: number | null): string {
-  if (hours === null) return 'text-white/40'
+  if (hours === null) return 'text-gray-400'
   if (hours < 2) return 'text-emerald-400'
   if (hours <= 6) return 'text-amber-400'
   return 'text-red-400'
 }
 
 function ttflBgColor(hours: number | null): string {
-  if (hours === null) return 'bg-white/5 text-white/40'
+  if (hours === null) return 'bg-white/5 text-gray-400'
   if (hours < 2) return 'bg-emerald-400/10 text-emerald-400'
   if (hours <= 6) return 'bg-amber-400/10 text-amber-400'
   return 'bg-red-400/10 text-red-400'
@@ -150,9 +150,9 @@ function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, string> = {
     trial:     'bg-blue-400/10 text-blue-400 border border-blue-400/20',
     active:    'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20',
-    cancelled: 'bg-white/5 text-white/30 border border-white/10',
+    cancelled: 'bg-white/5 text-gray-400 border border-white/10',
   }
-  const cls = map[status ?? ''] ?? 'bg-white/5 text-white/30 border border-white/10'
+  const cls = map[status ?? ''] ?? 'bg-white/5 text-gray-400 border border-white/10'
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${cls}`}>
       {status ?? '—'}
@@ -219,25 +219,25 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-white/60">MRR</span>
+              <span className="text-gray-500">MRR</span>
               <span className="font-semibold text-white">${mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
             </div>
             <div className="w-full bg-purple-100 rounded-full h-2.5">
               <div className={`h-2.5 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-green-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
                    style={{ width: `${mrrPct}%` }} />
             </div>
-            <p className="text-xs text-white/30 mt-1">{mrrPct.toFixed(1)}% of target</p>
+            <p className="text-xs text-gray-400 mt-1">{mrrPct.toFixed(1)}% of target</p>
           </div>
           <div>
             <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-white/60">Clients</span>
+              <span className="text-gray-500">Clients</span>
               <span className="font-semibold text-white">{totalClients} / {current.clientTarget}</span>
             </div>
             <div className="w-full bg-purple-100 rounded-full h-2.5">
               <div className={`h-2.5 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-green-500' : ragStatus(clientPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
                    style={{ width: `${clientPct}%` }} />
             </div>
-            <p className="text-xs text-white/30 mt-1">{clientPct.toFixed(1)}% of target</p>
+            <p className="text-xs text-gray-400 mt-1">{clientPct.toFixed(1)}% of target</p>
           </div>
         </div>
       </div>
@@ -266,18 +266,18 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
                       <span className="font-medium text-gray-900">{t.month}</span>
                       {isCurrentMonth && <span className="ml-2 text-xs bg-[#7C3AED] text-white px-1.5 py-0.5 rounded font-medium">Now</span>}
                     </td>
-                    <td className="px-3 py-3 font-medium text-white/70">${t.mrrTarget.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-white/50">{t.clientTarget} clients</td>
+                    <td className="px-3 py-3 font-medium text-gray-700">${t.mrrTarget.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>
                     <td className="px-3 py-3">
                       {isFuture ? (
-                        <span className="text-xs text-white/20">upcoming</span>
+                        <span className="text-xs text-gray-300">upcoming</span>
                       ) : (
                         <div className="flex items-center gap-2">
                           <div className="w-24 bg-purple-100 rounded-full h-1.5">
                             <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-green-500' : ragStatus(pct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
                                  style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-xs text-white/50">{pct.toFixed(0)}%</span>
+                          <span className="text-xs text-gray-500">{pct.toFixed(0)}%</span>
                         </div>
                       )}
                     </td>

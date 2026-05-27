@@ -2,20 +2,46 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, TrendingUp, GitMerge, BookOpen, Inbox } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, Map, Megaphone, Rocket, MonitorPlay, TrendingUp, GitMerge, BookOpen, Inbox, BarChart2, DollarSign, Activity, ShieldCheck, FlaskConical } from 'lucide-react'
 
-const NAV = [
-  { href: '/',              label: 'Dashboard',        icon: LayoutDashboard },
-  { href: '/unibox',        label: 'Unibox',           icon: Inbox },
-  { href: '/clients',       label: 'Clients',          icon: Users },
-  { href: '/demo',          label: 'Demo Envs',        icon: MonitorPlay },
-  { href: '/terms-library', label: 'Terms Library',    icon: FileText },
-  { href: '/roadmap',       label: 'Roadmap',          icon: Map },
-  { href: '/scalability',   label: 'Scalability',      icon: TrendingUp },
-  { href: '/playbook',      label: 'Playbook',         icon: BookOpen },
-  { href: '/cmo',           label: 'CMO Tools',        icon: Megaphone },
-  { href: '/launch',        label: 'Launch',           icon: Rocket },
-  { href: '/hubspot',       label: 'HubSpot Pipeline', icon: GitMerge },
+const SECTIONS = [
+  {
+    label: 'Overview',
+    items: [
+      { href: '/',          label: 'Dashboard',   icon: LayoutDashboard },
+      { href: '/unibox',    label: 'Unibox',      icon: Inbox },
+      { href: '/analytics', label: 'Analytics',   icon: BarChart2 },
+      { href: '/revenue',   label: 'Revenue',     icon: DollarSign },
+    ],
+  },
+  {
+    label: 'Clients',
+    items: [
+      { href: '/clients',       label: 'All Clients',   icon: Users },
+      { href: '/cohorts',       label: 'Cohorts',       icon: TrendingUp },
+      { href: '/hubspot',       label: 'HubSpot',       icon: GitMerge },
+    ],
+  },
+  {
+    label: 'Product',
+    items: [
+      { href: '/roadmap',       label: 'Roadmap',       icon: Map },
+      { href: '/health',        label: 'Health',        icon: Activity },
+      { href: '/status',        label: 'System Status', icon: Activity },
+      { href: '/smoketest',     label: 'Smoke Test',    icon: FlaskConical },
+    ],
+  },
+  {
+    label: 'Ops',
+    items: [
+      { href: '/cmo',           label: 'CMO Tools',     icon: Megaphone },
+      { href: '/playbook',      label: 'Playbook',      icon: BookOpen },
+      { href: '/compliance',    label: 'Compliance',    icon: ShieldCheck },
+      { href: '/demo',          label: 'Demo Envs',     icon: MonitorPlay },
+      { href: '/terms-library', label: 'Terms',         icon: FileText },
+      { href: '/launch',        label: 'Launch',        icon: Rocket },
+    ],
+  },
 ]
 
 function isActive(pathname: string, href: string): boolean {
@@ -34,7 +60,7 @@ export function AdminNav() {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/[0.06] shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-[#7C3AED] flex items-center justify-center shrink-0">
             <span className="text-white font-bold text-sm">K</span>
           </div>
           <div>

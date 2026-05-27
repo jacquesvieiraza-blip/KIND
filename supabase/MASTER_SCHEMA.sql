@@ -1,9 +1,60 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- K.I.N.D — MASTER SCHEMA MIGRATIONS
--- Run this in Supabase SQL Editor to apply all pending schema changes.
+-- Run this in Supabase SQL Editor to apply ALL pending schema changes.
 -- All statements are idempotent (safe to re-run).
--- Last updated: 2026-05-26
+-- Last updated: 2026-05-27
 -- ═══════════════════════════════════════════════════════════════════════════════
+
+-- ════════════════════════════════════════════════════════════════════════════════
+-- SECTION 0 — FOUNDER MORNING CHECKLIST (run before anything else)
+-- Date: 2026-05-28 morning
+-- ════════════════════════════════════════════════════════════════════════════════
+--
+-- STEP 1 — Run this entire file in Supabase SQL Editor
+--   Go to: https://app.supabase.com → your project → SQL Editor → New Query
+--   Paste this entire file → Run
+--   Expected: all CREATE TABLE / ALTER TABLE statements succeed (green ticks)
+--   Tables created: credit_transactions, figsy_campaigns, figsy_enrollments,
+--                   figsy_replies, figsy_calls, lead_enrichment, webhook_triggers,
+--                   icps (org_names column), subscriptions (stripe_subscription_id)
+--
+-- STEP 2 — Railway: add SUPABASE_SERVICE_ROLE_KEY to admin service
+--   Railway → kind/admin → Variables → + New Variable
+--   Name:  SUPABASE_SERVICE_ROLE_KEY
+--   Value: [your Supabase service role key — Project Settings → API → service_role]
+--   Click Deploy — admin dashboard will load live data once deployed
+--
+-- STEP 3 — Stripe setup (portal billing)
+--   a) Create products in Stripe Dashboard for: Lead Gen credits, FIGSY credits,
+--      Milla ($49/mo), Vida ($29/mo), Bundle ($69/mo)
+--   b) Copy each Price ID → add to Railway portal Variables:
+--      STRIPE_PRICE_LEAD_20, STRIPE_PRICE_LEAD_40, STRIPE_PRICE_LEAD_100
+--      STRIPE_PRICE_FIGSY_20, STRIPE_PRICE_FIGSY_40, STRIPE_PRICE_FIGSY_100
+--      STRIPE_PRICE_MILLA, STRIPE_PRICE_VIDA, STRIPE_PRICE_BUNDLE
+--   c) Set up Stripe Webhook → endpoint: https://kindapi-production-e64c.up.railway.app/webhooks/stripe
+--      Events: checkout.session.completed, invoice.paid, customer.subscription.deleted
+--      Copy webhook secret → add STRIPE_WEBHOOK_SECRET to Railway API Variables
+--
+-- STEP 4 — HubSpot CRM
+--   a) Create free HubSpot account at hubspot.com
+--   b) Settings → Integrations → Private Apps → Create → copy API key
+--   c) Add to Railway API Variables: HUBSPOT_API_KEY=your_key
+--
+-- STEP 5 — Resend inbound email (for FIGSY reply tracking)
+--   a) Resend Dashboard → Domains → verify get-kind.com (add DNS records in GoDaddy)
+--   b) Resend → Inbound → Create webhook: https://kindapi-production-e64c.up.railway.app/webhooks/resend
+--   c) All replies to figsy@get-kind.com will be auto-classified and appear in Inbox
+--
+-- STEP 6 — DNS (if app.get-kind.com still not resolving)
+--   Check GoDaddy → DNS → CNAME record: app → gvnfyf41.up.railway.app
+--   If propagated: portal will load at https://app.get-kind.com
+--   If not: use https://kindportal-production.up.railway.app directly
+--
+-- STEP 7 — Client logo for W6 social proof
+--   Add your first client's logo to: apps/portal/public/logos/client-w6.png
+--   It will appear on the login page social proof strip automatically
+--
+-- ════════════════════════════════════════════════════════════════════════════════
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- 20260513_credit_transactions.sql
@@ -367,3 +418,64 @@ WHERE table_schema = 'public'
   AND table_name IN ('icps','lead_enrichment','figsy_calls','webhook_triggers','subscriptions')
   AND column_name IN ('organization_names','lead_id','vapi_call_id','stripe_subscription_id','email')
 ORDER BY table_name, column_name;
+
+-- ════════════════════════════════════════════════════════════════════════════════
+-- ALTA CROSS REFERENCE — What Alta has vs K.I.N.D build status
+-- Last updated: 2026-05-27
+-- All non-Tier-3 features completed as of this date.
+-- ════════════════════════════════════════════════════════════════════════════════
+--
+-- FEATURE                              | ALTA HAD IT  | K.I.N.D STATUS
+-- ─────────────────────────────────────|──────────────|────────────────────────────────────────────────
+-- Live contact preview in ICP builder  | YES (highest) | ✅ BUILT W1/W13 — names populate real-time
+-- Proactive home "Who to target today?"| YES (high)    | ✅ BUILT W8 — purple card on dashboard
+-- Campaign templates library           | YES (high)    | ✅ BUILT W9 — 4 templates
+-- Editable AI prompt per campaign      | YES (medium)  | ✅ BUILT W10
+-- Daily send quota slider              | YES (medium)  | ✅ BUILT W11
+-- Quality gate / co-pilot toggle       | YES (medium)  | ✅ BUILT W12
+-- Email style training                 | YES (high)    | ✅ BUILT W14 — localStorage; Gmail later
+-- Revival as named campaign type       | YES (medium)  | ✅ BUILT W15
+-- Signal tokens in outreach            | YES (high)    | ✅ BUILT W2
+-- Intent filters (funded/hiring/etc.)  | YES (medium)  | ✅ BUILT W3
+-- LinkedIn URL column on leads         | YES (medium)  | ✅ BUILT W5
+-- CRM integration (HubSpot)           | YES (medium)  | ✅ BUILT — add HUBSPOT_API_KEY in Railway
+-- Social proof on login page           | YES (medium)  | ✅ BUILT W6 — add client logo to /public/logos/
+-- Unified inbox (all channels)         | YES (high)    | ✅ BUILT 2026-05-27 — /dashboard/inbox
+--                                      |               |   Left panel: reply list with priority sort
+--                                      |               |   Right panel: thread + AI draft + send
+-- Persistent prospect database         | YES (medium)  | ✅ BUILT 2026-05-27 — /dashboard/prospects
+--                                      |               |   Cross-campaign view, score badges, CSV export
+-- AI-assisted reply drafting           | YES (medium)  | ✅ BUILT 2026-05-27 — inside inbox page
+--                                      |               |   Calls /figsy/leads/:id/signal-preview
+-- Suggest Campaigns AI                 | YES (medium)  | ✅ BUILT 2026-05-27 — FIGSY page modal
+--                                      |               |   Analyses leads+campaigns, recommends next run
+-- Conditional branching in sequences   | YES (medium)  | ✅ BUILT — on_reply dropdown in sequence steps
+--                                      |               |   Branch pills between steps (if replied / no reply)
+-- ABM named account targeting          | YES (medium)  | ✅ BUILT 2026-05-27 — ICP builder ABM toggle
+--                                      |               |   Enter company names → Apollo scopes to them
+--                                      |               |   DB: icps.organization_names text[]
+-- Webhook-triggered campaigns          | YES (low SMB) | ✅ BUILT 2026-05-27 — /dashboard/figsy/webhooks
+--                                      |               |   Endpoint docs, copy button, live test form
+-- Rep-level analytics                  | YES (medium)  | ✅ BUILT 2026-05-27 — admin /analytics page
+--                                      |               |   Cross-client campaign table, reply rates, hot leads
+-- 9-metric time-series analytics       | YES (medium)  | ✅ BUILT 2026-05-27 — Recharts LineChart upgrade
+--                                      |               |   9 toggleable metrics, PieChart, BarChart
+-- AI enrichment columns (research)     | YES (high)    | ✅ BUILT 2026-05-27 — Enrich button on each lead
+--                                      |               |   Claude Haiku researches: recent signal,
+--                                      |               |   company context, personalised opening line,
+--                                      |               |   enrichment score 1-10
+--                                      |               |   DB: lead_enrichment table
+-- AI voice calls                       | YES (medium)  | ✅ BUILT (backend) — VAPI integration in
+--                                      |               |   apps/api/src/routes/voice.ts
+--                                      |               |   DB: figsy_calls table
+--                                      |               |   Needs: VAPI_API_KEY in Railway API vars
+-- ─────────────────────────────────────|──────────────|────────────────────────────────────────────────
+-- LinkedIn outreach channel            | YES (high)    | 🚫 TIER 3 — deliberate. LinkedIn ToS risk.
+-- Social signals audience source       | YES (high)    | 🚫 TIER 3 — deliberate
+-- Visual sequence builder (node tree)  | YES (high)    | 🚫 TIER 3 — deliberate. Build when funding.
+-- ════════════════════════════════════════════════════════════════════════════════
+--
+-- SUMMARY: K.I.N.D now matches or exceeds Alta on all non-Tier-3 features.
+-- Alta price: $1,250+/mo quarterly. K.I.N.D price: $60–$300 pay-as-you-go.
+-- Alta: USA-first, LinkedIn-heavy. K.I.N.D: Africa-first, email-first, owned data.
+-- ════════════════════════════════════════════════════════════════════════════════

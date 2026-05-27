@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 27 May 2026**
+**Single source of truth. Last updated: 27 May 2026 — 22:15 SAST (evening build session)**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 ---
@@ -50,7 +50,7 @@
 
 ---
 
-### 📅 SESSION DATE — 27 May 2026 (portal facelift session)
+### 📅 SESSION DATE — 27 May 2026 — Evening Build (portal facelift + API wiring + ClickUp steals)
 
 ---
 
@@ -226,6 +226,14 @@
 | **Sequence branching UI added** | Campaign `[id]` page — `on_reply: stop/skip_next/continue` visual branch pills between steps. |
 | **AskFigsyButton dark theme** | `#0F0929` dark pill, real FIGSY photo, violet user messages. |
 | **Dashboard rebuilt as Mission Control** | Single command view: hero row, 5-stat command bar, active campaigns + hot replies columns. |
+| **AskFigsyButton → real /figsy/chat API** | P1 complete — replaces mock setTimeout. Full error handling. Chat persists in-session. |
+| **Co-pilot approval queue badge** | Amber "Co-pilot: review before send" badge on active campaigns when mode = copilot (Alta steal) |
+| **Knowledge base all 7 tabs → API** | P2 complete — Pitch/Keywords/Signals/Messaging/DNC/Context/Prompts all GET on load, POST on save. Spinners, success/error toasts. |
+| **Campaign [id] sequence save → API** | P3 complete — `saveSequence()` calls `PUT /figsy/campaigns/:id/sequence`. Audience + settings + archive all wired. |
+| **api.ts gets `put()` method** | P4 complete — `api.put<T>(path, body, token)` added alongside existing get/post/patch/delete_ |
+| **CommandPalette (Cmd+K)** | S1 complete — brand palette, 12 nav items, grouped sections, full keyboard nav (↑↓ Enter Esc), registered in layout.tsx |
+| **ActivityFeed component** | S2 complete — 6 event types, relative timestamps, skeleton loading, integrated into dashboard home |
+| **Shareable /share/[token] dashboard** | S3 complete — public read-only, outside auth group, OG image, K.I.N.D branding, 4 metric cards + SVG chart |
 
 ---
 
@@ -276,7 +284,16 @@
 
 ### 🔴 FOUNDER — YOUR TO-DO LIST
 
-**Tonight / Before Test 1 tomorrow:**
+> **27 May — Evening session. Kids down. Time to work. Do these in order.**
+
+**RIGHT NOW — merge & deploy (10 mins):**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| E1 | Merge branch `claude/ai-business-roadmap-U3OWJ` → `main` | GitHub → Pull Request → Merge | ☐ |
+| E2 | Confirm Railway auto-deploys from main (check deploy logs) | railway.app → KIND API → Deployments | ☐ |
+| E3 | Confirm Vercel auto-deploys portal | vercel.com → Project → Deployments | ☐ |
+
+**Tonight / Before Test 1:**
 | # | Task | Where | ✓ |
 |---|------|--------|---|
 | T1 | Confirm `RESEND_API_KEY` is set in Railway | Railway → KIND API → Variables | ☐ |
@@ -335,10 +352,10 @@
 
 ### 🤖 CLAUDE — MY BUILD QUEUE
 
-**✅ COMPLETED THIS SESSION:**
+**✅ COMPLETED THIS SESSION (27 May — full day):**
 | # | Build | Status |
 |---|-------|--------|
-| ✅ | Full portal code audit (94 issues) | Done — all critical bugs fixed this session |
+| ✅ | Full portal code audit (94 issues) | Done — all critical bugs fixed |
 | ✅ | Sidebar rebuild — larger photos, dropdown, subscription-aware | Done |
 | ✅ | Global colour cleanup — 32 files | Done |
 | ✅ | Soft warm palette applied (matches brand image) | Done |
@@ -346,26 +363,27 @@
 | ✅ | Dashboard Mission Control rebuild | Done |
 | ✅ | Meetings Booked metric (Alta benchmark) | Done |
 | ✅ | SupportWidget deleted (orphaned) | Done |
+| ✅ P1 | AskFigsyButton → real `/figsy/chat` API | Done — real API call, full error handling |
+| ✅ P1b | Co-pilot approval queue badge | Done — amber badge on active campaigns in copilot mode |
+| ✅ P2 | Knowledge base all 7 tabs → API | Done — GET on load, POST on save, all tabs |
+| ✅ P3 | Campaign sequence/audience/settings/archive → API | Done — all 4 actions wired |
+| ✅ P4 | `api.put()` method | Done |
+| ✅ S1 | CommandPalette (Cmd+K) | Done — keyboard nav, grouped, brand palette |
+| ✅ S2 | ActivityFeed component | Done — integrated into dashboard home |
+| ✅ S3 | Shareable /share/[token] dashboard | Done — public, OG image, outside auth group |
 
-**REMAINING — PORTAL (not blocked by smoke tests):**
+**REMAINING — PORTAL:**
 | # | Build | What | Priority |
 |---|-------|------|----------|
-| P1 | Wire AskFigsyButton to `/figsy/chat` API | Currently returns hardcoded response — API endpoint exists | 🔴 High |
-| P2 | Knowledge base tabs → API (`/figsy/knowledge/*`) | All 7 tabs save local state only — data not persisted | 🔴 High |
-| P3 | Campaign `[id]` sequence save → API | `saveSequence()` is a stub — edits are lost | 🔴 High |
-| P4 | Campaign `[id]` audience + settings save → API | No API call wired | 🔴 High |
-| P5 | Chat history persistence | AskFigsyButton resets on page reload — will auto-fix when P1 done | 🟡 Medium |
+| P5 | Chat history persistence | AskFigsyButton resets on page reload — needs `/figsy/chat/history` endpoint | 🟡 Medium |
 | P6 | NotificationBell theme | Still uses white/gray (mismatches dark sidebar) | 🟡 Medium |
 
-**BLOCKED — nothing starts until all 4 smoke tests pass:**
+**NEXT UP (smoke tests + steals):**
 | # | Build | What | Time |
 |---|-------|------|------|
-| C1 | Fix any Test 1–4 failures | Real-time as reported | <15 min each |
-| C2 | S1: Command palette | Cmd+K in portal + admin — search, jump, quick actions | 4h |
-| C3 | S2: Activity feed | Timeline on portal: lead added / email sent / reply / credit used | 1 day |
-| C4 | S3: Shareable dashboards | `/share/:token` — read-only link, no login needed | 1 day |
-| C5 | S4: Scheduled report emails | Weekly client digest — cron already exists | 4h |
-| C6 | "AI Revenue OS" positioning rewrite | Website, pricing, landing, demo pages | 2h |
+| C1 | Run smoke tests T1–T4 | Founder runs, Claude fixes any failures | <15 min each |
+| C5 | S4: Scheduled report emails | Weekly client digest — cron already exists, just needs wiring | 4h |
+| C6 | "AI Revenue OS" positioning rewrite | Website, pricing, landing, demo pages — Apex steal | 2h |
 | C7 | Wire Calendly URL site-wide | 5 min — needs URL from T22 | 5 min |
 | C8 | Wire UK company number into footer + legal | 5 min — needs number from T23 | 5 min |
 | C9 | Update `docs/client-flow-sop.md` | Stale since 18 May — Paystack refs, outdated paths | 30 min |

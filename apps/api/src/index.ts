@@ -54,6 +54,8 @@ app.use(cors({
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
     // Allow Vercel preview deployments for this project
     if (origin.endsWith('.vercel.app')) return callback(null, true)
+    // Allow Railway deployments
+    if (origin.endsWith('.railway.app') || origin.endsWith('.up.railway.app')) return callback(null, true)
     callback(new Error(`CORS: origin ${origin} not allowed`))
   },
   credentials: true,

@@ -52,6 +52,7 @@ interface ApolloSearchBody {
   q_keywords?:                         string
   organization_latest_funding_stage_cd?: string[]
   q_organization_keyword_tags?:          string[]
+  organization_names?:                   string[]
 }
 
 // Build the search body from an ICP record
@@ -65,6 +66,7 @@ export function buildSearchBody(icp: {
   keywords:              string[]
   apollo_only_consented: boolean
   intent_signals?:       string[]
+  organization_names?:   string[]
 }, page = 1): ApolloSearchBody {
   const body: ApolloSearchBody = { page, per_page: 50 }
 
@@ -116,6 +118,10 @@ export function buildSearchBody(icp: {
       body.q_keywords = [existing, ...orgKwTags].filter(Boolean).join(' ')
     }
   }
+
+  // ABM — named account targeting
+  if (icp.organization_names && icp.organization_names.length > 0)
+    body.organization_names = icp.organization_names
 
   return body
 }

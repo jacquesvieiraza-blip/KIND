@@ -139,6 +139,7 @@ export interface ICPFormData {
   keywords: string[]
   apollo_only_consented: boolean
   intent_signals: string[]
+  organization_names?: string[]
 }
 
 export interface ApiSuccess<T> { success: true; data: T }

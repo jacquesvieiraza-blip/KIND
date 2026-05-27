@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send, Users2, Play } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send, Users2, Play, Building2 } from 'lucide-react'
 
 // ── AI Chat panel ─────────────────────────────────────────────────────────────
 function AiChatPanel({ token, onFill }: { token: string; onFill: (data: Partial<ICPFormData>) => void }) {
@@ -239,6 +239,10 @@ export default function ICPPage() {
   const [previewSamples, setPreviewSamples] = useState<Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }>>([])
   const [previewLoading, setPreviewLoading] = useState(false)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ABM mode
+  const [abmMode, setAbmMode] = useState(false)
+  const [abmCompanies, setAbmCompanies] = useState('')
 
   useEffect(() => {
     if (form.name.trim()) { setNameSuggestion(null); return }

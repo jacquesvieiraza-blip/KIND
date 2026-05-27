@@ -190,6 +190,7 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
       keywords?: string[]
       apollo_only_consented?: boolean
       intent_signals?: string[]
+      organization_names?: string[]
     }
     const icpArg = {
       job_titles:            body.job_titles ?? [],
@@ -201,6 +202,7 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
       keywords:              body.keywords ?? [],
       apollo_only_consented: body.apollo_only_consented ?? true,
       intent_signals:        body.intent_signals ?? [],
+      organization_names:    body.organization_names ?? [],
     }
 
     // Run count + sample contacts in parallel (per_page:1 for count, per_page:3 for samples)

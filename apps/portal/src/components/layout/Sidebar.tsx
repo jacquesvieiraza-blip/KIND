@@ -34,7 +34,7 @@ const AGENTS: AgentDef[] = [
     ring: 'ring-[#7C3AED]/30',
     nav: [
       { href: '/dashboard/figsy',         label: 'Campaigns',   icon: Target },
-      { href: '/dashboard/figsy/replies',  label: 'Inbox',       icon: Inbox,  badge: 'unread' },
+      { href: '/dashboard/inbox',           label: 'Inbox',       icon: Inbox,  badge: 'unread' },
       { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
       { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },
     ],

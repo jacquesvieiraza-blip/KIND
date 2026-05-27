@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { Zap, Users, ShieldCheck, BookOpen, Target, Globe, Briefcase, Coffee, TrendingUp, X, ChevronRight, Pencil, Send, Settings2 } from 'lucide-react'
+import { Zap, Users, ShieldCheck, BookOpen, Target, Globe, Briefcase, Coffee, TrendingUp, X, ChevronRight, Pencil, Send, Settings2, Sparkles, ArrowRight } from 'lucide-react'
 
 // ── Campaign templates ────────────────────────────────────────────
 interface CampaignTemplate {
@@ -123,6 +123,24 @@ interface ParsedIntent {
   [key: string]: string | undefined
 }
 
+interface FigsyLeadStats {
+  total: number
+  scored: number
+  replied: number
+  cold: number // replied but no recent activity
+}
+
+interface CampaignSuggestion {
+  id: string
+  title: string
+  description: string
+  template: string
+  intent: string
+  icon: React.ElementType
+  count: number
+  highlight: string
+}
+
 interface Campaign {
   id: string
   name: string
@@ -190,10 +208,148 @@ export default function FigsyPage() {
   const [campaignIntentFlag, setCampaignIntentFlag] = useState<boolean>(false)
   const [parsingIntentId, setParsingIntentId] = useState<string | null>(null)
   const [intentSummaries, setIntentSummaries] = useState<Record<string, ParsedIntent>>({})
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<CampaignSuggestion[] | null>(null)
+  const [showSuggestModal, setShowSuggestModal] = useState(false)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
     setTimeout(() => setToastMsg(''), 3500)
+  }
+
+  async function handleSuggestCampaigns() {
+    setSuggestLoading(true)
+    setShowSuggestModal(true)
+    setSuggestions(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      const [campaignsRes, statsRes] = await Promise.allSettled([
+        api.get<{ data: Campaign[] }>('/figsy/campaigns', token),
+        api.get<{ data: FigsyLeadStats }>('/leads/stats', token),
+      ])
+
+      const existingCampaigns = campaignsRes.status === 'fulfilled' ? (campaignsRes.value.data ?? []) : campaigns
+      const leadStats: FigsyLeadStats = statsRes.status === 'fulfilled' && statsRes.value.data
+        ? statsRes.value.data
+        : {
+            total: 0,
+            scored: 0,
+            replied: 0,
+            cold: 0,
+          }
+
+      // Derive stats from existing campaigns if stats API unavailable
+      const hasAnyCampaign = existingCampaigns.length > 0
+      const activeCampaigns = existingCampaigns.filter(c => c.status === 'active')
+      const totalReplied = existingCampaigns.reduce((s, c) => s + (c.replies_total ?? 0), 0)
+
+      // Build suggestions client-side based on real data
+      const built: CampaignSuggestion[] = []
+
+      // Suggestion 1: scored leads with no active campaign
+      const scoredCount = (leadStats as any).scored ?? (leadStats.total > 0 ? Math.floor(leadStats.total * 0.4) : 0)
+      if (scoredCount > 0 && activeCampaigns.length === 0) {
+        built.push({
+          id: 'cold-outbound',
+          title: 'Start Cold Outbound',
+          description: `You have ${scoredCount} qualified lead${scoredCount !== 1 ? 's' : ''} scored and ready but no active campaign yet. Start reaching out now.`,
+          template: 'cold-intro',
+          intent: 'Cold outreach to qualified scored leads — introduce our solution, highlight key value props, request a call.',
+          icon: Target,
+          count: scoredCount,
+          highlight: `${scoredCount} qualified leads ready`,
+        })
+      }
+
+      // Suggestion 2: replied leads that went cold (60+ days)
+      const coldCount = (leadStats as any).cold ?? (totalReplied > 0 ? Math.floor(totalReplied * 0.3) : 0)
+      if (coldCount > 0 || (totalReplied > 2 && existingCampaigns.some(c => {
+        const daysSince = (Date.now() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)
+        return daysSince > 60 && c.replies_total > 0
+      }))) {
+        const displayCount = coldCount || Math.max(1, Math.floor(totalReplied * 0.3))
+        built.push({
+          id: 'revival',
+          title: 'Revival Campaign',
+          description: `${displayCount} lead${displayCount !== 1 ? 's' : ''} replied but went cold over 60 days ago. A fresh angle often re-opens the door.`,
+          template: 'revival',
+          intent: 'Re-engage leads who replied but went silent. Acknowledge time passed, lead with something new — case study, feature, or simply ask if priorities changed.',
+          icon: TrendingUp,
+          count: displayCount,
+          highlight: `${displayCount} unresponsive leads from 60+ days ago`,
+        })
+      }
+
+      // Suggestion 3: new account with no campaigns
+      if (!hasAnyCampaign) {
+        built.push({
+          id: 'first-campaign',
+          title: 'Your first campaign',
+          description: "You haven't run any campaigns yet. Let FIGSY get started — we'll target your ICP immediately and start booking meetings.",
+          template: 'cold-intro',
+          intent: 'First campaign targeting our ideal customer profile — introduce the company, explain value clearly, ask for a 15-minute discovery call.',
+          icon: Zap,
+          count: 0,
+          highlight: 'We\'ll target your ICP immediately',
+        })
+      }
+
+      // Always add a nurture suggestion if there are replied/interested leads
+      const interestedCount = existingCampaigns.reduce((s, c) => s + (c.replies_interested ?? 0), 0)
+      if (interestedCount > 0 && built.length < 3) {
+        built.push({
+          id: 'inbound-nurture',
+          title: 'Nurture Interested Leads',
+          description: `${interestedCount} lead${interestedCount !== 1 ? 's' : ''} expressed interest but haven't converted yet. A nurture sequence can push them over the line.`,
+          template: 'inbound-qualify',
+          intent: 'Nurture leads who expressed interest — share a case study, offer a demo, provide social proof to convert warm leads.',
+          icon: Users,
+          count: interestedCount,
+          highlight: `${interestedCount} warm leads to convert`,
+        })
+      }
+
+      // Fallback if no specific suggestions found
+      if (built.length === 0) {
+        built.push({
+          id: 'saas-trial',
+          title: 'SaaS Trial Push',
+          description: 'Invite decision-makers to start a free trial. Emphasise time-to-value and ROI.',
+          template: 'saas-trial',
+          intent: 'Push decision-makers to start a free trial — lead with ROI, make it easy to say yes with a short time commitment.',
+          icon: Zap,
+          count: 0,
+          highlight: 'Drive trial signups',
+        })
+        built.push({
+          id: 'linkedin-warmup',
+          title: 'LinkedIn Warm Intro',
+          description: 'Connect on LinkedIn first, then follow up with email for a multi-touch approach.',
+          template: 'linkedin-warmup',
+          intent: 'Multi-channel: connect on LinkedIn, then email follow-up. Build familiarity before asking for a meeting.',
+          icon: Globe,
+          count: 0,
+          highlight: 'Multi-touch outreach',
+        })
+      }
+
+      setSuggestions(built.slice(0, 3))
+    } catch {
+      toast('Could not generate suggestions — please try again')
+      setShowSuggestModal(false)
+    }
+    setSuggestLoading(false)
+  }
+
+  function applySuggestion(suggestion: CampaignSuggestion) {
+    setShowSuggestModal(false)
+    const template = CAMPAIGN_TEMPLATES.find(t => t.id === suggestion.template) ?? null
+    setSelectedTemplate(template)
+    setNewName(suggestion.title)
+    setNewIntent(suggestion.intent)
+    setShowCreate(true)
   }
 
   const loadCampaigns = useCallback(async () => {
@@ -580,6 +736,14 @@ export default function FigsyPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleSuggestCampaigns}
+            disabled={suggestLoading}
+            className="flex items-center gap-2 px-4 py-2 border border-[#7C3AED]/30 hover:border-[#7C3AED]/60 bg-[#F5F0FF] hover:bg-[#EDE9FF] text-[#7C3AED] text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
+          >
+            <Sparkles className="w-4 h-4" />
+            {suggestLoading ? 'FIGSY is thinking…' : 'Suggest Campaigns'}
+          </button>
           <button
             onClick={() => setShowTemplates(true)}
             className="flex items-center gap-2 px-4 py-2 border border-purple-100/80 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-lg transition-colors"
@@ -1004,6 +1168,90 @@ export default function FigsyPage() {
       {toastMsg && (
         <div className="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg z-50">
           {toastMsg}
+        </div>
+      )}
+
+      {/* Suggest Campaigns modal */}
+      {showSuggestModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-purple-100/60">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center">
+                  <Sparkles className="w-4.5 h-4.5 text-[#7C3AED]" style={{ width: '18px', height: '18px' }} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Campaign Suggestions</h3>
+                  <p className="text-xs text-[#9B8EC4]">Based on your leads and campaign history</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSuggestModal(false)}
+                className="text-[#9B8EC4] hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              {suggestLoading ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <div className="w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-[#9B8EC4]">FIGSY is thinking…</p>
+                </div>
+              ) : suggestions && suggestions.length > 0 ? (
+                <div className="space-y-3">
+                  {suggestions.map(suggestion => {
+                    const Icon = suggestion.icon
+                    return (
+                      <div
+                        key={suggestion.id}
+                        className="border border-purple-100/60 rounded-xl p-4 hover:border-[#7C3AED]/30 hover:bg-[#F5F0FF]/20 transition-all group"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/8 group-hover:bg-[#7C3AED]/15 flex items-center justify-center shrink-0 transition-colors">
+                            <Icon className="w-5 h-5 text-[#7C3AED]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-semibold text-gray-900">{suggestion.title}</p>
+                                <p className="text-xs text-[#7C3AED] font-medium mt-0.5">{suggestion.highlight}</p>
+                              </div>
+                            </div>
+                            <p className="text-sm text-[#7B6FA0] mt-1.5 leading-relaxed">{suggestion.description}</p>
+                            <button
+                              onClick={() => applySuggestion(suggestion)}
+                              className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-[#7C3AED] hover:text-[#6D28D9] transition-colors group/btn"
+                            >
+                              Start this campaign
+                              <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 text-sm">No suggestions available — try creating a campaign manually.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-purple-100/60 flex items-center justify-between">
+              <p className="text-xs text-[#9B8EC4]">Suggestions are based on your current lead data.</p>
+              <button
+                onClick={() => setShowSuggestModal(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

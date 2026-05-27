@@ -104,10 +104,9 @@ const FILTERS = [
 export default async function UniboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>
+  searchParams: { filter?: string }
 }) {
-  const params = await searchParams
-  const filter = params.filter ?? 'all'
+  const filter = searchParams.filter ?? 'all'
   const [replies, counts] = await Promise.all([getReplies(filter), getCounts()])
 
   const totalReplies  = Object.values(counts).reduce((a, b) => a + b, 0)

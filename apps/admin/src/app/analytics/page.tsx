@@ -179,12 +179,11 @@ function ReplyRateCell({ rate }: { rate: number }) {
 }
 
 interface PageProps {
-  searchParams: Promise<{ status?: string }>
+  searchParams: { status?: string }
 }
 
 export default async function AnalyticsPage({ searchParams }: PageProps) {
-  const params = await searchParams
-  const statusFilter = params.status ?? 'all'
+  const statusFilter = searchParams.status ?? 'all'
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return (

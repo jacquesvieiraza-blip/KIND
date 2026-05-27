@@ -261,6 +261,30 @@ export default function ICPPage() {
     }).catch(() => setLoading(false))
   }, [])
 
+  // Debounced preview count — fires 800ms after last form change
+  const fetchPreviewCount = useCallback(async (currentForm: ICPFormData, currentToken: string) => {
+    if (!currentToken) return
+    const hasAnyCriteria = currentForm.industries.length > 0 || currentForm.job_titles.length > 0 ||
+      currentForm.seniority_levels.length > 0 || currentForm.geographies.length > 0
+    if (!hasAnyCriteria) { setPreviewCount(null); return }
+
+    setPreviewLoading(true)
+    try {
+      const res = await api.post<{ data: { count: number } }>('/icps/preview-count', currentForm, currentToken)
+      setPreviewCount(res.data.count)
+    } catch {
+      // Silently fail — count is a nice-to-have
+    }
+    setPreviewLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (!showForm || !token) return
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current)
+    previewTimerRef.current = setTimeout(() => fetchPreviewCount(form, token), 800)
+    return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current) }
+  }, [form, showForm, token, fetchPreviewCount])
+
   function startCreate() {
     setEditingId(null)
     const base = emptyForm()
@@ -294,6 +318,7 @@ export default function ICPPage() {
       tech_stack:            icp.tech_stack,
       keywords:              icp.keywords,
       apollo_only_consented: icp.apollo_only_consented,
+      intent_signals:        icp.intent_signals ?? [],
     })
     setPrefillNotice(false)
     setShowForm(true)
@@ -374,6 +399,7 @@ export default function ICPPage() {
       ...(data.tech_stack?.length        ? { tech_stack:        data.tech_stack        } : {}),
       ...(data.keywords?.length          ? { keywords:          data.keywords          } : {}),
       ...(data.name                      ? { name:              data.name              } : {}),
+      ...(data.intent_signals?.length    ? { intent_signals:    data.intent_signals    } : {}),
     }))
   }
 
@@ -494,6 +520,11 @@ export default function ICPPage() {
                 Last run {new Date(icp.last_run_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}
               </span>
             )}
+            {icp.intent_signals?.length > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-[#7C3AED]">
+                🎯 {icp.intent_signals.length} signal{icp.intent_signals.length > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
         </div>
       ))}
@@ -520,6 +551,37 @@ export default function ICPPage() {
             </div>
           )}
 
+          {/* Live count banner */}
+          {showForm && (previewLoading || previewCount !== null) && (
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+              previewLoading
+                ? 'bg-gray-50 border-gray-100'
+                : previewCount === 0
+                ? 'bg-amber-50 border-amber-100'
+                : 'bg-[#F5F0FF] border-purple-200'
+            }`}>
+              {previewLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 text-[#9B8EC4] animate-spin shrink-0" />
+                  <p className="text-sm text-[#9B8EC4]">Searching Apollo database…</p>
+                </>
+              ) : previewCount === 0 ? (
+                <>
+                  <Users2 className="w-4 h-4 text-amber-500 shrink-0" />
+                  <p className="text-sm text-amber-700">No exact matches yet — try broadening your filters.</p>
+                </>
+              ) : (
+                <>
+                  <Users2 className="w-4 h-4 text-[#7C3AED] shrink-0" />
+                  <p className="text-sm text-[#7C3AED] font-semibold">
+                    <span className="text-lg font-bold">{previewCount!.toLocaleString()}</span> matching leads found
+                  </p>
+                  <span className="ml-auto text-xs text-[#9B8EC4]">Live · Apollo</span>
+                </>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ICP Name *</label>
             <input ref={nameInputRef} type="text" value={form.name} onChange={e => set('name')(e.target.value)}
@@ -540,6 +602,32 @@ export default function ICPPage() {
           <TagInput label="Geographies" tags={form.geographies} onChange={set('geographies')} placeholder="e.g. South Africa, Nigeria…" suggestions={[...SUPPORTED_COUNTRIES]} />
           <TagInput label="Tech Stack Signals" tags={form.tech_stack} onChange={set('tech_stack')} placeholder="e.g. Salesforce, HubSpot…" suggestions={TECH_STACK_OPTIONS} />
           <TagInput label="Keywords" tags={form.keywords} onChange={set('keywords')} placeholder="e.g. Series A, hiring, expansion…" />
+
+          {/* Intent Signals — W3 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Intent Signals <span className="text-[#9B8EC4] font-normal text-xs">(optional)</span></label>
+            <p className="text-xs text-[#9B8EC4] mb-3">Only surface leads showing active buying signals right now.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {INTENT_SIGNALS.map(sig => {
+                const active = form.intent_signals?.includes(sig.value)
+                return (
+                  <button key={sig.value} type="button"
+                    onClick={() => {
+                      const current = form.intent_signals ?? []
+                      set('intent_signals')(active ? current.filter(s => s !== sig.value) : [...current, sig.value])
+                    }}
+                    className={`text-left px-3 py-2.5 rounded-xl border transition-colors ${
+                      active
+                        ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                        : 'bg-white text-gray-700 border-purple-100/80 hover:border-[#7C3AED]/40'
+                    }`}>
+                    <p className="text-xs font-semibold">{sig.label}</p>
+                    <p className={`text-[11px] mt-0.5 ${active ? 'text-white/70' : 'text-[#9B8EC4]'}`}>{sig.desc}</p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           <div className="flex items-start gap-3 p-4 bg-[#F5F0FF] rounded-xl">
             <input type="checkbox" id="apollo-consent" checked={form.apollo_only_consented}

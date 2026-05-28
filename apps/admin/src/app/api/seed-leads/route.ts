@@ -106,10 +106,9 @@ export async function POST(req: NextRequest) {
       linkedin_url:     l.linkedin_url,
       score:            l.score,
       score_reasoning:  `Strong ICP match: ${l.seniority} at a ${l.industry} company in South Africa`,
-      company_size:     l.company_size,
       tech_stack:       [['HubSpot', 'Slack'], ['Salesforce', 'AWS'], ['Pipedrive', 'Google Workspace']][i % 3],
-      status:           (['pending', 'pending', 'pending', 'contacted'] as const)[i % 4],
-      delivered_at:     i % 4 === 3 ? now : null,
+      status:           'pending',
+      delivered_at:     now,
       created_at:       new Date(Date.now() - i * 3600000).toISOString(),
     }))
 

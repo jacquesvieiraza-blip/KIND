@@ -30,12 +30,6 @@ type IcpDraft = {
 
 const STORAGE_KEY = 'kind_figsy_thread_v1'
 
-const RING: Record<string, string> = {
-  figsy: 'ring-[#7C3AED]/30',
-  milla: 'ring-pink-400/30',
-  vida:  'ring-teal-400/30',
-}
-
 interface AgentSidePanelProps {
   agentId: string
   name: string
@@ -63,10 +57,10 @@ export function AgentSidePanel({
   liveChat = true,
   isNewUser = false,
 }: AgentSidePanelProps) {
-  const supabase  = createClient()
+  const supabase = createClient()
 
   const defaultGreeting = (isNewUser && agentId === 'figsy')
-    ? "Hey! I'm FIGSY, your AI SDR. Let me find your first leads — I just need to know who you sell to. Describe your ideal customer in one sentence."
+    ? "Hey! I'm FIGSY, your AI SDR. Let me find your first leads — just tell me who you sell to. Describe your ideal customer in one sentence."
     : contextMessage
 
   const [messages,   setMessages]   = useState<Message[]>([{ role: 'assistant', content: defaultGreeting }])
@@ -78,7 +72,7 @@ export function AgentSidePanel({
   const [hydrated,   setHydrated]   = useState(false)
   const threadRef = useRef<HTMLDivElement>(null)
 
-  // Load persisted FIGSY thread on client mount
+  // Load persisted FIGSY thread after mount
   useEffect(() => {
     if (agentId === 'figsy') {
       try {
@@ -87,7 +81,7 @@ export function AgentSidePanel({
           const parsed: Message[] = JSON.parse(stored)
           if (parsed.length > 1) {
             setMessages(parsed)
-            setOnboarding(false) // resume in normal mode if we have history
+            setOnboarding(false)
           }
         }
       } catch {}
@@ -103,7 +97,7 @@ export function AgentSidePanel({
     }
   }, [messages, agentId, hydrated])
 
-  // Auto-scroll to bottom on new message
+  // Auto-scroll to latest message
   useEffect(() => {
     if (threadRef.current) {
       threadRef.current.scrollTop = threadRef.current.scrollHeight
@@ -147,7 +141,6 @@ export function AgentSidePanel({
       const token = session?.access_token
 
       if (onboarding && !icpSaved) {
-        // Guided ICP collection via /icps/chat-build
         const history = next
           .filter(m => !m.action)
           .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
@@ -170,9 +163,7 @@ export function AgentSidePanel({
           content: ready ? `${reply} I have everything I need.` : reply,
           ...(ready ? { action: { label: 'Build ICP & find my leads →', href: '#create-icp', variant: 'icp' as const } } : {}),
         }])
-
       } else {
-        // Normal FIGSY chat
         const res = await api.post<{ success: boolean; data: { reply: string } }>(
           '/figsy/chat',
           { messages: next.slice(-10).map(m => ({ role: m.role, content: m.content })), mode: 'full' },
@@ -183,7 +174,7 @@ export function AgentSidePanel({
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "I couldn't connect right now. Try again in a moment.",
+        content: "Couldn't connect right now. Try again in a moment.",
       }])
     } finally {
       setThinking(false)
@@ -218,7 +209,7 @@ export function AgentSidePanel({
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Couldn't save right now. Try the ICP Builder directly — I'll pre-fill it for you.",
+        content: "Couldn't save right now. Try the ICP Builder directly.",
         action: { label: 'Open ICP Builder →', href: '/dashboard/leads/icp', variant: 'link' as const },
       }])
     } finally {
@@ -228,7 +219,7 @@ export function AgentSidePanel({
 
   function clearThread() {
     const greeting = (isNewUser && !icpSaved && agentId === 'figsy')
-      ? "Hey! I'm FIGSY, your AI SDR. Let me find your first leads — I just need to know who you sell to. Describe your ideal customer in one sentence."
+      ? "Hey! I'm FIGSY, your AI SDR. Let me find your first leads — just tell me who you sell to. Describe your ideal customer in one sentence."
       : contextMessage
     setMessages([{ role: 'assistant', content: greeting }])
     setIcpDraft({})
@@ -237,106 +228,106 @@ export function AgentSidePanel({
   }
 
   return (
-    <div
-      className="rounded-2xl overflow-hidden shadow-lg border border-purple-100/20 flex flex-col"
-      style={{ background: '#0F0929' }}
-    >
-      {/* ── Compact header ───────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.06] shrink-0">
-        <div className={`w-10 h-10 rounded-xl overflow-hidden shrink-0 ring-2 ${RING[agentId] ?? 'ring-purple-400/20'}`}>
-          <img
-            src={`/agents/${agentId}.png`}
-            alt={name}
-            className="w-full h-full object-cover object-top"
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-bold text-sm leading-tight">{name}</p>
-          <p className="text-[#9B8EC4] text-[11px]">
-            {role}{tagline ? ` · ${tagline}` : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className={`w-1.5 h-1.5 rounded-full ${online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-          <span className={`text-[11px] font-medium ${online ? 'text-emerald-400' : 'text-slate-400'}`}>
-            {online ? 'Online' : 'Offline'}
-          </span>
-        </div>
+    <div className="rounded-2xl overflow-hidden shadow-lg border border-purple-100/30">
+
+      {/* ── Full agent photo ──────────────────────────────────────────── */}
+      <div className="relative h-52 bg-[#0F0929]">
+        <img
+          src={`/agents/${agentId}.png`}
+          alt={name}
+          className="w-full h-full object-cover object-top"
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0F0929] via-[#0F0929]/10 to-transparent" />
       </div>
 
-      {/* ── Conversation thread ───────────────────────────────────────── */}
-      <div
-        ref={threadRef}
-        className="flex flex-col gap-2.5 px-4 py-3 overflow-y-auto"
-        style={{ minHeight: '180px', maxHeight: '300px' }}
-      >
-        {messages.map((m, i) => (
-          <div key={i} className={`flex flex-col gap-1 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`max-w-[90%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
-              m.role === 'user'
-                ? 'bg-[#7C3AED] text-white'
-                : 'bg-white/[0.10] text-white/80'
-            }`}>
-              {m.content}
-            </div>
-            {m.action && (
-              m.action.variant === 'icp' ? (
-                <button
-                  onClick={createIcpFromDraft}
-                  disabled={thinking}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A78BFA] bg-[#7C3AED]/15 hover:bg-[#7C3AED]/25 border border-[#7C3AED]/30 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50 mt-0.5"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  {m.action.label}
-                </button>
-              ) : (
-                <Link
-                  href={m.action.href}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors mt-0.5"
-                >
-                  <CheckCircle2 className="w-3 h-3" />
-                  {m.action.label}
-                </Link>
-              )
-            )}
-          </div>
-        ))}
-        {thinking && (
-          <div className="flex justify-start">
-            <div className="bg-white/[0.10] rounded-xl px-3 py-2.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-          </div>
-        )}
-      </div>
+      {/* ── Identity + context + actions ─────────────────────────────── */}
+      <div className="bg-[#0F0929] px-4 pt-3 pb-4">
 
-      {/* ── Quick action chips (max 2, don't crowd) ───────────────────── */}
-      {chips.length > 0 && (
-        <div className="px-4 pb-3 flex flex-col gap-1.5 shrink-0">
-          {chips.slice(0, 2).map(chip => (
+        {/* Name + status */}
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-white font-bold text-base leading-tight">{name}</p>
+            <p className="text-[#9B8EC4] text-xs mt-0.5">
+              {role}{tagline ? ` · ${tagline}` : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+            <span className={`text-[11px] font-medium ${online ? 'text-emerald-400' : 'text-slate-400'}`}>
+              {online ? 'Online' : 'Offline'}
+            </span>
+          </div>
+        </div>
+
+        {/* Quick action chips */}
+        <div className="flex flex-col gap-1.5 mb-3">
+          {chips.slice(0, 3).map(chip => (
             <button
               key={chip.label}
               onClick={chip.onClick}
-              className="w-full text-left text-xs text-[#C4B5FD] bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.08] rounded-lg px-3 py-2 transition-colors"
+              className="w-full text-left text-xs text-[#C4B5FD] bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 rounded-lg px-3 py-2 transition-colors"
             >
               {chip.label}
             </button>
           ))}
         </div>
-      )}
 
-      {/* ── Input ────────────────────────────────────────────────────── */}
-      <div className="px-4 pb-4 pt-2 border-t border-white/[0.06] shrink-0">
+        {/* Conversation thread */}
+        <div
+          ref={threadRef}
+          className="flex flex-col gap-2 mb-3 max-h-48 overflow-y-auto pr-0.5"
+        >
+          {messages.map((m, i) => (
+            <div key={i} className={`flex flex-col gap-1 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                m.role === 'user'
+                  ? 'bg-[#7C3AED] text-white'
+                  : 'bg-white/[0.10] text-white/80'
+              }`}>
+                {m.content}
+              </div>
+              {m.action && (
+                m.action.variant === 'icp' ? (
+                  <button
+                    onClick={createIcpFromDraft}
+                    disabled={thinking}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A78BFA] bg-[#7C3AED]/15 hover:bg-[#7C3AED]/25 border border-[#7C3AED]/30 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {m.action.label}
+                  </button>
+                ) : (
+                  <Link
+                    href={m.action.href}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    {m.action.label}
+                  </Link>
+                )
+              )}
+            </div>
+          ))}
+          {thinking && (
+            <div className="flex justify-start">
+              <div className="bg-white/[0.10] rounded-xl px-3 py-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
         <div className="flex items-center gap-2">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSend() }}
             placeholder={messages.length > 1 ? `Reply to ${name}…` : inputPlaceholder}
-            className="flex-1 text-xs bg-white/[0.08] border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-[#7C3AED]/50"
+            className="flex-1 text-xs bg-white/[0.08] border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-400/50"
           />
           <button
             onClick={() => handleSend()}
@@ -349,6 +340,7 @@ export function AgentSidePanel({
             }
           </button>
         </div>
+
         {messages.length > 2 && (
           <button
             onClick={clearThread}

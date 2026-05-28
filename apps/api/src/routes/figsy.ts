@@ -586,12 +586,12 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
       country: 'ZA', tech_stack: [], score: 85, score_reasoning: 'Test preview',
     }
     const sequence = await generateSequence(fakeLead as any, client?.company_name ?? '', client?.industry ?? null)
-    const step1 = sequence?.steps?.[0]
+    const step1 = sequence?.step1
     if (!step1?.subject || !step1?.body) {
       res.status(500).json({ success: false, error: 'Failed to generate email preview' }); return
     }
 
-    await sendSequenceEmail(fakeLead as any, step1.subject, step1.body, 1, req.params.id, 'test-preview')
+    await sendSequenceEmail('test-preview', fakeLead as any, 1, step1.subject, step1.body, req.params.id)
     res.json({ success: true, message: `Test email sent to ${toEmail}` })
   } catch (err) {
     console.error(err); res.status(500).json({ success: false, error: 'Failed to send test email' })

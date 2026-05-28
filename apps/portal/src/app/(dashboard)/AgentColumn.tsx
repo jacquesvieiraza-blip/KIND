@@ -67,9 +67,33 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   let contextMessage: string
   let chips: { label: string; onClick: () => void }[]
 
-  if (pathname.startsWith('/dashboard/figsy') || pathname.startsWith('/dashboard/inbox') || pathname.startsWith('/dashboard/kpis')) {
+  // Campaign detail page — /dashboard/figsy/<uuid>
+  const isCampaignDetail = /^\/dashboard\/figsy\/[^/]+$/.test(pathname)
+
+  if (isCampaignDetail) {
+    contextMessage = "This is your live campaign. Click Enroll Leads to add your consented contacts, then Send Test Email to preview what they'll receive."
+    chips = [
+      { label: 'Enroll my leads',     onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Check replies',       onClick: () => router.push('/dashboard/inbox') },
+      { label: 'View all campaigns',  onClick: () => router.push('/dashboard/figsy') },
+    ]
+  } else if (pathname.startsWith('/dashboard/inbox')) {
+    contextMessage = "These are your hot replies — people who responded to my outreach. Reply fast, the window is short."
+    chips = [
+      { label: 'Draft a reply',         onClick: () => router.push('/dashboard/inbox') },
+      { label: 'See all campaigns',     onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Performance report',    onClick: () => router.push('/dashboard/kpis') },
+    ]
+  } else if (pathname.startsWith('/dashboard/kpis')) {
+    contextMessage = "Here's how my outreach is performing. Open rate, reply rate, and pipeline value — I track it all so you don't have to."
+    chips = [
+      { label: 'See my campaigns',    onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Check inbox',         onClick: () => router.push('/dashboard/inbox') },
+      { label: 'Launch new campaign', onClick: () => router.push('/dashboard/figsy') },
+    ]
+  } else if (pathname.startsWith('/dashboard/figsy')) {
     contextMessage = leadCount > 0
-      ? `I'm ready to reach out to your ${leadCount} leads. Create a campaign and I'll start sending immediately.`
+      ? `I'm ready to reach out to your ${leadCount} leads. Activate a campaign and I'll start sending personalised sequences immediately.`
       : "Create your first campaign and I'll start personalised outreach the moment it's live."
     chips = [
       { label: 'New campaign',        onClick: () => router.push('/dashboard/figsy') },
@@ -77,52 +101,53 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
       { label: 'Performance report',  onClick: () => router.push('/dashboard/kpis') },
     ]
   } else if (pathname.startsWith('/dashboard/leads/linkedin')) {
-    contextMessage = "Upload a LinkedIn export or company list and I'll map the columns and suggest your next move automatically."
+    contextMessage = "Drop your LinkedIn CSV here. I'll map the columns, score everyone against your ICP, and flag your top 10 immediately."
     chips = [
       { label: 'What format do I need?',    onClick: () => {} },
-      { label: 'Build ICP from this data',  onClick: () => router.push('/dashboard/leads/icp') },
+      { label: 'Build ICP first',           onClick: () => router.push('/dashboard/leads/icp') },
     ]
   } else if (pathname.startsWith('/dashboard/leads')) {
     contextMessage = leadCount > 0
-      ? `You have ${leadCount} leads scored and ready. I'd start with the highest scores — those are your warmest opportunities.`
+      ? `You have ${leadCount} leads scored and ready. I'd start with the highest scores — those are your warmest opportunities right now.`
       : "No leads yet. Let me find your ideal customers — start by defining who you want to target."
     chips = [
       { label: 'Find more leads',      onClick: () => router.push('/dashboard/leads/icp') },
-      { label: 'Launch outreach',      onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Start outreach',       onClick: () => router.push('/dashboard/figsy') },
       { label: 'Import from LinkedIn', onClick: () => router.push('/dashboard/leads/linkedin') },
     ]
   } else if (pathname.startsWith('/dashboard/billing')) {
     contextMessage = creditBalance > 0
-      ? `You have ${creditBalance} credits — that's roughly ${Math.floor(creditBalance / 3)} complete outreach sequences. Let's use them well.`
-      : "Top up credits and I'll start reaching out to your leads right away. No setup needed."
+      ? `You have ${creditBalance} credits — roughly ${Math.floor(creditBalance / 3)} complete outreach sequences. Tell me when to fire.`
+      : "Top up credits and I'll start reaching out immediately. Each sequence is 3 personalised emails per lead."
     chips = [
-      { label: 'What can I do with my credits?', onClick: () => router.push('/dashboard/figsy') },
-      { label: 'See my usage',                   onClick: () => router.push('/dashboard/usage') },
+      { label: 'How are credits used?', onClick: () => router.push('/dashboard/figsy') },
+      { label: 'See my usage',          onClick: () => router.push('/dashboard/usage') },
     ]
   } else if (pathname.startsWith('/dashboard/settings')) {
-    contextMessage = "The more I know about your business, your tone, and your goals — the better I represent you in every email I send."
+    contextMessage = "The more you tell me about your business, tone, and goals — the sharper every email I write becomes. This is worth 5 minutes."
     chips = [
-      { label: 'Set my writing style', onClick: () => {} },
+      { label: 'Update company info',  onClick: () => {} },
       { label: 'Connect my CRM',       onClick: () => {} },
-      { label: 'Connect calendar',     onClick: () => {} },
+      { label: 'Start outreach',       onClick: () => router.push('/dashboard/figsy') },
     ]
   } else if (pathname.startsWith('/dashboard/usage')) {
-    contextMessage = "Here's a full picture of everything I've done for you — credits used, leads contacted, sequences running."
+    contextMessage = "Every credit spent, every email sent, every reply received. Here's my full record of work for you."
     chips = [
       { label: 'See my campaigns',  onClick: () => router.push('/dashboard/figsy') },
       { label: 'Top up credits',    onClick: () => router.push('/dashboard/billing') },
     ]
   } else if (pathname.startsWith('/dashboard/roadmap')) {
-    contextMessage = "This is my evolution — what's live, what I'm building, and where I'm headed. I get smarter every week."
+    contextMessage = "This is my evolution — what's live, what I'm building next. I get smarter every week. Voice and WhatsApp are coming."
     chips = [
-      { label: "What's coming for outreach?", onClick: () => {} },
-      { label: 'Request a feature',           onClick: () => {} },
+      { label: "What's coming next?",  onClick: () => {} },
+      { label: 'Request a feature',    onClick: () => {} },
+      { label: 'Start outreach now',   onClick: () => router.push('/dashboard/figsy') },
     ]
   } else {
     // Homepage + default
     contextMessage = leadCount > 0
-      ? `You have ${leadCount} leads ready. I've reviewed them — your top picks are standing by.`
-      : "Let's find your first leads. Tell me who you're targeting and I'll do the rest."
+      ? `You have ${leadCount} leads ready. I've reviewed them and your top picks are standing by — ready when you are.`
+      : "Let's find your first leads. Tell me who you're targeting and I'll build your prospect list."
     chips = leadCount > 0
       ? [
           { label: 'Review my top leads', onClick: () => router.push('/dashboard/leads') },

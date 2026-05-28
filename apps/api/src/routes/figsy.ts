@@ -298,24 +298,6 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    // F1-9: gate activation behind a FIGSY-enabled subscription
-    if (body.status === 'active') {
-      const { count } = await db.from('subscriptions')
-        .select('*', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .in('product', ['lead_gen_figsy', 'figsy_addon'])
-        .in('status', ['active', 'trialing'])
-
-      if (!count || count === 0) {
-        res.status(403).json({
-          success: false,
-          error: 'FIGSY requires an active subscription. Upgrade to Lead Gen + FIGSY or add the FIGSY add-on.',
-          upgrade_url: 'https://app.get-kind.com/dashboard/billing',
-        })
-        return
-      }
-    }
-
     // Build update payload — merge settings fields into existing settings JSONB
     const dbUpdate: Record<string, unknown> = {}
     if (body.name !== undefined) dbUpdate.name = body.name

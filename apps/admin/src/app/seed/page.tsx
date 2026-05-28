@@ -60,7 +60,9 @@ export default function SeedPage() {
               ? <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
               : <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             }
-            <p className={`text-sm ${result.success ? 'text-emerald-800' : 'text-red-700'}`}>{result.message}</p>
+            <p className={`text-sm break-all ${result.success ? 'text-emerald-800' : 'text-red-700'}`}>
+              {typeof result.message === 'string' ? result.message : JSON.stringify(result)}
+            </p>
           </div>
         )}
       </div>

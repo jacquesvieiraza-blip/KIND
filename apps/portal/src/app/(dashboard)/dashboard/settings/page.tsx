@@ -162,7 +162,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Business Profile */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
+      <div className="border-t border-gray-100 pt-6">
         <h2 className="font-semibold mb-4">Business Profile</h2>
         <form onSubmit={handleSave} className="space-y-4">
           <div>
@@ -219,11 +219,9 @@ export default function SettingsPage() {
       </div>
 
       {/* Lead Delivery Settings */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900">Lead Delivery</h2>
-        <p className="text-gray-500 text-sm mt-0.5">Control how many leads you receive and how fast they arrive.</p>
-      </div>
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
+      <div className="border-t border-gray-100 pt-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-0.5">Lead Delivery</h2>
+        <p className="text-gray-500 text-sm mt-0.5 mb-5">Control how many leads you receive and how fast they arrive.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Leads per ICP run <span className="text-gray-400 font-normal">(max)</span></label>
@@ -250,13 +248,13 @@ export default function SettingsPage() {
       </div>
 
       {/* Integrations heading */}
-      <div>
+      <div className="border-t border-gray-100 pt-6">
         <h2 className="text-lg font-semibold text-gray-900">Integrations</h2>
         <p className="text-[#7B6FA0] text-sm mt-0.5">Connect external tools to supercharge FIGSY.</p>
       </div>
 
       {/* Writing Style — W14 */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
+      <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center gap-2 mb-1">
           <Pencil className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="font-semibold">FIGSY Writing Style</h2>
@@ -287,7 +285,7 @@ export default function SettingsPage() {
       </div>
 
       {/* CRM Integration */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
+      <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center gap-2 mb-1">
           <Link2 className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="font-semibold">CRM Integration</h2>
@@ -375,12 +373,12 @@ export default function SettingsPage() {
       </div>
 
       {/* Google Calendar */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
+      <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center gap-2 mb-1">
           <Calendar className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="font-semibold">Google Calendar</h2>
           {calendarStatus?.connected && (
-            <span className="ml-auto flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+            <span className="ml-2 flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <CheckCircle className="w-3 h-3" /> Connected
             </span>
           )}
@@ -404,11 +402,11 @@ export default function SettingsPage() {
 
       {/* WhatsApp — only show when active */}
       {whatsappStatus?.configured && (
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
+        <div className="border-t border-gray-100 pt-6">
           <div className="flex items-center gap-2 mb-1">
             <MessageCircle className="w-4 h-4 text-[#9B8EC4]" />
             <h2 className="font-semibold">WhatsApp Business</h2>
-            <span className="ml-auto flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+            <span className="ml-2 flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <CheckCircle className="w-3 h-3" /> Active
             </span>
           </div>
@@ -421,11 +419,11 @@ export default function SettingsPage() {
 
       {/* Voice (Vapi) — only show when active */}
       {vapiStatus?.configured && (
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6">
+        <div className="border-t border-gray-100 pt-6">
           <div className="flex items-center gap-2 mb-1">
             <Phone className="w-4 h-4 text-[#9B8EC4]" />
             <h2 className="font-semibold">Voice Calls (FIGSY)</h2>
-            <span className="ml-auto flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+            <span className="ml-2 flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <CheckCircle className="w-3 h-3" /> Active
             </span>
           </div>

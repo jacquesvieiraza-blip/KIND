@@ -264,8 +264,8 @@ export default function BillingPage() {
       </div>
 
       {/* Balance */}
-      <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl p-6 text-white flex items-center justify-between">
-        <div>
+      <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl text-white grid grid-cols-2 divide-x divide-white/10">
+        <div className="px-6 py-5">
           <p className="text-white/60 text-sm mb-1">Current balance</p>
           <div className="flex items-end gap-2">
             <p className="text-4xl font-bold">{balance ?? 0}</p>
@@ -273,13 +273,13 @@ export default function BillingPage() {
           </div>
           <p className="text-white/40 text-xs mt-1">1 credit = 1 qualified lead delivered</p>
         </div>
-        <div className="bg-gradient-to-r from-[#1a0040] to-[#2d0070] rounded-xl p-6 text-white">
-          <div className="flex items-center justify-between mb-3">
+        <div className="px-6 py-5">
+          <div className="flex items-center justify-between mb-1">
             <p className="text-white/60 text-sm">FIGSY outreach credits</p>
             <Zap className="w-5 h-5 text-purple-300" />
           </div>
           <p className="text-4xl font-bold">{figsyBalance ?? 0}</p>
-          <p className="text-white/40 text-xs mt-2">1 credit = 1 lead enrolled in email campaign</p>
+          <p className="text-white/40 text-xs mt-1">1 credit = 1 lead enrolled in email campaign</p>
         </div>
       </div>
 
@@ -290,7 +290,7 @@ export default function BillingPage() {
           { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'Outreach sent', sub: 'No credit used', bg: 'bg-indigo-50' },
           { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Lead delivered', sub: '1 credit consumed', bg: 'bg-green-50' },
         ].map(({ icon, title, sub, bg }) => (
-          <div key={title} className="bg-white border border-purple-100/60 rounded-xl p-4 text-center">
+          <div key={title} className="bg-purple-50/40 rounded-xl p-4 text-center">
             <div className={`w-8 h-8 ${bg} rounded-full flex items-center justify-center mx-auto mb-2`}>{icon}</div>
             <p className="text-sm font-medium text-gray-900">{title}</p>
             <p className="text-xs text-[#9B8EC4] mt-0.5">{sub}</p>
@@ -299,7 +299,7 @@ export default function BillingPage() {
       </div>
 
       {/* Terms */}
-      <div className="bg-white border border-purple-100/80 rounded-xl px-5 py-4">
+      <div className="border-t border-gray-100 pt-4">
         <label className="flex items-start gap-3 cursor-pointer select-none">
           <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
             className="mt-0.5 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED] shrink-0" />
@@ -464,7 +464,7 @@ export default function BillingPage() {
       </div>
 
       {/* ── AUTO TOP-UP ─────────────────────────────────────────────────────── */}
-      <div className="bg-white border border-purple-100/60 rounded-xl p-6">
+      <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-base font-semibold text-gray-900">Auto top-up</h2>
@@ -531,7 +531,7 @@ export default function BillingPage() {
         return (
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Credit balance over time</h2>
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
+            <div className="bg-white rounded-xl border border-gray-100 p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-5 text-sm">
                   <span className="text-[#7B6FA0]">Top-ups: <span className="font-semibold text-green-600">+{totalTopUps}</span></span>
@@ -553,7 +553,7 @@ export default function BillingPage() {
       {transactions.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Credit history</h2>
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             {transactions.map((tx, i) => (
               <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 text-sm ${i < transactions.length - 1 ? 'border-b border-gray-50' : ''}`}>
                 <div>

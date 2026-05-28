@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { Zap, Users, ShieldCheck, BookOpen, Target, Globe, Briefcase, Coffee, TrendingUp, X, ChevronRight, Pencil, Send, Settings2, Sparkles, ArrowRight } from 'lucide-react'
+import { AgentSidePanel } from '@/components/ui/AgentSidePanel'
 
 // ── Campaign templates ────────────────────────────────────────────
 interface CampaignTemplate {
@@ -183,6 +185,7 @@ function interestedRate(c: Campaign): string {
 
 export default function FigsyPage() {
   const supabase = createClient()
+  const router   = useRouter()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -644,40 +647,50 @@ export default function FigsyPage() {
     </div>
   )
 
+  const totalEmailsSent   = campaigns.reduce((s, c) => s + c.emails_sent, 0)
+  const totalInterestedFigsy = campaigns.reduce((s, c) => s + c.replies_interested, 0)
+  const activeCampaignCount  = campaigns.filter(c => c.status === 'active').length
+
+  const figsynContextMessage = campaigns.length === 0
+    ? "Ready to launch your first campaign. Pick a template or describe your target and I'll build it."
+    : activeCampaignCount === 0
+      ? `You have ${campaigns.length} campaign${campaigns.length !== 1 ? 's' : ''} in draft. Activate when ready — I'll start reaching out immediately.`
+      : `Running ${activeCampaignCount} active campaign${activeCampaignCount !== 1 ? 's' : ''}. ${totalEmailsSent.toLocaleString()} emails sent${totalInterestedFigsy > 0 ? `, ${totalInterestedFigsy} interested` : ''}.`
+
+  const figsyChips = campaigns.length === 0
+    ? [
+        { label: 'Browse templates',    onClick: () => setShowTemplates(true) },
+        { label: 'Suggest a campaign',  onClick: handleSuggestCampaigns },
+        { label: 'New blank campaign',  onClick: () => setShowCreate(true) },
+      ]
+    : [
+        { label: 'Suggest new campaign', onClick: handleSuggestCampaigns },
+        { label: 'View inbox',           onClick: () => router.push('/dashboard/inbox') },
+        { label: 'Performance report',   onClick: () => router.push('/dashboard/kpis') },
+      ]
+
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* FIGSY Agent Identity Card */}
-      <div className="bg-gradient-to-br from-[#1A0F47] to-[#0F0929] rounded-2xl p-6 mb-6 flex items-start gap-5">
-        <div className="relative shrink-0">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-[#7C3AED]/40 shadow-md">
-            <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
-          </div>
-          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-[#0F0929] animate-pulse" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-white font-bold text-lg tracking-tight">FIGSY</h2>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-400/10 text-green-400 border border-green-400/20">
-              Active
-            </span>
-          </div>
-          <p className="text-white/40 text-xs mb-4">Your AI outreach agent — running 24/7 on your behalf</p>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/5 rounded-xl px-4 py-3">
-              <p className="text-white/30 text-xs mb-1">Active campaigns</p>
-              <p className="text-white font-bold text-lg">{campaigns.filter(c => c.status === 'active').length}</p>
-            </div>
-            <div className="bg-white/5 rounded-xl px-4 py-3">
-              <p className="text-white/30 text-xs mb-1">Emails sent</p>
-              <p className="text-white font-bold text-lg">{campaigns.reduce((s, c) => s + c.emails_sent, 0).toLocaleString()}</p>
-            </div>
-            <div className="bg-white/5 rounded-xl px-4 py-3">
-              <p className="text-white/30 text-xs mb-1">Interested replies</p>
-              <p className="text-white font-bold text-lg">{campaigns.reduce((s, c) => s + c.replies_interested, 0)}</p>
-            </div>
-          </div>
-        </div>
+    <div className="flex gap-5 items-start">
+
+      {/* ── LEFT: FIGSY agent panel (sticky) ─────────────────────────── */}
+      <div className="w-72 shrink-0 sticky top-6">
+        <AgentSidePanel
+          agentId="figsy"
+          name="FIGSY"
+          role="AI SDR"
+          tagline="Your outreach agent"
+          contextMessage={figsynContextMessage}
+          chips={figsyChips}
+          onSend={msg => {
+            setNewIntent(msg)
+            setShowCreate(true)
+          }}
+          inputPlaceholder="Describe your target…"
+        />
       </div>
+
+      {/* ── RIGHT: Campaign work area ──────────────────────────────── */}
+      <div className="flex-1 min-w-0 space-y-5">
 
       {/* Mode toggle — Auto-Pilot vs Co-Pilot */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4">
@@ -1331,6 +1344,8 @@ export default function FigsyPage() {
           </div>
         </div>
       )}
+
+      </div>
     </div>
   )
 }

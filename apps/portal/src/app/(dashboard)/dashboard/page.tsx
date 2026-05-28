@@ -15,7 +15,7 @@ import { OnboardingChecklist } from '@/components/ui/OnboardingChecklist'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
 import {
   Target, Inbox, ArrowRight, Zap,
-  Calendar, TrendingUp, Mail, ChevronRight,
+  TrendingUp, Mail, ChevronRight,
   Flame, ThermometerSun,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -118,18 +118,6 @@ export default async function DashboardPage() {
   const replyRate       = totalSent > 0 ? Math.round((totalReplies / totalSent) * 100) : 0
   const bookingRate     = totalSent > 0 ? ((totalMeetings / totalSent) * 100).toFixed(1) : '0.0'
 
-  // ── Compass completion ─────────────────────────────────────────────────────
-  const compassDone = [
-    !!companyName,
-    icpCount > 0,
-    (leadStats?.total ?? 0) > 0,
-    figsyCampaigns.length > 0,
-  ].filter(Boolean).length
-  const compassTotal = 4
-
-  const hour = new Date().getHours()
-  const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
-
   // Fake 7-day sparkline from aggregated data (will be real when per-day API exists)
   const sparkPoints = totalSent > 0
     ? [Math.floor(totalSent * 0.08), Math.floor(totalSent * 0.12), Math.floor(totalSent * 0.10), Math.floor(totalSent * 0.15), Math.floor(totalSent * 0.18), Math.floor(totalSent * 0.20), Math.floor(totalSent * 0.17)]
@@ -155,117 +143,57 @@ export default async function DashboardPage() {
         {/* ── RIGHT: main dashboard content ─────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-4">
 
-          {/* ── HERO ROW — FIGSY greeting + compass progress ──────────────── */}
-          <div className="flex items-start gap-4 bg-white rounded-2xl border border-[#EDE9FE] px-5 py-4 shadow-sm">
-            <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-xl overflow-hidden ring-2 ring-[#7C3AED]/20 shadow-md shadow-purple-200/40">
-                <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover" />
-              </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-slate-400 mb-0.5">
-                Good {timeOfDay}{companyName ? ` · ${companyName}` : ''} — FIGSY is ready
-              </p>
-              <h1 className="text-lg font-bold text-[#1E0A5C] leading-tight">
-                {totalSent === 0 ? 'Let\'s start your first campaign' : 'Your pipeline, at a glance'}
-              </h1>
-              <div className="flex flex-wrap items-center gap-2 mt-2.5">
-                <Link href="/dashboard/figsy" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-semibold rounded-full transition-colors shadow-sm shadow-purple-400/30">
-                  <Target className="w-3 h-3" />
-                  New campaign
-                </Link>
-                {totalInterested > 0 && (
-                  <Link href="/dashboard/figsy/replies" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-medium text-emerald-700 rounded-full transition-colors">
-                    <Inbox className="w-3 h-3" />
-                    {totalInterested} interested
-                  </Link>
-                )}
-                {totalMeetings > 0 && (
-                  <Link href="/dashboard/kpis" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F5F0FF] hover:bg-[#EDE9FE] border border-[#EDE9FE] text-xs font-medium text-[#7C3AED] rounded-full transition-colors">
-                    <Calendar className="w-3 h-3" />
-                    {totalMeetings} meetings booked
-                  </Link>
-                )}
-              </div>
-            </div>
-            {/* Compass mini progress */}
-            {compassDone < compassTotal && (
-              <Link href="/dashboard/settings" className="shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-[#FFFBF5] border border-[#EDE9FE] hover:border-[#7C3AED]/30 transition-colors">
-                <div className="flex gap-1">
-                  {Array.from({ length: compassTotal }).map((_, i) => (
-                    <span key={i} className={`w-2 h-2 rounded-full ${i < compassDone ? 'bg-[#7C3AED]' : 'bg-[#EDE9FE]'}`} />
-                  ))}
+          {/* ── STATS — only shown once there's activity ──────────────────── */}
+          {totalSent > 0 && (
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                {
+                  label: 'Emails sent',
+                  value: totalSent.toLocaleString(),
+                  color: 'text-slate-700',
+                  bg: 'bg-white',
+                  border: 'border-[#EDE9FE]',
+                  trend: sparkPoints,
+                  trendColor: '#7C3AED',
+                },
+                {
+                  label: 'Reply rate',
+                  value: `${replyRate}%`,
+                  sub: replyRate >= 8 ? '↑ above avg' : 'avg 8%',
+                  color: replyRate >= 8 ? 'text-emerald-600' : 'text-slate-700',
+                  bg: replyRate >= 8 ? 'bg-emerald-50/50' : 'bg-white',
+                  border: replyRate >= 8 ? 'border-emerald-200' : 'border-[#EDE9FE]',
+                },
+                {
+                  label: 'Interested',
+                  value: totalInterested.toLocaleString(),
+                  sub: 'warm leads',
+                  color: 'text-amber-600',
+                  bg: totalInterested > 0 ? 'bg-amber-50/40' : 'bg-white',
+                  border: totalInterested > 0 ? 'border-amber-200' : 'border-[#EDE9FE]',
+                },
+                {
+                  label: 'Meetings booked',
+                  value: totalMeetings.toLocaleString(),
+                  sub: `Alta avg: 3–5%`,
+                  color: 'text-[#7C3AED]',
+                  bg: totalMeetings > 0 ? 'bg-[#F5F0FF]' : 'bg-white',
+                  border: 'border-[#EDE9FE]',
+                },
+              ].map(({ label, value, sub, color, bg, border, trend, trendColor }: {
+                label: string; value: string; sub?: string; color: string; bg: string; border: string; trend?: number[]; trendColor?: string
+              }) => (
+                <div key={label} className={`rounded-xl border ${bg} ${border} px-4 py-3 flex flex-col gap-1`}>
+                  <p className="text-[11px] text-slate-400 font-medium">{label}</p>
+                  <div className="flex items-end justify-between gap-1">
+                    <p className={`text-2xl font-bold tracking-tight leading-none ${color}`}>{value}</p>
+                    {trend && trendColor && <MiniSparkline points={trend} color={trendColor} />}
+                  </div>
+                  {sub && <p className="text-[10px] text-slate-400">{sub}</p>}
                 </div>
-                <p className="text-[10px] text-slate-400 whitespace-nowrap">Setup {compassDone}/{compassTotal}</p>
-              </Link>
-            )}
-          </div>
-
-          {/* ── 5-STAT COMMAND BAR ────────────────────────────────────────── */}
-          <div className="grid grid-cols-5 gap-3">
-            {[
-              {
-                label: 'Sent',
-                value: totalSent.toLocaleString(),
-                sub: 'emails',
-                color: 'text-slate-700',
-                bg: 'bg-white',
-                border: 'border-[#EDE9FE]',
-                trend: sparkPoints,
-                trendColor: '#7C3AED',
-              },
-              {
-                label: 'Reply Rate',
-                value: `${replyRate}%`,
-                sub: replyRate >= 8 ? '↑ above avg' : 'avg 8%',
-                color: replyRate >= 8 ? 'text-emerald-600' : 'text-slate-700',
-                bg: replyRate >= 8 ? 'bg-emerald-50/50' : 'bg-white',
-                border: replyRate >= 8 ? 'border-emerald-200' : 'border-[#EDE9FE]',
-                trend: null,
-                trendColor: '',
-              },
-              {
-                label: 'Interested',
-                value: totalInterested.toLocaleString(),
-                sub: 'warm leads',
-                color: 'text-amber-600',
-                bg: totalInterested > 0 ? 'bg-amber-50/40' : 'bg-white',
-                border: totalInterested > 0 ? 'border-amber-200' : 'border-[#EDE9FE]',
-                trend: null,
-                trendColor: '',
-              },
-              {
-                label: 'Meetings Booked',
-                value: totalMeetings.toLocaleString(),
-                sub: `${bookingRate}% · Alta: 3–5%`,
-                color: 'text-[#7C3AED]',
-                bg: totalMeetings > 0 ? 'bg-[#F5F0FF]' : 'bg-white',
-                border: totalMeetings > 0 ? 'border-[#EDE9FE]' : 'border-[#EDE9FE]',
-                trend: null,
-                trendColor: '',
-              },
-              {
-                label: 'Active Campaigns',
-                value: activeCampaigns.length.toString(),
-                sub: `${figsyCampaigns.length} total`,
-                color: 'text-slate-700',
-                bg: 'bg-white',
-                border: 'border-[#EDE9FE]',
-                trend: null,
-                trendColor: '',
-              },
-            ].map(({ label, value, sub, color, bg, border, trend, trendColor }) => (
-              <div key={label} className={`rounded-xl border ${bg} ${border} px-4 py-3 flex flex-col gap-1`}>
-                <p className="text-[11px] text-slate-400 font-medium">{label}</p>
-                <div className="flex items-end justify-between gap-1">
-                  <p className={`text-2xl font-bold tracking-tight leading-none ${color}`}>{value}</p>
-                  {trend && <MiniSparkline points={trend} color={trendColor} />}
-                </div>
-                <p className="text-[10px] text-slate-400">{sub}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* ── TWO-COLUMN MAIN VIEW ──────────────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

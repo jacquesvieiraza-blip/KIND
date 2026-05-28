@@ -367,19 +367,24 @@ export default async function DashboardPage() {
                 <span className="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">{totalInterested}</span>
               )}
             </div>
-            <Link href="/dashboard/figsy/replies" className="text-xs text-[#7C3AED] hover:underline flex items-center gap-0.5">
-              Inbox <ArrowRight className="w-3 h-3" />
+            <Link href="/dashboard/figsy/replies" className="text-xs font-semibold text-[#7C3AED] hover:text-[#6D28D9] bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
+              Open Inbox <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
 
           {hotReplies.length === 0 ? (
-            <div className="flex flex-col items-center py-6 gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#F5F0FF] flex items-center justify-center">
-                <Inbox className="w-5 h-5 text-[#7C3AED]/40" />
+            <Link href="/dashboard/figsy/replies" className="flex flex-col items-center py-6 gap-3 rounded-xl border border-dashed border-purple-100 hover:border-[#7C3AED]/40 hover:bg-purple-50/30 transition-colors cursor-pointer group">
+              <div className="w-10 h-10 rounded-xl bg-[#F5F0FF] group-hover:bg-purple-100 flex items-center justify-center transition-colors">
+                <Inbox className="w-5 h-5 text-[#7C3AED]/60" />
               </div>
-              <p className="text-sm text-slate-400 text-center">Replies will appear here</p>
-              <p className="text-xs text-slate-300 text-center">Hot and warm prospects show up the moment they reply</p>
-            </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-slate-500">No replies yet</p>
+                <p className="text-xs text-slate-300 mt-0.5">Hot and warm prospects appear here the moment they reply</p>
+              </div>
+              <span className="text-xs font-semibold text-[#7C3AED] flex items-center gap-1">
+                Go to Inbox <ArrowRight className="w-3 h-3" />
+              </span>
+            </Link>
           ) : (
             <div className="space-y-2">
               {hotReplies.map(r => {

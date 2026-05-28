@@ -268,6 +268,17 @@ figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch campaigns' }) }
 })
 
+figsyRouter.get('/campaigns/:id', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data, error } = await db.from('figsy_campaigns')
+      .select('*').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (error || !data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    res.json({ success: true, data })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch campaign' }) }
+})
+
 figsyRouter.post('/campaigns', async (req: AuthRequest, res) => {
   try {
     const body = z.object({

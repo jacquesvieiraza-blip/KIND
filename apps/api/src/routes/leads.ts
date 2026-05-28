@@ -573,31 +573,6 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
   }
 })
 
-// ── BULK STATUS UPDATE ────────────────────────────────────────────────────────
-leadRouter.post('/bulk-status', async (req: AuthRequest, res) => {
-  try {
-    const { leadIds, status } = z.object({
-      leadIds: z.array(z.string().uuid()).min(1).max(100),
-      status:  z.enum(['pending', 'scored', 'consent_sent', 'consent_given', 'exported', 'rejected', 'opted_out']),
-    }).parse(req.body)
-
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    const { data: updated, error } = await db.from('leads')
-      .update({ status })
-      .in('id', leadIds)
-      .eq('client_id', clientId)
-      .select('id')
-
-    if (error) throw error
-    res.json({ success: true, updated: updated?.length ?? 0 })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error(err); res.status(500).json({ success: false, error: 'Failed to update lead statuses' })
-  }
-})
-
 // ── BULK EXPORT (POST) ────────────────────────────────────────────────────────
 leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
   try {

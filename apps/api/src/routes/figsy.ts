@@ -140,7 +140,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       // Auto top-up check
       try {
         const { data: clientForTopup } = await db.from('clients')
-          .select('id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
+          .select('id, user_id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
           .eq('id', lead.client_id).single()
         if (clientForTopup?.auto_topup_enabled &&
             clientForTopup.auto_topup_paystack_auth &&
@@ -153,7 +153,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
           }
           const amountUsd = BUNDLES[plan]?.[bundleSize]
           if (amountUsd) {
-            const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.id)
+            const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.user_id)
             const topupEmail = user?.email
             if (!topupEmail) throw new Error('No email for auto-topup client')
             const amountZarKobo = Math.round(amountUsd * 19 * 100)

@@ -145,13 +145,14 @@ export default function BillingPage() {
 
       try {
         const [creditsRes, subsRes, autoRes] = await Promise.allSettled([
-          api.get<{ data: { balance: number; transactions: CreditTransaction[] } }>('/credits', session.access_token),
+          api.get<{ data: { balance: number; figsy_credits_remaining: number; transactions: CreditTransaction[] } }>('/credits', session.access_token),
           api.get<{ data: { product: string; status: string }[] }>('/subscriptions', session.access_token),
           api.get<{ data: { auto_topup_enabled?: boolean; auto_topup_threshold?: number; auto_topup_plan?: string; auto_topup_bundle_size?: number } }>('/clients/me', session.access_token),
         ])
 
         if (creditsRes.status === 'fulfilled') {
           setBalance(creditsRes.value.data.balance)
+          setFigsyBalance(creditsRes.value.data.figsy_credits_remaining ?? 0)
           setTransactions(creditsRes.value.data.transactions)
         } else {
           setLoadError('Could not load billing data — please refresh.')
@@ -229,7 +230,12 @@ export default function BillingPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     try {
-      await api.patch('/clients/me/auto-topup', autoTopup, session.access_token)
+      await api.patch('/clients/me/auto-topup', {
+        auto_topup_enabled:     autoTopup.enabled,
+        auto_topup_threshold:   autoTopup.threshold,
+        auto_topup_plan:        autoTopup.plan,
+        auto_topup_bundle_size: autoTopup.bundle_size,
+      }, session.access_token)
       setTopupSaved(true)
       setTimeout(() => setTopupSaved(false), 3000)
     } catch { setBuyError('Failed to save auto-topup settings') }

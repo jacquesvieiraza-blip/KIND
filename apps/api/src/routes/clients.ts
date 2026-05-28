@@ -81,13 +81,15 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       company_name:      z.string().min(2).optional(),
       industry:          z.string().optional(),
       country:           z.string().optional(),
-      website:           z.string().url().optional(),
+      website:           z.string().url().optional().or(z.literal('')),
       phone:             z.string().optional(),
       company_registration: z.string().optional(),
       vat_number:           z.string().optional(),
       crm_type:          z.enum(['hubspot', 'pipedrive', 'none']).optional(),
       crm_api_key:       z.string().optional(),
       crm_sync_enabled:  z.boolean().optional(),
+      leads_per_run:     z.number().int().min(1).optional(),
+      daily_drip_rate:   z.number().int().min(1).optional(),
     }).parse(req.body)
     const { data, error } = await db.from('clients').update(body).eq('user_id', req.userId!).select().single()
     if (error) throw error

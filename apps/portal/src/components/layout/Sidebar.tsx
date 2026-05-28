@@ -128,23 +128,7 @@ export function Sidebar({
   const agent = AGENTS.find(a => a.id === activeId)!
   const unlocked = isUnlocked(activeId)
 
-  React.useEffect(() => {
-    if (!hasFigsy) return
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
-      try {
-        const url = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-        const res = await fetch(`${url}/figsy/replies/unread`, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-          signal: AbortSignal.timeout(5000),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setUnreadCount(data?.data?.count ?? 0)
-        }
-      } catch { /* silent */ }
-    })
-  }, [supabase, hasFigsy])
+  // unreadCount stays 0; the /figsy/replies/unread endpoint does not exist
 
   async function handleSignOut() {
     await supabase.auth.signOut()

@@ -396,6 +396,25 @@
 | T20 | Register Resend inbound webhook | Resend → Webhooks → Railway URL → set `RESEND_WEBHOOK_SECRET` in Railway | ☐ |
 | T21 | Add `FIGSY_KIND_CLIENT_ID` to Railway | Your UUID from Supabase clients table — self-outreach does nothing without it | ☐ |
 
+**⚖️ Legal & Investment Foundations — Founder's Guide (added 28 May 2026):**
+| # | Task | Cost | Where | ✓ |
+|---|------|------|-------|---|
+| L1 | Register UK Ltd company on Companies House | £50 | gov.uk/register-a-company or 1st Formations | ☐ |
+| L2 | Open business bank account (Tide or Starling or Wise) | Free | tide.co / starlingbank.com / wise.com | ☐ |
+| L3 | Apply for SEIS Advance Assurance from HMRC (do this BEFORE approaching investors) | Free | gov.uk — search "SEIS advance assurance" | ☐ |
+| L4 | File K.I.N.D trademark at UK IPO — Class 42 (SaaS) | £170 | ipo.gov.uk/trademark | ☐ |
+| L5 | File FIGSY trademark at UK IPO — Class 42 | £50 (add-on) | ipo.gov.uk/trademark | ☐ |
+| L6 | File Milla + Vida trademarks at UK IPO if commercialising separately | £50 each | ipo.gov.uk/trademark | ☐ |
+| L7 | Register with ICO (data protection) | £40/year | ico.org.uk/registration | ☐ |
+| L8 | Sign IP assignment agreements with all devs/contractors (retroactive too) | Free / £300 via SeedLegals | seedlegals.com | ☐ |
+| L9 | Draft shareholders agreement | £300–500 via SeedLegals | seedlegals.com | ☐ |
+| L10 | Set up FreeAgent or Xero bookkeeping from day one | £19–30/month | freeagent.com / xero.com | ☐ |
+| L11 | Consider EUIPO trademark filing if selling to EU clients | ~€850/class | euipo.europa.eu | ☐ |
+| L12 | Consider SA trademark via CIPC if significant ZA revenue | Nominal | cipc.co.za | ☐ |
+| L13 | Prepare SEIS advance assurance docs: business plan + 3yr projections | Free | Attach to HMRC application | ☐ |
+| L14 | Build investor data room (Google Drive): cert of inc, cap table, IP assignments, accounts, SEIS letter | Free | Google Drive or Notion | ☐ |
+| L15 | Consider EMI option scheme setup before first key hire | ~£500 via SeedLegals | seedlegals.com | ☐ |
+
 **When ready — non-blocking:**
 | # | Task | Notes | ✓ |
 |---|------|-------|---|
@@ -2890,6 +2909,177 @@ Once you have the company number, Claude will:
 | VAT registration | When turnover hits £90k/yr | Free |
 
 **Note:** If you have zero UK employees and your only director is non-UK resident, you still file but tax is only due on UK-sourced income. Most early revenue will be international. Get an accountant once you hit £10k MRR.
+
+---
+
+### SEIS / EIS — Your Unfair Advantage With UK Investors
+
+> Apply for SEIS Advance Assurance BEFORE approaching any investor. It halves their risk and doubles your close rate.
+
+**SEIS (Seed Enterprise Investment Scheme):**
+- 50% income tax relief on investments up to £200,000 per investor
+- Capital gains tax exemption on profit at exit
+- Loss relief if company fails — further reduces investor risk
+- K.I.N.D eligibility: UK Ltd, under 3 years from first commercial sale, <25 employees, gross assets <£350k before investment
+- Apply at gov.uk — "SEIS advance assurance" — takes 4–8 weeks. Do it now.
+
+**EIS (Enterprise Investment Scheme):**
+- 30% income tax relief on investments up to £1M per investor
+- Kicks in once K.I.N.D exceeds SEIS limits (>25 employees or >3 years)
+
+**How to apply for Advance Assurance:**
+1. Go to gov.uk → search "SEIS advance assurance"
+2. Submit: business plan, financial projections, company details
+3. Wait 4–8 weeks — receive advance assurance letter
+4. Show this letter to every investor before they commit
+
+---
+
+### Intellectual Property Protection
+
+> Every person who has written code or designed assets for K.I.N.D must have a signed IP assignment agreement. This is the #1 issue that kills tech acquisitions in due diligence.
+
+**Trademarks to file at UK IPO (ipo.gov.uk) — Class 42 (SaaS):**
+| Mark | Cost | Status |
+|------|------|--------|
+| K.I.N.D | £170 first class | ⏳ Pending L4 |
+| FIGSY | £50 add-on | ⏳ Pending L5 |
+| Milla | £50 add-on | ⏳ Pending L6 |
+| Vida | £50 add-on | ⏳ Pending L6 |
+
+Filing date = priority date. File before a competitor does. 4-month processing if uncontested.
+
+**After Brexit:** UK trademark ≠ EU coverage. If selling in Europe → EUIPO separately (~€850/class). If significant ZA revenue → CIPC filing.
+
+**Code ownership checklist:**
+- [ ] All repos owned by company GitHub account, not personal
+- [ ] All domain registrations in company name + company email
+- [ ] All social accounts managed under company login
+- [ ] IP assignment agreements signed by every dev/contractor — past and present (SeedLegals template: £300)
+
+---
+
+### Legal Foundations
+
+**Privacy & GDPR:**
+- UK GDPR applies — publish Privacy Policy explaining data collected, why, retention, rights
+- Lawful basis for outbound outreach = "legitimate interests" (already documented in POPIA framework)
+- Maintain Record of Processing Activities (ROPA) — internal log
+- Respond to data subject access requests within 30 days
+- **ICO registration required: ico.org.uk — £40–60/year. Legal requirement.** → L7
+
+**Shareholders agreement (via SeedLegals ~£300–500):**
+- Pre-emption rights — existing shareholders get first refusal on new shares
+- Drag-along + tag-along rights for exit scenarios
+- Reserved matters — decisions requiring shareholder approval
+- Leaver provisions — what happens to shares if someone leaves
+- Vesting schedules for any equity given to co-founders or key hires (standard: 4yr / 1yr cliff)
+
+---
+
+### Investor Landscape
+
+**Pre-Seed — UK Angels (£10k–£100k, SEIS-backed):**
+| Platform | Type | URL |
+|----------|------|-----|
+| Angel Investment Network | Generalist | angelinvestmentnetwork.co.uk |
+| Syndicate Room | SEIS/EIS syndicates | syndicateroom.com |
+| Crowdcube | Equity crowdfunding | crowdcube.com |
+| Seedrs (Republic Europe) | B2B SaaS strong | seedrs.com |
+| London Business Angels | London network | lbangels.co.uk |
+| Beer & Partners | Early stage UK | beerandpartners.com |
+
+**Africa-Focused Angels & Networks:**
+| Network | Focus | URL |
+|---------|-------|-----|
+| African Business Angel Network (ABAN) | Pan-African diaspora angels | aban.community |
+| Grindstone Accelerator | South Africa | grindstone.co.za |
+| Cape Angel Network | Cape Town / SA | LinkedIn direct |
+| Africa Tech Ventures | African tech seed fund | africatechventures.com |
+
+**Seed Funds — UK/European (need £3k–10k MRR growing):**
+| Fund | Cheque | Notes |
+|------|--------|-------|
+| Seedcamp | £100k–£500k | seedcamp.com — most active early stage EU fund |
+| LocalGlobe | £500k–£2M | localglobe.vc — backed Wise, Robinhood |
+| Backed VC | £250k–£1M | backed.vc — founder-friendly, good for solo founders |
+| Fuel Ventures | £250k–£2M | fuel.ventures — UK B2B SaaS focus |
+| Concept Ventures | £250k–£750k | conceptventures.vc — very early stage |
+| Notion Capital | £1M–£5M | notion.vc — EU B2B SaaS specialist — highly relevant |
+
+**Africa-Focused VC Funds:**
+| Fund | Focus | URL |
+|------|-------|-----|
+| TLcom Capital | Pan-African tech | tlcomcapital.com |
+| Partech Africa | Pan-African (Anglophone) | partechpartners.com |
+| 4Di Capital | South Africa tech | 4dicapital.com |
+| Knife Capital | SA scale-ups | knifecap.com |
+| Future Africa | Pan-African, African founders | future.africa |
+| Ingressive Capital | West + East Africa | ingressive.com |
+
+> Africa-focused VCs will value K.I.N.D's POPIA-native architecture and Africa-first positioning far more than generic UK seed funds. Segment outreach accordingly.
+
+**Accelerators:**
+| Programme | What | Equity | Apply |
+|-----------|------|--------|-------|
+| Innovate UK Smart Grants | £25k–£500k non-dilutive grant | 0% | iuk.ktn-uk.org |
+| Founders Factory | Studio model — build + invest | ~10% | foundersfactory.com |
+| Entrepreneur First | Pre-team building | ~8–10% | joinef.com |
+| Y Combinator | $500k | 7% | ycombinator.com |
+| Techstars London | $120k + mentorship | 6% | techstars.com/london |
+| Anthropic Startups | Claude API credits | 0% | anthropic.com/startups |
+| Google for Startups | Cloud credits | 0% | startup.google.com |
+
+**Grant Funding (no dilution):**
+- **Innovate UK Smart Grants** — £25k–£500k for innovative UK tech. Competitive, worth applying. iuk.ktn-uk.org
+- **UKRI Future Leaders Fellowship** — up to £1.5M over 4 years if K.I.N.D has a research component
+- **British Business Bank Start Up Loans** — £500–£25k at 6% fixed, no equity. british-business-bank.co.uk
+
+---
+
+### What Investors Look At (Pre-Seed / Seed)
+
+| Metric | Why It Matters |
+|--------|----------------|
+| MRR growth rate month-on-month | Rate matters more than absolute number — 3x growth from £5k to £15k is more interesting than flat £50k |
+| Repeat purchase rate | K.I.N.D is pay-per-result not subscription — this is our equivalent of churn. Track from day one. |
+| CAC | Every £ spent on acquisition. Must be below LTV. |
+| LTV | LTV:CAC ≥ 3:1 is the investor benchmark. |
+| Pipeline metrics | Meetings booked, reply rates — K.I.N.D's product metrics ARE the investor metrics. Publish them. |
+| NPS / retention | One strong NPS signal beats a deck full of projections. |
+
+**The Africa angle is a genuine investor differentiator.** POPIA-native architecture, Africa-specific ICP understanding, WhatsApp-first Vida — these are technical facts, not marketing claims. Africa-focused VCs will value this far above what a generic UK seed fund pays for it.
+
+---
+
+### Exit Paths
+
+| Path | Notes |
+|------|-------|
+| **Strategic acquisition (most likely)** | Acquirers: Apollo, HubSpot, Salesforce, or regional African tech co. Price = 3x–10x ARR. At £100k ARR with strong growth: £500k–1M realistic. At £1M ARR: £3M–10M range. |
+| **PE / growth equity** | Requires £1M+ ARR. PE firm buys majority, scales, exits in 3–5 years. |
+| **IPO** | 10+ year path. Don't optimise for it at this stage. |
+
+**What makes K.I.N.D attractive for acquisition:** clean cap table, all IP owned by company, documented codebase, repeat revenue, defensible Africa + POPIA market position, product an acquirer can distribute through their existing sales motion.
+
+---
+
+### Lawyers, Platforms & Resources
+
+| Service | Best For | Cost | URL |
+|---------|----------|------|-----|
+| SeedLegals | All standard startup legal — fast, online | £300–1,500 most tasks | seedlegals.com |
+| Stephenson Law | Startup legal, fixed fees, founder-friendly | £1k–5k structuring | stephensonlaw.co.uk |
+| FreeAgent | Early-stage bookkeeping, MTD compliant | £19/month | freeagent.com |
+| Xero | Scaling businesses, integrations | £15–47/month | xero.com |
+| Crunch | UK startup accountancy + software | £100–200/month | crunch.co.uk |
+
+| Research Tool | URL |
+|--------------|-----|
+| Crunchbase | crunchbase.com — research investors, see portfolio + recent deals |
+| Dealroom | dealroom.co — European startup + investor data |
+| Signal by NFX | signal.nfx.com — free investor database with email contacts |
+| Beauhurst | beauhurst.com — UK equity deals, investor activity |
 
 ---
 

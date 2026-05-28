@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock, DollarSign, Users, TrendingUp, Briefcase, Globe } from 'lucide-react'
+import { CheckCircle2, Circle, DollarSign, Users, TrendingUp, Briefcase, Globe, AlertTriangle, ShieldAlert, Zap } from 'lucide-react'
 
 const PHASES = [
   {
@@ -109,6 +109,79 @@ const PHASES = [
       'Formal marketing function — content, paid, community',
       'Expand to Middle East / Diaspora markets',
     ],
+  },
+]
+
+const RISKS = [
+  {
+    id: 'r1',
+    severity: 'critical' as const,
+    title: 'FIGSY AI failure — Anthropic API down or rate-limited',
+    description: 'FIGSY is now the primary interface. If the Anthropic API is unavailable, the whole product feels broken for the client.',
+    mitigation: 'Graceful fallback message everywhere FIGSY speaks. Queue retries. Show "FIGSY is thinking — back in a moment" rather than crashing.',
+  },
+  {
+    id: 'r2',
+    severity: 'critical' as const,
+    title: 'Apollo API unavailable or plan insufficient',
+    description: 'Lead Gen requires Apollo paid plan. Free plan returns 403 on /mixed_people/search. No leads = no value delivered.',
+    mitigation: 'Upgrade Apollo to Basic ($49/mo). Add clear error message when Apollo is unconfigured — don\'t silently return 0 leads.',
+  },
+  {
+    id: 'r3',
+    severity: 'critical' as const,
+    title: 'Email sending silent — RESEND_API_KEY not set',
+    description: 'Welcome emails, nurture sequences, and FIGSY outreach all silently fail if RESEND_API_KEY is missing in Railway.',
+    mitigation: 'Set RESEND_API_KEY in Railway API service. Verify by triggering a test send from admin. Required before any client demo.',
+  },
+  {
+    id: 'r4',
+    severity: 'high' as const,
+    title: 'Stripe not configured — billing completely non-functional',
+    description: 'Top-up buttons are disabled. Clients cannot purchase credits. Revenue = 0 until Stripe price IDs are added to Railway.',
+    mitigation: 'Create 4 Stripe products, add price IDs to Railway env vars, set up webhook. Estimated 1 hour of setup.',
+  },
+  {
+    id: 'r5',
+    severity: 'high' as const,
+    title: 'Supabase schema drift — columns missing in live DB',
+    description: 'schema.sql and live DB diverge when migrations are not run. Leads to PGRST204 "column not found" errors on insert/select.',
+    mitigation: 'Run MASTER_SCHEMA.sql in Supabase SQL Editor after every schema change. Add migration files to /supabase/migrations for each change.',
+  },
+  {
+    id: 'r6',
+    severity: 'high' as const,
+    title: 'SSL not provisioned on app.get-kind.com',
+    description: 'Custom domain shows NET::ERR_CERT_COMMON_NAME_INVALID. Magic links redirect there and break — new signups cannot authenticate.',
+    mitigation: 'Provision SSL in Railway DNS settings or keep PORTAL_URL set to kindportal-production.up.railway.app until SSL resolves.',
+  },
+  {
+    id: 'r7',
+    severity: 'high' as const,
+    title: 'New client sees empty product — no leads, no campaigns, no data',
+    description: 'Without Apollo live and credits loaded, a new signup gets blank pages. First impression is a broken product, not an AI SDR.',
+    mitigation: 'FIGSY-guided onboarding flow must run within 60 seconds of signup. Demo mode seeds 25 leads automatically on first login.',
+  },
+  {
+    id: 'r8',
+    severity: 'medium' as const,
+    title: 'ANTHROPIC_API_KEY missing — ICP AI and FIGSY chat silent',
+    description: 'ICP "Suggest with AI", FIGSY chat, and all agent briefs fail silently if ANTHROPIC_API_KEY is not set in Railway API service.',
+    mitigation: 'Confirm ANTHROPIC_API_KEY is set in Railway. Add a /health check that validates key presence.',
+  },
+  {
+    id: 'r9',
+    severity: 'medium' as const,
+    title: 'FIGSY footprint expansion increases blast radius of UI bugs',
+    description: 'Making FIGSY the primary interface means any FIGSY bug affects every page. Previously a floating button bug was low impact.',
+    mitigation: 'Each FIGSY panel instance has independent error boundary. Fallback to static suggestion chips if chat API fails.',
+  },
+  {
+    id: 'r10',
+    severity: 'medium' as const,
+    title: 'Demo next week — platform not tested end-to-end with real client data',
+    description: 'Smoke test is 17% complete. Unknown bugs may surface live in front of a prospect.',
+    mitigation: 'Complete smoke test before demo. Seed demo account with 25 leads. Have admin portal open in a second tab during demo to diagnose fast.',
   },
 ]
 
@@ -246,6 +319,34 @@ export default function AdminRoadmapPage() {
           </div>
         )
       })}
+
+      {/* ── Risk Register ──────────────────────────────────────────────────── */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-red-500" />
+          <h3 className="font-bold text-gray-900">Risk Register</h3>
+          <span className="ml-auto text-xs text-gray-400">Identify early · Mitigate fast</span>
+        </div>
+        <div className="divide-y divide-gray-50">
+          {RISKS.map(r => (
+            <div key={r.id} className="px-6 py-4 flex items-start gap-4">
+              <span className={`shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
+                r.severity === 'critical' ? 'bg-red-50 text-red-600 border-red-200' :
+                r.severity === 'high'     ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                            'bg-blue-50 text-blue-600 border-blue-200'
+              }`}>{r.severity}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900">{r.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{r.description}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Mitigation</p>
+                <p className="text-xs text-gray-600 mt-0.5 max-w-56 text-right">{r.mitigation}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Bottom note */}
       <p className="text-center text-xs text-gray-400 pb-4">

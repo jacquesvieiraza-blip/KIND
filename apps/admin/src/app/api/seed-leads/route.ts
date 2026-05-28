@@ -117,12 +117,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: `Insert failed: ${insertErr.message} (code: ${insertErr.code})` }, { status: 500 })
     }
 
-    // Set credits to 50
-    await db.from('clients').update({ credit_balance: 50 }).eq('id', client.id)
+    // Set both credit types to 50
+    await db.from('clients').update({ credit_balance: 50, figsy_credits_remaining: 50 }).eq('id', client.id)
 
     return NextResponse.json({
       success: true,
-      message: `Done! Seeded ${inserted?.length ?? 0} demo leads for ${client.company_name}. Credits set to 50. Refresh the portal Leads page.`,
+      message: `Done! Seeded ${inserted?.length ?? 0} demo leads for ${client.company_name}. Credits set to 50 lead gen + 50 FIGSY. Refresh the portal.`,
     })
 
   } catch (err: unknown) {

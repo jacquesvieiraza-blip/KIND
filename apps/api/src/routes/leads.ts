@@ -131,7 +131,6 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
 
     let query = db.from('leads').select('*', { count: 'exact' })
       .eq('client_id', clientId)
-      .not('delivered_at', 'is', null)   // drip gate — only show delivered leads
       .order('score', { ascending: false, nullsFirst: false })
       .range((Number(page) - 1) * Number(limit), Number(page) * Number(limit) - 1)
 
@@ -654,7 +653,7 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       const mLeads   = (leads   || []).filter((l: any) => l.created_at?.slice(0,7) === m.key)
       const mEmails  = (emails  || []).filter((e: any) => e.created_at?.slice(0,7) === m.key)
       const mReplies = (replies || []).filter((r: any) => r.created_at?.slice(0,7) === m.key)
-      const mInterested = mReplies.filter((r: any) => r.classification === 'interested')
+      const mInterested = mReplies.filter((r: any) => r.classification === 'interested' || r.classification === 'hot')
       return {
         month:      m.label,
         leads:      mLeads.length,

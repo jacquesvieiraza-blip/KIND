@@ -399,18 +399,10 @@ export default function FigsyPage() {
     setDraftingId(null)
   }
 
-  async function parseIntent(campaignId: string, intent: string, token: string | undefined) {
+  async function parseIntent(campaignId: string, _intent: string, _token: string | undefined) {
+    // parse-intent endpoint does not exist yet — skip the API call to avoid 404s.
+    // The campaign_intent text is still saved and displayed via campaign.campaign_intent.
     setParsingIntentId(campaignId)
-    try {
-      const res = await api.post<{ success: boolean; data: { parsed: ParsedIntent; summary: string } }>(
-        `/figsy/campaigns/${campaignId}/parse-intent`,
-        { intent },
-        token,
-      )
-      setIntentSummaries(prev => ({ ...prev, [campaignId]: res.data.parsed }))
-    } catch {
-      // silently ignore parse errors — the intent is still saved
-    }
     setParsingIntentId(null)
   }
 
@@ -1032,7 +1024,7 @@ export default function FigsyPage() {
                     ) : (
                       campaignReplies[campaign.id].map(reply => (
                         <div key={reply.id} className={`rounded-lg px-3 py-2.5 text-xs border ${
-                          reply.classification === 'interested' ? 'bg-green-50 border-green-200' :
+                          (reply.classification === 'interested' || reply.classification === 'hot') ? 'bg-green-50 border-green-200' :
                           reply.classification === 'opt_out'    ? 'bg-red-50 border-red-100' :
                           'bg-gray-50 border-purple-100/60'
                         }`}>
@@ -1040,12 +1032,12 @@ export default function FigsyPage() {
                             <div>
                               <span className="font-medium text-gray-800">{reply.from_email}</span>
                               <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                                reply.classification === 'interested' ? 'bg-green-200 text-green-800' :
+                                (reply.classification === 'interested' || reply.classification === 'hot') ? 'bg-green-200 text-green-800' :
                                 reply.classification === 'opt_out'    ? 'bg-red-200 text-red-700' :
                                 'bg-gray-200 text-gray-600'
                               }`}>{reply.classification.replace('_', ' ')}</span>
                             </div>
-                            {reply.classification === 'interested' && (
+                            {(reply.classification === 'interested' || reply.classification === 'hot') && (
                               <button
                                 onClick={() => draftFollowup(reply.id)}
                                 disabled={draftingId === reply.id}

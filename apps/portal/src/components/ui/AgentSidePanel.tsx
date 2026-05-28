@@ -15,6 +15,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   action?: { label: string; href: string; variant?: 'icp' | 'link' }
+  typing?: boolean
 }
 
 type IcpDraft = {
@@ -27,8 +28,6 @@ type IcpDraft = {
   tech_stack?: string[]
   keywords?: string[]
 }
-
-const STORAGE_KEY = 'kind_figsy_thread_v1'
 
 interface AgentSidePanelProps {
   agentId: string
@@ -59,50 +58,42 @@ export function AgentSidePanel({
 }: AgentSidePanelProps) {
   const supabase = createClient()
 
-  const defaultGreeting = (isNewUser && agentId === 'figsy')
-    ? "Hey! I'm FIGSY, your AI SDR. Let me find your first leads — just tell me who you sell to. Describe your ideal customer in one sentence."
-    : contextMessage
+  const getGreeting = () =>
+    isNewUser && agentId === 'figsy'
+      ? "Hey! I'm FIGSY, your AI SDR. Let me find your first leads — just tell me who you sell to. Describe your ideal customer in one sentence."
+      : contextMessage
 
-  const [messages,   setMessages]   = useState<Message[]>([{ role: 'assistant', content: defaultGreeting }])
+  const [messages,   setMessages]   = useState<Message[]>([{ role: 'assistant', content: getGreeting(), typing: true }])
   const [input,      setInput]      = useState('')
   const [thinking,   setThinking]   = useState(false)
   const [icpDraft,   setIcpDraft]   = useState<IcpDraft>({})
   const [icpSaved,   setIcpSaved]   = useState(false)
   const [onboarding, setOnboarding] = useState(isNewUser && agentId === 'figsy')
-  const [hydrated,   setHydrated]   = useState(false)
+  const [shownChars, setShownChars] = useState(0)
   const threadRef = useRef<HTMLDivElement>(null)
 
-  // Load persisted FIGSY thread after mount
+  // Typewriter effect on the first message
   useEffect(() => {
-    if (agentId === 'figsy') {
-      try {
-        const stored = sessionStorage.getItem(STORAGE_KEY)
-        if (stored) {
-          const parsed: Message[] = JSON.parse(stored)
-          if (parsed.length > 1) {
-            setMessages(parsed)
-            setOnboarding(false)
-          }
-        }
-      } catch {}
-    }
-    setHydrated(true)
-  }, [agentId])
+    const full = getGreeting()
+    if (shownChars >= full.length) return
+    const t = setTimeout(() => setShownChars(n => Math.min(n + 3, full.length)), 18)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownChars])
 
-  // Persist FIGSY thread across navigations
+  // Reset context when navigating to a different page (contextMessage changes)
   useEffect(() => {
-    if (!hydrated || agentId !== 'figsy') return
-    if (messages.length > 1) {
-      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-24))) } catch {}
-    }
-  }, [messages, agentId, hydrated])
+    setMessages([{ role: 'assistant', content: getGreeting(), typing: true }])
+    setShownChars(0)
+    setIcpDraft({})
+    setOnboarding(isNewUser && agentId === 'figsy')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextMessage])
 
-  // Auto-scroll to latest message
+  // Auto-scroll
   useEffect(() => {
-    if (threadRef.current) {
-      threadRef.current.scrollTop = threadRef.current.scrollHeight
-    }
-  }, [messages, thinking])
+    if (threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight
+  }, [messages, thinking, shownChars])
 
   function mergeIcp(base: IcpDraft, patch: IcpDraft): IcpDraft {
     const uniq = (a?: string[], b?: string[]) => [...new Set([...(a ?? []), ...(b ?? [])])]
@@ -132,8 +123,8 @@ export function AgentSidePanel({
     if (!liveChat || agentId !== 'figsy') { onSend(msg); return }
 
     const userMsg: Message = { role: 'user', content: msg }
-    const next = [...messages, userMsg]
-    setMessages(next)
+    const next = [...messages.map(m => ({ role: m.role, content: m.content })), userMsg]
+    setMessages(prev => [...prev, userMsg])
     setThinking(true)
 
     try {
@@ -142,7 +133,6 @@ export function AgentSidePanel({
 
       if (onboarding && !icpSaved) {
         const history = next
-          .filter(m => !m.action)
           .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
           .slice(-10)
 
@@ -166,7 +156,7 @@ export function AgentSidePanel({
       } else {
         const res = await api.post<{ success: boolean; data: { reply: string } }>(
           '/figsy/chat',
-          { messages: next.slice(-10).map(m => ({ role: m.role, content: m.content })), mode: 'full' },
+          { messages: next.slice(-10), mode: 'full' },
           token,
         )
         setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }])
@@ -195,7 +185,7 @@ export function AgentSidePanel({
         geographies:      icpDraft.geographies      ?? [],
         tech_stack:       icpDraft.tech_stack       ?? [],
         keywords:         icpDraft.keywords         ?? [],
-        max_leads:        25,
+        max_leads: 25,
         consent_required: true,
       }, session?.access_token)
 
@@ -217,20 +207,13 @@ export function AgentSidePanel({
     }
   }
 
-  function clearThread() {
-    const greeting = (isNewUser && !icpSaved && agentId === 'figsy')
-      ? "Hey! I'm FIGSY, your AI SDR. Let me find your first leads — just tell me who you sell to. Describe your ideal customer in one sentence."
-      : contextMessage
-    setMessages([{ role: 'assistant', content: greeting }])
-    setIcpDraft({})
-    setOnboarding(isNewUser && agentId === 'figsy')
-    try { sessionStorage.removeItem(STORAGE_KEY) } catch {}
-  }
+  const greeting = getGreeting()
+  const displayedFirst = shownChars < greeting.length ? greeting.slice(0, shownChars) : greeting
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-lg border border-purple-100/30">
 
-      {/* ── Full agent photo ──────────────────────────────────────────── */}
+      {/* ── Full agent photo ──────────────────────────────────────── */}
       <div className="relative h-52 bg-[#0F0929]">
         <img
           src={`/agents/${agentId}.png`}
@@ -241,7 +224,7 @@ export function AgentSidePanel({
         <div className="absolute inset-0 bg-gradient-to-t from-[#0F0929] via-[#0F0929]/10 to-transparent" />
       </div>
 
-      {/* ── Identity + context + actions ─────────────────────────────── */}
+      {/* ── Identity + chat + actions ─────────────────────────────── */}
       <div className="bg-[#0F0929] px-4 pt-3 pb-4">
 
         {/* Name + status */}
@@ -285,7 +268,11 @@ export function AgentSidePanel({
                   ? 'bg-[#7C3AED] text-white'
                   : 'bg-white/[0.10] text-white/80'
               }`}>
-                {m.content}
+                {/* First assistant message gets typewriter effect */}
+                {i === 0 && m.role === 'assistant' && m.typing
+                  ? <>{displayedFirst}{shownChars < greeting.length && <span className="inline-block w-0.5 h-3 bg-white/60 animate-pulse ml-0.5 align-middle" />}</>
+                  : m.content
+                }
               </div>
               {m.action && (
                 m.action.variant === 'icp' ? (
@@ -343,7 +330,11 @@ export function AgentSidePanel({
 
         {messages.length > 2 && (
           <button
-            onClick={clearThread}
+            onClick={() => {
+              setMessages([{ role: 'assistant', content: getGreeting(), typing: true }])
+              setShownChars(0)
+              setIcpDraft({})
+            }}
             className="text-[10px] text-white/20 hover:text-white/40 transition-colors mt-2 w-full text-center"
           >
             Clear conversation

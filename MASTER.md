@@ -52,7 +52,7 @@
 
 ---
 
-### 📅 SESSION DATE — 28 May 2026 — Admin redesign + FIGSY widget gating + Admin Portal Playbook
+### 📅 SESSION DATE — 28 May 2026 (Evening) — Full product flow fixes + Product vision locked
 
 ---
 
@@ -207,6 +207,24 @@
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
+#### 28 May 2026 (Evening) — Full Product Flow Fixes + Vision Locked
+| Built / Fixed | Detail |
+|---------------|--------|
+| **Email threading** | Steps 2 & 3 now get `Re: {step1_subject}` prefix — they land in the same Gmail thread as original outreach |
+| **Campaign save fix** | `.single()` → `.maybeSingle()` — "Campaign not found" error on sequence save eliminated |
+| **Inbound reply webhook** | Handles both Resend webhook formats (flat + envelope). Extracts email from `"Name <email>"` string. |
+| **Real activity feed** | `GET /figsy/activity` endpoint — aggregates from 4 tables. Dashboard no longer uses hardcoded mock events. |
+| **Company CSV import** | ZoomInfo/account lists detect company columns and offer "Find contacts at these N companies" button via Apollo `organization_names` filter |
+| **PUT /campaigns/:id/audience** | Endpoint was missing — portal was calling a 404. Added. |
+| **POST /campaigns/:id/send-now** | Manual send trigger for demo/testing. Returns `{sent, due_count}`. |
+| **POST /leads/:id/resend-consent** | New endpoint — portal `Resend` button on `consent_sent` leads. |
+| **Resend consent button** | Leads page: `consent_sent` leads now show amber "Resend" button + green "Mark consented" button together. |
+| **Onboarding checklist wired** | `OnboardingChecklist` component rendered above FIGSY widget on dashboard for new users. |
+| **Send Now button** | Campaign detail page: blue "Send Now" button visible when campaign is active. |
+| **30s auto-poll after activation** | Campaign activates → polls every 5s for 30s to show enrollment count updating in real time. |
+| **TypeScript clean** | Both `apps/api` and `apps/portal` compile with zero errors. |
+| **MASTER.md updated** | This section + Founder To-Do + Claude Queue + Product Vision all updated. |
+
 #### 28 May 2026 — Admin Redesign + FIGSY Gating + Admin Portal Playbook
 | Built / Fixed | Detail |
 |---------------|--------|
@@ -297,20 +315,29 @@
 | **Chatbot default colour #0066FF** | 27 May (this session) | New chatbots default to `#7C3AED` — old blue was client-facing in embed widget |
 | **Admin portal broken JSX (10+ missing `</div>`)** | 28 May | Playbook ScriptBlock, Table, IcpContent, DiscoveryContent, DemoContent, ObjectionContent, ProposalContent, FollowUpContent + page wrappers in Roadmap/Scalability/Terms — all fixed |
 | **AskFigsyButton no gating** | 28 May | Non-subscribers now get lead-gen mode only — upgrade strip shown. `hasFigsy` prop wired from layout. |
+| **"Campaign not found" on sequence save** | 28 May (eve) | `.single()` throws when row not found — changed to `.maybeSingle()` + null check |
+| **Steps 2+3 as new email threads** | 28 May (eve) | Fixed in `lib/figsy.ts` — steps 2/3 now get `Re: {step1_subject}` prefix automatically |
+| **Activity feed showing mock data** | 28 May (eve) | New `GET /figsy/activity` endpoint + dashboard wired to it — all real data |
+| **PUT /campaigns/:id/audience 404** | 28 May (eve) | Endpoint was missing — added |
+| **LinkedIn/ZoomInfo company CSV → 0 importable leads** | 28 May (eve) | Company lists now detected and routed to "Find contacts at these companies" flow via Apollo |
+| **POST /leads/import/linkedin 404** | 28 May (eve) | Endpoint was missing entirely — added |
+| **Onboarding checklist not showing** | 28 May (eve) | `OnboardingChecklist` wired back into dashboard |
 | **Admin nav bar cramped / mismatched** | 28 May | Replaced with dark sidebar — all 13 nav items visible, portal-matching design |
 
 ---
 
 ### 🔴 FOUNDER — YOUR TO-DO LIST
 
-> **28 May — Morning. Everything built. Do these in order. Admin Portal Playbook is Section 36 — read it after you deploy.**
+> **28 May (Evening) — All flow fixes are pushed to `main`. Railway is auto-deploying now. Read this when you wake up.**
 
-**RIGHT NOW — merge & deploy (10 mins):**
+**FIRST THING — infrastructure that blocks the smoke test:**
 | # | Task | Where | ✓ |
 |---|------|--------|---|
-| E1 | Merge branch `claude/ai-business-roadmap-U3OWJ` → `main` | GitHub → Pull Request → Merge | ☐ |
-| E2 | Confirm Railway auto-deploys from main (check deploy logs) | railway.app → KIND API → Deployments | ☐ |
-| E3 | Confirm Vercel auto-deploys portal | vercel.com → Project → Deployments | ☐ |
+| E1 | Confirm Railway deploy from `5c87292` is green | railway.app → KIND API → Deployments | ☐ |
+| E2 | Add `FIGSY_REPLY_TO=replies@get-kind.com` to Railway | Railway → KIND API → Variables | ☐ |
+| E3 | Add `ADMIN_SECRET_KEY=<strong-secret>` to Railway | Railway → KIND API → Variables (required for cron jobs) | ☐ |
+| E4 | In Resend → Inbound → set webhook URL to `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` | Resend dashboard | ☐ |
+| E5 | In Resend → Domains → add MX record for your inbound subdomain (e.g. `replies.get-kind.com`) | DNS + Resend dashboard | ☐ |
 
 **Tonight / Before Test 1:**
 | # | Task | Where | ✓ |
@@ -437,9 +464,30 @@
 | Unibox | **Two-way reply from admin Unibox** | `ReplyForm` client component + `/api/reply` admin Route Handler via Resend + service role. | ✅ Done |
 | W7 | **Demo narration update (Section 35)** | Scene 1 scripted: "Watch this number." Apollo live preview as opening argument. Recovery scripts included. | ✅ Done |
 
-**NEXT UP (smoke tests + steals):**
+**✅ COMPLETED THIS SESSION (28 May Evening):**
+| # | Build | Status |
+|---|-------|--------|
+| ✅ | Email subject threading (steps 2+3 as Re: replies) | Done |
+| ✅ | Real activity feed endpoint + dashboard wired | Done |
+| ✅ | PUT /campaigns/:id/audience | Done |
+| ✅ | POST /campaigns/:id/send-now | Done |
+| ✅ | POST /leads/:id/resend-consent + portal button | Done |
+| ✅ | Onboarding checklist back in dashboard | Done |
+| ✅ | 30s auto-poll after campaign activation | Done |
+| ✅ | Company CSV import → find contacts flow | Done |
+| ✅ | MASTER.md fully updated | Done |
+
+**NEXT SESSION — PRIORITY ORDER:**
 | # | Build | What | Time |
 |---|-------|------|------|
+| F1 | **Fix smoke test API failures** | `GET /leads` + `GET /figsy/kpis` returning 500 in smoke test — investigate auth token in smoke test runner | 30 min |
+| F2 | **Auto-consent on lead approval** | When lead is approved (status → `consent_given`), fire consent email automatically — no button needed | 2h |
+| F3 | **meetings_booked KPI** | Increment `meetings_booked` when a reply is classified `interested` or manually marked meeting booked | 1h |
+| F4 | **Live dashboard numbers** | WebSocket or SSE for real-time KPI updates — no refresh needed | 4h |
+| F5 | **FIGSY conversational onboarding** | New user → FIGSY greets them, asks 5 ICP questions in chat, generates ICP + shows first 10 leads — all without leaving chat | 1 day |
+| F6 | **CRM sync (client-side)** | Let client paste HubSpot/Salesforce API key in settings, FIGSY syncs replies + meetings booked back | 2 days |
+| F7 | **Consent token security** | Replace lead UUID as consent token with cryptographic random signed token | 2h |
+| F8 | **Campaign auto-pause notification** | Email client when campaign pauses for low performance — currently silent | 1h |
 | C1 | Run smoke tests T1–T4 | Founder runs, Claude fixes any failures | <15 min each |
 | C5 | S4: Scheduled report emails | Weekly client digest — cron already exists, just needs wiring | 4h |
 | C6 | "AI Revenue OS" positioning rewrite | Website, pricing, landing, demo pages — Apex steal | 2h |
@@ -2227,6 +2275,57 @@ Send them here. I fix in real time.
 > **The first-mover window in Africa is 18–24 months.** The moat being built now — the data, the brand, the client relationships — is what makes K.I.N.D unconquerable when bigger players arrive.
 
 > **TTFL (Time to First Lead) is not just a metric. It is the competitive weapon.** Every competitor makes you wait. We deliver in under 2 hours.
+
+---
+
+### 🎯 IDEAL PRODUCT FLOW — LOCKED 28 MAY 2026
+*Confirmed by founder. This is the north star. Every feature decision gets measured against it.*
+
+**Standard: Client up and running in under 10 minutes. First results in under 20.**
+
+#### Step 1 — Onboarding (0–10 min)
+New user signs up → **FIGSY greets them conversationally**, asks 5 ICP questions in chat (who do you sell to, what industry, what size company, what country, what problem do you solve). No forms. FIGSY generates the ICP profile, immediately searches Apollo, and shows the first 10 scored leads — all before the client leaves the chat. First "aha moment" happens before setup ends.
+
+- FIGSY is always the guide. Interactive, conversational, in the room.
+- Company/ZoomInfo CSVs are a secondary import path — never the primary.
+- *Current state: ICP Builder exists but is form-based. Conversational flow is F5 in build queue.*
+
+#### Step 2 — Lead sourcing (10–12 min)
+"Find more leads" → client describes their target in plain language to FIGSY → KIND searches Apollo, scores against ICP, ranks list. Client clicks "Approve all" or cherry-picks. Done. No CSV export/import cycle. FIGSY agents support every step — if stuck, ask FIGSY.
+
+- *Current state: Apollo search + scoring works. Conversational trigger from FIGSY chat is F5.*
+
+#### Step 3 — Consent (automatic, 12–15 min)
+When leads are approved, POPIA consent emails fire automatically — no button required. Client watches the activity feed update in real time. "Mark as consented" exists only as a manual fallback. Status flows: `pending → scored → consent_sent → consent_given` without any clicks.
+
+- *Current state: consent email requires clicking Send button. Auto-fire on approval is F2 in build queue.*
+
+#### Step 4 — FIGSY campaign (15–18 min)
+Dashboard nudges: "You have 12 consented leads — start a FIGSY campaign." Client names it, clicks Generate. FIGSY writes the 3-step email sequence using ICP + company context + any knowledge base training. Client reviews. Clicks Launch. Emails go out automatically. Steps 2 and 3 arrive in the same Gmail thread as replies. Data flows between every section — update ICP, campaigns adapt. Update leads, FIGSY knows.
+
+- *Current state: campaign generation + launch works. Reply threading fixed 28 May. Auto-data-flow is ongoing.*
+
+#### Step 5 — Replies → inbox (zero friction)
+Replies arrive in the portal inbox pre-classified (hot/warm/cold) by AI. Client sees one clean list — no switching tabs, no Gmail. One-click to mark as meeting booked → KPI dashboard updates. FIGSY flags hot replies with a summary: "This person asked about pricing — they're ready."
+
+- *Current state: inbox works. Reply classification works. "Mark meeting booked" button needs to feed `meetings_booked` KPI (F3 in build queue).*
+
+#### Step 6 — Dashboard (single scoreboard, live)
+Leads sourced → consented → emailed → replied → meetings booked. Live numbers, no refresh needed. Activity feed shows last 20 events across all campaigns. Client knows at a glance if the machine is running.
+
+- *Current state: real activity feed live as of 28 May. Live numbers (no-refresh) is F4 in build queue.*
+
+#### Step 7 — CRM sync (coming)
+FIGSY asks the client: "Do you use HubSpot or Salesforce? Paste your API key and I'll sync everything." Replies, meeting bookings, lead status all flow back to their CRM automatically. No duplication. No manual export.
+
+- *Current state: HubSpot integration exists in admin. Client-side self-serve CRM paste is F6 in build queue.*
+
+#### Step 8 — Learning loop (ongoing)
+FIGSY learns from every campaign. Which subject lines get replies. Which industries convert. Which follow-up timing works. It adapts sequences, flags underperforming campaigns, and over time gets better for every client. A learning robot — not a static tool.
+
+- *Current state: `generateSequenceWithMemory` uses campaign history. Intent signal detection (C14) is the upgrade.*
+
+---
 
 > **Data accumulates from Day 1.** Every lead scored, every ICP run, every FIGSY email sent is a proprietary dataset no competitor can buy. By Year 3, that dataset is the product.
 

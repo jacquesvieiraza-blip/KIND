@@ -220,7 +220,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
           <div>
             <div className="flex justify-between text-sm mb-1.5">
               <span className="text-gray-500">MRR</span>
-              <span className="font-semibold text-white">${mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
+              <span className="font-semibold text-gray-900">${mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
             </div>
             <div className="w-full bg-purple-100 rounded-full h-2.5">
               <div className={`h-2.5 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-green-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
@@ -231,7 +231,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
           <div>
             <div className="flex justify-between text-sm mb-1.5">
               <span className="text-gray-500">Clients</span>
-              <span className="font-semibold text-white">{totalClients} / {current.clientTarget}</span>
+              <span className="font-semibold text-gray-900">{totalClients} / {current.clientTarget}</span>
             </div>
             <div className="w-full bg-purple-100 rounded-full h-2.5">
               <div className={`h-2.5 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-green-500' : ragStatus(clientPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
@@ -264,7 +264,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
                   <tr key={t.month} className={isCurrentMonth ? 'bg-purple-50/60' : 'hover:bg-purple-50/30 transition-colors'}>
                     <td className="px-3 py-3">
                       <span className="font-medium text-gray-900">{t.month}</span>
-                      {isCurrentMonth && <span className="ml-2 text-xs bg-[#7C3AED] text-white px-1.5 py-0.5 rounded font-medium">Now</span>}
+                      {isCurrentMonth && <span className="ml-2 text-xs bg-[#7C3AED] text-gray-900 px-1.5 py-0.5 rounded font-medium">Now</span>}
                     </td>
                     <td className="px-3 py-3 font-medium text-gray-700">${t.mrrTarget.toLocaleString()}</td>
                     <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>

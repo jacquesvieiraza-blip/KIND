@@ -72,8 +72,8 @@ export default async function AgentPage({ params }: { params: { agent: string } 
           </div>
           <div>
             <h1 className={`text-3xl font-bold ${agent.accent}`}>{agent.name}</h1>
-            <p className="text-white/60 font-medium mt-0.5">{agent.title}</p>
-            <p className="text-sm text-white/40 mt-2 max-w-2xl">{agent.mandate}</p>
+            <p className="text-gray-500 font-medium mt-0.5">{agent.title}</p>
+            <p className="text-sm text-gray-400 mt-2 max-w-2xl">{agent.mandate}</p>
           </div>
         </div>
       </div>
@@ -83,20 +83,20 @@ export default async function AgentPage({ params }: { params: { agent: string } 
 
       {/* Recent Actions */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-4">Recent Actions</h2>
+        <h2 className="font-semibold text-gray-900 mb-4">Recent Actions</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
                 {['Time', 'Action', 'Details'].map(h => (
-                  <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-white/30 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td colSpan={3} className="px-3 py-10 text-center">
-                  <p className="text-white/30 text-sm">No actions yet. Actions appear here when this agent runs.</p>
+                  <p className="text-gray-400 text-sm">No actions yet. Actions appear here when this agent runs.</p>
                 </td>
               </tr>
             </tbody>
@@ -106,11 +106,11 @@ export default async function AgentPage({ params }: { params: { agent: string } 
 
       {/* Configure */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-2">Configure</h2>
-        <p className="text-sm text-white/40">Agent configuration settings will be available here in a future release. This section will allow you to adjust thresholds, notification preferences, and scheduling for {agent.name}.</p>
+        <h2 className="font-semibold text-gray-900 mb-2">Configure</h2>
+        <p className="text-sm text-gray-400">Agent configuration settings will be available here in a future release. This section will allow you to adjust thresholds, notification preferences, and scheduling for {agent.name}.</p>
         <div className="mt-4 bg-white/[0.03] border border-white/[0.06] rounded-lg p-4">
-          <p className="text-xs text-white/20 uppercase tracking-widest font-semibold mb-2">Planned settings</p>
-          <ul className="space-y-1 text-sm text-white/30">
+          <p className="text-xs text-gray-300 uppercase tracking-widest font-semibold mb-2">Planned settings</p>
+          <ul className="space-y-1 text-sm text-gray-400">
             <li>— Run frequency (daily / on-demand)</li>
             <li>— Alert thresholds</li>
             <li>— Output destinations (email / Slack / portal)</li>

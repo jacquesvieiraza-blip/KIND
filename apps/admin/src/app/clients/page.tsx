@@ -144,7 +144,7 @@ const HEALTH_DOT: Record<'green' | 'amber' | 'red', string> = {
 }
 
 function LastLoginCell({ days }: { days: number | null }) {
-  if (days === null) return <span className="text-white/30 text-xs">Never</span>
+  if (days === null) return <span className="text-gray-400 text-xs">Never</span>
   if (days === 0) return <span className="text-emerald-400 text-xs">Today</span>
   if (days === 1) return <span className="text-emerald-400 text-xs">Yesterday</span>
   const color = days <= 3 ? 'text-emerald-400' : days <= 7 ? 'text-amber-400' : 'text-red-400'

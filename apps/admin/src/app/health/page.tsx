@@ -38,7 +38,7 @@ function StatusText({ status }: { status: ServiceStatus }) {
     unreachable: 'Unreachable',
   }
   const colors: Record<ServiceStatus, string> = {
-    checking:    'text-white/30',
+    checking:    'text-gray-400',
     operational: 'text-emerald-400',
     degraded:    'text-amber-400',
     unreachable: 'text-red-400',
@@ -85,10 +85,10 @@ export default function HealthPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Activity className="w-6 h-6 text-white/40" />
+          <Activity className="w-6 h-6 text-gray-400" />
           <div>
-            <h1 className="text-2xl font-bold text-white">Platform Health</h1>
-            <p className="text-sm text-white/40 mt-0.5">
+            <h1 className="text-2xl font-bold text-gray-900">Platform Health</h1>
+            <p className="text-sm text-gray-400 mt-0.5">
               {lastChecked
                 ? `Last checked: ${lastChecked.toLocaleTimeString()}`
                 : 'Checking services...'}
@@ -98,7 +98,7 @@ export default function HealthPage() {
         <button
           onClick={checkStatuses}
           disabled={checking}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-500 hover:text-gray-900 hover:bg-white/10 transition-colors disabled:opacity-40"
         >
           <RefreshCw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} />
           Refresh
@@ -107,7 +107,7 @@ export default function HealthPage() {
 
       {/* Service status cards */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-4">Service Status</h2>
+        <h2 className="font-semibold text-gray-900 mb-4">Service Status</h2>
         <div className="space-y-3">
           {SERVICES.map((svc) => {
             const status: ServiceStatus = statuses[svc.name] ?? 'checking'
@@ -115,9 +115,9 @@ export default function HealthPage() {
               <div key={svc.name} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
                 <div className="flex items-center gap-3">
                   <StatusDot status={status} />
-                  <span className="text-sm text-white font-medium">{svc.name}</span>
+                  <span className="text-sm text-gray-900 font-medium">{svc.name}</span>
                   {svc.type === 'external' && (
-                    <span className="text-[10px] text-white/20 uppercase tracking-widest">external</span>
+                    <span className="text-[10px] text-gray-300 uppercase tracking-widest">external</span>
                   )}
                 </div>
                 <div className="flex items-center gap-3">
@@ -127,7 +127,7 @@ export default function HealthPage() {
                       href={svc.statusPageUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-white/20 hover:text-white/50 transition-colors"
+                      className="text-gray-300 hover:text-gray-500 transition-colors"
                       title="Status page"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -142,29 +142,29 @@ export default function HealthPage() {
 
       {/* FIGSY cron */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-4">FIGSY Cron</h2>
+        <h2 className="font-semibold text-gray-900 mb-4">FIGSY Cron</h2>
         <div className="flex items-center justify-between py-3">
           <div>
-            <p className="text-sm text-white font-medium">Last run</p>
-            <p className="text-xs text-white/30 mt-0.5">Automated lead generation cron job</p>
+            <p className="text-sm text-gray-900 font-medium">Last run</p>
+            <p className="text-xs text-gray-400 mt-0.5">Automated lead generation cron job</p>
           </div>
-          <span className="text-sm text-white/40">Last run: checking...</span>
+          <span className="text-sm text-gray-400">Last run: checking...</span>
         </div>
         <div className="mt-3 bg-white/[0.03] border border-white/[0.06] rounded-lg p-4">
-          <p className="text-xs text-white/30">FIGSY cron run history will appear here once the reporting endpoint is connected.</p>
+          <p className="text-xs text-gray-400">FIGSY cron run history will appear here once the reporting endpoint is connected.</p>
         </div>
       </div>
 
       {/* Last audit result */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-4">Last Audit Result</h2>
+        <h2 className="font-semibold text-gray-900 mb-4">Last Audit Result</h2>
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-5 text-center">
-          <p className="text-white/40 text-sm">Audit results are tracked as GitHub Issues.</p>
+          <p className="text-gray-400 text-sm">Audit results are tracked as GitHub Issues.</p>
           <a
             href="https://github.com/jacquesvieiraza-blip/KIND/issues?q=label%3Aaudit"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-500 hover:text-gray-900 hover:bg-white/10 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             View Audit Issues on GitHub
@@ -174,7 +174,7 @@ export default function HealthPage() {
 
       {/* External status links */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-4">External Status Pages</h2>
+        <h2 className="font-semibold text-gray-900 mb-4">External Status Pages</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { name: 'Supabase Status',  url: 'https://status.supabase.com',   desc: 'Database & auth' },
@@ -190,10 +190,10 @@ export default function HealthPage() {
               className="flex items-center justify-between p-4 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
             >
               <div>
-                <p className="text-sm font-medium text-white group-hover:text-white">{link.name}</p>
-                <p className="text-xs text-white/30 mt-0.5">{link.desc}</p>
+                <p className="text-sm font-medium text-gray-900 group-hover:text-gray-900">{link.name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{link.desc}</p>
               </div>
-              <ExternalLink className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-colors" />
+              <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
             </a>
           ))}
         </div>

@@ -108,7 +108,7 @@ export default function CmoPage() {
         <button
           onClick={generatePosts}
           disabled={postsLoading}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-blue-700 disabled:opacity-50 text-gray-900 text-sm font-medium rounded-lg transition-colors"
         >
           {postsLoading ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
@@ -156,7 +156,7 @@ export default function CmoPage() {
         <button
           onClick={findProspects}
           disabled={prospectLoading}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-gray-900 text-sm font-medium rounded-lg transition-colors"
         >
           {prospectLoading ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Searching…</>

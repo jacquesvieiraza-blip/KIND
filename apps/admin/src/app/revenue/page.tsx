@@ -63,7 +63,7 @@ const SCENARIOS = [
 ]
 
 const ARPU_TIERS = [
-  { name: 'Starter',  price: 20,  color: 'text-white/50',  description: 'Lead Gen only — 100 leads included' },
+  { name: 'Starter',  price: 20,  color: 'text-gray-500',  description: 'Lead Gen only — 100 leads included' },
   { name: 'Growth',   price: 160, color: 'text-blue-400',   description: 'Lead Gen + FIGSY add-on' },
   { name: 'Scale',    price: 400, color: 'text-emerald-400', description: 'Full platform — VA + Chatbot + FIGSY' },
 ]
@@ -133,10 +133,10 @@ export default async function RevenuePage() {
     <main className="px-8 py-6 max-w-5xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <DollarSign className="w-6 h-6 text-white/40" />
+        <DollarSign className="w-6 h-6 text-gray-400" />
         <div>
-          <h1 className="text-2xl font-bold text-white">Revenue</h1>
-          <p className="text-sm text-white/40 mt-0.5">Deep-dive: MRR tracking, scenarios, ARPU breakdown</p>
+          <h1 className="text-2xl font-bold text-gray-900">Revenue</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Deep-dive: MRR tracking, scenarios, ARPU breakdown</p>
         </div>
       </div>
 
@@ -152,9 +152,9 @@ export default async function RevenuePage() {
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${color}`}>
               <DollarSign className="w-4 h-4" />
             </div>
-            <p className="text-2xl font-bold text-white">{value}</p>
-            <p className="text-sm text-white/60 mt-0.5">{label}</p>
-            <p className="text-xs text-white/30 mt-0.5">{sub}</p>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
@@ -163,30 +163,30 @@ export default async function RevenuePage() {
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-5">
           <Target className="w-5 h-5 text-[#0066FF]" />
-          <h2 className="font-semibold text-white">KPI Progress — {current.month}</h2>
+          <h2 className="font-semibold text-gray-900">KPI Progress — {current.month}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-white/60">MRR</span>
-              <span className="font-semibold text-white">${stats.mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
+              <span className="text-gray-500">MRR</span>
+              <span className="font-semibold text-gray-900">${stats.mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2">
               <div className={`h-2 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-emerald-400' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-400' : 'bg-[#0066FF]'}`}
                    style={{ width: `${mrrPct}%` }} />
             </div>
-            <p className="text-xs text-white/30 mt-1">{mrrPct.toFixed(1)}% of target</p>
+            <p className="text-xs text-gray-400 mt-1">{mrrPct.toFixed(1)}% of target</p>
           </div>
           <div>
             <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-white/60">Clients</span>
-              <span className="font-semibold text-white">{stats.totalClients} / {current.clientTarget}</span>
+              <span className="text-gray-500">Clients</span>
+              <span className="font-semibold text-gray-900">{stats.totalClients} / {current.clientTarget}</span>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2">
               <div className={`h-2 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-emerald-400' : ragStatus(clientPct) === 'amber' ? 'bg-amber-400' : 'bg-indigo-400'}`}
                    style={{ width: `${clientPct}%` }} />
             </div>
-            <p className="text-xs text-white/30 mt-1">{clientPct.toFixed(1)}% of target</p>
+            <p className="text-xs text-gray-400 mt-1">{clientPct.toFixed(1)}% of target</p>
           </div>
         </div>
       </div>
@@ -194,10 +194,10 @@ export default async function RevenuePage() {
       {/* Scenario Tracker */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-2">
-          <TrendingUp className="w-5 h-5 text-white/40" />
-          <h2 className="font-semibold text-white">Scenario Tracker — {current.month}</h2>
+          <TrendingUp className="w-5 h-5 text-gray-400" />
+          <h2 className="font-semibold text-gray-900">Scenario Tracker — {current.month}</h2>
         </div>
-        <p className="text-xs text-white/40 mb-5">Which path are you on? Current MRR tracked against 3 scenarios.</p>
+        <p className="text-xs text-gray-400 mb-5">Which path are you on? Current MRR tracked against 3 scenarios.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {SCENARIOS.map(s => {
@@ -206,7 +206,7 @@ export default async function RevenuePage() {
             return (
               <div key={s.name} className={`rounded-xl border p-5 relative ${s.bg} ${s.border} ${isActive ? 'ring-1 ring-white/20' : ''}`}>
                 {isActive && (
-                  <div className="absolute top-3 right-3 text-xs bg-white/10 text-white px-2 py-0.5 rounded-full font-medium">
+                  <div className="absolute top-3 right-3 text-xs bg-white/10 text-gray-900 px-2 py-0.5 rounded-full font-medium">
                     You are here
                   </div>
                 )}
@@ -214,13 +214,13 @@ export default async function RevenuePage() {
                   <span className={`w-2 h-2 rounded-full ${s.dot}`} />
                   <span className={`font-semibold text-sm ${s.color}`}>{s.name}</span>
                 </div>
-                <p className="text-2xl font-bold text-white">${monthTarget.toLocaleString()}</p>
-                <p className="text-xs text-white/40 mt-0.5">MRR target</p>
-                <p className="text-xs text-white/30 mt-3 leading-relaxed">{s.description}</p>
+                <p className="text-2xl font-bold text-gray-900">${monthTarget.toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-0.5">MRR target</p>
+                <p className="text-xs text-gray-400 mt-3 leading-relaxed">{s.description}</p>
                 <div className="mt-3 pt-3 border-t border-white/[0.06]">
                   <div className="flex justify-between text-xs">
-                    <span className="text-white/30">Dec 2026 target</span>
-                    <span className="text-white/50 font-medium">${s.decTarget.toLocaleString()}</span>
+                    <span className="text-gray-400">Dec 2026 target</span>
+                    <span className="text-gray-500 font-medium">${s.decTarget.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -231,14 +231,14 @@ export default async function RevenuePage() {
 
       {/* Monthly revenue targets table */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-1">Monthly Revenue Targets</h2>
-        <p className="text-xs text-white/40 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
+        <h2 className="font-semibold text-gray-900 mb-1">Monthly Revenue Targets</h2>
+        <p className="text-xs text-gray-400 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
                 {['Month', 'MRR Target', 'Client Target', 'Current vs Target', ''].map(h => (
-                  <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-white/30 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -250,21 +250,21 @@ export default async function RevenuePage() {
                 return (
                   <tr key={t.month} className={isCurrentMonth ? 'bg-[#0066FF]/10' : 'hover:bg-white/[0.03]'}>
                     <td className="px-3 py-3">
-                      <span className="font-medium text-white">{t.month}</span>
+                      <span className="font-medium text-gray-900">{t.month}</span>
                       {isCurrentMonth && <span className="ml-2 text-xs bg-[#0066FF]/20 text-[#4d94ff] px-1.5 py-0.5 rounded font-medium">Now</span>}
                     </td>
-                    <td className="px-3 py-3 font-medium text-white/70">${t.mrrTarget.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-white/50">{t.clientTarget} clients</td>
+                    <td className="px-3 py-3 font-medium text-gray-700">${t.mrrTarget.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>
                     <td className="px-3 py-3">
                       {isFuture ? (
-                        <span className="text-xs text-white/20">upcoming</span>
+                        <span className="text-xs text-gray-300">upcoming</span>
                       ) : (
                         <div className="flex items-center gap-2">
                           <div className="w-24 bg-white/10 rounded-full h-1.5">
                             <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-emerald-400' : ragStatus(pct) === 'amber' ? 'bg-amber-400' : 'bg-[#0066FF]'}`}
                                  style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-xs text-white/50">{pct.toFixed(0)}%</span>
+                          <span className="text-xs text-gray-500">{pct.toFixed(0)}%</span>
                         </div>
                       )}
                     </td>
@@ -281,39 +281,39 @@ export default async function RevenuePage() {
 
       {/* ARPU Breakdown */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-1">ARPU Breakdown</h2>
-        <p className="text-xs text-white/40 mb-4">Average Revenue Per User across product tiers</p>
+        <h2 className="font-semibold text-gray-900 mb-1">ARPU Breakdown</h2>
+        <p className="text-xs text-gray-400 mb-4">Average Revenue Per User across product tiers</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
           {ARPU_TIERS.map(tier => (
             <div key={tier.name} className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-4">
               <p className={`text-lg font-bold ${tier.color}`}>{tier.name}</p>
-              <p className="text-2xl font-bold text-white mt-1">${tier.price}<span className="text-sm text-white/40">/mo</span></p>
-              <p className="text-xs text-white/30 mt-2">{tier.description}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">${tier.price}<span className="text-sm text-gray-400">/mo</span></p>
+              <p className="text-xs text-gray-400 mt-2">{tier.description}</p>
             </div>
           ))}
         </div>
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-white/30 uppercase tracking-widest font-semibold">Blended ARPU</p>
-            <p className="text-2xl font-bold text-white mt-1">
+            <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">Blended ARPU</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">
               {stats.blendedArpu ? `$${stats.blendedArpu}` : '—'}
-              {stats.blendedArpu > 0 && <span className="text-sm text-white/40">/mo per active client</span>}
+              {stats.blendedArpu > 0 && <span className="text-sm text-gray-400">/mo per active client</span>}
             </p>
           </div>
-          <p className="text-xs text-white/30 text-right max-w-xs">Calculated from {stats.activeCount} active subscriptions in Supabase</p>
+          <p className="text-xs text-gray-400 text-right max-w-xs">Calculated from {stats.activeCount} active subscriptions in Supabase</p>
         </div>
       </div>
 
       {/* Core KPI Targets */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-1">Core KPI Targets</h2>
-        <p className="text-xs text-white/40 mb-4">Track these weekly — they&apos;re the leading indicators of growth</p>
+        <h2 className="font-semibold text-gray-900 mb-1">Core KPI Targets</h2>
+        <p className="text-xs text-gray-400 mb-4">Track these weekly — they&apos;re the leading indicators of growth</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {KEY_KPIS.map(k => (
             <div key={k.label} className="bg-white/[0.04] border border-white/[0.06] rounded-lg px-4 py-3">
-              <p className="text-xs text-white/30 font-medium uppercase tracking-wide">{k.unit}</p>
-              <p className="text-lg font-bold text-white mt-0.5">{k.target}</p>
-              <p className="text-xs text-white/50 mt-0.5">{k.label}</p>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{k.unit}</p>
+              <p className="text-lg font-bold text-gray-900 mt-0.5">{k.target}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{k.label}</p>
             </div>
           ))}
         </div>
@@ -321,11 +321,11 @@ export default async function RevenuePage() {
 
       {/* Credit sales placeholder */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h2 className="font-semibold text-white mb-1">Credit Sales — This Month</h2>
-        <p className="text-xs text-white/40 mb-4">Apollo credit purchases attributed to client accounts</p>
+        <h2 className="font-semibold text-gray-900 mb-1">Credit Sales — This Month</h2>
+        <p className="text-xs text-gray-400 mb-4">Apollo credit purchases attributed to client accounts</p>
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-5 text-center">
-          <p className="text-white/40 text-sm">Credit transaction data will appear here once the billing webhook is connected.</p>
-          <p className="text-white/20 text-xs mt-2">Expected data: credit_type | client_id | amount_usd | timestamp</p>
+          <p className="text-gray-400 text-sm">Credit transaction data will appear here once the billing webhook is connected.</p>
+          <p className="text-gray-300 text-xs mt-2">Expected data: credit_type | client_id | amount_usd | timestamp</p>
         </div>
       </div>
     </main>

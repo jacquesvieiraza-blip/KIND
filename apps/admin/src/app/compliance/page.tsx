@@ -148,7 +148,7 @@ function StatusBadge({ status }: { status: Cert['status'] }) {
     </span>
   )
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/5 text-white/40 border border-white/10">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/5 text-gray-400 border border-white/10">
       <AlertCircle className="w-3 h-3" /> Planned
     </span>
   )
@@ -160,8 +160,8 @@ function ReadinessBar({ items }: { items: { item: string; done: boolean }[] }) {
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-xs">
-        <span className="text-white/40">Readiness</span>
-        <span className="text-white/60 font-medium">{done}/{items.length} controls</span>
+        <span className="text-gray-400">Readiness</span>
+        <span className="text-gray-500 font-medium">{done}/{items.length} controls</span>
       </div>
       <div className="w-full bg-white/5 rounded-full h-1.5">
         <div
@@ -182,10 +182,10 @@ export default function CompliancePage() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <Shield className="w-6 h-6 text-white/60" />
-          <h1 className="text-xl font-semibold text-white">Compliance & Certifications</h1>
+          <Shield className="w-6 h-6 text-gray-500" />
+          <h1 className="text-xl font-semibold text-gray-900">Compliance & Certifications</h1>
         </div>
-        <p className="text-white/40 text-sm ml-9">Track the path from current compliance to enterprise-grade certification.</p>
+        <p className="text-gray-400 text-sm ml-9">Track the path from current compliance to enterprise-grade certification.</p>
       </div>
 
       {/* Summary row */}
@@ -193,19 +193,19 @@ export default function CompliancePage() {
         {[
           { label: 'Certified / Compliant', value: done, color: 'text-emerald-400', sub: 'GDPR + CCPA — done' },
           { label: 'In Progress', value: 0, color: 'text-amber-400', sub: 'None currently active' },
-          { label: 'Planned', value: planned, color: 'text-white/40', sub: 'SOC 2, ISO 27001, ISO 42001' },
+          { label: 'Planned', value: planned, color: 'text-gray-400', sub: 'SOC 2, ISO 27001, ISO 42001' },
         ].map(({ label, value, color, sub }) => (
           <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
             <p className={`text-3xl font-bold ${color}`}>{value}</p>
-            <p className="text-white/60 text-sm mt-1">{label}</p>
-            <p className="text-white/30 text-xs mt-0.5">{sub}</p>
+            <p className="text-gray-500 text-sm mt-1">{label}</p>
+            <p className="text-gray-400 text-xs mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
 
       {/* Roadmap overview */}
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-        <h2 className="text-sm font-semibold text-white mb-4">Certification Roadmap</h2>
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Certification Roadmap</h2>
         <div className="space-y-3">
           {[
             { name: 'GDPR',         status: 'done',    trigger: 'Done',                           cost: '£0',          timeline: 'Complete' },
@@ -215,20 +215,20 @@ export default function CompliancePage() {
             { name: 'ISO 42001',    status: 'planned', trigger: 'Year 2 — early mover play',      cost: '~£10–20,000', timeline: '6–12 months' },
           ].map(row => (
             <div key={row.name} className="flex items-center gap-4 text-sm">
-              <div className="w-28 font-medium text-white/80">{row.name}</div>
+              <div className="w-28 font-medium text-gray-800">{row.name}</div>
               <div className="w-6">
                 {row.status === 'done'
                   ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  : <AlertCircle className="w-4 h-4 text-white/20" />}
+                  : <AlertCircle className="w-4 h-4 text-gray-300" />}
               </div>
-              <div className="flex-1 text-white/40 text-xs">{row.trigger}</div>
-              <div className="w-28 text-right text-white/40 text-xs">{row.cost}</div>
-              <div className="w-28 text-right text-white/30 text-xs">{row.timeline}</div>
+              <div className="flex-1 text-gray-400 text-xs">{row.trigger}</div>
+              <div className="w-28 text-right text-gray-400 text-xs">{row.cost}</div>
+              <div className="w-28 text-right text-gray-400 text-xs">{row.timeline}</div>
             </div>
           ))}
         </div>
         <div className="mt-4 pt-4 border-t border-white/[0.06]">
-          <p className="text-white/30 text-xs">
+          <p className="text-gray-400 text-xs">
             💡 Efficiency play: do SOC 2 + ISO 27001 + ISO 42001 simultaneously in Year 2 using Vanta (~$80–100k total vs ~$120k separately). Shared controls = one programme, three badges.
           </p>
         </div>
@@ -246,24 +246,24 @@ export default function CompliancePage() {
                     <h3 className={`text-lg font-bold ${cert.accentColor}`}>{cert.name}</h3>
                     <StatusBadge status={cert.status} />
                   </div>
-                  <p className="text-white/50 text-sm">{cert.subtitle}</p>
+                  <p className="text-gray-500 text-sm">{cert.subtitle}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-white/60 text-xs">Est. cost</p>
-                  <p className="text-white/80 text-sm font-medium">{cert.cost}</p>
-                  <p className="text-white/40 text-xs mt-0.5">{cert.timeline}</p>
+                  <p className="text-gray-500 text-xs">Est. cost</p>
+                  <p className="text-gray-800 text-sm font-medium">{cert.cost}</p>
+                  <p className="text-gray-400 text-xs mt-0.5">{cert.timeline}</p>
                 </div>
               </div>
 
-              <p className="text-white/50 text-sm mb-4">{cert.description}</p>
+              <p className="text-gray-500 text-sm mb-4">{cert.description}</p>
 
               <div className="bg-black/20 rounded-lg p-3 mb-4">
-                <p className="text-white/30 text-xs uppercase tracking-wider font-semibold mb-1">Why it matters</p>
-                <p className="text-white/60 text-sm">{cert.whyItMatters}</p>
+                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-1">Why it matters</p>
+                <p className="text-gray-500 text-sm">{cert.whyItMatters}</p>
               </div>
 
               <div className="mb-4">
-                <p className="text-white/30 text-xs uppercase tracking-wider font-semibold mb-2">
+                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-2">
                   Controls & Readiness — {doneItems}/{cert.currentReadiness.length}
                 </p>
                 <ReadinessBar items={cert.currentReadiness} />
@@ -273,15 +273,15 @@ export default function CompliancePage() {
                       {item.done
                         ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
                         : <div className="w-3.5 h-3.5 rounded-full border border-white/15 flex-shrink-0 mt-0.5" />}
-                      <span className={`text-xs ${item.done ? 'text-white/50' : 'text-white/25'}`}>{item.item}</span>
+                      <span className={`text-xs ${item.done ? 'text-gray-500' : 'text-gray-300'}`}>{item.item}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="bg-black/20 rounded-lg p-3">
-                <p className="text-white/30 text-xs uppercase tracking-wider font-semibold mb-1">Next step</p>
-                <p className="text-white/60 text-sm">{cert.nextStep}</p>
+                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-1">Next step</p>
+                <p className="text-gray-500 text-sm">{cert.nextStep}</p>
               </div>
 
               {cert.id === 'soc2' && (
@@ -303,8 +303,8 @@ export default function CompliancePage() {
       </div>
 
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
-        <p className="text-white/30 text-xs leading-relaxed">
-          <span className="text-white/50 font-medium">Important distinction:</span> GDPR and CCPA are regulatory compliance claims — they signal you follow the law. SOC 2, ISO 27001, and ISO 42001 are third-party audited certifications — they signal you can prove it. Both types matter. The badges above represent the combination that unlocks enterprise deals.
+        <p className="text-gray-400 text-xs leading-relaxed">
+          <span className="text-gray-500 font-medium">Important distinction:</span> GDPR and CCPA are regulatory compliance claims — they signal you follow the law. SOC 2, ISO 27001, and ISO 42001 are third-party audited certifications — they signal you can prove it. Both types matter. The badges above represent the combination that unlocks enterprise deals.
         </p>
       </div>
     </div>

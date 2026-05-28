@@ -133,16 +133,16 @@ export default async function ScalabilityPage() {
         </div>
 
         {/* Current Stage Banner */}
-        <div className="bg-[#001f4d] rounded-xl p-6 text-white">
+        <div className="bg-[#001f4d] rounded-xl p-6 text-gray-900">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/50 text-xs font-medium uppercase tracking-widest mb-1">Current Stage</p>
+              <p className="text-gray-500 text-xs font-medium uppercase tracking-widest mb-1">Current Stage</p>
               <h3 className="text-2xl font-bold">Stage 1 — Proof of Concept</h3>
-              <p className="text-white/60 text-sm mt-1">Focus: land first 3 paying clients and document a case study.</p>
+              <p className="text-gray-500 text-sm mt-1">Focus: land first 3 paying clients and document a case study.</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold">{clientCount}<span className="text-white/40 text-lg font-normal"> / 5</span></p>
-              <p className="text-white/50 text-xs mt-0.5">clients onboarded</p>
+              <p className="text-3xl font-bold">{clientCount}<span className="text-gray-400 text-lg font-normal"> / 5</span></p>
+              <p className="text-gray-500 text-xs mt-0.5">clients onboarded</p>
             </div>
           </div>
           <div className="mt-5 w-full bg-white/10 rounded-full h-2.5">
@@ -152,8 +152,8 @@ export default async function ScalabilityPage() {
             />
           </div>
           <div className="flex justify-between mt-1.5">
-            <p className="text-white/40 text-xs">{clientCount} of {STAGE_1_TARGET} clients · {stagePct}% to Stage 2</p>
-            <p className="text-white/40 text-xs">{STAGE_1_TARGET - clientCount} remaining</p>
+            <p className="text-gray-400 text-xs">{clientCount} of {STAGE_1_TARGET} clients · {stagePct}% to Stage 2</p>
+            <p className="text-gray-400 text-xs">{STAGE_1_TARGET - clientCount} remaining</p>
           </div>
         </div>
 
@@ -174,15 +174,15 @@ export default async function ScalabilityPage() {
                   className={`bg-white rounded-xl border overflow-hidden ${stage.current ? `ring-2 ${colors.ring} border-transparent` : 'border-gray-100'}`}
                 >
                   {/* Stage header */}
-                  <div className={`${stage.current ? colors.stageBg : 'bg-gray-700'} px-4 py-3 text-white`}>
+                  <div className={`${stage.current ? colors.stageBg : 'bg-gray-700'} px-4 py-3 text-gray-900`}>
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-xs font-medium uppercase tracking-wider text-white/70">Stage {stage.number}</span>
+                      <span className="text-xs font-medium uppercase tracking-wider text-gray-700">Stage {stage.number}</span>
                       {stage.current && (
-                        <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">Current</span>
+                        <span className="text-xs bg-white/20 text-gray-900 px-2 py-0.5 rounded-full font-medium">Current</span>
                       )}
                     </div>
                     <p className="font-bold text-base">{stage.label}</p>
-                    <p className="text-white/60 text-xs">{stage.range}</p>
+                    <p className="text-gray-500 text-xs">{stage.range}</p>
                   </div>
 
                   {/* Milestones */}

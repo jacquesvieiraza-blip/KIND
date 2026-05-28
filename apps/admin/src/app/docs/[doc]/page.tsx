@@ -127,16 +127,16 @@ export default async function DocPage({ params }: { params: { doc: string } }) {
     return (
       <main className="px-8 py-6 max-w-4xl space-y-6">
         <div className="flex items-center gap-3">
-          <BookOpen className="w-6 h-6 text-white/40" />
+          <BookOpen className="w-6 h-6 text-gray-400" />
           <div>
-            <h1 className="text-2xl font-bold text-white">Audit Reports</h1>
-            <p className="text-sm text-white/40 mt-0.5">GitHub Issues — filtered by label:audit</p>
+            <h1 className="text-2xl font-bold text-gray-900">Audit Reports</h1>
+            <p className="text-sm text-gray-400 mt-0.5">GitHub Issues — filtered by label:audit</p>
           </div>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
-          <BookOpen className="w-10 h-10 text-white/20 mx-auto mb-4" />
-          <p className="text-white/60 text-sm leading-relaxed">
-            Audit reports are stored as GitHub Issues — filter by <code className="text-white/40 bg-white/5 px-1.5 py-0.5 rounded text-xs">label:audit</code> at{' '}
+          <BookOpen className="w-10 h-10 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Audit reports are stored as GitHub Issues — filter by <code className="text-gray-400 bg-white/5 px-1.5 py-0.5 rounded text-xs">label:audit</code> at{' '}
             <a
               href="https://github.com/jacquesvieiraza-blip/KIND/issues?q=label%3Aaudit"
               target="_blank"
@@ -150,7 +150,7 @@ export default async function DocPage({ params }: { params: { doc: string } }) {
             href="https://github.com/jacquesvieiraza-blip/KIND/issues?q=label%3Aaudit"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            className="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-700 hover:text-gray-900 hover:bg-white/10 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             Open GitHub Issues
@@ -181,13 +181,13 @@ export default async function DocPage({ params }: { params: { doc: string } }) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <BookOpen className="w-6 h-6 text-white/40" />
+          <BookOpen className="w-6 h-6 text-gray-400" />
           <div>
-            <h1 className="text-2xl font-bold text-white">{doc.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{doc.title}</h1>
             {lastModified && (
               <div className="flex items-center gap-1.5 mt-1">
-                <Clock className="w-3.5 h-3.5 text-white/30" />
-                <p className="text-xs text-white/30">Last modified: {formatDate(lastModified)}</p>
+                <Clock className="w-3.5 h-3.5 text-gray-400" />
+                <p className="text-xs text-gray-400">Last modified: {formatDate(lastModified)}</p>
               </div>
             )}
           </div>

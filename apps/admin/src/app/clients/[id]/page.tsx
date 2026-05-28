@@ -115,7 +115,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   )
   if (!client) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <p className="text-white/40">Client not found</p>
+      <p className="text-gray-400">Client not found</p>
     </div>
   )
 
@@ -128,43 +128,43 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   return (
     <div className="p-8 max-w-5xl space-y-6">
       {/* Back link */}
-      <Link href="/clients" className="inline-flex items-center gap-1.5 text-sm text-white/40 hover:text-white/70 transition-colors">
+      <Link href="/clients" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors">
         ← All Clients
       </Link>
 
       {/* Client header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">{client.company_name}</h1>
-          <p className="text-white/40 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-gray-900">{client.company_name}</h1>
+          <p className="text-gray-400 text-sm mt-1">
             {client.country}{client.industry ? ` · ${client.industry}` : ''}
           </p>
         </div>
         <div className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.06] px-4 py-2 rounded-xl">
           <Coins className="w-4 h-4 text-amber-400" />
-          <span className="text-white font-semibold">{balance}</span>
-          <span className="text-white/40 text-sm">credits</span>
+          <span className="text-gray-900 font-semibold">{balance}</span>
+          <span className="text-gray-400 text-sm">credits</span>
         </div>
       </div>
 
       {/* Subscriptions */}
       {subs.length > 0 && (
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-          <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-white/30" />Active Subscriptions
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-gray-400" />Active Subscriptions
           </h3>
           <div className="space-y-2">
             {subs.map(s => (
               <div key={s.id} className="flex items-center justify-between text-sm">
-                <span className="text-white/70 capitalize">{s.product.replace(/_/g, ' ')} — {s.tier}</span>
+                <span className="text-gray-700 capitalize">{s.product.replace(/_/g, ' ')} — {s.tier}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-white/40">${s.amount_usd}/mo</span>
+                  <span className="text-gray-400">${s.amount_usd}/mo</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
                     s.status === 'active'
                       ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400'
                       : s.status === 'trialing'
                       ? 'bg-blue-400/10 border-blue-400/20 text-blue-400'
-                      : 'bg-white/5 border-white/10 text-white/40'
+                      : 'bg-white/5 border-white/10 text-gray-400'
                   }`}>{s.status}</span>
                 </div>
               </div>
@@ -176,66 +176,66 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       {/* Leads summary */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-          <p className="text-xs text-white/30 uppercase tracking-wider mb-1">Total Leads</p>
-          <p className="text-2xl font-bold text-white">{leads.length}</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Leads</p>
+          <p className="text-2xl font-bold text-gray-900">{leads.length}</p>
         </div>
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-          <p className="text-xs text-white/30 uppercase tracking-wider mb-1">This Month</p>
-          <p className="text-2xl font-bold text-white">{leadsThisMonth}</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">This Month</p>
+          <p className="text-2xl font-bold text-gray-900">{leadsThisMonth}</p>
         </div>
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-          <p className="text-xs text-white/30 uppercase tracking-wider mb-1">Top Lead</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Top Lead</p>
           {topLead ? (
             <div>
-              <p className="text-white font-medium text-sm">
+              <p className="text-gray-900 font-medium text-sm">
                 {[topLead.first_name, topLead.last_name].filter(Boolean).join(' ') || 'Unknown'}
               </p>
-              {topLead.company_name && <p className="text-white/40 text-xs">{topLead.company_name}</p>}
+              {topLead.company_name && <p className="text-gray-400 text-xs">{topLead.company_name}</p>}
               <p className="text-emerald-400 text-xs mt-0.5">Score: {topLead.score}</p>
             </div>
-          ) : <p className="text-white/30 text-sm">—</p>}
+          ) : <p className="text-gray-400 text-sm">—</p>}
         </div>
       </div>
 
       {/* Credit management */}
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-white flex items-center gap-2">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
             <Coins className="w-4 h-4 text-amber-400" />Credits
           </h3>
-          <span className="text-2xl font-bold text-white">{balance}</span>
+          <span className="text-2xl font-bold text-gray-900">{balance}</span>
         </div>
 
         {/* Grant form */}
         <form onSubmit={handleGrant} className="border border-white/[0.06] rounded-lg p-4 space-y-3 bg-white/[0.02]">
-          <p className="text-xs font-medium text-white/30 uppercase tracking-wider">Grant or Adjust Credits</p>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Grant or Adjust Credits</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-white/40 mb-1">Amount</label>
+              <label className="block text-xs text-gray-400 mb-1">Amount</label>
               <input type="number" min="1" value={grantAmt} onChange={e => setGrantAmt(e.target.value)}
                 placeholder="e.g. 100"
-                className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-white/20" />
+                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-gray-300" />
             </div>
             <div>
-              <label className="block text-xs text-white/40 mb-1">Type</label>
+              <label className="block text-xs text-gray-400 mb-1">Type</label>
               <select value={grantType} onChange={e => setGrantType(e.target.value as 'manual_grant' | 'refund')}
-                className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]">
+                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]">
                 <option value="manual_grant">Manual Grant (add)</option>
                 <option value="refund">Refund (add back)</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-white/40 mb-1">Note (optional)</label>
+              <label className="block text-xs text-gray-400 mb-1">Note (optional)</label>
               <input type="text" value={grantNote} onChange={e => setGrantNote(e.target.value)}
                 placeholder="Reason / reference"
-                className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-white/20" />
+                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-gray-300" />
             </div>
           </div>
           {grantMsg && (
             <p className={`text-sm ${grantMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{grantMsg.text}</p>
           )}
           <button type="submit" disabled={granting}
-            className="flex items-center gap-2 bg-[#0066FF] hover:bg-[#0052cc] text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60 transition-colors">
+            className="flex items-center gap-2 bg-[#0066FF] hover:bg-[#0052cc] text-gray-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60 transition-colors">
             {granting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Apply Credits
           </button>
@@ -244,7 +244,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
         {/* Transaction history */}
         {txs.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-white/30 uppercase tracking-wider mb-2">Recent Transactions</p>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Recent Transactions</p>
             <div className="space-y-1.5 max-h-64 overflow-y-auto">
               {txs.map(tx => (
                 <div key={tx.id} className="flex items-center justify-between text-sm py-1.5 border-b border-white/[0.04] last:border-0">
@@ -255,10 +255,10 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                       {tx.amount > 0 ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
                       {Math.abs(tx.amount)}
                     </span>
-                    <span className="text-white/60 capitalize">{tx.type.replace(/_/g, ' ')}</span>
-                    {tx.note && <span className="text-white/30 ml-1.5">· {tx.note}</span>}
+                    <span className="text-gray-500 capitalize">{tx.type.replace(/_/g, ' ')}</span>
+                    {tx.note && <span className="text-gray-400 ml-1.5">· {tx.note}</span>}
                   </div>
-                  <span className="text-xs text-white/30">{new Date(tx.created_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}</span>
+                  <span className="text-xs text-gray-400">{new Date(tx.created_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}</span>
                 </div>
               ))}
             </div>
@@ -268,22 +268,22 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
 
       {/* FIGSY Campaigns */}
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-        <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-white/30" />FIGSY Campaigns
+        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-gray-400" />FIGSY Campaigns
         </h3>
         {activeCampaigns.length > 0 ? (
           <div className="space-y-2">
             {activeCampaigns.map(c => (
               <div key={c.id} className="flex items-center justify-between bg-white/[0.02] border border-white/[0.04] rounded-lg px-4 py-3">
                 <div>
-                  <p className="text-white text-sm font-medium">{c.name}</p>
-                  <p className="text-xs text-white/30 mt-0.5">
+                  <p className="text-gray-900 text-sm font-medium">{c.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
                     Started {new Date(c.created_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   {c.enrolled_count != null && (
-                    <span className="text-xs text-white/40">{c.enrolled_count} enrolled</span>
+                    <span className="text-xs text-gray-400">{c.enrolled_count} enrolled</span>
                   )}
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">
                     Active
@@ -292,28 +292,28 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
               </div>
             ))}
             {campaigns.filter(c => c.status !== 'active').length > 0 && (
-              <p className="text-xs text-white/30 pt-1">
+              <p className="text-xs text-gray-400 pt-1">
                 +{campaigns.filter(c => c.status !== 'active').length} inactive campaign(s)
               </p>
             )}
           </div>
         ) : (
-          <p className="text-sm text-white/30">No active FIGSY campaigns</p>
+          <p className="text-sm text-gray-400">No active FIGSY campaigns</p>
         )}
       </div>
 
       {/* ICPs */}
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-        <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-          <Target className="w-4 h-4 text-white/30" />Ideal Customer Profiles
+        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <Target className="w-4 h-4 text-gray-400" />Ideal Customer Profiles
         </h3>
         {icps.length > 0 ? (
           <div className="space-y-2">
             {icps.map(icp => (
               <div key={icp.id} className="flex items-center justify-between bg-white/[0.02] border border-white/[0.04] rounded-lg px-4 py-3">
                 <div>
-                  <p className="text-white text-sm font-medium">{icp.name}</p>
-                  <p className="text-xs text-white/30 mt-0.5">
+                  <p className="text-gray-900 text-sm font-medium">{icp.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
                     {icp.last_run_at
                       ? `Last run ${new Date(icp.last_run_at).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}`
                       : 'Never run'}
@@ -323,7 +323,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             ))}
           </div>
         ) : (
-          <p className="text-sm text-white/30">No ICPs configured</p>
+          <p className="text-sm text-gray-400">No ICPs configured</p>
         )}
       </div>
 
@@ -346,16 +346,16 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
           </>
         ) : (
           <>
-            <XCircle className="w-5 h-5 text-white/30 mt-0.5 shrink-0" />
-            <p className="text-white/40 text-sm">T&amp;Cs not yet accepted — client has not completed a purchase.</p>
+            <XCircle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <p className="text-gray-400 text-sm">T&amp;Cs not yet accepted — client has not completed a purchase.</p>
           </>
         )}
       </div>
 
       {/* Client details */}
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-        <h3 className="font-semibold text-white mb-3 flex items-center gap-2 text-sm">
-          <Building2 className="w-4 h-4 text-white/30" />Client Details
+        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+          <Building2 className="w-4 h-4 text-gray-400" />Client Details
         </h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           {([
@@ -369,8 +369,8 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             ['Joined',   new Date(client.created_at).toLocaleDateString('en-ZA', { dateStyle: 'long' })],
           ] as [string, string][]).map(([label, val]) => (
             <div key={label}>
-              <span className="text-white/30 text-xs">{label}</span>
-              <p className="text-white/80 mt-0.5">{val}</p>
+              <span className="text-gray-400 text-xs">{label}</span>
+              <p className="text-gray-800 mt-0.5">{val}</p>
             </div>
           ))}
         </div>

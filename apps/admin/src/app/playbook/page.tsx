@@ -218,7 +218,7 @@ Here's what I'd like to do: spend the first part understanding your current sale
         {questions.map((item, i) => (
           <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-[#7C3AED] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+              <span className="w-6 h-6 rounded-full bg-[#7C3AED] text-gray-900 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                 {i + 1}
               </span>
               <p className="font-medium text-gray-800 text-sm">{item.q}</p>
@@ -340,12 +340,12 @@ What questions do you have before I put together your proposal?"`,
         <div key={s.step} className="border border-gray-100 rounded-xl overflow-hidden">
           <div className="bg-[#001f4d] px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-white/20 text-white text-xs font-bold flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full bg-white/20 text-gray-900 text-xs font-bold flex items-center justify-center">
                 {s.step}
               </span>
               <div>
-                <p className="text-white font-medium text-sm">{s.title}</p>
-                {s.nav && <p className="text-white/50 text-xs">{s.nav}</p>}
+                <p className="text-gray-900 font-medium text-sm">{s.title}</p>
+                {s.nav && <p className="text-gray-500 text-xs">{s.nav}</p>}
               </div>
             </div>
             <Tag color="blue">{s.time}</Tag>
@@ -829,21 +829,21 @@ export default function PlaybookPage() {
               className="bg-white rounded-xl border border-gray-100 overflow-hidden"
             >
               {/* Section header */}
-              <div className={`${section.color} px-6 py-4 text-white`}>
+              <div className={`${section.color} px-6 py-4 text-gray-900`}>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
                     <Icon className="w-4 h-4" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                      <span className="text-gray-500 text-xs font-medium uppercase tracking-wider">
                         Section {idx + 1}
                       </span>
                     </div>
                     <h3 className="font-bold text-lg leading-tight">{section.title}</h3>
-                    <p className="text-white/70 text-xs">{section.subtitle}</p>
+                    <p className="text-gray-700 text-xs">{section.subtitle}</p>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-white/40 ml-auto" />
+                  <ChevronDown className="w-4 h-4 text-gray-400 ml-auto" />
                 </div>
               </div>
 

@@ -268,7 +268,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
               href={`?status=${opt.value}`}
               className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                 statusFilter === opt.value
-                  ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                  ? 'bg-[#7C3AED] text-gray-900 border-[#7C3AED]'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-[#7C3AED]/50 hover:text-[#7C3AED]'
               }`}
             >

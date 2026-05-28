@@ -55,18 +55,18 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${briefData ? 'bg-emerald-400' : 'bg-white/20'}`} />
-          <h2 className="font-semibold text-white">Today&apos;s Brief</h2>
+          <h2 className="font-semibold text-gray-900">Today&apos;s Brief</h2>
         </div>
         <div className="flex items-center gap-3">
           {briefData?.generated_at && (
-            <span className="text-xs text-white/30">
+            <span className="text-xs text-gray-400">
               Generated {new Date(briefData.generated_at).toLocaleTimeString('en-GB', { timeStyle: 'short' })}
             </span>
           )}
           <button
             onClick={fetchBrief}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] rounded-lg text-xs text-white/60 hover:text-white/80 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] rounded-lg text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50"
           >
             {loading
               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -85,7 +85,7 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
           {bullets.map((line, i) => (
             <p
               key={i}
-              className="text-sm text-white/70 pl-4 border-l-2 border-white/10 py-1 leading-relaxed"
+              className="text-sm text-gray-700 pl-4 border-l-2 border-white/10 py-1 leading-relaxed"
             >
               {line.replace(/^[•\-]\s*/, '')}
             </p>
@@ -93,10 +93,10 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
         </div>
       ) : (
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-5 text-center">
-          <p className="text-white/40 text-sm">
+          <p className="text-gray-400 text-sm">
             Click &quot;Generate Brief&quot; to get {agentName}&apos;s daily briefing using live platform data.
           </p>
-          <p className="text-white/20 text-xs mt-2">
+          <p className="text-gray-300 text-xs mt-2">
             Powered by Claude Haiku · Data from Supabase
           </p>
         </div>

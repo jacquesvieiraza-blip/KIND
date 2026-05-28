@@ -77,17 +77,17 @@ export default function FounderPage() {
     ae:      'bg-purple-400/10 border border-purple-400/20 text-purple-400',
   }
 
-  const inputClass = 'w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-white/20'
+  const inputClass = 'w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-gray-300'
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">Founder Agent Stack</h1>
-        <p className="text-white/40 text-sm mt-1">Support, CS, and AE agents running K.I.N.D&apos;s own business.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Founder Agent Stack</h1>
+        <p className="text-gray-400 text-sm mt-1">Support, CS, and AE agents running K.I.N.D&apos;s own business.</p>
       </div>
 
       {loading ? (
-        <p className="text-white/30">Loading…</p>
+        <p className="text-gray-400">Loading…</p>
       ) : digest ? (
         <>
           {/* Summary cards */}
@@ -113,15 +113,15 @@ export default function FounderPage() {
             </div>
             <div className="divide-y divide-purple-50">
               {digest.recent_logs.length === 0 ? (
-                <p className="px-5 py-8 text-sm text-white/30 text-center">No actions yet.</p>
+                <p className="px-5 py-8 text-sm text-gray-400 text-center">No actions yet.</p>
               ) : digest.recent_logs.map(log => (
                 <div key={log.id} className="px-5 py-3 flex items-start gap-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${AGENT_COLORS[log.agent] ?? 'bg-white/5 border border-white/10 text-white/50'}`}>{log.agent}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${AGENT_COLORS[log.agent] ?? 'bg-white/5 border border-white/10 text-gray-500'}`}>{log.agent}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white/70">{log.action}</p>
-                    <p className="text-xs text-white/30 truncate">{JSON.stringify(log.payload).slice(0, 80)}</p>
+                    <p className="text-sm text-gray-700">{log.action}</p>
+                    <p className="text-xs text-gray-400 truncate">{JSON.stringify(log.payload).slice(0, 80)}</p>
                   </div>
-                  <p className="text-xs text-white/30 shrink-0">{new Date(log.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                  <p className="text-xs text-gray-400 shrink-0">{new Date(log.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 </div>
               ))}
             </div>
@@ -142,10 +142,10 @@ export default function FounderPage() {
               <option value="day7">Day 7</option>
             </select>
             <button type="submit" disabled={csSending}
-              className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+              className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-gray-900 text-sm font-medium rounded-lg transition-colors">
               {csSending ? 'Sending…' : 'Send follow-up'}
             </button>
-            {csResult && <p className="text-xs text-white/40">{csResult}</p>}
+            {csResult && <p className="text-xs text-gray-400">{csResult}</p>}
           </form>
         </div>
 
@@ -158,10 +158,10 @@ export default function FounderPage() {
             <input value={demoCompany} onChange={e => setDemoCompany(e.target.value)} placeholder="Company (optional)" className={inputClass} />
             <textarea value={demoMsg} onChange={e => setDemoMsg(e.target.value)} placeholder="Their message (optional)" rows={2} className={inputClass} />
             <button type="submit" disabled={demoSending}
-              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-gray-900 text-sm font-medium rounded-lg transition-colors">
               {demoSending ? 'Sending…' : 'Send demo email'}
             </button>
-            {demoResult && <p className="text-xs text-white/40">{demoResult}</p>}
+            {demoResult && <p className="text-xs text-gray-400">{demoResult}</p>}
           </form>
         </div>
       </div>

@@ -5,37 +5,94 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
   Linkedin, Upload, CheckCircle2, AlertCircle, Loader2,
-  ArrowRight, X, FileText, Users, ArrowLeft, Info,
-  ChevronDown, ShieldCheck,
+  ArrowRight, FileText, Users, ArrowLeft, Info,
+  ChevronDown, ShieldCheck, Sparkles, Map,
 } from 'lucide-react'
 import Link from 'next/link'
 
 // ── Column mapping ─────────────────────────────────────────────────────────────
 
 const LI_AUTO_MAP: Record<string, string> = {
-  'first name':           'first_name',
-  'last name':            'last_name',
-  'email address':        'email',
-  'email':                'email',
-  'job title':            'job_title',
-  'title':                'job_title',
-  'current title':        'job_title',
-  'company':              'company',
-  'company name':         'company',
-  'current company':      'company',
-  'linkedin member url':  'linkedin_url',
-  'linkedin url':         'linkedin_url',
-  'profile url':          'linkedin_url',
-  'person linkedin url':  'linkedin_url',
-  'location':             'country',
-  'country':              'country',
-  'region':               'country',
-  'industry':             'industry',
-  'phone':                'phone',
-  'phone number':         'phone',
-  'mobile phone':         'phone',
-  'number of employees':  'company_size',
-  'company size':         'company_size',
+  // ── Person: name
+  'first name':                     'first_name',
+  'first_name':                     'first_name',
+  'firstname':                      'first_name',
+  'given name':                     'first_name',
+  'last name':                      'last_name',
+  'last_name':                      'last_name',
+  'lastname':                       'last_name',
+  'surname':                        'last_name',
+  'family name':                    'last_name',
+  // ── Person: contact
+  'email address':                  'email',
+  'email':                          'email',
+  'work email':                     'email',
+  'business email':                 'email',
+  'corporate email':                'email',
+  'phone':                          'phone',
+  'phone number':                   'phone',
+  'mobile phone':                   'phone',
+  'direct phone':                   'phone',
+  'work phone':                     'phone',
+  'mobile':                         'phone',
+  'company hq phone':               'phone',
+  // ── Person: title / seniority
+  'job title':                      'job_title',
+  'title':                          'job_title',
+  'current title':                  'job_title',
+  'position':                       'job_title',
+  'role':                           'job_title',
+  'designation':                    'job_title',
+  'seniority':                      'seniority',
+  'seniority level':                'seniority',
+  'management level':               'seniority',
+  // ── Company
+  'company':                        'company',
+  'company name':                   'company',
+  'current company':                'company',
+  'organization':                   'company',
+  'organization name':              'company',
+  'account name':                   'company',
+  'employer':                       'company',
+  // ── LinkedIn / social
+  'linkedin member url':            'linkedin_url',
+  'linkedin url':                   'linkedin_url',
+  'profile url':                    'linkedin_url',
+  'person linkedin url':            'linkedin_url',
+  'linkedin profile url':           'linkedin_url',
+  'linkedin':                       'linkedin_url',
+  'li profile url':                 'linkedin_url',
+  // ── Location
+  'location':                       'country',
+  'country':                        'country',
+  'region':                         'country',
+  'country/region':                 'country',
+  'geography':                      'country',
+  'headquarters location':          'country',
+  'hq location':                    'country',
+  'hq country':                     'country',
+  'city':                           'country',
+  // ── Industry
+  'industry':                       'industry',
+  'primary industry':               'industry',
+  'industry vertical':              'industry',
+  'sector':                         'industry',
+  'company industry':               'industry',
+  'industries':                     'industry',
+  // ── Company size
+  'number of employees':            'company_size',
+  'company size':                   'company_size',
+  'employees':                      'company_size',
+  'employee count':                 'company_size',
+  'employee range':                 'company_size',
+  'employees range':                'company_size',
+  'headcount':                      'company_size',
+  'headcount range':                'company_size',
+  'company headcount':              'company_size',
+  'company headcount range':        'company_size',
+  '# employees':                    'company_size',
+  'num employees':                  'company_size',
+  'estimated number of employees':  'company_size',
 }
 
 const LEAD_FIELDS = [
@@ -43,7 +100,9 @@ const LEAD_FIELDS = [
   { key: 'last_name',     label: 'Last name' },
   { key: 'email',         label: 'Email address' },
   { key: 'job_title',     label: 'Job title' },
+  { key: 'seniority',     label: 'Seniority level' },
   { key: 'company',       label: 'Company name' },
+  { key: 'company_size',  label: 'Company size' },
   { key: 'linkedin_url',  label: 'LinkedIn URL' },
   { key: 'country',       label: 'Country / Location' },
   { key: 'industry',      label: 'Industry' },
@@ -97,6 +156,43 @@ function autoMap(headers: string[]): Record<string, string> {
   return map
 }
 
+// Returns true when the CSV looks like a company/account list with no contact columns
+function isCompanyList(headers: string[]): boolean {
+  const norms = headers.map(h => h.toLowerCase().trim())
+  const hasContact = norms.some(h =>
+    h.includes('first name') || h.includes('first_name') || h === 'firstname' ||
+    h.includes('email') || h.includes('linkedin member') || h.includes('person linkedin')
+  )
+  const hasCompany = norms.some(h =>
+    h.includes('company') || h.includes('organization') || h.includes('account name')
+  )
+  return !hasContact && hasCompany
+}
+
+// Extract sample values for a column from the first 50 rows
+function sampleValues(rows: Record<string, string>[], header: string): string[] {
+  return [...new Set(
+    rows.slice(0, 50).map(r => r[header]).filter(Boolean)
+  )].slice(0, 10)
+}
+
+// Build ICP query params from company-level CSV data
+function buildIcpParams(
+  headers: string[],
+  mapping: Record<string, string>,
+  rows: Record<string, string>[]
+): string {
+  const params = new URLSearchParams()
+  for (const [header, field] of Object.entries(mapping)) {
+    if (field === 'industry' || field === 'company_size') {
+      const vals = sampleValues(rows, header)
+      if (vals.length) params.set(field, vals.slice(0, 5).join(','))
+    }
+  }
+  params.set('source', 'csv_import')
+  return params.toString()
+}
+
 // ── Step indicator ─────────────────────────────────────────────────────────────
 
 function Step({ n, label, active, done }: { n: number; label: string; active: boolean; done: boolean }) {
@@ -129,10 +225,11 @@ export default function LinkedInImportPage() {
   const [dragging, setDragging] = useState(false)
 
   // CSV data
-  const [fileName, setFileName]   = useState('')
-  const [headers, setHeaders]     = useState<string[]>([])
-  const [rows, setRows]           = useState<Record<string, string>[]>([])
-  const [mapping, setMapping]     = useState<Record<string, string>>({})
+  const [fileName, setFileName]     = useState('')
+  const [headers, setHeaders]       = useState<string[]>([])
+  const [rows, setRows]             = useState<Record<string, string>[]>([])
+  const [mapping, setMapping]       = useState<Record<string, string>>({})
+  const [isAcctList, setIsAcctList] = useState(false)
 
   // Import result
   const [result, setResult]       = useState<ImportResult | null>(null)
@@ -151,9 +248,11 @@ export default function LinkedInImportPage() {
       const text = e.target?.result as string
       const { headers, rows } = parseCSV(text)
       if (!headers.length) { alert('Could not parse CSV — check the file format.'); return }
+      const mapped = autoMap(headers)
       setHeaders(headers)
       setRows(rows)
-      setMapping(autoMap(headers))
+      setMapping(mapped)
+      setIsAcctList(isCompanyList(headers))
       setStep('map')
     }
     reader.readAsText(file)
@@ -301,6 +400,26 @@ export default function LinkedInImportPage() {
       {/* ── STEP 2: Map columns ────────────────────────────────────────────── */}
       {step === 'map' && (
         <div className="space-y-4">
+          {/* Company / account-list detected — suggest ICP builder */}
+          {isAcctList && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-800">This looks like a company / account list</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  No contact columns (First Name, Email) were detected. You can still map what you have,
+                  or use this data to instantly pre-fill your ICP — KIND will then find real contacts at these companies.
+                </p>
+              </div>
+              <Link
+                href={`/dashboard/leads/icp?${buildIcpParams(headers, mapping, rows)}`}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors"
+              >
+                <Map className="w-3.5 h-3.5" /> Build ICP from this data
+              </Link>
+            </div>
+          )}
+
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
             <div className="flex items-center justify-between mb-4">
               <div>

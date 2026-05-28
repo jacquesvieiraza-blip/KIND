@@ -300,14 +300,13 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
 
     // F1-9: gate activation behind a FIGSY-enabled subscription
     if (body.status === 'active') {
-      const { data: sub } = await db.from('subscriptions')
-        .select('product, status')
+      const { count } = await db.from('subscriptions')
+        .select('*', { count: 'exact', head: true })
         .eq('client_id', clientId)
         .in('product', ['lead_gen_figsy', 'figsy_addon'])
         .in('status', ['active', 'trialing'])
-        .maybeSingle()
 
-      if (!sub) {
+      if (!count || count === 0) {
         res.status(403).json({
           success: false,
           error: 'FIGSY requires an active subscription. Upgrade to Lead Gen + FIGSY or add the FIGSY add-on.',

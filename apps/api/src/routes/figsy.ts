@@ -840,5 +840,58 @@ figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) =
   }
 })
 
+// ── FIGSY CHAT — conversational AI assistant for lead gen and pipeline advice ──
+figsyRouter.post('/chat', async (req: AuthRequest, res) => {
+  try {
+    const { messages, mode } = z.object({
+      messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).min(1).max(20),
+      mode:     z.enum(['full', 'lead_gen']).default('lead_gen'),
+    }).parse(req.body)
+
+    const clientId = await getClientId(req.userId!)
+
+    // Fetch client context for a personalised reply
+    let clientContext = ''
+    if (clientId) {
+      const { data: client } = await db.from('clients')
+        .select('company_name, industry, credit_balance').eq('id', clientId).single()
+      const { data: icps } = await db.from('icps')
+        .select('name, industries, job_titles, geographies').eq('client_id', clientId).limit(3)
+      if (client) {
+        clientContext = `\nClient: ${client.company_name ?? 'Unknown'} | Industry: ${client.industry ?? 'Unknown'} | Credits: ${client.credit_balance ?? 0}`
+        if (icps?.length) {
+          clientContext += `\nICPs: ${icps.map(i => i.name).join(', ')}`
+        }
+      }
+    }
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const system = mode === 'full'
+      ? `You are FIGSY, an expert AI SDR and sales strategist for K.I.N.D — a B2B lead generation platform.${clientContext}
+You help the user with: campaign strategy, reply rate improvement, lead scoring, ICP refinement, outreach copy, and pipeline advice.
+Keep replies concise (2-4 sentences max). Be direct, specific, and actionable. No fluff.`
+      : `You are FIGSY, an AI lead generation assistant for K.I.N.D — a B2B platform.${clientContext}
+You help the user understand their ICP, lead scoring, and who to target first. You can advise on lead gen strategy.
+For campaign management features (sequences, email sends, inbox), mention they can upgrade to full FIGSY.
+Keep replies concise (2-4 sentences max). Be direct and helpful.`
+
+    const response = await ai.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      system,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+    })
+
+    const reply = (response.content[0] as { type: string; text: string }).text.trim()
+    res.json({ success: true, data: { reply } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[figsy/chat]', err)
+    res.status(500).json({ success: false, error: 'Failed to generate response' })
+  }
+})
+
 // Export for use in icps.ts (S5 — FIGSY auto-start)
 export { autoEnrollLead }

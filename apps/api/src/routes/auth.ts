@@ -13,7 +13,7 @@ authRouter.post('/signup', async (req, res) => {
       password: z.string().min(6),
     }).parse(req.body)
 
-    const PORTAL = process.env.PORTAL_URL || 'https://app.get-kind.com'
+    const PORTAL = process.env.PORTAL_URL || 'https://kindportal-production.up.railway.app'
 
     // Create user with admin API — email is auto-confirmed, no email sent
     const { error: createErr } = await db.auth.admin.createUser({

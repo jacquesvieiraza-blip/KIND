@@ -135,7 +135,12 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
       .order('score', { ascending: false, nullsFirst: false })
       .range((Number(page) - 1) * Number(limit), Number(page) * Number(limit) - 1)
 
-    if (status)           query = query.eq('status', status as string)
+    if (status) {
+      const statusValues = (status as string).split(',')
+      query = statusValues.length > 1
+        ? query.in('status', statusValues)
+        : query.eq('status', statusValues[0])
+    }
     if (min_score)        query = query.gte('score', Number(min_score))
     if (icp_id)           query = query.eq('icp_id', icp_id as string)
     if (apollo_consented) query = query.eq('apollo_consented', apollo_consented === 'true')
@@ -189,6 +194,31 @@ leadRouter.post('/', async (req: AuthRequest, res) => {
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to create lead' })
+  }
+})
+
+// ── BULK STATUS UPDATE ────────────────────────────────────────────────────────
+leadRouter.post('/bulk-status', async (req: AuthRequest, res) => {
+  try {
+    const { leadIds, status } = z.object({
+      leadIds: z.array(z.string().uuid()).min(1).max(100),
+      status:  z.enum(['pending', 'scored', 'consent_sent', 'consent_given', 'exported', 'rejected', 'opted_out']),
+    }).parse(req.body)
+
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: updated, error } = await db.from('leads')
+      .update({ status })
+      .in('id', leadIds)
+      .eq('client_id', clientId)
+      .select('id')
+
+    if (error) throw error
+    res.json({ success: true, updated: updated?.length ?? 0 })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to update lead statuses' })
   }
 })
 

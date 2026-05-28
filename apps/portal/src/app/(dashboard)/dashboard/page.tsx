@@ -78,7 +78,7 @@ export default async function DashboardPage() {
       const [statsRes, figsyRes, repliesRes, leadsRes] = await Promise.allSettled([
         api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
         api.get<{ data: typeof figsyCampaigns }>('/figsy/campaigns', session.access_token),
-        api.get<{ data: typeof hotReplies }>('/figsy/replies?classification=hot&limit=5', session.access_token),
+        api.get<{ data: typeof hotReplies }>('/figsy/replies/all?limit=5', session.access_token),
         api.get<{ data: TopLead[] }>('/leads?limit=5&sort=score&order=desc', session.access_token),
       ])
       if (statsRes.status === 'fulfilled')   leadStats    = statsRes.value.data

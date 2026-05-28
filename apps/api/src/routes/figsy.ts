@@ -11,23 +11,30 @@ export const figsyRouter = Router()
 // ── INBOUND REPLY WEBHOOK — must be registered BEFORE requireAuth ─────────────
 // Called by Resend when a prospect replies to a FIGSY sequence email.
 // No JWT auth — protected by RESEND_WEBHOOK_SECRET header check instead.
+// Resend inbound payload: { from, to, subject, text, html } OR { type, data: { from, ... } }
 figsyRouter.post('/replies/inbound', async (req, res) => {
-  // Verify webhook secret so random actors can't post fake replies
+  // Verify webhook secret
   const secret = process.env.RESEND_WEBHOOK_SECRET
   if (secret && req.headers['x-webhook-secret'] !== secret) {
     res.status(401).json({ error: 'Unauthorized' }); return
   }
 
   try {
-    const payload = req.body as {
-      from: string
-      subject?: string
-      text?: string
-      html?: string
-    }
+    // Handle both Resend webhook format { type, data: {...} } and flat { from, subject, text }
+    const raw = req.body as Record<string, unknown>
+    const payload = (raw.type === 'email.received' && raw.data && typeof raw.data === 'object')
+      ? raw.data as Record<string, unknown>
+      : raw
 
-    const fromEmail = payload.from?.toLowerCase().trim()
-    const body = payload.text || payload.html?.replace(/<[^>]+>/g, ' ') || ''
+    // Extract just the email address from "Name <email@domain.com>" or plain "email@domain.com"
+    const rawFrom = (payload.from as string) ?? ''
+    const emailMatch = rawFrom.match(/<([^>]+)>/) || rawFrom.match(/^([^\s]+@[^\s]+)/)
+    const fromEmail = (emailMatch?.[1] ?? rawFrom).toLowerCase().trim()
+
+    // Extract name from "Name <email>" format
+    const fromName = rawFrom.includes('<') ? rawFrom.split('<')[0].trim().replace(/^["']|["']$/g, '') : null
+
+    const body = (payload.text as string) || ((payload.html as string)?.replace(/<[^>]+>/g, ' ') ?? '') || ''
 
     if (!fromEmail || !body) { res.status(200).json({ received: true }); return }
 
@@ -54,12 +61,15 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       lead_id:                     lead.id,
       client_id:                   lead.client_id,
       from_email:                  fromEmail,
-      subject:                     payload.subject ?? null,
+      from_name:                   fromName,
+      subject:                     (payload.subject as string) ?? null,
       body,
+      body_text:                   body,
       classification,
       classification_reasoning:    reasoning,
       raw_payload:                 payload,
       processed_at:                new Date().toISOString(),
+      received_at:                 new Date().toISOString(),
     }).select('id').single()
 
     // Handle opt-out — pause enrollment and add to blocklist
@@ -1041,6 +1051,106 @@ Keep replies concise (2-4 sentences max). Be direct and helpful.`
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[figsy/chat]', err)
     res.status(500).json({ success: false, error: 'Failed to generate response' })
+  }
+})
+
+// ── ACTIVITY FEED ─────────────────────────────────────────────────────────────
+figsyRouter.get('/activity', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const limit = Math.min(parseInt(String(req.query.limit ?? '20')), 50)
+
+    const [sentRes, repliesRes, campaignsRes, leadsRes] = await Promise.all([
+      db.from('figsy_sent_emails')
+        .select('id, sent_at, step, leads(first_name, last_name, company)')
+        .eq('client_id', clientId)
+        .order('sent_at', { ascending: false })
+        .limit(limit),
+      db.from('figsy_replies')
+        .select('id, processed_at, received_at, classification, from_name, from_email, leads(first_name, last_name)')
+        .eq('client_id', clientId)
+        .order('processed_at', { ascending: false })
+        .limit(limit),
+      db.from('figsy_campaigns')
+        .select('id, name, created_at, status')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      db.from('leads')
+        .select('id, created_at, source')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(limit),
+    ])
+
+    type ActivityEvent = {
+      id: string
+      type: 'email_sent' | 'reply_received' | 'campaign_created' | 'lead_added'
+      description: string
+      timestamp: string
+    }
+
+    const events: ActivityEvent[] = []
+
+    for (const row of sentRes.data ?? []) {
+      const lead = (row as any).leads
+      const name = lead ? `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() : 'a lead'
+      const company = lead?.company ? ` at ${lead.company}` : ''
+      events.push({
+        id: `sent-${row.id}`,
+        type: 'email_sent',
+        description: `FIGSY sent Day ${row.step ?? 1} email to ${name}${company}`,
+        timestamp: row.sent_at ?? new Date().toISOString(),
+      })
+    }
+
+    for (const row of repliesRes.data ?? []) {
+      const lead = (row as any).leads
+      const name = lead ? `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim()
+        : (row.from_name ?? row.from_email ?? 'Unknown')
+      const label = row.classification === 'hot' ? 'Hot reply' :
+        row.classification === 'warm' ? 'Warm reply' :
+        row.classification === 'opt_out' ? 'Opt-out' : 'Reply'
+      events.push({
+        id: `reply-${row.id}`,
+        type: 'reply_received',
+        description: `${label} from ${name}`,
+        timestamp: row.received_at ?? row.processed_at ?? new Date().toISOString(),
+      })
+    }
+
+    for (const row of campaignsRes.data ?? []) {
+      events.push({
+        id: `campaign-${row.id}`,
+        type: 'campaign_created',
+        description: `Campaign "${row.name}" created`,
+        timestamp: row.created_at ?? new Date().toISOString(),
+      })
+    }
+
+    // Group leads by day to avoid 25 separate "lead added" events
+    const leadsByDay: Record<string, number> = {}
+    for (const row of leadsRes.data ?? []) {
+      const day = (row.created_at ?? '').slice(0, 10)
+      if (day) leadsByDay[day] = (leadsByDay[day] ?? 0) + 1
+    }
+    for (const [day, count] of Object.entries(leadsByDay)) {
+      events.push({
+        id: `leads-${day}`,
+        type: 'lead_added',
+        description: `${count} lead${count === 1 ? '' : 's'} added`,
+        timestamp: `${day}T12:00:00.000Z`,
+      })
+    }
+
+    // Sort by timestamp descending, cap at limit
+    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+    res.json({ success: true, data: events.slice(0, limit) })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, error: 'Failed to fetch activity' })
   }
 })
 

@@ -59,6 +59,7 @@ export default async function DashboardPage() {
   let leadStats: LeadStats | null = null
   let hotReplies: { id: string; from_email: string; leads?: { first_name?: string; last_name?: string; company?: string }; classification: string; received_at: string }[] = []
   let topLeads: TopLead[] = []
+  let activityEvents: ActivityEvent[] = []
 
   if (user) {
     const { data: clientRow } = await supabase
@@ -75,16 +76,18 @@ export default async function DashboardPage() {
 
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
-      const [statsRes, figsyRes, repliesRes, leadsRes] = await Promise.allSettled([
+      const [statsRes, figsyRes, repliesRes, leadsRes, activityRes] = await Promise.allSettled([
         api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
         api.get<{ data: typeof figsyCampaigns }>('/figsy/campaigns', session.access_token),
         api.get<{ data: typeof hotReplies }>('/figsy/replies/all?limit=5', session.access_token),
         api.get<{ data: TopLead[] }>('/leads?limit=5&sort=score&order=desc', session.access_token),
+        api.get<{ data: ActivityEvent[] }>('/figsy/activity?limit=20', session.access_token),
       ])
-      if (statsRes.status === 'fulfilled')   leadStats    = statsRes.value.data
-      if (figsyRes.status === 'fulfilled')   figsyCampaigns = figsyRes.value.data ?? []
-      if (repliesRes.status === 'fulfilled') hotReplies   = repliesRes.value.data ?? []
-      if (leadsRes.status === 'fulfilled')   topLeads     = leadsRes.value.data ?? []
+      if (statsRes.status === 'fulfilled')    leadStats       = statsRes.value.data
+      if (figsyRes.status === 'fulfilled')    figsyCampaigns  = figsyRes.value.data ?? []
+      if (repliesRes.status === 'fulfilled')  hotReplies      = repliesRes.value.data ?? []
+      if (leadsRes.status === 'fulfilled')    topLeads        = leadsRes.value.data ?? []
+      if (activityRes.status === 'fulfilled') activityEvents  = activityRes.value.data ?? []
     }
   }
 
@@ -291,17 +294,8 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Activity feed */}
-      {(() => {
-        const mockEvents: ActivityEvent[] = [
-          { id: '1', type: 'email_sent',       description: 'FIGSY sent Day 1 email to Sarah Chen at Acme Corp',            timestamp: new Date(Date.now() - 8 * 60000).toISOString() },
-          { id: '2', type: 'reply_received',   description: "Hot reply from Marcus Williams — \"Interested, let's chat\"",  timestamp: new Date(Date.now() - 23 * 60000).toISOString() },
-          { id: '3', type: 'lead_added',       description: '12 new leads added from ICP: Cape Town Fintechs',              timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
-          { id: '4', type: 'credit_used',      description: '3 credits used — 3 leads delivered',                           timestamp: new Date(Date.now() - 5 * 3600000).toISOString() },
-          { id: '5', type: 'campaign_created', description: 'Campaign "Q2 SA Outreach" created',                            timestamp: new Date(Date.now() - 24 * 3600000).toISOString() },
-        ]
-        return <ActivityFeed events={mockEvents} />
-      })()}
+      {/* Activity feed — real data */}
+      <ActivityFeed events={activityEvents} />
     </div>
   )
 }

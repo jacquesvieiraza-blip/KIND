@@ -210,12 +210,13 @@ function Step({ n, label, active, done }: { n: number; label: string; active: bo
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
-type PageStep = 'upload' | 'map' | 'preview' | 'importing' | 'done'
+type PageStep = 'upload' | 'map' | 'preview' | 'importing' | 'done' | 'finding' | 'found'
 
 interface ImportResult {
   created: number
   skipped: number
-  errors: number
+  errors?: number
+  total_found?: number
 }
 
 export default function LinkedInImportPage() {
@@ -279,7 +280,7 @@ export default function LinkedInImportPage() {
     }).filter(l => l.first_name || l.last_name || l.email || l.linkedin_url)
   }
 
-  // ── Import ────────────────────────────────────────────────────────────────
+  // ── Import contacts CSV ───────────────────────────────────────────────────
 
   async function handleImport() {
     setStep('importing')
@@ -294,6 +295,40 @@ export default function LinkedInImportPage() {
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Import failed — please try again.')
       setStep('preview')
+    }
+  }
+
+  // ── Find contacts at companies (company/account list) ─────────────────────
+
+  async function handleFindAtCompanies() {
+    setStep('finding')
+    setImportError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+
+      // Extract company names from the mapped column
+      const companyHeader = Object.entries(mapping).find(([, v]) => v === 'company')?.[0]
+      const companies = companyHeader
+        ? [...new Set(rows.map(r => r[companyHeader]).filter(Boolean))].slice(0, 100)
+        : []
+
+      if (!companies.length) {
+        setImportError('No company names found in the mapped column.')
+        setStep('map')
+        return
+      }
+
+      const res = await api.post<{ data: ImportResult }>(
+        '/leads/find-at-companies',
+        { companies, limit: 100 },
+        session.access_token,
+      )
+      setResult(res.data)
+      setStep('found')
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Search failed — please try again.')
+      setStep('map')
     }
   }
 
@@ -400,23 +435,32 @@ export default function LinkedInImportPage() {
       {/* ── STEP 2: Map columns ────────────────────────────────────────────── */}
       {step === 'map' && (
         <div className="space-y-4">
-          {/* Company / account-list detected — suggest ICP builder */}
+          {/* Company / account-list detected */}
           {isAcctList && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-amber-800">This looks like a company / account list</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  No contact columns (First Name, Email) were detected. You can still map what you have,
-                  or use this data to instantly pre-fill your ICP — KIND will then find real contacts at these companies.
-                </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <Sparkles className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-800">This looks like a company / account list</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    {rows.length} companies detected. FIGSY can search Apollo for real decision-makers at these exact companies and import them as scored leads — ready for outreach.
+                  </p>
+                </div>
               </div>
-              <Link
-                href={`/dashboard/leads/icp?${buildIcpParams(headers, mapping, rows)}`}
-                className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors"
-              >
-                <Map className="w-3.5 h-3.5" /> Build ICP from this data
-              </Link>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleFindAtCompanies}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <Users className="w-3.5 h-3.5" /> Find contacts at these {rows.length} companies
+                </button>
+                <Link
+                  href={`/dashboard/leads/icp?${buildIcpParams(headers, mapping, rows)}`}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-white border border-amber-300 text-amber-700 text-xs font-semibold rounded-lg transition-colors hover:bg-amber-50"
+                >
+                  <Map className="w-3.5 h-3.5" /> Pre-fill ICP instead
+                </Link>
+              </div>
             </div>
           )}
 
@@ -580,6 +624,47 @@ export default function LinkedInImportPage() {
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Importing {previewLeads.length} leads…</>
                 : <><Upload className="w-4 h-4" /> Import {previewLeads.length} leads</>
               }
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Finding contacts ──────────────────────────────────────────────── */}
+      {step === 'finding' && (
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-12 text-center">
+          <Loader2 className="w-10 h-10 text-[#7C3AED] animate-spin mx-auto mb-4" />
+          <p className="text-base font-semibold text-gray-900 mb-1">Searching Apollo for contacts…</p>
+          <p className="text-sm text-[#7B6FA0]">Finding decision-makers at your target companies. This takes a few seconds.</p>
+        </div>
+      )}
+
+      {/* ── Found contacts (company list result) ──────────────────────────── */}
+      {step === 'found' && result && (
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8 text-green-500" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Contacts found and imported!</h2>
+          <p className="text-[#7B6FA0] text-sm mb-6">
+            FIGSY found {result.total_found ?? result.created} contacts at your target companies and is scoring them now.
+          </p>
+          <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto mb-8">
+            <div className="bg-green-50 rounded-xl p-4">
+              <p className="text-2xl font-bold text-green-700">{result.created}</p>
+              <p className="text-xs text-green-600 mt-0.5">Imported</p>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-4">
+              <p className="text-2xl font-bold text-amber-700">{result.skipped}</p>
+              <p className="text-xs text-amber-600 mt-0.5">Already in system</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <Link href="/dashboard/leads" className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors">
+              <Users className="w-4 h-4" /> View leads
+            </Link>
+            <button onClick={() => { setStep('upload'); setFileName(''); setHeaders([]); setRows([]); setMapping({}); setResult(null) }}
+              className="px-5 py-2.5 border border-purple-100/80 hover:border-gray-400 text-gray-700 text-sm font-medium rounded-xl transition-colors">
+              Import another file
             </button>
           </div>
         </div>

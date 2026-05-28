@@ -105,7 +105,7 @@ interface Reply {
   id: string
   from_email: string
   body: string
-  classification: 'interested' | 'not_now' | 'opt_out' | 'out_of_office' | 'other'
+  classification: 'hot' | 'warm' | 'cold' | 'interested' | 'not_interested' | 'not_now' | 'opt_out' | 'out_of_office' | 'other' | 'wrong_person' | 'sent_reply'
   received_at: string
 }
 

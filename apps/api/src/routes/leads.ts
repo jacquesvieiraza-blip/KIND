@@ -5,6 +5,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import Anthropic from '@anthropic-ai/sdk'
 import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
+import { searchPeople, buildSearchBody } from '../lib/apollo'
+import { scoreLeadsForIcp } from '../lib/scoring'
 
 export const leadRouter = Router()
 
@@ -729,4 +731,176 @@ leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="kind-leads.csv"')
     res.send(csv)
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to export leads' }) }
+})
+
+// ── IMPORT FROM LINKEDIN / ZOOMINFO CSV ───────────────────────────────────────
+leadRouter.post('/import/linkedin', async (req: AuthRequest, res) => {
+  try {
+    const { leads } = z.object({
+      leads: z.array(z.object({
+        first_name:   z.string().optional(),
+        last_name:    z.string().optional(),
+        email:        z.string().email().optional(),
+        phone:        z.string().optional(),
+        job_title:    z.string().optional(),
+        company:      z.string().optional(),
+        linkedin_url: z.string().optional(),
+        country:      z.string().optional(),
+        company_size: z.string().optional(),
+        industry:     z.string().optional(),
+        seniority:    z.string().optional(),
+      })).min(1).max(500),
+    }).parse(req.body)
+
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Fetch existing emails to deduplicate
+    const emails = leads.map(l => l.email).filter(Boolean) as string[]
+    const existingSet = new Set<string>()
+    if (emails.length) {
+      const { data: existing } = await db.from('leads')
+        .select('email').eq('client_id', clientId).in('email', emails)
+      existing?.forEach((r: any) => r.email && existingSet.add(r.email.toLowerCase()))
+    }
+
+    // Fetch blocklist
+    const { data: blocklisted } = await db.from('opt_out_blocklist')
+      .select('email').in('email', emails)
+    const blockSet = new Set((blocklisted ?? []).map((r: any) => r.email?.toLowerCase()))
+
+    let created = 0, skipped = 0, errors = 0
+    const insertedIds: string[] = []
+
+    for (const lead of leads) {
+      const emailLower = lead.email?.toLowerCase()
+      if (emailLower && (existingSet.has(emailLower) || blockSet.has(emailLower))) {
+        skipped++
+        continue
+      }
+      const { data: row, error } = await db.from('leads').insert({
+        client_id:    clientId,
+        first_name:   lead.first_name || 'Unknown',
+        last_name:    lead.last_name || '',
+        email:        lead.email || null,
+        phone:        lead.phone || null,
+        job_title:    lead.job_title || null,
+        company:      lead.company || null,
+        linkedin_url: lead.linkedin_url || null,
+        country:      lead.country || null,
+        company_size: lead.company_size || null,
+        industry:     lead.industry || null,
+        seniority:    lead.seniority || null,
+        status:       'pending',
+        source:       'linkedin_csv',
+      }).select('id').single()
+      if (error) { errors++; continue }
+      created++
+      if (row?.id) insertedIds.push(row.id)
+    }
+
+    // Fire-and-forget scoring against the client's most recent ICP
+    if (insertedIds.length > 0) {
+      const { data: icpRow } = await db.from('icps')
+        .select('*').eq('client_id', clientId)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      const { data: clientRow } = await db.from('clients')
+        .select('company_name').eq('id', clientId).maybeSingle()
+      if (icpRow) {
+        scoreLeadsForIcp(insertedIds, icpRow as any, clientRow?.company_name ?? '').catch(console.error)
+      }
+    }
+
+    res.json({ success: true, data: { created, skipped, errors } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to import leads' })
+  }
+})
+
+// ── FIND CONTACTS AT SPECIFIC COMPANIES (from company CSV upload) ─────────────
+leadRouter.post('/find-at-companies', async (req: AuthRequest, res) => {
+  try {
+    const { companies, limit } = z.object({
+      companies: z.array(z.string().min(1)).min(1).max(100),
+      limit:     z.number().int().min(1).max(200).default(50),
+    }).parse(req.body)
+
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Load client ICP — fall back to a generic SDM search if none set
+    const { data: icpRow } = await db.from('icps')
+      .select('*').eq('client_id', clientId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const { data: clientRow } = await db.from('clients')
+      .select('company_name').eq('id', clientId).maybeSingle()
+
+    const icp = icpRow ?? {
+      job_titles: ['CEO', 'Founder', 'Director', 'Head of', 'VP'],
+      seniority_levels: ['director', 'vp', 'c_suite', 'owner', 'founder'],
+      company_sizes: [],
+      geographies: [],
+      industries: [],
+      tech_stack: [],
+      keywords: [],
+      apollo_only_consented: false,
+      intent_signals: [],
+    }
+
+    // Build Apollo search body targeting specific companies
+    const searchBody = buildSearchBody({ ...icp, organization_names: companies }, 1)
+    searchBody.per_page = Math.min(limit, 100)
+
+    const contacts = await searchPeople(searchBody)
+    if (!contacts.length) {
+      res.json({ success: true, data: { created: 0, skipped: 0, message: 'No contacts found at these companies in Apollo' } })
+      return
+    }
+
+    // Fetch existing emails and blocklist
+    const contactEmails = contacts.map(c => c.email).filter(Boolean) as string[]
+    const { data: existing } = await db.from('leads')
+      .select('email').eq('client_id', clientId).in('email', contactEmails)
+    const { data: blocklisted } = await db.from('opt_out_blocklist')
+      .select('email').in('email', contactEmails)
+    const existingSet = new Set([
+      ...(existing ?? []).map((r: any) => r.email?.toLowerCase()),
+      ...(blocklisted ?? []).map((r: any) => r.email?.toLowerCase()),
+    ])
+
+    let created = 0, skipped = 0
+    const insertedIds: string[] = []
+
+    for (const c of contacts) {
+      if (c.email && existingSet.has(c.email.toLowerCase())) { skipped++; continue }
+      const { data: row, error } = await db.from('leads').insert({
+        client_id:    clientId,
+        first_name:   c.first_name || 'Unknown',
+        last_name:    c.last_name || '',
+        email:        c.email || null,
+        job_title:    c.title || null,
+        company:      c.organization_name || null,
+        linkedin_url: c.linkedin_url || null,
+        country:      c.country || null,
+        company_size: c.organization?.num_employees ? String(c.organization.num_employees) : null,
+        apollo_id:    c.id || null,
+        status:       'pending',
+        source:       'company_csv',
+      }).select('id').single()
+      if (error) { skipped++; continue }
+      created++
+      if (row?.id) insertedIds.push(row.id)
+    }
+
+    // Score in background
+    if (insertedIds.length > 0 && icpRow) {
+      scoreLeadsForIcp(insertedIds, icpRow as any, clientRow?.company_name ?? '').catch(console.error)
+    }
+
+    res.json({ success: true, data: { created, skipped, total_found: contacts.length } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to find contacts at companies' })
+  }
 })

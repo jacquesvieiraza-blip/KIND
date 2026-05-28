@@ -278,6 +278,7 @@ export default function CampaignDetailPage() {
   const [saved, setSaved]       = useState(false)
   const [token, setToken]       = useState('')
   const [activatingId, setActivatingId] = useState(false)
+  const [sendingTest, setSendingTest]   = useState(false)
   const [activeTab, setActiveTab] = useState<'sequence' | 'audience' | 'settings'>('sequence')
 
   // Toast state
@@ -402,6 +403,18 @@ export default function CampaignDetailPage() {
     }
   }
 
+  async function sendTestEmail() {
+    if (!token) return
+    setSendingTest(true)
+    try {
+      await api.post(`/figsy/campaigns/${id}/test-email`, {}, token)
+      showToast('Test email sent — check your inbox in ~2 min')
+    } catch (err) {
+      showToast((err as Error).message || 'Failed to send test email', 'error')
+    }
+    setSendingTest(false)
+  }
+
   async function toggleStatus() {
     if (!campaign || !token) return
     setActivatingId(true)
@@ -457,6 +470,14 @@ export default function CampaignDetailPage() {
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={sendTestEmail}
+              disabled={sendingTest}
+              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 disabled:opacity-50 text-[#7C3AED] text-sm font-semibold rounded-xl border border-[#EDE9FE] transition-colors"
+            >
+              {sendingTest ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+              Send Test Email
+            </button>
             {(campaign.status === 'draft' || campaign.status === 'paused') && (
               <button
                 onClick={toggleStatus}

@@ -336,6 +336,28 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
   }
 })
 
+// ── SAVE SEQUENCE STEPS ───────────────────────────────────────────────────────
+figsyRouter.put('/campaigns/:id/sequence', async (req: AuthRequest, res) => {
+  try {
+    const { steps } = z.object({ steps: z.array(z.any()).min(1) }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: existing } = await db.from('figsy_campaigns')
+      .select('settings').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (!existing) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    const { data, error } = await db.from('figsy_campaigns')
+      .update({ settings: { ...(existing.settings ?? {}), steps } })
+      .eq('id', req.params.id).eq('client_id', clientId).select().single()
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to save sequence' })
+  }
+})
+
 // ── CLONE CAMPAIGN ────────────────────────────────────────────────────────────
 figsyRouter.post('/campaigns/:campaignId/clone', async (req: AuthRequest, res) => {
   try {
@@ -490,6 +512,44 @@ figsyRouter.post('/campaigns/:id/preview-sequence', async (req: AuthRequest, res
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to generate sequence preview' })
+  }
+})
+
+// ── SEND TEST EMAIL ───────────────────────────────────────────────────────────
+figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('*').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    const { data: client } = await db.from('clients')
+      .select('company_name, industry').eq('id', clientId).single()
+
+    // Get sender's own email from auth
+    const { data: { user } } = await db.auth.admin.getUserById(req.userId!)
+    const toEmail = user?.email
+    if (!toEmail) { res.status(400).json({ success: false, error: 'Could not resolve your email address' }); return }
+
+    // Generate sequence using a placeholder lead representing the sender
+    const fakeLead = {
+      id: 'test', first_name: 'You', last_name: '(Test)', email: toEmail,
+      job_title: 'Decision Maker', company: 'Your Company',
+      industry: client?.industry ?? null, seniority: 'senior',
+      country: 'ZA', tech_stack: [], score: 85, score_reasoning: 'Test preview',
+    }
+    const sequence = await generateSequence(fakeLead as any, client?.company_name ?? '', client?.industry ?? null)
+    const step1 = sequence?.steps?.[0]
+    if (!step1?.subject || !step1?.body) {
+      res.status(500).json({ success: false, error: 'Failed to generate email preview' }); return
+    }
+
+    await sendSequenceEmail(fakeLead as any, step1.subject, step1.body, 1, req.params.id, 'test-preview')
+    res.json({ success: true, message: `Test email sent to ${toEmail}` })
+  } catch (err) {
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to send test email' })
   }
 })
 

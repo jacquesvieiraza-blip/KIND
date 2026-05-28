@@ -108,7 +108,6 @@ export async function POST(req: NextRequest) {
       score_reasoning:  `Strong ICP match: ${l.seniority} at a ${l.industry} company in South Africa`,
       company_size:     l.company_size,
       tech_stack:       [['HubSpot', 'Slack'], ['Salesforce', 'AWS'], ['Pipedrive', 'Google Workspace']][i % 3],
-      apollo_consented: true,
       status:           (['pending', 'pending', 'pending', 'contacted'] as const)[i % 4],
       delivered_at:     i % 4 === 3 ? now : null,
       created_at:       new Date(Date.now() - i * 3600000).toISOString(),

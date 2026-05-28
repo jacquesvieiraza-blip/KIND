@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { Zap, Users, ShieldCheck, BookOpen, Target, Globe, Briefcase, Coffee, TrendingUp, X, ChevronRight, Pencil, Send, Settings2, Sparkles, ArrowRight } from 'lucide-react'
-import { AgentSidePanel } from '@/components/ui/AgentSidePanel'
 
 // ── Campaign templates ────────────────────────────────────────────
 interface CampaignTemplate {
@@ -578,50 +577,10 @@ export default function FigsyPage() {
   }
 
 
-  const totalEmailsSent   = campaigns.reduce((s, c) => s + c.emails_sent, 0)
-  const totalInterestedFigsy = campaigns.reduce((s, c) => s + c.replies_interested, 0)
-  const activeCampaignCount  = campaigns.filter(c => c.status === 'active').length
 
-  const figsynContextMessage = campaigns.length === 0
-    ? "Ready to launch your first campaign. Pick a template or describe your target and I'll build it."
-    : activeCampaignCount === 0
-      ? `You have ${campaigns.length} campaign${campaigns.length !== 1 ? 's' : ''} in draft. Activate when ready — I'll start reaching out immediately.`
-      : `Running ${activeCampaignCount} active campaign${activeCampaignCount !== 1 ? 's' : ''}. ${totalEmailsSent.toLocaleString()} emails sent${totalInterestedFigsy > 0 ? `, ${totalInterestedFigsy} interested` : ''}.`
-
-  const figsyChips = campaigns.length === 0
-    ? [
-        { label: 'Browse templates',    onClick: () => setShowTemplates(true) },
-        { label: 'Suggest a campaign',  onClick: handleSuggestCampaigns },
-        { label: 'New blank campaign',  onClick: () => setShowCreate(true) },
-      ]
-    : [
-        { label: 'Suggest new campaign', onClick: handleSuggestCampaigns },
-        { label: 'View inbox',           onClick: () => router.push('/dashboard/inbox') },
-        { label: 'Performance report',   onClick: () => router.push('/dashboard/kpis') },
-      ]
 
   return (
-    <div className="flex gap-5 items-start">
-
-      {/* ── LEFT: FIGSY agent panel (sticky) ─────────────────────────── */}
-      <div className="w-72 shrink-0 sticky top-6">
-        <AgentSidePanel
-          agentId="figsy"
-          name="FIGSY"
-          role="AI SDR"
-          tagline="Your outreach agent"
-          contextMessage={figsynContextMessage}
-          chips={figsyChips}
-          onSend={msg => {
-            setNewIntent(msg)
-            setShowCreate(true)
-          }}
-          inputPlaceholder="Describe your target…"
-        />
-      </div>
-
-      {/* ── RIGHT: Campaign work area ──────────────────────────────── */}
-      <div className="flex-1 min-w-0 space-y-5">
+    <div className="space-y-5">
 
       {/* Mode toggle — Auto-Pilot vs Co-Pilot */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4">
@@ -1276,7 +1235,6 @@ export default function FigsyPage() {
         </div>
       )}
 
-      </div>
     </div>
   )
 }

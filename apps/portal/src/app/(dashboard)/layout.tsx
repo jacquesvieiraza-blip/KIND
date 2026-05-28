@@ -3,13 +3,11 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { SidebarV2 } from '@/components/layout/SidebarV2'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 import { AskFigsyButton } from '@/components/ui/AskFigsyButton'
 import { CommandPalette } from '@/components/ui/CommandPalette'
-
-const V2 = process.env.FEATURE_PORTAL_V2 === 'true'
+import { AgentColumn } from './AgentColumn'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -21,11 +19,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let hasFigsy      = false
   let hasMilla      = false
   let hasVida       = false
+  let leadCount     = 0
 
   try {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('credit_balance, subscriptions(*)')
+      .select('id, credit_balance, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -46,10 +45,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
           trialExpired = daysLeft <= 0
         }
       }
+
+      // Lead count for FIGSY context messages
+      const { count } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', clientRow.id)
+      leadCount = count ?? 0
     }
   } catch { }
-
-  const Nav = V2 ? SidebarV2 : Sidebar
 
   return (
     <div className="flex h-screen" style={{ background: 'linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%)' }}>
@@ -62,9 +66,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
       />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
         <TrialExpiredOverlay expired={trialExpired} />
-        <div className={`${V2 ? 'max-w-7xl' : 'max-w-7xl'} space-y-4`}>
-          <LowCreditsNotice balance={creditBalance} />
-          {children}
+        <div className="flex gap-5 items-start max-w-7xl">
+          <AgentColumn
+            hasFigsy={hasFigsy}
+            hasMilla={hasMilla}
+            hasVida={hasVida}
+            leadCount={leadCount}
+            creditBalance={creditBalance}
+          />
+          <div className="flex-1 min-w-0 space-y-4">
+            <LowCreditsNotice balance={creditBalance} />
+            {children}
+          </div>
         </div>
       </main>
       <AskFigsyButton hasFigsy={hasFigsy} />

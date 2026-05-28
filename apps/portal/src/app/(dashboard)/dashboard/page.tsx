@@ -1,25 +1,12 @@
 export const dynamic = 'force-dynamic'
 
-// ── Feature flag: FEATURE_PORTAL_V2=true → Mission Control dashboard ────────
-import { redirect } from 'next/navigation'
-
-if (process.env.FEATURE_PORTAL_V2 === 'true') {
-  // In V2, the dashboard root redirects to /dashboard/v2 (mission control)
-}
-
-// ── V1 imports ───────────────────────────────────────────────────────────────
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
-import { OnboardingChecklist } from '@/components/ui/OnboardingChecklist'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
-import {
-  Target, Inbox, ArrowRight, Zap,
-  TrendingUp, Mail, ChevronRight,
-  Flame, ThermometerSun,
-} from 'lucide-react'
+import { Target, Inbox, ArrowRight, Zap, TrendingUp, Mail, ChevronRight, Flame, ThermometerSun } from 'lucide-react'
 import Link from 'next/link'
-import { FigsyPanel } from './FigsyPanel'
+import { FigsyConversation } from './FigsyConversation'
 
 type BannerState = 'awaiting_payment' | 'trial' | 'none'
 
@@ -36,13 +23,10 @@ function getBannerState(subscriptions: Record<string, unknown>[]): { state: Bann
   return { state: 'awaiting_payment' }
 }
 
-// ── Mini sparkline SVG ──────────────────────────────────────────────────────
-
 function MiniSparkline({ points, color }: { points: number[]; color: string }) {
   if (points.length < 2) return null
   const max = Math.max(...points, 1)
-  const w = 80
-  const h = 28
+  const w = 80, h = 28
   const step = w / (points.length - 1)
   const coords = points.map((v, i) => `${i * step},${h - (v / max) * h}`)
   return (
@@ -52,9 +36,11 @@ function MiniSparkline({ points, color }: { points: number[]; color: string }) {
   )
 }
 
+type TopLead = { id: string; first_name: string; last_name: string; company: string; job_title: string; score: number }
+
 export default async function DashboardPage() {
-  // V2: redirect to mission control
   if (process.env.FEATURE_PORTAL_V2 === 'true') {
+    const { redirect } = await import('next/navigation')
     redirect('/dashboard/v2')
   }
 
@@ -64,20 +50,15 @@ export default async function DashboardPage() {
   let companyName    = ''
   let creditBalance  = 0
   let subs: Record<string, unknown>[] = []
-  let icpCount       = 0
   let figsyCampaigns: {
-    id?: string
-    name?: string
-    status?: string
-    emails_sent?: number
-    replies_total?: number
-    replies_interested?: number
-    leads_enrolled?: number
-    meetings_booked?: number
+    id?: string; name?: string; status?: string
+    emails_sent?: number; replies_total?: number
+    replies_interested?: number; leads_enrolled?: number; meetings_booked?: number
   }[] = []
   type LeadStats = { total: number; consented: number; avg_score: number }
   let leadStats: LeadStats | null = null
   let hotReplies: { id: string; from_email: string; leads?: { first_name?: string; last_name?: string; company?: string }; classification: string; received_at: string }[] = []
+  let topLeads: TopLead[] = []
 
   if (user) {
     const { data: clientRow } = await supabase
@@ -94,22 +75,21 @@ export default async function DashboardPage() {
 
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
-      const [statsRes, icpRes, figsyRes, repliesRes] = await Promise.allSettled([
+      const [statsRes, figsyRes, repliesRes, leadsRes] = await Promise.allSettled([
         api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
-        api.get<{ data: unknown[] }>('/icps', session.access_token),
         api.get<{ data: typeof figsyCampaigns }>('/figsy/campaigns', session.access_token),
-        api.get<{ data: typeof hotReplies }>('/figsy/replies?classification=hot&limit=3', session.access_token),
+        api.get<{ data: typeof hotReplies }>('/figsy/replies?classification=hot&limit=5', session.access_token),
+        api.get<{ data: TopLead[] }>('/leads?limit=5&sort=score&order=desc', session.access_token),
       ])
-      if (statsRes.status === 'fulfilled')   leadStats      = statsRes.value.data
-      if (icpRes.status === 'fulfilled')     icpCount       = (icpRes.value.data ?? []).length
+      if (statsRes.status === 'fulfilled')   leadStats    = statsRes.value.data
       if (figsyRes.status === 'fulfilled')   figsyCampaigns = figsyRes.value.data ?? []
-      if (repliesRes.status === 'fulfilled') hotReplies     = repliesRes.value.data ?? []
+      if (repliesRes.status === 'fulfilled') hotReplies   = repliesRes.value.data ?? []
+      if (leadsRes.status === 'fulfilled')   topLeads     = leadsRes.value.data ?? []
     }
   }
 
   const { state, trialDaysLeft } = getBannerState(subs)
 
-  // ── Aggregate metrics ──────────────────────────────────────────────────────
   const totalSent       = figsyCampaigns.reduce((s, c) => s + (c.emails_sent ?? 0), 0)
   const totalReplies    = figsyCampaigns.reduce((s, c) => s + (c.replies_total ?? 0), 0)
   const totalInterested = figsyCampaigns.reduce((s, c) => s + (c.replies_interested ?? 0), 0)
@@ -117,256 +97,211 @@ export default async function DashboardPage() {
   const activeCampaigns = figsyCampaigns.filter(c => c.status === 'active')
   const replyRate       = totalSent > 0 ? Math.round((totalReplies / totalSent) * 100) : 0
   const bookingRate     = totalSent > 0 ? ((totalMeetings / totalSent) * 100).toFixed(1) : '0.0'
+  const leadCount       = leadStats?.total ?? 0
 
-  // Fake 7-day sparkline from aggregated data (will be real when per-day API exists)
   const sparkPoints = totalSent > 0
     ? [Math.floor(totalSent * 0.08), Math.floor(totalSent * 0.12), Math.floor(totalSent * 0.10), Math.floor(totalSent * 0.15), Math.floor(totalSent * 0.18), Math.floor(totalSent * 0.20), Math.floor(totalSent * 0.17)]
     : [0, 0, 1, 2, 1, 3, 2]
 
-  const leadCount = leadStats?.total ?? 0
-
   return (
-    <div className="space-y-4 max-w-6xl">
-
-      {/* Onboarding */}
-      <OnboardingChecklist hasCompanyName={!!companyName} hasIcps={icpCount > 0} hasLeads={leadCount > 0} hasFigsyCampaigns={figsyCampaigns.length > 0} />
+    <div className="space-y-4">
       <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
 
-      {/* ── TWO-COLUMN LAYOUT: FIGSY panel left, main content right ─────── */}
-      <div className="flex gap-5 items-start">
+      {/* FIGSY conversation — replaces the checklist */}
+      <FigsyConversation
+        leadCount={leadCount}
+        campaignCount={figsyCampaigns.length}
+        activeCampaignCount={activeCampaigns.length}
+        totalEmailsSent={totalSent}
+        totalInterested={totalInterested}
+        topLeads={topLeads}
+        hotReplies={hotReplies}
+        activeCampaigns={activeCampaigns}
+        companyName={companyName}
+      />
 
-        {/* ── LEFT: FIGSY agent panel (sticky) ──────────────────────────── */}
-        <div className="w-72 shrink-0 sticky top-6">
-          <FigsyPanel leadCount={leadCount} />
+      {/* Stats — only when there's real activity */}
+      {totalSent > 0 && (
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: 'Emails sent',     value: totalSent.toLocaleString(),     color: 'text-slate-700',   bg: 'bg-white',          border: 'border-[#EDE9FE]',    trend: sparkPoints, trendColor: '#7C3AED' },
+            { label: 'Reply rate',      value: `${replyRate}%`,                color: replyRate >= 8 ? 'text-emerald-600' : 'text-slate-700', bg: replyRate >= 8 ? 'bg-emerald-50/50' : 'bg-white', border: replyRate >= 8 ? 'border-emerald-200' : 'border-[#EDE9FE]', sub: replyRate >= 8 ? '↑ above avg' : 'avg 8%' },
+            { label: 'Interested',      value: totalInterested.toLocaleString(), color: 'text-amber-600', bg: totalInterested > 0 ? 'bg-amber-50/40' : 'bg-white', border: totalInterested > 0 ? 'border-amber-200' : 'border-[#EDE9FE]', sub: 'warm leads' },
+            { label: 'Meetings booked', value: totalMeetings.toLocaleString(), color: 'text-[#7C3AED]',   bg: totalMeetings > 0 ? 'bg-[#F5F0FF]' : 'bg-white',    border: 'border-[#EDE9FE]', sub: 'Alta avg: 3–5%' },
+          ].map(({ label, value, color, bg, border, sub, trend, trendColor }: {
+            label: string; value: string; color: string; bg: string; border: string; sub?: string; trend?: number[]; trendColor?: string
+          }) => (
+            <div key={label} className={`rounded-xl border ${bg} ${border} px-4 py-3 flex flex-col gap-1`}>
+              <p className="text-[11px] text-slate-400 font-medium">{label}</p>
+              <div className="flex items-end justify-between gap-1">
+                <p className={`text-2xl font-bold tracking-tight leading-none ${color}`}>{value}</p>
+                {trend && trendColor && <MiniSparkline points={trend} color={trendColor} />}
+              </div>
+              {sub && <p className="text-[10px] text-slate-400">{sub}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Active campaigns + hot replies */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Active Campaigns */}
+        <div className="bg-white rounded-2xl border border-[#EDE9FE] p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#7C3AED]/10 flex items-center justify-center">
+                <Target className="w-3.5 h-3.5 text-[#7C3AED]" />
+              </div>
+              <h2 className="font-semibold text-[#1E0A5C] text-sm">Active Campaigns</h2>
+            </div>
+            <Link href="/dashboard/figsy" className="text-xs text-[#7C3AED] hover:underline flex items-center gap-0.5">
+              All <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {activeCampaigns.length === 0 ? (
+            <div className="flex flex-col items-center py-6 gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#F5F0FF] flex items-center justify-center">
+                <Zap className="w-5 h-5 text-[#7C3AED]/40" />
+              </div>
+              <p className="text-sm text-slate-400 text-center">No active campaigns yet</p>
+              <Link href="/dashboard/figsy" className="text-xs text-[#7C3AED] font-semibold hover:underline">
+                Launch your first campaign →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activeCampaigns.slice(0, 4).map(c => {
+                const sent = c.emails_sent ?? 0, enrolled = c.leads_enrolled ?? 0
+                const interested = c.replies_interested ?? 0
+                const rate = sent > 0 ? Math.round((interested / sent) * 100) : 0
+                const pct  = enrolled > 0 ? Math.min(100, Math.round((sent / enrolled) * 100)) : 0
+                return (
+                  <Link key={c.id} href={`/dashboard/figsy/${c.id}`} className="block group">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-medium text-[#1E0A5C] group-hover:text-[#7C3AED] transition-colors truncate">{c.name ?? 'Campaign'}</p>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <span className="text-[10px] text-slate-400">{sent} sent</span>
+                        {rate > 0 && <span className="text-[10px] font-semibold text-emerald-600">{rate}% reply</span>}
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-[#EDE9FE] overflow-hidden">
+                      <div className="h-full rounded-full bg-[#7C3AED] transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{pct}% of {enrolled} enrolled leads contacted</p>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </div>
 
-        {/* ── RIGHT: main dashboard content ─────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-4">
+        {/* Hot Replies */}
+        <div className="bg-white rounded-2xl border border-[#EDE9FE] p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+                <Flame className="w-3.5 h-3.5 text-red-500" />
+              </div>
+              <h2 className="font-semibold text-[#1E0A5C] text-sm">Hot Replies</h2>
+              {totalInterested > 0 && (
+                <span className="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">{totalInterested}</span>
+              )}
+            </div>
+            <Link href="/dashboard/inbox" className="text-xs font-semibold text-[#7C3AED] hover:text-[#6D28D9] bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
+              Open Inbox <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {hotReplies.length === 0 ? (
+            <Link href="/dashboard/inbox" className="flex flex-col items-center py-6 gap-3 rounded-xl border border-dashed border-purple-100 hover:border-[#7C3AED]/40 hover:bg-purple-50/30 transition-colors cursor-pointer group">
+              <div className="w-10 h-10 rounded-xl bg-[#F5F0FF] group-hover:bg-purple-100 flex items-center justify-center transition-colors">
+                <Inbox className="w-5 h-5 text-[#7C3AED]/60" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-slate-500">No replies yet</p>
+                <p className="text-xs text-slate-300 mt-0.5">Hot and warm prospects appear here the moment they reply</p>
+              </div>
+              <span className="text-xs font-semibold text-[#7C3AED] flex items-center gap-1">Go to Inbox <ArrowRight className="w-3 h-3" /></span>
+            </Link>
+          ) : (
+            <div className="space-y-2">
+              {hotReplies.map(r => {
+                const name = r.leads ? `${r.leads.first_name ?? ''} ${r.leads.last_name ?? ''}`.trim() : r.from_email
+                const company = r.leads?.company ?? ''
+                const mins = Math.floor((Date.now() - new Date(r.received_at).getTime()) / 60000)
+                const timeAgo = mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins / 60)}h ago` : `${Math.floor(mins / 1440)}d ago`
+                const isHot = r.classification === 'hot'
+                return (
+                  <Link key={r.id} href="/dashboard/inbox" className="flex items-center gap-3 p-3 rounded-xl bg-[#FFFBF5] border border-[#EDE9FE] hover:border-[#7C3AED]/30 transition-colors group">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isHot ? 'bg-red-100' : 'bg-amber-100'}`}>
+                      {isHot ? <Flame className="w-4 h-4 text-red-500" /> : <ThermometerSun className="w-4 h-4 text-amber-500" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[#1E0A5C] truncate">{name}</p>
+                      {company && <p className="text-xs text-slate-400 truncate">{company}</p>}
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] text-slate-400">{timeAgo}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#7C3AED] transition-colors" />
+                    </div>
+                  </Link>
+                )
+              })}
+              {totalInterested > 5 && (
+                <Link href="/dashboard/inbox" className="block text-center text-xs text-[#7C3AED] font-semibold py-2 hover:underline">
+                  +{totalInterested - 5} more replies →
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* ── STATS — only shown once there's activity ──────────────────── */}
-          {totalSent > 0 && (
-            <div className="grid grid-cols-4 gap-3">
+      {/* Performance strip */}
+      {figsyCampaigns.length > 0 && (
+        <div className="bg-white rounded-2xl border border-[#EDE9FE] px-5 py-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-5">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <span className="text-xs font-semibold text-slate-500">Pipeline</span>
+              </div>
               {[
-                {
-                  label: 'Emails sent',
-                  value: totalSent.toLocaleString(),
-                  color: 'text-slate-700',
-                  bg: 'bg-white',
-                  border: 'border-[#EDE9FE]',
-                  trend: sparkPoints,
-                  trendColor: '#7C3AED',
-                },
-                {
-                  label: 'Reply rate',
-                  value: `${replyRate}%`,
-                  sub: replyRate >= 8 ? '↑ above avg' : 'avg 8%',
-                  color: replyRate >= 8 ? 'text-emerald-600' : 'text-slate-700',
-                  bg: replyRate >= 8 ? 'bg-emerald-50/50' : 'bg-white',
-                  border: replyRate >= 8 ? 'border-emerald-200' : 'border-[#EDE9FE]',
-                },
-                {
-                  label: 'Interested',
-                  value: totalInterested.toLocaleString(),
-                  sub: 'warm leads',
-                  color: 'text-amber-600',
-                  bg: totalInterested > 0 ? 'bg-amber-50/40' : 'bg-white',
-                  border: totalInterested > 0 ? 'border-amber-200' : 'border-[#EDE9FE]',
-                },
-                {
-                  label: 'Meetings booked',
-                  value: totalMeetings.toLocaleString(),
-                  sub: `Alta avg: 3–5%`,
-                  color: 'text-[#7C3AED]',
-                  bg: totalMeetings > 0 ? 'bg-[#F5F0FF]' : 'bg-white',
-                  border: 'border-[#EDE9FE]',
-                },
-              ].map(({ label, value, sub, color, bg, border, trend, trendColor }: {
-                label: string; value: string; sub?: string; color: string; bg: string; border: string; trend?: number[]; trendColor?: string
-              }) => (
-                <div key={label} className={`rounded-xl border ${bg} ${border} px-4 py-3 flex flex-col gap-1`}>
-                  <p className="text-[11px] text-slate-400 font-medium">{label}</p>
-                  <div className="flex items-end justify-between gap-1">
-                    <p className={`text-2xl font-bold tracking-tight leading-none ${color}`}>{value}</p>
-                    {trend && trendColor && <MiniSparkline points={trend} color={trendColor} />}
-                  </div>
-                  {sub && <p className="text-[10px] text-slate-400">{sub}</p>}
+                { label: 'Total leads', value: leadCount.toLocaleString() },
+                { label: 'Emails sent', value: totalSent.toLocaleString() },
+                { label: 'Replies',     value: totalReplies.toLocaleString() },
+                { label: 'Interested',  value: totalInterested.toLocaleString() },
+                { label: 'Meetings',    value: totalMeetings.toLocaleString() },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#1E0A5C]">{value}</span>
+                  <span className="text-xs text-slate-400">{label}</span>
                 </div>
               ))}
             </div>
-          )}
-
-          {/* ── TWO-COLUMN MAIN VIEW ──────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-            {/* Active Campaigns */}
-            <div className="bg-white rounded-2xl border border-[#EDE9FE] p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#7C3AED]/10 flex items-center justify-center">
-                    <Target className="w-3.5 h-3.5 text-[#7C3AED]" />
-                  </div>
-                  <h2 className="font-semibold text-[#1E0A5C] text-sm">Active Campaigns</h2>
-                </div>
-                <Link href="/dashboard/figsy" className="text-xs text-[#7C3AED] hover:underline flex items-center gap-0.5">
-                  All <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-
-              {activeCampaigns.length === 0 ? (
-                <div className="flex flex-col items-center py-6 gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#F5F0FF] flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-[#7C3AED]/40" />
-                  </div>
-                  <p className="text-sm text-slate-400 text-center">No active campaigns yet</p>
-                  <Link href="/dashboard/figsy" className="text-xs text-[#7C3AED] font-semibold hover:underline">
-                    Launch your first campaign →
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {activeCampaigns.slice(0, 4).map(c => {
-                    const sent       = c.emails_sent ?? 0
-                    const enrolled   = c.leads_enrolled ?? 0
-                    const interested = c.replies_interested ?? 0
-                    const rate       = sent > 0 ? Math.round((interested / sent) * 100) : 0
-                    const pct        = enrolled > 0 ? Math.min(100, Math.round((sent / enrolled) * 100)) : 0
-                    return (
-                      <Link key={c.id} href={`/dashboard/figsy/${c.id}`} className="block group">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-sm font-medium text-[#1E0A5C] group-hover:text-[#7C3AED] transition-colors truncate">{c.name ?? 'Campaign'}</p>
-                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                            <span className="text-[10px] text-slate-400">{sent} sent</span>
-                            {rate > 0 && <span className="text-[10px] font-semibold text-emerald-600">{rate}% reply</span>}
-                          </div>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-[#EDE9FE] overflow-hidden">
-                          <div className="h-full rounded-full bg-[#7C3AED] transition-all" style={{ width: `${pct}%` }} />
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{pct}% of {enrolled} enrolled leads contacted</p>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Hot Inbox Preview */}
-            <div className="bg-white rounded-2xl border border-[#EDE9FE] p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
-                    <Flame className="w-3.5 h-3.5 text-red-500" />
-                  </div>
-                  <h2 className="font-semibold text-[#1E0A5C] text-sm">Hot Replies</h2>
-                  {totalInterested > 0 && (
-                    <span className="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">{totalInterested}</span>
-                  )}
-                </div>
-                <Link href="/dashboard/figsy/replies" className="text-xs font-semibold text-[#7C3AED] hover:text-[#6D28D9] bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
-                  Open Inbox <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-
-              {hotReplies.length === 0 ? (
-                <Link href="/dashboard/figsy/replies" className="flex flex-col items-center py-6 gap-3 rounded-xl border border-dashed border-purple-100 hover:border-[#7C3AED]/40 hover:bg-purple-50/30 transition-colors cursor-pointer group">
-                  <div className="w-10 h-10 rounded-xl bg-[#F5F0FF] group-hover:bg-purple-100 flex items-center justify-center transition-colors">
-                    <Inbox className="w-5 h-5 text-[#7C3AED]/60" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-slate-500">No replies yet</p>
-                    <p className="text-xs text-slate-300 mt-0.5">Hot and warm prospects appear here the moment they reply</p>
-                  </div>
-                  <span className="text-xs font-semibold text-[#7C3AED] flex items-center gap-1">
-                    Go to Inbox <ArrowRight className="w-3 h-3" />
-                  </span>
-                </Link>
-              ) : (
-                <div className="space-y-2">
-                  {hotReplies.map(r => {
-                    const name = r.leads ? `${r.leads.first_name ?? ''} ${r.leads.last_name ?? ''}`.trim() : r.from_email
-                    const company = r.leads?.company ?? ''
-                    const timeAgo = (() => {
-                      const mins = Math.floor((Date.now() - new Date(r.received_at).getTime()) / 60000)
-                      if (mins < 60) return `${mins}m ago`
-                      if (mins < 1440) return `${Math.floor(mins / 60)}h ago`
-                      return `${Math.floor(mins / 1440)}d ago`
-                    })()
-                    const isHot = r.classification === 'hot'
-                    return (
-                      <Link key={r.id} href="/dashboard/figsy/replies" className="flex items-center gap-3 p-3 rounded-xl bg-[#FFFBF5] border border-[#EDE9FE] hover:border-[#7C3AED]/30 transition-colors group">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isHot ? 'bg-red-100' : 'bg-amber-100'}`}>
-                          {isHot ? <Flame className="w-4 h-4 text-red-500" /> : <ThermometerSun className="w-4 h-4 text-amber-500" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#1E0A5C] truncate">{name}</p>
-                          {company && <p className="text-xs text-slate-400 truncate">{company}</p>}
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[10px] text-slate-400">{timeAgo}</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#7C3AED] transition-colors" />
-                        </div>
-                      </Link>
-                    )
-                  })}
-                  {totalInterested > 3 && (
-                    <Link href="/dashboard/figsy/replies" className="block text-center text-xs text-[#7C3AED] font-semibold py-2 hover:underline">
-                      +{totalInterested - 3} more replies →
-                    </Link>
-                  )}
-                </div>
-              )}
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard/kpis" className="text-xs text-[#7C3AED] font-semibold hover:underline flex items-center gap-0.5">
+                Full report <ArrowRight className="w-3 h-3" />
+              </Link>
+              <Link href="/dashboard/inbox" className="text-xs text-[#7C3AED] font-semibold hover:underline flex items-center gap-0.5">
+                <Mail className="w-3 h-3" /> Inbox
+              </Link>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* ── PERFORMANCE STRIP ─────────────────────────────────────────── */}
-          {figsyCampaigns.length > 0 && (
-            <div className="bg-white rounded-2xl border border-[#EDE9FE] px-5 py-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-5">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-3.5 h-3.5 text-[#7C3AED]" />
-                    <span className="text-xs font-semibold text-slate-500">Pipeline</span>
-                  </div>
-                  {[
-                    { label: 'Total leads', value: (leadStats?.total ?? 0).toLocaleString() },
-                    { label: 'Emails sent',  value: totalSent.toLocaleString() },
-                    { label: 'Replies',      value: totalReplies.toLocaleString() },
-                    { label: 'Interested',   value: totalInterested.toLocaleString() },
-                    { label: 'Meetings',     value: totalMeetings.toLocaleString() },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-[#1E0A5C]">{value}</span>
-                      <span className="text-xs text-slate-400">{label}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-3">
-                  <Link href="/dashboard/kpis" className="text-xs text-[#7C3AED] font-semibold hover:underline flex items-center gap-0.5">
-                    Full report <ArrowRight className="w-3 h-3" />
-                  </Link>
-                  <Link href="/dashboard/figsy/replies" className="text-xs text-[#7C3AED] font-semibold hover:underline flex items-center gap-0.5">
-                    <Mail className="w-3 h-3" /> Inbox
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── ACTIVITY FEED ─────────────────────────────────────────────── */}
-          {(() => {
-            const mockEvents: ActivityEvent[] = [
-              { id: '1', type: 'email_sent',       description: 'FIGSY sent Day 1 email to Sarah Chen at Acme Corp',       timestamp: new Date(Date.now() - 8 * 60000).toISOString() },
-              { id: '2', type: 'reply_received',   description: "Hot reply from Marcus Williams — \"Interested, let's chat\"", timestamp: new Date(Date.now() - 23 * 60000).toISOString() },
-              { id: '3', type: 'lead_added',       description: '12 new leads added from ICP: Cape Town Fintechs',         timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
-              { id: '4', type: 'credit_used',      description: '3 credits used — 3 leads delivered',                      timestamp: new Date(Date.now() - 5 * 3600000).toISOString() },
-              { id: '5', type: 'campaign_created', description: 'Campaign "Q2 SA Outreach" created',                       timestamp: new Date(Date.now() - 24 * 3600000).toISOString() },
-            ]
-            return <ActivityFeed events={mockEvents} />
-          })()}
-
-        </div>{/* end right column */}
-      </div>{/* end two-column layout */}
-
+      {/* Activity feed */}
+      {(() => {
+        const mockEvents: ActivityEvent[] = [
+          { id: '1', type: 'email_sent',       description: 'FIGSY sent Day 1 email to Sarah Chen at Acme Corp',            timestamp: new Date(Date.now() - 8 * 60000).toISOString() },
+          { id: '2', type: 'reply_received',   description: "Hot reply from Marcus Williams — \"Interested, let's chat\"",  timestamp: new Date(Date.now() - 23 * 60000).toISOString() },
+          { id: '3', type: 'lead_added',       description: '12 new leads added from ICP: Cape Town Fintechs',              timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
+          { id: '4', type: 'credit_used',      description: '3 credits used — 3 leads delivered',                           timestamp: new Date(Date.now() - 5 * 3600000).toISOString() },
+          { id: '5', type: 'campaign_created', description: 'Campaign "Q2 SA Outreach" created',                            timestamp: new Date(Date.now() - 24 * 3600000).toISOString() },
+        ]
+        return <ActivityFeed events={mockEvents} />
+      })()}
     </div>
   )
 }

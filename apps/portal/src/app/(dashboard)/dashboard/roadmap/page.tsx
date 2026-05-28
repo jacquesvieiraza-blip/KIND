@@ -87,6 +87,7 @@ const PRODUCTS: ProductRoadmap[] = [
       { label: 'Campaign template library', status: 'building', eta: 'Jul 2026' },
       { label: 'Meeting booking automation', status: 'building', eta: 'Jul 2026' },
       { label: 'Visual branching sequence builder', status: 'building', eta: 'Q3 2026' },
+      { label: 'FIGSY Version B — live AI conversation in agent panel (real-time Claude responses)', status: 'planned', eta: 'Q3 2026', new: true },
       { label: 'LinkedIn outreach channel', status: 'planned', eta: 'Q3 2026' },
       { label: 'Voice outreach via Vapi + Twilio', status: 'planned', eta: 'Q3 2026' },
       { label: 'WhatsApp outreach channel', status: 'planned', eta: 'Q3 2026' },

@@ -508,6 +508,18 @@ export default function LeadsPage() {
     setActionLoading(null)
   }
 
+  async function resendConsentEmail(leadId: string) {
+    if (!token) return
+    setActionLoading(`resend-${leadId}`)
+    try {
+      await api.post(`/leads/${leadId}/resend-consent`, {}, token)
+      showToast('Consent email resent ✓')
+    } catch {
+      showToast('Failed to resend — try again', 'error')
+    }
+    setActionLoading(null)
+  }
+
   async function draftEmail(leadId: string) {
     if (!token) return
     setActionLoading(`email-${leadId}`)
@@ -906,12 +918,21 @@ export default function LeadsPage() {
                               </button>
                             )}
                             {lead.status === 'consent_sent' && (
-                              <button onClick={() => updateStatus(lead.id, 'consent_given')}
-                                disabled={actionLoading === `status-${lead.id}`}
-                                title="Mark as consented"
-                                className="p-1.5 rounded-md hover:bg-green-50 text-green-600 transition-colors disabled:opacity-40">
-                                {actionLoading === `status-${lead.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                              </button>
+                              <>
+                                <button onClick={() => resendConsentEmail(lead.id)}
+                                  disabled={actionLoading === `resend-${lead.id}`}
+                                  title="Resend consent email"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-600 text-xs font-medium transition-colors disabled:opacity-40">
+                                  {actionLoading === `resend-${lead.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                                  Resend
+                                </button>
+                                <button onClick={() => updateStatus(lead.id, 'consent_given')}
+                                  disabled={actionLoading === `status-${lead.id}`}
+                                  title="Mark as consented"
+                                  className="p-1.5 rounded-md hover:bg-green-50 text-green-600 transition-colors disabled:opacity-40">
+                                  {actionLoading === `status-${lead.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                </button>
+                              </>
                             )}
                             {lead.status === 'consent_given' && lead.email && (
                               <button onClick={() => draftEmail(lead.id)}

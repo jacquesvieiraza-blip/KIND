@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
+import { OnboardingChecklist } from '@/components/ui/OnboardingChecklist'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
 import { Target, Inbox, ArrowRight, Zap, TrendingUp, Mail, ChevronRight, Flame, ThermometerSun } from 'lucide-react'
 import Link from 'next/link'
@@ -110,7 +111,15 @@ export default async function DashboardPage() {
     <div className="space-y-4">
       <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
 
-      {/* FIGSY conversation — replaces the checklist */}
+      {/* Onboarding checklist — only visible until all steps complete */}
+      <OnboardingChecklist
+        hasCompanyName={!!companyName}
+        hasIcps={leadCount > 0}
+        hasLeads={leadCount > 0}
+        hasFigsyCampaigns={figsyCampaigns.length > 0}
+      />
+
+      {/* FIGSY conversation */}
       <FigsyConversation
         leadCount={leadCount}
         campaignCount={figsyCampaigns.length}

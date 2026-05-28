@@ -121,12 +121,22 @@ Return ONLY valid JSON, no markdown:
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
+  let draft: SequenceDraft
   try {
-    return JSON.parse(stripJson(raw)) as SequenceDraft
+    draft = JSON.parse(stripJson(raw)) as SequenceDraft
   } catch {
     console.error('[figsy] generateSequence JSON parse failed, raw:', raw.slice(0, 200))
     throw new Error('Failed to generate email sequence — Claude returned invalid JSON')
   }
+  // Thread steps 2 & 3 as replies so they land in the same Gmail thread
+  const baseSubject = draft.step1.subject
+  if (!draft.step2.subject.toLowerCase().startsWith('re:')) {
+    draft.step2.subject = `Re: ${baseSubject}`
+  }
+  if (!draft.step3.subject.toLowerCase().startsWith('re:')) {
+    draft.step3.subject = `Re: ${baseSubject}`
+  }
+  return draft
 }
 
 export type ReplyClassification =

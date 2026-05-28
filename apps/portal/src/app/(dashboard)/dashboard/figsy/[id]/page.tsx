@@ -279,6 +279,7 @@ export default function CampaignDetailPage() {
   const [token, setToken]       = useState('')
   const [activatingId, setActivatingId] = useState(false)
   const [sendingTest, setSendingTest]   = useState(false)
+  const [sendingNow, setSendingNow]     = useState(false)
   const [enrolling, setEnrolling]       = useState(false)
   const [activeTab, setActiveTab] = useState<'sequence' | 'audience' | 'settings'>('sequence')
 
@@ -432,6 +433,25 @@ export default function CampaignDetailPage() {
     setSendingTest(false)
   }
 
+  async function sendNow() {
+    if (!token) return
+    setSendingNow(true)
+    try {
+      const res = await api.post<{ data: { sent: number; due_count: number } }>(
+        `/figsy/campaigns/${id}/send-now`, {}, token
+      )
+      const { sent, due_count } = res.data
+      showToast(sent > 0
+        ? `Sent ${sent} email${sent === 1 ? '' : 's'} now`
+        : due_count === 0 ? 'No emails due right now — all caught up' : 'No emails sent (check RESEND_API_KEY)')
+      const updated = await api.get<{ data: Campaign }>(`/figsy/campaigns/${id}`, token)
+      setCampaign(updated.data)
+    } catch (err) {
+      showToast((err as Error).message || 'Failed to send emails', 'error')
+    }
+    setSendingNow(false)
+  }
+
   async function toggleStatus() {
     if (!campaign || !token) return
     setActivatingId(true)
@@ -439,6 +459,19 @@ export default function CampaignDetailPage() {
     try {
       const res = await api.patch<{ data: Campaign }>(`/figsy/campaigns/${id}`, { status: newStatus }, token)
       setCampaign(res.data)
+      // After activation, poll for enrollment progress for 30 seconds
+      if (newStatus === 'active') {
+        showToast('Campaign activated — FIGSY is enrolling leads now')
+        let polls = 0
+        const interval = setInterval(async () => {
+          polls++
+          try {
+            const updated = await api.get<{ data: Campaign }>(`/figsy/campaigns/${id}`, token)
+            setCampaign(updated.data)
+          } catch { /* ignore */ }
+          if (polls >= 6) clearInterval(interval) // stop after 30s
+        }, 5000)
+      }
     } catch { /* ignore */ }
     setActivatingId(false)
   }
@@ -488,14 +521,24 @@ export default function CampaignDetailPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {campaign.status === 'active' && (
-              <button
-                onClick={enrollAllLeads}
-                disabled={enrolling}
-                className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 disabled:opacity-50 text-emerald-600 text-sm font-semibold rounded-xl border border-emerald-200 transition-colors"
-              >
-                {enrolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
-                Enroll Leads
-              </button>
+              <>
+                <button
+                  onClick={enrollAllLeads}
+                  disabled={enrolling}
+                  className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 disabled:opacity-50 text-emerald-600 text-sm font-semibold rounded-xl border border-emerald-200 transition-colors"
+                >
+                  {enrolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                  Enroll Leads
+                </button>
+                <button
+                  onClick={sendNow}
+                  disabled={sendingNow}
+                  className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 disabled:opacity-50 text-blue-600 text-sm font-semibold rounded-xl border border-blue-200 transition-colors"
+                >
+                  {sendingNow ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  Send Now
+                </button>
+              </>
             )}
             <button
               onClick={sendTestEmail}

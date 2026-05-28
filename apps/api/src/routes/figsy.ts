@@ -391,6 +391,73 @@ figsyRouter.post('/campaigns/:id/enroll-consented', async (req: AuthRequest, res
   }
 })
 
+// ── SAVE AUDIENCE SETTINGS ───────────────────────────────────────────────────
+figsyRouter.put('/campaigns/:id/audience', async (req: AuthRequest, res) => {
+  try {
+    const { min_score, max_score, daily_limit } = z.object({
+      min_score:   z.number().min(0).max(100).optional(),
+      max_score:   z.number().min(0).max(100).optional(),
+      daily_limit: z.number().min(1).max(500).optional(),
+    }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data: existing } = await db.from('figsy_campaigns')
+      .select('settings').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (existing === null) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    const updated = {
+      ...(existing?.settings ?? {}),
+      ...(min_score   !== undefined ? { min_score }   : {}),
+      ...(max_score   !== undefined ? { max_score }   : {}),
+      ...(daily_limit !== undefined ? { daily_limit } : {}),
+    }
+    const { data, error } = await db.from('figsy_campaigns')
+      .update({ settings: updated }).eq('id', req.params.id).eq('client_id', clientId).select().maybeSingle()
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to save audience settings' })
+  }
+})
+
+// ── SEND DUE EMAILS NOW (manual trigger for a single campaign) ────────────────
+figsyRouter.post('/campaigns/:id/send-now', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    const now = new Date().toISOString()
+    const { data: due } = await db.from('figsy_enrollments')
+      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
+      .eq('campaign_id', req.params.id)
+      .in('status', ['enrolled', 'in_progress'])
+      .lte('next_send_at', now)
+      .limit(50)
+
+    const { sendSequenceEmail } = await import('../lib/figsy')
+    let sent = 0
+    for (const enrollment of due ?? []) {
+      const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
+      if (!lead?.email) continue
+      const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
+      if (nextStep > 3) continue
+      const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
+      const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
+      if (!subject || !body) continue
+      try {
+        await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, req.params.id)
+        sent++
+      } catch (err) { console.error('[send-now] enrollment', enrollment.id, ':', err) }
+    }
+    res.json({ success: true, data: { sent, due_count: (due ?? []).length } })
+  } catch (err) {
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to send emails' })
+  }
+})
+
 // ── SAVE SEQUENCE STEPS ───────────────────────────────────────────────────────
 figsyRouter.put('/campaigns/:id/sequence', async (req: AuthRequest, res) => {
   try {

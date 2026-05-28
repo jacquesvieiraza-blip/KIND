@@ -350,11 +350,12 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
 export default function InboxPage() {
   const supabase = createClient()
 
-  const [replies, setReplies]   = useState<Reply[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [filter, setFilter]     = useState<string>('all')
-  const [selected, setSelected] = useState<Reply | null>(null)
-  const [token, setToken]       = useState('')
+  const [replies, setReplies]     = useState<Reply[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [filter, setFilter]       = useState<string>('all')
+  const [selected, setSelected]   = useState<Reply | null>(null)
+  const [token, setToken]         = useState('')
+  const [seeding, setSeeding]     = useState(false)
 
   const loadReplies = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -377,6 +378,17 @@ export default function InboxPage() {
   }, [supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { loadReplies() }, [loadReplies])
+
+  async function seedDemoReply() {
+    setSeeding(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await api.post('/figsy/replies/seed-demo', {}, session.access_token)
+      await loadReplies()
+    } catch { /* ignore */ }
+    setSeeding(false)
+  }
 
   // ── Derived state ────────────────────────────────────────────────
   const hotCount = replies.filter(r => r.classification === 'hot' || r.classification === 'interested').length
@@ -438,6 +450,15 @@ export default function InboxPage() {
             <div className="text-center py-16 px-6">
               <Inbox className="w-8 h-8 mx-auto mb-3 text-[#9B8EC4] opacity-30" />
               <p className="text-sm font-medium text-[#9B8EC4]">No replies here</p>
+              {filter === 'all' && (
+                <button
+                  onClick={seedDemoReply}
+                  disabled={seeding}
+                  className="mt-4 text-xs text-[#7C3AED]/50 hover:text-[#7C3AED] transition-colors disabled:opacity-40"
+                >
+                  {seeding ? 'Seeding…' : '+ Seed demo reply'}
+                </button>
+              )}
             </div>
           ) : (
             filtered.map(reply => {
@@ -514,6 +535,13 @@ export default function InboxPage() {
               <p className="text-sm text-[#7B6FA0] max-w-xs leading-relaxed">
                 FIGSY will surface replies here as campaigns run. Hot leads and positive replies appear first.
               </p>
+              <button
+                onClick={seedDemoReply}
+                disabled={seeding}
+                className="mt-6 text-xs text-[#7C3AED]/40 hover:text-[#7C3AED] transition-colors disabled:opacity-40"
+              >
+                {seeding ? 'Seeding…' : '+ Seed demo reply'}
+              </button>
             </div>
           )
         ) : (

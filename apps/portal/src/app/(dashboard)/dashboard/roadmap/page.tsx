@@ -151,15 +151,32 @@ const PRODUCTS: ProductRoadmap[] = [
       { label: 'API access for custom integrations', status: 'planned', eta: 'Q4 2026' },
     ],
   },
+  {
+    key: 'mcp',
+    name: 'MCP Integrations',
+    icon: <Zap className="w-5 h-5" />,
+    tagline: 'Connect your tools to FIGSY — and use FIGSY from anywhere.',
+    accentClass: 'text-blue-600',
+    bgClass: 'bg-blue-600',
+    features: [
+      { label: 'K.I.N.D as MCP server — run FIGSY directly from Claude.ai with natural language', status: 'planned', eta: 'Q3 2026', new: true },
+      { label: 'Gmail MCP — email style training + send FIGSY outreach from your own domain', status: 'planned', eta: 'Q3 2026', new: true },
+      { label: 'Outlook MCP — send outreach from your Microsoft 365 address', status: 'planned', eta: 'Q3 2026', new: true },
+      { label: 'Google Calendar MCP — FIGSY books meetings directly into your calendar', status: 'planned', eta: 'Q3 2026', new: true },
+      { label: 'Slack MCP — instant team notification when a lead qualifies', status: 'planned', eta: 'Q3 2026', new: true },
+      { label: 'Salesforce MCP — bi-directional CRM sync (Dominate plan only)', status: 'planned', eta: 'Q4 2026', new: true },
+      { label: 'HubSpot MCP — bi-directional CRM sync (Dominate plan only)', status: 'planned', eta: 'Q4 2026', new: true },
+    ],
+  },
 ]
 
 const UPCOMING_HIGHLIGHTS = [
   { label: 'Meeting Booking', desc: 'FIGSY detects interest and books meetings automatically via Cal.com.', eta: 'Jul 2026', icon: <CheckCircle2 className="w-5 h-5 text-green-400" /> },
   { label: 'WhatsApp Bot', desc: 'Deploy Vida directly on WhatsApp Business for inbound support.', eta: 'Jul 2026', icon: <MessageSquare className="w-5 h-5 text-green-400" /> },
   { label: 'Score Explanations', desc: 'See the exact reasons behind every AI lead score.', eta: 'Jul 2026', icon: <Sparkles className="w-5 h-5 text-green-400" /> },
-  { label: 'Visual Flow Builder', desc: 'Drag-and-drop branching sequence builder with per-node prompt config.', eta: 'Q3 2026', icon: <Zap className="w-5 h-5 text-amber-400" /> },
-  { label: 'LinkedIn Channel', desc: 'FIGSY reaches out via LinkedIn connections — email + social.', eta: 'Q3 2026', icon: <Users className="w-5 h-5 text-amber-400" /> },
-  { label: 'Google Calendar', desc: 'Milla connects to your calendar to book and manage meetings.', eta: 'Q3 2026', icon: <Clock className="w-5 h-5 text-amber-400" /> },
+  { label: 'MCP Server', desc: 'Use FIGSY directly from Claude.ai — "Find me 20 CFOs at SA fintechs" and it runs.', eta: 'Q3 2026', icon: <Zap className="w-5 h-5 text-blue-400" /> },
+  { label: 'Gmail / Outlook', desc: 'Send FIGSY outreach from your own email domain for better deliverability.', eta: 'Q3 2026', icon: <BookOpen className="w-5 h-5 text-amber-400" /> },
+  { label: 'Google Calendar', desc: 'FIGSY books meetings directly into your calendar — no Calendly needed.', eta: 'Q3 2026', icon: <Clock className="w-5 h-5 text-amber-400" /> },
 ]
 
 function StatusBadge({ status, isNew }: { status: FeatureStatus; isNew?: boolean }) {

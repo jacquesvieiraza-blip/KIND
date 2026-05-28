@@ -389,12 +389,12 @@ figsyRouter.put('/campaigns/:id/sequence', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: existing } = await db.from('figsy_campaigns')
-      .select('settings').eq('id', req.params.id).eq('client_id', clientId).single()
-    if (!existing) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+      .select('settings').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (existing === null) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     const { data, error } = await db.from('figsy_campaigns')
       .update({ settings: { ...(existing.settings ?? {}), steps } })
-      .eq('id', req.params.id).eq('client_id', clientId).select().single()
+      .eq('id', req.params.id).eq('client_id', clientId).select().maybeSingle()
     if (error) throw error
     res.json({ success: true, data })
   } catch (err) {
@@ -839,6 +839,64 @@ figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
     if (error) throw error
     res.json({ success: true, data })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch replies' }) }
+})
+
+// ── DEMO SEED REPLY (dev/demo only) ──────────────────────────────────────────
+figsyRouter.post('/replies/seed-demo', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Pick the most recent active campaign
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id').eq('client_id', clientId).eq('status', 'active')
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+    // Pick a real lead from this client's pool (scored/consent_given)
+    const { data: lead } = await db.from('leads')
+      .select('id, first_name, last_name, email, job_title, company')
+      .eq('client_id', clientId)
+      .in('status', ['scored', 'consent_given', 'exported'])
+      .order('score', { ascending: false }).limit(1).maybeSingle()
+
+    const fromEmail = lead?.email ?? `demo.prospect@example.com`
+    const fromName  = lead ? `${lead.first_name} ${lead.last_name}` : 'Demo Prospect'
+    const jobTitle  = lead?.job_title ?? 'CEO'
+    const company   = lead?.company ?? 'Acme Corp'
+
+    const { data: reply, error } = await db.from('figsy_replies').insert({
+      campaign_id:              campaign?.id ?? null,
+      lead_id:                  lead?.id ?? null,
+      client_id:                clientId,
+      from_email:               fromEmail,
+      from_name:                fromName,
+      subject:                  'Re: Exploring a partnership',
+      body:                     `Hi,\n\nThanks for reaching out — this actually looks interesting. We've been looking at ways to improve our outbound. Can we jump on a quick call this week?\n\nBest,\n${fromName}\n${jobTitle} at ${company}`,
+      body_text:                `Hi,\n\nThanks for reaching out — this actually looks interesting. We've been looking at ways to improve our outbound. Can we jump on a quick call this week?\n\nBest,\n${fromName}\n${jobTitle} at ${company}`,
+      classification:           'hot',
+      classification_reasoning: 'Prospect expressed clear interest and requested a call.',
+      processed_at:             new Date().toISOString(),
+      received_at:              new Date().toISOString(),
+    }).select('id').single()
+
+    if (error) throw error
+
+    // Bump campaign stats
+    if (campaign?.id) {
+      const { data: camp } = await db.from('figsy_campaigns')
+        .select('replies_total, replies_interested').eq('id', campaign.id).maybeSingle()
+      if (camp) {
+        await db.from('figsy_campaigns').update({
+          replies_total:       (camp.replies_total       ?? 0) + 1,
+          replies_interested:  (camp.replies_interested  ?? 0) + 1,
+        }).eq('id', campaign.id)
+      }
+    }
+
+    res.json({ success: true, data: { reply_id: reply?.id, from: fromName } })
+  } catch (err) {
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to seed demo reply' })
+  }
 })
 
 // ── FIGSY MEMORY ─────────────────────────────────────────────────────────────

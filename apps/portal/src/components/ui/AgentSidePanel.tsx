@@ -72,16 +72,16 @@ export function AgentSidePanel({
   const [shownChars, setShownChars] = useState(0)
   const threadRef = useRef<HTMLDivElement>(null)
 
-  // Typewriter effect on the first message
+  // Typewriter effect on the first message — slower, more natural
   useEffect(() => {
     const full = getGreeting()
     if (shownChars >= full.length) return
-    const t = setTimeout(() => setShownChars(n => Math.min(n + 3, full.length)), 18)
+    const t = setTimeout(() => setShownChars(n => Math.min(n + 2, full.length)), 28)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shownChars])
 
-  // Reset context when navigating to a different page (contextMessage changes)
+  // Reset context when navigating to a different page
   useEffect(() => {
     setMessages([{ role: 'assistant', content: getGreeting(), typing: true }])
     setShownChars(0)
@@ -211,37 +211,36 @@ export function AgentSidePanel({
   const displayedFirst = shownChars < greeting.length ? greeting.slice(0, shownChars) : greeting
 
   return (
-    <div className="rounded-2xl overflow-hidden shadow-lg border border-purple-100/30">
+    <div className="rounded-2xl overflow-hidden shadow-lg border border-purple-100/40 bg-white">
 
-      {/* ── Full agent photo ──────────────────────────────────────── */}
-      <div className="relative h-52 bg-[#0F0929]">
+      {/* ── Full agent photo — no dark overlay ───────────────────── */}
+      <div className="relative h-52 overflow-hidden">
         <img
           src={`/agents/${agentId}.png`}
           alt={name}
           className="w-full h-full object-cover object-top"
           onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0F0929] via-[#0F0929]/10 to-transparent" />
       </div>
 
-      {/* ── Identity + chat + actions ─────────────────────────────── */}
-      <div className="bg-[#0F0929] px-4 pt-3 pb-4">
-
-        {/* Name + status */}
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-white font-bold text-base leading-tight">{name}</p>
-            <p className="text-[#9B8EC4] text-xs mt-0.5">
-              {role}{tagline ? ` · ${tagline}` : ''}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-            <span className={`text-[11px] font-medium ${online ? 'text-emerald-400' : 'text-slate-400'}`}>
-              {online ? 'Online' : 'Offline'}
-            </span>
-          </div>
+      {/* ── Identity bar — dark ───────────────────────────────────── */}
+      <div className="bg-[#0F0929] px-4 py-3 flex items-center justify-between">
+        <div>
+          <p className="text-white font-bold text-base leading-tight">{name}</p>
+          <p className="text-[#9B8EC4] text-xs mt-0.5">
+            {role}{tagline ? ` · ${tagline}` : ''}
+          </p>
         </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+          <span className={`text-[11px] font-medium ${online ? 'text-emerald-400' : 'text-slate-400'}`}>
+            {online ? 'Online' : 'Offline'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Content — white background ────────────────────────────── */}
+      <div className="bg-white px-4 pt-3 pb-4">
 
         {/* Quick action chips */}
         <div className="flex flex-col gap-1.5 mb-3">
@@ -249,7 +248,7 @@ export function AgentSidePanel({
             <button
               key={chip.label}
               onClick={chip.onClick}
-              className="w-full text-left text-xs text-[#C4B5FD] bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 rounded-lg px-3 py-2 transition-colors"
+              className="w-full text-left text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-100 rounded-full px-3 py-1.5 transition-colors"
             >
               {chip.label}
             </button>
@@ -259,27 +258,33 @@ export function AgentSidePanel({
         {/* Conversation thread */}
         <div
           ref={threadRef}
-          className="flex flex-col gap-2 mb-3 max-h-48 overflow-y-auto pr-0.5"
+          className="flex flex-col gap-2 mb-3 max-h-48 overflow-y-auto bg-[#FAFAFA] rounded-xl border border-purple-100/40 p-2"
         >
           {messages.map((m, i) => (
             <div key={i} className={`flex flex-col gap-1 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
-                m.role === 'user'
-                  ? 'bg-[#7C3AED] text-white'
-                  : 'bg-white/[0.10] text-white/80'
-              }`}>
-                {/* First assistant message gets typewriter effect */}
-                {i === 0 && m.role === 'assistant' && m.typing
-                  ? <>{displayedFirst}{shownChars < greeting.length && <span className="inline-block w-0.5 h-3 bg-white/60 animate-pulse ml-0.5 align-middle" />}</>
-                  : m.content
-                }
+              <div className={`flex gap-1.5 w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {m.role === 'assistant' && (
+                  <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 mt-0.5 border border-purple-100">
+                    <img src={`/agents/${agentId}.png`} alt="" className="w-full h-full object-cover object-top" />
+                  </div>
+                )}
+                <div className={`max-w-[85%] rounded-xl px-2.5 py-1.5 text-xs leading-relaxed ${
+                  m.role === 'user'
+                    ? 'bg-[#7C3AED] text-white rounded-br-sm'
+                    : 'bg-white text-gray-800 rounded-bl-sm border border-purple-100/60 shadow-sm'
+                }`}>
+                  {i === 0 && m.role === 'assistant' && m.typing
+                    ? <>{displayedFirst}{shownChars < greeting.length && <span className="inline-block w-0.5 h-3 bg-purple-300 animate-pulse ml-0.5 align-middle" />}</>
+                    : m.content
+                  }
+                </div>
               </div>
               {m.action && (
                 m.action.variant === 'icp' ? (
                   <button
                     onClick={createIcpFromDraft}
                     disabled={thinking}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A78BFA] bg-[#7C3AED]/15 hover:bg-[#7C3AED]/25 border border-[#7C3AED]/30 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#7C3AED] bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
                   >
                     <Sparkles className="w-3 h-3" />
                     {m.action.label}
@@ -287,7 +292,7 @@ export function AgentSidePanel({
                 ) : (
                   <Link
                     href={m.action.href}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                    className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
                   >
                     <CheckCircle2 className="w-3 h-3" />
                     {m.action.label}
@@ -297,11 +302,14 @@ export function AgentSidePanel({
             </div>
           ))}
           {thinking && (
-            <div className="flex justify-start">
-              <div className="bg-white/[0.10] rounded-xl px-3 py-2 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="flex items-start gap-1.5">
+              <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 mt-0.5 border border-purple-100">
+                <img src={`/agents/${agentId}.png`} alt="" className="w-full h-full object-cover object-top" />
+              </div>
+              <div className="bg-white rounded-xl rounded-bl-sm px-2.5 py-1.5 border border-purple-100/60 shadow-sm flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-300 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-300 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-300 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           )}
@@ -314,7 +322,7 @@ export function AgentSidePanel({
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSend() }}
             placeholder={messages.length > 1 ? `Reply to ${name}…` : inputPlaceholder}
-            className="flex-1 text-xs bg-white/[0.08] border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-400/50"
+            className="flex-1 text-xs bg-gray-50 border border-purple-100/60 rounded-lg px-3 py-2 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 focus:border-[#7C3AED]"
           />
           <button
             onClick={() => handleSend()}
@@ -335,7 +343,7 @@ export function AgentSidePanel({
               setShownChars(0)
               setIcpDraft({})
             }}
-            className="text-[10px] text-white/20 hover:text-white/40 transition-colors mt-2 w-full text-center"
+            className="text-[10px] text-gray-300 hover:text-gray-500 transition-colors mt-2 w-full text-center"
           >
             Clear conversation
           </button>

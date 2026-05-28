@@ -50,7 +50,9 @@ export default async function DashboardPage() {
 
   let companyName    = ''
   let creditBalance  = 0
+  let clientId       = ''
   let subs: Record<string, unknown>[] = []
+  let sparkPoints: number[] = [0, 0, 0, 0, 0, 0, 0]
   let figsyCampaigns: {
     id?: string; name?: string; status?: string
     emails_sent?: number; replies_total?: number
@@ -65,17 +67,39 @@ export default async function DashboardPage() {
   if (user) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('company_name, credit_balance, subscriptions(*)')
+      .select('id, company_name, credit_balance, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
 
     if (clientRow) {
       companyName   = clientRow.company_name ?? ''
       creditBalance = clientRow.credit_balance ?? 0
+      clientId      = clientRow.id as string ?? ''
       subs          = (clientRow.subscriptions as Record<string, unknown>[]) ?? []
     }
 
     const { data: { session } } = await supabase.auth.getSession()
+    if (session && clientId) {
+      // Real sparkline: daily email sends for last 7 days
+      try {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const { data: sparkData } = await supabase
+          .from('figsy_sent_emails')
+          .select('sent_at')
+          .eq('client_id', clientId)
+          .gte('sent_at', sevenDaysAgo)
+        const dayMap: Record<string, number> = {}
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+          dayMap[d.toISOString().split('T')[0]] = 0
+        }
+        for (const row of sparkData ?? []) {
+          const key = (row.sent_at as string).split('T')[0]
+          if (key in dayMap) dayMap[key]++
+        }
+        sparkPoints = Object.values(dayMap)
+      } catch { /* keep default zeros */ }
+    }
     if (session) {
       const [statsRes, figsyRes, repliesRes, leadsRes, activityRes] = await Promise.allSettled([
         api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
@@ -103,9 +127,7 @@ export default async function DashboardPage() {
   const bookingRate     = totalSent > 0 ? ((totalMeetings / totalSent) * 100).toFixed(1) : '0.0'
   const leadCount       = leadStats?.total ?? 0
 
-  const sparkPoints = totalSent > 0
-    ? [Math.floor(totalSent * 0.08), Math.floor(totalSent * 0.12), Math.floor(totalSent * 0.10), Math.floor(totalSent * 0.15), Math.floor(totalSent * 0.18), Math.floor(totalSent * 0.20), Math.floor(totalSent * 0.17)]
-    : [0, 0, 1, 2, 1, 3, 2]
+  // sparkPoints comes from real DB query above
 
   return (
     <div className="space-y-4">
@@ -172,13 +194,22 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {activeCampaigns.length === 0 ? (
-            <div className="flex flex-col items-center py-6 gap-3">
+            <div className="flex flex-col items-center py-6 gap-3 text-center">
               <div className="w-10 h-10 rounded-xl bg-[#F5F0FF] flex items-center justify-center">
-                <Zap className="w-5 h-5 text-[#7C3AED]/40" />
+                <Zap className="w-5 h-5 text-[#7C3AED]/60" />
               </div>
-              <p className="text-sm text-slate-400 text-center">No active campaigns yet</p>
-              <Link href="/dashboard/figsy" className="text-xs text-[#7C3AED] font-semibold hover:underline">
-                Launch your first campaign →
+              <div>
+                <p className="text-sm font-medium text-[#1E0A5C]">
+                  {leadCount > 0 ? `I have ${leadCount} leads ready` : 'I\'m ready when you are'}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {leadCount > 0
+                    ? 'Say the word and I\'ll write your first outreach sequence.'
+                    : 'Build an ICP and I\'ll find your first leads within minutes.'}
+                </p>
+              </div>
+              <Link href={leadCount > 0 ? '/dashboard/figsy' : '/dashboard/leads/icp'} className="text-xs text-[#7C3AED] font-semibold hover:underline">
+                {leadCount > 0 ? 'Launch a campaign →' : 'Build my ICP →'}
               </Link>
             </div>
           ) : (
@@ -230,8 +261,8 @@ export default async function DashboardPage() {
                 <Inbox className="w-5 h-5 text-[#7C3AED]/60" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-slate-500">No replies yet</p>
-                <p className="text-xs text-slate-300 mt-0.5">Hot and warm prospects appear here the moment they reply</p>
+                <p className="text-sm font-medium text-[#1E0A5C]">No replies yet</p>
+                <p className="text-xs text-slate-400 mt-0.5 max-w-[200px]">Campaigns usually see first replies within 48–72 hours of sending.</p>
               </div>
               <span className="text-xs font-semibold text-[#7C3AED] flex items-center gap-1">Go to Inbox <ArrowRight className="w-3 h-3" /></span>
             </Link>

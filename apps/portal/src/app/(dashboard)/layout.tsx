@@ -57,7 +57,31 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isNewUser = leadCount === 0
 
   return (
-    <div className="flex h-screen" style={{ background: 'linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%)' }}>
+    <div className="flex h-screen relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%)' }}>
+      {/* Floating ambient dots — matches homepage design language */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden>
+        {[
+          { top: '5%',  left: '18%', size: 5, delay: '0s',   dur: '9s'  },
+          { top: '12%', left: '72%', size: 4, delay: '1.5s', dur: '7s'  },
+          { top: '28%', left: '88%', size: 6, delay: '0.8s', dur: '11s' },
+          { top: '45%', left: '95%', size: 3, delay: '2.5s', dur: '8s'  },
+          { top: '65%', left: '82%', size: 5, delay: '1s',   dur: '9s'  },
+          { top: '80%', left: '65%', size: 4, delay: '3s',   dur: '10s' },
+          { top: '90%', left: '40%', size: 6, delay: '0.3s', dur: '7s'  },
+          { top: '75%', left: '25%', size: 3, delay: '2s',   dur: '12s' },
+          { top: '55%', left: '10%', size: 5, delay: '1.2s', dur: '8s'  },
+          { top: '35%', left: '3%',  size: 4, delay: '0.6s', dur: '10s' },
+          { top: '18%', left: '50%', size: 3, delay: '3.5s', dur: '9s'  },
+          { top: '8%',  left: '35%', size: 5, delay: '1.8s', dur: '7s'  },
+        ].map((dot, i) => (
+          <div key={i} className="absolute rounded-full" style={{
+            top: dot.top, left: dot.left, width: dot.size, height: dot.size,
+            background: '#A5B4FC', opacity: 0.3,
+            animation: `floatDot ${dot.dur} ease-in-out ${dot.delay} infinite alternate`,
+          }} />
+        ))}
+        <style>{`@keyframes floatDot{0%{transform:translateY(0) translateX(0)}50%{transform:translateY(-20px) translateX(5px)}100%{transform:translateY(-35px) translateX(-5px)}}`}</style>
+      </div>
       <Sidebar
         userEmail={user.email || ''}
         creditBalance={creditBalance}
@@ -66,7 +90,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         hasVida={hasVida}
         isNewUser={isNewUser}
       />
-      <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
+      <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative z-10">
         <TrialExpiredOverlay expired={trialExpired} />
         <div className="flex gap-5 items-start max-w-7xl">
           <AgentColumn

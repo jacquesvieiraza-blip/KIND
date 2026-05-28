@@ -43,14 +43,17 @@ const STEPS = [
 ]
 
 // ── Typewriter hook ───────────────────────────────────────────────────────────
-function useTypewriter(text: string, speed = 22) {
+function useTypewriter(text: string, speed = 38) {
   const [shown, setShown] = useState(0)
   useEffect(() => {
     setShown(0)
   }, [text])
   useEffect(() => {
     if (shown >= text.length) return
-    const t = setTimeout(() => setShown(n => Math.min(n + 2, text.length)), speed)
+    // Pause slightly longer at sentence boundaries for natural cadence
+    const ch = text[shown]
+    const pause = (ch === '.' || ch === '!' || ch === '?') ? speed * 6 : speed
+    const t = setTimeout(() => setShown(n => Math.min(n + 1, text.length)), pause)
     return () => clearTimeout(t)
   }, [shown, text, speed])
   return { displayed: text.slice(0, shown), done: shown >= text.length }

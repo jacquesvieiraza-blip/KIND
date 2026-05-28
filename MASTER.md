@@ -52,7 +52,7 @@
 
 ---
 
-### 📅 SESSION DATE — 28 May 2026 (Evening) — Full product flow fixes + Product vision locked
+### 📅 SESSION DATE — 28 May 2026 (Night) — Chat-first FIGSY + auto-consent + full product audit
 
 ---
 
@@ -206,6 +206,17 @@
 | **Daily Brief system** | Section 0 — living top-of-file, rewritten every session |
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
+
+#### 28 May 2026 (Night) — Chat-first FIGSY + Auto-consent + Full Product Audit
+| Built / Fixed | Detail |
+|---------------|--------|
+| **AgentSidePanel redesign** | Compact 40px header replaces 224px tall photo. Chat thread is now the primary visual. Conversation persists across page navigation via sessionStorage (key: `kind_figsy_thread_v1`). |
+| **Conversational ICP onboarding** | New users (`leadCount === 0`) get FIGSY onboarding flow: asks who they sell to, accumulates fields via `/icps/chat-build`, shows "Build ICP & find my leads →" button inline when ready. Auto-saves ICP and redirects to leads. |
+| **Sidebar FIGSY thread section** | Permanent FIGSY section above account footer in left nav. Shows last message preview from sessionStorage. Quick-send input — type, hit Enter, lands in FIGSY chat. `isNewUser` shows "Let's find your first leads" state. |
+| **Auto-consent after scoring** | `autoConsentScoredLeads()` fires after ICP scoring — any lead with score ≥ 60 + email gets consent email automatically. No button click required. |
+| **Portal auto-consent trigger** | `updateStatus()` in leads page: moving lead to `consent_sent` auto-fires `POST /leads/:id/consent` immediately. |
+| **AskFigsyButton removed** | Floating button removed from layout — redundant now that AgentSidePanel IS the chat. `isNewUser` flag passed from layout to all downstream components. |
+| **Full product audit completed** | Every page audited. 10-point improvement plan documented in MASTER.md (below). |
 
 #### 28 May 2026 (Evening) — Full Product Flow Fixes + Vision Locked
 | Built / Fixed | Detail |
@@ -477,23 +488,35 @@
 | ✅ | Company CSV import → find contacts flow | Done |
 | ✅ | MASTER.md fully updated | Done |
 
-**NEXT SESSION — PRIORITY ORDER:**
-| # | Build | What | Time |
-|---|-------|------|------|
-| F1 | **Fix smoke test API failures** | `GET /leads` + `GET /figsy/kpis` returning 500 in smoke test — investigate auth token in smoke test runner | 30 min |
-| F2 | **Auto-consent on lead approval** | When lead is approved (status → `consent_given`), fire consent email automatically — no button needed | 2h |
-| F3 | **meetings_booked KPI** | Increment `meetings_booked` when a reply is classified `interested` or manually marked meeting booked | 1h |
-| F4 | **Live dashboard numbers** | WebSocket or SSE for real-time KPI updates — no refresh needed | 4h |
-| F5 | **FIGSY conversational onboarding** | New user → FIGSY greets them, asks 5 ICP questions in chat, generates ICP + shows first 10 leads — all without leaving chat | 1 day |
-| F6 | **CRM sync (client-side)** | Let client paste HubSpot/Salesforce API key in settings, FIGSY syncs replies + meetings booked back | 2 days |
-| F7 | **Consent token security** | Replace lead UUID as consent token with cryptographic random signed token | 2h |
-| F8 | **Campaign auto-pause notification** | Email client when campaign pauses for low performance — currently silent | 1h |
-| C1 | Run smoke tests T1–T4 | Founder runs, Claude fixes any failures | <15 min each |
-| C5 | S4: Scheduled report emails | Weekly client digest — cron already exists, just needs wiring | 4h |
-| C6 | "AI Revenue OS" positioning rewrite | Website, pricing, landing, demo pages — Apex steal | 2h |
-| C7 | Wire Calendly URL site-wide | 5 min — needs URL from T22 | 5 min |
-| C8 | Wire UK company number into footer + legal | 5 min — needs number from T23 | 5 min |
-| C9 | Update `docs/client-flow-sop.md` | Stale since 18 May — Paystack refs, outdated paths | 30 min |
+**✅ COMPLETED THIS SESSION (28 May Night):**
+| # | Build | Status |
+|---|-------|--------|
+| ✅ F2 | Auto-consent on lead approval | Done — fires after ICP scoring (score ≥ 60) + portal trigger |
+| ✅ F5 | FIGSY conversational onboarding | Done — AgentSidePanel + sidebar thread |
+| ✅ | AgentSidePanel compact + persistent | Done — no tall photo, sessionStorage persistence |
+| ✅ | Sidebar FIGSY thread section | Done — last message preview + quick-send input |
+| ✅ | Remove floating AskFigsyButton | Done |
+
+**NEXT SESSION — PRIORITY ORDER (full product audit findings):**
+| # | Build | What | Time | Impact |
+|---|-------|------|------|--------|
+| G1 | **Login page redesign** | Match portal's purple gradient. Remove "Your logo" placeholders + "(coming soon)" testimonial — these show to every visitor and destroy trust. Add password reset link. | 1h | 🔴 Critical |
+| G2 | **Onboarding → FIGSY-first** | Replace form with FIGSY chat flow. 2 fields max (email already captured). FIGSY introduces itself and collects company context conversationally. | 4h | 🔴 High |
+| G3 | **Inbox: reply from portal** | "Reply" button on each classified lead — compose, send via Resend, mark replied. Currently can only view, not respond. | 3h | 🔴 High |
+| G4 | **Real sparkline data** | Dashboard sparklines use fake percentages. Query `figsy_sent_emails` by day (last 7 days). 1 new endpoint. | 2h | 🟡 Medium |
+| G5 | **meetings_booked KPI** | Increment when reply classified `interested` OR "Mark meeting booked" button clicked. Always shows 0 currently. | 1h | 🟡 Medium |
+| G6 | **KPIs: time range filter** | Last 7 / 30 / 90 days / All time picker. One of the most-asked-for features in B2B SaaS demos. | 2h | 🟡 Medium |
+| G7 | **Knowledge base simplify** | Reduce 7 tabs → 3 sections: "About your business", "Who you target", "FIGSY's tone". Progressive disclosure. | 3h | 🟡 Medium |
+| G8 | **Consent page quality** | `/consent` page — the page leads land on when clicking the consent link — must look professional/trustworthy. Currently unknown quality. Audit and redesign. | 2h | 🟡 Medium |
+| G9 | **Consent token security** | Consent link uses lead UUID as token — trivially guessable. Replace with crypto random signed token. | 2h | 🟡 Medium |
+| G10 | **Campaign pause notification** | Silent when campaign auto-pauses for low performance. Email the client. | 1h | 🟡 Medium |
+| F1 | **Fix smoke test API failures** | `GET /leads` + `GET /figsy/kpis` returning 500 — investigate | 30 min | 🔴 High |
+| F3 | **meetings_booked = G5 above** | Merged | - | - |
+| F4 | **Live KPI numbers** | Real-time updates without refresh — polling every 30s as simplest approach | 2h | 🟡 Medium |
+| C1 | Run smoke tests | Founder runs, Claude fixes failures | <15 min | 🔴 High |
+| C5 | Scheduled report emails | Weekly digest cron already exists — wire it | 4h | 🟡 Medium |
+| C7 | Wire Calendly URL | 5 min — needs URL from T22 | 5 min | 🟢 Low |
+| C8 | Wire UK company number | 5 min — needs number from T23 | 5 min | 🟢 Low |
 
 **At 10+ clients:**
 | # | Build | What |

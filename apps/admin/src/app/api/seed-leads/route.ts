@@ -90,8 +90,11 @@ export async function POST(req: NextRequest) {
       created_at:       new Date(Date.now() - i * 3600000).toISOString(),
     }))
 
+    // Delete any previous demo leads for this client so we don't hit unique constraints
+    await db.from('leads').delete().eq('client_id', client.id).is('apollo_id', null)
+
     const { data: inserted, error: insertErr } = await db.from('leads').insert(rows).select('id')
-    if (insertErr) throw insertErr
+    if (insertErr) throw new Error(insertErr.message ?? JSON.stringify(insertErr))
 
     // Set credits to 50 so the "no credits" banner goes away
     await db.from('clients').update({ credit_balance: 50 }).eq('id', client.id)
@@ -102,6 +105,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('[seed-leads]', err)
-    return NextResponse.json({ success: false, message: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    const msg = err instanceof Error ? err.message : typeof err === 'object' ? JSON.stringify(err) : String(err)
+    return NextResponse.json({ success: false, message: msg }, { status: 500 })
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CheckCircle2, Circle, XCircle, ExternalLink, AlertTriangle, Flame, RefreshCw } from 'lucide-react'
 
 type CheckState = 'pending' | 'pass' | 'fail'
@@ -56,11 +56,33 @@ const AREA_COLORS: Record<string, string> = {
   Billing: 'bg-rose-50 text-rose-700 border-rose-200',
 }
 
+const STORAGE_KEY = 'kind_smoketest_states'
+const NOTES_KEY   = 'kind_smoketest_notes'
+
 export default function SmokeTestPage() {
   const [states, setStates] = useState<Record<string, CheckState>>(
     Object.fromEntries(CHECKS.map(c => [c.id, 'pending']))
   )
   const [notes, setNotes] = useState<Record<string, string>>({})
+
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) setStates(JSON.parse(saved))
+      const savedNotes = localStorage.getItem(NOTES_KEY)
+      if (savedNotes) setNotes(JSON.parse(savedNotes))
+    } catch {}
+  }, [])
+
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(states))
+  }, [states])
+
+  useEffect(() => {
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes))
+  }, [notes])
 
   const toggle = (id: string) => {
     setStates(s => {
@@ -70,8 +92,11 @@ export default function SmokeTestPage() {
   }
 
   const reset = () => {
-    setStates(Object.fromEntries(CHECKS.map(c => [c.id, 'pending'])))
+    const fresh = Object.fromEntries(CHECKS.map(c => [c.id, 'pending' as CheckState]))
+    setStates(fresh)
     setNotes({})
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(NOTES_KEY)
   }
 
   const total   = CHECKS.length

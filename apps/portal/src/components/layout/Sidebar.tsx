@@ -207,34 +207,44 @@ export function Sidebar({
           </p>
 
           {/* Active agent card — large */}
-          <button
-            onClick={() => setOpen(o => !o)}
-            className="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.10] border border-white/[0.09] transition-all group"
-          >
-            {/* Large photo */}
-            <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-md`}>
-              <img
-                src={`/agents/${agent.id}.png`}
-                alt={agent.name}
-                className="w-full h-full object-cover object-top"
-                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-              />
-            </div>
-            <div className="flex-1 text-left min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <p className="text-white font-bold text-sm">{agent.name}</p>
-                {unlocked
-                  ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  : <Lock className="w-3 h-3 text-purple-300/40" />
-                }
+          <div className="flex items-center gap-0 rounded-xl bg-white/[0.07] hover:bg-white/[0.10] border border-white/[0.09] transition-all group overflow-hidden">
+            {/* Main area — navigates to agent page */}
+            <Link
+              href={AGENT_HREFS[activeId]}
+              className="flex items-center gap-3 px-3 py-3.5 flex-1 min-w-0"
+            >
+              {/* Large photo */}
+              <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-md`}>
+                <img
+                  src={`/agents/${agent.id}.png`}
+                  alt={agent.name}
+                  className="w-full h-full object-cover object-top"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                />
               </div>
-              <p className="text-purple-300/50 text-xs">{agent.role}</p>
-              {!unlocked && agent.price && (
-                <p className="text-[10px] text-purple-300/35 mt-0.5">{agent.price} · Tap to unlock</p>
-              )}
-            </div>
-            <ChevronDown className={`w-4 h-4 text-purple-300/30 transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
-          </button>
+              <div className="flex-1 text-left min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-white font-bold text-sm">{agent.name}</p>
+                  {unlocked
+                    ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    : <Lock className="w-3 h-3 text-purple-300/40" />
+                  }
+                </div>
+                <p className="text-purple-300/50 text-xs">{agent.role}</p>
+                {!unlocked && agent.price && (
+                  <p className="text-[10px] text-purple-300/35 mt-0.5">{agent.price} · Tap to unlock</p>
+                )}
+              </div>
+            </Link>
+            {/* Chevron — only toggles agent switcher */}
+            <button
+              onClick={() => setOpen(o => !o)}
+              className="px-2.5 py-3.5 text-purple-300/30 hover:text-purple-200 transition-colors shrink-0"
+              title="Switch agent"
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
 
           {/* Dropdown */}
           {open && (
@@ -250,7 +260,7 @@ export function Sidebar({
                     onClick={() => {
                       setActiveId(a.id)
                       setOpen(false)
-                      if (locked) router.push(AGENT_HREFS[a.id])
+                      router.push(AGENT_HREFS[a.id])
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-3 hover:bg-white/[0.06] transition-colors ${
                       a.id === activeId ? 'bg-white/[0.06]' : ''

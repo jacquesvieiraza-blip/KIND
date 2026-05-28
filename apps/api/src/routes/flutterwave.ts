@@ -17,10 +17,10 @@ export const flutterwaveRouter = Router()
 
 // Plan config ─────────────────────────────────────────────────────────────────
 const PLAN_CONFIG = {
-  leadgen_20:  { credits: 20,  amount_usd: 20,  plan: 'kind_ai' as const },
-  leadgen_100: { credits: 100, amount_usd: 100, plan: 'kind_ai' as const },
-  figsy_20:    { credits: 20,  amount_usd: 60,  plan: 'figsy'   as const },
-  figsy_100:   { credits: 100, amount_usd: 300, plan: 'figsy'   as const },
+  leadgen_20:  { credits: 20,  amount_zar: 399,  plan: 'kind_ai' as const },
+  leadgen_100: { credits: 100, amount_zar: 1799, plan: 'kind_ai' as const },
+  figsy_20:    { credits: 20,  amount_zar: 1099, plan: 'figsy'   as const },
+  figsy_100:   { credits: 100, amount_zar: 4999, plan: 'figsy'   as const },
 } as const
 
 type PlanKey = keyof typeof PLAN_CONFIG
@@ -65,7 +65,7 @@ flutterwaveRouter.post('/initiate', requireAuth, async (req: AuthRequest, res: R
     const result = await createFlutterwavePaymentLink({
       email,
       name,
-      amount_usd: planConf.amount_usd,
+      amount: planConf.amount_zar,
       currency,
       tx_ref,
       redirect_url: `${portalUrl}/dashboard/billing?flutterwave=success`,

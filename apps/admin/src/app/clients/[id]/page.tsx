@@ -11,7 +11,7 @@ interface Client {
   company_registration: string | null; vat_number: string | null
   credit_balance: number
 }
-interface Subscription { id: string; product: string; tier: string; status: string; amount_usd: number }
+interface Subscription { id: string; product: string; tier: string; status: string; amount_zar: number }
 interface CreditTx {
   id: string; type: string; amount: number; note: string | null; reference: string | null; created_at: string
 }
@@ -158,7 +158,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
               <div key={s.id} className="flex items-center justify-between text-sm">
                 <span className="text-gray-700 capitalize">{s.product.replace(/_/g, ' ')} — {s.tier}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-400">${s.amount_usd}/mo</span>
+                  <span className="text-gray-400">R{s.amount_zar}/mo</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
                     s.status === 'active'
                       ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400'

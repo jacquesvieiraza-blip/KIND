@@ -50,14 +50,14 @@ async function fetchOttoData() {
 
   const [{ data: clients }, { data: subs }, { data: newClients }, { data: figsyCampaigns }] = await Promise.all([
     db.from('clients').select('id, company_name, created_at'),
-    db.from('subscriptions').select('client_id, status, amount_usd, product'),
+    db.from('subscriptions').select('client_id, status, amount_zar, product'),
     db.from('clients').select('id, company_name').gte('created_at', weekAgo),
     db.from('figsy_campaigns').select('client_id, status, reply_count, enrolled_count'),
   ])
 
   const activeSubs = (subs || []).filter(s => s.status === 'active')
   const pastDueSubs = (subs || []).filter(s => s.status === 'past_due')
-  const mrr = activeSubs.reduce((sum, s) => sum + (Number(s.amount_usd) || 0), 0)
+  const mrr = activeSubs.reduce((sum, s) => sum + (Number(s.amount_zar) || 0), 0)
 
   const totalEnrolled = (figsyCampaigns || []).reduce((s, c) => s + (Number(c.enrolled_count) || 0), 0)
   const totalReplies  = (figsyCampaigns || []).reduce((s, c) => s + (Number(c.reply_count) || 0), 0)
@@ -193,13 +193,13 @@ async function fetchCfoData() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
   const [{ data: subs }, { data: creditTxMonth }, { data: leads30d }] = await Promise.all([
-    db.from('subscriptions').select('client_id, status, amount_usd, product'),
+    db.from('subscriptions').select('client_id, status, amount_zar, product'),
     db.from('credit_transactions').select('client_id, amount, type, created_at').gte('created_at', monthStart),
     db.from('leads').select('id').gte('created_at', new Date(now.getTime() - 30 * 86400000).toISOString()),
   ])
 
   const activeSubs = (subs || []).filter(s => s.status === 'active')
-  const mrr = activeSubs.reduce((sum, s) => sum + (Number(s.amount_usd) || 0), 0)
+  const mrr = activeSubs.reduce((sum, s) => sum + (Number(s.amount_zar) || 0), 0)
   const creditRevenue = (creditTxMonth || [])
     .filter(tx => tx.type === 'purchase')
     .reduce((s, tx) => s + (Number(tx.amount) || 0), 0)

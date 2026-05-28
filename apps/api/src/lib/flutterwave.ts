@@ -21,7 +21,7 @@ function authHeaders(key: string): Record<string, string> {
 export interface FlutterwavePaymentParams {
   email: string
   name: string
-  amount_usd: number
+  amount: number
   currency: 'ZAR' | 'NGN' | 'KES' | 'GHS' | 'USD' | 'GBP'
   tx_ref: string
   redirect_url: string
@@ -37,7 +37,7 @@ export async function createFlutterwavePaymentLink(
   try {
     const body = {
       tx_ref: params.tx_ref,
-      amount: params.amount_usd,
+      amount: params.amount,
       currency: params.currency,
       redirect_url: params.redirect_url,
       customer: {

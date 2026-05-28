@@ -65,8 +65,8 @@ async function getAdminStats() {
     return { data: counts }
   })()
 
-  const mrrUsd = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_usd || 0), 0)
-  const mrrZar = Math.round(mrrUsd * 19)
+  const mrrZar = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_zar || 0), 0)
+  const mrrUsd = Math.round(mrrZar / 19)
 
   const firstLeadByClient: Record<string, string> = {}
   for (const row of allLeads ?? []) {

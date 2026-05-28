@@ -108,8 +108,8 @@ async function getRevStats() {
     supabase.from('clients').select('id', { count: 'exact', head: true }),
   ])
 
-  const mrrUsd = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_usd || 0), 0)
-  const mrrZar = Math.round(mrrUsd * 19)
+  const mrrZar = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_zar || 0), 0)
+  const mrrUsd = Math.round(mrrZar / 19)
   const activeCount = activeSubs?.length ?? 0
   const trialCount = trialSubs?.length ?? 0
   const blendedArpu = activeCount > 0 ? Math.round(mrrUsd / activeCount) : 0

@@ -52,7 +52,7 @@
 
 ---
 
-### 📅 SESSION DATE — 28 May 2026 (Night) — Chat-first FIGSY + auto-consent + full product audit
+### 📅 SESSION DATE — 29 May 2026 (Morning) — Design mandate + product vision locked + build queue reordered
 
 ---
 
@@ -206,6 +206,15 @@
 | **Daily Brief system** | Section 0 — living top-of-file, rewritten every session |
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
+
+#### 29 May 2026 — Design mandate + product vision locked
+| Built / Fixed | Detail |
+|---------------|--------|
+| **Onboarding FIGSY conversation committed** | `apps/portal/src/app/(auth)/onboard/page.tsx` — 4-step scripted FIGSY chat (company_name → industry → country → website). Typewriter effect, chat history bubbles, progress dots, website scan via `/icps/prefill`. Committed + pushed. |
+| **Homepage design language documented** | `get-kind.com` visual: white background, animated floating blue/lavender dots, warm gradient FIGSY card (peach→pink→lavender), no dark overlay. This is the reference for all portal pages. |
+| **Design mandate locked** | No building without founder authorisation. Describe change → wait for go. |
+| **Product philosophy locked** | Every portal section must be automated and agent-driven. Less manual input. FIGSY/agents ask, suggest, pre-fill. Learning agent mechanism moves to sooner roadmap. |
+| **Full visual audit** | AgentSidePanel (all pages except ICP Builder) uses dark `#0F0929` + dark overlay on photo → looks like a dark mugshot. ICP Builder uses white card + no overlay → warm illustrated feel. All agent panels need to match ICP Builder. |
 
 #### 28 May 2026 (Night) — Chat-first FIGSY + Auto-consent + Full Product Audit
 | Built / Fixed | Detail |
@@ -497,26 +506,59 @@
 | ✅ | Sidebar FIGSY thread section | Done — last message preview + quick-send input |
 | ✅ | Remove floating AskFigsyButton | Done |
 
-**NEXT SESSION — PRIORITY ORDER (full product audit findings):**
+**✅ COMPLETED 29 May 2026:**
+| # | Build | Status |
+|---|-------|--------|
+| ✅ G2 | Onboarding → FIGSY scripted conversation | Done — committed + pushed. 4-step chat, typewriter, chat bubbles, website scan. |
+
+**NEXT SESSION — PRIORITY ORDER (awaiting founder authorisation per build):**
+
+> 🚨 RULE: Describe every design/visual change and wait for "go" before building. Code/data/API changes can proceed but must be scoped to what was asked.
+
 | # | Build | What | Time | Impact |
 |---|-------|------|------|--------|
-| G1 | **Login page redesign** | Match portal's purple gradient. Remove "Your logo" placeholders + "(coming soon)" testimonial — these show to every visitor and destroy trust. Add password reset link. | 1h | 🔴 Critical |
-| G2 | **Onboarding → FIGSY-first** | Replace form with FIGSY chat flow. 2 fields max (email already captured). FIGSY introduces itself and collects company context conversationally. | 4h | 🔴 High |
-| G3 | **Inbox: reply from portal** | "Reply" button on each classified lead — compose, send via Resend, mark replied. Currently can only view, not respond. | 3h | 🔴 High |
-| G4 | **Real sparkline data** | Dashboard sparklines use fake percentages. Query `figsy_sent_emails` by day (last 7 days). 1 new endpoint. | 2h | 🟡 Medium |
-| G5 | **meetings_booked KPI** | Increment when reply classified `interested` OR "Mark meeting booked" button clicked. Always shows 0 currently. | 1h | 🟡 Medium |
-| G6 | **KPIs: time range filter** | Last 7 / 30 / 90 days / All time picker. One of the most-asked-for features in B2B SaaS demos. | 2h | 🟡 Medium |
-| G7 | **Knowledge base simplify** | Reduce 7 tabs → 3 sections: "About your business", "Who you target", "FIGSY's tone". Progressive disclosure. | 3h | 🟡 Medium |
-| G8 | **Consent page quality** | `/consent` page — the page leads land on when clicking the consent link — must look professional/trustworthy. Currently unknown quality. Audit and redesign. | 2h | 🟡 Medium |
-| G9 | **Consent token security** | Consent link uses lead UUID as token — trivially guessable. Replace with crypto random signed token. | 2h | 🟡 Medium |
-| G10 | **Campaign pause notification** | Silent when campaign auto-pauses for low performance. Email the client. | 1h | 🟡 Medium |
-| F1 | **Fix smoke test API failures** | `GET /leads` + `GET /figsy/kpis` returning 500 — investigate | 30 min | 🔴 High |
-| F3 | **meetings_booked = G5 above** | Merged | - | - |
-| F4 | **Live KPI numbers** | Real-time updates without refresh — polling every 30s as simplest approach | 2h | 🟡 Medium |
-| C1 | Run smoke tests | Founder runs, Claude fixes failures | <15 min | 🔴 High |
-| C5 | Scheduled report emails | Weekly digest cron already exists — wire it | 4h | 🟡 Medium |
-| C7 | Wire Calendly URL | 5 min — needs URL from T22 | 5 min | 🟢 Low |
-| C8 | Wire UK company number | 5 min — needs number from T23 | 5 min | 🟢 Low |
+| D1 | **AgentSidePanel image fix** | All agent panels: remove dark `#0F0929` bg + dark overlay from photo area. Match ICP Builder style — white card, warm image, dark identity bar only. Describe changes before building. | 30min | 🔴 Critical visual |
+| G1 | **Login page redesign** | Match portal gradient. Remove "Your logo" placeholders + "(coming soon)" testimonial. Add password reset. Animated dots (see homepage design language below). | 1h | 🔴 Trust |
+| G3 | **Inbox: reply from portal** | Reply button on each classified lead → compose (pre-filled with FIGSY draft) → send via Resend → mark replied. Currently view-only. | 3h | 🔴 Flow |
+| G4 | **Real sparkline data** | Query `figsy_sent_emails` by day (last 7 days). Replace hardcoded percentages. 1 new endpoint. | 2h | 🟡 Data |
+| G5 | **meetings_booked KPI** | Increment on `interested` reply classification + "Mark meeting booked" button. Currently always 0. | 1h | 🟡 Data |
+| G6 | **KPIs: time range filter** | 7d / 30d / 90d / All time picker. | 2h | 🟡 Demo |
+| G7 | **Knowledge base: 3 sections** | "Your business" / "Who you target" / "FIGSY's voice". Progress indicator. On-save preview: "Here's how FIGSY will open an email to [target] with this knowledge." | 3h | 🟡 UX |
+| G8+G9 | **Consent page + token security** | Audit `/consent` page quality. Redesign to be trustworthy/professional. Replace lead UUID with crypto token. | 3h | 🟡 Trust+Security |
+| G10 | **Campaign pause notification** | Email client when campaign auto-pauses. Currently silent. | 1h | 🟡 Polish |
+| G11 | **Animated dots background** | White bg + floating CSS-animated dots (light blue/lavender) on login + onboard pages — matching homepage. ~20–30 dots, `@keyframes float`, staggered delays, `opacity: 0.4`. | 30min | 🟢 Design |
+| G12 | **Empty states — FIGSY-owned** | Every empty state should have FIGSY coaching. Campaigns: "I have X leads ready. Say the word and I'll write your first sequence." Inbox: "No replies yet — campaigns usually see first replies within 48–72 hours." | 2h | 🟢 Polish |
+| F1 | **Fix smoke test API failures** | `GET /leads` + `GET /figsy/kpis` returning 500 — investigate | 30min | 🔴 High |
+| C1 | Run smoke tests | Founder runs, Claude fixes failures | <15min | 🔴 High |
+
+**⚡ LEARNING AGENT — Accelerated Roadmap:**
+
+> Founder instruction (29 May): "The learning agent mechanism is real and in our roadmap. This needs to go live sooner rather than later."
+
+| Phase | What | When |
+|-------|------|------|
+| Phase 1 (now) | FIGSY already accumulates campaign history in `figsy_memory`. `generateSequenceWithMemory` uses it. | Live |
+| Phase 2 (next) | FIGSY suggests ICP improvements based on reply patterns ("Your 'VP Sales' title is getting 22% replies — should I focus there?"). Proactive, in-panel, actionable. | Next 2 weeks |
+| Phase 3 | FIGSY auto-refines ICP after every 50 replies — writes back to ICP record, notifies client. No manual work. | Month 2 |
+| Phase 4 | Cross-client pattern learning — anonymous aggregate signals → better targeting for all clients. | Q3 |
+
+**📐 HOMEPAGE DESIGN LANGUAGE (reference for all portal pages):**
+*Source: `get-kind.com` — screenshotted 29 May 2026*
+- Background: Pure white (`#FFFFFF`) — NOT a gradient
+- Animated dots: ~20–30 floating blue/lavender circles (`#C7D2FE` / `#A5B4FC`), varying sizes (4–12px), `@keyframes float` on Y-axis ±20–40px, staggered `animation-delay`, `opacity: 0.35–0.5`, `border-radius: 50%`
+- FIGSY card: warm gradient behind her — peach/yellow → pink → lavender — `rounded-2xl`, no hard shadow, floating annotation chips
+- Typography: Bold, heavy, near-black headlines. Electric blue (#2563EB) for highlighted words.
+- Buttons: Black rounded-full pill (primary). White bordered rounded-full (secondary).
+- No dark backgrounds on content areas — clean, bright, open
+
+**🏗️ PRODUCT PHILOSOPHY — LOCKED 29 May 2026:**
+*"Every panel, every section in the portal must be connected to a data source. Nothing static. Nothing manual if an agent can automate or suggest it. FIGSY is in the room — she's working for you, coaching you, already doing the next thing before you ask."*
+
+- Every metric = real data (no hardcoded values, no fake sparklines)
+- Every empty state = FIGSY coaching (not a gray "No X yet" message)
+- Every input-heavy section = agent suggests first (ICP builder, knowledge base, campaign settings)
+- Every action that can be automated = automated (consent, scoring, follow-up)
+- The learning loop is not a Year 2 feature — it's this month
 
 **At 10+ clients:**
 | # | Build | What |
@@ -555,40 +597,28 @@
 
 ---
 
-### 📋 TODAY — STEP BY STEP (28 May 2026)
+### 📋 NEXT SESSION — STEP BY STEP (29 May 2026)
 
-> Demo Playbook is Section 35. Admin Portal Playbook is Section 36. Read both before doing anything.
+> Read Section 0 only. Tell Claude what's done. Then pick a build item from the priority queue.
 
-**Deploy (do first — 10 min):**
-1. Merge `claude/ai-business-roadmap-U3OWJ` → `main` on GitHub
-2. Check Railway build is green after merge
-3. Check Vercel portal + admin both deploy successfully
-4. Confirm `RESEND_API_KEY` is in Railway
+**When you wake up — 3 quick checks (5 min):**
+1. Check Railway deploy is green (last commit: `3cb69e0` — FIGSY onboarding conversation)
+2. Sign up with a fresh Gmail at `app.get-kind.com` → confirm you see the FIGSY chat (not the old form)
+3. Report anything broken as `Step-X — what you saw` → Claude fixes in <15 min
 
-**Before Test 1:**
-4. Create new Gmail — never used on K.I.N.D before
+**Build session start — describe + authorise:**
+- Claude will describe each visual change before touching it
+- You say go (or redirect)
+- Code/data/API work can start immediately — design changes wait for your go
 
-**Run Test 1 — Core Platform (Section 18, Steps 1–17):**
-> See also Section 35 Scene 1–6 for demo narration of each step.
+**Suggested first build (30 min):**
+- D1: Agent panel image fix — describe → wait for go → build
+- Then G1: Login redesign — describe → wait for go → build
 
-**Run Test 1 — Core Platform (Section 18, Steps 1–17):**
-> See also Section 35 Scene 1–6 for demo narration of each step.
-5. Sign up at `app.get-kind.com` with new Gmail
-6. Complete onboarding (company name, industry, country, phone, website)
-7. Confirm welcome email + POPIA notice in Gmail inbox
-8. Go to Leads → Build ICP → click "Suggest with AI" → check it pre-fills
-9. Save ICP → confirm leads start appearing
-10. Check lead scores (0–100) and reasoning visible
-11. Click one lead → Send POPIA consent → status changes to `consent_sent`
-12. Go to FIGSY in sidebar → confirm upgrade/lock screen shows (not FIGSY dashboard — you haven't unlocked)
-13. Press Cmd+K → confirm command palette opens, keyboard nav works
-14. Go to Billing → confirm credit balance visible, Stripe buy buttons show
-15. Go to Admin → confirm test client appears in client list
-16. Admin → Unibox → confirm page loads (may be empty — that's fine)
-17. Admin → grant yourself 100 credits → confirm balance updates in portal
-18. Logout → login again → confirm session persists correctly
-
-**Report failures as:** `T1-Step8 — what you saw` → I fix in <15 minutes
+**Then:**
+- G3: Inbox reply from portal (biggest live flow gap — 3h)
+- G4 + G5: Real data (sparklines + meetings_booked)
+- Learning agent Phase 2: FIGSY proactive ICP suggestions
 
 ---
 
@@ -596,12 +626,12 @@
 
 | Day | Date | Action | Owner |
 |-----|------|--------|-------|
-| Day 1 | Wed 28 May | Test 1 — Core Platform (17 steps). Fix all failures. | Both |
-| Day 2 | Thu 29 May | SQL agent unlock → grant credits → Test 2 — Agents (17 steps) | Both |
-| Day 3 | Fri 30 May | Stripe prices in Railway → stripe_subscription_id SQL → Test 3 + 4 (23 steps) | Both |
-| Day 4 | Sat 31 May | All tests green → Claude builds S4 (weekly report email) + S5 (AI Revenue OS rewrite) | Claude |
-| Day 5 | Sun 1 June | Review live. GTM prep. UK registration. First 5 client targets. Scope C10–C16. | Jacques |
-| Week 2 | 2–7 June | First paid client. FIGSY self-outreach running. Build C10 (3-type memory). | Both |
+| Day 1 | Thu 29 May | Smoke test new onboarding flow. D1 (agent panel image). G1 (login redesign). | Both |
+| Day 2 | Fri 30 May | G3 (inbox reply). G4+G5 (real data). Test 1 core platform. | Both |
+| Day 3 | Sat 31 May | Stripe prices → Test 3+4. G6 (KPI time range). Learning agent Phase 2 spec. | Both |
+| Day 4 | Sun 1 June | All tests green → G7 (knowledge base). G8+G9 (consent). Empty states. | Claude |
+| Day 5 | Mon 2 June | Review live product end-to-end. GTM prep. First 5 client outreach. | Jacques |
+| Week 2 | 3–7 June | First paid client. Learning agent Phase 2 live. C10 (3-type memory). | Both |
 
 ---
 

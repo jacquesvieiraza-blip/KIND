@@ -330,9 +330,54 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
     if (error) throw error
     if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
     res.json({ success: true, data })
+
+    // Auto-enroll all consent_given leads when campaign is activated (fire-and-forget)
+    if (body.status === 'active') {
+      ;(async () => {
+        try {
+          const { data: leads } = await db.from('leads')
+            .select('id').eq('client_id', clientId).eq('status', 'consent_given')
+          for (const lead of leads ?? []) {
+            await autoEnrollLead(lead.id, clientId)
+          }
+        } catch (e) { console.error('[figsy] auto-enroll on activation failed', e) }
+      })()
+    }
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to update campaign' })
+  }
+})
+
+// ── ENROLL ALL CONSENTED LEADS ────────────────────────────────────────────────
+figsyRouter.post('/campaigns/:id/enroll-consented', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).single()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    const { data: leads } = await db.from('leads')
+      .select('id').eq('client_id', clientId).eq('status', 'consent_given')
+
+    let enrolled = 0, skipped = 0
+    res.json({ success: true, data: { enrolled: leads?.length ?? 0, skipped: 0, message: 'Enrolling in background…' } })
+
+    // Fire-and-forget — respond immediately, enroll async
+    ;(async () => {
+      for (const lead of leads ?? []) {
+        const { data: existing } = await db.from('figsy_enrollments')
+          .select('id').eq('campaign_id', campaign.id).eq('lead_id', lead.id).maybeSingle()
+        if (existing) { skipped++; continue }
+        await autoEnrollLead(lead.id, clientId)
+        enrolled++
+      }
+      console.log(`[figsy] enroll-consented: enrolled=${enrolled} skipped=${skipped} campaign=${campaign.id}`)
+    })()
+  } catch (err) {
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to start enrollment' })
   }
 })
 

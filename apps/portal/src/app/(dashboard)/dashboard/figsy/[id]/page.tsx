@@ -279,6 +279,7 @@ export default function CampaignDetailPage() {
   const [token, setToken]       = useState('')
   const [activatingId, setActivatingId] = useState(false)
   const [sendingTest, setSendingTest]   = useState(false)
+  const [enrolling, setEnrolling]       = useState(false)
   const [activeTab, setActiveTab] = useState<'sequence' | 'audience' | 'settings'>('sequence')
 
   // Toast state
@@ -403,6 +404,22 @@ export default function CampaignDetailPage() {
     }
   }
 
+  async function enrollAllLeads() {
+    if (!token) return
+    setEnrolling(true)
+    try {
+      const res = await api.post<{ data: { enrolled: number; skipped: number } }>(
+        `/figsy/campaigns/${id}/enroll-consented`, {}, token
+      )
+      showToast(`Enrolled ${res.data.enrolled} leads — sequences generating now`)
+      const updated = await api.get<{ data: Campaign }>(`/figsy/campaigns/${id}`, token)
+      setCampaign(updated.data)
+    } catch (err) {
+      showToast((err as Error).message || 'Failed to enroll leads', 'error')
+    }
+    setEnrolling(false)
+  }
+
   async function sendTestEmail() {
     if (!token) return
     setSendingTest(true)
@@ -470,6 +487,16 @@ export default function CampaignDetailPage() {
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {campaign.status === 'active' && (
+              <button
+                onClick={enrollAllLeads}
+                disabled={enrolling}
+                className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 disabled:opacity-50 text-emerald-600 text-sm font-semibold rounded-xl border border-emerald-200 transition-colors"
+              >
+                {enrolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                Enroll Leads
+              </button>
+            )}
             <button
               onClick={sendTestEmail}
               disabled={sendingTest}

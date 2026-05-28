@@ -43,8 +43,15 @@ export function AgentSidePanel({
   const supabase = createClient()
   const [input, setInput]       = useState('')
   const [thinking, setThinking] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'assistant', content: contextMessage }
+  ])
   const threadRef               = useRef<HTMLDivElement>(null)
+
+  // When context changes (page navigation), reset to new opening message
+  useEffect(() => {
+    setMessages([{ role: 'assistant', content: contextMessage }])
+  }, [contextMessage])
 
   // Auto-scroll thread to bottom on new message
   useEffect(() => {
@@ -116,11 +123,6 @@ export function AgentSidePanel({
           </div>
         </div>
 
-        {/* Context message — shown when no conversation yet */}
-        {messages.length === 0 && (
-          <p className="text-white/70 text-xs leading-relaxed mb-3">{contextMessage}</p>
-        )}
-
         {/* Quick action chips — always visible */}
         <div className="flex flex-col gap-1.5 mb-3">
           {chips.map(chip => (
@@ -135,11 +137,10 @@ export function AgentSidePanel({
         </div>
 
         {/* Conversation thread */}
-        {messages.length > 0 && (
-          <div
-            ref={threadRef}
-            className="flex flex-col gap-2 mb-3 max-h-48 overflow-y-auto pr-0.5"
-          >
+        <div
+          ref={threadRef}
+          className="flex flex-col gap-2 mb-3 max-h-48 overflow-y-auto pr-0.5"
+        >
             {messages.map((m, i) => (
               <div
                 key={i}
@@ -163,8 +164,7 @@ export function AgentSidePanel({
                 </div>
               </div>
             )}
-          </div>
-        )}
+        </div>
 
         {/* Input */}
         <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export function AgentSidePanel({
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
-            placeholder={messages.length > 0 ? 'Reply to FIGSY…' : inputPlaceholder}
+            placeholder={messages.length > 1 ? `Reply to ${name}…` : inputPlaceholder}
             className="flex-1 text-xs bg-white/[0.08] border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-400/50"
           />
           <button
@@ -188,9 +188,9 @@ export function AgentSidePanel({
         </div>
 
         {/* Clear thread */}
-        {messages.length > 0 && (
+        {messages.length > 1 && (
           <button
-            onClick={() => setMessages([])}
+            onClick={() => setMessages([{ role: 'assistant', content: contextMessage }])}
             className="text-[10px] text-white/20 hover:text-white/40 transition-colors mt-2 w-full text-center"
           >
             Clear conversation

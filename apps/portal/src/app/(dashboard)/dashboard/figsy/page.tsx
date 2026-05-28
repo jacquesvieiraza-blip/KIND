@@ -195,7 +195,6 @@ export default function FigsyPage() {
   const [toastMsg, setToastMsg] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [hasFigsySub, setHasFigsySub] = useState(true)
-  const [hasfigsyAccess, setHasfigsyAccess] = useState<boolean | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [expandedReplies, setExpandedReplies] = useState<string | null>(null)
   const [campaignReplies, setCampaignReplies] = useState<Record<string, Reply[]>>({})
@@ -380,17 +379,6 @@ export default function FigsyPage() {
 
   useEffect(() => { loadCampaigns() }, [loadCampaigns])
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { setHasfigsyAccess(false); return }
-      api.get<{ success: boolean; data: { balance: number; transactions: { plan: string | null }[] } }>('/credits', session.access_token)
-        .then(res => {
-          const hasFigsyTx = (res.data?.transactions ?? []).some(t => t.plan === 'figsy')
-          setHasfigsyAccess(hasFigsyTx)
-        })
-        .catch(() => setHasfigsyAccess(false))
-    })
-  }, [supabase])
 
   async function loadReplies(campaignId: string) {
     try {
@@ -589,63 +577,6 @@ export default function FigsyPage() {
     )
   }
 
-  if (hasfigsyAccess === null) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <p className="text-sm text-gray-400">Loading…</p>
-    </div>
-  )
-
-  if (!hasfigsyAccess) return (
-    <div className="flex items-center justify-center min-h-[60vh] px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-[#001f4d] flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-          </div>
-          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
-            Upgrade to unlock
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">FIGSY — AI SDR</h1>
-          <p className="text-gray-500 text-sm">Autonomous outreach, follow-up and meeting booking. Your free trial includes Lead Gen. Purchase FIGSY credits to activate AI outreach.</p>
-        </div>
-        <div className="bg-gray-50 rounded-xl p-5 mb-6 space-y-3">
-          {[
-            'Personalised emails written by AI',
-            '3-step automated follow-up sequences',
-            'Reply detection and classification',
-            'Auto-books meetings in your calendar',
-          ].map(f => (
-            <div key={f} className="flex items-center gap-3 text-sm text-gray-700">
-              <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-2.5 h-2.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-              </div>
-              {f}
-            </div>
-          ))}
-        </div>
-        <div className="bg-gray-50 rounded-xl p-4 mb-5 flex justify-between items-center">
-          <div>
-            <p className="text-sm font-semibold text-gray-900">FIGSY Credits</p>
-            <p className="text-xs text-gray-500 mt-0.5">20 outreach credits — $60</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xl font-bold text-gray-900">$60</p>
-            <p className="text-xs text-gray-400">per 20 credits</p>
-          </div>
-        </div>
-        <div className="space-y-3">
-          <a href="/dashboard/billing" className="flex items-center justify-center gap-2 w-full bg-[#001f4d] hover:bg-[#002a6e] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
-            Buy FIGSY Credits →
-          </a>
-          <a href="/dashboard/billing" className="flex items-center justify-center gap-2 w-full border border-gray-200 hover:border-gray-300 rounded-xl px-6 py-3 text-sm text-gray-600 hover:text-gray-900 transition-colors">
-            Request a Demo instead
-          </a>
-        </div>
-        <p className="text-xs text-gray-400 text-center mt-4">Credits never expire · 1 credit = 1 personalised outreach sequence</p>
-      </div>
-    </div>
-  )
 
   const totalEmailsSent   = campaigns.reduce((s, c) => s + c.emails_sent, 0)
   const totalInterestedFigsy = campaigns.reduce((s, c) => s + c.replies_interested, 0)

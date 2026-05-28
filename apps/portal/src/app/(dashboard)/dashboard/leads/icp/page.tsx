@@ -5,15 +5,16 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, MessageSquare, Send, Users2, Play, Building2 } from 'lucide-react'
+import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, Send, Users2, Play, Building2 } from 'lucide-react'
+import Image from 'next/image'
 
-// ── AI Chat panel ─────────────────────────────────────────────────────────────
+// ── FIGSY AI Chat panel ────────────────────────────────────────────────────────
 function AiChatPanel({ token, onFill }: { token: string; onFill: (data: Partial<ICPFormData>) => void }) {
-  const [open, setOpen]     = useState(false)
-  const [input, setInput]   = useState('')
+  const [open, setOpen]       = useState(false)
+  const [input, setInput]     = useState('')
   const [sending, setSending] = useState(false)
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
-    { role: 'ai', text: "Hi! Describe who you want to target — industry, role, company size, location — and I'll build your ICP automatically." }
+    { role: 'ai', text: "Hi! I'm FIGSY — describe who you want to target and I'll build your ICP automatically. Try: \"SaaS founders in South Africa with 10–200 employees\"." }
   ])
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -32,44 +33,66 @@ function AiChatPanel({ token, onFill }: { token: string; onFill: (data: Partial<
       const { message, ...icpFields } = res.data
       const hasFields = Object.values(icpFields).some(v => Array.isArray(v) ? v.length > 0 : !!v)
       if (hasFields) onFill(icpFields)
-      setMessages(prev => [...prev, { role: 'ai', text: message || (hasFields ? "I've filled in your ICP form — review it on the right and adjust anything you need." : "Tell me more about your target customers and I'll fill the form for you.") }])
+      setMessages(prev => [...prev, { role: 'ai', text: message || (hasFields ? "Done — I've filled in your ICP form. Review it and adjust anything you need, then save." : "Tell me more about your target customers and I'll fill the form for you.") }])
     } catch {
-      setMessages(prev => [...prev, { role: 'ai', text: "Sorry, couldn't connect — try again in a moment." }])
+      setMessages(prev => [...prev, { role: 'ai', text: "Sorry, couldn't connect right now — try again in a moment." }])
     }
     setSending(false)
   }
 
   return (
-    <div className="fixed bottom-24 right-6 z-40">
+    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
       {open && (
-        <div className="w-80 bg-white rounded-2xl shadow-2xl border border-purple-100/60 flex flex-col overflow-hidden mb-3" style={{ height: 380 }}>
-          <div className="bg-[#7C3AED] px-4 py-3 flex items-center justify-between shrink-0">
-            <div>
-              <p className="text-white font-semibold text-sm">AI ICP Builder</p>
-              <p className="text-white/60 text-xs">Describe your target — I'll fill the form</p>
+        <div className="w-[340px] bg-white rounded-2xl shadow-2xl border border-purple-100/60 flex flex-col overflow-hidden" style={{ height: 420 }}>
+          {/* FIGSY header */}
+          <div className="bg-[#0F0929] px-4 py-3 flex items-center gap-3 shrink-0">
+            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#7C3AED] shrink-0">
+              <Image src="/agents/figsy.png" alt="FIGSY" width={36} height={36} className="object-cover object-top w-full h-full" />
             </div>
-            <button onClick={() => setOpen(false)} className="p-1 hover:bg-white/10 rounded transition-colors">
-              <X className="w-4 h-4 text-white" />
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-bold text-sm leading-tight">FIGSY</p>
+              <p className="text-[#9B8EC4] text-[11px]">AI SDR · ICP Builder</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] text-emerald-400 font-medium">Online</span>
+            </div>
+            <button onClick={() => setOpen(false)} className="p-1 hover:bg-white/10 rounded transition-colors ml-1">
+              <X className="w-4 h-4 text-white/60" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-[#FAFAFA]">
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                  m.role === 'user' ? 'bg-[#7C3AED] text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+              <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {m.role === 'ai' && (
+                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 mt-0.5 border border-purple-100">
+                    <Image src="/agents/figsy.png" alt="FIGSY" width={24} height={24} className="object-cover object-top w-full h-full" />
+                  </div>
+                )}
+                <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                  m.role === 'user'
+                    ? 'bg-[#7C3AED] text-white rounded-br-sm'
+                    : 'bg-white text-gray-800 rounded-bl-sm border border-purple-100/60 shadow-sm'
                 }`}>{m.text}</div>
               </div>
             ))}
             {sending && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+              <div className="flex gap-2 justify-start">
+                <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 mt-0.5 border border-purple-100">
+                  <Image src="/agents/figsy.png" alt="FIGSY" width={24} height={24} className="object-cover object-top w-full h-full" />
+                </div>
+                <div className="bg-white rounded-2xl rounded-bl-sm px-3.5 py-2.5 border border-purple-100/60 shadow-sm">
                   <Loader2 className="w-4 h-4 text-[#9B8EC4] animate-spin" />
                 </div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
-          <div className="px-3 py-3 border-t border-purple-100/60 flex gap-2 items-center shrink-0">
+
+          {/* Input */}
+          <div className="px-3 py-3 border-t border-purple-100/60 flex gap-2 items-center shrink-0 bg-white">
             <input value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               placeholder="e.g. SaaS CTOs in South Africa…"
@@ -81,10 +104,25 @@ function AiChatPanel({ token, onFill }: { token: string; onFill: (data: Partial<
           </div>
         </div>
       )}
-      <button onClick={() => setOpen(v => !v)}
-        className="w-14 h-14 bg-[#7C3AED] hover:bg-[#6D28D9] shadow-lg rounded-full flex items-center justify-center transition-all duration-200 relative">
-        {open ? <X className="w-5 h-5 text-white" /> : <MessageSquare className="w-5 h-5 text-white" />}
-        {!open && <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse" />}
+
+      {/* FAB — FIGSY avatar + label */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2.5 bg-[#0F0929] hover:bg-[#1a0f40] text-white pl-1.5 pr-4 py-1.5 rounded-full shadow-lg transition-all duration-200 group"
+      >
+        <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#7C3AED] shrink-0">
+          {open
+            ? <div className="w-full h-full bg-[#7C3AED] flex items-center justify-center"><X className="w-4 h-4 text-white" /></div>
+            : <Image src="/agents/figsy.png" alt="FIGSY" width={36} height={36} className="object-cover object-top w-full h-full" />
+          }
+        </div>
+        {!open && (
+          <div className="text-left">
+            <p className="text-xs font-bold leading-tight">Ask FIGSY</p>
+            <p className="text-[10px] text-[#9B8EC4] leading-tight">Build my ICP</p>
+          </div>
+        )}
+        {!open && <span className="absolute top-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#0F0929] animate-pulse" />}
       </button>
     </div>
   )

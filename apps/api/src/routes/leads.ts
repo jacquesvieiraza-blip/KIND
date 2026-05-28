@@ -43,7 +43,7 @@ leadRouter.post('/public/consent', async (req, res) => {
       // Fire-and-forget CRM push
       if (lead.email) {
         const { data: client } = await db.from('clients')
-          .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).single()
+          .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).maybeSingle()
         if (client?.crm_sync_enabled && client?.crm_type && client?.crm_api_key) {
           const { pushToCrm } = await import('../lib/crm')
           pushToCrm(client.crm_type as any, client.crm_api_key, lead as any).catch(console.error)
@@ -82,7 +82,7 @@ leadRouter.use(requireAuth)
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 async function getClientId(userId: string): Promise<string | null> {
-  const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
+  const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return data?.id ?? null
 }
 

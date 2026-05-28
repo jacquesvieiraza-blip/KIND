@@ -10,7 +10,7 @@ export const millaRouter = Router()
 millaRouter.use(requireAuth)
 
 async function getClientId(userId: string): Promise<string | null> {
-  const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
+  const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return data?.id ?? null
 }
 

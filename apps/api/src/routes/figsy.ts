@@ -88,7 +88,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
 
       if (enrollment?.campaign_id) {
         const { data: camp } = await db.from('figsy_campaigns')
-          .select('opted_out, replies_total').eq('id', enrollment.campaign_id).single()
+          .select('opted_out, replies_total').eq('id', enrollment.campaign_id).maybeSingle()
         if (camp) {
           await db.from('figsy_campaigns').update({
             opted_out:    (camp.opted_out    ?? 0) + 1,
@@ -104,7 +104,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         .update({ status: 'replied' }).eq('id', enrollment.id)
 
       const { data: camp } = await db.from('figsy_campaigns')
-        .select('replies_interested, replies_total').eq('id', enrollment.campaign_id).single()
+        .select('replies_interested, replies_total').eq('id', enrollment.campaign_id).maybeSingle()
       if (camp) {
         await db.from('figsy_campaigns').update({
           replies_interested: (camp.replies_interested ?? 0) + 1,
@@ -115,9 +115,9 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       // F2-2 — push deal/opportunity to client's CRM
       const { data: leadFull } = await db.from('leads')
         .select('id, first_name, last_name, email, job_title, company, linkedin_url, country, score')
-        .eq('id', lead.id).single()
+        .eq('id', lead.id).maybeSingle()
       const { data: client } = await db.from('clients')
-        .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).single()
+        .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).maybeSingle()
 
       if (client?.crm_sync_enabled && client?.crm_type && client?.crm_api_key && leadFull) {
         const leadName = `${leadFull.first_name} ${leadFull.last_name}`.trim()
@@ -151,7 +151,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       try {
         const { data: clientForTopup } = await db.from('clients')
           .select('id, user_id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
-          .eq('id', lead.client_id).single()
+          .eq('id', lead.client_id).maybeSingle()
         if (clientForTopup?.auto_topup_enabled &&
             clientForTopup.auto_topup_paystack_auth &&
             (clientForTopup.credit_balance ?? 0) < (clientForTopup.auto_topup_threshold ?? 0)) {
@@ -207,7 +207,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
 figsyRouter.use(requireAuth)
 
 async function getClientId(userId: string): Promise<string | null> {
-  const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
+  const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return data?.id ?? null
 }
 
@@ -331,7 +331,7 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
 
     if (Object.keys(settingsUpdate).length > 0) {
       const { data: existing } = await db.from('figsy_campaigns')
-        .select('settings').eq('id', req.params.id).eq('client_id', clientId).single()
+        .select('settings').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
       dbUpdate.settings = { ...(existing?.settings ?? {}), ...settingsUpdate }
     }
 
@@ -366,7 +366,7 @@ figsyRouter.post('/campaigns/:id/enroll-consented', async (req: AuthRequest, res
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).single()
+      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     const { data: leads } = await db.from('leads')
@@ -532,7 +532,7 @@ figsyRouter.get('/campaigns/:id/enrollments', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id').eq('id', req.params.id).eq('client_id', clientId).single()
+      .select('id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
     const { data, error } = await db.from('figsy_enrollments')
       .select('*, leads(first_name,last_name,email,job_title,company,score)')
@@ -553,11 +553,11 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).single()
+      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).single()
+      .select('company_name, industry').eq('id', clientId).maybeSingle()
 
     const { data: leads } = await db.from('leads')
       .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
@@ -600,7 +600,7 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
 
     // Bump enrolled count on campaign
     const { data: camp } = await db.from('figsy_campaigns')
-      .select('leads_enrolled').eq('id', campaign.id).single()
+      .select('leads_enrolled').eq('id', campaign.id).maybeSingle()
     if (camp && enrolled > 0) {
       await db.from('figsy_campaigns')
         .update({ leads_enrolled: (camp.leads_enrolled ?? 0) + enrolled })
@@ -623,11 +623,11 @@ figsyRouter.post('/campaigns/:id/preview-sequence', async (req: AuthRequest, res
 
     const { data: lead } = await db.from('leads')
       .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
-      .eq('id', lead_id).eq('client_id', clientId).single()
+      .eq('id', lead_id).eq('client_id', clientId).maybeSingle()
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).single()
+      .select('company_name, industry').eq('id', clientId).maybeSingle()
 
     const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null)
     res.json({ success: true, data: draft })
@@ -644,11 +644,11 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: campaign } = await db.from('figsy_campaigns')
-      .select('*').eq('id', req.params.id).eq('client_id', clientId).single()
+      .select('*').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).single()
+      .select('company_name, industry').eq('id', clientId).maybeSingle()
 
     // Get sender's own email from auth
     const { data: { user } } = await db.auth.admin.getUserById(req.userId!)
@@ -734,7 +734,7 @@ figsyRouter.get('/campaigns/:id/replies', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id').eq('id', req.params.id).eq('client_id', clientId).single()
+      .select('id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
     const { data, error } = await db.from('figsy_replies')
       .select('*').eq('campaign_id', req.params.id).order('received_at', { ascending: false })
@@ -753,15 +753,15 @@ figsyRouter.post('/replies/:id/draft-followup', async (req: AuthRequest, res) =>
       .select('id, body, from_email, classification, lead_id')
       .eq('id', req.params.id)
       .eq('client_id', clientId)
-      .single()
+      .maybeSingle()
     if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
 
     const { data: lead } = await db.from('leads')
       .select('first_name, last_name, job_title, company')
-      .eq('id', reply.lead_id).single()
+      .eq('id', reply.lead_id).maybeSingle()
 
     const { data: client } = await db.from('clients')
-      .select('company_name').eq('id', clientId).single()
+      .select('company_name').eq('id', clientId).maybeSingle()
 
     const Anthropic = (await import('@anthropic-ai/sdk')).default
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -805,7 +805,7 @@ figsyRouter.post('/replies/:replyId/suggest', async (req: AuthRequest, res) => {
       .select('id, body, classification, leads(first_name, last_name, job_title, company)')
       .eq('id', req.params.replyId)
       .eq('client_id', clientId)
-      .single()
+      .maybeSingle()
     if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
 
     if (reply.classification !== 'hot' && reply.classification !== 'interested') {
@@ -860,7 +860,7 @@ figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
       .select('id, from_email, subject, lead_id, client_id')
       .eq('id', req.params.id)
       .eq('client_id', clientId)
-      .single()
+      .maybeSingle()
 
     if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
 
@@ -1050,7 +1050,7 @@ figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) =
       .select('tech_stack, industry, score_reasoning, company')
       .eq('id', req.params.leadId)
       .eq('client_id', clientId)
-      .single()
+      .maybeSingle()
 
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 
@@ -1082,7 +1082,7 @@ figsyRouter.post('/chat', async (req: AuthRequest, res) => {
     let clientContext = ''
     if (clientId) {
       const { data: client } = await db.from('clients')
-        .select('company_name, industry, credit_balance').eq('id', clientId).single()
+        .select('company_name, industry, credit_balance').eq('id', clientId).maybeSingle()
       const { data: icps } = await db.from('icps')
         .select('name, industries, job_titles, geographies').eq('client_id', clientId).limit(3)
       if (client) {

@@ -13,7 +13,7 @@ export const vidaRouter = Router()
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function getClientId(userId: string): Promise<string | null> {
-  const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
+  const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return (data as any)?.id ?? null
 }
 

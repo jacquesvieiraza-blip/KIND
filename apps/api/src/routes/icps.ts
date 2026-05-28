@@ -56,7 +56,7 @@ const icpSchema = z.object({
 })
 
 async function getClientId(userId: string): Promise<string | null> {
-  const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
+  const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return data?.id ?? null
 }
 
@@ -170,7 +170,7 @@ export async function runIcpJob(
 
       if (clientRow.referred_by) {
         const { data: referrer } = await db.from('clients')
-          .select('id, credit_balance').eq('id', clientRow.referred_by).single()
+          .select('id, credit_balance').eq('id', clientRow.referred_by).maybeSingle()
         if (referrer) {
           await db.from('clients')
             .update({ credit_balance: (referrer.credit_balance ?? 0) + 100 })

@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
-import { AskFigsyButton } from '@/components/ui/AskFigsyButton'
 import { CommandPalette } from '@/components/ui/CommandPalette'
 import { AgentColumn } from './AgentColumn'
 
@@ -55,6 +54,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
   } catch { }
 
+  const isNewUser = leadCount === 0
+
   return (
     <div className="flex h-screen" style={{ background: 'linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%)' }}>
       <Sidebar
@@ -63,6 +64,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         hasFigsy={hasFigsy}
         hasMilla={hasMilla}
         hasVida={hasVida}
+        isNewUser={isNewUser}
       />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
         <TrialExpiredOverlay expired={trialExpired} />
@@ -73,6 +75,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             hasVida={hasVida}
             leadCount={leadCount}
             creditBalance={creditBalance}
+            isNewUser={isNewUser}
           />
           <div className="flex-1 min-w-0 space-y-4">
             <LowCreditsNotice balance={creditBalance} />
@@ -80,7 +83,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </div>
       </main>
-      <AskFigsyButton hasFigsy={hasFigsy} />
       <CommandPalette />
     </div>
   )

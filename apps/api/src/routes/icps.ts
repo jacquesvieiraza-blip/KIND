@@ -5,7 +5,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
-import { sendFirstLeadsReadyEmail } from '../lib/email'
+import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 
@@ -13,6 +13,35 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export const icpRouter = Router()
 icpRouter.use(requireAuth)
+
+// After scoring completes, auto-send consent to leads scored >= 60 that have email + haven't been contacted
+async function autoConsentScoredLeads(leadIds: string[], companyName: string): Promise<void> {
+  try {
+    const { data: leads } = await db.from('leads')
+      .select('id, first_name, email, status, score')
+      .in('id', leadIds)
+      .gte('score', 60)
+      .eq('status', 'scored')
+      .not('email', 'is', null)
+
+    if (!leads?.length) return
+
+    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
+    await Promise.allSettled(
+      leads.map(async (lead) => {
+        const optOutUrl = `${portalUrl}/consent?lead=${lead.id}&token=${lead.id}`
+        await sendConsentEmail(lead.email!, lead.first_name, companyName, optOutUrl)
+        await db.from('leads').update({
+          status: 'consent_sent',
+          consent_sent_at: new Date().toISOString(),
+        }).eq('id', lead.id)
+      })
+    )
+    console.log(`[auto-consent] sent to ${leads.length} scored leads`)
+  } catch (err) {
+    console.error('[auto-consent] failed:', err)
+  }
+}
 
 const icpSchema = z.object({
   name:                  z.string().min(1),
@@ -109,7 +138,9 @@ export async function runIcpJob(
       .select('id, company_name, referred_by, first_icp_run_at, credit_balance')
       .eq('id', clientId).single()
 
-    scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '').catch(console.error)
+    scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '')
+      .then(() => autoConsentScoredLeads(insertedIds, clientRow?.company_name ?? ''))
+      .catch(console.error)
 
     // S5 — FIGSY auto-start: enroll all scored leads (POPIA legitimate interest — no consent gate needed)
     // If client has no active FIGSY campaign, send Lead Gen Pro Day 1 outreach instead

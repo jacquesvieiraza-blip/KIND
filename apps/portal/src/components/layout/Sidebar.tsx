@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
-  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
+  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook, Send,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 import { DarkModeToggle } from '@/components/ui/DarkModeToggle'
@@ -109,12 +109,14 @@ export function Sidebar({
   hasFigsy = false,
   hasMilla = false,
   hasVida  = false,
+  isNewUser = false,
 }: {
   userEmail: string
   creditBalance?: number
   hasFigsy?: boolean
   hasMilla?: boolean
   hasVida?: boolean
+  isNewUser?: boolean
 }) {
   const pathname = usePathname()
   const router   = useRouter()
@@ -123,6 +125,20 @@ export function Sidebar({
   const [activeId, setActiveId] = useState<AgentId>('figsy')
   const [open, setOpen]         = useState(false)
   const [unreadCount, setUnreadCount] = React.useState(0)
+  const [figsyPreview, setFigsyPreview] = React.useState<string>('')
+  const [figsyInput,   setFigsyInput]   = React.useState('')
+
+  // Load last FIGSY message for sidebar preview
+  React.useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('kind_figsy_thread_v1')
+      if (stored) {
+        const msgs: Array<{ role: string; content: string }> = JSON.parse(stored)
+        const last = [...msgs].reverse().find(m => m.role === 'assistant')
+        if (last?.content) setFigsyPreview(last.content.slice(0, 52) + (last.content.length > 52 ? '…' : ''))
+      }
+    } catch {}
+  }, [])
 
   const isUnlocked = (id: AgentId) => id === 'figsy' ? hasFigsy : id === 'milla' ? hasMilla : hasVida
   const agent = AGENTS.find(a => a.id === activeId)!
@@ -327,6 +343,62 @@ export function Sidebar({
               </Link>
             )
           })}
+        </div>
+
+        {/* ── FIGSY persistent thread ──────────────────────────────── */}
+        <div className="!mt-4 border-t border-white/[0.06] !pt-3">
+          <p className="text-[10px] text-purple-400/40 px-3 pb-2 font-semibold uppercase tracking-wider">
+            FIGSY
+          </p>
+          <div className="rounded-xl bg-white/[0.05] border border-white/[0.08] overflow-hidden">
+            {/* Thread preview — tappable to navigate to FIGSY */}
+            <Link
+              href="/dashboard/figsy"
+              className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-white/[0.04] transition-colors"
+            >
+              <div className="relative shrink-0">
+                <div className="w-7 h-7 rounded-lg overflow-hidden ring-1 ring-[#7C3AED]/30">
+                  <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border-[1.5px] border-[#160D3D] animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-[11px] font-semibold leading-tight">
+                  {isNewUser ? "Let's find your first leads" : 'Ask me anything'}
+                </p>
+                <p className="text-purple-300/40 text-[10px] truncate leading-tight mt-0.5">
+                  {figsyPreview || (isNewUser ? 'Tap to start setup →' : 'Online · ready')}
+                </p>
+              </div>
+            </Link>
+            {/* Quick-send input */}
+            <div className="flex items-center gap-1.5 px-2 pb-2">
+              <input
+                value={figsyInput}
+                onChange={e => setFigsyInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && figsyInput.trim()) {
+                    router.push(`/dashboard/leads/icp?figsy=${encodeURIComponent(figsyInput.trim())}`)
+                    setFigsyInput('')
+                  }
+                }}
+                placeholder="Ask FIGSY…"
+                className="flex-1 text-[11px] bg-white/[0.07] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white placeholder-purple-300/30 focus:outline-none focus:border-[#7C3AED]/40"
+              />
+              <button
+                onClick={() => {
+                  if (figsyInput.trim()) {
+                    router.push(`/dashboard/leads/icp?figsy=${encodeURIComponent(figsyInput.trim())}`)
+                    setFigsyInput('')
+                  }
+                }}
+                className="w-6 h-6 bg-[#7C3AED]/70 hover:bg-[#7C3AED] disabled:opacity-30 rounded-md flex items-center justify-center transition-colors shrink-0"
+                disabled={!figsyInput.trim()}
+              >
+                <Send className="w-3 h-3 text-white" />
+              </button>
+            </div>
+          </div>
         </div>
 
       </nav>

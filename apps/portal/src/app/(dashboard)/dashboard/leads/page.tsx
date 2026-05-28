@@ -424,6 +424,17 @@ export default function LeadsPage() {
     try {
       await api.patch(`/leads/${leadId}/status`, { status }, token)
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l))
+
+      // Auto-fire consent email when a lead is manually approved (scored → consent_sent)
+      if (status === 'consent_sent') {
+        try {
+          await api.post(`/leads/${leadId}/consent`, {}, token)
+          showToast('Consent email sent automatically ✓')
+        } catch {
+          // Consent send failed but status is already updated — show hint
+          showToast('Status updated. Consent email could not be sent — try manually.', 'error')
+        }
+      }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to update status', 'error')
     }

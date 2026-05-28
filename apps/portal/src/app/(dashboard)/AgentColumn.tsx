@@ -9,9 +9,10 @@ interface Props {
   hasVida: boolean
   leadCount: number
   creditBalance: number
+  isNewUser?: boolean
 }
 
-export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBalance }: Props) {
+export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBalance, isNewUser = false }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
 
@@ -173,6 +174,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
         onSend={msg => router.push(`/dashboard/leads/icp?figsy=${encodeURIComponent(msg)}`)}
         inputPlaceholder="Ask FIGSY anything…"
         online={hasFigsy}
+        isNewUser={isNewUser}
       />
     </div>
   )

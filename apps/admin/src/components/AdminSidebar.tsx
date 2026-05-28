@@ -45,6 +45,7 @@ const SECTIONS = [
       { href: '/terms-library', label: 'Terms',       icon: FileText },
       { href: '/launch',        label: 'Launch',      icon: Rocket },
       { href: '/founder',       label: 'Founder',     icon: UserSquare2 },
+      { href: '/seed',          label: 'Seed Leads',  icon: Users },
     ],
   },
 ]

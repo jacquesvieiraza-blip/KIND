@@ -105,52 +105,45 @@ export default function WebhooksPage() {
   }
 
   return (
-    <div className="px-6 py-8 max-w-3xl mx-auto space-y-8">
+    <div className="space-y-6">
 
       {/* ── Page header ──────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/15 flex items-center justify-center shrink-0">
-          <Webhook className="w-5 h-5 text-[#7C3AED]" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Webhook Triggers</h1>
-          <p className="text-purple-300/60 text-sm mt-0.5">
-            Fire a webhook to automatically enrol a lead in a FIGSY campaign — useful for CRM events, form submissions, or Zapier.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold text-gray-900">Webhook Triggers</h1>
+        <p className="text-sm text-[#7B6FA0] mt-1">Enrol any external lead directly into a FIGSY campaign via a simple HTTP request.</p>
       </div>
 
       {/* ── Endpoint card ────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-white/[0.10] bg-white/[0.04] overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/[0.07]">
-          <p className="text-xs font-semibold text-purple-300/50 uppercase tracking-widest">Endpoint</p>
-          <div className="mt-2 flex items-center gap-3">
-            <span className="shrink-0 text-[11px] font-bold bg-[#7C3AED]/20 text-[#A78BFA] px-2 py-0.5 rounded font-mono">POST</span>
-            <code className="text-sm text-purple-100 font-mono break-all flex-1">{ENDPOINT}</code>
+      <div className="rounded-2xl bg-white border border-purple-100/60 shadow-sm overflow-hidden">
+        <div className="border-b border-purple-100/60 px-5 py-4">
+          <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-widest">Endpoint</p>
+          <div className="mt-2 flex items-center gap-3 bg-[#F5F0FF] border border-purple-200 rounded-xl px-4 py-3">
+            <span className="shrink-0 text-[11px] font-bold bg-[#7C3AED] text-white px-2 py-0.5 rounded font-mono">POST</span>
+            <code className="text-sm text-gray-800 font-mono break-all flex-1">{ENDPOINT}</code>
             <button
               onClick={copyEndpoint}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-[#7C3AED]/20 text-[#A78BFA] hover:bg-[#7C3AED]/35"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-colors"
             >
               {copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? 'Copied!' : 'Copy endpoint'}
+              {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
         </div>
 
         {/* Request body */}
-        <div className="px-5 py-4 border-b border-white/[0.07]">
-          <p className="text-xs font-semibold text-purple-300/50 uppercase tracking-widest mb-3">Request Body</p>
-          <pre className="bg-black/30 rounded-xl p-4 text-sm text-emerald-300 font-mono overflow-x-auto whitespace-pre leading-relaxed">
+        <div className="px-5 py-4 border-b border-purple-100/60">
+          <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-widest mb-3">Request Body</p>
+          <pre className="bg-gray-50 border border-purple-100/60 rounded-xl p-4 text-sm text-gray-700 font-mono overflow-x-auto whitespace-pre leading-relaxed">
             {REQUEST_BODY_EXAMPLE}
           </pre>
         </div>
 
         {/* Auth */}
         <div className="px-5 py-4">
-          <p className="text-xs font-semibold text-purple-300/50 uppercase tracking-widest mb-3">Authentication</p>
-          <p className="text-sm text-purple-200/70">
+          <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-widest mb-3">Authentication</p>
+          <p className="text-sm text-gray-600">
             Include your API key as:{' '}
-            <code className="bg-white/[0.07] text-purple-200 px-2 py-0.5 rounded font-mono text-xs">
+            <code className="bg-[#F5F0FF] text-[#7C3AED] px-2 py-0.5 rounded font-mono text-xs">
               Authorization: Bearer YOUR_API_KEY
             </code>
           </p>
@@ -158,67 +151,67 @@ export default function WebhooksPage() {
       </div>
 
       {/* ── Test webhook ─────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-white/[0.10] bg-white/[0.04] overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/[0.07]">
-          <p className="text-xs font-semibold text-purple-300/50 uppercase tracking-widest">Test Webhook</p>
-          <p className="text-sm text-purple-200/50 mt-1">Send a live test enrolment to verify your setup.</p>
+      <div className="rounded-2xl bg-white border border-purple-100/60 shadow-sm overflow-hidden">
+        <div className="border-b border-purple-100/60 px-5 py-4">
+          <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-widest">Test Webhook</p>
+          <p className="text-sm text-gray-500 mt-1">Send a live test enrolment to verify your setup.</p>
         </div>
 
         <form onSubmit={sendTest} className="px-5 py-5 space-y-4">
           {/* Campaign selector */}
           <div>
-            <label className="block text-xs font-medium text-purple-300/60 mb-1.5">Campaign</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Campaign</label>
             {loadingCampaigns ? (
-              <div className="h-10 rounded-lg bg-white/[0.06] animate-pulse" />
+              <div className="h-10 rounded-lg bg-gray-100 animate-pulse" />
             ) : campaigns.length === 0 ? (
-              <p className="text-xs text-purple-300/40 italic">No campaigns found. Create one first.</p>
+              <p className="text-xs text-gray-400 italic">No campaigns found. Create one first.</p>
             ) : (
               <div className="relative">
                 <select
                   value={testCampaignId}
                   onChange={e => setTestCampaignId(e.target.value)}
                   required
-                  className="w-full appearance-none bg-white/[0.06] border border-white/[0.10] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50 pr-9"
+                  className="w-full appearance-none bg-gray-50 border border-purple-100/60 text-gray-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50 pr-9"
                 >
                   {campaigns.map(c => (
-                    <option key={c.id} value={c.id} className="bg-[#1E1152] text-white">
+                    <option key={c.id} value={c.id} className="bg-white">
                       {c.name}
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-300/40 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
             )}
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-medium text-purple-300/60 mb-1.5">Email</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Email</label>
             <input
               type="email"
               value={testEmail}
               onChange={e => setTestEmail(e.target.value)}
               placeholder="lead@example.com"
               required
-              className="w-full bg-white/[0.06] border border-white/[0.10] rounded-lg px-3 py-2.5 text-sm text-white placeholder-purple-300/30 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50"
+              className="w-full bg-gray-50 border border-purple-100/60 text-gray-800 placeholder-gray-400 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50"
             />
           </div>
 
           {/* First name */}
           <div>
-            <label className="block text-xs font-medium text-purple-300/60 mb-1.5">First name <span className="text-purple-300/30 font-normal">(optional)</span></label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">First name <span className="text-gray-400 font-normal">(optional)</span></label>
             <input
               type="text"
               value={testFirstName}
               onChange={e => setTestFirstName(e.target.value)}
               placeholder="Alex"
-              className="w-full bg-white/[0.06] border border-white/[0.10] rounded-lg px-3 py-2.5 text-sm text-white placeholder-purple-300/30 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50"
+              className="w-full bg-gray-50 border border-purple-100/60 text-gray-800 placeholder-gray-400 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50"
             />
           </div>
 
           {/* Result */}
           {result && (
-            <div className={`rounded-lg px-4 py-3 text-sm font-medium ${result.ok ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20' : 'bg-red-400/10 text-red-300 border border-red-400/20'}`}>
+            <div className={`rounded-lg px-4 py-3 text-sm font-medium ${result.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
               {result.message}
             </div>
           )}

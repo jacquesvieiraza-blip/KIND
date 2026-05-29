@@ -83,6 +83,39 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
 }
 
+function MarkBookedButton({ replyId, token }: { replyId: string; token: string }) {
+  const [booked, setBooked] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function markBooked() {
+    setLoading(true)
+    try {
+      await api.post(`/figsy/replies/${replyId}/mark-booked`, {}, token)
+      setBooked(true)
+    } catch { /* silent */ }
+    setLoading(false)
+  }
+
+  if (booked) {
+    return (
+      <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
+        <Calendar className="w-4 h-4" /> Meeting booked ✓
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={markBooked}
+      disabled={loading}
+      className="mb-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border-2 border-green-300 text-green-700 bg-green-50 hover:bg-green-100 font-semibold text-sm transition-colors disabled:opacity-50"
+    >
+      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+      Mark as Booked
+    </button>
+  )
+}
+
 function AISuggestionPanel({
   replyId, token, reply
 }: {
@@ -94,6 +127,9 @@ function AISuggestionPanel({
   const [suggestion, setSuggestion] = useState('')
   const [used, setUsed]             = useState(false)
   const [copied, setCopied]         = useState(false)
+  const [sending, setSending]       = useState(false)
+  const [sent, setSent]             = useState(false)
+  const [sendError, setSendError]   = useState('')
 
   async function fetchSuggestion() {
     setLoading(true)
@@ -112,6 +148,20 @@ function AISuggestionPanel({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
+  }
+
+  async function sendReply() {
+    setSending(true)
+    setSendError('')
+    try {
+      await api.post<{ data: { sent: boolean } }>(
+        `/figsy/replies/${replyId}/send-reply`, { body: suggestion }, token
+      )
+      setSent(true)
+    } catch {
+      setSendError('Failed to send — check Resend is configured')
+    }
+    setSending(false)
   }
 
   return (
@@ -139,28 +189,51 @@ function AISuggestionPanel({
           <textarea
             value={suggestion}
             onChange={e => setSuggestion(e.target.value)}
+            disabled={sent}
             rows={5}
-            className="w-full text-sm text-gray-800 border border-purple-200 bg-[#F5F0FF]/30 rounded-xl px-3 py-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-purple-300 leading-relaxed"
+            className="w-full text-sm text-gray-800 border border-purple-200 bg-[#F5F0FF]/30 rounded-xl px-3 py-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-purple-300 leading-relaxed disabled:opacity-60 disabled:cursor-not-allowed"
           />
-          <div className="flex gap-2">
-            <button
-              onClick={copyToClipboard}
-              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white transition-colors"
-            >
-              {copied ? (
-                <><Check className="w-3.5 h-3.5 text-green-400" /> Copied!</>
-              ) : (
-                <><Copy className="w-3.5 h-3.5" /> Copy to clipboard</>
+          {sent ? (
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
+              <Check className="w-3.5 h-3.5" /> Reply sent
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <button
+                  onClick={copyToClipboard}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white transition-colors"
+                >
+                  {copied ? (
+                    <><Check className="w-3.5 h-3.5 text-green-400" /> Copied!</>
+                  ) : (
+                    <><Copy className="w-3.5 h-3.5" /> Copy to clipboard</>
+                  )}
+                </button>
+                <button
+                  onClick={sendReply}
+                  disabled={sending}
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                >
+                  {sending ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending…</>
+                  ) : (
+                    <><Send className="w-3.5 h-3.5" /> Send Reply</>
+                  )}
+                </button>
+                <button
+                  onClick={fetchSuggestion}
+                  disabled={loading}
+                  className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-600 disabled:opacity-50 transition-colors flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" /> Regenerate
+                </button>
+              </div>
+              {sendError && (
+                <p className="text-xs text-red-600 mt-1">{sendError}</p>
               )}
-            </button>
-            <button
-              onClick={fetchSuggestion}
-              disabled={loading}
-              className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-600 disabled:opacity-50 transition-colors flex items-center gap-1"
-            >
-              <RefreshCw className="w-3 h-3" /> Regenerate
-            </button>
-          </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -270,8 +343,24 @@ export default function FigsyRepliesPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 px-6 text-[#9B8EC4]">
-              <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-medium">No replies here</p>
+              {filter === 'all' ? (
+                <>
+                  <img src="/agents/figsy.png" className="w-10 h-10 rounded-full object-cover object-top ring-2 ring-purple-100 mx-auto mb-3" alt="FIGSY" />
+                  <p className="text-sm font-medium text-gray-700">No replies yet</p>
+                  <p className="text-xs mt-1 leading-relaxed max-w-[200px] mx-auto">Campaigns usually see first replies within 48–72 hours. I&apos;ll notify you the moment someone responds.</p>
+                </>
+              ) : filter === 'hot' ? (
+                <>
+                  <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium text-gray-700">No booked meetings yet — but I&apos;m working on it</p>
+                  <p className="text-xs mt-1">Every hot reply I flag will appear here.</p>
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium">Nothing in this folder right now.</p>
+                </>
+              )}
             </div>
           ) : (
             filtered.map(reply => {
@@ -411,6 +500,11 @@ export default function FigsyRepliesPage() {
                 <p className="text-[11px] font-semibold text-[#9B8EC4] uppercase tracking-wider mb-1">FIGSY AI Analysis</p>
                 <p className="text-xs text-[#7B6FA0] leading-relaxed italic">{selected.classification_reasoning}</p>
               </div>
+            )}
+
+            {/* Mark as Booked — show for hot/interested replies */}
+            {(selected.classification === 'hot' || selected.classification === 'interested') && token && (
+              <MarkBookedButton replyId={selected.id} token={token} />
             )}
 
             {/* Reply assist — show for actionable replies */}

@@ -33,6 +33,7 @@ interface FigsyKPIs {
   avgScore: number
   meetingsBooked?: number
   meetingBookedRate?: number  // meetings / sent × 100
+  period?: string
 }
 
 function MetricCard({
@@ -129,18 +130,86 @@ function BenchmarkRow({
   )
 }
 
+interface FigsyInsight {
+  icon: string
+  title: string
+  body: string
+  action?: string
+}
+
+function FigsyInsightsPanel({ token }: { token: string }) {
+  const [insights, setInsights] = useState<FigsyInsight[]>([])
+  const [loading, setLoading]   = useState(true)
+
+  useEffect(() => {
+    if (!token) return
+    api.get<{ data: FigsyInsight[] }>('/figsy/insights', token)
+      .then(r => setInsights(r.data ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [token])
+
+  if (loading) return (
+    <div className="rounded-2xl border border-purple-100/60 bg-white p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-7 h-7 rounded-full overflow-hidden ring-2 ring-purple-100 shrink-0">
+          <img src="/agents/figsy.png" className="w-full h-full object-cover object-top" alt="FIGSY" />
+        </div>
+        <span className="text-sm font-bold text-gray-900">FIGSY Insights</span>
+        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#9B8EC4] ml-auto" />
+      </div>
+    </div>
+  )
+
+  if (insights.length === 0) return null
+
+  return (
+    <div className="rounded-2xl border border-purple-200/60 bg-[#F5F0FF]/40 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-7 h-7 rounded-full overflow-hidden ring-2 ring-purple-200 shrink-0">
+          <img src="/agents/figsy.png" className="w-full h-full object-cover object-top" alt="FIGSY" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-[#5B21B6]">FIGSY is watching your patterns</p>
+          <p className="text-xs text-[#7C3AED]">Here's what I'm seeing in your data</p>
+        </div>
+      </div>
+      <div className="space-y-3">
+        {insights.map((ins, i) => (
+          <div key={i} className="bg-white rounded-xl border border-purple-100/60 px-4 py-3 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="text-lg shrink-0 mt-0.5">{ins.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 leading-snug">{ins.title}</p>
+                <p className="text-xs text-[#7B6FA0] mt-1 leading-relaxed">{ins.body}</p>
+                {ins.action && (
+                  <button className="mt-2 text-xs font-semibold text-[#7C3AED] hover:text-[#6D28D9] flex items-center gap-0.5">
+                    {ins.action} <ArrowRight className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function KPIsPage() {
   const supabase = createClient()
   const [leads, setLeads]   = useState<LeadStats | null>(null)
   const [figsy, setFigsy]   = useState<FigsyKPIs | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [period, setPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('all')
+  const [token, setToken]   = useState('')
 
-  async function fetchData(tok: string) {
+  async function fetchData(tok: string, p: '7d' | '30d' | '90d' | 'all' = 'all') {
     try {
       const [leadsRes, figsyRes] = await Promise.all([
         api.get<{ success: boolean; data: LeadStats }>('/leads/stats', tok),
-        api.get<{ success: boolean; data: FigsyKPIs }>('/figsy/kpis', tok),
+        api.get<{ success: boolean; data: FigsyKPIs }>('/figsy/kpis?period=' + p, tok),
       ])
       setLeads(leadsRes.data)
       setFigsy(figsyRes.data)
@@ -150,15 +219,16 @@ export default function KPIsPage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { setLoading(false); return }
-      await fetchData(session.access_token)
+      setToken(session.access_token)
+      await fetchData(session.access_token, period)
       setLoading(false)
     })
-  }, [supabase])
+  }, [supabase, period])
 
   async function handleRefresh() {
     setRefreshing(true)
     const { data: { session } } = await supabase.auth.getSession()
-    if (session) await fetchData(session.access_token)
+    if (session) await fetchData(session.access_token, period)
     setRefreshing(false)
   }
 
@@ -189,6 +259,10 @@ export default function KPIsPage() {
   const meetingsBookedAccent = meetingBookedRateDecimal >= 0.03
   const meetingsBookedWarn = !meetingsBookedAccent && f.meetingBookedRate !== undefined && meetingBookedRateDecimal < 0.01
 
+  const periodLabel: Record<string, string> = {
+    '7d': '7 days', '30d': '30 days', '90d': '90 days', 'all': 'All time',
+  }
+
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Header */}
@@ -207,6 +281,31 @@ export default function KPIsPage() {
         </button>
       </div>
 
+      {/* Period filter */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 bg-white border border-purple-100/60 rounded-xl p-1 w-fit">
+          {(['7d', '30d', '90d', 'all'] as const).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                period === p
+                  ? 'bg-[#7C3AED] text-white shadow-sm'
+                  : 'text-[#7B6FA0] hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              {p === 'all' ? 'All time' : p}
+            </button>
+          ))}
+        </div>
+        {period !== 'all' && (
+          <span className="text-xs text-[#9B8EC4]">Showing metrics for the last {periodLabel[period]}</span>
+        )}
+      </div>
+
+      {/* FIGSY Proactive Insights */}
+      {token && <FigsyInsightsPanel token={token} />}
+
       {/* FIGSY status banner */}
       {f.activeCampaigns > 0 && (
         <div className="flex items-center gap-3 bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl px-5 py-3.5">
@@ -222,6 +321,9 @@ export default function KPIsPage() {
         <div className="flex items-center gap-2 mb-3">
           <Mail className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">Email Outreach</h2>
+          {period !== 'all' && (
+            <span className="text-[10px] font-medium text-[#9B8EC4] bg-gray-100 px-2 py-0.5 rounded-full">({periodLabel[period]})</span>
+          )}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {/* Special meetings booked hero card — first in grid */}

@@ -10,6 +10,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
 type Tab = 'pitch' | 'keywords' | 'signals' | 'dnc' | 'messaging' | 'context' | 'prompts'
+type Section = 'brief' | 'targeting' | 'guardrails'
 
 interface TrainingUrl {
   id: string
@@ -24,14 +25,44 @@ interface DNCEntry {
   type: 'email' | 'domain' | 'company'
 }
 
-const TABS: { value: Tab; label: string; icon: React.ElementType; description: string }[] = [
-  { value: 'pitch',     label: 'Pitch',     icon: Target,      description: 'Your value proposition and key messages' },
-  { value: 'keywords',  label: 'Keywords',  icon: Zap,         description: 'Trigger words and ICP signals to target' },
-  { value: 'signals',   label: 'Signals',   icon: Brain,       description: 'Buying signals FIGSY looks for' },
-  { value: 'dnc',       label: 'DNC',       icon: Ban,         description: 'Do not contact list — emails, domains, companies' },
-  { value: 'messaging', label: 'Messaging', icon: MessageSquare,description: 'Tone, style and persona guidance for FIGSY' },
-  { value: 'context',   label: 'Context',   icon: Globe,       description: 'Source URLs for FIGSY to learn from' },
-  { value: 'prompts',   label: 'Prompts',   icon: Settings2,   description: 'Per-step prompt overrides for sequences' },
+const SECTIONS: {
+  value: Section
+  label: string
+  description: string
+  note: string
+  tabs: { value: Tab; label: string; icon: React.ElementType; description: string }[]
+}[] = [
+  {
+    value: 'brief',
+    label: "FIGSY's Brief",
+    description: 'What FIGSY says about your company and how it says it',
+    note: 'I use your pitch and messaging style in every email I write. The clearer this is, the more on-brand I sound.',
+    tabs: [
+      { value: 'pitch',     label: 'Pitch',     icon: Target,       description: 'Your value proposition and key messages' },
+      { value: 'messaging', label: 'Messaging', icon: MessageSquare, description: 'Tone, style and persona guidance for FIGSY' },
+    ],
+  },
+  {
+    value: 'targeting',
+    label: 'Targeting Intel',
+    description: 'What FIGSY looks for when deciding who to contact',
+    note: "These signals help me decide who's worth contacting and when. The more specific, the better my targeting.",
+    tabs: [
+      { value: 'keywords', label: 'Keywords', icon: Zap,   description: 'Trigger words and ICP signals to target' },
+      { value: 'signals',  label: 'Signals',  icon: Brain, description: 'Buying signals FIGSY looks for' },
+      { value: 'context',  label: 'Context',  icon: Globe, description: 'Source URLs for FIGSY to learn from' },
+    ],
+  },
+  {
+    value: 'guardrails',
+    label: 'Guardrails',
+    description: "Who FIGSY won't contact and how to override sequences",
+    note: "I check your DNC list before every send. Use it to protect relationships and brand reputation.",
+    tabs: [
+      { value: 'dnc',     label: 'DNC',     icon: Ban,      description: 'Do not contact list — emails, domains, companies' },
+      { value: 'prompts', label: 'Prompts', icon: Settings2, description: 'Per-step prompt overrides for sequences' },
+    ],
+  },
 ]
 
 function SavedBadge() {
@@ -854,8 +885,18 @@ const TAB_CONTENT: Record<Tab, React.ReactNode> = {
 
 export default function KnowledgePage() {
   const [activeTab, setActiveTab] = useState<Tab>('pitch')
+  const [activeSection, setActiveSection] = useState<Section>('brief')
 
-  const current = TABS.find(t => t.value === activeTab)!
+  const currentSection = SECTIONS.find(s => s.value === activeSection)!
+  const currentTab = currentSection.tabs.find(t => t.value === activeTab) ?? currentSection.tabs[0]
+
+  function handleSectionClick(section: Section) {
+    if (activeSection === section) return
+    setActiveSection(section)
+    // Switch to the first tab of the newly opened section
+    const sec = SECTIONS.find(s => s.value === section)!
+    setActiveTab(sec.tabs[0].value)
+  }
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -874,32 +915,75 @@ export default function KnowledgePage() {
       </div>
 
       <div className="flex gap-6">
-        {/* Sidebar tabs */}
-        <div className="w-52 shrink-0">
+        {/* Section sidebar */}
+        <div className="w-56 shrink-0">
           <nav className="space-y-1">
-            {TABS.map(({ value, label, icon: Icon }) => (
-              <button
-                key={value}
-                onClick={() => setActiveTab(value)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors text-left ${
-                  activeTab === value
-                    ? 'bg-[#7C3AED] text-white font-semibold shadow-md shadow-purple-200'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {label}
-              </button>
-            ))}
+            {SECTIONS.map(section => {
+              const isActive = activeSection === section.value
+              return (
+                <div key={section.value}>
+                  <button
+                    onClick={() => handleSectionClick(section.value)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-colors text-left ${
+                      isActive
+                        ? 'bg-[#7C3AED] text-white font-semibold shadow-md shadow-purple-200'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>{section.label}</span>
+                    {isActive
+                      ? <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                      : <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-40" />}
+                  </button>
+
+                  {/* Sub-tab pills — shown when section is active */}
+                  {isActive && (
+                    <div className="mt-1 ml-3 space-y-0.5">
+                      {section.tabs.map(tab => {
+                        const Icon = tab.icon
+                        const isTabActive = activeTab === tab.value
+                        return (
+                          <button
+                            key={tab.value}
+                            onClick={() => setActiveTab(tab.value)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors text-left ${
+                              isTabActive
+                                ? 'bg-purple-100 text-[#7C3AED] font-semibold'
+                                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5 shrink-0" />
+                            {tab.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </nav>
         </div>
 
-        {/* Content */}
+        {/* Content panel */}
         <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-6">
-          <div className="mb-5">
-            <h2 className="text-base font-bold text-gray-900">{current.label}</h2>
-            <p className="text-sm text-[#9B8EC4] mt-0.5">{current.description}</p>
+          {/* FIGSY preview strip */}
+          <div className="flex items-start gap-3 p-4 bg-[#F5F0FF] border border-purple-200/60 rounded-xl mb-5">
+            <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-2 ring-purple-200">
+              <img src="/agents/figsy.png" className="w-full h-full object-cover object-top" alt="FIGSY" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#7C3AED] mb-0.5">FIGSY</p>
+              <p className="text-sm text-[#5B21B6] leading-relaxed">{currentSection.note}</p>
+            </div>
           </div>
+
+          {/* Sub-tab header */}
+          <div className="mb-5">
+            <h2 className="text-base font-bold text-gray-900">{currentTab.label}</h2>
+            <p className="text-sm text-[#9B8EC4] mt-0.5">{currentTab.description}</p>
+          </div>
+
           {TAB_CONTENT[activeTab]}
         </div>
       </div>

@@ -282,12 +282,12 @@ function EmptyState({ tab, hasIcps }: { tab: TabId; hasIcps: boolean }) {
   if (!hasIcps) {
     return (
       <div className="text-center py-20 text-[#9B8EC4]">
-        <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-        <p className="text-sm font-medium text-gray-700">No ICP set up yet</p>
-        <p className="text-xs mt-1">Define your ideal customer profile so K.I.N.D knows who to find.</p>
+        <img src="/agents/figsy.png" className="w-10 h-10 rounded-full object-cover object-top ring-2 ring-purple-100 mx-auto mb-3" alt="FIGSY" />
+        <p className="text-sm font-medium text-gray-700">I haven&apos;t found any leads yet</p>
+        <p className="text-xs mt-1">Run your ICP and I&apos;ll find you the right people — scored, verified, and ready to outreach.</p>
         <a href="/dashboard/leads/icp"
           className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-sm font-medium hover:bg-[#6D28D9] transition-colors">
-          <Plus className="w-4 h-4" />Build your ICP
+          <Plus className="w-4 h-4" />Build my ICP →
         </a>
       </div>
     )
@@ -295,13 +295,13 @@ function EmptyState({ tab, hasIcps }: { tab: TabId; hasIcps: boolean }) {
 
   const messages: Record<TabId, { icon: React.ReactNode; title: string; body: string; cta?: React.ReactNode }> = {
     all: {
-      icon: <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />,
-      title: 'No leads yet',
-      body: 'Your ICP is saved — run it to pull matching leads from Apollo.',
+      icon: <img src="/agents/figsy.png" className="w-10 h-10 rounded-full object-cover object-top ring-2 ring-purple-100 mx-auto mb-3" alt="FIGSY" />,
+      title: "I haven't found any leads yet",
+      body: "Run your ICP and I'll find you the right people — scored, verified, and ready to outreach.",
       cta: (
         <a href="/dashboard/leads/icp"
           className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-sm font-medium hover:bg-[#6D28D9] transition-colors">
-          <Settings2 className="w-4 h-4" />Run your ICP →
+          Build my ICP →
         </a>
       ),
     },

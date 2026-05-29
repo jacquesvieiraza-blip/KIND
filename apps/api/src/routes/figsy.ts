@@ -217,18 +217,38 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    const period = (req.query.period as string) ?? 'all'
+    const since = period === '7d'  ? new Date(Date.now() - 7  * 86400000).toISOString()
+                : period === '30d' ? new Date(Date.now() - 30 * 86400000).toISOString()
+                : period === '90d' ? new Date(Date.now() - 90 * 86400000).toISOString()
+                : null
+
+    let sentQuery = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId)
+    if (since !== null) sentQuery = sentQuery.gte('sent_at', since)
+
+    let repliesQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId)
+    if (since !== null) repliesQuery = repliesQuery.gte('received_at', since)
+
+    let interestedQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'hot')
+    if (since !== null) interestedQuery = interestedQuery.gte('received_at', since)
+
+    let optOutQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out')
+    if (since !== null) optOutQuery = optOutQuery.gte('received_at', since)
+
     const [
       sentRes, repliesRes, interestedRes, optOutRes,
       activeCampaignsRes, totalLeadsRes, leadsContactedRes, avgScoreRes,
+      meetingsRes,
     ] = await Promise.all([
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'hot'),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out'),
+      sentQuery,
+      repliesQuery,
+      interestedQuery,
+      optOutQuery,
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'contacted'),
       db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null),
+      db.from('figsy_campaigns').select('meetings_booked').eq('client_id', clientId),
     ])
 
     const totalSent        = sentRes.count ?? 0
@@ -243,6 +263,8 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
     const avgScore = scores.length
       ? Math.round(scores.reduce((sum, l) => sum + (l.score || 0), 0) / scores.length)
       : 0
+
+    const meetingsBooked = (meetingsRes.data ?? []).reduce((s, c) => s + (c.meetings_booked ?? 0), 0)
 
     const replyRate     = totalSent > 0 ? totalReplied / totalSent : 0
     const interestedRate = totalSent > 0 ? interested / totalSent : 0
@@ -260,6 +282,8 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
         totalLeads,
         leadsContacted,
         avgScore,
+        meetingsBooked,
+        period,
       },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch KPIs' }) }
@@ -903,6 +927,44 @@ figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
   }
 })
 
+// ── MARK AS BOOKED ────────────────────────────────────────────────────────────
+figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, campaign_id, meeting_booked_at')
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    if (reply.meeting_booked_at) {
+      res.json({ success: true, data: { already_booked: true } }); return
+    }
+
+    await db.from('figsy_replies').update({
+      meeting_booked_at: new Date().toISOString(),
+    }).eq('id', req.params.id)
+
+    if (reply.campaign_id) {
+      const { data: camp } = await db.from('figsy_campaigns')
+        .select('meetings_booked').eq('id', reply.campaign_id).maybeSingle()
+      if (camp !== null) {
+        await db.from('figsy_campaigns').update({
+          meetings_booked: (camp.meetings_booked ?? 0) + 1,
+        }).eq('id', reply.campaign_id)
+      }
+    }
+
+    res.json({ success: true, data: { booked: true } })
+  } catch (err) {
+    console.error('[figsy/mark-booked]', err)
+    res.status(500).json({ success: false, error: 'Failed to mark as booked' })
+  }
+})
+
 // Unified inbox — all replies across all campaigns for this client
 figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
   try {
@@ -1223,3 +1285,151 @@ figsyRouter.get('/activity', async (req: AuthRequest, res) => {
 
 // Export for use in icps.ts (S5 — FIGSY auto-start)
 export { autoEnrollLead }
+
+// ── FIGSY PROACTIVE INSIGHTS (Learning Agent Phase 2) ─────────────────────────
+// Analyses campaign patterns and surfaces 2-3 actionable insights.
+// Rule-based — no AI cost. Refreshes on every call (fast enough for a KPI page).
+figsyRouter.get('/insights', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const [campsRes, repliesRes, leadsRes] = await Promise.all([
+      db.from('figsy_campaigns')
+        .select('id, name, emails_sent, replies_total, replies_interested, opted_out, meetings_booked, status')
+        .eq('client_id', clientId)
+        .gt('emails_sent', 0),
+      db.from('figsy_replies')
+        .select('classification, received_at')
+        .eq('client_id', clientId),
+      db.from('leads')
+        .select('score, industry, seniority')
+        .eq('client_id', clientId)
+        .not('score', 'is', null),
+    ])
+
+    const campaigns = campsRes.data ?? []
+    const replies   = repliesRes.data ?? []
+    const leads     = leadsRes.data ?? []
+
+    const insights: { icon: string; title: string; body: string; action?: string; priority: number }[] = []
+
+    // ── Pattern 1: Best performing campaign ──────────────────────────
+    if (campaigns.length >= 2) {
+      const withRate = campaigns.map(c => ({
+        ...c,
+        rate: (c.emails_sent ?? 0) > 0 ? (c.replies_total ?? 0) / (c.emails_sent ?? 1) : 0,
+      }))
+      const best  = withRate.reduce((a, b) => a.rate > b.rate ? a : b)
+      const worst = withRate.reduce((a, b) => a.rate < b.rate ? a : b)
+      if (best.id !== worst.id && best.rate > 0) {
+        const diff = Math.round((best.rate - worst.rate) * 100)
+        insights.push({
+          icon: '🔥',
+          title: `"${best.name}" is your top performer`,
+          body: `${Math.round(best.rate * 100)}% reply rate — ${diff}pp above your lowest campaign. Consider reusing its messaging or ICP targeting in new campaigns.`,
+          action: `View campaign`,
+          priority: 1,
+        })
+      }
+    }
+
+    // ── Pattern 2: Hot reply concentration ───────────────────────────
+    const hotCount  = replies.filter(r => r.classification === 'hot' || r.classification === 'interested').length
+    const totalReplies = replies.length
+    if (totalReplies >= 5) {
+      const hotRate = hotCount / totalReplies
+      if (hotRate >= 0.30) {
+        insights.push({
+          icon: '📈',
+          title: `${Math.round(hotRate * 100)}% of replies are positive`,
+          body: `Your targeting is precise — nearly 1 in 3 replies shows buying intent. Industry benchmark is 15–20%. Time to scale volume.`,
+          priority: 2,
+        })
+      } else if (hotRate < 0.10 && totalReplies >= 20) {
+        insights.push({
+          icon: '🎯',
+          title: `Replies are coming in, but few show buying intent`,
+          body: `Only ${Math.round(hotRate * 100)}% of replies are positive. I'd recommend tightening the ICP — narrower targeting usually lifts intent quality even if volume drops slightly.`,
+          action: `Review ICP`,
+          priority: 2,
+        })
+      }
+    }
+
+    // ── Pattern 3: Opt-out signal ─────────────────────────────────────
+    const totalSent    = campaigns.reduce((s, c) => s + (c.emails_sent ?? 0), 0)
+    const totalOptOuts = campaigns.reduce((s, c) => s + (c.opted_out    ?? 0), 0)
+    if (totalSent >= 50 && totalOptOuts > 0) {
+      const optRate = totalOptOuts / totalSent
+      if (optRate > 0.05) {
+        insights.push({
+          icon: '⚠️',
+          title: `Opt-out rate is above average`,
+          body: `${(optRate * 100).toFixed(1)}% of contacts have opted out — the threshold to watch is 3%. This usually means the ICP or opening message needs to be more specific and less generic.`,
+          action: `Review messaging`,
+          priority: 1,
+        })
+      }
+    }
+
+    // ── Pattern 4: Lead scoring spread ───────────────────────────────
+    if (leads.length >= 10) {
+      const highScore = leads.filter(l => (l.score ?? 0) >= 70).length
+      const highPct   = Math.round((highScore / leads.length) * 100)
+      if (highPct >= 40) {
+        insights.push({
+          icon: '⭐',
+          title: `${highPct}% of your leads score 70+`,
+          body: `Strong ICP match — your targeting filters are pulling the right people. Leads with score ≥ 70 typically convert at 2× the rate of the broader pool.`,
+          priority: 3,
+        })
+      }
+    }
+
+    // ── Pattern 5: Volume nudge ───────────────────────────────────────
+    if (totalSent === 0 && campaigns.length === 0) {
+      insights.push({
+        icon: '🚀',
+        title: `Ready to launch`,
+        body: `You have leads scored and ready. Create your first campaign and I'll write sequences, handle replies, and book meetings — all automatically.`,
+        action: `Create campaign`,
+        priority: 1,
+      })
+    } else if (totalSent > 0 && campaigns.filter(c => c.status === 'active').length === 0) {
+      insights.push({
+        icon: '⏸️',
+        title: `No active campaigns running`,
+        body: `You have ${totalSent.toLocaleString()} emails sent historically but nothing running now. Activate a campaign to keep pipeline moving.`,
+        action: `Go to campaigns`,
+        priority: 2,
+      })
+    }
+
+    // ── Recent reply velocity ─────────────────────────────────────────
+    const recentReplies = replies.filter(r => {
+      const age = Date.now() - new Date(r.received_at).getTime()
+      return age < 7 * 86400000
+    })
+    if (recentReplies.length >= 3) {
+      insights.push({
+        icon: '💬',
+        title: `${recentReplies.length} replies in the last 7 days`,
+        body: `${recentReplies.filter(r => r.classification === 'hot' || r.classification === 'interested').length} are positive. Check your inbox — quick follow-ups within 24h convert at 4× the rate of delayed responses.`,
+        action: `Go to inbox`,
+        priority: 2,
+      })
+    }
+
+    // Return top 3 by priority, then recency
+    const top = insights
+      .sort((a, b) => a.priority - b.priority)
+      .slice(0, 3)
+      .map(({ priority: _p, ...i }) => i)
+
+    res.json({ success: true, data: top })
+  } catch (err) {
+    console.error('[figsy/insights]', err)
+    res.status(500).json({ success: false, error: 'Failed to generate insights' })
+  }
+})

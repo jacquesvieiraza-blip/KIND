@@ -729,16 +729,16 @@ export default function FigsyPage() {
         </div>
       ) : campaigns.length === 0 ? (
         <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-10 text-center">
-          <span className="text-4xl mb-3 block">🤖</span>
-          <p className="text-gray-600 font-medium mb-1">No campaigns yet</p>
+          <img src="/agents/figsy.png" className="w-10 h-10 rounded-full object-cover object-top ring-2 ring-purple-100 mx-auto mb-3" alt="FIGSY" />
+          <p className="text-gray-900 font-semibold mb-1">No campaigns running yet</p>
           <p className="text-sm text-[#9B8EC4] mb-4">
-            Create a campaign to start sending personalised outreach to your consented leads.
+            Create your first campaign and I&apos;ll write the sequences, handle replies, and book meetings for you.
           </p>
           <button
             onClick={() => setShowCreate(true)}
             className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium rounded-lg transition-colors"
           >
-            + Create first campaign
+            Create first campaign
           </button>
         </div>
       ) : (

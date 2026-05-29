@@ -22,7 +22,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   // ── Milla takes over ────────────────────────────────────────────────────────
   if (pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents')) {
     return (
-      <div className="w-72 shrink-0 sticky top-6 self-start">
+      <div className="w-64 shrink-0 sticky top-6 self-start">
         <AgentSidePanel
           agentId="milla"
           name="Milla"

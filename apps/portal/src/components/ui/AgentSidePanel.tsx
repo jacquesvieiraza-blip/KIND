@@ -214,7 +214,7 @@ export function AgentSidePanel({
     <div className="rounded-2xl overflow-hidden shadow-lg border border-purple-100/40 bg-white">
 
       {/* ── Full agent photo — no dark overlay ───────────────────── */}
-      <div className="relative h-52 overflow-hidden">
+      <div className="relative h-48 overflow-hidden">
         <img
           src={`/agents/${agentId}.png`}
           alt={name}

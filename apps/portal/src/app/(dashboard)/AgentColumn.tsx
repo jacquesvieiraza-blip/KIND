@@ -45,7 +45,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   // ── Vida takes over ─────────────────────────────────────────────────────────
   if (pathname.startsWith('/dashboard/chatbot')) {
     return (
-      <div className="w-72 shrink-0 sticky top-6 self-start">
+      <div className="w-64 shrink-0 sticky top-6 self-start">
         <AgentSidePanel
           agentId="vida"
           name="Vida"

@@ -249,9 +249,9 @@ export default function KPIsPage() {
       : `$${Math.round(l.pipeline_value_usd / 1000)}k`
     : '$0'
 
-  const openRate = f.totalSent > 0 ? ((f.totalReplied / f.totalSent) * 0.28).toFixed(1) : '—'
+  const openRate = f.totalSent > 0 ? ((f.totalReplied / f.totalSent) * 100).toFixed(1) : '—'
   const contacted = f.leadsContacted > 0 ? f.leadsContacted : f.totalSent > 0 ? Math.ceil(f.totalSent / 3) : 0
-  const meetingRate = f.interested > 0 ? ((f.interested / Math.max(contacted, 1)) * 0.4) : 0
+  const meetingRate = f.meetingsBooked != null && contacted > 0 ? (f.meetingsBooked / Math.max(contacted, 1)) * 100 : 0
   const oneInEvery = f.interested > 0 && f.totalReplied > 0 ? Math.round(f.totalReplied / f.interested) : null
 
   // Meetings booked derived values

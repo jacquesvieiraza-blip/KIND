@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Webhook, Copy, CheckCheck, Send, ChevronDown } from 'lucide-react'
 
-const ENDPOINT = 'https://kindapi-production-e64c.up.railway.app/figsy/webhook/enrol'
+const ENDPOINT = `${process.env.NEXT_PUBLIC_API_URL ?? 'https://kindapi-production-e64c.up.railway.app'}/figsy/webhook/enrol`
 
 const REQUEST_BODY_EXAMPLE = `{
   "campaign_id": "your-campaign-id",

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, Pencil } from 'lucide-react'
+import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, Pencil, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 
 interface ClientData {
   company_name: string
@@ -46,6 +46,9 @@ export default function SettingsPage() {
   const [writingStyleSaving, setWritingStyleSaving] = useState(false)
   const [writingStyleSaved, setWritingStyleSaved]   = useState(false)
   const [writingStyleError, setWritingStyleError]   = useState<string | null>(null)
+  const [showCrmKey, setShowCrmKey]                 = useState(false)
+  const [unsavedProfile, setUnsavedProfile]         = useState(false)
+  const [unsavedCrm, setUnsavedCrm]                 = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -96,6 +99,7 @@ export default function SettingsPage() {
     try {
       await api.patch('/clients/me', form, session.access_token)
       setSaved(true)
+      setUnsavedProfile(false)
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save — please try again.')
@@ -126,6 +130,7 @@ export default function SettingsPage() {
     try {
       await api.patch('/clients/me', crm, session.access_token)
       setCrmSaved(true)
+      setUnsavedCrm(false)
       setTimeout(() => setCrmSaved(false), 3000)
     } catch (err) {
       setCrmSaveError(err instanceof Error ? err.message : 'Failed to save CRM settings — please try again.')
@@ -161,13 +166,20 @@ export default function SettingsPage() {
         <p className="text-[#7B6FA0] text-sm mt-1">Manage your business profile and integrations.</p>
       </div>
 
+      {(unsavedProfile || unsavedCrm) && (
+        <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+          <p className="text-sm text-amber-700">You have unsaved changes — scroll down and click Save before leaving this page.</p>
+        </div>
+      )}
+
       {/* Business Profile */}
       <div className="border-t border-gray-100 pt-6">
         <h2 className="font-semibold mb-4">Business Profile</h2>
         <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-            <input type="text" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })}
+            <input type="text" value={form.company_name} onChange={(e) => { setForm({ ...form, company_name: e.target.value }); setUnsavedProfile(true) }}
               className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
           </div>
           <div>
@@ -313,13 +325,19 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {crm.crm_type === 'hubspot' ? 'HubSpot Private App Token' : 'Pipedrive API Key'}
                 </label>
-                <input
-                  type="password"
-                  value={crm.crm_api_key}
-                  onChange={e => { setCrm({ ...crm, crm_api_key: e.target.value }); setCrmTestResult(null) }}
-                  placeholder={crm.crm_type === 'hubspot' ? 'pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' : 'Your Pipedrive API key'}
-                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] font-mono"
-                />
+                <div className="relative">
+                  <input
+                    type={showCrmKey ? 'text' : 'password'}
+                    value={crm.crm_api_key}
+                    onChange={e => { setCrm({ ...crm, crm_api_key: e.target.value }); setCrmTestResult(null); setUnsavedCrm(true) }}
+                    placeholder={crm.crm_type === 'hubspot' ? 'pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' : 'Your Pipedrive API key'}
+                    className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] font-mono"
+                  />
+                  <button type="button" onClick={() => setShowCrmKey(s => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    {showCrmKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <p className="text-xs text-[#9B8EC4] mt-1">
                   {crm.crm_type === 'hubspot'
                     ? 'Create a Private App in HubSpot → Settings → Integrations → Private Apps. Scopes needed: crm.objects.contacts.write'

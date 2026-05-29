@@ -682,10 +682,10 @@ function ContextTab() {
     setSaveError(false)
     try {
       const token = await getToken()
-      const primary = urls[0]
       await api.post('/figsy/knowledge/context', {
-        url: primary?.url || '',
-        context: primary?.label || '',
+        urls: urls.map(u => ({ url: u.url, context: u.label })),
+        url: urls[0]?.url || '',
+        context: urls[0]?.label || '',
       }, token)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)

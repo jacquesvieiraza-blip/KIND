@@ -331,28 +331,6 @@ export function Sidebar({
           })}
         </div>
 
-        {/* ── FIGSY status ─────────────────────────────────────────── */}
-        <div className="!mt-4 border-t border-white/[0.06] !pt-3">
-          <Link
-            href="/dashboard/figsy"
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.09] transition-colors group"
-          >
-            <div className="relative shrink-0">
-              <div className="w-7 h-7 rounded-lg overflow-hidden ring-1 ring-[#7C3AED]/30">
-                <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
-              </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border-[1.5px] border-[#160D3D] animate-pulse" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-[11px] font-semibold leading-tight group-hover:text-purple-200 transition-colors">
-                {isNewUser ? "Let's find your first leads" : 'FIGSY is online'}
-              </p>
-              <p className="text-purple-300/40 text-[10px] leading-tight mt-0.5">
-                {isNewUser ? 'Tap to get started →' : 'Ready · open to chat →'}
-              </p>
-            </div>
-          </Link>
-        </div>
 
       </nav>
 

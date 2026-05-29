@@ -207,6 +207,20 @@
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
+#### 29 May 2026 (Morning + Day) — Portal fixes + Legal pause + Site taken down
+| Built / Fixed | Detail |
+|---------------|--------|
+| **Floating dots fixed** | `layout.tsx` — dots increased from 3-6px to 5-10px, opacity 0.3→0.12, colour `#A5B4FC`→`#7C3AED`. Now visible on dashboard gradient background. |
+| **Agent panel widths consistent** | `AgentColumn.tsx` — all three agent wrappers changed from `w-72` to `w-64` using `replace_all`. Matches ICP Builder panel exactly. |
+| **Sidebar duplicate FIGSY removed** | `Sidebar.tsx` — duplicate FIGSY status section (avatar + "FIGSY is online" link) below account nav removed entirely. |
+| **KPI calculations fixed** | `kpis/page.tsx` — open rate was `(replies/sent) * 0.28` (fake multiplier) → now `(replies/sent) * 100` (real %). Meeting rate was `(interested/contacted) * 0.4` → now `(meetingsBooked/contacted) * 100`. |
+| **Knowledge URL saving fixed** | `knowledge/page.tsx` — was only saving `urls[0]`. Now sends all URLs as array: `urls: urls.map(u => ({ url: u.url, context: u.label }))`. |
+| **Webhooks env var fixed** | `figsy/webhooks/page.tsx` — hardcoded URL replaced with `${process.env.NEXT_PUBLIC_API_URL ?? 'https://kindapi-production-e64c.up.railway.app'}/figsy/webhook/enrol`. |
+| **Settings Eye toggle + unsaved warning** | `settings/page.tsx` — added `Eye`/`EyeOff` toggle on CRM API key input. Added amber unsaved changes banner when profile or CRM form has unsaved changes. Clears on save. |
+| **nixpacks.toml deployed** | `apps/portal/nixpacks.toml` — forces `yarn build` on every Railway deploy. Fixes Turbo cache issue where Railway wasn't rebuilding `next build`. |
+| **Marketing site taken down** | `apps/website/index.html` replaced with "We're currently unavailable" page. All 21 other HTML pages redirect to index. Pushed to main — Vercel auto-deploys. www.get-kind.com now shows unavailable. |
+| **⚠️ BUILD PAUSED** | Legal concern raised — Smartsheet employment contract clauses 17.2 (competing business) and 19.3.2 (IP assignment). Solicitor call booked for Monday 2 June. No new builds until legal clarity. |
+
 #### 29 May 2026 — Design mandate + product vision locked
 | Built / Fixed | Detail |
 |---------------|--------|
@@ -616,41 +630,43 @@
 
 ---
 
-### 📋 NEXT SESSION — STEP BY STEP (29 May 2026)
+### 📋 NEXT SESSION — STEP BY STEP (after solicitor call)
 
-> Read Section 0 only. Tell Claude what's done. Then pick a build item from the priority queue.
+> **PAUSED** — No new builds until solicitor call Monday. Resume after legal clarity received.
 
-**When you wake up — 3 quick checks (5 min):**
-1. Check Railway deploy is green (last commit: `3cb69e0` — FIGSY onboarding conversation)
-2. Sign up with a fresh Gmail at `app.get-kind.com` → confirm you see the FIGSY chat (not the old form)
-3. Report anything broken as `Step-X — what you saw` → Claude fixes in <15 min
+**When you come back — tell Claude:**
+1. What the solicitor said about Smartsheet clause 17.2 + 19.3.2
+2. Whether you have or are getting written manager consent
+3. Whether you're staying at Smartsheet or moving to Tempo
+4. Then we pick up the build queue below in order
 
-**Build session start — describe + authorise:**
-- Claude will describe each visual change before touching it
-- You say go (or redirect)
-- Code/data/API work can start immediately — design changes wait for your go
+**Build queue — pick up from here:**
 
-**Suggested first build (30 min):**
-- D1: Agent panel image fix — describe → wait for go → build
-- Then G1: Login redesign — describe → wait for go → build
-
-**Then:**
-- G3: Inbox reply from portal (biggest live flow gap — 3h)
-- G4 + G5: Real data (sparklines + meetings_booked)
-- Learning agent Phase 2: FIGSY proactive ICP suggestions
+| Priority | Item | What it is |
+|----------|------|-----------|
+| 1 | Mobile responsive layout | Zero breakpoints currently — site unusable on mobile |
+| 2 | Onboard typewriter slowdown | Typewriter effect too fast — was mid-fix when paused |
+| 3 | Consent token security | Still using UUID — needs cryptographic token |
+| 4 | Real sparklines verification | Confirm sparklines show real data not mock |
+| 5 | Meetings booked DB migration | SQL to run: `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` |
+| 6 | FIGSY insights API verification | Confirm learning agent endpoint is live and returning data |
+| 7 | G3: Inbox reply from portal | Biggest live flow gap — reply from portal inbox |
+| 8 | G4 + G5: Real data | Sparklines + meetings_booked wired to real DB |
+| 9 | G6: KPI time range filter | Filter KPIs by date range |
+| 10 | Learning agent Phase 2 | FIGSY proactive ICP suggestions |
+| 11 | Scheduled report emails | Weekly digest from existing cron — S4 steal-now item |
 
 ---
 
-### 📅 WEEK AHEAD
+### 📅 WEEK AHEAD (revised — paused for legal)
 
 | Day | Date | Action | Owner |
 |-----|------|--------|-------|
-| Day 1 | Thu 29 May | Smoke test new onboarding flow. D1 (agent panel image). G1 (login redesign). | Both |
-| Day 2 | Fri 30 May | G3 (inbox reply). G4+G5 (real data). Test 1 core platform. | Both |
-| Day 3 | Sat 31 May | Stripe prices → Test 3+4. G6 (KPI time range). Learning agent Phase 2 spec. | Both |
-| Day 4 | Sun 1 June | All tests green → G7 (knowledge base). G8+G9 (consent). Empty states. | Claude |
-| Day 5 | Mon 2 June | Review live product end-to-end. GTM prep. First 5 client outreach. | Jacques |
-| Week 2 | 3–7 June | First paid client. Learning agent Phase 2 live. C10 (3-type memory). | Both |
+| Mon 2 June | Solicitor call | Legal clarity on Smartsheet contract | Jacques |
+| Mon 2 June | Buy MacBook Neo 13" 2026 from Currys (£599) | Move all dev to personal laptop | Jacques |
+| After call | Resume build queue from item 1 above | Mobile layout first | Both |
+| TBD | Stripe prices → Test 3+4 | After legal green light | Both |
+| TBD | First client outreach | After legal green light + mobile layout done | Jacques |
 
 ---
 
@@ -658,6 +674,8 @@
 
 | # | Blocker | Owner | Blocking |
 |---|---------|-------|---------|
+| B0 | **Solicitor call — Monday 2 June** | Jacques | All new builds paused until legal clarity |
+| B0b | **Personal laptop** — MacBook Neo 13" 2026 from Currys (£599) | Jacques | All future dev must be on personal hardware only |
 | B1 | `RESEND_API_KEY` — confirm set in Railway | Jacques | Test 1 email steps (Steps 6) |
 | B2 | `MASTER_SCHEMA.sql` — confirm run in Supabase | Jacques | Schema integrity |
 | B3 | `20260527_stripe_subscription_id.sql` — not yet run | Jacques | Test 3 (Milla/Vida checkout) |
@@ -667,6 +685,8 @@
 | B7 | `FIGSY_KIND_CLIENT_ID` not set | Jacques | Self-outreach does nothing |
 | B8 | `docs/client-flow-sop.md` stale (18 May) | Claude | Documentation accuracy |
 | B9 | `docs/DEPLOYMENT_GUIDE.md` has stale Paystack refs | Claude | New team member confusion |
+| B10 | Mobile responsive layout — zero breakpoints | Claude | Site unusable on phone |
+| B11 | Meetings booked DB migration not run | Jacques | KPI meetings_booked column missing |
 
 ---
 

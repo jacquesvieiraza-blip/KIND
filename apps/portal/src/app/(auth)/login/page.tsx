@@ -96,27 +96,43 @@ function LoginForm() {
       {/* Floating dots */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
         {[
-          { top: '8%',  left: '12%', size: 6, delay: '0s',   dur: '7s'  },
-          { top: '15%', left: '78%', size: 4, delay: '1.2s', dur: '9s'  },
-          { top: '72%', left: '6%',  size: 8, delay: '0.5s', dur: '8s'  },
-          { top: '85%', left: '88%', size: 5, delay: '2s',   dur: '6s'  },
-          { top: '45%', left: '92%', size: 4, delay: '3s',   dur: '10s' },
-          { top: '30%', left: '4%',  size: 6, delay: '1.5s', dur: '8s'  },
-          { top: '60%', left: '55%', size: 3, delay: '0.8s', dur: '11s' },
-          { top: '20%', left: '45%', size: 5, delay: '2.5s', dur: '7s'  },
-          { top: '90%', left: '35%', size: 4, delay: '0.3s', dur: '9s'  },
-          { top: '55%', left: '22%', size: 7, delay: '1.8s', dur: '8s'  },
-          { top: '5%',  left: '60%', size: 3, delay: '4s',   dur: '12s' },
-          { top: '78%', left: '70%', size: 5, delay: '2.2s', dur: '7s'  },
+          { top: '4%',  left: '8%',  size: 5,  delay: '0s',    dur: '2.8s', color: '#A5B4FC', op: 0.55 },
+          { top: '8%',  left: '28%', size: 3,  delay: '0.4s',  dur: '2.4s', color: '#C4B5FD', op: 0.45 },
+          { top: '6%',  left: '58%', size: 7,  delay: '0.9s',  dur: '3.2s', color: '#A5B4FC', op: 0.5  },
+          { top: '10%', left: '82%', size: 4,  delay: '0.2s',  dur: '2.6s', color: '#818CF8', op: 0.5  },
+          { top: '18%', left: '5%',  size: 4,  delay: '1.3s',  dur: '3.5s', color: '#C4B5FD', op: 0.4  },
+          { top: '22%', left: '44%', size: 6,  delay: '0.6s',  dur: '2.9s', color: '#A5B4FC', op: 0.55 },
+          { top: '20%', left: '93%', size: 3,  delay: '1.8s',  dur: '2.5s', color: '#C4B5FD', op: 0.45 },
+          { top: '32%', left: '18%', size: 8,  delay: '0.3s',  dur: '3.8s', color: '#A5B4FC', op: 0.4  },
+          { top: '30%', left: '70%', size: 4,  delay: '1.1s',  dur: '2.7s', color: '#818CF8', op: 0.5  },
+          { top: '38%', left: '90%', size: 5,  delay: '0.7s',  dur: '3.3s', color: '#A5B4FC', op: 0.45 },
+          { top: '48%', left: '3%',  size: 3,  delay: '2.2s',  dur: '2.4s', color: '#C4B5FD', op: 0.5  },
+          { top: '45%', left: '38%', size: 6,  delay: '0.5s',  dur: '3.1s', color: '#A5B4FC', op: 0.55 },
+          { top: '50%', left: '76%', size: 4,  delay: '1.6s',  dur: '3.6s', color: '#818CF8', op: 0.45 },
+          { top: '58%', left: '14%', size: 5,  delay: '0.8s',  dur: '2.8s', color: '#A5B4FC', op: 0.5  },
+          { top: '62%', left: '52%', size: 3,  delay: '2s',    dur: '2.5s', color: '#C4B5FD', op: 0.45 },
+          { top: '60%', left: '86%', size: 7,  delay: '0.4s',  dur: '3.4s', color: '#A5B4FC', op: 0.5  },
+          { top: '70%', left: '30%', size: 4,  delay: '1.4s',  dur: '2.7s', color: '#818CF8', op: 0.55 },
+          { top: '72%', left: '64%', size: 5,  delay: '0.6s',  dur: '3.2s', color: '#A5B4FC', op: 0.45 },
+          { top: '75%', left: '96%', size: 3,  delay: '1.9s',  dur: '2.6s', color: '#C4B5FD', op: 0.5  },
+          { top: '82%', left: '10%', size: 6,  delay: '1s',    dur: '3.7s', color: '#A5B4FC', op: 0.5  },
+          { top: '85%', left: '42%', size: 4,  delay: '0.3s',  dur: '3s',   color: '#818CF8', op: 0.45 },
+          { top: '88%', left: '74%', size: 5,  delay: '1.5s',  dur: '2.8s', color: '#A5B4FC', op: 0.55 },
+          { top: '93%', left: '56%', size: 3,  delay: '2.3s',  dur: '2.4s', color: '#C4B5FD', op: 0.45 },
+          { top: '2%',  left: '40%', size: 4,  delay: '0.8s',  dur: '3.1s', color: '#A5B4FC', op: 0.5  },
+          { top: '28%', left: '56%', size: 5,  delay: '1.5s',  dur: '3.5s', color: '#C4B5FD', op: 0.45 },
+          { top: '52%', left: '22%', size: 6,  delay: '1.9s',  dur: '2.9s', color: '#A5B4FC', op: 0.5  },
+          { top: '40%', left: '50%', size: 3,  delay: '0.5s',  dur: '2.3s', color: '#818CF8', op: 0.55 },
+          { top: '15%', left: '16%', size: 4,  delay: '1.2s',  dur: '3.3s', color: '#C4B5FD', op: 0.45 },
         ].map((dot, i) => (
           <div key={i} className="absolute rounded-full" style={{
             top: dot.top, left: dot.left, width: dot.size, height: dot.size,
-            background: '#A5B4FC', opacity: 0.45,
+            background: dot.color, opacity: dot.op,
             animation: `floatDot ${dot.dur} ease-in-out ${dot.delay} infinite alternate`,
           }} />
         ))}
       </div>
-      <style>{`@keyframes floatDot{0%{transform:translateY(0) translateX(0)}50%{transform:translateY(-18px) translateX(6px)}100%{transform:translateY(-30px) translateX(-4px)}}`}</style>
+      <style>{`@keyframes floatDot{0%{transform:translateY(0) translateX(0)}25%{transform:translateY(-22px) translateX(10px)}75%{transform:translateY(-52px) translateX(-8px)}100%{transform:translateY(-72px) translateX(5px)}}`}</style>
 
       <div className="w-full max-w-sm relative z-10">
 

@@ -760,14 +760,23 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       .lte('next_send_at', now)
       .limit(remaining)
 
-    const { sendSequenceEmail } = await import('../lib/figsy')
+    const { sendSequenceEmail, applyReplyBranching } = await import('../lib/figsy')
 
+    const stepsCache = new Map<string, { step: number; on_reply?: 'stop' | 'skip_next' | 'continue' }[] | null>()
     let sent = 0
     for (const enrollment of due ?? []) {
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
       const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
       if (nextStep > 3) continue
+
+      // Honour the step's on_reply setting if the lead has replied since last send
+      try {
+        if (await applyReplyBranching(enrollment, stepsCache) === 'skip') continue
+      } catch (err) {
+        console.error('[figsy/send-due-all] branching', enrollment.id, ':', err)
+      }
+
       const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
       const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
       if (!subject || !body) continue

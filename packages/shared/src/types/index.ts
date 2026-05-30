@@ -98,6 +98,7 @@ export interface Lead {
   status: LeadStatus
   consent_sent_at: string | null
   consent_given_at: string | null
+  consent_token: string | null
   opted_out_at: string | null
   crm_synced: boolean
   crm_contact_id: string | null

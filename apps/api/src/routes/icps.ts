@@ -8,6 +8,7 @@ import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
+import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -18,7 +19,7 @@ icpRouter.use(requireAuth)
 async function autoConsentScoredLeads(leadIds: string[], companyName: string): Promise<void> {
   try {
     const { data: leads } = await db.from('leads')
-      .select('id, first_name, email, status, score')
+      .select('id, first_name, email, status, score, consent_token')
       .in('id', leadIds)
       .gte('score', 60)
       .eq('status', 'scored')
@@ -26,10 +27,9 @@ async function autoConsentScoredLeads(leadIds: string[], companyName: string): P
 
     if (!leads?.length) return
 
-    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
     await Promise.allSettled(
       leads.map(async (lead) => {
-        const optOutUrl = `${portalUrl}/consent?lead=${lead.id}&token=${lead.id}`
+        const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
         await sendConsentEmail(lead.email!, lead.first_name, companyName, optOutUrl)
         await db.from('leads').update({
           status: 'consent_sent',

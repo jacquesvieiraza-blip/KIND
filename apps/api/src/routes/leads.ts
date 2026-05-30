@@ -7,28 +7,29 @@ import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
+import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 
 export const leadRouter = Router()
 
 // ── PUBLIC: POPIA consent callback (no auth — lead clicks link in email) ───────
 leadRouter.post('/public/consent', async (req, res) => {
   try {
-    const { lead_id, token, consent } = z.object({
-      lead_id: z.string().uuid(),
-      token:   z.string(),
+    const { token, consent } = z.object({
+      // lead_id is still accepted from the link for backwards compatibility but
+      // is no longer trusted — the secure token is the sole proof of identity.
+      lead_id: z.string().uuid().optional(),
+      token:   z.string().min(1),
       consent: z.boolean(),
     }).parse(req.body)
 
+    // Look the lead up by its unguessable consent token. A valid token IS the
+    // authorisation; there is no separate id-equality check to bypass.
     const { data: lead, error: leadErr } = await db.from('leads')
       .select('id, email, first_name, last_name, linkedin_url, status, client_id')
-      .eq('id', lead_id).single()
+      .eq('consent_token', token).single()
 
     if (leadErr || !lead) {
       res.status(404).json({ success: false, error: 'Lead not found' }); return
-    }
-
-    if (token !== lead.id) {
-      res.status(401).json({ success: false, error: 'Invalid token' }); return
     }
 
     if (lead.status === 'consent_given' || lead.status === 'opted_out') {
@@ -38,7 +39,7 @@ leadRouter.post('/public/consent', async (req, res) => {
     if (consent) {
       await db.from('leads')
         .update({ status: 'consent_given', consent_given_at: new Date().toISOString() })
-        .eq('id', lead_id)
+        .eq('id', lead.id)
 
       // Fire-and-forget CRM push
       if (lead.email) {
@@ -65,7 +66,7 @@ leadRouter.post('/public/consent', async (req, res) => {
           .eq('email', lead.email)
       } else {
         await db.from('leads').update({ status: 'opted_out', opted_out_at: new Date().toISOString() })
-          .eq('id', lead_id)
+          .eq('id', lead.id)
       }
 
       res.json({ success: true, status: 'opted_out' })
@@ -320,7 +321,7 @@ leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
 
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).single()
 
-    const optOutUrl = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/consent?lead=${lead.id}&token=${lead.id}`
+    const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
     await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
 
     await db.from('leads')
@@ -343,7 +344,7 @@ leadRouter.post('/:id/resend-consent', async (req: AuthRequest, res) => {
     if (lead.status === 'consent_given') { res.status(409).json({ success: false, error: 'Already consented' }); return }
     if (lead.status === 'opted_out') { res.status(409).json({ success: false, error: 'Lead has opted out' }); return }
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
-    const optOutUrl = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/consent?lead=${lead.id}&token=${lead.id}`
+    const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
     await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
     await db.from('leads').update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() }).eq('id', req.params.id)
     res.json({ success: true })
@@ -361,7 +362,7 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: leads } = await db.from('leads')
-      .select('id, email, first_name, last_name, apollo_consented, consent_sent_at, status')
+      .select('id, email, first_name, last_name, apollo_consented, consent_sent_at, status, consent_token')
       .in('id', leadIds)
       .eq('client_id', clientId)
 
@@ -379,7 +380,7 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
       if (!lead.email)                        { alreadySent++;      continue }
 
       try {
-        const optOutUrl = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/consent?lead=${lead.id}&token=${lead.id}`
+        const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
         await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
         await db.from('leads')
           .update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() })
@@ -567,7 +568,7 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: leads } = await db.from('leads')
-      .select('id, email, first_name, last_name, status')
+      .select('id, email, first_name, last_name, status, consent_token')
       .in('id', lead_ids)
       .eq('client_id', clientId)
 
@@ -579,7 +580,7 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
         skipped++; continue
       }
       try {
-        const optOutUrl = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/consent?lead=${lead.id}&token=${lead.id}`
+        const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
         await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
         await db.from('leads').update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() }).eq('id', lead.id)
         sent++

@@ -289,6 +289,39 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch KPIs' }) }
 })
 
+// ── DAILY SENDS TIME SERIES (for the KPIs sparkline) ─────────────────────────
+// GET /figsy/sends-daily?days=7 → [{ date: 'YYYY-MM-DD', count }] oldest→newest
+figsyRouter.get('/sends-daily', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const days = Math.min(Math.max(parseInt((req.query.days as string) ?? '7', 10) || 7, 1), 90)
+    const since = new Date(Date.now() - (days - 1) * 86400000)
+    since.setUTCHours(0, 0, 0, 0)
+
+    const { data, error } = await db.from('figsy_sent_emails')
+      .select('sent_at')
+      .eq('client_id', clientId)
+      .gte('sent_at', since.toISOString())
+    if (error) throw error
+
+    // Pre-seed one bucket per day (UTC) so days with zero sends still appear.
+    const buckets: Record<string, number> = {}
+    for (let i = 0; i < days; i++) {
+      const d = new Date(since.getTime() + i * 86400000)
+      buckets[d.toISOString().split('T')[0]] = 0
+    }
+    for (const row of data ?? []) {
+      const key = (row.sent_at as string).split('T')[0]
+      if (key in buckets) buckets[key]++
+    }
+
+    const series = Object.entries(buckets).map(([date, count]) => ({ date, count }))
+    res.json({ success: true, data: series })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch daily sends' }) }
+})
+
 // ── CAMPAIGNS ────────────────────────────────────────────────────────────────
 
 figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {

@@ -130,6 +130,82 @@ function BenchmarkRow({
   )
 }
 
+interface DailySend {
+  date: string   // YYYY-MM-DD (UTC)
+  count: number
+}
+
+// Small time-series sparkline of emails sent per day over the trailing window.
+function EmailsSparkline({ data }: { data: DailySend[] }) {
+  const total = data.reduce((s, d) => s + d.count, 0)
+  const max   = Math.max(...data.map(d => d.count), 1)
+  const n     = data.length
+  const VBW = 100, VBH = 36
+
+  const coords = data.map((d, i) => {
+    const x = n > 1 ? (i / (n - 1)) * VBW : VBW / 2
+    const y = VBH - (d.count / max) * (VBH - 4) - 2
+    return `${x.toFixed(2)},${y.toFixed(2)}`
+  })
+  const linePts = coords.join(' ')
+  const areaPts = `0,${VBH} ${linePts} ${VBW},${VBH}`
+
+  const dayLabel = (s: string) =>
+    new Date(`${s}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
+
+  return (
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/10 flex items-center justify-center">
+            <Activity className="w-4 h-4 text-[#7C3AED]" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Emails sent</h2>
+            <p className="text-xs text-[#9B8EC4]">Last {n} days</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-bold text-gray-900">{total.toLocaleString()}</p>
+          <p className="text-xs text-[#9B8EC4]">total sent</p>
+        </div>
+      </div>
+
+      <svg viewBox={`0 0 ${VBW} ${VBH}`} preserveAspectRatio="none" className="w-full h-16" aria-hidden>
+        <defs>
+          <linearGradient id="kpiSparkFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#7C3AED" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {total > 0 && <polygon points={areaPts} fill="url(#kpiSparkFill)" />}
+        <polyline
+          points={linePts}
+          fill="none"
+          stroke="#7C3AED"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+
+      <div className="flex mt-2">
+        {data.map(d => (
+          <div key={d.date} className="flex-1 text-center">
+            <p className="text-xs font-semibold text-gray-700">{d.count}</p>
+            <p className="text-[10px] text-[#9B8EC4]">{dayLabel(d.date)}</p>
+          </div>
+        ))}
+      </div>
+
+      {total === 0 && (
+        <p className="text-center text-xs text-[#9B8EC4] mt-3">No emails sent in this window yet.</p>
+      )}
+    </div>
+  )
+}
+
 interface FigsyInsight {
   icon: string
   title: string
@@ -200,6 +276,7 @@ export default function KPIsPage() {
   const supabase = createClient()
   const [leads, setLeads]   = useState<LeadStats | null>(null)
   const [figsy, setFigsy]   = useState<FigsyKPIs | null>(null)
+  const [sends, setSends]   = useState<DailySend[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [period, setPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('all')
@@ -207,12 +284,15 @@ export default function KPIsPage() {
 
   async function fetchData(tok: string, p: '7d' | '30d' | '90d' | 'all' = 'all') {
     try {
-      const [leadsRes, figsyRes] = await Promise.all([
+      const [leadsRes, figsyRes, sendsRes] = await Promise.all([
         api.get<{ success: boolean; data: LeadStats }>('/leads/stats', tok),
         api.get<{ success: boolean; data: FigsyKPIs }>('/figsy/kpis?period=' + p, tok),
+        // Sparkline always shows the trailing 7 days, independent of the period filter
+        api.get<{ success: boolean; data: DailySend[] }>('/figsy/sends-daily?days=7', tok),
       ])
       setLeads(leadsRes.data)
       setFigsy(figsyRes.data)
+      setSends(sendsRes.data ?? [])
     } catch { }
   }
 
@@ -389,6 +469,13 @@ export default function KPIsPage() {
             warn={meetingsBookedWarn}
           />
         </div>
+
+        {/* Emails-sent sparkline — trailing 7 days */}
+        {sends.length > 0 && (
+          <div className="mt-3">
+            <EmailsSparkline data={sends} />
+          </div>
+        )}
       </div>
 
       {/* Lead pipeline metrics — 4 columns */}

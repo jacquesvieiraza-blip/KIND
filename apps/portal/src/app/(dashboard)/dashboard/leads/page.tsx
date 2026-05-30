@@ -644,12 +644,12 @@ export default function LeadsPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">People</h1>
           <p className="text-[#7B6FA0] text-sm mt-1">AI-scored B2B leads, POPIA-compliant and ready for outreach.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {selectedIds.size > 0 && (
             <button onClick={bulkConsentSend} disabled={bulkSending} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors">
               <Send className="w-4 h-4" />{bulkSending ? 'Sending…' : `Send consent (${selectedIds.size})`}
@@ -836,7 +836,7 @@ export default function LeadsPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[960px]">
                 <thead>
                   <tr className="border-b border-purple-100/60">
                     <th className="px-4 py-3 w-10" colSpan={1}>

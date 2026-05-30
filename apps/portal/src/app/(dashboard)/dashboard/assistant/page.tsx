@@ -378,8 +378,8 @@ export default function AssistantPage() {
               </p>
             </div>
           )}
-          <div className="flex h-[68vh]">
-            <div className="w-56 border-r border-purple-100/60 flex flex-col shrink-0">
+          <div className="flex flex-col lg:flex-row h-auto lg:h-[68vh]">
+            <div className="w-full lg:w-56 border-b lg:border-b-0 lg:border-r border-purple-100/60 flex flex-col shrink-0 max-h-48 lg:max-h-none">
               <div className="px-3 py-3 border-b border-purple-100/60">
                 <button onClick={handleNewSession} disabled={creatingSession}
                   className="w-full px-3 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">
@@ -399,7 +399,7 @@ export default function AssistantPage() {
                 }
               </div>
             </div>
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 h-[60vh] lg:h-auto">
               {!activeSession ? (
                 <div className="flex-1 flex items-center justify-center text-center p-8">
                   <div>

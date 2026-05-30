@@ -22,7 +22,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   // ── Milla takes over ────────────────────────────────────────────────────────
   if (pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents')) {
     return (
-      <div className="w-64 shrink-0 sticky top-6 self-start">
+      <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
         <AgentSidePanel
           agentId="milla"
           name="Milla"
@@ -45,7 +45,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   // ── Vida takes over ─────────────────────────────────────────────────────────
   if (pathname.startsWith('/dashboard/chatbot')) {
     return (
-      <div className="w-64 shrink-0 sticky top-6 self-start">
+      <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
         <AgentSidePanel
           agentId="vida"
           name="Vida"
@@ -163,7 +163,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   }
 
   return (
-    <div className="w-72 shrink-0 sticky top-6 self-start">
+    <div className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
       <AgentSidePanel
         agentId="figsy"
         name="FIGSY"

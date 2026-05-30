@@ -332,7 +332,7 @@ export default function RoadmapPage() {
       </div>
 
       {/* Feedback CTA */}
-      <div className="bg-gray-50 border border-purple-100/60 rounded-xl p-6 flex items-center justify-between gap-4">
+      <div className="bg-gray-50 border border-purple-100/60 rounded-xl p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-bold text-gray-900">Have a feature request?</h3>
           <p className="text-sm text-[#7B6FA0] mt-0.5">We build based on what our clients need. Tell us what would help your business most.</p>

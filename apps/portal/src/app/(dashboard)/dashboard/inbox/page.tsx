@@ -403,10 +403,10 @@ export default function InboxPage() {
   })()
 
   return (
-    <div className="flex h-[calc(100vh-64px)] -m-6 lg:-m-8">
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-64px)] -m-6 lg:-m-8">
 
       {/* ── LEFT PANEL: Reply list ──────────────────────────────────── */}
-      <div className="w-[340px] shrink-0 border-r border-purple-100/60 flex flex-col bg-white/60 backdrop-blur-sm">
+      <div className="w-full lg:w-[340px] shrink-0 border-b lg:border-b-0 lg:border-r border-purple-100/60 flex flex-col bg-white/60 backdrop-blur-sm max-h-[40vh] lg:max-h-none">
 
         {/* Header */}
         <div className="px-4 pt-5 pb-3 border-b border-purple-100/60 bg-white/80">
@@ -519,7 +519,7 @@ export default function InboxPage() {
       </div>
 
       {/* ── RIGHT PANEL: Detail view ────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto bg-transparent">
+      <div className="flex-1 min-h-[60vh] lg:min-h-0 overflow-y-auto bg-transparent">
         {!selected ? (
           loading ? (
             <div className="flex items-center justify-center h-full">

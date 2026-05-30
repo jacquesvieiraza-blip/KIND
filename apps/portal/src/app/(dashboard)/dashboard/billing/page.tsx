@@ -270,7 +270,7 @@ export default function BillingPage() {
       </div>
 
       {/* Balance */}
-      <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl text-white grid grid-cols-2 divide-x divide-white/10">
+      <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl text-white grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
         <div className="px-6 py-5">
           <p className="text-white/60 text-sm mb-1">Current balance</p>
           <div className="flex items-end gap-2">
@@ -290,7 +290,7 @@ export default function BillingPage() {
       </div>
 
       {/* How credits work */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
           { icon: <Zap className="w-4 h-4 text-purple-500" />, title: 'Lead found', sub: 'No credit used', bg: 'bg-[#F5F0FF]' },
           { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'Outreach sent', sub: 'No credit used', bg: 'bg-indigo-50' },
@@ -483,7 +483,7 @@ export default function BillingPage() {
         </div>
         {autoTopup.enabled && (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Recharge when below</p>
                 <select value={autoTopup.threshold} onChange={e => setAutoTopup(p => ({ ...p, threshold: Number(e.target.value) }))}
@@ -539,7 +539,7 @@ export default function BillingPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Credit balance over time</h2>
             <div className="bg-white rounded-xl border border-gray-100 p-5">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-5 text-sm">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
                   <span className="text-[#7B6FA0]">Top-ups: <span className="font-semibold text-green-600">+{totalTopUps}</span></span>
                   <span className="text-[#7B6FA0]">Used: <span className="font-semibold text-red-500">−{totalSpent}</span></span>
                   <span className="text-[#7B6FA0]">Balance: <span className="font-semibold text-gray-900">{balance ?? 0}</span></span>

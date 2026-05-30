@@ -456,7 +456,7 @@ function DNCTab() {
         <p className="text-xs text-rose-700">Contacts, emails, or domains on this list will never be contacted by any K.I.N.D agent. POPIA opt-outs are added automatically.</p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <select
           value={newType}
           onChange={e => setNewType(e.target.value as DNCEntry['type'])}
@@ -586,7 +586,7 @@ function MessagingTab() {
       </div>
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">Email length preference</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {[
             { value: 'brief', label: 'Brief (2–3 lines)' },
             { value: 'concise', label: 'Concise (4–6 lines)' },
@@ -914,9 +914,9 @@ export default function KnowledgePage() {
         </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Section sidebar */}
-        <div className="w-56 shrink-0">
+        <div className="w-full lg:w-56 shrink-0">
           <nav className="space-y-1">
             {SECTIONS.map(section => {
               const isActive = activeSection === section.value

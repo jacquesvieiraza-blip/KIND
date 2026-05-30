@@ -512,14 +512,14 @@ export default function CampaignDetailPage() {
         <Link href="/dashboard/figsy" className="flex items-center gap-1.5 text-sm text-[#9B8EC4] hover:text-gray-700 transition-colors mb-3">
           <ArrowLeft className="w-4 h-4" /> All campaigns
         </Link>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">{campaign.name}</h1>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[campaign.status] ?? 'bg-gray-100 text-[#7B6FA0]'}`}>
               {campaign.status}
             </span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap sm:shrink-0">
             {campaign.status === 'active' && (
               <>
                 <button
@@ -573,7 +573,7 @@ export default function CampaignDetailPage() {
       </div>
 
       {/* Stats strip */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Enrolled',   value: campaign.leads_enrolled },
           { label: 'Sent',      value: campaign.emails_sent },

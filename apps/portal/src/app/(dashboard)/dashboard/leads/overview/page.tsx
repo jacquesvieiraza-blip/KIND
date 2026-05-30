@@ -150,7 +150,7 @@ export default function LeadGenOverviewPage() {
             <p className="text-white/50 text-sm mb-5">
               Precision B2B leads — AI-scored, POPIA-compliant, ready for FIGSY outreach.
             </p>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: 'Total leads',     value: s.total.toLocaleString() },
                 { label: 'AI scored',       value: s.scored.toLocaleString() },

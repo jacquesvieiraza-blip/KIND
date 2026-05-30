@@ -505,7 +505,8 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
             <p className="text-sm text-[#9B8EC4]">Once your widget is live, chat sessions will appear here.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[560px]">
             <thead>
               <tr className="border-b border-purple-100/60 text-left">
                 <th className="px-5 py-3 text-xs font-medium text-[#7B6FA0] uppercase tracking-wide">Visitor</th>
@@ -541,6 +542,7 @@ function ConversationsTab({ toast }: { toast: (msg: string) => void }) {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

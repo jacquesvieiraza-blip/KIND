@@ -9,6 +9,7 @@ import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
+  Menu, X,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 import { DarkModeToggle } from '@/components/ui/DarkModeToggle'
@@ -124,7 +125,18 @@ export function Sidebar({
 
   const [activeId, setActiveId] = useState<AgentId>('figsy')
   const [open, setOpen]         = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [unreadCount] = React.useState(0)
+
+  // Close the mobile drawer whenever the route changes (i.e. a nav link was tapped)
+  React.useEffect(() => { setMobileOpen(false) }, [pathname])
+
+  // Lock body scroll while the mobile drawer is open
+  React.useEffect(() => {
+    if (!mobileOpen) return
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
 
   const isUnlocked = (id: AgentId) => id === 'figsy' ? hasFigsy : id === 'milla' ? hasMilla : hasVida
   const agent = AGENTS.find(a => a.id === activeId)!
@@ -168,7 +180,44 @@ export function Sidebar({
   }
 
   return (
-    <aside className="w-[240px] flex flex-col shrink-0 border-r border-white/[0.08]" style={{ background: "linear-gradient(180deg, #1E1152 0%, #160D3D 100%)" }}>
+    <>
+      {/* ── Mobile top bar (below lg) ─────────────────────────────── */}
+      <header
+        className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center justify-between px-4 border-b border-white/[0.08]"
+        style={{ background: 'linear-gradient(90deg, #1E1152 0%, #160D3D 100%)' }}
+      >
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="flex items-center justify-center w-9 h-9 -ml-1.5 rounded-lg text-purple-100 hover:bg-white/[0.08] transition-colors"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-[#7C3AED] flex items-center justify-center">
+            <Zap className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="text-white font-bold text-sm tracking-tight">K.I.N.D</span>
+        </div>
+        <div className="flex items-center gap-1 bg-[#F59E0B]/10 border border-[#F59E0B]/25 rounded-full px-2 py-0.5">
+          <Coins className="w-3 h-3 text-[#F59E0B]" />
+          <span className="text-[11px] font-bold text-[#F59E0B]">{creditBalance}</span>
+        </div>
+      </header>
+
+      {/* ── Mobile backdrop ───────────────────────────────────────── */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          aria-hidden
+        />
+      )}
+
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] flex flex-col border-r border-white/[0.08] transform transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:w-[240px] lg:max-w-none lg:translate-x-0 lg:shrink-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      style={{ background: "linear-gradient(180deg, #1E1152 0%, #160D3D 100%)" }}
+    >
 
       {/* ── Logo ──────────────────────────────────────────────────── */}
       <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-white/[0.06]">
@@ -176,6 +225,13 @@ export function Sidebar({
           <Zap className="w-4 h-4 text-white" />
         </div>
         <span className="text-white font-bold text-sm tracking-tight">K.I.N.D</span>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden ml-auto flex items-center justify-center w-8 h-8 -mr-1 rounded-lg text-purple-200/70 hover:text-white hover:bg-white/[0.08] transition-colors"
+          aria-label="Close navigation menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       <nav className="flex-1 px-3 pt-3 pb-2 space-y-0.5 overflow-y-auto">
@@ -356,5 +412,6 @@ export function Sidebar({
         </button>
       </div>
     </aside>
+    </>
   )
 }

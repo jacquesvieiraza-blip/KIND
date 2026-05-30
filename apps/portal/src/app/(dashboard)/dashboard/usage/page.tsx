@@ -146,7 +146,7 @@ export default function UsagePage() {
 
       {/* Lead usage this billing period */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-semibold text-gray-900">Leads this billing period</h2>
           {periodStart && periodEnd && (
             <span className="text-xs text-[#9B8EC4]">{periodStart} – {periodEnd}</span>
@@ -195,7 +195,7 @@ export default function UsagePage() {
       </div>
 
       {/* Credit summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'Balance', value: balance, icon: <Coins className="w-5 h-5" />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
           { label: 'Credits purchased', value: totalPurchased, icon: <ArrowUpRight className="w-5 h-5" />, color: 'text-[#7C3AED]', bg: 'bg-[#F5F0FF]' },

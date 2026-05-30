@@ -90,9 +90,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         hasVida={hasVida}
         isNewUser={isNewUser}
       />
-      <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative z-10">
+      <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] sm:p-6 sm:pt-[4.75rem] lg:p-8 lg:pt-8 relative z-10">
         <TrialExpiredOverlay expired={trialExpired} />
-        <div className="flex gap-5 items-start max-w-7xl">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-stretch lg:items-start max-w-7xl mx-auto w-full">
           <AgentColumn
             hasFigsy={hasFigsy}
             hasMilla={hasMilla}
@@ -101,7 +101,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             creditBalance={creditBalance}
             isNewUser={isNewUser}
           />
-          <div className="flex-1 min-w-0 space-y-4">
+          <div className="flex-1 min-w-0 space-y-4 order-first lg:order-none">
             <LowCreditsNotice balance={creditBalance} />
             {children}
           </div>

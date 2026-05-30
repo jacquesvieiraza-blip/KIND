@@ -576,10 +576,10 @@ export default function FigsyPage() {
 
       {/* Mode toggle — Auto-Pilot vs Co-Pilot */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4">
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="flex-1">
             <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider mb-2">FIGSY Mode</p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setMode('autopilot')}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
@@ -621,7 +621,7 @@ export default function FigsyPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             Campaigns <span className="text-sm font-normal text-[#9B8EC4] ml-1">— {campaigns.length} total</span>
@@ -630,7 +630,7 @@ export default function FigsyPage() {
             FIGSY outreach sequences for your scored, consented leads.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleSuggestCampaigns}
             disabled={suggestLoading}
@@ -672,7 +672,7 @@ export default function FigsyPage() {
               </button>
             )}
           </div>
-          <form onSubmit={handleCreate} className="flex gap-3">
+          <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
               value={newName}
@@ -745,7 +745,7 @@ export default function FigsyPage() {
         <div className="space-y-4">
           {campaigns.map(campaign => (
             <div key={campaign.id} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <a href={`/dashboard/figsy/${campaign.id}`} className="font-semibold text-gray-900 hover:text-[#7C3AED] transition-colors">{campaign.name}</a>
@@ -762,7 +762,7 @@ export default function FigsyPage() {
                     Created {new Date(campaign.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
                   {campaign.status === 'draft' && (
                     <button
                       onClick={() => handleStatusChange(campaign, 'active')}

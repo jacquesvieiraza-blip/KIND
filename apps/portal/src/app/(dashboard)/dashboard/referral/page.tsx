@@ -163,7 +163,8 @@ export default function ReferralPage() {
 
         {referrals.length > 0 ? (
           <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[480px] text-sm">
               <thead>
                 <tr className="border-b border-gray-50">
                   <th className="text-left px-5 py-3 text-xs font-medium text-[#9B8EC4] uppercase tracking-wide">Business</th>
@@ -191,6 +192,7 @@ export default function ReferralPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-dashed border-purple-100/80 p-10 text-center">

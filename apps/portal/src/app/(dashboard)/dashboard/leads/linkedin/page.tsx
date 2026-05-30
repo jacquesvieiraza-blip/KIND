@@ -544,7 +544,7 @@ export default function LinkedInImportPage() {
             </div>
 
             {/* Field coverage */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
               {[
                 { label: 'With email',    count: previewLeads.filter(l => l.email).length },
                 { label: 'With LinkedIn', count: previewLeads.filter(l => l.linkedin_url).length },
@@ -559,7 +559,7 @@ export default function LinkedInImportPage() {
 
             {/* Preview table */}
             <div className="overflow-x-auto rounded-xl border border-purple-100/60">
-              <table className="w-full text-xs">
+              <table className="w-full text-xs min-w-[560px]">
                 <thead>
                   <tr className="border-b border-purple-100/60 bg-gray-50">
                     {['Name', 'Job Title', 'Company', 'Email', 'LinkedIn'].map(h => (

@@ -194,7 +194,7 @@ export default function SettingsPage() {
               {SUPPORTED_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
               <input type="url" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })}
@@ -206,7 +206,7 @@ export default function SettingsPage() {
                 className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company Registration No.</label>
               <input type="text" value={form.company_registration} onChange={(e) => setForm({ ...form, company_registration: e.target.value })}

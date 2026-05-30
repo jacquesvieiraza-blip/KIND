@@ -156,7 +156,7 @@ export default async function DashboardPage() {
 
       {/* Stats — only when there's real activity */}
       {totalSent > 0 && (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: 'Emails sent',     value: totalSent.toLocaleString(),     color: 'text-slate-700',   bg: 'bg-white',          border: 'border-[#EDE9FE]',    trend: sparkPoints, trendColor: '#7C3AED' },
             { label: 'Reply rate',      value: `${replyRate}%`,                color: replyRate >= 8 ? 'text-emerald-600' : 'text-slate-700', bg: replyRate >= 8 ? 'bg-emerald-50/50' : 'bg-white', border: replyRate >= 8 ? 'border-emerald-200' : 'border-[#EDE9FE]', sub: replyRate >= 8 ? '↑ above avg' : 'avg 8%' },
@@ -303,8 +303,8 @@ export default async function DashboardPage() {
       {/* Performance strip */}
       {figsyCampaigns.length > 0 && (
         <div className="bg-white rounded-2xl border border-[#EDE9FE] px-5 py-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-3.5 h-3.5 text-[#7C3AED]" />
                 <span className="text-xs font-semibold text-slate-500">Pipeline</span>

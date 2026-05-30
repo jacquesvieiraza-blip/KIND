@@ -214,7 +214,7 @@ export default function IcpBuilderPage() {
           <div className="mt-2 bg-purple-50 border border-purple-200 rounded-xl p-4">
             <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2">Your ICP Draft</p>
             {icpSummary && <p className="text-sm font-medium text-purple-900 mb-3">{icpSummary}</p>}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
               {[
                 ['Name', icpDraft.name],
                 ['Industries', icpDraft.industries.join(', ')],

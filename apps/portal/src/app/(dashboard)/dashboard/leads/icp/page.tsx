@@ -46,7 +46,7 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
   ]
 
   return (
-    <div className="w-64 shrink-0 sticky top-6 rounded-2xl overflow-hidden border border-purple-100/40 shadow-lg bg-white">
+    <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 rounded-2xl overflow-hidden border border-purple-100/40 shadow-lg bg-white">
       {/* Photo area */}
       <div className="w-full h-48 overflow-hidden">
         <img
@@ -564,7 +564,7 @@ export default function ICPPage() {
   )
 
   return (
-    <div className="flex gap-6 items-start">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start">
       {token && <FigsySidePanel token={token} onFill={handleAiFill} />}
 
       <div className="flex-1 min-w-0 space-y-6">
@@ -622,7 +622,7 @@ export default function ICPPage() {
 
         {icps.map(icp => (
           <div key={icp.id} className={`bg-white rounded-xl border p-5 ${icp.is_active ? 'border-[#7C3AED] ring-1 ring-[#7C3AED]' : 'border-purple-100/60'}`}>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
               <div className="flex items-center gap-3">
                 <h3 className="font-semibold text-gray-900">{icp.name}</h3>
                 {icp.is_active && (
@@ -631,7 +631,7 @@ export default function ICPPage() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => runIcp(icp.id)}
                   disabled={runningId === icp.id}
@@ -654,7 +654,7 @@ export default function ICPPage() {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
               {[
                 ['Industries', icp.industries],
                 ['Job Titles', icp.job_titles],
@@ -852,7 +852,7 @@ export default function ICPPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Intent Signals <span className="text-[#9B8EC4] font-normal text-xs">(optional)</span></label>
               <p className="text-xs text-[#9B8EC4] mb-3">Only surface leads showing active buying signals right now.</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {INTENT_SIGNALS.map(sig => {
                   const active = form.intent_signals?.includes(sig.value)
                   return (

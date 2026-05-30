@@ -183,10 +183,35 @@ function OnboardChat() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-8"
+      className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%)' }}
     >
-      <div className="w-full max-w-sm">
+      {/* Floating dots */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+        {[
+          { top: '8%',  left: '12%', size: 6, delay: '0s',   dur: '7s'  },
+          { top: '15%', left: '78%', size: 4, delay: '1.2s', dur: '9s'  },
+          { top: '72%', left: '6%',  size: 8, delay: '0.5s', dur: '8s'  },
+          { top: '85%', left: '88%', size: 5, delay: '2s',   dur: '6s'  },
+          { top: '45%', left: '92%', size: 4, delay: '3s',   dur: '10s' },
+          { top: '30%', left: '4%',  size: 6, delay: '1.5s', dur: '8s'  },
+          { top: '60%', left: '55%', size: 3, delay: '0.8s', dur: '11s' },
+          { top: '20%', left: '45%', size: 5, delay: '2.5s', dur: '7s'  },
+          { top: '90%', left: '35%', size: 4, delay: '0.3s', dur: '9s'  },
+          { top: '55%', left: '22%', size: 7, delay: '1.8s', dur: '8s'  },
+          { top: '5%',  left: '60%', size: 3, delay: '4s',   dur: '12s' },
+          { top: '78%', left: '70%', size: 5, delay: '2.2s', dur: '7s'  },
+        ].map((dot, i) => (
+          <div key={i} className="absolute rounded-full" style={{
+            top: dot.top, left: dot.left, width: dot.size, height: dot.size,
+            background: '#A5B4FC', opacity: 0.45,
+            animation: `floatDot ${dot.dur} ease-in-out ${dot.delay} infinite alternate`,
+          }} />
+        ))}
+      </div>
+      <style>{`@keyframes floatDot{0%{transform:translateY(0) translateX(0)}50%{transform:translateY(-18px) translateX(6px)}100%{transform:translateY(-30px) translateX(-4px)}}`}</style>
+
+      <div className="w-full max-w-sm relative z-10">
 
         {/* ── FIGSY card ──────────────────────────────────────────── */}
         <div className="rounded-2xl overflow-hidden shadow-xl border border-purple-100/40">

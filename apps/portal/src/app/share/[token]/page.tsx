@@ -1,12 +1,36 @@
 import type { Metadata } from 'next'
 
-// Static params are not declared — this is a dynamic public route with no auth.
-// Data is stubbed; real token lookup can be added later.
+// Dynamic public route with no auth. Data is resolved by share_token via the
+// public API endpoint (service-role lookup) — the portal's anon client can't
+// read these tables under RLS, so we go through the API like the consent page.
 
 export const dynamic = 'force-dynamic'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+
 interface PageProps {
   params: Promise<{ token: string }>
+}
+
+interface ReportData {
+  companyName: string
+  emailsSent: number
+  totalReplies: number
+  interestedLeads: number
+  activeCampaigns: number
+  daily: { date: string; count: number }[]
+  lastUpdated: string
+}
+
+async function fetchReport(token: string): Promise<ReportData | null> {
+  try {
+    const res = await fetch(`${API_URL}/share/${encodeURIComponent(token)}`, { cache: 'no-store' })
+    if (!res.ok) return null
+    const body = await res.json()
+    return body?.success ? (body.data as ReportData) : null
+  } catch {
+    return null
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -22,28 +46,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-// ── Stub data ──────────────────────────────────────────────────────────────
-const mockData = {
-  companyName:      'Acme Corp',
-  period:           'May 2026',
-  emailsSent:       247,
-  replyRate:        '19.4%',
-  interestedLeads:  12,
-  activeCampaigns:  3,
-  lastUpdated:      new Date().toISOString(),
-}
-
-// ── Simple bar-chart (SVG, no library) ─────────────────────────────────────
-//   7 days of fake activity data, normalised
-const barData = [18, 32, 27, 41, 38, 52, 39]
-const BAR_MAX = Math.max(...barData)
-
-function ActivityBars() {
+// ── Simple bar-chart (SVG, no library) — real daily sends ───────────────────
+function ActivityBars({ bars }: { bars: { date: string; count: number }[] }) {
   const W = 360
   const H = 80
   const GAP = 8
-  const barW = (W - GAP * (barData.length - 1)) / barData.length
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const barW = (W - GAP * (bars.length - 1)) / bars.length
+  const max = Math.max(...bars.map(b => b.count), 1)
+  const dayLabel = (s: string) =>
+    new Date(`${s}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
 
   return (
     <svg
@@ -52,15 +63,15 @@ function ActivityBars() {
       style={{ maxWidth: W }}
       aria-label="7-day activity chart"
     >
-      {barData.map((v, i) => {
+      {bars.map((b, i) => {
         const x      = i * (barW + GAP)
-        const barH   = Math.round((v / BAR_MAX) * H)
+        const barH   = Math.round((b.count / max) * H)
         const y      = H - barH
-        const isTall = v === BAR_MAX
+        const isTall = b.count === max && b.count > 0
         return (
-          <g key={i}>
+          <g key={b.date}>
             <rect
-              x={x} y={y} width={barW} height={barH}
+              x={x} y={y} width={barW} height={Math.max(barH, b.count > 0 ? 2 : 0)}
               rx="4" ry="4"
               fill={isTall ? '#7C3AED' : '#C4B5FD'}
               opacity={isTall ? 1 : 0.7}
@@ -72,7 +83,7 @@ function ActivityBars() {
               fill="#9CA3AF"
               fontFamily="system-ui, sans-serif"
             >
-              {days[i]}
+              {dayLabel(b.date)}
             </text>
           </g>
         )
@@ -109,12 +120,41 @@ function MetricCard({
   )
 }
 
+// ── Not-found state ──────────────────────────────────────────────────────────
+function ReportNotFound() {
+  return (
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
+      style={{ background: 'linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%)' }}
+    >
+      <div className="flex items-center gap-1.5 mb-6">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-md shadow-purple-400/30"
+          style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}
+        >
+          K
+        </div>
+        <span className="font-black text-[#1E0A5C] text-lg tracking-tight">K.I.N.D</span>
+      </div>
+      <h1 className="text-xl font-bold text-[#1E0A5C] mb-2">Report not found</h1>
+      <p className="text-sm text-slate-400 max-w-sm">
+        This share link is invalid or has expired. Ask whoever sent it for an up-to-date link.
+      </p>
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default async function SharePage({ params }: PageProps) {
-  // `token` can later be used to look up a real client record from DB
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { token } = await params
-  const data = mockData
+  const data = await fetchReport(token)
+
+  if (!data) return <ReportNotFound />
+
+  const period = new Date(data.lastUpdated).toLocaleString('en-ZA', { month: 'long', year: 'numeric' })
+  const replyRate = data.emailsSent > 0
+    ? `${((data.totalReplies / data.emailsSent) * 100).toFixed(1)}%`
+    : '—'
 
   const formattedUpdate = new Date(data.lastUpdated).toLocaleString('en-ZA', {
     day:    'numeric',
@@ -148,7 +188,7 @@ export default async function SharePage({ params }: PageProps) {
         </div>
         <div className="text-right">
           <p className="text-sm font-semibold text-[#1E0A5C]">{data.companyName}</p>
-          <p className="text-[11px] text-slate-400">{data.period}</p>
+          <p className="text-[11px] text-slate-400">{period}</p>
         </div>
       </header>
 
@@ -159,14 +199,14 @@ export default async function SharePage({ params }: PageProps) {
         <div>
           <h1 className="text-2xl font-bold text-[#1E0A5C]">Outreach Performance</h1>
           <p className="text-sm text-slate-400 mt-0.5">
-            Live snapshot for <span className="font-medium text-[#7C3AED]">{data.companyName}</span> · {data.period}
+            Live snapshot for <span className="font-medium text-[#7C3AED]">{data.companyName}</span> · {period}
           </p>
         </div>
 
         {/* Metric cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <MetricCard label="Emails Sent"       value={data.emailsSent.toLocaleString()} />
-          <MetricCard label="Reply Rate"        value={data.replyRate} accent />
+          <MetricCard label="Reply Rate"        value={replyRate} accent />
           <MetricCard label="Interested Leads"  value={data.interestedLeads} />
           <MetricCard label="Campaigns Active"  value={data.activeCampaigns} />
         </div>
@@ -174,7 +214,7 @@ export default async function SharePage({ params }: PageProps) {
         {/* Bar chart */}
         <div className="bg-white/80 backdrop-blur rounded-2xl border border-purple-100/60 p-5">
           <p className="text-sm font-semibold text-[#1E0A5C] mb-4">Last 7 days — emails sent</p>
-          <ActivityBars />
+          <ActivityBars bars={data.daily} />
         </div>
 
         {/* Last updated */}

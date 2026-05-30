@@ -401,6 +401,45 @@ export async function sendZeroCreditsWarning(
   })
 }
 
+// Sent when FIGSY auto-pauses a campaign for low performance (reply rate < 1%)
+export async function sendCampaignPausedEmail(
+  to: string,
+  companyName: string,
+  campaignName: string,
+  replyRate: number,
+) {
+  if (!resend) return
+
+  const replyPct = (replyRate * 100).toFixed(1)
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your campaign "${campaignName}" was paused — let's fix it`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <p>Hi ${companyName},</p>
+        <p style="color:#555;line-height:1.6">
+          I've paused your campaign <strong>"${campaignName}"</strong>. Its reply rate dropped to
+          <strong>${replyPct}%</strong> — below the 1% threshold — so I stopped sending to protect your
+          sender reputation and avoid wasting credits on a sequence that isn't landing.
+        </p>
+        <p style="color:#555;line-height:1.6">
+          This is usually a quick fix. The most common causes are off-target leads or messaging that
+          needs a sharper hook. Tweak your targeting or copy, then reactivate — I'll pick it straight back up.
+        </p>
+        <a href="${DASH}/figsy"
+           style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+          Review &amp; reactivate campaign →
+        </a>
+        <p style="color:#999;font-size:0.8rem;margin-top:24px">
+          Want a hand improving it? Reply to this email — <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        </p>
+      </div>
+    `,
+  })
+}
+
 // D5 — Weekly leads digest (send every Monday)
 export async function sendWeeklyLeadsDigest(
   to: string,

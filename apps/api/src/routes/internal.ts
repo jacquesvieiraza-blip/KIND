@@ -16,7 +16,7 @@ import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 
@@ -806,6 +806,20 @@ internalRouter.post('/figsy/check-performance', async (_req: Request, res: Respo
           .eq('id', campaign.id)
         paused.push({ id: campaign.id, name: campaign.name, client_id: campaign.client_id, reply_rate: replyRate })
         console.log(`[figsy/check-performance] paused campaign ${campaign.id} (${campaign.name}) — reply rate ${(replyRate * 100).toFixed(2)}%`)
+
+        // Notify the client their campaign was auto-paused (best-effort — never block the loop)
+        try {
+          const { data: client } = await db.from('clients')
+            .select('company_name, user_id').eq('id', campaign.client_id).maybeSingle()
+          if (client?.user_id) {
+            const { data: { user } } = await db.auth.admin.getUserById(client.user_id)
+            if (user?.email) {
+              await sendCampaignPausedEmail(user.email, client.company_name ?? '', campaign.name, replyRate)
+            }
+          }
+        } catch (emailErr) {
+          console.error('[figsy/check-performance] pause email failed for', campaign.id, emailErr)
+        }
       }
     }
 

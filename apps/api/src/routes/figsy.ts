@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead } from '../lib/figsy'
+import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 
@@ -763,12 +763,21 @@ figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
       .lte('next_send_at', now)
       .limit(remaining)
 
+    const stepsCache = new Map<string, { step: number; on_reply?: 'stop' | 'skip_next' | 'continue' }[] | null>()
     let sent = 0
     for (const enrollment of due ?? []) {
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
       const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
       if (nextStep > 3) continue
+
+      // Honour the step's on_reply setting if the lead has replied since last send
+      try {
+        if (await applyReplyBranching(enrollment, stepsCache) === 'skip') continue
+      } catch (err) {
+        console.error('[figsy/send-due] branching', enrollment.id, ':', err)
+      }
+
       const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
       const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
       if (!subject || !body) continue

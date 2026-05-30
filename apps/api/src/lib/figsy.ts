@@ -196,6 +196,98 @@ Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max
   return { classification, reasoning: parsed.reasoning }
 }
 
+// Days to wait after sending step N before the next step is due.
+const STEP_FOLLOWUP_DELAYS: Record<number, number> = { 1: 4, 2: 5 }
+
+type OnReply = 'stop' | 'skip_next' | 'continue'
+type SeqStep = { step: number; on_reply?: OnReply }
+
+interface BranchableEnrollment {
+  id: string
+  campaign_id: string
+  current_step: number
+  enrolled_at?: string | null
+  reply_branch_handled_at?: string | null
+}
+
+/**
+ * Honour a sequence step's `on_reply` setting before the cron sends the next step.
+ *
+ * If the lead has replied since we last acted (and the campaign has configured
+ * steps), we branch based on the on_reply value of the step they're replying to
+ * (the last sent step = current_step):
+ *   - 'stop'      → mark the enrollment 'replied' and send nothing more
+ *   - 'skip_next' → skip the immediate next step, continue with the one after
+ *   - 'continue'  → acknowledge the reply and send the next step as normal
+ *
+ * Campaigns without configured steps keep the legacy behaviour (keep sending).
+ * `reply_branch_handled_at` is advanced on every decision so a single reply only
+ * branches once. Returns 'send' to proceed, or 'skip' if the enrollment was
+ * already actioned this run.
+ *
+ * @param stepsCache per-run cache of campaign_id → steps, to avoid refetching.
+ */
+export async function applyReplyBranching(
+  enrollment: BranchableEnrollment,
+  stepsCache: Map<string, SeqStep[] | null>,
+): Promise<'send' | 'skip'> {
+  // Step 1 is the first contact — no reply can exist before it.
+  if (enrollment.current_step < 1) return 'send'
+
+  const since = enrollment.reply_branch_handled_at ?? enrollment.enrolled_at ?? '1970-01-01T00:00:00Z'
+  const { count } = await db.from('figsy_replies')
+    .select('id', { count: 'exact', head: true })
+    .eq('enrollment_id', enrollment.id)
+    .gt('received_at', since)
+  if (!count) return 'send'
+
+  // Resolve the campaign's configured steps (cached per run).
+  let steps = stepsCache.get(enrollment.campaign_id)
+  if (steps === undefined) {
+    const { data: camp } = await db.from('figsy_campaigns')
+      .select('settings').eq('id', enrollment.campaign_id).maybeSingle()
+    steps = ((camp?.settings as { steps?: SeqStep[] } | null)?.steps) ?? null
+    stepsCache.set(enrollment.campaign_id, steps)
+  }
+
+  // No configured sequence → preserve legacy behaviour (keep sending).
+  const onReply: OnReply = steps
+    ? (steps.find(s => s.step === enrollment.current_step)?.on_reply ?? 'stop')
+    : 'continue'
+
+  const now = new Date().toISOString()
+
+  if (onReply === 'continue') {
+    await db.from('figsy_enrollments')
+      .update({ reply_branch_handled_at: now }).eq('id', enrollment.id)
+    return 'send'
+  }
+
+  if (onReply === 'stop') {
+    await db.from('figsy_enrollments')
+      .update({ status: 'replied', next_send_at: null, reply_branch_handled_at: now })
+      .eq('id', enrollment.id)
+    return 'skip'
+  }
+
+  // skip_next — skip the immediate next step, continue with the one after.
+  const skipped = enrollment.current_step + 1
+  if (skipped >= 3) {
+    // Nothing follows the skipped step — the sequence is finished.
+    await db.from('figsy_enrollments').update({
+      status: 'completed', completed_at: now, next_send_at: null,
+      current_step: skipped, reply_branch_handled_at: now,
+    }).eq('id', enrollment.id)
+  } else {
+    const nextSendAt = new Date(Date.now() + (STEP_FOLLOWUP_DELAYS[skipped] ?? 4) * 86400000).toISOString()
+    await db.from('figsy_enrollments').update({
+      status: 'in_progress', current_step: skipped,
+      next_send_at: nextSendAt, reply_branch_handled_at: now,
+    }).eq('id', enrollment.id)
+  }
+  return 'skip'
+}
+
 export async function sendSequenceEmail(
   enrollmentId: string,
   lead: Lead,
@@ -234,9 +326,8 @@ export async function sendSequenceEmail(
   })
 
   // Advance enrollment state
-  const nextSendDelays: Record<number, number> = { 1: 4, 2: 5 } // days until next step
   const nextSendAt = step < 3
-    ? new Date(Date.now() + (nextSendDelays[step] ?? 4) * 86400000).toISOString()
+    ? new Date(Date.now() + (STEP_FOLLOWUP_DELAYS[step] ?? 4) * 86400000).toISOString()
     : null
 
   await db.from('figsy_enrollments').update({

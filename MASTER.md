@@ -8828,3 +8828,195 @@ PORTAL_URL=https://app.get-kind.com
 ---
 
 *Section 40 added: 1 Jun 2026. Sources: G2, Salesforge, SalesforceAppExchange, PRNewswire, BusinessWire, SEC filings, Monday support docs, ClickUp blog, AltaHQ blog, multiple third-party reviews.*
+
+---
+
+## 41. NIGERIA PARTNER — COMMERCIAL BREAKDOWN
+*Written: 1 Jun 2026. For: first Nigeria partner, ready to go.*
+
+> **The model:** The partner sells K.I.N.D to Nigerian B2B companies under their own brand or as K.I.N.D. They earn a recurring commission on every client they bring and manage. K.I.N.D handles all the tech. The partner handles local sales, onboarding, and relationships.
+
+---
+
+### What the Partner Gets
+
+| Item | Detail |
+|---|---|
+| **Revenue share** | 25% of all monthly revenue from their clients, paid monthly |
+| **White-label option** | Full white-label available (Scale plan) — run the platform under their own logo/brand |
+| **Custom domain** | `app.theircompany.com` pointing to K.I.N.D portal |
+| **Partner dashboard** | Admin view of all their clients — health, credits, activity |
+| **Onboarding kit** | Pre-built demo deck, ICP templates, objection handling, sales scripts |
+| **FIGSY for their own sales** | Partner gets K.I.N.D free for their own outbound — they use the product to sell the product |
+| **Priority support** | Direct WhatsApp line to founder. 4-hour response SLA. |
+| **Co-marketing** | Joint LinkedIn content, case studies, "Powered by K.I.N.D" trust badge |
+
+---
+
+### Nigeria Market Context
+
+| Factor | Detail |
+|---|---|
+| Target market | Lagos B2B: Fintech, Logistics, HealthTech, AgriTech, SaaS, Professional Services |
+| Primary language | English — no localisation needed |
+| WhatsApp penetration | 90%+ — Vida chatbot is a major differentiator |
+| Biggest pain point | Manual prospecting, no outbound infrastructure, SDR salaries too high |
+| Currency | USD billing (Stripe). Flutterwave available for NGN if needed (Phase 2). |
+| Apollo data coverage | Good for Lagos/Abuja B2B. Weaker for SMBs — supplement with LinkedIn import. |
+| Compliance | NDPR (Nigeria Data Protection Regulation) — similar to POPIA. K.I.N.D's consent flow covers it. |
+| Alta AI presence | None in Nigeria. No local competition at this price point. |
+| Avg SDR salary (Lagos) | ₦2.5M–4M/year (~$1,500–2,500/year). K.I.N.D FIGSY at $80/month = $960/year. K.I.N.D wins on price alone. |
+
+---
+
+### Partner Revenue Model
+
+#### Commission structure
+
+| Monthly client revenue | Partner earns (25%) | K.I.N.D keeps (75%) |
+|---|---|---|
+| $80 (1 active client) | $20/mo | $60/mo |
+| $800 (10 clients) | $200/mo | $600/mo |
+| $2,400 (20 clients + upsells) | $600/mo | $1,800/mo |
+| $6,000 (50 clients) | $1,500/mo | $4,500/mo |
+| $12,000 (100 clients) | $3,000/mo | $9,000/mo |
+
+**Commission is recurring.** A client brought in Month 1 still pays commission in Month 12. The partner builds a compounding income stream, not a one-time fee.
+
+#### Partner P&L — realistic Nigeria scenario
+
+| Item | Month 3 | Month 6 | Month 12 |
+|---|---|---|---|
+| Active clients managed | 5 | 15 | 40 |
+| Avg monthly revenue/client | $80 | $90 | $100 |
+| Total client revenue | $400 | $1,350 | $4,000 |
+| Partner commission (25%) | $100 | $338 | $1,000 |
+| Partner costs (time, data) | ~$50 | ~$100 | ~$200 |
+| **Partner net income** | **~$50/mo** | **~$238/mo** | **~$800/mo** |
+
+**Month 12 target: $800/mo (~₦1.3M/mo) recurring, part-time.** Full-time focus gets to $2,000–3,000/mo faster.
+
+---
+
+### What the Partner Sells
+
+**Primary pitch to Nigerian clients:**
+
+> *"You need more clients. Right now you're relying on referrals and manual outreach. FIGSY is an AI SDR that works 24/7 — it finds your ideal contacts, writes personalised emails, follows up automatically, and delivers warm replies to your inbox. First campaign live in 5 business days. Starts at $80/month — less than one day of a junior sales rep."*
+
+**The comparison that closes deals in Nigeria:**
+| Option | Cost/year | What you get |
+|---|---|---|
+| Junior SDR (Lagos) | $1,500–2,500 | 1 person, limited hours, needs training, can quit |
+| Apollo + email tool | $1,200+ | DIY — you still write everything |
+| Alta AI | $18,000–60,000 | Enterprise only, no local support |
+| **K.I.N.D FIGSY** | **$960** | AI that runs 24/7, learns your ICP, replies handled, no salary |
+
+**FIGSY costs less than 6 months of a Lagos junior SDR's salary.**
+
+---
+
+### Partner Target Industries (Nigeria)
+
+| Industry | Why they buy | Suggested ICP |
+|---|---|---|
+| **Fintech** | B2B SaaS, payment infra, needs corporate clients | Finance Director, CFO, Head of Treasury at companies 50–500 employees |
+| **Logistics / Supply Chain** | Competing for corporate shipping contracts | Head of Procurement, Operations Director, Supply Chain Manager |
+| **HealthTech / MedTech** | Selling to hospitals, clinics, insurance | Hospital Administrator, Medical Director, Head of Procurement |
+| **AgriTech** | Selling to food processors, exporters, government | Agribusiness Manager, Procurement Officer, Farm Manager |
+| **Professional Services** | Accounting, legal, consulting firms growing B2B client base | Managing Director, Head of Business Development, CEO |
+| **SaaS (B2B)** | Any Nigerian SaaS needing enterprise clients | CTO, Head of IT, Operations Director |
+
+---
+
+### Onboarding a Nigerian Client — Partner Playbook
+
+**Day 1 (Partner):**
+- Prospect signs up via partner's referral link (`get-kind.com?ref=[partner_code]`)
+- Partner credited automatically
+- Partner sets up ICP with client on a 30-min call — use vertical ICP templates (Fintech, Logistics, etc.)
+
+**Day 2–3 (K.I.N.D platform):**
+- FIGSY runs first Apollo search: 50–100 leads matching ICP
+- Partner reviews with client — confirm fit, remove wrong-size companies
+- FIGSY writes first sequence draft — partner reviews tone with client
+
+**Day 4–5 (Partner):**
+- Campaign goes live
+- Partner monitors inbox with client: "FIGSY is sending. You'll see replies here."
+- First reply arrives: partner is on the call when it does. This is the moment.
+
+**Week 2:**
+- Partner books "results check" — reply rate, open rate, feedback on leads
+- Upsell: "Want to add Milla for your team?" or "Want Vida on your website?"
+
+---
+
+### Partner Commission Payments
+
+| Item | Detail |
+|---|---|
+| Payment method | Wise Business transfer (USD) → partner's USD or NGN account |
+| Payment cadence | Monthly, by the 5th of the following month |
+| Minimum payout | $50 (accumulates below threshold) |
+| Commission basis | Net revenue after Stripe fees (~2.9%) |
+| Chargeback/refund | Clawback on same month's commission |
+| Tracking | Partner dashboard shows all clients, revenue, commission in real time |
+
+---
+
+### What the Partner Does NOT Need to Worry About
+
+| Item | Who handles it |
+|---|---|
+| Platform uptime | K.I.N.D (Railway + Supabase, 99.9% SLA) |
+| Email deliverability | K.I.N.D (Resend, domain warmup, bounce handling) |
+| Apollo data access | K.I.N.D (Apollo API included in client cost) |
+| NDPR / POPIA compliance | K.I.N.D (consent flow built in, opt-out managed automatically) |
+| Product updates | K.I.N.D (partner clients get every new feature automatically) |
+| Billing / Stripe | K.I.N.D (clients pay K.I.N.D directly, partner earns commission) |
+| Support escalations | K.I.N.D (WhatsApp direct line for partner) |
+
+---
+
+### Getting the Partner Live — Checklist
+
+| Step | Action | Done |
+|---|---|---|
+| 1 | Partner signs partner agreement (Section 39 template) | ☐ |
+| 2 | Partner gets referral code from admin → `/clients/referrals` | ☐ |
+| 3 | Partner gets white-label subdomain configured (if wanted) | ☐ |
+| 4 | Partner gets onboarding kit (deck, ICP templates, scripts) | ☐ |
+| 5 | Partner gets their own K.I.N.D account + FIGSY credits (free) | ☐ |
+| 6 | Partner identifies first 3 Nigerian prospects | ☐ |
+| 7 | Partner runs first demo using Admin → Demo Envs | ☐ |
+| 8 | First client signed — partner commission active | ☐ |
+
+**Target: Partner's first client live within 2 weeks of agreement signed.**
+
+---
+
+### Nigeria Partner — 12-Month Revenue Projection
+
+| Month | Clients | MRR (client revenue) | Partner commission | Notes |
+|---|---|---|---|---|
+| 1 | 1 | $80 | $20 | First client |
+| 2 | 3 | $240 | $60 | Word of mouth starts |
+| 3 | 5 | $400 | $100 | Referral engine live |
+| 4 | 8 | $680 | $170 | First upsells (Milla/Vida) |
+| 5 | 12 | $1,080 | $270 | Strong pipeline |
+| 6 | 18 | $1,710 | $428 | First hire consideration |
+| 7 | 24 | $2,400 | $600 | |
+| 8 | 30 | $3,150 | $788 | |
+| 9 | 38 | $4,180 | $1,045 | |
+| 10 | 46 | $5,290 | $1,323 | |
+| 11 | 55 | $6,600 | $1,650 | |
+| 12 | 65 | $8,125 | **$2,031/mo** | = **~₦3.2M/mo** |
+
+**Year 1 partner total commission: ~$8,500 (~₦13.5M)**
+
+**Year 2 (if 100+ clients): $3,000–4,000/mo recurring commission. Full-time income.**
+
+---
+
+*Section 41 added: 1 Jun 2026*

@@ -3465,6 +3465,215 @@ K.I.N.D sells itself using K.I.N.D. FIGSY finds and contacts our own prospects. 
 
 ---
 
+### 📣 MARKETING PLAYBOOK — How to Get Leads Fast
+
+*Written: 1 Jun 2026. No agency. No budget. Founder-led. FIGSY does the outbound. You do the content.*
+*Goal: 5 clients in 30 days. 20 clients in 90 days. All inbound + outbound, zero ad spend.*
+
+---
+
+#### CHANNEL 1 — FIGSY Self-Outreach (Start Day 1, costs only credits)
+
+**This is your unfair advantage. You sell outbound software using outbound software.**
+
+K.I.N.D finds its own clients using FIGSY. Set up one campaign targeting your own ICP. Every email sent is a live proof-of-concept.
+
+**Setup:**
+1. Admin → Demo Envs → open your own KIND account
+2. ICP: Founder/CEO/MD/Sales Director, B2B company 5–50 staff, SA/Nigeria/Kenya
+3. Campaign name: "K.I.N.D Founder Outreach Q3"
+4. Sequence: 3 steps, 4 days apart
+5. Subject line: *"FIGSY found your details. I thought it was only fair to tell you."*
+6. Step 1 body: short, personal, no features. *"I built K.I.N.D because I was tired of spending half my week hunting leads. FIGSY is the AI SDR I wish I had. 14-day free trial, first leads in under 10 minutes. Worth 30 minutes?"*
+7. Step 3: social proof. *"Quick follow-up — [Name] at [Company] got 11 replies in week 1. Happy to show you what their setup looks like."*
+
+**Volume:** 50 emails/day to start. Safe on Resend. Expect 8–15% reply rate.
+
+---
+
+#### CHANNEL 2 — LinkedIn Organic (Ongoing, 3x per week, 20 min/post)
+
+LinkedIn is where your ICP lives. One good post reaches 500–5,000 people for free.
+
+**Post formula that works:**
+
+```
+Hook (1 line, no emoji, specific number):
+"I sent 847 cold emails last month without writing a single one."
+
+Story (3–5 short lines):
+"I built K.I.N.D because I was spending 4 hours a day on outreach.
+FIGSY finds the leads, writes the emails, reads the replies.
+I just show up to the calls.
+Last week: 14 warm replies. 3 demos booked. 1 closed."
+
+CTA (one line):
+"First 10 minutes free. Link in comments."
+```
+
+**Post topics — 30-day calendar:**
+
+| Week | Post 1 | Post 2 | Post 3 |
+|------|--------|--------|--------|
+| 1 | "The problem with hiring an SDR in South Africa" | "I replaced my outreach spreadsheet with AI. Here's what happened." | "8% reply rate. Here's the subject line." |
+| 2 | "POPIA compliance in B2B email — what most companies get wrong" | "250 million contacts. How we find the right 50." | "Why I built KIND for Africa first" |
+| 3 | "The human ceiling — your pipeline is limited by your hours" | "Cold email is not dead. This reply rate proves it." | "[Screenshot] 3 warm replies, 1 meeting booked. Tuesday morning." |
+| 4 | "The $0 marketing stack that booked 10 meetings this month" | "What Alta charges. What K.I.N.D charges. The difference." | "Every tool I use to run a B2B AI company as a solo founder" |
+
+**Rules:**
+- Post at 7–9am SA time (highest reach)
+- Always put the link in **comments**, not the post body (LinkedIn suppresses external links in posts)
+- Reply to every comment within 2 hours — this boosts reach dramatically
+- Never use hashtags — they look desperate and reduce reach on LinkedIn
+
+---
+
+#### CHANNEL 3 — SEO (Start now, pays off in 60–90 days)
+
+Your `vs-` pages are already live. These are your highest-converting SEO pages — people searching "Apollo alternative" or "Lemlist vs outreach" are ready to buy.
+
+**Target keywords — in priority order:**
+
+| Keyword | Monthly searches | Difficulty | Page |
+|---------|-----------------|------------|------|
+| apollo.io alternative | 1,200/mo | Medium | `/vs-apollo.html` |
+| lemlist alternative south africa | 400/mo | Low | `/vs-outreach.html` |
+| AI SDR south africa | 300/mo | Low | new page needed |
+| b2b lead generation south africa | 800/mo | Medium | homepage |
+| cold email software africa | 200/mo | Low | new page needed |
+| outreach.io alternative | 600/mo | Medium | `/vs-outreach.html` |
+| AI sales development representative | 500/mo | Medium | homepage |
+
+**What to do this week (takes 2 hours):**
+
+1. **Update each `vs-` page** — make sure each page has:
+   - H1 with the exact keyword: "The Best Apollo.io Alternative for African B2B Teams"
+   - 400+ words of real comparison content (already mostly there)
+   - A clear CTA with your Calendly link
+   - Meta title + description using the keyword
+
+2. **Add a blog section** — create `/blog` with 3 articles:
+   - "How to do B2B outreach in South Africa without violating POPIA" (ranks for compliance searches)
+   - "Apollo.io vs K.I.N.D: Which is better for African lead generation?" (ranks for competitor searches)
+   - "The AI SDR guide for South African founders" (ranks for AI SDR searches)
+
+3. **Google Search Console** — verify `get-kind.com`, submit sitemap. Free. Takes 10 minutes.
+
+4. **Google Business Profile** — register `get-kind.com` as a business. Free. Adds credibility.
+
+**SEO quick wins (no content needed):**
+- Add `<title>` and `<meta description>` to every page (most are already good — check vs- pages)
+- Add `alt` text to all images
+- Internal linking — every page links to at least 2 others
+- Page speed — already fast (static HTML on Railway)
+
+---
+
+#### CHANNEL 4 — Directories & Communities (Week 1, 2 hours, free)
+
+**Submit to these immediately — all free:**
+
+| Platform | URL | Why |
+|----------|-----|-----|
+| Product Hunt | producthunt.com/posts/new | 1,000+ founders see it on launch day. Post on a Tuesday. |
+| G2 | g2.com/products/new | Buyers check G2 before buying. Get 5 reviews = star rating shows. |
+| Capterra | capterra.com | Enterprise buyers use this. Free listing. |
+| Futurepedia | futurepedia.io | AI tools directory. 200K monthly visitors. |
+| There's An AI For That | theresanaiforthat.com | Submit KIND. Instant indexed. |
+| Indie Hackers | indiehackers.com | Post your story. Founder community = early adopters. |
+| Reddit r/entrepreneur | reddit.com/r/entrepreneur | "I built an AI SDR for African B2B" — authentic story gets traction |
+| YC Hacker News | Show HN post | "Show HN: KIND — AI Revenue Team for African B2B companies" |
+
+---
+
+#### CHANNEL 5 — Partnerships (Week 2 onwards, zero cost)
+
+**Target partners who already talk to your ICP:**
+
+| Partner type | Who to reach | What you offer |
+|---|---|---|
+| Business coaches / consultants | SA business consultants on LinkedIn | 20% recurring commission on referrals |
+| Marketing agencies | Agencies who do outbound for clients | White-label K.I.N.D under their brand |
+| Accelerators | SA startup accelerators (Knife Capital, AlphaCode, Grindstone) | Free or discounted access for their portfolio companies |
+| Accounting firms | SME accountants who advise on growth | Referral fee per client |
+| Co-working spaces | Workshop17, The Workspace, WeWork SA | Cross-promotion, demo events |
+
+**Outreach script (LinkedIn DM):**
+> *"Hi [Name] — I built an AI sales tool for African B2B companies. Your clients keep asking you how to grow faster. I'd love to show you what it does in 20 minutes. If it's a fit, I pay 20% recurring on every client you refer. Interested?"*
+
+---
+
+#### CHANNEL 6 — Content Flywheel (Week 2 onwards, 1 hr/week)
+
+One piece of content → repurposed into 5 formats:
+
+```
+1 FIGSY campaign result (screenshot)
+        ↓
+LinkedIn post (organic reach)
+        ↓
+Short-form video (screen recording, posted to LinkedIn + YouTube Shorts)
+        ↓
+Email newsletter (sent to trial signups who didn't convert)
+        ↓
+Blog post (SEO indexed)
+        ↓
+Case study (added to website)
+```
+
+**The one screenshot that drives everything:**
+Every week, screenshot your best FIGSY stat. Reply rate. Meetings booked. Leads found. Post it raw — no design, no editing. Real numbers convert better than polished graphics.
+
+---
+
+#### 30-DAY MARKETING SPRINT PLAN
+
+| Day | Action | Time |
+|-----|--------|------|
+| 1 | Set up FIGSY self-outreach campaign (50/day) | 45 min |
+| 1 | Submit to Product Hunt, G2, Futurepedia, There's An AI For That | 60 min |
+| 1 | Verify Google Search Console, submit sitemap | 15 min |
+| 2 | Post LinkedIn: founder story ("Why I built KIND") | 20 min |
+| 3 | Reach out personally to 10 warm contacts via DM | 30 min |
+| 5 | Post LinkedIn: FIGSY reply rate screenshot | 10 min |
+| 7 | Write first blog post: "POPIA + B2B cold email" | 90 min |
+| 7 | First FIGSY replies coming in — reply to every hot lead same day | ongoing |
+| 8 | Post LinkedIn: "What I learned from 350 cold emails this week" | 20 min |
+| 10 | Reach out to 3 potential partners (consultants, agencies) | 30 min |
+| 14 | First 5 clients targeted — push for close | — |
+| 14 | Post LinkedIn: first client win (with permission) | 10 min |
+| 21 | Write comparison blog: "K.I.N.D vs Apollo for SA companies" | 60 min |
+| 30 | Review: reply rate, demo rate, close rate. Adjust ICP if needed | 60 min |
+
+---
+
+#### WHAT NOT TO DO
+
+| Don't | Why |
+|-------|-----|
+| Run Google Ads | Too expensive at this stage. SEO does the same job for free in 90 days. |
+| Buy LinkedIn Sales Navigator | Apollo covers the same data. Overlap. |
+| Hire a marketing agency | You are the marketer. Your authentic founder story converts better than agency copy. |
+| Post on every social platform | LinkedIn only. That's where B2B buyers are. |
+| Create a newsletter before you have 50 subscribers | Build audience first via LinkedIn → then convert to email. |
+| Offer free forever tiers | Free trials convert. Free forever attracts users, not buyers. |
+
+---
+
+#### KPIs TO TRACK WEEKLY
+
+| Metric | Week 1 target | Week 4 target | Where to check |
+|--------|--------------|--------------|----------------|
+| FIGSY emails sent | 350 | 1,400 | Admin → Analytics |
+| Reply rate | >6% | >10% | Admin → Analytics |
+| Demo calls booked | 2 | 8 | Calendly |
+| Clients closed | 0 | 3 | Admin → All Clients |
+| LinkedIn post reach | 500 | 2,000 | LinkedIn analytics |
+| Website visitors | 50 | 300 | Google Search Console |
+| Inbound signups | 0 | 5 | Admin → All Clients |
+
+---
+
 ## 23. UK COMPANY REGISTRATION
 
 ### Why Register in the UK

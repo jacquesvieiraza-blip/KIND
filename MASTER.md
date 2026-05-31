@@ -106,7 +106,10 @@
 - app.get-kind.com (portal) — DNS issue noted, needs fixing when Railway plan allows
 - BOTH need DNS verification once Railway custom domain limit resolved
 
-**Batch 5 + website full restore complete.**
+**Batch 5 + website full restore + API build fix complete.**
+
+**This commit also adds:**
+- API build fix ✅ — `apps/api/nixpacks.toml` added: forces yarn (not npm) so Railway resolves `@kind/db` workspace package correctly. Previously all API deploys failed with `npm error 404 '@kind/db@*' is not in this registry.`
 
 **This commit also adds:**
 - P2-3 ✅ — A/Z multi-variant: up to 5 subject variants, 1/N random pick at enroll, winner by open rate across all active variants (`apps/api/src/lib/figsy.ts`, `apps/api/src/routes/internal.ts`, `apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx`)

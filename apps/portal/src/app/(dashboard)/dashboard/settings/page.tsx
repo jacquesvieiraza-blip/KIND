@@ -4,7 +4,90 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, Pencil, Eye, EyeOff, AlertTriangle } from 'lucide-react'
+import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, Pencil, Eye, EyeOff, AlertTriangle, Bell } from 'lucide-react'
+
+const NOTIF_STORAGE_KEY = 'kind_notification_prefs_v1'
+const DEFAULT_NOTIF_PREFS = {
+  reply_received: true,
+  low_credits: true,
+  campaign_paused: true,
+  weekly_digest: true,
+  daily_brief: false,
+}
+type NotifPrefs = typeof DEFAULT_NOTIF_PREFS
+
+function NotificationPreferences() {
+  const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(NOTIF_STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<NotifPrefs>
+        setPrefs(prev => ({ ...prev, ...parsed }))
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  function toggle(key: keyof NotifPrefs) {
+    setPrefs(prev => {
+      const next = { ...prev, [key]: !prev[key] }
+      try { localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const items: { key: keyof NotifPrefs; label: string; desc: string }[] = [
+    { key: 'reply_received',  label: 'Reply received',      desc: 'When a lead replies to a FIGSY sequence.' },
+    { key: 'low_credits',     label: 'Low credits warning', desc: 'When credit balance drops below 10.' },
+    { key: 'campaign_paused', label: 'Campaign paused',     desc: 'When a campaign is auto-paused due to low performance.' },
+    { key: 'weekly_digest',   label: 'Weekly digest',       desc: 'Summary of outreach results every Monday.' },
+    { key: 'daily_brief',     label: 'Daily brief',         desc: 'Morning update on active campaigns and replies.' },
+  ]
+
+  return (
+    <div className="border-t border-gray-100 pt-6">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-[#9B8EC4]" />
+          <h2 className="font-semibold">Notification Preferences</h2>
+        </div>
+        {saved && (
+          <span className="flex items-center gap-1 text-xs text-green-600">
+            <CheckCircle className="w-3 h-3" /> Saved
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-[#9B8EC4] mb-4">Choose which notifications you receive from K.I.N.D.</p>
+      <div className="space-y-3">
+        {items.map(({ key, label, desc }) => (
+          <div key={key} className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900">{label}</p>
+              <p className="text-xs text-[#9B8EC4]">{desc}</p>
+            </div>
+            <button
+              onClick={() => toggle(key)}
+              aria-label={`Toggle ${label}`}
+              className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:ring-offset-2 ${
+                prefs[key] ? 'bg-[#7C3AED]' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${
+                  prefs[key] ? 'translate-x-4' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface ClientData {
   company_name: string
@@ -451,6 +534,9 @@ export default function SettingsPage() {
           <p className="text-sm text-green-600">Vapi is active. FIGSY will call leads on day 4 of the sequence.</p>
         </div>
       )}
+
+      {/* Notification Preferences */}
+      <NotificationPreferences />
     </div>
   )
 }

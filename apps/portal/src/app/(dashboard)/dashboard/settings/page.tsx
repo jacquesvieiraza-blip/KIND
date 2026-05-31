@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, Pencil, Eye, EyeOff, AlertTriangle, Bell } from 'lucide-react'
+import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, Pencil, Eye, EyeOff, AlertTriangle, Bell, Users } from 'lucide-react'
 
 const NOTIF_STORAGE_KEY = 'kind_notification_prefs_v1'
 const DEFAULT_NOTIF_PREFS = {
@@ -89,6 +89,98 @@ function NotificationPreferences() {
   )
 }
 
+function TeamSection({ clientId, userRole }: { clientId: string; userRole: string }) {
+  const [members, setMembers] = useState<{id:string;email:string;role:string;accepted_at:string|null}[]>([])
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('member')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kindai.co.za'
+
+  useEffect(() => {
+    fetch(`${apiUrl}/team/members?client_id=${clientId}`)
+      .then(r => r.json()).then(setMembers).catch(() => {})
+  }, [clientId])
+
+  async function invite(e: React.FormEvent) {
+    e.preventDefault()
+    setSending(true)
+    await fetch(`${apiUrl}/team/invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, email, role }),
+    })
+    setSending(false)
+    setSent(true)
+    setEmail('')
+    // Refresh list
+    fetch(`${apiUrl}/team/members?client_id=${clientId}`)
+      .then(r => r.json()).then(setMembers).catch(() => {})
+    setTimeout(() => setSent(false), 3000)
+  }
+
+  const canInvite = userRole === 'owner' || userRole === 'admin'
+
+  return (
+    <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Users className="w-4 h-4 text-[#9B8EC4]" />
+        <h2 className="text-base font-semibold text-gray-900">Team</h2>
+      </div>
+      <p className="text-sm text-gray-500 mb-4">Invite teammates to access this workspace.</p>
+
+      {/* Member list */}
+      <div className="space-y-2 mb-5">
+        {members.map(m => (
+          <div key={m.id} className="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50 border border-gray-100">
+            <div>
+              <p className="text-sm font-medium text-gray-800">{m.email}</p>
+              <p className="text-xs text-gray-400">{m.accepted_at ? 'Active' : 'Invited — pending'}</p>
+            </div>
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+              m.role === 'owner' ? 'bg-purple-100 text-purple-700' :
+              m.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+              m.role === 'viewer' ? 'bg-gray-100 text-gray-600' :
+              'bg-green-100 text-green-700'
+            }`}>{m.role}</span>
+          </div>
+        ))}
+        {members.length === 0 && <p className="text-sm text-gray-400 italic">No team members yet.</p>}
+      </div>
+
+      {/* Invite form */}
+      {canInvite && (
+        <form onSubmit={invite} className="flex gap-2">
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="teammate@company.com"
+            required
+            className="flex-1 px-3 py-2 text-sm rounded-xl border border-purple-100 bg-white focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20"
+          />
+          <select
+            value={role}
+            onChange={e => setRole(e.target.value)}
+            className="px-2 py-2 text-sm rounded-xl border border-purple-100 bg-white focus:outline-none"
+          >
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+            <option value="viewer">Viewer</option>
+          </select>
+          <button
+            type="submit"
+            disabled={sending}
+            className="px-4 py-2 text-sm font-semibold rounded-xl bg-[#7C3AED] text-white hover:bg-[#6D28D9] disabled:opacity-50 transition-colors"
+          >
+            {sent ? 'Sent!' : sending ? '…' : 'Invite'}
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
+
 interface ClientData {
   company_name: string
   industry: string
@@ -132,16 +224,30 @@ export default function SettingsPage() {
   const [showCrmKey, setShowCrmKey]                 = useState(false)
   const [unsavedProfile, setUnsavedProfile]         = useState(false)
   const [unsavedCrm, setUnsavedCrm]                 = useState(false)
+  const [clientId, setClientId]                     = useState<string | null>(null)
+  const [userRole, setUserRole]                     = useState<string>('owner')
 
   useEffect(() => {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
       try {
-        const res = await api.get<{ data: ClientData }>('/clients/me', session.access_token)
+        const res = await api.get<{ data: ClientData & { id: string } }>('/clients/me', session.access_token)
         const c = res.data
         setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '', leads_per_run: c.leads_per_run ?? 20, daily_drip_rate: c.daily_drip_rate ?? 5 })
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false })
+        if (c.id) {
+          setClientId(c.id)
+          // Fetch the user's role in this team
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kindai.co.za'
+          fetch(`${apiUrl}/team/members?client_id=${c.id}`)
+            .then(r => r.json())
+            .then((members: { email: string; role: string }[]) => {
+              const me = members.find(m => m.email === session.user.email)
+              if (me) setUserRole(me.role)
+            })
+            .catch(() => {})
+        }
       } catch { setSaveError('Failed to load your profile. Please refresh.') }
 
       // Integration statuses — graceful, these endpoints may not be configured
@@ -537,6 +643,13 @@ export default function SettingsPage() {
 
       {/* Notification Preferences */}
       <NotificationPreferences />
+
+      {/* Team */}
+      {clientId && (
+        <div className="border-t border-gray-100 pt-6" id="team">
+          <TeamSection clientId={clientId} userRole={userRole} />
+        </div>
+      )}
     </div>
   )
 }

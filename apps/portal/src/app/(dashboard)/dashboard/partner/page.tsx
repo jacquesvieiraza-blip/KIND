@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
   Handshake, Copy, CheckCircle, ChevronDown, ChevronUp,
-  ExternalLink, Users, TrendingUp, Clock, Briefcase,
+  ExternalLink, Users, TrendingUp, Clock, Briefcase, Circle,
 } from 'lucide-react'
 
 const INDUSTRIES = [
@@ -219,7 +219,7 @@ export default function PartnerPage() {
           and get access to a dedicated demo sandbox.
         </p>
         <a
-          href="/partners.html"
+          href="https://get-kind.com/partners.html"
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
         >
           Apply to become a partner
@@ -234,6 +234,13 @@ export default function PartnerPage() {
   const { partner, referrals, commissions, deals, stats } = data
   const tierLabel = TIER_LABELS[partner.partner_type] ?? partner.partner_type
   const refLink = partner.referral_code ? `https://get-kind.com?ref=${partner.referral_code}` : null
+
+  // Show onboarding checklist only when partner has no activity yet
+  const isNewPartner = referrals.length === 0 && deals.length === 0 && commissions.length === 0
+
+  const commissionRate =
+    partner.partner_type === 'technology' ? '30%' :
+    partner.partner_type === 'agency'     ? '25%' : '20%'
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -303,6 +310,67 @@ export default function PartnerPage() {
           <p className="text-2xl font-bold text-[#1E1152]">{stats.active_deals}</p>
         </div>
       </div>
+
+      {/* ── Onboarding checklist (new partners only) ─────────────────────── */}
+      {isNewPartner && (
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-purple-100">
+            <h2 className="font-semibold text-[#1E1152] text-sm">Getting started</h2>
+            <p className="text-xs text-[#7C3AED]/50 mt-0.5">Complete these steps to start earning commissions</p>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            {/* Step 1 — always done */}
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Application approved</p>
+                <p className="text-xs text-gray-400 mt-0.5">You're an official K.I.N.D {tierLabel} Partner earning {commissionRate} recurring commission.</p>
+              </div>
+            </div>
+            {/* Step 2 — always done (contract_signed_at set on apply) */}
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Contract signed</p>
+                <p className="text-xs text-gray-400 mt-0.5">Your Partner Agreement is on file.</p>
+              </div>
+            </div>
+            {/* Step 3 — referral code always exists */}
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Copy your referral link</p>
+                <p className="text-xs text-gray-400 mt-0.5">Your unique link is ready — share it with prospects to start tracking referrals.</p>
+              </div>
+            </div>
+            {/* Step 4 — incomplete until first deal */}
+            <div className="flex items-start gap-3">
+              <Circle className="w-5 h-5 text-gray-300 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-gray-400">Register your first deal</p>
+                <p className="text-xs text-gray-400 mt-0.5">Lock in 60-day protection on your first prospect.</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={copyReferralLink}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 text-[#7C3AED] text-sm font-semibold rounded-xl transition-colors"
+            >
+              {copiedRef
+                ? <><CheckCircle className="w-4 h-4 text-green-500" /> Copied!</>
+                : <><Copy className="w-4 h-4" /> Copy referral link</>}
+            </button>
+            <button
+              onClick={() => setShowDealForm(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
+            >
+              <Briefcase className="w-4 h-4" />
+              Register your first deal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Register a Deal ──────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
@@ -423,6 +491,7 @@ export default function PartnerPage() {
       </div>
 
       {/* ── Registered Deals ─────────────────────────────────────────────── */}
+      {!isNewPartner && (
       <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-purple-100 flex items-center gap-2">
           <Briefcase className="w-4 h-4 text-[#7C3AED]" />
@@ -461,8 +530,10 @@ export default function PartnerPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ── Referred Clients ─────────────────────────────────────────────── */}
+      {!isNewPartner && (
       <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-purple-100 flex items-center gap-2">
           <Users className="w-4 h-4 text-[#7C3AED]" />
@@ -505,8 +576,10 @@ export default function PartnerPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ── Commission History ────────────────────────────────────────────── */}
+      {!isNewPartner && (
       <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-purple-100 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-[#7C3AED]" />
@@ -539,6 +612,7 @@ export default function PartnerPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ── Resources ────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">

@@ -265,7 +265,115 @@ partnersRouter.patch('/admin/:partnerId/approve', requireAdminKey, async (req: R
     if (error) throw error
     if (!partner) { res.status(404).json({ success: false, error: 'Partner not found' }); return }
 
+    // Return immediately — email + sandbox are fire-and-forget
     res.json({ success: true, data: partner })
+
+    // ── Send approval email ───────────────────────────────────────────────
+    const PARTNERS_FROM = 'K.I.N.D Partners <partners@get-kind.com>'
+    const commissionRate =
+      partner.partner_type === 'technology' ? '30%' :
+      partner.partner_type === 'agency'     ? '25%' : '20%'
+    const tierLabel =
+      partner.partner_type === 'technology' ? 'White-label' :
+      partner.partner_type === 'agency'     ? 'Agency'      : 'Referral'
+    const refLink = partner.referral_code
+      ? `https://get-kind.com?ref=${partner.referral_code}`
+      : 'https://get-kind.com'
+
+    if (resend) {
+      resend.emails.send({
+        from:    PARTNERS_FROM,
+        to:      partner.email,
+        subject: "You're approved — welcome to the K.I.N.D Partner Programme",
+        html: `
+          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+            <div style="background:#7C3AED;border-radius:12px 12px 0 0;padding:28px 32px">
+              <p style="color:#fff;font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px">K.I.N.D Partner Programme</p>
+              <h1 style="color:#fff;font-size:1.75rem;font-weight:800;margin:0">Hi ${partner.name}, you're in.</h1>
+            </div>
+            <div style="background:#fff;border:1px solid #e9e9e9;border-top:none;border-radius:0 0 12px 12px;padding:28px 32px">
+
+              <p style="font-size:0.95rem;color:#444;margin:0 0 20px">
+                Your application has been approved. You're now an official K.I.N.D Partner — here's everything you need to get started.
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0f0f0;border-radius:8px;overflow:hidden;margin-bottom:24px">
+                <tr>
+                  <td style="padding:10px 16px;background:#f9fafb;font-size:0.8rem;color:#888;width:140px">Partner tier</td>
+                  <td style="padding:10px 16px;font-size:0.9rem;font-weight:600;color:#7C3AED">${tierLabel}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 16px;background:#f9fafb;font-size:0.8rem;color:#888">Commission rate</td>
+                  <td style="padding:10px 16px;font-size:0.9rem;font-weight:600;color:#111">${commissionRate} recurring</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 16px;background:#f9fafb;font-size:0.8rem;color:#888">Your referral link</td>
+                  <td style="padding:10px 16px;font-size:0.9rem">
+                    <a href="${refLink}" style="color:#7C3AED;word-break:break-all">${refLink}</a>
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="font-size:1rem;font-weight:700;color:#1E1152;margin:0 0 8px">Log in to your partner portal</h2>
+              <p style="font-size:0.9rem;color:#444;margin:0 0 20px">
+                Log in at <a href="https://kindportal-production.up.railway.app/login" style="color:#7C3AED">https://kindportal-production.up.railway.app/login</a>
+                with this email address. If you don't have an account yet, sign up at the same URL.
+              </p>
+
+              <h2 style="font-size:1rem;font-weight:700;color:#1E1152;margin:0 0 12px">3 things to do first</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
+                <tr>
+                  <td style="vertical-align:top;padding:0 12px 12px 0;width:28px">
+                    <div style="width:24px;height:24px;border-radius:50%;background:#7C3AED;color:#fff;font-size:0.75rem;font-weight:700;text-align:center;line-height:24px">1</div>
+                  </td>
+                  <td style="vertical-align:top;padding-bottom:12px">
+                    <p style="font-size:0.9rem;font-weight:600;color:#111;margin:0">Log in and visit Partner Hub in the sidebar</p>
+                    <p style="font-size:0.82rem;color:#888;margin:2px 0 0">Your deal pipeline, commissions, and resources are all there.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="vertical-align:top;padding:0 12px 12px 0">
+                    <div style="width:24px;height:24px;border-radius:50%;background:#7C3AED;color:#fff;font-size:0.75rem;font-weight:700;text-align:center;line-height:24px">2</div>
+                  </td>
+                  <td style="vertical-align:top;padding-bottom:12px">
+                    <p style="font-size:0.9rem;font-weight:600;color:#111;margin:0">Copy your referral link and share it with prospects</p>
+                    <p style="font-size:0.82rem;color:#888;margin:2px 0 0">Every sign-up through your link is tracked automatically.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="vertical-align:top;padding:0 12px 0 0">
+                    <div style="width:24px;height:24px;border-radius:50%;background:#7C3AED;color:#fff;font-size:0.75rem;font-weight:700;text-align:center;line-height:24px">3</div>
+                  </td>
+                  <td style="vertical-align:top">
+                    <p style="font-size:0.9rem;font-weight:600;color:#111;margin:0">Register your first deal to lock in 60-day protection</p>
+                    <p style="font-size:0.82rem;color:#888;margin:2px 0 0">Once registered, no other partner can claim that prospect for 60 days.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-size:0.85rem;color:#aaa;border-top:1px solid #f0f0f0;padding-top:16px;margin:0">
+                Questions? Reply to this email or contact
+                <a href="mailto:partners@get-kind.com" style="color:#7C3AED">partners@get-kind.com</a>
+              </p>
+            </div>
+          </div>`,
+      }).catch(err => console.error('[partners/admin/approve] approval email error:', err))
+    }
+
+    // ── Auto-provision demo sandbox ───────────────────────────────────────
+    try {
+      const { data: demoEnv } = await db.from('demo_environments').insert({
+        label:  `Partner Demo — ${partner.name}`,
+        type:   'partner',
+        status: 'active',
+      }).select().single()
+
+      if (demoEnv) {
+        await db.from('partners').update({ demo_env_id: demoEnv.id }).eq('id', partner.id)
+      }
+    } catch (sandboxErr) {
+      console.error('[partners/admin/approve] demo sandbox provision error:', sandboxErr)
+    }
   } catch (err) {
     console.error('[partners/admin/approve]', err)
     res.status(500).json({ success: false, error: 'Failed to approve partner' })

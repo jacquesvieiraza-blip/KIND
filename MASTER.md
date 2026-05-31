@@ -9119,6 +9119,9 @@ Certification is self-serve — videos + quiz. No cost. Unlocks higher tier bene
 | Fix: `GET /me` moved above `GET /ref/:code` — param shadowing bug | ✅ Fixed |
 | Fix: `authUser` → `userEmail` in demo-sandbox route (TS compile error) | ✅ Fixed |
 | Partner billing model | ✅ Decided: free demo sandbox on approval; own outreach = standard client rate |
+| Partner onboarding email on approval | ✅ Built |
+| Demo sandbox auto-provisioned on approval | ✅ Built |
+| Onboarding checklist in partner portal | ✅ Built |
 
 ### Partner Billing Model (decided 1 Jun 2026)
 

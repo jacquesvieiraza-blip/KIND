@@ -33,6 +33,9 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   // ICP builder manages its own integrated agent panel
   if (pathname.startsWith('/dashboard/leads/icp')) return null
 
+  // Home page has FigsyConversation — no duplicate panel needed
+  if (pathname === '/dashboard') return null
+
   const agentId: 'figsy' | 'milla' | 'vida' =
     pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents') ? 'milla' :
     pathname.startsWith('/dashboard/chatbot') ? 'vida' : 'figsy'

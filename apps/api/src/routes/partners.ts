@@ -522,7 +522,7 @@ partnersRouter.post('/demo-sandbox', requireAuth, async (req: AuthRequest, res: 
     }
 
     const { data: env, error } = await db.from('demo_environments').insert({
-      label:  `Partner Demo — ${authUser.email}`,
+      label:  `Partner Demo — ${userEmail}`,
       type:   'partner',
       status: 'active',
     }).select().single()

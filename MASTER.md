@@ -9116,6 +9116,16 @@ Certification is self-serve — videos + quiz. No cost. Unlocks higher tier bene
 | Contract accordion + checkbox in partner apply form (website) | ✅ Built |
 | `contract_signed_at` stored on apply — timestamped acceptance | ✅ Built |
 | Admin commission API routes (`GET/PATCH /admin/commissions`) | ✅ Built |
+| Fix: `GET /me` moved above `GET /ref/:code` — param shadowing bug | ✅ Fixed |
+| Fix: `authUser` → `userEmail` in demo-sandbox route (TS compile error) | ✅ Fixed |
+| Partner billing model | ✅ Decided: free demo sandbox on approval; own outreach = standard client rate |
+
+### Partner Billing Model (decided 1 Jun 2026)
+
+- **Demo sandbox**: provisioned free when partner is approved. Used to show prospects a live K.I.N.D environment.
+- **Own outreach**: if a partner wants to run their own campaigns, they sign up as a client at standard pricing and buy credits normally.
+- **No partner discount on own usage** — clean separation. Partners earn, clients pay.
+- **Commission**: 20% (Referral) / 25% (Agency) / 30% (White-label) recurring. Paid via Wise monthly.
 
 ---
 

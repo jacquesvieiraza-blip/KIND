@@ -864,6 +864,10 @@
 | **P0-5: Notification Preferences UI** — 5 toggles in Settings (reply received, low credits, campaign paused, weekly digest, daily brief), localStorage | `6fd5df2` |
 | **P0-19: Agent card redesign** — coloured left border accent per agent, tinted bg, avatar 56px, role text in agent colour | `7ff727b` |
 | **P0-23: "Chat with FIGSY" added as first nav item** under KIND AI section in sidebar | `c03a0c7` |
+| **P1-8: Warm Leads tab in Inbox** — filters hot + interested + warm replies, sorted by most recent | `32297b8` |
+| **P1-9: Deal risk scoring in Admin** — Risk column in clients list (red/amber/green), at-risk filter button, riskLabel() | `6c4d66b` |
+| **P0-3: Knowledge Base FIGSY preview** — after saving pitch, FIGSY generates a sample outreach opening sentence | `f12e45f` |
+| **P0-4: Email open tracking** — 1x1 pixel, opened_at column, /figsy/track/open/:id endpoint, open rate KPI | `aef1d4d` |
 
 ---
 

@@ -99,6 +99,7 @@ export interface Lead {
   consent_sent_at: string | null
   consent_given_at: string | null
   consent_token: string | null
+  consent_auto_fired: boolean | null
   opted_out_at: string | null
   crm_synced: boolean
   crm_contact_id: string | null

@@ -914,6 +914,11 @@ export default function LeadsPage() {
                       <td className="px-4 py-3">
                         <PipelineStageChip status={lead.status} />
                         <CampaignMicroBar lead={lead} />
+                        {lead.consent_auto_fired && (
+                          <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                            ✓ Auto-sent
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <TechnographicsChip lead={lead} />

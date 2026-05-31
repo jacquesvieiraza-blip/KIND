@@ -239,16 +239,19 @@ export default function SettingsPage() {
         if (c.id) {
           setClientId(c.id)
           // Fetch the user's role in this team
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kindai.co.za'
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
           fetch(`${apiUrl}/team/members?client_id=${c.id}`)
-            .then(r => r.json())
+            .then(r => r.ok ? r.json() : Promise.resolve([]))
             .then((members: { email: string; role: string }[]) => {
               const me = members.find(m => m.email === session.user.email)
               if (me) setUserRole(me.role)
             })
             .catch(() => {})
         }
-      } catch { setSaveError('Failed to load your profile. Please refresh.') }
+      } catch (e: any) {
+        // Partner accounts may not have a client row — treat as empty profile, not an error
+        if (e?.status !== 404) setSaveError('Failed to load your profile. Please refresh.')
+      }
 
       // Integration statuses — graceful, these endpoints may not be configured
       try {

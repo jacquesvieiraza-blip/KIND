@@ -376,7 +376,7 @@ partnersRouter.patch('/admin/:partnerId/approve', requireAdminKey, async (req: R
     }
   } catch (err) {
     console.error('[partners/admin/approve]', err)
-    res.status(500).json({ success: false, error: 'Failed to approve partner' })
+    if (!res.headersSent) res.status(500).json({ success: false, error: 'Failed to approve partner' })
   }
 })
 

@@ -33,7 +33,7 @@ async function getProposals(): Promise<Proposal[]> {
       .select('id, title, status, recipient_email, recipient_name, sent_at, signed_at, created_at, clients(company_name)')
       .order('created_at', { ascending: false })
       .limit(200)
-    return (data ?? []) as Proposal[]
+    return (data ?? []) as unknown as Proposal[]
   } catch { return [] }
 }
 

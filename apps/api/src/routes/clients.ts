@@ -91,14 +91,11 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       leads_per_run:     z.number().int().min(1).optional(),
       daily_drip_rate:   z.number().int().min(1).optional(),
     }).parse(req.body)
-    // Try update first; if no row exists (partner account with no client record), upsert it
-    const { data, error } = await db.from('clients').update(body).eq('user_id', req.userId!).select().single()
-    if (error && (error.code === 'PGRST116' || error.message?.includes('0 rows'))) {
-      // No client row — create one
-      const { data: created, error: insertErr } = await db.from('clients').insert({ ...body, user_id: req.userId! }).select().single()
-      if (insertErr) throw insertErr
-      res.json({ success: true, data: created }); return
-    }
+    // Upsert: creates the row if none exists (partner accounts have no client row by default)
+    const { data, error } = await db.from('clients')
+      .upsert({ ...body, user_id: req.userId! }, { onConflict: 'user_id' })
+      .select()
+      .single()
     if (error) throw error
     res.json({ success: true, data })
   } catch (err) {

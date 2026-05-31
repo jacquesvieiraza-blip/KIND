@@ -19,6 +19,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let hasMilla      = false
   let hasVida       = false
   let leadCount     = 0
+  let isPartner     = false
+
+  // Check if this user is an active partner (lightweight email lookup)
+  if (user.email) {
+    const { data: partnerRow } = await supabase
+      .from('partners')
+      .select('id')
+      .eq('email', user.email)
+      .eq('status', 'active')
+      .maybeSingle()
+    isPartner = !!partnerRow
+  }
 
   try {
     const { data: clientRow } = await supabase
@@ -65,6 +77,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         hasMilla={hasMilla}
         hasVida={hasVida}
         isNewUser={isNewUser}
+        isPartner={isPartner}
       />
       <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] sm:p-6 sm:pt-[4.75rem] lg:p-8 lg:pt-8">
         <TrialExpiredOverlay expired={trialExpired} />

@@ -945,9 +945,106 @@ Every item below was cross-referenced against the actual file before being marke
 
 ---
 
-## 🏗️ SECTION 0b — CLAUDE'S FULL BUILD QUEUE
-*Last updated: 31 May 2026. Single source of truth for everything Claude builds. Updated after every push. Founder says "build #X" → Claude builds it, pushes, updates this list.*
-*Status: ✅ Done · 🔴 Not started · 🟡 In progress*
+## 🏗️ SECTION 0b — MASTER BUILD QUEUE — ALL PHASES
+*Last updated: 31 May 2026 — full audit. Every item verified in code before status assigned.*
+*Status: ✅ Live in code · 🔵 Claude builds (no blockers) · 🔴 Blocked — needs founder action · ⚪ Future (Phase 2/3)*
+
+---
+
+### PHASE 0 — Foundation UX & Core Product
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| P0-1 | **Website copy rewrite** — full brand voice, agent names, pricing clear | 🔵 Claude builds | Hero still says "Stop chasing leads. Let FIGSY book them." — needs full pass |
+| P0-2 | **Learning Agent Level 2** — monthly ICP analysis cron, email founder with refinements | 🔴 Blocked | Needs `RESEND_API_KEY` in Railway |
+| P0-3 | **Knowledge base preview** — FIGSY sample sentence on save | ✅ Live | `knowledge/page.tsx:92` |
+| P0-4 | **Email open tracking** — pixel, `opened_at`, open rate KPI | ✅ Live | `figsy/track/open/:id`, migration done |
+| P0-5 | **Notification preferences UI** — 5 toggles, localStorage | ✅ Live | `settings/page.tsx:645` |
+| P0-6 | **Analytics empty state** — 4 action cards | ✅ Live | `kpis/page.tsx:576` |
+| P0-7 | **Scheduled report emails** — weekly digest cron to clients | 🔴 Blocked | Cron exists (`cron.ts:40`), silent until `RESEND_API_KEY` added |
+| P0-8 | **Email score pre-send** — 0–100 badge on campaign step | ✅ Live | `figsy/[id]/page.tsx:18` |
+| P0-9 | **Client morning brief** — daily email to active clients | 🔴 Blocked | Needs `RESEND_API_KEY` |
+| P0-10 | **Co-pilot mode** — approve before send, per campaign | ✅ Live | `figsy/[id]/page.tsx:349` |
+| P0-11 | **Auto-fire consent on approval** — fires on lead scored | ✅ Live | `leads.ts` + "Auto-sent" chip |
+| P0-12 | **Realtime dashboard** — Supabase realtime → live counts | 🔵 Claude builds | Not started, no blockers |
+| P0-13 | **HubSpot CRM sync** — paste API key in settings | ✅ Live (blocked on key) | `lib/hubspot.ts` built. Needs `HUBSPOT_API_KEY` in Railway |
+| P0-14 | **Multi-model toggle** — Haiku vs Sonnet per campaign | ✅ Live | `figsy/page.tsx:486` |
+| P0-15 | **Template library** — 6 pre-built sequences | ✅ Live | `figsy/page.tsx:9-351` |
+| P0-16 | **KIND AI sidebar section** — grouped agents, "View all →" | ✅ Live | `Sidebar.tsx` |
+| P0-17 | **Personalised greeting** — time-of-day + first name | ✅ Live | `dashboard/page.tsx:142` |
+| P0-18 | **FIGSY full page** — `/dashboard/figsy-chat`, two-column | ✅ Live | `figsy-chat/page.tsx` |
+| P0-19 | **Agent card redesign** — coloured border + tint per agent | ✅ Live | `Sidebar.tsx:252` |
+| P0-20 | **Empty state action cards** — all key pages | ✅ Live | `figsy/page.tsx:737` |
+| P0-21 | **Light sidebar + clean background** | ✅ Live | `#F5F3FF` sidebar, `#FAFAFE` bg |
+| P0-22 | **Input as design signal** — gradient border on all FIGSY inputs | 🔵 Claude builds | Done on figsy-chat page only. ICP builder + knowledge base need it |
+| P0-23 | **Workforce language pass** — "FIGSY sent", "Your team" throughout | 🔵 Claude builds | Not done. Copy still generic in many places |
+
+---
+
+### PHASE 1 — First Clients (0–5 paying)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| P1-1 | **Deliverability dashboard** — SPF/DKIM tips, health score | ✅ Live | `kpis/page.tsx:740` |
+| P1-2 | **Email warm-up infrastructure** | 🔴 Blocked | Needs warm-up service subscription + API key |
+| P1-3 | **Adaptive send volume** — auto-reduce on high bounce | 🔵 Claude builds | Not started, buildable |
+| P1-4 | **Blacklist monitoring** | 🔴 Blocked | Needs blacklist API key |
+| P1-5 | **Inbox placement testing** | 🔴 Blocked | Needs Smartlead API key |
+| P1-6 | **Expanded reply categories** — referral, OOO, unsub, wrong-person | ✅ Live | `inbox/page.tsx:75` |
+| P1-7 | **Waterfall email verification** — Apollo → Hunter | 🔴 Blocked | Needs Hunter.io API key |
+| P1-8 | **Warm leads tab** | ✅ Live | `inbox/page.tsx:75` |
+| P1-9 | **Deal risk scoring in admin** | ✅ Live | `admin/clients/page.tsx:51` |
+| P1-10 | **White-label PDF export** | ✅ Live | `kpis/page.tsx:341` |
+| P1-11 | **Conversational FIGSY onboarding** | ✅ Live | `FigsyConversation.tsx` |
+| P1-12 | **AI research per lead** — 3 bullet insight panel | ✅ Live | `leads/page.tsx:370` |
+| P1-13 | **Technographic ICP targeting** | 🔴 Blocked | Needs Apollo $49/mo plan |
+| P1-14 | **Google Maps scraping for African prospects** | 🔴 Needs decision | Founder to confirm — legal/ethical review needed |
+| P1-15 | **Suggest campaigns button** | ✅ Live | `/figsy/suggest-campaign` API + `handleSuggestCampaigns()` portal |
+| P1-16 | **Activate Portal V2** | 🔴 Founder action | Set `FEATURE_PORTAL_V2=true` in Railway — already built and dormant |
+| MCP-1 | **KIND as MCP server** | ✅ Live | `routes/mcp.ts`, `/.well-known/mcp.json` |
+| MCP-2 | **Milla external tool integrations UI** | ✅ Live (UI only) | `assistant/page.tsx:372` — Calendar/HubSpot/Slack panel. Actual OAuth connections not wired |
+
+---
+
+### PHASE 2 — 10+ Clients (⚪ Not started — build when traction proven)
+
+| # | Item | What it unlocks |
+|---|------|----------------|
+| P2-1 | **3-type FIGSY memory model** — episodic + long-term + preference | Smarter personalisation per lead |
+| P2-2 | **A/B subject line testing** — 2 variants, auto-pick winner | Reply rate improvement |
+| P2-3 | **A/Z multi-variant testing** — 3–5 variants | Advanced sequence optimisation |
+| P2-4 | **Conditional sequence branching (full UI)** — schema exists, needs UI | Behaviour-triggered follow-ups |
+| P2-5 | **Waterfall enrichment** — Apollo → PDL → Hunter → Clearbit | Richer lead data |
+| P2-6 | **Intent signal triggers** — job change / funding / tech stack change | Timely outreach on buying signals |
+| P2-7 | **Configurable agent triggers UI** — replaces hardcoded cron | Client-controlled automation |
+| P2-8 | **Kanban deal view** — visual pipeline | Sales visibility |
+| P2-9 | **File approval workflow** — sequence copy queued for client | Enterprise co-pilot mode |
+| P2-10 | **ICP auto-refinement** — AI analyses 50+ leads, suggests improvements | Continuous FIGSY improvement |
+| P2-11 | **Network benchmarks** — "Your industry averages X% reply rate" | Contextual performance insight |
+| P2-12 | **White-label / agency mode** — partner tier, revenue-share | Channel sales |
+| P2-13 | **Personalised images per lead** — name/logo in email | Open rate lift |
+| P2-14 | **Social signals audience source** — LinkedIn engagement filters | Higher-intent lead sourcing |
+| P2-15 | **ICP builder with live name preview** — real contacts as you filter | ICP builder UX upgrade |
+
+---
+
+### PHASE 3 — Year 2 (⚪ Vision — decide when at 50+ clients)
+
+| # | Item |
+|---|------|
+| P3-1 | **MCP server as product** — developer portal, API keys, "Twilio of B2B outreach" |
+| P3-2 | **FIGSY Vertical Modes** — pre-trained ICPs per industry (Fintech, Property, Health) |
+| P3-3 | **In-portal client messaging** — direct message thread founder ↔ client |
+| P3-4 | **Proposal + e-sign** — generate proposal → DocuSign |
+| P3-5 | **Revenue forecasting** — AI-predicted MRR for 90 days |
+| P3-6 | **Churn risk scoring** — flag KIND clients likely to churn in 30 days |
+| P3-7 | **Website visitor de-anonymisation** — who visited, trigger FIGSY |
+| P3-8 | **REEVE agent** — AE: books meetings, joins calls, drafts proposals |
+| P3-9 | **LENA agent** — Customer Success: health monitoring, check-ins |
+| P3-10 | **OTTO agent** — CRO: pipeline health, revenue forecasting |
+| P3-11 | **Mobile app** — iOS + Android |
+| P3-12 | **500+ FIGSY skill library** — modular verticals |
+| P3-13 | **African data moat** — structured dataset → becomes "African Apollo" |
 
 ---
 

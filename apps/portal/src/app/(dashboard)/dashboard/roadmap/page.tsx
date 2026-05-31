@@ -59,11 +59,12 @@ const PRODUCTS: ProductRoadmap[] = [
       { label: 'CSV export & bulk actions', status: 'live' },
       { label: 'CRM push — HubSpot & Pipedrive', status: 'live' },
       { label: 'Pipeline stage tabs (Pending / Consented / In FIGSY)', status: 'live', new: true },
+      { label: 'AI research per lead — 3 insight bullets per prospect before outreach', status: 'live', new: true },
+      { label: 'Team seats, invite flow & role-based access', status: 'live', new: true },
       { label: 'Score reasoning & explanations', status: 'building', eta: 'Jul 2026' },
       { label: 'Lead enrichment: LinkedIn + firmographic data', status: 'building', eta: 'Q3 2026' },
       { label: 'AI enrichment columns (technographics, news signals)', status: 'planned', eta: 'Q3 2026' },
       { label: 'Daily volume slider (control lead inflow rate)', status: 'planned', eta: 'Q3 2026' },
-      { label: 'Team collaboration & lead assignment', status: 'planned', eta: 'Q4 2026' },
     ],
   },
   {

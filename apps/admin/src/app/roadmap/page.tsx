@@ -24,7 +24,7 @@ const PHASES = [
       { label: 'Admin portal — KPIs, TTFL, MRR tracking', done: true },
       { label: 'System health status in sidebar', done: true },
       { label: 'Record demo video with voiceover — implementation walkthrough', done: false },
-      { label: 'FIGSY-guided new client onboarding flow (zero friction, no implementation fee)', done: false },
+      { label: 'FIGSY-guided new client onboarding flow (zero friction, no implementation fee)', done: true },
       { label: 'First 5 paying clients onboarded', done: false },
     ],
     ops: [

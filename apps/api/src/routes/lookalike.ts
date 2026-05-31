@@ -35,10 +35,10 @@ router.get('/best-client', async (_req: AuthRequest, res) => {
     )
 
     const best = stats.sort((a, b) => b.score - a.score)[0]
-    res.json({ best_client: best })
+    return res.json({ best_client: best })
   } catch (err: any) {
     console.error('[lookalike/best-client]', err)
-    res.status(500).json({ error: err.message })
+    return res.status(500).json({ error: err.message })
   }
 })
 
@@ -126,7 +126,7 @@ router.post('/generate', async (req: AuthRequest, res) => {
       if (insertErr) throw insertErr
     }
 
-    res.json({
+    return res.json({
       found:    people.length,
       inserted: toInsert.length,
       icp_used: {
@@ -137,7 +137,7 @@ router.post('/generate', async (req: AuthRequest, res) => {
     })
   } catch (err: any) {
     console.error('[lookalike/generate]', err)
-    res.status(500).json({ error: err.message })
+    return res.status(500).json({ error: err.message })
   }
 })
 

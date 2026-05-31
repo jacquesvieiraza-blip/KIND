@@ -130,7 +130,6 @@ export async function waterfallEnrich(lead: LeadProfile): Promise<EnrichmentResu
   const merged: EnrichmentResult = { source: 'none' }
 
   const missingEmail      = !lead.email
-  const missingLinkedIn   = !lead.linkedin_url
 
   // Run PDL + Hunter + Clearbit in parallel to save time
   const [pdl, hunter, clearbit] = await Promise.all([

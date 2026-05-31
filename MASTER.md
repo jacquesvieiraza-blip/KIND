@@ -54,7 +54,7 @@
 
 ---
 
-### 📅 SESSION DATE — 31 May 2026 — Monday.com audit + full UX steal list added to build queue
+### 📅 SESSION DATE — 31 May 2026 — P0-18 through P0-23 build sprint
 
 **Session rules (non-negotiable):**
 - No guessing — every finding has a file path + line number. Read it first if not certain.
@@ -62,15 +62,17 @@
 - Full update on page 1 when founder says "run full update" — date/time, cross-referenced status: what's built, what Claude builds, what founder builds, checked against live portal + conversation + MASTER.
 - No building unless founder says so.
 
-**What was done this session:**
-- Monday.com full competitive audit — 9+ screenshots reviewed (AI Sidekick, Vibe, AI Workflows, AI Agents, AI Notetaker, Agent Avatar Customizer, Agent Carousel)
-- 8 UX/layout steal items defined (P0-16 through P0-23) and added to Phase 0 build queue
-- Section 37 added: Monday.com AI Competitive Audit & UX Steal List
-- Full consolidated build list presented to founder (Phase 0-3 + founder actions)
-- **Layout overhaul pushed — commits `c5b38e5`, `15aa43f`:**
-  - `layout.tsx` — gradient + 27 dots replaced with clean `#FAFAFE` background. AgentColumn moved to RIGHT of content.
-  - `Sidebar.tsx` — full light theme: `#F5F3FF` bg, dark text, soft active tint, white agent card, 220px (was 240px)
-  - `AgentColumn.tsx` — collapsible: Collapse button above panel, avatar strip when collapsed, state in localStorage. Returns null on home page (FigsyConversation handles FIGSY there — no double-FIGSY).
+**What was done this session (UX steal sprint):**
+- **P0-18: FIGSY Full Page** — `/dashboard/figsy-chat` created. Full-width dedicated FIGSY chat page with hero textarea (purple gradient border), 4 starter pills, scrollable chat history, FIGSY avatar on assistant messages, purple bubbles for user, localStorage persistence (30 msgs), mode=full API call. `c03a0c7`
+- **P0-16: KIND AI sidebar label** — "AI Agents" → "KIND AI". `c03a0c7`
+- **P0-17: Personalized greeting** — "Good morning/afternoon/evening, [name]" + lead count / reply subtitle at top of dashboard. `c03a0c7`
+- **P0-6: Analytics empty state** — 4 action cards replacing "No data" in KPIs page. `c03a0c7`
+- **P0-20: Empty state action cards** — Campaigns + Inbox pages both get action card grids replacing bare empty states. `88dea2e`
+- **P0-5: Notification Preferences** — 5 toggles in Settings: reply received, low credits, campaign paused, weekly digest, daily brief. localStorage. `6fd5df2`
+- **P0-19: Agent card redesign** — Coloured left border accent per agent, tinted card background, avatar 56px. `7ff727b`
+- **Chat with FIGSY** added as first nav item under KIND AI section (MessageSquare icon → /dashboard/figsy-chat). `c03a0c7`
+- AgentColumn returns null on /dashboard/figsy-chat (no duplicate side panel). `c03a0c7`
+- All TypeScript clean before every commit. 4 commits pushed to main.
 
 **Previously fixed (31 May, earlier):**
 - `AgentColumn.tsx:166` — FIGSY wrapper `lg:w-72` → `lg:w-64`. All agent panels now same width.

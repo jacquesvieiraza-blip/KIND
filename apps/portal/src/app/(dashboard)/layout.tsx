@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
@@ -21,13 +22,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let leadCount     = 0
   let isPartner     = false
 
-  // Check if this user is an active partner (lightweight email lookup)
+  // Check if this user has a partner record — use service role to bypass RLS
   if (user.email) {
-    const { data: partnerRow } = await supabase
+    const svc = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    )
+    const { data: partnerRow } = await svc
       .from('partners')
       .select('id')
       .eq('email', user.email)
-      .eq('status', 'active')
       .maybeSingle()
     isPartner = !!partnerRow
   }

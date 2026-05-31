@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
@@ -11,6 +11,21 @@ import {
   GitBranch, MoreHorizontal, Copy,
 } from 'lucide-react'
 import Link from 'next/link'
+
+// ── Email Score Badge (P0-8) ──────────────────────────────────────────────────
+interface EmailScore { score: number; issues: string[]; suggestions: string[] }
+
+function ScoreBadge({ score }: { score: number | null }) {
+  if (score === null) return null
+  const cls = score >= 80 ? 'bg-green-100 text-green-700 border-green-200'
+    : score >= 50 ? 'bg-amber-100 text-amber-700 border-amber-200'
+    : 'bg-red-100 text-red-700 border-red-200'
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${cls}`}>
+      {score}/100
+    </span>
+  )
+}
 
 interface Campaign {
   id: string
@@ -95,15 +110,32 @@ function StepCard({
   index,
   onUpdate,
   onDelete,
+  token,
 }: {
   step: SequenceStep
   index: number
   onUpdate: (s: SequenceStep) => void
   onDelete: () => void
+  token: string
 }) {
   const [expanded, setExpanded] = useState(index === 0)
   const [editingPrompt, setEditingPrompt] = useState(false)
+  const [emailScore, setEmailScore] = useState<EmailScore | null>(null)
+  const [scoring, setScoring] = useState(false)
   const channelMeta = CHANNEL_META[step.channel]
+
+  const scoreEmail = useCallback(async () => {
+    if (!token || !step.subject_hint || !step.body_hint) return
+    setScoring(true)
+    try {
+      const res = await api.post<{ data: EmailScore }>('/figsy/score-email', {
+        subject: step.subject_hint,
+        body: step.body_hint,
+      }, token)
+      setEmailScore(res.data)
+    } catch { /* silently ignore */ }
+    setScoring(false)
+  }, [token, step.subject_hint, step.body_hint])
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 shadow-sm overflow-hidden">
@@ -136,6 +168,11 @@ function StepCard({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {scoring ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#9B8EC4]" />
+          ) : (
+            <ScoreBadge score={emailScore?.score ?? null} />
+          )}
           <button
             onClick={e => { e.stopPropagation(); onDelete() }}
             className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
@@ -214,10 +251,14 @@ function StepCard({
           {/* Hints */}
           <div className="space-y-2">
             <div>
-              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1">Subject guidance</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-[#7B6FA0]">Subject guidance</label>
+                {emailScore && <ScoreBadge score={emailScore.score} />}
+              </div>
               <input
                 value={step.subject_hint}
                 onChange={e => onUpdate({ ...step, subject_hint: e.target.value })}
+                onBlur={scoreEmail}
                 className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 placeholder="What should the subject line achieve?"
               />
@@ -227,11 +268,22 @@ function StepCard({
               <textarea
                 value={step.body_hint}
                 onChange={e => onUpdate({ ...step, body_hint: e.target.value })}
+                onBlur={scoreEmail}
                 rows={2}
                 className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 placeholder="What should the body achieve? Tone, length, CTA?"
               />
             </div>
+            {/* Score issues */}
+            {emailScore && emailScore.issues.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {emailScore.issues.map(issue => (
+                  <span key={issue} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                    {issue}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Prompt override */}
@@ -653,6 +705,7 @@ export default function CampaignDetailPage() {
                     index={index}
                     onUpdate={updated => updateStep(index, updated)}
                     onDelete={() => removeStep(index)}
+                    token={token}
                   />
                   {!isLast && (
                     <div className="relative flex flex-col items-center my-1">

@@ -32,6 +32,7 @@ type IcpDraft = {
 interface AgentSidePanelProps {
   agentId: string
   name: string
+  subtitle?: string
   role: string
   tagline?: string
   contextMessage: string
@@ -46,6 +47,7 @@ interface AgentSidePanelProps {
 export function AgentSidePanel({
   agentId,
   name,
+  subtitle,
   role,
   tagline,
   contextMessage,
@@ -223,10 +225,13 @@ export function AgentSidePanel({
         />
       </div>
 
-      {/* ── Identity bar — dark ───────────────────────────────────── */}
+      {/* ── Identity bar ─────────────────────────────────────────── */}
       <div className="bg-[#0F0929] px-4 py-3 flex items-center justify-between">
         <div>
-          <p className="text-white font-bold text-base leading-tight">{name}</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-white font-bold text-base leading-tight">{name}</p>
+            {subtitle && <span className="text-[#7C3AED] text-xs font-semibold">{subtitle}</span>}
+          </div>
           <p className="text-[#9B8EC4] text-xs mt-0.5">
             {role}{tagline ? ` · ${tagline}` : ''}
           </p>

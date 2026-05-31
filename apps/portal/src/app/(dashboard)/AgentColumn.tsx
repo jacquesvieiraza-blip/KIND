@@ -83,9 +83,10 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
         <AgentSidePanel
           agentId="milla"
           name="Milla"
-          role="Virtual Assistant"
-          tagline="Your AI assistant"
-          contextMessage="I help you draft documents, manage your business knowledge, and answer questions — so you can focus on what matters."
+          subtitle="The Brain"
+          role="Virtual Assistant · Business Operations"
+          tagline="I reach out. You close."
+          contextMessage="I know your business inside and out. Draft documents, instant answers from your knowledge base, and everything organised — done."
           chips={[
             { label: 'Draft a document',  onClick: () => router.push('/dashboard/documents') },
             { label: 'Ask me anything',   onClick: () => router.push('/dashboard/assistant') },
@@ -107,9 +108,10 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
         <AgentSidePanel
           agentId="vida"
           name="Vida"
-          role="Chatbot Agent"
+          subtitle="The Connector"
+          role="Chatbot Agent · Inbound Specialist"
           tagline="Your website chatbot"
-          contextMessage="I live on your website and handle customer enquiries 24/7 — trained on your business, always on."
+          contextMessage="I'm always here when your visitors need me — trained on your business, real answers not scripts. I spot good leads and route them straight to your team."
           chips={[
             { label: 'Configure chatbot',  onClick: () => router.push('/dashboard/chatbot') },
             { label: 'View conversations', onClick: () => router.push('/dashboard/chatbot') },
@@ -224,8 +226,9 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
       <AgentSidePanel
         agentId="figsy"
         name="FIGSY"
-        role="AI SDR"
-        tagline="Your sales agent"
+        subtitle="The Closer"
+        role="AI SDR · Outbound Sales Specialist"
+        tagline="I reach out. You close."
         contextMessage={contextMessage}
         chips={chips}
         onSend={msg => router.push(`/dashboard/leads/icp?figsy=${encodeURIComponent(msg)}`)}

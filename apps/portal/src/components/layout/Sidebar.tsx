@@ -18,6 +18,7 @@ type AgentId = 'figsy' | 'milla' | 'vida'
 interface AgentDef {
   id: AgentId
   name: string
+  subtitle: string
   role: string
   accent: string
   ring: string
@@ -29,7 +30,8 @@ const AGENTS: AgentDef[] = [
   {
     id: 'figsy',
     name: 'FIGSY',
-    role: 'AI SDR',
+    subtitle: 'The Closer',
+    role: 'AI SDR · Outbound Sales Specialist',
     accent: '#7C3AED',
     ring: 'ring-[#7C3AED]/20',
     nav: [
@@ -44,7 +46,8 @@ const AGENTS: AgentDef[] = [
   {
     id: 'milla',
     name: 'Milla',
-    role: 'Virtual Assistant',
+    subtitle: 'The Brain',
+    role: 'Virtual Assistant · Business Operations',
     accent: '#F472B6',
     ring: 'ring-pink-300/30',
     price: '$49/mo',
@@ -56,7 +59,8 @@ const AGENTS: AgentDef[] = [
   {
     id: 'vida',
     name: 'Vida',
-    role: 'Chatbot Agent',
+    subtitle: 'The Connector',
+    role: 'Chatbot Agent · Inbound Specialist',
     accent: '#14B8A6',
     ring: 'ring-teal-300/30',
     price: '$39/mo',
@@ -268,12 +272,13 @@ export function Sidebar({
                 <div className="flex-1 text-left min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <p className="text-[#1E1152] font-bold text-sm">{agent.name}</p>
+                    <span className="text-[10px] font-semibold" style={{ color: agent.accent }}>{agent.subtitle}</span>
                     {unlocked
                       ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       : <Lock className="w-3 h-3 text-[#7C3AED]/25" />
                     }
                   </div>
-                  <p className="text-xs" style={{ color: `${agent.accent}99` }}>{agent.role}</p>
+                  <p className="text-xs truncate" style={{ color: `${agent.accent}99` }}>{agent.role}</p>
                   {!unlocked && agent.price && (
                     <p className="text-[10px] text-[#6B7280] mt-0.5">{agent.price} · Tap to unlock</p>
                   )}

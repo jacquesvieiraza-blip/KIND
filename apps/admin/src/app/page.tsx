@@ -114,16 +114,16 @@ async function getAdminStats() {
 
 function ttflColor(hours: number | null): string {
   if (hours === null) return 'text-gray-400'
-  if (hours < 2) return 'text-emerald-400'
-  if (hours <= 6) return 'text-amber-400'
-  return 'text-red-400'
+  if (hours < 2) return 'text-emerald-600'
+  if (hours <= 6) return 'text-amber-600'
+  return 'text-red-600'
 }
 
 function ttflBgColor(hours: number | null): string {
-  if (hours === null) return 'bg-white/5 text-gray-400'
-  if (hours < 2) return 'bg-emerald-400/10 text-emerald-400'
-  if (hours <= 6) return 'bg-amber-400/10 text-amber-400'
-  return 'bg-red-400/10 text-red-400'
+  if (hours === null) return 'bg-gray-50 text-gray-400'
+  if (hours < 2) return 'bg-emerald-50 text-emerald-600'
+  if (hours <= 6) return 'bg-amber-50 text-amber-600'
+  return 'bg-red-50 text-red-600'
 }
 
 function formatTtfl(hours: number | null): string {
@@ -148,11 +148,11 @@ function relativeDate(dateStr: string): string {
 
 function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, string> = {
-    trial:     'bg-blue-400/10 text-blue-400 border border-blue-400/20',
-    active:    'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20',
-    cancelled: 'bg-white/5 text-gray-400 border border-white/10',
+    trial:     'bg-blue-50 text-blue-600 border border-blue-100',
+    active:    'bg-emerald-50 text-emerald-700 border border-emerald-100',
+    cancelled: 'bg-gray-50 text-gray-400 border border-gray-100',
   }
-  const cls = map[status ?? ''] ?? 'bg-white/5 text-gray-400 border border-white/10'
+  const cls = map[status ?? ''] ?? 'bg-gray-50 text-gray-400 border border-gray-100'
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${cls}`}>
       {status ?? '—'}
@@ -211,7 +211,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
   return (
     <div className="space-y-4">
       {/* Current month progress */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <Target className="w-5 h-5 text-[#7C3AED]" />
           <h2 className="font-semibold text-gray-900">KPI Progress — {current.month}</h2>
@@ -243,7 +243,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
       </div>
 
       {/* Monthly targets roadmap */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Monthly Revenue Targets</h2>
         <p className="text-xs text-gray-400 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
         <div className="overflow-x-auto">
@@ -264,7 +264,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
                   <tr key={t.month} className={isCurrentMonth ? 'bg-purple-50/60' : 'hover:bg-purple-50/30 transition-colors'}>
                     <td className="px-3 py-3">
                       <span className="font-medium text-gray-900">{t.month}</span>
-                      {isCurrentMonth && <span className="ml-2 text-xs bg-[#7C3AED] text-gray-900 px-1.5 py-0.5 rounded font-medium">Now</span>}
+                      {isCurrentMonth && <span className="ml-2 text-xs bg-[#7C3AED] text-white px-1.5 py-0.5 rounded font-medium">Now</span>}
                     </td>
                     <td className="px-3 py-3 font-medium text-gray-700">${t.mrrTarget.toLocaleString()}</td>
                     <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>
@@ -293,7 +293,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
       </div>
 
       {/* Key KPI targets */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Core KPI Targets</h2>
         <p className="text-xs text-gray-400 mb-4">Track these weekly — they're the leading indicators of growth</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -340,7 +340,7 @@ export default async function AdminPage() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Platform health &amp; revenue at a glance</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-white/70 border border-white/60 rounded-xl px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-1.5 bg-white border border-purple-100 rounded-xl px-3 py-1.5 shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-medium text-gray-500">Live data</span>
         </div>
@@ -354,7 +354,7 @@ export default async function AdminPage() {
           { label: 'Active Subs', value: stats.activeSubscriptions, icon: <TrendingUp className="w-5 h-5" />, color: 'bg-purple-50 text-[#7C3AED]', sub: 'across all products' },
           { label: 'Past Due', value: stats.pastDue, icon: <AlertCircle className="w-5 h-5" />, color: stats.pastDue > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400', sub: 'need follow-up' },
         ].map(({ label, value, icon, color, sub }) => (
-          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+          <div key={label} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>{icon}</div>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
             <p className="text-sm text-gray-500 mt-0.5">{label}</p>
@@ -363,7 +363,7 @@ export default async function AdminPage() {
         ))}
 
         {/* Avg TTFL card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${avgTtflColor}`}>
             <Clock className="w-5 h-5" />
           </div>
@@ -376,7 +376,7 @@ export default async function AdminPage() {
       <KpiTargetsSection mrrUsd={stats.mrrUsd} totalClients={stats.totalClients} />
 
       {/* Client Pipeline Health */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Client Pipeline Health</h2>
         <p className="text-xs text-gray-400 mb-4">Time to first lead, lead volumes, and subscription status per client</p>
         <div className="overflow-x-auto">
@@ -415,7 +415,7 @@ export default async function AdminPage() {
 
       {/* Product Catalog + Total Leads side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
           <h2 className="font-semibold text-gray-900 mb-1">Product Catalog</h2>
           <p className="text-xs text-gray-400 mb-4">Usage-based for Lead Gen · flat subscription for VA &amp; Chatbot</p>
           <div className="space-y-3">
@@ -451,7 +451,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6 flex flex-col justify-center items-center text-center">
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6 flex flex-col justify-center items-center text-center">
           <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center mb-4">
             <TrendingUp className="w-7 h-7 text-[#7C3AED]" />
           </div>

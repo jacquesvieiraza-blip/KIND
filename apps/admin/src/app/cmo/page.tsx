@@ -98,7 +98,7 @@ export default function CmoPage() {
       </div>
 
       {/* ── LinkedIn Post Generator ─────────────────────────────────────── */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-1">
           <Linkedin className="w-5 h-5 text-[#0A66C2]" />
           <h2 className="font-semibold text-gray-900">LinkedIn Post Generator</h2>
@@ -146,7 +146,7 @@ export default function CmoPage() {
       </div>
 
       {/* ── Prospect Finder ──────────────────────────────────────────────── */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-1">
           <Search className="w-5 h-5 text-indigo-600" />
           <h2 className="font-semibold text-gray-900">Prospect Finder</h2>

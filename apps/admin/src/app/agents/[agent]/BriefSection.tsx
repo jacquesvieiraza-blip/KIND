@@ -66,7 +66,7 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
           <button
             onClick={fetchBrief}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] rounded-lg text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 border border-purple-100 hover:bg-purple-100 rounded-lg text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50"
           >
             {loading
               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -92,7 +92,7 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
           ))}
         </div>
       ) : (
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-5 text-center">
+        <div className="bg-white border border-purple-100 rounded-lg p-5 text-center">
           <p className="text-gray-400 text-sm">
             Click &quot;Generate Brief&quot; to get {agentName}&apos;s daily briefing using live platform data.
           </p>

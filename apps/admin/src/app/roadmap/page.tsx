@@ -218,7 +218,7 @@ export default function AdminRoadmapPage() {
       </div>
 
       {/* Overall progress */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="font-semibold text-gray-900">Overall Roadmap Progress</h3>
@@ -253,7 +253,7 @@ export default function AdminRoadmapPage() {
           { icon: <Globe className="w-4 h-4" />, label: 'Month 6 MRR', value: '$26,000', sub: '60 clients' },
           { icon: <Briefcase className="w-4 h-4" />, label: 'Month 12 MRR', value: '$100,000', sub: '200+ clients' },
         ].map(({ icon, label, value, sub }) => (
-          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+          <div key={label} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-3">{icon}</div>
             <p className="text-xl font-bold text-gray-900">{value}</p>
             <p className="text-xs text-gray-500 mt-0.5">{label}</p>
@@ -270,7 +270,7 @@ export default function AdminRoadmapPage() {
         const colors = COLOR_MAP[phase.color]
 
         return (
-          <div key={phase.phase} className={`bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden ring-1 ${statusCfg.ring}`}>
+          <div key={phase.phase} className={`bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden ring-1 ${statusCfg.ring}`}>
             {/* Phase header */}
             <div className={`${colors.header} border-b px-6 py-4`}>
               <div className="flex items-center justify-between">
@@ -327,7 +327,7 @@ export default function AdminRoadmapPage() {
       })}
 
       {/* ── Risk Register ──────────────────────────────────────────────────── */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-red-500" />
           <h3 className="font-bold text-gray-900">Risk Register</h3>

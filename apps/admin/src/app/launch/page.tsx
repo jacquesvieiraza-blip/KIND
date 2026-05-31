@@ -230,7 +230,7 @@ export default function LaunchPage() {
       )}
 
       {SECTIONS.map(section => (
-        <div key={section.title} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
+        <div key={section.title} className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/50">
             <h2 className="font-semibold text-gray-800">{section.title}</h2>
           </div>

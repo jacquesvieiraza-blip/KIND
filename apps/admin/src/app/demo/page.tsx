@@ -174,7 +174,7 @@ export default function DemoPage() {
 
         {/* Create form */}
         {showForm && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
             <h3 className="font-semibold text-gray-900 mb-5">Create Demo Environment</h3>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

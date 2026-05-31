@@ -131,19 +131,19 @@ export default function HubspotPage() {
         {!loading && data?.connected && data.stages && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+              <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Total Deals</p>
                 <p className="text-2xl font-bold text-gray-900">{totalDeals}</p>
               </div>
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+              <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Open Pipeline</p>
                 <p className="text-2xl font-bold text-gray-900">{formatValue(openValue)}</p>
               </div>
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+              <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Closed Won</p>
                 <p className="text-2xl font-bold text-green-600">{formatValue(closedWon?.totalValue ?? 0)}</p>
               </div>
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+              <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Total Value</p>
                 <p className="text-2xl font-bold text-gray-900">{formatValue(totalValue)}</p>
               </div>

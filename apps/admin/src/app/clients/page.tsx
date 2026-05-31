@@ -175,9 +175,9 @@ const HEALTH_DOT: Record<'green' | 'amber' | 'red', string> = {
 
 function LastLoginCell({ days }: { days: number | null }) {
   if (days === null) return <span className="text-gray-400 text-xs">Never</span>
-  if (days === 0) return <span className="text-emerald-400 text-xs">Today</span>
-  if (days === 1) return <span className="text-emerald-400 text-xs">Yesterday</span>
-  const color = days <= 3 ? 'text-emerald-400' : days <= 7 ? 'text-amber-400' : 'text-red-400'
+  if (days === 0) return <span className="text-emerald-600 text-xs font-medium">Today</span>
+  if (days === 1) return <span className="text-emerald-600 text-xs">Yesterday</span>
+  const color = days <= 3 ? 'text-emerald-600' : days <= 7 ? 'text-amber-600' : 'text-red-500'
   return <span className={`text-xs ${color}`}>{days}d ago</span>
 }
 
@@ -236,7 +236,7 @@ export default async function ClientsPage({
           { label: 'T&Cs Accepted',  value: counts.termsAccepted, color: 'text-[#7C3AED]' },
           { label: 'No Credits',     value: counts.noCredits,     color: 'text-gray-400' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4 text-center">
+          <div key={label} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4 text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
             <p className="text-xs text-gray-500 mt-1">{label}</p>
           </div>
@@ -244,7 +244,7 @@ export default async function ClientsPage({
       </div>
 
       {/* Client table */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
         {clients.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />

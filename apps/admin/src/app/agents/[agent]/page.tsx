@@ -108,7 +108,7 @@ export default async function AgentPage({ params }: { params: { agent: string } 
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-2">Configure</h2>
         <p className="text-sm text-gray-400">Agent configuration settings will be available here in a future release. This section will allow you to adjust thresholds, notification preferences, and scheduling for {agent.name}.</p>
-        <div className="mt-4 bg-white/[0.03] border border-white/[0.06] rounded-lg p-4">
+        <div className="mt-4 bg-white border border-purple-100 rounded-lg p-4">
           <p className="text-xs text-gray-300 uppercase tracking-widest font-semibold mb-2">Planned settings</p>
           <ul className="space-y-1 text-sm text-gray-400">
             <li>— Run frequency (daily / on-demand)</li>

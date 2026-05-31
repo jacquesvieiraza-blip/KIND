@@ -26,10 +26,10 @@ const KEY_KPIS = [
 const SCENARIOS = [
   {
     name: 'Conservative',
-    color: 'text-amber-400',
-    border: 'border-amber-400/20',
-    bg: 'bg-amber-400/5',
-    dot: 'bg-amber-400',
+    color: 'text-amber-600',
+    border: 'border-amber-200',
+    bg: 'bg-amber-50',
+    dot: 'bg-amber-500',
     mrrMultiplier: 0.6,
     description: '60% of base target — slower trial conversion, higher churn',
     mayTarget: 300,
@@ -38,10 +38,10 @@ const SCENARIOS = [
   },
   {
     name: 'Base',
-    color: 'text-blue-400',
-    border: 'border-blue-400/20',
-    bg: 'bg-blue-400/5',
-    dot: 'bg-blue-400',
+    color: 'text-blue-600',
+    border: 'border-blue-200',
+    bg: 'bg-blue-50',
+    dot: 'bg-blue-500',
     mrrMultiplier: 1.0,
     description: 'On-plan targets — steady conversion and low churn',
     mayTarget: 500,
@@ -50,10 +50,10 @@ const SCENARIOS = [
   },
   {
     name: 'Optimistic',
-    color: 'text-emerald-400',
-    border: 'border-emerald-400/20',
-    bg: 'bg-emerald-400/5',
-    dot: 'bg-emerald-400',
+    color: 'text-emerald-600',
+    border: 'border-emerald-200',
+    bg: 'bg-emerald-50',
+    dot: 'bg-emerald-500',
     mrrMultiplier: 1.4,
     description: '140% of base — strong word-of-mouth, referral loop kicks in',
     mayTarget: 700,
@@ -64,8 +64,8 @@ const SCENARIOS = [
 
 const ARPU_TIERS = [
   { name: 'Starter',  price: 20,  color: 'text-gray-500',  description: 'Lead Gen only — 100 leads included' },
-  { name: 'Growth',   price: 160, color: 'text-blue-400',   description: 'Lead Gen + FIGSY add-on' },
-  { name: 'Scale',    price: 400, color: 'text-emerald-400', description: 'Full platform — VA + Chatbot + FIGSY' },
+  { name: 'Growth',   price: 160, color: 'text-blue-600',   description: 'Lead Gen + FIGSY add-on' },
+  { name: 'Scale',    price: 400, color: 'text-emerald-600', description: 'Full platform — VA + Chatbot + FIGSY' },
 ]
 
 function ragStatus(pct: number): 'green' | 'amber' | 'red' {
@@ -76,9 +76,9 @@ function ragStatus(pct: number): 'green' | 'amber' | 'red' {
 
 function RagIcon({ pct }: { pct: number }) {
   const status = ragStatus(pct)
-  if (status === 'green') return <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-  if (status === 'amber') return <MinusCircle className="w-4 h-4 text-amber-400" />
-  return <XCircle className="w-4 h-4 text-red-400" />
+  if (status === 'green') return <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+  if (status === 'amber') return <MinusCircle className="w-4 h-4 text-amber-600" />
+  return <XCircle className="w-4 h-4 text-red-600" />
 }
 
 function getCurrentTarget() {
@@ -143,9 +143,9 @@ export default async function RevenuePage() {
       {/* Live MRR + context */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'MRR (USD)',          value: `$${stats.mrrUsd.toLocaleString()}`,   sub: 'live from Supabase', color: 'bg-emerald-400/10 text-emerald-400' },
-          { label: 'MRR (ZAR)',          value: `R${stats.mrrZar.toLocaleString()}`,   sub: '@ R19 / USD',        color: 'bg-emerald-400/10 text-emerald-400' },
-          { label: 'Active Paying',      value: stats.activeCount,                      sub: 'subscriptions',      color: 'bg-blue-400/10 text-blue-400' },
+          { label: 'MRR (USD)',          value: `$${stats.mrrUsd.toLocaleString()}`,   sub: 'live from Supabase', color: 'bg-emerald-500/10 text-emerald-600' },
+          { label: 'MRR (ZAR)',          value: `R${stats.mrrZar.toLocaleString()}`,   sub: '@ R19 / USD',        color: 'bg-emerald-500/10 text-emerald-600' },
+          { label: 'Active Paying',      value: stats.activeCount,                      sub: 'subscriptions',      color: 'bg-blue-500/10 text-blue-600' },
           { label: 'Blended ARPU',       value: stats.blendedArpu ? `$${stats.blendedArpu}` : '—', sub: 'per active client', color: 'bg-purple-400/10 text-purple-400' },
         ].map(({ label, value, sub, color }) => (
           <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-5">
@@ -172,7 +172,7 @@ export default async function RevenuePage() {
               <span className="font-semibold text-gray-900">${stats.mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2">
-              <div className={`h-2 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-emerald-400' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-400' : 'bg-[#0066FF]'}`}
+              <div className={`h-2 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-emerald-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#0066FF]'}`}
                    style={{ width: `${mrrPct}%` }} />
             </div>
             <p className="text-xs text-gray-400 mt-1">{mrrPct.toFixed(1)}% of target</p>
@@ -183,7 +183,7 @@ export default async function RevenuePage() {
               <span className="font-semibold text-gray-900">{stats.totalClients} / {current.clientTarget}</span>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2">
-              <div className={`h-2 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-emerald-400' : ragStatus(clientPct) === 'amber' ? 'bg-amber-400' : 'bg-indigo-400'}`}
+              <div className={`h-2 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-emerald-500' : ragStatus(clientPct) === 'amber' ? 'bg-amber-500' : 'bg-indigo-400'}`}
                    style={{ width: `${clientPct}%` }} />
             </div>
             <p className="text-xs text-gray-400 mt-1">{clientPct.toFixed(1)}% of target</p>
@@ -248,7 +248,7 @@ export default async function RevenuePage() {
                 const pct = Math.min((stats.mrrUsd / t.mrrTarget) * 100, 100)
                 const isFuture = new Date(t.month).getTime() > Date.now() + 86400000 * 30
                 return (
-                  <tr key={t.month} className={isCurrentMonth ? 'bg-[#0066FF]/10' : 'hover:bg-white/[0.03]'}>
+                  <tr key={t.month} className={isCurrentMonth ? 'bg-purple-50' : 'hover:bg-purple-50/30'}>
                     <td className="px-3 py-3">
                       <span className="font-medium text-gray-900">{t.month}</span>
                       {isCurrentMonth && <span className="ml-2 text-xs bg-[#0066FF]/20 text-[#4d94ff] px-1.5 py-0.5 rounded font-medium">Now</span>}
@@ -257,11 +257,11 @@ export default async function RevenuePage() {
                     <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>
                     <td className="px-3 py-3">
                       {isFuture ? (
-                        <span className="text-xs text-gray-300">upcoming</span>
+                        <span className="text-xs text-gray-400">upcoming</span>
                       ) : (
                         <div className="flex items-center gap-2">
                           <div className="w-24 bg-white/10 rounded-full h-1.5">
-                            <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-emerald-400' : ragStatus(pct) === 'amber' ? 'bg-amber-400' : 'bg-[#0066FF]'}`}
+                            <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-emerald-500' : ragStatus(pct) === 'amber' ? 'bg-amber-500' : 'bg-[#0066FF]'}`}
                                  style={{ width: `${pct}%` }} />
                           </div>
                           <span className="text-xs text-gray-500">{pct.toFixed(0)}%</span>
@@ -285,14 +285,14 @@ export default async function RevenuePage() {
         <p className="text-xs text-gray-400 mb-4">Average Revenue Per User across product tiers</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
           {ARPU_TIERS.map(tier => (
-            <div key={tier.name} className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-4">
+            <div key={tier.name} className="bg-white border border-purple-100 rounded-lg p-4">
               <p className={`text-lg font-bold ${tier.color}`}>{tier.name}</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">${tier.price}<span className="text-sm text-gray-400">/mo</span></p>
               <p className="text-xs text-gray-400 mt-2">{tier.description}</p>
             </div>
           ))}
         </div>
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white border border-purple-100 rounded-lg p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">Blended ARPU</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -310,7 +310,7 @@ export default async function RevenuePage() {
         <p className="text-xs text-gray-400 mb-4">Track these weekly — they&apos;re the leading indicators of growth</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {KEY_KPIS.map(k => (
-            <div key={k.label} className="bg-white/[0.04] border border-white/[0.06] rounded-lg px-4 py-3">
+            <div key={k.label} className="bg-white border border-purple-100 rounded-lg px-4 py-3">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{k.unit}</p>
               <p className="text-lg font-bold text-gray-900 mt-0.5">{k.target}</p>
               <p className="text-xs text-gray-500 mt-0.5">{k.label}</p>
@@ -323,9 +323,9 @@ export default async function RevenuePage() {
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Credit Sales — This Month</h2>
         <p className="text-xs text-gray-400 mb-4">Apollo credit purchases attributed to client accounts</p>
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-5 text-center">
+        <div className="bg-white border border-purple-100 rounded-lg p-5 text-center">
           <p className="text-gray-400 text-sm">Credit transaction data will appear here once the billing webhook is connected.</p>
-          <p className="text-gray-300 text-xs mt-2">Expected data: credit_type | client_id | amount_usd | timestamp</p>
+          <p className="text-gray-400 text-xs mt-2">Expected data: credit_type | client_id | amount_usd | timestamp</p>
         </div>
       </div>
     </main>

@@ -235,7 +235,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold text-gray-900">Campaign Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">FIGSY performance across all clients</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-white/70 border border-white/60 rounded-xl px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-1.5 bg-white border border-purple-100 rounded-xl px-3 py-1.5 shadow-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-medium text-gray-500">Live data</span>
         </div>
@@ -249,7 +249,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
           { label: 'Replies', value: totals.replies.toLocaleString(), icon: <MessageSquare className="w-5 h-5" />, color: 'bg-green-50 text-green-600' },
           { label: 'Hot leads', value: totals.hot_leads.toLocaleString(), icon: <Flame className="w-5 h-5" />, color: 'bg-red-50 text-red-500' },
         ].map(({ label, value, icon, color }) => (
-          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5">
+          <div key={label} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>{icon}</div>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
             <p className="text-sm text-gray-500 mt-0.5">{label}</p>
@@ -279,7 +279,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Main table */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-purple-50 flex items-center gap-2">
           <BarChart2 className="w-5 h-5 text-[#7C3AED]" />
           <h2 className="font-semibold text-gray-900">All Campaigns</h2>

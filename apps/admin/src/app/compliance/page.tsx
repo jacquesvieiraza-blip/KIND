@@ -195,7 +195,7 @@ export default function CompliancePage() {
           { label: 'In Progress', value: 0, color: 'text-amber-400', sub: 'None currently active' },
           { label: 'Planned', value: planned, color: 'text-gray-400', sub: 'SOC 2, ISO 27001, ISO 42001' },
         ].map(({ label, value, color, sub }) => (
-          <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
+          <div key={label} className="bg-white border border-purple-100 rounded-xl p-5">
             <p className={`text-3xl font-bold ${color}`}>{value}</p>
             <p className="text-gray-500 text-sm mt-1">{label}</p>
             <p className="text-gray-400 text-xs mt-0.5">{sub}</p>
@@ -204,7 +204,7 @@ export default function CompliancePage() {
       </div>
 
       {/* Roadmap overview */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
+      <div className="bg-white border border-purple-100 rounded-xl p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Certification Roadmap</h2>
         <div className="space-y-3">
           {[
@@ -302,7 +302,7 @@ export default function CompliancePage() {
         })}
       </div>
 
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
+      <div className="bg-white border border-purple-100 rounded-xl p-5">
         <p className="text-gray-400 text-xs leading-relaxed">
           <span className="text-gray-500 font-medium">Important distinction:</span> GDPR and CCPA are regulatory compliance claims — they signal you follow the law. SOC 2, ISO 27001, and ISO 42001 are third-party audited certifications — they signal you can prove it. Both types matter. The badges above represent the combination that unlocks enterprise deals.
         </p>

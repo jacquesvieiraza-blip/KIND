@@ -249,7 +249,7 @@ export default async function ScalabilityPage() {
             <h3 className="text-lg font-semibold text-gray-900">Infrastructure Scaling Triggers</h3>
           </div>
 
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">

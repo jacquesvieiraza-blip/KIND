@@ -800,7 +800,7 @@ export default function PlaybookPage() {
         </div>
 
         {/* Quick-nav strip */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4">
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Jump to section</p>
           <div className="flex flex-wrap gap-2">
             {sections.map((s) => {

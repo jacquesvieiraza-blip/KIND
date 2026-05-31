@@ -8,6 +8,31 @@ import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 
 export const figsyRouter = Router()
 
+// ── OPEN TRACKING PIXEL — no auth, must be before requireAuth ─────────────────
+// Called when recipient opens an email containing the tracking pixel.
+// Returns a 1×1 transparent GIF and records opened_at on figsy_sent_emails.
+const TRANSPARENT_GIF = Buffer.from(
+  'R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
+  'base64'
+)
+figsyRouter.get('/track/open/:emailId', async (req, res) => {
+  res.set('Content-Type', 'image/gif')
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  res.set('Pragma', 'no-cache')
+  res.send(TRANSPARENT_GIF)
+
+  // Record open asynchronously (don't block the image response)
+  const { emailId } = req.params
+  if (emailId && /^[0-9a-f-]{36}$/.test(emailId)) {
+    db.from('figsy_sent_emails')
+      .update({ opened_at: new Date().toISOString() })
+      .eq('id', emailId)
+      .is('opened_at', null) // only record first open
+      .then(() => {})
+      .catch(() => {})
+  }
+})
+
 // ── INBOUND REPLY WEBHOOK — must be registered BEFORE requireAuth ─────────────
 // Called by Resend when a prospect replies to a FIGSY sequence email.
 // No JWT auth — protected by RESEND_WEBHOOK_SECRET header check instead.

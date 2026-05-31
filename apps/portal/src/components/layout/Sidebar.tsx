@@ -121,7 +121,7 @@ export function Sidebar({
   hasMilla = false,
   hasVida  = false,
   isNewUser = false,
-  isPartner: isPartnerProp = false,
+  isPartner = false,
 }: {
   userEmail: string
   creditBalance?: number

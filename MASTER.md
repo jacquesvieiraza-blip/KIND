@@ -3921,7 +3921,7 @@ Filing date = priority date. File before a competitor does. 4-month processing i
 |---|---------|----------|------------|--------|
 | 1 | Apex (apex.host) | Autonomous AI assistant | "Acts, doesn't just respond" — copy framing | 🟡 Actions pending |
 | 2 | ClickUp | Project management SaaS | Command centre UI, multiple views, Cmd+K | ✅ Design built |
-| 3 | Lemlist | Email outreach | Personalised images, template library, community | 🟡 Phase 2-3 |
+| 3 | Lemlist | Email outreach | Personalised images ✅, template library ✅, community ❌ | ✅ 2/3 built — community gap remains |
 | 4 | Instantly | Cold email at scale | Campaign auto-pause, domain warming cap | ✅ Built |
 | 5 | Clay | Data enrichment | Multi-source fallback search | ✅ Built |
 | 6 | Apollo | Lead data + sequences | Our supplier — job change alerts, sequence analytics | ✅ Integrated |
@@ -3942,25 +3942,25 @@ Multiple views (Kanban, heatmap, timeline), Command palette Cmd+K, real-time act
 **Apollo → Supplier + Teacher**
 Apollo powers our data. They're a partial competitor (sequences vs FIGSY) but non-overlapping buyers. Lessons: job change alerts (Phase 4), sequence analytics, AI transparency. Strategic reality: K.I.N.D's moat is African B2B conversion data — unreplicable by Apollo regardless of what they build.
 
-### The 15 Pieces — What Gets Built Post 20 Clients
+### The 15 Pieces — Build Status (Updated 1 Jun 2026)
 
-| # | Piece | What it is | Build time | When |
-|---|-------|-----------|-----------|------|
-| 1 | Multiple views | Kanban + heatmap + timeline for leads | 2–3 days | Phase 2 |
-| 2 | Command palette | Cmd+K — New ICP, Pause FIGSY, Hot leads | 1–2 days | Phase 2 |
-| 3 | Real-time activity feed | Live events: email sent, reply, score, interested | 3 days | Phase 3 |
-| 4 | Notification centre | Bell + red badge + slide-out panel | 3 days | Any time |
-| 5 | Status bar | Sidebar bottom — FIGSY stats, credits, health | 4 hours | **First** |
-| 6 | Custom lead fields | `custom_fields jsonb` per client | 4–5 days | On request |
-| 7 | Visual automation builder | React Flow — triggers, actions, if/then | 2–3 weeks | Phase 5 (50+ clients) |
-| 8 | ICP that learns itself | AI insight bullets from reply patterns | 2 days | Phase 4 (3mo data) |
-| 9 | Personalised images | HTML-to-image per prospect in Day 1 email | 2 days | Phase 3 |
-| 10 | Sequence template library | Pre-built FIGSY sequences by ICP type | 3 days | Phase 2 |
-| 11 | Voice morning brief | Milla reads 90-sec audio at 7:30am | 1 day | Post Milla live |
-| 12 | Benchmarks | "Your industry averages 7.1% — you're at 11%" | 2 days | Phase 4 (20+ clients) |
-| 13 | White-label / Agency | Agencies manage 5–10 clients in one view | 1 week | On first request |
-| 14 | **MCP server** | K.I.N.D as AI infrastructure — see below | 3–5 days | Phase 4 |
-| 15 | Mobile PWA | manifest + push notifications | 2 days | Phase 3 |
+| # | Piece | What it is | Status |
+|---|-------|-----------|--------|
+| 1 | Multiple views | Kanban + heatmap + timeline for leads | ✅ Kanban built (P2-8). Heatmap + timeline = not built. |
+| 2 | Command palette | Cmd+K — New ICP, Pause FIGSY, Hot leads | ❌ Not built |
+| 3 | Real-time activity feed | Live events: email sent, reply, score, interested | ❌ Not built |
+| 4 | Notification centre | Bell + red badge + slide-out panel | ❌ Not built |
+| 5 | Status bar | Sidebar bottom — FIGSY stats, credits, health | ❌ Not built |
+| 6 | Custom lead fields | custom_fields jsonb per client | ❌ Not built |
+| 7 | Visual automation builder | React Flow — triggers, actions, if/then | ❌ Not built (Phase 5) |
+| 8 | ICP that learns itself | AI insight bullets from reply patterns | ✅ Built (P2-10 ICP auto-refinement) |
+| 9 | Personalised images | SVG with lead name/company in email | ✅ Built (P2-13) |
+| 10 | Sequence template library | Pre-built FIGSY sequences by ICP type | ✅ Built — 6 templates in FIGSY page |
+| 11 | Voice morning brief | Milla reads 90-sec audio at 7:30am | ❌ Not built |
+| 12 | Benchmarks | "Your industry averages 7.1% — you are at 11%" | ✅ Built (P2-11 network benchmarks in KPIs) |
+| 13 | White-label / Agency | Agencies manage 5–10 clients in one view | ✅ Built (P2-12 white-label mode) |
+| 14 | MCP server | K.I.N.D as AI infrastructure | ✅ Built (P3-1 developer portal + MCP routes) |
+| 15 | Mobile PWA | manifest + push notifications | ❌ Not built |
 
 ### Piece 14 — MCP Server (K.I.N.D as AI Infrastructure)
 
@@ -5227,7 +5227,7 @@ Same product. 10x the perception. Update this across website, deck, and GTM when
 |---|---------|----------|------------|--------|
 | 1 | Apex (apex.host) | Autonomous AI assistant | "Acts, doesn't just respond" — copy framing | 🟡 Actions pending |
 | 2 | ClickUp | Project management SaaS | Command centre UI, multiple views, Cmd+K | ✅ Design built |
-| 3 | Lemlist | Email outreach | Personalised images, template library, community | 🟡 Phase 2-3 |
+| 3 | Lemlist | Email outreach | Personalised images ✅, template library ✅, community ❌ | ✅ 2/3 built — community gap remains |
 | 4 | Instantly | Cold email at scale | Campaign auto-pause, domain warming cap | ✅ Built |
 | 5 | Clay | Data enrichment | Multi-source fallback search | ✅ Built |
 | 6 | Apollo | Lead data + sequences | Our supplier — job change alerts, sequence analytics | ✅ Integrated |
@@ -5248,25 +5248,25 @@ Multiple views (Kanban, heatmap, timeline), Command palette Cmd+K, real-time act
 **Apollo → Supplier + Teacher**
 Apollo powers our data. They're a partial competitor (sequences vs FIGSY) but non-overlapping buyers. Lessons: job change alerts (Phase 4), sequence analytics, AI transparency. Strategic reality: K.I.N.D's moat is African B2B conversion data — unreplicable by Apollo regardless of what they build.
 
-### The 15 Pieces — What Gets Built Post 20 Clients
+### The 15 Pieces — Build Status (Updated 1 Jun 2026)
 
-| # | Piece | What it is | Build time | When |
-|---|-------|-----------|-----------|------|
-| 1 | Multiple views | Kanban + heatmap + timeline for leads | 2–3 days | Phase 2 |
-| 2 | Command palette | Cmd+K — New ICP, Pause FIGSY, Hot leads | 1–2 days | Phase 2 |
-| 3 | Real-time activity feed | Live events: email sent, reply, score, interested | 3 days | Phase 3 |
-| 4 | Notification centre | Bell + red badge + slide-out panel | 3 days | Any time |
-| 5 | Status bar | Sidebar bottom — FIGSY stats, credits, health | 4 hours | **First** |
-| 6 | Custom lead fields | `custom_fields jsonb` per client | 4–5 days | On request |
-| 7 | Visual automation builder | React Flow — triggers, actions, if/then | 2–3 weeks | Phase 5 (50+ clients) |
-| 8 | ICP that learns itself | AI insight bullets from reply patterns | 2 days | Phase 4 (3mo data) |
-| 9 | Personalised images | HTML-to-image per prospect in Day 1 email | 2 days | Phase 3 |
-| 10 | Sequence template library | Pre-built FIGSY sequences by ICP type | 3 days | Phase 2 |
-| 11 | Voice morning brief | Milla reads 90-sec audio at 7:30am | 1 day | Post Milla live |
-| 12 | Benchmarks | "Your industry averages 7.1% — you're at 11%" | 2 days | Phase 4 (20+ clients) |
-| 13 | White-label / Agency | Agencies manage 5–10 clients in one view | 1 week | On first request |
-| 14 | **MCP server** | K.I.N.D as AI infrastructure — see below | 3–5 days | Phase 4 |
-| 15 | Mobile PWA | manifest + push notifications | 2 days | Phase 3 |
+| # | Piece | What it is | Status |
+|---|-------|-----------|--------|
+| 1 | Multiple views | Kanban + heatmap + timeline for leads | ✅ Kanban built (P2-8). Heatmap + timeline = not built. |
+| 2 | Command palette | Cmd+K — New ICP, Pause FIGSY, Hot leads | ❌ Not built |
+| 3 | Real-time activity feed | Live events: email sent, reply, score, interested | ❌ Not built |
+| 4 | Notification centre | Bell + red badge + slide-out panel | ❌ Not built |
+| 5 | Status bar | Sidebar bottom — FIGSY stats, credits, health | ❌ Not built |
+| 6 | Custom lead fields | `custom_fields jsonb` per client | ❌ Not built |
+| 7 | Visual automation builder | React Flow — triggers, actions, if/then | ❌ Not built (Phase 5) |
+| 8 | ICP that learns itself | AI insight bullets from reply patterns | ✅ Built (P2-10 ICP auto-refinement) |
+| 9 | Personalised images | SVG with lead name/company in email | ✅ Built (P2-13) |
+| 10 | Sequence template library | Pre-built FIGSY sequences by ICP type | ✅ Built — 6 templates in FIGSY page |
+| 11 | Voice morning brief | Milla reads 90-sec audio at 7:30am | ❌ Not built |
+| 12 | Benchmarks | "Your industry averages 7.1% — you are at 11%" | ✅ Built (P2-11 network benchmarks in KPIs) |
+| 13 | White-label / Agency | Agencies manage 5–10 clients in one view | ✅ Built (P2-12 white-label mode) |
+| 14 | MCP server | K.I.N.D as AI infrastructure | ✅ Built (P3-1 developer portal + MCP routes) |
+| 15 | Mobile PWA | manifest + push notifications | ❌ Not built |
 
 ### Piece 14 — MCP Server (K.I.N.D as AI Infrastructure)
 

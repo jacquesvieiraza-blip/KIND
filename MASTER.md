@@ -52,6 +52,7 @@
 41. [Nigeria Partner — Commercial Breakdown](#41-nigeria-partner--commercial-breakdown)
 42. [Partner Programme — Full Design & Build Spec](#42-partner-programme--full-design--build-spec)
 43. [Full Commit Log — Every Push](#43-full-commit-log--every-push)
+44. [Social Marketing — Strategy & Content](#44-social-marketing--strategy--content)
 
 ---
 
@@ -8069,3 +8070,32 @@ Signed for and on behalf of [PARTNER COMPANY]: _____________________ Date: _____
 | `296654a` | 11 May 2026 | 15:29 UTC | feat: add AI business operation roadmap to admin and client portal |
 | `bfcebe7` | 09 May 2026 | 21:01 UTC | feat: Week 1 — full platform scaffold with auth, billing, and portal |
 | `f9b9b1f` | 09 May 2026 | 21:01 UTC | Initial commit |
+
+---
+
+## 44. SOCIAL MARKETING — STRATEGY & CONTENT
+
+*Added: 1 Jun 2026. Status: for review — not actioned yet.*
+
+Channels in scope: TikTok, Instagram, Facebook, LinkedIn.
+Possible extensions: user groups, community, creator programme.
+
+This section needs to be built out. Review together before any content is created or scheduled.
+
+### Questions to answer before building this out
+
+- What does ClickUp do on social that we should steal?
+- Which channel do we start with? (LinkedIn most obvious for B2B, but TikTok has done more for SaaS awareness)
+- Who creates the content? (Claude drafts, founder publishes)
+- What is the posting cadence? (Consistency > quality at the start)
+- Do we build a community (user group, Slack, WhatsApp group) alongside the content?
+- What does success look like in 90 days?
+
+### To be completed next session
+
+- [ ] Research ClickUp's social playbook across all channels
+- [ ] Add content pillars (what we talk about)
+- [ ] Add channel-by-channel strategy
+- [ ] Add content calendar template
+- [ ] Add community / user group plan
+- [ ] Add KPIs per channel

@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 31 May 2026 — Monday.com competitive audit added. UX/layout items added to Phase 0. Section 37 added.**
+**Single source of truth. Last updated: 31 May 2026 — Monday.com competitive audit added. UX/layout items added to Phase 0. Section 37 added. Section 38 added — Multi-User Team Model approved and in build.**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 ---
@@ -45,6 +45,7 @@
 35. [Demo Playbook — Live Sales Demo & Smoke Test](#35-demo-playbook--live-sales-demo--smoke-test)
 36. [Admin Portal Playbook — How to Use Every Route](#36-admin-portal-playbook--how-to-use-every-route)
 37. [Monday.com AI — Competitive Audit & UX Steal List](#37-mondaycom-ai--competitive-audit--ux-steal-list)
+38. [Multi-User Team Model — Architecture & Build Plan](#38-multi-user-team-model--architecture--build-plan)
 
 ---
 
@@ -7638,3 +7639,101 @@ All five products live under "monday AI" in the sidebar — a named section, not
 *Reviewed: AI Sidekick, Vibe, AI Workflows, AI Agents, AI Notetaker, Agent Avatar Customizer, Agent Marketing Carousel.*
 *Build items added to Phase 0: P0-16 through P0-23. No building until founder authorises.*
 
+
+---
+
+## 38. MULTI-USER TEAM MODEL — Architecture & Build Plan
+
+*Approved: 31 May 2026. Build in progress.*
+
+---
+
+### The Problem
+KIND is currently single-user per company. One `user_id` ties to one `clients` row. A company with a sales team (SDR, AE, manager) cannot share leads, campaigns, or inbox under one workspace.
+
+### The Model
+
+**Core principle:** all existing data is already scoped to `client_id`. No restructuring needed. We add a membership layer on top.
+
+```
+clients (one per company)
+  └── client_members (many users → one client)
+        ├── owner    — full access, billing, delete account, invite anyone
+        ├── admin    — everything except billing and account deletion
+        ├── member   — leads, campaigns, inbox, documents, knowledge base
+        └── viewer   — read-only, no sending, no deleting
+```
+
+### Database Schema
+
+**Table: `client_members`**
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID | PK |
+| `client_id` | UUID | FK → clients.id |
+| `user_id` | UUID | FK → auth.users.id (null until accepted) |
+| `email` | TEXT | Invited email |
+| `role` | TEXT | owner / admin / member / viewer |
+| `invited_by` | UUID | FK → auth.users.id |
+| `invited_at` | TIMESTAMPTZ | When invite sent |
+| `accepted_at` | TIMESTAMPTZ | Null = pending |
+| `invite_token` | TEXT | Unique, nulled on accept |
+
+Migration: `supabase/migrations/20260531_client_members.sql`
+
+Existing clients auto-seeded: current `user_id` becomes `owner` on migration run.
+
+### Invite Flow
+
+1. Owner/admin goes to **Settings → Team**
+2. Types email + picks role → clicks "Invite"
+3. API: `POST /team/invite` — creates `client_members` row, sends email via Resend
+4. Invitee clicks link → `/invite/accept?token=XXX`
+5. If logged in: auto-accepts, redirects to `/dashboard`
+6. If not logged in: prompted to log in / sign up → accept on redirect back
+
+### What's Built
+
+| Item | Status | Commit |
+|------|--------|--------|
+| `client_members` migration | 🟡 In build | — |
+| `/team` API router (invite, accept, members, remove) | 🟡 In build | — |
+| `/invite/accept` portal page | 🟡 In build | — |
+| Settings → Team tab (member list + invite form) | 🟡 In build | — |
+| `/dashboard/team` owner overview page | 🟡 In build | — |
+| Sidebar "Team" nav link | 🟡 In build | — |
+
+### Owner Dashboard (`/dashboard/team`)
+
+4 stat cards across the top:
+- **Team members** — count active / pending
+- **Total leads** — scored and ready across the whole workspace
+- **Hot replies** — unread interested/hot replies needing response
+- **Active campaigns** — running now + credits remaining
+
+Below: team member list with role badges and active/pending status. Link to Settings → Team for management.
+
+### Role Guards (Phase 2 — post-launch)
+
+| Action | Owner | Admin | Member | Viewer |
+|--------|-------|-------|--------|--------|
+| Billing / credits | ✅ | ❌ | ❌ | ❌ |
+| Invite / remove members | ✅ | ✅ | ❌ | ❌ |
+| Launch campaigns | ✅ | ✅ | ✅ | ❌ |
+| Import leads | ✅ | ✅ | ✅ | ❌ |
+| View everything | ✅ | ✅ | ✅ | ✅ |
+| Delete workspace | ✅ | ❌ | ❌ | ❌ |
+
+Role enforcement at API level comes in Phase 2. Phase 1 build gives all members full access — ownership and billing remain tied to the original account holder.
+
+### Pricing Implication
+
+Team seats will be an add-on. Options:
+- +£15/mo per additional seat (Slack model)
+- Flat team tier at £149/mo for up to 5 seats
+- Decision deferred until first team customer requests it
+
+---
+
+*Section 38 written: 31 May 2026. Build in progress — background agent building all components.*

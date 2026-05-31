@@ -48,7 +48,7 @@ const PHASES = [
       { label: 'Chatbot Agent (Vida) full GA — open to all clients', done: false },
       { label: 'CRM export (HubSpot / Pipedrive)', done: false },
       { label: 'WhatsApp chatbot integration', done: false },
-      { label: 'K.I.N.D MCP server live — FIGSY usable from Claude.ai', done: false },
+      { label: 'K.I.N.D MCP server live — FIGSY usable from Claude.ai', done: true },
       { label: 'Gmail + Outlook MCP — send outreach from client\'s own domain', done: false },
       { label: 'Google Calendar MCP — FIGSY books meetings directly', done: false },
       { label: 'Slack MCP — instant lead qualification notifications', done: false },
@@ -73,7 +73,7 @@ const PHASES = [
     status: 'planned' as const,
     color: 'purple',
     milestones: [
-      { label: 'Multi-seat team accounts', done: false },
+      { label: 'Multi-seat team accounts — invite flow, roles, team dashboard', done: true },
       { label: 'Custom AI model fine-tuning per client', done: false },
       { label: 'Full CRM sync (bi-directional)', done: false },
       { label: 'Salesforce MCP — bi-directional sync (Dominate plan)', done: false },

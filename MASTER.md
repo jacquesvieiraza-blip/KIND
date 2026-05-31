@@ -57,37 +57,127 @@
 
 ## 🔴 YOUR ACTION LIST — EVERYTHING YOU NEED TO DO (1 June 2026)
 
-*Complete list. Nothing hidden in sections. Tick these off as you go.*
+*Complete list. Nothing hidden in sections. Compiled from all sessions. Tick these off as you go.*
 
-1. **Set up UptimeRobot** — go to monitor.uptimerobot.com, create a free account, add the portal URL and the API URL. Set to ping every 5 minutes and send you an SMS when either goes down. This would have caught last night's outage immediately.
-2. **Configure Railway health checks** — in Railway, open each of the three services (API, Portal, Admin), go to Settings, find Health Check, set the path to `/health`. This makes Railway restart a crashed service automatically.
-3. **Check RESEND_API_KEY is in Railway** — open Railway → KIND API → Variables. Confirm `RESEND_API_KEY` is set. Without it, all email sending (campaigns, partner onboarding, team invites) is broken.
-4. **Confirm Stripe prices are live** — open Railway → KIND API → Variables. Confirm all four Stripe price IDs are set (Starter 40 credits, Growth 100 credits, and the two flat prices). Without these, billing is broken.
-5. **Add credits to your partner account** — you are logged in as `jacques.vieiraza@gmail.com` as a partner. Add enough credits to this account so you can demo the platform to a prospect. Do this in the admin.
-6. **WhatsApp Business API** — confirm where your application is. Did you apply? Is it still pending? Forward any emails you have received about it so we can track it.
-7. **Google Workspace** — set up your professional email at get-kind.com. This should be `jacques@get-kind.com`. All client-facing communications should come from this address, not Gmail.
-8. **Company registration** — decide: UK first or South Africa first. UK is cleaner for Stripe and international clients. If you want to proceed with UK, go to Companies House online — you can register in under 30 minutes for £12.
-9. **Set UptimeRobot to send you a weekly email report** — once set up, turn on the weekly digest so you get a health summary every Monday.
-10. **SQL check** — confirm you ran `UPDATE partners SET email = 'jacques.vieiraza@gmail.com' WHERE email = 'jacques.vieiraza@icloud.com'` in Supabase. This was needed to fix your partner account login.
+### Priority 1 — Blocking launch and reliability (do these first)
+
+1. **Configure Railway health checks** — in Railway, open each of the three services (API, Portal, Admin), go to Settings, find Health Check, set the path to `/health`. This makes Railway restart a crashed service automatically instead of staying down.
+2. **Set up UptimeRobot** — go to monitor.uptimerobot.com, create a free account, add the portal URL and the API URL. Set to ping every 5 minutes and SMS you when either goes down. This would have caught last night's outage immediately.
+3. **Enable UptimeRobot weekly email report** — once set up, turn on the weekly digest so you get a health summary every Monday.
+4. **Run smoke tests with Claude** — go through the full smoke test checklist in Section 18 together. Identify exactly what fails. Do not skip this.
+5. **Check RESEND_API_KEY is in Railway** — open Railway → KIND API → Variables. Confirm `RESEND_API_KEY` is set. Without it all email sending is broken — campaigns, onboarding, invites, everything.
+6. **Confirm Stripe price IDs are in Railway** — open Railway → KIND API → Variables. Confirm all four Stripe price IDs are set. Without these billing is broken.
+7. **Add credits to your partner account** — log into admin and add enough credits to `jacques.vieiraza@gmail.com` (your partner account) to demo the platform to a prospect.
+8. **SQL check** — confirm you ran `UPDATE partners SET email = 'jacques.vieiraza@gmail.com' WHERE email = 'jacques.vieiraza@icloud.com'` in Supabase SQL editor. This fixes your partner account login.
+
+### Priority 2 — Business and legal
+
+9. **UK Companies House registration** — if not fully complete, go to companieshouse.gov.uk and finish. Takes under 30 minutes, costs £12. You need the company number before we can update the legal pages and footer.
+10. **Share UK company number** — once received, tell Claude so it can be added to the terms, privacy policy, footer, and Stripe account.
+11. **Open Wise Business account** — do this after UK registration. Wise is how partner commissions get paid. You need a verified business account for this.
+12. **Google Workspace** — set up `jacques@get-kind.com`. All client-facing emails should come from this address, not Gmail.
+
+### Priority 3 — Partner programme decisions (Claude is blocked until these are answered)
+
+13. **Confirm sandbox specification** — answer these five questions so I can build it:
+    - Should the sandbox have fake leads pre-loaded? If yes, what industry and how many?
+    - Which plan tier does the sandbox run on (Starter or Growth)?
+    - How many credits are pre-loaded?
+    - What does the sandbox onboarding experience look like for the partner?
+    - What should a prospect see when the partner demos it to them?
+
+### Priority 4 — Feature flags to activate
+
+14. **Activate Portal V2** — in Railway → Portal → Variables, set `FEATURE_PORTAL_V2=true`
+15. **Activate Campaign Intent** — set `FEATURE_CAMPAIGN_INTENT=true`
+16. **Activate ICP Builder Chat** — set `FEATURE_ICP_BUILDER=true`
+
+### Priority 5 — Accounts and integrations (each one unlocks a feature)
+
+17. **WhatsApp Business API** — confirm the status of your application. What email did you apply with? Is it still pending? Forward any replies. When approved, provide: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`.
+18. **Google Calendar** — create OAuth credentials in Google Cloud Console. Provide: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`. Unlocks calendar booking in Milla.
+19. **Voice agent (Vapi)** — create a Vapi account at vapi.ai. Provide: `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET`. Unlocks Vida voice calling.
+20. **Flutterwave (Phase 2)** — create a Flutterwave business account for African payment processing. Provide: `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_HASH`.
+
+### Priority 6 — External purchases and API keys
+
+21. **Warmup service subscription** — required for P1-2 (email warm-up). Subscribe to a warmup provider and provide the API key.
+22. **Blacklist monitoring API key** — required for P1-4. Choose a provider and provide the key.
+23. **Smartlead API key** — required for P1-5. Create a Smartlead account and provide `SMARTLEAD_API_KEY`.
+24. **Hunter.io API key** — required for P1-7 (email finder per domain). Create an account and provide `HUNTER_API_KEY`.
+25. **Apollo Basic upgrade** — required for P1-13. Upgrade your Apollo plan from free to Basic ($49/month). Provide `APOLLO_API_KEY`.
+26. **Google Maps scraping** — required for P1-14. Confirm whether Google Maps scraping is approved and legal for your use case before Claude builds it.
+
+### Priority 7 — GTM and marketing (revenue-generating actions)
+
+27. **Create G2 listing** — g2.com/products/new. Free. Adds credibility and inbound.
+28. **Create Capterra listing** — capterra.com/vendors. Free. Same.
+29. **Create Product Hunt launch** — producthunt.com. Schedule a launch day. Claude can write the copy.
+30. **LinkedIn content programme** — post weekly. Claude can write the content, you publish it. Consistency is more important than quality here.
+31. **Run K.I.N.D GTM using FIGSY** — use your own product to get your first clients. Build an ICP in the portal for your ideal client, create a campaign, and run it.
+32. **Get first 5 paying clients** — everything else is secondary to this.
 
 ---
 
 ## 🔵 CLAUDE BUILD LIST — EVERYTHING I NEED TO BUILD (1 June 2026)
 
-*Complete list. In priority order. I build these when you say go.*
+*Complete list compiled from all sessions. In priority order. I build these when you say go.*
 
-1. **Remove the TypeScript error suppressor** — `apps/portal/next.config.mjs` has a setting that hides TypeScript errors so the site deploys even when the code is broken. This is what caused the portal crash yesterday. Takes 2 minutes to remove. This is the most important thing I can do right now.
-2. **Morning type-check** — run a health check across all three apps to confirm there are no hidden TypeScript errors sitting in the code right now.
-3. **Demo sandbox auto-provisioning** — when you approve a partner in the admin, a demo client account should be created automatically, pre-loaded with fake leads and a live campaign, and the partner should see the login details in their portal. Right now nothing happens when you approve someone. This needs building properly.
-4. **Partner portal sandbox section** — the partner's portal needs a dedicated section showing: their sandbox login details, instructions for how to use it in demos, and a separate clear button saying "Want K.I.N.D for your own outreach? Sign up as a client".
-5. **Admin sandbox visibility** — the admin needs to show whether each partner has a sandbox provisioned, when it was created, and a manual provision button for cases where auto-provisioning failed.
-6. **Partner onboarding email sequence** — right now partners get one email when they are approved and then nothing. They need a follow-up sequence: welcome on day 1, sandbox instructions on day 2, first deal registration prompt on day 7, check-in on day 14.
-7. **Partner pricing page** — a single clear page in the partner portal explaining: demo sandbox is free, their own K.I.N.D subscription is standard client pricing, commission rates are 20%/25%/30% depending on tier.
-8. **Update onboarding guide and value deck** — these were built with placeholder sandbox info. They need to be updated to reflect the confirmed model.
-9. **Railway health check endpoint** — add a `/health` route to the API that returns `ok`. This is what Railway pings to confirm the service is alive. Enables your action item 2 above.
-10. **Languages discoverability** — the Milla chat supports English, French, Kiswahili, and Hausa. No client knows this. Add it to the Milla description in the portal and mention it on the website.
-11. **Verify 6 discrepancies** — six features were marked as built in earlier sessions but were never confirmed working end-to-end: personalised images, social signals, developer portal, FIGSY vertical modes, proposals with e-sign, and visitor de-anonymisation. Need to test each one.
-12. **Daily type-check** — run this at the start of every session. Catches broken code before it reaches production.
+### Critical reliability (do these before anything else)
+
+1. **Remove the TypeScript error suppressor** — there is a setting in the portal config that hides TypeScript errors so the site deploys even when the code is broken. This is what caused yesterday's portal crash. Two minutes to fix. Nothing else gets built until this is done.
+2. **Morning type-check** — run a health check across all three apps to confirm no hidden TypeScript errors are sitting in the code right now.
+3. **Daily type-check** — run `tsc --noEmit` at the start of every session. Non-negotiable. Catches broken code before it reaches production.
+4. **Railway health check endpoint** — add a `/health` route to the API that returns `ok`. Required for your Railway health check configuration.
+
+### Verification audit (these were marked done but never confirmed working)
+
+5. **P2-13 Personalised images** — route and UI exists. Does image generation actually run end to end?
+6. **P2-14 Social signals** — route exists. Does it fetch real social data?
+7. **P3-1 Developer portal** — page exists. Can an API key actually be issued end to end?
+8. **P3-2 FIGSY vertical modes** — modes are coded. Do the mode-specific prompts actually switch when selected?
+9. **P3-4 Proposals and e-sign** — route exists. Can a proposal be created and signed?
+10. **P3-7 Visitor de-anonymisation** — route exists. Does it return real company data?
+
+### Partner programme (waiting on your Priority 3 sandbox answers)
+
+11. **Demo sandbox auto-provisioning** — when you approve a partner in admin, a sandbox client account must be created automatically, pre-loaded with fake data, and the partner must see login details in their portal. Right now nothing happens on approval.
+12. **Partner portal sandbox section** — a section in the partner portal showing their sandbox login details, how to use it in demos, and a clear separate button: "Want K.I.N.D for your own outreach? Sign up as a client."
+13. **Admin sandbox visibility** — admin needs to show per partner whether a sandbox is provisioned, when it was created, and a manual provision button as fallback.
+14. **Partner onboarding email sequence** — day 1 welcome, day 2 sandbox instructions, day 7 first deal registration prompt, day 14 check-in. Currently only one approval email exists.
+15. **Partner pricing page** — one page in the partner portal: demo sandbox is free, own pipeline is standard client pricing, commission rates by tier.
+16. **Update onboarding guide and value deck** — currently contain placeholder sandbox info. Needs to reflect the confirmed model.
+
+### Portal remaining
+
+17. **Languages discoverability** — Milla supports English, French, Kiswahili, and Hausa. No client knows this. Add to Milla description in portal and mention on website.
+18. **P5 Chat history persistence** — Milla chat history currently resets. Should persist across sessions.
+19. **P6 NotificationBell theme** — notification bell needs theme update to match current design system.
+
+### Alta competitive gap queue (stealing what works from the best)
+
+20. **AgentSidePanel image fix** — agent photos in the side panel need to be corrected.
+21. **Login page redesign** — current login page doesn't match the product quality.
+22. **Reply directly from inbox** — clients currently cannot reply to a lead from the inbox. Must click out. This needs to be built in.
+23. **Real sparkline data** — KPI sparklines are currently showing mock data. Must be wired to actual database records.
+24. **Meetings booked KPI** — no meetings booked metric exists in the KPI dashboard. Needs its own column and counter.
+25. **KPI time range filters** — clients cannot filter KPIs by date range. Must be able to view last 7, 30, 90 days.
+26. **Knowledge base redesign** — current knowledge base page needs a redesign to match the rest of the portal.
+27. **Consent page redesign and token security** — consent page needs redesign and the consent tokens need to be cryptographic rather than UUID-based.
+28. **Campaign pause notification emails** — when a campaign auto-pauses, the client should receive an email explaining why.
+29. **Animated dot backgrounds** — the animated floating dot background on the onboarding page needs to be polished and consistent.
+30. **FIGSY empty states** — additional empty states needed for campaigns and inbox when no data exists yet.
+31. **Fix smoke-test API failures** — run full smoke test and fix every failure found.
+
+### Phase 0 queue (still to build)
+
+32. **P0-2 Learning Agent Level 2** — FIGSY proactively suggests ICP improvements based on reply patterns.
+33. **P0-7 Scheduled report emails** — weekly digest email to clients showing their campaign performance. Sent from existing cron.
+34. **P0-9 Client morning brief** — daily email to active clients with their top leads, replies to action, and one recommendation.
+
+### Phase 1 queue (still to build)
+
+35. **P1-15 Campaign recommendation engine** — suggests which leads to prioritise based on engagement signals and ICP match score.
 
 ---
 

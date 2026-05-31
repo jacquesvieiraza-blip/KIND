@@ -7,6 +7,7 @@
 ## TABLE OF CONTENTS
 
 0. [Daily Brief](#-section-0--daily-brief)
+0b. [Claude's Full Build Queue](#-section-0b--claudes-full-build-queue) ← THE MASTER LIST
 1. [Current Status — What's Live](#1-current-status--whats-live)
 2. [What Founder Needs To Do](#2-what-founder-needs-to-do)
 3. [What Claude Can Do](#3-what-claude-can-do)
@@ -814,6 +815,145 @@
 - **S3 ✅ DONE:** Shareable dashboards — `/share/[token]`, public, OG image, outside auth group.
 - **S4 ⏳ NEXT:** Scheduled report emails — Weekly digest from cron that already exists. 4 hours.
 - **S5 ⏳ NEXT:** "AI Revenue OS" positioning rewrite — Apex steal. Website, pricing, demo pages. 2 hours.
+
+---
+
+## 🏗️ SECTION 0b — CLAUDE'S FULL BUILD QUEUE
+*Last updated: 31 May 2026. Single source of truth for everything Claude builds. Updated after every push. Founder says "build #X" → Claude builds it, pushes, updates this list.*
+*Status: ✅ Done · 🔴 Not started · 🟡 In progress*
+
+---
+
+### ✅ DONE THIS SESSION (31 May 2026)
+| Item | Commit |
+|------|--------|
+| Agent panel width — FIGSY wrapper `w-72` → `w-64` | `f4bcf95` |
+| ICP FIGSY typewriter — greeting animates on load | `f4bcf95` |
+| Smoke test 500 — `status = 'contacted'` → `'consent_sent'` in GET /figsy/kpis | `0eacf81` |
+| Mark meeting booked button — inbox hot/interested replies | `0eacf81` |
+| Copy share link button — above stats on dashboard | `0eacf81` |
+| AskFigsyButton chat persistence — localStorage, last 20 messages | `0eacf81` |
+| NotificationBell theme — dark classes → light theme | `0eacf81` |
+| Seed demo reply debug button — removed from production inbox | `0eacf81` |
+
+---
+
+### 🔴 PHASE 0 — Build Now (no dependencies, no client data needed)
+*Founder says "build P0-X" to start any of these.*
+
+| # | Item | Source |
+|---|------|--------|
+| P0-1 | **Website copy rewrite** — "AI Revenue OS — FIGSY finds your clients, books the meetings, and reports back. 24/7. No SDR required." Zero code, immediate impact | Apex steal |
+| P0-2 | **Learning Agent Level 2** — monthly cron pulls reply data per ICP, Claude analyses which industries/titles/company sizes are converting, emails founder with refined ICP suggestion, founder approves in portal → ICP updates automatically | Section 31 |
+| P0-3 | **Knowledge base on-save preview** — after saving any knowledge section, FIGSY generates a sample sentence showing how it'll use that knowledge in outreach | Existing partial |
+| P0-4 | **Email open tracking** — pixel in emails, `opened_at` on `figsy_sent_emails`, open rate KPI on dashboard | New build |
+| P0-5 | **Notification preferences UI** — toggle which events send email notifications (reply received, low credits, campaign paused, etc.) | New build |
+| P0-6 | **Analytics empty state** — replace bare "No leads yet." with FIGSY-coached empty state + CTA | Existing partial |
+| P0-7 | **Scheduled report emails** — weekly digest to clients: leads delivered, replies, credit balance. Cron already exists | ClickUp steal |
+| P0-8 | **Email Score pre-send** — score each sequence step 0–100 before launch. Flag weak subjects, spam words, missing personalisation, weak CTA | Lavender / Saleshandy steal |
+| P0-9 | **Client morning brief** — extend founder daily brief to all active clients: leads delivered, replies, balance, next send | Apex steal |
+| P0-10 | **Co-pilot mode** — per-campaign toggle: queue outgoing emails for client approval before FIGSY sends | Alta steal |
+| P0-11 | **Auto-fire consent on lead approval** — when ICP run completes and leads are approved, consent emails fire automatically. No button | Section 19 |
+| P0-12 | **Realtime dashboard** — wire Supabase realtime to portal so lead counts + reply numbers update live, no page refresh | Section 19 |
+| P0-13 | **Self-serve CRM paste** — client pastes HubSpot/Salesforce API key in settings → FIGSY syncs automatically | Section 19 |
+| P0-14 | **Multi-model toggle per campaign** — Haiku (volume/speed) vs Sonnet (quality/complex ICP) | ClickUp steal |
+| P0-15 | **Template library** — 5–9 pre-built FIGSY sequence templates: email only, LinkedIn-first, re-engagement, event-driven, competitor switch | Alta / Clay steal |
+
+---
+
+### 🔴 PHASE 1 — First Clients (0–5 paying clients)
+
+| # | Item | Source |
+|---|------|--------|
+| P1-1 | **Deliverability dashboard** — SPF/DKIM/DMARC status, bounce rate, spam score per sending domain | Instantly / Smartlead steal |
+| P1-2 | **Email warmup infrastructure** — Priority #1 steal. Gradually warm new sending domains before full sends. Every major competitor has this | Lemlist / Instantly steal |
+| P1-3 | **Adaptive send volume** — auto-reduce daily sends when domain health dips, increase as it recovers | Woodpecker steal |
+| P1-4 | **Blacklist monitoring** — alert when sending domain appears on spam blacklists | QuickMail steal |
+| P1-5 | **Inbox placement testing pre-launch** — test if email lands in inbox vs promotions vs spam before campaign fires | Smartlead SmartDelivery steal |
+| P1-6 | **Expanded AI reply categories** — wrong person, unsubscribe, auto-reply, OOO as distinct categories (currently grouped as cold) | Smartlead / Instantly steal |
+| P1-7 | **Waterfall email verification** — Apollo → Hunter → fallback before sending, cut bounce rate | Lemlist steal |
+| P1-8 | **Lead Catcher** — auto-surface positive replies to a "warm leads" tab on dashboard, no manual sorting | Mailshake steal |
+| P1-9 | **Deal risk scoring** — "this client account hasn't had activity in 14 days — flag as at-risk" in admin | Outreach steal |
+| P1-10 | **White-label reporting export** — PDF performance report per client they can share with investors | Reply.io steal |
+| P1-11 | **Conversational FIGSY onboarding** — replace form-based ICP builder with 5-question FIGSY chat. Client describes target in plain language, FIGSY builds ICP, shows first leads — all in chat before leaving | Section 19 |
+| P1-12 | **AI research per lead** — before writing email, FIGSY reads lead's LinkedIn/website and writes one personalised opening sentence per prospect | Clay steal |
+| P1-13 | **Technographic targeting in ICP** — "target companies using HubSpot but not an outbound tool" — add tech stack filter to ICP builder | Demandbase / Apollo steal |
+| P1-14 | **Google Maps scraping for African prospects** — build local SA/NG/KE prospect lists from Google Maps for industries thin in Apollo | PhantomBuster steal |
+| P1-15 | **"Suggest Campaigns" button** — AI analyses lead pool + past performance and suggests next campaign target | Alta steal |
+| P1-16 | **Activate Portal V2** — already built, dormant. Set `FEATURE_PORTAL_V2=true` in Railway. SidebarV2, Mission Control 3-column dashboard | Existing |
+
+---
+
+### 🔴 PHASE 2 — 10+ Clients
+
+| # | Item | Source |
+|---|------|--------|
+| P2-1 | **3-type memory model** — split `figsy_memory` into episodic (recent replies) + long-term (winning angles, company context) + preference (tone/format per ICP). Schema migration + new generation logic | ClickUp Brain steal |
+| P2-2 | **A/B subject line testing** — 2 variants to first 20% of leads, pick winner by 48h open rate, send winner to remaining 80% | Section 31 Level 3 |
+| P2-3 | **A/Z multi-variant testing** — extend to 3–5 variants simultaneously | Saleshandy steal |
+| P2-4 | **Conditional sequence branching (full)** — if reply = warm → branch to different follow-up sequence. Backend schema exists; need full UI + cron | Lemlist / Outreach steal |
+| P2-5 | **Waterfall enrichment** — Apollo → PDL → Hunter → Clearbit. Fill missing fields on every lead. Needs PDL + Hunter API keys | Clay steal |
+| P2-6 | **Intent signal triggers** — job change / funding round / tech stack change → auto-add to FIGSY campaign | Clay / Apollo steal |
+| P2-7 | **Configurable agent triggers UI** — "Run FIGSY at 9am Mon-Fri" or "on new lead added". Replaces hardcoded cron | ClickUp steal |
+| P2-8 | **Kanban deal view** — visual pipeline for K.I.N.D's own sales + client campaign stages | ClickUp steal |
+| P2-9 | **File approval workflow** — sequence copy queued for client to approve in portal before FIGSY sends | ClickUp steal |
+| P2-10 | **ICP auto-refinement** — after 50+ leads: AI analyses reply data → suggests ICP improvements → client approves in portal | Section 27 |
+| P2-11 | **Network benchmarks** — "Your industry averages 7.1% reply rate. You're at 11.4%." | Section 28 |
+| P2-12 | **White-label / agency mode** — partner tier pricing, partner-facing onboarding kit, revenue-share model | Section 34 |
+| P2-13 | **Personalised images per lead** — prospect name/company logo injected into image in email. 5–15% open rate lift | Lemlist steal |
+| P2-14 | **Social signals audience source** — prospects who engaged with relevant LinkedIn posts, filter by engagement type + time window | Alta steal |
+| P2-15 | **ICP builder with live name preview** — as filters applied, real contact names + job titles populate (currently shows count only) | Alta steal |
+
+---
+
+### 🔴 PHASE 3 — 20+ Clients / Year 2
+
+| # | Item | Source |
+|---|------|--------|
+| P3-1 | **MCP server** — K.I.N.D as infrastructure. API keys table, developer portal. "Twilio of AI-powered B2B outreach." Lemlist already has theirs | Section 34 |
+| P3-2 | **FIGSY Vertical Modes** — pre-trained ICPs, sequence templates, reply handlers per vertical (Property, Fintech, Professional Services). Premium pricing tier | Section 34 |
+| P3-3 | **In-portal client messaging** — direct message thread between client and your team in portal | ClickUp steal |
+| P3-4 | **Proposal + e-sign** — generate proposal from ICP + pricing → DocuSign integration | Section 27 |
+| P3-5 | **Revenue forecasting** — AI-predicted MRR for next 90 days | Clari / Gong steal |
+| P3-6 | **Churn risk scoring** — Clari-style model: flag K.I.N.D clients likely to churn in 30 days | Section 33 |
+| P3-7 | **Website visitor de-anonymisation** — who visited kindai.co.za, company + individual → trigger FIGSY outreach | Apollo Pocus steal |
+| P3-8 | **REEVE agent** — AE: books meetings to Calendly automatically, joins discovery calls as notetaker, drafts proposals | Section 34 |
+| P3-9 | **LENA agent** — Customer Success: monitors health, flags at-risk, handles check-ins | Section 34 |
+| P3-10 | **OTTO agent** — CRO: pipeline health, revenue forecasting, anomaly alerts | Section 34 |
+| P3-11 | **Mobile app** — iOS + Android | Section 27 |
+| P3-12 | **500+ FIGSY skill library** — modular skills per vertical | Section 27 |
+| P3-13 | **African data moat** — structured queryable dataset of every lead, score, ICP, reply, outcome across all clients. Becomes "African Apollo" | Section 34 |
+
+---
+
+### 📋 FOUNDER ACTION LIST (not mine to build — yours to action)
+
+| # | Item | Unlocks |
+|---|------|---------|
+| F1 | **Stripe price IDs → Railway** | Milla + Vida go live immediately |
+| F2 | **Google Workspace + SPF/DKIM/DMARC** | Deliverability, domain reputation |
+| F3 | **Confirm Calendly link is live** — `https://calendly.com/jacques-vieiraza/30min` | REEVE booking |
+| F4 | **Apollo upgrade to Basic ($49/mo)** | 4 competitor ICPs ready to run (~200 warm prospects) |
+| F5 | **HubSpot account + API key** | CRM sync for clients |
+| F6 | **UK company registration** (Companies House £50) | Investor conversations, international clients |
+| F7 | **MacBook from Currys** | Dev on personal hardware |
+| F8 | **Wise business account** | After UK registration |
+| F9 | **RESEND_API_KEY confirm in Railway** | Email sending |
+| F10 | **ADMIN_SECRET_KEY in Railway** | Cron jobs |
+| F11 | **FIGSY_REPLY_TO=replies@get-kind.com in Railway** | Inbound reply handling |
+| F12 | **Resend inbound MX record** | Reply webhook |
+
+---
+
+### 🚫 WILL NOT BUILD (ever)
+| Item | Why |
+|------|-----|
+| LinkedIn automation | ToS risk — permanent account ban |
+| Self-hosted deployment | Kills SaaS model |
+| Multi-year contracts | Locks in bad clients |
+| Collaborative docs / whiteboards | Not our domain |
+| Internal team chat | Use Slack |
+| Custom emoji | Vanity |
 
 ---
 

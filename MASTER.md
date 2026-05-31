@@ -67,10 +67,10 @@
 - 8 UX/layout steal items defined (P0-16 through P0-23) and added to Phase 0 build queue
 - Section 37 added: Monday.com AI Competitive Audit & UX Steal List
 - Full consolidated build list presented to founder (Phase 0-3 + founder actions)
-- **Layout overhaul pushed — commit `c5b38e5`:**
-  - `layout.tsx` — gradient + 27 dots replaced with clean `#FAFAFE` background
+- **Layout overhaul pushed — commits `c5b38e5`, `15aa43f`:**
+  - `layout.tsx` — gradient + 27 dots replaced with clean `#FAFAFE` background. AgentColumn moved to RIGHT of content.
   - `Sidebar.tsx` — full light theme: `#F5F3FF` bg, dark text, soft active tint, white agent card, 220px (was 240px)
-  - `AgentColumn.tsx` — collapsible: Collapse button above panel, avatar strip when collapsed, state in localStorage
+  - `AgentColumn.tsx` — collapsible: Collapse button above panel, avatar strip when collapsed, state in localStorage. Returns null on home page (FigsyConversation handles FIGSY there — no double-FIGSY).
 
 **Previously fixed (31 May, earlier):**
 - `AgentColumn.tsx:166` — FIGSY wrapper `lg:w-72` → `lg:w-64`. All agent panels now same width.

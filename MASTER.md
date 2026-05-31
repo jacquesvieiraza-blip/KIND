@@ -55,7 +55,7 @@
 
 ---
 
-### 📅 SESSION — 31 May 2026 — Batch 2/3/4 build complete
+### 📅 SESSION — 31 May 2026 — Full session: Batch 2/3/4/5 + website restore
 
 **Session rules (non-negotiable):**
 - No guessing — every finding has a file path + line number. Read it first if not certain.
@@ -99,6 +99,7 @@
 - P2-6 ✅ — Intent signal triggers: `POST /internal/figsy/check-intent-signals` (job_change/funding/company_growth), daily 11:00 UTC cron, intent signal toggle in campaign Advanced Settings
 - P3-2 ✅ — FIGSY vertical modes: 6 industry templates (Fintech/Property/Healthtech/SaaS/Logistics/E-commerce) as pre-filled ICP form buttons (`apps/portal/src/app/(dashboard)/dashboard/leads/icp/page.tsx`)
 - P3-13 ✅ — African data moat: SQL migration + aggregation cron (weekly Sun 02:00 UTC) + admin dashboard at `/data-moat` (`apps/admin/src/app/data-moat/page.tsx`)
+- Website ✅ `bd8ff48` — Restored original site (canvas dots, typewriter, Company nav) + new AI agent images + updated names (The Closer/Brain/Connector) throughout
 
 **INFRA — DNS issues to fix:**
 - www.get-kind.com ✅ on Railway (h7wyj4uy.up.railway.app) — SSL provisioning, may need Railway plan upgrade for custom domain

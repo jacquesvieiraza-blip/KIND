@@ -75,6 +75,8 @@ const PHASES = [
       { label: 'In-portal client messaging — client ↔ admin message thread, P3-3', done: true },
       { label: 'Waterfall enrichment — PDL → Hunter → Clearbit fills missing lead fields', done: true },
       { label: 'Intent signal triggers — job_change/funding/company_growth auto-enroll cron', done: true },
+      { label: 'FIGSY vertical modes — 6 pre-filled ICP templates (Fintech/Property/Health/SaaS/Logistics/E-com)', done: true },
+      { label: 'African data moat — anonymised aggregate dataset, admin dashboard, weekly cron', done: true },
       { label: 'Paystack end-to-end smoke test verified', done: false },
     ],
     ops: [

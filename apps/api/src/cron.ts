@@ -76,6 +76,9 @@ export function startCrons(): void {
   // P2-6: Daily 11:00 UTC — check intent signals (job change / funding / growth) and auto-enroll
   cron.schedule('0 11 * * *', () => callInternal('/figsy/check-intent-signals'), { timezone: 'UTC' })
 
+  // P3-13: Weekly Sunday 02:00 UTC — aggregate anonymised lead data into African data moat
+  cron.schedule('0 2 * * 0', () => callInternal('/data-moat/aggregate'), { timezone: 'UTC' })
+
   // Daily 05:05 UTC — founder morning brief (07:05 SAST)
   cron.schedule('5 5 * * *', () => callInternal('/founder-brief'), { timezone: 'UTC' })
 
@@ -84,5 +87,5 @@ export function startCrons(): void {
   cron.schedule('0 10 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' }) // 12:00 SAST
   cron.schedule('0 17 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' }) // 19:00 SAST
 
-  console.log('[cron] 22 jobs scheduled')
+  console.log('[cron] 23 jobs scheduled')
 }

@@ -147,6 +147,106 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
   )
 }
 
+// P3-2: FIGSY Vertical Modes — pre-trained ICP templates per industry
+const VERTICAL_TEMPLATES: Array<{
+  id: string
+  label: string
+  emoji: string
+  description: string
+  data: Partial<ICPFormData>
+}> = [
+  {
+    id: 'fintech',
+    label: 'Fintech',
+    emoji: '💳',
+    description: 'CFOs, CTOs, and Heads of Product at payment and lending companies',
+    data: {
+      name: 'Fintech Decision Makers',
+      industries: ['Fintech', 'Banking', 'Insurance'],
+      seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
+      company_sizes: ['11–50', '51–200', '201–500'],
+      countries: ['South Africa', 'Nigeria', 'Kenya', 'Ghana'],
+      keywords: ['payments', 'lending', 'fintech', 'digital banking', 'neo-bank'],
+      intent_signals: ['recently_funded', 'hiring_sdrs', 'new_executive'],
+    },
+  },
+  {
+    id: 'property',
+    label: 'Property',
+    emoji: '🏢',
+    description: 'MDs and Sales Directors at property developers and estate agencies',
+    data: {
+      name: 'Property Developers & Agencies',
+      industries: ['Real Estate'],
+      seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager'],
+      company_sizes: ['11–50', '51–200', '201–500'],
+      countries: ['South Africa', 'Zimbabwe', 'Botswana'],
+      keywords: ['property developer', 'real estate', 'residential', 'commercial property', 'estate agent'],
+      intent_signals: ['hiring_sdrs', 'headcount_growth'],
+    },
+  },
+  {
+    id: 'healthtech',
+    label: 'Healthtech',
+    emoji: '🏥',
+    description: 'Founders and CMOs at digital health platforms and medical software companies',
+    data: {
+      name: 'Healthtech Leaders',
+      industries: ['Healthtech'],
+      seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
+      company_sizes: ['1–10', '11–50', '51–200'],
+      countries: ['South Africa', 'Kenya', 'Nigeria'],
+      keywords: ['digital health', 'telemedicine', 'health tech', 'medical software', 'patient management'],
+      intent_signals: ['recently_funded', 'new_executive'],
+    },
+  },
+  {
+    id: 'saas',
+    label: 'SaaS',
+    emoji: '☁️',
+    description: 'VP Sales and Growth leads at B2B software companies',
+    data: {
+      name: 'B2B SaaS Growth Leaders',
+      industries: ['SaaS'],
+      seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager'],
+      company_sizes: ['11–50', '51–200', '201–500'],
+      countries: ['South Africa', 'Nigeria', 'Kenya', 'Egypt'],
+      keywords: ['SaaS', 'B2B software', 'cloud platform', 'subscription software', 'API'],
+      intent_signals: ['recently_funded', 'hiring_sdrs', 'headcount_growth', 'new_executive'],
+    },
+  },
+  {
+    id: 'logistics',
+    label: 'Logistics',
+    emoji: '🚚',
+    description: 'COOs and Supply Chain Directors at logistics and freight companies',
+    data: {
+      name: 'Logistics & Supply Chain',
+      industries: ['Logistics'],
+      seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
+      company_sizes: ['51–200', '201–500', '501–1,000'],
+      countries: ['South Africa', 'Nigeria', 'Kenya', 'Ethiopia'],
+      keywords: ['logistics', 'freight', 'supply chain', 'last mile', 'warehousing', 'fleet management'],
+      intent_signals: ['headcount_growth', 'new_executive'],
+    },
+  },
+  {
+    id: 'ecommerce',
+    label: 'E-commerce',
+    emoji: '🛒',
+    description: 'Founders and Heads of Growth at online retail and marketplace businesses',
+    data: {
+      name: 'E-commerce Growth Leaders',
+      industries: ['E-commerce', 'Retail'],
+      seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager'],
+      company_sizes: ['11–50', '51–200', '201–500'],
+      countries: ['South Africa', 'Nigeria', 'Kenya', 'Egypt', 'Ghana'],
+      keywords: ['e-commerce', 'online retail', 'marketplace', 'D2C', 'Shopify'],
+      intent_signals: ['recently_funded', 'hiring_sdrs', 'headcount_growth'],
+    },
+  },
+]
+
 const INDUSTRIES = [
   'Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture',
   'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail',
@@ -767,6 +867,27 @@ export default function ICPPage() {
                 {aiSuggesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                 {aiSuggesting ? 'Thinking…' : 'Suggest ICP with AI'}
               </button>
+            </div>
+
+            {/* P3-2: FIGSY Vertical Mode picker */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Start with a vertical template</p>
+              <div className="flex flex-wrap gap-2">
+                {VERTICAL_TEMPLATES.map(vt => (
+                  <button
+                    key={vt.id}
+                    type="button"
+                    title={vt.description}
+                    onClick={() => {
+                      setForm(f => ({ ...f, ...vt.data }))
+                      setAbmMode(false)
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-purple-200 bg-white text-[#7C3AED] hover:bg-purple-50 hover:border-[#7C3AED] transition-colors"
+                  >
+                    <span>{vt.emoji}</span>{vt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* ABM / Standard toggle */}

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, FileText, Map, Megaphone,
   Rocket, MonitorPlay, TrendingUp, GitMerge, BookOpen, Inbox,
   ShieldCheck, BarChart2, DollarSign, Activity, FlaskConical,
-  UserSquare2, Layers, ChevronRight, MessageCircle,
+  UserSquare2, Layers, ChevronRight, MessageCircle, Database,
 } from 'lucide-react'
 
 const SECTIONS = [
@@ -31,9 +31,10 @@ const SECTIONS = [
   {
     label: 'Product',
     items: [
-      { href: '/roadmap',   label: 'Roadmap',     icon: Map },
-      { href: '/health',    label: 'Health',      icon: Activity },
-      { href: '/smoketest', label: 'Smoke Test',  icon: FlaskConical },
+      { href: '/roadmap',    label: 'Roadmap',     icon: Map },
+      { href: '/health',     label: 'Health',      icon: Activity },
+      { href: '/data-moat',  label: 'Data Moat',   icon: Database },
+      { href: '/smoketest',  label: 'Smoke Test',  icon: FlaskConical },
     ],
   },
   {

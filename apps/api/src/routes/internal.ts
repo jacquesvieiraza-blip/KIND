@@ -1966,3 +1966,91 @@ internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Re
     res.status(500).json({ success: false, error: 'Intent signal check failed' })
   }
 })
+
+// P3-13: African data moat — aggregate anonymised lead outcomes into adm table
+// Strips PII, stores country/industry/seniority/score/reply patterns
+internalRouter.post('/data-moat/aggregate', async (_req: Request, res: Response) => {
+  try {
+    // Pull leads updated in the last 7 days with enough signal to be useful
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: leads, error } = await db.from('leads')
+      .select('country, industry, seniority, company_size, job_title, score, status, icp_id')
+      .gte('updated_at', sevenDaysAgo)
+      .not('country', 'is', null)
+      .gte('score', 40)
+      .limit(500)
+
+    if (error || !leads?.length) {
+      res.json({ success: true, data: { inserted: 0 } }); return
+    }
+
+    const rows = leads.map(lead => ({
+      country:    lead.country,
+      industry:   lead.industry,
+      seniority:  lead.seniority,
+      company_size: lead.company_size,
+      job_title:  lead.job_title,
+      score:      lead.score,
+      replied:    ['replied_positive', 'replied_neutral', 'replied_negative', 'meeting_booked'].includes(lead.status ?? ''),
+      reply_type: lead.status?.startsWith('replied') ? lead.status.replace('replied_', '') : null,
+      opened:     ['opened', 'replied_positive', 'replied_neutral', 'meeting_booked'].includes(lead.status ?? ''),
+      meeting_booked: lead.status === 'meeting_booked',
+      aggregated_at: new Date().toISOString(),
+    }))
+
+    const { error: insertErr } = await db.from('african_data_moat').insert(rows)
+    if (insertErr) throw insertErr
+
+    res.json({ success: true, data: { inserted: rows.length } })
+  } catch (err) {
+    console.error('[data-moat/aggregate]', err)
+    res.status(500).json({ success: false, error: 'Aggregation failed' })
+  }
+})
+
+// P3-13: Data moat stats — returns aggregate analytics for admin dashboard
+internalRouter.get('/data-moat/stats', async (_req: Request, res: Response) => {
+  try {
+    const { count: total } = await db.from('african_data_moat').select('*', { count: 'exact', head: true })
+
+    const { data: byCountry } = await db.from('african_data_moat')
+      .select('country')
+      .then(r => ({
+        data: (r.data ?? []).reduce<Record<string, number>>((acc, row) => {
+          acc[row.country] = (acc[row.country] ?? 0) + 1; return acc
+        }, {})
+      }))
+
+    const { data: byIndustry } = await db.from('african_data_moat')
+      .select('industry')
+      .not('industry', 'is', null)
+      .then(r => ({
+        data: (r.data ?? []).reduce<Record<string, number>>((acc, row) => {
+          const k = row.industry ?? 'Unknown'
+          acc[k] = (acc[k] ?? 0) + 1; return acc
+        }, {})
+      }))
+
+    const { data: replyStats } = await db.from('african_data_moat')
+      .select('replied, opened, meeting_booked')
+    const replied = replyStats?.filter(r => r.replied).length ?? 0
+    const opened  = replyStats?.filter(r => r.opened).length ?? 0
+    const meetings = replyStats?.filter(r => r.meeting_booked).length ?? 0
+    const n = replyStats?.length ?? 1
+
+    res.json({
+      success: true,
+      data: {
+        total_records:   total ?? 0,
+        by_country:      byCountry ?? {},
+        by_industry:     byIndustry ?? {},
+        reply_rate:      n > 0 ? Math.round((replied / n) * 100) / 100 : 0,
+        open_rate:       n > 0 ? Math.round((opened / n) * 100) / 100 : 0,
+        meeting_rate:    n > 0 ? Math.round((meetings / n) * 100) / 100 : 0,
+      }
+    })
+  } catch (err) {
+    console.error('[data-moat/stats]', err)
+    res.status(500).json({ success: false, error: 'Stats query failed' })
+  }
+})

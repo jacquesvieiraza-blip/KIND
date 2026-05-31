@@ -99,7 +99,7 @@ const PRODUCTS: ProductRoadmap[] = [
       { label: 'Kanban deal view — visual pipeline', status: 'live', new: true },
       { label: 'A/Z multi-variant testing (3–5 variants)', status: 'planned', eta: 'Q3 2026' },
       { label: 'Personalised images per lead — name/logo in email', status: 'planned', eta: 'Q4 2026' },
-      { label: 'FIGSY Vertical Modes — industry-trained ICPs (Fintech, Health, Property)', status: 'planned', eta: 'Q4 2026' },
+      { label: 'FIGSY Vertical Modes — industry-trained ICPs (Fintech, Health, Property, SaaS, Logistics, E-commerce)', status: 'live', new: true },
       { label: 'FIGSY Version B — live AI conversation in agent panel (real-time Claude responses)', status: 'planned', eta: 'Q3 2026' },
       { label: 'LinkedIn outreach channel', status: 'planned', eta: 'Q3 2026' },
       { label: 'Voice outreach via Vapi + Twilio', status: 'planned', eta: 'Q4 2026' },
@@ -170,7 +170,7 @@ const PRODUCTS: ProductRoadmap[] = [
       { label: 'White-label / agency mode — run K.I.N.D under your own brand', status: 'live', new: true },
       { label: 'File approval workflow — sequence copy queued for client sign-off', status: 'planned', eta: 'Q4 2026' },
       { label: 'Cross-agent analytics (FIGSY + Vida combined funnel)', status: 'planned', eta: 'Q4 2026' },
-      { label: 'African data moat — structured pan-African B2B dataset', status: 'planned', eta: '2027' },
+      { label: 'African data moat — structured pan-African B2B dataset (aggregated weekly)', status: 'live', new: true },
     ],
   },
   {

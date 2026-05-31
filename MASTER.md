@@ -97,20 +97,31 @@
 - Messages nav ✅ — Added to portal sidebar (`/dashboard/messages`) and admin sidebar (`/messages`)
 - P2-5 ✅ — Waterfall enrichment: `apps/api/src/lib/enrichment.ts` (PDL → Hunter → Clearbit), `POST /leads/:id/waterfall-enrich` + "Fill data" button in portal leads table
 - P2-6 ✅ — Intent signal triggers: `POST /internal/figsy/check-intent-signals` (job_change/funding/company_growth), daily 11:00 UTC cron, intent signal toggle in campaign Advanced Settings
+- P3-2 ✅ — FIGSY vertical modes: 6 industry templates (Fintech/Property/Healthtech/SaaS/Logistics/E-commerce) as pre-filled ICP form buttons (`apps/portal/src/app/(dashboard)/dashboard/leads/icp/page.tsx`)
+- P3-13 ✅ — African data moat: SQL migration + aggregation cron (weekly Sun 02:00 UTC) + admin dashboard at `/data-moat` (`apps/admin/src/app/data-moat/page.tsx`)
 
 **INFRA — DNS issues to fix:**
 - www.get-kind.com ✅ on Railway (h7wyj4uy.up.railway.app) — SSL provisioning, may need Railway plan upgrade for custom domain
 - app.get-kind.com (portal) — DNS issue noted, needs fixing when Railway plan allows
 - BOTH need DNS verification once Railway custom domain limit resolved
 
-**Next up (Batch 5):**
-- P3-2 FIGSY vertical modes — pre-trained ICPs per industry (Fintech, Property, Health)
-- P3-13 African data moat — structured dataset, "African Apollo"
+**Batch 5 complete. All approved batches shipped.**
 
-**Full build queue approved by founder — build in priority order:**
-- Phase 2 (remaining): P2-3 A/Z multi-variant, P2-9 file approval, P2-13 personalised images, P2-14 social signals
-- Phase 3 (remaining): P3-2 FIGSY verticals, P3-13 African data moat
+**Full build queue status:**
+- Phase 2: ✅ P2-1 through P2-12, P2-15 all live. Remaining: P2-3 A/Z multi-variant, P2-9 file approval, P2-13 personalised images, P2-14 social signals
+- Phase 3: ✅ P3-2, P3-3, P3-5, P3-13 live. Remaining: P3-1 MCP as product, P3-4 proposal/e-sign, P3-6 churn risk, P3-7 visitor de-anon
 - **Every build = MASTER.md + portal roadmap + admin roadmap updated in same commit**
+
+**FOUNDER ACTION NEEDED:**
+1. DNS: Add BOTH domains to Railway custom domain (need Railway plan upgrade — hit custom domain limit)
+   - www.get-kind.com → h7wyj4uy.up.railway.app (website — already set in GoDaddy, waiting on Railway SSL)
+   - app.get-kind.com (portal) — DNS needs updating once Railway plan allows
+2. API keys to add to Railway environment:
+   - PDL_API_KEY — activates waterfall enrichment (P2-5)
+   - HUNTER_API_KEY — email finder in waterfall (P2-5)
+   - CLEARBIT_API_KEY — company enrichment (P2-5)
+   - APOLLO_API_KEY ($49/mo plan) — lead search
+   - HUBSPOT_API_KEY — CRM sync
 
 ---
 
@@ -1095,7 +1106,7 @@ Every item below was cross-referenced against the actual file before being marke
 | P3-10 | **OTTO agent** — CRO: pipeline health, revenue forecasting |
 | P3-11 | **Mobile app** — iOS + Android |
 | P3-12 | **500+ FIGSY skill library** — modular verticals |
-| P3-13 | **African data moat** — structured dataset → becomes "African Apollo" |
+| P3-13 | **African data moat** — structured dataset → becomes "African Apollo" | ✅ Live | `supabase/migrations/20260531_african_data_moat.sql` + `POST /internal/data-moat/aggregate` + `GET /internal/data-moat/stats` + admin `/data-moat` page. Weekly Sunday 02:00 UTC cron aggregates anonymised lead outcomes |
 
 ---
 

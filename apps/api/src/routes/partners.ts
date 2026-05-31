@@ -136,7 +136,7 @@ partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) =
     const { data: partner, error } = await db
       .from('partners')
       .select('*')
-      .eq('email', userEmail)
+      .ilike('email', userEmail)
       .single()
 
     if (error || !partner) { res.status(404).json({ error: 'Not a partner account' }); return }
@@ -584,7 +584,7 @@ partnersRouter.post('/deals', requireAuth, async (req: AuthRequest, res: Respons
     const userEmail = userResp?.user?.email
     if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { data: partner } = await db.from('partners').select('id').eq('email', userEmail).single()
+    const { data: partner } = await db.from('partners').select('id').ilike('email', userEmail).single()
     if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
 
     const { company_name, contact_name, contact_email, company_size, industry, country, estimated_value, notes } = req.body
@@ -621,7 +621,7 @@ partnersRouter.post('/demo-sandbox', requireAuth, async (req: AuthRequest, res: 
     const userEmail = userResp?.user?.email
     if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { data: partner } = await db.from('partners').select('id, demo_env_id').eq('email', userEmail).single()
+    const { data: partner } = await db.from('partners').select('id, demo_env_id').ilike('email', userEmail).single()
     if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
 
     if (partner.demo_env_id) {

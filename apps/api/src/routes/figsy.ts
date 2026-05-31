@@ -405,6 +405,9 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
       review_required:  z.boolean().optional(),
       model_preference: z.enum(['haiku', 'sonnet']).optional(),
       ab_subject_b:          z.string().max(200).nullable().optional(),
+      ab_subject_c:          z.string().max(200).nullable().optional(),
+      ab_subject_d:          z.string().max(200).nullable().optional(),
+      ab_subject_e:          z.string().max(200).nullable().optional(),
       steps:                 z.array(z.object({ step: z.number(), on_reply: z.enum(['stop','skip_next','continue']) })).optional(),
       send_days:             z.array(z.string()).optional(),
       send_hour_utc:         z.number().int().min(0).max(23).optional(),
@@ -425,6 +428,9 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
     if (body.daily_send_limit !== undefined) settingsUpdate.daily_send_limit = body.daily_send_limit
     if (body.review_required !== undefined) settingsUpdate.review_required = body.review_required
     if (body.ab_subject_b !== undefined)         settingsUpdate.ab_subject_b = body.ab_subject_b
+    if (body.ab_subject_c !== undefined)         settingsUpdate.ab_subject_c = body.ab_subject_c
+    if (body.ab_subject_d !== undefined)         settingsUpdate.ab_subject_d = body.ab_subject_d
+    if (body.ab_subject_e !== undefined)         settingsUpdate.ab_subject_e = body.ab_subject_e
     if (body.steps !== undefined)                settingsUpdate.steps = body.steps
     if (body.send_days !== undefined)            settingsUpdate.send_days = body.send_days
     if (body.send_hour_utc !== undefined)        settingsUpdate.send_hour_utc = body.send_hour_utc
@@ -1259,6 +1265,79 @@ figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) =
     console.error(err)
     res.status(500).json({ success: false, error: 'Failed to get signal preview' })
   }
+})
+
+// ── P2-9: PENDING DRAFTS ──────────────────────────────────────────────────────
+// GET /figsy/campaigns/:id/pending-drafts — returns draft emails awaiting approval
+figsyRouter.get('/campaigns/:id/pending-drafts', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    const { data, error } = await db.from('figsy_sent_emails')
+      .select('id, lead_id, subject, body, created_at, leads(first_name, last_name, company)')
+      .eq('campaign_id', req.params.id)
+      .eq('status', 'draft')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    const result = (data ?? []).map((row: any) => {
+      const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads
+      return {
+        id:         row.id,
+        lead_id:    row.lead_id,
+        subject:    row.subject,
+        body:       row.body,
+        created_at: row.created_at,
+        first_name: lead?.first_name ?? null,
+        last_name:  lead?.last_name ?? null,
+        company:    lead?.company ?? null,
+      }
+    })
+    res.json({ success: true, data: result })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch pending drafts' }) }
+})
+
+// POST /figsy/emails/:id/approve — approve a draft email for sending
+figsyRouter.post('/emails/:id/approve', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // Verify the email belongs to this client
+    const { data: email } = await db.from('figsy_sent_emails')
+      .select('id, campaign_id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!email) { res.status(404).json({ success: false, error: 'Email not found' }); return }
+    // Verify campaign belongs to client
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id').eq('id', email.campaign_id).eq('client_id', clientId).maybeSingle()
+    if (!campaign) { res.status(403).json({ success: false, error: 'Forbidden' }); return }
+    const { error } = await db.from('figsy_sent_emails')
+      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to approve email' }) }
+})
+
+// DELETE /figsy/emails/:id/draft — reject a draft email
+figsyRouter.delete('/emails/:id/draft', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data: email } = await db.from('figsy_sent_emails')
+      .select('id, campaign_id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!email) { res.status(404).json({ success: false, error: 'Email not found' }); return }
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id').eq('id', email.campaign_id).eq('client_id', clientId).maybeSingle()
+    if (!campaign) { res.status(403).json({ success: false, error: 'Forbidden' }); return }
+    const rejection_reason = (req.body as { reason?: string })?.reason ?? null
+    const { error } = await db.from('figsy_sent_emails')
+      .update({ status: 'rejected', rejection_reason })
+      .eq('id', req.params.id)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reject draft' }) }
 })
 
 // ── FIGSY CHAT — conversational AI assistant for lead gen and pipeline advice ──

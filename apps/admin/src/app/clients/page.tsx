@@ -4,6 +4,13 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { Users, ShieldCheck, AlertTriangle } from 'lucide-react'
 
+interface ChurnRiskEntry {
+  client_id: string
+  company_name: string
+  churn_score: number
+  reasons: string[]
+}
+
 interface Subscription { status: string; product: string }
 interface Client {
   id: string
@@ -65,6 +72,23 @@ function riskLabel(health: 'green' | 'amber' | 'red', client: {
     return 'Low credits'
   }
   return ''
+}
+
+async function getChurnRisk(): Promise<ChurnRiskEntry[]> {
+  const adminKey = process.env.ADMIN_SECRET_KEY
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+  if (!adminKey) return []
+  try {
+    const res = await fetch(`${apiBase}/admin/churn-risk`, {
+      headers: { 'x-admin-key': adminKey },
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    const json = await res.json() as { success: boolean; data?: { at_risk: ChurnRiskEntry[] } }
+    return json.data?.at_risk ?? []
+  } catch {
+    return []
+  }
 }
 
 async function getEnrichedClients(): Promise<EnrichedClient[]> {
@@ -187,7 +211,14 @@ export default async function ClientsPage({
   searchParams: { filter?: string }
 }) {
   const atRiskOnly = searchParams.filter === 'atrisk'
-  const allClients = await getEnrichedClients()
+  const [allClients, churnRiskData] = await Promise.all([
+    getEnrichedClients(),
+    getChurnRisk(),
+  ])
+  const churnRiskMap: Record<string, ChurnRiskEntry> = {}
+  for (const entry of churnRiskData) {
+    churnRiskMap[entry.client_id] = entry
+  }
   const clients = atRiskOnly ? allClients.filter(c => c.health === 'red') : allClients
 
   const counts = {
@@ -269,11 +300,25 @@ export default async function ClientsPage({
                   figsy_sent_7d: client.figsy_sent_7d,
                   last_login_days: client.last_login_days,
                 })
+                const churnEntry = churnRiskMap[client.id]
+                const churnScore = churnEntry?.churn_score ?? 0
 
                 return (
                   <tr key={client.id} className={`hover:bg-purple-50/30 transition-colors ${client.health === 'red' ? 'bg-red-50/20' : ''}`}>
                     <td className="px-5 py-3">
-                      <p className="font-medium text-gray-900">{client.company_name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-gray-900">{client.company_name}</p>
+                        {churnScore >= 75 && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200" title={`Churn risk: ${churnScore}/100 — ${churnEntry?.reasons?.join(', ')}`}>
+                            ⚠ Churn {churnScore}
+                          </span>
+                        )}
+                        {churnScore >= 50 && churnScore < 75 && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200" title={`Churn risk: ${churnScore}/100 — ${churnEntry?.reasons?.join(', ')}`}>
+                            ⚠ Risk {churnScore}
+                          </span>
+                        )}
+                      </div>
                       {client.industry && <p className="text-xs text-gray-400">{client.industry}</p>}
                     </td>
                     <td className="px-5 py-3 text-gray-600">{client.country}</td>

@@ -1801,9 +1801,9 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
   }
 })
 
-// ── P2-2: A/B SUBJECT LINE WINNER CHECK ───────────────────────────────────────
+// ── P2-3: A/Z SUBJECT LINE WINNER CHECK ───────────────────────────────────────
 // Called daily by cron. Checks all active campaigns with ab_subject_b set.
-// After 48h + ≥5 sends per variant, picks winner by open rate.
+// After 48h + ≥5 sends per variant, picks winner by open rate across all variants (A-E).
 internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Response) => {
   try {
     const { data: campaigns } = await db.from('figsy_campaigns')
@@ -1818,7 +1818,6 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
       const settings = campaign.settings as Record<string, unknown> ?? {}
       if (settings.ab_test_resolved) continue
 
-      const abSubjectB = settings.ab_subject_b as string
       checked++
 
       // Get all step-1 sent emails for this campaign
@@ -1834,21 +1833,46 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
       const firstSent = new Date(sentEmails[0].sent_at)
       if (Date.now() - firstSent.getTime() < 48 * 60 * 60 * 1000) continue
 
-      const variantB = sentEmails.filter(e => e.subject === abSubjectB)
-      const variantA = sentEmails.filter(e => e.subject !== abSubjectB)
+      // Build map of variant label -> subject string
+      const variantSubjects: Record<string, string | null> = {
+        b: settings.ab_subject_b as string | null,
+        c: (settings.ab_subject_c as string | null) ?? null,
+        d: (settings.ab_subject_d as string | null) ?? null,
+        e: (settings.ab_subject_e as string | null) ?? null,
+      }
 
-      if (variantA.length < 5 || variantB.length < 5) continue
+      // Group emails by variant (emails NOT matching any named variant = variant A)
+      const variantGroups: Record<string, typeof sentEmails> = { a: [] }
+      for (const [label, subject] of Object.entries(variantSubjects)) {
+        if (subject) variantGroups[label] = []
+      }
+      for (const email of sentEmails) {
+        const matchedLabel = Object.entries(variantSubjects).find(([, s]) => s && s === email.subject)?.[0]
+        if (matchedLabel) {
+          variantGroups[matchedLabel].push(email)
+        } else {
+          variantGroups['a'].push(email)
+        }
+      }
 
-      const openRateA = variantA.filter(e => e.opened_at).length / variantA.length
-      const openRateB = variantB.filter(e => e.opened_at).length / variantB.length
-      const winner = openRateB > openRateA ? 'b' : 'a'
+      // Only proceed if variant A and at least one other variant have >= 5 sends
+      const activeVariants = Object.entries(variantGroups).filter(([, emails]) => emails.length >= 5)
+      if (activeVariants.length < 2) continue
+
+      // Find winner by open rate
+      let bestLabel = 'a'
+      let bestRate = -1
+      for (const [label, emails] of activeVariants) {
+        const rate = emails.filter(e => e.opened_at).length / emails.length
+        if (rate > bestRate) { bestRate = rate; bestLabel = label }
+      }
 
       await db.from('figsy_campaigns')
         .update({
           settings: {
             ...settings,
             ab_test_resolved: true,
-            ab_test_winner: winner,
+            ab_test_winner: bestLabel,
           }
         })
         .eq('id', campaign.id)
@@ -2052,5 +2076,104 @@ internalRouter.get('/data-moat/stats', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('[data-moat/stats]', err)
     res.status(500).json({ success: false, error: 'Stats query failed' })
+  }
+})
+
+// ── P3-6: CHURN RISK SCORING ──────────────────────────────────────────────────
+// POST /internal/ae/churn-risk-check
+// Scores each client with an active subscription for churn likelihood (0-100).
+// Score components:
+//   +30 no login in 14 days (last_seen_at / last_sign_in_at)
+//   +25 zero active campaigns
+//   +20 reply_rate < 2%
+//   +15 < 10 leads total
+//   +10 subscription status = 'past_due'
+// Returns { at_risk: [{client_id, company_name, churn_score, reasons}] }
+export async function computeChurnRisk(): Promise<{
+  client_id: string
+  company_name: string
+  churn_score: number
+  reasons: string[]
+}[]> {
+  // Fetch all clients with subscriptions
+  const { data: clients } = await db.from('clients')
+    .select('id, company_name, user_id, last_seen_at')
+    .not('user_id', 'is', null)
+
+  const now = new Date()
+
+  const results: { client_id: string; company_name: string; churn_score: number; reasons: string[] }[] = []
+
+  for (const client of clients ?? []) {
+    let score = 0
+    const reasons: string[] = []
+
+    // +10 if subscription is past_due
+    const { data: subs } = await db.from('subscriptions')
+      .select('status').eq('client_id', client.id)
+    const isPastDue = (subs ?? []).some((s: any) => s.status === 'past_due')
+    const hasActiveSub = (subs ?? []).some((s: any) => s.status === 'active' || s.status === 'trialing' || s.status === 'past_due')
+    if (!hasActiveSub) continue // Skip clients without any subscription
+
+    if (isPastDue) { score += 10; reasons.push('past_due_subscription') }
+
+    // +30 if no login in 14 days
+    let lastSeenAt: string | null = client.last_seen_at as string | null
+    if (!lastSeenAt && client.user_id) {
+      try {
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id)
+        lastSeenAt = user?.last_sign_in_at ?? null
+      } catch {}
+    }
+    const daysSinceLogin = lastSeenAt
+      ? Math.floor((now.getTime() - new Date(lastSeenAt).getTime()) / 86400000)
+      : 999
+    if (daysSinceLogin > 14) { score += 30; reasons.push(`no_login_${daysSinceLogin}d`) }
+
+    // +25 if 0 active campaigns
+    const { count: activeCampaigns } = await db.from('figsy_campaigns')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id)
+      .eq('status', 'active')
+    if ((activeCampaigns ?? 0) === 0) { score += 25; reasons.push('no_active_campaigns') }
+
+    // +20 if reply_rate < 2% (campaigns with >= 20 sent emails)
+    const { data: campaigns } = await db.from('figsy_campaigns')
+      .select('emails_sent, replies_total')
+      .eq('client_id', client.id)
+      .gte('emails_sent', 20)
+    const totalSent = (campaigns ?? []).reduce((s: number, c: any) => s + (c.emails_sent ?? 0), 0)
+    const totalReplied = (campaigns ?? []).reduce((s: number, c: any) => s + (c.replies_total ?? 0), 0)
+    const replyRate = totalSent > 0 ? totalReplied / totalSent : null
+    if (replyRate !== null && replyRate < 0.02) { score += 20; reasons.push(`low_reply_rate_${(replyRate * 100).toFixed(1)}pct`) }
+
+    // +15 if < 10 leads total
+    const { count: leadsTotal } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id)
+    if ((leadsTotal ?? 0) < 10) { score += 15; reasons.push('fewer_than_10_leads') }
+
+    score = Math.min(100, score)
+
+    if (score >= 50) {
+      results.push({
+        client_id:    client.id,
+        company_name: client.company_name ?? '—',
+        churn_score:  score,
+        reasons,
+      })
+    }
+  }
+
+  return results.sort((a, b) => b.churn_score - a.churn_score)
+}
+
+internalRouter.post('/ae/churn-risk-check', async (_req: Request, res: Response) => {
+  try {
+    const at_risk = await computeChurnRisk()
+    res.json({ success: true, data: { at_risk } })
+  } catch (err) {
+    console.error('[ae/churn-risk-check]', err)
+    res.status(500).json({ success: false, error: 'Churn risk check failed' })
   }
 })

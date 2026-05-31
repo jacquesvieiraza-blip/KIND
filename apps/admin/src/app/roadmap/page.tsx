@@ -77,6 +77,10 @@ const PHASES = [
       { label: 'Intent signal triggers — job_change/funding/company_growth auto-enroll cron', done: true },
       { label: 'FIGSY vertical modes — 6 pre-filled ICP templates (Fintech/Property/Health/SaaS/Logistics/E-com)', done: true },
       { label: 'African data moat — anonymised aggregate dataset, admin dashboard, weekly cron', done: true },
+      { label: 'A/Z multi-variant testing — up to 5 subject variants, 1/N random pick, winner by open rate', done: true },
+      { label: 'File approval workflow — pending drafts queue, approve/reject per email in portal', done: true },
+      { label: 'Churn risk scoring — 5-component score, daily cron, red/amber badges in admin clients', done: true },
+      { label: 'Website full restore — all 21 sub-pages restored, new agent branding throughout', done: true },
       { label: 'Paystack end-to-end smoke test verified', done: false },
     ],
     ops: [

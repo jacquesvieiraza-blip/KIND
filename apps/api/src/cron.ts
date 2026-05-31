@@ -87,5 +87,8 @@ export function startCrons(): void {
   cron.schedule('0 10 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' }) // 12:00 SAST
   cron.schedule('0 17 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' }) // 19:00 SAST
 
-  console.log('[cron] 23 jobs scheduled')
+  // Daily 08:30 UTC — P3-6 churn risk scoring
+  cron.schedule('30 8 * * *', () => callInternal('/ae/churn-risk-check'), { timezone: 'UTC' })
+
+  console.log('[cron] 24 jobs scheduled')
 }

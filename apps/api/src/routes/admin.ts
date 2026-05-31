@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { runIcpJob } from './icps'
+import { computeChurnRisk } from './internal'
 
 export const adminRouter = Router()
 
@@ -489,3 +490,17 @@ adminRouter.post('/messages/:clientId/reply', async (req, res) => {
     res.json({ success: true, data })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to send reply' }) }
 })
+
+// ── P3-6: CHURN RISK — admin endpoint ────────────────────────────────────────
+// GET /admin/churn-risk — returns churn risk scores for all clients with active subs.
+// Authenticated via admin key (same as all other /admin routes).
+adminRouter.get('/churn-risk', async (_req: Request, res: Response) => {
+  try {
+    const at_risk = await computeChurnRisk()
+    res.json({ success: true, data: { at_risk } })
+  } catch (err) {
+    console.error('[admin/churn-risk]', err)
+    res.status(500).json({ success: false, error: 'Churn risk computation failed' })
+  }
+})
+

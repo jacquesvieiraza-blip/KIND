@@ -55,7 +55,7 @@
 
 ---
 
-### 📅 SESSION — 31 May 2026 — Full session: Batch 2/3/4/5 + website restore
+### 📅 SESSION — 31 May 2026 (continued) — P2-3/P2-9/P3-6 + FULL WEBSITE RESTORE
 
 **Session rules (non-negotiable):**
 - No guessing — every finding has a file path + line number. Read it first if not certain.
@@ -106,11 +106,17 @@
 - app.get-kind.com (portal) — DNS issue noted, needs fixing when Railway plan allows
 - BOTH need DNS verification once Railway custom domain limit resolved
 
-**Batch 5 complete. All approved batches shipped.**
+**Batch 5 + website full restore complete.**
+
+**This commit also adds:**
+- P2-3 ✅ — A/Z multi-variant: up to 5 subject variants, 1/N random pick at enroll, winner by open rate across all active variants (`apps/api/src/lib/figsy.ts`, `apps/api/src/routes/internal.ts`, `apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx`)
+- P2-9 ✅ — File approval workflow: `GET /figsy/campaigns/:id/pending-drafts`, `POST /figsy/emails/:id/approve`, `DELETE /figsy/emails/:id/draft` + Pending Approvals UI in portal (`apps/api/src/routes/figsy.ts`, `apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx`)
+- P3-6 ✅ — Churn risk scoring: 5-component score, daily 08:30 UTC cron, `GET /admin/churn-risk`, red/amber badges in admin clients table (`apps/api/src/routes/internal.ts`, `apps/api/src/routes/admin.ts`, `apps/api/src/cron.ts`, `apps/admin/src/app/clients/page.tsx`)
+- Website FULL RESTORE ✅ — ALL 21 sub-pages restored from original (about, pricing, use-cases, vs-*, chatbot-agent, virtual-assistant, demo, figsy-video, terms, dpa, trust, support, partners, etc.) — every page was broken redirect to `/`, now properly restored; agent images updated to figsy/milla/vida.png; new branding (The Closer/Brain/Connector) applied to about.html
 
 **Full build queue status:**
-- Phase 2: ✅ P2-1 through P2-12, P2-15 all live. Remaining: P2-3 A/Z multi-variant, P2-9 file approval, P2-13 personalised images, P2-14 social signals
-- Phase 3: ✅ P3-2, P3-3, P3-5, P3-13 live. Remaining: P3-1 MCP as product, P3-4 proposal/e-sign, P3-6 churn risk, P3-7 visitor de-anon
+- Phase 2: ✅ P2-1 through P2-12, P2-15, P2-3, P2-9 all live. Remaining: P2-13 personalised images, P2-14 social signals
+- Phase 3: ✅ P3-2, P3-3, P3-5, P3-6, P3-13 live. Remaining: P3-1 MCP as product, P3-4 proposal/e-sign, P3-7 visitor de-anon
 - **Every build = MASTER.md + portal roadmap + admin roadmap updated in same commit**
 
 **FOUNDER ACTION NEEDED:**

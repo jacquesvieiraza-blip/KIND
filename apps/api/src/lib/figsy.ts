@@ -644,13 +644,21 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       (campaign as any).model_preference ?? 'haiku',
     )
 
-    // P2-2: A/B subject line — assign variant B to ~50% of new enrollments
+    // P2-3: A/Z multi-variant subject line testing — pick one at random from all non-null variants
     const settings = (campaign as any).settings ?? {}
-    const abSubjectB = settings.ab_subject_b as string | null | undefined
     const abResolved = settings.ab_test_resolved as boolean | undefined
-    const step1Subject = (abSubjectB && !abResolved && Math.random() < 0.5)
-      ? abSubjectB
-      : draft.step1.subject
+    const allVariants: string[] = [draft.step1.subject]
+    if (!abResolved) {
+      const b = settings.ab_subject_b as string | null | undefined
+      const c = settings.ab_subject_c as string | null | undefined
+      const d = settings.ab_subject_d as string | null | undefined
+      const e = settings.ab_subject_e as string | null | undefined
+      if (b) allVariants.push(b)
+      if (c) allVariants.push(c)
+      if (d) allVariants.push(d)
+      if (e) allVariants.push(e)
+    }
+    const step1Subject = allVariants[Math.floor(Math.random() * allVariants.length)]
 
     const { data: enrollment, error } = await db.from('figsy_enrollments').insert({
       campaign_id:    campaign.id,
@@ -701,12 +709,12 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
         .eq('id', campaign.id)
     }
 
-    // Send step 1 immediately
+    // Send step 1 immediately (using the selected variant subject)
     await sendSequenceEmail(
       enrollment.id,
       lead as Lead,
       1,
-      draft.step1.subject,
+      step1Subject,
       draft.step1.body,
       campaign.id,
     )

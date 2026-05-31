@@ -120,8 +120,11 @@ interface CampaignSettings {
   review_required?: boolean
   model_preference?: 'haiku' | 'sonnet'
   ab_subject_b?: string | null
+  ab_subject_c?: string | null
+  ab_subject_d?: string | null
+  ab_subject_e?: string | null
   ab_test_resolved?: boolean
-  ab_test_winner?: 'a' | 'b' | null
+  ab_test_winner?: string | null
   steps?: SeqStep[]
   send_days?: string[]
   send_hour_utc?: number
@@ -154,6 +157,17 @@ interface CampaignSuggestion {
   icon: React.ElementType
   count: number
   highlight: string
+}
+
+interface PendingDraft {
+  id: string
+  lead_id: string
+  subject: string
+  body: string
+  created_at: string
+  first_name?: string | null
+  last_name?: string | null
+  company?: string | null
 }
 
 interface Campaign {
@@ -228,6 +242,11 @@ export default function FigsyPage() {
   const [suggestLoading, setSuggestLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<CampaignSuggestion[] | null>(null)
   const [showSuggestModal, setShowSuggestModal] = useState(false)
+  const [pendingDrafts, setPendingDrafts] = useState<Record<string, PendingDraft[]>>({})
+  const [loadingDrafts, setLoadingDrafts] = useState<string | null>(null)
+  const [expandedDrafts, setExpandedDrafts] = useState<string | null>(null)
+  const [approvingDraft, setApprovingDraft] = useState<string | null>(null)
+  const [rejectingDraft, setRejectingDraft] = useState<string | null>(null)
 
   const toast = (msg: string) => {
     setToastMsg(msg)
@@ -492,6 +511,50 @@ export default function FigsyPage() {
     }
   }
 
+  async function loadPendingDrafts(campaignId: string) {
+    setLoadingDrafts(campaignId)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.get<{ data: PendingDraft[] }>(`/figsy/campaigns/${campaignId}/pending-drafts`, session?.access_token)
+      setPendingDrafts(prev => ({ ...prev, [campaignId]: res.data ?? [] }))
+    } catch {
+      toast('Failed to load pending drafts')
+    }
+    setLoadingDrafts(null)
+  }
+
+  async function handleApproveDraft(emailId: string, campaignId: string) {
+    setApprovingDraft(emailId)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await api.post(`/figsy/emails/${emailId}/approve`, {}, session?.access_token)
+      setPendingDrafts(prev => ({
+        ...prev,
+        [campaignId]: (prev[campaignId] ?? []).filter(d => d.id !== emailId),
+      }))
+      toast('Email approved — FIGSY will send it shortly')
+    } catch {
+      toast('Failed to approve draft')
+    }
+    setApprovingDraft(null)
+  }
+
+  async function handleRejectDraft(emailId: string, campaignId: string) {
+    setRejectingDraft(emailId)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await api.delete_(`/figsy/emails/${emailId}/draft`, session?.access_token)
+      setPendingDrafts(prev => ({
+        ...prev,
+        [campaignId]: (prev[campaignId] ?? []).filter(d => d.id !== emailId),
+      }))
+      toast('Draft rejected')
+    } catch {
+      toast('Failed to reject draft')
+    }
+    setRejectingDraft(null)
+  }
+
   function getSettingsForCampaign(campaign: Campaign): CampaignSettings {
     return campaignSettingsMap[campaign.id] ?? {
       system_prompt:         campaign.settings?.system_prompt ?? null,
@@ -499,6 +562,9 @@ export default function FigsyPage() {
       review_required:       campaign.settings?.review_required ?? false,
       model_preference:      campaign.model_preference ?? 'haiku',
       ab_subject_b:          campaign.settings?.ab_subject_b ?? null,
+      ab_subject_c:          campaign.settings?.ab_subject_c ?? null,
+      ab_subject_d:          campaign.settings?.ab_subject_d ?? null,
+      ab_subject_e:          campaign.settings?.ab_subject_e ?? null,
       steps:                 campaign.settings?.steps ?? [],
       send_days:             campaign.settings?.send_days ?? ['Mon','Tue','Wed','Thu','Fri'],
       send_hour_utc:         campaign.settings?.send_hour_utc ?? 7,
@@ -518,6 +584,9 @@ export default function FigsyPage() {
         review_required:       settings.review_required,
         model_preference:      settings.model_preference ?? 'haiku',
         ab_subject_b:          settings.ab_subject_b,
+        ab_subject_c:          settings.ab_subject_c,
+        ab_subject_d:          settings.ab_subject_d,
+        ab_subject_e:          settings.ab_subject_e,
         steps:                 settings.steps,
         send_days:             settings.send_days,
         send_hour_utc:         settings.send_hour_utc,
@@ -1191,10 +1260,10 @@ export default function FigsyPage() {
                         </p>
                       </div>
 
-                      {/* P2-2 — A/B subject line testing */}
+                      {/* P2-3 — A/Z multi-variant subject line testing */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
-                          <span>⚡</span> A/B Subject Line Test
+                          <span>⚡</span> A/Z Subject Line Test
                           {campaignSettings.ab_test_resolved && (
                             <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
                               Winner: Variant {(campaignSettings.ab_test_winner ?? 'a').toUpperCase()}
@@ -1206,7 +1275,7 @@ export default function FigsyPage() {
                             Test complete — FIGSY is now using the winning subject line for all new sends.
                           </p>
                         ) : (
-                          <>
+                          <div className="space-y-2">
                             <input
                               type="text"
                               value={campaignSettings.ab_subject_b ?? ''}
@@ -1214,10 +1283,37 @@ export default function FigsyPage() {
                               placeholder="Variant B subject line (e.g. Quick question about your growth)"
                               className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
                             />
-                            <p className="text-[11px] text-[#9B8EC4] mt-1">
-                              FIGSY sends Variant A (AI-generated) to 50% of new leads and Variant B (above) to the other 50%. Winner is picked after 48h by open rate.
+                            {campaignSettings.ab_subject_b && (
+                              <input
+                                type="text"
+                                value={campaignSettings.ab_subject_c ?? ''}
+                                onChange={e => setCampaignSettings(s => ({ ...s, ab_subject_c: e.target.value || null }))}
+                                placeholder="Variant C subject line (optional)"
+                                className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
+                              />
+                            )}
+                            {campaignSettings.ab_subject_c && (
+                              <input
+                                type="text"
+                                value={campaignSettings.ab_subject_d ?? ''}
+                                onChange={e => setCampaignSettings(s => ({ ...s, ab_subject_d: e.target.value || null }))}
+                                placeholder="Variant D subject line (optional)"
+                                className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
+                              />
+                            )}
+                            {campaignSettings.ab_subject_d && (
+                              <input
+                                type="text"
+                                value={campaignSettings.ab_subject_e ?? ''}
+                                onChange={e => setCampaignSettings(s => ({ ...s, ab_subject_e: e.target.value || null }))}
+                                placeholder="Variant E subject line (optional)"
+                                className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
+                              />
+                            )}
+                            <p className="text-[11px] text-[#9B8EC4]">
+                              FIGSY distributes new leads equally across all variants. Winner is picked after 48h by open rate. Add up to 5 variants (A–E).
                             </p>
-                          </>
+                          </div>
                         )}
                       </div>
 
@@ -1232,6 +1328,72 @@ export default function FigsyPage() {
                   )
                 })()}
               </div>
+
+              {/* Pending Approvals section — P2-9 */}
+              {campaign.settings?.review_required && (
+                <div className="mt-3 pt-3 border-t border-purple-100/60">
+                  <button
+                    onClick={() => {
+                      if (expandedDrafts === campaign.id) {
+                        setExpandedDrafts(null)
+                      } else {
+                        setExpandedDrafts(campaign.id)
+                        loadPendingDrafts(campaign.id)
+                      }
+                    }}
+                    className="text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors flex items-center gap-1.5"
+                  >
+                    <ShieldCheck className="w-3 h-3" />
+                    {expandedDrafts === campaign.id ? '▲' : '▼'} Pending Approvals
+                    {pendingDrafts[campaign.id] !== undefined && (
+                      <span className="ml-1 bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        {pendingDrafts[campaign.id].length}
+                      </span>
+                    )}
+                  </button>
+
+                  {expandedDrafts === campaign.id && (
+                    <div className="mt-3 space-y-3">
+                      {loadingDrafts === campaign.id ? (
+                        <p className="text-xs text-[#9B8EC4]">Loading drafts…</p>
+                      ) : !pendingDrafts[campaign.id] || pendingDrafts[campaign.id].length === 0 ? (
+                        <p className="text-xs text-[#9B8EC4]">No pending drafts — all clear.</p>
+                      ) : (
+                        pendingDrafts[campaign.id].map(draft => (
+                          <div key={draft.id} className="rounded-xl border border-amber-100 bg-amber-50/60 p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-gray-800">
+                                  {draft.first_name} {draft.last_name}
+                                  {draft.company && <span className="text-[#9B8EC4] font-normal"> · {draft.company}</span>}
+                                </p>
+                                <p className="text-xs text-[#7B6FA0] mt-0.5 font-medium">Subject: {draft.subject}</p>
+                                <p className="text-[11px] text-[#9B8EC4] mt-1 line-clamp-2 leading-relaxed">{draft.body.slice(0, 200)}</p>
+                              </div>
+                              <div className="flex flex-col gap-1.5 shrink-0">
+                                <button
+                                  onClick={() => handleApproveDraft(draft.id, campaign.id)}
+                                  disabled={approvingDraft === draft.id}
+                                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-[11px] font-semibold rounded-lg transition-colors"
+                                >
+                                  {approvingDraft === draft.id ? '…' : 'Approve'}
+                                </button>
+                                <button
+                                  onClick={() => handleRejectDraft(draft.id, campaign.id)}
+                                  disabled={rejectingDraft === draft.id}
+                                  className="px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-[#7B6FA0] disabled:opacity-50 text-[11px] font-semibold rounded-lg transition-colors"
+                                >
+                                  {rejectingDraft === draft.id ? '…' : 'Reject'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Replies toggle */}
               <div className="mt-3 pt-3 border-t border-purple-100/60">

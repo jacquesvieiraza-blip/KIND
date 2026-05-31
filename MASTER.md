@@ -55,28 +55,91 @@
 
 ---
 
-### 📅 SESSION DATE — 31 May 2026 — P0-18 through P0-23 build sprint
+### 📅 SESSION DATE — 31 May 2026 — Full verified build log
 
 **Session rules (non-negotiable):**
 - No guessing — every finding has a file path + line number. Read it first if not certain.
 - MASTER.md updated after every push — not end of session, immediately after.
-- Full update on page 1 when founder says "run full update" — date/time, cross-referenced status: what's built, what Claude builds, what founder builds, checked against live portal + conversation + MASTER.
+- Full update on page 1 when founder says "run full update" — verified against actual code, not just commit messages.
 - No building unless founder says so.
+- Before marking anything ✅ Done — verify the code file exists and contains the feature. No assumptions.
 
-**What was done this session (UX steal sprint + model toggle):**
-- **P0-18: FIGSY Full Page** — `/dashboard/figsy-chat` created. Full-width dedicated FIGSY chat page with hero textarea (purple gradient border), 4 starter pills, scrollable chat history, FIGSY avatar on assistant messages, purple bubbles for user, localStorage persistence (30 msgs), mode=full API call. `c03a0c7`
-- **P0-16: KIND AI sidebar label** — "AI Agents" → "KIND AI". `c03a0c7`
-- **P0-17: Personalized greeting** — "Good morning/afternoon/evening, [name]" + lead count / reply subtitle at top of dashboard. `c03a0c7`
-- **P0-6: Analytics empty state** — 4 action cards replacing "No data" in KPIs page. `c03a0c7`
-- **P0-20: Empty state action cards** — Campaigns + Inbox pages both get action card grids replacing bare empty states. `88dea2e`
-- **P0-5: Notification Preferences** — 5 toggles in Settings: reply received, low credits, campaign paused, weekly digest, daily brief. localStorage. `6fd5df2`
-- **P0-19: Agent card redesign** — Coloured left border accent per agent, tinted card background, avatar 56px. `7ff727b`
-- **Chat with FIGSY** added as first nav item under KIND AI section (MessageSquare icon → /dashboard/figsy-chat). `c03a0c7`
-- AgentColumn returns null on /dashboard/figsy-chat (no duplicate side panel). `c03a0c7`
-- **P0-14: Multi-model toggle** — Haiku (fast/volume) vs Sonnet (smart/complex ICP) per campaign. DB migration, API lib MODEL_MAP, PATCH route, UI toggle in Advanced Settings panel. `17cc871`
-- All TypeScript clean before every commit. 5 commits pushed to main.
+---
 
-**Previously fixed (31 May, earlier):**
+## ✅ VERIFIED BUILT — 31 May 2026 (code-checked, not just commit-claimed)
+
+| # | Item | Verified in code | Commit |
+|---|------|-----------------|--------|
+| ✅ | **Light sidebar** `#F5F3FF` background | `Sidebar.tsx` line 184: `style={{ background: '#F5F3FF' }}` | `c5b38e5` |
+| ✅ | **Clean page background** `#FAFAFE`, dots removed | `layout.tsx`: `bg-[#FAFAFE]`, no dot elements | `c5b38e5` |
+| ✅ | **Agent panel RIGHT side** of content | `layout.tsx`: content div first, AgentColumn second in DOM | `15aa43f` |
+| ✅ | **No double FIGSY on home** | `AgentColumn.tsx:37`: `if (pathname === '/dashboard') return null` | `15aa43f` |
+| ✅ | **Collapsible agent panel** | `AgentColumn.tsx`: `COLLAPSE_KEY`, collapsed state, ChevronLeft/Right | `c5b38e5` |
+| ✅ | **ICP panel RIGHT side** | `icp/page.tsx:914`: content div first, `{token && <FigsySidePanel>}` second | `f53579b` |
+| ✅ | **ICP panel light theme** | `icp/page.tsx:69`: `bg-white border-b border-purple-100/60` (was `#0F0929`) | `82fcc7d` |
+| ✅ | **KIND AI sidebar label** | `Sidebar.tsx:249`: `KIND AI` section header | `c03a0c7` |
+| ✅ | **Chat with FIGSY nav item** | `Sidebar.tsx:38`: `{ href: '/dashboard/figsy-chat', label: 'Chat with FIGSY' }` | `c03a0c7` |
+| ✅ | **P0-17: Personalised greeting** | `dashboard/page.tsx:142`: `greetingSubtitle`, time-of-day greeting | `c03a0c7` |
+| ✅ | **P0-6: Analytics empty state** | `kpis/page.tsx:576`: 4 action cards incl. "Chat with FIGSY →" | `c03a0c7` |
+| ✅ | **P0-20: Empty state cards** | `figsy/page.tsx:737`: action cards on campaigns empty state | `88dea2e` |
+| ✅ | **P0-5: Notification preferences** | `settings/page.tsx:9,19,645`: `NotificationPreferences` component, 5 toggles, localStorage | `6fd5df2` |
+| ✅ | **P0-19: Agent card redesign** | `Sidebar.tsx:252`: coloured `borderLeft` + tinted `background` per agent accent | `7ff727b` |
+| ✅ | **P0-14: Multi-model toggle** | `figsy/page.tsx:486,1019`: Haiku/Sonnet toggle in Advanced Settings, DB migration | `17cc871` |
+| ✅ | **P0-3: Knowledge base preview** | `knowledge/page.tsx:92,101`: FIGSY on-save preview sentence | `f12e45f` |
+| ✅ | **P0-4: Email open tracking** | `migrations/20260531_email_open_tracking.sql`: `opened_at` column + index | `c710049` |
+| ✅ | **P1-8: Warm leads tab** | `inbox/page.tsx:72`: `{ value: 'warm_leads', label: '⭐ Warm Leads' }` | `32297b8` |
+| ✅ | **P1-9: Admin deal risk scoring** | `admin/clients/page.tsx:51,189,196`: `riskLabel`, `atRisk` filter | `41a284c` |
+| ✅ | **P0-18: FIGSY full page** | `figsy-chat/page.tsx`: two-column layout, "Hello [Name]" hero, gradient textarea, 4 starter pills, agent stats card right, live KPI fetch | `4256584` |
+| ✅ | **Agent rebrand — The Closer/Brain/Connector** | `AgentColumn.tsx:86,111,229`, `Sidebar.tsx:33,49,62`, `AgentSidePanel.tsx`: subtitle prop added | `2b4d96b` |
+| ✅ | **Team model — DB migration** | `migrations/20260531_client_members.sql`: `client_members` table, RLS, seeds existing owners | `cfa2c43` |
+| ✅ | **Team model — API routes** | `apps/api/src/routes/team.ts`: POST /invite, GET /accept, GET /members, DELETE /member/:id | `53c6f29` |
+| ✅ | **Team model — Accept invite page** | `apps/portal/src/app/invite/accept/page.tsx`: 71 lines, Suspense wrapped | `eda86ab` |
+| ✅ | **Team model — Settings Team tab** | `settings/page.tsx:92,130,650`: `TeamSection` component, invite form, member list | `0486da1` |
+| ✅ | **Team model — Team dashboard** | `dashboard/team/page.tsx`: 119 lines, 4 stat cards, member list | `0c3b53c` |
+| ✅ | **Team model — Sidebar link** | `Sidebar.tsx:90`: `{ href: '/dashboard/team', label: 'Team', icon: UserCheck }` | `2a517ed` |
+| ✅ | **Landing page agent rebrand** | `apps/landing/index.html`: "Meet Your Team", The Closer/Brain/Connector copy, footer updated | `2b4d96b` + `8b7f262` |
+| ✅ | **Railway build fix** | `invite/accept/page.tsx`: `useSearchParams` wrapped in `<Suspense>` | `eda86ab` |
+
+---
+
+## ❌ DISCUSSED BUT NOT DONE / NOT VERIFIED LIVE
+
+| # | Item | Status | What's missing |
+|---|------|--------|---------------|
+| ⚠️ | **Monday.com pattern — Image 1 (agent list page)** | Not built | There is no `/dashboard/agents` list page showing all 3 agents as cards you click into. Sidebar has nav links but no visual "meet your agents" overview page. |
+| ⚠️ | **FIGSY full page — confirmed working** | Built, not verified live | Railway was failing builds until `eda86ab`. P0-18 two-column layout is in code (`4256584`) but has not been confirmed working in browser. |
+| ⚠️ | **Owner team dashboard — confirmed working** | Built, not verified live | `/dashboard/team` page exists (119 lines) but not confirmed rendering correctly or visible to founder. |
+| ⚠️ | **Agent photos in portal + website** | Not done | New AI-generated agent photos (FIGSY/Milla/Vida from the cards image) not uploaded. Portal currently uses old `/agents/figsy.png` etc. |
+| 🔴 | **P0-8: Email score pre-send** | Not started | — |
+| 🔴 | **P0-10: Co-pilot mode** | Not started | — |
+| 🔴 | **P0-11: Auto-fire consent** | Not started | — |
+| 🔴 | **P0-15: Template library** | Not started | — |
+| 🔴 | **P1-1: Deliverability dashboard** | Not started | — |
+| 🔴 | **P1-6: Expanded reply categories** | Not started | — |
+| 🔴 | **P1-10: White-label PDF** | Not started | — |
+| 🔴 | **P1-11: Conversational onboarding** | Not started | — |
+| 🔴 | **P1-12: AI research per lead** | Not started | — |
+| 🔴 | **P1-15: Suggest campaigns button** | Not started | — |
+| 🔴 | **P0-1: Website copy rewrite** | Not started | — |
+
+---
+
+## 🔒 BLOCKED — NEEDS FOUNDER ACTION
+
+| Item | Blocked by |
+|------|-----------|
+| P0-2/7/9/12 — Email tracking, warm-up, deliverability sends | `RESEND_API_KEY` in Railway |
+| P0-13 — HubSpot CRM sync | HubSpot API key |
+| P1-2 — Email warm-up service | Warmup service subscription |
+| P1-5 — Smartlead integration | Smartlead API key |
+| P1-7 — Hunter.io enrichment | Hunter.io API key |
+| P1-13 — Apollo integration | Apollo $49/mo |
+| Team invite emails | `RESEND_API_KEY` in Railway (invite flow works without it, email just won't send) |
+| New agent photos live | Founder to share the 3 AI-generated images — Claude will place them |
+
+---
+
+**Previous fixes (31 May, earlier):**
 - `AgentColumn.tsx:166` — FIGSY wrapper `lg:w-72` → `lg:w-64`. All agent panels now same width.
 - `icp/page.tsx` — Typewriter on first FIGSY message. Static dead text removed.
 - GET /figsy/kpis 500 fixed — `status = 'contacted'` → `'consent_sent'`

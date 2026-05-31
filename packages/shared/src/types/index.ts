@@ -61,6 +61,11 @@ export interface ICP {
   last_run_at: string | null
   created_at: string
   updated_at: string
+  settings?: {
+    refinement_suggestions?: Array<{ type: string; action: string; value: string; reason: string }>
+    refinement_summary?: string
+    refined_at?: string
+  } | null
 }
 
 export type LeadStatus =

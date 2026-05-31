@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express'
+import { z } from 'zod'
 import { db } from '@kind/db'
 import { runIcpJob } from './icps'
 
@@ -463,4 +464,28 @@ adminRouter.post('/seed-leads', async (req: Request, res: Response) => {
     console.error('[admin/seed-leads]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : String(err) })
   }
+})
+
+// ── P3-3: ADMIN MESSAGING ─────────────────────────────────────────────────────
+adminRouter.get('/messages', async (_req, res) => {
+  try {
+    const { data } = await db.from('client_messages')
+      .select('id, client_id, content, sender_type, created_at, read_at, clients(company_name)')
+      .order('created_at', { ascending: false })
+      .limit(200)
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch messages' }) }
+})
+
+adminRouter.post('/messages/:clientId/reply', async (req, res) => {
+  try {
+    const { content } = z.object({ content: z.string().min(1).max(2000) }).parse(req.body)
+    const { data, error } = await db.from('client_messages').insert({
+      client_id: req.params.clientId,
+      content,
+      sender_type: 'admin',
+    }).select('id, content, sender_type, created_at').single()
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to send reply' }) }
 })

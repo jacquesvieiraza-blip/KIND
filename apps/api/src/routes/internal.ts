@@ -862,14 +862,40 @@ internalRouter.post('/figsy/refresh-memory-all', async (_req: Request, res: Resp
           ? rows.reduce((sum, c) => sum + ((c.replies_total ?? 0) / (c.emails_sent ?? 1)), 0) / rows.length
           : 0
 
+        // P2-1: build 3-type memory model — episodic + longterm + preference
+        const { data: recentReplies } = await db.from('figsy_replies')
+          .select('classification, received_at')
+          .eq('client_id', client.id)
+          .gte('received_at', new Date(Date.now() - 14 * 86400000).toISOString())
+
+        const episodicReplies = recentReplies ?? []
+        const episodicTotal = episodicReplies.length
+        const hotRecent = episodicReplies.filter(r => r.classification === 'hot').length
+        const recent_reply_rate = episodicTotal > 0 ? hotRecent / episodicTotal : 0
+
+        const { data: topSubjects } = await db.from('figsy_sent_emails')
+          .select('subject')
+          .eq('client_id', client.id)
+          .not('opened_at', 'is', null)
+          .limit(50)
+        const subjectFreq: Record<string, number> = {}
+        for (const s of topSubjects ?? []) {
+          if (s.subject) subjectFreq[s.subject] = (subjectFreq[s.subject] ?? 0) + 1
+        }
+        const best_subject_lines = Object.entries(subjectFreq)
+          .sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s]) => s)
+
         const { error: upsertError } = await db.from('figsy_memory')
           .upsert({
             client_id:             client.id,
-            best_subject_lines:    [],
+            best_subject_lines,
             avg_reply_rate_30d,
             total_sent_all_time,
             total_replies_all_time,
             last_updated:          new Date().toISOString(),
+            episodic_memory:       { recent_reply_rate, recent_total: episodicTotal, window_days: 14 },
+            longterm_memory:       { best_subject_lines, total_campaigns: rows.length },
+            preference_memory:     { preferred_tone: 'direct and concise', avoid_phrases: ['hope this finds you', 'touch base', 'synergy'] },
           }, { onConflict: 'client_id' })
 
         if (!upsertError) updated++
@@ -1772,6 +1798,68 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
   } catch (err) {
     console.error('[figsy/adaptive-send-check]', err)
     res.status(500).json({ success: false, error: 'Adaptive send check failed' })
+  }
+})
+
+// ── P2-2: A/B SUBJECT LINE WINNER CHECK ───────────────────────────────────────
+// Called daily by cron. Checks all active campaigns with ab_subject_b set.
+// After 48h + ≥5 sends per variant, picks winner by open rate.
+internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Response) => {
+  try {
+    const { data: campaigns } = await db.from('figsy_campaigns')
+      .select('id, settings, step1_subject')
+      .eq('status', 'active')
+      .not('settings->ab_subject_b', 'is', null)
+
+    let checked = 0
+    let resolved = 0
+
+    for (const campaign of campaigns ?? []) {
+      const settings = campaign.settings as Record<string, unknown> ?? {}
+      if (settings.ab_test_resolved) continue
+
+      const abSubjectB = settings.ab_subject_b as string
+      checked++
+
+      // Get all step-1 sent emails for this campaign
+      const { data: sentEmails } = await db.from('figsy_sent_emails')
+        .select('id, subject, opened_at, sent_at')
+        .eq('campaign_id', campaign.id)
+        .eq('step', 1)
+        .order('sent_at', { ascending: true })
+
+      if (!sentEmails || sentEmails.length < 10) continue
+
+      // Need 48h since first send
+      const firstSent = new Date(sentEmails[0].sent_at)
+      if (Date.now() - firstSent.getTime() < 48 * 60 * 60 * 1000) continue
+
+      const variantB = sentEmails.filter(e => e.subject === abSubjectB)
+      const variantA = sentEmails.filter(e => e.subject !== abSubjectB)
+
+      if (variantA.length < 5 || variantB.length < 5) continue
+
+      const openRateA = variantA.filter(e => e.opened_at).length / variantA.length
+      const openRateB = variantB.filter(e => e.opened_at).length / variantB.length
+      const winner = openRateB > openRateA ? 'b' : 'a'
+
+      await db.from('figsy_campaigns')
+        .update({
+          settings: {
+            ...settings,
+            ab_test_resolved: true,
+            ab_test_winner: winner,
+          }
+        })
+        .eq('id', campaign.id)
+
+      resolved++
+    }
+
+    res.json({ success: true, data: { checked, resolved } })
+  } catch (err) {
+    console.error('[figsy/ab-winner-check]', err)
+    res.status(500).json({ success: false, error: 'AB winner check failed' })
   }
 })
 

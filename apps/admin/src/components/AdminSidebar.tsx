@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, FileText, Map, Megaphone,
   Rocket, MonitorPlay, TrendingUp, GitMerge, BookOpen, Inbox,
   ShieldCheck, BarChart2, DollarSign, Activity, FlaskConical,
-  UserSquare2, Layers, ChevronRight,
+  UserSquare2, Layers, ChevronRight, MessageCircle,
 } from 'lucide-react'
 
 const SECTIONS = [
@@ -23,6 +23,7 @@ const SECTIONS = [
     label: 'Clients',
     items: [
       { href: '/clients',   label: 'All Clients', icon: Users },
+      { href: '/messages',  label: 'Messages',    icon: MessageCircle },
       { href: '/cohorts',   label: 'Cohorts',     icon: Layers },
       { href: '/hubspot',   label: 'HubSpot',     icon: GitMerge },
     ],

@@ -291,6 +291,7 @@ export default function ICPPage() {
   const [aiSuggesting, setAiSuggesting]     = useState(false)
   const [aiSuggestError, setAiSuggestError] = useState<string | null>(null)
   const [runningId, setRunningId] = useState<string | null>(null)
+  const [refiningId, setRefiningId] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [previewCount, setPreviewCount] = useState<number | null>(null)
   const [previewSamples, setPreviewSamples] = useState<Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }>>([])
@@ -500,6 +501,28 @@ export default function ICPPage() {
     }
   }
 
+  async function handleRefine(id: string) {
+    if (!token) return
+    setRefiningId(id)
+    try {
+      const res = await api.post<{ data: { suggestions: Array<{ type: string; action: string; value: string; reason: string }> | null; summary: string; reason?: string } }>(
+        `/icps/${id}/refine`, {}, token
+      )
+      if (res.data.reason) {
+        setSaveError(res.data.reason)
+        return
+      }
+      setIcps(prev => prev.map(i => i.id === id ? {
+        ...i,
+        settings: { refinement_suggestions: res.data.suggestions, refinement_summary: res.data.summary, refined_at: new Date().toISOString() }
+      } : i))
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'ICP refinement failed — please try again.')
+    } finally {
+      setRefiningId(null)
+    }
+  }
+
   async function handleAiSuggest() {
     if (!token) return
     setAiSuggesting(true)
@@ -687,6 +710,48 @@ export default function ICPPage() {
                 <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-[#7C3AED]">
                   🎯 {icp.intent_signals.length} signal{icp.intent_signals.length > 1 ? 's' : ''}
                 </span>
+              )}
+            </div>
+
+            {/* P2-10 — ICP auto-refinement suggestions */}
+            <div className="mt-4 pt-4 border-t border-gray-50">
+              {icp.settings?.refinement_suggestions?.length ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-gray-700">✨ AI Refinement Suggestions</p>
+                    <span className="text-[11px] text-[#9B8EC4]">{icp.settings.refined_at ? `Updated ${new Date(icp.settings.refined_at).toLocaleDateString('en-ZA', { dateStyle: 'short' })}` : ''}</span>
+                  </div>
+                  {icp.settings.refinement_summary && (
+                    <p className="text-xs text-[#7B6FA0] italic">{icp.settings.refinement_summary}</p>
+                  )}
+                  {icp.settings.refinement_suggestions.map((s, i) => (
+                    <div key={i} className="flex items-start gap-2 bg-purple-50 rounded-lg px-3 py-2 border border-purple-100">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-200 text-purple-800 uppercase shrink-0 mt-0.5">{s.action}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-900">{s.value}</p>
+                        <p className="text-[11px] text-[#9B8EC4]">{s.reason}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => handleRefine(icp.id)}
+                    disabled={refiningId === icp.id}
+                    className="text-xs text-[#9B8EC4] hover:text-[#7C3AED] transition-colors"
+                  >
+                    {refiningId === icp.id ? 'Refreshing…' : '↻ Refresh suggestions'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleRefine(icp.id)}
+                  disabled={refiningId === icp.id}
+                  className="flex items-center gap-1.5 text-xs font-medium text-[#7C3AED] hover:text-[#6D28D9] transition-colors disabled:opacity-50"
+                >
+                  {refiningId === icp.id
+                    ? <><Loader2 className="w-3 h-3 animate-spin" />Analysing reply data…</>
+                    : <><Sparkles className="w-3 h-3" />Get AI refinement suggestions</>
+                  }
+                </button>
               )}
             </div>
           </div>

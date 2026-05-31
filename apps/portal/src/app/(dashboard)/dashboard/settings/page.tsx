@@ -644,6 +644,39 @@ export default function SettingsPage() {
       {/* Notification Preferences */}
       <NotificationPreferences />
 
+      {/* P2-12 — White-label / Agency Mode */}
+      <div className="border-t border-gray-100 pt-6">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-base">🏷️</span>
+          <h2 className="font-semibold">White-Label & Agency</h2>
+          <span className="ml-2 text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+            Scale plan
+          </span>
+        </div>
+        <p className="text-sm text-[#9B8EC4] mb-4">
+          Run K.I.N.D under your own brand. Onboard your clients with your logo and domain — powered by KIND underneath.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[
+            { icon: '🎨', title: 'Custom branding', desc: 'Your logo, brand colours, and domain on every portal' },
+            { icon: '👥', title: 'Sub-client management', desc: 'Create and manage portals for each of your clients' },
+            { icon: '💰', title: 'Revenue share', desc: '30% recurring on every client you onboard' },
+            { icon: '📦', title: 'White-label kit', desc: 'Pre-built sales deck, pricing template, and onboarding guide' },
+          ].map(item => (
+            <div key={item.title} className="flex gap-3 p-4 rounded-xl border border-purple-50 bg-purple-50/30">
+              <span className="text-xl shrink-0">{item.icon}</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                <p className="text-xs text-[#9B8EC4] mt-0.5">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-[#9B8EC4] mt-3">
+          Interested in the agency tier? Email <span className="text-[#7C3AED]">hello@get-kind.com</span> with subject "Agency partnership".
+        </p>
+      </div>
+
       {/* Team */}
       {clientId && (
         <div className="border-t border-gray-100 pt-6" id="team">

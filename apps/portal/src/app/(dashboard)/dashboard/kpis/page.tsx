@@ -103,32 +103,37 @@ function FunnelStep({
 }
 
 function BenchmarkRow({
-  label, value, good, ok, unit = '%'
+  label, value, good, ok, industryAvg, unit = '%'
 }: {
   label: string
   value: number
   good: number
   ok: number
+  industryAvg: number
   unit?: string
 }) {
   const display = unit === '%' ? `${(value * 100).toFixed(1)}%` : value.toFixed(1)
+  const avgDisplay = unit === '%' ? `${(industryAvg * 100).toFixed(1)}%` : industryAvg.toFixed(1)
   const status = value >= good ? 'great' : value >= ok ? 'good' : 'building'
   const colors = {
-    great:    { dot: 'bg-green-400', text: 'text-green-700', label: 'Great' },
-    good:     { dot: 'bg-amber-400', text: 'text-amber-700', label: 'Good' },
-    building: { dot: 'bg-gray-300',  text: 'text-[#9B8EC4]',  label: 'Building' },
+    great:    { dot: 'bg-green-400', text: 'text-green-700', label: 'Above avg' },
+    good:     { dot: 'bg-amber-400', text: 'text-amber-700', label: 'Near avg' },
+    building: { dot: 'bg-gray-300',  text: 'text-[#9B8EC4]',  label: 'Below avg' },
   }[status]
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-      <span className="text-sm text-gray-700">{label}</span>
-      <div className="flex items-center gap-2.5">
-        <span className="text-sm font-bold text-gray-900">{display}</span>
-        <span className={`flex items-center gap-1 text-xs font-semibold ${colors.text}`}>
-          <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
-          {colors.label}
-        </span>
+    <div className="py-3 border-b border-gray-50 last:border-0">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-gray-700">{label}</span>
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-bold text-gray-900">{display}</span>
+          <span className={`flex items-center gap-1 text-xs font-semibold ${colors.text}`}>
+            <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
+            {colors.label}
+          </span>
+        </div>
       </div>
+      <p className="text-[11px] text-[#9B8EC4] mt-0.5">Industry avg {avgDisplay}</p>
     </div>
   )
 }
@@ -667,13 +672,15 @@ export default function KPIsPage() {
             <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
               <h2 className="text-sm font-bold text-gray-900 mb-1">Outreach benchmarks</h2>
               <p className="text-xs text-[#9B8EC4] mb-3">vs B2B cold outreach industry averages</p>
-              <BenchmarkRow label="Reply rate" value={f.replyRate} good={0.08} ok={0.03} />
-              <BenchmarkRow label="Interested rate" value={f.interestedRate} good={0.02} ok={0.005} />
+              <BenchmarkRow label="Reply rate" value={f.replyRate} good={0.08} ok={0.03} industryAvg={0.071} />
+              <BenchmarkRow label="Open rate" value={f.openRate ?? 0} good={0.42} ok={0.20} industryAvg={0.42} />
+              <BenchmarkRow label="Interested rate" value={f.interestedRate} good={0.02} ok={0.005} industryAvg={0.020} />
               <BenchmarkRow
                 label="Meeting booking rate"
                 value={meetingBookedRateDecimal}
                 good={0.03}
                 ok={0.01}
+                industryAvg={0.010}
               />
             </div>
           )}

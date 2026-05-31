@@ -404,6 +404,10 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
       daily_send_limit: z.number().int().min(0).max(500).nullable().optional(),
       review_required:  z.boolean().optional(),
       model_preference: z.enum(['haiku', 'sonnet']).optional(),
+      ab_subject_b:     z.string().max(200).nullable().optional(),
+      steps:            z.array(z.object({ step: z.number(), on_reply: z.enum(['stop','skip_next','continue']) })).optional(),
+      send_days:        z.array(z.string()).optional(),
+      send_hour_utc:    z.number().int().min(0).max(23).optional(),
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -418,6 +422,10 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
     if (body.system_prompt !== undefined) settingsUpdate.system_prompt = body.system_prompt
     if (body.daily_send_limit !== undefined) settingsUpdate.daily_send_limit = body.daily_send_limit
     if (body.review_required !== undefined) settingsUpdate.review_required = body.review_required
+    if (body.ab_subject_b !== undefined) settingsUpdate.ab_subject_b = body.ab_subject_b
+    if (body.steps !== undefined) settingsUpdate.steps = body.steps
+    if (body.send_days !== undefined) settingsUpdate.send_days = body.send_days
+    if (body.send_hour_utc !== undefined) settingsUpdate.send_hour_utc = body.send_hour_utc
 
     if (Object.keys(settingsUpdate).length > 0) {
       const { data: existing } = await db.from('figsy_campaigns')
@@ -613,6 +621,50 @@ figsyRouter.delete('/campaigns/:id', async (req: AuthRequest, res) => {
     if (error) throw error
     res.json({ success: true })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete campaign' }) }
+})
+
+// ── P2-8 KANBAN VIEW ─────────────────────────────────────────────────────────
+figsyRouter.get('/campaigns/:id/kanban', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id, name').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    const { data: enrollments } = await db.from('figsy_enrollments')
+      .select('id, lead_id, current_step, status, enrolled_at, next_send_at, leads(first_name,last_name,company,job_title)')
+      .eq('campaign_id', req.params.id)
+      .order('enrolled_at', { ascending: false })
+      .limit(500)
+
+    const columns: Record<string, object[]> = {
+      enrolled: [], step1_sent: [], step2_sent: [], step3_sent: [], replied: [], completed: []
+    }
+
+    for (const e of enrollments ?? []) {
+      const lead = {
+        id: e.lead_id,
+        first_name: (e.leads as any)?.first_name ?? '',
+        last_name: (e.leads as any)?.last_name ?? '',
+        company: (e.leads as any)?.company ?? null,
+        job_title: (e.leads as any)?.job_title ?? null,
+        current_step: e.current_step,
+        status: e.status,
+        enrolled_at: e.enrolled_at,
+        next_send_at: e.next_send_at,
+      }
+      if (e.status === 'replied') columns.replied.push(lead)
+      else if (e.status === 'completed') columns.completed.push(lead)
+      else if (e.current_step === 0) columns.enrolled.push(lead)
+      else if (e.current_step === 1) columns.step1_sent.push(lead)
+      else if (e.current_step === 2) columns.step2_sent.push(lead)
+      else columns.step3_sent.push(lead)
+    }
+
+    res.json({ success: true, data: { campaign, columns } })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to load kanban' }) }
 })
 
 // ── ENROLLMENTS ───────────────────────────────────────────────────────────────

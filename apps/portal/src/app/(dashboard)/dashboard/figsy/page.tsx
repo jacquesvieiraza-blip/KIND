@@ -109,11 +109,22 @@ interface Reply {
   received_at: string
 }
 
+interface SeqStep {
+  step: 1 | 2 | 3
+  on_reply: 'stop' | 'skip_next' | 'continue'
+}
+
 interface CampaignSettings {
   system_prompt?: string | null
   daily_send_limit?: number | null
   review_required?: boolean
   model_preference?: 'haiku' | 'sonnet'
+  ab_subject_b?: string | null
+  ab_test_resolved?: boolean
+  ab_test_winner?: 'a' | 'b' | null
+  steps?: SeqStep[]
+  send_days?: string[]
+  send_hour_utc?: number
 }
 
 interface ParsedIntent {
@@ -156,6 +167,7 @@ interface Campaign {
   settings?: CampaignSettings | null
   campaign_intent?: string | null
   model_preference?: 'haiku' | 'sonnet' | null
+  step1_subject?: string | null
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -484,6 +496,10 @@ export default function FigsyPage() {
       daily_send_limit: campaign.settings?.daily_send_limit ?? null,
       review_required:  campaign.settings?.review_required ?? false,
       model_preference: campaign.model_preference ?? 'haiku',
+      ab_subject_b:     campaign.settings?.ab_subject_b ?? null,
+      steps:            campaign.settings?.steps ?? [],
+      send_days:        campaign.settings?.send_days ?? ['Mon','Tue','Wed','Thu','Fri'],
+      send_hour_utc:    campaign.settings?.send_hour_utc ?? 7,
     }
   }
 
@@ -497,6 +513,10 @@ export default function FigsyPage() {
         daily_send_limit: settings.daily_send_limit,
         review_required:  settings.review_required,
         model_preference: settings.model_preference ?? 'haiku',
+        ab_subject_b:     settings.ab_subject_b,
+        steps:            settings.steps,
+        send_days:        settings.send_days,
+        send_hour_utc:    settings.send_hour_utc,
       }, session?.access_token)
       setCampaigns(prev => prev.map(c => c.id === campaign.id ? res.data : c))
       // Clear local override since campaign now has updated settings
@@ -635,6 +655,12 @@ export default function FigsyPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href="/dashboard/figsy/kanban"
+            className="flex items-center gap-1.5 px-3 py-2 border border-purple-100/80 bg-white hover:bg-purple-50 text-[#7B6FA0] hover:text-[#7C3AED] text-sm font-medium rounded-lg transition-colors"
+          >
+            Pipeline view →
+          </a>
           <button
             onClick={handleSuggestCampaigns}
             disabled={suggestLoading}
@@ -1044,6 +1070,104 @@ export default function FigsyPage() {
                           </button>
                         </div>
                         <p className="text-[11px] text-[#9B8EC4] mt-1.5">Applies to all new sequence generation for this campaign.</p>
+                      </div>
+
+                      {/* P2-4 — Sequence branching: on-reply behaviour per step */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2">⚡ Sequence Branching — on reply</label>
+                        <p className="text-[11px] text-[#9B8EC4] mb-3">What should FIGSY do when a lead replies to each step?</p>
+                        <div className="space-y-2">
+                          {([1, 2, 3] as const).map(step => {
+                            const currentOnReply = (campaignSettings.steps ?? []).find(s => s.step === step)?.on_reply ?? 'stop'
+                            return (
+                              <div key={step} className="flex items-center justify-between gap-2">
+                                <span className="text-xs text-gray-600 shrink-0">After step {step} reply:</span>
+                                <select
+                                  value={currentOnReply}
+                                  onChange={e => {
+                                    const val = e.target.value as 'stop' | 'skip_next' | 'continue'
+                                    const existing = (campaignSettings.steps ?? []).filter(s => s.step !== step)
+                                    setCampaignSettings(s => ({ ...s, steps: [...existing, { step, on_reply: val }] }))
+                                  }}
+                                  className="flex-1 border border-purple-100/80 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
+                                >
+                                  <option value="stop">Stop — move to replied</option>
+                                  <option value="skip_next">Skip next step, then continue</option>
+                                  <option value="continue">Continue sequence as normal</option>
+                                </select>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* P2-7 — Configurable send schedule */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2">🕐 Send Schedule</label>
+                        <p className="text-[11px] text-[#9B8EC4] mb-2">Which days should FIGSY send for this campaign?</p>
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => {
+                            const active = (campaignSettings.send_days ?? ['Mon','Tue','Wed','Thu','Fri']).includes(day)
+                            return (
+                              <button
+                                key={day}
+                                type="button"
+                                onClick={() => {
+                                  const current = campaignSettings.send_days ?? ['Mon','Tue','Wed','Thu','Fri']
+                                  const next = active ? current.filter(d => d !== day) : [...current, day]
+                                  setCampaignSettings(s => ({ ...s, send_days: next.length ? next : current }))
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                  active ? 'bg-[#7C3AED] text-white border-[#7C3AED]' : 'bg-white text-gray-500 border-gray-200 hover:border-purple-200'
+                                }`}
+                              >
+                                {day}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600 shrink-0">Send at (UTC hour):</span>
+                          <select
+                            value={campaignSettings.send_hour_utc ?? 7}
+                            onChange={e => setCampaignSettings(s => ({ ...s, send_hour_utc: parseInt(e.target.value) }))}
+                            className="border border-purple-100/80 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
+                          >
+                            {[5,6,7,8,9,10,11,12,13,14,15,16].map(h => (
+                              <option key={h} value={h}>{String(h).padStart(2,'0')}:00 UTC ({h+2}:00 SAST)</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* P2-2 — A/B subject line testing */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+                          <span>⚡</span> A/B Subject Line Test
+                          {campaignSettings.ab_test_resolved && (
+                            <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                              Winner: Variant {(campaignSettings.ab_test_winner ?? 'a').toUpperCase()}
+                            </span>
+                          )}
+                        </label>
+                        {campaignSettings.ab_test_resolved ? (
+                          <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100">
+                            Test complete — FIGSY is now using the winning subject line for all new sends.
+                          </p>
+                        ) : (
+                          <>
+                            <input
+                              type="text"
+                              value={campaignSettings.ab_subject_b ?? ''}
+                              onChange={e => setCampaignSettings(s => ({ ...s, ab_subject_b: e.target.value || null }))}
+                              placeholder="Variant B subject line (e.g. Quick question about your growth)"
+                              className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
+                            />
+                            <p className="text-[11px] text-[#9B8EC4] mt-1">
+                              FIGSY sends Variant A (AI-generated) to 50% of new leads and Variant B (above) to the other 50%. Winner is picked after 48h by open rate.
+                            </p>
+                          </>
+                        )}
                       </div>
 
                       <button

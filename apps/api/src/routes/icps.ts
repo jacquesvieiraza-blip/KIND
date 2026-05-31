@@ -443,6 +443,100 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
   }
 })
 
+// ── P2-10: ICP AUTO-REFINEMENT ────────────────────────────────────────────────
+// AI analyses reply data for this ICP → suggests improvements → stored in ICP settings
+icpRouter.post('/:id/refine', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: icp } = await db.from('icps')
+      .select('id, name, industries, job_titles, seniority_levels, geographies, company_sizes')
+      .eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+
+    // Get leads from this ICP — need 50+ to make suggestions meaningful
+    const { data: leads } = await db.from('leads')
+      .select('id, job_title, company, industry, seniority, country, score')
+      .eq('client_id', clientId).eq('icp_id', req.params.id)
+      .not('score', 'is', null).limit(200)
+
+    const { count: replyCount } = await db.from('figsy_replies')
+      .select('id', { count: 'exact', head: true }).eq('client_id', clientId)
+
+    const { data: hotReplies } = await db.from('figsy_replies')
+      .select('lead_id, classification').eq('client_id', clientId)
+      .eq('classification', 'hot').limit(50)
+
+    const hotLeadIds = new Set((hotReplies ?? []).map(r => r.lead_id))
+    const hotLeads = (leads ?? []).filter(l => hotLeadIds.has(l.id))
+
+    if ((leads?.length ?? 0) < 20) {
+      res.json({ success: true, data: { suggestions: null, reason: 'Need at least 20 scored leads to generate refinement suggestions.' } })
+      return
+    }
+
+    const industryBreakdown = hotLeads.reduce<Record<string, number>>((acc, l) => {
+      if (l.industry) acc[l.industry] = (acc[l.industry] ?? 0) + 1
+      return acc
+    }, {})
+    const topIndustries = Object.entries(industryBreakdown).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k)
+
+    const seniorityBreakdown = hotLeads.reduce<Record<string, number>>((acc, l) => {
+      if (l.seniority) acc[l.seniority] = (acc[l.seniority] ?? 0) + 1
+      return acc
+    }, {})
+    const topSeniority = Object.entries(seniorityBreakdown).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k)
+
+    const prompt = `You are an expert B2B targeting analyst. A client is running outreach using this ICP:
+- Name: ${icp.name}
+- Industries: ${(icp.industries ?? []).join(', ') || 'not set'}
+- Job titles: ${(icp.job_titles ?? []).join(', ') || 'not set'}
+- Seniority: ${(icp.seniority_levels ?? []).join(', ') || 'not set'}
+- Geographies: ${(icp.geographies ?? []).join(', ') || 'not set'}
+- Company sizes: ${(icp.company_sizes ?? []).join(', ') || 'not set'}
+
+From ${leads?.length ?? 0} leads, ${hotLeads.length} replied with warm interest (${replyCount ?? 0} total replies).
+
+The warm leads skew towards:
+- Industries: ${topIndustries.join(', ') || 'mixed'}
+- Seniority: ${topSeniority.join(', ') || 'mixed'}
+
+Based on this data, suggest 3 specific ICP improvements that would increase reply rate. Return ONLY valid JSON:
+{
+  "suggestions": [
+    { "type": "industries"|"job_titles"|"seniority_levels"|"geographies"|"company_sizes", "action": "add"|"remove"|"focus", "value": "string", "reason": "string" }
+  ],
+  "summary": "one sentence summary of what's working"
+}`
+
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const raw = (message.content[0] as any).text ?? ''
+    let parsed: { suggestions: Array<{ type: string; action: string; value: string; reason: string }>; summary: string }
+    try {
+      parsed = JSON.parse(raw.replace(/```json\n?|\n?```/g, '').trim())
+    } catch {
+      res.json({ success: true, data: { suggestions: null, reason: 'Could not parse AI response. Try again.' } })
+      return
+    }
+
+    // Store suggestions in ICP settings
+    await db.from('icps').update({
+      settings: { refinement_suggestions: parsed.suggestions, refinement_summary: parsed.summary, refined_at: new Date().toISOString() }
+    }).eq('id', req.params.id).eq('client_id', clientId)
+
+    res.json({ success: true, data: { suggestions: parsed.suggestions, summary: parsed.summary } })
+  } catch (err) {
+    console.error('[icps/refine]', err)
+    res.status(500).json({ success: false, error: 'ICP refinement failed' })
+  }
+})
+
 icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

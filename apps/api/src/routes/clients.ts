@@ -247,3 +247,33 @@ clientRouter.get('/referrals', async (req: AuthRequest, res) => {
     res.json({ success: true, data: mapped })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch referrals' }) }
 })
+
+
+// ── P3-3: IN-PORTAL MESSAGING ─────────────────────────────────────────────────
+clientRouter.get('/messages', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data } = await db.from('client_messages')
+      .select('id, content, sender_type, created_at, read_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: true })
+      .limit(200)
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch messages' }) }
+})
+
+clientRouter.post('/messages', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { content } = z.object({ content: z.string().min(1).max(2000) }).parse(req.body)
+    const { data, error } = await db.from('client_messages').insert({
+      client_id: clientId,
+      content,
+      sender_type: 'client',
+    }).select('id, content, sender_type, created_at, read_at').single()
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to send message' }) }
+})

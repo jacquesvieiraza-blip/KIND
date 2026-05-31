@@ -9,7 +9,7 @@ import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
-  Menu, X, UserCheck, Plug,
+  Menu, X, UserCheck, Plug, MessageCircle,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
@@ -89,6 +89,7 @@ const ACCOUNT_NAV = [
   { href: '/dashboard/mcp',      label: 'MCP Connect', icon: Plug },
   { href: '/dashboard/billing',  label: 'Billing',    icon: CreditCard },
   { href: '/dashboard/team',     label: 'Team',       icon: UserCheck },
+  { href: '/dashboard/messages', label: 'Messages',   icon: MessageCircle },
   { href: '/dashboard/settings', label: 'Settings',   icon: Settings },
 ]
 

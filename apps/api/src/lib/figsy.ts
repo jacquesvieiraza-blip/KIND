@@ -499,10 +499,10 @@ export async function generateSequenceWithMemory(
   // last_winning_angle added via migration 20260525_fix_leads_status_and_figsy_memory.sql
   // Try with last_winning_angle; if column missing, retry without it (graceful degradation)
   let memoryResult = await db.from('figsy_memory')
-    .select('best_subject_lines, avg_reply_rate_30d, total_sent_all_time, last_winning_angle')
+    .select('best_subject_lines, avg_reply_rate_30d, total_sent_all_time, last_winning_angle, episodic_memory, longterm_memory, preference_memory')
     .eq('client_id', clientId)
     .maybeSingle()
-  if (memoryResult.error?.message?.includes('last_winning_angle')) {
+  if (memoryResult.error) {
     memoryResult = await db.from('figsy_memory')
       .select('best_subject_lines, avg_reply_rate_30d, total_sent_all_time')
       .eq('client_id', clientId)
@@ -514,15 +514,37 @@ export async function generateSequenceWithMemory(
     return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent)
   }
 
+  // P2-1: 3-type memory model
+  // Episodic: recent patterns (last 14 days) — what's working right now
+  const episodic = (memory as any).episodic_memory as Record<string, unknown> | null
+  // Long-term: accumulated learning — winning angles, best subjects
+  const longterm = (memory as any).longterm_memory as Record<string, unknown> | null
+  // Preference: tone/format per client
+  const preference = (memory as any).preference_memory as Record<string, unknown> | null
+
   const memoryContext = [
-    memory.avg_reply_rate_30d != null
-      ? `Your current average reply rate is ${(memory.avg_reply_rate_30d * 100).toFixed(1)}% — keep what's working, improve what isn't.`
+    // Episodic memory — recent reply patterns
+    episodic?.recent_reply_rate != null
+      ? `Recent (14d) reply rate: ${((episodic.recent_reply_rate as number) * 100).toFixed(1)}% — adapt tone accordingly.`
+      : memory.avg_reply_rate_30d != null
+        ? `30d average reply rate: ${(memory.avg_reply_rate_30d * 100).toFixed(1)}%`
+        : null,
+    episodic?.top_performing_industry
+      ? `Recent top-performing industry: ${episodic.top_performing_industry}`
       : null,
-    (memory.best_subject_lines as string[] | null)?.length
-      ? `Subject lines that have worked well: ${(memory.best_subject_lines as string[]).slice(0, 3).join(' | ')}`
+    // Long-term memory — accumulated wins
+    ((longterm?.best_subject_lines ?? memory.best_subject_lines) as string[] | null)?.length
+      ? `Subject lines that win replies: ${((longterm?.best_subject_lines ?? memory.best_subject_lines) as string[]).slice(0, 3).join(' | ')}`
       : null,
-    (memory as any).last_winning_angle
-      ? `Winning angle from last high-performing campaign: ${(memory as any).last_winning_angle}`
+    ((memory as any).last_winning_angle ?? longterm?.winning_angle)
+      ? `Winning angle: ${(memory as any).last_winning_angle ?? longterm?.winning_angle}`
+      : null,
+    // Preference memory — client/ICP tone preferences
+    preference?.preferred_tone
+      ? `Preferred writing tone: ${preference.preferred_tone}`
+      : null,
+    preference?.avoid_phrases
+      ? `Phrases to avoid: ${(preference.avoid_phrases as string[]).slice(0, 3).join(', ')}`
       : null,
   ].filter(Boolean).join('\n')
 
@@ -596,7 +618,7 @@ Return ONLY valid JSON:
 export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {
   try {
     const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id, name, campaign_intent')
+      .select('id, name, campaign_intent, settings')
       .eq('client_id', clientId)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
@@ -622,6 +644,14 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       (campaign as any).model_preference ?? 'haiku',
     )
 
+    // P2-2: A/B subject line — assign variant B to ~50% of new enrollments
+    const settings = (campaign as any).settings ?? {}
+    const abSubjectB = settings.ab_subject_b as string | null | undefined
+    const abResolved = settings.ab_test_resolved as boolean | undefined
+    const step1Subject = (abSubjectB && !abResolved && Math.random() < 0.5)
+      ? abSubjectB
+      : draft.step1.subject
+
     const { data: enrollment, error } = await db.from('figsy_enrollments').insert({
       campaign_id:    campaign.id,
       lead_id:        leadId,
@@ -629,7 +659,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       status:         'enrolled',
       current_step:   0,
       next_send_at:   new Date().toISOString(), // send step 1 immediately
-      step1_subject:  draft.step1.subject,
+      step1_subject:  step1Subject,
       step1_body:     draft.step1.body,
       step2_subject:  draft.step2.subject,
       step2_body:     draft.step2.body,

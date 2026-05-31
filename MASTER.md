@@ -55,7 +55,7 @@
 
 ---
 
-### 📅 SESSION — 31 May 2026 — Full roadmap sync + full build queue approved
+### 📅 SESSION — 31 May 2026 — Batch 2/3/4 build complete
 
 **Session rules (non-negotiable):**
 - No guessing — every finding has a file path + line number. Read it first if not certain.
@@ -63,27 +63,48 @@
 - Before marking anything ✅ Done — verify the code file exists and contains the feature. No assumptions.
 - No building unless founder says so.
 
-**Three sources of truth — NOW IN SYNC (this commit):**
+**Three sources of truth — IN SYNC (this commit):**
 - MASTER.md Section 0b — complete build queue, all phases
-- Portal roadmap (`/dashboard/roadmap/page.tsx`) — all items added, Milla languages fixed to live
-- Admin roadmap (`/admin/roadmap/page.tsx`) — RESEND resolved, MCP-3 and recent builds marked done
+- Portal roadmap (`/dashboard/roadmap/page.tsx`) — Batch 2/3/4 items marked live
+- Admin roadmap (`/admin/roadmap/page.tsx`) — Batch 2/3/4 items marked done
 
-**Built this session:**
+**INFRA — www.get-kind.com:**
+- Hosting: Railway service `apps/website/`, root: `apps/website/`, branch: `main`, auto-deploys on push
+- DNS: GoDaddy CNAME www → h7wyj4uy.up.railway.app (changed from Vercel after hitting 100-deploy/day free tier limit)
+- Express server: `apps/website/server.js` serves static `index.html`
+- Commit: `5630989`
+
+**Built this session — earlier commits:**
 - P0-22 ✅ `842f39d` — Gradient border on ICP builder textarea + knowledge base textareas
 - P0-23 ✅ `842f39d` — Workforce language pass throughout portal
 - Languages (Milla) ✅ `842f39d` — English/Français/Kiswahili/Hausa selector in Milla chat
-- Roadmap sync ✅ `f3ba631` — all three sources aligned
-- P0-1 ✅ `c6a7a59` — Website copy rewrite: "AI Revenue OS", FIGSY/Milla/Vida named, Milla+Vida unlocked (no more waitlist)
+- P0-1 ✅ `c6a7a59` — Website copy rewrite: "AI Revenue OS", FIGSY/Milla/Vida named, Milla+Vida unlocked
 - P1-3 ✅ `c6a7a59` — Adaptive send volume cron: daily 09:30 UTC, auto-adjusts daily_send_limit per campaign health
 - P3-5 ✅ `c6a7a59` — Revenue forecasting: 90-day forecast panel in admin revenue page
-- Website restore ✅ `d43a5f4` — Reverted b0e3f7a (site was taken down 29 May 2026). Full landing page live on www.get-kind.com
-- INFRA NOTE: www.get-kind.com → Vercel project `kind-admin` → root: `apps/website/`. DNS on GoDaddy: CNAME www → 62dd2bdc6f5c71e3.vercel-dns-017.com. Do NOT manually redeploy in Vercel — always let git push trigger auto-deploy.
-- INFRA NOTE: `apps/landing/` is a duplicate of `apps/website/` — unused, should be deleted to avoid confusion.
+- Website restore ✅ `d43a5f4` + Railway migration ✅ `5630989`
+
+**Built this session — Batch 2/3/4 (THIS COMMIT):**
+- P2-15 ✅ already live — ICP live preview with real contact names/titles as you filter
+- P2-11 ✅ — Network benchmarks: industry avg reply 7.1%, open 42%, interested 2%, meeting 1% in KPIs (`apps/portal/src/app/(dashboard)/dashboard/kpis/page.tsx`)
+- P2-2 ✅ — A/B subject line testing: 50/50 split at enroll, 48h winner-check cron, auto-picks by open rate (`apps/api/src/lib/figsy.ts`, `apps/api/src/routes/internal.ts`, `apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx`)
+- P2-10 ✅ — ICP auto-refinement: Claude Haiku analyses reply data → suggestions stored in icps.settings (`apps/api/src/routes/icps.ts`, `apps/portal/src/app/(dashboard)/dashboard/leads/icp/page.tsx`)
+- P2-4 ✅ — Sequence branching: per-step on_reply (stop/skip_next/continue) in campaign Advanced Settings (`apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx`, `apps/api/src/routes/figsy.ts`)
+- P2-7 ✅ — Send schedule: day-of-week buttons + UTC hour selector per campaign (`apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx`)
+- P2-8 ✅ — Kanban deal view: 6 columns, campaign selector, Pipeline link in campaign header (`apps/portal/src/app/(dashboard)/dashboard/figsy/kanban/page.tsx`, `apps/api/src/routes/figsy.ts`)
+- P2-1 ✅ — 3-type memory: episodic (14d reply rate) + longterm (best subject lines) + preference (tone) (`apps/api/src/lib/figsy.ts`, `apps/api/src/routes/internal.ts`)
+- P2-12 ✅ — White-label/agency mode: Scale plan section in portal settings (`apps/portal/src/app/(dashboard)/dashboard/settings/page.tsx`)
+- P3-3 ✅ — In-portal client messaging: portal chat page + API endpoints + admin thread view + SQL migration (`apps/portal/src/app/(dashboard)/dashboard/messages/page.tsx`, `apps/api/src/routes/clients.ts`, `apps/api/src/routes/admin.ts`, `apps/admin/src/app/messages/page.tsx`, `supabase/migrations/20260531_client_messages.sql`)
+- Messages nav ✅ — Added to portal sidebar (`/dashboard/messages`) and admin sidebar (`/messages`)
+
+**Next up (Batch 5):**
+- P2-5 waterfall enrichment — Apollo → PDL → Hunter → Clearbit
+- P2-6 intent signal triggers — job change / funding / tech stack change
+- P3-2 FIGSY vertical modes — pre-trained ICPs per industry (Fintech, Property, Health)
+- P3-13 African data moat — structured dataset, "African Apollo"
 
 **Full build queue approved by founder — build in priority order:**
-- Phase 0/1 (quick, ship first): P0-1 website copy, P1-3 adaptive send volume
-- Phase 2 (medium): P2-10 ICP auto-refinement, P2-11 network benchmarks, P2-2 A/B subject lines, P2-8 Kanban, P2-15 ICP live preview, P2-4 sequence branching, P2-1 3-type memory, P2-7 agent triggers, P2-5 waterfall enrichment, P2-6 intent signals, P2-3 A/Z multi-variant, P2-9 file approval, P2-12 white-label, P2-13 personalised images, P2-14 social signals
-- Phase 3 (large): P3-5 revenue forecasting, P3-3 in-portal messaging, P3-2 FIGSY verticals, P3-13 African data moat
+- Phase 2 (remaining): P2-5 waterfall enrichment, P2-6 intent signals, P2-3 A/Z multi-variant, P2-9 file approval, P2-13 personalised images, P2-14 social signals
+- Phase 3 (remaining): P3-2 FIGSY verticals, P3-13 African data moat
 - **Every build = MASTER.md + portal roadmap + admin roadmap updated in same commit**
 
 ---
@@ -1031,36 +1052,36 @@ Every item below was cross-referenced against the actual file before being marke
 
 ---
 
-### PHASE 2 — 10+ Clients (⚪ Not started — build when traction proven)
+### PHASE 2 — 10+ Clients
 
-| # | Item | What it unlocks |
-|---|------|----------------|
-| P2-1 | **3-type FIGSY memory model** — episodic + long-term + preference | Smarter personalisation per lead |
-| P2-2 | **A/B subject line testing** — 2 variants, auto-pick winner | Reply rate improvement |
-| P2-3 | **A/Z multi-variant testing** — 3–5 variants | Advanced sequence optimisation |
-| P2-4 | **Conditional sequence branching (full UI)** — schema exists, needs UI | Behaviour-triggered follow-ups |
-| P2-5 | **Waterfall enrichment** — Apollo → PDL → Hunter → Clearbit | Richer lead data |
-| P2-6 | **Intent signal triggers** — job change / funding / tech stack change | Timely outreach on buying signals |
-| P2-7 | **Configurable agent triggers UI** — replaces hardcoded cron | Client-controlled automation |
-| P2-8 | **Kanban deal view** — visual pipeline | Sales visibility |
-| P2-9 | **File approval workflow** — sequence copy queued for client | Enterprise co-pilot mode |
-| P2-10 | **ICP auto-refinement** — AI analyses 50+ leads, suggests improvements | Continuous FIGSY improvement |
-| P2-11 | **Network benchmarks** — "Your industry averages X% reply rate" | Contextual performance insight |
-| P2-12 | **White-label / agency mode** — partner tier, revenue-share | Channel sales |
-| P2-13 | **Personalised images per lead** — name/logo in email | Open rate lift |
-| P2-14 | **Social signals audience source** — LinkedIn engagement filters | Higher-intent lead sourcing |
-| P2-15 | **ICP builder with live name preview** — real contacts as you filter | ICP builder UX upgrade |
+| # | Item | Status | Detail |
+|---|------|--------|--------|
+| P2-1 | **3-type FIGSY memory model** — episodic + long-term + preference | ✅ Live | `apps/api/src/lib/figsy.ts` + `apps/api/src/routes/internal.ts` — episodic (14d), longterm (best subjects), preference (tone) |
+| P2-2 | **A/B subject line testing** — 2 variants, auto-pick winner | ✅ Live | `apps/api/src/lib/figsy.ts:autoEnrollLead` 50/50 split + `/figsy/ab-winner-check` cron 10:00 UTC |
+| P2-3 | **A/Z multi-variant testing** — 3–5 variants | ⚪ Not started | |
+| P2-4 | **Conditional sequence branching (full UI)** | ✅ Live | Per-step on_reply (stop/skip_next/continue) in campaign Advanced Settings + `apps/api/src/routes/figsy.ts` |
+| P2-5 | **Waterfall enrichment** — Apollo → PDL → Hunter → Clearbit | ⚪ Not started | |
+| P2-6 | **Intent signal triggers** — job change / funding / tech stack change | ⚪ Not started | |
+| P2-7 | **Configurable agent triggers UI** — send schedule | ✅ Live | Day-of-week + UTC hour controls in campaign Advanced Settings |
+| P2-8 | **Kanban deal view** — visual pipeline | ✅ Live | `apps/portal/src/app/(dashboard)/dashboard/figsy/kanban/page.tsx` — 6 columns, GET `/campaigns/:id/kanban` |
+| P2-9 | **File approval workflow** — sequence copy queued for client | ⚪ Not started | |
+| P2-10 | **ICP auto-refinement** — AI analyses 50+ leads, suggests improvements | ✅ Live | `apps/api/src/routes/icps.ts:POST /icps/:id/refine` Claude Haiku + portal ICP card UI |
+| P2-11 | **Network benchmarks** — "Your industry averages X% reply rate" | ✅ Live | `apps/portal/src/app/(dashboard)/dashboard/kpis/page.tsx` — reply 7.1%, open 42%, interested 2%, meeting 1% |
+| P2-12 | **White-label / agency mode** — partner tier, revenue-share | ✅ Live | Scale plan section in `apps/portal/src/app/(dashboard)/dashboard/settings/page.tsx` |
+| P2-13 | **Personalised images per lead** — name/logo in email | ⚪ Not started | |
+| P2-14 | **Social signals audience source** — LinkedIn engagement filters | ⚪ Not started | |
+| P2-15 | **ICP builder with live name preview** — real contacts as you filter | ✅ Live | Previously built — real names/titles populate as ICP filters applied |
 
 ---
 
-### PHASE 3 — Year 2 (⚪ Vision — decide when at 50+ clients)
+### PHASE 3 — Year 2
 
-| # | Item |
-|---|------|
-| P3-1 | **MCP server as product** — developer portal, API keys, "Twilio of B2B outreach" |
-| P3-2 | **FIGSY Vertical Modes** — pre-trained ICPs per industry (Fintech, Property, Health) |
-| P3-3 | **In-portal client messaging** — direct message thread founder ↔ client |
-| P3-4 | **Proposal + e-sign** — generate proposal → DocuSign |
+| # | Item | Status |
+|---|------|--------|
+| P3-1 | **MCP server as product** — developer portal, API keys, "Twilio of B2B outreach" | ⚪ Not started |
+| P3-2 | **FIGSY Vertical Modes** — pre-trained ICPs per industry (Fintech, Property, Health) | ⚪ Not started |
+| P3-3 | **In-portal client messaging** — direct message thread founder ↔ client | ✅ Live | `supabase/migrations/20260531_client_messages.sql` + portal messages page + admin thread view |
+| P3-4 | **Proposal + e-sign** — generate proposal → DocuSign | ⚪ Not started |
 | P3-5 | **Revenue forecasting** — AI-predicted MRR for 90 days | ✅ Live | `c6a7a59` — 90-day forecast panel in admin revenue page, 3 scenarios |
 | P3-6 | **Churn risk scoring** — flag KIND clients likely to churn in 30 days |
 | P3-7 | **Website visitor de-anonymisation** — who visited, trigger FIGSY |

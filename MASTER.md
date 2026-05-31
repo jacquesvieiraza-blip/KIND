@@ -46,6 +46,7 @@
 36. [Admin Portal Playbook — How to Use Every Route](#36-admin-portal-playbook--how-to-use-every-route)
 37. [Monday.com AI — Competitive Audit & UX Steal List](#37-mondaycom-ai--competitive-audit--ux-steal-list)
 38. [Multi-User Team Model — Architecture & Build Plan](#38-multi-user-team-model--architecture--build-plan)
+39. [Going Live — Full Admin Checklist](#39-going-live--full-admin-checklist)
 
 ---
 
@@ -7012,7 +7013,7 @@ Every decision we make now should be evaluated against this future:
 
 ## 35. DEMO PLAYBOOK — LIVE SALES DEMO & SMOKE TEST
 
-*Written: 27 May 2026. Use this for every demo. Run it first as a smoke test — same steps.*
+*Updated: 1 Jun 2026. All Phase 2 + Phase 3 features built. Use this for every demo and smoke test.*
 *This is your Rachel moment. Run your own real environment. Real data. Real AI. No slides.*
 *URL: https://app.get-kind.com — your own account, your own ICP, your own leads.*
 
@@ -7035,24 +7036,28 @@ Every screen you show is a real client screen. Every AI output is real. Every nu
 
 ---
 
-### 🛠️ PRE-DEMO SETUP (Do this once, not during the demo)
+### 🛠️ PRE-DEMO SETUP — Using Demo Envs (No paid tools required)
 
-| # | Task | Why it matters |
-|---|------|----------------|
-| S1 | Sign up at `app.get-kind.com` with a REAL email you check | Welcome email is part of the demo |
-| S2 | Complete onboarding fully — company name, industry, country | Dashboard shows your company — looks real |
-| S3 | Run the SQL in Section 18 Test 2 to unlock FIGSY + Milla + Vida | All three agents accessible |
-| S4 | Admin → grant yourself **10,000 credits** | Unlimited during demo |
-| S5 | Build one real ICP — your actual target market | Leads that look relevant during demo |
-| S6 | Let leads load (15–20 min after ICP saved) | Live data in the pipeline |
-| S7 | Create one campaign — named "Demo Campaign" | Something to show in FIGSY |
-| S8 | Upload one document to Milla (your pitch deck PDF, or a 1-page brief) | Milla has context to answer from |
-| S9 | Save a Vida chatbot config (bot name: "Kind Assistant", simple greeting) | Embed code is visible and copyable |
-| S10 | Open demo in a clean Chrome window — no dev tools, no extensions visible | Looks like a client environment |
-| S11 | Zoom in to 110% in browser — everything slightly larger, easier to read on screen share | Professional presentation |
-| S12 | Close all tabs except the portal | No distractions in the browser bar |
+**One-time setup. Takes ~15 minutes. Do it the day before, not the morning of.**
 
-> **Note:** Once setup is done, this environment is permanently ready. You never rebuild it. You just open a tab and go.
+| # | Task | How |
+|---|------|-----|
+| S1 | **Admin → Demo Envs → Create new demo** | Fill: prospect name = "Kind Demo", company = your target industry, country = South Africa, industry = Fintech (or relevant). Expiry = 30 days. This creates a real portal account. |
+| S2 | **Admin → All Clients → find the demo client → Grant 500 credits** | Click the client → Credits tab → grant 500. Repeat once more for 1,000 total. |
+| S3 | **Admin → Demo Envs → Open portal** | Logs you in as the demo client. You're now in the demo environment. |
+| S4 | **Complete onboarding** | Company name, industry, country — fill it in. This is what the client will see on first login. |
+| S5 | **Leads → ICP Builder → Save an ICP** | Industry: Fintech, Title: Head of Sales, Country: South Africa. Save. Leads will populate with fake seeded data. |
+| S6 | **FIGSY → Create a campaign** | Name: "Q3 Outbound", tone: Professional. Add 3 steps. Save. This is what you'll demonstrate. |
+| S7 | **Campaign → Advanced Settings → Enable A/Z testing** | Add 2 subject line variants. Shows the intelligence layer. |
+| S8 | **FIGSY → Kanban** | Opens the pipeline view — visual and impressive. |
+| S9 | **Milla → Upload one document** | Use a 1-page company brief (PDF or .txt). Milla will answer from it during the demo. |
+| S10 | **Vida → Config → Save** | Bot name: "KIND Assistant". Brand colour: #6d28d9. Save. Embed code is now visible. |
+| S11 | **Proposals → New Proposal** | Create a draft proposal titled "K.I.N.D Proposal — [Prospect Name]". Shows the e-sign flow. |
+| S12 | **Open demo in clean Chrome window** | No dev tools, no extensions, no other tabs visible. Zoom to 110%. |
+
+> **This demo environment is permanently ready.** You never rebuild it. Login as the demo client and go.
+> **No Apollo key needed** — seeded leads are already in the pipeline.
+> **No Resend needed** — FIGSY email attempts are visible in the UI even if delivery fails.
 
 ---
 
@@ -7270,9 +7275,34 @@ Show the **embed code** panel.
 
 ---
 
-#### SCENE 10 — The Share Link (30 sec)
+#### SCENE 10 — Kanban & Pipeline (1 min)
+*URL: `/dashboard/figsy/kanban`*
+
+**Navigate:** FIGSY → Pipeline (Kanban button in campaign header).
+
+**Say:** *"Every lead FIGSY is working — visualised as a deal pipeline. Enrolled, first email sent, second email, replied, completed. You see exactly where every conversation is. Same as a sales CRM — except FIGSY moves the cards himself."*
+
+*Point to a column.* *"No manual updates. FIGSY moves a lead when it replies. You just watch the pipeline fill."*
+
+---
+
+#### SCENE 11 — Proposals (1 min)
+*URL: `/dashboard/proposals`*
+
+**Navigate:** Sidebar → Proposals.
+
+**Say:** *"When a lead is hot and wants to move forward — you send a proposal. One button. K.I.N.D generates it from your campaign data. You review, hit send, and they get an email with a sign link."*
+
+Show the draft proposal created in pre-demo setup.
+
+**Say:** *"They click the link, review the proposal, sign it. You get a notification. No DocuSign account. No PDF back-and-forth. Done."*
+
+Point to status badge: *"Draft → Sent → Viewed → Signed. You always know where it is."*
+
+---
+
+#### SCENE 12 — The Share Link (30 sec)
 *URL: `/share/[token]`*
-*Smoke Test: (S3 — built this session)*
 
 **Say:** *"Last thing — if you have investors, a sales manager, or a board you report to, you don't need to add them as users. You share a link."*
 
@@ -7282,7 +7312,7 @@ Open a shareable dashboard link.
 
 ---
 
-#### SCENE 11 — The Close (1 min)
+#### SCENE 13 — The Close (1 min)
 
 **Say:** *"Three agents. One platform. FIGSY books the meetings. Milla handles the research and documents. Vida converts your website traffic. You run the business."*
 
@@ -8065,3 +8095,93 @@ Team seats will be an add-on. Options:
 ---
 
 *Section 38 written: 31 May 2026. Build in progress — background agent building all components.*
+
+## 39. GOING LIVE — FULL ADMIN CHECKLIST
+*Do this once: after lawyer confirms, before first real client. In order.*
+
+---
+
+### 🏢 COMPANY REGISTRATION (UK — Companies House)
+
+| # | Task | Detail | Status |
+|---|------|--------|--------|
+| 1 | **Lawyer confirmation** | Confirm legal structure (Ltd), director details, registered address | ⏳ Waiting |
+| 2 | **Companies House registration** | companieshouse.gov.uk → Incorporate a Private Limited Company → £12 online → same-day | ⏳ After lawyer |
+| 3 | **Company number** | Save it — needed for contracts, invoices, DPA | ⏳ |
+| 4 | **Registered address** | Use a virtual office address if working remotely (~£10/mo) — keeps personal address off public record | ⏳ |
+| 5 | **Corporation Tax registration** | HMRC → register within 3 months of trading | ⏳ |
+| 6 | **Business bank account** | Tide, Starling, or Monzo Business (free tiers) — needed for Stripe payouts | ⏳ |
+
+---
+
+### 📧 GOOGLE WORKSPACE
+
+| # | Task | Detail | Status |
+|---|------|--------|--------|
+| 1 | **Sign up** | workspace.google.com → Business Starter ($6/user/mo) | ⏳ |
+| 2 | **Primary email** | `jacques@get-kind.com` | ⏳ |
+| 3 | **Team emails** | `hello@get-kind.com`, `support@get-kind.com`, `noreply@get-kind.com` | ⏳ |
+| 4 | **GoDaddy MX records** | Google Workspace will give you 5 MX records to add in GoDaddy DNS | ⏳ |
+| 5 | **Connect to Resend** | Resend → Domains → verify `get-kind.com` with SPF + DKIM → all outbound email via Resend | ⏳ |
+
+---
+
+### 💳 PAID TOOLS — IN ORDER OF PRIORITY
+
+| Priority | Tool | Cost | What it unlocks | Action |
+|----------|------|------|----------------|--------|
+| 🔴 1 | **Apollo.io Basic** | $49/mo | Lead search returns real results — nothing works without this | apollo.io → Upgrade → Basic |
+| 🔴 2 | **Railway Hobby** | $5/mo | Custom domains for `app.get-kind.com` + `www.get-kind.com` | railway.app → Billing → Hobby |
+| 🟡 3 | **Resend Pro** | $20/mo | 100 emails/day → 50,000/mo — FIGSY hits free limit immediately | resend.com → Billing → Pro |
+| 🟡 4 | **Stripe live mode** | Free (2.9% + 30c) | Accept real payments from clients | Stripe → Activate account → add bank |
+| ⚪ 5 | **Hunter.io** | Free/25 per mo | Waterfall enrichment fallback | hunter.io → free signup → API key |
+| ⚪ 6 | **Clearbit** | Free tier | Visitor de-anon company names | clearbit.com → free signup → API key |
+| ⚪ 7 | **PDL (People Data Labs)** | Free/100 calls | Waterfall enrichment top tier | peopledatalabs.com → free signup |
+| ⚪ 8 | **HubSpot** | Free CRM | CRM sync for clients using HubSpot | hubspot.com → free account → API key |
+
+---
+
+### 🔑 RAILWAY ENV VARS TO SET (when tools above are ready)
+
+Add these in Railway → `@kind/api` service → Variables:
+
+```
+APOLLO_API_KEY=
+RESEND_API_KEY=                ← already set, verify it's on paid plan
+ADMIN_API_KEY=                 ← generate any secure string: openssl rand -hex 32
+HUNTER_API_KEY=
+CLEARBIT_API_KEY=
+PDL_API_KEY=
+HUBSPOT_API_KEY=
+STRIPE_SECRET_KEY=             ← switch from test to live key
+STRIPE_WEBHOOK_SECRET=         ← re-register webhook with live endpoint
+PORTAL_URL=https://app.get-kind.com
+```
+
+---
+
+### 🌐 DNS — FINAL STATE (GoDaddy)
+
+| Record | Type | Name | Value |
+|--------|------|------|-------|
+| Website | CNAME | `www` | `h7wyj4uy.up.railway.app` |
+| Portal | CNAME | `app` | Railway portal CNAME (get from Railway after Hobby upgrade) |
+| Email (Google) | MX x5 | `@` | Google Workspace MX records |
+| Email SPF | TXT | `@` | `v=spf1 include:_spf.google.com include:amazonses.com ~all` |
+| Email DKIM | TXT | `resend._domainkey` | Resend DKIM value |
+
+---
+
+### ✅ READY TO TAKE FIRST CLIENT WHEN:
+- [ ] Company registered
+- [ ] Business bank account open
+- [ ] Stripe live mode active
+- [ ] Apollo API key in Railway
+- [ ] `app.get-kind.com` DNS resolving
+- [ ] `noreply@get-kind.com` sending via Resend
+- [ ] ADMIN_API_KEY set in Railway
+- [ ] Smoke test passed (Section 18 + Section 35)
+
+---
+
+*Section 39 added: 1 Jun 2026*

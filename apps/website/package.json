@@ -3,6 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "start": "node server.js",
     "build": "echo 'static site — no build required'"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
   }
 }

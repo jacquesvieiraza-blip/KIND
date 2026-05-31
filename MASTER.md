@@ -143,28 +143,38 @@
 - P3-4 ✅ — Proposal + e-sign: generate proposal, send via email with sign link, status tracking (draft→sent→viewed→signed). Admin view of all client proposals (`apps/api/src/routes/proposals.ts`, `apps/portal/src/app/(dashboard)/dashboard/proposals/page.tsx`, `apps/admin/src/app/proposals/page.tsx`)
 - P3-7 ✅ — Visitor de-anon: tracking snippet on website (POST /track/visit), IP→company via Clearbit Reveal, intent scoring by page URL, admin dashboard at `/visitors` (`apps/api/src/routes/tracking.ts`, `apps/admin/src/app/visitors/page.tsx`)
 
-**Migrations to run in Supabase:**
-- `supabase/migrations/20260601_personalized_images.sql`
-- `supabase/migrations/20260601_developer_keys.sql`
-- `supabase/migrations/20260601_proposals.sql`
-- `supabase/migrations/20260601_social_signals.sql`
-- `supabase/migrations/20260601_visitor_sessions.sql`
+**Migrations ✅ ALL RUN in Supabase (1 Jun 2026):**
+- `20260531_client_messages.sql` ✅
+- `20260531_african_data_moat.sql` ✅
+- `20260601_personalized_images.sql` ✅
+- `20260601_developer_keys.sql` ✅
+- `20260601_proposals.sql` ✅
+- `20260601_social_signals.sql` ✅ (also added `icps.settings` column)
+- `20260601_visitor_sessions.sql` ✅
 
 **Full build queue status:**
 - Phase 2: ✅ ALL COMPLETE — P2-1 through P2-15 all live
 - Phase 3: ✅ P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-13 all live
 - **Every build = MASTER.md + portal roadmap + admin roadmap updated in same commit**
 
-**FOUNDER ACTION NEEDED:**
-1. DNS: Add BOTH domains to Railway custom domain (need Railway plan upgrade — hit custom domain limit)
-   - www.get-kind.com → h7wyj4uy.up.railway.app (website — already set in GoDaddy, waiting on Railway SSL)
-   - app.get-kind.com (portal) — DNS needs updating once Railway plan allows
-2. API keys to add to Railway environment:
-   - PDL_API_KEY — activates waterfall enrichment (P2-5)
-   - HUNTER_API_KEY — email finder in waterfall (P2-5)
-   - CLEARBIT_API_KEY — company enrichment (P2-5)
-   - APOLLO_API_KEY ($49/mo plan) — lead search
-   - HUBSPOT_API_KEY — CRM sync
+**🧪 SMOKE TEST — Use fake data, no paid tools needed:**
+1. Admin → Demo Envs → create a new demo environment (creates real test account with seeded data)
+2. Admin → All Clients → find the demo client → grant 100 credits manually
+3. Log in to portal as the demo client
+4. Run smoke test checklist (Section 18)
+- No Apollo key needed — use seeded leads from Demo Envs
+- No Resend needed for smoke test — emails will attempt to send but fail gracefully
+
+**⏳ WHEN GOING LIVE — Do these before first real client:**
+1. **Railway Hobby plan** ($5/mo) → unlocks multiple custom domains
+   - Add `app.get-kind.com` custom domain to portal service in Railway
+   - GoDaddy: add CNAME `app` → Railway portal CNAME target
+2. **APOLLO_API_KEY** — upgrade Apollo to $49/mo Basic plan → Settings → Integrations → API
+3. **PDL_API_KEY** — peopledatalabs.com (waterfall enrichment top tier)
+4. **HUNTER_API_KEY** — hunter.io free plan = 25/mo, paid from $49/mo
+5. **CLEARBIT_API_KEY** — clearbit.com free Reveal tier → visitor de-anon company names
+6. **HUBSPOT_API_KEY** — CRM sync (only needed when client uses HubSpot)
+7. **RESEND paid plan** ($20/mo Pro) — free plan = 100 emails/day, FIGSY hits this immediately
 
 ---
 

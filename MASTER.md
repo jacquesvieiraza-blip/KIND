@@ -853,6 +853,14 @@
 | Layout overhaul — light sidebar `#F5F3FF`, clean `#FAFAFE` bg, dots removed, 220px sidebar | `c5b38e5` |
 | Agent panel → RIGHT of content, home page panel removed (FigsyConversation handles it) | `15aa43f` |
 | ICP Builder — FigsySidePanel moved to RIGHT side, consistent with all other pages | `f53579b` |
+| **P0-18: FIGSY Full Page** — `/dashboard/figsy-chat`, hero textarea with purple gradient border, 4 starter pills, chat history, localStorage (30 msgs), avatars, mode=full | `c03a0c7` |
+| **P0-16: KIND AI sidebar label** — "AI Agents" → "KIND AI" section header | `c03a0c7` |
+| **P0-17: Personalized dashboard greeting** — "Good morning/afternoon/evening, [name]" + context subtitle | `c03a0c7` |
+| **P0-6: Analytics empty state** — 4 action cards (Chat with FIGSY, Define ICP, Import LinkedIn, See roadmap) replacing "No data yet" | `c03a0c7` |
+| **P0-20: Suggested starters on Campaigns + Inbox empty states** — action cards on figsy/page.tsx and inbox/page.tsx | `88dea2e` |
+| **P0-5: Notification Preferences UI** — 5 toggles in Settings (reply received, low credits, campaign paused, weekly digest, daily brief), localStorage | `6fd5df2` |
+| **P0-19: Agent card redesign** — coloured left border accent per agent, tinted bg, avatar 56px, role text in agent colour | `7ff727b` |
+| **P0-23: "Chat with FIGSY" added as first nav item** under KIND AI section in sidebar | `c03a0c7` |
 
 ---
 
@@ -862,24 +870,25 @@
 `/dashboard/figsy-chat` — full-width dedicated FIGSY conversation page. Large centered input with purple gradient border, 4 smart suggested starters from live pipeline, full chat history, FIGSY avatar header. Sidebar FIGSY item routes here. Replaces floating button. This is the Monday.com answer.
 
 **Phase 0 — Buildable now (no external deps)**
-| # | Item |
-|---|------|
-| P0-1 | Website copy rewrite — "AI Revenue OS. FIGSY works 24/7." |
-| P0-3 | Knowledge base on-save preview — FIGSY generates sample sentence after saving |
-| P0-4 | Email open tracking — pixel, `opened_at` column, open rate KPI |
-| P0-5 | Notification preferences UI — toggle email notification events |
-| P0-6 | Analytics empty state — 4 action cards instead of "No leads yet." |
-| P0-8 | Email Score pre-send — 0–100 score per step, flags weak subjects + spam words |
-| P0-10 | Co-pilot mode — approve before send toggle per campaign |
-| P0-11 | Auto-fire consent on lead approval |
-| P0-14 | Multi-model toggle — Haiku vs Sonnet per campaign |
-| P0-15 | Template library — 5–9 pre-built sequence templates |
-| P0-16 | KIND AI sidebar section header |
-| P0-17 | Personalized dashboard greeting |
-| P0-19 | Agent card redesign — coloured background, larger avatar |
-| P0-20 | Suggested starters on all empty states |
-| P0-22 | Input as design signal — full-width gradient border everywhere |
-| P0-23 | Workforce language pass — "Your team", "FIGSY sent" throughout |
+| # | Item | Status |
+|---|------|--------|
+| P0-1 | Website copy rewrite — "AI Revenue OS. FIGSY works 24/7." | 🔴 Not started |
+| P0-3 | Knowledge base on-save preview — FIGSY generates sample sentence after saving | 🔴 Not started |
+| P0-4 | Email open tracking — pixel, `opened_at` column, open rate KPI | 🔴 Not started |
+| P0-5 | Notification preferences UI — toggle email notification events | ✅ Done `6fd5df2` |
+| P0-6 | Analytics empty state — 4 action cards instead of "No leads yet." | ✅ Done `c03a0c7` |
+| P0-8 | Email Score pre-send — 0–100 score per step, flags weak subjects + spam words | 🔴 Not started |
+| P0-10 | Co-pilot mode — approve before send toggle per campaign | 🔴 Not started |
+| P0-11 | Auto-fire consent on lead approval | 🔴 Not started |
+| P0-14 | Multi-model toggle — Haiku vs Sonnet per campaign | 🔴 Not started |
+| P0-15 | Template library — 5–9 pre-built sequence templates | 🔴 Not started |
+| P0-16 | KIND AI sidebar section header | ✅ Done `c03a0c7` |
+| P0-17 | Personalized dashboard greeting | ✅ Done `c03a0c7` |
+| P0-18 | FIGSY Full Page — `/dashboard/figsy-chat` | ✅ Done `c03a0c7` |
+| P0-19 | Agent card redesign — coloured background, larger avatar | ✅ Done `7ff727b` |
+| P0-20 | Suggested starters on all empty states | ✅ Done `88dea2e` |
+| P0-22 | Input as design signal — full-width gradient border everywhere | 🔴 Not started |
+| P0-23 | Workforce language pass — "Your team", "FIGSY sent" throughout | ✅ Partial `c03a0c7` (sidebar nav + chat nav added) |
 
 **Phase 0 — Buildable (needs RESEND_API_KEY confirmed in Railway)**
 | # | Item |

@@ -9111,6 +9111,11 @@ Certification is self-serve — videos + quiz. No cost. Unlocks higher tier bene
 | Demo sandbox per partner | ✅ Built |
 | Auto-commission on Stripe payment | ✅ Built |
 | Partner contract template | ✅ In Section 42b |
+| Admin partner workflow — tabbed Partners/Deals/Commissions page | ✅ Built |
+| Commission approve + mark paid (Wise reference) in admin | ✅ Built |
+| Contract accordion + checkbox in partner apply form (website) | ✅ Built |
+| `contract_signed_at` stored on apply — timestamped acceptance | ✅ Built |
+| Admin commission API routes (`GET/PATCH /admin/commissions`) | ✅ Built |
 
 ---
 

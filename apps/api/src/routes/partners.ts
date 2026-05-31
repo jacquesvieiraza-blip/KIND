@@ -38,22 +38,30 @@ function requireAdminKey(req: Request, res: Response, next: () => void) {
 partnersRouter.post('/apply', async (req: Request, res: Response) => {
   try {
     const body = z.object({
-      name:         z.string().min(1),
-      email:        z.string().email(),
-      company:      z.string().optional(),
-      partner_type: z.enum(['referral', 'agency', 'technology']),
-      message:      z.string().optional(),
+      name:             z.string().min(1),
+      email:            z.string().email(),
+      company:          z.string().optional(),
+      partner_type:     z.enum(['referral', 'agency', 'technology']),
+      message:          z.string().optional(),
+      agreed_to_contract: z.boolean().optional(),
     }).parse(req.body)
+
+    if (!body.agreed_to_contract) {
+      res.status(400).json({ success: false, error: 'You must accept the Partner Agreement to apply.' })
+      return
+    }
 
     const { error } = await db
       .from('partners')
       .insert({
-        name:         body.name,
-        email:        body.email,
-        company:      body.company ?? null,
-        partner_type: body.partner_type,
-        notes:        body.message ?? null,
-        status:       'pending',
+        name:               body.name,
+        email:              body.email,
+        company:            body.company ?? null,
+        partner_type:       body.partner_type,
+        notes:              body.message ?? null,
+        status:             'pending',
+        contract_signed_at: new Date().toISOString(),
+        contract_version:   'v1.0',
       })
       .select()
       .single()

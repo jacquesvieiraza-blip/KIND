@@ -100,6 +100,20 @@
       background-position: right 14px center;
       cursor: pointer;
     }
+    .contract-accordion { border: 1.5px solid rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+    .contract-toggle { width: 100%; background: #f8f9fa; border: none; padding: 13px 16px; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--dark); cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-family: inherit; }
+    .contract-toggle:hover { background: #f0f2f5; }
+    .contract-body { display: none; padding: 16px; max-height: 280px; overflow-y: auto; background: #fff; border-top: 1px solid rgba(0,0,0,0.08); }
+    .contract-body.open { display: block; }
+    .contract-body h4 { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dark); margin: 16px 0 6px; }
+    .contract-body h4:first-child { margin-top: 0; }
+    .contract-body p, .contract-body li { font-size: 0.8rem; color: rgba(0,0,0,0.55); line-height: 1.7; margin-bottom: 6px; }
+    .contract-body ul { padding-left: 18px; margin: 0 0 8px; }
+    .pf-agree { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; cursor: pointer; }
+    .pf-agree input[type=checkbox] { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--blue); cursor: pointer; flex-shrink: 0; }
+    .pf-agree span { font-size: 0.82rem; color: rgba(0,0,0,0.55); line-height: 1.55; }
+    .pf-agree span a { color: var(--blue); text-decoration: none; font-weight: 600; }
+    .btn-pf-submit:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* SECTION BASE */
     .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
@@ -768,8 +782,60 @@
           <label class="pf-label" for="p-message">Tell us about your business and clients</label>
           <textarea class="pf-textarea" id="p-message" placeholder="What do you do? Who are your clients? How do you see K.I.N.D fitting in?"></textarea>
         </div>
+        <!-- Partner Agreement accordion -->
+        <div class="contract-accordion">
+          <button type="button" class="contract-toggle" id="contract-toggle" onclick="toggleContract()">
+            <span>📄 Read the Partner Agreement</span>
+            <span id="contract-chevron" style="font-size:0.75rem;color:rgba(0,0,0,0.35);transition:transform .2s">▼</span>
+          </button>
+          <div class="contract-body" id="contract-body">
+            <h4>1. Appointment</h4>
+            <p>K.I.N.D (Registered in England &amp; Wales) appoints you as a non-exclusive partner to refer, resell, or integrate the K.I.N.D platform under the tier you have applied for. This agreement does not create employment, agency (legal), or joint venture.</p>
+
+            <h4>2. Commission &amp; Payment</h4>
+            <ul>
+              <li><strong>Referral tier:</strong> 20% of monthly subscription revenue per referred client for 12 months.</li>
+              <li><strong>Agency tier:</strong> 25% recurring commission for the lifetime of the referred client relationship.</li>
+              <li><strong>White-label tier:</strong> 30% recurring commission for the lifetime of the relationship.</li>
+            </ul>
+            <p>Commissions are calculated monthly and paid within 30 days of month-end via Wise transfer. Minimum payout threshold: R500 / $30. Commissions are not payable on refunded or charged-back amounts.</p>
+
+            <h4>3. Deal Registration &amp; Protection</h4>
+            <p>You may register a prospect through the partner portal before making contact. Registered deals receive 60-day exclusive protection — K.I.N.D will not directly solicit that prospect during the protection window. Protection lapses if the deal is not progressed within 60 days. K.I.N.D reserves the right to reject registrations that are inaccurate or registered in bad faith.</p>
+
+            <h4>4. Partner Obligations</h4>
+            <ul>
+              <li>Represent K.I.N.D accurately and in compliance with provided marketing materials.</li>
+              <li>Obtain all necessary consents before sharing prospect data with K.I.N.D (POPIA / GDPR compliance).</li>
+              <li>Not make commitments or warranties on behalf of K.I.N.D beyond stated product capabilities.</li>
+              <li>Promptly notify K.I.N.D of any complaints, disputes, or material issues with referred clients.</li>
+            </ul>
+
+            <h4>5. Intellectual Property</h4>
+            <p>K.I.N.D grants you a limited, non-exclusive, non-transferable licence to use the K.I.N.D brand, logo, and marketing materials solely for authorised partner activities. All IP remains the property of K.I.N.D. You may not modify, sub-licence, or use the brand outside of approved partner materials.</p>
+
+            <h4>6. Confidentiality</h4>
+            <p>Both parties agree to keep confidential any non-public business information, pricing structures, client data, and technical specifications shared in connection with this agreement. This obligation survives termination for a period of 2 years.</p>
+
+            <h4>7. Term &amp; Termination</h4>
+            <p>This agreement begins on the date of approval and continues until terminated. Either party may terminate with 30 days' written notice. K.I.N.D may terminate immediately for material breach, fraud, or reputational harm. Commissions already earned and approved at the time of termination will be paid out within 60 days.</p>
+
+            <h4>8. Liability</h4>
+            <p>K.I.N.D's total liability under this agreement is limited to commissions paid to you in the 3 months preceding any claim. K.I.N.D is not liable for indirect, consequential, or loss-of-profit damages.</p>
+
+            <h4>9. Governing Law</h4>
+            <p>This agreement is governed by the laws of England &amp; Wales. Disputes shall be resolved by the courts of England &amp; Wales. For South African partners, the agreement is additionally subject to compliance with South African law where applicable.</p>
+          </div>
+        </div>
+
+        <!-- Agreement checkbox -->
+        <label class="pf-agree" id="pf-agree-label">
+          <input type="checkbox" id="pf-agree" onchange="toggleSubmit()" />
+          <span>I have read and agree to the <a href="#" onclick="toggleContract();return false;">K.I.N.D Partner Agreement</a>. I confirm the information above is accurate and I have authority to enter this agreement on behalf of my company.</span>
+        </label>
+
         <div id="pf-msg" style="display:none;font-size:0.85rem;padding:10px 14px;border-radius:10px;margin-bottom:12px"></div>
-        <button type="submit" class="btn-pf-submit" id="pf-btn">Apply to partner programme &rarr;</button>
+        <button type="submit" class="btn-pf-submit" id="pf-btn" disabled>Apply to partner programme &rarr;</button>
       </form>
     </div>
   </div>
@@ -847,42 +913,68 @@
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dGFkZmRhb3l2am1qaHJma2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMDUxNDksImV4cCI6MjA2MTc4MTE0OX0.U-3J1JxkFH8Kgg3xMzN3NJgCVSutXGXEITJHMmPCIPM'
   var authMode = 'signup'
 
+  var API_BASE = 'https://kindapi-production-e64c.up.railway.app'
+
+  function toggleContract() {
+    var body = document.getElementById('contract-body')
+    var chev = document.getElementById('contract-chevron')
+    var open = body.classList.toggle('open')
+    chev.style.transform = open ? 'rotate(180deg)' : ''
+  }
+
+  function toggleSubmit() {
+    var agreed = document.getElementById('pf-agree').checked
+    document.getElementById('pf-btn').disabled = !agreed
+  }
+
   async function submitPartnerForm(e) {
     e.preventDefault()
     var btn = document.getElementById('pf-btn')
     var msg = document.getElementById('pf-msg')
-    var name = document.getElementById('p-name').value.trim()
-    var email = document.getElementById('p-email').value.trim()
-    var company = document.getElementById('p-company').value.trim()
-    var website = document.getElementById('p-website').value.trim()
+    if (!document.getElementById('pf-agree').checked) return
+    var name        = document.getElementById('p-name').value.trim()
+    var email       = document.getElementById('p-email').value.trim()
+    var company     = document.getElementById('p-company').value.trim()
     var partnerType = document.getElementById('p-type').value
-    var message = document.getElementById('p-message').value.trim()
+    var message     = document.getElementById('p-message').value.trim()
+    // Map display value to API enum
+    var typeMap = { 'Referral': 'referral', 'Agency': 'agency', 'White-label': 'technology', 'Technology': 'technology' }
+    var apiType = typeMap[partnerType] || 'referral'
     btn.textContent = 'Submitting…'
     btn.disabled = true
     msg.style.display = 'none'
     try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/partner_applications', {
+      var res = await fetch(API_BASE + '/partners/apply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ name: name, email: email, company: company, website: website || null, partner_type: partnerType, message: message || null })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name, email: email, company: company || undefined,
+          partner_type: apiType, message: message || undefined,
+          agreed_to_contract: true
+        })
       })
-      if (res.ok || res.status === 201) {
+      var data = await res.json()
+      if (res.ok) {
         msg.style.display = 'block'
         msg.style.background = '#f0fdf4'
         msg.style.color = '#166534'
         msg.style.border = '1px solid #bbf7d0'
-        msg.textContent = "Application received. We'll be in touch within 2 business days. ✓"
+        msg.textContent = "Application received — agreement signed ✓. We'll be in touch within 48 hours."
         document.getElementById('partner-form').reset()
+        document.getElementById('pf-agree').checked = false
         btn.textContent = 'Application sent ✓'
+        btn.disabled = true
+      } else if (res.status === 409) {
+        throw new Error('An application with this email already exists.')
       } else {
-        throw new Error('Submit failed')
+        throw new Error(data.error || 'Submit failed')
       }
     } catch (err) {
       msg.style.display = 'block'
       msg.style.background = '#fef2f2'
       msg.style.color = '#991b1b'
       msg.style.border = '1px solid #fecaca'
-      msg.textContent = 'Something went wrong — email partners@get-kind.com directly.'
+      msg.textContent = err.message || 'Something went wrong — email partners@get-kind.com directly.'
       btn.textContent = 'Apply to partner programme →'
       btn.disabled = false
     }

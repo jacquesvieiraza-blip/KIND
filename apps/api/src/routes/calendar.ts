@@ -34,7 +34,7 @@ calendarRouter.get('/connect', requireAuth, async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const url = getAuthUrl(clientId)
+    const url = await getAuthUrl(clientId)
     res.redirect(url)
   } catch (err) {
     console.error('[calendar/connect]', err)

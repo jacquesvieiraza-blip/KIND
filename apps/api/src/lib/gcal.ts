@@ -15,8 +15,8 @@ const SCOPES = [
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadGoogle(): Promise<any> {
-  const { google } = await import('googleapis')
-  return google
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+  return (require('googleapis') as any).google
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

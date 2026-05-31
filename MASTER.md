@@ -238,12 +238,19 @@
 | **Marketing site taken down** | `apps/website/index.html` replaced with "We're currently unavailable" page. All 21 other HTML pages redirect to index. Pushed to main — Vercel auto-deploys. www.get-kind.com now shows unavailable. |
 | **⚠️ BUILD PAUSED** | Legal concern raised — Smartsheet employment contract clauses 17.2 (competing business) and 19.3.2 (IP assignment). Solicitor call booked for Monday 2 June. No new builds until legal clarity. |
 
-#### 31 May 2026 — Agent panel + ICP typewriter
+#### 31 May 2026 — Agent panel + ICP typewriter + batch bug fixes
 | Built / Fixed | File | Detail |
 |---------------|------|--------|
 | **FIGSY wrapper width fixed** | `AgentColumn.tsx:166` | `lg:w-72` → `lg:w-64` — FIGSY agent panel now same width as ICP panel. Previous 29 May entry was wrong; code still had w-72. |
-| **ICP FIGSY typewriter added** | `icp/page.tsx:12-35` | Removed static dead "Describe who you want to target" text. Added `shownChars` state + typewriter useEffect (2 chars/28ms). First message now animates with blinking cursor on load — matches AgentSidePanel behaviour. |
-| Commit | `f4bcf95` | Pushed to `main` → Railway auto-deploying |
+| **ICP FIGSY typewriter added** | `icp/page.tsx:12-35` | Removed static dead "Describe who you want to target" text. Added typewriter on first message (2 chars/28ms + blinking cursor). Matches AgentSidePanel. |
+| Commit | `f4bcf95` | |
+| **Smoke test 500 fixed** | `figsy.ts:249` | `status = 'contacted'` → `'consent_sent'` — invalid enum was 500ing `GET /figsy/kpis`. `GET /leads` confirmed clean. |
+| **Mark meeting booked button** | `inbox/page.tsx` | Added to ReplyDetail — visible on hot/interested replies. Calls `POST /figsy/replies/:id/mark-booked`. Shows ✓ state on success. |
+| **Seed demo reply debug button removed** | `inbox/page.tsx` | Removed from both empty states. `seeding` state + `seedDemoReply()` function removed entirely. |
+| **Copy share link button** | `dashboard/page.tsx` + `CopyShareLink.tsx` | Appears above stats when client has share_token + totalSent > 0. Copies `{origin}/share/{token}` to clipboard. Shows "Copied!" confirmation. |
+| **AskFigsyButton chat persistence** | `AskFigsyButton.tsx` | Saves last 20 messages to `localStorage` key `kind_askfigsy_thread_v1`. Restores on reload. |
+| **NotificationBell theme fix** | `NotificationBell.tsx:58` | Bell button was `text-white/60 hover:text-white` (dark). Now `text-[#9B8EC4] hover:text-[#7C3AED]` (light). |
+| Commit | `0eacf81` | Pushed to `main` → Railway auto-deploying |
 
 #### 29 May 2026 — Design mandate + product vision locked
 | Built / Fixed | Detail |

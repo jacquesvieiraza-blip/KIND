@@ -880,14 +880,14 @@
 | # | Item | Status |
 |---|------|--------|
 | P0-1 | Website copy rewrite — "AI Revenue OS. FIGSY works 24/7." | 🔴 Not started |
-| P0-3 | Knowledge base on-save preview — FIGSY generates sample sentence after saving | 🔴 Not started |
-| P0-4 | Email open tracking — pixel, `opened_at` column, open rate KPI | 🔴 Not started |
+| P0-3 | Knowledge base on-save preview — FIGSY generates sample sentence after saving | ✅ Done (previous session) |
+| P0-4 | Email open tracking — pixel, `opened_at` column, open rate KPI | ✅ Done (previous session) |
 | P0-5 | Notification preferences UI — toggle email notification events | ✅ Done `6fd5df2` |
 | P0-6 | Analytics empty state — 4 action cards instead of "No leads yet." | ✅ Done `c03a0c7` |
 | P0-8 | Email Score pre-send — 0–100 score per step, flags weak subjects + spam words | 🔴 Not started |
 | P0-10 | Co-pilot mode — approve before send toggle per campaign | 🔴 Not started |
 | P0-11 | Auto-fire consent on lead approval | 🔴 Not started |
-| P0-14 | Multi-model toggle — Haiku vs Sonnet per campaign | 🔴 Not started |
+| P0-14 | Multi-model toggle — Haiku vs Sonnet per campaign | ✅ Done `17cc871` |
 | P0-15 | Template library — 5–9 pre-built sequence templates | 🔴 Not started |
 | P0-16 | KIND AI sidebar section header | ✅ Done `c03a0c7` |
 | P0-17 | Personalized dashboard greeting | ✅ Done `c03a0c7` |

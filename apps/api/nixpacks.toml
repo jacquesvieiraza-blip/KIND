@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs_20", "yarn"]
 
 [phases.install]
-cmds = ["echo 'skipping frozen install'"]
+cmds = ["yarn install"]
 
 [phases.build]
-cmds = ["yarn install && yarn workspace @kind/db build && yarn workspace @kind/shared build && yarn workspace @kind/api build"]
+cmds = ["yarn workspace @kind/db build && yarn workspace @kind/shared build && yarn workspace @kind/api build"]
 
 [start]
 cmd = "yarn workspace @kind/api start"

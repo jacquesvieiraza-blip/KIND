@@ -144,7 +144,9 @@ export type ReplyClassification =
   | 'warm'          // 🌤️ Interested but not now — open to future conversation
   | 'cold'          // ❄️ Not relevant — politely declines, wrong timing, not a fit
   | 'opt_out'       // 🚫 Stop emailing — explicit unsubscribe request
+  | 'unsubscribe'   // 🚫 Variant of opt_out — explicit unsubscribe link clicked or request
   | 'wrong_person'  // 👤 Not the right contact — forwarded, CC'd someone else, refers elsewhere
+  | 'referral'      // 🔀 Refers to another person/department who is a better fit
   | 'out_of_office' // ✈️ Auto-reply or OOO
   | 'other'         // ❓ Unclear, bounce, spam, or unclassifiable
 
@@ -165,14 +167,17 @@ Classify as exactly one of:
 - "warm": Prospect is interested but not ready — says "maybe later", "reach me in Q3", "send me more info", asks a question without committing
 - "cold": Not a fit right now — politely declines, says not relevant, bad timing with no openness
 - "opt_out": Explicitly wants to be removed — "unsubscribe", "stop emailing me", "remove me from your list"
-- "wrong_person": Not the right contact — "I'm not the decision maker", "try [name]", forwards to someone else
+- "unsubscribe": Variant of opt_out — clicked unsubscribe link, or says "please unsubscribe me"
+- "wrong_person": Not the right contact — "I'm not the decision maker", "try [name]", forwards to someone else without a referral
+- "referral": Refers to a specific named person or department who is the correct contact — "you should speak to Sarah in procurement"
 - "out_of_office": Automated OOO reply, holiday message, or auto-responder
 - "other": Bounce, spam filter response, completely unclear, or unrelated
 
 Rules:
 - If they ask ANY question, lean toward "hot" or "warm", not "cold"
 - If they give a future date, use "warm" not "cold"
-- "opt_out" requires explicit unsubscribe language
+- "opt_out" and "unsubscribe" require explicit removal language
+- "referral" requires a named contact or specific department mention
 - OOO messages are almost always automated and short
 
 Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max"}`
@@ -190,6 +195,7 @@ Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max
   const legacyMap: Record<string, ReplyClassification> = {
     interested:     'hot',
     not_interested: 'cold',
+    referred:       'referral',
   }
   const classification = (legacyMap[parsed.classification] ?? parsed.classification) as ReplyClassification
 

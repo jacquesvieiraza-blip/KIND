@@ -6,12 +6,13 @@ import { api } from '@/lib/api'
 import {
   Mail, Loader2, Inbox, Flame, Sun, Snowflake, Ban, UserX,
   Plane, HelpCircle, Send, Sparkles, CheckCircle, RefreshCw, Calendar,
+  BellOff, GitBranch,
 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────
 type Classification =
   | 'hot' | 'warm' | 'cold'
-  | 'opt_out' | 'wrong_person' | 'out_of_office' | 'other'
+  | 'opt_out' | 'unsubscribe' | 'wrong_person' | 'referral' | 'out_of_office' | 'other'
   | 'interested' | 'not_interested'
   | 'sent_reply'
 
@@ -54,7 +55,9 @@ const CLASS_CONFIG: Record<string, ClassDef> = {
   cold:          { label: 'Cold',         emoji: '❄️',  bg: 'bg-gray-50',    text: 'text-gray-600',    border: 'border-gray-200',   dot: 'bg-gray-400',   icon: Snowflake,   priority: 4 },
   not_interested:{ label: 'Cold',         emoji: '❄️',  bg: 'bg-gray-50',    text: 'text-gray-600',    border: 'border-gray-200',   dot: 'bg-gray-400',   icon: Snowflake,   priority: 4 },
   opt_out:       { label: 'Opted Out',    emoji: '🚫', bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',   dot: 'bg-rose-500',   icon: Ban,         priority: 5 },
+  unsubscribe:   { label: 'Unsubscribe',  emoji: '🔕', bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200',   dot: 'bg-rose-400',   icon: BellOff,     priority: 5 },
   wrong_person:  { label: 'Wrong Person', emoji: '👤', bg: 'bg-gray-50',    text: 'text-gray-600',    border: 'border-gray-200',   dot: 'bg-gray-400',   icon: UserX,       priority: 6 },
+  referral:      { label: 'Referral',     emoji: '🔀', bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',  dot: 'bg-amber-400',  icon: GitBranch,   priority: 3 },
   out_of_office: { label: 'OOO',          emoji: '✈️',  bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',   dot: 'bg-blue-400',   icon: Plane,       priority: 7 },
   other:         { label: 'Other',        emoji: '❓', bg: 'bg-gray-50',    text: 'text-gray-600',    border: 'border-gray-200',   dot: 'bg-gray-400',   icon: HelpCircle,  priority: 8 },
   sent_reply:    { label: 'Replied',      emoji: '✓',  bg: 'bg-purple-50',  text: 'text-purple-700',  border: 'border-purple-200', dot: 'bg-purple-400', icon: CheckCircle, priority: 9 },
@@ -73,6 +76,10 @@ const FILTER_TABS: { value: string; label: string }[] = [
   { value: 'hot',         label: '🔥 Hot' },
   { value: 'warm',        label: '🌤️ Warm' },
   { value: 'needs_reply', label: 'Needs Reply' },
+  { value: 'referral',    label: '🔀 Referral' },
+  { value: 'out_of_office', label: '✈️ OOO' },
+  { value: 'unsubscribe', label: '🔕 Unsub' },
+  { value: 'wrong_person', label: '👤 Wrong' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -282,8 +289,8 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
         </div>
       )}
 
-      {/* ── Opt-out notice ───────────────────────────────────────────── */}
-      {reply.classification === 'opt_out' && (
+      {/* ── Opt-out / Unsubscribe notice ─────────────────────────────── */}
+      {(reply.classification === 'opt_out' || reply.classification === 'unsubscribe') && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-50 border border-rose-200">
           <Ban className="w-5 h-5 text-rose-500 shrink-0" />
           <div>
@@ -293,8 +300,41 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
         </div>
       )}
 
+      {/* ── Referral notice ──────────────────────────────────────────── */}
+      {reply.classification === 'referral' && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+          <GitBranch className="w-5 h-5 text-amber-500 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-700">Referral — new contact mentioned</p>
+            <p className="text-xs text-amber-600 mt-0.5">This contact referred someone else. Review the reply and add the new contact as a lead.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── OOO notice ───────────────────────────────────────────────── */}
+      {reply.classification === 'out_of_office' && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 border border-blue-200">
+          <Plane className="w-5 h-5 text-blue-400 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-blue-700">Out of office</p>
+            <p className="text-xs text-blue-500 mt-0.5">This contact is away. FIGSY will follow up automatically when the sequence resumes.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Wrong person notice ───────────────────────────────────────── */}
+      {reply.classification === 'wrong_person' && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200">
+          <UserX className="w-5 h-5 text-gray-400 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-gray-700">Wrong contact</p>
+            <p className="text-xs text-gray-500 mt-0.5">This person is not the right contact. Reject this lead or find the correct decision-maker.</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Reply tools ─────────────────────────────────────────────── */}
-      {reply.classification !== 'sent_reply' && reply.classification !== 'opt_out' && !sentOk && (
+      {reply.classification !== 'sent_reply' && reply.classification !== 'opt_out' && reply.classification !== 'unsubscribe' && reply.classification !== 'out_of_office' && reply.classification !== 'wrong_person' && !sentOk && (
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5 space-y-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#7C3AED] to-[#6D28D9] flex items-center justify-center">
@@ -417,11 +457,15 @@ export default function InboxPage() {
   const WARM_LEADS_CLASSES = new Set(['hot', 'interested', 'warm'])
   const filtered = (() => {
     switch (filter) {
-      case 'warm_leads':  return replies.filter(r => WARM_LEADS_CLASSES.has(r.classification)).sort((a, b) => new Date(b.received_at ?? b.processed_at ?? 0).getTime() - new Date(a.received_at ?? a.processed_at ?? 0).getTime())
-      case 'hot':         return replies.filter(r => r.classification === 'hot' || r.classification === 'interested')
-      case 'warm':        return replies.filter(r => r.classification === 'warm')
-      case 'needs_reply': return replies.filter(r => NEEDS_REPLY_CLASSES.has(r.classification))
-      default:            return replies
+      case 'warm_leads':   return replies.filter(r => WARM_LEADS_CLASSES.has(r.classification)).sort((a, b) => new Date(b.received_at ?? b.processed_at ?? 0).getTime() - new Date(a.received_at ?? a.processed_at ?? 0).getTime())
+      case 'hot':          return replies.filter(r => r.classification === 'hot' || r.classification === 'interested')
+      case 'warm':         return replies.filter(r => r.classification === 'warm')
+      case 'needs_reply':  return replies.filter(r => NEEDS_REPLY_CLASSES.has(r.classification))
+      case 'referral':     return replies.filter(r => r.classification === 'referral')
+      case 'out_of_office':return replies.filter(r => r.classification === 'out_of_office')
+      case 'unsubscribe':  return replies.filter(r => r.classification === 'unsubscribe' || r.classification === 'opt_out')
+      case 'wrong_person': return replies.filter(r => r.classification === 'wrong_person')
+      default:             return replies
     }
   })()
 

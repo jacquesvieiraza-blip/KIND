@@ -12,7 +12,6 @@ import {
   Menu, X,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
-import { DarkModeToggle } from '@/components/ui/DarkModeToggle'
 
 type AgentId = 'figsy' | 'milla' | 'vida'
 
@@ -32,13 +31,13 @@ const AGENTS: AgentDef[] = [
     name: 'FIGSY',
     role: 'AI SDR',
     accent: '#7C3AED',
-    ring: 'ring-[#7C3AED]/30',
+    ring: 'ring-[#7C3AED]/20',
     nav: [
-      { href: '/dashboard/figsy',           label: 'Campaigns',   icon: Target },
-      { href: '/dashboard/inbox',           label: 'Inbox',       icon: Inbox,  badge: 'unread' },
-      { href: '/dashboard/kpis',            label: 'Performance', icon: BarChart },
-      { href: '/dashboard/knowledge',       label: 'Knowledge',   icon: Brain },
-      { href: '/dashboard/figsy/webhooks',  label: 'Webhooks',    icon: Webhook },
+      { href: '/dashboard/figsy',          label: 'Campaigns',   icon: Target },
+      { href: '/dashboard/inbox',          label: 'Inbox',       icon: Inbox, badge: 'unread' },
+      { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
+      { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },
+      { href: '/dashboard/figsy/webhooks', label: 'Webhooks',    icon: Webhook },
     ],
   },
   {
@@ -46,7 +45,7 @@ const AGENTS: AgentDef[] = [
     name: 'Milla',
     role: 'Virtual Assistant',
     accent: '#F472B6',
-    ring: 'ring-pink-400/30',
+    ring: 'ring-pink-300/30',
     price: '$49/mo',
     nav: [
       { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
@@ -58,7 +57,7 @@ const AGENTS: AgentDef[] = [
     name: 'Vida',
     role: 'Chatbot Agent',
     accent: '#14B8A6',
-    ring: 'ring-teal-400/30',
+    ring: 'ring-teal-300/30',
     price: '$39/mo',
     nav: [
       { href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare },
@@ -94,12 +93,12 @@ function SystemStatus() {
       .then(r => r.ok ? setStatus('ok') : setStatus('degraded'))
       .catch(() => setStatus('degraded'))
   }, [])
-  const dot   = status === 'ok' ? 'bg-emerald-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-purple-400/40'
+  const dot   = status === 'ok' ? 'bg-emerald-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-[#7C3AED]/30'
   const label = status === 'ok' ? 'All systems operational' : status === 'degraded' ? 'Service disruption' : 'Checking…'
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5">
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50">
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot} ${status === 'ok' ? 'animate-pulse' : ''}`} />
-      <span className="text-[11px] text-purple-300/50">{label}</span>
+      <span className="text-[11px] text-[#7C3AED]/50">{label}</span>
     </div>
   )
 }
@@ -128,10 +127,8 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false)
   const [unreadCount] = React.useState(0)
 
-  // Close the mobile drawer whenever the route changes (i.e. a nav link was tapped)
   React.useEffect(() => { setMobileOpen(false) }, [pathname])
 
-  // Lock body scroll while the mobile drawer is open
   React.useEffect(() => {
     if (!mobileOpen) return
     document.body.style.overflow = 'hidden'
@@ -141,8 +138,6 @@ export function Sidebar({
   const isUnlocked = (id: AgentId) => id === 'figsy' ? hasFigsy : id === 'milla' ? hasMilla : hasVida
   const agent = AGENTS.find(a => a.id === activeId)!
   const unlocked = isUnlocked(activeId)
-
-  // unreadCount stays 0; the /figsy/replies/unread endpoint does not exist
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -162,15 +157,15 @@ export function Sidebar({
         href={href}
         className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${
           active
-            ? 'bg-[#7C3AED] text-white shadow-sm shadow-purple-900/60'
-            : 'text-purple-200/55 hover:text-white hover:bg-white/[0.07]'
+            ? 'bg-[#7C3AED]/[0.08] text-[#7C3AED] font-semibold'
+            : 'text-[#6B21A8]/55 hover:text-[#7C3AED] hover:bg-purple-50'
         }`}
       >
         <Icon className="w-4 h-4 shrink-0" />
         <span className="flex-1">{label}</span>
         {showUnread && (
           <span className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
-            active ? 'bg-white text-[#7C3AED]' : 'bg-red-500 text-white'
+            active ? 'bg-[#7C3AED] text-white' : 'bg-red-500 text-white'
           }`}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
@@ -181,14 +176,14 @@ export function Sidebar({
 
   return (
     <>
-      {/* ── Mobile top bar (below lg) ─────────────────────────────── */}
+      {/* ── Mobile top bar ──────────────────────────────────────────── */}
       <header
-        className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center justify-between px-4 border-b border-white/[0.08]"
-        style={{ background: 'linear-gradient(90deg, #1E1152 0%, #160D3D 100%)' }}
+        className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center justify-between px-4 border-b border-purple-100"
+        style={{ background: '#F5F3FF' }}
       >
         <button
           onClick={() => setMobileOpen(true)}
-          className="flex items-center justify-center w-9 h-9 -ml-1.5 rounded-lg text-purple-100 hover:bg-white/[0.08] transition-colors"
+          className="flex items-center justify-center w-9 h-9 -ml-1.5 rounded-lg text-[#7C3AED] hover:bg-purple-100 transition-colors"
           aria-label="Open navigation menu"
         >
           <Menu className="w-5 h-5" />
@@ -197,221 +192,216 @@ export function Sidebar({
           <div className="w-6 h-6 rounded-md bg-[#7C3AED] flex items-center justify-center">
             <Zap className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-white font-bold text-sm tracking-tight">K.I.N.D</span>
+          <span className="text-[#1E1152] font-bold text-sm tracking-tight">K.I.N.D</span>
         </div>
-        <div className="flex items-center gap-1 bg-[#F59E0B]/10 border border-[#F59E0B]/25 rounded-full px-2 py-0.5">
-          <Coins className="w-3 h-3 text-[#F59E0B]" />
-          <span className="text-[11px] font-bold text-[#F59E0B]">{creditBalance}</span>
+        <div className="flex items-center gap-1 bg-amber-50 border border-amber-200/60 rounded-full px-2 py-0.5">
+          <Coins className="w-3 h-3 text-amber-500" />
+          <span className="text-[11px] font-bold text-amber-600">{creditBalance}</span>
         </div>
       </header>
 
-      {/* ── Mobile backdrop ───────────────────────────────────────── */}
+      {/* ── Mobile backdrop ──────────────────────────────────────────── */}
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
           aria-hidden
         />
       )}
 
-    <aside
-      className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] flex flex-col border-r border-white/[0.08] transform transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:w-[240px] lg:max-w-none lg:translate-x-0 lg:shrink-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
-      style={{ background: "linear-gradient(180deg, #1E1152 0%, #160D3D 100%)" }}
-    >
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] flex flex-col border-r border-purple-100 transform transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:w-[220px] lg:max-w-none lg:translate-x-0 lg:shrink-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ background: '#F5F3FF' }}
+      >
 
-      {/* ── Logo ──────────────────────────────────────────────────── */}
-      <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-white/[0.06]">
-        <div className="w-7 h-7 rounded-lg bg-[#7C3AED] flex items-center justify-center shadow-sm shadow-purple-950/80">
-          <Zap className="w-4 h-4 text-white" />
+        {/* ── Logo ─────────────────────────────────────────────────── */}
+        <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-purple-100">
+          <div className="w-7 h-7 rounded-lg bg-[#7C3AED] flex items-center justify-center shadow-sm shadow-purple-200">
+            <Zap className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-[#1E1152] font-bold text-sm tracking-tight">K.I.N.D</span>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="lg:hidden ml-auto flex items-center justify-center w-8 h-8 -mr-1 rounded-lg text-[#7C3AED]/60 hover:text-[#7C3AED] hover:bg-purple-100 transition-colors"
+            aria-label="Close navigation menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <span className="text-white font-bold text-sm tracking-tight">K.I.N.D</span>
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="lg:hidden ml-auto flex items-center justify-center w-8 h-8 -mr-1 rounded-lg text-purple-200/70 hover:text-white hover:bg-white/[0.08] transition-colors"
-          aria-label="Close navigation menu"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
 
-      <nav className="flex-1 px-3 pt-3 pb-2 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 pt-3 pb-2 space-y-0.5 overflow-y-auto">
 
-        {/* ── LEAD GEN — primary product ─────────────────────────── */}
-        <p className="text-[10px] text-purple-400/40 px-3 pb-1.5 font-semibold uppercase tracking-wider">
-          Lead Gen
-        </p>
-        {LEAD_GEN_NAV.map(item => <NavLink key={item.href} {...item} />)}
-
-        {/* ── AI AGENTS — dropdown switcher ──────────────────────── */}
-        <div className="!mt-5">
-          <p className="text-[10px] text-purple-400/40 px-3 pb-2 font-semibold uppercase tracking-wider">
-            AI Agents
+          {/* ── Lead Gen ──────────────────────────────────────────── */}
+          <p className="text-[10px] text-[#7C3AED]/40 px-3 pb-1.5 font-semibold uppercase tracking-wider">
+            Lead Gen
           </p>
+          {LEAD_GEN_NAV.map(item => <NavLink key={item.href} {...item} />)}
 
-          {/* Active agent card — large */}
-          <div className="flex items-center gap-0 rounded-xl bg-white/[0.07] hover:bg-white/[0.10] border border-white/[0.09] transition-all group overflow-hidden">
-            {/* Main area — navigates to agent page */}
-            <Link
-              href={AGENT_HREFS[activeId]}
-              className="flex items-center gap-3 px-3 py-3.5 flex-1 min-w-0"
-            >
-              {/* Large photo */}
-              <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-md`}>
-                <img
-                  src={`/agents/${agent.id}.png`}
-                  alt={agent.name}
-                  className="w-full h-full object-cover object-top"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-                />
-              </div>
-              <div className="flex-1 text-left min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <p className="text-white font-bold text-sm">{agent.name}</p>
-                  {unlocked
-                    ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    : <Lock className="w-3 h-3 text-purple-300/40" />
-                  }
-                </div>
-                <p className="text-purple-300/50 text-xs">{agent.role}</p>
-                {!unlocked && agent.price && (
-                  <p className="text-[10px] text-purple-300/35 mt-0.5">{agent.price} · Tap to unlock</p>
-                )}
-              </div>
-            </Link>
-            {/* Chevron — only toggles agent switcher */}
-            <button
-              onClick={() => setOpen(o => !o)}
-              className="px-2.5 py-3.5 text-purple-300/30 hover:text-purple-200 transition-colors shrink-0"
-              title="Switch agent"
-            >
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
+          {/* ── AI Agents ─────────────────────────────────────────── */}
+          <div className="!mt-5">
+            <p className="text-[10px] text-[#7C3AED]/40 px-3 pb-2 font-semibold uppercase tracking-wider">
+              AI Agents
+            </p>
 
-          {/* Dropdown */}
-          {open && (
-            <div className="mt-1.5 rounded-xl bg-[#1A0F47] border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/60 z-50">
-              <p className="text-[10px] text-purple-400/40 px-3 pt-3 pb-1.5 font-semibold uppercase tracking-wider">
-                Your AI Team
-              </p>
-              {AGENTS.map(a => {
-                const locked = !isUnlocked(a.id)
-                return (
-                  <button
-                    key={a.id}
-                    onClick={() => {
-                      setActiveId(a.id)
-                      setOpen(false)
-                      router.push(AGENT_HREFS[a.id])
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-3 hover:bg-white/[0.06] transition-colors ${
-                      a.id === activeId ? 'bg-white/[0.06]' : ''
-                    }`}
-                  >
-                    {/* Medium photo in dropdown */}
-                    <div className={`w-10 h-10 rounded-xl overflow-hidden shrink-0 ring-2 ${locked ? 'ring-white/10 opacity-50' : a.ring}`}>
-                      <img
-                        src={`/agents/${a.id}.png`}
-                        alt={a.name}
-                        className="w-full h-full object-cover object-top"
-                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-                      />
-                    </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className={`text-xs font-semibold leading-tight ${locked ? 'text-purple-200/40' : 'text-white'}`}>
-                          {a.name}
-                        </p>
-                        <span
-                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                          style={{ color: a.accent, background: `${a.accent}18` }}
-                        >
-                          {a.role}
-                        </span>
-                      </div>
-                      <p className="text-purple-300/35 text-[10px] mt-0.5">
-                        {locked ? `${a.price} · Unlock →` : 'Active'}
-                      </p>
-                    </div>
-                    {locked
-                      ? <Lock className="w-3 h-3 text-purple-300/25 shrink-0" />
-                      : a.id === activeId && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: a.accent }} />
-                    }
-                  </button>
-                )
-              })}
-              <div className="mx-3 my-2 border-t border-white/[0.06]" />
-              <p className="text-[10px] text-purple-300/30 px-3 pb-3 leading-relaxed">
-                Unlock agents from{' '}
-                <Link href="/dashboard/billing" className="text-purple-300/60 font-medium hover:text-purple-200 transition-colors" onClick={() => setOpen(false)}>
-                  Billing →
-                </Link>
-              </p>
-            </div>
-          )}
-
-          {/* Active agent nav — only if subscribed */}
-          {unlocked ? (
-            <div className="mt-1.5 space-y-0.5">
-              {agent.nav.map(item => <NavLink key={item.href} {...item} />)}
-            </div>
-          ) : (
-            <Link
-              href={AGENT_HREFS[activeId]}
-              className="mt-2 flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-white/[0.08] text-xs text-purple-300/40 hover:text-purple-200 hover:border-white/[0.14] transition-all"
-            >
-              <Lock className="w-3 h-3" />
-              View upgrade options
-            </Link>
-          )}
-        </div>
-
-        {/* ── Account ─────────────────────────────────────────────── */}
-        <div className="!mt-5 border-t border-white/[0.06] !pt-3 space-y-0.5">
-          {ACCOUNT_NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(href + '/')
-            return (
+            {/* Active agent card */}
+            <div className="flex items-center rounded-xl bg-white hover:bg-purple-50/60 border border-purple-100 transition-all group overflow-hidden shadow-sm">
               <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${
-                  active
-                    ? 'bg-white/[0.10] text-purple-200'
-                    : 'text-purple-300/35 hover:text-purple-200 hover:bg-white/[0.05]'
-                }`}
+                href={AGENT_HREFS[activeId]}
+                className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0"
               >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                {label}
+                <div className={`w-12 h-12 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-sm`}>
+                  <img
+                    src={`/agents/${agent.id}.png`}
+                    alt={agent.name}
+                    className="w-full h-full object-cover object-top"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-[#1E1152] font-bold text-sm">{agent.name}</p>
+                    {unlocked
+                      ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      : <Lock className="w-3 h-3 text-[#7C3AED]/25" />
+                    }
+                  </div>
+                  <p className="text-[#7C3AED]/55 text-xs">{agent.role}</p>
+                  {!unlocked && agent.price && (
+                    <p className="text-[10px] text-[#6B7280] mt-0.5">{agent.price} · Tap to unlock</p>
+                  )}
+                </div>
               </Link>
-            )
-          })}
-        </div>
+              <button
+                onClick={() => setOpen(o => !o)}
+                className="px-2.5 py-3 text-[#7C3AED]/25 hover:text-[#7C3AED] transition-colors shrink-0"
+                title="Switch agent"
+              >
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
 
+            {/* Dropdown */}
+            {open && (
+              <div className="mt-1.5 rounded-xl bg-white border border-purple-100 overflow-hidden shadow-lg shadow-purple-100/50 z-50">
+                <p className="text-[10px] text-[#7C3AED]/40 px-3 pt-3 pb-1.5 font-semibold uppercase tracking-wider">
+                  Your AI Team
+                </p>
+                {AGENTS.map(a => {
+                  const locked = !isUnlocked(a.id)
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => {
+                        setActiveId(a.id)
+                        setOpen(false)
+                        router.push(AGENT_HREFS[a.id])
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-3 hover:bg-purple-50 transition-colors ${
+                        a.id === activeId ? 'bg-purple-50' : ''
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl overflow-hidden shrink-0 ring-2 ${locked ? 'ring-purple-100 opacity-50' : a.ring}`}>
+                        <img
+                          src={`/agents/${a.id}.png`}
+                          alt={a.name}
+                          className="w-full h-full object-cover object-top"
+                          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                        />
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className={`text-xs font-semibold leading-tight ${locked ? 'text-[#7C3AED]/30' : 'text-[#1E1152]'}`}>
+                            {a.name}
+                          </p>
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ color: a.accent, background: `${a.accent}18` }}
+                          >
+                            {a.role}
+                          </span>
+                        </div>
+                        <p className="text-[#6B7280] text-[10px] mt-0.5">
+                          {locked ? `${a.price} · Unlock →` : 'Active'}
+                        </p>
+                      </div>
+                      {locked
+                        ? <Lock className="w-3 h-3 text-[#7C3AED]/20 shrink-0" />
+                        : a.id === activeId && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: a.accent }} />
+                      }
+                    </button>
+                  )
+                })}
+                <div className="mx-3 my-2 border-t border-purple-100" />
+                <p className="text-[10px] text-[#9CA3AF] px-3 pb-3 leading-relaxed">
+                  Unlock agents from{' '}
+                  <Link href="/dashboard/billing" className="text-[#7C3AED]/70 font-medium hover:text-[#7C3AED] transition-colors" onClick={() => setOpen(false)}>
+                    Billing →
+                  </Link>
+                </p>
+              </div>
+            )}
 
-      </nav>
+            {/* Active agent nav */}
+            {unlocked ? (
+              <div className="mt-1.5 space-y-0.5">
+                {agent.nav.map(item => <NavLink key={item.href} {...item} />)}
+              </div>
+            ) : (
+              <Link
+                href={AGENT_HREFS[activeId]}
+                className="mt-2 flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-purple-100 text-xs text-[#7C3AED]/40 hover:text-[#7C3AED] hover:border-purple-200 transition-all"
+              >
+                <Lock className="w-3 h-3" />
+                View upgrade options
+              </Link>
+            )}
+          </div>
 
-      {/* ── Footer ────────────────────────────────────────────────── */}
-      <div className="px-3 pb-3 pt-2 border-t border-white/[0.06] space-y-1.5">
-        <div className="px-3 flex items-center justify-between">
-          <p className="text-purple-300/35 text-[11px] truncate">{userEmail}</p>
-          <div className="flex items-center gap-1.5 shrink-0 ml-2">
-            <NotificationBell />
-            <div className="flex items-center gap-1 bg-[#F59E0B]/10 border border-[#F59E0B]/25 rounded-full px-2 py-0.5">
-              <Coins className="w-3 h-3 text-[#F59E0B]" />
-              <span className="text-[11px] font-bold text-[#F59E0B]">{creditBalance}</span>
+          {/* ── Account ───────────────────────────────────────────── */}
+          <div className="!mt-5 border-t border-purple-100 !pt-3 space-y-0.5">
+            {ACCOUNT_NAV.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || pathname.startsWith(href + '/')
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${
+                    active
+                      ? 'bg-purple-50 text-[#7C3AED]'
+                      : 'text-[#7C3AED]/40 hover:text-[#7C3AED] hover:bg-purple-50'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  {label}
+                </Link>
+              )
+            })}
+          </div>
+
+        </nav>
+
+        {/* ── Footer ───────────────────────────────────────────────── */}
+        <div className="px-3 pb-3 pt-2 border-t border-purple-100 space-y-1.5">
+          <div className="px-3 flex items-center justify-between">
+            <p className="text-[#7C3AED]/35 text-[11px] truncate">{userEmail}</p>
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+              <NotificationBell />
+              <div className="flex items-center gap-1 bg-amber-50 border border-amber-200/60 rounded-full px-2 py-0.5">
+                <Coins className="w-3 h-3 text-amber-500" />
+                <span className="text-[11px] font-bold text-amber-600">{creditBalance}</span>
+              </div>
             </div>
           </div>
+          <SystemStatus />
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-[#7C3AED]/40 hover:text-[#7C3AED] hover:bg-purple-50 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5 shrink-0" />
+            Sign out
+          </button>
         </div>
-        <SystemStatus />
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-purple-300/35 hover:text-purple-200 hover:bg-white/[0.05] transition-colors"
-        >
-          <LogOut className="w-3.5 h-3.5 shrink-0" />
-          Sign out
-        </button>
-      </div>
-    </aside>
+      </aside>
     </>
   )
 }

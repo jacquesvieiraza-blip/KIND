@@ -1,7 +1,11 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { AgentSidePanel } from '@/components/ui/AgentSidePanel'
+
+const COLLAPSE_KEY = 'kind_agent_col_v1'
 
 interface Props {
   hasFigsy: boolean
@@ -16,13 +20,60 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   const pathname = usePathname()
   const router   = useRouter()
 
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === 'true' } catch { return false }
+  })
+
+  function toggle() {
+    const next = !collapsed
+    setCollapsed(next)
+    try { localStorage.setItem(COLLAPSE_KEY, String(next)) } catch {}
+  }
+
   // ICP builder manages its own integrated agent panel
   if (pathname.startsWith('/dashboard/leads/icp')) return null
 
-  // ── Milla takes over ────────────────────────────────────────────────────────
-  if (pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents')) {
+  const agentId: 'figsy' | 'milla' | 'vida' =
+    pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents') ? 'milla' :
+    pathname.startsWith('/dashboard/chatbot') ? 'vida' : 'figsy'
+
+  // Collapsed: narrow strip with avatar + expand chevron
+  if (collapsed) {
+    return (
+      <div className="hidden lg:flex lg:flex-col lg:w-10 lg:shrink-0 lg:sticky lg:top-6 lg:self-start items-center pt-1">
+        <button
+          onClick={toggle}
+          title="Expand agent panel"
+          className="flex flex-col items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/70 transition-colors group"
+        >
+          <div className="w-7 h-7 rounded-lg overflow-hidden ring-1 ring-purple-200 shadow-sm">
+            <img src={`/agents/${agentId}.png`} alt={agentId} className="w-full h-full object-cover object-top" />
+          </div>
+          <ChevronRight className="w-3 h-3 text-[#7C3AED]/30 group-hover:text-[#7C3AED] transition-colors" />
+        </button>
+      </div>
+    )
+  }
+
+  // Collapse button shown above the panel
+  const collapseBtn = (
+    <div className="hidden lg:flex justify-end mb-1.5">
+      <button
+        onClick={toggle}
+        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-[#7C3AED]/40 hover:text-[#7C3AED] hover:bg-white/60 transition-colors"
+        title="Collapse panel"
+      >
+        <ChevronLeft className="w-3 h-3" />
+        Collapse
+      </button>
+    </div>
+  )
+
+  // ── Milla ───────────────────────────────────────────────────────────────────
+  if (agentId === 'milla') {
     return (
       <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {collapseBtn}
         <AgentSidePanel
           agentId="milla"
           name="Milla"
@@ -42,10 +93,11 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
     )
   }
 
-  // ── Vida takes over ─────────────────────────────────────────────────────────
-  if (pathname.startsWith('/dashboard/chatbot')) {
+  // ── Vida ────────────────────────────────────────────────────────────────────
+  if (agentId === 'vida') {
     return (
       <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {collapseBtn}
         <AgentSidePanel
           agentId="vida"
           name="Vida"
@@ -53,8 +105,8 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
           tagline="Your website chatbot"
           contextMessage="I live on your website and handle customer enquiries 24/7 — trained on your business, always on."
           chips={[
-            { label: 'Configure chatbot',   onClick: () => router.push('/dashboard/chatbot') },
-            { label: 'View conversations',  onClick: () => router.push('/dashboard/chatbot') },
+            { label: 'Configure chatbot',  onClick: () => router.push('/dashboard/chatbot') },
+            { label: 'View conversations', onClick: () => router.push('/dashboard/chatbot') },
           ]}
           onSend={msg => router.push(`/dashboard/chatbot?q=${encodeURIComponent(msg)}`)}
           inputPlaceholder="Ask Vida anything…"
@@ -64,26 +116,25 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
     )
   }
 
-  // ── FIGSY everywhere else ───────────────────────────────────────────────────
+  // ── FIGSY (everywhere else) ─────────────────────────────────────────────────
   let contextMessage: string
   let chips: { label: string; onClick: () => void }[]
 
-  // Campaign detail page — /dashboard/figsy/<uuid>
   const isCampaignDetail = /^\/dashboard\/figsy\/[^/]+$/.test(pathname)
 
   if (isCampaignDetail) {
     contextMessage = "This is your live campaign. Click Enroll Leads to add your consented contacts, then Send Test Email to preview what they'll receive."
     chips = [
-      { label: 'Enroll my leads',     onClick: () => router.push('/dashboard/figsy') },
-      { label: 'Check replies',       onClick: () => router.push('/dashboard/inbox') },
-      { label: 'View all campaigns',  onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Enroll my leads',    onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Check replies',      onClick: () => router.push('/dashboard/inbox') },
+      { label: 'View all campaigns', onClick: () => router.push('/dashboard/figsy') },
     ]
   } else if (pathname.startsWith('/dashboard/inbox')) {
     contextMessage = "These are your hot replies — people who responded to my outreach. Reply fast, the window is short."
     chips = [
-      { label: 'Draft a reply',         onClick: () => router.push('/dashboard/inbox') },
-      { label: 'See all campaigns',     onClick: () => router.push('/dashboard/figsy') },
-      { label: 'Performance report',    onClick: () => router.push('/dashboard/kpis') },
+      { label: 'Draft a reply',      onClick: () => router.push('/dashboard/inbox') },
+      { label: 'See all campaigns',  onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Performance report', onClick: () => router.push('/dashboard/kpis') },
     ]
   } else if (pathname.startsWith('/dashboard/kpis')) {
     contextMessage = "Here's how my outreach is performing. Open rate, reply rate, and pipeline value — I track it all so you don't have to."
@@ -97,15 +148,15 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
       ? `I'm ready to reach out to your ${leadCount} leads. Activate a campaign and I'll start sending personalised sequences immediately.`
       : "Create your first campaign and I'll start personalised outreach the moment it's live."
     chips = [
-      { label: 'New campaign',        onClick: () => router.push('/dashboard/figsy') },
-      { label: 'Check inbox',         onClick: () => router.push('/dashboard/inbox') },
-      { label: 'Performance report',  onClick: () => router.push('/dashboard/kpis') },
+      { label: 'New campaign',       onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Check inbox',        onClick: () => router.push('/dashboard/inbox') },
+      { label: 'Performance report', onClick: () => router.push('/dashboard/kpis') },
     ]
   } else if (pathname.startsWith('/dashboard/leads/linkedin')) {
     contextMessage = "Drop your LinkedIn CSV here. I'll map the columns, score everyone against your ICP, and flag your top 10 immediately."
     chips = [
-      { label: 'What format do I need?',    onClick: () => {} },
-      { label: 'Build ICP first',           onClick: () => router.push('/dashboard/leads/icp') },
+      { label: 'What format do I need?', onClick: () => {} },
+      { label: 'Build ICP first',        onClick: () => router.push('/dashboard/leads/icp') },
     ]
   } else if (pathname.startsWith('/dashboard/leads')) {
     contextMessage = leadCount > 0
@@ -127,25 +178,24 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   } else if (pathname.startsWith('/dashboard/settings')) {
     contextMessage = "The more you tell me about your business, tone, and goals — the sharper every email I write becomes. This is worth 5 minutes."
     chips = [
-      { label: 'Update company info',  onClick: () => {} },
-      { label: 'Connect my CRM',       onClick: () => {} },
-      { label: 'Start outreach',       onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Update company info', onClick: () => {} },
+      { label: 'Connect my CRM',      onClick: () => {} },
+      { label: 'Start outreach',      onClick: () => router.push('/dashboard/figsy') },
     ]
   } else if (pathname.startsWith('/dashboard/usage')) {
     contextMessage = "Every credit spent, every email sent, every reply received. Here's my full record of work for you."
     chips = [
-      { label: 'See my campaigns',  onClick: () => router.push('/dashboard/figsy') },
-      { label: 'Top up credits',    onClick: () => router.push('/dashboard/billing') },
+      { label: 'See my campaigns', onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Top up credits',   onClick: () => router.push('/dashboard/billing') },
     ]
   } else if (pathname.startsWith('/dashboard/roadmap')) {
     contextMessage = "This is my evolution — what's live, what I'm building next. I get smarter every week. Voice and WhatsApp are coming."
     chips = [
-      { label: "What's coming next?",  onClick: () => {} },
-      { label: 'Request a feature',    onClick: () => {} },
-      { label: 'Start outreach now',   onClick: () => router.push('/dashboard/figsy') },
+      { label: "What's coming next?", onClick: () => {} },
+      { label: 'Request a feature',   onClick: () => {} },
+      { label: 'Start outreach now',  onClick: () => router.push('/dashboard/figsy') },
     ]
   } else {
-    // Homepage + default
     contextMessage = leadCount > 0
       ? `You have ${leadCount} leads ready. I've reviewed them and your top picks are standing by — ready when you are.`
       : "Let's find your first leads. Tell me who you're targeting and I'll build your prospect list."
@@ -164,6 +214,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
 
   return (
     <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
+      {collapseBtn}
       <AgentSidePanel
         agentId="figsy"
         name="FIGSY"

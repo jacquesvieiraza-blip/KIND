@@ -329,6 +329,16 @@ export async function sendSequenceEmail(
       ? `<img src="${apiUrl}/figsy/track/open/${emailId}" width="1" height="1" style="display:none;width:1px;height:1px" alt="" />`
       : ''
 
+    // P2-13: personalised image injection if enabled for campaign
+    let personalizedImageHtml = ''
+    if (campaignId) {
+      const { data: campRow } = await db.from('figsy_campaigns')
+        .select('personalized_images_enabled').eq('id', campaignId).maybeSingle()
+      if ((campRow as any)?.personalized_images_enabled) {
+        personalizedImageHtml = generatePersonalizedImageHtml(lead)
+      }
+    }
+
     const result = await resend.emails.send({
       from:     FROM,
       reply_to: REPLY_TO,
@@ -336,6 +346,7 @@ export async function sendSequenceEmail(
       subject,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
         ${body.split('\n').map(line => `<p style="margin:0 0 12px">${line}</p>`).join('')}
+        ${personalizedImageHtml}
         ${trackingPixel}
       </div>`,
     })
@@ -612,6 +623,21 @@ Return ONLY valid JSON:
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
     return generateSequence(lead, senderCompanyName, senderIndustry)
   }
+}
+
+// P2-13: Generate a personalised SVG image tag for email injection
+function generatePersonalizedImageHtml(lead: { first_name?: string|null, company?: string|null }): string {
+  const name = lead.first_name ?? 'there'
+  const company = lead.company ?? ''
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="560" height="120" viewBox="0 0 560 120">
+    <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#6d28d9"/><stop offset="100%" style="stop-color:#2563eb"/></linearGradient></defs>
+    <rect width="560" height="120" rx="12" fill="url(#g)"/>
+    <text x="32" y="48" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="22" font-weight="700" fill="white">Hi ${name} 👋</text>
+    <text x="32" y="80" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="15" fill="rgba(255,255,255,0.7)">${company}</text>
+    <text x="32" y="105" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">Sent personally by FIGSY — K.I.N.D</text>
+  </svg>`
+  const b64 = Buffer.from(svg).toString('base64')
+  return `<br/><img src="data:image/svg+xml;base64,${b64}" alt="Personalised for ${name}" width="560" height="120" style="border-radius:12px;display:block;margin:24px 0 0 0"/>`
 }
 
 // Auto-enroll a single consented lead into the active campaign (S5 — FIGSY auto-start)

@@ -413,6 +413,7 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
       send_hour_utc:         z.number().int().min(0).max(23).optional(),
       intent_signal_enroll:  z.boolean().optional(),
       intent_signal_types:   z.array(z.string()).optional(),
+      personalized_images_enabled: z.boolean().optional(),
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -436,6 +437,9 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
     if (body.send_hour_utc !== undefined)        settingsUpdate.send_hour_utc = body.send_hour_utc
     if (body.intent_signal_enroll !== undefined) settingsUpdate.intent_signal_enroll = body.intent_signal_enroll
     if (body.intent_signal_types !== undefined)  settingsUpdate.intent_signal_types = body.intent_signal_types
+    if (body.personalized_images_enabled !== undefined) {
+      dbUpdate.personalized_images_enabled = body.personalized_images_enabled
+    }
 
     if (Object.keys(settingsUpdate).length > 0) {
       const { data: existing } = await db.from('figsy_campaigns')

@@ -81,6 +81,11 @@ const PHASES = [
       { label: 'File approval workflow — pending drafts queue, approve/reject per email in portal', done: true },
       { label: 'Churn risk scoring — 5-component score, daily cron, red/amber badges in admin clients', done: true },
       { label: 'Website full restore — all 21 sub-pages restored, new agent branding throughout', done: true },
+      { label: 'P2-13 Personalised images — SVG with lead name/company injected per email', done: true },
+      { label: 'P2-14 Social signals — LinkedIn hashtags/competitor pages/engagement type filters in ICP', done: true },
+      { label: 'P3-1 Developer portal — API key management, usage tracking, MCP quick-start in portal', done: true },
+      { label: 'P3-4 Proposal + e-sign — generate proposal, send sign link, draft/sent/viewed/signed tracking', done: true },
+      { label: 'P3-7 Visitor de-anon — IP → company via Clearbit Reveal, intent scoring, admin dashboard', done: true },
       { label: 'Paystack end-to-end smoke test verified', done: false },
     ],
     ops: [

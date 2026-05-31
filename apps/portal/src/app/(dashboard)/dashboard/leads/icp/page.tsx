@@ -402,6 +402,13 @@ export default function ICPPage() {
   const [abmMode, setAbmMode] = useState(false)
   const [abmCompanies, setAbmCompanies] = useState('')
 
+  // P2-14: Social signals
+  const [socialSignals, setSocialSignals] = useState<{ hashtags: string; competitor_pages: string; engagement_types: string[] }>({
+    hashtags: '',
+    competitor_pages: '',
+    engagement_types: [],
+  })
+
   useEffect(() => {
     if (form.name.trim()) { setNameSuggestion(null); return }
     const parts: string[] = []
@@ -505,6 +512,17 @@ export default function ICPPage() {
       apollo_only_consented: icp.apollo_only_consented,
       intent_signals:        icp.intent_signals ?? [],
     })
+    // P2-14: load social signals from ICP settings
+    const ss = (icp as any).settings?.social_signals
+    if (ss) {
+      setSocialSignals({
+        hashtags: (ss.hashtags ?? []).join(', '),
+        competitor_pages: (ss.competitor_pages ?? []).join(', '),
+        engagement_types: ss.engagement_types ?? [],
+      })
+    } else {
+      setSocialSignals({ hashtags: '', competitor_pages: '', engagement_types: [] })
+    }
     setPrefillNotice(false)
     setShowForm(true)
   }
@@ -553,7 +571,21 @@ export default function ICPPage() {
     const abmOrgNames = abmMode
       ? abmCompanies.split('\n').map(s => s.trim()).filter(Boolean)
       : undefined
-    const payload = { ...form, name: finalName, ...(abmOrgNames?.length ? { organization_names: abmOrgNames } : {}) }
+    // P2-14: build social_signals for settings merge
+    const socialSignalsPayload = {
+      hashtags: socialSignals.hashtags.split(',').map(s => s.trim()).filter(Boolean),
+      competitor_pages: socialSignals.competitor_pages.split(',').map(s => s.trim()).filter(Boolean),
+      engagement_types: socialSignals.engagement_types,
+    }
+    const hasSocialSignals = socialSignalsPayload.hashtags.length > 0 ||
+      socialSignalsPayload.competitor_pages.length > 0 ||
+      socialSignalsPayload.engagement_types.length > 0
+    const payload = {
+      ...form,
+      name: finalName,
+      ...(abmOrgNames?.length ? { organization_names: abmOrgNames } : {}),
+      ...(hasSocialSignals ? { settings: { social_signals: socialSignalsPayload } } : {}),
+    }
     try {
       let savedIcp: ICP
       if (editingId) {
@@ -1062,6 +1094,62 @@ export default function ICPPage() {
                     </button>
                   )
                 })}
+              </div>
+            </div>
+
+            {/* P2-14 — Social Signals */}
+            <div className="border border-purple-100/80 rounded-xl p-4 bg-white">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Social Signals <span className="text-[#9B8EC4] font-normal text-xs">(optional)</span></label>
+              <p className="text-xs text-[#9B8EC4] mb-3">LinkedIn engagement filters to identify high-intent leads in your ICP.</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">LinkedIn hashtags to target (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={socialSignals.hashtags}
+                    onChange={e => setSocialSignals(s => ({ ...s, hashtags: e.target.value }))}
+                    placeholder="e.g. fintech, saas, b2bsales"
+                    className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Competitor pages your ICP follows (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={socialSignals.competitor_pages}
+                    onChange={e => setSocialSignals(s => ({ ...s, competitor_pages: e.target.value }))}
+                    placeholder="e.g. Salesforce, HubSpot, Outreach.io"
+                    className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Engagement types</label>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { value: 'liked_tech_posts', label: 'Liked tech posts' },
+                      { value: 'commented_industry', label: 'Commented on industry content' },
+                      { value: 'followed_competitors', label: 'Followed competitor accounts' },
+                    ].map(opt => (
+                      <label key={opt.value} className="flex items-center gap-2 text-xs text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={socialSignals.engagement_types.includes(opt.value)}
+                          onChange={e => {
+                            const types = socialSignals.engagement_types
+                            setSocialSignals(s => ({
+                              ...s,
+                              engagement_types: e.target.checked
+                                ? [...types, opt.value]
+                                : types.filter(t => t !== opt.value),
+                            }))
+                          }}
+                          className="rounded border-purple-200 text-[#7C3AED] focus:ring-[#7C3AED]"
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 

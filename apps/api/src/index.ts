@@ -35,6 +35,9 @@ import { statusRouter } from './routes/status'
 import { shareRouter } from './routes/share'
 import teamRouter from './routes/team'
 import mcpRouter from './routes/mcp'
+import developerRouter from './routes/developer'
+import proposalsRouter from './routes/proposals'
+import trackingRouter from './routes/tracking'
 import { startCrons } from './cron'
 
 const app = express()
@@ -107,6 +110,9 @@ app.use('/internal/status', statusRouter)
 app.use('/share',         shareRouter)
 app.use('/team',          teamRouter)
 app.use('/mcp',           mcpRouter)
+app.use('/developer',     developerRouter)
+app.use('/proposals',     proposalsRouter)
+app.use('/track',         trackingRouter)
 
 // MCP discovery endpoint for Claude Desktop / Cursor
 app.get('/.well-known/mcp.json', (_req, res) => {

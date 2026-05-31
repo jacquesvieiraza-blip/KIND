@@ -117,9 +117,23 @@
 - P3-6 ✅ — Churn risk scoring: 5-component score, daily 08:30 UTC cron, `GET /admin/churn-risk`, red/amber badges in admin clients table (`apps/api/src/routes/internal.ts`, `apps/api/src/routes/admin.ts`, `apps/api/src/cron.ts`, `apps/admin/src/app/clients/page.tsx`)
 - Website FULL RESTORE ✅ — ALL 21 sub-pages restored from original (about, pricing, use-cases, vs-*, chatbot-agent, virtual-assistant, demo, figsy-video, terms, dpa, trust, support, partners, etc.) — every page was broken redirect to `/`, now properly restored; agent images updated to figsy/milla/vida.png; new branding (The Closer/Brain/Connector) applied to about.html
 
+**This commit also adds (P2-13/P2-14/P3-1/P3-4/P3-7):**
+- P2-13 ✅ — Personalised images: SVG with lead name/company injected at bottom of every email, toggle per campaign (`apps/api/src/lib/figsy.ts`, `apps/api/src/routes/figsy.ts`, `apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx`)
+- P2-14 ✅ — Social signals: LinkedIn hashtags, competitor pages, engagement type filters stored in ICP settings (`apps/portal/src/app/(dashboard)/dashboard/leads/icp/page.tsx`)
+- P3-1 ✅ — Developer portal: API key create/revoke/list, MCP quick-start code snippet, usage tracking. New routes at `/developer/*`, new portal page `/dashboard/developer` (`apps/api/src/routes/developer.ts`, `apps/portal/src/app/(dashboard)/dashboard/developer/page.tsx`)
+- P3-4 ✅ — Proposal + e-sign: generate proposal, send via email with sign link, status tracking (draft→sent→viewed→signed). Admin view of all client proposals (`apps/api/src/routes/proposals.ts`, `apps/portal/src/app/(dashboard)/dashboard/proposals/page.tsx`, `apps/admin/src/app/proposals/page.tsx`)
+- P3-7 ✅ — Visitor de-anon: tracking snippet on website (POST /track/visit), IP→company via Clearbit Reveal, intent scoring by page URL, admin dashboard at `/visitors` (`apps/api/src/routes/tracking.ts`, `apps/admin/src/app/visitors/page.tsx`)
+
+**Migrations to run in Supabase:**
+- `supabase/migrations/20260601_personalized_images.sql`
+- `supabase/migrations/20260601_developer_keys.sql`
+- `supabase/migrations/20260601_proposals.sql`
+- `supabase/migrations/20260601_social_signals.sql`
+- `supabase/migrations/20260601_visitor_sessions.sql`
+
 **Full build queue status:**
-- Phase 2: ✅ P2-1 through P2-12, P2-15, P2-3, P2-9 all live. Remaining: P2-13 personalised images, P2-14 social signals
-- Phase 3: ✅ P3-2, P3-3, P3-5, P3-6, P3-13 live. Remaining: P3-1 MCP as product, P3-4 proposal/e-sign, P3-7 visitor de-anon
+- Phase 2: ✅ ALL COMPLETE — P2-1 through P2-15 all live
+- Phase 3: ✅ P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-13 all live
 - **Every build = MASTER.md + portal roadmap + admin roadmap updated in same commit**
 
 **FOUNDER ACTION NEEDED:**

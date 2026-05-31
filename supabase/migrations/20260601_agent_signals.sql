@@ -22,7 +22,7 @@ CREATE POLICY "clients read own signals"
   ON agent_signals FOR SELECT
   USING (
     client_id IN (
-      SELECT id FROM clients WHERE auth_user_id = auth.uid()
+      SELECT id FROM clients WHERE user_id = auth.uid()
     )
   );
 

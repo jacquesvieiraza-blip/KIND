@@ -15,11 +15,11 @@ ALTER TABLE figsy_tasks ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "clients read own tasks"
   ON figsy_tasks FOR SELECT
-  USING (client_id IN (SELECT id FROM clients WHERE auth_user_id = auth.uid()));
+  USING (client_id IN (SELECT id FROM clients WHERE user_id = auth.uid()));
 
 CREATE POLICY "clients insert own tasks"
   ON figsy_tasks FOR INSERT
-  WITH CHECK (client_id IN (SELECT id FROM clients WHERE auth_user_id = auth.uid()));
+  WITH CHECK (client_id IN (SELECT id FROM clients WHERE user_id = auth.uid()));
 
 CREATE POLICY "service role full access"
   ON figsy_tasks FOR ALL

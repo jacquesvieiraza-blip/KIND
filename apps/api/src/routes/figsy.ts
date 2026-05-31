@@ -403,6 +403,7 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
       system_prompt:    z.string().max(2000).nullable().optional(),
       daily_send_limit: z.number().int().min(0).max(500).nullable().optional(),
       review_required:  z.boolean().optional(),
+      model_preference: z.enum(['haiku', 'sonnet']).optional(),
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -411,6 +412,7 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
     const dbUpdate: Record<string, unknown> = {}
     if (body.name !== undefined) dbUpdate.name = body.name
     if (body.status !== undefined) dbUpdate.status = body.status
+    if (body.model_preference !== undefined) dbUpdate.model_preference = body.model_preference
 
     const settingsUpdate: Record<string, unknown> = {}
     if (body.system_prompt !== undefined) settingsUpdate.system_prompt = body.system_prompt

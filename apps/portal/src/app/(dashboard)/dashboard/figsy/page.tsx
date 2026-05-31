@@ -1010,6 +1010,42 @@ export default function FigsyPage() {
                         </label>
                       </div>
 
+                      {/* P0-14 — AI Model selector */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2">AI Model</label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCampaignSettings(s => ({ ...s, model_preference: 'haiku' }))}
+                            className={`flex-1 flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                              (campaignSettings.model_preference ?? 'haiku') === 'haiku'
+                                ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-sm'
+                                : 'bg-white text-gray-600 border-purple-100/80 hover:border-gray-300'
+                            }`}
+                          >
+                            <span className="font-semibold">Haiku — Fast</span>
+                            <span className={`text-[11px] leading-tight ${(campaignSettings.model_preference ?? 'haiku') === 'haiku' ? 'text-purple-200' : 'text-[#9B8EC4]'}`}>
+                              Higher volume · lower cost · default
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCampaignSettings(s => ({ ...s, model_preference: 'sonnet' }))}
+                            className={`flex-1 flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                              (campaignSettings.model_preference ?? 'haiku') === 'sonnet'
+                                ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-sm'
+                                : 'bg-white text-gray-600 border-purple-100/80 hover:border-gray-300'
+                            }`}
+                          >
+                            <span className="font-semibold">Sonnet — Smart</span>
+                            <span className={`text-[11px] leading-tight ${(campaignSettings.model_preference ?? 'haiku') === 'sonnet' ? 'text-purple-200' : 'text-[#9B8EC4]'}`}>
+                              Complex ICPs · higher quality · 3× cost
+                            </span>
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-[#9B8EC4] mt-1.5">Applies to all new sequence generation for this campaign.</p>
+                      </div>
+
                       <button
                         onClick={() => handleSaveSettings(campaign)}
                         disabled={savingSettings === campaign.id}

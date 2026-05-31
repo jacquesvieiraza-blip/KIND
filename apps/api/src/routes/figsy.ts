@@ -1361,6 +1361,155 @@ figsyRouter.get('/activity', async (req: AuthRequest, res) => {
 // Export for use in icps.ts (S5 — FIGSY auto-start)
 export { autoEnrollLead }
 
+// ── SUGGEST CAMPAIGN (P1-15) ──────────────────────────────────────────────────
+// POST /figsy/suggest-campaign
+// Calls Claude Haiku with ICP data to suggest a campaign
+figsyRouter.post('/suggest-campaign', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Fetch ICP data for context
+    const { data: icps } = await db.from('icps')
+      .select('name, description, industries, job_titles, geographies, seniority_levels')
+      .eq('client_id', clientId)
+      .limit(1)
+
+    const { data: leadStats } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+
+    const icp = icps?.[0]
+    const leadCount = leadStats ?? 0
+
+    const icpDescription = icp
+      ? `ICP Name: ${icp.name}. Industries: ${(icp.industries ?? []).join(', ')}. Job Titles: ${(icp.job_titles ?? []).join(', ')}. Geographies: ${(icp.geographies ?? []).join(', ')}. Seniority: ${(icp.seniority_levels ?? []).join(', ')}.`
+      : 'No ICP defined yet — general B2B outreach.'
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: `You are FIGSY, an AI SDR. Based on this client's ICP: ${icpDescription}, with approximately ${leadCount} leads in their database, suggest a campaign. Return ONLY valid JSON with no markdown: { "name": "string", "target": "string", "subjects": ["string", "string", "string"], "rationale": "string" }`,
+      }],
+    })
+
+    const text = (response.content[0] as { type: string; text: string }).text.trim()
+    let parsed: { name: string; target: string; subjects: string[]; rationale: string }
+    try {
+      // Strip markdown code fences if present
+      const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
+      parsed = JSON.parse(clean)
+    } catch {
+      // Fallback if Claude returns non-JSON
+      parsed = {
+        name: 'ICP Outreach Campaign',
+        target: icp?.job_titles?.[0] ?? 'Decision makers',
+        subjects: [
+          'Quick question about your growth strategy',
+          'How companies like yours are winning in 2026',
+          'Last touch — worth a quick call?',
+        ],
+        rationale: 'Based on your ICP, a value-led cold outreach sequence will drive the best results.',
+      }
+    }
+
+    res.json({ success: true, data: parsed })
+  } catch (err) {
+    console.error('[figsy/suggest-campaign]', err)
+    res.status(500).json({ success: false, error: 'Failed to generate campaign suggestion' })
+  }
+})
+
+// ── SCORE EMAIL (P0-8) ────────────────────────────────────────────────────────
+// POST /figsy/score-email
+// Heuristic scoring — no Claude needed
+figsyRouter.post('/score-email', async (req: AuthRequest, res) => {
+  try {
+    const { subject, body } = z.object({
+      subject: z.string(),
+      body:    z.string(),
+    }).parse(req.body)
+
+    const issues: string[] = []
+    const suggestions: string[] = []
+    let score = 0
+
+    // Subject line length 30–60 chars: +20
+    if (subject.length >= 30 && subject.length <= 60) {
+      score += 20
+    } else if (subject.length < 30) {
+      issues.push('Subject line is too short (aim for 30–60 characters)')
+      suggestions.push('Lengthen your subject line to give more context')
+    } else {
+      issues.push('Subject line is too long (aim for 30–60 characters)')
+      suggestions.push('Shorten your subject line — mobile clients truncate after ~60 chars')
+    }
+
+    // No spam words: +20 (check common ones)
+    const spamWords = ['free', 'guarantee', 'act now', 'limited time', 'buy now', 'click here', 'special offer', 'congratulations', 'winner']
+    const bodyLower = body.toLowerCase()
+    const subjectLower = subject.toLowerCase()
+    const foundSpam = spamWords.filter(w => bodyLower.includes(w) || subjectLower.includes(w))
+    if (foundSpam.length === 0) {
+      score += 20
+    } else {
+      issues.push(`Spam trigger words detected: ${foundSpam.join(', ')}`)
+      suggestions.push('Remove spam trigger words to improve deliverability')
+    }
+
+    // Body length 50–150 words: +20
+    const wordCount = body.trim().split(/\s+/).filter(Boolean).length
+    if (wordCount >= 50 && wordCount <= 150) {
+      score += 20
+    } else if (wordCount < 50) {
+      issues.push(`Email is too short (${wordCount} words — aim for 50–150)`)
+      suggestions.push('Add more context or value proposition to your email')
+    } else {
+      issues.push(`Email is too long (${wordCount} words — aim for 50–150)`)
+      suggestions.push('Trim your email — shorter emails get more replies in cold outreach')
+    }
+
+    // Contains personalisation token: +20
+    const hasPersonalisation = /\{first_name\}|\{company\}|\{job_title\}|\{name\}/i.test(body + subject)
+    if (hasPersonalisation) {
+      score += 20
+    } else {
+      issues.push('No personalisation tokens found ({first_name}, {company})')
+      suggestions.push('Add {first_name} or {company} to personalise each email automatically')
+    }
+
+    // No all-caps words (3+ chars): +10
+    const allCapsWords = body.match(/\b[A-Z]{3,}\b/g) ?? []
+    const capsFiltered = allCapsWords.filter(w => !['ICP', 'CEO', 'CFO', 'CTO', 'AI', 'API', 'ROI', 'B2B', 'SaaS', 'KPI', 'CRM', 'SDR', 'MQL', 'SQL', 'ACV', 'ARR', 'MRR'].includes(w))
+    if (capsFiltered.length === 0) {
+      score += 10
+    } else {
+      issues.push(`All-caps words detected: ${capsFiltered.slice(0, 3).join(', ')}`)
+      suggestions.push('Avoid ALL CAPS — it reads as shouting and triggers spam filters')
+    }
+
+    // Has clear CTA: +10
+    const ctaPatterns = /call\?|meeting\?|chat\?|catch up\?|15.?min|quick call|book|schedule|calendly|reply|let me know|worth a/i
+    if (ctaPatterns.test(body)) {
+      score += 10
+    } else {
+      issues.push('No clear call-to-action detected')
+      suggestions.push('End with a single, low-friction CTA like "Worth a quick 15-min call?"')
+    }
+
+    res.json({ success: true, data: { score: Math.min(100, Math.max(0, score)), issues, suggestions } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[figsy/score-email]', err)
+    res.status(500).json({ success: false, error: 'Failed to score email' })
+  }
+})
+
 // ── FIGSY PROACTIVE INSIGHTS (Learning Agent Phase 2) ─────────────────────────
 // Analyses campaign patterns and surfaces 2-3 actionable insights.
 // Rule-based — no AI cost. Refreshes on every call (fast enough for a KPI page).

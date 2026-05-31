@@ -34,6 +34,7 @@ import demoRequestRouter from './routes/demo-request'
 import { statusRouter } from './routes/status'
 import { shareRouter } from './routes/share'
 import teamRouter from './routes/team'
+import mcpRouter from './routes/mcp'
 import { startCrons } from './cron'
 
 const app = express()
@@ -102,6 +103,18 @@ app.use('/api', demoRequestRouter)
 app.use('/internal/status', statusRouter)
 app.use('/share',         shareRouter)
 app.use('/team',          teamRouter)
+app.use('/mcp',           mcpRouter)
+
+// MCP discovery endpoint for Claude Desktop / Cursor
+app.get('/.well-known/mcp.json', (_req, res) => {
+  res.json({
+    name: 'KIND AI',
+    description: 'KIND AI agents — FIGSY (AI SDR) and Milla (Business AI) as MCP tools',
+    tools_url: `${process.env.API_URL ?? 'https://kindapi-production-e64c.up.railway.app'}/mcp/tools`,
+    call_url:  `${process.env.API_URL ?? 'https://kindapi-production-e64c.up.railway.app'}/mcp/call`,
+  })
+})
+
 app.use(errorHandler)
 
 app.listen(PORT, () => {

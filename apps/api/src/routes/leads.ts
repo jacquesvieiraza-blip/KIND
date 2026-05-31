@@ -260,6 +260,33 @@ leadRouter.patch('/:id/status', async (req: AuthRequest, res) => {
     }
 
     res.json({ success: true, data })
+
+    // ── P0-11: Auto-fire consent email when lead status → approved/scored ────────
+    // When a lead is approved (status = scored with score >= threshold), auto-send consent
+    // if RESEND_API_KEY is set and consent has not yet been sent.
+    if (status === 'scored' && data.email && !data.consent_sent_at) {
+      ;(async () => {
+        try {
+          if (!process.env.RESEND_API_KEY) return
+          const { data: clientForConsent } = await db.from('clients')
+            .select('company_name').eq('id', clientId).maybeSingle()
+          const { data: freshLead } = await db.from('leads')
+            .select('id, email, first_name, consent_sent_at, consent_token, status')
+            .eq('id', data.id).maybeSingle()
+          if (!freshLead || freshLead.consent_sent_at || freshLead.status === 'opted_out') return
+          const token = await getOrCreateConsentToken(freshLead)
+          const consentUrl = buildConsentUrl(freshLead.id, token)
+          await sendConsentEmail(freshLead.email!, freshLead.first_name, clientForConsent?.company_name ?? '', consentUrl)
+          await db.from('leads').update({
+            status: 'consent_sent',
+            consent_sent_at: new Date().toISOString(),
+            consent_auto_fired: true,
+          }).eq('id', data.id)
+        } catch (autoConsentErr) {
+          console.error('[leads/auto-consent]', autoConsentErr)
+        }
+      })()
+    }
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to update lead status' })
@@ -835,6 +862,76 @@ leadRouter.post('/import/linkedin', async (req: AuthRequest, res) => {
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to import leads' })
+  }
+})
+
+// ── AI RESEARCH PER LEAD (P1-12) ──────────────────────────────────────────────
+// GET /leads/:id/research
+// Returns a 3-bullet research summary for a lead (cached in research_summary column)
+leadRouter.get('/:id/research', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead, error: leadErr } = await db.from('leads')
+      .select('id, first_name, last_name, job_title, company, industry, country, score, research_summary')
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .maybeSingle()
+
+    if (leadErr || !lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    // Return cached result if available
+    if ((lead as any).research_summary) {
+      res.json({ success: true, data: { bullets: (lead as any).research_summary, cached: true } }); return
+    }
+
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `You are a B2B sales researcher. For this lead, provide exactly 3 concise bullet points:
+1. What the company does (one sentence)
+2. Likely pain points for someone in their role
+3. A suggested opener line for cold outreach
+
+Lead:
+- Name: ${lead.first_name} ${lead.last_name}
+- Role: ${lead.job_title ?? 'unknown'}
+- Company: ${lead.company ?? 'unknown'}
+- Industry: ${lead.industry ?? 'unknown'}
+- Country: ${lead.country ?? 'unknown'}
+
+Return ONLY valid JSON, no markdown: { "bullets": ["bullet 1", "bullet 2", "bullet 3"] }`,
+      }],
+    })
+
+    const text = (msg.content[0] as { type: string; text: string }).text.trim()
+    let bullets: string[]
+    try {
+      const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
+      const parsed = JSON.parse(clean)
+      bullets = parsed.bullets ?? [text]
+    } catch {
+      bullets = [
+        `${lead.company ?? 'This company'} operates in the ${lead.industry ?? 'B2B'} space.`,
+        `As a ${lead.job_title ?? 'decision maker'}, they likely face challenges around efficiency and growth.`,
+        `Opening line: "I noticed ${lead.company ?? 'your company'} is focused on growth — wanted to share how we've helped similar teams."`,
+      ]
+    }
+
+    // Cache the result (gracefully handle missing column)
+    try {
+      await db.from('leads').update({ research_summary: bullets }).eq('id', req.params.id)
+    } catch (cacheErr) {
+      console.warn('[leads/research] Could not cache result:', cacheErr)
+    }
+
+    res.json({ success: true, data: { bullets, cached: false } })
+  } catch (err) {
+    console.error('[leads/research]', err)
+    res.status(500).json({ success: false, error: 'Failed to generate research' })
   }
 })
 

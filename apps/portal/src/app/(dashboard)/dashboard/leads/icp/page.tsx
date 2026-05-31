@@ -572,8 +572,6 @@ export default function ICPPage() {
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start">
-      {token && <FigsySidePanel token={token} onFill={handleAiFill} />}
-
       <div className="flex-1 min-w-0 space-y-6">
         {/* Error banner — shown for delete/activate errors when form is not open */}
         {saveError && !showForm && (
@@ -913,6 +911,7 @@ export default function ICPPage() {
           </div>
         )}
       </div>
+      {token && <FigsySidePanel token={token} onFill={handleAiFill} />}
     </div>
   )
 }

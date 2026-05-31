@@ -106,10 +106,10 @@
 
 | # | Item | Status | What's missing |
 |---|------|--------|---------------|
-| ⚠️ | **Monday.com pattern — Image 1 (agent list page)** | Not built | There is no `/dashboard/agents` list page showing all 3 agents as cards you click into. Sidebar has nav links but no visual "meet your agents" overview page. |
-| ⚠️ | **FIGSY full page — confirmed working** | Built, not verified live | Railway was failing builds until `eda86ab`. P0-18 two-column layout is in code (`4256584`) but has not been confirmed working in browser. |
+| ✅ | **Monday.com pattern — Image 1 (agents overview page)** | Built `2deadca` | `/dashboard/agents` — 3 agent cards with photos, feature list overlay, identity bar, CTA. Sidebar "KIND AI" label is now a link to this page with "View all →". |
+| ✅ | **Monday.com pattern — Image 2 (FIGSY full page)** | Built `4256584` | `/dashboard/figsy-chat` — two-column, "Hello [Name]" hero, gradient textarea, 4 starter pills, agent stats card right. |
 | ⚠️ | **Owner team dashboard — confirmed working** | Built, not verified live | `/dashboard/team` page exists (119 lines) but not confirmed rendering correctly or visible to founder. |
-| ⚠️ | **Agent photos in portal + website** | Not done | New AI-generated agent photos (FIGSY/Milla/Vida from the cards image) not uploaded. Portal currently uses old `/agents/figsy.png` etc. |
+| ✅ | **Agent photos replaced** | Done by founder | New AI-generated FIGSY/Milla/Vida card images placed at `public/agents/` — pending founder git push from Mac. |
 | 🔴 | **P0-8: Email score pre-send** | Not started | — |
 | 🔴 | **P0-10: Co-pilot mode** | Not started | — |
 | 🔴 | **P0-11: Auto-fire consent** | Not started | — |

@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 31 May 2026 — Agent panel width + ICP typewriter fixed. New session rules: no guessing, MASTER updated after every push.**
+**Single source of truth. Last updated: 31 May 2026 — Monday.com competitive audit added. UX/layout items added to Phase 0. Section 37 added.**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 ---
@@ -44,6 +44,7 @@
 34. [The Unbuilt Future — What K.I.N.D Could Become](#34-the-unbuilt-future--what-kind-could-become)
 35. [Demo Playbook — Live Sales Demo & Smoke Test](#35-demo-playbook--live-sales-demo--smoke-test)
 36. [Admin Portal Playbook — How to Use Every Route](#36-admin-portal-playbook--how-to-use-every-route)
+37. [Monday.com AI — Competitive Audit & UX Steal List](#37-mondaycom-ai--competitive-audit--ux-steal-list)
 
 ---
 
@@ -53,20 +54,30 @@
 
 ---
 
-### 📅 SESSION DATE — 31 May 2026 — Agent panel width fixed, ICP typewriter added, session rules locked
+### 📅 SESSION DATE — 31 May 2026 — Monday.com audit + full UX steal list added to build queue
 
-**Session rules locked (non-negotiable from now):**
+**Session rules (non-negotiable):**
 - No guessing — every finding has a file path + line number. Read it first if not certain.
 - MASTER.md updated after every push — not end of session, immediately after.
 - Full update on page 1 when founder says "run full update" — date/time, cross-referenced status: what's built, what Claude builds, what founder builds, checked against live portal + conversation + MASTER.
+- No building unless founder says so.
 
-**What was fixed this session:**
-- `AgentColumn.tsx:166` — FIGSY wrapper `lg:w-72` → `lg:w-64`. All agent panels now same width as ICP panel.
-- `icp/page.tsx` — Removed static dead context text. Added typewriter on first FIGSY message, identical to AgentSidePanel behaviour.
-- Commit `f4bcf95` pushed to `main`. Railway deploying.
+**What was done this session (no code pushed):**
+- Monday.com full competitive audit — 9+ screenshots reviewed (AI Sidekick, Vibe, AI Workflows, AI Agents, AI Notetaker, Agent Avatar Customizer, Agent Carousel)
+- 8 UX/layout steal items defined (P0-16 through P0-23) and added to Phase 0 build queue
+- Section 37 added: Monday.com AI Competitive Audit & UX Steal List
+- Full consolidated build list presented to founder (Phase 0-3 + founder actions)
 
-**Confirmed: nothing was lost in mid-push.**
-- Local `main` = `origin/main` = commit `573699b` before this session. All prior work was fully pushed.
+**Previously fixed (31 May, earlier):**
+- `AgentColumn.tsx:166` — FIGSY wrapper `lg:w-72` → `lg:w-64`. All agent panels now same width.
+- `icp/page.tsx` — Typewriter on first FIGSY message. Static dead text removed.
+- GET /figsy/kpis 500 fixed — `status = 'contacted'` → `'consent_sent'`
+- Mark meeting booked button added to inbox hot/interested replies
+- Copy share link button added to dashboard
+- AskFigsyButton chat history persisted to localStorage (last 20 messages)
+- NotificationBell theme fixed — dark → light
+- Seed demo reply debug button removed from production inbox
+- Commits: `f4bcf95`, `0eacf81` pushed to `main`. Railway deployed.
 
 ---
 
@@ -858,6 +869,14 @@
 | P0-13 | **Self-serve CRM paste** — client pastes HubSpot/Salesforce API key in settings → FIGSY syncs automatically | Section 19 |
 | P0-14 | **Multi-model toggle per campaign** — Haiku (volume/speed) vs Sonnet (quality/complex ICP) | ClickUp steal |
 | P0-15 | **Template library** — 5–9 pre-built FIGSY sequence templates: email only, LinkedIn-first, re-engagement, event-driven, competitor switch | Alta / Clay steal |
+| P0-16 | **KIND AI sidebar section** — group FIGSY, Milla, Vida under a named "KIND AI" header in the sidebar nav. Each agent is a destination, not just a column. Click FIGSY → FIGSY is the page | Monday steal |
+| P0-17 | **Personalized dashboard greeting** — replace cold KPI cards as hero with: "Hi [Name] — X leads replied this week. FIGSY has Y recommendations." KPIs move to secondary row below | Monday steal |
+| P0-18 | **FIGSY full-page mode** — dedicated `/dashboard/figsy` page: wide centered input with purple gradient border, collapsible chat history sidebar column, 4 smart suggested starters below input based on current pipeline state | Monday steal |
+| P0-19 | **Agent card redesign** — FIGSY/Milla/Vida cards get colored background block, large avatar, name + one-line role description, "Talk to FIGSY" CTA. Replaces small icon-in-panel-header treatment | Monday steal |
+| P0-20 | **Suggested starters on all empty states** — replace every "No X yet." with 3–4 action cards. Leads page: Define ICP / Import from Apollo / Add manually / See how scoring works. Campaigns page: Launch first campaign / Let FIGSY write sequence / See example results. Analytics: Send first campaign to see stats | Monday steal |
+| P0-21 | **Wider content + lighter sidebar** — sidebar narrowed to ~200px, softer border-right instead of solid dark panel. Agent column collapsed by default on most pages, expanded only when actively talking to an agent | Monday steal |
+| P0-22 | **Input as design signal** — all FIGSY inputs (ICP builder, FIGSY page, knowledge base) upgraded to full-width, large textarea with purple gradient border. Communicates: this is how you use the product | Monday steal |
+| P0-23 | **Workforce language pass** — copy audit across entire portal. "Your agents" → "Your team". "AI tools" → "Meet your SDR team". Campaign events: "FIGSY sent 47 emails this morning." Reply events: "FIGSY flagged this as hot." Agents as staff, not features | Monday steal |
 
 ---
 
@@ -7427,4 +7446,118 @@ If key is absent: setup guide showing exactly how to get and add the key.
 *Section 36 written: 28 May 2026.*
 *Update when new admin routes ship. Keep recipes in sync with actual UI.*
 *This is the playbook Jacques hands to a new AE or ops hire on Day 1.*
+
+---
+
+## 37. Monday.com AI — Competitive Audit & UX Steal List
+*Written: 31 May 2026. Screenshots reviewed: AI Sidekick, Vibe, AI Workflows, AI Agents, AI Notetaker, Agent Avatar Customizer, Agent Gallery/Carousel.*
+
+---
+
+### What Monday.com Built (Their AI Product Suite)
+
+| Product | What It Does | Key Insight |
+|---------|-------------|-------------|
+| **AI Sidekick** | General-purpose chat assistant — create boards, write docs, research, brainstorm, generate images | Full-width centered input IS the page. Not a widget |
+| **Vibe** | Natural language app builder — describe an app, it builds it | Same input-first layout, huge textarea, category template gallery |
+| **AI Workflows** | Automation builder via conversation — no visual editor needed | Conversational-first for a category that's historically form-heavy |
+| **AI Agents** | Custom AI agents with name, role, avatar, background color | "Build your own workforce in minutes" — agents as colleagues |
+| **AI Notetaker** | Meeting recording + transcription + action item extraction | Integrates into calendar, fires after every meeting |
+
+All five products live under "monday AI" in the sidebar — a named section, not buried in Settings.
+
+---
+
+### Their Design System — The Patterns
+
+**Layout**
+- Sidebar: ~120px wide, text only, no icons competing for space
+- "monday AI" section header groups all AI products
+- Middle column (200px, collapsible): chat history / app list — context without shrinking main area
+- Main content: 70-75% of screen, always one hero action
+
+**Color**
+- Pure white backgrounds everywhere
+- Rainbow gradient only on the primary input box — signals "most important element"
+- Agent cards: coloured background block (white card, coloured top 40%) per agent
+- No dark panels in main content area
+
+**Typography**
+- Page titles: Bold ~36px, dark gray
+- Subtitles: Regular ~14px, medium gray
+- Nav: ~13px, left-aligned, no icons
+
+**Input boxes**
+- Always full-width of content area (800-900px)
+- Gradient border is the only decoration needed
+- Toolbar below input (not above) — keeps top clean
+- Placeholder text is light and friendly
+
+**Agent cards**
+- White card, 12-16px corner radius
+- Colored background block behind avatar
+- Name bold, role title underneath, 2-line description
+- CTA button: "Try me"
+- Carousel with perspective scaling (focal card large, others muted)
+
+**Suggested starters**
+- 4×2 grid below primary input
+- Each card: title, one-line description, category pill
+- Never an empty state — always a next step
+
+---
+
+### Their Strategy (What It Signals)
+
+1. **AI is a product family, not a feature** — five named products under one brand section
+2. **Every AI surface is conversational first** — no forms, no 12-step wizards
+3. **Agents are colleagues, not bots** — naming convention, avatar customization, "workforce" language
+4. **Templates remove blank-page anxiety** — every AI page has suggested starters
+5. **Personalization is high-impact** — "Hi Jacques" before you do anything. Feels warm.
+
+---
+
+### What K.I.N.D Has That Monday Doesn't
+
+| K.I.N.D Advantage | Why It Matters |
+|-------------------|----------------|
+| Vertical specialisation — SDR-specific | Monday's agents are generic. FIGSY is purpose-built for outbound |
+| Real pipeline output — actual emails, actual replies | Monday AI creates boards and docs. Higher stakes, higher value |
+| Client-facing portal (Alta-style) | Monday is internal-only. Our client portal is a differentiator they can't copy |
+| Africa-first positioning | Monday has no regional depth. We own that layer |
+
+---
+
+### What We Do NOT Take From Monday
+
+- Rainbow gradient on inputs — clashes with our purple identity. We have our own colour language.
+- Their sidebar structure — we have different nav needs (client portal vs internal tool)
+- Avatar customizer — FIGSY/Milla/Vida have fixed identities, not user-configured
+
+---
+
+### What We Take — The UX Steal List (all in Section 0b as P0-16 through P0-23)
+
+| # | Steal | Monday Pattern |
+|---|-------|---------------|
+| P0-16 | KIND AI sidebar section | "monday AI" header grouping all AI products |
+| P0-17 | Personalized dashboard greeting | "Hi Jacques, What would you like to work on today?" |
+| P0-18 | FIGSY full-page mode | AI Sidekick as a full-width page, not a side widget |
+| P0-19 | Agent card redesign (persona treatment) | Agent gallery with colored backgrounds + name/role/CTA |
+| P0-20 | Suggested starters on all empty states | 4×2 card grid below primary input, never empty |
+| P0-21 | Wider content + lighter sidebar | 120px sidebar, 75% content area |
+| P0-22 | Input as design signal | Full-width input with gradient border as page hero |
+| P0-23 | Workforce language pass | "Your team", "FIGSY sent", "FIGSY flagged" |
+
+---
+
+### The Core Insight
+
+> Monday has built the reference implementation for AI-native SaaS UX. The gap for K.I.N.D isn't features — it's the feeling. Right now the portal feels like a dashboard that has AI in it. It should feel like an AI product that has a dashboard in it. That's a layout and hierarchy shift, not a rebuild.
+
+---
+
+*Section 37 written: 31 May 2026.*
+*Reviewed: AI Sidekick, Vibe, AI Workflows, AI Agents, AI Notetaker, Agent Avatar Customizer, Agent Marketing Carousel.*
+*Build items added to Phase 0: P0-16 through P0-23. No building until founder authorises.*
 

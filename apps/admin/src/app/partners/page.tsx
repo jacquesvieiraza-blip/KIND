@@ -169,18 +169,12 @@ export default function PartnersPage() {
         cRes.json().catch(() => ({})),
       ])
 
-      // Check for migration error (42P01)
-      const errMsg =
-        pJson?.error || pJson?.message ||
-        dJson?.error || dJson?.message ||
-        cJson?.error || cJson?.message || ''
-      if (
-        errMsg.includes('42P01') ||
-        errMsg.includes('does not exist') ||
-        errMsg.includes('relation') ||
-        errMsg.toLowerCase().includes('migration')
-      ) {
-        setMigrationError('Partners tables not yet migrated — run the partner programme SQL migrations.')
+      // Surface non-ok responses as visible errors
+      if (!pRes.ok) {
+        const msg = pJson?.error || pJson?.message || `HTTP ${pRes.status}`
+        if (pRes.status === 401) { setMigrationError('Admin key not configured — check ADMIN_SECRET_KEY env var.'); setLoading(false); return }
+        if (msg.includes('42P01') || msg.includes('does not exist')) { setMigrationError('Partners tables not yet migrated — run 20260601_partners.sql.'); setLoading(false); return }
+        setMigrationError(`Partners API error: ${msg}`)
         setLoading(false)
         return
       }

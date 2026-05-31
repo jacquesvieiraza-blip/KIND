@@ -63,7 +63,7 @@
 - Full update on page 1 when founder says "run full update" — date/time, cross-referenced status: what's built, what Claude builds, what founder builds, checked against live portal + conversation + MASTER.
 - No building unless founder says so.
 
-**What was done this session (UX steal sprint):**
+**What was done this session (UX steal sprint + model toggle):**
 - **P0-18: FIGSY Full Page** — `/dashboard/figsy-chat` created. Full-width dedicated FIGSY chat page with hero textarea (purple gradient border), 4 starter pills, scrollable chat history, FIGSY avatar on assistant messages, purple bubbles for user, localStorage persistence (30 msgs), mode=full API call. `c03a0c7`
 - **P0-16: KIND AI sidebar label** — "AI Agents" → "KIND AI". `c03a0c7`
 - **P0-17: Personalized greeting** — "Good morning/afternoon/evening, [name]" + lead count / reply subtitle at top of dashboard. `c03a0c7`
@@ -73,7 +73,8 @@
 - **P0-19: Agent card redesign** — Coloured left border accent per agent, tinted card background, avatar 56px. `7ff727b`
 - **Chat with FIGSY** added as first nav item under KIND AI section (MessageSquare icon → /dashboard/figsy-chat). `c03a0c7`
 - AgentColumn returns null on /dashboard/figsy-chat (no duplicate side panel). `c03a0c7`
-- All TypeScript clean before every commit. 4 commits pushed to main.
+- **P0-14: Multi-model toggle** — Haiku (fast/volume) vs Sonnet (smart/complex ICP) per campaign. DB migration, API lib MODEL_MAP, PATCH route, UI toggle in Advanced Settings panel. `17cc871`
+- All TypeScript clean before every commit. 5 commits pushed to main.
 
 **Previously fixed (31 May, earlier):**
 - `AgentColumn.tsx:166` — FIGSY wrapper `lg:w-72` → `lg:w-64`. All agent panels now same width.

@@ -55,18 +55,30 @@
 
 ---
 
-### 📅 SESSION — 31 May 2026 — P0-22, P0-23, Milla Languages LIVE
+### 📅 SESSION — 31 May 2026 — Full roadmap sync + full build queue approved
 
 **Session rules (non-negotiable):**
 - No guessing — every finding has a file path + line number. Read it first if not certain.
-- MASTER.md updated after every push — not end of session, immediately after.
+- MASTER.md + portal roadmap + admin roadmap updated in every build commit — same push, no exceptions.
 - Before marking anything ✅ Done — verify the code file exists and contains the feature. No assumptions.
 - No building unless founder says so.
 
-**This session — commit `842f39d` — all pushed to main:**
-- P0-22 ✅ Gradient border on ICP builder textarea + knowledge base core-pitch + persona textareas
-- P0-23 ✅ Workforce language pass — FIGSY agent-voice copy throughout figsy, inbox, kpis, dashboard home
-- Languages (Milla) ✅ Multi-language selector (English/Français/Kiswahili/Hausa) in Milla chat — pulled forward from Phase 2
+**Three sources of truth — NOW IN SYNC (this commit):**
+- MASTER.md Section 0b — complete build queue, all phases
+- Portal roadmap (`/dashboard/roadmap/page.tsx`) — all items added, Milla languages fixed to live
+- Admin roadmap (`/admin/roadmap/page.tsx`) — RESEND resolved, MCP-3 and recent builds marked done
+
+**Built this session:**
+- P0-22 ✅ `842f39d` — Gradient border on ICP builder textarea + knowledge base textareas
+- P0-23 ✅ `842f39d` — Workforce language pass throughout portal
+- Languages (Milla) ✅ `842f39d` — English/Français/Kiswahili/Hausa selector in Milla chat
+- Roadmap sync ✅ this commit — all three sources aligned
+
+**Full build queue approved by founder — build in priority order:**
+- Phase 0/1 (quick, ship first): P0-1 website copy, P1-3 adaptive send volume
+- Phase 2 (medium): P2-10 ICP auto-refinement, P2-11 network benchmarks, P2-2 A/B subject lines, P2-8 Kanban, P2-15 ICP live preview, P2-4 sequence branching, P2-1 3-type memory, P2-7 agent triggers, P2-5 waterfall enrichment, P2-6 intent signals, P2-3 A/Z multi-variant, P2-9 file approval, P2-12 white-label, P2-13 personalised images, P2-14 social signals
+- Phase 3 (large): P3-5 revenue forecasting, P3-3 in-portal messaging, P3-2 FIGSY verticals, P3-13 African data moat
+- **Every build = MASTER.md + portal roadmap + admin roadmap updated in same commit**
 
 ---
 

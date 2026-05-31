@@ -254,7 +254,7 @@ export default async function ClientsPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-purple-100">
-                {['Company', 'Country', 'Status', 'T&Cs', 'Active Products', 'Actions'].map(h => (
+                {['Company', 'Country', 'Status', 'Risk', 'T&Cs', 'Active Products', 'Actions'].map(h => (
                   <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -263,9 +263,15 @@ export default async function ClientsPage({
               {clients.map(client => {
                 const st = clientStatus(client)
                 const activeProducts = (client.subscriptions || []).filter(s => s.status === 'active' || s.status === 'trialing')
+                const risk = riskLabel(client.health, {
+                  credit_balance: client.credit_balance,
+                  figsy_active: client.figsy_active,
+                  figsy_sent_7d: client.figsy_sent_7d,
+                  last_login_days: client.last_login_days,
+                })
 
                 return (
-                  <tr key={client.id} className="hover:bg-purple-50/30 transition-colors">
+                  <tr key={client.id} className={`hover:bg-purple-50/30 transition-colors ${client.health === 'red' ? 'bg-red-50/20' : ''}`}>
                     <td className="px-5 py-3">
                       <p className="font-medium text-gray-900">{client.company_name}</p>
                       {client.industry && <p className="text-xs text-gray-400">{client.industry}</p>}
@@ -275,6 +281,22 @@ export default async function ClientsPage({
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${st.color}`}>
                         {st.icon}{st.label}
                       </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      {client.health === 'red' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                          <AlertTriangle className="w-3 h-3" />
+                          {risk || 'At risk'}
+                        </span>
+                      ) : client.health === 'amber' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          ⚠ {risk || 'Monitor'}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+                          ● Healthy
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       {client.terms_accepted_at ? (

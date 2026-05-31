@@ -6,10 +6,16 @@ const router = Router()
 // POST /track/visit — called from website tracking snippet
 router.post('/visit', async (req, res) => {
   try {
-    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? (req.socket as any).remoteAddress ?? ''
-    const { page_url, referrer, user_agent } = req.body
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? (req.socket as NodeJS.Socket & { remoteAddress?: string }).remoteAddress ?? ''
+    const { page_url, referrer, user_agent } = req.body as {
+      page_url?: string; referrer?: string; user_agent?: string
+    }
 
-    let company_name = null, company_domain = null, company_country = null, company_size_range = null, intent_score = 0
+    let company_name: string | null = null
+    let company_domain: string | null = null
+    let company_country: string | null = null
+    let company_size_range: string | null = null
+    let intent_score = 0
 
     // Try Clearbit Reveal (no API key = skip gracefully)
     if (process.env.CLEARBIT_API_KEY && ip && ip !== '127.0.0.1' && !ip.startsWith('192.168')) {
@@ -18,7 +24,7 @@ router.post('/visit', async (req, res) => {
           headers: { Authorization: `Bearer ${process.env.CLEARBIT_API_KEY}` }
         })
         if (resp.ok) {
-          const data = await resp.json() as any
+          const data = await resp.json() as { company?: { name?: string; domain?: string; geo?: { country?: string }; metrics?: { employeesRange?: string } } }
           company_name = data.company?.name ?? null
           company_domain = data.company?.domain ?? null
           company_country = data.company?.geo?.country ?? null
@@ -52,12 +58,12 @@ router.post('/visit', async (req, res) => {
 router.get('/admin/visitors', async (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key']
-    if (adminKey !== process.env.ADMIN_API_KEY) return res.status(401).json({ error: 'unauthorized' })
+    if (adminKey !== process.env.ADMIN_API_KEY) { res.status(401).json({ error: 'unauthorized' }); return }
     const { data, error } = await db.from('visitor_sessions')
       .select('*')
       .order('visited_at', { ascending: false })
       .limit(200)
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) { res.status(500).json({ error: error.message }); return }
     res.json(data)
   } catch (err) {
     console.error('[tracking] GET /admin/visitors', err)

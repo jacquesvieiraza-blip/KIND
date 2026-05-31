@@ -14,13 +14,13 @@ async function getClientId(userId: string): Promise<string | null> {
 router.get('/keys', requireAuth, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
-    if (!clientId) return res.status(404).json({ error: 'Client not found' })
+    if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }
     const { data, error } = await db.from('developer_keys')
       .select('id, key_prefix, name, created_at, last_used_at, total_requests, revoked_at')
       .eq('client_id', clientId)
       .is('revoked_at', null)
       .order('created_at', { ascending: false })
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) { res.status(500).json({ error: error.message }); return }
     res.json(data)
   } catch (err) {
     console.error('[developer] GET /keys', err)
@@ -32,8 +32,8 @@ router.get('/keys', requireAuth, async (req: AuthRequest, res) => {
 router.post('/keys', requireAuth, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
-    if (!clientId) return res.status(404).json({ error: 'Client not found' })
-    const { name } = req.body
+    if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }
+    const { name } = req.body as { name?: string }
     const rawKey = `kind_${crypto.randomBytes(24).toString('hex')}`
     const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex')
     const keyPrefix = rawKey.substring(0, 12)
@@ -41,7 +41,7 @@ router.post('/keys', requireAuth, async (req: AuthRequest, res) => {
       .insert({ client_id: clientId, key_prefix: keyPrefix, key_hash: keyHash, name: name ?? 'My API Key' })
       .select('id, key_prefix, name, created_at')
       .single()
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) { res.status(500).json({ error: error.message }); return }
     // Return full key ONCE only
     res.json({ ...data, key: rawKey })
   } catch (err) {
@@ -54,12 +54,12 @@ router.post('/keys', requireAuth, async (req: AuthRequest, res) => {
 router.delete('/keys/:id', requireAuth, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
-    if (!clientId) return res.status(404).json({ error: 'Client not found' })
+    if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }
     const { error } = await db.from('developer_keys')
       .update({ revoked_at: new Date().toISOString() })
       .eq('id', req.params.id)
       .eq('client_id', clientId)
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) { res.status(500).json({ error: error.message }); return }
     res.json({ ok: true })
   } catch (err) {
     console.error('[developer] DELETE /keys/:id', err)

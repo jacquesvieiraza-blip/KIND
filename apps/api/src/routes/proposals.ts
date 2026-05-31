@@ -9,42 +9,6 @@ async function getClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
-// GET /proposals — list client proposals
-router.get('/', requireAuth, async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) return res.status(404).json({ error: 'Client not found' })
-    const { data, error } = await db.from('proposals')
-      .select('id, title, status, recipient_email, recipient_name, sent_at, signed_at, created_at')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false })
-    if (error) return res.status(500).json({ error: error.message })
-    res.json(data)
-  } catch (err) {
-    console.error('[proposals] GET /', err)
-    res.status(500).json({ error: 'Failed to list proposals' })
-  }
-})
-
-// POST /proposals — create new proposal
-router.post('/', requireAuth, async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) return res.status(404).json({ error: 'Client not found' })
-    const { title, content, recipient_email, recipient_name } = req.body
-    if (!title) return res.status(400).json({ error: 'title required' })
-    const { data, error } = await db.from('proposals')
-      .insert({ client_id: clientId, title, content: content ?? {}, recipient_email, recipient_name })
-      .select()
-      .single()
-    if (error) return res.status(500).json({ error: error.message })
-    res.json(data)
-  } catch (err) {
-    console.error('[proposals] POST /', err)
-    res.status(500).json({ error: 'Failed to create proposal' })
-  }
-})
-
 // GET /proposals/sign/:token — public view for signing (no auth) — must be BEFORE /:id
 router.get('/sign/:token', async (req, res) => {
   try {
@@ -52,7 +16,7 @@ router.get('/sign/:token', async (req, res) => {
       .select('id, title, content, status, recipient_name')
       .eq('sign_token', req.params.token)
       .single()
-    if (error || !data) return res.status(404).json({ error: 'not found' })
+    if (error || !data) { res.status(404).json({ error: 'not found' }); return }
     // Mark as viewed
     if (data.status === 'sent') {
       await db.from('proposals').update({ status: 'viewed', viewed_at: new Date().toISOString() }).eq('sign_token', req.params.token)
@@ -72,7 +36,7 @@ router.post('/sign/:token', async (req, res) => {
       .eq('sign_token', req.params.token)
       .select('id, title, status')
       .single()
-    if (error || !data) return res.status(404).json({ error: 'invalid token' })
+    if (error || !data) { res.status(404).json({ error: 'invalid token' }); return }
     res.json(data)
   } catch (err) {
     console.error('[proposals] POST /sign/:token', err)
@@ -80,17 +44,55 @@ router.post('/sign/:token', async (req, res) => {
   }
 })
 
+// GET /proposals — list client proposals
+router.get('/', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }
+    const { data, error } = await db.from('proposals')
+      .select('id, title, status, recipient_email, recipient_name, sent_at, signed_at, created_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+    if (error) { res.status(500).json({ error: error.message }); return }
+    res.json(data)
+  } catch (err) {
+    console.error('[proposals] GET /', err)
+    res.status(500).json({ error: 'Failed to list proposals' })
+  }
+})
+
+// POST /proposals — create new proposal
+router.post('/', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }
+    const { title, content, recipient_email, recipient_name } = req.body as {
+      title?: string; content?: object; recipient_email?: string; recipient_name?: string
+    }
+    if (!title) { res.status(400).json({ error: 'title required' }); return }
+    const { data, error } = await db.from('proposals')
+      .insert({ client_id: clientId, title, content: content ?? {}, recipient_email, recipient_name })
+      .select()
+      .single()
+    if (error) { res.status(500).json({ error: error.message }); return }
+    res.json(data)
+  } catch (err) {
+    console.error('[proposals] POST /', err)
+    res.status(500).json({ error: 'Failed to create proposal' })
+  }
+})
+
 // GET /proposals/:id — get proposal
 router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
-    if (!clientId) return res.status(404).json({ error: 'Client not found' })
+    if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }
     const { data, error } = await db.from('proposals')
       .select('*')
       .eq('id', req.params.id)
       .eq('client_id', clientId)
       .single()
-    if (error || !data) return res.status(404).json({ error: 'not found' })
+    if (error || !data) { res.status(404).json({ error: 'not found' }); return }
     res.json(data)
   } catch (err) {
     console.error('[proposals] GET /:id', err)
@@ -102,15 +104,17 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res) => {
 router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
-    if (!clientId) return res.status(404).json({ error: 'Client not found' })
-    const { title, content, recipient_email, recipient_name } = req.body
+    if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }
+    const { title, content, recipient_email, recipient_name } = req.body as {
+      title?: string; content?: object; recipient_email?: string; recipient_name?: string
+    }
     const { data, error } = await db.from('proposals')
       .update({ title, content, recipient_email, recipient_name })
       .eq('id', req.params.id)
       .eq('client_id', clientId)
       .select()
       .single()
-    if (error || !data) return res.status(500).json({ error: error?.message ?? 'not found' })
+    if (error || !data) { res.status(500).json({ error: error?.message ?? 'not found' }); return }
     res.json(data)
   } catch (err) {
     console.error('[proposals] PATCH /:id', err)
@@ -122,14 +126,14 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
 router.post('/:id/send', requireAuth, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
-    if (!clientId) return res.status(404).json({ error: 'Client not found' })
+    if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }
     const { data: proposal, error } = await db.from('proposals')
       .select('*')
       .eq('id', req.params.id)
       .eq('client_id', clientId)
       .single()
-    if (error || !proposal) return res.status(404).json({ error: 'not found' })
-    if (!proposal.recipient_email) return res.status(400).json({ error: 'recipient_email required' })
+    if (error || !proposal) { res.status(404).json({ error: 'not found' }); return }
+    if (!proposal.recipient_email) { res.status(400).json({ error: 'recipient_email required' }); return }
     const signUrl = `${process.env.PORTAL_URL ?? 'https://app.get-kind.com'}/sign/${proposal.sign_token}`
     // Send via Resend
     try {
@@ -137,7 +141,7 @@ router.post('/:id/send', requireAuth, async (req: AuthRequest, res) => {
       const resend = new Resend(process.env.RESEND_API_KEY)
       await resend.emails.send({
         from: 'K.I.N.D <noreply@get-kind.com>',
-        to: proposal.recipient_email,
+        to: proposal.recipient_email as string,
         subject: `Proposal: ${proposal.title}`,
         html: `<p>Hi ${proposal.recipient_name ?? 'there'},</p>
                <p>Please review and sign the proposal below:</p>
@@ -145,7 +149,7 @@ router.post('/:id/send', requireAuth, async (req: AuthRequest, res) => {
                <p><a href="${signUrl}" style="background:#6d28d9;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Review &amp; Sign &#8594;</a></p>
                <p style="color:#999;font-size:12px">Sent via K.I.N.D &mdash; The AI Revenue Team</p>`
       })
-    } catch (e) { /* non-fatal */ }
+    } catch { /* non-fatal */ }
     const { data: updated } = await db.from('proposals')
       .update({ status: 'sent', sent_at: new Date().toISOString() })
       .eq('id', req.params.id)

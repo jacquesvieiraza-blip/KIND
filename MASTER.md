@@ -56,6 +56,177 @@
 
 ---
 
+### 🌅 MORNING BRIEF — 1 June 2026 — Full Audit + Action Plan
+
+---
+
+#### 🔬 MORNING SMOKE TEST (do this before anything else)
+
+**Step 1 — Client account**
+1. Go to app.get-kind.com
+2. Sign in as `jacques.vieiraza@icloud.com`
+3. Verify: dashboard loads, sidebar shows, no "Something went wrong"
+4. Check: FIGSY page loads, leads table works, KPIs load
+5. Check: Settings, Usage, Proposals pages load
+
+**Step 2 — Partner account**
+1. Sign out
+2. Sign in as `jacques.vieiraza@gmail.com`
+3. Verify: Partner Hub appears in sidebar (not for iCloud account)
+4. Open Partner Hub — verify dashboard loads with stats, referral link, deal form
+5. Open Onboarding Guide (`/dashboard/partner/onboarding`) — verify 9-step flowchart loads
+6. Open Value Deck (`/dashboard/partner/deck`) — verify all 7 slides render
+7. Test FIGSY agent panel — should show partner-state-aware message
+8. Sign out
+
+**Step 3 — Sign back in as client and full smoke test**
+1. Sign in as `jacques.vieiraza@icloud.com`
+2. Run through the demo flow: ICP → leads → campaign → verify the full FIGSY chain works
+
+---
+
+#### 📦 FULL AUDIT — WHAT WAS BUILT TODAY (31 May 2026)
+
+**Partner Programme — new features:**
+| # | Feature | File | Status |
+|---|---------|------|--------|
+| 1 | Partner onboarding flowchart | `apps/portal/src/app/(dashboard)/dashboard/partner/onboarding/page.tsx` | ✅ Live |
+| 2 | Partner value deck (7 slides) | `apps/portal/src/app/(dashboard)/dashboard/partner/deck/page.tsx` | ✅ Live |
+| 3 | Agent context by partner state | `apps/portal/src/app/(dashboard)/AgentColumn.tsx` | ✅ Live |
+| 4 | Layout fetches partnerStatus + partnerDealCount | `apps/portal/src/app/(dashboard)/layout.tsx` | ✅ Live |
+| 5 | Partner Hub Resources — real internal links | `apps/portal/src/app/(dashboard)/dashboard/partner/page.tsx` | ✅ Live |
+| 6 | Admin Onboarding tab (SOP + journey + commission ref) | `apps/admin/src/app/partners/page.tsx` | ✅ Live |
+| 7 | Partner Hub hidden from non-partners | `apps/portal/src/components/layout/Sidebar.tsx` | ✅ Live |
+
+**Infrastructure fixes:**
+| # | Fix | Commit | What was wrong |
+|---|-----|--------|---------------|
+| 1 | Root nixpacks.toml deleted | `25249ff` | Accidentally created — portal/admin picked it up, served wrong server |
+| 2 | Portal + admin nixpacks.toml fixed | `5e63ff4` | `--frozen-lockfile` + wrong `yarn start` breaking deploys |
+| 3 | API nixpacks.toml fixed | `1a61e7c` | `yarn install` in wrong phase |
+| 4 | `.node-version` file added | `92d30eb` | Hints nixpacks to use Node 20 |
+| 5 | `yarn.lock` synced | `67b81f8` | Cross-platform lockfile mismatch |
+| 6 | API WebSocket crash fixed | `adf9a39`, `50073e0` | `supabase-js@2.105` Realtime client requires WebSocket on init — Node 20 has none. Added `ws` package, set `globalThis.WebSocket = ws` before `createClient()`, passed `realtime: { transport: ws }` |
+| 7 | Portal "Something went wrong" fixed | `e94a0c1` | Sidebar destructured prop as `isPartnerProp` but render used `isPartner` — crashed every dashboard page. Hidden by `typescript.ignoreBuildErrors: true` |
+
+---
+
+#### ❌ WHAT'S NOT BUILT — PARTNER PROGRAMME GAPS
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Demo sandbox provisioning | ❌ Placeholder only | Onboarding guide mentions it — nothing actually happens when partner is approved |
+| Admin sandbox visibility | ❌ Not built | Admin can't see sandbox status per partner |
+| "Sign up as client" flow | ❌ No CTA or path | Partners who want K.I.N.D for own pipeline have no clear route |
+| Partner onboarding email sequence | ❌ Single email only | Only the approval email exists — no follow-up steps |
+| Partner pricing page | ❌ Not built | No in-portal page explaining free sandbox / pay as client model |
+| Partner portal sandbox section | ❌ Not built | No credentials display, no demo instructions, no separate CTA |
+
+---
+
+#### 🔒 BUSINESS DECISION LOCKED — Partner Model
+
+- **Demo sandbox** = FREE, provisioned automatically when admin approves a partner
+- **Own pipeline** = sign up as a regular client at standard rates (no special pricing, no hybrid accounts)
+- **Why**: keeps it clean — no edge cases, no discount negotiation, no shared billing complexity
+
+---
+
+#### 🔨 WHAT CLAUDE BUILDS NEXT (partner programme — in order)
+
+| # | Build | Detail |
+|---|-------|--------|
+| 1 | **Demo sandbox auto-provisioning** | When admin approves a partner → automatically creates a sandbox client account, pre-loads with demo credits, stores sandbox_client_id on partner record. Portal shows credentials. |
+| 2 | **Partner portal sandbox section** | Section in Partner Hub showing: sandbox login credentials, "Use this for demos" instructions, separate CTA: "Want K.I.N.D for your own outreach? Sign up as a client →" |
+| 3 | **Admin sandbox status** | Per-partner in admin partners page: sandbox provisioned? Yes/No, credits remaining, manual provision button as fallback |
+| 4 | **Update onboarding guide + value deck** | Replace placeholder sandbox step with real flow — "Your demo sandbox is ready. Here's how to use it." |
+| 5 | **Partner pricing page** | Clean one-pager at `/dashboard/partner/pricing`: demo sandbox = free, own pipeline = standard client pricing table |
+| 6 | **Fix `typescript.ignoreBuildErrors`** | Remove from `apps/portal/next.config.mjs` — this is what let the Sidebar crash reach production silently |
+
+**Sandbox spec needed from founder before building #1:**
+- How many credits pre-loaded? (Suggested: 200 — enough for a full demo sequence)
+- Which plan tier? (Suggested: Growth tier features — shows the full product)
+- One sandbox per partner or shared?
+
+---
+
+#### 📋 FOUNDER'S COMPLETE OUTSTANDING ACTION LIST
+
+**🔴 CRITICAL — Blocking revenue:**
+| # | Task | Where | Impact |
+|---|------|-------|--------|
+| F1 | **Stripe — set up prices** | stripe.com → create Milla ($49/mo) + Vida ($39/mo) recurring → add `STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY` + `NEXT_PUBLIC_` versions to Railway | Milla + Vida subscriptions dead without this |
+| F2 | **Run `20260527_stripe_subscription_id.sql`** | Supabase SQL Editor | Required for Stripe subscription webhook processing |
+| F3 | **Confirm RESEND_API_KEY in Railway API** | Railway → KIND API → Variables | Zero emails sent without this — welcome, POPIA, FIGSY digests, alerts |
+| F4 | **Apollo upgrade to Basic ($49/mo)** | apollo.io → Billing | Free plan = 50 contacts/month. Basic = 10,000. 4 competitor ICPs are seeded and ready to run. |
+
+**🟡 HIGH — Do this week:**
+| # | Task | Where | Impact |
+|---|------|-------|--------|
+| F5 | **Register UK company** | companieshouse.gov.uk — £50, same day | Unlocks Stripe UK account, professional credibility, investor conversations |
+| F6 | **HubSpot account + API key** | app.hubspot.com (free) → Private Apps → add `HUBSPOT_API_KEY` to Railway | CRM sync on every reply, deal creation — fully built, activates on key |
+| F7 | **Register Resend inbound webhook** | Resend dashboard → Webhooks → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` + set `RESEND_WEBHOOK_SECRET` in Railway | FIGSY reply handling dead without this |
+| F8 | **Add FIGSY_KIND_CLIENT_ID to Railway** | Railway → KIND API → Variables → your client UUID | K.I.N.D self-outreach (dogfooding) does nothing without it |
+| F9 | **Confirm Calendly link is live** | calendly.com → share `https://calendly.com/jacques-vieiraza/30min` | Every "Book a Demo" button is unlinked |
+
+**🛡️ REDUNDANCY / UPTIME — Must do after morning smoke test:**
+| # | Task | Where | Takes |
+|---|------|-------|-------|
+| R1 | **Railway health check** | Railway → KIND/API → Settings → Health Check → path: `/health`, timeout: 30s | 2 min — auto-restarts crashed API instead of leaving it dead |
+| R2 | **Railway health check for Portal** | Railway → KIND/Portal → Settings → Health Check → path: `/` | 2 min |
+| R3 | **UptimeRobot** | uptimerobot.com (free) → Add monitor → HTTPS → `https://kindapi-production-e64c.up.railway.app/health` → alert by SMS + email every 60s | 5 min — you get SMS the moment API goes down |
+| R4 | **UptimeRobot for portal** | Same — add `https://app.get-kind.com` as second monitor | 2 min |
+| R5 | **Railway auto-rollback** | Railway → KIND/API → Settings → Enable "Rollback on deploy failure" | 1 min — rolls back image if health check fails after deploy |
+
+**🟢 WHEN READY:**
+| # | Task | Notes |
+|---|------|-------|
+| F10 | **Wise business account** | After UK registration — multi-currency, receives Stripe USD/GBP |
+| F11 | **Google Workspace** | ~$12/mo — when first client or first hire. Gmail fine for now. |
+| F12 | **Google Calendar OAuth** | Credentials needed: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
+| F13 | **Vapi.ai voice** | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
+| F14 | **WhatsApp Business API** | Meta 3–7 day approval. `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
+| F15 | **MacBook from Currys** | Dev on personal hardware |
+| F16 | **Confirm partner email** | ✅ DONE — you ran `UPDATE partners SET email = 'jacques.vieiraza@gmail.com'` |
+| F17 | **Confirm sandbox credit spec** | How many credits pre-loaded for demo sandbox? Which plan tier? |
+| F18 | **G2 / Capterra / Product Hunt** | Launch day listings |
+
+---
+
+#### 🐛 DAILY BUG AUDIT — PROTOCOL (requested, never implemented)
+
+You asked for this weeks ago. Here is what should happen every morning:
+
+**What Claude does at the start of every session (before any building):**
+1. Run `yarn workspace @kind/portal type-check` — catch TypeScript errors before they reach production
+2. Run `yarn workspace @kind/api build` — verify API compiles clean
+3. Run `yarn workspace @kind/admin type-check` — catch admin errors
+4. Check git log for last 24h commits and cross-reference with known issues
+5. Report findings in the first message of the session — list any errors, warnings, or regressions
+
+**What this would have caught today:**
+- The `isPartner` / `isPartnerProp` Sidebar bug was a TypeScript error. `tsc --noEmit` caught it in under 1 second. The portal was down for hours. A 1-second check would have caught it before push.
+
+**Protocol going forward:** Every session starts with a type-check run. No exceptions. If errors are found, they are fixed before any new building begins.
+
+---
+
+#### 🔴 REMOVE `typescript.ignoreBuildErrors` — URGENT
+
+File: `apps/portal/next.config.mjs`
+
+Current (dangerous):
+```js
+typescript: { ignoreBuildErrors: true },
+eslint: { ignoreDuringBuilds: true },
+```
+
+This must be removed. It let a TypeScript error that crashes every dashboard page reach production silently. Once removed, any type error will fail the Railway build before it deploys — which is the correct behaviour.
+
+Claude will do this first thing when you say go.
+
+---
+
 ### 📅 SESSION — 31 May 2026 (evening) — CRITICAL INFRA RECOVERY + Partner Programme Complete
 
 **Two production outages — root causes found and fixed:**

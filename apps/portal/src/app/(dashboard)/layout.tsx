@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
@@ -22,24 +21,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let leadCount     = 0
   let isPartner     = false
 
-  // Check if this user has a partner record — service role bypasses RLS
-  if (user.email) {
-    const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    try {
-      if (svcUrl && svcKey) {
-        const svc = createServiceClient(svcUrl, svcKey, { auth: { persistSession: false } })
-        const { data: partnerRow } = await svc
-          .from('partners').select('id').eq('email', user.email).maybeSingle()
-        isPartner = !!partnerRow
-      } else {
-        // Fallback: use session client (works if RLS allows it)
-        const { data: partnerRow } = await supabase
-          .from('partners').select('id').eq('email', user.email).maybeSingle()
-        isPartner = !!partnerRow
-      }
-    } catch { isPartner = false }
-  }
+  // Check partner status via API — the only reliable method since the partners
+  // table RLS uses a subquery that fails with the session client in server components
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.access_token) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+      const partnerRes = await fetch(`${apiUrl}/partners/me`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        signal: AbortSignal.timeout(4000),
+      })
+      isPartner = partnerRes.ok
+    }
+  } catch { isPartner = false }
 
   try {
     const { data: clientRow } = await supabase

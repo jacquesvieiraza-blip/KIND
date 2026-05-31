@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-import { Users, ShieldCheck } from 'lucide-react'
+import { Users, ShieldCheck, AlertTriangle } from 'lucide-react'
 
 interface Subscription { status: string; product: string }
 interface Client {
@@ -26,15 +26,45 @@ interface EnrichedClient extends Client {
   mrr_this_month: number
 }
 
+// P1-9: A client is "at risk" if:
+//   - No active campaigns AND last campaign activity > 14 days ago
+//   - OR credit_balance < 5
+//   - OR no active campaigns at all
 function clientHealth(client: {
   last_login_days: number | null
   leads_14d: number
   figsy_active: number
   credit_balance: number
+  figsy_sent_7d?: number
 }): 'green' | 'amber' | 'red' {
-  if (client.last_login_days === null || client.last_login_days > 7) return 'red'
-  if (client.last_login_days > 3 || client.credit_balance < 20) return 'amber'
+  const noActiveCampaigns = client.figsy_active === 0
+  const lowCredits = client.credit_balance < 5
+  const noRecentSends = (client.figsy_sent_7d ?? 0) === 0
+  const inactiveLong = client.last_login_days === null || client.last_login_days > 14
+
+  // At risk (red): no active campaigns OR low credits OR no sends + inactive > 14d
+  if (lowCredits || (noActiveCampaigns && inactiveLong)) return 'red'
+  if (noActiveCampaigns || noRecentSends || client.credit_balance < 20) return 'amber'
   return 'green'
+}
+
+function riskLabel(health: 'green' | 'amber' | 'red', client: {
+  credit_balance: number
+  figsy_active: number
+  figsy_sent_7d: number
+  last_login_days: number | null
+}): string {
+  if (health === 'red') {
+    if (client.credit_balance < 5) return 'Low credits'
+    if (client.figsy_active === 0) return 'No active campaign'
+    return 'Inactive 14d+'
+  }
+  if (health === 'amber') {
+    if (client.figsy_active === 0) return 'No campaign'
+    if (client.figsy_sent_7d === 0) return 'No sends 7d'
+    return 'Low credits'
+  }
+  return ''
 }
 
 async function getEnrichedClients(): Promise<EnrichedClient[]> {
@@ -175,6 +205,26 @@ export default async function ClientsPage({
         <div>
           <h1 className="text-2xl font-bold text-gray-900">All Clients</h1>
           <p className="text-gray-500 text-sm mt-0.5">{clients.length} client{clients.length !== 1 ? 's' : ''} total</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {counts.atRisk > 0 && (
+            <Link
+              href={atRiskOnly ? '/clients' : '/clients?filter=atrisk'}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                atRiskOnly
+                  ? 'bg-red-500 text-white'
+                  : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+              }`}
+            >
+              <AlertTriangle className="w-4 h-4" />
+              {counts.atRisk} At Risk
+            </Link>
+          )}
+          {atRiskOnly && (
+            <Link href="/clients" className="text-xs text-gray-500 hover:text-gray-700 underline">
+              Show all
+            </Link>
+          )}
         </div>
       </div>
 

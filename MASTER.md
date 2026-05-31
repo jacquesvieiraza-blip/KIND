@@ -8075,27 +8075,205 @@ Signed for and on behalf of [PARTNER COMPANY]: _____________________ Date: _____
 
 ## 44. SOCIAL MARKETING — STRATEGY & CONTENT
 
-*Added: 1 Jun 2026. Status: for review — not actioned yet.*
+*Added: 1 Jun 2026. Research completed: 1 Jun 2026. Status: for founder review.*
+*Source: Full audit of ClickUp's social playbook — the B2B SaaS social benchmark. Adapted for K.I.N.D.*
 
-Channels in scope: TikTok, Instagram, Facebook, LinkedIn.
-Possible extensions: user groups, community, creator programme.
+---
 
-This section needs to be built out. Review together before any content is created or scheduled.
+## ClickUp — What They Do and What We Steal
 
-### Questions to answer before building this out
+ClickUp is the closest social media benchmark for K.I.N.D. They built a B2B SaaS brand to 200 million impressions per month using channels most B2B companies treat as checkboxes. Every decision below is grounded in their actual numbers, confirmed across multiple sources.
 
-- What does ClickUp do on social that we should steal?
-- Which channel do we start with? (LinkedIn most obvious for B2B, but TikTok has done more for SaaS awareness)
-- Who creates the content? (Claude drafts, founder publishes)
-- What is the posting cadence? (Consistency > quality at the start)
-- Do we build a community (user group, Slack, WhatsApp group) alongside the content?
-- What does success look like in 90 days?
+---
 
-### To be completed next session
+### TIKTOK — Their Crown Jewel
 
-- [ ] Research ClickUp's social playbook across all channels
-- [ ] Add content pillars (what we talk about)
-- [ ] Add channel-by-channel strategy
-- [ ] Add content calendar template
-- [ ] Add community / user group plan
-- [ ] Add KPIs per channel
+**Their numbers:** 423,000 followers, 13 million total likes, 200 million impressions per month (1 billion in 2024). Led by Chris Cunningham (Head of Social Marketing).
+
+**The key insight:** Cunningham spent months trying to make ClickUp's own product experts funny on camera. It did not work. He then hired professional actors who had never heard of ClickUp. The actors outperform in-house experts by 10x in engagement. His words: *"People don't open TikTok to learn about project management. They open it to escape work."*
+
+**What they post:**
+
+The account bio reads: *"Actual footage of the corporate world."* It is not a product demo channel. Their top content:
+
+- **"HR Training Module" series** — scripted comedy skits framed as fake corporate training videos, numbered sequentially (Module 11, Module 12, etc.). Individual videos: 999,500 likes and 1.9 million likes. These are among the highest-performing B2B TikToks ever made.
+- **"The Scrum Master"** — standalone skit, 2.8 million views, 72,400 likes. Shows the absurdity of the Scrum Master role. Posted January 2024.
+- **Song parody skits** — E-40's "Choices" rewritten for HR (121,100 likes), 50 Cent's "P.I.M.P." rewritten for a one-person IT team (81,200 likes).
+- **"Boss vs. AI" series** — tapping the human/AI tension in workplaces for 2024–25.
+- **Office politics skits** — broader workplace comedy with recurring characters.
+
+**Their rules:** 10 videos per week. Only 1–2 of those are product ads. The rest are pure entertainment. If something works, triple down immediately. Month 1: 4,000 followers. Month 2: two videos hit 10 million views each. Month 3: 150 million impressions per month.
+
+**Hashtag approach:** 4–5 tags per video. 2–3 broad trending tags (#corporate, #corporatehumor, #worklife) + 2 persona-specific tags (#projectmanager, #hr, #scrum).
+
+---
+
+### INSTAGRAM
+
+**Their numbers:** Main account (@clickup) 427,000 followers. Comedy spinoff (@clickupcomedy) 581,000 followers — more popular than the main brand account.
+
+**What they post on the main account:** Team culture posts (photos of employees, behind-the-scenes), weekly "ClickTips" (one product tip, positioned as help not promotion), product UI screenshots, user-generated content from customers, Reels recycled from TikTok.
+
+**The spinoff account:** @clickupcomedy exists to hold the comedy content separately from the brand account. It outgrew the main brand. This is the model.
+
+---
+
+### LINKEDIN
+
+**Their numbers:** 257,000 followers on the company page. Cunningham has said he concentrates on LinkedIn and TikTok above all other channels.
+
+**What they post:**
+
+- **Founder personal brand** — Zeb Evans (CEO) posts about startup sustainability, product milestones as personal stories, team member spotlights, entrepreneurship philosophy, and company values. His posts outperform the company page consistently.
+- **Thought leadership** — Posts about how to think about productivity and the category, not just the product. Cunningham posts *about how ClickUp does social* — the meta-content generates speaking invitations and earned media.
+- **Employee advocacy** — LinkedIn gives 8x more reach to personal posts vs company pages. ClickUp actively encourages employees to share company content on their own profiles.
+- **Milestone storytelling** — Funding rounds, product launches, and recognition framed as journey moments, not press releases.
+
+---
+
+### FACEBOOK
+
+Low priority for ClickUp. No significant organic programme. Used primarily for paid retargeting. Not worth building out for K.I.N.D. at this stage — focus the energy on LinkedIn and TikTok.
+
+---
+
+### COMMUNITY
+
+**ClickUp Verified — three tiers:**
+
+- **Power User** — automatically awarded to top 10% of users by in-product activity. Badge displayed in all workspaces. Awarded monthly.
+- **Ambassador (Social)** — applications reviewed monthly. Criteria: sharing ClickUp content on social. Benefits: exclusive resources, community access, co-marketing opportunities.
+- **Consultant** — professionals who help teams configure ClickUp. Listed on a public directory. A B2B channel play.
+
+**Canny feedback portal** — public feature request and voting portal. Within 12 months: 3,500 users submitted 30,000+ pieces of feedback. One of the most active Canny communities on the platform.
+
+**Affiliate programme** — via PartnerStack. Up to 30% recurring commission OR $25 per new workspace signup including free signups. 30-day cookie. Minimum payout $20. Paying for free signups dramatically lowers the barrier for advocates to send referrals.
+
+**No Discord or Slack community** — ClickUp does not have one. This is a gap we can fill.
+
+---
+
+### CAMPAIGNS THAT GOT OUTSIZED ATTENTION
+
+**"Jira Gets Fired — Exit Interview" (2021–2023)** — A video styled as a corporate exit interview where JIRA (the competitor) is being fired and replaced by ClickUp. Ran as YouTube pre-roll and circulated heavily on LinkedIn. Confident, funny, competitive without being aggressive.
+
+**Times Square Billboard (2020)** — After their $100M Series B, they ran an animated billboard in Times Square combined with bus and subway OOH across New York. Pure brand awareness timed to a funding announcement. The physical ad mattered less than the content asset — the image of the billboard did the real work.
+
+**The TikTok Pivot (2023–ongoing)** — The decision to go full entertainment/comedy became a marketing story in itself. Covered by SaaSiest, Muse by Clios, B2B Creator, multiple podcasts. Cunningham now speaks at major SaaS conferences about *how* they did it.
+
+---
+
+## What K.I.N.D Steals and Builds
+
+### TikTok and Reels — Start Here
+
+**Steal: Persona-as-protagonist comedy series**
+ClickUp makes HR the character in the sketch, not the product. For K.I.N.D., the equivalent:
+
+- **Series: "A day in the life of a founder still doing sales manually"** — deadpan, observational comedy showing the pain of cold outreach without AI. FIGSY solves it in the last 5 seconds. Numbered episodes. Hire a comedic actor who plays a recognisable SME founder archetype.
+- **Series: "The Boss's Questions"** — an SME owner asking increasingly impossible questions of their sales team. Milla answers them all instantly. 45 seconds. Comedy + product proof.
+- **Series: "Vida, sort this out"** — Vida fixes a chaotic networking situation that a human is visibly drowning in. The relief is comedic.
+
+**Steal: Hire actors, not experts** — Do not put the founder or product team on camera as the leads. Cast people who can naturally embody the SME owner and their pain. The product team can be in the background.
+
+**Steal: Numbered series format** — "Sales Reality Check #1", "Sales Reality Check #7". The number signals ongoing content, builds returning viewers, creates a recognisable brand asset.
+
+**Steal: Persona-specific hashtag layering** — For K.I.N.D.: mix #SMEsales + #saleslife + #businessafrica + #ukbusiness + #foundersofinstagram + #salestips. 2 broad trending tags + 2–3 persona-specific tags per post.
+
+**Adapt: The "escape from work" principle** — For K.I.N.D.'s audience (African and UK SME founders), the comedic release is: *"someone finally gets how chaotic this is."* The pain points that resonate: chasing invoices, losing track of leads, copy-pasting the same pitch 40 times, hiring a sales rep who quits after 3 months. Ground every sketch here.
+
+---
+
+### LinkedIn — Highest Priority for B2B
+
+**Steal: Founder personal brand as the primary LinkedIn channel** — K.I.N.D.'s company page will underperform any founder's personal page at this stage. Post from the founder profile first. Product updates, customer wins, founder philosophy, failures. The K.I.N.D. company page reshares and amplifies.
+
+**Steal: Meta-content about the category, not just the product** — Posts that educate the market on AI sales agents, not just K.I.N.D. specifically:
+- "A 3-person sales team using AI closes like a 12-person team. Here is the maths."
+- "Why Nigerian SMEs are skipping CRM and going straight to AI agents."
+- "What FIGSY does in 8 minutes that your SDR does in 3 days."
+- "The death of the junior SDR role. What replaces it."
+
+**Steal: Customer story posts** — 250–400 words. Format: Problem → What they tried before → How they use K.I.N.D. → Specific result (pipeline built, deals closed, hours saved). One per week.
+
+**Steal: Employee and agent advocacy** — Post from FIGSY, Milla, and Vida's POV. The agents have personalities. FIGSY can have opinions about cold email. Milla can explain things. Vida can make introductions. Create social personas for the agents and post from them — this is differentiated and memorable.
+
+**Frequency:** 3–4 posts per week from the founder profile. 2–3 from the company page.
+
+---
+
+### Instagram
+
+**Steal: Launch a comedy spinoff account** — @KINDsaleslife or @AIvsManualSales. A comedy account separate from the main K.I.N.D. brand. If a sketch goes viral it does not need to match the brand aesthetic. ClickUp's comedy spinoff outgrew their main account — build this from day one.
+
+**Steal: Team culture posts** — The paradox of an AI platform is that customers want to know the humans. Post behind-the-scenes of the people building FIGSY, Milla, and Vida. Show the founders working. Show the product being built. Show the humans.
+
+**Adapt: Product demos as short Reels** — 30 seconds showing FIGSY finding a lead, Milla qualifying it, Vida sending the outreach. The whole flow. Not a static screenshot — a fast Reel with captions.
+
+---
+
+### Community — Build Now, Not Later
+
+**Steal: K.I.N.D. Verified — three tiers**
+
+- **Power User** — automatically awarded to top users by platform activity each month. Badge. Early access to new agent features. No application required.
+- **Ambassador** — for founders and sales leaders who share K.I.N.D. on LinkedIn or TikTok. Apply via a simple form. Benefits: exclusive content, direct access to the product team, co-marketing opportunities, early feature previews.
+- **Partner/Consultant** — African and UK-based sales consultants who implement K.I.N.D. for clients and earn referral commission. Listed on a public directory.
+
+**Build what ClickUp missed: WhatsApp Communities** — ClickUp has no Discord or Slack community. For K.I.N.D.'s African SME audience, WhatsApp is the dominant community infrastructure. Launch a K.I.N.D. WhatsApp Community (not just a group — use the WhatsApp Communities feature) for verified users. Weekly office hours inside it. For UK users, a Slack workspace alongside.
+
+**Steal: Affiliate programme that pays for free signups** — $X for every workspace that activates even on a free trial, larger commission for paid conversions. The low barrier drives massive advocate volume. Use PartnerStack or FirstPromoter.
+
+---
+
+### Campaigns to Build
+
+**Steal and adapt: "Your sales process hands in its resignation"** — A short video styled as a corporate exit interview where "Manual Outreach" is the departing employee. Gentle, funny, clear. Clip it for TikTok and Reels. Run the full 90-second version as LinkedIn video and YouTube pre-roll.
+
+**Build when funding is confirmed: OOH as content asset** — One eye-catching outdoor ad in Lagos, Accra, Nairobi, or London. The physical placement matters less than the photograph — post it on LinkedIn as a milestone moment. The image does 50x the work of the billboard.
+
+**Start now: Document the build** — The story of building an AI sales platform for African SMEs is the content. Post the journey. Share the decisions. Talk about what works and what does not. This generates earned media, speaking invitations, and an audience that is there before the product is fully ready.
+
+---
+
+## Channel Priority for K.I.N.D
+
+| Channel | Priority | Why | What to post | Frequency |
+|---------|----------|-----|--------------|-----------|
+| LinkedIn | **Highest** | B2B decision-makers are here. African and UK SME founders are active on LinkedIn. | Founder posts: category education, customer stories, journey. Agent persona posts. | 3–4 founder posts/week |
+| TikTok / Reels | **High** | Fastest brand awareness growth for B2B. ClickUp proved the playbook works. | Numbered comedy sketch series. Persona-as-protagonist. Hired actors. | 3–5 videos/week |
+| Instagram (comedy) | **High** | Launch @KINDsaleslife as separate account from day one. | Comedy sketches, behind-the-scenes, agent personality content. | 3–5 Reels/week (same content as TikTok) |
+| WhatsApp Community | **High** | Primary community channel for African users. No competitor is here. | Weekly office hours, feature previews, Power User recognition. | Weekly |
+| Instagram (main) | **Medium** | Brand presence, culture, product demos. | Team posts, product Reels, customer wins. | 3–4 posts/week |
+| Facebook | **Low** | Paid retargeting only. No organic programme at this stage. | — | As needed for ads |
+
+---
+
+## Content Pillars (what we talk about)
+
+1. **The AI sales agent category** — educating the market that AI agents are not ChatGPT plugins. They are dedicated workers. FIGSY has a job title, not a prompt.
+2. **African business reality** — the specific challenges of doing B2B sales in Nigeria, Kenya, South Africa, Ghana. No one else in this space speaks to this directly.
+3. **The death of manual outreach** — the cost of doing sales the old way. Cold email spam, burned domains, SDR attrition. Comedy and serious posts both.
+4. **Customer wins** — specific results. Pipeline built. Deals closed. Hours saved. Always with numbers.
+5. **Behind the build** — the story of building K.I.N.D. The decisions, the failures, the pivots. Founders following along become customers.
+6. **Agent personalities** — FIGSY, Milla, and Vida as characters with opinions. FIGSY on cold email strategy. Milla on intelligence. Vida on relationships. This is differentiated.
+
+---
+
+## Sources
+
+- Chris Cunningham on X: actors vs. product experts
+- SaaSiest: ClickUp social strategy 33K to 500K followers
+- ContentYum: ClickUp's 200M impressions mission
+- Campaign Live: workplace comedy as brand strategy
+- ClickUp Verified programme (clickup.com/community/verified)
+- StorieChief: ClickUp content marketing strategy
+- TikTok @clickup: HR Training Module 11 (999K likes), Module 12 (1.9M likes)
+- TikTok @clickup: The Scrum Master (2.8M views)
+- YouTube: Jira Gets Fired by ClickUp
+- Vimeo: ClickUp Times Square Billboard
+- ClickUp affiliate programme via AffyList
+- Canny case study: ClickUp feedback community
+- Instagram @clickup (427K) and @clickupcomedy (581K)
+- LinkedIn ClickUp company page (257K followers)
+

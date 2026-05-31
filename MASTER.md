@@ -9020,3 +9020,160 @@ PORTAL_URL=https://app.get-kind.com
 ---
 
 *Section 41 added: 1 Jun 2026*
+
+---
+
+## 42. PARTNER PROGRAMME — FULL DESIGN & BUILD SPEC
+*Written: 1 Jun 2026. Based on ClickUp ACE programme research + K.I.N.D competitive positioning.*
+
+### Why This Beats ClickUp
+
+| Feature | ClickUp | K.I.N.D |
+|---|---|---|
+| Reseller model | ❌ Revenue share only — can't buy wholesale | ✅ Agency tier buys credits at 30% discount |
+| White-label | ❌ Enterprise only | ✅ All agency/white-label partners |
+| Africa commission | ❌ $0.75–$5/signup for Tier 3 countries | ✅ Same % everywhere — no geographic penalty |
+| Deal registration window | ❌ Not published | ✅ 60 days, published in contract |
+| Demo environment | ❌ Just a free workspace | ✅ Pre-loaded sandbox per partner |
+| Use product to sell product | ❌ N/A | ✅ FIGSY runs partner's own outbound |
+
+---
+
+### Partner Tiers
+
+| Tier | Who | Requirement | Commission | Extras |
+|---|---|---|---|---|
+| **Referral** | Individuals, consultants | None | 20% recurring, 12 months | Referral link, onboarding kit |
+| **Agency** | Agencies managing clients | 3+ active clients | 25% recurring forever | Wholesale credits (30% off), white-label, deal registration |
+| **White-label** | Partners running under own brand | Annual contract + 5+ clients | 30% recurring forever | Custom domain, co-branded materials, dedicated WhatsApp support |
+
+---
+
+### Deal Registration — Rules
+
+- Partner submits prospect before demoing
+- **60-day exclusive protection** — K.I.N.D will not contact that prospect directly
+- If deal closes within 60 days → full commission to partner
+- If deal not closed within 60 days → protection can be renewed once (partner must show active engagement)
+- If K.I.N.D receives inbound from same prospect → partner notified first
+- Protection based on company email domain, not just name
+
+---
+
+### Commission Payment Terms
+
+| Item | Detail |
+|---|---|
+| Payment method | Wise Business transfer (USD) |
+| Cadence | Monthly, by 5th of following month |
+| Minimum payout | $50 (accumulates below threshold) |
+| Commission basis | Net revenue after Stripe fees |
+| Lock period | Actions lock 30 days after month tracked |
+| Platform | K.I.N.D admin (manual + auto via Stripe webhook) |
+
+---
+
+### Demo Sandbox — Per Partner
+
+Each approved partner gets a permanent pre-loaded demo environment:
+- Real leads pre-scored to their target ICP (e.g. Nigerian fintech)
+- Active FIGSY campaign showing email sequences
+- Inbox with sample replies (positive + objection + OOO)
+- KPI dashboard with realistic numbers
+- Partner can show this to any prospect — reusable, never expires
+- Reset button available (admin can reset to clean state)
+
+---
+
+### K.I.N.D Academy (Certification)
+
+| Level | Content | Badge |
+|---|---|---|
+| **Foundation** | Portal walkthrough, ICP builder, FIGSY basics | K.I.N.D Certified Partner |
+| **Advanced** | Demo playbook, objection handling, deal registration, upsell paths | K.I.N.D Advanced Partner |
+| **Expert** | White-label setup, agency client management, data compliance (NDPR/POPIA) | K.I.N.D Expert Partner |
+
+Certification is self-serve — videos + quiz. No cost. Unlocks higher tier benefits.
+
+---
+
+### What's Built (1 Jun 2026)
+
+| Item | Status |
+|---|---|
+| `POST /partners/apply` — application form + founder email alert | ✅ Built |
+| `GET /partners/ref/:code` — validate referral code | ✅ Built |
+| Admin: list/approve/commission/dashboard endpoints | ✅ Built |
+| DB migration — partners, referrals, commissions, deal_registrations | ✅ Migration written |
+| Admin partners page `/admin/partners` | ✅ Built |
+| Partner portal dashboard `/dashboard/partner` | ✅ Built |
+| Deal registration form + 60-day protection | ✅ Built |
+| Demo sandbox per partner | ✅ Built |
+| Auto-commission on Stripe payment | ✅ Built |
+| Partner contract template | ✅ In Section 42b |
+
+---
+
+## 42b. PARTNER CONTRACT TEMPLATE
+
+*This is the standard K.I.N.D Partner Agreement. Delivered via the proposals/e-sign system. Replace [PLACEHOLDERS] before sending.*
+
+---
+
+**K.I.N.D PARTNER AGREEMENT**
+
+This Partner Agreement ("Agreement") is entered into as of [DATE] between:
+
+**K.I.N.D AI Ltd** ("K.I.N.D"), a company registered in England and Wales, and
+
+**[PARTNER COMPANY NAME]** ("Partner"), registered at [PARTNER ADDRESS].
+
+---
+
+**1. APPOINTMENT**
+K.I.N.D appoints Partner as a non-exclusive [Referral / Agency / White-label] Partner to introduce prospective clients to K.I.N.D's platform in the territory of [TERRITORY].
+
+**2. COMMISSION**
+Partner shall earn commission at the rate of [20% / 25% / 30%] of net monthly revenue received from each Referred Client, payable monthly in arrears by the 5th of the following month via Wise Business transfer to Partner's nominated account.
+
+Commission accrues for:
+- Referral tier: 12 months from first payment date
+- Agency tier: the lifetime of the client relationship
+- White-label tier: the lifetime of the client relationship
+
+Minimum payout threshold: USD $50. Amounts below threshold accumulate.
+
+**3. DEAL REGISTRATION**
+Partner may register prospects via the K.I.N.D Partner Portal. Registered prospects receive 60-day exclusive protection. K.I.N.D will not contact registered prospects directly during the protection period.
+
+**4. PARTNER OBLIGATIONS**
+Partner shall:
+(a) Represent K.I.N.D's platform accurately and not make warranties beyond those in K.I.N.D's published documentation
+(b) Comply with applicable data protection laws including NDPR (Nigeria), POPIA (South Africa), UK GDPR
+(c) Not use K.I.N.D's brand in any way that implies employment or equity relationship
+(d) Maintain at least [3 / 5] active referred clients to retain [Agency / White-label] tier status
+
+**5. INTELLECTUAL PROPERTY**
+K.I.N.D grants Partner a limited, non-exclusive licence to use K.I.N.D's name, logo, and marketing materials solely for the purpose of promoting K.I.N.D's services. White-label partners receive a separate brand licence agreement.
+
+**6. CONFIDENTIALITY**
+Each party shall keep the other's confidential information (including pricing, client data, and technical systems) strictly confidential and shall not disclose it to third parties without prior written consent.
+
+**7. TERM AND TERMINATION**
+This Agreement commences on the date of signing and continues for 12 months, renewing automatically unless either party gives 30 days written notice. K.I.N.D may terminate immediately if Partner breaches Clause 4 or engages in conduct damaging to K.I.N.D's reputation.
+
+**8. LIMITATION OF LIABILITY**
+K.I.N.D's total liability to Partner under this Agreement shall not exceed the commission paid to Partner in the 3 months preceding the claim.
+
+**9. GOVERNING LAW**
+This Agreement is governed by the laws of England and Wales. Any dispute shall be subject to the exclusive jurisdiction of the courts of England and Wales.
+
+---
+
+Signed for and on behalf of K.I.N.D AI Ltd: _____________________ Date: _______
+
+Signed for and on behalf of [PARTNER COMPANY]: _____________________ Date: _______
+
+---
+
+*Section 42 added: 1 Jun 2026*

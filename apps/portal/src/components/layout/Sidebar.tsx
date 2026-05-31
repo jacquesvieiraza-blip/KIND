@@ -9,7 +9,7 @@ import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
-  Menu, X, UserCheck, Plug, MessageCircle, Code2,
+  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
@@ -86,6 +86,7 @@ const LEAD_GEN_NAV = [
 const ACCOUNT_NAV = [
   { href: '/dashboard/usage',      label: 'Usage',        icon: BarChart2 },
   { href: '/dashboard/roadmap',    label: 'Roadmap',      icon: Map },
+  { href: '/dashboard/partner',    label: 'Partner Hub',  icon: Handshake },
   { href: '/dashboard/mcp',        label: 'MCP Connect',  icon: Plug },
   { href: '/dashboard/proposals',  label: 'Proposals',    icon: FileText },
   { href: '/dashboard/developer',  label: 'Developer API', icon: Code2 },

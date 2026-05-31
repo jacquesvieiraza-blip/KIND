@@ -7,6 +7,7 @@ import {
   Rocket, MonitorPlay, TrendingUp, GitMerge, BookOpen, Inbox,
   ShieldCheck, BarChart2, DollarSign, Activity, FlaskConical,
   UserSquare2, Layers, ChevronRight, MessageCircle, Database, Eye,
+  Handshake,
 } from 'lucide-react'
 
 const SECTIONS = [
@@ -23,6 +24,7 @@ const SECTIONS = [
     label: 'Clients',
     items: [
       { href: '/clients',    label: 'All Clients', icon: Users },
+      { href: '/partners',   label: 'Partners',    icon: Handshake },
       { href: '/messages',   label: 'Messages',    icon: MessageCircle },
       { href: '/proposals',  label: 'Proposals',   icon: FileText },
       { href: '/visitors',   label: 'Visitors',    icon: Eye },

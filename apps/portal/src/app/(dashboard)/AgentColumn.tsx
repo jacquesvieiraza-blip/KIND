@@ -249,6 +249,13 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
       { label: 'Open in Claude.ai',        onClick: () => window.open('https://claude.ai', '_blank') },
       { label: 'Test: find me 10 leads',   onClick: () => router.push('/dashboard/figsy-chat') },
     ]
+  } else if (pathname.startsWith('/dashboard/partner')) {
+    contextMessage = "Your partner dashboard — register deals for 60-day protection, track commissions, and access your demo sandbox. Use FIGSY to prospect for your own clients too."
+    chips = [
+      { label: 'Register a deal',       onClick: () => {} },
+      { label: 'Copy referral link',    onClick: () => {} },
+      { label: 'Start my own outreach', onClick: () => router.push('/dashboard/figsy') },
+    ]
   } else if (pathname.startsWith('/dashboard/proposals')) {
     contextMessage = "I can help you win this deal. Tell me about the prospect and I'll draft a proposal — subject line, pitch, pricing, and sign link — ready to send in 60 seconds."
     chips = [

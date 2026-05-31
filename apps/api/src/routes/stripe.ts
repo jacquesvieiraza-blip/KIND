@@ -13,8 +13,63 @@ import {
   getStripePriceId,
   getStripeSubscriptionPriceId,
   STRIPE_SUBSCRIPTIONS,
+  STRIPE_BUNDLES,
   type SubscriptionProduct,
 } from '../lib/stripe'
+
+// ── Auto-commission: if this client was referred by a partner, create a commission record ──
+async function maybeCreatePartnerCommission(clientId: string, amountUsd: number) {
+  try {
+    // Find if this client has a partner referral
+    const { data: referral } = await db
+      .from('partner_referrals')
+      .select('id, partner_id, partners(commission_rate, tier)')
+      .eq('client_id', clientId)
+      .eq('status', 'active')
+      .single()
+
+    if (!referral) return // Not a referred client
+
+    const partner = Array.isArray(referral.partners) ? referral.partners[0] : referral.partners
+    if (!partner) return
+
+    const commissionRate = Number(partner.commission_rate) || 0.20
+    const commissionUsd = amountUsd * commissionRate
+    const commissionZar = commissionUsd * 19 // ~R19 per $1
+
+    const periodMonth = new Date().toISOString().slice(0, 7) // "2026-06"
+
+    // Check if commission already recorded for this period (idempotency)
+    const { data: existing } = await db
+      .from('partner_commissions')
+      .select('id')
+      .eq('partner_id', referral.partner_id)
+      .eq('client_id', clientId)
+      .eq('period_month', periodMonth)
+      .single()
+
+    if (existing) return // Already recorded
+
+    await db.from('partner_commissions').insert({
+      partner_id: referral.partner_id,
+      partner_referral_id: referral.id,
+      client_id: clientId,
+      amount_zar: commissionZar,
+      amount_usd: commissionUsd,
+      period_month: periodMonth,
+      status: 'pending',
+    })
+
+    // Update first_payment_at if not set
+    await db.from('partner_referrals')
+      .update({ first_payment_at: new Date().toISOString() })
+      .eq('id', referral.id)
+      .is('first_payment_at', null)
+
+  } catch (err) {
+    console.error('[partner-commission]', err) // non-blocking — never throws
+  }
+}
 
 export const stripeRouter = Router()
 
@@ -190,6 +245,12 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
             }),
           ])
         }
+
+        // Auto-commission: look up USD price from bundle config
+        const bundleList = STRIPE_BUNDLES[creditType as 'lead_gen' | 'figsy'] as readonly { credits: number; price: number }[]
+        const bundle = bundleList.find(b => b.credits === credits)
+        const amountUsd = bundle?.price ?? 0
+        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd)
       }
     }
 
@@ -274,6 +335,18 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           .eq('stripe_subscription_id', invoice.subscription)
           .in('status', ['past_due', 'cancelled'])
         console.log(`[Stripe] Subscription renewed — ${invoice.subscription} — ${invoice.customer_email}`)
+
+        // Auto-commission: find client via subscriptions table and fire commission
+        const { data: sub } = await db.from('subscriptions')
+          .select('client_id, product')
+          .eq('stripe_subscription_id', invoice.subscription)
+          .single()
+        if (sub?.client_id) {
+          // Look up USD price from STRIPE_SUBSCRIPTIONS by product name
+          const subConfig = Object.values(STRIPE_SUBSCRIPTIONS).find(s => s.product === sub.product)
+          const amountUsd = subConfig?.priceUsd ?? 0
+          if (amountUsd > 0) void maybeCreatePartnerCommission(sub.client_id, amountUsd)
+        }
       }
     }
 

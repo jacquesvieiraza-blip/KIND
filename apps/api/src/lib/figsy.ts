@@ -299,10 +299,30 @@ export async function sendSequenceEmail(
   if (!lead.email) throw new Error('Lead has no email')
 
   let messageId: string | undefined
+
+  // Insert the DB record first so we have the emailId for the tracking pixel
+  const { data: emailRecord } = await db.from('figsy_sent_emails').insert({
+    enrollment_id: enrollmentId,
+    campaign_id:   campaignId,
+    lead_id:       lead.id,
+    step,
+    subject,
+    body,
+    resend_id:     null, // updated below after send
+  }).select('id').single()
+
+  const emailId = (emailRecord as { id?: string } | null)?.id ?? null
+
   if (!resend) {
     console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} email to ${lead.email} NOT sent (enrollment still recorded)`)
   }
   if (resend) {
+    // P0-4: tracking pixel injection
+    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+    const trackingPixel = emailId
+      ? `<img src="${apiUrl}/figsy/track/open/${emailId}" width="1" height="1" style="display:none;width:1px;height:1px" alt="" />`
+      : ''
+
     const result = await resend.emails.send({
       from:     FROM,
       reply_to: REPLY_TO,
@@ -310,20 +330,16 @@ export async function sendSequenceEmail(
       subject,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
         ${body.split('\n').map(line => `<p style="margin:0 0 12px">${line}</p>`).join('')}
+        ${trackingPixel}
       </div>`,
     })
     messageId = (result as any).data?.id ?? undefined
-  }
 
-  await db.from('figsy_sent_emails').insert({
-    enrollment_id: enrollmentId,
-    campaign_id:   campaignId,
-    lead_id:       lead.id,
-    step,
-    subject,
-    body,
-    resend_id:     messageId ?? null,
-  })
+    // Update resend_id now that we have it
+    if (emailId && messageId) {
+      await db.from('figsy_sent_emails').update({ resend_id: messageId }).eq('id', emailId)
+    }
+  }
 
   // Advance enrollment state
   const nextSendAt = step < 3

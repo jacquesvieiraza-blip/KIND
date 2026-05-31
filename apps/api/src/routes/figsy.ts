@@ -24,12 +24,10 @@ figsyRouter.get('/track/open/:emailId', async (req, res) => {
   // Record open asynchronously (don't block the image response)
   const { emailId } = req.params
   if (emailId && /^[0-9a-f-]{36}$/.test(emailId)) {
-    db.from('figsy_sent_emails')
+    void db.from('figsy_sent_emails')
       .update({ opened_at: new Date().toISOString() })
       .eq('id', emailId)
       .is('opened_at', null) // only record first open
-      .then(() => {})
-      .catch(() => {})
   }
 })
 
@@ -260,10 +258,13 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
     let optOutQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out')
     if (since !== null) optOutQuery = optOutQuery.gte('received_at', since)
 
+    let opensQuery = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('opened_at', 'is', null)
+    if (since !== null) opensQuery = opensQuery.gte('sent_at', since)
+
     const [
       sentRes, repliesRes, interestedRes, optOutRes,
       activeCampaignsRes, totalLeadsRes, leadsContactedRes, avgScoreRes,
-      meetingsRes,
+      meetingsRes, opensRes,
     ] = await Promise.all([
       sentQuery,
       repliesQuery,
@@ -274,6 +275,7 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'consent_sent'),
       db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null),
       db.from('figsy_campaigns').select('meetings_booked').eq('client_id', clientId),
+      opensQuery,
     ])
 
     const totalSent        = sentRes.count ?? 0
@@ -290,9 +292,11 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
       : 0
 
     const meetingsBooked = (meetingsRes.data ?? []).reduce((s, c) => s + (c.meetings_booked ?? 0), 0)
+    const totalOpened   = opensRes.count ?? 0
 
     const replyRate     = totalSent > 0 ? totalReplied / totalSent : 0
     const interestedRate = totalSent > 0 ? interested / totalSent : 0
+    const openRate      = totalSent > 0 ? totalOpened / totalSent : 0
 
     res.json({
       success: true,
@@ -308,6 +312,8 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
         leadsContacted,
         avgScore,
         meetingsBooked,
+        totalOpened,
+        openRate,
         period,
       },
     })

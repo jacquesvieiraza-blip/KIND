@@ -33,6 +33,8 @@ interface FigsyKPIs {
   avgScore: number
   meetingsBooked?: number
   meetingBookedRate?: number  // meetings / sent × 100
+  totalOpened?: number
+  openRate?: number
   period?: string
 }
 
@@ -468,6 +470,15 @@ export default function KPIsPage() {
             accent={meetingsBookedAccent}
             warn={meetingsBookedWarn}
           />
+          {(f.totalOpened !== undefined && f.totalOpened > 0) && (
+            <MetricCard
+              label="Email opens"
+              value={f.totalOpened.toLocaleString()}
+              sub={f.totalSent > 0 ? `${((f.openRate ?? 0) * 100).toFixed(1)}% open rate` : undefined}
+              icon={<Mail className="w-4 h-4" />}
+              accent={(f.openRate ?? 0) >= 0.25}
+            />
+          )}
         </div>
 
         {/* Emails-sent sparkline — trailing 7 days */}

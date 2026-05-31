@@ -383,7 +383,7 @@ export function Sidebar({
 
           {/* ── Account ───────────────────────────────────────────── */}
           <div className="!mt-5 border-t border-purple-100 !pt-3 space-y-0.5">
-            {ACCOUNT_NAV.map(({ href, label, icon: Icon }) => {
+            {ACCOUNT_NAV.filter(({ href }) => href !== '/dashboard/partner' || isPartner).map(({ href, label, icon: Icon }) => {
               const active = pathname === href || pathname.startsWith(href + '/')
               return (
                 <Link

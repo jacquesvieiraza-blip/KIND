@@ -33,6 +33,7 @@ import founderBriefRouter from './routes/founder-brief'
 import demoRequestRouter from './routes/demo-request'
 import { statusRouter } from './routes/status'
 import { shareRouter } from './routes/share'
+import teamRouter from './routes/team'
 import { startCrons } from './cron'
 
 const app = express()
@@ -100,6 +101,7 @@ app.use('/internal', founderBriefRouter)
 app.use('/api', demoRequestRouter)
 app.use('/internal/status', statusRouter)
 app.use('/share',         shareRouter)
+app.use('/team',          teamRouter)
 app.use(errorHandler)
 
 app.listen(PORT, () => {

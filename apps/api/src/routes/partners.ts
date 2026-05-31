@@ -125,6 +125,63 @@ partnersRouter.post('/apply', async (req: Request, res: Response) => {
   }
 })
 
+// ── GET /partners/me — must be BEFORE /ref/:code to avoid param shadowing ────
+
+partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { data: userResp } = await (db as any).auth.admin.getUserById(req.userId!)
+    const userEmail = userResp?.user?.email
+    if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+    const { data: partner, error } = await db
+      .from('partners')
+      .select('*')
+      .eq('email', userEmail)
+      .single()
+
+    if (error || !partner) { res.status(404).json({ error: 'Not a partner account' }); return }
+
+    const { data: referrals } = await db
+      .from('partner_referrals')
+      .select('id, client_id, status, first_payment_at, created_at, clients(company_name, contact_name, credit_balance)')
+      .eq('partner_id', partner.id)
+      .order('created_at', { ascending: false })
+
+    const { data: commissions } = await db
+      .from('partner_commissions')
+      .select('id, period_month, amount_zar, amount_usd, status, paid_at')
+      .eq('partner_id', partner.id)
+      .order('created_at', { ascending: false })
+      .limit(24)
+
+    const { data: deals } = await db
+      .from('deal_registrations')
+      .select('*')
+      .eq('partner_id', partner.id)
+      .order('created_at', { ascending: false })
+
+    const allComms = commissions || []
+    const totalEarned   = allComms.filter((c: any) => c.status === 'paid').reduce((s: number, c: any) => s + Number(c.amount_zar), 0)
+    const totalPending  = allComms.filter((c: any) => c.status !== 'paid' && c.status !== 'cancelled').reduce((s: number, c: any) => s + Number(c.amount_zar), 0)
+
+    res.json({
+      partner,
+      referrals:   referrals || [],
+      commissions: allComms,
+      deals:       deals || [],
+      stats: {
+        total_clients:     (referrals || []).length,
+        total_earned_zar:  totalEarned,
+        total_pending_zar: totalPending,
+        active_deals:      (deals || []).filter((d: any) => d.status === 'pending' || d.status === 'approved').length,
+      },
+    })
+  } catch (err: any) {
+    console.error('[partners/me]', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── GET /partners/ref/:code ───────────────────────────────────────────────────
 
 partnersRouter.get('/ref/:code', async (req: Request, res: Response) => {
@@ -412,62 +469,6 @@ partnersRouter.get('/admin/:partnerId/dashboard', requireAdminKey, async (req: R
 // ── Authenticated partner self-service endpoints ──────────────────────────────
 
 // GET /partners/me — partner's own dashboard data
-partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
-  try {
-    // requireAuth already validated the token and set req.userId
-    const { data: userResp } = await (db as any).auth.admin.getUserById(req.userId!)
-    const userEmail = userResp?.user?.email
-    if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
-
-    const { data: partner, error } = await db
-      .from('partners')
-      .select('*')
-      .eq('email', userEmail)
-      .single()
-
-    if (error || !partner) { res.status(404).json({ error: 'Not a partner account' }); return }
-
-    const { data: referrals } = await db
-      .from('partner_referrals')
-      .select('id, client_id, status, first_payment_at, created_at, clients(company_name, contact_name, credit_balance)')
-      .eq('partner_id', partner.id)
-      .order('created_at', { ascending: false })
-
-    const { data: commissions } = await db
-      .from('partner_commissions')
-      .select('id, period_month, amount_zar, amount_usd, status, paid_at')
-      .eq('partner_id', partner.id)
-      .order('created_at', { ascending: false })
-      .limit(24)
-
-    const { data: deals } = await db
-      .from('deal_registrations')
-      .select('*')
-      .eq('partner_id', partner.id)
-      .order('created_at', { ascending: false })
-
-    const allComms = commissions || []
-    const totalEarned  = allComms.filter((c: any) => c.status === 'paid').reduce((s: number, c: any) => s + Number(c.amount_zar), 0)
-    const totalPending = allComms.filter((c: any) => c.status !== 'paid' && c.status !== 'cancelled').reduce((s: number, c: any) => s + Number(c.amount_zar), 0)
-
-    res.json({
-      partner,
-      referrals:   referrals || [],
-      commissions: allComms,
-      deals:       deals || [],
-      stats: {
-        total_clients:    (referrals || []).length,
-        total_earned_zar: totalEarned,
-        total_pending_zar: totalPending,
-        active_deals:     (deals || []).filter((d: any) => d.status === 'pending' || d.status === 'approved').length,
-      },
-    })
-  } catch (err: any) {
-    console.error('[partners/me]', err)
-    res.status(500).json({ error: err.message })
-  }
-})
-
 // POST /partners/deals — register a deal
 partnersRouter.post('/deals', requireAuth, async (req: AuthRequest, res: Response) => {
   try {

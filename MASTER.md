@@ -2557,64 +2557,173 @@ Full audit completed 18 May 2026. All tables and routes checked.
 ---
 
 ## 12. PRICING MODEL
+*Updated: 1 Jun 2026*
 
-### Credit Bundles (current model)
+### Product Tiers
 
-| Product | Credits | Price USD | Price ZAR |
-|---|---|---|---|
-| K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 |
-| K.I.N.D AI — Lead Gen Pro | 40 | $38 | R722 |
-| K.I.N.D AI — Lead Gen Pro | 100 | $88 | R1,672 |
-| FIGSY Advanced | 20 | $60 | R1,140 |
-| FIGSY Advanced | 40 | $110 | R2,090 |
-| FIGSY Advanced | 100 | $250 | R4,750 |
+| Product | What it does | Price USD | Price ZAR | Billing |
+|---|---|---|---|---|
+| **K.I.N.D AI — Lead Gen** | Apollo-sourced leads, AI scoring, POPIA consent | $1/lead | R19/lead | Credit consumption |
+| **FIGSY — AI SDR** | Full outreach sequences, reply handling, meeting booking | $3/lead | R57/lead | Credit consumption |
+| **Milla — Virtual Assistant** | AI chat, document upload, knowledge base | $49/mo | R931/mo | Stripe subscription |
+| **Vida — Chatbot Agent** | Website chatbot, WhatsApp-ready | $39/mo | R741/mo | Stripe subscription |
 
-**Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once value is proven.
+### Credit Bundles (Stripe)
+
+| Product | Bundle | Price USD | Price ZAR | Effective per lead |
+|---|---|---|---|---|
+| Lead Gen | 20 credits | $20 | R380 | $1.00 |
+| Lead Gen | 40 credits | $38 | R722 | $0.95 |
+| Lead Gen | 100 credits | $88 | R1,672 | $0.88 |
+| FIGSY | 20 credits | $60 | R1,140 | $3.00 |
+| FIGSY | 40 credits | $110 | R2,090 | $2.75 |
+| FIGSY | 100 credits | $250 | R4,750 | $2.50 |
+
+**Minimum spend:** $20 (20 Lead Gen credits). No monthly minimum once trial ends.
+
+**Blended ARPU assumption:** $80–120/month per active client (mix of credit top-ups + Milla/Vida subscriptions).
+
+### Exchange Rate
+ZAR pricing locked at R19/$1 for client communications. Stripe bills in USD. Wise Business receives USD → ZAR conversion at market rate.
 
 ---
 
-## 13. REVENUE TARGETS & KPIs
+## 13. UNIT ECONOMICS
+*Updated: 1 Jun 2026*
 
-### Month-by-Month MRR Targets
+### Per Lead — Variable Cost Breakdown
 
-| Month | Target MRR (USD) | New Clients | Cumulative |
-|---|---|---|---|
-| May 2026 (launch) | $2,500 | 5 | 5 |
-| Jun–Jul 2026 | $8,000 | 15 | 20 |
-| Months 5–6 | $26,000 | 40 | 60 |
-| Months 7–12 | $100,000 | 140+ | 200+ |
-
-### Core KPIs (check every Monday)
-
-| KPI | Target | Red Flag |
+| Cost item | Per lead | Notes |
 |---|---|---|
-| TTFL (Time to First Lead) | < 2 hours | > 4 hours |
-| Trial → Paid conversion | > 40% | < 25% |
-| Month 1 churn | < 5% | > 10% |
-| FIGSY reply rate | > 8% | < 3% |
-| ICP built within 24h of signup | > 80% | < 60% |
-| At-risk clients (no ICP after 3 days) | 0 | > 2 |
+| Apollo API (lead source) | ~$0.004 | Basic plan $49/mo ÷ ~10,000 credits |
+| Claude Haiku (email gen) | ~$0.003 | ~500 tokens input + 300 output per email × 3 steps |
+| Resend (email delivery) | ~$0.001 | Pro plan $20/mo ÷ ~20,000 sends |
+| PDL/Hunter (enrichment) | ~$0.002 | Enrichment on ~30% of leads only |
+| **Total variable cost/lead** | **~$0.010** | |
+
+### Per Client — Unit Economics
+
+| Metric | Lead Gen client | FIGSY client | Combined |
+|---|---|---|---|
+| Average monthly spend | $30 | $90 | $120 |
+| Variable cost | $0.30 | $0.90 | $1.20 |
+| **Gross margin** | **99%** | **99%** | **99%** |
+| Fixed cost allocation (÷ 20 clients) | $10 | $10 | $10 |
+| **Contribution margin** | **$20** | **$80** | **$110** |
+
+**Gross margin is ~99% on revenue.** Variable costs are negligible. Fixed infrastructure is the ceiling.
+
+### LTV / CAC
+
+| Metric | Conservative | Target |
+|---|---|---|
+| Avg monthly spend (ARPU) | $80 | $120 |
+| Avg client lifetime | 8 months | 18 months |
+| **LTV** | **$640** | **$2,160** |
+| CAC (FIGSY self-outreach, no paid ads) | $0 | $0 |
+| CAC (if paid ads at Month 6) | — | ~$150 |
+| **LTV:CAC ratio** | **∞ (organic)** | **14:1 (paid)** |
+
+**Key insight:** Because K.I.N.D acquires clients using FIGSY (the product itself), CAC is effectively zero during the first year. The product is the sales channel.
 
 ---
 
 ## 14. CASHFLOW MODEL
+*Updated: 1 Jun 2026*
 
 ### Fixed Monthly Tech Costs
 
-| Service | Plan | Cost/mo |
+| Service | Current plan | Cost/mo | When to upgrade |
+|---|---|---|---|
+| Supabase | Pro (af-south-1) | $25 | Scale to Team at 500+ clients |
+| Railway | Hobby ($5) + usage | $15–25 | Already on Hobby — covers 4 services |
+| Apollo.io | Basic $49/mo | $49 | Upgrade to Professional at 50+ clients |
+| Google Workspace | Business Starter | $14 | At hire #1 |
+| Resend | Pro | $20 | Already needed — free = 100 emails/day |
+| Clearbit | Free Reveal tier | $0 | Paid at 10k+ monthly visitors |
+| Claude API (Anthropic) | Pay per token | $15–40 | Scales with active clients |
+| Stripe | 2.9% + $0.30/txn | ~$8 at $280 MRR | No monthly fee |
+| Domain (get-kind.com) | Annual | ~$1 | — |
+| **Total fixed floor** | | **~$147–174/mo** | |
+
+### Variable Costs at Scale
+
+| Clients | Monthly revenue | Variable costs | Fixed costs | **Net profit** |
+|---|---|---|---|---|
+| 1 | $80 | $1 | $147 | **-$68** |
+| 3 | $240 | $3 | $160 | **+$77** |
+| 5 | $480 | $5 | $165 | **+$310** |
+| 10 | $960 | $10 | $175 | **+$775** |
+| 20 | $2,000 | $20 | $200 | **+$1,780** |
+| 50 | $5,500 | $55 | $280 | **+$5,165** |
+| 100 | $12,000 | $120 | $400 | **+$11,480** |
+
+**Break-even: 3 clients.** Everything above 3 is profit.
+
+### Month-by-Month MRR Targets (from Jun 2026)
+
+| Period | Month | Target MRR (USD) | Target MRR (ZAR) | Clients | Key milestone |
+|---|---|---|---|---|---|
+| Launch | Jun 2026 | $800 | R15,200 | 3–5 | First paying clients, legal cleared |
+| Early | Jul 2026 | $2,500 | R47,500 | 8–10 | FIGSY self-outreach live |
+| Growth | Aug 2026 | $5,000 | R95,000 | 15–20 | Demo playbook proven |
+| Growth | Sep 2026 | $10,000 | R190,000 | 30 | First churn data |
+| Scale | Oct 2026 | $18,000 | R342,000 | 50 | First SDR hire |
+| Scale | Nov 2026 | $28,000 | R532,000 | 80 | Series A prep possible |
+| Scale | Dec 2026 | $40,000 | R760,000 | 120 | Year 1 target |
+
+**Year 1 target: $40,000 MRR by Dec 2026 = $480,000 ARR**
+
+### Core KPIs (check every Monday)
+
+| KPI | Target | Red flag | Current |
+|---|---|---|---|
+| TTFL (Time to First Lead) | < 2 hours | > 4 hours | — |
+| Trial → Paid conversion | > 40% | < 25% | — |
+| Month 1 churn | < 5% | > 10% | — |
+| FIGSY reply rate | > 8% | < 3% | — |
+| ICP built within 24h | > 80% | < 60% | — |
+| Avg credits/client/month | > 40 | < 15 | — |
+| At-risk clients (no ICP 3+ days) | 0 | > 2 | — |
+
+---
+
+## 14b. MULTI-YEAR REVENUE PROJECTIONS
+*Updated: 1 Jun 2026*
+
+| Year | MRR (USD) | MRR (ZAR) | ARR (USD) | Clients | ARPU | Headcount |
+|---|---|---|---|---|---|---|
+| Y1 end (Dec 2026) | $40,000 | R760,000 | $480,000 | 120 | $120 | 1–2 |
+| Y2 end (Dec 2027) | $120,000 | R2,280,000 | $1,440,000 | 450 | $150 | 5–8 |
+| Y3 end (Dec 2028) | $300,000 | R5,700,000 | $3,600,000 | 1,000 | $220 | 15–20 |
+| Y4 end (Dec 2029) | $700,000 | R13,300,000 | $8,400,000 | 2,500 | $280 | 35–50 |
+| Y5 end (Dec 2030) | $1,500,000 | R28,500,000 | $18,000,000 | 5,000+ | $300 | 80–100 |
+
+### What drives ARPU growth
+- Y1: Lead Gen + FIGSY only → avg $80–100
+- Y2: Milla + Vida added to majority of clients → avg $150
+- Y3: Agency/white-label tier + developer API tier → avg $220
+- Y4: Enterprise CRM, multi-agent orchestration → avg $280
+
+### Acquisition strategy by phase
+| Phase | Channel | Cost |
 |---|---|---|
-| Supabase | Pro (af-south-1 required) | $25 |
-| Vercel | Pro | $20 |
-| Railway | Usage-based | $10–20 |
-| Apollo.io | Free now (50 credits/mo) → Monthly Basic ($99/mo) when client 1 pays → Annual ($49/mo) when MRR covers $588 upfront | $0 → $99 |
-| Google Workspace | Business Starter (hello@get-kind.com) | $12–18 |
-| Resend | Free → Pro at scale | $0–20 |
-| Domain | Annual | ~$1 |
-| **Total floor (excl. Claude Code)** | | **$167–203/mo** |
+| Y1 (0–120 clients) | FIGSY self-outreach on K.I.N.D's own ICP | $0 CAC |
+| Y1 (Month 6+) | LinkedIn content + community | $0 CAC |
+| Y2 | Partner referrals (20% commission, 12 months) | ~$150 CAC |
+| Y2+ | Paid LinkedIn (SA, UK, Nigeria) | ~$300 CAC |
+| Y3+ | Apollo outbound at scale | ~$200 CAC |
 
-**Variable costs per lead:** ~$0.009
+### Exit / Funding scenarios
+| Path | Trigger | Valuation basis | Est. value |
+|---|---|---|---|
+| Seed raise | £3–10k MRR growing 20%+ MoM | 8–12x ARR | £300k–1.2M |
+| Series A | $1M ARR, strong retention | 10–15x ARR | $10–15M |
+| Strategic acquisition | $3M+ ARR, African data moat | 5–8x ARR | $15–24M |
+| PE / growth equity | $5M+ ARR | 4–6x ARR | $20–30M |
+| IPO (JSE) | $15M+ ARR, 2,000+ clients | Market rate | $75M+ |
 
-**Break-even: 2 clients.**
+**Most likely Y3 outcome:** Strategic acquisition by Apollo, HubSpot, or African tech co at 5–8x ARR. At $3.6M ARR (Y3): **$18–29M exit.**
 
 ---
 

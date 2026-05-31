@@ -87,6 +87,26 @@ async function getToken(): Promise<string | undefined> {
   return session?.access_token
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+
+// P0-3: FIGSY on-save preview — generates a sample outreach sentence based on saved knowledge
+function FigsyPreview({ text, onDismiss }: { text: string; onDismiss: () => void }) {
+  return (
+    <div className="mt-4 bg-[#F5F0FF]/60 border border-purple-200 rounded-xl p-4">
+      <div className="flex items-start gap-3">
+        <div className="w-7 h-7 rounded-lg overflow-hidden ring-1 ring-purple-200 shrink-0 mt-0.5">
+          <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-[#7C3AED] mb-1">FIGSY preview — how I&apos;d use this in outreach:</p>
+          <p className="text-sm text-[#1E1152] italic leading-relaxed">&ldquo;{text}&rdquo;</p>
+        </div>
+        <button onClick={onDismiss} className="text-[#9B8EC4] hover:text-gray-700 text-xs shrink-0">✕</button>
+      </div>
+    </div>
+  )
+}
+
 function PitchTab() {
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState(false)
@@ -95,6 +115,8 @@ function PitchTab() {
   const [product, setProduct] = useState('')
   const [painPoints, setPainPoints] = useState('')
   const [differentiators, setDifferentiators] = useState('')
+  const [preview, setPreview] = useState<string | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -116,11 +138,30 @@ function PitchTab() {
     setSaving(true)
     setSaved(false)
     setSaveError(false)
+    setPreview(null)
     try {
       const token = await getToken()
       await api.post('/figsy/knowledge/pitch', { pitch, product, pain_points: painPoints, differentiators }, token)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
+      // P0-3: Generate FIGSY preview sentence
+      if (pitch.trim() && token) {
+        setPreviewLoading(true)
+        try {
+          const savedText = [pitch, differentiators].filter(Boolean).join('. ')
+          const res = await fetch(`${API_URL}/figsy/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: `Based on this knowledge: "${savedText.slice(0, 400)}", write ONE example opening sentence showing how you'd use this in outreach to a prospect. Just the sentence, no preamble.` }],
+              mode: 'full',
+            }),
+          })
+          const json = await res.json()
+          if (json?.data?.reply) setPreview(json.data.reply.replace(/^["']|["']$/g, ''))
+        } catch { /* preview is optional */ }
+        setPreviewLoading(false)
+      }
     } catch {
       setSaveError(true)
       setTimeout(() => setSaveError(false), 4000)
@@ -182,6 +223,15 @@ function PitchTab() {
           {saving ? 'Saving…' : 'Save pitch'}
         </button>
       </div>
+      {previewLoading && (
+        <div className="mt-3 flex items-center gap-2 text-xs text-[#7C3AED]">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          FIGSY is writing a preview…
+        </div>
+      )}
+      {preview && !previewLoading && (
+        <FigsyPreview text={preview} onDismiss={() => setPreview(null)} />
+      )}
     </div>
   )
 }

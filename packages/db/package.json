@@ -4,7 +4,17 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "scripts": { "build": "tsc", "dev": "tsc --watch", "type-check": "tsc --noEmit" },
-  "dependencies": { "@supabase/supabase-js": "^2.43.4" },
-  "devDependencies": { "typescript": "^5.4.5" }
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4",
+    "@types/ws": "^8.18.1",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
 }

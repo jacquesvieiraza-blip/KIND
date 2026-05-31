@@ -287,6 +287,57 @@ partnersRouter.patch('/admin/deals/:dealId', requireAdminKey, async (req, res) =
   }
 })
 
+// GET /partners/admin/commissions — all commissions with partner info
+partnersRouter.get('/admin/commissions', requireAdminKey, async (_req: Request, res: Response) => {
+  try {
+    const { data, error } = await db
+      .from('partner_commissions')
+      .select(`
+        *,
+        partners(name, company, email, tier)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return res.json({ commissions: data ?? [] })
+  } catch (err) {
+    console.error('[partners/admin/commissions]', err)
+    return res.status(500).json({ error: 'Failed to fetch commissions' })
+  }
+})
+
+// PATCH /partners/admin/commissions/:commissionId — approve or mark paid
+partnersRouter.patch('/admin/commissions/:commissionId', requireAdminKey, async (req: Request, res: Response) => {
+  const { commissionId } = req.params
+  const { status, wise_reference } = req.body
+
+  const allowed = ['pending', 'approved', 'paid', 'cancelled']
+  if (!status || !allowed.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' })
+  }
+
+  try {
+    const updates: Record<string, unknown> = { status }
+    if (status === 'paid') {
+      updates.paid_at = new Date().toISOString()
+      if (wise_reference) updates.wise_reference = wise_reference
+    }
+
+    const { data, error } = await db
+      .from('partner_commissions')
+      .update(updates)
+      .eq('id', commissionId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return res.json({ success: true, commission: data })
+  } catch (err) {
+    console.error('[partners/admin/commissions/patch]', err)
+    return res.status(500).json({ error: 'Failed to update commission' })
+  }
+})
+
 // GET /partners/admin/:partnerId/dashboard
 partnersRouter.get('/admin/:partnerId/dashboard', requireAdminKey, async (req: Request, res: Response) => {
   try {

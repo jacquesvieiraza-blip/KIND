@@ -17,19 +17,29 @@ const LEAD_GEN_GREETING =
 const FIGSY_GREETING =
   "Hey! I'm FIGSY, your AI SDR. Ask me anything — best campaign to run next, how to improve your reply rate, or what to say to a warm lead."
 
+const STORAGE_KEY = 'kind_askfigsy_thread_v1'
+
 export function AskFigsyButton({ hasFigsy = false }: { hasFigsy?: boolean }) {
   const supabase = createClient()
   const [open, setOpen]     = useState(false)
   const [input, setInput]   = useState('')
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: hasFigsy ? FIGSY_GREETING : LEAD_GEN_GREETING },
-  ])
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) return JSON.parse(saved) as Message[]
+    } catch { /* ignore */ }
+    return [{ role: 'assistant', content: hasFigsy ? FIGSY_GREETING : LEAD_GEN_GREETING }]
+  })
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-20))) } catch { /* ignore */ }
+  }, [messages])
 
   async function handleSend() {
     if (!input.trim() || loading) return

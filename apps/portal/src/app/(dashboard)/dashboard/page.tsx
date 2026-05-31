@@ -8,6 +8,7 @@ import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
 import { Target, Inbox, ArrowRight, Zap, TrendingUp, Mail, ChevronRight, Flame, ThermometerSun } from 'lucide-react'
 import Link from 'next/link'
 import { FigsyConversation } from './FigsyConversation'
+import { CopyShareLink } from '@/components/ui/CopyShareLink'
 
 type BannerState = 'awaiting_payment' | 'trial' | 'none'
 
@@ -59,6 +60,7 @@ export default async function DashboardPage() {
     replies_interested?: number; leads_enrolled?: number; meetings_booked?: number
   }[] = []
   type LeadStats = { total: number; consented: number; avg_score: number }
+  let shareToken: string | null = null
   let leadStats: LeadStats | null = null
   let hotReplies: { id: string; from_email: string; leads?: { first_name?: string; last_name?: string; company?: string }; classification: string; received_at: string }[] = []
   let topLeads: TopLead[] = []
@@ -67,7 +69,7 @@ export default async function DashboardPage() {
   if (user) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('id, company_name, credit_balance, subscriptions(*)')
+      .select('id, company_name, credit_balance, share_token, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -75,6 +77,7 @@ export default async function DashboardPage() {
       companyName   = clientRow.company_name ?? ''
       creditBalance = clientRow.credit_balance ?? 0
       clientId      = clientRow.id as string ?? ''
+      shareToken    = (clientRow as Record<string, unknown>).share_token as string | null ?? null
       subs          = (clientRow.subscriptions as Record<string, unknown>[]) ?? []
     }
 
@@ -156,6 +159,12 @@ export default async function DashboardPage() {
 
       {/* Stats — only when there's real activity */}
       {totalSent > 0 && (
+        <>
+        {shareToken && (
+          <div className="flex justify-end">
+            <CopyShareLink token={shareToken} />
+          </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: 'Emails sent',     value: totalSent.toLocaleString(),     color: 'text-slate-700',   bg: 'bg-white',          border: 'border-[#EDE9FE]',    trend: sparkPoints, trendColor: '#7C3AED' },
@@ -175,6 +184,7 @@ export default async function DashboardPage() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {/* Active campaigns + hot replies */}

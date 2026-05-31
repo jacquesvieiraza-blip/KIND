@@ -246,7 +246,7 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
       optOutQuery,
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'contacted'),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'consent_sent'),
       db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null),
       db.from('figsy_campaigns').select('meetings_booked').eq('client_id', clientId),
     ])

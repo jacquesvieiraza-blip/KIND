@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
   Mail, Loader2, Inbox, Flame, Sun, Snowflake, Ban, UserX,
-  Plane, HelpCircle, Send, Sparkles, CheckCircle, RefreshCw,
+  Plane, HelpCircle, Send, Sparkles, CheckCircle, RefreshCw, Calendar,
 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -137,6 +137,8 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
   const [sending, setSending]     = useState(false)
   const [sentOk, setSentOk]       = useState(false)
   const [sendError, setSendError] = useState('')
+  const [booked, setBooked]       = useState(false)
+  const [booking, setBooking]     = useState(false)
 
   // Reset state whenever the selected reply changes
   useEffect(() => {
@@ -145,6 +147,8 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
     setSending(false)
     setSentOk(false)
     setSendError('')
+    setBooked(false)
+    setBooking(false)
   }, [reply.id])
 
   async function handleAIDraft() {
@@ -190,6 +194,15 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
     setSending(false)
   }
 
+  async function handleMarkBooked() {
+    setBooking(true)
+    try {
+      await api.post(`/figsy/replies/${reply.id}/mark-booked`, {}, token)
+      setBooked(true)
+    } catch { /* ignore */ }
+    setBooking(false)
+  }
+
   const body = getBody(reply)
   const displayName = getDisplayName(reply)
 
@@ -215,10 +228,29 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
             </div>
           </div>
         </div>
-        {/* Classification badge */}
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border shrink-0 ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-          {cfg.emoji} {cfg.label}
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          {/* Classification badge */}
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.emoji} {cfg.label}
+          </div>
+          {/* Mark meeting booked */}
+          {(reply.classification === 'hot' || reply.classification === 'interested') && (
+            booked ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+                <CheckCircle className="w-3 h-3" /> Meeting booked ✓
+              </div>
+            ) : (
+              <button
+                onClick={handleMarkBooked}
+                disabled={booking}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+              >
+                {booking ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calendar className="w-3 h-3" />}
+                Mark meeting booked
+              </button>
+            )
+          )}
         </div>
       </div>
 
@@ -355,7 +387,6 @@ export default function InboxPage() {
   const [filter, setFilter]       = useState<string>('all')
   const [selected, setSelected]   = useState<Reply | null>(null)
   const [token, setToken]         = useState('')
-  const [seeding, setSeeding]     = useState(false)
 
   const loadReplies = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -378,17 +409,6 @@ export default function InboxPage() {
   }, [supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { loadReplies() }, [loadReplies])
-
-  async function seedDemoReply() {
-    setSeeding(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-      await api.post('/figsy/replies/seed-demo', {}, session.access_token)
-      await loadReplies()
-    } catch { /* ignore */ }
-    setSeeding(false)
-  }
 
   // ── Derived state ────────────────────────────────────────────────
   const hotCount = replies.filter(r => r.classification === 'hot' || r.classification === 'interested').length
@@ -450,15 +470,6 @@ export default function InboxPage() {
             <div className="text-center py-16 px-6">
               <Inbox className="w-8 h-8 mx-auto mb-3 text-[#9B8EC4] opacity-30" />
               <p className="text-sm font-medium text-[#9B8EC4]">No replies here</p>
-              {filter === 'all' && (
-                <button
-                  onClick={seedDemoReply}
-                  disabled={seeding}
-                  className="mt-4 text-xs text-[#7C3AED]/50 hover:text-[#7C3AED] transition-colors disabled:opacity-40"
-                >
-                  {seeding ? 'Seeding…' : '+ Seed demo reply'}
-                </button>
-              )}
             </div>
           ) : (
             filtered.map(reply => {
@@ -535,13 +546,6 @@ export default function InboxPage() {
               <p className="text-sm text-[#7B6FA0] max-w-xs leading-relaxed">
                 FIGSY will surface replies here as campaigns run. Hot leads and positive replies appear first.
               </p>
-              <button
-                onClick={seedDemoReply}
-                disabled={seeding}
-                className="mt-6 text-xs text-[#7C3AED]/40 hover:text-[#7C3AED] transition-colors disabled:opacity-40"
-              >
-                {seeding ? 'Seeding…' : '+ Seed demo reply'}
-              </button>
             </div>
           )
         ) : (

@@ -69,6 +69,7 @@ function getCfg(c: string): ClassDef {
 // ── Filter tabs ──────────────────────────────────────────────────────
 const FILTER_TABS: { value: string; label: string }[] = [
   { value: 'all',         label: 'All' },
+  { value: 'warm_leads',  label: '⭐ Warm Leads' },
   { value: 'hot',         label: '🔥 Hot' },
   { value: 'warm',        label: '🌤️ Warm' },
   { value: 'needs_reply', label: 'Needs Reply' },
@@ -413,8 +414,10 @@ export default function InboxPage() {
   // ── Derived state ────────────────────────────────────────────────
   const hotCount = replies.filter(r => r.classification === 'hot' || r.classification === 'interested').length
 
+  const WARM_LEADS_CLASSES = new Set(['hot', 'interested', 'warm'])
   const filtered = (() => {
     switch (filter) {
+      case 'warm_leads':  return replies.filter(r => WARM_LEADS_CLASSES.has(r.classification)).sort((a, b) => new Date(b.received_at ?? b.processed_at ?? 0).getTime() - new Date(a.received_at ?? a.processed_at ?? 0).getTime())
       case 'hot':         return replies.filter(r => r.classification === 'hot' || r.classification === 'interested')
       case 'warm':        return replies.filter(r => r.classification === 'warm')
       case 'needs_reply': return replies.filter(r => NEEDS_REPLY_CLASSES.has(r.classification))

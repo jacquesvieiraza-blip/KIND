@@ -245,9 +245,12 @@ export function Sidebar({
 
           {/* ── AI Agents ─────────────────────────────────────────── */}
           <div className="!mt-5">
-            <p className="text-[10px] text-[#7C3AED]/40 px-3 pb-2 font-semibold uppercase tracking-wider">
-              KIND AI
-            </p>
+            <Link href="/dashboard/agents" className="flex items-center justify-between px-3 pb-2 group">
+              <p className="text-[10px] text-[#7C3AED]/40 group-hover:text-[#7C3AED] font-semibold uppercase tracking-wider transition-colors">
+                KIND AI
+              </p>
+              <span className="text-[9px] text-[#7C3AED]/30 group-hover:text-[#7C3AED]/60 transition-colors">View all →</span>
+            </Link>
 
             {/* Active agent card */}
             <div

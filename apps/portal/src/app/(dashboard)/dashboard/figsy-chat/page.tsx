@@ -99,9 +99,9 @@ export default function FigsyChatPage() {
       })
       const json = await res.json()
       const reply: string = json?.data?.reply ?? 'Sorry, something went wrong — try again in a moment.'
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }].slice(-MAX_HISTORY))
+      setMessages(prev => [...prev, { role: 'assistant' as const, content: reply }].slice(-MAX_HISTORY))
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection issue — please try again.' }])
+      setMessages(prev => [...prev, { role: 'assistant' as const, content: 'Connection issue — please try again.' }])
     } finally {
       setLoading(false)
     }

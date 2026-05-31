@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { Bot } from 'lucide-react'
+import { Bot, Calendar, FileText, Database, MessageSquare, CheckCircle2, XCircle } from 'lucide-react'
 
 interface MillaDocument {
   id: string; name: string; type: string
@@ -368,6 +368,76 @@ export default function AssistantPage() {
           </div>
         </div>
       )}
+
+      {/* ── MCP-2: Integrations section ─────────────────────────────────────── */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-semibold text-gray-900 text-sm">Integrations</h2>
+            <p className="text-xs text-[#9B8EC4] mt-0.5">Connect external tools so Milla can take actions, not just answer questions.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            {
+              icon: Calendar,
+              name: 'Google Calendar',
+              description: 'Let Milla check your schedule and book meetings',
+              connected: false,
+            },
+            {
+              icon: FileText,
+              name: 'Google Docs',
+              description: 'Let Milla create and update documents',
+              connected: false,
+            },
+            {
+              icon: Database,
+              name: 'HubSpot',
+              description: 'Let Milla update your CRM records',
+              connected: !!(typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_HUBSPOT_CONNECTED === 'true'),
+            },
+            {
+              icon: MessageSquare,
+              name: 'Slack',
+              description: 'Let Milla notify your team',
+              connected: false,
+            },
+          ].map(integration => {
+            const Icon = integration.icon
+            return (
+              <div key={integration.name} className="flex items-center gap-4 p-4 rounded-xl border border-purple-100/60 bg-[#FAFAFE]">
+                <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center shrink-0">
+                  <Icon className="w-5 h-5 text-[#7C3AED]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-gray-900">{integration.name}</p>
+                    {integration.connected ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-3 h-3" /> Connected
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                        <XCircle className="w-3 h-3" /> Not connected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#9B8EC4] mt-0.5">{integration.description}</p>
+                </div>
+                {!integration.connected && (
+                  <button className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] border border-[#7C3AED]/30 rounded-lg hover:bg-[#F5F0FF] transition-colors shrink-0">
+                    Connect
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        <p className="text-xs text-[#9B8EC4] mt-4 border-t border-purple-100/60 pt-3">
+          Connected integrations give Milla the ability to take actions, not just answer questions.
+        </p>
+      </div>
 
       {tab === 'chat' && (
         <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">

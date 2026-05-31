@@ -8,6 +8,7 @@ import {
   Users, Star, DollarSign, ShieldCheck, TrendingUp,
   Target, Zap, ArrowRight, Calendar, Clock, Mail,
   Linkedin, BarChart2, Activity, RefreshCw, Map,
+  Download, Globe, AlertCircle, CheckCircle2,
 } from 'lucide-react'
 
 interface LeadStats {
@@ -336,6 +337,107 @@ export default function KPIsPage() {
   const meetingRate = f.meetingsBooked != null && contacted > 0 ? (f.meetingsBooked / Math.max(contacted, 1)) * 100 : 0
   const oneInEvery = f.interested > 0 && f.totalReplied > 0 ? Math.round(f.totalReplied / f.interested) : null
 
+  // ── P1-10: PDF/HTML report generator ────────────────────────────────────────
+  function generateReport() {
+    const now = new Date()
+    const dateRange = `${new Date(now.getTime() - 30 * 86400000).toLocaleDateString()} – ${now.toLocaleDateString()}`
+    const replyRatePct = f.totalSent > 0 ? ((f.replyRate ?? 0) * 100).toFixed(1) : '0'
+    const openRatePct  = f.totalSent > 0 && f.openRate ? (f.openRate * 100).toFixed(1) : '0'
+    const interestedRatePct = f.totalSent > 0 ? ((f.interestedRate ?? 0) * 100).toFixed(1) : '0'
+    const pipeVal = pipelineValue
+
+    const metrics = [
+      { label: 'Leads sourced', value: l.total, max: Math.max(l.total, 100) },
+      { label: 'Emails sent', value: f.totalSent, max: Math.max(f.totalSent, 100) },
+      { label: 'Open rate', value: parseFloat(openRatePct), max: 60, unit: '%' },
+      { label: 'Reply rate', value: parseFloat(replyRatePct), max: 30, unit: '%' },
+      { label: 'Positive replies', value: f.interested, max: Math.max(f.interested, 10) },
+      { label: 'Meetings booked', value: f.meetingsBooked ?? 0, max: Math.max(f.meetingsBooked ?? 0, 10) },
+    ]
+
+    const bars = metrics.map(m => {
+      const pct = m.max > 0 ? Math.round((m.value / m.max) * 100) : 0
+      return `
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:13px;color:#374151">${m.label}</span>
+            <span style="font-size:13px;font-weight:700;color:#111827">${m.value.toLocaleString()}${m.unit ?? ''}</span>
+          </div>
+          <div style="height:10px;background:#F3F4F6;border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${Math.min(pct, 100)}%;background:#7C3AED;border-radius:99px"></div>
+          </div>
+        </div>`
+    }).join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KIND AI — Performance Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #FAFAFE; color: #111827; padding: 40px; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #7C3AED20; }
+    .logo { font-size: 24px; font-weight: 800; color: #7C3AED; letter-spacing: -0.5px; }
+    .date { font-size: 12px; color: #6B7280; }
+    .section { background: white; border-radius: 16px; border: 1px solid #EDE9FE; padding: 24px; margin-bottom: 20px; }
+    .section-title { font-size: 11px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat { background: #F5F3FF; border-radius: 12px; padding: 16px; }
+    .stat-value { font-size: 28px; font-weight: 800; color: #1E0A5C; }
+    .stat-label { font-size: 12px; color: #7B6FA0; margin-top: 2px; }
+    .footer { text-align: center; margin-top: 32px; font-size: 11px; color: #9CA3AF; }
+    @media print { body { background: white; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">K I N D ·AI</div>
+    <div class="date">Report period: ${dateRange}</div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat"><div class="stat-value">${l.total.toLocaleString()}</div><div class="stat-label">Leads sourced</div></div>
+    <div class="stat"><div class="stat-value">${f.totalSent.toLocaleString()}</div><div class="stat-label">Emails sent</div></div>
+    <div class="stat"><div class="stat-value">${replyRatePct}%</div><div class="stat-label">Reply rate</div></div>
+    <div class="stat"><div class="stat-value">${interestedRatePct}%</div><div class="stat-label">Positive reply rate</div></div>
+    <div class="stat"><div class="stat-value">${f.meetingsBooked ?? 0}</div><div class="stat-label">Meetings booked</div></div>
+    <div class="stat"><div class="stat-value">${pipeVal}</div><div class="stat-label">Pipeline value</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Metric breakdown</div>
+    ${bars}
+  </div>
+
+  <div class="section">
+    <div class="section-title">Key highlights</div>
+    <ul style="list-style:none;space-y:8px">
+      <li style="padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:13px;color:#374151">
+        ${l.scored} of ${l.total} leads have been AI-scored for ICP fit.
+      </li>
+      <li style="padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:13px;color:#374151">
+        FIGSY sent ${f.totalSent.toLocaleString()} emails and received ${f.totalReplied} replies (${replyRatePct}% reply rate).
+      </li>
+      <li style="padding:8px 0;font-size:13px;color:#374151">
+        ${f.interested} positive replies — indicating buying intent.
+      </li>
+    </ul>
+  </div>
+
+  <div class="footer">Generated by KIND AI · app.get-kind.com · ${now.toLocaleDateString()}</div>
+
+  <script>window.print()</script>
+</body>
+</html>`
+
+    const win = window.open('', '_blank')
+    if (win) {
+      win.document.write(html)
+      win.document.close()
+    }
+  }
+
   // Meetings booked derived values
   const meetingBookedRateDecimal = (f.meetingBookedRate ?? 0) / 100
   const meetingsBookedAccent = meetingBookedRateDecimal >= 0.03
@@ -353,14 +455,23 @@ export default function KPIsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Performance</h1>
           <p className="text-[#7B6FA0] text-sm mt-1">Live outreach metrics and pipeline data across all agents.</p>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 border border-purple-100/80 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={generateReport}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#7C3AED] border border-[#7C3AED]/30 bg-[#F5F0FF] hover:bg-[#EDE9FF] rounded-xl transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Download Report
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 border border-purple-100/80 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Period filter */}
@@ -623,6 +734,64 @@ export default function KPIsPage() {
               </>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ── P1-1: Deliverability section ──────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Globe className="w-4 h-4 text-[#9B8EC4]" />
+          <h2 className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">Deliverability</h2>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard
+            label="Sending domain"
+            value="Not configured"
+            sub="Add a custom domain in settings"
+            icon={<Globe className="w-4 h-4" />}
+            muted
+          />
+          <MetricCard
+            label="Open rate (7d)"
+            value={f.totalSent > 0 && f.openRate ? `${(f.openRate * 100).toFixed(1)}%` : '—'}
+            sub={f.totalSent > 0 ? `${f.totalOpened ?? 0} opens of ${f.totalSent} sent` : 'No data yet'}
+            icon={<Mail className="w-4 h-4" />}
+            accent={(f.openRate ?? 0) >= 0.25}
+          />
+          <MetricCard
+            label="Bounce rate"
+            value="—"
+            sub="Needs Resend webhook setup"
+            icon={<AlertCircle className="w-4 h-4" />}
+            muted
+          />
+          <MetricCard
+            label="Spam complaints"
+            value="—"
+            sub="Needs Resend webhook setup"
+            icon={<AlertCircle className="w-4 h-4" />}
+            muted
+          />
+        </div>
+
+        {/* Deliverability tips */}
+        <div className="mt-3 bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 className="w-4 h-4 text-[#7C3AED]" />
+            <h3 className="text-sm font-bold text-gray-900">Deliverability tips</h3>
+          </div>
+          <ul className="space-y-2">
+            {[
+              'Warm up your domain before high-volume sending — start with 10–20 emails/day and increase gradually over 4 weeks',
+              'Keep emails under 200 words for better inbox placement — long emails trigger more spam filters',
+              'Personalise the first line — generic openers like "I hope this finds you well" trigger spam filters',
+            ].map(tip => (
+              <li key={tip} className="flex items-start gap-2.5 text-sm text-gray-700">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                {tip}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>

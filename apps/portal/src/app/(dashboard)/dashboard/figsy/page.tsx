@@ -113,6 +113,7 @@ interface CampaignSettings {
   system_prompt?: string | null
   daily_send_limit?: number | null
   review_required?: boolean
+  model_preference?: 'haiku' | 'sonnet'
 }
 
 interface ParsedIntent {
@@ -154,6 +155,7 @@ interface Campaign {
   created_at: string
   settings?: CampaignSettings | null
   campaign_intent?: string | null
+  model_preference?: 'haiku' | 'sonnet' | null
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -481,6 +483,7 @@ export default function FigsyPage() {
       system_prompt:    campaign.settings?.system_prompt ?? null,
       daily_send_limit: campaign.settings?.daily_send_limit ?? null,
       review_required:  campaign.settings?.review_required ?? false,
+      model_preference: campaign.model_preference ?? 'haiku',
     }
   }
 
@@ -493,6 +496,7 @@ export default function FigsyPage() {
         system_prompt:    settings.system_prompt,
         daily_send_limit: settings.daily_send_limit,
         review_required:  settings.review_required,
+        model_preference: settings.model_preference ?? 'haiku',
       }, session?.access_token)
       setCampaigns(prev => prev.map(c => c.id === campaign.id ? res.data : c))
       // Clear local override since campaign now has updated settings

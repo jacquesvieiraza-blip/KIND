@@ -475,6 +475,11 @@ export async function sendDay1OutreachBatch(
   }
 }
 
+const MODEL_MAP: Record<string, string> = {
+  haiku:  'claude-haiku-4-5-20251001',
+  sonnet: 'claude-sonnet-4-5',
+}
+
 // Generate a sequence informed by FIGSY Memory (Campaign Intelligence).
 // Falls back to standard generateSequence if no memory exists.
 export async function generateSequenceWithMemory(
@@ -483,6 +488,7 @@ export async function generateSequenceWithMemory(
   senderCompanyName: string,
   senderIndustry: string | null,
   campaignIntent?: string,
+  modelPreference?: string,
 ): Promise<SequenceDraft> {
   // last_winning_angle added via migration 20260525_fix_leads_status_and_figsy_memory.sql
   // Try with last_winning_angle; if column missing, retry without it (graceful degradation)
@@ -563,8 +569,10 @@ Hard rules:
 Return ONLY valid JSON:
 {"step1":{"subject":"...","body":"..."},"step2":{"subject":"...","body":"..."},"step3":{"subject":"...","body":"..."}}`
 
+  const selectedModel = MODEL_MAP[modelPreference ?? 'haiku'] ?? MODEL_MAP.haiku
+
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: selectedModel,
     max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   })
@@ -605,6 +613,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       client?.company_name ?? '',
       client?.industry ?? null,
       (campaign as any).campaign_intent ?? undefined,
+      (campaign as any).model_preference ?? 'haiku',
     )
 
     const { data: enrollment, error } = await db.from('figsy_enrollments').insert({

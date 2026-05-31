@@ -40,7 +40,7 @@ router.post('/invite', async (req, res): Promise<void> => {
     const resend = new Resend(process.env.RESEND_API_KEY)
     const portalUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.kindai.co.za'
     await resend.emails.send({
-      from: 'KIND <hello@kindai.co.za>',
+      from: 'K.I.N.D <hello@get-kind.com>',
       to: email,
       subject: "You've been invited to KIND",
       html: `<p>You've been invited to join a KIND workspace.</p>

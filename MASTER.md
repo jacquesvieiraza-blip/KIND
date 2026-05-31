@@ -850,6 +850,68 @@
 | AskFigsyButton chat persistence — localStorage, last 20 messages | `0eacf81` |
 | NotificationBell theme — dark classes → light theme | `0eacf81` |
 | Seed demo reply debug button — removed from production inbox | `0eacf81` |
+| Layout overhaul — light sidebar `#F5F3FF`, clean `#FAFAFE` bg, dots removed, 220px sidebar | `c5b38e5` |
+| Agent panel → RIGHT of content, home page panel removed (FigsyConversation handles it) | `15aa43f` |
+| ICP Builder — FigsySidePanel moved to RIGHT side, consistent with all other pages | `f53579b` |
+
+---
+
+### 🟡 APPROVED TO BUILD — Awaiting "yes" from founder
+
+**Priority 1 — P0-18: FIGSY Full Page**
+`/dashboard/figsy-chat` — full-width dedicated FIGSY conversation page. Large centered input with purple gradient border, 4 smart suggested starters from live pipeline, full chat history, FIGSY avatar header. Sidebar FIGSY item routes here. Replaces floating button. This is the Monday.com answer.
+
+**Phase 0 — Buildable now (no external deps)**
+| # | Item |
+|---|------|
+| P0-1 | Website copy rewrite — "AI Revenue OS. FIGSY works 24/7." |
+| P0-3 | Knowledge base on-save preview — FIGSY generates sample sentence after saving |
+| P0-4 | Email open tracking — pixel, `opened_at` column, open rate KPI |
+| P0-5 | Notification preferences UI — toggle email notification events |
+| P0-6 | Analytics empty state — 4 action cards instead of "No leads yet." |
+| P0-8 | Email Score pre-send — 0–100 score per step, flags weak subjects + spam words |
+| P0-10 | Co-pilot mode — approve before send toggle per campaign |
+| P0-11 | Auto-fire consent on lead approval |
+| P0-14 | Multi-model toggle — Haiku vs Sonnet per campaign |
+| P0-15 | Template library — 5–9 pre-built sequence templates |
+| P0-16 | KIND AI sidebar section header |
+| P0-17 | Personalized dashboard greeting |
+| P0-19 | Agent card redesign — coloured background, larger avatar |
+| P0-20 | Suggested starters on all empty states |
+| P0-22 | Input as design signal — full-width gradient border everywhere |
+| P0-23 | Workforce language pass — "Your team", "FIGSY sent" throughout |
+
+**Phase 0 — Buildable (needs RESEND_API_KEY confirmed in Railway)**
+| # | Item |
+|---|------|
+| P0-2 | Learning Agent Level 2 — monthly cron + Claude analysis + email + portal approval |
+| P0-7 | Scheduled report emails — weekly client digest |
+| P0-9 | Client morning brief — daily email to all active clients |
+| P0-12 | Realtime dashboard — Supabase realtime wired to frontend |
+
+**Phase 1 — Buildable now**
+| # | Item |
+|---|------|
+| P1-1 | Deliverability dashboard — SPF/DKIM/DMARC status, bounce rate, spam score |
+| P1-3 | Adaptive send volume — auto-reduce sends when bounce/spam rises |
+| P1-6 | Expanded AI reply categories — wrong person, unsubscribe, OOO, auto-reply distinct |
+| P1-8 | Lead Catcher — warm leads tab, auto-surfaces interested replies |
+| P1-9 | Deal risk scoring — flag inactive client accounts in admin |
+| P1-10 | White-label PDF report — per-client performance report |
+| P1-11 | Conversational FIGSY onboarding — 5-question chat flow replaces ICP form |
+| P1-12 | AI research per lead — personalised opening line per prospect |
+| P1-15 | "Suggest Campaigns" button — AI recommends next campaign target |
+
+**Phase 1 — Blocked (founder action needed)**
+| # | Item | Needs |
+|---|------|-------|
+| P1-2 | Email warmup infrastructure | Warmup service subscription |
+| P1-4 | Blacklist monitoring | Blacklist API key |
+| P1-5 | Inbox placement testing | Smartlead API key |
+| P1-7 | Waterfall email verification | Hunter.io API key |
+| P1-13 | Technographic ICP targeting | Apollo Basic plan |
+| P1-14 | Google Maps scraping | Founder confirm |
+| P1-16 | Activate Portal V2 | Set `FEATURE_PORTAL_V2=true` in Railway |
 
 ---
 

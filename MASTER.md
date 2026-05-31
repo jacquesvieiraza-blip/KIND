@@ -55,6 +55,28 @@
 
 ---
 
+## 🔁 TEARDOWN PROTOCOL
+
+**When the founder says "TEARDOWN" — Claude must do this before anything else:**
+
+1. Read Section 0 (morning brief) in full
+2. Read the full Founder Action List and Claude Build List
+3. Read Section 0b (master build queue) — every phase, every status
+4. Read Section 1 (current status) — check what's confirmed live vs pending
+5. Read Section 43 (commit log) — last 20 commits minimum
+6. Cross-reference: for every item listed as outstanding, verify it isn't already marked done somewhere in the MASTER
+7. For every item listed as done, verify it isn't contradicted by a stale section elsewhere
+8. Rewrite Section 0 from scratch — morning brief, both action lists, platform health
+9. Commit and push immediately
+
+**Rules:**
+- Never write an action list from session memory alone. Always read first.
+- If a section contradicts another section, the most recent commit log entry wins.
+- Every session's key decisions, builds, and fixes must be logged in Section 0 before the session ends.
+- No item is marked ✅ unless it has been confirmed working — not just "route exists."
+
+---
+
 ## 🔴 YOUR ACTION LIST — EVERYTHING YOU NEED TO DO (1 June 2026)
 
 *Complete list. Cross-referenced against full MASTER. Verified accurate. Tick these off as you go.*
@@ -201,7 +223,7 @@
 
 ## 🗓️ SECTION 0 — MORNING BRIEF — 1 JUNE 2026
 
-*Single source of truth. Updated every session. Previous session notes archived in Section 43 commit log.*
+*Single source of truth. Read this first, every session. Updated at end of every session. Previous sessions in Section 43.*
 
 ---
 
@@ -360,7 +382,45 @@ These are not nice-to-haves. Last night proved we need them:
 | Website (Railway) | ✅ Live | 31 May 13:54 UTC |
 | Supabase DB | ✅ Live | Continuous |
 | Stripe webhooks | ✅ Configured | 31 May |
-| Resend email | ⚠️ Check RESEND_API_KEY in Railway | — |
+| Resend email | ✅ RESEND_API_KEY confirmed in Railway | 31 May |
+
+---
+
+### 📓 SESSION LOG — 1 JUNE 2026 (tonight)
+
+**What was done this session:**
+
+| Time (UTC) | Commit | What |
+|------------|--------|------|
+| 20:27 | `6a57bbf` | MASTER.md full audit — built/not-built lists, F1-F30, commit log |
+| 20:21 | `50295d2` | MASTER.md full platform audit |
+| 20:17 | `9a41d99` | MASTER.md morning brief |
+| 20:14 | `ee1a010` | MASTER.md session record — API crash + partner programme |
+| 20:09 | `e94a0c1` | **FIX** — Portal Sidebar crash: `isPartner` aliased as `isPartnerProp` |
+| 20:01 | `50073e0` | **FIX** — API WebSocket crash: dual polyfill for Node 20 |
+| 19:55 | `adf9a39` | **FIX** — Add `ws` package to `@kind/db` |
+| Earlier | Multiple | nixpacks.toml fixes, Node version, partner programme builds |
+
+**Key decisions locked tonight:**
+- Partner sandbox model: free on approval, own pipeline = standard client pricing
+- Partner email fix: `UPDATE partners SET email = 'jacques.vieiraza@gmail.com'` — run by founder
+- TEARDOWN protocol: established. When founder says TEARDOWN, Claude reads full MASTER before writing anything.
+
+**What was fixed in MASTER tonight:**
+- TOC extended from 36 to 43 sections
+- 781 lines of stale May 29 content removed (solicitor pause, old blockers)
+- 1,042 lines of duplicate sections 24-28 removed
+- EVERYTHING BUILT rewritten in plain English (no file paths)
+- Founder action list corrected: 10 items → 40 items across 8 priority groups
+- Claude build list corrected: 12 items → 34 items, 25 already-built items removed
+- Section 42 partner audit corrected: sandbox marked NOT built (was wrong ✅)
+- Section 0b founder action list updated: done items marked, missing critical items added
+- TEARDOWN protocol added to document
+
+**Still wrong / needs fixing next session:**
+- Section 1 (Current Status) — still shows HubSpot, Calendly, FIGSY_KIND_CLIENT_ID as "⏳ Pending" but they are confirmed done. Read and fix.
+- Verification audit P2-13/P2-14 — listed as "route exists" in my notes but Section 0b says "⚪ Not started." Confirm which is true before building.
+- Section 0b "Approved to Build" and "Phase 0 Build Now" sections are partially duplicating the main tables and have stale statuses. Clean up next TEARDOWN.
 
 ## ✅ EVERYTHING BUILT — VERIFIED IN CODE (31 May 2026)
 
@@ -744,20 +804,26 @@ These are not nice-to-haves. Last night proved we need them:
 
 ### 📋 FOUNDER ACTION LIST (not mine to build — yours to action)
 
+**Confirmed done — verified in commit log:** RESEND_API_KEY ✅, HubSpot account + API key ✅, Calendly link ✅, FIGSY_KIND_CLIENT_ID ✅, Resend inbound webhook ✅
+
 | # | Item | Unlocks |
 |---|------|---------|
-| F1 | **Stripe price IDs → Railway** | Milla + Vida go live immediately |
-| F2 | **Google Workspace + SPF/DKIM/DMARC** | Deliverability, domain reputation |
-| F3 | **Confirm Calendly link is live** — `https://calendly.com/jacques-vieiraza/30min` | REEVE booking |
-| F4 | **Apollo upgrade to Basic ($49/mo)** | 4 competitor ICPs ready to run (~200 warm prospects) |
-| F5 | **HubSpot account + API key** | CRM sync for clients |
-| F6 | **UK company registration** (Companies House £50) | Investor conversations, international clients |
-| F7 | **MacBook from Currys** | Dev on personal hardware |
-| F8 | **Wise business account** | After UK registration |
-| F9 | **RESEND_API_KEY confirm in Railway** | Email sending |
-| F10 | **ADMIN_SECRET_KEY in Railway** | Cron jobs |
-| F11 | **FIGSY_REPLY_TO=replies@get-kind.com in Railway** | Inbound reply handling |
-| F12 | **Resend inbound MX record** | Reply webhook |
+| F1 | **Stripe price IDs for Milla + Vida → Railway** | Tests 3 + 4 — subscription checkout goes live |
+| F2 | **Run `20260527_stripe_subscription_id.sql`** in Supabase SQL editor | Stripe subscription tracking |
+| F3 | **ADMIN_SECRET_KEY in Railway** — any strong random string | Cron jobs authenticate |
+| F4 | **Run meetings_booked migration** — `ALTER TABLE figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0` | KPI meetings column exists in DB |
+| F5 | **Upgrade Resend to paid plan** | 100 email/day cap on free plan will be hit on first real campaign |
+| F6 | **Apollo upgrade to Basic ($49/mo)** | Lead search returns real results (free plan returns 0) |
+| F7 | **UK company registration** (Companies House £12) — share company number when received | Legal pages, Stripe, investor conversations |
+| F8 | **Wise business account** | After UK registration — required for partner commission payments |
+| F9 | **Google Workspace** — set up `jacques@get-kind.com` | Professional email — when first client, not urgent before |
+| F10 | **MacBook from Currys** (£599) | All future dev on personal hardware |
+| F11 | **Solicitor call outcome** — share what was decided re: Smartsheet clauses 17.2 + 19.3.2 | Clears legal ambiguity on builds |
+| F12 | **ICO data protection registration** — ico.org.uk, £40/year | Legal requirement to process personal data in UK |
+| F13 | **K.I.N.D trademark** — ipo.gov.uk, ~£170 | Brand protection |
+| F14 | **FIGSY trademark** — ipo.gov.uk, ~£170 | Brand protection |
+| F15 | **SEIS advance assurance** — apply to HMRC before raising | Investor tax relief (50% income tax relief) |
+| F16 | **SeedLegals IP assignment + shareholders agreement** | IP formally owned by company not founder personally |
 
 ---
 

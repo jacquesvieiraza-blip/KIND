@@ -132,8 +132,16 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   let chips: { label: string; onClick: () => void }[]
 
   const isCampaignDetail = /^\/dashboard\/figsy\/[^/]+$/.test(pathname)
+  const isWebhooks = pathname.startsWith('/dashboard/figsy/webhooks')
 
-  if (isCampaignDetail) {
+  if (isWebhooks) {
+    contextMessage = "Webhooks let your other tools know when something happens — a reply, a positive lead, a meeting booked. Connect Zapier, Make, or your own endpoint here."
+    chips = [
+      { label: 'Test my webhook',     onClick: () => {} },
+      { label: 'See active campaigns', onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Check my inbox',       onClick: () => router.push('/dashboard/inbox') },
+    ]
+  } else if (isCampaignDetail) {
     contextMessage = "This is your live campaign. Click Enroll Leads to add your consented contacts, then Send Test Email to preview what they'll receive."
     chips = [
       { label: 'Enroll my leads',    onClick: () => router.push('/dashboard/figsy') },
@@ -219,6 +227,20 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
       { label: 'Ask about my ICP',      onClick: () => {} },
       { label: 'Request a feature',     onClick: () => {} },
       { label: 'See my campaigns',      onClick: () => router.push('/dashboard/figsy') },
+    ]
+  } else if (pathname.startsWith('/dashboard/mcp')) {
+    contextMessage = "Connect me to Claude.ai or Cursor and run lead searches, check campaign stats, and launch outreach — all from inside your AI assistant, no portal login needed."
+    chips = [
+      { label: 'Connect Claude.ai',       onClick: () => router.push('/dashboard/developer') },
+      { label: 'Get my API key',           onClick: () => router.push('/dashboard/developer') },
+      { label: 'Test: find me 10 leads',  onClick: () => router.push('/dashboard/figsy-chat') },
+    ]
+  } else if (pathname.startsWith('/dashboard/knowledge')) {
+    contextMessage = "Everything you upload here trains me to write better emails. Your tone, your product, your pricing, your competitors — the more I know, the sharper every sequence I write."
+    chips = [
+      { label: 'Upload a document',       onClick: () => router.push('/dashboard/knowledge') },
+      { label: 'Add company background',  onClick: () => router.push('/dashboard/knowledge') },
+      { label: 'Launch a campaign',        onClick: () => router.push('/dashboard/figsy') },
     ]
   } else if (pathname.startsWith('/dashboard/developer')) {
     contextMessage = "Your KIND MCP Server lets you call me from Claude.ai, Cursor, or any MCP-enabled tool. Use figsy_find_leads, figsy_suggest_campaign, and figsy_get_campaign_stats — all from inside your AI assistant."

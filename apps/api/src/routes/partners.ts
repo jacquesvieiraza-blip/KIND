@@ -414,14 +414,15 @@ partnersRouter.get('/admin/:partnerId/dashboard', requireAdminKey, async (req: R
 // GET /partners/me — partner's own dashboard data
 partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '') ?? ''
-    const { data: { user: authUser } } = await (db as any).auth.getUser(token)
-    if (!authUser) { res.status(401).json({ error: 'Unauthorized' }); return }
+    // requireAuth already validated the token and set req.userId
+    const { data: userResp } = await (db as any).auth.admin.getUserById(req.userId!)
+    const userEmail = userResp?.user?.email
+    if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
     const { data: partner, error } = await db
       .from('partners')
       .select('*')
-      .eq('email', authUser.email)
+      .eq('email', userEmail)
       .single()
 
     if (error || !partner) { res.status(404).json({ error: 'Not a partner account' }); return }
@@ -470,11 +471,11 @@ partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) =
 // POST /partners/deals — register a deal
 partnersRouter.post('/deals', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '') ?? ''
-    const { data: { user: authUser } } = await (db as any).auth.getUser(token)
-    if (!authUser) { res.status(401).json({ error: 'Unauthorized' }); return }
+    const { data: userResp } = await (db as any).auth.admin.getUserById(req.userId!)
+    const userEmail = userResp?.user?.email
+    if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { data: partner } = await db.from('partners').select('id').eq('email', authUser.email).single()
+    const { data: partner } = await db.from('partners').select('id').eq('email', userEmail).single()
     if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
 
     const { company_name, contact_name, contact_email, company_size, industry, country, estimated_value, notes } = req.body
@@ -507,11 +508,11 @@ partnersRouter.post('/deals', requireAuth, async (req: AuthRequest, res: Respons
 // POST /partners/demo-sandbox — provision a demo env for this partner
 partnersRouter.post('/demo-sandbox', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '') ?? ''
-    const { data: { user: authUser } } = await (db as any).auth.getUser(token)
-    if (!authUser) { res.status(401).json({ error: 'Unauthorized' }); return }
+    const { data: userResp } = await (db as any).auth.admin.getUserById(req.userId!)
+    const userEmail = userResp?.user?.email
+    if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { data: partner } = await db.from('partners').select('id, demo_env_id').eq('email', authUser.email).single()
+    const { data: partner } = await db.from('partners').select('id, demo_env_id').eq('email', userEmail).single()
     if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
 
     if (partner.demo_env_id) {

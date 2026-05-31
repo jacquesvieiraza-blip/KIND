@@ -123,6 +123,7 @@ export default function PartnerPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [notPartner, setNotPartner] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   // Deal form state
   const [showDealForm, setShowDealForm] = useState(false)
@@ -145,6 +146,7 @@ export default function PartnerPage() {
         setData(result)
       } catch (err: any) {
         if (err?.status === 404) setNotPartner(true)
+        else setFetchError(err?.message ?? 'Failed to load partner dashboard')
       }
       setLoading(false)
     })
@@ -191,6 +193,16 @@ export default function PartnerPage() {
     return (
       <div className="flex items-center justify-center py-20 text-[#7C3AED]/40 text-sm">
         Loading partner dashboard…
+      </div>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <div className="max-w-lg mx-auto py-20 text-center space-y-3">
+        <p className="text-sm font-semibold text-red-600">Could not load partner dashboard</p>
+        <p className="text-xs text-gray-400 font-mono bg-gray-50 rounded-lg px-4 py-2">{fetchError}</p>
+        <button onClick={() => window.location.reload()} className="text-xs text-[#7C3AED] underline">Retry</button>
       </div>
     )
   }

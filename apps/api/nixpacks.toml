@@ -1,0 +1,17 @@
+# Nixpacks config for KIND API — pinned to Node 20.
+# Avoids the "install apt packages: libatomic1 / gpg tar — context canceled"
+# failure that occurs when nixpacks tries to resolve native apt packages.
+# Railway must set the root directory to /apps/api for this file to be picked up,
+# or set build/start commands manually in the Railway service settings.
+[phases.setup]
+nixPkgs = ["nodejs_20", "yarn"]
+
+[phases.install]
+# Railway builds from the monorepo root — install all workspace deps then build API only
+cmds = ["yarn install --frozen-lockfile --non-interactive"]
+
+[phases.build]
+cmds = ["yarn workspace @kind/api build"]
+
+[start]
+cmd = "node apps/api/dist/index.js"

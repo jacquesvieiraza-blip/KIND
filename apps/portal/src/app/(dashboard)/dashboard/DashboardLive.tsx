@@ -98,16 +98,18 @@ export function DashboardLive({
     }
 
     const refetchReplies = async () => {
-      const { data } = await supabase
-        .from('figsy_replies')
-        .select('classification')
-        .eq('client_id', clientId)
-      if (data) {
-        const total = data.length
-        const interested = data.filter(r => r.classification === 'interested' || r.classification === 'hot').length
+      const [repliesRes, emailsRes] = await Promise.all([
+        supabase.from('figsy_replies').select('classification').eq('client_id', clientId),
+        supabase.from('figsy_sent_emails').select('*', { count: 'exact', head: true }).eq('client_id', clientId),
+      ])
+      if (repliesRes.data) {
+        const total = repliesRes.data.length
+        const interested = repliesRes.data.filter(r => r.classification === 'interested' || r.classification === 'hot').length
+        const sentCount = emailsRes.count ?? 0
         setTotalReplies(total)
         setTotalInterested(interested)
-        setReplyRate(totalSent > 0 ? Math.round((total / totalSent) * 100) : 0)
+        // Use freshly-fetched sentCount — not the stale closure value of totalSent
+        setReplyRate(sentCount > 0 ? Math.round((total / sentCount) * 100) : 0)
       }
     }
 

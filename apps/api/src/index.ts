@@ -66,6 +66,9 @@ app.use(cors({
 app.use(morgan('dev'))
 app.use('/webhooks/paystack', express.raw({ type: 'application/json' }))
 app.use('/webhooks/stripe',  express.raw({ type: 'application/json' }))
+// Stripe webhook also lives at /stripe/webhook — must receive the raw body
+// before express.json() parses it, otherwise constructEvent() always fails.
+app.use('/stripe/webhook',   express.raw({ type: 'application/json' }))
 app.use(express.json())
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'kind-api', v: '2026-05-18-b' }))

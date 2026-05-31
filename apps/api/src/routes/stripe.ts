@@ -258,6 +258,25 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       }
     }
 
+    // ── Subscription invoice paid (recurring renewal) ──────────────────────
+    if (event.type === 'invoice.payment_succeeded') {
+      const invoice = event.data.object as {
+        subscription?: string
+        billing_reason?: string
+        customer_email?: string
+        lines?: { data?: { metadata?: { clientId?: string; product?: string } }[] }
+      }
+      // Only act on subscription cycle renewals (not the initial checkout payment)
+      if (invoice.billing_reason === 'subscription_cycle' && invoice.subscription) {
+        // Re-activate subscription record in case it had lapsed
+        await db.from('subscriptions')
+          .update({ status: 'active' })
+          .eq('stripe_subscription_id', invoice.subscription)
+          .in('status', ['past_due', 'cancelled'])
+        console.log(`[Stripe] Subscription renewed — ${invoice.subscription} — ${invoice.customer_email}`)
+      }
+    }
+
     // ── Payment failed on subscription ─────────────────────────────────────
     if (event.type === 'invoice.payment_failed') {
       const invoice = event.data.object as {
@@ -265,7 +284,12 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         customer_email?: string
         metadata?: { clientId?: string }
       }
-      // Log for now — could send email alert to client
+      // Mark subscription past_due so the portal can surface a payment warning
+      if (invoice.subscription) {
+        await db.from('subscriptions')
+          .update({ status: 'past_due' })
+          .eq('stripe_subscription_id', invoice.subscription)
+      }
       console.warn(`[Stripe] Invoice payment failed — subscription ${invoice.subscription} — ${invoice.customer_email}`)
     }
 

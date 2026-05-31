@@ -1718,6 +1718,63 @@ internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Re
   }
 })
 
+// ── FIGSY ADAPTIVE SEND VOLUME ────────────────────────────────────────────────
+// Called daily at 09:30 UTC by cron. Checks each active campaign's opt-out and
+// reply rates, then auto-adjusts daily_send_limit in settings JSONB to protect
+// domain reputation.
+internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Response) => {
+  try {
+    const { data: campaigns } = await db
+      .from('figsy_campaigns')
+      .select('id, client_id, emails_sent, opted_out, replies_total, settings')
+      .eq('status', 'active')
+      .gt('emails_sent', 20)
+
+    const changes: { campaignId: string; oldLimit: number; newLimit: number; reason: string }[] = []
+    let adjusted = 0
+
+    for (const campaign of campaigns ?? []) {
+      const emailsSent   = campaign.emails_sent   ?? 0
+      const optedOut     = campaign.opted_out     ?? 0
+      const repliesTotal = campaign.replies_total ?? 0
+      const existing     = (campaign.settings ?? {}) as Record<string, unknown>
+      const currentLimit = typeof existing.daily_send_limit === 'number' ? existing.daily_send_limit : 50
+
+      const optOutRate = optedOut     / emailsSent
+      const replyRate  = repliesTotal / emailsSent
+
+      let newLimit  = currentLimit
+      let reason    = ''
+
+      if (optOutRate > 0.02) {
+        newLimit = Math.max(10, Math.floor(currentLimit * 0.75))
+        reason   = `opt-out rate ${(optOutRate * 100).toFixed(2)}% > 2% — reduced 25%`
+      } else if (optOutRate > 0.01) {
+        newLimit = Math.max(15, Math.floor(currentLimit * 0.90))
+        reason   = `opt-out rate ${(optOutRate * 100).toFixed(2)}% > 1% — reduced 10%`
+      } else if (optOutRate < 0.005 && replyRate > 0.01) {
+        newLimit = Math.min(150, Math.floor(currentLimit * 1.10))
+        reason   = `healthy (opt-out ${(optOutRate * 100).toFixed(2)}%, reply ${(replyRate * 100).toFixed(2)}%) — increased 10%`
+      }
+
+      if (newLimit !== currentLimit) {
+        await db
+          .from('figsy_campaigns')
+          .update({ settings: { ...existing, daily_send_limit: newLimit } })
+          .eq('id', campaign.id)
+
+        changes.push({ campaignId: campaign.id, oldLimit: currentLimit, newLimit, reason })
+        adjusted++
+      }
+    }
+
+    res.json({ checked: (campaigns ?? []).length, adjusted, changes })
+  } catch (err) {
+    console.error('[figsy/adaptive-send-check]', err)
+    res.status(500).json({ success: false, error: 'Adaptive send check failed' })
+  }
+})
+
 // ── HUBSPOT PIPELINE VIEW ─────────────────────────────────────────────────────
 // Returns HubSpot deals grouped by stage. Protected by ADMIN_SECRET.
 // Returns { connected: false } if HUBSPOT_API_KEY is not set.

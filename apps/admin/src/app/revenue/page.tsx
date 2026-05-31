@@ -319,6 +319,76 @@ export default async function RevenuePage() {
         </div>
       </div>
 
+      {/* 90-Day Revenue Forecast */}
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <TrendingUp className="w-5 h-5 text-purple-500" />
+          <h2 className="font-semibold text-gray-900">90-Day Revenue Forecast</h2>
+        </div>
+        <p className="text-xs text-gray-400 mb-5">Based on current MRR, growth trajectory, and churn assumptions</p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-purple-100">
+                {['Scenario', 'Month 1', 'Month 2', 'Month 3'].map(h => (
+                  <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-purple-50">
+              {[
+                {
+                  name: 'Conservative',
+                  color: 'text-amber-600',
+                  dot: 'bg-amber-500',
+                  bg: 'bg-amber-50/40',
+                  rate: 1.05,
+                  note: '5% growth / 8% churn',
+                },
+                {
+                  name: 'Base',
+                  color: 'text-blue-600',
+                  dot: 'bg-blue-500',
+                  bg: 'bg-blue-50/40',
+                  rate: 1.15,
+                  note: '15% growth / 5% churn',
+                },
+                {
+                  name: 'Optimistic',
+                  color: 'text-emerald-600',
+                  dot: 'bg-emerald-500',
+                  bg: 'bg-emerald-50/40',
+                  rate: 1.30,
+                  note: '30% growth / 3% churn',
+                },
+              ].map(s => (
+                <tr key={s.name} className={`${s.bg}`}>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s.dot}`} />
+                      <div>
+                        <span className={`font-semibold text-sm ${s.color}`}>{s.name}</span>
+                        <p className="text-xs text-gray-400">{s.note}</p>
+                      </div>
+                    </div>
+                  </td>
+                  {[1, 2, 3].map(n => (
+                    <td key={n} className="px-4 py-3 font-medium text-gray-700">
+                      ${Math.round(stats.mrrUsd * Math.pow(s.rate, n)).toLocaleString()}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-xs text-gray-400 mt-4">
+          Forecast assumes no major churn events. Based on {stats.activeCount} active clients at ${stats.mrrUsd}/mo MRR.
+        </p>
+      </div>
+
       {/* Credit sales placeholder */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Credit Sales — This Month</h2>

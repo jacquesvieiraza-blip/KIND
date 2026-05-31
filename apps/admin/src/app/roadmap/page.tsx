@@ -61,6 +61,9 @@ const PHASES = [
       { label: 'First consulting retainer signed', done: false },
       { label: 'Pan-African presence: 3 countries active', done: false },
       { label: 'Admin cohort analytics view', done: false },
+      { label: 'Adaptive send volume cron — auto-adjusts daily_send_limit per campaign health', done: true },
+      { label: 'Revenue forecasting — 90-day MRR prediction in admin revenue page', done: true },
+      { label: 'Website copy rewrite — AI Revenue OS positioning, Milla + Vida unlocked', done: true },
       { label: 'Paystack end-to-end smoke test verified', done: false },
     ],
     ops: [

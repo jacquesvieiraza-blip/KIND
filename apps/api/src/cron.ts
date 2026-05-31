@@ -67,6 +67,9 @@ export function startCrons(): void {
   // Daily 09:00 UTC — mark lapsed subscriptions (active but period ended)
   cron.schedule('0 9 * * *', () => callInternal('/subscriptions/check-lapsed'), { timezone: 'UTC' })
 
+  // Daily 09:30 UTC — adaptive send volume: auto-adjust limits based on campaign health
+  cron.schedule('30 9 * * *', () => callInternal('/figsy/adaptive-send-check'), { timezone: 'UTC' })
+
   // Daily 05:05 UTC — founder morning brief (07:05 SAST)
   cron.schedule('5 5 * * *', () => callInternal('/founder-brief'), { timezone: 'UTC' })
 
@@ -75,5 +78,5 @@ export function startCrons(): void {
   cron.schedule('0 10 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' }) // 12:00 SAST
   cron.schedule('0 17 * * *', () => callInternal('/status/snapshot'), { timezone: 'UTC' }) // 19:00 SAST
 
-  console.log('[cron] 19 jobs scheduled')
+  console.log('[cron] 20 jobs scheduled')
 }

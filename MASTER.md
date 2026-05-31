@@ -72,7 +72,10 @@
 - P0-22 ✅ `842f39d` — Gradient border on ICP builder textarea + knowledge base textareas
 - P0-23 ✅ `842f39d` — Workforce language pass throughout portal
 - Languages (Milla) ✅ `842f39d` — English/Français/Kiswahili/Hausa selector in Milla chat
-- Roadmap sync ✅ this commit — all three sources aligned
+- Roadmap sync ✅ `f3ba631` — all three sources aligned
+- P0-1 ✅ this commit — Website copy rewrite: "AI Revenue OS", FIGSY/Milla/Vida named, Milla+Vida unlocked (no more waitlist)
+- P1-3 ✅ this commit — Adaptive send volume cron: daily 09:30 UTC, auto-adjusts daily_send_limit per campaign health
+- P3-5 ✅ this commit — Revenue forecasting: 90-day forecast panel in admin revenue page
 
 **Full build queue approved by founder — build in priority order:**
 - Phase 0/1 (quick, ship first): P0-1 website copy, P1-3 adaptive send volume

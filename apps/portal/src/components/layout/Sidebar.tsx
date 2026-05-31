@@ -245,12 +245,18 @@ export function Sidebar({
             </p>
 
             {/* Active agent card */}
-            <div className="flex items-center rounded-xl bg-white hover:bg-purple-50/60 border border-purple-100 transition-all group overflow-hidden shadow-sm">
+            <div
+              className="flex items-center rounded-xl border border-purple-100 transition-all group overflow-hidden shadow-sm"
+              style={{
+                background: `${agent.accent}08`,
+                borderLeft: `3px solid ${agent.accent}`,
+              }}
+            >
               <Link
                 href={AGENT_HREFS[activeId]}
                 className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0"
               >
-                <div className={`w-12 h-12 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-sm`}>
+                <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-sm`}>
                   <img
                     src={`/agents/${agent.id}.png`}
                     alt={agent.name}
@@ -266,7 +272,7 @@ export function Sidebar({
                       : <Lock className="w-3 h-3 text-[#7C3AED]/25" />
                     }
                   </div>
-                  <p className="text-[#7C3AED]/55 text-xs">{agent.role}</p>
+                  <p className="text-xs" style={{ color: `${agent.accent}99` }}>{agent.role}</p>
                   {!unlocked && agent.price && (
                     <p className="text-[10px] text-[#6B7280] mt-0.5">{agent.price} · Tap to unlock</p>
                   )}
@@ -274,7 +280,8 @@ export function Sidebar({
               </Link>
               <button
                 onClick={() => setOpen(o => !o)}
-                className="px-2.5 py-3 text-[#7C3AED]/25 hover:text-[#7C3AED] transition-colors shrink-0"
+                className="px-2.5 py-3 transition-colors shrink-0"
+                style={{ color: `${agent.accent}60` }}
                 title="Switch agent"
               >
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />

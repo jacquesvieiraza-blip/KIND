@@ -22,19 +22,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let leadCount     = 0
   let isPartner     = false
 
-  // Check if this user has a partner record — use service role to bypass RLS
+  // Check if this user has a partner record — service role bypasses RLS
   if (user.email) {
-    const svc = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false } }
-    )
-    const { data: partnerRow } = await svc
-      .from('partners')
-      .select('id')
-      .eq('email', user.email)
-      .maybeSingle()
-    isPartner = !!partnerRow
+    const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    try {
+      if (svcUrl && svcKey) {
+        const svc = createServiceClient(svcUrl, svcKey, { auth: { persistSession: false } })
+        const { data: partnerRow } = await svc
+          .from('partners').select('id').eq('email', user.email).maybeSingle()
+        isPartner = !!partnerRow
+      } else {
+        // Fallback: use session client (works if RLS allows it)
+        const { data: partnerRow } = await supabase
+          .from('partners').select('id').eq('email', user.email).maybeSingle()
+        isPartner = !!partnerRow
+      }
+    } catch { isPartner = false }
   }
 
   try {

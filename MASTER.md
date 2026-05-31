@@ -56,11 +56,207 @@
 
 ---
 
-### 🌅 MORNING BRIEF — 1 June 2026 — Full Audit + Action Plan
+### 🌅 MORNING BRIEF — 1 June 2026 — FULL PLATFORM AUDIT
+
+*Read this first. Every session starts here. Claude runs type-check before touching anything.*
 
 ---
 
-#### 🔬 MORNING SMOKE TEST (do this before anything else)
+#### 🔬 MORNING SMOKE TEST — DO THIS FIRST, IN THIS ORDER
+
+**Step 1 — Client account (`jacques.vieiraza@icloud.com`)**
+1. Go to app.get-kind.com → sign in
+2. Verify: dashboard loads, sidebar shows, no "Something went wrong"
+3. Check: FIGSY page, Leads, KPIs, Settings, Usage, Proposals all load without errors
+4. Sign out
+
+**Step 2 — Partner account (`jacques.vieiraza@gmail.com`)**
+1. Sign in
+2. Verify: Partner Hub appears in sidebar (must NOT appear on iCloud account)
+3. Open Partner Hub — dashboard loads with stats, referral link, deal form
+4. Open `/dashboard/partner/onboarding` — 9-step flowchart renders
+5. Open `/dashboard/partner/deck` — all 7 slides render
+6. Check FIGSY agent panel — shows partner-state-aware message
+7. Sign out
+
+**Step 3 — Back to client, full demo smoke test**
+1. Sign in as iCloud account
+2. Run: ICP → leads → campaign → verify full FIGSY chain
+3. Check Milla chat loads and language selector shows 4 flags
+4. Check Vida chatbot page loads
+
+---
+
+#### 📦 FULL PLATFORM AUDIT — WHAT IS ACTUALLY BUILT
+
+**Portal routes — 35 exist, all verified:**
+```
+/dashboard                    /dashboard/figsy             /dashboard/figsy/[id]
+/dashboard/figsy/kanban       /dashboard/figsy/replies     /dashboard/figsy/webhooks
+/dashboard/figsy-chat         /dashboard/leads             /dashboard/leads/icp
+/dashboard/leads/icp/builder  /dashboard/leads/linkedin    /dashboard/leads/overview
+/dashboard/assistant          /dashboard/chatbot           /dashboard/documents
+/dashboard/knowledge          /dashboard/messages          /dashboard/proposals
+/dashboard/developer          /dashboard/mcp               /dashboard/agents
+/dashboard/inbox              /dashboard/kpis              /dashboard/analytics
+/dashboard/billing            /dashboard/settings          /dashboard/team
+/dashboard/usage              /dashboard/referral          /dashboard/roadmap
+/dashboard/partner            /dashboard/partner/onboarding /dashboard/partner/deck
+/dashboard/prospects          /dashboard/v2
+```
+
+**Admin routes — 25 exist, all verified:**
+```
+/                /analytics    /clients      /cmo          /cohorts
+/compliance      /data-moat    /demo         /founder      /health
+/hubspot         /launch       /messages     /partners     /playbook
+/proposals       /revenue      /roadmap      /scalability  /seed
+/smoketest       /status       /terms-library /unibox      /visitors
+```
+
+**API routes — 33 exist, all verified:**
+```
+admin  auth  calendar  clients  credits  demo-request  developer
+figsy  figsy-tasks  flutterwave  founder  founder-brief  icps
+internal  internal-briefs  leads  lookalike  mcp  milla
+order-forms  partners  paystack  proposals  share  signals
+stats  status  stripe  subscriptions  support  team  tracking
+vida  voice  whatsapp
+```
+
+**GitHub Actions:**
+- `/.github/workflows/daily-audit.yml` ✅ EXISTS — runs 04:00 + 16:00 SAST, creates GitHub issues on failures
+
+---
+
+#### ⚠️ CLAIMED AS BUILT — WHAT'S ACTUALLY PARTIAL OR MISLEADING
+
+| Claim in MASTER / Roadmap | Reality | Verdict |
+|---------------------------|---------|---------|
+| "Multi-language support — Milla" marked Live | ✅ Milla chat ONLY — selector renders, prepends `[Respond in X]` to prompt. Does NOT translate the portal UI. | Partial — works but scope is narrow |
+| "Demo sandbox provisioning" in onboarding guide | ❌ Placeholder text only — no code runs when a partner is approved | Not built |
+| "Partner onboarding email sequence" | ❌ Single approval email only — no follow-up sequence | Not built |
+| "Admin sandbox visibility" | ❌ No sandbox status shown per partner in admin | Not built |
+| "Partner pricing page" | ❌ No `/dashboard/partner/pricing` page exists | Not built |
+| "Sign up as client" flow for partners | ❌ No CTA or path in portal | Not built |
+| Portal analytics page | ✅ File EXISTS at `/dashboard/analytics/page.tsx` | Built — verify data loads |
+| Admin cohort analytics | ✅ File EXISTS at `/cohorts/page.tsx` | Built — verify data loads from live DB |
+| Daily automated audit | ✅ GitHub workflow exists — BUT: was it ever confirmed as actually running and posting issues? | Verify it works |
+
+---
+
+#### ✅ CONFIRMED BUILT AND WORKING (this session)
+
+| Feature | File | Commit |
+|---------|------|--------|
+| Partner onboarding flowchart page | `portal/.../partner/onboarding/page.tsx` | earlier |
+| Partner value deck (7 slides) | `portal/.../partner/deck/page.tsx` | earlier |
+| Agent context by partner state | `AgentColumn.tsx` | earlier |
+| Layout fetches + passes partner state | `layout.tsx` | earlier |
+| Partner Hub Resources — real links | `partner/page.tsx` | earlier |
+| Admin Onboarding tab | `admin/partners/page.tsx` | earlier |
+| Partner Hub hidden from non-partners | `Sidebar.tsx` | earlier |
+| API WebSocket crash (Node 20 + supabase-js) | `packages/db/src/client.ts` | `adf9a39`, `50073e0` |
+| Portal Sidebar crash (isPartner scope bug) | `Sidebar.tsx` | `e94a0c1` |
+
+---
+
+#### ❌ NOT BUILT — PARTNER PROGRAMME (Claude builds these next)
+
+| # | What | Detail | Blocked by |
+|---|------|--------|------------|
+| 1 | Demo sandbox auto-provisioning | Admin approves partner → sandbox client created, credits pre-loaded, credentials stored and shown in portal | Need: sandbox credit spec from founder |
+| 2 | Partner portal sandbox section | Credentials display, "Use for demos" instructions, "Sign up as client →" CTA | Needs #1 first |
+| 3 | Admin sandbox status per partner | Provisioned Y/N, credits left, manual provision button | Needs DB column |
+| 4 | Partner onboarding email sequence | Multi-step email after approval (day 1, day 3, day 7) | Ready to build |
+| 5 | Partner pricing page (`/dashboard/partner/pricing`) | Free sandbox / standard client pricing — one clean page | Ready to build |
+| 6 | Update onboarding guide + value deck | Replace placeholder sandbox step with real flow | Needs #1 first |
+
+---
+
+#### 🔴 CLAUDE DOES FIRST THIS SESSION (before any new building)
+
+1. **Fix `typescript.ignoreBuildErrors: true`** in `apps/portal/next.config.mjs` — this is what let the Sidebar crash reach production silently. Two lines removed. Build will then fail fast on TypeScript errors before they deploy.
+2. **Run morning type-check** — `yarn workspace @kind/portal type-check` + `yarn workspace @kind/api build` + `yarn workspace @kind/admin type-check`. Report any errors.
+3. **Wire Railway health checks** — give founder exact steps
+4. **Wire UptimeRobot** — give founder exact steps
+
+---
+
+#### 📋 FOUNDER'S COMPLETE OUTSTANDING ACTION LIST
+
+**🔴 CRITICAL — Blocking revenue or stability:**
+| # | Task | Where | Impact |
+|---|------|-------|--------|
+| F1 | **Stripe — create Milla + Vida subscription prices** | stripe.com → Products → create Milla ($49/mo recurring) + Vida ($39/mo recurring) → copy Price IDs → add to Railway as `STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`, `NEXT_PUBLIC_STRIPE_PRICE_MILLA_MONTHLY`, `NEXT_PUBLIC_STRIPE_PRICE_VIDA_MONTHLY` | Milla + Vida subscriptions are dead. Billing page shows but can't charge. |
+| F2 | **Run `20260527_stripe_subscription_id.sql`** | Supabase SQL Editor | Adds `stripe_subscription_id` to subscriptions table — required for webhook processing |
+| F3 | **Run `20260525_fix_subscriptions_schema.sql`** | Supabase SQL Editor | Makes schema drift fix permanent at DB level |
+| F4 | **Run `MASTER_SCHEMA.sql`** | Supabase SQL Editor | Eliminates all schema drift permanently |
+| F5 | **Confirm RESEND_API_KEY in Railway** | Railway → KIND API → Variables | Zero emails without this — welcome, POPIA consent, FIGSY digests, low credit alerts all dead |
+| F6 | **Apollo upgrade to Basic ($49/mo)** | apollo.io → Billing | Free plan = 50 contacts/month. 4 competitor ICPs seeded and ready. Nothing runs at scale without this. |
+| F7 | **Sandbox spec decision** | Tell Claude: how many credits pre-loaded? Which plan features? One sandbox per partner or shared? | Unblocks demo sandbox build |
+
+**🛡️ REDUNDANCY — Must do today (prevents next outage):**
+| # | Task | Where | Takes |
+|---|------|-------|-------|
+| R1 | **Railway health check — API** | Railway → KIND/API → Settings → Health Check → Path: `/health` → Timeout: 30s | 2 min |
+| R2 | **Railway health check — Portal** | Railway → KIND/Portal → Settings → Health Check → Path: `/` → Timeout: 30s | 2 min |
+| R3 | **Railway health check — Admin** | Railway → KIND/Admin → Settings → Health Check → Path: `/` | 2 min |
+| R4 | **UptimeRobot — API monitor** | uptimerobot.com (free) → Add Monitor → HTTPS → `https://kindapi-production-e64c.up.railway.app/health` → Alert: SMS + email, every 60s | 5 min |
+| R5 | **UptimeRobot — Portal monitor** | Same → add `https://app.get-kind.com` | 2 min |
+| R6 | **Railway auto-rollback** | Railway → KIND/API → Settings → Enable rollback on deploy failure | 1 min |
+
+**🟡 HIGH — This week:**
+| # | Task | Where | Notes |
+|---|------|-------|-------|
+| F8 | **Register UK company** | companieshouse.gov.uk — £50, same day | Unlocks Stripe UK account, investor credibility, Wise business account |
+| F9 | **HubSpot account + API key** | app.hubspot.com (free) → Private Apps → "KIND AI" → add `HUBSPOT_API_KEY` to Railway | Fully built — activates on key. CRM sync on every reply. |
+| F10 | **Register Resend inbound webhook** | Resend dashboard → Webhooks → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` → set `RESEND_WEBHOOK_SECRET` in Railway | FIGSY reply processing dead without this |
+| F11 | **Add `FIGSY_KIND_CLIENT_ID` to Railway** | Railway → KIND API → Variables → your client UUID | Self-outreach (KIND dogfooding) does nothing without it |
+| F12 | **Confirm Calendly link** | calendly.com → `https://calendly.com/jacques-vieiraza/30min` | Every "Book a Demo" button on site + portal is dead |
+| F13 | **Upgrade Resend to paid plan** | resend.com → Billing | Free = 100 emails/day — blocks at scale |
+| F14 | **Partner email confirmed** | ✅ DONE — you ran SQL to revert to `jacques.vieiraza@gmail.com` | — |
+
+**🟢 WHEN READY (not urgent):**
+| # | Task | Notes |
+|---|------|-------|
+| F15 | **Wise business account** | After UK registration — multi-currency USD/GBP from Stripe |
+| F16 | **Google Workspace** | ~$12/mo — when first client or first hire. Gmail fine now. |
+| F17 | **Google Calendar OAuth credentials** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
+| F18 | **Vapi.ai Voice** | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
+| F19 | **WhatsApp Business API** | Meta 3–7 day approval → `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
+| F20 | **Enable FIGSY campaign intent feature flag** | Railway → `FEATURE_CAMPAIGN_INTENT=true` |
+| F21 | **Enable ICP builder feature flag** | Railway → `FEATURE_ICP_BUILDER=true` |
+| F22 | **G2 / Capterra / Product Hunt listings** | Launch day |
+| F23 | **SOC 2 Type II** | Q1 2027 |
+
+---
+
+#### 🐛 DAILY BUG AUDIT — HOW IT WORKS FROM NOW
+
+**Every session — Claude runs this before touching any code:**
+```bash
+yarn workspace @kind/portal type-check    # catches silent runtime crashes like Sidebar bug
+yarn workspace @kind/api build             # catches API compile errors
+yarn workspace @kind/admin type-check      # catches admin errors
+```
+
+**What would have been caught today if this ran:** The `isPartner`/`isPartnerProp` Sidebar bug — a TypeScript error — crashed every dashboard page and took hours to find. `tsc --noEmit` catches it in under 1 second.
+
+**Why `typescript.ignoreBuildErrors: true` must be removed:** It tells Next.js to ignore all TypeScript errors during build. The build succeeds. The code deploys. It crashes at runtime. This is the single biggest reliability risk in the codebase right now.
+
+---
+
+#### 🔒 BUSINESS DECISIONS LOCKED
+
+| Decision | Detail |
+|----------|--------|
+| Partner sandbox model | Free demo sandbox provisioned on approval. Partners pay NOTHING to demo. Want own pipeline → sign up as regular client at standard rates. No discounts, no hybrid accounts. |
+| Two separate accounts | `@icloud.com` = client. `@gmail.com` = partner. Kept separate. |
+| Paystack removed | Stripe only. Paystack requires SA entity — not applicable. API routes preserved for legacy only. |
+| Languages scope | Milla chat only — responds in selected language. Portal UI stays in English. Not a full i18n implementation. |
+
+---
 
 **Step 1 — Client account**
 1. Go to app.get-kind.com

@@ -366,6 +366,11 @@ export default function LeadsPage() {
   const [enrichErrors, setEnrichErrors] = useState<Record<string, string>>({})
   const [expandedEnrichments, setExpandedEnrichments] = useState<Set<string>>(new Set())
 
+  // Research state
+  const [researchData, setResearchData] = useState<Record<string, string[]>>({})
+  const [researchingIds, setResearchingIds] = useState<Set<string>>(new Set())
+  const [expandedResearch, setExpandedResearch] = useState<Set<string>>(new Set())
+
   // Tab state — drives the statusFilter automatically
   const [activeTab, setActiveTab] = useState<TabId>('all')
 
@@ -474,6 +479,28 @@ export default function LeadsPage() {
       next.has(leadId) ? next.delete(leadId) : next.add(leadId)
       return next
     })
+  }
+
+  async function fetchResearch(leadId: string) {
+    if (!token || researchingIds.has(leadId)) return
+    // If already fetched, just toggle visibility
+    if (researchData[leadId]) {
+      setExpandedResearch(prev => {
+        const next = new Set(prev)
+        next.has(leadId) ? next.delete(leadId) : next.add(leadId)
+        return next
+      })
+      return
+    }
+    setResearchingIds(prev => new Set(prev).add(leadId))
+    try {
+      const res = await api.get<{ data: { bullets: string[]; cached: boolean } }>(`/leads/${leadId}/research`, token)
+      setResearchData(prev => ({ ...prev, [leadId]: res.data.bullets }))
+      setExpandedResearch(prev => new Set(prev).add(leadId))
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Research failed — try again', 'error')
+    }
+    setResearchingIds(prev => { const next = new Set(prev); next.delete(leadId); return next })
   }
 
   function showToast(message: string, type: 'success' | 'error' = 'success') {
@@ -971,6 +998,18 @@ export default function LeadsPage() {
                                 : <Sparkles className="w-3 h-3" />}
                               {enrichingIds.has(lead.id) ? 'Enriching…' : enrichedLeads[lead.id] ? (expandedEnrichments.has(lead.id) ? 'Hide' : 'Show') : 'Enrich'}
                             </button>
+                            {/* Research button */}
+                            <button
+                              onClick={() => fetchResearch(lead.id)}
+                              disabled={researchingIds.has(lead.id)}
+                              title={researchData[lead.id] ? (expandedResearch.has(lead.id) ? 'Hide research' : 'Show research') : 'AI company research'}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-indigo-200 text-indigo-600 bg-white hover:bg-indigo-50 text-xs font-medium transition-colors disabled:opacity-40"
+                            >
+                              {researchingIds.has(lead.id)
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Search className="w-3 h-3" />}
+                              {researchingIds.has(lead.id) ? 'Researching…' : researchData[lead.id] ? (expandedResearch.has(lead.id) ? 'Hide' : 'Research') : 'Research'}
+                            </button>
                           </div>
                         )}
                         {/* Enrichment error inline (outside opted_out guard so it always shows) */}
@@ -987,6 +1026,27 @@ export default function LeadsPage() {
                             data={enrichedLeads[lead.id]}
                             onCopy={text => { navigator.clipboard.writeText(text); showToast('Copied to clipboard ✓') }}
                           />
+                        </td>
+                      </tr>
+                    )}
+                    {/* Research expanded row */}
+                    {researchData[lead.id] && expandedResearch.has(lead.id) && (
+                      <tr className="bg-indigo-50/40">
+                        <td colSpan={9} className="px-6 pb-4 pt-0">
+                          <div className="bg-white border border-indigo-100 rounded-xl p-4 mt-2 space-y-2.5">
+                            <div className="flex items-center gap-2">
+                              <Search className="w-3.5 h-3.5 text-indigo-500" />
+                              <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">AI Company Research</span>
+                            </div>
+                            <ul className="space-y-2">
+                              {researchData[lead.id].map((bullet, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+                                  {bullet}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </td>
                       </tr>
                     )}

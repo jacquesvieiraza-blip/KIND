@@ -346,6 +346,7 @@ export default function CampaignDetailPage() {
 
   // Settings controlled state
   const [campaignName, setCampaignName] = useState('')
+  const [copilotMode, setCopilotMode] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
   const [archiving, setArchiving]           = useState(false)
 
@@ -364,10 +365,11 @@ export default function CampaignDetailPage() {
         setCampaign(res.data)
         setCampaignName(res.data.name)
         // Initialize audience sliders from campaign if fields exist
-        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number }
+        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number; copilot_mode?: boolean }
         setMinScore(c.min_score ?? 50)
         setMaxScore(c.max_score ?? 100)
         setDailyLimit(c.daily_limit ?? 5)
+        setCopilotMode(c.copilot_mode ?? false)
       } catch {
         // campaign not found — go back
       }
@@ -435,7 +437,7 @@ export default function CampaignDetailPage() {
     if (!token) return
     setSavingSettings(true)
     try {
-      const res = await api.put<{ data: Campaign }>(`/figsy/campaigns/${id}`, { name: campaignName }, token)
+      const res = await api.put<{ data: Campaign }>(`/figsy/campaigns/${id}`, { name: campaignName, copilot_mode: copilotMode }, token)
       setCampaign(res.data)
       showToast('Settings saved')
     } catch (err) {
@@ -565,11 +567,17 @@ export default function CampaignDetailPage() {
           <ArrowLeft className="w-4 h-4" /> All campaigns
         </Link>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-gray-900">{campaign.name}</h1>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[campaign.status] ?? 'bg-gray-100 text-[#7B6FA0]'}`}>
               {campaign.status}
             </span>
+            {copilotMode && campaign.status === 'active' && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Pending approval
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-wrap sm:shrink-0">
             {campaign.status === 'active' && (
@@ -849,13 +857,35 @@ export default function CampaignDetailPage() {
             <div>
               <label className="block text-xs font-semibold text-[#7B6FA0] mb-2">Sending mode</label>
               <div className="grid grid-cols-2 gap-2">
-                <button className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-[#7C3AED] bg-purple-50 text-sm font-semibold text-[#7C3AED]">
+                <button
+                  onClick={() => setCopilotMode(false)}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    !copilotMode
+                      ? 'border-2 border-[#7C3AED] bg-purple-50 text-[#7C3AED]'
+                      : 'border border-purple-100/80 text-gray-600 hover:border-[#7C3AED]/40'
+                  }`}
+                >
                   <Zap className="w-4 h-4" /> Auto-Pilot
                 </button>
-                <button className="flex items-center gap-2 px-4 py-3 rounded-xl border border-purple-100/80 text-sm font-medium text-gray-600 hover:border-amber-400">
+                <button
+                  onClick={() => setCopilotMode(true)}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    copilotMode
+                      ? 'border-2 border-amber-500 bg-amber-50 text-amber-700'
+                      : 'border border-purple-100/80 text-gray-600 hover:border-amber-400'
+                  }`}
+                >
                   <Users className="w-4 h-4" /> Co-Pilot
                 </button>
               </div>
+              {copilotMode ? (
+                <p className="text-xs text-amber-600 mt-2 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  All emails require your approval before sending — they will show as <strong>Pending approval</strong>.
+                </p>
+              ) : (
+                <p className="text-xs text-[#9B8EC4] mt-2">FIGSY sends emails automatically on schedule without approval.</p>
+              )}
             </div>
 
             <div>

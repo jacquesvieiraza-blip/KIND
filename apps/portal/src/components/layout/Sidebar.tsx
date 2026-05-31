@@ -139,17 +139,6 @@ export function Sidebar({
   const [open, setOpen]         = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [unreadCount] = React.useState(0)
-  const [isPartner, setIsPartner] = React.useState(isPartnerProp)
-
-  React.useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.access_token) return
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-      fetch(`${apiUrl}/partners/me`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      }).then(r => setIsPartner(r.ok)).catch(() => {})
-    })
-  }, [])
 
   React.useEffect(() => { setMobileOpen(false) }, [pathname])
 
@@ -394,7 +383,7 @@ export function Sidebar({
 
           {/* ── Account ───────────────────────────────────────────── */}
           <div className="!mt-5 border-t border-purple-100 !pt-3 space-y-0.5">
-            {ACCOUNT_NAV.filter(({ href }) => href !== '/dashboard/partner' || isPartner).map(({ href, label, icon: Icon }) => {
+            {ACCOUNT_NAV.map(({ href, label, icon: Icon }) => {
               const active = pathname === href || pathname.startsWith(href + '/')
               return (
                 <Link

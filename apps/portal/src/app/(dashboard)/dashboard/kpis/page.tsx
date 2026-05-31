@@ -7,7 +7,7 @@ import {
   Loader2, Send, MessageSquare, ThumbsUp, MinusCircle,
   Users, Star, DollarSign, ShieldCheck, TrendingUp,
   Target, Zap, ArrowRight, Calendar, Clock, Mail,
-  Linkedin, BarChart2, Activity, RefreshCw,
+  Linkedin, BarChart2, Activity, RefreshCw, Map,
 } from 'lucide-react'
 
 interface LeadStats {
@@ -560,7 +560,24 @@ export default function KPIsPage() {
           <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5 space-y-3">
             <h2 className="text-sm font-bold text-gray-900">Key insights</h2>
             {l.total === 0 ? (
-              <p className="text-sm text-[#9B8EC4]">Build your first ICP in Lead Gen to start seeing metrics here.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                {[
+                  { icon: <Zap className="w-5 h-5 text-[#7C3AED]" />, title: 'Launch your first campaign', desc: 'FIGSY writes and sends personalised outreach sequences.', href: '/dashboard/figsy-chat', cta: 'Chat with FIGSY →' },
+                  { icon: <Target className="w-5 h-5 text-[#7C3AED]" />, title: 'Define your ICP', desc: 'Tell FIGSY who to target and she\'ll find matching leads.', href: '/dashboard/leads/icp', cta: 'Build ICP →' },
+                  { icon: <BarChart2 className="w-5 h-5 text-[#7C3AED]" />, title: 'Import leads from LinkedIn', desc: 'Upload a LinkedIn CSV and score your network instantly.', href: '/dashboard/leads/linkedin', cta: 'Import →' },
+                  { icon: <Map className="w-5 h-5 text-[#7C3AED]" />, title: 'See how FIGSY works', desc: 'Explore the product roadmap and upcoming features.', href: '/dashboard/roadmap', cta: 'View roadmap →' },
+                ].map(card => (
+                  <a key={card.title} href={card.href}
+                    className="flex items-start gap-3 p-4 bg-white border border-purple-100 rounded-xl hover:border-[#7C3AED]/40 hover:shadow-sm transition-all group">
+                    <div className="w-9 h-9 rounded-lg bg-[#7C3AED]/10 flex items-center justify-center shrink-0">{card.icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[#1E1152]">{card.title}</p>
+                      <p className="text-xs text-[#9B8EC4] mt-0.5 leading-relaxed">{card.desc}</p>
+                      <span className="text-xs font-semibold text-[#7C3AED] mt-1.5 flex items-center gap-0.5 group-hover:underline">{card.cta}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
             ) : (
               <>
                 <p className="text-sm text-gray-700">

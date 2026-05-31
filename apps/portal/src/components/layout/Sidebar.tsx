@@ -33,6 +33,7 @@ const AGENTS: AgentDef[] = [
     accent: '#7C3AED',
     ring: 'ring-[#7C3AED]/20',
     nav: [
+      { href: '/dashboard/figsy-chat',     label: 'Chat with FIGSY', icon: MessageSquare },
       { href: '/dashboard/figsy',          label: 'Campaigns',   icon: Target },
       { href: '/dashboard/inbox',          label: 'Inbox',       icon: Inbox, badge: 'unread' },
       { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
@@ -240,7 +241,7 @@ export function Sidebar({
           {/* ── AI Agents ─────────────────────────────────────────── */}
           <div className="!mt-5">
             <p className="text-[10px] text-[#7C3AED]/40 px-3 pb-2 font-semibold uppercase tracking-wider">
-              AI Agents
+              KIND AI
             </p>
 
             {/* Active agent card */}

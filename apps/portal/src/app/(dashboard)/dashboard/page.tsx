@@ -132,8 +132,29 @@ export default async function DashboardPage() {
 
   // sparkPoints comes from real DB query above
 
+  // Greeting helpers
+  const hour = new Date().getHours()
+  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
+  const firstName = companyName
+    ? companyName.split(' ')[0]
+    : user?.email?.split('@')[0] ?? 'there'
+
+  const greetingSubtitle = leadCount > 0 && totalReplies > 0
+    ? `${leadCount.toLocaleString()} leads ready · ${totalReplies} repl${totalReplies === 1 ? 'y' : 'ies'} this week`
+    : leadCount > 0
+    ? 'Your first leads are ready — FIGSY is standing by.'
+    : 'Welcome to K.I.N.D. Let\'s find your first leads.'
+
   return (
     <div className="space-y-4">
+      {/* Greeting */}
+      <div className="pt-1 pb-2">
+        <h2 className="text-2xl font-bold text-[#1E1152] leading-tight">
+          Good {timeOfDay}, {firstName}
+        </h2>
+        <p className="text-sm text-[#7C3AED]/60 mt-0.5">{greetingSubtitle}</p>
+      </div>
+
       <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
 
       {/* Onboarding checklist — only visible until all steps complete */}

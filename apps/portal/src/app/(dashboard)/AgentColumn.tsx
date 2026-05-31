@@ -36,6 +36,9 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   // Home page has FigsyConversation — no duplicate panel needed
   if (pathname === '/dashboard') return null
 
+  // FIGSY full chat page is itself a dedicated chat — no side panel needed
+  if (pathname.startsWith('/dashboard/figsy-chat')) return null
+
   const agentId: 'figsy' | 'milla' | 'vida' =
     pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents') ? 'milla' :
     pathname.startsWith('/dashboard/chatbot') ? 'vida' : 'figsy'

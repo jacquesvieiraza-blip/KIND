@@ -966,7 +966,7 @@ Every item below was cross-referenced against the actual file before being marke
 | P0-9 | **Client morning brief** — daily email to active clients | 🔴 Blocked | Needs `RESEND_API_KEY` |
 | P0-10 | **Co-pilot mode** — approve before send, per campaign | ✅ Live | `figsy/[id]/page.tsx:349` |
 | P0-11 | **Auto-fire consent on approval** — fires on lead scored | ✅ Live | `leads.ts` + "Auto-sent" chip |
-| P0-12 | **Realtime dashboard** — Supabase realtime → live counts | 🔵 Claude builds | Not started, no blockers |
+| P0-12 | **Realtime dashboard** — Supabase realtime → live counts | ✅ Live | `DashboardLive.tsx` — realtime subscriptions on leads/campaigns/emails/replies, green pulse indicator |
 | P0-13 | **HubSpot CRM sync** — paste API key in settings | ✅ Live (blocked on key) | `lib/hubspot.ts` built. Needs `HUBSPOT_API_KEY` in Railway |
 | P0-14 | **Multi-model toggle** — Haiku vs Sonnet per campaign | ✅ Live | `figsy/page.tsx:486` |
 | P0-15 | **Template library** — 6 pre-built sequences | ✅ Live | `figsy/page.tsx:9-351` |
@@ -1075,7 +1075,8 @@ Every item below was cross-referenced against the actual file before being marke
 | **P1-9: Deal risk scoring in Admin** — Risk column in clients list (red/amber/green), at-risk filter button, riskLabel() | `6c4d66b` |
 | **P0-3: Knowledge Base FIGSY preview** — after saving pitch, FIGSY generates a sample outreach opening sentence | `f12e45f` |
 | **P0-4: Email open tracking** — 1x1 pixel, opened_at column, /figsy/track/open/:id endpoint, open rate KPI | `aef1d4d` |
-| **MCP-3: MCP Connect page** — `/dashboard/mcp`, endpoint + API key display, 4 tool cards, 3 setup guides (Claude.ai/Cursor/custom), `POST /mcp/guide` AI walkthrough agent, sidebar entry | pending |
+| **MCP-3: MCP Connect page** — `/dashboard/mcp`, endpoint + API key display, 4 tool cards, 3 setup guides (Claude.ai/Cursor/custom), `POST /mcp/guide` AI walkthrough agent, sidebar entry | `525f686` |
+| **P0-12: Realtime dashboard** — `DashboardLive.tsx`, Supabase realtime on leads/campaigns/emails/replies, green pulse "Live" indicator, sparkline updates live | `55f4df6` |
 | **Roadmap audit: Phase 0→3 build queue** — MASTER Section 0b full table + both roadmaps synced | `99b9d82` |
 
 ---

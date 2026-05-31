@@ -55,9 +55,9 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
   ]
 
   return (
-    <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 rounded-2xl overflow-hidden border border-purple-100/40 shadow-lg bg-white">
+    <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 rounded-2xl overflow-hidden border border-purple-100 shadow-sm bg-white">
       {/* Photo area */}
-      <div className="w-full h-48 overflow-hidden">
+      <div className="w-full h-28 overflow-hidden">
         <img
           src="/agents/figsy.png"
           alt="FIGSY"
@@ -66,14 +66,14 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
       </div>
 
       {/* Identity bar */}
-      <div className="bg-[#0F0929] px-4 py-3 flex items-center justify-between">
+      <div className="bg-white border-b border-purple-100/60 px-4 py-3 flex items-center justify-between">
         <div>
-          <p className="text-white font-bold text-sm leading-tight">FIGSY</p>
-          <p className="text-[#9B8EC4] text-[11px]">AI SDR</p>
+          <p className="text-gray-900 font-bold text-sm leading-tight">FIGSY</p>
+          <p className="text-[#7C3AED]/60 text-[11px]">AI SDR · ICP Builder</p>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] text-emerald-400 font-medium">Online</span>
+          <span className="text-[10px] text-emerald-500 font-medium">Online</span>
         </div>
       </div>
 

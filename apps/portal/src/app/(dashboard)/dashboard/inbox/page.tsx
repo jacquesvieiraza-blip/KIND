@@ -543,9 +543,22 @@ export default function InboxPage() {
                 <Inbox className="w-8 h-8 text-[#7C3AED] opacity-60" />
               </div>
               <p className="text-base font-semibold text-[#0F0929] mb-2">No replies yet</p>
-              <p className="text-sm text-[#7B6FA0] max-w-xs leading-relaxed">
+              <p className="text-sm text-[#7B6FA0] max-w-xs leading-relaxed mb-6">
                 FIGSY will surface replies here as campaigns run. Hot leads and positive replies appear first.
               </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-sm text-left">
+                {[
+                  { title: 'Launch a campaign', desc: 'Start outreach to get replies flowing.', href: '/dashboard/figsy' },
+                  { title: 'Chat with FIGSY', desc: 'Ask FIGSY to improve your reply rate.', href: '/dashboard/figsy-chat' },
+                ].map(card => (
+                  <a key={card.title} href={card.href}
+                    className="flex flex-col gap-1 p-4 bg-white border border-purple-100 rounded-xl hover:border-[#7C3AED]/40 hover:shadow-sm transition-all group">
+                    <p className="text-sm font-semibold text-[#1E1152]">{card.title}</p>
+                    <p className="text-xs text-[#9B8EC4] leading-relaxed">{card.desc}</p>
+                    <span className="text-xs font-semibold text-[#7C3AED] mt-0.5 group-hover:underline">Go →</span>
+                  </a>
+                ))}
+              </div>
             </div>
           )
         ) : (

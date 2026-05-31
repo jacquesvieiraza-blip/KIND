@@ -731,9 +731,24 @@ export default function FigsyPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-10 text-center">
           <img src="/agents/figsy.png" className="w-10 h-10 rounded-full object-cover object-top ring-2 ring-purple-100 mx-auto mb-3" alt="FIGSY" />
           <p className="text-gray-900 font-semibold mb-1">No campaigns running yet</p>
-          <p className="text-sm text-[#9B8EC4] mb-4">
+          <p className="text-sm text-[#9B8EC4] mb-6">
             Create your first campaign and I&apos;ll write the sequences, handle replies, and book meetings for you.
           </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 text-left max-w-md mx-auto">
+            {[
+              { title: 'Chat with FIGSY', desc: 'Ask FIGSY what campaign to run next based on your leads.', href: '/dashboard/figsy-chat' },
+              { title: 'Define your ICP', desc: 'Tell FIGSY who to target first — she\'ll find matching leads.', href: '/dashboard/leads/icp' },
+              { title: 'Import from LinkedIn', desc: 'Upload a LinkedIn CSV and start outreach today.', href: '/dashboard/leads/linkedin' },
+              { title: 'See how FIGSY works', desc: 'Explore the roadmap and what\'s coming next.', href: '/dashboard/roadmap' },
+            ].map(card => (
+              <a key={card.title} href={card.href}
+                className="flex flex-col gap-1 p-4 bg-white border border-purple-100 rounded-xl hover:border-[#7C3AED]/40 hover:shadow-sm transition-all group">
+                <p className="text-sm font-semibold text-[#1E1152]">{card.title}</p>
+                <p className="text-xs text-[#9B8EC4] leading-relaxed">{card.desc}</p>
+                <span className="text-xs font-semibold text-[#7C3AED] mt-0.5 group-hover:underline">Go →</span>
+              </a>
+            ))}
+          </div>
           <button
             onClick={() => setShowCreate(true)}
             className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium rounded-lg transition-colors"

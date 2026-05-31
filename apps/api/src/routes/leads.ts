@@ -8,6 +8,7 @@ import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
+import { waterfallEnrich } from '../lib/enrichment'
 
 export const leadRouter = Router()
 
@@ -535,6 +536,47 @@ Output ONLY the JSON object, nothing else.`
 
     res.json({ success: true, data: row, cached: false })
   } catch (err) { console.error('[leads/enrich]', err); res.status(500).json({ success: false, error: 'Failed to enrich lead' }) }
+})
+
+// P2-5: Waterfall enrichment — Apollo → PDL → Hunter → Clearbit
+leadRouter.post('/:id/waterfall-enrich', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead, error: leadErr } = await db.from('leads')
+      .select('id, first_name, last_name, email, phone, company, linkedin_url, company_size, industry, tech_stack')
+      .eq('id', req.params.id).eq('client_id', clientId).single()
+    if (leadErr || !lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const result = await waterfallEnrich({
+      first_name:   lead.first_name,
+      last_name:    lead.last_name,
+      company:      lead.company,
+      email:        lead.email,
+      linkedin_url: lead.linkedin_url,
+    })
+
+    if (result.source === 'none') {
+      res.json({ success: true, data: { filled: 0, source: 'none' }, message: 'No enrichment providers available — add PDL_API_KEY, HUNTER_API_KEY, or CLEARBIT_API_KEY to Railway env' }); return
+    }
+
+    // Only update fields that are currently missing on the lead
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (!lead.email        && result.email)        updates.email        = result.email
+    if (!lead.phone        && result.phone)         updates.phone        = result.phone
+    if (!lead.company_size && result.company_size)  updates.company_size = result.company_size
+    if (!lead.industry     && result.industry)      updates.industry     = result.industry
+    if (!lead.linkedin_url && result.linkedin_url)  updates.linkedin_url = result.linkedin_url
+    if (!lead.tech_stack?.length && result.tech_stack?.length) updates.tech_stack = result.tech_stack
+
+    const filled = Object.keys(updates).length - 1 // exclude updated_at
+    if (filled > 0) {
+      await db.from('leads').update(updates).eq('id', req.params.id)
+    }
+
+    res.json({ success: true, data: { filled, source: result.source, updates } })
+  } catch (err) { console.error('[leads/waterfall-enrich]', err); res.status(500).json({ success: false, error: 'Enrichment failed' }) }
 })
 
 // ── AI EMAIL DRAFT ─────────────────────────────────────────────────────────────

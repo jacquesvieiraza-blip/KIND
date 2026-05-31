@@ -9,7 +9,7 @@ import {
   Users, TrendingUp, ShieldCheck, Download, Search,
   Mail, Ban, Sparkles, Loader2, ExternalLink,
   CheckCircle, Clock, XCircle, Plus, Settings2,
-  DollarSign, Send, X, ChevronDown, AlertTriangle, Copy,
+  DollarSign, Send, X, ChevronDown, AlertTriangle, Copy, Layers,
 } from 'lucide-react'
 
 // ── Enrichment types ──────────────────────────────────────────────────────────
@@ -366,6 +366,10 @@ export default function LeadsPage() {
   const [enrichErrors, setEnrichErrors] = useState<Record<string, string>>({})
   const [expandedEnrichments, setExpandedEnrichments] = useState<Set<string>>(new Set())
 
+  // Waterfall enrichment state (P2-5)
+  const [waterfallingIds, setWaterfallIds] = useState<Set<string>>(new Set())
+  const [waterfallResults, setWaterfallResults] = useState<Record<string, { filled: number; source: string }>>({})
+
   // Research state
   const [researchData, setResearchData] = useState<Record<string, string[]>>({})
   const [researchingIds, setResearchingIds] = useState<Set<string>>(new Set())
@@ -479,6 +483,21 @@ export default function LeadsPage() {
       next.has(leadId) ? next.delete(leadId) : next.add(leadId)
       return next
     })
+  }
+
+  // P2-5: Waterfall enrichment — fills missing fields via PDL → Hunter → Clearbit
+  async function waterfallEnrichLead(leadId: string) {
+    if (!token || waterfallingIds.has(leadId)) return
+    setWaterfallIds(prev => new Set(prev).add(leadId))
+    try {
+      const res = await api.post<{ data: { filled: number; source: string } }>(`/leads/${leadId}/waterfall-enrich`, {}, token)
+      setWaterfallResults(prev => ({ ...prev, [leadId]: res.data }))
+      // Refresh lead list to show newly filled fields
+      if (res.data.filled > 0) setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...res.data } : l))
+    } catch {
+      // silently fail — button just goes back to enabled
+    }
+    setWaterfallIds(prev => { const next = new Set(prev); next.delete(leadId); return next })
   }
 
   async function fetchResearch(leadId: string) {
@@ -1002,6 +1021,18 @@ export default function LeadsPage() {
                                 ? <Loader2 className="w-3 h-3 animate-spin" />
                                 : <Sparkles className="w-3 h-3" />}
                               {enrichingIds.has(lead.id) ? 'Enriching…' : enrichedLeads[lead.id] ? (expandedEnrichments.has(lead.id) ? 'Hide' : 'Show') : 'Enrich'}
+                            </button>
+                            {/* P2-5: Waterfall enrich button */}
+                            <button
+                              onClick={() => waterfallEnrichLead(lead.id)}
+                              disabled={waterfallingIds.has(lead.id) || !!waterfallResults[lead.id]}
+                              title={waterfallResults[lead.id] ? `Filled ${waterfallResults[lead.id].filled} fields via ${waterfallResults[lead.id].source}` : 'Waterfall enrich — fill missing fields via PDL → Hunter → Clearbit'}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-teal-200 text-teal-600 bg-white hover:bg-teal-50 text-xs font-medium transition-colors disabled:opacity-40"
+                            >
+                              {waterfallingIds.has(lead.id)
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Layers className="w-3 h-3" />}
+                              {waterfallingIds.has(lead.id) ? 'Enriching…' : waterfallResults[lead.id] ? `+${waterfallResults[lead.id].filled} filled` : 'Fill data'}
                             </button>
                             {/* Research button */}
                             <button

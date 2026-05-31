@@ -125,6 +125,8 @@ interface CampaignSettings {
   steps?: SeqStep[]
   send_days?: string[]
   send_hour_utc?: number
+  intent_signal_enroll?: boolean
+  intent_signal_types?: string[]
 }
 
 interface ParsedIntent {
@@ -492,14 +494,16 @@ export default function FigsyPage() {
 
   function getSettingsForCampaign(campaign: Campaign): CampaignSettings {
     return campaignSettingsMap[campaign.id] ?? {
-      system_prompt:    campaign.settings?.system_prompt ?? null,
-      daily_send_limit: campaign.settings?.daily_send_limit ?? null,
-      review_required:  campaign.settings?.review_required ?? false,
-      model_preference: campaign.model_preference ?? 'haiku',
-      ab_subject_b:     campaign.settings?.ab_subject_b ?? null,
-      steps:            campaign.settings?.steps ?? [],
-      send_days:        campaign.settings?.send_days ?? ['Mon','Tue','Wed','Thu','Fri'],
-      send_hour_utc:    campaign.settings?.send_hour_utc ?? 7,
+      system_prompt:         campaign.settings?.system_prompt ?? null,
+      daily_send_limit:      campaign.settings?.daily_send_limit ?? null,
+      review_required:       campaign.settings?.review_required ?? false,
+      model_preference:      campaign.model_preference ?? 'haiku',
+      ab_subject_b:          campaign.settings?.ab_subject_b ?? null,
+      steps:                 campaign.settings?.steps ?? [],
+      send_days:             campaign.settings?.send_days ?? ['Mon','Tue','Wed','Thu','Fri'],
+      send_hour_utc:         campaign.settings?.send_hour_utc ?? 7,
+      intent_signal_enroll:  campaign.settings?.intent_signal_enroll ?? false,
+      intent_signal_types:   campaign.settings?.intent_signal_types ?? ['job_change', 'funding'],
     }
   }
 
@@ -509,14 +513,16 @@ export default function FigsyPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await api.patch<{ data: Campaign }>(`/figsy/campaigns/${campaign.id}`, {
-        system_prompt:    settings.system_prompt,
-        daily_send_limit: settings.daily_send_limit,
-        review_required:  settings.review_required,
-        model_preference: settings.model_preference ?? 'haiku',
-        ab_subject_b:     settings.ab_subject_b,
-        steps:            settings.steps,
-        send_days:        settings.send_days,
-        send_hour_utc:    settings.send_hour_utc,
+        system_prompt:         settings.system_prompt,
+        daily_send_limit:      settings.daily_send_limit,
+        review_required:       settings.review_required,
+        model_preference:      settings.model_preference ?? 'haiku',
+        ab_subject_b:          settings.ab_subject_b,
+        steps:                 settings.steps,
+        send_days:             settings.send_days,
+        send_hour_utc:         settings.send_hour_utc,
+        intent_signal_enroll:  settings.intent_signal_enroll,
+        intent_signal_types:   settings.intent_signal_types,
       }, session?.access_token)
       setCampaigns(prev => prev.map(c => c.id === campaign.id ? res.data : c))
       // Clear local override since campaign now has updated settings
@@ -1138,6 +1144,51 @@ export default function FigsyPage() {
                             ))}
                           </select>
                         </div>
+                      </div>
+
+                      {/* P2-6 — Intent signal auto-enroll */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                          <span>🎯</span> Intent Signal Auto-Enroll
+                        </label>
+                        <div className="flex items-center gap-2 mb-2">
+                          <input
+                            type="checkbox"
+                            id={`intent-${campaign.id}`}
+                            checked={campaignSettings.intent_signal_enroll ?? false}
+                            onChange={e => setCampaignSettings(s => ({ ...s, intent_signal_enroll: e.target.checked }))}
+                            className="rounded border-purple-200 text-[#7C3AED] focus:ring-[#7C3AED]"
+                          />
+                          <label htmlFor={`intent-${campaign.id}`} className="text-xs text-gray-700">
+                            Auto-enroll leads that show buying signals
+                          </label>
+                        </div>
+                        {campaignSettings.intent_signal_enroll && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {['job_change', 'funding', 'company_growth'].map(signal => (
+                              <label key={signal} className="flex items-center gap-1.5 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={(campaignSettings.intent_signal_types ?? []).includes(signal)}
+                                  onChange={e => {
+                                    const current = campaignSettings.intent_signal_types ?? []
+                                    setCampaignSettings(s => ({
+                                      ...s,
+                                      intent_signal_types: e.target.checked
+                                        ? [...current, signal]
+                                        : current.filter(t => t !== signal)
+                                    }))
+                                  }}
+                                  className="rounded border-purple-200 text-[#7C3AED] focus:ring-[#7C3AED]"
+                                />
+                                <span className="text-gray-700">{signal.replace('_', ' ')}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[11px] text-[#9B8EC4] mt-1">
+                          FIGSY checks daily for leads with recent job changes, funding signals, or company growth and auto-enrolls them.
+                        </p>
                       </div>
 
                       {/* P2-2 — A/B subject line testing */}

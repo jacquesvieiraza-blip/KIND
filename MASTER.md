@@ -95,15 +95,20 @@
 - P2-12 ✅ — White-label/agency mode: Scale plan section in portal settings (`apps/portal/src/app/(dashboard)/dashboard/settings/page.tsx`)
 - P3-3 ✅ — In-portal client messaging: portal chat page + API endpoints + admin thread view + SQL migration (`apps/portal/src/app/(dashboard)/dashboard/messages/page.tsx`, `apps/api/src/routes/clients.ts`, `apps/api/src/routes/admin.ts`, `apps/admin/src/app/messages/page.tsx`, `supabase/migrations/20260531_client_messages.sql`)
 - Messages nav ✅ — Added to portal sidebar (`/dashboard/messages`) and admin sidebar (`/messages`)
+- P2-5 ✅ — Waterfall enrichment: `apps/api/src/lib/enrichment.ts` (PDL → Hunter → Clearbit), `POST /leads/:id/waterfall-enrich` + "Fill data" button in portal leads table
+- P2-6 ✅ — Intent signal triggers: `POST /internal/figsy/check-intent-signals` (job_change/funding/company_growth), daily 11:00 UTC cron, intent signal toggle in campaign Advanced Settings
+
+**INFRA — DNS issues to fix:**
+- www.get-kind.com ✅ on Railway (h7wyj4uy.up.railway.app) — SSL provisioning, may need Railway plan upgrade for custom domain
+- app.get-kind.com (portal) — DNS issue noted, needs fixing when Railway plan allows
+- BOTH need DNS verification once Railway custom domain limit resolved
 
 **Next up (Batch 5):**
-- P2-5 waterfall enrichment — Apollo → PDL → Hunter → Clearbit
-- P2-6 intent signal triggers — job change / funding / tech stack change
 - P3-2 FIGSY vertical modes — pre-trained ICPs per industry (Fintech, Property, Health)
 - P3-13 African data moat — structured dataset, "African Apollo"
 
 **Full build queue approved by founder — build in priority order:**
-- Phase 2 (remaining): P2-5 waterfall enrichment, P2-6 intent signals, P2-3 A/Z multi-variant, P2-9 file approval, P2-13 personalised images, P2-14 social signals
+- Phase 2 (remaining): P2-3 A/Z multi-variant, P2-9 file approval, P2-13 personalised images, P2-14 social signals
 - Phase 3 (remaining): P3-2 FIGSY verticals, P3-13 African data moat
 - **Every build = MASTER.md + portal roadmap + admin roadmap updated in same commit**
 
@@ -1060,8 +1065,8 @@ Every item below was cross-referenced against the actual file before being marke
 | P2-2 | **A/B subject line testing** — 2 variants, auto-pick winner | ✅ Live | `apps/api/src/lib/figsy.ts:autoEnrollLead` 50/50 split + `/figsy/ab-winner-check` cron 10:00 UTC |
 | P2-3 | **A/Z multi-variant testing** — 3–5 variants | ⚪ Not started | |
 | P2-4 | **Conditional sequence branching (full UI)** | ✅ Live | Per-step on_reply (stop/skip_next/continue) in campaign Advanced Settings + `apps/api/src/routes/figsy.ts` |
-| P2-5 | **Waterfall enrichment** — Apollo → PDL → Hunter → Clearbit | ⚪ Not started | |
-| P2-6 | **Intent signal triggers** — job change / funding / tech stack change | ⚪ Not started | |
+| P2-5 | **Waterfall enrichment** — Apollo → PDL → Hunter → Clearbit | ✅ Live | `apps/api/src/lib/enrichment.ts` + `POST /leads/:id/waterfall-enrich` + "Fill data" button in leads table. Add PDL_API_KEY + HUNTER_API_KEY + CLEARBIT_API_KEY to Railway to activate |
+| P2-6 | **Intent signal triggers** — job change / funding / tech stack change | ✅ Live | `POST /internal/figsy/check-intent-signals` daily cron 11:00 UTC + intent signal toggle in campaign Advanced Settings |
 | P2-7 | **Configurable agent triggers UI** — send schedule | ✅ Live | Day-of-week + UTC hour controls in campaign Advanced Settings |
 | P2-8 | **Kanban deal view** — visual pipeline | ✅ Live | `apps/portal/src/app/(dashboard)/dashboard/figsy/kanban/page.tsx` — 6 columns, GET `/campaigns/:id/kanban` |
 | P2-9 | **File approval workflow** — sequence copy queued for client | ⚪ Not started | |

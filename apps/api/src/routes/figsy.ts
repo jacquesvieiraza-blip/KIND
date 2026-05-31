@@ -404,10 +404,12 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
       daily_send_limit: z.number().int().min(0).max(500).nullable().optional(),
       review_required:  z.boolean().optional(),
       model_preference: z.enum(['haiku', 'sonnet']).optional(),
-      ab_subject_b:     z.string().max(200).nullable().optional(),
-      steps:            z.array(z.object({ step: z.number(), on_reply: z.enum(['stop','skip_next','continue']) })).optional(),
-      send_days:        z.array(z.string()).optional(),
-      send_hour_utc:    z.number().int().min(0).max(23).optional(),
+      ab_subject_b:          z.string().max(200).nullable().optional(),
+      steps:                 z.array(z.object({ step: z.number(), on_reply: z.enum(['stop','skip_next','continue']) })).optional(),
+      send_days:             z.array(z.string()).optional(),
+      send_hour_utc:         z.number().int().min(0).max(23).optional(),
+      intent_signal_enroll:  z.boolean().optional(),
+      intent_signal_types:   z.array(z.string()).optional(),
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -422,10 +424,12 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
     if (body.system_prompt !== undefined) settingsUpdate.system_prompt = body.system_prompt
     if (body.daily_send_limit !== undefined) settingsUpdate.daily_send_limit = body.daily_send_limit
     if (body.review_required !== undefined) settingsUpdate.review_required = body.review_required
-    if (body.ab_subject_b !== undefined) settingsUpdate.ab_subject_b = body.ab_subject_b
-    if (body.steps !== undefined) settingsUpdate.steps = body.steps
-    if (body.send_days !== undefined) settingsUpdate.send_days = body.send_days
-    if (body.send_hour_utc !== undefined) settingsUpdate.send_hour_utc = body.send_hour_utc
+    if (body.ab_subject_b !== undefined)         settingsUpdate.ab_subject_b = body.ab_subject_b
+    if (body.steps !== undefined)                settingsUpdate.steps = body.steps
+    if (body.send_days !== undefined)            settingsUpdate.send_days = body.send_days
+    if (body.send_hour_utc !== undefined)        settingsUpdate.send_hour_utc = body.send_hour_utc
+    if (body.intent_signal_enroll !== undefined) settingsUpdate.intent_signal_enroll = body.intent_signal_enroll
+    if (body.intent_signal_types !== undefined)  settingsUpdate.intent_signal_types = body.intent_signal_types
 
     if (Object.keys(settingsUpdate).length > 0) {
       const { data: existing } = await db.from('figsy_campaigns')

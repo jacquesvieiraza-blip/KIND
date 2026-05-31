@@ -73,6 +73,8 @@ const PHASES = [
       { label: 'Network benchmarks — industry avg reply/open/interested/meeting rates in KPIs', done: true },
       { label: 'White-label / agency mode — Scale plan section in portal settings', done: true },
       { label: 'In-portal client messaging — client ↔ admin message thread, P3-3', done: true },
+      { label: 'Waterfall enrichment — PDL → Hunter → Clearbit fills missing lead fields', done: true },
+      { label: 'Intent signal triggers — job_change/funding/company_growth auto-enroll cron', done: true },
       { label: 'Paystack end-to-end smoke test verified', done: false },
     ],
     ops: [

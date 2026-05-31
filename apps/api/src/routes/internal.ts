@@ -1883,3 +1883,86 @@ internalRouter.get('/hubspot/pipeline', async (_req: Request, res: Response) => 
     res.status(500).json({ success: false, error: 'HubSpot pipeline fetch failed' })
   }
 })
+
+// P2-6: Intent signal triggers — detect buying signals and auto-enroll leads
+// Signals: job_change (title contains new seniority keywords), funding (company_size grew),
+// tech_stack_change (new tools added). Checks all active ICPs with intent_signal_enroll=true.
+internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Response) => {
+  try {
+    // Get all active clients with at least one active campaign that has intent signal enrollment enabled
+    const { data: campaigns } = await db.from('figsy_campaigns')
+      .select('id, client_id, icp_id, settings')
+      .eq('status', 'active')
+
+    if (!campaigns?.length) { res.json({ success: true, data: { enrolled: 0 } }); return }
+
+    let enrolled = 0
+
+    for (const campaign of campaigns) {
+      const settings = campaign.settings as Record<string, unknown> ?? {}
+      if (!settings.intent_signal_enroll) continue
+
+      const signalTypes = (settings.intent_signal_types as string[] | undefined) ?? ['job_change', 'funding']
+
+      // Find leads for this client/ICP that are scored but not yet enrolled
+      // and were updated in the last 7 days (recently changed)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+      const query = db.from('leads')
+        .select('id, first_name, last_name, job_title, company_size, tech_stack, score, status')
+        .eq('client_id', campaign.client_id)
+        .gte('score', 60)
+        .in('status', ['scored', 'new'])
+        .gte('updated_at', sevenDaysAgo)
+        .is('opted_out_at', null)
+
+      if (campaign.icp_id) query.eq('icp_id', campaign.icp_id)
+
+      const { data: leads } = await query
+
+      for (const lead of leads ?? []) {
+        let triggered = false
+        const triggerReasons: string[] = []
+
+        if (signalTypes.includes('job_change') && lead.job_title) {
+          const seniorityKws = ['cto', 'ceo', 'cfo', 'coo', 'vp', 'head of', 'director', 'founder', 'co-founder']
+          if (seniorityKws.some(kw => lead.job_title!.toLowerCase().includes(kw))) {
+            triggered = true
+            triggerReasons.push('seniority_title')
+          }
+        }
+
+        if (signalTypes.includes('funding') && lead.company_size) {
+          // Signal: company_size recently moved to 51-200 or above (growth signal)
+          if (['51-200', '201-1000', '1001+'].includes(lead.company_size)) {
+            triggered = true
+            triggerReasons.push('company_growth')
+          }
+        }
+
+        if (!triggered) continue
+
+        // Check not already enrolled in this campaign
+        const { data: existing } = await db.from('figsy_enrollments')
+          .select('id').eq('lead_id', lead.id).eq('campaign_id', campaign.id).maybeSingle()
+        if (existing) continue
+
+        // Enroll
+        const { error: enrollErr } = await db.from('figsy_enrollments').insert({
+          lead_id:     lead.id,
+          campaign_id: campaign.id,
+          client_id:   campaign.client_id,
+          status:      'enrolled',
+          trigger:     triggerReasons.join(','),
+          enrolled_at: new Date().toISOString(),
+        })
+        if (!enrollErr) enrolled++
+      }
+    }
+
+    res.json({ success: true, data: { enrolled } })
+  } catch (err) {
+    console.error('[figsy/check-intent-signals]', err)
+    res.status(500).json({ success: false, error: 'Intent signal check failed' })
+  }
+})

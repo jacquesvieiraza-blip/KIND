@@ -62,11 +62,15 @@
 - Full update on page 1 when founder says "run full update" — date/time, cross-referenced status: what's built, what Claude builds, what founder builds, checked against live portal + conversation + MASTER.
 - No building unless founder says so.
 
-**What was done this session (no code pushed):**
+**What was done this session:**
 - Monday.com full competitive audit — 9+ screenshots reviewed (AI Sidekick, Vibe, AI Workflows, AI Agents, AI Notetaker, Agent Avatar Customizer, Agent Carousel)
 - 8 UX/layout steal items defined (P0-16 through P0-23) and added to Phase 0 build queue
 - Section 37 added: Monday.com AI Competitive Audit & UX Steal List
 - Full consolidated build list presented to founder (Phase 0-3 + founder actions)
+- **Layout overhaul pushed — commit `c5b38e5`:**
+  - `layout.tsx` — gradient + 27 dots replaced with clean `#FAFAFE` background
+  - `Sidebar.tsx` — full light theme: `#F5F3FF` bg, dark text, soft active tint, white agent card, 220px (was 240px)
+  - `AgentColumn.tsx` — collapsible: Collapse button above panel, avatar strip when collapsed, state in localStorage
 
 **Previously fixed (31 May, earlier):**
 - `AgentColumn.tsx:166` — FIGSY wrapper `lg:w-72` → `lg:w-64`. All agent panels now same width.
@@ -874,7 +878,7 @@
 | P0-18 | **FIGSY full-page mode** — dedicated `/dashboard/figsy` page: wide centered input with purple gradient border, collapsible chat history sidebar column, 4 smart suggested starters below input based on current pipeline state | Monday steal |
 | P0-19 | **Agent card redesign** — FIGSY/Milla/Vida cards get colored background block, large avatar, name + one-line role description, "Talk to FIGSY" CTA. Replaces small icon-in-panel-header treatment | Monday steal |
 | P0-20 | **Suggested starters on all empty states** — replace every "No X yet." with 3–4 action cards. Leads page: Define ICP / Import from Apollo / Add manually / See how scoring works. Campaigns page: Launch first campaign / Let FIGSY write sequence / See example results. Analytics: Send first campaign to see stats | Monday steal |
-| P0-21 | **Wider content + lighter sidebar** — sidebar narrowed to ~200px, softer border-right instead of solid dark panel. Agent column collapsed by default on most pages, expanded only when actively talking to an agent | Monday steal |
+| P0-21 | ~~**Wider content + lighter sidebar**~~ **✅ DONE `c5b38e5`** — sidebar `#F5F3FF` light, 220px. Agent column collapsible (Collapse/expand button, localStorage state). Background `#FAFAFE`. Dots removed. | Monday steal |
 | P0-22 | **Input as design signal** — all FIGSY inputs (ICP builder, FIGSY page, knowledge base) upgraded to full-width, large textarea with purple gradient border. Communicates: this is how you use the product | Monday steal |
 | P0-23 | **Workforce language pass** — copy audit across entire portal. "Your agents" → "Your team". "AI tools" → "Meet your SDR team". Campaign events: "FIGSY sent 47 emails this morning." Reply events: "FIGSY flagged this as hot." Agents as staff, not features | Monday steal |
 

@@ -47,6 +47,12 @@
 37. [Monday.com AI — Competitive Audit & UX Steal List](#37-mondaycom-ai--competitive-audit--ux-steal-list)
 38. [Multi-User Team Model — Architecture & Build Plan](#38-multi-user-team-model--architecture--build-plan)
 39. [Going Live — Full Admin Checklist](#39-going-live--full-admin-checklist)
+40. [Competitive Deep Dive — ClickUp, Alta, Monday.com](#40-competitive-deep-dive--clickup-alta-mondaycom)
+41. [Nigeria Partner — Commercial Breakdown](#41-nigeria-partner--commercial-breakdown)
+42. [Partner Programme — Full Design & Build Spec](#42-partner-programme--full-design--build-spec)
+43. [Full Commit Log — Every Push](#43-full-commit-log--every-push)
+
+> ⚠️ **STRUCTURAL NOTE:** Section numbers 24–28 appear twice in this document due to content being appended without renumbering. This is flagged for cleanup. The second occurrence of each is the canonical version.
 
 ---
 
@@ -9943,77 +9949,701 @@ Signed for and on behalf of [PARTNER COMPANY]: _____________________ Date: _____
 
 ## 43. FULL COMMIT LOG — EVERY PUSH
 
-*Every push Claude makes is here. Newest first. Format: `hash` — date — what changed.*
+*Every push is here. Newest first. All times UTC — add 2 hours for SAST (South Africa). Sourced directly from git log.*
 
-| Commit | Date | What changed |
-|--------|------|-------------|
-| `50295d2` | 1 Jun 2026 | MASTER.md full platform audit — verified routes, partial builds, complete founder + Claude action lists |
-| `9a41d99` | 31 May 2026 | MASTER.md morning brief — audit, founder action list, redundancy plan, bug audit protocol |
-| `ee1a010` | 31 May 2026 | MASTER.md — full session record: API WebSocket crash, portal Sidebar crash, partner programme complete |
-| `e94a0c1` | 31 May 2026 | **FIX** Sidebar `isPartner` variable — was aliased as `isPartnerProp`, crashed every dashboard page |
-| `50073e0` | 31 May 2026 | **FIX** Dual WebSocket polyfill — `globalThis.WebSocket = ws` + `realtime: { transport: ws }` before `createClient()` |
-| `adf9a39` | 31 May 2026 | **FIX** Add `ws` package to `@kind/db` — Node 20 has no native WebSocket, supabase-js Realtime crashes |
-| `1a61e7c` | 31 May 2026 | **FIX** API nixpacks.toml — `yarn install` in install phase, build commands in build phase |
-| `5e63ff4` | 31 May 2026 | **FIX** Portal + admin nixpacks.toml — explicit workspace build+start, removed `--frozen-lockfile` |
-| `25249ff` | 31 May 2026 | **FIX** Delete root nixpacks.toml — was breaking portal/admin, making them serve API's Express server |
-| `92d30eb` | 31 May 2026 | **FIX** Add `.node-version` = 20 at repo root — hints nixpacks to use Node 20 |
-| `0af6ac4` | 31 May 2026 | Fix: add root-level nixpacks.toml for API (later found to break portal — deleted in `25249ff`) |
-| `1a3aadc` | 31 May 2026 | Fix: no-op install phase — moved yarn install to build phase |
-| `ae35ddb` | 31 May 2026 | Fix: remove `--frozen-lockfile` from API build |
-| `341490b` | 31 May 2026 | Fix: scope API build to api/db/shared workspaces only |
-| `67b81f8` | 31 May 2026 | Fix: sync yarn.lock — frozen-lockfile was failing on Railway |
-| `cfec16b` | 31 May 2026 | **FIX** Import `ReactNode` type in deck page — `React.ReactNode` without import crashed portal build |
-| `08d3896` | 31 May 2026 | Hide Partner Hub in sidebar for non-partner accounts |
-| `9f5f302` | 31 May 2026 | **FEAT** Partner onboarding guide, value deck, agent context by partner state |
-| `8057ece` | 31 May 2026 | Fix: case-insensitive email match in partners.ts + fix Apply link |
-| `59a9da0` | 31 May 2026 | Fix: show Partner Hub for all users (page itself handles non-partners) |
-| `47ea9f7` | 31 May 2026 | Fix: partner check moved to client-side Sidebar |
-| `d4dbf20` | 31 May 2026 | Fix: check partner status via API not DB (RLS subquery was blocking server-side lookup) |
-| `a681dac` | 31 May 2026 | Fix: guard SUPABASE_SERVICE_ROLE_KEY in portal layout |
-| `da4a9af` | 31 May 2026 | Fix: admin partner detail page + service-role for partner check |
-| `e308152` | 31 May 2026 | Fix: root-cause audit — 7 bugs fixed across portal, admin, API |
-| `ac13cab` | 31 May 2026 | **FEAT** Partner onboarding email + checklist + settings upsert fix |
-| `d623aa3` | 31 May 2026 | Fix: zero TypeScript errors in API |
-| `5a2cea7` | 31 May 2026 | Fix: authUser→userEmail in demo-sandbox (TS compile error) |
-| `761c23a` | 31 May 2026 | Fix: GET /partners/me above /ref/:code (param shadowing) |
-| `90adfe5` | 31 May 2026 | Fix: admin partners page error surfacing |
-| `7400c5c` | 31 May 2026 | Fix: pin nodejs_20 + yarn in portal/admin nixpacks setup |
-| `001746e` | 31 May 2026 | Fix: explicitly declare nodejs_20 + yarn in nixpacks |
-| `1ad88ce` | 31 May 2026 | Fix: partner portal auth — use admin.getUserById |
-| `2234a6a` | 31 May 2026 | **FEAT** Complete partner workflow — admin tabs, contract sign-off, commission payments |
-| `c9b400a` | 31 May 2026 | **FEAT** Admin commission management API routes |
-| `1a6a748` | 31 May 2026 | **FEAT** Full partner programme — DB, admin, portal, auto-commission |
-| `0cbc253` | 31 May 2026 | Docs: Section 41 — Nigeria partner commercial breakdown |
-| `2cd537f` | 31 May 2026 | Docs: full commercial breakdown — pricing, unit economics, cashflow |
-| `0eb903d` | 31 May 2026 | Fix: user_id not auth_user_id in clients RLS policies |
-| `d54b4af` | 31 May 2026 | **FEAT** P2-13 personalised images / P2-14 social signals / P3-1 developer portal / P3-4 proposals / P3-7 visitor de-anon |
-| `d5d9edf` | 31 May 2026 | Docs: MASTER.md — P2-13/14/P3-1/4/7 complete |
-| `66a127b` | 31 May 2026 | **FEAT** P3-2 FIGSY vertical modes + P3-13 African data moat |
-| `cf762e6` | 31 May 2026 | **FEAT** P2-5 waterfall enrichment + P2-6 intent signal triggers |
-| `534a8fe` | 31 May 2026 | **FEAT** Batch P2-1/2/4/7/8/10/11/12 + P3-3 + roadmap sync |
-| `c2b83b8` | 31 May 2026 | **FEAT** P2-3/P2-9/P3-6 + full website restore (21 sub-pages) |
-| `bb3d055` | 31 May 2026 | Fix: website typewriter cycles "Always on / Human Ceiling / Unlimited Pipeline" |
-| `167ab2f` | 31 May 2026 | Fix: API nixpacks.toml to force yarn |
-| `536bd3e` | 29 May 2026 | **FEAT** Unified signal layer, FIGSY tasks, clone best client, context agent panel |
-| `d0aee5d` | 29 May 2026 | Fix: context-aware agent panel for all sidebar routes |
-| `0167ce4` | 29 May 2026 | Docs: Section 40 — competitive audit (ClickUp, Alta, Monday.com) |
-| `c6a7a59` | 28 May 2026 | **FEAT** Website copy rewrite + P1-3 adaptive send volume + P3-5 revenue forecasting |
-| `bd8ff48` | 28 May 2026 | **FEAT** Website restore + new agent images + updated names |
-| `5630989` | 28 May 2026 | **FEAT** Express server for Railway hosting — www.get-kind.com |
-| `4c55504` | 27 May 2026 | Docs: demo playbook + Section 39 going-live checklist |
-| `4ac08d2` | 27 May 2026 | Fix: social_signals migration — add icps.settings column |
-| `312a064` | 27 May 2026 | Fix: minor route cleanup (developer, proposals, tracking) |
-| `55f4df6` | 27 May 2026 | **FEAT** P0-12 Realtime dashboard — Supabase realtime, live indicators |
-| `525f686` | 27 May 2026 | **FEAT** MCP-3 MCP Connect page |
-| `aef1d4d` | 27 May 2026 | **FEAT** P0-4 Email open tracking |
-| `f12e45f` | 27 May 2026 | **FEAT** P0-3 Knowledge base FIGSY preview |
-| `6c4d66b` | 27 May 2026 | **FEAT** P1-9 Deal risk scoring in admin |
-| `32297b8` | 27 May 2026 | **FEAT** P1-8 Warm leads tab in Inbox |
-| `6fd5df2` | 27 May 2026 | **FEAT** P0-5 Notification preferences UI |
-| `88dea2e` | 27 May 2026 | **FEAT** P0-20 Suggested starters on Campaigns + Inbox empty states |
-| `7ff727b` | 27 May 2026 | **FEAT** P0-19 Agent card redesign |
-| `c03a0c7` | 27 May 2026 | **FEAT** P0-18 FIGSY full page / P0-16 KIND AI sidebar / P0-17 personalised greeting / P0-6 analytics empty state |
-| `c5b38e5` | 27 May 2026 | **FEAT** P0-21 Layout overhaul — light sidebar, 220px, clean bg |
-| `99b9d82` | 27 May 2026 | Docs: roadmap audit — Phase 0→3 build queue + both roadmaps synced |
-| `17cc871` | 26 May 2026 | **FEAT** P0-14 Multi-model toggle (Haiku / Sonnet) per campaign |
-| `842f39d` | 26 May 2026 | **FEAT** P0-22 gradient border inputs + P0-23 workforce language pass + Milla language selector |
+| Commit | Date | Time (UTC) | What changed |
+|--------|------|------------|-------------|
+| `6a57bbf` | 31 May 2026 | 20:27 UTC | docs: MASTER.md complete audit — full built/not-built lists, all founder actions F1-F30, commit log Section 43 |
+| `50295d2` | 31 May 2026 | 20:21 UTC | docs: MASTER.md full platform audit — verified routes, partial builds, complete founder + Claude action lists |
+| `9a41d99` | 31 May 2026 | 20:17 UTC | docs: MASTER.md morning brief — full audit, founder action list, redundancy plan, bug audit protocol |
+| `ee1a010` | 31 May 2026 | 20:14 UTC | docs: MASTER.md — full session record: API WebSocket crash, portal isPartner crash, partner programme complete |
+| `e94a0c1` | 31 May 2026 | 20:09 UTC | fix: Sidebar isPartner variable reference — was aliased as isPartnerProp, crashing every dashboard page |
+| `50073e0` | 31 May 2026 | 20:01 UTC | fix: dual WebSocket polyfill for Node 20 — set globalThis.WebSocket + pass ws as realtime transport |
+| `adf9a39` | 31 May 2026 | 19:55 UTC | fix: add ws package to @kind/db — Node 20 has no native WebSocket, supabase-js Realtime client crashes without it |
+| `1a61e7c` | 31 May 2026 | 19:48 UTC | fix: restore API nixpacks.toml to clean pattern — yarn install in install phase, build in build phase |
+| `5e63ff4` | 31 May 2026 | 19:45 UTC | fix: explicit workspace build+start commands in portal and admin nixpacks — frozen-lockfile and wrong yarn start were breaking deployments |
+| `25249ff` | 31 May 2026 | 19:41 UTC | fix: remove root nixpacks.toml — was breaking portal/admin deployments with wrong start command. API node version handled via NIXPACKS_NODE_VERSION env var |
+| `92d30eb` | 31 May 2026 | 19:36 UTC | fix: force Node 20 via .node-version — supabase-js@2.105 requires >=20, Railway was using 18 |
+| `0af6ac4` | 31 May 2026 | 19:33 UTC | fix: add root-level nixpacks.toml for API — apps/api/nixpacks.toml was never found by nixpacks since build context is repo root |
+| `1a3aadc` | 31 May 2026 | 19:31 UTC | fix: no-op install phase — move yarn install to build phase to bypass frozen-lockfile override |
+| `ae35ddb` | 31 May 2026 | 19:29 UTC | fix: remove --frozen-lockfile from API build — cross-platform lockfile mismatch was crashing Railway |
+| `341490b` | 31 May 2026 | 19:25 UTC | fix: scope API build to only api/db/shared workspaces — turbo was rebuilding portal+admin and crashing |
+| `67b81f8` | 31 May 2026 | 19:20 UTC | fix: sync yarn.lock — frozen-lockfile was failing on Railway build |
+| `cfec16b` | 31 May 2026 | 19:16 UTC | fix: import ReactNode type in deck page — React.ReactNode caused TS build error |
+| `08d3896` | 31 May 2026 | 19:13 UTC | fix: hide Partner Hub in sidebar for non-partner accounts |
+| `9f5f302` | 31 May 2026 | 19:11 UTC | feat: partner onboarding guide, value deck, agent context by partner state |
+| `8057ece` | 31 May 2026 | 18:58 UTC | fix: case-insensitive email match in partners.ts + fix Apply link |
+| `59a9da0` | 31 May 2026 | 18:53 UTC | fix: show Partner Hub for all users — page itself handles non-partners with apply CTA |
+| `47ea9f7` | 31 May 2026 | 18:50 UTC | fix: move partner check to client-side Sidebar — server-side layout fetch was unreliable |
+| `d4dbf20` | 31 May 2026 | 18:42 UTC | fix: check partner status via API not DB — RLS subquery was blocking server-side lookup |
+| `a681dac` | 31 May 2026 | 18:39 UTC | fix: guard SUPABASE_SERVICE_ROLE_KEY in portal layout — was crashing dashboard |
+| `da4a9af` | 31 May 2026 | 18:36 UTC | fix: add admin partner detail page + use service-role for partner check |
+| `e308152` | 31 May 2026 | 18:32 UTC | fix: root-cause audit — 7 bugs fixed across portal, admin, API |
+| `ac13cab` | 31 May 2026 | 18:13 UTC | feat: partner onboarding email + checklist + settings upsert fix |
+| `d623aa3` | 31 May 2026 | 18:13 UTC | fix: zero TypeScript errors in API — unblocks Railway build |
+| `5a2cea7` | 31 May 2026 | 18:09 UTC | fix: authUser→userEmail in demo-sandbox (TS compile error blocking API build) |
+| `761c23a` | 31 May 2026 | 18:05 UTC | fix: move GET /partners/me above /ref/:code to prevent param shadowing |
+| `90adfe5` | 31 May 2026 | 17:43 UTC | fix: admin partners page — proper error surfacing, remove false 'relation' match |
+| `7400c5c` | 31 May 2026 | 17:40 UTC | fix: pin nodejs_20 + yarn in portal and admin nixpacks setup phase |
+| `001746e` | 31 May 2026 | 17:38 UTC | fix: explicitly declare nodejs_20 + yarn in nixpacks setup phase |
+| `1ad88ce` | 31 May 2026 | 17:37 UTC | fix: partner portal auth — use admin.getUserById + surface fetch errors |
+| `2234a6a` | 31 May 2026 | 17:20 UTC | feat: complete partner workflow — admin tabs, contract sign-off, commission payments |
+| `c9b400a` | 31 May 2026 | 17:15 UTC | feat: add admin commission management API routes |
+| `1a6a748` | 31 May 2026 | 17:09 UTC | feat: full partner programme — DB, admin, portal, auto-commission |
+| `0cbc253` | 31 May 2026 | 16:53 UTC | docs: Section 41 — Nigeria partner commercial breakdown |
+| `2cd537f` | 31 May 2026 | 16:50 UTC | docs: full commercial breakdown update — pricing, unit economics, cashflow, projections |
+| `0eb903d` | 31 May 2026 | 16:45 UTC | fix(migrations): user_id not auth_user_id in clients RLS policies |
+| `d0aee5d` | 31 May 2026 | 16:43 UTC | fix: complete context-aware agent panel coverage for all sidebar routes |
+| `536bd3e` | 31 May 2026 | 16:41 UTC | feat: unified signal layer, FIGSY tasks, clone best client, 5-day guarantee, context agent panel |
+| `0167ce4` | 31 May 2026 | 16:20 UTC | docs: Section 40 — ClickUp, Alta, Monday.com deep competitive audit |
+| `13befe9` | 31 May 2026 | 16:16 UTC | Update The 15 Pieces to build-status format (both instances) |
+| `938136d` | 31 May 2026 | 15:59 UTC | docs: Section 22 GTM — full marketing playbook (FIGSY self-outreach, LinkedIn, SEO, directories, partnerships, 30-day sprint) |
+| `4c55504` | 31 May 2026 | 15:57 UTC | docs: demo playbook updated + Section 39 going-live checklist (company reg, Google Workspace, paid tools, DNS, env vars) |
+| `fd243a0` | 31 May 2026 | 15:54 UTC | docs: MASTER.md — migrations done, smoke test via fake data, going-live checklist |
+| `4ac08d2` | 31 May 2026 | 15:51 UTC | fix(migration): social_signals — add icps.settings column before commenting |
+| `312a064` | 31 May 2026 | 15:44 UTC | fix(api): minor route cleanup — developer, proposals, tracking |
+| `39ee8b2` | 31 May 2026 | 15:44 UTC | fix(website): hero typewriter — "Break the ceiling." from brand messaging research |
+| `d5d9edf` | 31 May 2026 | 15:42 UTC | docs: update MASTER.md — P2-13/P2-14/P3-1/P3-4/P3-7 complete, all phases done |
+| `d54b4af` | 31 May 2026 | 15:41 UTC | feat: P2-13/P2-14/P3-1/P3-4/P3-7 — personalised images, social signals, developer portal, proposals, visitor de-anon |
+| `bb3d055` | 31 May 2026 | 15:39 UTC | fix(website): typewriter starts with "Always on." — cycles Always on / Human Ceiling / Unlimited Pipeline |
+| `167ab2f` | 31 May 2026 | 15:29 UTC | fix(api): add nixpacks.toml to force yarn — resolves @kind/db workspace 404 |
+| `c2b83b8` | 31 May 2026 | 15:22 UTC | P2-3/P2-9/P3-6 + full website restore (all 21 sub-pages) |
+| `4d8f6c5` | 31 May 2026 | 15:13 UTC | docs: update MASTER.md — website restore noted, session complete |
+| `bd8ff48` | 31 May 2026 | 15:12 UTC | fix(website): restore original site + new agent images + updated agent names |
+| `66a127b` | 31 May 2026 | 14:33 UTC | feat: P3-2 FIGSY vertical modes + P3-13 African data moat |
+| `cf762e6` | 31 May 2026 | 14:30 UTC | feat: P2-5 waterfall enrichment + P2-6 intent signal triggers |
+| `534a8fe` | 31 May 2026 | 14:25 UTC | feat: Batch 2/3/4 — P2-1/2/4/7/8/10/11/12 + P3-3 + nav + roadmap sync |
+| `5630989` | 31 May 2026 | 13:54 UTC | feat(website): add Express server for Railway hosting — www.get-kind.com |
+| `e0f8ae4` | 31 May 2026 | 13:48 UTC | fix: trigger Vercel deploy — webhook reconnected, www.get-kind.com |
+| `40cece0` | 31 May 2026 | 13:41 UTC | docs: record website restore + infra notes + batch 1 commit hashes in MASTER.md |
+| `d43a5f4` | 31 May 2026 | 13:36 UTC | fix: restore www.get-kind.com — full landing page live |
+| `c05b78b` | 31 May 2026 | 13:28 UTC | fix: force Vercel deploy — www.get-kind.com website unlock |
+| `dfac9ea` | 31 May 2026 | 13:20 UTC | fix: restore www.get-kind.com — replace placeholder with full landing page |
+| `c6a7a59` | 31 May 2026 | 13:19 UTC | Batch 1: P0-1 website copy, P1-3 adaptive send, P3-5 revenue forecasting |
+| `f3ba631` | 31 May 2026 | 13:13 UTC | sync: align all three roadmap sources to current build state |
+| `408743a` | 31 May 2026 | 13:03 UTC | docs: update MASTER.md — P0-22 ✅ P0-23 ✅ Milla Languages ✅ Live |
+| `842f39d` | 31 May 2026 | 13:01 UTC | P0-23: Switch FIGSY from first-person to third-person voice across portal |
+| `b9d6d24` | 31 May 2026 | 12:56 UTC | fix: remove railpack.json — was forcing npm instead of yarn, causing 404s |
+| `047777e` | 31 May 2026 | 12:54 UTC | fix: delete apps/api/nixpacks.toml — root cause of all Railway build failures |
+| `8647924` | 31 May 2026 | 12:50 UTC | fix: remove googleapis from build deps — fixes Railway build failures |
+| `6bfd4a1` | 31 May 2026 | 12:47 UTC | fix: railpack.json — disable apt packages to fix Railway build failures |
+| `fe0b979` | 31 May 2026 | 12:38 UTC | docs: update MASTER.md — P0-2/P0-7/P0-9 unblocked, RESEND_API_KEY live in Railway |
+| `e2ab8b3` | 31 May 2026 | 12:38 UTC | bugfix: stripe webhook raw body, invoice.payment_succeeded, dashboard stale closure, Railway build |
+| `b9452a2` | 31 May 2026 | 12:16 UTC | Fix team invite from address — kindai.co.za → get-kind.com |
+| `3bd0216` | 31 May 2026 | 12:12 UTC | MASTER: mark P0-12 live, log MCP-3 and P0-12 commits |
+| `55f4df6` | 31 May 2026 | 12:12 UTC | P0-12: Realtime dashboard — live stats via Supabase realtime |
+| `525f686` | 31 May 2026 | 12:05 UTC | MCP-3: MCP Connect portal page + AI guide agent |
+| `99b9d82` | 31 May 2026 | 11:58 UTC | Roadmap audit: full Phase 0→3 build queue + sync both roadmaps |
+| `0830354` | 31 May 2026 | 11:52 UTC | docs: MASTER full audit — complete verified build log, blocked items, next queue |
+| `cf26791` | 31 May 2026 | 11:31 UTC | feat(admin): refresh to match portal design system — light sidebar, purple accent |
+| `2a20875` | 31 May 2026 | 11:06 UTC | feat(roadmap): update portal + admin roadmaps — reflect 31 May build output |
+| `abb9533` | 31 May 2026 | 09:02 UTC | feat: MCP-2 (Milla integrations panel) + P1-10 (PDF performance report) |
+| `dc8dd5b` | 31 May 2026 | 09:01 UTC | docs: MASTER end-of-day update — all Phase 0 + Phase 1 + MCP items complete |
+| `6bdd4a5` | 31 May 2026 | 08:58 UTC | chore: add DB migrations for P0-10, P0-11, P1-12 |
+| `50319a2` | 31 May 2026 | 08:57 UTC | feat(P0-11): consent auto-sent visual indicator on lead rows |
+| `8c304ae` | 31 May 2026 | 08:57 UTC | feat(P0-10): co-pilot mode toggle in campaign advanced settings |
+| `dd8658f` | 31 May 2026 | 08:55 UTC | feat(P1-6): expanded reply categories — referral, unsubscribe, OOO, wrong-person |
+| `3981ea6` | 31 May 2026 | 08:53 UTC | feat(P1-12): AI research panel per lead card |
+| `83d1dd1` | 31 May 2026 | 08:48 UTC | feat(P0-8): email score badge in campaign step editor |
+| `38f5682` | 31 May 2026 | 08:46 UTC | feat: MCP-1 (KIND as MCP server), P1-15 (suggest campaign), P0-11 (auto-consent on lead status) |
+| `b79e732` | 31 May 2026 | 09:39 UTC | feat: new FIGSY/Milla/Vida agent photos |
+| `9f00159` | 31 May 2026 | 08:33 UTC | docs: update MASTER — agents page built, image 1/2 pattern done, photos pending founder push |
+| `2deadca` | 31 May 2026 | 08:33 UTC | feat: /dashboard/agents overview page — Monday.com Image 1 pattern, all 3 agents as clickable cards |
+| `09237d3` | 31 May 2026 | 08:22 UTC | docs: full verified build log in Section 0 — code-checked every item, honest done/not-done status |
+| `4256584` | 31 May 2026 | 08:16 UTC | feat(figsy-chat): Monday.com layout — Hello hero, two-column, agent card + live stats |
+| `8b7f262` | 31 May 2026 | 08:14 UTC | feat(landing): update nav + footer with agent names — The Closer/Brain/Connector |
+| `eda86ab` | 31 May 2026 | 08:12 UTC | fix(portal): wrap useSearchParams in Suspense on invite/accept page — fixes Railway build |
+| `2b4d96b` | 31 May 2026 | 08:07 UTC | feat: agent rebrand — The Closer/Brain/Connector subtitles, updated roles + landing page copy |
+| `82fcc7d` | 31 May 2026 | 08:01 UTC | fix(icp): light-theme identity bar + trim photo — matches rest of portal |
+| `5379643` | 31 May 2026 | 07:57 UTC | chore: update MASTER.md — mark P0-14 done (17cc871), P0-3, P0-4 done |
+| `e00d4e3` | 31 May 2026 | 07:57 UTC | docs: update MASTER build queue — P0-3, P0-4, P0-14 marked done with commits |
+| `01c359e` | 31 May 2026 | 07:56 UTC | docs: mark all team model items done in MASTER Section 38 with commit hashes |
+| `17cc871` | 31 May 2026 | 07:56 UTC | feat(P0-14): multi-model toggle — Haiku vs Sonnet per campaign |
+| `2a517ed` | 31 May 2026 | 07:56 UTC | Add Team link to sidebar navigation under Account section |
+| `0c3b53c` | 31 May 2026 | 07:55 UTC | P0-14 + team: multi-model toggle migration, figsy lib update, campaign page update, team dashboard page |
+| `0486da1` | 31 May 2026 | 07:54 UTC | Add Team section to settings page with invite form and member list |
+| `b21a93f` | 31 May 2026 | 07:53 UTC | Add accept invite portal page at /invite/accept |
+| `53c6f29` | 31 May 2026 | 07:53 UTC | Add team API router with invite, accept, members, and delete endpoints |
+| `2f34591` | 31 May 2026 | 07:52 UTC | docs: Update MASTER.md — mark P1-8, P1-9, P0-3, P0-4 done |
+| `cfa2c43` | 31 May 2026 | 07:51 UTC | Add client_members migration for multi-user team model |
+| `1cb3b56` | 31 May 2026 | 07:51 UTC | docs: add Section 38 — Multi-User Team Model architecture + build plan to MASTER.md |
+| `aef1d4d` | 31 May 2026 | 07:51 UTC | P0-4: Email open tracking — pixel, opened_at column, open rate KPI |
+| `c710049` | 31 May 2026 | 07:48 UTC | P0-4: Email open tracking — opened_at column + index + pixel endpoint in figsy routes |
+| `f12e45f` | 31 May 2026 | 07:47 UTC | P0-3: Knowledge Base on-save FIGSY preview |
+| `6c4d66b` | 31 May 2026 | 07:46 UTC | P1-9: Deal risk scoring — at-risk indicator on admin clients list |
+| `41a284c` | 31 May 2026 | 07:46 UTC | P1-9: Deal risk scoring in admin — health logic, risk labels, at-risk filter button |
+| `32297b8` | 31 May 2026 | 07:45 UTC | P1-8: Add Warm Leads tab to Inbox — filters hot + interested + warm replies, sorted by most recent |
+| `92131a2` | 31 May 2026 | 07:44 UTC | docs: Update MASTER.md — mark P0-5/6/16/17/18/19/20/23 done with commit hashes |
+| `92979b4` | 31 May 2026 | 07:43 UTC | docs: log P0-5/6/16/17/18/19/20/23 completions in MASTER.md |
+| `7ff727b` | 31 May 2026 | 07:42 UTC | P0-19: Agent card redesign — coloured left border accent + tinted bg per agent |
+| `6fd5df2` | 31 May 2026 | 07:41 UTC | P0-5: Add Notification Preferences section to Settings page |
+| `88dea2e` | 31 May 2026 | 07:40 UTC | P0-20: Replace empty states with action cards on Campaigns and Inbox pages |
+| `c03a0c7` | 31 May 2026 | 07:39 UTC | P0-18/16/17/6: FIGSY full chat page, KIND AI label, dashboard greeting, analytics empty state |
+| `d0a50c0` | 31 May 2026 | 07:36 UTC | docs: add approved build list to Section 0b — P0-18 + Phase 0 + Phase 1 |
+| `f53579b` | 31 May 2026 | 07:30 UTC | fix(icp): move FigsySidePanel to right side — matches all other pages |
+| `706e81e` | 31 May 2026 | 07:23 UTC | docs: update MASTER with layout fixes 15aa43f |
+| `15aa43f` | 31 May 2026 | 07:23 UTC | fix(portal): agent panel right-aligned, no double FIGSY on home |
+| `5ae6ad2` | 31 May 2026 | 07:17 UTC | docs: mark P0-21 done, update session brief with layout commit c5b38e5 |
+| `c5b38e5` | 31 May 2026 | 07:17 UTC | feat(portal): light sidebar, collapsible agent panel, clean background |
+| `9a85e76` | 31 May 2026 | 07:01 UTC | docs: add Monday.com audit (Section 37) + UX steal items P0-16–P0-23 |
+| `0e0e92f` | 31 May 2026 | 06:50 UTC | docs: add Section 0b — Claude's Full Build Queue to MASTER |
+| `99c0b08` | 31 May 2026 | 06:43 UTC | docs: update MASTER.md — 31 May batch 2 fixes logged |
+| `0eacf81` | 31 May 2026 | 06:43 UTC | fix: smoke test 500, meeting booked button, copy share link, chat persistence, debug cleanup |
+| `dba4bb5` | 31 May 2026 | 06:35 UTC | docs: update MASTER.md — 31 May session, agent width + ICP typewriter fix |
+| `f4bcf95` | 31 May 2026 | 06:34 UTC | fix: match agent panel width + add typewriter to ICP FIGSY panel |
+| `573699b` | 30 May 2026 | 19:31 UTC | feat(portal): improve floating dots — 28 dots, 2-4s speed, mixed colours |
+| `c71c6c9` | 30 May 2026 | 19:16 UTC | merge feat/share-page-real-data — share page wired to real data (migration done) |
+| `4f0cfa3` | 30 May 2026 | 19:16 UTC | merge feat/sequence-branching — reply branching in send cron (migration done) |
+| `167b708` | 30 May 2026 | 19:16 UTC | merge fix/consent-token-security — secure consent tokens (migration done) |
+| `3f692d5` | 30 May 2026 | 20:09 UTC | feat: wire share report page to real data by token |
+| `51c7f8c` | 30 May 2026 | 20:04 UTC | feat(api): act on sequence on_reply branching in send-due cron |
+| `5568d8b` | 30 May 2026 | 19:58 UTC | fix(portal): slow down onboard typewriter effect |
+| `89f8aef` | 30 May 2026 | 19:56 UTC | feat: KPI sparkline — emails sent per day over last 7 days |
+| `ef4b82c` | 30 May 2026 | 19:53 UTC | feat(api): email client when their campaign auto-pauses |
+| `27d3356` | 30 May 2026 | 19:50 UTC | feat(portal): add animated floating dots background to onboard page |
+| `756ec84` | 30 May 2026 | 19:49 UTC | chore(consent): add helper query to find consent_sent leads needing resend |
+| `4806a1d` | 30 May 2026 | 19:45 UTC | fix(api): use secure random consent tokens instead of lead UUID |
+| `dcfd050` | 30 May 2026 | 19:33 UTC | feat(portal): mobile-responsive ICP pages |
+| `1f045c6` | 30 May 2026 | 19:15 UTC | feat(portal): make dashboard fully mobile responsive |
+| `168bb54` | 29 May 2026 | 10:47 UTC | docs: update MASTER.md — 29 May session summary, legal pause, build queue |
+| `b0e3f7a` | 29 May 2026 | 09:25 UTC | chore: replace marketing site with unavailable page |
+| `2c2e2d3` | 29 May 2026 | 07:05 UTC | fix: visible dots, consistent agent panel widths, remove sidebar duplicate, fix KPI calculations, settings eye toggle + unsaved warning, webhooks env var, knowledge URL saving |
+| `951d8a5` | 29 May 2026 | 06:47 UTC | fix(deploy): add nixpacks.toml to portal — ensures next build runs on every Railway deploy |
+| `eb36748` | 29 May 2026 | 06:25 UTC | fix: match AgentSidePanel size to ICP Builder — w-64, h-48 photo |
+| `5ae801b` | 29 May 2026 | 06:15 UTC | feat: FIGSY insights, send reply, mark booked, KPI filter, empty states, UI polish |
+| `47e06d9` | 28 May 2026 | 21:35 UTC | docs: add Founder's Guide content to MASTER.md Section 23 + to-do list |
+| `3cc893b` | 28 May 2026 | 21:33 UTC | fix: replace .single() with .maybeSingle() across all API routes |
+| `e66791b` | 28 May 2026 | 21:24 UTC | Visual overhaul: match ICP Builder design across all portal pages |
+| `c27bff5` | 28 May 2026 | 20:53 UTC | Update MASTER.md: 29 May session — design mandate, product philosophy, build queue reordered |
+| `3cb69e0` | 28 May 2026 | 20:46 UTC | Replace onboard form with FIGSY scripted conversation |
+| `7eeecc6` | 28 May 2026 | 20:39 UTC | Fix AgentSidePanel: remove sessionStorage (was carrying context across pages), restore per-page reset, add typewriter effect on first message |
+| `4115230` | 28 May 2026 | 20:36 UTC | Restore AgentSidePanel tall photo — revert compact header mistake |
+| `8119e5a` | 28 May 2026 | 20:32 UTC | Update MASTER.md: 28 May night session — chat-first FIGSY, auto-consent, full product audit |
+| `2cc8c42` | 28 May 2026 | 20:28 UTC | Chat-first FIGSY: persistent thread, conversational onboarding, auto-consent |
+| `00eeab0` | 28 May 2026 | 20:16 UTC | Update MASTER.md: 28 May evening session — flow fixes log, product vision locked, Founder TO-DO updated |
+| `5c87292` | 28 May 2026 | 20:05 UTC | Fix full product flow: email threading, real activity feed, audience/send-now endpoints, resend-consent UI, company CSV import, onboarding checklist |
+| `443d2a0` | 28 May 2026 | 19:53 UTC | Real activity feed; fix LinkedIn CSV import; find contacts at companies; fix Resend inbound |
+| `d20a41a` | 28 May 2026 | 19:46 UTC | Fix save-sequence 404; add MCP roadmap section; seed demo reply for inbox demo |
+| `8963f20` | 28 May 2026 | 19:36 UTC | feat: FIGSY opens every page with a proactive message in the chat thread |
+| `76e666b` | 28 May 2026 | 19:36 UTC | fix: hot reply styling, analytics count, leads visibility gate, parse-intent 404 |
+| `023c417` | 28 May 2026 | 19:35 UTC | fix: TypeScript compile errors + FIGSY context messages per page |
+| `6d872b5` | 28 May 2026 | 19:29 UTC | feat(figsy): auto-enroll consented leads on campaign activation |
+| `d122b9a` | 28 May 2026 | 19:22 UTC | fix(figsy): add missing campaign endpoints — GET /:id, PUT /:id/sequence, POST /:id/test-email |
+| `be7df78` | 28 May 2026 | 19:17 UTC | fix(figsy): add GET /campaigns/:id endpoint |
+| `e99cc0b` | 28 May 2026 | 19:12 UTC | fix: batch bug fixes from audit — billing, settings, sidebar, leads, auto-topup |
+| `c9561a8` | 28 May 2026 | 19:11 UTC | fix: leads tab multi-status filter + dashboard hot replies endpoint |
+| `af01a73` | 28 May 2026 | 19:10 UTC | fix(figsy): remove API-level subscription gate — portal already enforces hasFigsySub |
+| `5ef99b9` | 28 May 2026 | 19:09 UTC | fix(figsy): use count query for subscription gate instead of select+maybeSingle |
+| `7c372ee` | 28 May 2026 | 19:01 UTC | fix(figsy): remove current_period_end from subscription check |
+| `09191c0` | 28 May 2026 | 18:47 UTC | feat: FIGSY Version B — live AI conversation in agent panel |
+| `b48ebb5` | 28 May 2026 | 18:40 UTC | feat: FIGSY as the interface — agent panel on every page, scripted conversation homepage |
+| `d7dbb64` | 28 May 2026 | 18:22 UTC | fix: remove redundant credits-transaction gate on FIGSY page |
+| `981b5cc` | 28 May 2026 | 18:14 UTC | feat: agent-first UI — consistent AgentSidePanel shell across dashboard and FIGSY |
+| `f5d968c` | 28 May 2026 | 18:03 UTC | fix(sidebar): agent card navigates to agent page instead of just toggling dropdown |
+| `f338ab3` | 28 May 2026 | 17:56 UTC | fix(seed): also set figsy_credits_remaining=50 when seeding demo account |
+| `8290cf4` | 28 May 2026 | 17:54 UTC | feat(icp): FIGSY two-column panel — Alta layout replaces floating button |
+| `e10dc9a` | 28 May 2026 | 17:52 UTC | chore: ignore .claude/ directory |
+| `eb40efe` | 28 May 2026 | 17:52 UTC | feat(figsy): FIGSY agent panel on dashboard + risk register in admin roadmap |
+| `32a61b5` | 28 May 2026 | 17:52 UTC | feat(dashboard): FIGSY agent panel replaces hero — Alta-style two-column home |
+| `0c5f932` | 28 May 2026 | 17:41 UTC | fix(ui): lighten billing + settings layout — remove nested dark cards and heavy bordered sections |
+| `d3864af` | 28 May 2026 | 17:41 UTC | chore(roadmap): add demo recording + FIGSY onboarding flow to Phase 1 milestones |
+| `e3e8031` | 28 May 2026 | 17:36 UTC | feat(icp): replace generic AI FAB with FIGSY agent pill button |
+| `332f07a` | 28 May 2026 | 17:34 UTC | fix(dashboard): make Hot Replies card obviously navigate to inbox |
+| `8f885c9` | 28 May 2026 | 17:31 UTC | fix(csv-import): expand auto-mapper + detect company lists |
+| `0811681` | 28 May 2026 | 17:25 UTC | fix(schema): add comprehensive leads table sync migration |
+| `9ed354a` | 28 May 2026 | 17:20 UTC | fix(schema): replace amount_usd with amount_zar everywhere — subscriptions table uses amount_zar |
+| `db62fe1` | 28 May 2026 | 17:14 UTC | Fix seed-leads + add missing leads columns migration |
+| `e6cbde3` | 28 May 2026 | 17:10 UTC | Fix seed-leads: remove apollo_consented column that doesn't exist in schema |
+| `913ec61` | 28 May 2026 | 17:10 UTC | Fix seed-leads: proper error strings + better diagnostics |
+| `5b6c903` | 28 May 2026 | 17:07 UTC | Fix smoke test persistence + seed leads error handling |
+| `fcd8d65` | 28 May 2026 | 17:04 UTC | Add Seed Leads page to admin portal |
+| `2f56e24` | 28 May 2026 | 17:01 UTC | Add seed-leads admin endpoint for demo data |
+| `09f1f4a` | 28 May 2026 | 16:54 UTC | Fix signup redirect and add missing FIGSY chat endpoint |
+| `ca8d6b5` | 28 May 2026 | 08:27 UTC | fix(website): replace app.get-kind.com with Railway URL — SSL not yet provisioned on custom domain |
+| `9bcfd72` | 28 May 2026 | 06:08 UTC | fix(admin): replace all text-white/X with gray text across all 21 admin pages — visible on light background |
+| `2098048` | 27 May 2026 | 22:22 UTC | fix(admin): crash fixes + layout repair |
+| `662acfe` | 27 May 2026 | 22:12 UTC | feat(v2): all 3 agents live — FIGSY/Milla/Vida in v2 shell, no subscription gates |
+| `9610aac` | 27 May 2026 | 22:09 UTC | fix(v2): own sidebar with no redirect logic — stays on /v2 without reverting |
+| `20b62bb` | 27 May 2026 | 22:04 UTC | feat(v2): move to isolated route group — no parent layout, fully unrestricted |
+| `1248b19` | 27 May 2026 | 21:58 UTC | feat(v2): dedicated layout — all agents unlocked, no payment gates |
+| `1a38799` | 27 May 2026 | 21:49 UTC | feat: v2 agent workspace home + smoke test checklist |
+| `f9ee5b6` | 27 May 2026 | 21:07 UTC | fix(admin): remove Next.js 15 Promise<searchParams> pattern — use Next.js 14 sync object |
+| `28a1317` | 27 May 2026 | 21:04 UTC | docs(db): MASTER_SCHEMA — Section 0 morning checklist + ALTA Cross Reference |
+| `e76396c` | 27 May 2026 | 21:03 UTC | feat: AI enrichment columns + MASTER_SCHEMA update + ABM migration |
+| `1825c7f` | 27 May 2026 | 20:59 UTC | fix(admin): wrap getAdminStats in try/catch — prevents server crash on any Supabase error |
+| `01c6ba3` | 27 May 2026 | 20:55 UTC | fix: guard ALL admin routes + pages against missing env vars |
+| `a1fbbc8` | 27 May 2026 | 20:51 UTC | fix(admin): guard all server components against missing SUPABASE_SERVICE_ROLE_KEY |
+| `25fa6c3` | 27 May 2026 | 20:43 UTC | feat(portal): ABM preview count in ICP builder |
+| `664105a` | 27 May 2026 | 20:43 UTC | fix(api): allow railway.app CORS origins — portal was blocked |
+| `5f4b0c6` | 27 May 2026 | 19:57 UTC | fix: replace undefined rounded-ds-lg Tailwind class with rounded-xl |
+| `5a59076` | 27 May 2026 | 19:38 UTC | fix: portal next.config — ignoreBuildErrors to unblock Railway build |
+| `960fe91` | 27 May 2026 | 19:38 UTC | fix: resolve TypeScript errors in portal figsy, billing, icp, dashboard pages |
+| `baf8e45` | 27 May 2026 | 19:35 UTC | fix: remove nixpacks.toml — Railway uses Railpack which auto-detects monorepo workspace |
+| `9a4d2a4` | 27 May 2026 | 19:32 UTC | fix: admin next.config — ignoreBuildErrors + eslint for pre-existing type issues |
+| `86a231d` | 27 May 2026 | 19:32 UTC | fix: repair JSX syntax errors in admin roadmap, cmo, and dashboard pages |
+| `6b51a51` | 27 May 2026 | 19:14 UTC | infra: add Railway nixpacks config for portal + admin monorepo deploy |
+| `58a4022` | 27 May 2026 | 19:01 UTC | Merge claude/ai-business-roadmap-U3OWJ into main — W1-W15 + Alta competitive builds |
+| `be7f98e` | 27 May 2026 | 18:57 UTC | feat: Unibox two-way reply from admin portal |
+| `0c1d67b` | 27 May 2026 | 18:56 UTC | docs: mark W2-W15 + Unibox reply as shipped 27 May 2026 |
+| `f1d0b62` | 27 May 2026 | 18:56 UTC | feat: W10 editable prompt + W11 daily quota + W12 quality gate |
+| `93bca07` | 27 May 2026 | 18:54 UTC | feat: W15 revival campaign + W14 email style training |
+| `ccb9d2c` | 27 May 2026 | 18:53 UTC | feat: W13 ICP preview shows 3 real contact names |
+| `6971f8e` | 27 May 2026 | 18:52 UTC | feat: W8 proactive dashboard home screen |
+| `d60f0fb` | 27 May 2026 | 18:51 UTC | docs: W7 demo narration — ICP live preview as Scene 1 |
+| `8c63895` | 27 May 2026 | 18:31 UTC | docs: comprehensive Alta analysis update — 28-screenshot live demo deep dive |
+| `3cb202d` | 27 May 2026 | 18:25 UTC | feat: W1 live ICP lead count + W3 intent signals |
+| `37cf60f` | 27 May 2026 | 18:23 UTC | feat: W5 LinkedIn badge upgrade + W6 social proof slot on login |
+| `5101664` | 27 May 2026 | 18:12 UTC | docs: add Alta competitive build items W1-W7 to build queue |
+| `3c1b540` | 27 May 2026 | 18:08 UTC | docs: MASTER.md full audit + Section 36 Admin Portal Playbook |
+| `80f6862` | 27 May 2026 | 17:59 UTC | feat: admin portal full visual redesign |
+| `479d1e4` | 27 May 2026 | 16:14 UTC | feat: AskFigsyButton lead-gen gating |
+| `6817f92` | 27 May 2026 | 15:59 UTC | MASTER.md: full sync — fix all stale S1-S3 refs, update benchmarks, add FIGSY gating decision |
+| `a7e9675` | 27 May 2026 | 15:42 UTC | MASTER.md: Section 35 — Demo Playbook & Smoke Test |
+| `89185f9` | 27 May 2026 | 15:25 UTC | MASTER.md: 27 May evening session update — P1-P4 + S1-S3 done, founder to-do updated |
+| `6a726b8` | 27 May 2026 | 15:23 UTC | feat: P1-P4 API wiring + S1-S3 ClickUp steals |
+| `7732261` | 27 May 2026 | 15:13 UTC | MASTER.md: Section 20 fully rewritten — complete Alta audit from all sources |
+| `46a8e40` | 27 May 2026 | 15:04 UTC | MASTER.md: Section 0 updated — 27 May portal facelift session |
+| `85ac912` | 27 May 2026 | 15:01 UTC | Portal facelift: soft warm palette, sidebar active-nav fix, colour cleanup |
+| `143b0db` | 27 May 2026 | 14:50 UTC | Sidebar: dropdown restored, larger agent photos (w-14), subscription-aware routing |
+| `31db023` | 27 May 2026 | 14:42 UTC | Sidebar: correct product hierarchy + fix button collision + remove Beta badge |
+| `4e75313` | 27 May 2026 | 14:26 UTC | Three major improvements: real agent photos, Mission Control home, sequence branching + meetings booked |
+| `361b199` | 27 May 2026 | 13:54 UTC | Portal theme: brand palette from agent images — deep indigo sidebar, warm cream content bg, violet accent |
+| `8696629` | 27 May 2026 | 13:27 UTC | Light theme: sidebar, layout, and chat widget redesigned with FIGSY's blue palette |
+| `6e36a40` | 27 May 2026 | 12:03 UTC | Sprint 2: LinkedIn import, AI enrichment columns, billing/usage charts, inbox badge |
+| `a38809a` | 27 May 2026 | 11:58 UTC | Add AUDIT.md — full sprint audit with build status, smoke tests, and to-do lists |
+| `670e273` | 27 May 2026 | 11:52 UTC | Lead Gen overview page + dedicated product interface |
+| `93c30b4` | 27 May 2026 | 11:50 UTC | Separate Lead Gen as standalone product in sidebar |
+| `a1b1bb8` | 27 May 2026 | 11:48 UTC | SVG agent avatars for FIGSY, Milla, Vida — live in portal |
+| `11fdb9c` | 27 May 2026 | 11:45 UTC | Social/buying signals on People table, streamlined columns |
+| `0e357a0` | 27 May 2026 | 11:43 UTC | Add CHANGELOG.md and BUILD_STATUS.md — full sprint documentation |
+| `16e21f8` | 27 May 2026 | 11:40 UTC | Visual sequence builder, campaign detail page with 3-tab layout |
+| `e6d68a9` | 27 May 2026 | 11:38 UTC | Campaign templates, progress bars, People tabs, Roadmap refresh, Compass Knowledge step |
+| `850ac6e` | 27 May 2026 | 11:28 UTC | Three-panel inbox, Knowledge/Compass, Performance v2, Co-pilot mode, Ask FIGSY button |
+| `b97cbcf` | 27 May 2026 | 11:08 UTC | feat(portal): agent sidebar + home page redesign |
+| `cf993be` | 26 May 2026 | 21:12 UTC | Fix 5 bugs found in full codebase audit |
+| `eb2c698` | 26 May 2026 | 21:06 UTC | Add numbered TOC with anchor links — all 34 sections |
+| `1460595` | 26 May 2026 | 21:06 UTC | Remove custom TOC — GitHub auto-generates it from headings |
+| `d7e9a7b` | 26 May 2026 | 21:00 UTC | Add table of contents at top of MASTER.md — all 34 sections with descriptions |
+| `b6cc496` | 26 May 2026 | 20:55 UTC | Audit + fix Section 5: portal/admin/website pages cross-referenced against actual code |
+| `b674f25` | 26 May 2026 | 20:41 UTC | Complete Section 0 rewrite: comprehensive daily brief with full build history 9 May–27 May |
+| `8954f06` | 26 May 2026 | 20:35 UTC | Comprehensive MASTER.md audit fixes: Paystack removed, crons 16→19, ICP debt fixed, missing 25-26 May builds added, Milla/Vida July 2026 framing updated, 40cr tier added to pricing |
+| `d16e827` | 26 May 2026 | 20:31 UTC | MASTER.md audit fixes batch 1: Paystack removed, crons 16→19, ICP debt fixed, Milla/Vida framing updated |
+| `74360c4` | 26 May 2026 | 20:14 UTC | Add Section 0: Daily Brief — living top-of-file status system |
+| `6513a4f` | 26 May 2026 | 20:11 UTC | Restore all historical sections 28-34 from main branch + expand TOC |
+| `29d0e60` | 26 May 2026 | 20:04 UTC | Add visual client journey flowchart: docs/client-flow-visual.html |
+| `20f31ea` | 26 May 2026 | 20:01 UTC | Add visual roadmap flowchart: docs/roadmap-flowchart.html |
+| `aa38abf` | 26 May 2026 | 19:57 UTC | Full MASTER.md audit + sync: all 27 May builds logged, Paystack removed, debt fixed |
+| `a8366f3` | 26 May 2026 | 19:45 UTC | Add Section 25: Apex (apex.host) competitive audit |
+| `dc1414f` | 26 May 2026 | 19:41 UTC | Add Section 24: ClickUp competitive audit + steal-now analysis |
+| `1bc7843` | 26 May 2026 | 18:37 UTC | Update MASTER.md Test 3: add Vida subscription steps, remove Paystack rows |
+| `6ee0817` | 26 May 2026 | 18:32 UTC | Self-serve Milla + Vida subscriptions via Stripe + remove Paystack from portal |
+| `242ab54` | 26 May 2026 | 18:24 UTC | Add full 4-test smoke test suite to MASTER.md |
+| `4e4e3ce` | 26 May 2026 | 17:58 UTC | Overnight build: race condition fix, startup check, reply categories, Unibox, hero rewrite |
+| `73f0a98` | 26 May 2026 | 17:32 UTC | Add WhatsApp application to 5-day plan + fix duplicate content |
+| `614747e` | 26 May 2026 | 17:19 UTC | Full 5-day sprint plan (26–31 May) — smoke test, outreach, build queue |
+| `3828355` | 26 May 2026 | 16:27 UTC | Add full ClickUp vs K.I.N.D comparison + ClickUp column to master table + infographic tables |
+| `d0e406c` | 26 May 2026 | 16:23 UTC | Update Section 2 — day-by-day action plan (Today/Tomorrow/Day after/Week/Month) |
+| `a4b615d` | 26 May 2026 | 16:12 UTC | Add Section 30 — The Unbuilt Future (K.I.N.D vision, 11 futures) |
+| `7cb603f` | 26 May 2026 | 16:06 UTC | Add Section 29 — Full Competitive Landscape (all competitors, all tiers) |
+| `6cef4a4` | 26 May 2026 | 15:35 UTC | Add Action Plan, Look & Feel direction, Portal V2 note, Section 28 (ClickUp Brain) to MASTER.md |
+| `747cd9f` | 26 May 2026 | 15:21 UTC | Full Art of Possible rewrite — 15 pieces, 3 teachers, Lemlist deep-dive, MCP server, community play |
+| `5d72016` | 26 May 2026 | 15:15 UTC | Expand Section 19 vision with full 5-year framing from session transcripts |
+| `1dd76ad` | 26 May 2026 | 15:13 UTC | Add Section 27 (AI Learning Capability) + expand Art of Possible to all 5 products in MASTER.md |
+| `191ee90` | 26 May 2026 | 15:02 UTC | feat: admin dark sidebar V2 live + MASTER sections 25+26 |
+| `e23019b` | 26 May 2026 | 15:01 UTC | feat: admin dark sidebar nav V2 — grouped sections, Founder OS branding |
+| `9689c9c` | 26 May 2026 | 14:54 UTC | docs: retroactive Art of Possible entries + wire all docs to admin nav |
+| `96d3b53` | 26 May 2026 | 14:50 UTC | docs: add Art of Possible section to MASTER.md (Section 24) |
+| `92b98f4` | 26 May 2026 | 14:49 UTC | feat: Art of Possible doc — competitor study log, Apex first entry |
+| `dda09ef` | 26 May 2026 | 14:37 UTC | feat: 3× daily auto-status system + MASTER.md updated |
+| `26b5887` | 26 May 2026 | 14:24 UTC | fix: flat pricing — remove all volume discounts, /lead /figsy credit |
+| `9d2626f` | 26 May 2026 | 14:09 UTC | feat: wire Calendly booking link across website and portal |
+| `ff72501` | 26 May 2026 | 14:07 UTC | feat: wire Calendly booking link across website and landing pages |
+| `96fcab5` | 26 May 2026 | 13:57 UTC | feat: ICP cascade delete migration — leads.icp_id SET NULL on delete |
+| `78d04d8` | 26 May 2026 | 13:56 UTC | merge: feature branch into main — flutterwave, hubspot, 3-tier billing, admin improvements |
+| `6e35865` | 26 May 2026 | 13:40 UTC | fix: remove startup crash if PAYSTACK_SECRET_KEY missing |
+| `fde2ef7` | 26 May 2026 | 13:39 UTC | fix: stagger 3 cron time conflicts on main branch |
+| `d0e7d82` | 26 May 2026 | 13:33 UTC | fix: wrap credit_transactions insert in try/catch on main branch |
+| `b2903d3` | 26 May 2026 | 13:32 UTC | fix: cast productConfig to any to resolve price_usd TS error in subscriptions.ts |
+| `0ecc922` | 26 May 2026 | 13:18 UTC | feat: Stripe 3-tier bundles — add 40cr tier, correct prices to $38/$88/$110/$250 |
+| `3280185` | 26 May 2026 | 11:54 UTC | feat: Flutterwave integration — ZAR/NGN/KES/GHS local African payments (Phase 2) |
+| `5ad063c` | 26 May 2026 | 11:51 UTC | docs: payment stack corrected — Stripe primary, Paystack removed |
+| `58b9423` | 26 May 2026 | 11:40 UTC | feat: add missing SQL migrations — drip system + MASTER_SCHEMA |
+| `28d5b79` | 26 May 2026 | 11:35 UTC | feat: sales playbook — discovery script, objections, demo flow, proposal template |
+| `b7f3ea5` | 26 May 2026 | 11:31 UTC | docs: Google Workspace moved to non-urgent — Gmail sufficient for now |
+| `d6729a9` | 26 May 2026 | 11:29 UTC | docs: Apollo #1 marked done — APOLLO_API_KEY confirmed in Railway |
+| `ae21027` | 26 May 2026 | 11:27 UTC | docs: correct Apollo billing — annual not monthly, free plan path documented |
+| `e883328` | 26 May 2026 | 11:26 UTC | fix: Apollo free plan handling — credits exhausted + rate limit errors |
+| `93e5ad1` | 26 May 2026 | 09:13 UTC | docs: MASTER.md full sync — 26 May evening |
+| `a0b72f6` | 26 May 2026 | 09:08 UTC | feat: HubSpot CRM sync — signup, payment, FIGSY reply, pipeline view |
+| `3e3fa5e` | 26 May 2026 | 09:07 UTC | feat: founder morning brief endpoint — POST /internal/founder-brief |
+| `bfa8cd5` | 26 May 2026 | 09:07 UTC | feat: HubSpot sync + cron stagger fix |
+| `6475c1d` | 26 May 2026 | 09:06 UTC | feat: admin scalability page — stage tracker, hire checklist, infra triggers |
+| `4283b3c` | 26 May 2026 | 09:05 UTC | feat: founder morning brief — daily 07:00 platform digest email |
+| `ef3c3b1` | 26 May 2026 | 09:05 UTC | feat: competitor ICP seed configs — Lemlist/Instantly/Clay/Apollo users in Africa |
+| `0e7780e` | 26 May 2026 | 09:05 UTC | feat: competitor ICP seed configs — Lemlist/Instantly/Clay/Apollo users in Africa |
+| `992439e` | 26 May 2026 | 08:58 UTC | fix: FIGSY inbound webhook pre-auth, bulk-export limit, widget rate limiting |
+| `72860c6` | 26 May 2026 | 08:46 UTC | docs: mark test subscription cleanup as done |
+| `6e185a7` | 26 May 2026 | 08:32 UTC | docs: MASTER.md updated — 26 May session summary, all builds + audit findings |
+| `a87fa67` | 26 May 2026 | 08:30 UTC | fix: audit fixes — cron stagger, stats resilience, access gates, null guards |
+| `8caadd3` | 26 May 2026 | 08:24 UTC | feat: credits deduct at delivery, lead drip system, low-credits warning, subscription lapse check |
+| `3e7de8f` | 26 May 2026 | 08:19 UTC | fix: resolve React hooks violation in Milla (assistant/page.tsx) |
+| `102499e` | 26 May 2026 | 07:50 UTC | docs: add items 14-16 to founder list, mark drip migration as complete |
+| `baa24a7` | 26 May 2026 | 07:46 UTC | docs: Section 1 updated — 9 of 12 Claude builds complete, 3 awaiting founder input |
+| `bdc19b6` | 26 May 2026 | 07:45 UTC | feat: recurring billing, lead drip, quantity controls, low-credit reminder, 10k credits fix |
+| `acfbecf` | 26 May 2026 | 07:40 UTC | fix: build cancel subscription endpoint POST /subscriptions/:id/cancel |
+| `ffb1f51` | 26 May 2026 | 07:39 UTC | fix: lead overspend cap, FIGSY trialing gate, credits.ts pricing alignment |
+| `60a0a25` | 25 May 2026 | 22:20 UTC | docs: Section 1 — add 3 missing items from today's conversations |
+| `9d92ccd` | 25 May 2026 | 22:18 UTC | docs: Section 1 complete rewrite — single operational dashboard |
+| `967db17` | 25 May 2026 | 22:16 UTC | docs: Section 1 — add lead drip and client quantity control as missing items 11 and 12 |
+| `eef813d` | 25 May 2026 | 22:13 UTC | docs: MASTER.md full accuracy pass — 13 fixes, single source of truth |
+| `62a0f48` | 25 May 2026 | 22:07 UTC | docs: full MASTER.md audit sync — all bugs, gaps, and incomplete fixes documented |
+| `f1d9a6f` | 25 May 2026 | 21:57 UTC | fix: homepage Milla/Vida CTAs, lead overspend cap, MASTER.md full sync |
+| `282ed9c` | 25 May 2026 | 21:45 UTC | feat: move waitlist to standalone netlify-waitlist folder |
+| `a77c9a1` | 25 May 2026 | 21:42 UTC | feat: update waitlist for soft launch 31 May |
+| `bfa06a5` | 25 May 2026 | 21:35 UTC | feat: waitlist landing page for pre-launch interest capture |
+| `908c3c0` | 25 May 2026 | 21:09 UTC | fix: credit system, pricing accuracy, agent demo CTAs |
+| `242f28a` | 25 May 2026 | 21:00 UTC | fix: update shared constants to correct credit-based pricing model |
+| `497d3cc` | 25 May 2026 | 20:53 UTC | fix: FIGSY credit deduction on enrollment (manual + auto-enroll) |
+| `8c54eca` | 25 May 2026 | 20:49 UTC | fix: credit deduction on ICP run + trial credits + remove DAM card + partner earnings calc |
+| `91febdb` | 25 May 2026 | 20:44 UTC | fix: lock FIGSY/Milla/Vida behind upgrade gate, fix subscription endpoint |
+| `c4424cf` | 25 May 2026 | 20:38 UTC | fix: partners page - full product pricing table with all 7 products + commission |
+| `a76a76e` | 25 May 2026 | 20:37 UTC | fix: update website pricing - Milla $49/mo, Vida $29/mo, FIGSY credit-based |
+| `6d94c3b` | 25 May 2026 | 20:34 UTC | feat: launch Milla + Vida — subscription billing, new lock screens, demo request |
+| `9291811` | 25 May 2026 | 20:24 UTC | fix(portal): rename sidebar labels and lock screens to Milla and Vida |
+| `36fcd00` | 25 May 2026 | 19:55 UTC | feat: founder morning brief cron + /scalability admin page |
+| `8d33caf` | 25 May 2026 | 19:55 UTC | docs: update MASTER.md with nightly build status + morning handover to-do |
+| `e05a57c` | 25 May 2026 | 19:54 UTC | feat: sales playbook + competitor ICP SQL + admin nav SALES section |
+| `b437598` | 25 May 2026 | 19:43 UTC | docs: add HubSpot Free to to-do list (#14 MEDIUM) + renumber downstream items |
+| `ebc0220` | 25 May 2026 | 19:36 UTC | docs: add Section 29 — Scalability: founder sales to full sales team |
+| `b34da24` | 25 May 2026 | 19:10 UTC | docs: full session sync — 25 May night briefing merged into MASTER.md |
+| `d8dfb02` | 25 May 2026 | 19:02 UTC | docs: promote Apollo upgrade to #1 STOP EVERYTHING priority — platform cannot find leads without it |
+| `a0e014e` | 25 May 2026 | 18:59 UTC | feat(admin): restyle remaining pages to dark theme |
+| `e0ad5cc` | 25 May 2026 | 18:55 UTC | feat(admin): wire agent pages to brief API |
+| `123a31d` | 25 May 2026 | 18:55 UTC | docs: add tomorrow's debrief agenda + competitor targeting ICPs to founder to-do |
+| `66fa3f9` | 25 May 2026 | 18:54 UTC | feat(api): internal briefs router — AI exec team daily briefs |
+| `054085a` | 25 May 2026 | 18:52 UTC | feat(admin): dark restyle client detail + FIGSY/ICP/leads sections |
+| `953b109` | 25 May 2026 | 18:52 UTC | feat(admin): dark restyle clients list + health scoring + at-risk filter |
+| `213ef96` | 25 May 2026 | 18:46 UTC | feat(admin): revenue deep-dive page with scenario tracker |
+| `9c471b9` | 25 May 2026 | 18:45 UTC | feat(admin): platform health page |
+| `668a585` | 25 May 2026 | 18:45 UTC | feat(admin): compliance tracker page + full certification roadmap in MASTER.md |
+| `4795ae1` | 25 May 2026 | 18:44 UTC | feat(admin): living docs viewer — MASTER, run-costs, legal |
+| `c176e4d` | 25 May 2026 | 18:43 UTC | feat(admin): AI exec team pages — OTTO, LENA, REEVE, CMO, CTO, CFO |
+| `3173fdb` | 25 May 2026 | 18:43 UTC | feat(admin): restyle dashboard for dark theme |
+| `f965431` | 25 May 2026 | 18:42 UTC | docs: add Section 28 — Founder Admin Portal vision + build status |
+| `ecfd4b1` | 25 May 2026 | 18:41 UTC | feat(admin): dark sidebar layout — Founder OS V2 |
+| `4767851` | 25 May 2026 | 18:36 UTC | docs: full Art of the Possible rebuild — 15 pieces, 3 teachers, MCP + Lemlist |
+| `6d7ddd4` | 25 May 2026 | 18:22 UTC | docs: expand Section 22 — full competitive landscape audit |
+| `cc2f6f7` | 25 May 2026 | 18:17 UTC | docs: commit legal.md changes (unstaged from previous session) |
+| `bd48c74` | 25 May 2026 | 18:17 UTC | docs: add Apollo — supplier, competitor, teacher section to Art of the Possible |
+| `b94f124` | 25 May 2026 | 18:09 UTC | docs: add legal section — Apollo ToS brief, managed service vs data reselling |
+| `6e1b3cc` | 25 May 2026 | 18:02 UTC | docs: expand Section 26 — full action plan for every Art of the Possible feature |
+| `c29ae36` | 25 May 2026 | 17:54 UTC | docs: add Section 26 — Art of the Possible (ClickUp inspiration, V2 vision, look & feel) |
+| `06aeaf7` | 25 May 2026 | 17:53 UTC | docs: full cashflow model rebuild — 3 scenarios, ARPU model, milestones, Apollo warning |
+| `43ee644` | 25 May 2026 | 17:49 UTC | docs: updated revenue model — 3 scenarios, ARPU assumptions, milestones, Apollo cost note |
+| `37cf656` | 25 May 2026 | 16:50 UTC | fix: full end-to-end audit — ICP run, scoring, FIGSY, leads page |
+| `8b635f9` | 25 May 2026 | 16:36 UTC | docs: full MASTER.md rebuild — 25 May 2026 evening |
+| `4a09a5a` | 25 May 2026 | 16:26 UTC | feat: audit runs at 04:00 + 16:00 SAST — full status report as GitHub Issue every run |
+| `8e2bf93` | 25 May 2026 | 16:23 UTC | chore: add MASTER_SCHEMA.sql — single SQL to fully sync live DB |
+| `2fdda22` | 25 May 2026 | 16:05 UTC | fix: comprehensive schema drift — 5 missing columns/constraints across 3 tables |
+| `212b31b` | 25 May 2026 | 16:00 UTC | fix: apollo_only_consented missing from icps table — graceful fallback + migration |
+| `c7ddc6d` | 25 May 2026 | 14:12 UTC | fix: [object Object] error on ICP save — normalize AI arrays, robust error serialization, remove duplicate builder/chat handler |
+| `a57d871` | 25 May 2026 | 11:03 UTC | merge: bring all 25 May fixes to main — now deploys to Railway + Vercel |
+| `352ab58` | 25 May 2026 | 10:03 UTC | fix: ICP chat-build endpoint — top-level Anthropic import, correct route order |
+| `15c4119` | 25 May 2026 | 09:54 UTC | feat: fix Milla chat + add AI conversational ICP builder |
+| `b14d23e` | 25 May 2026 | 09:51 UTC | fix: skip onboarding for existing clients — retain profile on redeploy |
+| `4ae0624` | 25 May 2026 | 09:38 UTC | fix: support widget returning raw JSON instead of plain text |
+| `48b1de2` | 25 May 2026 | 06:27 UTC | fix: schema drift + daily 04:00 AM automated audit |
+| `886be3d` | 25 May 2026 | 06:20 UTC | Fix: remove amount_usd from trial subscription insert (column does not exist) |
+| `34b9004` | 25 May 2026 | 06:15 UTC | Fix: trial subscription insert missing amount_zar/amount_usd |
+| `b511988` | 25 May 2026 | 05:58 UTC | Portal V2: full redesign behind FEATURE_PORTAL_V2 flag (not live) |
+| `fc56382` | 24 May 2026 | 18:42 UTC | Portal UI upgrade: dark mode + dashboard redesign + grouped sidebar |
+| `ba1616c` | 24 May 2026 | 18:27 UTC | Portal analytics page + API endpoint + MASTER.md update |
+| `62d42e9` | 24 May 2026 | 18:21 UTC | Admin: cohort analytics page + AdminNav Cohorts link |
+| `faf0050` | 24 May 2026 | 18:18 UTC | Portal ICP form: add website scan button — calls POST /icps/prefill, pre-fills form fields from Claude website analysis |
+| `ff186ce` | 24 May 2026 | 18:08 UTC | Website: Milla and Vida go live — remove Coming Soon, add pricing, update CTAs |
+| `b3099a8` | 24 May 2026 | 18:06 UTC | Remove HANDOVER.md — superseded by updated MASTER.md (24 May 2026) |
+| `b7da14d` | 24 May 2026 | 17:59 UTC | Build: campaign intent prompt + conversational ICP builder + Web Speech API voice input (feature flagged, off by default) |
+| `300bec7` | 24 May 2026 | 17:57 UTC | Build: campaign intent prompt + ICP builder chat + Web Speech API voice input (feature flagged) |
+| `b0e96df` | 24 May 2026 | 17:56 UTC | MASTER.md: full update 24 May — GTM strategy, UK company registration, current status |
+| `5bbe313` | 22 May 2026 | 18:51 UTC | Fix partner pricing: pricing is fixed, no modifications allowed by any partner |
+| `fdfafd7` | 22 May 2026 | 18:26 UTC | Rewrite partner programme: ClickUp/Smartsheet model, fix checkmark rendering |
+| `0788b24` | 20 May 2026 | 12:02 UTC | Site: replace founder name with "Founder" on homepage and about page |
+| `39edfae` | 20 May 2026 | 11:55 UTC | Site: full homepage rewrite v2 — complete positioning overhaul |
+| `e9d770b` | 20 May 2026 | 12:51 UTC | Merge pull request #3 from jacquesvieiraza-blip/claude/ai-business-roadmap-U3OWJ |
+| `3ec7f6c` | 20 May 2026 | 11:50 UTC | Merge main into feature branch — resolve conflicts |
+| `ca2dbbf` | 20 May 2026 | 11:46 UTC | Site: full homepage rewrite with new positioning |
+| `ef87402` | 20 May 2026 | 11:44 UTC | Build: full autonomy, new positioning, self-outreach |
+| `a660a3f` | 20 May 2026 | 05:33 UTC | Trigger Vercel redeploy — demo page and nav link |
+| `9acf2b9` | 19 May 2026 | 13:40 UTC | Add demo page, looping platform video, and Demo nav link to landing site |
+| `1365667` | 19 May 2026 | 13:36 UTC | Add /demo page with looping video, feature grid, CTA; add Demo to nav |
+| `06b732b` | 19 May 2026 | 13:32 UTC | Demo page: iframe platform-video.html (standalone too large for Vercel) |
+| `e23fd9c` | 19 May 2026 | 13:28 UTC | Demo page: use standalone video (images embedded, no broken refs) |
+| `8280530` | 19 May 2026 | 13:27 UTC | Add /demo page — platform video embedded with headline and CTA |
+| `f5e04ab` | 19 May 2026 | 13:20 UTC | Add platform-video.html demo page with agent images to site |
+| `69edb32` | 19 May 2026 | 13:04 UTC | Add self-contained platform-video-standalone.html with embedded images |
+| `27dddee` | 19 May 2026 | 13:02 UTC | Revert platform-video.html and agent images from main — not approved |
+| `97724cb` | 19 May 2026 | 12:52 UTC | Add platform-video.html and agent images for YouTube demo preview |
+| `6896992` | 19 May 2026 | 12:44 UTC | Fix Milla and Vida scenes — show poster images as contained floating cards |
+| `ec3828e` | 19 May 2026 | 12:40 UTC | Add platform-video.html — full 16-scene auto-playing demo (FIGSY + Milla + Vida) |
+| `95ead89` | 19 May 2026 | 12:27 UTC | Use ai-agent.jpg for FIGSY image in demo.html |
+| `bf65861` | 19 May 2026 | 12:24 UTC | Fix JS syntax error in demo.html — apostrophe in single-quoted SUBJECT string broke all animations |
+| `249eb17` | 19 May 2026 | 12:21 UTC | Rewrite demo.html with full scroll-triggered animations across all chapters |
+| `613132f` | 19 May 2026 | 12:10 UTC | Fix demo page animations for file:// preview — canvas sizing, scroll-free reveals, count-up |
+| `a68a897` | 19 May 2026 | 12:07 UTC | Demo page: add canvas network, typewriter, platform scroll scene, count-up stats |
+| `b5385c9` | 19 May 2026 | 12:02 UTC | Add full platform demo page at /demo — all 8 feature chapters, not linked from nav |
+| `2dbc283` | 19 May 2026 | 12:47 UTC | Merge pull request #2 from jacquesvieiraza-blip/claude/ai-business-roadmap-U3OWJ |
+| `ba0ac60` | 19 May 2026 | 08:50 UTC | Add FIGSY agentic intelligence — memory, escalation, digest, identity |
+| `c573c83` | 19 May 2026 | 08:35 UTC | Build KPIs dashboard upgrade and complete referral flow |
+| `aec9a03` | 19 May 2026 | 08:04 UTC | Allow Vercel preview URLs in CORS — fixes 'Failed to fetch' on preview deployments |
+| `c7895b3` | 19 May 2026 | 06:02 UTC | Fix sidebar health check to use env var; improve leads error message |
+| `2180678` | 19 May 2026 | 06:00 UTC | Fix TypeScript build error in demo/page.tsx — duplicate defaultExpiry declaration |
+| `bfc9668` | 19 May 2026 | 05:50 UTC | Add Mermaid flowchart covering all 7 client paths to client-flow-sop.md |
+| `472e3b9` | 18 May 2026 | 19:12 UTC | Full documentation audit — all docs aligned with 18 May 2026 platform state |
+| `fb5aa85` | 18 May 2026 | 19:07 UTC | Merge branch 'main' into claude/ai-business-roadmap-U3OWJ |
+| `a2f4ee0` | 18 May 2026 | 18:53 UTC | Add Google Workspace to launch checklist, clean up dead code, update HANDOVER |
+| `ef95cfc` | 18 May 2026 | 18:44 UTC | Credit management, AI ICP suggestions, company registration, and security fix |
+| `bece017` | 18 May 2026 | 18:31 UTC | Show real Paystack error on billing page instead of generic message |
+| `faf2b47` | 18 May 2026 | 18:29 UTC | Update launch checklist and roadmap to reflect current reality |
+| `d07976c` | 18 May 2026 | 18:12 UTC | Fix demo ICP insert: remove apollo_only_consented (schema cache stale, has default true) |
+| `f4a4e01` | 18 May 2026 | 18:10 UTC | Fix demo form: initialise expires_at to 30 days from now so it's never empty |
+| `9912c2a` | 18 May 2026 | 18:08 UTC | Full platform audit in HANDOVER.md — complete status, smoke test, what you do vs Claude |
+| `361ad32` | 18 May 2026 | 18:06 UTC | Remove Vercel Pro from pending — deploy limit was caused by debug commits not normal dev |
+| `d52add2` | 18 May 2026 | 18:01 UTC | Update handover doc — add Vercel credits to pending, mark SQL migrations done |
+| `a54701e` | 18 May 2026 | 17:58 UTC | chore: trigger vercel redeploy |
+| `f94aa11` | 18 May 2026 | 17:52 UTC | Add Demo Environments to admin portal |
+| `bb6ece6` | 18 May 2026 | 17:23 UTC | Update handover doc — mark completed tasks, update pending list |
+| `e19782b` | 18 May 2026 | 17:22 UTC | Add ICP auto-name suggestion from selected criteria |
+| `56a4979` | 18 May 2026 | 17:21 UTC | Add full handover doc — status, done, pending, smoke test checklist |
+| `3b750d5` | 18 May 2026 | 17:16 UTC | chore: trigger deploy from main |
+| `5ed5b04` | 18 May 2026 | 17:11 UTC | chore: trigger vercel deploy |
+| `7ff7b03` | 18 May 2026 | 17:06 UTC | Merge branch 'main' into claude/ai-business-roadmap-U3OWJ |
+| `f261a11` | 18 May 2026 | 17:06 UTC | Fix [object Object] error display when API returns Zod validation array |
+| `6f6e387` | 18 May 2026 | 17:02 UTC | Merge branch 'main' into claude/ai-business-roadmap-U3OWJ |
+| `6a97189` | 18 May 2026 | 17:02 UTC | chore: force redeploy portal |
+| `4f634dc` | 18 May 2026 | 16:56 UTC | Fix ICP form: show validation error and focus name field when empty |
+| `601b9fd` | 18 May 2026 | 15:49 UTC | Surface real ICP create error instead of generic message |
+| `93a212d` | 18 May 2026 | 15:39 UTC | chore: trigger Vercel redeploy on all projects |
+| `f53715d` | 18 May 2026 | 15:33 UTC | Fix subscription insert: remove amount_usd/amount_zar (schema cache stale) |
+| `916eb8b` | 18 May 2026 | 15:30 UTC | Fix signup: portal login uses Railway (no email confirmation), website redirects to portal |
+| `3d7df05` | 18 May 2026 | 15:22 UTC | Fix signup, add demo account endpoint, enable RLS, add Book a Demo CTA |
+| `4c9e1bc` | 18 May 2026 | 15:14 UTC | Fix silent subscription insert failure in onboard route |
+| `58bb04a` | 18 May 2026 | 15:11 UTC | Fix empty dashboard: use authenticated client for Supabase reads, not admin client |
+| `2cac8f7` | 18 May 2026 | 15:05 UTC | Fix dashboard layout: read client data from Supabase directly, not Railway API |
+| `d3d480e` | 18 May 2026 | 14:53 UTC | Fix dashboard: use service-role client to bypass RLS on server-side reads |
+| `f18727e` | 18 May 2026 | 14:27 UTC | Fix dashboard: read profile directly from Supabase, not Railway |
+| `ff9e4e8` | 18 May 2026 | 12:03 UTC | Add Supabase SSR middleware — fixes empty dashboard |
+| `7b63427` | 18 May 2026 | 11:58 UTC | Fix all localhost:4000 fallbacks in portal — use Railway URL |
+| `f1ee281` | 18 May 2026 | 11:47 UTC | Update Railway URL to new domain across all apps |
+| `386811c` | 18 May 2026 | 11:14 UTC | Fix TypeScript build error blocking Railway deployment |
+| `48e3147` | 18 May 2026 | 09:58 UTC | Show actual error message on signup failure for debugging |
+| `b825df2` | 18 May 2026 | 09:43 UTC | Fix CORS: allow get-kind.com to call Railway API |
+| `874d27f` | 18 May 2026 | 09:32 UTC | Add demo CTAs to locked products, system health status in sidebar, fix chatbot API URL |
+| `dd509d5` | 18 May 2026 | 09:27 UTC | Fix signup: bypass email confirmation entirely via admin SDK |
+| `f941a6d` | 18 May 2026 | 09:09 UTC | Website signup: redirect to onboard immediately if email confirmation disabled |
+| `d661d28` | 18 May 2026 | 09:07 UTC | Fix Paystack topup: guard null email, surface actual Paystack error |
+| `0849b68` | 18 May 2026 | 09:04 UTC | Fix onboarding flow for signups from main website |
+| `71bb544` | 18 May 2026 | 09:01 UTC | Fix root cause: api.ts was falling back to localhost:4000 in production |
+| `9c118b2` | 18 May 2026 | 08:53 UTC | Fix dashboard — never block on API failure, render gracefully with empty state |
+| `7f926fe` | 18 May 2026 | 08:49 UTC | Improve ICP prefill error message — explain why and direct to skip to trial |
+| `00734ea` | 18 May 2026 | 08:47 UTC | Fix dashboard loop — don't show setup prompt on API failure, only when no session |
+| `23fd3cb` | 18 May 2026 | 08:45 UTC | Redirect new users to /onboard, redirect dashboard to /onboard if no company profile |
+| `4cfd051` | 18 May 2026 | 08:31 UTC | Fix onboarding — replace upsert with explicit select/insert/update, surface real DB error |
+| `119ab21` | 18 May 2026 | 08:07 UTC | Fix ICP timeout, onboarded_at, env.example gaps |
+| `fe92726` | 18 May 2026 | 08:01 UTC | Fix onboarding error reporting, ICP spinner, and signup email redirect |
+| `1fce3e7` | 18 May 2026 | 07:46 UTC | Fix proxy key read at runtime not build time — move inside handler function |
+| `ec1eea2` | 18 May 2026 | 07:42 UTC | Trigger redeploy — admin secret key synced between Railway and Vercel |
+| `4c56b18` | 18 May 2026 | 07:39 UTC | Fix admin proxy — also read NEXT_PUBLIC_ADMIN_KEY for admin secret |
+| `8b88693` | 18 May 2026 | 07:34 UTC | Fix admin proxy — hardcode Railway URL fallback, read both ADMIN_SECRET_KEY and ADMIN_SECRET |
+| `cde6a13` | 18 May 2026 | 07:32 UTC | Fix 17 bugs from full error audit — security, routing, silent failures |
+| `b9e9579` | 18 May 2026 | 07:19 UTC | Trigger redeploy — admin env vars updated (NEXT_PUBLIC_ADMIN_KEY) |
+| `559853c` | 17 May 2026 | 16:49 UTC | Fix 7 bugs found in comprehensive error audit |
+| `4a270cc` | 17 May 2026 | 16:22 UTC | Fix silently-failing client components — surface errors to users |
+| `9f2915f` | 17 May 2026 | 16:20 UTC | Fix CORS blocking all client-side portal requests; fix ICP, leads, FIGSY errors |
+| `3c048fa` | 17 May 2026 | 16:13 UTC | Fix credits redirect error display, partner buttons, ZAR in billing, idempotent onboarding |
+| `95ee135` | 17 May 2026 | 16:08 UTC | Fix onboarding 500, feature gating, roadmap accuracy, ZAR in billing |
+| `8908273` | 17 May 2026 | 15:55 UTC | Add Virtual Assistant & Chatbot Agent landing pages; update all footer links |
+| `2e6d462` | 17 May 2026 | 15:50 UTC | Remove all remaining ZAR/local currency references; global positioning updates |
+| `d44736f` | 17 May 2026 | 15:43 UTC | Remove all ZAR/Rand references — USD throughout site |
+| `970d6fe` | 17 May 2026 | 15:39 UTC | MASTER.md — update to reflect 17 May session (cron, CCPA, DPA-US, vs-apollo) |
+| `1cfeae6` | 16 May 2026 | 20:49 UTC | CCPA compliance, cron jobs, US privacy addendum, vs-apollo global framing |
+| `3d41c76` | 16 May 2026 | 20:40 UTC | MASTER.md — full 21-section rewrite with every idea, expansion audit, compliance |
+| `8023993` | 16 May 2026 | 20:33 UTC | Add full US/UK expansion audit to MASTER.md — gaps, phases, what Claude can do |
+| `561a3ea` | 16 May 2026 | 20:29 UTC | Update MASTER.md — full status audit, Monday plan, UK company registration |
+| `5cbded9` | 16 May 2026 | 20:37 UTC | Merge pull request #1 from jacquesvieiraza-blip/claude/ai-business-roadmap-U3OWJ |
+| `60dc221` | 16 May 2026 | 19:21 UTC | Fix TypeScript build errors and add phone number to leads table |
+| `77d2492` | 16 May 2026 | 19:18 UTC | Fix TypeScript build errors in API routes and lib |
+| `eab1372` | 16 May 2026 | 19:04 UTC | Trigger redeploy: kind-admin-h5q6 env vars added |
+| `334139f` | 16 May 2026 | 18:59 UTC | Trigger redeploy: restore kind-admin root to apps/website |
+| `b01ff96` | 16 May 2026 | 17:48 UTC | Trigger redeploy: fix admin root directory to apps/admin |
+| `5896cb5` | 16 May 2026 | 17:02 UTC | Add Compare footer column to vs-prospecting and vs-hiring pages |
+| `b64f585` | 16 May 2026 | 16:55 UTC | Add competitive comparison links to site footer and pricing page |
+| `1eff6ef` | 16 May 2026 | 16:47 UTC | Trigger Vercel redeploy to pick up updated env vars |
+| `09b69cc` | 16 May 2026 | 16:44 UTC | Fix API build errors: add googleapis dep, fix implicit any types, unused var |
+| `82cfaf3` | 16 May 2026 | 16:26 UTC | Add next-env.d.ts generated by Next.js build |
+| `163e4b2` | 16 May 2026 | 16:26 UTC | Fix consent page build error: wrap useSearchParams in Suspense boundary |
+| `20d8543` | 16 May 2026 | 15:57 UTC | Fix pricing messaging to reflect credit-bundle model, not monthly billing |
+| `579af89` | 16 May 2026 | 15:45 UTC | Fix CREATE POLICY syntax in migrations 002, 007, 008, 009 + polish comparison pages |
+| `d19be0b` | 16 May 2026 | 15:44 UTC | Update comparison pages footer — add vs-outreach and vs-salesloft links |
+| `bdb9636` | 16 May 2026 | 15:43 UTC | Final polish on comparison pages — vs-outreach and vs-salesloft |
+| `a263313` | 16 May 2026 | 15:41 UTC | Polish vs-outreach.html copy and structure |
+| `9cecc66` | 16 May 2026 | 15:40 UTC | Add package-lock.json |
+| `d03822b` | 16 May 2026 | 15:40 UTC | Polish Stripe lib and vs-outreach from final agent pass |
+| `5f0a92f` | 16 May 2026 | 15:39 UTC | Add vs-salesloft.html, update pricing USD/ZAR, polish vs-outreach |
+| `cceaf1a` | 16 May 2026 | 15:37 UTC | Add vs-outreach.html comparison page + Vida chatbot page polish |
+| `c12a889` | 16 May 2026 | 15:35 UTC | Add Vida embeddable chatbot widget (vida-widget.js) |
+| `9abd4ac` | 16 May 2026 | 15:35 UTC | Update MASTER.md pending actions — 9 migrations, Stripe, Google, Vapi, WhatsApp |
+| `1b7b9e8` | 16 May 2026 | 15:34 UTC | Build Milla VA, Vida Chatbot, Stripe billing — complete product suite |
+| `9ab2508` | 16 May 2026 | 15:33 UTC | Update MASTER.md — Milla, Vida, Stripe, US pages, GDPR all documented |
+| `b73367e` | 16 May 2026 | 15:32 UTC | Add GDPR + CAN-SPAM sections to trust page, wire new routers in index.ts |
+| `946ab01` | 16 May 2026 | 15:27 UTC | Build Voice, WhatsApp, Calendar integrations + admin launch checklist |
+| `d0632c6` | 15 May 2026 | 20:23 UTC | Add Milla + Vida character images and wire all three agents on about page |
+| `876c4e4` | 15 May 2026 | 22:21 UTC | Add files via upload |
+| `1aa6774` | 15 May 2026 | 20:10 UTC | Add MASTER.md — single source of truth merging all docs |
+| `0522310` | 15 May 2026 | 20:01 UTC | Add US/UK expansion plan, agent naming, and pending actions to docs |
+| `0b3b4de` | 15 May 2026 | 15:19 UTC | Add agent naming story to about page — FIGSY, Milla, Vida |
+| `8139d68` | 15 May 2026 | 15:15 UTC | Remove founder name from about page |
+| `6bb9623` | 15 May 2026 | 14:15 UTC | Build partner backend, bulk lead actions, KPI dashboard, campaign clone |
+| `cc028b6` | 15 May 2026 | 13:13 UTC | Add DPA page (Data Processing Agreement) |
+| `917362f` | 15 May 2026 | 13:12 UTC | Nav links on remaining pages + full roadmap update |
+| `a8f1844` | 15 May 2026 | 13:11 UTC | Nav links, roadmap update, reply suggestions polish |
+| `f075f68` | 15 May 2026 | 13:10 UTC | Add reply suggestion UI and nav links to comparison pages |
+| `5bc576e` | 15 May 2026 | 13:10 UTC | Add FIGSY upgrade wall, onboarding checklist, admin CMO UI, nav links |
+| `b40a647` | 15 May 2026 | 13:09 UTC | Add reply suggestion endpoint, bulk consent, pricing anti-Alta copy |
+| `25de1ca` | 15 May 2026 | 13:00 UTC | Add speed claim, anti-Alta pricing strip, and Trust/Partners nav links to index.html |
+| `8094199` | 15 May 2026 | 12:59 UTC | Website copy overhaul — team narrative, FIGSY character, POPIA + speed claim, anti-Alta pricing |
+| `8074da4` | 15 May 2026 | 12:57 UTC | Humanise FIGSY email generation and name founder on about page |
+| `7c42063` | 15 May 2026 | 12:46 UTC | Add Trust & Security and Partners nav links to partners.html |
+| `1fbd33b` | 15 May 2026 | 12:46 UTC | Add remaining website pages: comparison pages and polish partners/vs-sdr |
+| `2231db4` | 15 May 2026 | 12:41 UTC | Add trust, partners, and vs-hiring-an-sdr website pages |
+| `662f2b5` | 15 May 2026 | 12:35 UTC | Build pre-launch items: POPIA gate removal, Day 1 outreach, zero-credits, replies inbox, direct-pay |
+| `5ff6acd` | 15 May 2026 | 07:51 UTC | Embed FIGSY animated video in landing page (Netlify) |
+| `ba5732b` | 15 May 2026 | 07:50 UTC | Expand flowchart — full Voice Agent, WhatsApp & Partner flows in Phase 7 |
+| `c392714` | 14 May 2026 | 16:58 UTC | Embed FIGSY animated video in website homepage |
+| `23e5695` | 14 May 2026 | 16:56 UTC | Add FIGSY character image to Scene 2 of animated video |
+| `6142d4d` | 14 May 2026 | 17:52 UTC | Add files via upload |
+| `f079f5c` | 14 May 2026 | 17:50 UTC | Add files via upload |
+| `22f8f3b` | 14 May 2026 | 16:46 UTC | Add domain warming cap to send-due; revert video embeds from websites |
+| `0f7ac78` | 14 May 2026 | 16:44 UTC | Polish FIGSY animated video — refactor JS, complete typing animation |
+| `7c7c468` | 14 May 2026 | 16:37 UTC | Add FIGSY animated video — 12-scene HTML presentation |
+| `321a0c1` | 14 May 2026 | 15:33 UTC | Correct go-live date to 31 May throughout docs |
+| `f8ee2db` | 14 May 2026 | 15:32 UTC | Move Voice, WhatsApp, Partner to pre-31 May build plan |
+| `ade643a` | 14 May 2026 | 15:27 UTC | Revise client journey flowchart — visual overhaul + FIGSY as character |
+| `ad7c7a9` | 14 May 2026 | 13:49 UTC | Add GTM strategy + go-live plan to master audit doc (Section 18) |
+| `78e5117` | 14 May 2026 | 13:39 UTC | Update flowchart: add direct-payment path alongside free trial in Phase 1 |
+| `7993122` | 14 May 2026 | 13:36 UTC | Update flowchart: replace POPIA consent gate with legitimate interest model |
+| `876d7c5` | 14 May 2026 | 13:27 UTC | Replace order form system with T&C checkbox at Paystack checkout |
+| `f07e669` | 14 May 2026 | 13:22 UTC | Fix flowchart: replace order form steps with Paystack online payment + T&C checkbox |
+| `a614d0b` | 14 May 2026 | 13:19 UTC | Add client journey flowchart — Lead Gen Pro + FIGSY all outcomes |
+| `e27d08f` | 14 May 2026 | 12:41 UTC | Complete audit doc: add Section 16 (built beyond roadmap), Section 17 (email system), update master table |
+| `2e20ea8` | 14 May 2026 | 12:38 UTC | Update audit doc: Google warning, domain warming, Workspace setup, PR merge instructions |
+| `46f2083` | 14 May 2026 | 12:37 UTC | Update roadmap audit: add full Resend inbound setup, Google clarification |
+| `2d21434` | 14 May 2026 | 12:32 UTC | Add full roadmap audit to docs/updates-live |
+| `9d99ab9` | 14 May 2026 | 12:04 UTC | Remove pricing from Virtual Assistant and Chatbot product cards |
+| `0edecd3` | 14 May 2026 | 11:51 UTC | Remove video placeholder, update pricing to match website |
+| `3beeed2` | 14 May 2026 | 11:14 UTC | Fix demo.html autoplay — force style reflow on scene change, use window.onload |
+| `2b8847b` | 14 May 2026 | 11:11 UTC | Restyle demo.html to white/light branding matching main website |
+| `43c4b5b` | 14 May 2026 | 10:54 UTC | Rebuild landing page with white/light branding and node-network animation |
+| `a441b5b` | 14 May 2026 | 04:55 UTC | Add 7 features: notifications, invoices, auto top-up, reply drafts, bulk consent, FIGSY wall, founder agents |
+| `2d569bf` | 14 May 2026 | 04:30 UTC | feat: expanded credit bundles, KPI dashboard, Ask K.I.N.D support widget |
+| `9dbf865` | 14 May 2026 | 04:26 UTC | docs: full roadmap audit — status, targets, KPIs, 5-year vision |
+| `365ce4d` | 13 May 2026 | 19:31 UTC | FIGSY: add reply_to header so lead replies route correctly |
+| `b7bc42b` | 13 May 2026 | 19:26 UTC | Payment = acceptance: remove manual document signing from client flow |
+| `0def390` | 13 May 2026 | 19:19 UTC | F2-2: push Deal/Opportunity to CRM on interested FIGSY reply |
+| `1240f7b` | 13 May 2026 | 19:04 UTC | M-2, F1-9, INT-8/9/10: trial nurture, FIGSY billing gate, CMO agents |
+| `73eef42` | 13 May 2026 | 18:58 UTC | Add POPIA consent callback page and public consent API endpoint |
+| `cf0aca0` | 13 May 2026 | 17:42 UTC | feat: D4/D5 email digests + INT-1 to INT-7 internal AE/CRO agents |
+| `2e67a9d` | 13 May 2026 | 17:17 UTC | feat: CRM integration — HubSpot + Pipedrive auto-sync on consent (D1–D3) |
+| `46babda` | 13 May 2026 | 17:14 UTC | docs: add Lead Gen Only vs FIGSY internal process comparison + D-series delivery tasks |
+| `7331760` | 13 May 2026 | 17:04 UTC | feat: FIGSY Phase 1 — AI SDR campaigns, sequences, reply detection (F1-1 to F1-10) |
+| `aa0ddd3` | 13 May 2026 | 16:53 UTC | chore: update homepage demo video to new YouTube link |
+| `bc32e30` | 13 May 2026 | 16:31 UTC | chore: ignore all *.tsbuildinfo files in gitignore |
+| `3fcb51e` | 13 May 2026 | 16:30 UTC | feat: Speed Pipeline portal + admin UI — TTFL, FIGSY, prefill, consent |
+| `fce7363` | 13 May 2026 | 16:26 UTC | Speed pipeline — API routes complete |
+| `001bc8d` | 13 May 2026 | 16:24 UTC | Add scoring, scrape, and email libs for speed pipeline |
+| `27a1c49` | 13 May 2026 | 16:19 UTC | Add branch merge to main as explicit pre-launch step (B11) |
+| `98b338e` | 13 May 2026 | 16:18 UTC | Fix broken Privacy Policy footer link across all 4 secondary pages |
+| `c3a6526` | 13 May 2026 | 16:14 UTC | Add GOAL 4 — internal AE, CRO, CMO agent team to roadmap |
+| `a3db440` | 13 May 2026 | 16:13 UTC | Full roadmap rewrite — 4 goals, agent suite, clean structure |
+| `1ba7ca8` | 13 May 2026 | 16:09 UTC | Major roadmap update — full pre-smoke test checklist + current build status |
+| `b5d1387` | 13 May 2026 | 13:20 UTC | Add 5-year vision to master roadmap |
+| `3738eb3` | 13 May 2026 | 13:17 UTC | Add Speed Pipeline (#1 priority) to master roadmap |
+| `f3b1706` | 13 May 2026 | 12:47 UTC | Fix video embed visibility — remove reveal class from video-wrap |
+| `c9c5a1a` | 13 May 2026 | 12:45 UTC | Embed YouTube demo video in homepage |
+| `6186008` | 13 May 2026 | 12:45 UTC | Rebuild all secondary pages to white brand theme |
+| `23aba98` | 13 May 2026 | 12:27 UTC | Remove duplicate from apps/ root |
+| `a3a1b0b` | 13 May 2026 | 12:27 UTC | Update AI agent image with newer version |
+| `77c4b99` | 13 May 2026 | 13:27 UTC | Add files via upload |
+| `f3aa708` | 13 May 2026 | 12:27 UTC | Remove duplicate image from apps/ root (lives in apps/website/) |
+| `14e394d` | 13 May 2026 | 12:26 UTC | Add AI agent image to hero and FIGSY character card |
+| `8b48cce` | 13 May 2026 | 13:25 UTC | Add files via upload |
+| `caf2d22` | 13 May 2026 | 12:08 UTC | Add scroll animations, FIGSY character scene, video section, and counters to website |
+| `fa1b87a` | 13 May 2026 | 11:13 UTC | Fix auth token validation and CSV export bugs |
+| `51693e5` | 13 May 2026 | 11:01 UTC | Phase 4: Portal upgrades — usage, credits, notifications |
+| `677652c` | 13 May 2026 | 10:59 UTC | Phase 3: Credit-based billing |
+| `343a984` | 13 May 2026 | 10:57 UTC | Phase 2: Referral backend + credit balance |
+| `a346452` | 13 May 2026 | 10:38 UTC | Move Smoke Test to Phase 5, FIGSY → 6, Agent Stack → 7 |
+| `fe56960` | 13 May 2026 | 10:37 UTC | Reorder phases: Portal Upgrades → 4, FIGSY Outreach → 5 |
+| `190e726` | 13 May 2026 | 10:35 UTC | Update master-status: add confirmed phase order (2–7) |
+| `4d9954f` | 13 May 2026 | 10:29 UTC | Add error boundaries, harden root page, add referral banner |
+| `41283b9` | 13 May 2026 | 10:06 UTC | Add ToS page, simplify documents signing flow |
+| `fd7b86f` | 13 May 2026 | 09:55 UTC | Mark all infrastructure complete — Railway, Resend, Supabase SQL, Vercel env vars |
+| `832d541` | 13 May 2026 | 09:22 UTC | Fix useSearchParams Suspense boundary on login page, fix old email refs in portal |
+| `02de3a3` | 13 May 2026 | 08:59 UTC | Fix TypeScript errors in leads.ts blocking Railway build |
+| `7451f05` | 13 May 2026 | 07:28 UTC | Rebuild index.html — ClickUp-style light theme with node network hero |
+| `a833733` | 13 May 2026 | 07:09 UTC | Add confirmed product direction — new pricing model, FIGSY, lead qualification, portal upgrades, website redesign plan |
+| `4b73dbd` | 12 May 2026 | 17:09 UTC | Add internal AI operating system plan — founder agent stack with ICP, agent roster, build order |
+| `d72daa4` | 12 May 2026 | 16:34 UTC | Add UK sole trader legal and financial setup to master status doc |
+| `fd85e90` | 12 May 2026 | 16:33 UTC | Update master status — mark A/B/C infrastructure complete, clarify tomorrow's remaining steps |
+| `7f8e87d` | 12 May 2026 | 15:37 UTC | Remove Support from Company dropdown — keep only under Resources |
+| `4a70928` | 12 May 2026 | 15:32 UTC | Website fixes: dropdown smoothness, VA/chatbot pricing, ZAR card, hero eyebrow |
+| `5d21aaa` | 12 May 2026 | 14:38 UTC | Add client flow SOP document |
+| `b55e3a6` | 12 May 2026 | 14:13 UTC | Add master status document — built vs still to do |
+| `214c453` | 12 May 2026 | 14:10 UTC | Migrate domain from kindai.com to get-kind.com |
+| `9276cd7` | 12 May 2026 | 12:26 UTC | Add Claude Code development cost to run costs document |
+| `a58b054` | 12 May 2026 | 12:11 UTC | Add run costs and cashflow model document |
+| `3c69df6` | 12 May 2026 | 12:00 UTC | Add website nav redesign, pricing page, about page, use cases, and support |
+| `b0e86cf` | 12 May 2026 | 11:33 UTC | Use app.kindai.com for client portal (Stripe-style subdomain) |
+| `af9445a` | 12 May 2026 | 11:30 UTC | Fix cross-domain auth — session now lives entirely on portal domain |
+| `ec7b142` | 12 May 2026 | 11:19 UTC | L1 — Wire Apollo API to ICP builder so leads actually appear |
+| `d87bf11` | 12 May 2026 | 11:05 UTC | Auto-create order form on trial start + handle email confirmation redirect |
+| `06c9c41` | 12 May 2026 | 10:58 UTC | Fix subscriptions route to handle usage-based lead_gen products |
+| `d8043e7` | 12 May 2026 | 10:55 UTC | Fix billing page, add trial gate, order form requirement, and auth UX improvements |
+| `1f8bbd1` | 12 May 2026 | 10:43 UTC | config: add Supabase credentials to website auth |
+| `814bc09` | 12 May 2026 | 10:35 UTC | feat: add signup/login modal to main website with Supabase auth |
+| `a4708db` | 12 May 2026 | 10:07 UTC | fix: add packageManager field + website package.json to stop Turbo hijacking static site build |
+| `3286550` | 12 May 2026 | 09:57 UTC | fix: add vercel.json to website — static HTML, no build command |
+| `c6d1ceb` | 12 May 2026 | 09:36 UTC | feat: add marketing website — Intelligence, Engineered |
+| `c0ac3e3` | 12 May 2026 | 09:29 UTC | feat: full marketing website replacing early access page |
+| `946a609` | 12 May 2026 | 09:20 UTC | fix: admin dashboard product catalog shows correct pricing |
+| `d9403d5` | 12 May 2026 | 09:15 UTC | redesign: landing page with full FIGSY section and 3-plan pricing |
+| `5b93050` | 12 May 2026 | 09:08 UTC | feat: add shared admin nav + fix portal documents loading bug |
+| `1d1e8c1` | 12 May 2026 | 09:02 UTC | fix: use check-then-insert pattern for agreement_templates upload |
+| `d4738ca` | 12 May 2026 | 08:05 UTC | fix: move PDF upload to server-side API route using service role key |
+| `5c566cc` | 12 May 2026 | 07:12 UTC | docs: update deployment guide with confirmed pricing and plan code names |
+| `5bfd4e2` | 12 May 2026 | 07:06 UTC | feat: update landing page — Formspree ID + usage-based pricing |
+| `ca1fa53` | 11 May 2026 | 20:53 UTC | feat: update pricing to usage-based model + refresh roadmap for 12 May |
+| `e790e66` | 11 May 2026 | 20:36 UTC | feat: update pricing across all products to match confirmed price list |
+| `6eeb603` | 11 May 2026 | 20:15 UTC | fix: align products and tiers across DB schema, API routes, and env vars |
+| `4c4fe1d` | 11 May 2026 | 20:12 UTC | fix: add postcss.config.js to portal and admin — required for Tailwind CSS |
+| `18ca2f1` | 11 May 2026 | 20:00 UTC | fix: move @import before @tailwind directives in portal globals.css |
+| `82a4c42` | 11 May 2026 | 19:52 UTC | fix: add force-dynamic to all portal server components that fetch data |
+| `4efc873` | 11 May 2026 | 19:52 UTC | fix: add force-dynamic to all admin API routes to prevent prerender errors |
+| `87f7fb1` | 11 May 2026 | 19:50 UTC | fix: restore useRef import in terms-library page |
+| `51d6733` | 11 May 2026 | 19:47 UTC | fix: remove useRef unused import and fix force-dynamic on client components |
+| `d5a21c1` | 11 May 2026 | 19:45 UTC | fix: add force-dynamic to admin pages to prevent static generation at build time |
+| `7085004` | 11 May 2026 | 19:43 UTC | fix: disable noUnusedLocals in admin tsconfig for Vercel build |
+| `968e86b` | 11 May 2026 | 19:41 UTC | fix: add vercel.json to admin and portal for explicit build config |
+| `20b0189` | 11 May 2026 | 19:20 UTC | fix: add explicit type annotation to supabase server setAll parameter |
+| `87a7853` | 11 May 2026 | 19:18 UTC | chore: ignore tsconfig.tsbuildinfo build artifact |
+| `23f2fb2` | 11 May 2026 | 19:18 UTC | fix: disable noUnusedLocals in portal tsconfig, remove unused CreditCard import |
+| `44fd7d3` | 11 May 2026 | 19:14 UTC | fix: remove next.config.ts files (replaced by next.config.mjs) |
+| `11fe5f3` | 11 May 2026 | 19:14 UTC | fix: rename next.config.ts to next.config.mjs for Vercel compatibility |
+| `d09ef75` | 11 May 2026 | 18:44 UTC | fix: replace unsupported CREATE POLICY IF NOT EXISTS with drop-then-create |
+| `77bb50a` | 11 May 2026 | 18:06 UTC | docs: add full deployment guide — step-by-step infrastructure setup |
+| `06bb00f` | 11 May 2026 | 18:03 UTC | feat: order form system, client signing gate, legal pages, admin tools, SOP |
+| `7be8d17` | 11 May 2026 | 17:43 UTC | feat: Days 1-15 build — full Lead Gen, DB schema, landing page |
+| `edc8dfe` | 11 May 2026 | 17:20 UTC | docs: rewrite roadmap — correct priority order (Lead Gen first, FIGSY second) |
+| `7df866a` | 11 May 2026 | 15:47 UTC | docs: add master roadmap — NB.docx brief + full platform audit |
+| `296654a` | 11 May 2026 | 15:29 UTC | feat: add AI business operation roadmap to admin and client portal |
+| `bfcebe7` | 09 May 2026 | 21:01 UTC | feat: Week 1 — full platform scaffold with auth, billing, and portal |
+| `f9b9b1f` | 09 May 2026 | 21:01 UTC | Initial commit |

@@ -7701,12 +7701,12 @@ Existing clients auto-seeded: current `user_id` becomes `owner` on migration run
 
 | Item | Status | Commit |
 |------|--------|--------|
-| `client_members` migration | 🟡 In build | — |
-| `/team` API router (invite, accept, members, remove) | 🟡 In build | — |
-| `/invite/accept` portal page | 🟡 In build | — |
-| Settings → Team tab (member list + invite form) | 🟡 In build | — |
-| `/dashboard/team` owner overview page | 🟡 In build | — |
-| Sidebar "Team" nav link | 🟡 In build | — |
+| `client_members` migration | ✅ Done | `cfa2c43` |
+| `/team` API router (invite, accept, members, remove) | ✅ Done | `53c6f29` |
+| `/invite/accept` portal page | ✅ Done | `b21a93f` |
+| Settings → Team tab (member list + invite form) | ✅ Done | `0486da1` |
+| `/dashboard/team` owner overview page | ✅ Done | `0c3b53c` |
+| Sidebar "Team" nav link | ✅ Done | `2a517ed` |
 
 ### Owner Dashboard (`/dashboard/team`)
 

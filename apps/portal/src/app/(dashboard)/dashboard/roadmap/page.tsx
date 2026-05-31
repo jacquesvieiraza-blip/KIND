@@ -165,6 +165,7 @@ const PRODUCTS: ProductRoadmap[] = [
     bgClass: 'bg-blue-600',
     features: [
       { label: 'K.I.N.D as MCP server — run FIGSY directly from Claude.ai with natural language', status: 'live', new: true },
+      { label: 'MCP Connect page — step-by-step setup guide + AI agent walkthrough in portal', status: 'live', new: true },
       { label: 'Gmail MCP — email style training + send FIGSY outreach from your own domain', status: 'planned', eta: 'Q3 2026' },
       { label: 'Outlook MCP — send outreach from your Microsoft 365 address', status: 'planned', eta: 'Q3 2026' },
       { label: 'Google Calendar MCP — FIGSY books meetings directly into your calendar', status: 'planned', eta: 'Q3 2026' },

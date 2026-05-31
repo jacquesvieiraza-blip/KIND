@@ -1003,6 +1003,7 @@ Every item below was cross-referenced against the actual file before being marke
 | P1-16 | **Activate Portal V2** | 🔴 Founder action | Set `FEATURE_PORTAL_V2=true` in Railway — already built and dormant |
 | MCP-1 | **KIND as MCP server** | ✅ Live | `routes/mcp.ts`, `/.well-known/mcp.json` |
 | MCP-2 | **Milla external tool integrations UI** | ✅ Live (UI only) | `assistant/page.tsx:372` — Calendar/HubSpot/Slack panel. Actual OAuth connections not wired |
+| MCP-3 | **MCP Connect portal page** — setup guide, endpoint/key display, AI walkthrough agent | ✅ Live | `dashboard/mcp/page.tsx`, `POST /mcp/guide`, sidebar entry added |
 
 ---
 
@@ -1074,6 +1075,8 @@ Every item below was cross-referenced against the actual file before being marke
 | **P1-9: Deal risk scoring in Admin** — Risk column in clients list (red/amber/green), at-risk filter button, riskLabel() | `6c4d66b` |
 | **P0-3: Knowledge Base FIGSY preview** — after saving pitch, FIGSY generates a sample outreach opening sentence | `f12e45f` |
 | **P0-4: Email open tracking** — 1x1 pixel, opened_at column, /figsy/track/open/:id endpoint, open rate KPI | `aef1d4d` |
+| **MCP-3: MCP Connect page** — `/dashboard/mcp`, endpoint + API key display, 4 tool cards, 3 setup guides (Claude.ai/Cursor/custom), `POST /mcp/guide` AI walkthrough agent, sidebar entry | pending |
+| **Roadmap audit: Phase 0→3 build queue** — MASTER Section 0b full table + both roadmaps synced | `99b9d82` |
 
 ---
 

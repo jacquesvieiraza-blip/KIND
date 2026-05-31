@@ -9,7 +9,7 @@ import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
-  Menu, X, UserCheck,
+  Menu, X, UserCheck, Plug,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
@@ -84,11 +84,12 @@ const LEAD_GEN_NAV = [
 ]
 
 const ACCOUNT_NAV = [
-  { href: '/dashboard/usage',    label: 'Usage',    icon: BarChart2 },
-  { href: '/dashboard/roadmap',  label: 'Roadmap',  icon: Map },
-  { href: '/dashboard/billing',  label: 'Billing',  icon: CreditCard },
-  { href: '/dashboard/team',     label: 'Team',     icon: UserCheck },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { href: '/dashboard/usage',    label: 'Usage',      icon: BarChart2 },
+  { href: '/dashboard/roadmap',  label: 'Roadmap',    icon: Map },
+  { href: '/dashboard/mcp',      label: 'MCP Connect', icon: Plug },
+  { href: '/dashboard/billing',  label: 'Billing',    icon: CreditCard },
+  { href: '/dashboard/team',     label: 'Team',       icon: UserCheck },
+  { href: '/dashboard/settings', label: 'Settings',   icon: Settings },
 ]
 
 function SystemStatus() {

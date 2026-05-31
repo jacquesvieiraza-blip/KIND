@@ -125,4 +125,58 @@ router.post('/call', async (req, res): Promise<void> => {
   }
 })
 
+// POST /mcp/guide — AI setup guide for clients connecting KIND via MCP
+router.post('/guide', async (req, res): Promise<void> => {
+  const { messages } = req.body as { messages: { role: string; content: string }[] }
+  if (!messages || !Array.isArray(messages)) {
+    res.status(400).json({ error: 'messages array required' }); return
+  }
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  try {
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: `You are the KIND MCP Setup Guide — a friendly, concise AI assistant that helps clients connect their KIND account to Claude.ai, Cursor, and other MCP-compatible AI tools.
+
+KIND's MCP server endpoint is: https://api.kindai.co.za/mcp
+Tool discovery: GET https://api.kindai.co.za/mcp/tools
+Execute tool: POST https://api.kindai.co.za/mcp/call
+
+Available MCP tools:
+1. figsy_find_leads — search for B2B leads by industry, title, country
+2. figsy_get_campaign_stats — get outreach performance (emails sent, reply rate, meetings booked)
+3. figsy_suggest_campaign — AI recommends a campaign strategy for a target audience
+4. milla_ask — ask Milla business questions, draft documents, query knowledge base
+
+To connect in Claude.ai:
+1. Go to Claude.ai → Settings → Integrations → Add MCP Server
+2. Server URL: https://api.kindai.co.za/mcp
+3. Add your KIND Client ID as the api_key header
+4. Save — KIND tools appear in Claude's tool picker
+
+To connect in Cursor:
+1. Open Cursor Settings → MCP Servers → Add
+2. Set URL: https://api.kindai.co.za/mcp
+3. Add header: client_api_key: [their KIND client ID]
+4. Restart Cursor — KIND tools are now available in Cursor Agent
+
+For any MCP client:
+- Discovery endpoint: GET /mcp/tools (returns JSON tool list)
+- Execution endpoint: POST /mcp/call with body: { tool: "tool_name", input: { ...params } }
+- Pass client_api_key in the input for authenticated tools
+
+Keep answers short, specific, and step-by-step. If asked about a topic outside MCP setup, redirect politely.`,
+      messages: messages.slice(-20).map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+    })
+    const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
+    res.json({ data: { reply: text } })
+  } catch (err) {
+    console.error('[mcp/guide]', err)
+    res.status(500).json({ error: 'Guide unavailable — try again.' })
+  }
+})
+
 export default router

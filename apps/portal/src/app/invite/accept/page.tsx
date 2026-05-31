@@ -1,10 +1,10 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-export default function AcceptInvitePage() {
+function AcceptInviteInner() {
   const params = useSearchParams()
   const router = useRouter()
   const token = params.get('token')
@@ -28,32 +28,44 @@ export default function AcceptInvitePage() {
   }, [token])
 
   return (
+    <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-8 max-w-sm w-full text-center">
+      <img src="/agents/figsy.png" alt="KIND" className="w-16 h-16 rounded-2xl mx-auto mb-4" />
+      {status === 'loading' && <p className="text-gray-500">Checking invitation…</p>}
+      {status === 'accepting' && <p className="text-gray-500">Accepting invitation…</p>}
+      {status === 'done' && (
+        <>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">You&apos;re in!</h1>
+          <p className="text-gray-500 text-sm">Redirecting to your workspace…</p>
+        </>
+      )}
+      {status === 'login-required' && (
+        <>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Accept your invitation</h1>
+          <p className="text-gray-500 text-sm mb-4">Log in or create an account to join the workspace.</p>
+          <a
+            href={`/login?redirect=/invite/accept?token=${token}`}
+            className="block w-full py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors"
+          >
+            Log in to accept
+          </a>
+        </>
+      )}
+      {status === 'no-token' && <p className="text-red-500 text-sm">Invalid invite link.</p>}
+      {status === 'error' && <p className="text-red-500 text-sm">This invite has expired or already been used.</p>}
+    </div>
+  )
+}
+
+export default function AcceptInvitePage() {
+  return (
     <div className="min-h-screen bg-[#FAFAFE] flex items-center justify-center">
-      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-8 max-w-sm w-full text-center">
-        <img src="/agents/figsy.png" alt="KIND" className="w-16 h-16 rounded-2xl mx-auto mb-4" />
-        {status === 'loading' && <p className="text-gray-500">Checking invitation…</p>}
-        {status === 'accepting' && <p className="text-gray-500">Accepting invitation…</p>}
-        {status === 'done' && (
-          <>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">You&apos;re in!</h1>
-            <p className="text-gray-500 text-sm">Redirecting to your workspace…</p>
-          </>
-        )}
-        {status === 'login-required' && (
-          <>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Accept your invitation</h1>
-            <p className="text-gray-500 text-sm mb-4">Log in or create an account to join the workspace.</p>
-            <a
-              href={`/login?redirect=/invite/accept?token=${token}`}
-              className="block w-full py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors"
-            >
-              Log in to accept
-            </a>
-          </>
-        )}
-        {status === 'no-token' && <p className="text-red-500 text-sm">Invalid invite link.</p>}
-        {status === 'error' && <p className="text-red-500 text-sm">This invite has expired or already been used.</p>}
-      </div>
+      <Suspense fallback={
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-8 max-w-sm w-full text-center">
+          <p className="text-gray-500">Loading…</p>
+        </div>
+      }>
+        <AcceptInviteInner />
+      </Suspense>
     </div>
   )
 }

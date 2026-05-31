@@ -55,6 +55,42 @@
 
 ---
 
+## 🔴 YOUR ACTION LIST — EVERYTHING YOU NEED TO DO (1 June 2026)
+
+*Complete list. Nothing hidden in sections. Tick these off as you go.*
+
+1. **Set up UptimeRobot** — go to monitor.uptimerobot.com, create a free account, add the portal URL and the API URL. Set to ping every 5 minutes and send you an SMS when either goes down. This would have caught last night's outage immediately.
+2. **Configure Railway health checks** — in Railway, open each of the three services (API, Portal, Admin), go to Settings, find Health Check, set the path to `/health`. This makes Railway restart a crashed service automatically.
+3. **Check RESEND_API_KEY is in Railway** — open Railway → KIND API → Variables. Confirm `RESEND_API_KEY` is set. Without it, all email sending (campaigns, partner onboarding, team invites) is broken.
+4. **Confirm Stripe prices are live** — open Railway → KIND API → Variables. Confirm all four Stripe price IDs are set (Starter 40 credits, Growth 100 credits, and the two flat prices). Without these, billing is broken.
+5. **Add credits to your partner account** — you are logged in as `jacques.vieiraza@gmail.com` as a partner. Add enough credits to this account so you can demo the platform to a prospect. Do this in the admin.
+6. **WhatsApp Business API** — confirm where your application is. Did you apply? Is it still pending? Forward any emails you have received about it so we can track it.
+7. **Google Workspace** — set up your professional email at get-kind.com. This should be `jacques@get-kind.com`. All client-facing communications should come from this address, not Gmail.
+8. **Company registration** — decide: UK first or South Africa first. UK is cleaner for Stripe and international clients. If you want to proceed with UK, go to Companies House online — you can register in under 30 minutes for £12.
+9. **Set UptimeRobot to send you a weekly email report** — once set up, turn on the weekly digest so you get a health summary every Monday.
+10. **SQL check** — confirm you ran `UPDATE partners SET email = 'jacques.vieiraza@gmail.com' WHERE email = 'jacques.vieiraza@icloud.com'` in Supabase. This was needed to fix your partner account login.
+
+---
+
+## 🔵 CLAUDE BUILD LIST — EVERYTHING I NEED TO BUILD (1 June 2026)
+
+*Complete list. In priority order. I build these when you say go.*
+
+1. **Remove the TypeScript error suppressor** — `apps/portal/next.config.mjs` has a setting that hides TypeScript errors so the site deploys even when the code is broken. This is what caused the portal crash yesterday. Takes 2 minutes to remove. This is the most important thing I can do right now.
+2. **Morning type-check** — run a health check across all three apps to confirm there are no hidden TypeScript errors sitting in the code right now.
+3. **Demo sandbox auto-provisioning** — when you approve a partner in the admin, a demo client account should be created automatically, pre-loaded with fake leads and a live campaign, and the partner should see the login details in their portal. Right now nothing happens when you approve someone. This needs building properly.
+4. **Partner portal sandbox section** — the partner's portal needs a dedicated section showing: their sandbox login details, instructions for how to use it in demos, and a separate clear button saying "Want K.I.N.D for your own outreach? Sign up as a client".
+5. **Admin sandbox visibility** — the admin needs to show whether each partner has a sandbox provisioned, when it was created, and a manual provision button for cases where auto-provisioning failed.
+6. **Partner onboarding email sequence** — right now partners get one email when they are approved and then nothing. They need a follow-up sequence: welcome on day 1, sandbox instructions on day 2, first deal registration prompt on day 7, check-in on day 14.
+7. **Partner pricing page** — a single clear page in the partner portal explaining: demo sandbox is free, their own K.I.N.D subscription is standard client pricing, commission rates are 20%/25%/30% depending on tier.
+8. **Update onboarding guide and value deck** — these were built with placeholder sandbox info. They need to be updated to reflect the confirmed model.
+9. **Railway health check endpoint** — add a `/health` route to the API that returns `ok`. This is what Railway pings to confirm the service is alive. Enables your action item 2 above.
+10. **Languages discoverability** — the Milla chat supports English, French, Kiswahili, and Hausa. No client knows this. Add it to the Milla description in the portal and mention it on the website.
+11. **Verify 6 discrepancies** — six features were marked as built in earlier sessions but were never confirmed working end-to-end: personalised images, social signals, developer portal, FIGSY vertical modes, proposals with e-sign, and visitor de-anonymisation. Need to test each one.
+12. **Daily type-check** — run this at the start of every session. Catches broken code before it reaches production.
+
+---
+
 ## 🗓️ SECTION 0 — MORNING BRIEF — 1 JUNE 2026
 
 *Single source of truth. Updated every session. Previous session notes archived in Section 43 commit log.*
@@ -120,6 +156,30 @@
 
 ---
 
+### 🔒 LOCKED DECISIONS — DO NOT REVISIT
+
+| Decision | Detail | Confirmed |
+|----------|--------|-----------|
+| **Partner sandbox model** | Free demo sandbox provisioned on approval. Partners pay NOTHING to demo to prospects. If they want K.I.N.D for their own pipeline, they sign up as a regular client at standard rates. No special pricing, no hybrid accounts. Clean. | 1 Jun 2026 |
+| **Partner email fix** | `UPDATE partners SET email = 'jacques.vieiraza@gmail.com' WHERE email = 'jacques.vieiraza@icloud.com'` — run in Supabase SQL editor by founder | 1 Jun 2026 |
+
+---
+
+### 🔴 PARTNER PROGRAMME — WHAT IS NOT BUILT YET
+
+These are confirmed gaps. Everything below is a placeholder or missing entirely:
+
+| Gap | Status | Impact |
+|-----|--------|--------|
+| Demo sandbox provisioning | Onboarding checklist mentions it — nothing actually happens. Placeholder only. | Partner can't demo to prospects |
+| Admin sandbox visibility | Admin has no way to see sandbox status per partner or manually provision | No control |
+| Partner portal sandbox section | No sandbox credentials shown, no "Use this for demos" instructions | Partner has nothing to show |
+| "Sign up as client" CTA | No path for partners who want their own K.I.N.D pipeline | Lost revenue |
+| Partner onboarding email sequence | Single approval email only — no follow-up steps, no activation drip | Cold after approval |
+| Partner pricing page | Partners don't know what they pay (nothing for sandbox, standard rates for own use) | Confusion at application stage |
+
+---
+
 ### 🔴 NEEDS FOUNDER ACTION — BLOCKED ON YOU
 
 | Ref | Task | Detail |
@@ -129,7 +189,7 @@
 | F3 | Confirm WhatsApp Business API status | Did you apply? Still pending? What's the reference? |
 | F4 | Stripe prices confirmed live | All 4 prices (Starter 40cr, Growth 100cr, + two flat) must be in Railway env vars |
 | F5 | RESEND_API_KEY in Railway | Email sending (campaigns, onboarding) won't work without it |
-| F6 | Confirm sandbox spec for partner programme | Should sandbox pre-load fake leads? Which plan tier? Any credits? |
+| F6 | **CONFIRMED** — Sandbox spec: free on approval, enough credits to demo. Give `jacques.vieiraza@gmail.com` enough credits now to demo to a partner. | ✅ Decision locked — awaiting credit top-up |
 | F7 | Google Workspace set up | For professional email (jacques@get-kind.com) |
 | F8 | Company registration decision | UK or South Africa first? |
 | F9 | UptimeRobot weekly report | Set to email you every Monday |
@@ -143,12 +203,15 @@
 | C1 | Remove `ignoreBuildErrors: true` from next.config.mjs | 2 min | Critical reliability fix |
 | C2 | Morning type-check across all 3 apps | 5 min | Catch hidden errors |
 | C3 | Verify P2-13 / P2-14 / P3-1 / P3-2 / P3-4 / P3-7 are actually working | 30 min | Confirm audit accuracy |
-| C4 | Partner sandbox provisioning (needs F6 first) | 2 hrs | Completes partner programme |
-| C5 | Partner onboarding email sequence (needs F5 first) | 1 hr | Automates partner activation |
-| C6 | Partner pricing page on website | 45 min | Generates applications |
-| C7 | Languages discoverability — Milla feature card, website mention | 30 min | Feature exists, nobody knows |
-| C8 | Railway health check endpoint `/health` on API | 15 min | Enables F1 |
-| C9 | Daily bug audit — run `tsc --noEmit` on all apps | 5 min | Ongoing — do every session |
+| **C4** | **Demo sandbox auto-provisioning** — when admin approves partner, sandbox client account created automatically, portal shows login details | 2 hrs | Partner programme is incomplete without this |
+| **C5** | **Partner portal sandbox section** — sandbox credentials, "Use this for demos" guide, separate CTA "Want your own pipeline? Sign up as a client →" | 1 hr | Partners have nothing to show prospects |
+| **C6** | **Admin sandbox status** — per-partner sandbox provisioned/not status, manual provision button as fallback | 45 min | Admin has no visibility |
+| **C7** | **Partner onboarding email sequence** — approval email + follow-up drip (needs F5 RESEND_API_KEY) | 1 hr | Single email is not enough |
+| **C8** | **Partner pricing page** — portal one-pager: demo sandbox = free, own pipeline = standard client pricing | 30 min | Removes confusion at application |
+| C9 | Update onboarding guide + value deck to reflect confirmed model | 20 min | Currently incorrect |
+| C10 | Languages discoverability — Milla feature card, website mention | 30 min | Feature exists, nobody knows |
+| C11 | Railway health check endpoint `/health` on API | 15 min | Enables F1 |
+| C12 | Daily bug audit — run `tsc --noEmit` on all apps | 5 min | Ongoing — do every session |
 
 ---
 
@@ -193,881 +256,88 @@ These are not nice-to-haves. Last night proved we need them:
 
 ## ✅ EVERYTHING BUILT — VERIFIED IN CODE (31 May 2026)
 
-Every item below was cross-referenced against the actual file before being marked done.
-
-### 🖥️ Portal — Client-facing app (`apps/portal`)
-
-| ✅ | Feature | File | Commit |
-|----|---------|------|--------|
-| ✅ | **Light sidebar** `#F5F3FF`, grouped sections | `Sidebar.tsx:184` | `c5b38e5` |
-| ✅ | **Page background** `#FAFAFE`, dots removed | `layout.tsx` | `c5b38e5` |
-| ✅ | **Collapsible agent panel** (right side, localStorage) | `AgentColumn.tsx` | `c5b38e5` |
-| ✅ | **Agent card sidebar redesign** — coloured border + tint per agent | `Sidebar.tsx:252` | `7ff727b` |
-| ✅ | **Agent rebrand** — FIGSY "The Closer", Milla "The Brain", Vida "The Connector" | `AgentColumn.tsx:86,111`, `Sidebar.tsx:33` | `2b4d96b` |
-| ✅ | **New agent photos** — AI-generated card images (FIGSY/Milla/Vida) | `public/agents/*.png` | `b79e732` |
-| ✅ | **Agents overview page** `/dashboard/agents` — Monday.com Image 1 pattern | `dashboard/agents/page.tsx` (153 lines) | `2deadca` |
-| ✅ | **FIGSY full chat page** `/dashboard/figsy-chat` — Monday.com Image 2 pattern | `figsy-chat/page.tsx` (286 lines): two-col, Hello hero, stats card | `4256584` |
-| ✅ | **KIND AI sidebar → "View all →"** links to `/dashboard/agents` | `Sidebar.tsx` | `2deadca` |
-| ✅ | **Personalised greeting** — time-of-day, first name from email | `dashboard/page.tsx:142` | `c03a0c7` |
-| ✅ | **Onboarding checklist** — 4-step card on home screen, auto-hides when complete | `dashboard/page.tsx:160`: `<OnboardingChecklist>` | `c03a0c7` |
-| ✅ | **Conversational FIGSY onboarding** — `FigsyConversation` chat on home | `FigsyConversation.tsx` | previously built |
-| ✅ | **Notification preferences** — 5 toggles, localStorage | `settings/page.tsx:645` | `6fd5df2` |
-| ✅ | **Knowledge base preview** — FIGSY generates sample outreach sentence on save | `knowledge/page.tsx:92` | `f12e45f` |
-| ✅ | **Analytics empty state** — 4 action cards on KPIs when no data | `kpis/page.tsx:576` | `c03a0c7` |
-| ✅ | **Campaigns empty state** — action cards | `figsy/page.tsx:737` | `88dea2e` |
-| ✅ | **Campaign template library** — 6 pre-built sequences, "Use template" pre-fills form | `figsy/page.tsx:9-351`: `CAMPAIGN_TEMPLATES` | previously built |
-| ✅ | **Suggest campaign button** — Claude Haiku generates campaign from ICP context | `figsy/page.tsx:223`: `handleSuggestCampaigns()` + API `/figsy/suggest-campaign` | `38f5682` |
-| ✅ | **Email score badge** — AI quality check on subject/body, green/amber/red | `figsy/[id]/page.tsx:18`: `ScoreBadge` | `83d1dd1` |
-| ✅ | **Co-pilot mode** — toggle in campaign settings, "Pending approval" badge | `figsy/[id]/page.tsx:349`: `copilotMode` | `8c304ae` |
-| ✅ | **Multi-model toggle** — Haiku vs Sonnet per campaign | `figsy/page.tsx:486` | `17cc871` |
-| ✅ | **Auto-consent on approval** — fires consent email when lead scored, "Auto-sent" chip on row | `leads/page.tsx` + API | `38f5682` + `50319a2` |
-| ✅ | **Expanded reply categories** — referral, unsubscribe, OOO, wrong-person + filter tabs | `inbox/page.tsx:75` | `dd8658f` |
-| ✅ | **Warm leads tab** in inbox | `inbox/page.tsx:75` | `32297b8` |
-| ✅ | **AI research per lead** — Research button → 3 AI bullet points, cached | `leads/page.tsx:370` | `3981ea6` |
-| ✅ | **Email open tracking** — pixel, `opened_at` column, open rate in KPIs | `migrations/20260531_email_open_tracking.sql` | `aef1d4d` |
-| ✅ | **Deliverability dashboard** — score, SPF/DKIM tips, health indicators | `kpis/page.tsx:740` | previously built |
-| ✅ | **White-label PDF export** — branded HTML report, print-optimised | `kpis/page.tsx:341` | `abb9533` |
-| ✅ | **Multi-user team model** — invite flow, roles (owner/admin/member), team dashboard | `team/page.tsx` + `settings/page.tsx:650` + `invite/accept/page.tsx` | `cfa2c43`→`eda86ab` |
-| ✅ | **Milla integrations panel** — Google Calendar, Google Docs, HubSpot, Slack connect UI | `assistant/page.tsx:372` | `abb9533` |
-| ✅ | **ICP panel light theme** — consistent with rest of portal (was dark) | `icp/page.tsx:69` | `82fcc7d` |
-| ✅ | **Admin deal risk scoring** | `admin/clients/page.tsx:51` | `41a284c` |
-| ✅ | **Railway build fix** — Suspense on `/invite/accept` | `invite/accept/page.tsx` | `eda86ab` |
-
-### ⚙️ API (`apps/api`)
-
-| ✅ | Feature | File | Commit |
-|----|---------|------|--------|
-| ✅ | **MCP-1: KIND as MCP server** | `routes/mcp.ts`: GET /mcp/tools, POST /mcp/call, `/.well-known/mcp.json` | `38f5682` |
-| ✅ | **Team API** | `routes/team.ts` (101 lines): POST /invite, GET /accept, GET /members, DELETE /member | `53c6f29` |
-| ✅ | **Suggest campaign** | `routes/figsy.ts`: POST /figsy/suggest-campaign — Claude Haiku | `38f5682` |
-| ✅ | **Email score** | `routes/figsy.ts`: POST /figsy/score-email — heuristic scorer | `83d1dd1` |
-| ✅ | **AI research per lead** | `routes/leads.ts`: GET /leads/:id/research | `3981ea6` |
-| ✅ | **Auto-consent on status change** | `routes/leads.ts`: fires on lead → scored | `38f5682` |
-| ✅ | **Email open tracking pixel** | `routes/figsy.ts`: GET /figsy/track/open/:id | `aef1d4d` |
-| ✅ | **HubSpot lib** | `lib/hubspot.ts`: contact + deal sync | previously built |
-| ✅ | **Calendar routes** | `routes/calendar.ts` (297 lines) | previously built |
-| ✅ | **Voice routes** | `routes/voice.ts` (156 lines) | previously built |
-| ✅ | **WhatsApp routes** | `routes/whatsapp.ts` (194 lines) | previously built |
-| ✅ | **Stripe billing** | `routes/stripe.ts`, mounted at `/stripe` + `/webhooks/stripe` | previously built |
-
-### 🗄️ Database (`supabase/migrations`)
-
-| ✅ | Migration | Purpose |
-|----|-----------|---------|
-| ✅ | `20260531_client_members.sql` | Multi-user team model — `client_members` table, RLS |
-| ✅ | `20260531_copilot_mode.sql` | `copilot_mode` boolean on `figsy_campaigns` |
-| ✅ | `20260531_auto_consent.sql` | `consent_auto_fired` boolean on `leads` |
-| ✅ | `20260531_lead_research.sql` | `research_summary` jsonb on `leads` |
-| ✅ | `20260531_email_open_tracking.sql` | `opened_at` timestamptz on `figsy_sent_emails` |
-| ✅ | `20260531_campaign_model_preference.sql` | `model_preference` on `figsy_campaigns` |
-| ✅ | 32 earlier migrations | Full schema history from May 9 → May 31 |
-
-### 🛠️ Admin portal (`apps/admin`)
-
-| ✅ | Feature | Detail |
-|----|---------|--------|
-| ✅ | **Full admin portal redesign** — matches client portal design system | Light `#F5F3FF` sidebar, `#FAFAFE` bg, `border-purple-100` cards | `cf26791` |
-| ✅ | **Dashboard** | MRR (ZAR + USD), clients, active subs, past due, avg TTFL, KPI progress, monthly targets, client pipeline health table |
-| ✅ | **All Clients** | Health scoring (green/amber/red), at-risk filter, last login, leads, campaigns, credit balance |
-| ✅ | **Roadmap** | 4-phase milestone tracker, risk register, MCP server and multi-seat team marked done |
-| ✅ | **Revenue** | 3 scenarios (conservative/base/aggressive), monthly targets, KPI tracking |
-| ✅ | **Analytics** | Cohort analytics, lead/campaign trends |
-| ✅ | **Health** | System monitoring |
-| ✅ | **Smoke Test** | Manual checklist |
-| ✅ | **Demo Envs** | Creates real demo users with seeded data |
-| ✅ | **Compliance** | SOC2/ISO certification roadmap tracker |
-| ✅ | **CMO Tools** | Campaign content, GTM briefs |
-| ✅ | **Playbook** | Sales discovery script, objection handling |
-| ✅ | **HubSpot** | Deal sync dashboard |
-
-### 🌐 Website (`apps/landing`)
-
-| ✅ | Feature | Detail |
-|----|---------|--------|
-| ✅ | **Agent rebrand** | "Meet Your Team", The Closer/Brain/Connector, updated features per agent | `2b4d96b` |
-| ✅ | **Nav updated** | "Meet the agents" replaces FIGSY | `8b7f262` |
-| ✅ | **Footer updated** | "Our Agents" section with FIGSY/Milla/Vida | `8b7f262` |
+*Every item below has been confirmed in the actual code. No assumptions.*
 
 ---
 
-## 🔴 NEEDS FOUNDER ACTION — Blocked on credentials only (no code needed)
+### Client Portal — what your clients see when they log in
 
-| Priority | Item | Action needed | Impact |
-|----------|------|--------------|--------|
-| ✅ **Done** | All email sending | `RESEND_API_KEY` confirmed in Railway — P0-2/P0-7/P0-9 now live | Team invites, consent emails, FIGSY outreach active |
-| 🔴 **Critical** | Apollo lead search | Upgrade Apollo to $49/mo plan, add `APOLLO_API_KEY` to Railway API env | `/leads/search` returns 0 results on free plan |
-| 🔴 **High** | HubSpot CRM sync | Add `HUBSPOT_API_KEY` to Railway API env | CRM push on positive replies + deal creation |
-| 🟡 **Medium** | Hunter.io enrichment | Add `HUNTER_API_KEY` | Email finder per company domain |
-| 🟡 **Medium** | Smartlead sending | Add `SMARTLEAD_API_KEY` | Alternative email infrastructure |
-| 🟡 **Medium** | Stripe billing live test | Add Stripe price IDs to Railway env (keys already set) | Clients can purchase credits and subscriptions |
-| ⚪ **Low** | Email warm-up | Subscribe to warm-up service, add key | Improves deliverability for new sending domains |
-
-> **APOLLO is now the critical blocker.** RESEND is live. Everything else is enhancement.
-
----
-
-## 🔵 CLAUDE CAN BUILD NEXT — No blockers, ready to go
-
-| # | Item | What it is | Effort |
-|---|------|-----------|--------|
-| 1 | **P0-1: Website copy rewrite** | Update landing page hero, agent sections, pricing with final brand voice | 1 hr |
-| 2 | **P0-16: Onboarding progress checklist** | `OnboardingChecklist` component exists on dashboard — verify 4 steps work correctly end-to-end, add "complete" celebration | 30 min |
-| 3 | **Meeting booking integration** | FIGSY detects interest → Cal.com link in reply → meeting logged | 2 hrs |
-| 4 | **LinkedIn outreach channel** | Add LinkedIn as a sequence step type in campaign builder | 3 hrs |
-| 5 | **Score explanation on lead cards** | Show reasoning text from scoring alongside the score number | 1 hr |
-| 6 | **Demo video landing page** | Embed walkthrough video on `/demo` page | 1 hr |
-| 7 | **Admin cohort analytics fix** | `/admin/cohorts` — verify data loads correctly from live DB | 30 min |
-| 8 | **WhatsApp onboarding flow** | First-login prompt to connect WhatsApp Business for outreach | 2 hrs |
-
----
-
----
-
-### 📅 PREVIOUS SESSION — 29 May 2026 (Morning) — Design mandate + product vision locked + build queue reordered
+| ✅ | What it does |
+|----|-------------|
+| ✅ | **Dashboard home** — personalised greeting with time of day and first name. Onboarding checklist (4 steps, disappears when complete). |
+| ✅ | **FIGSY (The Closer)** — full outbound sales agent. Clients can build campaigns, write email sequences, set sending schedules, track replies. |
+| ✅ | **Campaign template library** — 6 pre-built outbound sequences clients can use as starting points. |
+| ✅ | **AI campaign suggestion** — button that uses Claude to generate a campaign idea based on the client's ICP context. |
+| ✅ | **Email quality score** — AI checks every email subject and body before sending. Returns green, amber, or red score with feedback. |
+| ✅ | **Co-pilot mode** — FIGSY queues emails for your approval instead of sending automatically. Client sees "Pending approval" on every queued email. |
+| ✅ | **AI model choice per campaign** — clients can choose faster/cheaper (Haiku) or better quality (Sonnet) for each campaign. |
+| ✅ | **ICP Builder** — client builds their Ideal Customer Profile. FIGSY uses this to find and score leads via Apollo. |
+| ✅ | **AI research per lead** — one click generates three bullet points of AI research on any lead, cached so it's fast on repeat views. |
+| ✅ | **Auto-consent** — when a lead is scored as qualified, a consent email is sent automatically. Shown as "Auto-sent" on the leads table. |
+| ✅ | **Inbox** — all replies in one place. Categorised automatically (positive, objection, referral, unsubscribe, OOO, wrong person). Filter tabs per category. |
+| ✅ | **Warm leads tab** — separate inbox tab showing only leads who replied positively. The handoff list. |
+| ✅ | **Milla (The Brain)** — AI assistant. Answers questions, runs tasks, gives briefings. Supports English, French, Kiswahili, and Hausa. |
+| ✅ | **Milla integrations** — UI for connecting Google Calendar, Google Docs, HubSpot, and Slack. |
+| ✅ | **KPI dashboard** — email open rates, reply rates, positive reply rates, deliverability score. |
+| ✅ | **Email open tracking** — every sent email has a tracking pixel. Opens are recorded and shown in the KPI dashboard. |
+| ✅ | **Deliverability dashboard** — health score, SPF/DKIM status, tips for improving inbox placement. |
+| ✅ | **White-label PDF report** — client can export a branded PDF of their campaign results. |
+| ✅ | **Knowledge base** — client uploads their company info, value prop, case studies. FIGSY generates a sample outreach sentence on save to confirm it worked. |
+| ✅ | **Multi-user team** — client can invite team members. Roles: owner, admin, member. Each person gets their own login. |
+| ✅ | **Notification preferences** — 5 toggles for controlling what email alerts the client receives. |
+| ✅ | **Realtime dashboard** — live stats that update without refreshing the page. |
+| ✅ | **MCP Connect page** — clients can connect K.I.N.D to external AI tools via the Model Context Protocol. |
+| ✅ | **Partner Hub** — partners see a dedicated section in their sidebar with their referral code, deal registration, commission dashboard, onboarding guide, and value deck. |
+| ✅ | **Conversational FIGSY onboarding** — new clients are walked through setup via a chat conversation rather than a form. |
 
 ---
 
-### ✅ EVERYTHING BUILT — COMPLETE LOG (all sessions, all dates)
+### Admin Portal — what you see when you log into the admin
 
-#### 9–11 May 2026 — Platform Scaffold
-| Built | Detail |
-|-------|--------|
-| Full monorepo scaffold | Turborepo, TypeScript — portal, admin, API, website |
-| Supabase auth | Signup, login (email confirmation removed later) |
-| Express API | Auth, clients, leads, subscriptions, Paystack routes |
-| Portal pages | Login, onboard, dashboard, billing, settings, leads, assistant, chatbot |
-| Full DB schema | subscriptions, icps, leads, opt_out_blocklist, assistant_messages, chatbot_configs, usage_metrics + RLS |
-| ICP CRUD + activate | Full routes |
-| Leads routes | Stats, list, create, status update, opt-out, AI email draft, CSV export |
-| Lead scoring | Claude Haiku 0–100 + reasoning |
-| POPIA consent email | + callback |
-| Weekly Monday digest | Cron |
-| Bulk consent send | Up to 100 leads |
-| Order form system | Client signing gate in admin |
-| Terms library | Admin page |
-| Legal pages | Terms, Privacy, POPIA, DPA, DPA-US on website |
-| Deployment guide | `docs/DEPLOYMENT_GUIDE.md` |
-
-#### 17–18 May 2026
-| Built | Detail |
-|-------|--------|
-| Demo Environments | Admin tool — creates real user + client, runs Apollo ICP, magic link, extend/expire |
-| AI ICP Suggest | "Suggest ICP with AI" → Claude Haiku fills form |
-| Credit management | Admin grant/refund credits per client + full transaction history |
-| Company reg + VAT fields | Portal settings + admin client detail |
-| RLS fix — credit_transactions | CRITICAL security fix — was exposing cross-client financial data |
-| Referral flow | `?ref=` persistence, `/clients/referrals`, credit audit trail |
-| KPIs dashboard | Parallel fetch, pipeline funnel, industry benchmarks |
-
-#### 19 May 2026
-| Built | Detail |
-|-------|--------|
-| FIGSY agent memory | `figsy_memory` table, refresh endpoint, cron |
-| FIGSY weekly digest | Monday email includes FIGSY stats |
-| FIGSY escalation alerts | Auto-pauses campaigns <1% reply rate — `paused_low_performance` status |
-| FIGSY identity card | Named agent UI, live stats, green pulse in portal |
-| Demo page `/demo` | 8 feature chapters, scroll-triggered animations |
-| Platform video | `platform-video.html` — 16-scene auto-playing demo (FIGSY + Milla + Vida) |
-| Client flow Mermaid chart | `docs/client-flow-sop.md` — 7 client paths |
-
-#### 20 May 2026
-| Built | Detail |
-|-------|--------|
-| Homepage rewrite V2 | New positioning — FIGSY Reasoning Loop, POPIA trust, Start/Scale/Dominate |
-| Pricing page | Start/Scale/Dominate tiers |
-| About page | Founder Belief, Dogfooding, AI Revenue Team |
-| `generateSequenceWithMemory` | FIGSY self-improvement using campaign history |
-| Milla morning brief cron | 07:30 UTC to all active clients |
-| Milla anomaly detection cron | 08:30 UTC |
-| FIGSY auto-replenish cron | 05:00 UTC |
-| K.I.N.D self-outreach cron | Monday 06:00 UTC — Apollo search auto-enrols prospects |
-| `/stats/platform` | Public endpoint — live platform stats |
-| 12 cron jobs at this point | Final count grew to 19 by 26 May |
-
-#### 22–24 May 2026
-| Built | Detail |
-|-------|--------|
-| Partners page rewrite | ClickUp/Smartsheet model — fixed pricing, commission-based |
-| Campaign intent prompt | Feature flagged — `FEATURE_CAMPAIGN_INTENT=true` |
-| Conversational ICP builder | Feature flagged — `FEATURE_ICP_BUILDER=true` |
-| Web Speech API voice input | Mic button on both above — Chrome/Safari/Edge |
-| ICP website scan | "Scan website" → `/icps/prefill` → pre-fills from URL |
-| Admin cohort analytics | `/admin/cohorts` — monthly grouping, activation/conversion/churn |
-| Portal analytics page | `/dashboard/analytics` — 6-month trends, ICP breakdown, score distribution |
-| Stripe billing wired | Fully activates on `STRIPE_SECRET_KEY` env var |
-| Portal dark mode + UI upgrade | Dashboard redesign + grouped sidebar |
-| Portal V2 full redesign | SidebarV2, Mission Control — behind `FEATURE_PORTAL_V2=true` |
-| Milla + Vida on website | Removed Coming Soon, added pricing, updated CTAs |
-
-#### 25 May 2026 — Massive Admin Build
-| Built | Detail |
-|-------|--------|
-| Schema drift fixes | `apollo_only_consented`, `amount_usd` removed, 5 missing columns fixed |
-| Signup hotfix | `amount_zar` NOT NULL constraint fix — all new signups work |
-| Daily automated audit | `.github/workflows/daily-audit.yml` — runs 04:00 + 16:00 SAST, opens GitHub Issue on failure |
-| `MASTER_SCHEMA.sql` | Single SQL to fully sync live DB — eliminates all schema drift |
-| **Admin dark theme** | Full rollout — all pages restyled to dark-first design |
-| **Admin Founder OS V2** | Dark sidebar, grouped sections, Founder OS branding |
-| **Admin AI exec team pages** | `/agents/otto`, `/lena`, `/reeve`, `/cmo`, `/cto`, `/cfo` — agent identity cards + brief API |
-| **Admin living docs viewer** | `/docs/*` — renders MASTER, run-costs, legal as markdown |
-| **Admin compliance tracker** | `/compliance` — full certification roadmap (SOC2, ISO 27001, ISO 42001) |
-| **Admin platform health page** | `/health` — system-wide monitoring |
-| **Admin revenue deep-dive** | `/revenue` — scenario tracker |
-| **Admin dark restyle** | Clients list, client detail — health scoring, at-risk filter, credit management |
-| **Internal briefs router** | `POST /internal/briefs/*` — AI exec team daily briefs |
-| **Waitlist landing page** | Pre-launch interest capture (`netlify-waitlist/`) |
-| **Milla + Vida billing launch** | Lock screens, demo request, pricing ($49/$39) in portal |
-| **Sales playbook** | `docs/sales-playbook.md` — discovery script, objections, demo flow, proposal |
-| Art of the Possible (Sections 24–28) | 15 pieces, 3 teachers, MCP vision, full competitor study |
-| AI Learning capability doc | Section 27 |
-| ClickUp Brain deep-dive | Section 28 (32 in current numbering) |
-
-#### 26 May 2026
-| Built | Detail |
-|-------|--------|
-| **3× daily auto-status system** | `platform_status` table, `POST /internal/status/snapshot`, Admin `/status` page, crons at 07:10/12:00/19:00 SAST |
-| **Stripe 3-tier credit bundles** | 40cr tier added — Lead Gen: $20/$38/$88 · FIGSY: $60/$110/$250 |
-| **Flutterwave integration** | ZAR/NGN/KES/GHS local African payments — Phase 2, code complete |
-| **ICP cascade delete migration** | `leads.icp_id SET NULL` on ICP delete — HIGH debt resolved |
-| **Calendly booking link wired** | Website + landing + portal |
-| **HubSpot CRM full sync** | `lib/hubspot.ts` — signup→contact, payment→deal, FIGSY reply→timeline |
-| **Admin HubSpot pipeline** | `/hubspot` — Kanban by stage, setup guide if key absent |
-| **Founder morning brief** | `POST /internal/founder-brief` — daily 07:05 SAST dark HTML email |
-| **Admin scalability page** | `/scalability` — stage tracker, hire checklist, infra triggers |
-| **Competitor ICP seed configs** | `supabase/seeds/competitor_icps.sql` — Lemlist/Instantly/Clay/Apollo users in ZA/NG/KE/GH/EG |
-| Lead drip system | `delivered_at` on leads, `daily_drip_rate` per client, 08:10 UTC cron |
-| Credits deduct at delivery | 1 credit per lead when drip delivers |
-| Low credit warning | Daily 07:40 UTC — emails clients at 1–4 credits |
-| Subscription lapse check | Daily 09:00 UTC — marks lapsed, emails client |
-| Milla hooks crash fixed | React hooks violation resolved |
-| Milla/Vida access gates | `active` only — trialing removed |
-| FIGSY trial expiry gate | Backend rejects expired trialing subs |
-| Cancel subscription | `POST /subscriptions/:id/cancel` |
-| Recurring billing webhooks | subscription.create + charge.success handlers |
-| Admin credit grant cap | 500 per grant max |
-| Full system audit | 45 issues found, 14 fixed this session |
-| FIGSY inbound webhook fix | `/replies/inbound` moved before `requireAuth` |
-| Bulk export row cap | 5,000 rows + `X-Export-Truncated` header |
-| Widget rate limiting | 20 req/IP/min on Vida public widget |
-| Apollo free plan error handling | Clean 402/429 — safe to use free plan |
-| **ClickUp competitive audit** | Section 24 — full feature comparison + steal-now S1–S8 |
-| **Apex competitive audit** | Section 25 — "AI Revenue OS" positioning steal |
-| **Full competitor landscape** | Section 26+33 — 31 competitors, 7 tiers |
-| **Art of the Possible queue** | Section 27 — 30 build items, 4 tiers |
-| **Visual roadmap flowchart** | `docs/roadmap-flowchart.html` — Day 1–5 with pass/fail branches |
-| **Visual client journey flowchart** | `docs/client-flow-visual.html` — all 7 client paths |
-| **5-day sprint plan** | 26–31 May documented |
-
-#### 27 May 2026 — Overnight Build
-| Built | Detail |
-|-------|--------|
-| **Credit race condition fix** | Unique index on `credit_transactions.reference` + atomic `increment_client_credits()` RPC — double-spend impossible. Migration: `20260526_credit_race_condition_fix.sql` — **user confirmed run** |
-| **Startup env check** | `apps/api/src/lib/startup-check.ts` — refuses to boot if CRITICAL vars missing, logs all var status |
-| **AI reply 7-category upgrade** | 🔥 Hot / 🌤️ Warm / ❄️ Cold / 🚫 Opted out / 👤 Wrong person / ✈️ OOO / ❓ Other. Backward compatible. |
-| **Admin Unibox** | `/unibox` — all FIGSY replies across all clients, filter by category, hot-sorted, limit 200 |
-| **Portal reply inbox upgrade** | Emoji labels, actionable summary bar, priority sort |
-| **Self-serve Stripe subscriptions** | Milla ($49/mo) + Vida ($39/mo) → Stripe checkout → webhook → DB activation |
-| **Stripe webhook handlers** | subscription.created/updated → DB upsert · deleted → cancelled · payment_failed → log |
-| **Paystack fully removed from billing UI** | Stripe-only portal. Paystack API routes preserved for legacy data only. |
-| **Milla upgrade screen** | "Unlock Milla — $49/month →" → `/dashboard/billing`. Demo option retained. |
-| **Vida upgrade screen** | "Unlock Vida — $39/month →" → `/dashboard/billing`. Demo option retained. |
-| **Homepage hero rewrite** | "Stop chasing leads. Let FIGSY book them." — website + landing |
-| **Full 4-test smoke suite** | Section 18 — 57 steps across Test 1–4 |
-| **Sections 28–34 restored** | Pulled from `main` — Art of Possible deep dives, Compliance, Competitor Targeting, AI Learning, ClickUp Brain, Full Competitive Landscape (917 lines), The Unbuilt Future |
-| **Daily Brief system** | Section 0 — living top-of-file, rewritten every session |
-| **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
-| **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
-
-#### 29 May 2026 (Morning + Day) — Portal fixes + Legal pause + Site taken down
-| Built / Fixed | Detail |
-|---------------|--------|
-| **Floating dots fixed** | `layout.tsx` — dots increased from 3-6px to 5-10px, opacity 0.3→0.12, colour `#A5B4FC`→`#7C3AED`. Now visible on dashboard gradient background. |
-| **Agent panel widths — PARTIAL (see 31 May)** | `AgentColumn.tsx` — Milla + Vida wrappers changed to `w-64`. FIGSY wrapper was still `w-72` in code. Not fully fixed until 31 May. |
-| **Sidebar duplicate FIGSY removed** | `Sidebar.tsx` — duplicate FIGSY status section (avatar + "FIGSY is online" link) below account nav removed entirely. |
-| **KPI calculations fixed** | `kpis/page.tsx` — open rate was `(replies/sent) * 0.28` (fake multiplier) → now `(replies/sent) * 100` (real %). Meeting rate was `(interested/contacted) * 0.4` → now `(meetingsBooked/contacted) * 100`. |
-| **Knowledge URL saving fixed** | `knowledge/page.tsx` — was only saving `urls[0]`. Now sends all URLs as array: `urls: urls.map(u => ({ url: u.url, context: u.label }))`. |
-| **Webhooks env var fixed** | `figsy/webhooks/page.tsx` — hardcoded URL replaced with `${process.env.NEXT_PUBLIC_API_URL ?? 'https://kindapi-production-e64c.up.railway.app'}/figsy/webhook/enrol`. |
-| **Settings Eye toggle + unsaved warning** | `settings/page.tsx` — added `Eye`/`EyeOff` toggle on CRM API key input. Added amber unsaved changes banner when profile or CRM form has unsaved changes. Clears on save. |
-| **nixpacks.toml deployed** | `apps/portal/nixpacks.toml` — forces `yarn build` on every Railway deploy. Fixes Turbo cache issue where Railway wasn't rebuilding `next build`. |
-| **Marketing site taken down** | `apps/website/index.html` replaced with "We're currently unavailable" page. All 21 other HTML pages redirect to index. Pushed to main — Vercel auto-deploys. www.get-kind.com now shows unavailable. |
-| **⚠️ BUILD PAUSED** | Legal concern raised — Smartsheet employment contract clauses 17.2 (competing business) and 19.3.2 (IP assignment). Solicitor call booked for Monday 2 June. No new builds until legal clarity. |
-
-#### 31 May 2026 — Agent panel + ICP typewriter + batch bug fixes
-| Built / Fixed | File | Detail |
-|---------------|------|--------|
-| **FIGSY wrapper width fixed** | `AgentColumn.tsx:166` | `lg:w-72` → `lg:w-64` — FIGSY agent panel now same width as ICP panel. Previous 29 May entry was wrong; code still had w-72. |
-| **ICP FIGSY typewriter added** | `icp/page.tsx:12-35` | Removed static dead "Describe who you want to target" text. Added typewriter on first message (2 chars/28ms + blinking cursor). Matches AgentSidePanel. |
-| Commit | `f4bcf95` | |
-| **Smoke test 500 fixed** | `figsy.ts:249` | `status = 'contacted'` → `'consent_sent'` — invalid enum was 500ing `GET /figsy/kpis`. `GET /leads` confirmed clean. |
-| **Mark meeting booked button** | `inbox/page.tsx` | Added to ReplyDetail — visible on hot/interested replies. Calls `POST /figsy/replies/:id/mark-booked`. Shows ✓ state on success. |
-| **Seed demo reply debug button removed** | `inbox/page.tsx` | Removed from both empty states. `seeding` state + `seedDemoReply()` function removed entirely. |
-| **Copy share link button** | `dashboard/page.tsx` + `CopyShareLink.tsx` | Appears above stats when client has share_token + totalSent > 0. Copies `{origin}/share/{token}` to clipboard. Shows "Copied!" confirmation. |
-| **AskFigsyButton chat persistence** | `AskFigsyButton.tsx` | Saves last 20 messages to `localStorage` key `kind_askfigsy_thread_v1`. Restores on reload. |
-| **NotificationBell theme fix** | `NotificationBell.tsx:58` | Bell button was `text-white/60 hover:text-white` (dark). Now `text-[#9B8EC4] hover:text-[#7C3AED]` (light). |
-| Commit | `0eacf81` | Pushed to `main` → Railway auto-deploying |
-
-#### 29 May 2026 — Design mandate + product vision locked
-| Built / Fixed | Detail |
-|---------------|--------|
-| **Onboarding FIGSY conversation committed** | `apps/portal/src/app/(auth)/onboard/page.tsx` — 4-step scripted FIGSY chat (company_name → industry → country → website). Typewriter effect, chat history bubbles, progress dots, website scan via `/icps/prefill`. Committed + pushed. |
-| **Homepage design language documented** | `get-kind.com` visual: white background, animated floating blue/lavender dots, warm gradient FIGSY card (peach→pink→lavender), no dark overlay. This is the reference for all portal pages. |
-| **Design mandate locked** | No building without founder authorisation. Describe change → wait for go. |
-| **Product philosophy locked** | Every portal section must be automated and agent-driven. Less manual input. FIGSY/agents ask, suggest, pre-fill. Learning agent mechanism moves to sooner roadmap. |
-| **Full visual audit** | AgentSidePanel (all pages except ICP Builder) uses dark `#0F0929` + dark overlay on photo → looks like a dark mugshot. ICP Builder uses white card + no overlay → warm illustrated feel. All agent panels need to match ICP Builder. |
-
-#### 28 May 2026 (Night) — Chat-first FIGSY + Auto-consent + Full Product Audit
-| Built / Fixed | Detail |
-|---------------|--------|
-| **AgentSidePanel redesign** | Compact 40px header replaces 224px tall photo. Chat thread is now the primary visual. Conversation persists across page navigation via sessionStorage (key: `kind_figsy_thread_v1`). |
-| **Conversational ICP onboarding** | New users (`leadCount === 0`) get FIGSY onboarding flow: asks who they sell to, accumulates fields via `/icps/chat-build`, shows "Build ICP & find my leads →" button inline when ready. Auto-saves ICP and redirects to leads. |
-| **Sidebar FIGSY thread section** | Permanent FIGSY section above account footer in left nav. Shows last message preview from sessionStorage. Quick-send input — type, hit Enter, lands in FIGSY chat. `isNewUser` shows "Let's find your first leads" state. |
-| **Auto-consent after scoring** | `autoConsentScoredLeads()` fires after ICP scoring — any lead with score ≥ 60 + email gets consent email automatically. No button click required. |
-| **Portal auto-consent trigger** | `updateStatus()` in leads page: moving lead to `consent_sent` auto-fires `POST /leads/:id/consent` immediately. |
-| **AskFigsyButton removed** | Floating button removed from layout — redundant now that AgentSidePanel IS the chat. `isNewUser` flag passed from layout to all downstream components. |
-| **Full product audit completed** | Every page audited. 10-point improvement plan documented in MASTER.md (below). |
-
-#### 28 May 2026 (Evening) — Full Product Flow Fixes + Vision Locked
-| Built / Fixed | Detail |
-|---------------|--------|
-| **Email threading** | Steps 2 & 3 now get `Re: {step1_subject}` prefix — they land in the same Gmail thread as original outreach |
-| **Campaign save fix** | `.single()` → `.maybeSingle()` — "Campaign not found" error on sequence save eliminated |
-| **Inbound reply webhook** | Handles both Resend webhook formats (flat + envelope). Extracts email from `"Name <email>"` string. |
-| **Real activity feed** | `GET /figsy/activity` endpoint — aggregates from 4 tables. Dashboard no longer uses hardcoded mock events. |
-| **Company CSV import** | ZoomInfo/account lists detect company columns and offer "Find contacts at these N companies" button via Apollo `organization_names` filter |
-| **PUT /campaigns/:id/audience** | Endpoint was missing — portal was calling a 404. Added. |
-| **POST /campaigns/:id/send-now** | Manual send trigger for demo/testing. Returns `{sent, due_count}`. |
-| **POST /leads/:id/resend-consent** | New endpoint — portal `Resend` button on `consent_sent` leads. |
-| **Resend consent button** | Leads page: `consent_sent` leads now show amber "Resend" button + green "Mark consented" button together. |
-| **Onboarding checklist wired** | `OnboardingChecklist` component rendered above FIGSY widget on dashboard for new users. |
-| **Send Now button** | Campaign detail page: blue "Send Now" button visible when campaign is active. |
-| **30s auto-poll after activation** | Campaign activates → polls every 5s for 30s to show enrollment count updating in real time. |
-| **TypeScript clean** | Both `apps/api` and `apps/portal` compile with zero errors. |
-| **MASTER.md updated** | This section + Founder To-Do + Claude Queue + Product Vision all updated. |
-
-#### 28 May 2026 — Admin Redesign + FIGSY Gating + Admin Portal Playbook
-| Built / Fixed | Detail |
-|---------------|--------|
-| **Admin portal full visual redesign** | Sidebar navigation (dark `#0F0929` purple) replacing flat navy top bar. Portal-matching warm lavender gradient body. Inter font. All 13 pages updated. |
-| **Admin card style** | All cards → `bg-white/80 backdrop-blur rounded-2xl border-white/60 shadow-sm`. Tables: purple-50 dividers, `hover:bg-purple-50/30`. |
-| **Admin colour system** | All `#0066FF` → `#7C3AED`. All `bg-gray-50` page wrappers removed. Purple accent throughout. |
-| **AdminSidebar component** | `apps/admin/src/components/AdminSidebar.tsx` — replaces top nav bar. 13 nav items, purple active state. K.I.N.D logo pill. Live status indicator. |
-| **Layout shell** | `apps/admin/src/app/layout.tsx` → provides sidebar + gradient shell. All pages strip their own `<AdminNav />` calls. |
-| **Pre-existing JSX bugs fixed** | 10+ missing `</div>` closing tags in Playbook, Demo, Roadmap, Scalability, Terms Library pages — these were bugs in the original source. All fixed. TypeScript clean. |
-| **AskFigsyButton lead-gen gating** | Non-FIGSY subscribers: lead-gen helper mode only. Different greeting, placeholder, status label, sends `mode: 'lead_gen'` to API. Upgrade strip → `/dashboard/billing`. FIGSY subscribers: full access, unchanged. `hasFigsy` prop from layout (was already being computed). |
-| **Section 36 — Admin Portal Playbook** | Full how-to guide for every admin route. Daily workflow, common task recipes, when to use what. |
-
-#### 27 May 2026 — Portal Facelift + API Wiring + ClickUp Steals (Evening Session)
-| Built / Fixed | Detail |
-|---------------|--------|
-| **Full portal code audit** | 94 issues found across 20 files — critical bugs, old colours, mock data, undefined CSS classes |
-| **Sidebar — complete rebuild** | Larger agent photos: w-14 h-14 main card, w-10 h-10 in dropdown. Dropdown restored. Lead Gen as primary section (always shown). Agents as subscription upgrades (gated). Beta badge removed. |
-| **Sidebar active-nav bug fixed** | "People" + "ICP Builder" both highlighted simultaneously — fixed with `exact: true` flag. `/dashboard/leads` now uses exact match only. Account nav also fixed (startsWith + '/'). |
-| **Locked agent routing bug fixed** | Clicking locked FIGSY/Milla/Vida → was going to billing. Now routes to each agent's own page (upgrade banner). |
-| **SupportWidget + AskFigsyButton collision fixed** | Both were `fixed bottom-6 right-6` — stacked on same pixel. SupportWidget removed from layout.tsx entirely. |
-| **SupportWidget.tsx deleted** | Orphaned file — not imported anywhere. Removed. |
-| **TrialExpiredOverlay CTA button fixed** | `bg-[#F5F0FF]0` artifact (invisible button) → `bg-[#7C3AED]` — upgrade flow now visible. |
-| **Global colour replacement — 32 files** | All `#0066FF` old blue → `#7C3AED` violet. All `#001f4d`/`#003080` dark navy → warm dark violet `#1A0F47`/`#0F0929`. |
-| **brand-500/brand-600 undefined Tailwind classes fixed** | `brand-500` → `[#7C3AED]`, `brand-600` → `[#6D28D9]`, `brand-700` → `[#5B21B6]` across 7 pages — buttons, spinners, focus rings all now visible. |
-| **Tailwind config updated** | Full `brand` colour scale added: 50 (warm peach) → 900 (sidebar dark). `kind-gradient` + `kind-gradient-vivid` background images added. |
-| **Warm brand palette applied** | Page bg: `linear-gradient(135deg, #FFF5EE → #EDE6FF)`. Sidebar: `#1E1152 → #160D3D` (softer deep violet). Cards: `bg-white/80 backdrop-blur border-purple-100/60` across all 25 dashboard pages. |
-| **FIGSY page: 🤖 emoji → real photo** | Agent identity card now shows `figsy.png` with ring + pulse dot. Unlock wall + empty state also updated. |
-| **Chatbot default colour fixed** | Default widget colour was `#0066FF` (old blue) → now `#7C3AED`. All new chatbots default to brand violet. |
-| **Agent photo correct cropping** | `object-cover object-top` on all agent images — faces show correctly. |
-| **Meetings Booked metric added** | KPIs page — violet hero card, benchmark vs Alta AI 3–5% target. |
-| **Sequence branching UI added** | Campaign `[id]` page — `on_reply: stop/skip_next/continue` visual branch pills between steps. |
-| **AskFigsyButton dark theme** | `#0F0929` dark pill, real FIGSY photo, violet user messages. |
-| **Dashboard rebuilt as Mission Control** | Single command view: hero row, 5-stat command bar, active campaigns + hot replies columns. |
-| **AskFigsyButton → real /figsy/chat API** | P1 complete — replaces mock setTimeout. Full error handling. Chat persists in-session. |
-| **Co-pilot approval queue badge** | Amber "Co-pilot: review before send" badge on active campaigns when mode = copilot (Alta steal) |
-| **Knowledge base all 7 tabs → API** | P2 complete — Pitch/Keywords/Signals/Messaging/DNC/Context/Prompts all GET on load, POST on save. Spinners, success/error toasts. |
-| **Campaign [id] sequence save → API** | P3 complete — `saveSequence()` calls `PUT /figsy/campaigns/:id/sequence`. Audience + settings + archive all wired. |
-| **api.ts gets `put()` method** | P4 complete — `api.put<T>(path, body, token)` added alongside existing get/post/patch/delete_ |
-| **CommandPalette (Cmd+K)** | S1 complete — brand palette, 12 nav items, grouped sections, full keyboard nav (↑↓ Enter Esc), registered in layout.tsx |
-| **ActivityFeed component** | S2 complete — 6 event types, relative timestamps, skeleton loading, integrated into dashboard home |
-| **Shareable /share/[token] dashboard** | S3 complete — public read-only, outside auth group, OG image, K.I.N.D branding, 4 metric cards + SVG chart |
-| **Demo Playbook (Section 35)** | Full live sales demo script — 10 scenes, narration, smoke test coverage map, objection responses, 30-min agenda, pre-demo setup checklist, post-demo reset. Inspired by Rachel at Alta. |
-| **AskFigsyButton restricted to lead-gen mode** | Floating FIGSY widget on portal shows limited "lead gen helper" capability — full FIGSY features require subscription upgrade (see FIGSY gating decision below) |
+| ✅ | What it does |
+|----|-------------|
+| ✅ | **Dashboard** — live MRR in ZAR and USD, total clients, active subscriptions, past-due accounts, average time-to-first-lead, monthly targets, client pipeline health table. |
+| ✅ | **All Clients** — every client with health score (green/amber/red), last login, lead count, campaign count, credit balance, at-risk filter. |
+| ✅ | **Deal risk scoring** — flags clients at risk of churning based on activity signals. |
+| ✅ | **Partners** — full partner management. List of all partners, approve or reject applications, view their deals, manage their commissions, mark payments as paid with Wise reference. |
+| ✅ | **Revenue** — three projections (conservative, base, aggressive) with monthly targets and KPI tracking. |
+| ✅ | **Roadmap** — 4-phase milestone tracker showing what's done and what's next. |
+| ✅ | **Analytics** — cohort analysis, lead trends, campaign performance across all clients. |
+| ✅ | **Compliance tracker** — SOC2 and ISO certification readiness checklist. |
+| ✅ | **CMO Tools** — campaign content briefs, GTM planning. |
+| ✅ | **Sales Playbook** — discovery call script, objection handling guide. |
+| ✅ | **HubSpot sync** — deal sync dashboard showing which client deals have been pushed to HubSpot. |
+| ✅ | **Demo environments** — create real demo client accounts with seeded data for showing to prospects. |
+| ✅ | **Smoke test checklist** — manual go/no-go checklist before showing to a client. |
 
 ---
 
-### 🐛 ALL BUGS FIXED — COMPLETE LOG
+### Website (www.get-kind.com)
 
-| Bug | Date Fixed | How |
-|-----|-----------|-----|
-| RLS missing on `credit_transactions` | 18 May | Re-enabled — was exposing cross-client financial data |
-| Email confirmation blocking signup | 18 May | Removed — signup now instant |
-| ICP chat build — top-level Anthropic import | 25 May | Fixed import, correct route order |
-| `[object Object]` error on ICP save | 25 May | Normalize AI arrays, robust error serialization |
-| Milla chat broken | 25 May | Fixed |
-| Schema drift — 5 missing columns | 25 May | MASTER_SCHEMA.sql + migration |
-| `amount_zar` NOT NULL signup failure | 25 May | Hotfix — all new signups now work |
-| Schema drift — `amount_usd` removed | 25 May | MRR calculations restored |
-| Apollo search — no results on strict filters | 26 May | 3-pass fallback: full → remove consent → remove size |
-| Lead overspend — drip exceeding limits | 26 May | `maxLeads` cap + `leads_per_run` respected |
-| FIGSY credit deduction on enrollment | 26 May | Manual + auto-enroll both deduct correctly |
-| FIGSY trial expiry gate | 26 May | Backend rejects expired trialing subs |
-| Milla hooks crash on load | 26 May | React hooks violation — all hooks before conditionals |
-| FIGSY inbound webhook — always 401 | 26 May | Moved before `requireAuth`, protected by `RESEND_WEBHOOK_SECRET` |
-| `sub.clients` null guard | 26 May | Prevents crash in trial expiry handler |
-| Stats endpoint — blank on any error | 26 May | `Promise.allSettled` prevents cascade failure |
-| Widget — no rate limiting | 26 May | 20 req/IP/min in-memory limiter |
-| TypeScript unused imports | 26 May | `icps.ts` cleaned |
-| ICP delete orphaning leads | 26 May | `ON DELETE SET NULL` migration — HIGH debt resolved |
-| Credit double-spend TOCTOU race | 27 May | Unique DB index + atomic RPC — two concurrent requests cannot both credit same reference |
-| Paystack on billing page | 27 May | Removed entirely — Stripe-only |
-| Milla/Vida linked to wrong page | 27 May | Both now → `/dashboard/billing` with correct pricing |
-| Stale Paystack refs in MASTER.md | 27 May | All 8+ locations fixed in full audit |
-| Cron count wrong in docs (19 → 16) | 27 May | Corrected — actual cron.ts has 16 jobs. The 3 "status snapshot" crons were planned but never built. |
-| ICP cascade delete debt — shown as open | 27 May | Marked fixed in technical debt section |
-| Sections 28–34 missing from branch | 27 May | Restored from `main` |
-| **PAYSTACK_SECRET_KEY marked CRITICAL in startup-check** | 27 May | **Fixed** — Paystack removed; was causing API to refuse boot if key absent. Moved to optional. |
-| **Login page hardcoded API URLs (2 instances)** | 27 May | **Fixed** — Now uses `NEXT_PUBLIC_API_URL` env var with Railway URL as fallback |
-| **Admin Unibox TypeScript error** | 27 May | **Fixed** — Supabase join type cast via `unknown` — no runtime impact, build now clean |
-| **analytics + cohorts pages marked ✅ Live** | 27 May | **Fixed in MASTER** — Pages never existed. Stale `.next` type cache was misleading. Both marked ⏳ Not built. |
-| **Stale `.next` type cache files** | 27 May | **Cleaned** — Deleted 3 stale cached type files (analytics, v2, icp/builder) from portal `.next/types` |
-| **Sidebar: People + ICP Builder both active** | 27 May (this session) | `exact: true` flag on `/dashboard` and `/dashboard/leads` nav items — startsWith was matching parent as prefix of child |
-| **Locked agent routes to billing** | 27 May (this session) | Routes now go to agent's own page (upgrade banner), not `/dashboard/billing` |
-| **SupportWidget + AskFigsyButton overlap** | 27 May (this session) | SupportWidget removed from layout entirely — AskFigsyButton is sole floating widget |
-| **TrialExpiredOverlay CTA button invisible** | 27 May (this session) | `bg-[#F5F0FF]0` → `bg-[#7C3AED]` — was caused by `bg-blue-50` partial match on `bg-blue-500` during global replacement |
-| **brand-500/brand-600 undefined classes in 7 pages** | 27 May (this session) | Global replace — buttons, spinners, focus rings all visible now |
-| **FIGSY identity card showing 🤖 emoji** | 27 May (this session) | Replaced with real `figsy.png` photo on agent card, unlock wall, and empty state |
-| **Chatbot default colour #0066FF** | 27 May (this session) | New chatbots default to `#7C3AED` — old blue was client-facing in embed widget |
-| **Admin portal broken JSX (10+ missing `</div>`)** | 28 May | Playbook ScriptBlock, Table, IcpContent, DiscoveryContent, DemoContent, ObjectionContent, ProposalContent, FollowUpContent + page wrappers in Roadmap/Scalability/Terms — all fixed |
-| **AskFigsyButton no gating** | 28 May | Non-subscribers now get lead-gen mode only — upgrade strip shown. `hasFigsy` prop wired from layout. |
-| **"Campaign not found" on sequence save** | 28 May (eve) | `.single()` throws when row not found — changed to `.maybeSingle()` + null check |
-| **Steps 2+3 as new email threads** | 28 May (eve) | Fixed in `lib/figsy.ts` — steps 2/3 now get `Re: {step1_subject}` prefix automatically |
-| **Activity feed showing mock data** | 28 May (eve) | New `GET /figsy/activity` endpoint + dashboard wired to it — all real data |
-| **PUT /campaigns/:id/audience 404** | 28 May (eve) | Endpoint was missing — added |
-| **LinkedIn/ZoomInfo company CSV → 0 importable leads** | 28 May (eve) | Company lists now detected and routed to "Find contacts at these companies" flow via Apollo |
-| **POST /leads/import/linkedin 404** | 28 May (eve) | Endpoint was missing entirely — added |
-| **Onboarding checklist not showing** | 28 May (eve) | `OnboardingChecklist` wired back into dashboard |
-| **Admin nav bar cramped / mismatched** | 28 May | Replaced with dark sidebar — all 13 nav items visible, portal-matching design |
+| ✅ | What it does |
+|----|-------------|
+| ✅ | **Full landing page** — live on Railway with Express server. Hero, agent sections, pricing, social proof. |
+| ✅ | **Agent branding** — FIGSY (The Closer), Milla (The Brain), Vida (The Connector) with AI-generated agent photos. |
+| ✅ | **All 21 sub-pages** — features, pricing, about, use cases, support, legal pages, etc. |
+| ✅ | **Typewriter hero** — cycles through "Always on. / Break the ceiling. / Unlimited Pipeline." |
 
 ---
 
-### 🔴 FOUNDER — YOUR TO-DO LIST
+### Infrastructure & API
 
-> **28 May (Evening) — All flow fixes are pushed to `main`. Railway is auto-deploying now. Read this when you wake up.**
-
-**FIRST THING — infrastructure that blocks the smoke test:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| E1 | Confirm Railway deploy from `5c87292` is green | railway.app → KIND API → Deployments | ☐ |
-| E2 | Add `FIGSY_REPLY_TO=replies@get-kind.com` to Railway | Railway → KIND API → Variables | ☐ |
-| E3 | Add `ADMIN_SECRET_KEY=<strong-secret>` to Railway | Railway → KIND API → Variables (required for cron jobs) | ☐ |
-| E4 | In Resend → Inbound → set webhook URL to `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` | Resend dashboard | ☐ |
-| E5 | In Resend → Domains → add MX record for your inbound subdomain (e.g. `replies.get-kind.com`) | DNS + Resend dashboard | ☐ |
-
-**Tonight / Before Test 1:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| T1 | Confirm `RESEND_API_KEY` is set in Railway | Railway → KIND API → Variables | ☐ |
-| T2 | Confirm Railway build is green (no red deployments) | railway.app → KIND API → Deployments | ☐ |
-| T3 | Run `20260525_fix_subscriptions_schema.sql` if not done | Supabase SQL Editor | ☐ |
-| T4 | Run `20260526_drip_and_controls.sql` if not done | Supabase SQL Editor | ☐ |
-| T5 | Run `MASTER_SCHEMA.sql` if not done | Supabase SQL Editor — eliminates all schema drift | ☐ |
-
-**Before Test 2 (after Test 1 passes):**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| T6 | Create fresh Gmail — never used on K.I.N.D | gmail.com | ☐ |
-| T7 | Run agent-unlock SQL for test Gmail | Supabase SQL Editor — see Section 18 Test 2 for exact SQL | ☐ |
-| T8 | Grant 10,000 credits to test account | Admin → test client → grant credits | ☐ |
-
-**Before Test 3 (after Test 2 passes):**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| T9 | Create Milla product in Stripe — Recurring $49/month | Stripe dashboard → Products | ☐ |
-| T10 | Create Vida product in Stripe — Recurring $39/month | Stripe dashboard → Products | ☐ |
-| T11 | Add `STRIPE_PRICE_MILLA_MONTHLY` to Railway | Railway — do NOT paste ID in chat | ☐ |
-| T12 | Add `NEXT_PUBLIC_STRIPE_PRICE_MILLA_MONTHLY` to Railway | Railway + Vercel env vars | ☐ |
-| T13 | Add `STRIPE_PRICE_VIDA_MONTHLY` to Railway | Railway — do NOT paste ID in chat | ☐ |
-| T14 | Add `NEXT_PUBLIC_STRIPE_PRICE_VIDA_MONTHLY` to Railway | Railway + Vercel env vars | ☐ |
-| T15 | Run `20260527_stripe_subscription_id.sql` | Supabase SQL Editor | ☐ |
-
-**This week — high priority:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| T16 | Set up Stripe account fully | stripe.com → keys → `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` to Railway | ☐ |
-| T17 | Create 4 credit bundle prices in Stripe | Lead Gen: 20cr/$20, 40cr/$38, 100cr/$88 · FIGSY: 20cr/$60, 40cr/$110, 100cr/$250 | ☐ |
-| T18 | Register UK company | companieshouse.gov.uk — £50, same day — Section 23 | ☐ |
-| T19 | Create HubSpot account + API key | app.hubspot.com (free) → Private Apps → "KIND AI" → `HUBSPOT_API_KEY` to Railway | ☐ |
-| T20 | Register Resend inbound webhook | Resend → Webhooks → Railway URL → set `RESEND_WEBHOOK_SECRET` in Railway | ☐ |
-| T21 | Add `FIGSY_KIND_CLIENT_ID` to Railway | Your UUID from Supabase clients table — self-outreach does nothing without it | ☐ |
-
-**⚖️ Legal & Investment Foundations — Founder's Guide (added 28 May 2026):**
-| # | Task | Cost | Where | ✓ |
-|---|------|------|-------|---|
-| L1 | Register UK Ltd company on Companies House | £50 | gov.uk/register-a-company or 1st Formations | ☐ |
-| L2 | Open business bank account (Tide or Starling or Wise) | Free | tide.co / starlingbank.com / wise.com | ☐ |
-| L3 | Apply for SEIS Advance Assurance from HMRC (do this BEFORE approaching investors) | Free | gov.uk — search "SEIS advance assurance" | ☐ |
-| L4 | File K.I.N.D trademark at UK IPO — Class 42 (SaaS) | £170 | ipo.gov.uk/trademark | ☐ |
-| L5 | File FIGSY trademark at UK IPO — Class 42 | £50 (add-on) | ipo.gov.uk/trademark | ☐ |
-| L6 | File Milla + Vida trademarks at UK IPO if commercialising separately | £50 each | ipo.gov.uk/trademark | ☐ |
-| L7 | Register with ICO (data protection) | £40/year | ico.org.uk/registration | ☐ |
-| L8 | Sign IP assignment agreements with all devs/contractors (retroactive too) | Free / £300 via SeedLegals | seedlegals.com | ☐ |
-| L9 | Draft shareholders agreement | £300–500 via SeedLegals | seedlegals.com | ☐ |
-| L10 | Set up FreeAgent or Xero bookkeeping from day one | £19–30/month | freeagent.com / xero.com | ☐ |
-| L11 | Consider EUIPO trademark filing if selling to EU clients | ~€850/class | euipo.europa.eu | ☐ |
-| L12 | Consider SA trademark via CIPC if significant ZA revenue | Nominal | cipc.co.za | ☐ |
-| L13 | Prepare SEIS advance assurance docs: business plan + 3yr projections | Free | Attach to HMRC application | ☐ |
-| L14 | Build investor data room (Google Drive): cert of inc, cap table, IP assignments, accounts, SEIS letter | Free | Google Drive or Notion | ☐ |
-| L15 | Consider EMI option scheme setup before first key hire | ~£500 via SeedLegals | seedlegals.com | ☐ |
-
-**When ready — non-blocking:**
-| # | Task | Notes | ✓ |
-|---|------|-------|---|
-| T36 | Get permission from first paying client to use their logo | One email: "Can we use your logo on our site?" — Claude has the component ready (W6) | ☐ |
-| T22 | Create calendar booking link | calendly.com or cal.com — Claude wires every demo button in 5 mins | ☐ |
-| T23 | Share UK company number with Claude | Wire into footer + legal in 5 mins after registration | ☐ |
-| T24 | Upgrade Apollo plan | $49/mo Basic — unlocks tech stack filter for competitor ICPs | ☐ |
-| T25 | Upgrade Resend to paid | Free = 100 emails/day. Pro = $20/mo — needed at scale | ☐ |
-| T26 | Open Wise Business account | After UK registration — free, multi-currency, receives USD/GBP | ☐ |
-| T27 | Activate Portal V2 | Add `FEATURE_PORTAL_V2=true` to Railway | ☐ |
-| T28 | Activate campaign intent | `FEATURE_CAMPAIGN_INTENT=true` to Railway | ☐ |
-| T29 | Activate ICP builder chat | `FEATURE_ICP_BUILDER=true` to Railway | ☐ |
-| T30 | Flutterwave account (Phase 2) | `FLUTTERWAVE_SECRET_KEY` + `FLUTTERWAVE_WEBHOOK_HASH` | ☐ |
-| T31 | Vapi.ai Voice | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` | ☐ |
-| T32 | WhatsApp Business API | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` (Meta: 3–7 days) | ☐ |
-| T33 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | ☐ |
-| T34 | G2 / Capterra / Product Hunt listings | Launch day — Claude drafts copy | ☐ |
-| T35 | Google Workspace | ~$12/mo — when first client or hire. Gmail fine until then. | ☐ |
-
----
-
-### 🤖 CLAUDE — MY BUILD QUEUE
-
-**✅ COMPLETED THIS SESSION (28 May):**
-| # | Build | Status |
-|---|-------|--------|
-| ✅ | Admin portal full visual redesign | Done — sidebar, gradient, purple accents, all 13 pages |
-| ✅ | AdminSidebar component | Done — `apps/admin/src/components/AdminSidebar.tsx` |
-| ✅ | AskFigsyButton lead-gen gating | Done — `hasFigsy` prop, mode flag to API, upgrade strip |
-| ✅ | Admin pre-existing JSX bug fixes | Done — 10+ broken closing divs in Playbook/Demo/Roadmap/Scalability/Terms |
-| ✅ | Section 36 — Admin Portal Playbook | Done — full how-to for all 13 routes + recipes |
-| ✅ | MASTER.md full audit + update | Done — cross-referenced all current state |
-
-**✅ COMPLETED PREVIOUS SESSION (27 May — full day):**
-| # | Build | Status |
-|---|-------|--------|
-| ✅ | Full portal code audit (94 issues) | Done — all critical bugs fixed |
-| ✅ | Sidebar rebuild — larger photos, dropdown, subscription-aware | Done |
-| ✅ | Global colour cleanup — 32 files | Done |
-| ✅ | Soft warm palette applied (matches brand image) | Done |
-| ✅ | FIGSY page: real photo, sequence branching UI | Done |
-| ✅ | Dashboard Mission Control rebuild | Done |
-| ✅ | Meetings Booked metric (Alta benchmark) | Done |
-| ✅ | SupportWidget deleted (orphaned) | Done |
-| ✅ P1 | AskFigsyButton → real `/figsy/chat` API | Done — real API call, full error handling |
-| ✅ P1b | Co-pilot approval queue badge | Done — amber badge on active campaigns in copilot mode |
-| ✅ P2 | Knowledge base all 7 tabs → API | Done — GET on load, POST on save, all tabs |
-| ✅ P3 | Campaign sequence/audience/settings/archive → API | Done — all 4 actions wired |
-| ✅ P4 | `api.put()` method | Done |
-| ✅ S1 | CommandPalette (Cmd+K) | Done — keyboard nav, grouped, brand palette |
-| ✅ S2 | ActivityFeed component | Done — integrated into dashboard home |
-| ✅ S3 | Shareable /share/[token] dashboard | Done — public, OG image, outside auth group |
-
-**REMAINING — PORTAL:**
-| # | Build | What | Priority |
-|---|-------|------|----------|
-| P5 | Chat history persistence | AskFigsyButton resets on page reload — needs `/figsy/chat/history` endpoint | 🟡 Medium |
-| P6 | NotificationBell theme | Still uses white/gray (mismatches dark sidebar) | 🟡 Medium |
-
-**🔴 ALTA COMPETITIVE — Build these before next demo:**
-*Source: Jacques' live Alta demo (Rachelle Shapiro, 27 May 2026). 28 screenshots + Fathom transcript. Section 20 has full feature map.*
-
-**Round 1 — SHIPPED 27 May 2026:**
-| # | Build | What | Status |
-|---|-------|------|--------|
-| W1 | **Live ICP count "wow moment"** | Debounced Apollo preview — "X matching leads found" banner, 800ms after input. Live Apollo data. | ✅ Done — shows count. Upgrade to names → W13 |
-| W2 | **Signal tokens in FIGSY sequences** | `{{signal_*}}` tokens in email copy — recent hire, funding, job change. AI picks best signal per lead. | ⏳ Pending — 1 day |
-| W3 | **Intent filters in ICP builder** | 4 signal buttons: recently funded / hiring SDRs / headcount growth / new executive. Apollo funding + keyword fields. | ✅ Done |
-| W4 | **CRM on all plans** | Confirm HubSpot ungated in settings. Code audit confirmed: no plan gate exists. | ✅ Already ungated |
-| W5 | **LinkedIn `in` badge on every lead** | `in` badge in LinkedIn blue on all leads in table. Apollo already returns `linkedin_url`. | ✅ Done |
-| W6 | **Social proof slot on login page** | 3 logo slots + testimonial placeholder below login form. Drop real logo when T36 is done. | ✅ Done |
-| W7 | **Demo wow-moment narration update** | Update Section 35 demo script with W1 as Scene 1. "Watch this number. Type your ICP. This is live." | ⏳ After W1 ships to prod |
-
-**Round 2 — SHIPPED 27 May 2026:**
-| # | Build | What | Status |
-|---|-------|------|--------|
-| W8 | **Proactive home screen** | Purple gradient "Who should FIGSY target today?" card, 3 live stat chips, quick action strip. | ✅ Done |
-| W9 | **Campaign templates library** | Was already built. Expanded with Unresponsive Revival + Inbound Qualify templates. | ✅ Already existed + expanded |
-| W10 | **Editable FIGSY prompt per campaign** | Custom instructions textarea in campaign settings. Stored in campaign `settings` JSONB. | ✅ Done |
-| W11 | **Daily send quota slider** | 1–200 slider per campaign (default 50). | ✅ Done |
-| W12 | **Quality gate / Co-pilot toggle** | "✋ Co-pilot mode — review before send" amber checkbox in campaign settings. | ✅ Done |
-| W13 | **ICP preview: 3 real contact names** | API returns `{count, samples[]}`. Contact cards: avatar initial · name · title·company · `in` badge. | ✅ Done |
-| W14 | **Email style training (textarea)** | Paste 2–3 best emails in Settings → FIGSY adapts tone. Stored in localStorage. | ✅ Done |
-| W15 | **Unresponsive revival campaign type** | Revival filter on leads page (scored-not-contacted). 53% benchmark banner. Revival template added. | ✅ Done |
-| W2 | **Signal tokens in FIGSY sequences** | `generateSequence` detects best signal (tech stack → industry → score_reasoning). Step 1 MANDATORY opens with it. | ✅ Done |
-| Unibox | **Two-way reply from admin Unibox** | `ReplyForm` client component + `/api/reply` admin Route Handler via Resend + service role. | ✅ Done |
-| W7 | **Demo narration update (Section 35)** | Scene 1 scripted: "Watch this number." Apollo live preview as opening argument. Recovery scripts included. | ✅ Done |
-
-**✅ COMPLETED THIS SESSION (28 May Evening):**
-| # | Build | Status |
-|---|-------|--------|
-| ✅ | Email subject threading (steps 2+3 as Re: replies) | Done |
-| ✅ | Real activity feed endpoint + dashboard wired | Done |
-| ✅ | PUT /campaigns/:id/audience | Done |
-| ✅ | POST /campaigns/:id/send-now | Done |
-| ✅ | POST /leads/:id/resend-consent + portal button | Done |
-| ✅ | Onboarding checklist back in dashboard | Done |
-| ✅ | 30s auto-poll after campaign activation | Done |
-| ✅ | Company CSV import → find contacts flow | Done |
-| ✅ | MASTER.md fully updated | Done |
-
-**✅ COMPLETED THIS SESSION (28 May Night):**
-| # | Build | Status |
-|---|-------|--------|
-| ✅ F2 | Auto-consent on lead approval | Done — fires after ICP scoring (score ≥ 60) + portal trigger |
-| ✅ F5 | FIGSY conversational onboarding | Done — AgentSidePanel + sidebar thread |
-| ✅ | AgentSidePanel compact + persistent | Done — no tall photo, sessionStorage persistence |
-| ✅ | Sidebar FIGSY thread section | Done — last message preview + quick-send input |
-| ✅ | Remove floating AskFigsyButton | Done |
-
-**✅ COMPLETED 29 May 2026:**
-| # | Build | Status |
-|---|-------|--------|
-| ✅ G2 | Onboarding → FIGSY scripted conversation | Done — committed + pushed. 4-step chat, typewriter, chat bubbles, website scan. |
-
-**NEXT SESSION — PRIORITY ORDER (awaiting founder authorisation per build):**
-
-> 🚨 RULE: Describe every design/visual change and wait for "go" before building. Code/data/API changes can proceed but must be scoped to what was asked.
-
-| # | Build | What | Time | Impact |
-|---|-------|------|------|--------|
-| D1 | **AgentSidePanel image fix** | All agent panels: remove dark `#0F0929` bg + dark overlay from photo area. Match ICP Builder style — white card, warm image, dark identity bar only. Describe changes before building. | 30min | 🔴 Critical visual |
-| G1 | **Login page redesign** | Match portal gradient. Remove "Your logo" placeholders + "(coming soon)" testimonial. Add password reset. Animated dots (see homepage design language below). | 1h | 🔴 Trust |
-| G3 | **Inbox: reply from portal** | Reply button on each classified lead → compose (pre-filled with FIGSY draft) → send via Resend → mark replied. Currently view-only. | 3h | 🔴 Flow |
-| G4 | **Real sparkline data** | Query `figsy_sent_emails` by day (last 7 days). Replace hardcoded percentages. 1 new endpoint. | 2h | 🟡 Data |
-| G5 | **meetings_booked KPI** | Increment on `interested` reply classification + "Mark meeting booked" button. Currently always 0. | 1h | 🟡 Data |
-| G6 | **KPIs: time range filter** | 7d / 30d / 90d / All time picker. | 2h | 🟡 Demo |
-| G7 | **Knowledge base: 3 sections** | "Your business" / "Who you target" / "FIGSY's voice". Progress indicator. On-save preview: "Here's how FIGSY will open an email to [target] with this knowledge." | 3h | 🟡 UX |
-| G8+G9 | **Consent page + token security** | Audit `/consent` page quality. Redesign to be trustworthy/professional. Replace lead UUID with crypto token. | 3h | 🟡 Trust+Security |
-| G10 | **Campaign pause notification** | Email client when campaign auto-pauses. Currently silent. | 1h | 🟡 Polish |
-| G11 | **Animated dots background** | White bg + floating CSS-animated dots (light blue/lavender) on login + onboard pages — matching homepage. ~20–30 dots, `@keyframes float`, staggered delays, `opacity: 0.4`. | 30min | 🟢 Design |
-| G12 | **Empty states — FIGSY-owned** | Every empty state should have FIGSY coaching. Campaigns: "I have X leads ready. Say the word and I'll write your first sequence." Inbox: "No replies yet — campaigns usually see first replies within 48–72 hours." | 2h | 🟢 Polish |
-| F1 | **Fix smoke test API failures** | `GET /leads` + `GET /figsy/kpis` returning 500 — investigate | 30min | 🔴 High |
-| C1 | Run smoke tests | Founder runs, Claude fixes failures | <15min | 🔴 High |
-
-**⚡ LEARNING AGENT — Accelerated Roadmap:**
-
-> Founder instruction (29 May): "The learning agent mechanism is real and in our roadmap. This needs to go live sooner rather than later."
-
-| Phase | What | When |
-|-------|------|------|
-| Phase 1 (now) | FIGSY already accumulates campaign history in `figsy_memory`. `generateSequenceWithMemory` uses it. | Live |
-| Phase 2 (next) | FIGSY suggests ICP improvements based on reply patterns ("Your 'VP Sales' title is getting 22% replies — should I focus there?"). Proactive, in-panel, actionable. | Next 2 weeks |
-| Phase 3 | FIGSY auto-refines ICP after every 50 replies — writes back to ICP record, notifies client. No manual work. | Month 2 |
-| Phase 4 | Cross-client pattern learning — anonymous aggregate signals → better targeting for all clients. | Q3 |
-
-**📐 HOMEPAGE DESIGN LANGUAGE (reference for all portal pages):**
-*Source: `get-kind.com` — screenshotted 29 May 2026*
-- Background: Pure white (`#FFFFFF`) — NOT a gradient
-- Animated dots: ~20–30 floating blue/lavender circles (`#C7D2FE` / `#A5B4FC`), varying sizes (4–12px), `@keyframes float` on Y-axis ±20–40px, staggered `animation-delay`, `opacity: 0.35–0.5`, `border-radius: 50%`
-- FIGSY card: warm gradient behind her — peach/yellow → pink → lavender — `rounded-2xl`, no hard shadow, floating annotation chips
-- Typography: Bold, heavy, near-black headlines. Electric blue (#2563EB) for highlighted words.
-- Buttons: Black rounded-full pill (primary). White bordered rounded-full (secondary).
-- No dark backgrounds on content areas — clean, bright, open
-
-**🏗️ PRODUCT PHILOSOPHY — LOCKED 29 May 2026:**
-*"Every panel, every section in the portal must be connected to a data source. Nothing static. Nothing manual if an agent can automate or suggest it. FIGSY is in the room — she's working for you, coaching you, already doing the next thing before you ask."*
-
-- Every metric = real data (no hardcoded values, no fake sparklines)
-- Every empty state = FIGSY coaching (not a gray "No X yet" message)
-- Every input-heavy section = agent suggests first (ICP builder, knowledge base, campaign settings)
-- Every action that can be automated = automated (consent, scoring, follow-up)
-- The learning loop is not a Year 2 feature — it's this month
-
-**At 10+ clients:**
-| # | Build | What |
-|---|-------|------|
-| C10 | 3-type memory model | Split `figsy_memory` → episodic + long-term + preference |
-| C11 | Deliverability dashboard | SPF/DKIM/DMARC status, bounce rate, blacklist check per domain |
-| C12 | Email score pre-send | Score sequence before it fires — flag weak copy |
-| C13 | Adaptive send volume | Auto-adjust daily sends based on domain health |
-| C14 | Intent signal detection (upgrade of W2/W3) | Job changes, funding, hiring → auto-trigger FIGSY outreach without manual ICP update |
-| C15 | Client morning brief email | Extend founder brief to all active clients |
-| C16 | Multi-model toggle per campaign | Haiku (volume) vs Sonnet (quality) per campaign |
-
-**At 20+ clients:**
-| # | Build | What |
-|---|-------|------|
-| C17 | Configurable agent triggers | UI: "Run at 9am Mon–Fri" — replaces hardcoded cron |
-| C18 | A/B subject line testing | Split test, auto-pick winner after 50 sends |
-| C19 | Conditional sequence branching | If warm reply → different follow-up path |
-| C20 | Waterfall enrichment | Apollo → PDL → Hunter → Clearbit |
-| C21 | Kanban deal view | Visual pipeline for own sales + client stages |
-| C22 | File approval workflow | Client approves copy before FIGSY sends |
-| C23 | ICP auto-refinement | AI analyses reply data → suggests ICP improvements |
-
-**Year 2:**
-| # | Build |
-|---|-------|
-| C24 | Multi-agent orchestration (FIGSY + OTTO + LENA parallel) |
-| C25 | FIGSY Memory v2 with pgvector |
-| C26 | Pipeline forecasting |
-| C27 | In-portal client messaging |
-| C28 | Realtime dashboard (Supabase realtime to frontend) |
-| C29 | Proposal + e-sign |
-| C30 | Mobile app (iOS + Android) |
-| C31 | MCP server (K.I.N.D as AI infrastructure) |
-| C32 | 500+ FIGSY skill library |
-
----
-
-### 📋 NEXT SESSION — STEP BY STEP (after solicitor call)
-
-> **PAUSED** — No new builds until solicitor call Monday. Resume after legal clarity received.
-
-**When you come back — tell Claude:**
-1. What the solicitor said about Smartsheet clause 17.2 + 19.3.2
-2. Whether you have or are getting written manager consent
-3. Whether you're staying at Smartsheet or moving to Tempo
-4. Then we pick up the build queue below in order
-
-**Build queue — pick up from here:**
-
-| Priority | Item | What it is |
-|----------|------|-----------|
-| 1 | Mobile responsive layout | Zero breakpoints currently — site unusable on mobile |
-| 2 | Onboard typewriter slowdown | Typewriter effect too fast — was mid-fix when paused |
-| 3 | Consent token security | Still using UUID — needs cryptographic token |
-| 4 | Real sparklines verification | Confirm sparklines show real data not mock |
-| 5 | Meetings booked DB migration | SQL to run: `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` |
-| 6 | FIGSY insights API verification | Confirm learning agent endpoint is live and returning data |
-| 7 | G3: Inbox reply from portal | Biggest live flow gap — reply from portal inbox |
-| 8 | G4 + G5: Real data | Sparklines + meetings_booked wired to real DB |
-| 9 | G6: KPI time range filter | Filter KPIs by date range |
-| 10 | Learning agent Phase 2 | FIGSY proactive ICP suggestions |
-| 11 | Scheduled report emails | Weekly digest from existing cron — S4 steal-now item |
-
----
-
-### 📅 WEEK AHEAD (revised — paused for legal)
-
-| Day | Date | Action | Owner |
-|-----|------|--------|-------|
-| Mon 2 June | Solicitor call | Legal clarity on Smartsheet contract | Jacques |
-| Mon 2 June | Buy MacBook Neo 13" 2026 from Currys (£599) | Move all dev to personal laptop | Jacques |
-| After call | Resume build queue from item 1 above | Mobile layout first | Both |
-| TBD | Stripe prices → Test 3+4 | After legal green light | Both |
-| TBD | First client outreach | After legal green light + mobile layout done | Jacques |
-
----
-
-### 🚨 OPEN BLOCKERS
-
-| # | Blocker | Owner | Blocking |
-|---|---------|-------|---------|
-| B0 | **Solicitor call — Monday 2 June** | Jacques | All new builds paused until legal clarity |
-| B0b | **Personal laptop** — MacBook Neo 13" 2026 from Currys (£599) | Jacques | All future dev must be on personal hardware only |
-| B1 | `RESEND_API_KEY` — confirm set in Railway | Jacques | Test 1 email steps (Steps 6) |
-| B2 | `MASTER_SCHEMA.sql` — confirm run in Supabase | Jacques | Schema integrity |
-| B3 | `20260527_stripe_subscription_id.sql` — not yet run | Jacques | Test 3 (Milla/Vida checkout) |
-| B4 | Stripe price IDs for Milla ($49) + Vida ($39) | Jacques | Test 3 |
-| B5 | Stripe account not yet fully activated | Jacques | Test 3 + all live payments |
-| B6 | UK company not yet registered | Jacques | Stripe proper + credibility |
-| B7 | `FIGSY_KIND_CLIENT_ID` not set | Jacques | Self-outreach does nothing |
-| B8 | `docs/client-flow-sop.md` stale (18 May) | Claude | Documentation accuracy |
-| B9 | `docs/DEPLOYMENT_GUIDE.md` has stale Paystack refs | Claude | New team member confusion |
-| B10 | Mobile responsive layout — zero breakpoints | Claude | Site unusable on phone |
-| B11 | Meetings booked DB migration not run | Jacques | KPI meetings_booked column missing |
-
----
-
-### 🔒 KEY DECISIONS — LOCKED
-
-| Decision | Outcome | Date |
-|----------|---------|------|
-| Payment processor | Stripe (primary) + Flutterwave (Phase 2). Paystack removed — requires SA entity. | 27 May |
-| Milla pricing | $49/month recurring via Stripe | 27 May |
-| Vida pricing | $39/month recurring via Stripe | 27 May |
-| Smoke test order | Test 1 → 2 → 3 → 4 — in order, no skipping | 27 May |
-| Build sequence | Zero new features until all 4 tests pass | 27 May |
-| Art of Possible steals S1–S3 | ✅ Built 27 May evening — S4 + S5 queued for Day 4 (31 May) | 27 May |
-| AskFigsyButton (floating widget) | Shows on all portal pages for all users. Mode: lead-gen helper only. Full FIGSY features (campaigns, inbox, knowledge, sequences) require FIGSY subscription — upgrade wall enforced. | 27 May |
-| Apex positioning | "AI Revenue OS" — apply after smoke tests | 27 May |
-| LinkedIn automation | Will not build — ToS risk, permanent ban | Locked |
-| AI provider | Claude Haiku (volume) + Sonnet (quality) | Locked |
-| Data source | Apollo.io | Locked |
-| Hosting | Supabase af-south-1 + Railway + Vercel | Locked |
-| Business registration | UK — Companies House | Locked |
-| CRM | HubSpot push only — built-in CRM Year 2 | Locked |
-
----
-
-### 📌 SECTION 0 PROTOCOL — HOW THIS WORKS
-
-**This section = the entire conversation history in one place.**
-**Jacques: read only this section at the start of each session.**
-**Claude: update this section as the LAST action of every session, then commit.**
-
-**Claude must do at end of every session:**
-1. Add everything built to "Everything Built" table under today's date
-2. Add every bug fixed to "All Bugs Fixed"
-3. Tick off completed founder tasks, add new ones
-4. Tick off completed Claude tasks, move done items out of queue
-5. Rewrite "Tomorrow — Step by Step" for next session
-6. Update "Week Ahead" dates
-7. Update "Open Blockers" — close resolved, add new
-8. Update "Key Decisions" with anything locked today
-9. Commit + push immediately — this is the last commit of every session
-
-**Jacques at start of every session:**
-1. Read Section 0 only
-2. Tell Claude what got done from Founder To-Do (tick off T-items)
-3. Claude reads Section 0, updates it, then starts work
-
-**Why this exists:** Across multiple conversation windows and context resets, things get dropped. Section 0 is the immune system — it cannot be stale because it is rewritten, not appended.
-
----
-
-### 🎯 BENCHMARKS — ALWAYS CHECK AGAINST THESE
-
-#### Alta AI SDR — Performance Benchmark
-*Our performance checkpoint. Every FIGSY metric should aim to beat or match Alta.*
-
-| Metric | Alta AI SDR | K.I.N.D FIGSY | Gap |
-|--------|-------------|--------------|-----|
-| Reply rate | 18–24% | Not yet tracked | Track in KPIs |
-| Meeting-booked rate | **3–5%** | Not tracked | 🔴 Need to build tracking |
-| Sequence logic | Behaviour-based branching (replied/opened/clicked) | Linear 3-step (Day 1/4/9) | 🟡 Branching UI built, API pending |
-| Personalisation | Role + company + recent signal | Role + company | Gap — add signal detection |
-| Multi-channel | Email + LinkedIn + Phone | Email only (Voice/WhatsApp blocked pending creds) | Gap — credentials needed |
-
-**What we've done to close the gap (this session):**
-- ✅ Meetings Booked metric now visible on KPIs page with "Alta: 3–5%" benchmark
-- ✅ Sequence branching UI added (`on_reply: stop/skip_next/continue`) — API wiring pending
-- ✅ Dashboard Mission Control — single-screen view of all metrics (was split across 4 pages)
-
-**Still needed vs Alta:**
-- Track meetings booked from Hot replies (requires `/figsy/replies` Hot count → booking rate)
-- Real open-rate data (currently estimated heuristic)
-- Intent signal detection (hiring, funding, job changes → trigger outreach)
-
----
-
-#### ClickUp — Design/UX Benchmark
-*Our look and feel checkpoint. Every portal interaction should feel as fluid as ClickUp.*
-
-| Feature | ClickUp | K.I.N.D Status | Priority |
-|---------|---------|----------------|----------|
-| **Command palette** (Cmd+K) | ✅ Core UX — power users live in it | ✅ Built — `CommandPalette.tsx`, Cmd+K registered in layout | ✅ Done 27 May |
-| **Activity feed** | ✅ Everything has a timeline | ✅ Built — `ActivityFeed.tsx`, integrated into dashboard home | ✅ Done 27 May |
-| **Single priority view** | ✅ One screen, zero navigation | ✅ Built (Mission Control dashboard) | ✅ Done 27 May |
-| **Soft warm palette** | ✅ Airy, light, non-harsh | ✅ Applied (warm peach→lavender gradient) | ✅ Done 27 May |
-| **Agent photos as real faces** | ✅ Human faces build trust | ✅ Real PNG photos in sidebar + widgets | ✅ Done 27 May |
-| **Shareable dashboards** | ✅ Read-only `/share/:token` link | ✅ Built — `/share/[token]/page.tsx`, public route, OG image | ✅ Done 27 May |
-| **Scheduled report emails** | ✅ Weekly digest to team | ⚠️ Cron exists, email not wired | S4 — next up |
-| **This week vs last week** | ✅ Always shown | ❌ Not built | C13 — after 10 clients |
-| **Modular widget layout** | ✅ Drag and rearrange | ❌ Not built | Year 2 |
-
-**Steal-now list status:**
-- **S1 ✅ DONE:** Command palette — `CommandPalette.tsx`, Cmd+K, keyboard nav, 12 nav items, brand palette.
-- **S2 ✅ DONE:** Activity feed — `ActivityFeed.tsx`, 6 event types, integrated into dashboard home.
-- **S3 ✅ DONE:** Shareable dashboards — `/share/[token]`, public, OG image, outside auth group.
-- **S4 ⏳ NEXT:** Scheduled report emails — Weekly digest from cron that already exists. 4 hours.
-- **S5 ⏳ NEXT:** "AI Revenue OS" positioning rewrite — Apex steal. Website, pricing, demo pages. 2 hours.
+| ✅ | What it does |
+|----|-------------|
+| ✅ | **API on Railway** — Express server handling all client requests. Node 20. WebSocket polyfill for Supabase Realtime. |
+| ✅ | **Stripe billing** — subscription checkout, credit top-ups, webhook handling, invoice payment tracking. |
+| ✅ | **Supabase database** — 38+ migrations. Full schema for leads, campaigns, clients, partners, teams, billing, consent, tracking. |
+| ✅ | **Email sending via Resend** — campaigns, consent emails, team invites, partner onboarding. |
+| ✅ | **Apollo integration** — lead search and enrichment via Apollo API. |
+| ✅ | **Waterfall enrichment** — tries multiple data sources in sequence to enrich a lead. |
+| ✅ | **Intent signal triggers** — detects buying signals and flags leads automatically. |
+| ✅ | **Revenue forecasting** — projects client revenue based on pipeline and conversion rates. |
+| ✅ | **KIND as MCP server** — external AI tools can connect to KIND and call its functions. |
+| ✅ | **Calendar, voice, WhatsApp routes** — API endpoints exist and are built. Activation depends on external credentials (Google, Twilio, WhatsApp Business API). |
+| ✅ | **HubSpot contact and deal sync** — pushes positive replies as contacts and deals to HubSpot. |
 
 ---
 
@@ -7815,38 +7085,47 @@ Certification is self-serve — videos + quiz. No cost. Unlocks higher tier bene
 
 ---
 
-### What's Built (1 Jun 2026)
+### What's Built vs What's Not (honest audit — 1 Jun 2026)
 
-| Item | Status |
-|---|---|
-| `POST /partners/apply` — application form + founder email alert | ✅ Built |
-| `GET /partners/ref/:code` — validate referral code | ✅ Built |
-| Admin: list/approve/commission/dashboard endpoints | ✅ Built |
-| DB migration — partners, referrals, commissions, deal_registrations | ✅ Migration written |
-| Admin partners page `/admin/partners` | ✅ Built |
-| Partner portal dashboard `/dashboard/partner` | ✅ Built |
-| Deal registration form + 60-day protection | ✅ Built |
-| Demo sandbox per partner | ✅ Built |
-| Auto-commission on Stripe payment | ✅ Built |
-| Partner contract template | ✅ In Section 42b |
-| Admin partner workflow — tabbed Partners/Deals/Commissions page | ✅ Built |
-| Commission approve + mark paid (Wise reference) in admin | ✅ Built |
-| Contract accordion + checkbox in partner apply form (website) | ✅ Built |
-| `contract_signed_at` stored on apply — timestamped acceptance | ✅ Built |
-| Admin commission API routes (`GET/PATCH /admin/commissions`) | ✅ Built |
-| Fix: `GET /me` moved above `GET /ref/:code` — param shadowing bug | ✅ Fixed |
-| Fix: `authUser` → `userEmail` in demo-sandbox route (TS compile error) | ✅ Fixed |
-| Partner billing model | ✅ Decided: free demo sandbox on approval; own outreach = standard client rate |
-| Partner onboarding email on approval | ✅ Built |
-| Demo sandbox auto-provisioned on approval | ✅ Built |
-| Onboarding checklist in partner portal | ✅ Built |
+#### ✅ Built and working
 
-### Partner Billing Model (decided 1 Jun 2026)
+| What | Plain English description |
+|------|--------------------------|
+| Partner application form | Partners apply through the portal. Founder gets an email alert. |
+| Referral link tracking | Every partner gets a unique referral code. Tracked in the database. |
+| Admin partners page | Admin can see all partners, approve or reject them, view their deals and commissions. |
+| Partner portal dashboard | Partners can log in and see their status, referral code, commission balance. |
+| Deal registration | Partners can register a prospect (company + contact). 60-day exclusive protection logged in the database. |
+| Auto-commission calculation | When a referred client pays their Stripe invoice, commission is calculated and logged automatically. |
+| Commission approval in admin | Admin can review commissions, mark them paid, store the Wise payment reference. |
+| Partner contract | Standard agreement template in Section 42b. Contract acceptance is timestamped when partner applies. |
+| Partner onboarding email | Single approval email sent when admin approves a partner. |
+| Onboarding checklist | Checklist shown in the partner portal. Steps listed. |
+| Partner Hub in portal | Partners see a dedicated section in their dashboard sidebar. |
+| Partner onboarding guide | 9-step visual flowchart shown in the portal. |
+| Value deck | 7-slide pitch deck partners can use when presenting to prospects. |
+| Milla partner awareness | Milla chat knows if you are a partner and adjusts her responses accordingly (pending / active / active with deals). |
 
-- **Demo sandbox**: provisioned free when partner is approved. Used to show prospects a live K.I.N.D environment.
-- **Own outreach**: if a partner wants to run their own campaigns, they sign up as a client at standard pricing and buy credits normally.
-- **No partner discount on own usage** — clean separation. Partners earn, clients pay.
-- **Commission**: 20% (Referral) / 25% (Agency) / 30% (White-label) recurring. Paid via Wise monthly.
+#### ❌ Not built — confirmed gaps (1 Jun 2026)
+
+| What | Why it matters |
+|------|----------------|
+| **Demo sandbox auto-provisioning** | The onboarding checklist says a sandbox is provisioned when a partner is approved. This does not happen. Nothing is created. It is a placeholder. Partners have no demo environment to show prospects. |
+| **Partner portal sandbox section** | There is no page or section in the partner portal showing sandbox login details, instructions, or a "use this for demos" guide. |
+| **Admin sandbox visibility** | Admin cannot see whether a partner has a sandbox provisioned. There is no status indicator and no manual provision button. |
+| **"Sign up as client" CTA** | Partners who want to use K.I.N.D for their own outreach have no clear path. No button, no link, no explanation in the portal. |
+| **Partner onboarding email sequence** | After the approval email, there are no follow-up emails. No activation steps, no check-in, no drip. |
+| **Partner pricing page** | Partners do not know what they pay. The answer (nothing for sandbox, standard rates for own use) is not communicated anywhere in the portal or website. |
+
+---
+
+### Confirmed Partner Billing Model (locked 1 Jun 2026)
+
+**Demo sandbox — free.** When a partner is approved, a demo sandbox account is created for them automatically. This costs the partner nothing. It is purely for showing prospects what K.I.N.D looks like. Pre-loaded with fake leads, a live campaign, sample inbox replies, and realistic KPI numbers.
+
+**Own pipeline — standard client pricing.** If a partner wants to run their own outbound campaigns using K.I.N.D, they sign up as a regular client and buy credits at standard rates. There is no partner discount on their own usage. Clean separation: partners earn commission, clients pay for usage.
+
+**Commission.** 20% for Referral partners, 25% for Agency partners, 30% for White-label partners. Recurring monthly. Paid via Wise by the 5th of the following month.
 
 ---
 

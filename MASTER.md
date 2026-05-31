@@ -73,9 +73,12 @@
 - P0-23 ✅ `842f39d` — Workforce language pass throughout portal
 - Languages (Milla) ✅ `842f39d` — English/Français/Kiswahili/Hausa selector in Milla chat
 - Roadmap sync ✅ `f3ba631` — all three sources aligned
-- P0-1 ✅ this commit — Website copy rewrite: "AI Revenue OS", FIGSY/Milla/Vida named, Milla+Vida unlocked (no more waitlist)
-- P1-3 ✅ this commit — Adaptive send volume cron: daily 09:30 UTC, auto-adjusts daily_send_limit per campaign health
-- P3-5 ✅ this commit — Revenue forecasting: 90-day forecast panel in admin revenue page
+- P0-1 ✅ `c6a7a59` — Website copy rewrite: "AI Revenue OS", FIGSY/Milla/Vida named, Milla+Vida unlocked (no more waitlist)
+- P1-3 ✅ `c6a7a59` — Adaptive send volume cron: daily 09:30 UTC, auto-adjusts daily_send_limit per campaign health
+- P3-5 ✅ `c6a7a59` — Revenue forecasting: 90-day forecast panel in admin revenue page
+- Website restore ✅ `d43a5f4` — Reverted b0e3f7a (site was taken down 29 May 2026). Full landing page live on www.get-kind.com
+- INFRA NOTE: www.get-kind.com → Vercel project `kind-admin` → root: `apps/website/`. DNS on GoDaddy: CNAME www → 62dd2bdc6f5c71e3.vercel-dns-017.com. Do NOT manually redeploy in Vercel — always let git push trigger auto-deploy.
+- INFRA NOTE: `apps/landing/` is a duplicate of `apps/website/` — unused, should be deleted to avoid confusion.
 
 **Full build queue approved by founder — build in priority order:**
 - Phase 0/1 (quick, ship first): P0-1 website copy, P1-3 adaptive send volume
@@ -975,7 +978,7 @@ Every item below was cross-referenced against the actual file before being marke
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| P0-1 | **Website copy rewrite** — full brand voice, agent names, pricing clear | 🔵 Claude builds | Hero still says "Stop chasing leads. Let FIGSY book them." — needs full pass |
+| P0-1 | **Website copy rewrite** — full brand voice, agent names, pricing clear | ✅ Live | `c6a7a59` — AI Revenue OS copy, FIGSY/Milla/Vida named, Start/Scale/Dominate pricing. Site restored `d43a5f4` |
 | P0-2 | **Learning Agent Level 2** — monthly ICP analysis cron, email founder with refinements | ✅ Live | `RESEND_API_KEY` confirmed in Railway — cron active |
 | P0-3 | **Knowledge base preview** — FIGSY sample sentence on save | ✅ Live | `knowledge/page.tsx:92` |
 | P0-4 | **Email open tracking** — pixel, `opened_at`, open rate KPI | ✅ Live | `figsy/track/open/:id`, migration done |
@@ -1008,7 +1011,7 @@ Every item below was cross-referenced against the actual file before being marke
 |---|------|--------|-------|
 | P1-1 | **Deliverability dashboard** — SPF/DKIM tips, health score | ✅ Live | `kpis/page.tsx:740` |
 | P1-2 | **Email warm-up infrastructure** | 🔴 Blocked | Needs warm-up service subscription + API key |
-| P1-3 | **Adaptive send volume** — auto-reduce on high bounce | 🔵 Claude builds | Not started, buildable |
+| P1-3 | **Adaptive send volume** — auto-reduce on high bounce | ✅ Live | `c6a7a59` — cron 09:30 UTC daily, adjusts `settings.daily_send_limit` per opt-out/reply rate |
 | P1-4 | **Blacklist monitoring** | 🔴 Blocked | Needs blacklist API key |
 | P1-5 | **Inbox placement testing** | 🔴 Blocked | Needs Smartlead API key |
 | P1-6 | **Expanded reply categories** — referral, OOO, unsub, wrong-person | ✅ Live | `inbox/page.tsx:75` |
@@ -1058,7 +1061,7 @@ Every item below was cross-referenced against the actual file before being marke
 | P3-2 | **FIGSY Vertical Modes** — pre-trained ICPs per industry (Fintech, Property, Health) |
 | P3-3 | **In-portal client messaging** — direct message thread founder ↔ client |
 | P3-4 | **Proposal + e-sign** — generate proposal → DocuSign |
-| P3-5 | **Revenue forecasting** — AI-predicted MRR for 90 days |
+| P3-5 | **Revenue forecasting** — AI-predicted MRR for 90 days | ✅ Live | `c6a7a59` — 90-day forecast panel in admin revenue page, 3 scenarios |
 | P3-6 | **Churn risk scoring** — flag KIND clients likely to churn in 30 days |
 | P3-7 | **Website visitor de-anonymisation** — who visited, trigger FIGSY |
 | P3-8 | **REEVE agent** — AE: books meetings, joins calls, drafts proposals |

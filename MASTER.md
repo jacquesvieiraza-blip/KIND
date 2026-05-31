@@ -55,6 +55,25 @@
 
 ---
 
+### 📅 SESSION — 1 Jun 2026 — P2-13/P2-14/P3-1/P3-4/P3-7
+
+**Built this session:**
+- P2-13 ✅ — Personalised images: SVG with name/company injected, toggle per campaign (`apps/api/src/lib/figsy.ts`, `apps/api/src/routes/figsy.ts`, `apps/portal/src/app/(dashboard)/dashboard/figsy/page.tsx`, `supabase/migrations/20260601_personalized_images.sql`)
+- P2-14 ✅ — Social signals: hashtags/competitor pages/engagement type filters in ICP (`apps/portal/src/app/(dashboard)/dashboard/leads/icp/page.tsx`, `supabase/migrations/20260601_social_signals.sql`)
+- P3-1 ✅ — Developer portal: API key management, usage dashboard, MCP quick start (`apps/api/src/routes/developer.ts`, `apps/portal/src/app/(dashboard)/dashboard/developer/page.tsx`, `supabase/migrations/20260601_developer_keys.sql`)
+- P3-4 ✅ — Proposal + e-sign: generate proposal, send via email, sign link, status tracking (`apps/api/src/routes/proposals.ts`, `apps/portal/src/app/(dashboard)/dashboard/proposals/page.tsx`, `apps/admin/src/app/proposals/page.tsx`, `supabase/migrations/20260601_proposals.sql`)
+- P3-7 ✅ — Visitor de-anon: IP → company via Clearbit Reveal, intent scoring, admin dashboard (`apps/api/src/routes/tracking.ts`, `apps/admin/src/app/visitors/page.tsx`, `supabase/migrations/20260601_visitor_sessions.sql`, `apps/website/index.html`)
+
+**Full build queue status:**
+- Phase 2: ALL DONE — P2-1 through P2-15 complete
+- Phase 3: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-13 live
+
+**FOUNDER ACTION NEEDED:**
+- Run 5 new SQL migrations in Supabase SQL editor
+- Add `CLEARBIT_API_KEY` and `ADMIN_API_KEY` to Railway env vars
+
+---
+
 ### 📅 SESSION — 31 May 2026 (continued) — P2-3/P2-9/P3-6 + FULL WEBSITE RESTORE
 
 **Session rules (non-negotiable):**

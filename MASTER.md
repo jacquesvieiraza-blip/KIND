@@ -55,13 +55,18 @@
 
 ---
 
-### 📅 SESSION — 31 May 2026 — FULL AUDIT COMPLETE
+### 📅 SESSION — 31 May 2026 — P0-22, P0-23, Milla Languages LIVE
 
 **Session rules (non-negotiable):**
 - No guessing — every finding has a file path + line number. Read it first if not certain.
 - MASTER.md updated after every push — not end of session, immediately after.
 - Before marking anything ✅ Done — verify the code file exists and contains the feature. No assumptions.
 - No building unless founder says so.
+
+**This session — commit `842f39d` — all pushed to main:**
+- P0-22 ✅ Gradient border on ICP builder textarea + knowledge base core-pitch + persona textareas
+- P0-23 ✅ Workforce language pass — FIGSY agent-voice copy throughout figsy, inbox, kpis, dashboard home
+- Languages (Milla) ✅ Multi-language selector (English/Français/Kiswahili/Hausa) in Milla chat — pulled forward from Phase 2
 
 ---
 
@@ -976,8 +981,9 @@ Every item below was cross-referenced against the actual file before being marke
 | P0-19 | **Agent card redesign** — coloured border + tint per agent | ✅ Live | `Sidebar.tsx:252` |
 | P0-20 | **Empty state action cards** — all key pages | ✅ Live | `figsy/page.tsx:737` |
 | P0-21 | **Light sidebar + clean background** | ✅ Live | `#F5F3FF` sidebar, `#FAFAFE` bg |
-| P0-22 | **Input as design signal** — gradient border on all FIGSY inputs | 🔵 Claude builds | Done on figsy-chat page only. ICP builder + knowledge base need it |
-| P0-23 | **Workforce language pass** — "FIGSY sent", "Your team" throughout | 🔵 Claude builds | Not done. Copy still generic in many places |
+| P0-22 | **Input as design signal** — gradient border on all FIGSY inputs | ✅ Live | ICP builder textarea + knowledge base core-pitch + persona textareas — `842f39d` |
+| P0-23 | **Workforce language pass** — "FIGSY sent", "Your team" throughout | ✅ Live | figsy, inbox, kpis, dashboard home pages — `842f39d` |
+| Languages (Milla) | **Multi-language support** — English, Français, Kiswahili, Hausa | ✅ Live — pulled forward from P2 | `assistant/page.tsx` — localStorage `kind_milla_language_v1`, prepends `[Respond in {language}]` — `842f39d` |
 
 ---
 
@@ -1104,8 +1110,8 @@ Every item below was cross-referenced against the actual file before being marke
 | P0-18 | FIGSY Full Page — `/dashboard/figsy-chat` | ✅ Done `c03a0c7` |
 | P0-19 | Agent card redesign — coloured background, larger avatar | ✅ Done `7ff727b` |
 | P0-20 | Suggested starters on all empty states | ✅ Done `88dea2e` |
-| P0-22 | Input as design signal — full-width gradient border everywhere | 🔴 Not started |
-| P0-23 | Workforce language pass — "Your team", "FIGSY sent" throughout | ✅ Partial `c03a0c7` (sidebar nav + chat nav added) |
+| P0-22 | Input as design signal — full-width gradient border everywhere | ✅ Live `842f39d` — ICP builder + knowledge base |
+| P0-23 | Workforce language pass — "Your team", "FIGSY sent" throughout | ✅ Live `842f39d` — full pass across all portal pages |
 
 **Phase 0 — Buildable (needs RESEND_API_KEY confirmed in Railway)**
 | # | Item |

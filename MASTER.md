@@ -56,6 +56,65 @@
 
 ---
 
+### 📅 SESSION — 31 May 2026 (evening) — CRITICAL INFRA RECOVERY + Partner Programme Complete
+
+**Two production outages — root causes found and fixed:**
+
+**OUTAGE 1 — API crash (runtime, not build):**
+- Error: `Error: Node.js 20 detected without native WebSocket support` from `@supabase/realtime-js` inside `packages/db/dist/client.js`
+- Root cause: `supabase-js@2.105` initialises its Realtime client in the `createClient()` constructor, which runs at module load time. Node 20 has no native `WebSocket` global. Node 22 does.
+- Fix: Added `ws@8.21.0` to `packages/db` and `apps/api`. In `packages/db/src/client.ts`, set `globalThis.WebSocket = ws` before `createClient()` AND pass `realtime: { transport: ws }`. Belt and suspenders.
+- Commits: `adf9a39`, `50073e0`
+
+**OUTAGE 2 — Portal crash (every dashboard page):**
+- Error: `Cannot find name 'isPartner'` — TypeScript error caught by `tsc --noEmit` but silently ignored at build time by `typescript: { ignoreBuildErrors: true }` in `next.config.mjs`
+- Root cause: Sidebar.tsx destructured the prop as `isPartner: isPartnerProp = false` but the render at line 386 used `isPartner`. Every page crashed because Sidebar is in the dashboard layout.
+- Fix: Changed destructure back to `isPartner = false` — one line.
+- Commit: `e94a0c1`
+
+**Why `typescript.ignoreBuildErrors: true` is dangerous:**
+- It lets the build "succeed" even with type errors that crash at runtime
+- Running `yarn workspace @kind/portal type-check` caught the bug in under 1 second
+- ACTION NEEDED: Remove this flag from `apps/portal/next.config.mjs` so broken code never reaches production
+
+**Also fixed this session (nixpacks/deployment):**
+- API nixpacks.toml had `yarn install` in wrong phase (build instead of install) — corrected: `1a61e7c`
+- Root nixpacks.toml was accidentally created at repo root, picked up by portal/admin builds, made them serve wrong server — deleted: `25249ff`
+- Portal and admin nixpacks.toml updated to explicit workspace commands: `5e63ff4`
+- Added `.node-version` file at repo root with `20` to hint nixpacks
+
+**Partner Programme features built this session:**
+- ✅ Partner onboarding flowchart (`/dashboard/partner/onboarding`) — 9-step visual journey: Apply → Review → Approval → Login → Checklist → Demo Sandbox → Register Deal → Client Signs Up → Commission. Bottom section: rules that protect partners (60-day protection, lifetime commissions, Wise payments).
+- ✅ Partner value deck (`/dashboard/partner/deck`) — 7-slide prospect pitch: Hook, Problem (3 pain points), Solution (FIGSY/Milla/Vida), Pricing (R4,900/R9,900/R19,900), Compare table vs hiring/Apollo/Outreach, Results (10×/3×/72hrs/24-7), Next Step (demo / trial / register deal)
+- ✅ Agent context awareness by partner state (`AgentColumn.tsx`) — FIGSY shows different message + chips for: pending application / active with no deals / active with deals
+- ✅ Layout.tsx passes `partnerStatus` + `partnerDealCount` to AgentColumn — fetched from `/partners/me` API with 4s timeout and full try/catch
+- ✅ Partner Hub Resources section links to onboarding + deck pages (internal Next.js `<Link>`)
+- ✅ Admin partners page: new "Onboarding" tab with 7-step admin SOP checklist, 3-phase partner journey cards, commission structure reference (Referral 20% / Agency 25% / White-label 30%)
+- ✅ Partner Hub hidden from non-partners in Sidebar (filtered from ACCOUNT_NAV)
+
+**Business decision locked — partner pricing model:**
+- Partners get a FREE demo sandbox provisioned on approval (they can show FIGSY finding real leads for a prospect's business live)
+- If a partner wants K.I.N.D for their own pipeline → they sign up as a regular client at standard rates
+- No discounts, no special partner pricing — keeps it clean
+
+**FOUNDER ACTIONS NEEDED:**
+1. **Remove `ignoreBuildErrors`** from `apps/portal/next.config.mjs` — prevents silent TypeScript crashes in production:
+   Remove: `typescript: { ignoreBuildErrors: true }` and `eslint: { ignoreDuringBuilds: true }`
+2. **Railway health checks** — set health check path to `/health` in each Railway service so Railway auto-restarts crashed services instead of leaving them dead
+3. **UptimeRobot** — free uptime monitor, pings every 60 seconds, SMS + email alert when API or portal goes down. Set up at uptimerobot.com pointing at `https://kindapi-production-e64c.up.railway.app/health` and the portal URL
+4. **Partner email** — Partner record uses `jacques.vieiraza@gmail.com`. Log into portal with Gmail for Partner Hub, OR run SQL:
+   ```sql
+   UPDATE partners SET email = 'jacques.vieiraza@icloud.com' WHERE email = 'jacques.vieiraza@gmail.com';
+   ```
+   (Only if you want iCloud account to be the partner account — current decision is to keep them separate)
+
+**Partner Programme — still to build (next session):**
+- Demo sandbox auto-provisioning on partner approval (currently placeholder in onboarding guide)
+- Partner portal: sandbox section showing demo credentials + "sign up as client" CTA
+- Admin: sandbox status per partner with manual provision button
+
+---
+
 ### 📅 SESSION — 31 May 2026 (continued) — Partner Programme Feature Completion
 
 **Built this session:**

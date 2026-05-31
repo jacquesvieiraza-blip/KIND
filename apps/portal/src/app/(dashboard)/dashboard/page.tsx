@@ -5,10 +5,11 @@ import { api } from '@/lib/api'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
 import { OnboardingChecklist } from '@/components/ui/OnboardingChecklist'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
-import { Target, Inbox, ArrowRight, Zap, TrendingUp, Mail, ChevronRight, Flame, ThermometerSun } from 'lucide-react'
+import { Target, Inbox, ArrowRight, Zap, ChevronRight, Flame, ThermometerSun } from 'lucide-react'
 import Link from 'next/link'
 import { FigsyConversation } from './FigsyConversation'
 import { CopyShareLink } from '@/components/ui/CopyShareLink'
+import { DashboardLive } from './DashboardLive'
 
 type BannerState = 'awaiting_payment' | 'trial' | 'none'
 
@@ -25,19 +26,6 @@ function getBannerState(subscriptions: Record<string, unknown>[]): { state: Bann
   return { state: 'awaiting_payment' }
 }
 
-function MiniSparkline({ points, color }: { points: number[]; color: string }) {
-  if (points.length < 2) return null
-  const max = Math.max(...points, 1)
-  const w = 80, h = 28
-  const step = w / (points.length - 1)
-  const coords = points.map((v, i) => `${i * step},${h - (v / max) * h}`)
-  return (
-    <svg width={w} height={h} className="overflow-visible">
-      <polyline fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={coords.join(' ')} />
-    </svg>
-  )
-}
-
 type TopLead = { id: string; first_name: string; last_name: string; company: string; job_title: string; score: number }
 
 export default async function DashboardPage() {
@@ -50,7 +38,6 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   let companyName    = ''
-  let creditBalance  = 0
   let clientId       = ''
   let subs: Record<string, unknown>[] = []
   let sparkPoints: number[] = [0, 0, 0, 0, 0, 0, 0]
@@ -69,13 +56,12 @@ export default async function DashboardPage() {
   if (user) {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('id, company_name, credit_balance, share_token, subscriptions(*)')
+      .select('id, company_name, share_token, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
 
     if (clientRow) {
       companyName   = clientRow.company_name ?? ''
-      creditBalance = clientRow.credit_balance ?? 0
       clientId      = clientRow.id as string ?? ''
       shareToken    = (clientRow as Record<string, unknown>).share_token as string | null ?? null
       subs          = (clientRow.subscriptions as Record<string, unknown>[]) ?? []
@@ -127,10 +113,7 @@ export default async function DashboardPage() {
   const totalMeetings   = figsyCampaigns.reduce((s, c) => s + (c.meetings_booked ?? 0), 0)
   const activeCampaigns = figsyCampaigns.filter(c => c.status === 'active')
   const replyRate       = totalSent > 0 ? Math.round((totalReplies / totalSent) * 100) : 0
-  const bookingRate     = totalSent > 0 ? ((totalMeetings / totalSent) * 100).toFixed(1) : '0.0'
   const leadCount       = leadStats?.total ?? 0
-
-  // sparkPoints comes from real DB query above
 
   // Greeting helpers
   const hour = new Date().getHours()
@@ -178,35 +161,23 @@ export default async function DashboardPage() {
         companyName={companyName}
       />
 
-      {/* Stats — only when there's real activity */}
-      {totalSent > 0 && (
-        <>
-        {shareToken && (
-          <div className="flex justify-end">
-            <CopyShareLink token={shareToken} />
-          </div>
-        )}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: 'Emails sent',     value: totalSent.toLocaleString(),     color: 'text-slate-700',   bg: 'bg-white',          border: 'border-[#EDE9FE]',    trend: sparkPoints, trendColor: '#7C3AED' },
-            { label: 'Reply rate',      value: `${replyRate}%`,                color: replyRate >= 8 ? 'text-emerald-600' : 'text-slate-700', bg: replyRate >= 8 ? 'bg-emerald-50/50' : 'bg-white', border: replyRate >= 8 ? 'border-emerald-200' : 'border-[#EDE9FE]', sub: replyRate >= 8 ? '↑ above avg' : 'avg 8%' },
-            { label: 'Interested',      value: totalInterested.toLocaleString(), color: 'text-amber-600', bg: totalInterested > 0 ? 'bg-amber-50/40' : 'bg-white', border: totalInterested > 0 ? 'border-amber-200' : 'border-[#EDE9FE]', sub: 'warm leads' },
-            { label: 'Meetings booked', value: totalMeetings.toLocaleString(), color: 'text-[#7C3AED]',   bg: totalMeetings > 0 ? 'bg-[#F5F0FF]' : 'bg-white',    border: 'border-[#EDE9FE]', sub: 'Alta avg: 3–5%' },
-          ].map(({ label, value, color, bg, border, sub, trend, trendColor }: {
-            label: string; value: string; color: string; bg: string; border: string; sub?: string; trend?: number[]; trendColor?: string
-          }) => (
-            <div key={label} className={`rounded-xl border ${bg} ${border} px-4 py-3 flex flex-col gap-1`}>
-              <p className="text-[11px] text-slate-400 font-medium">{label}</p>
-              <div className="flex items-end justify-between gap-1">
-                <p className={`text-2xl font-bold tracking-tight leading-none ${color}`}>{value}</p>
-                {trend && trendColor && <MiniSparkline points={trend} color={trendColor} />}
-              </div>
-              {sub && <p className="text-[10px] text-slate-400">{sub}</p>}
-            </div>
-          ))}
+      {/* Stats — only when there's real activity; realtime updates via DashboardLive */}
+      {totalSent > 0 && shareToken && (
+        <div className="flex justify-end">
+          <CopyShareLink token={shareToken} />
         </div>
-        </>
       )}
+      <DashboardLive
+        clientId={clientId}
+        initialLeadCount={leadCount}
+        initialTotalSent={totalSent}
+        initialTotalReplies={totalReplies}
+        initialTotalInterested={totalInterested}
+        initialTotalMeetings={totalMeetings}
+        initialActiveCampaignCount={activeCampaigns.length}
+        initialReplyRate={replyRate}
+        initialSparkPoints={sparkPoints}
+      />
 
       {/* Active campaigns + hot replies */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -331,39 +302,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Performance strip */}
-      {figsyCampaigns.length > 0 && (
-        <div className="bg-white rounded-2xl border border-[#EDE9FE] px-5 py-4 shadow-sm">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-3.5 h-3.5 text-[#7C3AED]" />
-                <span className="text-xs font-semibold text-slate-500">Pipeline</span>
-              </div>
-              {[
-                { label: 'Total leads', value: leadCount.toLocaleString() },
-                { label: 'Emails sent', value: totalSent.toLocaleString() },
-                { label: 'Replies',     value: totalReplies.toLocaleString() },
-                { label: 'Interested',  value: totalInterested.toLocaleString() },
-                { label: 'Meetings',    value: totalMeetings.toLocaleString() },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-[#1E0A5C]">{value}</span>
-                  <span className="text-xs text-slate-400">{label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-3">
-              <Link href="/dashboard/kpis" className="text-xs text-[#7C3AED] font-semibold hover:underline flex items-center gap-0.5">
-                Full report <ArrowRight className="w-3 h-3" />
-              </Link>
-              <Link href="/dashboard/inbox" className="text-xs text-[#7C3AED] font-semibold hover:underline flex items-center gap-0.5">
-                <Mail className="w-3 h-3" /> Inbox
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Activity feed — real data */}
       <ActivityFeed events={activityEvents} />

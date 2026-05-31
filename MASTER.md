@@ -8394,3 +8394,315 @@ PORTAL_URL=https://app.get-kind.com
 ---
 
 *Section 39 added: 1 Jun 2026*
+
+---
+
+## 40. COMPETITIVE DEEP DIVE — CLICKUP, ALTA, MONDAY.COM
+*Researched: 1 Jun 2026. Every feature gap. Every steal. Every play.*
+
+> **Context for this section:** KIND is an AI Revenue Team platform — FIGSY (AI SDR outbound), Milla (virtual assistant / internal copilot), Vida (website chatbot). This section maps what ClickUp, Alta AI, and Monday.com have that KIND does not, and converts every gap into a prioritised action.
+
+---
+
+### LEGEND
+- RED = Build this month
+- YELLOW = Build next quarter
+- WHITE = Nice to have / defer
+
+---
+
+## COMPANY 1: ALTA AI SDR
+
+### Background
+- Israeli-founded, raised **$7M Seed (Feb 2025)** from Team8 and others
+- Named **G2 High Performer, Summer 2025** in AI SDR category
+- Core product: three coordinated AI agents sharing a unified data layer
+  - **Katie** — AI SDR (outbound research + multichannel outreach)
+  - **Alex** — AI Calling & Inbound Agent (voice qualification, meeting booking)
+  - **Luna** — AI RevOps / Growth Intelligence Agent (analytics, signal analysis, agent orchestration)
+- Target: growth-stage and enterprise B2B revenue teams
+- Pricing: **custom / contact sales** — estimated $1,500–$5,000+/month based on market comps; no published price list
+- Time to first campaign: **under 1 week** once CRM + email infrastructure connected
+
+---
+
+### A. Feature Gap List — Alta vs KIND
+
+| Feature | Alta's Version | KIND Status | Priority |
+|---|---|---|---|
+| Unified AI agent layer (SDR + Voice + RevOps) | Katie + Alex + Luna share one data layer — signal from each channel improves the others automatically | KIND has FIGSY + Milla + Vida but no unified signal layer between them | RED: Build shared signal/feedback loop between agents |
+| AI Voice Calling Agent | Alex calls leads instantly while warm, qualifies via adaptive scripts, captures every call in CRM, multilingual, 24/7 | KIND has no voice/calling agent | YELLOW: High value — adds inbound qualification muscle |
+| Inbound lead qualification via voice | Alex handles inbound calls — qualifies intent, routes to rep, books meetings | Not in KIND | YELLOW: Pair with Vida chatbot for omnichannel inbound |
+| 50+ data source intent engine | Luna monitors CRM history, job postings, funding events, tech stack adoption, company news, engagement patterns, intent data platforms | FIGSY uses Apollo; no proprietary multi-source signal aggregation | RED: Build signal layer — hiring signals, funding, tech stack triggers |
+| Condition-based multichannel branching | Email to LinkedIn to SMS to WhatsApp to phone with real-time adaptive branching based on engagement | FIGSY does email sequences; no WhatsApp/SMS/voice branching | YELLOW: Add SMS + WhatsApp channels to FIGSY sequences |
+| Lookalike audience generation | Katie auto-builds lookalike prospect lists from winning customers | Not in KIND | RED: Build "clone my best client" prospecting from KIND's closed-won data |
+| Revenue intelligence dashboard (Luna) | Continuously analyses what's working across the entire GTM motion, surfaces recommendations automatically | KIND has basic analytics; no cross-channel performance intelligence | YELLOW: Build Luna-equivalent analytics layer in admin |
+| CRM-native Salesforce/HubSpot push | Real-time OAuth sync — outreach actions, replies, bookings auto-log in Salesforce | KIND logs to own DB; no direct Salesforce/HubSpot write-back | YELLOW: CRM integration for enterprise clients |
+| Onboarding SLA | Live within 1 week — ICP setup, CRM connection, playbook training, channel integration included | KIND has no structured onboarding SLA | RED: Publish and deliver a "live in 7 days" onboarding promise |
+| G2 presence + social proof | G2 High Performer badge, public reviews ("40% SDR productivity increase", "replaced 1 SDR entirely") | KIND not on G2 yet | RED: Get on G2 — even 5 reviews builds trust |
+| 50+ native integrations | Salesforce, HubSpot, Outreach, Salesloft, LinkedIn, Apollo, ZoomInfo, 6sense, Gong, and 40+ more | KIND integrates with Apollo; limited elsewhere | YELLOW: Build integration directory page even if lightweight |
+
+**Key G2 review quotes (verified):**
+- "SDR productivity increased by 40%" — Sales Development Team Manager
+- "Alta handles 30% of our inbound now and replaced one SDR entirely"
+- "The personalization was impressive — it identified a LinkedIn post from 3 months ago about a specific industry trend. That level of detail would take a human hours to find."
+- One reviewer noted a learning curve when structuring campaigns effectively
+- LinkedIn automation concern: "you need to connect your personal profile and I was worried about limits"
+
+---
+
+### B. Website Tactics — Alta vs KIND
+
+| Tactic | Alta Does | KIND Status | Steal? |
+|---|---|---|---|
+| Agent persona branding | Katie, Alex, Luna have names, faces, personalities. Buyers buy the agent, not the platform. | FIGSY, Milla, Vida have names but need deeper persona pages | RED: Build agent persona landing pages |
+| Competitor comparison pages | Dedicated /lp/alta-vs-11x page — feature-by-feature teardown. Owns "Alta vs [competitor]" search intent. | KIND has no comparison pages | RED: Build /vs/artisan, /vs/aisdr, /vs/human-sdr pages |
+| Results-first homepage | "3x qualified meetings", "20 hours/week saved", "80% cost reduction" — all above the fold | KIND uses benefit language but not hard metric claims | RED: Add specific metric claims to homepage hero |
+| "Live in 7 days" guarantee | "Most teams see their first campaign go live within a week of signing" — removes buying risk | No time-to-value promise on KIND site | RED: Add "First campaign live in 5 business days or we extend your first month free" |
+| Demo = discovery call only | No product tour on site. "Book a demo" = sales call with custom demo. | KIND offers Calendly links | YELLOW: Build a Navattic/Storylane interactive product tour as pre-qualification |
+| No published pricing | Custom pricing only — forces a conversation, positions as enterprise | KIND has pricing visible | WHITE: Consider adding "custom enterprise" tier alongside published pricing |
+
+---
+
+### C. AE/SE Success Patterns — Alta
+
+- Sales motion is pure demo-to-enterprise: No free trial. Demo-first. Rep shows ROI calculation live.
+- Demo is ROI-led: Reps walk prospects through their own ICP + estimated meeting volume lift using Luna intelligence layer — making the demo feel bespoke.
+- Onboarding IS the close: "Live in 7 days" — customers sign because the onboarding is part of the sale promise. Reduces "let me think about it."
+- SE role: Technical setup on day 1 (CRM OAuth, ICP input, email warmup config). SE removes friction; AE handles commercial.
+- Retention play: Luna's revenue intelligence dashboard creates a weekly habit loop — customers can't churn because the data lives inside Alta.
+- **What KIND should do:** Mirror this — make FIGSY onboarding the sales moment. "We'll run your first outbound sequence before your contract starts."
+
+---
+
+### D. Admin/Ops Patterns — Alta
+
+- Unified data layer means customer success teams can see cross-channel performance from one view
+- Luna auto-surfaces expansion — when a client's win rate lifts 15%, Luna flags "you're ready for 2x volume" — creates a natural upsell trigger
+- Health signals: Response rates, meeting rates, and pipeline contribution tracked per agent per week
+- **What KIND should do:** Build a simple "campaign health" dashboard in admin — reply rate, meeting booked rate, cost per meeting, vs. benchmark. Flag clients below benchmark automatically for CS outreach.
+
+---
+
+## COMPANY 2: CLICKUP
+
+### Background
+- Founded 2017, San Diego; **$4B valuation**, ~$300M ARR (accelerating)
+- Cut 22% of staff (May 2026) in "100x Org" restructure — CEO Zeb Evans going AI-first, 3:1 agent-to-human ratio internally
+- Acquired Codegen (cursor competitor) Dec 2025 to power Super Agents
+- **20M+ users, 4M+ teams** worldwide
+- Pricing: Free / Unlimited ($7/user/mo) / Business ($12/user/mo) / Business Plus ($19/user/mo) / Enterprise (custom)
+- ClickUp Brain AI add-on: **$7/user/month** (or $5/year); includes Brain MAX desktop app
+
+---
+
+### A. Feature Gap List — ClickUp vs KIND
+
+| Feature | ClickUp's Version | KIND Status | Priority |
+|---|---|---|---|
+| Super Agents (AI coworkers) | Named workspace members with persistent memory, 500+ skills, @mentionable, assignable tasks, scheduled runs, reasoning loop (observe, decompose, execute, verify, escalate). Powered by Codegen acquisition. | KIND has agents but no "persistent AI teammate" with workspace memory and task assignment | RED: Biggest concept steal: FIGSY/Milla as persistent named team members clients can assign tasks to |
+| Brain MAX (contextual desktop AI) | Desktop sidebar — unified search across ClickUp + Google Drive + GitHub + Notion + OneDrive + web; multi-model switching (GPT-4.1, Claude Opus, Gemini 2.5); BrainWave voice-to-action | No desktop companion in KIND | YELLOW: Milla as persistent sidebar in client portal |
+| AI Notetaker (SyncUps) | Records ClickUp native live video calls, transcribes, sends notes + action items to everyone; turns meetings into tasks automatically | No meeting intelligence in KIND | YELLOW: Integrate Fireflies/Recall.ai into Milla workflow |
+| Goals & OKR tracking | Measurable targets, KPI dashboards, linked to tasks, OKR visualisation. Progress auto-updates from task completion. | KIND has no goals/OKR module | WHITE: Relevant for enterprise client ROI tracking |
+| Customer Health Score AI Agent | Pre-built AI agent: monitors custom fields, auto-scores health, triggers automations (alerts, outreach drafts), spots churn risk + expansion. Playbook template published. | KIND admin has no automated health scoring | RED: Build client health score in KIND admin (reply rate + meeting rate + campaign velocity = health) |
+| 100+ automation templates | Pre-built if-X-then-Y templates; AI-described plain-English automation creation | KIND has basic automations; no template library | YELLOW: Build 10 common automation templates in client portal |
+| Client Portal (guest access) | Folder/List/Task/Doc/Dashboard sharing with granular permissions. Public link sharing for views without login. Limit: no dedicated portal UI, can't share Chat. | KIND has a client portal differentiated by AI agents inside it | YELLOW: Add public shareable links for campaign reports |
+| Interactive pricing calculator | "Input your current tools, see savings" interactive calculator. 8/10 personas engaged; showed $282K annual savings for one prospect. | KIND has static pricing page | RED: Build "Replace your SDR team with FIGSY — see your ROI" calculator |
+| ClickUp Docs (collaborative) | Full collaborative docs with AI writer, @mentions converting to tasks, version history, nested pages | No native collaborative doc layer in KIND | YELLOW: Build "Campaign Playbook" doc per client in portal |
+| Freemium funnel | Free Forever plan (unlimited users, unlimited tasks) lowers CAC ~25%, drives 20M users to upsell | KIND is fully paid, no free tier | YELLOW: Consider free "Vida chatbot" tier to build top-of-funnel |
+| Playbook template library | /p/playbooks/ — 50+ published playbooks as SEO content + product onboarding | KIND has no template/playbook content library | YELLOW: Publish 5 free playbooks: "AI SDR Sequence Playbook", "Inbound Qualification Playbook", etc. |
+
+**Key G2 complaints (verified):**
+- "Took 3 weeks to onboard team"
+- "Too many features I don't use"
+- "Slows down with large projects"
+- "Platform automations are not that flexible"
+- "Steep learning curve — onboarding a new PM takes a solid hour"
+- "The inbox is a little cumbersome"
+
+---
+
+### B. Website Tactics — ClickUp vs KIND
+
+| Tactic | ClickUp Does | KIND Status | Steal? |
+|---|---|---|---|
+| Interactive pricing/ROI calculator | "Cost of tools you'll replace" calculator on pricing page — immediate personalized value | Static pricing table | RED: Add "Cost of a Human SDR vs FIGSY" calculator to pricing page |
+| Massive social proof number | "20M+ users", "4M+ teams" above the fold | KIND has no usage social proof yet | RED: On homepage: "X campaigns run" or "X meetings booked by FIGSY" live counter |
+| On-demand demo (no form) | /on-demand-demo/fullscreen-genaud-nav — instant self-serve tour, no email required | KIND uses Calendly | RED: Add 5-min self-serve Loom walkthrough on homepage (no form gate) |
+| Compare pages (/compare/monday-vs-clickup) | Owns category comparison SEO | No comparison pages | YELLOW: Build /kind-vs-human-sdr, /kind-vs-artisan-ai pages |
+| Customer stories page (/customers) | Full case study library by industry and use case | No case studies published yet | RED: Write 1 beta client case study (even anonymous) — include specific numbers |
+| Trust Center | Dedicated security.clickup.com with SOC2, GDPR, HIPAA badges | KIND has compliance info in footer | YELLOW: Build a /security or /trust page |
+| Single killer positioning | "One app to replace them all" — repeated in every ad, page, product | KIND needs sharper single positioning | RED: Lock a single sentence: "KIND replaces your SDR team and keeps your AEs closing" |
+| Dog-fooding in sales cycle | ClickUp's own AEs use Super Agents to handle follow-up, proposal drafting, meeting prep | KIND could use FIGSY to book its own demos | RED: Use FIGSY to book KIND's own sales meetings. Document it. Put it on the homepage. |
+
+---
+
+### C. AE/SE Success Patterns — ClickUp
+
+- Sales methodology: MEDDPICC for enterprise; AE-led discovery, SE handles technical POC configuration
+- Demo structure: "Tailored workspace build" live in the demo — AE replicates the prospect's actual workflow inside ClickUp in real time. Shows, not tells.
+- SE POC: SE sets up a trial workspace with the prospect's real use case pre-populated. Prospect evaluates their actual data, not a generic template.
+- "100x Org" effect on sales: AEs now dog-food their own AI agents in every deal — follow-up automation, proposal drafting, meeting prep. "We use ClickUp AI to run our sales team" is the best proof point they have.
+- Hiring signals: AE JDs explicitly require Command of the Message + MEDDPICC. Sales Managers require MEDDIC fluency.
+- **What KIND should do:** Run FIGSY as your SDR for your own pipeline. Screenshot it. Put it on the homepage. "FIGSY booked 14 demos for KIND last month."
+
+---
+
+### D. Admin/Ops Patterns — ClickUp
+
+- Account Insights (Enterprise): Cross-workspace analytics — storage, automation stats, API usage, AI credit consumption, active user tracking
+- Customer Health Score playbook: Auto-scores clients based on engagement metrics; color-coded risk dashboard; auto-triggers retention sequences
+- Super Agents for CS: Assign a "Client Health Monitor" Super Agent that checks at-risk accounts every Friday and drafts outreach for the CSM
+- Brain for CSM: CSM can ask Brain "summarize everything that happened with Acme Corp this month" — instant account summary
+- **What KIND should do:** Build equivalent in KIND admin: automated weekly account health summary per client sent to ops team; flag clients with <30% campaign engagement for proactive outreach.
+
+---
+
+## COMPANY 3: MONDAY.COM
+
+### Background
+- Israeli-founded (Tel Aviv), publicly traded (NASDAQ: MNDY), **$1.2B revenue FY2025**
+- Revenue growth: Q1 2025 = 30% YoY, Q2 = 27%, Q3 = 26% — accelerating into enterprise
+- Platform: monday work management + monday CRM + monday service + monday dev + monday campaigns
+- Pricing (CRM): Basic $12/seat/mo, Standard $17, Pro $24, Ultimate $28, Enterprise (custom)
+- AI strategy: "AI Work Platform for People & Agents" — Sidekick, Magic, Vibe, Agents all launched at Elevate 2025
+- AE sales methodology: MEDDPICC + Command of the Message (explicit in JDs). Demo simulation is part of the hiring interview.
+
+---
+
+### A. Feature Gap List — Monday.com vs KIND
+
+| Feature | Monday's Version | KIND Status | Priority |
+|---|---|---|---|
+| Embedded CRM (contact + pipeline + deal management) | Full contact records with relationship history, deal stages with Kanban/timeline/list views, close probability + forecast value columns, drag-and-drop pipeline. Contact-centric model. | KIND tracks campaigns not contacts; no deal pipeline | RED: Build lightweight client deal pipeline in KIND admin (opportunity tracking per prospect) |
+| Quotes & Invoices (built-in) | Create, manage, track quotes + invoices from CRM data. WYSIWYG template editor (v3 2026), conditional logic, payment link embedding, bulk generation, real-time tracking. Pro + Enterprise. | KIND issues invoices externally via Stripe | YELLOW: Build proposal/quote generator in KIND client portal |
+| Monday Campaigns (email marketing) | AI-powered email campaign tool inside CRM. Drag-and-drop builder, automation triggers from CRM events, AI subject line generation, send-time optimisation, performance reporting. SMS + ads launching next. | KIND sends outbound via FIGSY but has no marketing campaign module for clients to self-serve | YELLOW: Build "Campaign Builder" for clients to launch their own follow-up email sequences |
+| AI Notetaker | Joins Zoom/Teams/Meet 2 min before start, records, transcribes, summarises, creates action items. Sales templates: MEDDICC, BANT, Discovery. AI chat panel post-call. | No meeting intelligence in KIND | YELLOW: Integrate Recall.ai into Milla — auto-log call summaries to client accounts |
+| Monday Sidekick (proactive AI) | Context-aware AI for each user — aware of role, company, responsibilities. Proactively suggests and takes action. "Turns work into outcomes with a single click." | Milla is reactive (answers questions); not proactive | RED: Add proactive suggestions to Milla: "You have 3 leads who replied last week but haven't been followed up — want me to draft follow-ups?" |
+| Monday Agents + Agent Builder | Build custom AI agents via chat prompt — describe behaviour in plain English, agent deployed to account. Agents create/update items, assign owners, draft messages, log outcomes, execute follow-ups. Multi-agent workflows. | KIND agents are pre-built and fixed | YELLOW: Allow clients to customise FIGSY persona + rules |
+| Monday Magic (instant workflow generation) | Describe need in single prompt, fully functional board + workflows + automations generated instantly. 200+ template library. | KIND requires manual configuration | RED: "Magic setup" — onboarding wizard: "Describe your ideal customer in one sentence, FIGSY sequence generated automatically" |
+| AI Lead Agent (CRM-native) | Identifies, suggests, adds leads to monday CRM based on ICP. Enriches data, qualifies prospects, ensures reps get only relevant opportunities. | FIGSY finds and contacts prospects; no CRM-native lead suggestion panel for human reps | RED: Build "FIGSY suggestions panel" in admin — FIGSY surfaces 10 new prospects per day for rep review |
+| AI SDR Agent (monday CRM native) | Calls leads instantly while warm, adaptive qualification scripts, multilingual, 24/7, captures every interaction. Activates in under 2 minutes using existing CRM data. | FIGSY does email outbound only | YELLOW: Add inbound voice qualification to Vida chatbot flow |
+| Two-way Gmail + Outlook sync | Emails auto-attached to deals and contacts. Activity tracker dashboard for calls, emails, meetings. | No email sync in KIND | YELLOW: Build email activity log in client portal |
+| Deal forecasting with close probability | Monetary value + close probability columns. Formula: Forecast = Deal Value x Close Probability. Chart + Goal widgets pre-built. Revenue forecast vs. annual goal in one view. | KIND has no deal forecasting | YELLOW: Add pipeline forecast view to KIND admin |
+| Account Insights (Enterprise admin) | Storage tracking, automation stats, API analytics, AI credit tracking. Usage per user, per board, per automation. Enterprise only. | KIND admin has basic usage stats | YELLOW: Build per-client usage analytics in KIND admin |
+| Customer Portal (monday service) | Multi-portal support, AI-powered self-service knowledge base, "My Tickets" view, advanced analytics, automated responses to common issues | KIND client portal is campaign-focused, not service-focused | YELLOW: Add self-service knowledge base to KIND client portal |
+| 200+ industry templates | Out-of-the-box templates for sales, marketing, HR, product, agency | KIND has no template library | YELLOW: Build 5 campaign templates: SaaS outbound, Agency prospecting, FinTech AE sequence, etc. |
+
+**Key G2 complaints (verified):**
+- "Limited features in monday CRM — particularly column limitations and lack of automation"
+- "The reporting on campaign performance seems quite basic"
+- "Lacks advanced email marketing and tracking features. No deep analytics."
+- "Quotes and invoices can't automatically pull in products from the deal"
+- "High costs — every user requires a paid seat"
+- "Contacts can be deleted by any user — no proper restrictions or locks"
+
+**What users love (G2):**
+- "Emails and activities feature automatically tags emails to clients and leads — tracking is incredibly efficient"
+- "Best all-in-one CRM", "extremely customizable"
+- "Pipeline is intuitive — our reps started using it day 1 without training"
+- Automation + AI features extract follow-up dates effortlessly
+
+---
+
+### B. Website Tactics — Monday.com vs KIND
+
+| Tactic | Monday Does | KIND Status | Steal? |
+|---|---|---|---|
+| Product homepage segmentation | Separate landing pages per product (CRM, Dev, Service, Work Management) + per role. Each page speaks directly to one persona. | KIND has one homepage for all three agents | RED: Build separate landing pages: /figsy (for RevOps/SDR), /milla (for AEs), /vida (for website owners) |
+| Emotion-led taglines | "AI-First CRM Your Sales Team Will Love" — leads with emotional outcome, not features | KIND uses feature-centric copy | RED: Rewrite above-the-fold copy per agent page to lead with emotion + outcome |
+| Feature release velocity ("What's New") | Public changelog at /crm/whats-new — signals active development, builds trust, gives SEO content | KIND has no public changelog | RED: Launch public changelog page |
+| AI blog content machine | 200+ blog posts on AI SDR, lead scoring, email automation, pipeline management — all SEO'd | KIND has no blog content | YELLOW: Launch blog with 5 posts |
+| "180K+ customers" trust signal | High-volume social proof number used in all paid and organic copy | KIND needs first client count | RED: Add "X meetings booked" or "X campaigns run" live counter as soon as data exists |
+| Interactive product demo on homepage | Embedded Supademo interactive tour. Prospect clicks through without booking a call. | KIND requires Calendly booking | RED: Build 3-min interactive Navattic/Supademo tour of KIND portal |
+| Dual CTA funnel | Homepage has both "Contact Sales" (enterprise) and free trial CTA (SMB). Serves both segments. | KIND has single CTA (book a demo) | YELLOW: Add second CTA: "See a 5-min walkthrough" (ungated Loom) |
+| Comparison content | Full blog posts + landing pages vs. Salesforce, vs. ClickUp. Captures competitor-brand search. | No comparison content | YELLOW: Write "FIGSY vs. Hiring an SDR" comparison page |
+
+---
+
+### C. AE/SE Success Patterns — Monday.com
+
+- Methodology: MEDDPICC + Command of the Message — both required for AE hiring at all levels. Mid-market managers must deeply understand complex sales cycle navigation using MEDDIC.
+- Interview = sales test: 30-min demo simulation with hiring manager + peer AE. Candidates demo Monday's own product. Every AE knows the product deeply before day 1.
+- Discovery-first demos: AEs lead with discovery ("What does your current lead process look like?"), then assemble the demo live from modules around that specific pain. Not scripted — assembled live.
+- SE role: Technical setup, integration demos (Salesforce sync, Gmail sync live in demo), custom dashboards built during POC
+- POC process: Prospects get a 14-day trial pre-loaded with their own data (imported by SE). Dramatically increases conversion because prospects evaluate their own pipeline, not sample data.
+- **What KIND should do:** Offer a "14-day FIGSY pilot" — run a real outbound sequence for the prospect's ICP. If they get 3+ replies, they're in. The pilot IS the demo.
+
+---
+
+### D. Admin/Ops Patterns — Monday.com
+
+- Account Insights (Enterprise-only): Per-user, per-board, per-automation usage tracking. AI credit consumption per team. Used by CSMs to identify adoption gaps and expansion opportunities.
+- AI governance panel: Admins can monitor AI credit usage and set limits per team — important for enterprise compliance
+- Churn signals tracked: Low automation usage, few active boards, declining API calls — triggers CS proactive outreach
+- Expansion signals tracked: High API usage, automation limit approach, board count growing — triggers upsell conversation
+- Customer portal (monday service): Multi-portal with analytics — CS team sees ticket volumes, resolution rates, CSAT per client
+- **What KIND should do:** Build a "KIND Health Score" per client in admin: (campaigns active) + (reply rate > 5%) + (meetings booked this month) + (Vida chat engagement) = HEALTH. Flag Amber (<60%) and Red (<30%) for weekly CS review.
+
+---
+
+## CROSS-COMPANY SYNTHESIS
+
+### The 3 Things All Three Do That KIND Doesn't
+
+1. **Proactive AI (not reactive):** ClickUp Super Agents, Monday Sidekick, Alta Luna — all surface insights and take action before the user asks. KIND's agents (FIGSY, Milla, Vida) wait for input. Fix: Add weekly proactive digest from Milla — "Here's what happened, here's what I'd do next."
+
+2. **Results as social proof, not just features:** All three lead with hard numbers (Alta: "80% cost reduction"; ClickUp: "40% efficiency increase at Finastra"; Monday: "AI sources, qualifies, books meetings 24/7"). KIND leads with capability. Fix: Get one beta client metric, put it above the fold.
+
+3. **Comparison content that owns the decision moment:** All three have /vs/[competitor] pages. The moment a buyer googles "Alta vs 11x" or "Monday vs Salesforce," the incumbent answers. Fix: Build /kind-vs-artisan, /kind-vs-human-sdr pages this month.
+
+---
+
+## E. QUICK STEALS — TOP 10, UNDER 1 WEEK, ZERO EXTERNAL DEPENDENCY
+
+| # | What | Why | Source | Time |
+|---|---|---|---|---|
+| 1 | "Meetings booked by FIGSY" live counter on homepage | Social proof from your own product. Even "47 meetings booked" builds trust. Pulls from existing DB. | All three use metrics as hero proof | 2 hours |
+| 2 | Public changelog page | Signals momentum. Every release builds trust. Monday and ClickUp both have one. | Monday /crm/whats-new | 3 hours |
+| 3 | Proactive weekly digest from Milla | "Here's what happened this week + 3 recommended actions" — email or in-portal notification. Moves Milla from reactive to proactive. | Monday Sidekick, Alta Luna | 4 hours (template + cron job) |
+| 4 | Agent persona landing pages | /figsy, /milla, /vida — each page speaks to one buyer persona with outcomes + stats + "how it works in 3 steps" | Alta (Katie/Alex/Luna pages) | 4 hours |
+| 5 | Client health score in admin | Formula: (active campaigns) + (reply rate) + (meetings booked) = health. Flag Amber/Red. Fits into existing admin dashboard. | ClickUp Health Score agent, Monday insights | 3 hours |
+| 6 | "Live in 5 days" promise | Add to homepage + pricing page: "First campaign live in 5 business days. Guaranteed." Removes buying friction. | Alta "live in 7 days" | 30 minutes (copy only) |
+| 7 | Ungated 5-min Loom walkthrough | Record a screen walkthrough of the portal. Link from homepage "See how it works". No form. Removes friction. | ClickUp on-demand demo | 1 hour |
+| 8 | "Clone my best client" prospecting CTA | In admin: "Generate 50 lookalike prospects from your best closed client." Uses existing Apollo integration. | Alta Katie lookalike feature | 4 hours |
+| 9 | Comparison page: KIND vs Hiring a Human SDR | SEO + sales tool. "Full-time SDR costs £60K+/year. FIGSY starts at [price]/month. Here's what you get." Include cost calculator. | ClickUp pricing calculator, Alta vs 11x pages | 3 hours |
+| 10 | G2 profile (basic listing) | Sign up for free G2 vendor account. Request reviews from beta clients. Even 3 reviews with 4.5 stars puts you on the map in AI SDR category. | Alta G2 High Performer | 1 hour setup + 1 week outreach |
+
+**Total estimated time for all 10: ~26 hours / 3 focused days**
+
+---
+
+## WHAT KIND SHOULD NOT COPY
+
+| Competitor Feature | Why NOT to copy | Better alternative |
+|---|---|---|
+| Monday's per-seat pricing complexity (4 tiers x 4 products) | Creates confusion and support load | Keep KIND pricing simple: 1 agent flat + enterprise |
+| ClickUp's feature sprawl (20+ top-level features) | Overwhelming for buyers who want AI revenue, not PM software | Stay laser-focused: "AI Revenue Team" — 3 agents, 1 purpose |
+| Alta's zero self-serve (everything is a demo call) | Slows conversion for SMB buyers | Keep self-serve demo access; add enterprise "custom demo" option |
+| ClickUp's freemium (unlimited free users) | Can attract low-quality users, high support load | Use a time-limited pilot (14 days) not a permanent free tier |
+
+---
+
+## VERIFIED CLAIMS (2/3 source confirmation)
+
+| Claim | Sources | Confidence |
+|---|---|---|
+| Alta raised $7M Seed Feb 2025 | PRNewswire + StarupHub.ai + CalcalistTech | HIGH |
+| Alta G2 High Performer Summer 2025 | AltaHQ blog + G2 listing + multiple reviews | HIGH |
+| ClickUp cut 22% staff "100x Org" May 2026 | NextWeb + TechRepublic + Fortune + AmericanBazaar | HIGH |
+| ClickUp ~$300M ARR, $4B valuation | Yahoo Finance + Fortune + multiple sources | HIGH |
+| Monday Q3 2025 revenue $316.9M, 26% YoY | SEC 6-K filing + Constellation Research | HIGH |
+| Monday Campaigns launched Elevate 2025 | Monday blog + BusinessWire + SiliconAngle | HIGH |
+| Monday Sidekick/Vibe/Magic announced Elevate 2025 | IR press release + multiple tech outlets | HIGH |
+| Alta 50+ data sources | Multiple Alta marketing + G2 reviews | HIGH |
+| Monday CRM AI SDR Agent activates in 2 minutes | Monday support docs + Monday blog | HIGH |
+| ClickUp Brain MAX launched July 2025 | Yahoo Finance + AffableTech + multiple | HIGH |
+| Monday Vibe: 17,000 apps built in first week | Monday IR press release + SiliconAngle | HIGH |
+| Alta "replaced one SDR entirely" G2 review | G2 review content + multiple aggregator sites | HIGH |
+| ClickUp pricing calculator drove 8/10 persona engagement | Evelance.io pricing teardown | MEDIUM (single source) |
+| Alta pricing $1,500-$5,000/month | Market comps only — no published price | ESTIMATE ONLY |
+
+---
+
+*Section 40 added: 1 Jun 2026. Sources: G2, Salesforge, SalesforceAppExchange, PRNewswire, BusinessWire, SEC filings, Monday support docs, ClickUp blog, AltaHQ blog, multiple third-party reviews.*

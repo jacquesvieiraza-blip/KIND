@@ -86,6 +86,11 @@ const PHASES = [
       { label: 'P3-1 Developer portal — API key management, usage tracking, MCP quick-start in portal', done: true },
       { label: 'P3-4 Proposal + e-sign — generate proposal, send sign link, draft/sent/viewed/signed tracking', done: true },
       { label: 'P3-7 Visitor de-anon — IP → company via Clearbit Reveal, intent scoring, admin dashboard', done: true },
+      { label: 'Unified agent signal layer — FIGSY/Milla/Vida share one data bus (agent_signals table + /signals API)', done: true },
+      { label: 'FIGSY task assignment — clients assign goals to FIGSY, she plans/executes/reports back', done: true },
+      { label: 'Clone my best client — admin generates 50 lookalike prospects from top-performing client ICP', done: true },
+      { label: '"Live in 5 days" guarantee — added to homepage + pricing, dog-food proof bar on homepage', done: true },
+      { label: 'Context-aware agent panel — FIGSY/Milla/Vida speak to the page (MCP, proposals, team, messages, tasks, billing)', done: true },
       { label: 'Paystack end-to-end smoke test verified', done: false },
     ],
     ops: [

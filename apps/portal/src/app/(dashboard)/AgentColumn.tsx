@@ -206,6 +206,41 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
       { label: 'Request a feature',   onClick: () => {} },
       { label: 'Start outreach now',  onClick: () => router.push('/dashboard/figsy') },
     ]
+  } else if (pathname.startsWith('/dashboard/team')) {
+    contextMessage = "Your team members share the same pipeline. Invite colleagues to review leads, approve campaigns, or manage replies — everyone sees the same data, I keep running in the background."
+    chips = [
+      { label: 'Invite a team member',  onClick: () => router.push('/dashboard/team') },
+      { label: 'See my campaigns',      onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Review top leads',      onClick: () => router.push('/dashboard/leads') },
+    ]
+  } else if (pathname.startsWith('/dashboard/messages')) {
+    contextMessage = "This is your direct line to the K.I.N.D team. Ask anything — account questions, strategy, ICP advice, or just say hi. A real person replies within 24 hours."
+    chips = [
+      { label: 'Ask about my ICP',      onClick: () => {} },
+      { label: 'Request a feature',     onClick: () => {} },
+      { label: 'See my campaigns',      onClick: () => router.push('/dashboard/figsy') },
+    ]
+  } else if (pathname.startsWith('/dashboard/developer')) {
+    contextMessage = "Your KIND MCP Server lets you call me from Claude.ai, Cursor, or any MCP-enabled tool. Use figsy_find_leads, figsy_suggest_campaign, and figsy_get_campaign_stats — all from inside your AI assistant."
+    chips = [
+      { label: 'Copy MCP endpoint',        onClick: () => {} },
+      { label: 'Open in Claude.ai',        onClick: () => window.open('https://claude.ai', '_blank') },
+      { label: 'Test: find me 10 leads',   onClick: () => router.push('/dashboard/figsy-chat') },
+    ]
+  } else if (pathname.startsWith('/dashboard/proposals')) {
+    contextMessage = "I can help you win this deal. Tell me about the prospect and I'll draft a proposal — subject line, pitch, pricing, and sign link — ready to send in 60 seconds."
+    chips = [
+      { label: 'Draft a proposal',      onClick: () => {} },
+      { label: 'View sent proposals',   onClick: () => router.push('/dashboard/proposals') },
+      { label: 'Check my hot leads',    onClick: () => router.push('/dashboard/inbox') },
+    ]
+  } else if (pathname.startsWith('/dashboard/figsy-tasks')) {
+    contextMessage = "Assign me a task and I'll plan it, execute it, and report back. I work best with specific goals — 'Find 20 CTOs in Cape Town' or 'Suggest a new sequence angle for fintech leads'."
+    chips = [
+      { label: 'Assign me a task',      onClick: () => {} },
+      { label: 'Find more leads',       onClick: () => router.push('/dashboard/leads/icp') },
+      { label: 'Launch outreach',       onClick: () => router.push('/dashboard/figsy') },
+    ]
   } else {
     contextMessage = leadCount > 0
       ? `You have ${leadCount} leads ready. I've reviewed them and your top picks are standing by — ready when you are.`

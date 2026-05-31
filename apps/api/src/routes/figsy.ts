@@ -5,6 +5,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
+import { emitSignal } from './signals'
 
 export const figsyRouter = Router()
 
@@ -169,6 +170,13 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         client_id:     lead.client_id,
         reply_snippet: body.slice(0, 300),
       }).catch(console.error)
+
+      // Emit cross-agent signal: hot reply received
+      void emitSignal(lead.client_id, 'figsy', 'reply_received', {
+        lead_id:   lead.id,
+        sentiment: 'hot',
+        from:      fromEmail,
+      })
 
       // Auto top-up check
       try {
@@ -1098,6 +1106,12 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
         }).eq('id', reply.campaign_id)
       }
     }
+
+    // Emit cross-agent signal: meeting booked
+    void emitSignal(clientId, 'figsy', 'meeting_booked', {
+      reply_id:    req.params.id,
+      campaign_id: reply.campaign_id ?? null,
+    })
 
     res.json({ success: true, data: { booked: true } })
   } catch (err) {

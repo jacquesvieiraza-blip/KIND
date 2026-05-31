@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { Users, ShieldCheck, AlertTriangle } from 'lucide-react'
+import CloneBestClientButton from './CloneBestClientButton'
 
 interface ChurnRiskEntry {
   client_id: string
@@ -238,6 +239,7 @@ export default async function ClientsPage({
           <p className="text-gray-500 text-sm mt-0.5">{clients.length} client{clients.length !== 1 ? 's' : ''} total</p>
         </div>
         <div className="flex items-center gap-2">
+          <CloneBestClientButton />
           {counts.atRisk > 0 && (
             <Link
               href={atRiskOnly ? '/clients' : '/clients?filter=atrisk'}

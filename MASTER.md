@@ -153,6 +153,19 @@
 - `20260601_social_signals.sql` ✅ (also added `icps.settings` column)
 - `20260601_visitor_sessions.sql` ✅
 
+**FOUNDER ACTION NEEDED — 3 new migrations to run in Supabase SQL editor:**
+- `20260601_agent_signals.sql` — unified signal layer (FIGSY/Milla/Vida cross-agent bus)
+- `20260601_figsy_tasks.sql` — client task assignment to FIGSY
+- (lookalike uses existing leads table — no new migration needed)
+
+**Built 1 Jun 2026 (evening) — from competitive intelligence:**
+- ✅ **"Live in 5 days" guarantee** — homepage hero + trust badges + live-chip + pricing CTA (`apps/website/index.html`, `apps/website/pricing.html`)
+- ✅ **Dog-food proof bar** — "FIGSY books K.I.N.D's own sales meetings" banner between problem section and products (`apps/website/index.html`)
+- ✅ **Unified agent signal layer** — `agent_signals` table + `/signals` API routes + `emitSignal()` helper. FIGSY emits `reply_received` and `meeting_booked` events. All agents share one cross-agent data bus. (`apps/api/src/routes/signals.ts`, `supabase/migrations/20260601_agent_signals.sql`, `apps/api/src/routes/figsy.ts`)
+- ✅ **Clone my best client** — `GET /lookalike/best-client` finds top-scoring client by meetings+reply rate; `POST /lookalike/generate` searches Apollo for 50 lookalike prospects using client's ICP and inserts into leads table. Admin button in clients page header. (`apps/api/src/routes/lookalike.ts`, `apps/admin/src/app/clients/CloneBestClientButton.tsx`)
+- ✅ **FIGSY task assignment** — clients assign goals to FIGSY in the figsy-chat page. FIGSY plans + executes via Claude Haiku, reports back with status (pending→in_progress→done/escalated). Auto-refreshes every 10s while tasks are running. (`apps/api/src/routes/figsy-tasks.ts`, `supabase/migrations/20260601_figsy_tasks.sql`, `apps/portal/src/app/(dashboard)/dashboard/figsy-chat/page.tsx`)
+- ✅ **Context-aware agent panel** — AgentColumn now has specific context messages + chips for: /developer (MCP tools), /proposals (draft a proposal), /figsy-tasks (assign a task), /team (invite colleagues), /messages (direct line to KIND team). Previously fell through to generic default. (`apps/portal/src/app/(dashboard)/AgentColumn.tsx`)
+
 **Full build queue status:**
 - Phase 2: ✅ ALL COMPLETE — P2-1 through P2-15 all live
 - Phase 3: ✅ P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-13 all live

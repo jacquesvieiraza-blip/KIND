@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Send, Loader2, Zap, Users, Mail, TrendingUp, MessageSquare } from 'lucide-react'
+import { Send, Loader2, Zap, Users, Mail, TrendingUp, MessageSquare, ClipboardList, CheckCircle, Clock, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
@@ -16,6 +16,15 @@ interface FigsyStats {
   emailsSent: number
   replyRate: number
   meetingsBooked: number
+}
+
+interface FigsyTask {
+  id: string
+  title: string
+  description: string | null
+  status: 'pending' | 'in_progress' | 'done' | 'escalated'
+  result: string | null
+  created_at: string
 }
 
 const STARTER_PILLS = [
@@ -36,6 +45,13 @@ export default function FigsyChatPage() {
   const [stats, setStats] = useState<FigsyStats>({ leadCount: 0, emailsSent: 0, replyRate: 0, meetingsBooked: 0 })
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Task assignment state
+  const [tasks, setTasks] = useState<FigsyTask[]>([])
+  const [taskTitle, setTaskTitle] = useState('')
+  const [taskDescription, setTaskDescription] = useState('')
+  const [taskSubmitting, setTaskSubmitting] = useState(false)
+  const [taskError, setTaskError] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -83,6 +99,56 @@ export default function FigsyChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  // Load tasks when token is available
+  useEffect(() => {
+    if (!token) return
+    fetchTasks(token)
+  }, [token])
+
+  // Auto-refresh every 10 seconds if any task is in_progress
+  useEffect(() => {
+    if (!token) return
+    const hasInProgress = tasks.some(t => t.status === 'in_progress' || t.status === 'pending')
+    if (!hasInProgress) return
+    const interval = setInterval(() => fetchTasks(token), 10000)
+    return () => clearInterval(interval)
+  }, [token, tasks])
+
+  async function fetchTasks(tok: string) {
+    try {
+      const res = await fetch(`${API_URL}/figsy-tasks`, {
+        headers: { Authorization: `Bearer ${tok}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setTasks(Array.isArray(data) ? data : [])
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function submitTask(e: React.FormEvent) {
+    e.preventDefault()
+    if (!taskTitle.trim() || !token || taskSubmitting) return
+    setTaskSubmitting(true)
+    setTaskError(null)
+    try {
+      const res = await fetch(`${API_URL}/figsy-tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title: taskTitle.trim(), description: taskDescription.trim() || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setTaskError(data?.error ?? 'Failed to assign task'); return }
+      setTaskTitle('')
+      setTaskDescription('')
+      setTasks(prev => [data, ...prev])
+    } catch {
+      setTaskError('Connection error — please try again.')
+    } finally {
+      setTaskSubmitting(false)
+    }
+  }
 
   async function sendMessage(text: string) {
     if (!text.trim() || !token || loading) return
@@ -279,6 +345,69 @@ export default function FigsyChatPage() {
             </button>
           ))}
         </div>
+
+        {/* ── Assign a task to FIGSY ── */}
+        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ClipboardList className="w-3.5 h-3.5 text-[#7C3AED]" />
+            <p className="text-[11px] font-semibold text-[#7C3AED]/50 uppercase tracking-wider">Assign a task to FIGSY</p>
+          </div>
+          <form onSubmit={submitTask} className="space-y-2">
+            <input
+              type="text"
+              value={taskTitle}
+              onChange={e => setTaskTitle(e.target.value)}
+              placeholder="What do you want FIGSY to do?"
+              className="w-full border border-purple-100 rounded-xl px-3 py-2 text-xs text-[#1E1152] placeholder:text-[#9B8EC4] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 bg-[#F5F0FF]/40"
+            />
+            <textarea
+              value={taskDescription}
+              onChange={e => setTaskDescription(e.target.value)}
+              placeholder="Optional: add more context"
+              rows={2}
+              className="w-full border border-purple-100 rounded-xl px-3 py-2 text-xs text-[#1E1152] placeholder:text-[#9B8EC4] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 bg-[#F5F0FF]/40 resize-none"
+            />
+            {taskError && (
+              <p className="text-[11px] text-red-500">{taskError}</p>
+            )}
+            <button
+              type="submit"
+              disabled={!taskTitle.trim() || taskSubmitting}
+              className="w-full px-3 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-40 text-white text-xs font-semibold rounded-xl transition-colors"
+            >
+              {taskSubmitting ? 'Assigning…' : 'Assign to FIGSY'}
+            </button>
+          </form>
+        </div>
+
+        {/* ── Recent tasks list ── */}
+        {tasks.length > 0 && (
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4 space-y-2">
+            <p className="text-[11px] font-semibold text-[#7C3AED]/50 uppercase tracking-wider mb-1">Recent tasks</p>
+            {tasks.slice(0, 8).map(task => (
+              <div key={task.id} className="rounded-xl border border-purple-50 bg-[#F5F0FF]/30 px-3 py-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-xs font-medium text-[#1E1152] leading-snug flex-1 min-w-0 truncate">{task.title}</p>
+                  <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                    task.status === 'done'       ? 'bg-green-100 text-green-700' :
+                    task.status === 'in_progress'? 'bg-blue-100 text-blue-700'  :
+                    task.status === 'escalated'  ? 'bg-orange-100 text-orange-700' :
+                                                   'bg-gray-100 text-gray-500'
+                  }`}>
+                    {task.status === 'done'        && <CheckCircle className="w-2.5 h-2.5" />}
+                    {task.status === 'in_progress' && <RefreshCw className="w-2.5 h-2.5 animate-spin" />}
+                    {task.status === 'escalated'   && <AlertTriangle className="w-2.5 h-2.5" />}
+                    {task.status === 'pending'     && <Clock className="w-2.5 h-2.5" />}
+                    {task.status === 'done' ? 'Done' : task.status === 'in_progress' ? 'Working' : task.status === 'escalated' ? 'Escalated' : 'Pending'}
+                  </span>
+                </div>
+                {task.result && (
+                  <p className="text-[11px] text-[#7B6FA0] mt-1 leading-relaxed line-clamp-3">{task.result}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
     </div>

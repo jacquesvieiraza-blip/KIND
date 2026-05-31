@@ -168,7 +168,7 @@ Every item below was cross-referenced against the actual file before being marke
 
 | Priority | Item | Action needed | Impact |
 |----------|------|--------------|--------|
-| 🔴 **Critical** | All email sending | Add `RESEND_API_KEY` to Railway **API** env vars | Team invites, consent emails, FIGSY outreach emails all currently silent |
+| ✅ **Done** | All email sending | `RESEND_API_KEY` confirmed in Railway — P0-2/P0-7/P0-9 now live | Team invites, consent emails, FIGSY outreach active |
 | 🔴 **Critical** | Apollo lead search | Upgrade Apollo to $49/mo plan, add `APOLLO_API_KEY` to Railway API env | `/leads/search` returns 0 results on free plan |
 | 🔴 **High** | HubSpot CRM sync | Add `HUBSPOT_API_KEY` to Railway API env | CRM push on positive replies + deal creation |
 | 🟡 **Medium** | Hunter.io enrichment | Add `HUNTER_API_KEY` | Email finder per company domain |
@@ -176,7 +176,7 @@ Every item below was cross-referenced against the actual file before being marke
 | 🟡 **Medium** | Stripe billing live test | Add Stripe price IDs to Railway env (keys already set) | Clients can purchase credits and subscriptions |
 | ⚪ **Low** | Email warm-up | Subscribe to warm-up service, add key | Improves deliverability for new sending domains |
 
-> **RESEND + APOLLO are the two that unlock the actual product.** Everything else is enhancement.
+> **APOLLO is now the critical blocker.** RESEND is live. Everything else is enhancement.
 
 ---
 
@@ -956,14 +956,14 @@ Every item below was cross-referenced against the actual file before being marke
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | P0-1 | **Website copy rewrite** — full brand voice, agent names, pricing clear | 🔵 Claude builds | Hero still says "Stop chasing leads. Let FIGSY book them." — needs full pass |
-| P0-2 | **Learning Agent Level 2** — monthly ICP analysis cron, email founder with refinements | 🔴 Blocked | Needs `RESEND_API_KEY` in Railway |
+| P0-2 | **Learning Agent Level 2** — monthly ICP analysis cron, email founder with refinements | ✅ Live | `RESEND_API_KEY` confirmed in Railway — cron active |
 | P0-3 | **Knowledge base preview** — FIGSY sample sentence on save | ✅ Live | `knowledge/page.tsx:92` |
 | P0-4 | **Email open tracking** — pixel, `opened_at`, open rate KPI | ✅ Live | `figsy/track/open/:id`, migration done |
 | P0-5 | **Notification preferences UI** — 5 toggles, localStorage | ✅ Live | `settings/page.tsx:645` |
 | P0-6 | **Analytics empty state** — 4 action cards | ✅ Live | `kpis/page.tsx:576` |
-| P0-7 | **Scheduled report emails** — weekly digest cron to clients | 🔴 Blocked | Cron exists (`cron.ts:40`), silent until `RESEND_API_KEY` added |
+| P0-7 | **Scheduled report emails** — weekly digest cron to clients | ✅ Live | `RESEND_API_KEY` confirmed in Railway — weekly digest cron firing |
 | P0-8 | **Email score pre-send** — 0–100 badge on campaign step | ✅ Live | `figsy/[id]/page.tsx:18` |
-| P0-9 | **Client morning brief** — daily email to active clients | 🔴 Blocked | Needs `RESEND_API_KEY` |
+| P0-9 | **Client morning brief** — daily email to active clients | ✅ Live | `RESEND_API_KEY` confirmed in Railway — daily brief cron active |
 | P0-10 | **Co-pilot mode** — approve before send, per campaign | ✅ Live | `figsy/[id]/page.tsx:349` |
 | P0-11 | **Auto-fire consent on approval** — fires on lead scored | ✅ Live | `leads.ts` + "Auto-sent" chip |
 | P0-12 | **Realtime dashboard** — Supabase realtime → live counts | ✅ Live | `DashboardLive.tsx` — realtime subscriptions on leads/campaigns/emails/replies, green pulse indicator |

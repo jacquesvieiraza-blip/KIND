@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
@@ -622,25 +623,27 @@ export default function PartnerPage() {
         </div>
         <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { label: 'Partner Onboarding Deck',        desc: 'Full product walkthrough and positioning guide', href: '#' },
-            { label: 'ICP Templates (Nigeria, SA, UK)', desc: 'Pre-built ideal customer profiles by region',    href: '#' },
-            { label: 'Objection Handling Guide',        desc: 'Common objections and winning responses',        href: '#' },
-            { label: 'K.I.N.D Brand Kit',               desc: 'Logos, colours, and usage guidelines',           href: '#' },
-          ].map(r => (
-            <a
-              key={r.label}
-              href={r.href}
-              className="flex items-start gap-3 p-4 rounded-xl border border-purple-100 hover:border-[#7C3AED]/30 hover:bg-purple-50/50 transition-all group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/10 flex items-center justify-center shrink-0 mt-0.5">
-                <ExternalLink className="w-3.5 h-3.5 text-[#7C3AED]" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#1E1152] group-hover:text-[#7C3AED] transition-colors">{r.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{r.desc}</p>
-              </div>
-            </a>
-          ))}
+            { label: 'Onboarding Guide',                desc: 'Step-by-step journey from application to first commission', href: '/dashboard/partner/onboarding', internal: true },
+            { label: 'Partner Value Deck',              desc: 'Slides to walk prospects through — pricing, compare, CTA', href: '/dashboard/partner/deck',        internal: true },
+            { label: 'ICP Templates (Nigeria, SA, UK)', desc: 'Pre-built ideal customer profiles by region',               href: '#',                              internal: false },
+            { label: 'K.I.N.D Brand Kit',               desc: 'Logos, colours, and usage guidelines',                      href: '#',                              internal: false },
+          ].map(r => {
+            const cls = "flex items-start gap-3 p-4 rounded-xl border border-purple-100 hover:border-[#7C3AED]/30 hover:bg-purple-50/50 transition-all group"
+            const content = (
+              <>
+                <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <ExternalLink className="w-3.5 h-3.5 text-[#7C3AED]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[#1E1152] group-hover:text-[#7C3AED] transition-colors">{r.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{r.desc}</p>
+                </div>
+              </>
+            )
+            return r.internal
+              ? <Link key={r.label} href={r.href} className={cls}>{content}</Link>
+              : <a key={r.label} href={r.href} className={cls}>{content}</a>
+          })}
         </div>
       </div>
 

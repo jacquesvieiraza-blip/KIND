@@ -56,6 +56,38 @@
 
 ---
 
+### 📅 SESSION — 31 May 2026 (continued) — Partner Programme Feature Completion
+
+**Built this session:**
+- ✅ Partner onboarding flowchart page (`apps/portal/src/app/(dashboard)/dashboard/partner/onboarding/page.tsx`) — 9-step visual journey from application to commission, with rules section
+- ✅ Partner value deck page (`apps/portal/src/app/(dashboard)/dashboard/partner/deck/page.tsx`) — 7-slide prospect pitch: hook, problem, solution, pricing, compare, results, next steps
+- ✅ Agent context by partner state (`apps/portal/src/app/(dashboard)/AgentColumn.tsx`) — FIGSY shows different messages for pending / active-no-deals / active-with-deals partners
+- ✅ Layout passes partnerStatus + partnerDealCount to AgentColumn (`apps/portal/src/app/(dashboard)/layout.tsx`)
+- ✅ Partner Hub Resources section updated with real links to onboarding + deck pages (`apps/portal/src/app/(dashboard)/dashboard/partner/page.tsx`)
+- ✅ Admin partners page: new "Onboarding" tab with admin SOP checklist, partner journey phases, commission structure reference (`apps/admin/src/app/partners/page.tsx`)
+
+**Bug fixes also in this session:**
+- Root-cause identified: partner sees "not a partner yet" because they were logging in with iCloud account (`@icloud.com`) but partner record uses Gmail (`@gmail.com`) — two separate Supabase auth users
+- Fix: run SQL to update partner email, OR log in with the Gmail account for Partner Hub
+- Applied `.ilike()` case-insensitive email matching on all 3 partner email lookups in API
+- Fixed admin partners page `export const dynamic = 'force-dynamic'` (was causing 404)
+- Created admin partner detail page `apps/admin/src/app/partners/[id]/page.tsx` (was missing — View → was 404)
+- Fixed `lib/api.ts` to check Content-Type before `res.json()` (was crashing on Railway HTML error pages)
+
+**FOUNDER ACTION NEEDED:**
+- **Partner email mismatch**: Your partner record uses `jacques.vieiraza@gmail.com` but your main portal login is `@icloud.com`. Run this SQL in Supabase to fix:
+  ```sql
+  UPDATE partners SET email = 'jacques.vieiraza@icloud.com' WHERE email = 'jacques.vieiraza@gmail.com';
+  ```
+  OR: log into the portal with your Gmail account to access Partner Hub.
+
+**Full build queue status:**
+- Phase 2: ALL DONE — P2-1 through P2-15 complete
+- Phase 3: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-13 live
+- Partner Programme: ALL FEATURES LIVE (onboarding guide, value deck, agent context, admin onboarding tab)
+
+---
+
 ### 📅 SESSION — 1 Jun 2026 — P2-13/P2-14/P3-1/P3-4/P3-7
 
 **Built this session:**

@@ -14,9 +14,11 @@ interface Props {
   leadCount: number
   creditBalance: number
   isNewUser?: boolean
+  partnerStatus?: string
+  partnerDealCount?: number
 }
 
-export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBalance, isNewUser = false }: Props) {
+export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBalance, isNewUser = false, partnerStatus = '', partnerDealCount = 0 }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
 
@@ -250,12 +252,27 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
       { label: 'Test: find me 10 leads',   onClick: () => router.push('/dashboard/figsy-chat') },
     ]
   } else if (pathname.startsWith('/dashboard/partner')) {
-    contextMessage = "Your partner dashboard — register deals for 60-day protection, track commissions, and access your demo sandbox. Use FIGSY to prospect for your own clients too."
-    chips = [
-      { label: 'Register a deal',       onClick: () => {} },
-      { label: 'Copy referral link',    onClick: () => {} },
-      { label: 'Start my own outreach', onClick: () => router.push('/dashboard/figsy') },
-    ]
+    if (partnerStatus === 'pending') {
+      contextMessage = "Your application is under review. While you wait — explore the onboarding guide and prepare your pitch deck so you're ready to close your first deal the day you're approved."
+      chips = [
+        { label: 'View onboarding guide', onClick: () => router.push('/dashboard/partner/onboarding') },
+        { label: 'Explore value deck',    onClick: () => router.push('/dashboard/partner/deck') },
+      ]
+    } else if (partnerDealCount === 0) {
+      contextMessage = "You're live! Start by registering your first deal for 60-day protection, then share your referral link. The sooner you register, the sooner commissions start."
+      chips = [
+        { label: 'Register first deal', onClick: () => {} },
+        { label: 'Get selling tips',    onClick: () => router.push('/dashboard/partner/deck') },
+        { label: 'View onboarding',     onClick: () => router.push('/dashboard/partner/onboarding') },
+      ]
+    } else {
+      contextMessage = `You have ${partnerDealCount} registered deal${partnerDealCount !== 1 ? 's' : ''}. Keep adding prospects for 60-day protection — and share your referral link to convert more referrals to monthly commissions.`
+      chips = [
+        { label: 'Register new deal', onClick: () => {} },
+        { label: 'View pitch deck',   onClick: () => router.push('/dashboard/partner/deck') },
+        { label: 'View onboarding',   onClick: () => router.push('/dashboard/partner/onboarding') },
+      ]
+    }
   } else if (pathname.startsWith('/dashboard/proposals')) {
     contextMessage = "I can help you win this deal. Tell me about the prospect and I'll draft a proposal — subject line, pitch, pricing, and sign link — ready to send in 60 seconds."
     chips = [

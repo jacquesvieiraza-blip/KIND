@@ -13,13 +13,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  let trialExpired  = false
-  let creditBalance = 0
-  let hasFigsy      = false
-  let hasMilla      = false
-  let hasVida       = false
-  let leadCount     = 0
-  let isPartner     = false
+  let trialExpired      = false
+  let creditBalance     = 0
+  let hasFigsy          = false
+  let hasMilla          = false
+  let hasVida           = false
+  let leadCount         = 0
+  let isPartner         = false
+  let partnerStatus     = ''
+  let partnerDealCount  = 0
 
   // Check partner status via API — the only reliable method since the partners
   // table RLS uses a subquery that fails with the session client in server components
@@ -31,7 +33,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
         headers: { Authorization: `Bearer ${session.access_token}` },
         signal: AbortSignal.timeout(4000),
       })
-      isPartner = partnerRes.ok
+      if (partnerRes.ok) {
+        isPartner = true
+        try {
+          const pData = await partnerRes.json()
+          partnerStatus    = pData?.partner?.status ?? 'active'
+          partnerDealCount = (pData?.deals ?? []).length
+        } catch { /* non-critical */ }
+      }
     }
   } catch { isPartner = false }
 
@@ -96,6 +105,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             leadCount={leadCount}
             creditBalance={creditBalance}
             isNewUser={isNewUser}
+            partnerStatus={partnerStatus}
+            partnerDealCount={partnerDealCount}
           />
         </div>
       </main>

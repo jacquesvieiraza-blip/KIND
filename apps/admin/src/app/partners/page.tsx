@@ -55,7 +55,7 @@ interface Commission {
   partners: { name: string; company: string | null; email: string; tier: string | null } | null
 }
 
-type Tab = 'partners' | 'deals' | 'commissions'
+type Tab = 'partners' | 'deals' | 'commissions' | 'onboarding'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -282,6 +282,7 @@ export default function PartnersPage() {
     { id: 'partners',    label: 'Partners',    count: partners.length },
     { id: 'deals',       label: 'Deals',       count: deals.length },
     { id: 'commissions', label: 'Commissions', count: commissions.length },
+    { id: 'onboarding',  label: 'Onboarding' },
   ]
 
   return (
@@ -749,6 +750,127 @@ export default function PartnersPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Tab: Onboarding ────────────────────────────────────────────────── */}
+      {!loading && activeTab === 'onboarding' && (
+        <div className="space-y-6">
+
+          {/* Admin SOP */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-purple-100 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#7C3AED]" />
+              <h2 className="text-sm font-semibold text-gray-800">Admin Checklist — When Approving a New Partner</h2>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              {[
+                { step: 1, text: 'Review application in the Partners tab — confirm name, company, country, partner type' },
+                { step: 2, text: 'Click Approve on their pending card (triggers approval email automatically)' },
+                { step: 3, text: 'Confirm their referral_code has been generated (visible in the Active Partners table)' },
+                { step: 4, text: 'In Supabase: confirm partner row has status = active, approved_at is set' },
+                { step: 5, text: 'Send a personal welcome message via the portal Messages if appropriate' },
+                { step: 6, text: 'Monitor their first deal registration in the Deals tab — approve it within 24 hours' },
+                { step: 7, text: 'Month 1: check commission calculation is correct after their first client pays' },
+              ].map(({ step, text }) => (
+                <div key={step} className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#7C3AED]/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-[11px] font-bold text-[#7C3AED]">{step}</span>
+                  </div>
+                  <p className="text-sm text-gray-700">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Partner Journey */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-purple-100 flex items-center gap-2">
+              <Handshake className="w-4 h-4 text-[#7C3AED]" />
+              <h2 className="text-sm font-semibold text-gray-800">Partner Journey — What They Experience</h2>
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  {
+                    phase: 'Phase 1 — Getting Started',
+                    steps: [
+                      'Submit application on partners.html',
+                      'K.I.N.D reviews (24–48 hrs)',
+                      'Approval email sent with login link',
+                      'Partner logs into portal with application email',
+                    ],
+                    color: 'border-amber-200 bg-amber-50',
+                    label: 'bg-amber-100 text-amber-700',
+                  },
+                  {
+                    phase: 'Phase 2 — First Activity',
+                    steps: [
+                      'Sees Getting Started checklist',
+                      'Copies referral link',
+                      'Registers first deal (60-day protection)',
+                      'Accesses demo sandbox for prospect walkthroughs',
+                    ],
+                    color: 'border-blue-200 bg-blue-50',
+                    label: 'bg-blue-100 text-blue-700',
+                  },
+                  {
+                    phase: 'Phase 3 — Earning',
+                    steps: [
+                      'Client signs up via referral link or deal',
+                      'Commission auto-calculated when client pays',
+                      'Admin approves and pays via Wise monthly',
+                      'Partner tracks all earnings in Partner Hub',
+                    ],
+                    color: 'border-emerald-200 bg-emerald-50',
+                    label: 'bg-emerald-100 text-emerald-700',
+                  },
+                ].map(({ phase, steps, color, label }) => (
+                  <div key={phase} className={`rounded-xl border p-4 ${color}`}>
+                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${label} mb-3`}>
+                      {phase}
+                    </span>
+                    <ul className="space-y-2">
+                      {steps.map(s => (
+                        <li key={s} className="flex items-start gap-2 text-xs text-gray-700">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Commission structure */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-purple-100 flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-[#7C3AED]" />
+              <h2 className="text-sm font-semibold text-gray-800">Commission Structure Reference</h2>
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { tier: 'Referral', rate: '20%', note: 'Standard partner tier — introductions and referral links', example: 'R 4,900 plan → R 980/month to partner' },
+                  { tier: 'Agency', rate: '25%', note: 'Agencies that manage KIND accounts for their clients', example: 'R 9,900 plan → R 2,475/month to partner' },
+                  { tier: 'White-label', rate: '30%', note: 'Tech partners embedding KIND in their own product', example: 'R 19,900 plan → R 5,970/month to partner' },
+                ].map(({ tier, rate, note, example }) => (
+                  <div key={tier} className="border border-purple-100 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-[#1E1152] text-sm">{tier}</span>
+                      <span className="text-xl font-bold text-[#7C3AED]">{rate}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">{note}</p>
+                    <p className="text-xs text-emerald-600 font-medium bg-emerald-50 rounded-lg px-3 py-1.5">{example}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-3">All commissions are recurring — paid monthly via Wise on the 1st for the previous month&apos;s active clients.</p>
+            </div>
+          </div>
+
         </div>
       )}
     </div>

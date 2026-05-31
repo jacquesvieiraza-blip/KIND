@@ -610,9 +610,9 @@ export default function FigsyPage() {
           </div>
           <div className="flex-1 text-sm text-[#7B6FA0] leading-relaxed">
             {mode === 'autopilot' ? (
-              <p>I run fully on your behalf — generating emails, enrolling leads, and following up automatically. No approval needed.</p>
+              <p>FIGSY runs fully on your behalf — writing emails, enrolling leads, and following up automatically. No approval needed.</p>
             ) : (
-              <p>Co-pilot — you approve every message before it sends</p>
+              <p>FIGSY drafts every message and waits for your approval before sending.</p>
             )}
           </div>
         </div>
@@ -631,7 +631,7 @@ export default function FigsyPage() {
             Campaigns <span className="text-sm font-normal text-[#9B8EC4] ml-1">— {campaigns.length} total</span>
           </h1>
           <p className="text-sm text-[#7B6FA0] mt-0.5">
-            FIGSY outreach sequences for your scored, consented leads.
+            FIGSY campaigns — sequences FIGSY writes, sends, and follows up on your behalf.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -712,7 +712,7 @@ export default function FigsyPage() {
               Active: {activeCampaign.name}
             </p>
             <p className="text-xs text-green-600 mt-0.5">
-              FIGSY is auto-enrolling consented leads and sending outreach sequences.
+              FIGSY is writing sequences, enrolling leads, and sending on your behalf.
             </p>
           </div>
         </div>
@@ -736,7 +736,7 @@ export default function FigsyPage() {
           <img src="/agents/figsy.png" className="w-10 h-10 rounded-full object-cover object-top ring-2 ring-purple-100 mx-auto mb-3" alt="FIGSY" />
           <p className="text-gray-900 font-semibold mb-1">No campaigns running yet</p>
           <p className="text-sm text-[#9B8EC4] mb-6">
-            Create your first campaign and I&apos;ll write the sequences, handle replies, and book meetings for you.
+            FIGSY is standing by — give her a campaign and she&apos;ll write the sequences, handle replies, and book meetings.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 text-left max-w-md mx-auto">
             {[
@@ -928,13 +928,13 @@ export default function FigsyPage() {
               {/* How it works — only on draft campaigns */}
               {campaign.status === 'draft' && (
                 <div className="mt-4 p-4 bg-[#F5F0FF] rounded-lg border border-purple-100">
-                  <p className="text-xs font-semibold text-blue-800 mb-2">How FIGSY works once you activate:</p>
+                  <p className="text-xs font-semibold text-blue-800 mb-2">What FIGSY does once you activate:</p>
                   <ol className="text-xs text-[#6D28D9] space-y-1 list-decimal list-inside">
-                    <li>Every consented lead is automatically enrolled</li>
-                    <li>Claude generates a personalised 3-step email sequence per lead</li>
-                    <li>Step 1 sends immediately — step 2 after 4 days, step 3 after 9 days</li>
-                    <li>Replies are classified: interested, not now, opt-out, OOO</li>
-                    <li>Opt-outs are instantly suppressed across the whole platform</li>
+                    <li>FIGSY enrolls every consented lead automatically</li>
+                    <li>FIGSY writes a personalised 3-step email sequence per lead</li>
+                    <li>FIGSY sends step 1 immediately — step 2 after 4 days, step 3 after 9 days</li>
+                    <li>FIGSY classifies every reply: interested, not now, opt-out, OOO</li>
+                    <li>FIGSY instantly suppresses opt-outs across the whole platform</li>
                   </ol>
                 </div>
               )}

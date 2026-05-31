@@ -164,13 +164,13 @@ function EmailsSparkline({ data }: { data: DailySend[] }) {
             <Activity className="w-4 h-4 text-[#7C3AED]" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900">Emails sent</h2>
+            <h2 className="text-sm font-bold text-gray-900">FIGSY sent</h2>
             <p className="text-xs text-[#9B8EC4]">Last {n} days</p>
           </div>
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-gray-900">{total.toLocaleString()}</p>
-          <p className="text-xs text-[#9B8EC4]">total sent</p>
+          <p className="text-xs text-[#9B8EC4]">FIGSY sent</p>
         </div>
       </div>
 
@@ -348,7 +348,7 @@ export default function KPIsPage() {
 
     const metrics = [
       { label: 'Leads sourced', value: l.total, max: Math.max(l.total, 100) },
-      { label: 'Emails sent', value: f.totalSent, max: Math.max(f.totalSent, 100) },
+      { label: 'FIGSY sent', value: f.totalSent, max: Math.max(f.totalSent, 100) },
       { label: 'Open rate', value: parseFloat(openRatePct), max: 60, unit: '%' },
       { label: 'Reply rate', value: parseFloat(replyRatePct), max: 30, unit: '%' },
       { label: 'Positive replies', value: f.interested, max: Math.max(f.interested, 10) },
@@ -453,7 +453,7 @@ export default function KPIsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Performance</h1>
-          <p className="text-[#7B6FA0] text-sm mt-1">Live outreach metrics and pipeline data across all agents.</p>
+          <p className="text-[#7B6FA0] text-sm mt-1">Live FIGSY campaign metrics and pipeline data across all agents.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -541,7 +541,7 @@ export default function KPIsPage() {
           </div>
 
           <MetricCard
-            label="Emails sent"
+            label="FIGSY sent"
             value={f.totalSent.toLocaleString()}
             icon={<Send className="w-4 h-4" />}
           />
@@ -708,7 +708,7 @@ export default function KPIsPage() {
                 </p>
                 {f.totalSent > 0 && (
                   <p className="text-sm text-gray-700">
-                    FIGSY sent <span className="font-bold text-gray-900">{f.totalSent.toLocaleString()}</span> emails across <span className="font-bold text-gray-900">{f.activeCampaigns}</span> campaign{f.activeCampaigns !== 1 ? 's' : ''}.
+                    FIGSY sent <span className="font-bold text-gray-900">{f.totalSent.toLocaleString()}</span> emails across <span className="font-bold text-gray-900">{f.activeCampaigns}</span> FIGSY campaign{f.activeCampaigns !== 1 ? 's' : ''}.
                   </p>
                 )}
                 {oneInEvery !== null && (

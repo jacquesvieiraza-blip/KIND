@@ -317,7 +317,7 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
           <Plane className="w-5 h-5 text-blue-400 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-blue-700">Out of office</p>
-            <p className="text-xs text-blue-500 mt-0.5">This contact is away. FIGSY will follow up automatically when the sequence resumes.</p>
+            <p className="text-xs text-blue-500 mt-0.5">This contact is away. FIGSY will pick up the sequence automatically when they return.</p>
           </div>
         </div>
       )}
@@ -591,7 +591,7 @@ export default function InboxPage() {
               </div>
               <p className="text-base font-semibold text-[#0F0929] mb-2">No replies yet</p>
               <p className="text-sm text-[#7B6FA0] max-w-xs leading-relaxed mb-6">
-                FIGSY will surface replies here as campaigns run. Hot leads and positive replies appear first.
+                FIGSY emails surface here as campaigns run. Hot leads and FIGSY replies appear first.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-sm text-left">
                 {[

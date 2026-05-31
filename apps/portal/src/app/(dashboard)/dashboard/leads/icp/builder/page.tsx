@@ -266,16 +266,18 @@ export default function IcpBuilderPage() {
       {!icpDraft && (
         <div className="bg-white rounded-xl border border-gray-100 p-3">
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your answer… (Enter to send)"
-              rows={2}
-              disabled={sending}
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none disabled:opacity-50"
-            />
+            <div className="flex-1 bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#7C3AED] p-[1.5px] rounded-xl">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your answer… (Enter to send)"
+                rows={2}
+                disabled={sending}
+                className="bg-white rounded-[10px] w-full px-4 py-3 text-sm outline-none resize-none disabled:opacity-50"
+              />
+            </div>
             <VoiceMicButton
               onTranscript={text => {
                 setInput(prev => prev ? `${prev} ${text}` : text)

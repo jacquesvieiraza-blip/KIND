@@ -111,6 +111,27 @@ export default function AssistantPage() {
   const [creatingSession, setCreatingSession] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const LANGUAGE_KEY = 'kind_milla_language_v1'
+  const LANGUAGES = [
+    { value: 'English',               label: 'English',    flag: '🇬🇧' },
+    { value: 'French (Français)',      label: 'Français',   flag: '🇫🇷' },
+    { value: 'Swahili (Kiswahili)',    label: 'Kiswahili',  flag: '🇰🇪' },
+    { value: 'Hausa (Hausa)',          label: 'Hausa',      flag: '🇳🇬' },
+  ]
+  const [millaLanguage, setMillaLanguage] = useState('English')
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LANGUAGE_KEY)
+      if (stored && LANGUAGES.some(l => l.value === stored)) setMillaLanguage(stored)
+    } catch { /* ignore */ }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleLanguageChange(lang: string) {
+    setMillaLanguage(lang)
+    try { localStorage.setItem(LANGUAGE_KEY, lang) } catch { /* ignore */ }
+  }
+
   const toast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3500) }
 
   // ── Effects ───────────────────────────────────────────────────────────────
@@ -220,13 +241,16 @@ export default function AssistantPage() {
     e.preventDefault()
     if (!chatInput.trim() || !activeSession || sending) return
     const userText = chatInput.trim()
+    const messagePayload = millaLanguage !== 'English'
+      ? `[Respond in ${millaLanguage}] ${userText}`
+      : userText
     setChatInput(''); setSending(true)
     const optimistic: MillaMessage = { id: `opt-${Date.now()}`, role: 'user', content: userText, sources: null, created_at: new Date().toISOString() }
     setMessages(prev => [...prev, optimistic])
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await api.post<{ success: boolean; reply: string; sources: MillaSource[] }>(
-        `/milla/sessions/${activeSession.id}/chat`, { message: userText }, session?.access_token)
+        `/milla/sessions/${activeSession.id}/chat`, { message: messagePayload }, session?.access_token)
       const reply: MillaMessage = { id: `opt-a-${Date.now()}`, role: 'assistant', content: res.reply, sources: res.sources?.length > 0 ? res.sources : null, created_at: new Date().toISOString() }
       setMessages(prev => [...prev, reply])
     } catch (err) {
@@ -507,15 +531,37 @@ export default function AssistantPage() {
                     )}
                     <div ref={messagesEndRef} />
                   </div>
-                  <form onSubmit={handleSend} className="px-4 py-3 border-t border-purple-100/60 flex gap-3 items-end">
-                    <textarea value={chatInput} onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e) } }}
-                      placeholder="Ask Milla anything…" rows={2}
-                      className="flex-1 border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none" />
-                    <button type="submit" disabled={sending || !chatInput.trim()}
-                      className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors shrink-0">
-                      {sending ? '…' : 'Send'}
-                    </button>
+                  <form onSubmit={handleSend} className="px-4 py-3 border-t border-purple-100/60 space-y-2">
+                    <div className="flex gap-3 items-end">
+                      <textarea value={chatInput} onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e) } }}
+                        placeholder="Ask Milla anything…" rows={2}
+                        className="flex-1 border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none" />
+                      <button type="submit" disabled={sending || !chatInput.trim()}
+                        className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors shrink-0">
+                        {sending ? '…' : 'Send'}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-[#9B8EC4] font-medium">Respond in:</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {LANGUAGES.map(lang => (
+                          <button
+                            key={lang.value}
+                            type="button"
+                            onClick={() => handleLanguageChange(lang.value)}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors border ${
+                              millaLanguage === lang.value
+                                ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                                : 'bg-white text-[#7B6FA0] border-purple-100 hover:border-[#7C3AED]/40 hover:text-[#7C3AED]'
+                            }`}
+                          >
+                            <span>{lang.flag}</span>
+                            <span>{lang.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </form>
                 </>
               )}

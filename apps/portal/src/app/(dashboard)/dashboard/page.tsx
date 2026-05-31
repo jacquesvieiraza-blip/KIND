@@ -123,10 +123,10 @@ export default async function DashboardPage() {
     : user?.email?.split('@')[0] ?? 'there'
 
   const greetingSubtitle = leadCount > 0 && totalReplies > 0
-    ? `${leadCount.toLocaleString()} leads ready · ${totalReplies} repl${totalReplies === 1 ? 'y' : 'ies'} this week`
+    ? `${leadCount.toLocaleString()} leads ready · FIGSY handled ${totalReplies} repl${totalReplies === 1 ? 'y' : 'ies'} this week`
     : leadCount > 0
-    ? 'Your first leads are ready — FIGSY is standing by.'
-    : 'Welcome to K.I.N.D. Let\'s find your first leads.'
+    ? 'Your first leads are ready — FIGSY is standing by to start outreach.'
+    : 'Welcome to K.I.N.D. Let\'s build your ICP and launch FIGSY outreach.'
 
   return (
     <div className="space-y-4">
@@ -202,12 +202,12 @@ export default async function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-[#1E0A5C]">
-                  {leadCount > 0 ? `I have ${leadCount} leads ready` : 'I\'m ready when you are'}
+                  {leadCount > 0 ? `FIGSY has ${leadCount} leads ready` : 'FIGSY is ready when you are'}
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {leadCount > 0
-                    ? 'Say the word and I\'ll write your first outreach sequence.'
-                    : 'Build an ICP and I\'ll find your first leads within minutes.'}
+                    ? 'Launch a campaign and FIGSY will write your first outreach sequence.'
+                    : 'Build an ICP and FIGSY will find your first leads within minutes.'}
                 </p>
               </div>
               <Link href={leadCount > 0 ? '/dashboard/figsy' : '/dashboard/leads/icp'} className="text-xs text-[#7C3AED] font-semibold hover:underline">

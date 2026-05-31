@@ -184,13 +184,15 @@ function PitchTab() {
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-1.5">Core pitch</label>
         <p className="text-xs text-[#9B8EC4] mb-2">What do you do, for whom, and what outcome do you deliver?</p>
-        <textarea
-          value={pitch}
-          onChange={e => setPitch(e.target.value)}
-          rows={4}
-          placeholder="e.g. K.I.N.D helps South African SMBs replace manual outreach with AI agents that find leads, send personalised sequences, and book meetings — without hiring an SDR."
-          className="w-full border border-purple-100/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-y"
-        />
+        <div className="bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#7C3AED] p-[1.5px] rounded-xl">
+          <textarea
+            value={pitch}
+            onChange={e => setPitch(e.target.value)}
+            rows={4}
+            placeholder="e.g. K.I.N.D helps South African SMBs replace manual outreach with AI agents that find leads, send personalised sequences, and book meetings — without hiring an SDR."
+            className="bg-white rounded-[10px] w-full px-4 py-3 text-sm outline-none resize-y"
+          />
+        </div>
       </div>
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-1.5">Pain points you solve</label>
@@ -659,13 +661,15 @@ function MessagingTab() {
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-1.5">Persona instruction</label>
         <p className="text-xs text-[#9B8EC4] mb-2">How should FIGSY present itself? (optional)</p>
-        <textarea
-          value={persona}
-          onChange={e => setPersona(e.target.value)}
-          rows={3}
-          placeholder="e.g. Write as a senior business development manager. Never mention AI. Sound like a real human reaching out."
-          className="w-full border border-purple-100/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-y"
-        />
+        <div className="bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-[#7C3AED] p-[1.5px] rounded-xl">
+          <textarea
+            value={persona}
+            onChange={e => setPersona(e.target.value)}
+            rows={3}
+            placeholder="e.g. Write as a senior business development manager. Never mention AI. Sound like a real human reaching out."
+            className="bg-white rounded-[10px] w-full px-4 py-3 text-sm outline-none resize-y"
+          />
+        </div>
       </div>
       <div className="flex items-center justify-between pt-2">
         {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}

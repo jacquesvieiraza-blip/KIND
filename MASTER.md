@@ -56,9 +56,294 @@
 
 ---
 
-### 🌅 MORNING BRIEF — 1 June 2026 — FULL PLATFORM AUDIT
+### 🌅 MORNING BRIEF — 1 June 2026 — COMPLETE AUDIT
 
 *Read this first. Every session starts here. Claude runs type-check before touching anything.*
+
+---
+
+#### 📌 WHERE TO FIND EVERY PUSH CLAUDE MAKES
+
+Every commit is in two places:
+1. **Git log** — `git log --oneline` in terminal gives every commit hash + message
+2. **MASTER.md Section 0 Daily Brief** — each session entry lists commits by hash inline (e.g. `adf9a39`, `e94a0c1`)
+3. **Full commit log** — see Section 42 at the bottom of this document — every push, date, what changed
+
+---
+
+#### 🔬 MORNING SMOKE TEST — DO THIS FIRST
+
+**Step 1 — Client (`jacques.vieiraza@icloud.com`)**
+- Sign in → dashboard loads → no "Something went wrong"
+- FIGSY, Leads, KPIs, Settings, Usage, Proposals all open without error
+- Sign out
+
+**Step 2 — Partner (`jacques.vieiraza@gmail.com`)**
+- Sign in → Partner Hub shows in sidebar (must NOT show on iCloud account)
+- Partner Hub dashboard loads (stats, referral link, deal form)
+- `/dashboard/partner/onboarding` → 9-step flowchart renders
+- `/dashboard/partner/deck` → all 7 slides render
+- FIGSY agent panel shows partner-aware message
+- Sign out
+
+**Step 3 — Client full smoke test**
+- Sign in as iCloud → ICP → leads → campaign → FIGSY chain works
+- Milla chat opens → language selector shows 4 flags
+
+---
+
+#### ✅ COMPLETE LIST — EVERYTHING BUILT ACROSS ALL TIME
+
+**PHASE 0 — Core platform**
+| # | Feature | Status | Commit / Location |
+|---|---------|--------|-------------------|
+| P0-1 | Website copy rewrite ("AI Revenue OS") | ✅ Done | `c6a7a59` |
+| P0-2 | Learning Agent Level 2 — monthly ICP refinement cron | ✅ Done | `apps/api/src/routes/internal.ts` |
+| P0-3 | Knowledge base on-save FIGSY preview | ✅ Done | `f12e45f` |
+| P0-4 | Email open tracking — pixel + opened_at + KPI | ✅ Done | `aef1d4d` |
+| P0-5 | Notification preferences UI — 5 toggles in Settings | ✅ Done | `6fd5df2` |
+| P0-6 | Analytics empty state — 4 action cards | ✅ Done | `c03a0c7` |
+| P0-7 | Scheduled weekly client digest emails | ✅ Done | cron in API |
+| P0-8 | Email score pre-send (0–100, flags spam) | ❌ Not built | — |
+| P0-9 | Client morning brief — daily email to all clients | ✅ Done | `c6a7a59` |
+| P0-10 | Co-pilot mode — approve before send per campaign | ❌ Not built | — |
+| P0-11 | Auto-fire consent on lead approval | ❌ Not built | — |
+| P0-12 | Realtime dashboard — live updates via Supabase | ✅ Done | `55f4df6` `DashboardLive.tsx` |
+| P0-13 | Self-serve CRM paste — client pastes API key in settings | ❌ Not built | — |
+| P0-14 | Multi-model toggle per campaign (Haiku / Sonnet) | ✅ Done | `17cc871` |
+| P0-15 | Template library — 5–9 pre-built sequence templates | ❌ Not built | — |
+| P0-16 | KIND AI sidebar section header | ✅ Done | `c03a0c7` |
+| P0-17 | Personalised dashboard greeting (time of day + name) | ✅ Done | `c03a0c7` |
+| P0-18 | FIGSY full page — `/dashboard/figsy-chat` | ✅ Done | `c03a0c7` |
+| P0-19 | Agent card redesign — coloured border, larger avatar | ✅ Done | `7ff727b` |
+| P0-20 | Suggested starters on all empty states | ✅ Done | `88dea2e` |
+| P0-21 | Layout overhaul — light sidebar, clean bg, 220px | ✅ Done | `c5b38e5` |
+| P0-22 | Input as design signal — gradient border everywhere | ✅ Done | `842f39d` |
+| P0-23 | Workforce language pass — "Your team", "FIGSY sent" | ✅ Done | `842f39d` |
+
+**PHASE 1 — First clients**
+| # | Feature | Status | Detail |
+|---|---------|--------|--------|
+| P1-1 | Deliverability dashboard | ❌ Not built | — |
+| P1-2 | Email warmup infrastructure | ❌ Blocked | Needs warmup service subscription |
+| P1-3 | Adaptive send volume — auto-adjust daily sends | ✅ Done | `c6a7a59` — daily 09:30 UTC cron |
+| P1-4 | Blacklist monitoring | ❌ Blocked | Needs blacklist API key |
+| P1-5 | Inbox placement testing pre-launch | ❌ Blocked | Needs Smartlead API key |
+| P1-6 | Expanded AI reply categories (7-category) | ✅ Done | Hot/Warm/Cold/Opted out/Wrong person/OOO/Other |
+| P1-7 | Waterfall email verification (Apollo→Hunter) | ❌ Blocked | Needs Hunter.io API key |
+| P1-8 | Warm leads tab in Inbox | ✅ Done | `32297b8` — `inbox/page.tsx` |
+| P1-9 | Deal risk scoring in admin | ✅ Done | `6c4d66b` — `admin/clients/page.tsx` |
+| P1-10 | White-label PDF report | ✅ Done | `kpis/page.tsx:341` |
+| P1-11 | Conversational FIGSY onboarding | ✅ Done | `FigsyConversation.tsx` |
+| P1-12 | AI research per lead — personalised opening line | ✅ Done | `leads/page.tsx:370` |
+| P1-13 | Technographic ICP targeting | ❌ Blocked | Needs Apollo Basic ($49/mo) |
+| P1-14 | Google Maps scraping for African prospects | ❌ Needs decision | Legal/ethical review needed |
+| P1-15 | "Suggest Campaigns" button | ✅ Done | `/figsy/suggest-campaign` + `handleSuggestCampaigns()` |
+| P1-16 | Portal V2 (SidebarV2, mission control) | ✅ Built, dormant | Set `FEATURE_PORTAL_V2=true` in Railway to activate |
+| MCP-1 | KIND as MCP server | ✅ Done | `routes/mcp.ts` + `/.well-known/mcp.json` |
+| MCP-2 | Milla external tool integrations UI | ✅ UI only | Calendar/HubSpot/Slack panel — OAuth not wired |
+| MCP-3 | MCP Connect portal page | ✅ Done | `525f686` — `/dashboard/mcp` |
+
+**PHASE 2 — 10+ clients**
+| # | Feature | Status | Detail |
+|---|---------|--------|--------|
+| P2-1 | 3-type FIGSY memory (episodic + long-term + preference) | ✅ Done | `figsy.ts` + `internal.ts` |
+| P2-2 | A/B subject line testing — auto-pick winner | ✅ Done | 50/50 split + `/figsy/ab-winner-check` cron |
+| P2-3 | A/Z multi-variant testing (3–5 variants) | ❌ Not built | — |
+| P2-4 | Conditional sequence branching | ✅ Done | Per-step on_reply in Advanced Settings |
+| P2-5 | Waterfall enrichment (Apollo→PDL→Hunter→Clearbit) | ✅ Done | `enrichment.ts` — needs API keys to fully activate |
+| P2-6 | Intent signal triggers (job change/funding/tech) | ✅ Done | Daily cron 11:00 UTC |
+| P2-7 | Configurable send schedule (day + hour) | ✅ Done | Advanced Settings in campaign |
+| P2-8 | Kanban deal view | ✅ Done | `figsy/kanban/page.tsx` |
+| P2-9 | File approval workflow — approve before FIGSY sends | ❌ Not built | — |
+| P2-10 | ICP auto-refinement — AI suggests improvements | ✅ Done | `POST /icps/:id/refine` Claude Haiku |
+| P2-11 | Network benchmarks — industry avg reply/open rates | ✅ Done | `kpis/page.tsx` |
+| P2-12 | White-label / agency mode | ✅ Done | Scale plan section in Settings |
+| P2-13 | Personalised images per lead | ⚠️ DISCREPANCY | Session log says built (`d54b4af`) but Section 0b shows "Not started" — NEEDS VERIFICATION |
+| P2-14 | Social signals audience source | ⚠️ DISCREPANCY | Session log says built (`d54b4af`) but Section 0b shows "Not started" — NEEDS VERIFICATION |
+| P2-15 | ICP builder with live name preview | ✅ Done | Real contacts populate as filters applied |
+
+**PHASE 3 — Scale**
+| # | Feature | Status | Detail |
+|---|---------|--------|--------|
+| P3-1 | Developer portal + API keys | ⚠️ DISCREPANCY | Session log says built (`d54b4af`) but Section 0b shows "Not started" — NEEDS VERIFICATION |
+| P3-2 | FIGSY Vertical Modes (6 industry templates) | ⚠️ DISCREPANCY | Session log says built (`66a127b`) but Section 0b shows "Not started" — NEEDS VERIFICATION |
+| P3-3 | In-portal client messaging | ✅ Done | `20260531_client_messages.sql` + portal/admin pages |
+| P3-4 | Proposal + e-sign | ⚠️ DISCREPANCY | Session log says built (`d54b4af`) but Section 0b shows "Not started" — NEEDS VERIFICATION |
+| P3-5 | Revenue forecasting — 90-day admin panel | ✅ Done | `c6a7a59` — admin revenue page |
+| P3-6 | Churn risk scoring | ❌ Not built | — |
+| P3-7 | Website visitor de-anonymisation | ⚠️ DISCREPANCY | Session log says built (`d54b4af`) but Section 0b shows "Not started" — NEEDS VERIFICATION |
+| P3-8 | REEVE agent (AE) | ❌ Not built | Year 2 |
+| P3-9 | LENA agent (Customer Success) | ❌ Not built | Year 2 |
+| P3-10 | OTTO agent (CRO) | ❌ Not built | Year 2 |
+| P3-11 | Mobile app | ❌ Not built | Year 2 |
+| P3-12 | 500+ FIGSY skill library | ❌ Not built | Year 2 |
+| P3-13 | African data moat | ✅ Done | `data-moat.sql` + `/data-moat` admin page + weekly cron |
+
+**Partner Programme**
+| # | Feature | Status |
+|---|---------|--------|
+| — | Partner onboarding flowchart (`/dashboard/partner/onboarding`) | ✅ Done |
+| — | Partner value deck — 7 slides (`/dashboard/partner/deck`) | ✅ Done |
+| — | Agent context by partner state (pending/new/active) | ✅ Done |
+| — | Admin Onboarding tab — SOP + journey + commission ref | ✅ Done |
+| — | Partner Hub hidden from non-partners in sidebar | ✅ Done |
+| — | Partner application + approval email | ✅ Done |
+| — | Partner commission management (admin) | ✅ Done |
+| — | Deal registration (60-day protection) | ✅ Done |
+| — | Demo sandbox provisioning | ❌ Placeholder only |
+| — | Admin sandbox visibility per partner | ❌ Not built |
+| — | "Sign up as client" flow for partners | ❌ Not built |
+| — | Partner onboarding email sequence (multi-step) | ❌ Single email only |
+| — | Partner pricing page | ❌ Not built |
+
+**Infrastructure**
+| Item | Status |
+|------|--------|
+| API — Node 20 WebSocket crash | ✅ Fixed `adf9a39` `50073e0` |
+| Portal Sidebar `isPartner` crash | ✅ Fixed `e94a0c1` |
+| Portal + admin nixpacks.toml | ✅ Fixed `5e63ff4` |
+| API nixpacks.toml | ✅ Fixed `1a61e7c` |
+| `.node-version` file | ✅ Done `92d30eb` |
+| yarn.lock sync | ✅ Done `67b81f8` |
+| `NIXPACKS_NODE_VERSION=20` in Railway API | ✅ Done (set by founder) |
+| Railway health checks | ❌ Not configured |
+| UptimeRobot monitoring | ❌ Not set up |
+| `typescript.ignoreBuildErrors` removed | ❌ Still present in next.config.mjs |
+| Daily bug audit cron (GitHub Actions) | ✅ Built — `daily-audit.yml` |
+
+**Languages feature — actual scope (important):**
+- ✅ Milla chat responds in: English, Français, Kiswahili, Hausa
+- ✅ Language selector renders in Milla UI with flag buttons
+- ✅ Selection persists in localStorage
+- ❌ Portal UI is NOT translated — English only
+- ❌ FIGSY does NOT write outreach in other languages
+- ❌ No mention of this feature anywhere visible on the site or portal marketing
+- ⬜ **ACTION**: Make it discoverable (see Claude's build list below)
+
+---
+
+#### ⚠️ DISCREPANCIES — MASTER OUT OF SYNC (verify these first thing)
+
+Section 0b (build queue) shows these as "Not started" but session logs say they were built in commit `d54b4af` (31 May) and `66a127b`:
+
+| Item | Session claims | Section 0b says | Action |
+|------|---------------|-----------------|--------|
+| P2-13 Personalised images | ✅ Built | ⚪ Not started | Verify route exists + works |
+| P2-14 Social signals | ✅ Built | ⚪ Not started | Verify route exists + works |
+| P3-1 Developer portal | ✅ Built | ⚪ Not started | Verify `/dashboard/developer` works |
+| P3-2 FIGSY Vertical Modes | ✅ Built | ⚪ Not started | Verify in ICP page |
+| P3-4 Proposal + e-sign | ✅ Built | ⚪ Not started | Verify `/dashboard/proposals` works |
+| P3-7 Visitor de-anon | ✅ Built | ⚪ Not started | Verify admin `/visitors` works |
+
+The Explore agent confirmed all route FILES exist. But route files existing ≠ features working correctly. Claude will verify these at start of next session.
+
+---
+
+#### 🔨 CLAUDE'S COMPLETE BUILD LIST (in priority order)
+
+**🔴 Do first this session:**
+1. Remove `typescript.ignoreBuildErrors: true` from `apps/portal/next.config.mjs` — 1 line, prevents silent crashes
+2. Run full type-check: `yarn workspace @kind/portal type-check` + `yarn workspace @kind/api build` + `yarn workspace @kind/admin type-check`
+3. Verify the 6 discrepancy items above (P2-13, P2-14, P3-1, P3-2, P3-4, P3-7)
+
+**🟣 Partner programme (next build block):**
+4. Demo sandbox auto-provisioning — admin approves partner → sandbox client created, credits loaded, credentials stored
+5. Partner portal sandbox section — credentials display, "Use for demos" guide, "Sign up as client →" CTA
+6. Admin sandbox status per partner — provisioned Y/N, credits remaining, manual provision button
+7. Partner onboarding email sequence — Day 1 / Day 3 / Day 7 follow-up after approval
+8. Partner pricing page (`/dashboard/partner/pricing`) — free sandbox / standard client rates
+9. Update onboarding guide + value deck — replace placeholder with real sandbox flow
+
+**🟡 Languages visibility (quick wins — no new feature, just discoverability):**
+10. Add language flags to Milla's feature card on the portal (locked + unlocked state)
+11. Update website Milla section — mention "Responds in English, Français, Kiswahili, Hausa"
+12. Add post-activation prompt — "Milla speaks your language — tap a flag to switch"
+
+**🔵 Platform gaps (P0 not built):**
+13. P0-8 Email score pre-send — 0–100 per sequence step, flags spam words
+14. P0-10 Co-pilot mode — approve before FIGSY sends, toggle per campaign
+15. P0-11 Auto-fire consent on lead approval
+16. P0-13 Self-serve CRM paste — API key in settings, auto-syncs
+17. P0-15 Template library — 5–9 pre-built sequence templates
+
+**⚪ When founder says go:**
+18. P1-1 Deliverability dashboard
+19. P1-11 Conversational FIGSY onboarding (voice-first ICP flow)
+20. P2-3 A/Z multi-variant testing (3–5 variants)
+21. P2-9 File approval workflow
+22. P3-6 Churn risk scoring
+
+---
+
+#### 📋 FOUNDER'S COMPLETE ACTION LIST — EVERY OUTSTANDING ITEM
+
+**🔴 CRITICAL — Revenue blocked without these:**
+| # | Task | Where | What it unlocks |
+|---|------|-------|----------------|
+| F1 | **Stripe — create Milla + Vida subscription prices** | stripe.com → Products → create recurring → copy Price IDs → Railway env: `STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`, + `NEXT_PUBLIC_` versions | Milla + Vida billing dead. Clients can't subscribe. |
+| F2 | **Run `20260527_stripe_subscription_id.sql`** | Supabase SQL Editor | Stripe subscription webhooks fail without this column |
+| F3 | **Run `20260525_fix_subscriptions_schema.sql`** | Supabase SQL Editor | Permanent schema drift fix |
+| F4 | **Run `MASTER_SCHEMA.sql`** | Supabase SQL Editor | Eliminates all remaining schema drift |
+| F5 | **Confirm RESEND_API_KEY in Railway** | Railway → KIND API → Variables | Zero emails send without this — welcome, POPIA, digests, low-credit alerts, FIGSY outreach |
+| F6 | **Apollo upgrade to Basic ($49/mo)** | apollo.io → Billing | Free = 50 contacts/month. 4 competitor ICPs seeded and ready. Nothing runs at scale. |
+| F7 | **Sandbox spec decision** | Tell Claude: credits pre-loaded? Plan tier? | Unblocks demo sandbox build |
+
+**🛡️ REDUNDANCY — Do today, takes 15 minutes total:**
+| # | Task | Where | Takes |
+|---|------|-------|-------|
+| R1 | **Railway health check — API** | Railway → KIND/API → Settings → Health Check → `/health` | 2 min |
+| R2 | **Railway health check — Portal** | Railway → KIND/Portal → Settings → Health Check → `/` | 2 min |
+| R3 | **Railway health check — Admin** | Railway → KIND/Admin → Settings → Health Check → `/` | 2 min |
+| R4 | **UptimeRobot — API** | uptimerobot.com (free) → HTTPS monitor → `https://kindapi-production-e64c.up.railway.app/health` → SMS + email, 60s | 5 min |
+| R5 | **UptimeRobot — Portal** | Same → `https://app.get-kind.com` | 2 min |
+| R6 | **Railway auto-rollback** | Railway → each service → Settings → enable rollback on failed deploy | 1 min each |
+
+**🟡 HIGH — This week:**
+| # | Task | Where | Notes |
+|---|------|-------|-------|
+| F8 | **Register UK company** | companieshouse.gov.uk — £50, same-day online | Unlocks Stripe UK, Wise, investor credibility |
+| F9 | **HubSpot account + API key** | app.hubspot.com (free) → Private Apps → "KIND AI" → `HUBSPOT_API_KEY` to Railway | Fully built — wires itself instantly. CRM push on every reply. |
+| F10 | **Register Resend inbound webhook** | Resend → Webhooks → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` + `RESEND_WEBHOOK_SECRET` in Railway | FIGSY can't process replies without this |
+| F11 | **Add `FIGSY_KIND_CLIENT_ID` to Railway** | Railway → KIND API → Variables → your client UUID | Self-outreach (K.I.N.D dogfooding FIGSY on its own pipeline) does nothing without it |
+| F12 | **Confirm Calendly link** | calendly.com → share `https://calendly.com/jacques-vieiraza/30min` | Every "Book a Demo" button on site is dead |
+| F13 | **Upgrade Resend to paid plan** | resend.com → Billing | Free = 100 emails/day. Blocks at first real client. |
+| F14 | **Add `ADMIN_SECRET_KEY` to Railway** | Railway → KIND API → Variables | Cron jobs need this to authenticate internal endpoints |
+| F15 | **Add `FIGSY_REPLY_TO=replies@get-kind.com` to Railway** | Railway → KIND API → Variables | Inbound reply routing |
+| F16 | **Set up Resend inbound MX record** | Domain DNS → point replies.get-kind.com MX → Resend | Required for reply webhook to receive emails |
+| F17 | **Google Workspace + SPF/DKIM/DMARC** | workspace.google.com → Starter → configure DNS records | Deliverability. Without this, FIGSY emails land in spam. |
+
+**🟢 WHEN READY:**
+| # | Task | Notes |
+|---|------|-------|
+| F18 | **Wise business account** | After UK registration — free, multi-currency USD/GBP |
+| F19 | **Google Calendar OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
+| F20 | **Vapi.ai Voice** | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` |
+| F21 | **WhatsApp Business API** | Meta 3–7 day approval → `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` |
+| F22 | **MacBook from Currys** | Dev on personal hardware |
+| F23 | **Enable FIGSY campaign intent flag** | Railway → `FEATURE_CAMPAIGN_INTENT=true` |
+| F24 | **Enable ICP builder flag** | Railway → `FEATURE_ICP_BUILDER=true` |
+| F25 | **Enable Portal V2** | Railway → `FEATURE_PORTAL_V2=true` |
+| F26 | **Hunter.io API key** | `HUNTER_API_KEY` in Railway → activates waterfall email verification |
+| F27 | **PDL API key** | `PDL_API_KEY` in Railway → activates waterfall enrichment layer |
+| F28 | **Clearbit API key** | `CLEARBIT_API_KEY` in Railway → activates enrichment + visitor de-anon |
+| F29 | **G2 / Capterra / Product Hunt** | Launch day |
+| F30 | **SOC 2 Type II** | Q1 2027 |
+
+---
+
+#### 🐛 DAILY BUG AUDIT — CLAUDE RUNS THIS EVERY SESSION
+
+Before any new code:
+```bash
+yarn workspace @kind/portal type-check    # found: isPartner crash, takes 1 second
+yarn workspace @kind/api build             # catches API compile errors
+yarn workspace @kind/admin type-check      # catches admin errors
+```
+
+This is non-negotiable. The `isPartner`/`isPartnerProp` Sidebar bug crashed the portal for hours. It was a TypeScript error. `tsc --noEmit` finds it in under 1 second.
+
+---
 
 ---
 
@@ -9653,3 +9938,82 @@ Signed for and on behalf of [PARTNER COMPANY]: _____________________ Date: _____
 ---
 
 *Section 42 added: 1 Jun 2026*
+
+---
+
+## 43. FULL COMMIT LOG — EVERY PUSH
+
+*Every push Claude makes is here. Newest first. Format: `hash` — date — what changed.*
+
+| Commit | Date | What changed |
+|--------|------|-------------|
+| `50295d2` | 1 Jun 2026 | MASTER.md full platform audit — verified routes, partial builds, complete founder + Claude action lists |
+| `9a41d99` | 31 May 2026 | MASTER.md morning brief — audit, founder action list, redundancy plan, bug audit protocol |
+| `ee1a010` | 31 May 2026 | MASTER.md — full session record: API WebSocket crash, portal Sidebar crash, partner programme complete |
+| `e94a0c1` | 31 May 2026 | **FIX** Sidebar `isPartner` variable — was aliased as `isPartnerProp`, crashed every dashboard page |
+| `50073e0` | 31 May 2026 | **FIX** Dual WebSocket polyfill — `globalThis.WebSocket = ws` + `realtime: { transport: ws }` before `createClient()` |
+| `adf9a39` | 31 May 2026 | **FIX** Add `ws` package to `@kind/db` — Node 20 has no native WebSocket, supabase-js Realtime crashes |
+| `1a61e7c` | 31 May 2026 | **FIX** API nixpacks.toml — `yarn install` in install phase, build commands in build phase |
+| `5e63ff4` | 31 May 2026 | **FIX** Portal + admin nixpacks.toml — explicit workspace build+start, removed `--frozen-lockfile` |
+| `25249ff` | 31 May 2026 | **FIX** Delete root nixpacks.toml — was breaking portal/admin, making them serve API's Express server |
+| `92d30eb` | 31 May 2026 | **FIX** Add `.node-version` = 20 at repo root — hints nixpacks to use Node 20 |
+| `0af6ac4` | 31 May 2026 | Fix: add root-level nixpacks.toml for API (later found to break portal — deleted in `25249ff`) |
+| `1a3aadc` | 31 May 2026 | Fix: no-op install phase — moved yarn install to build phase |
+| `ae35ddb` | 31 May 2026 | Fix: remove `--frozen-lockfile` from API build |
+| `341490b` | 31 May 2026 | Fix: scope API build to api/db/shared workspaces only |
+| `67b81f8` | 31 May 2026 | Fix: sync yarn.lock — frozen-lockfile was failing on Railway |
+| `cfec16b` | 31 May 2026 | **FIX** Import `ReactNode` type in deck page — `React.ReactNode` without import crashed portal build |
+| `08d3896` | 31 May 2026 | Hide Partner Hub in sidebar for non-partner accounts |
+| `9f5f302` | 31 May 2026 | **FEAT** Partner onboarding guide, value deck, agent context by partner state |
+| `8057ece` | 31 May 2026 | Fix: case-insensitive email match in partners.ts + fix Apply link |
+| `59a9da0` | 31 May 2026 | Fix: show Partner Hub for all users (page itself handles non-partners) |
+| `47ea9f7` | 31 May 2026 | Fix: partner check moved to client-side Sidebar |
+| `d4dbf20` | 31 May 2026 | Fix: check partner status via API not DB (RLS subquery was blocking server-side lookup) |
+| `a681dac` | 31 May 2026 | Fix: guard SUPABASE_SERVICE_ROLE_KEY in portal layout |
+| `da4a9af` | 31 May 2026 | Fix: admin partner detail page + service-role for partner check |
+| `e308152` | 31 May 2026 | Fix: root-cause audit — 7 bugs fixed across portal, admin, API |
+| `ac13cab` | 31 May 2026 | **FEAT** Partner onboarding email + checklist + settings upsert fix |
+| `d623aa3` | 31 May 2026 | Fix: zero TypeScript errors in API |
+| `5a2cea7` | 31 May 2026 | Fix: authUser→userEmail in demo-sandbox (TS compile error) |
+| `761c23a` | 31 May 2026 | Fix: GET /partners/me above /ref/:code (param shadowing) |
+| `90adfe5` | 31 May 2026 | Fix: admin partners page error surfacing |
+| `7400c5c` | 31 May 2026 | Fix: pin nodejs_20 + yarn in portal/admin nixpacks setup |
+| `001746e` | 31 May 2026 | Fix: explicitly declare nodejs_20 + yarn in nixpacks |
+| `1ad88ce` | 31 May 2026 | Fix: partner portal auth — use admin.getUserById |
+| `2234a6a` | 31 May 2026 | **FEAT** Complete partner workflow — admin tabs, contract sign-off, commission payments |
+| `c9b400a` | 31 May 2026 | **FEAT** Admin commission management API routes |
+| `1a6a748` | 31 May 2026 | **FEAT** Full partner programme — DB, admin, portal, auto-commission |
+| `0cbc253` | 31 May 2026 | Docs: Section 41 — Nigeria partner commercial breakdown |
+| `2cd537f` | 31 May 2026 | Docs: full commercial breakdown — pricing, unit economics, cashflow |
+| `0eb903d` | 31 May 2026 | Fix: user_id not auth_user_id in clients RLS policies |
+| `d54b4af` | 31 May 2026 | **FEAT** P2-13 personalised images / P2-14 social signals / P3-1 developer portal / P3-4 proposals / P3-7 visitor de-anon |
+| `d5d9edf` | 31 May 2026 | Docs: MASTER.md — P2-13/14/P3-1/4/7 complete |
+| `66a127b` | 31 May 2026 | **FEAT** P3-2 FIGSY vertical modes + P3-13 African data moat |
+| `cf762e6` | 31 May 2026 | **FEAT** P2-5 waterfall enrichment + P2-6 intent signal triggers |
+| `534a8fe` | 31 May 2026 | **FEAT** Batch P2-1/2/4/7/8/10/11/12 + P3-3 + roadmap sync |
+| `c2b83b8` | 31 May 2026 | **FEAT** P2-3/P2-9/P3-6 + full website restore (21 sub-pages) |
+| `bb3d055` | 31 May 2026 | Fix: website typewriter cycles "Always on / Human Ceiling / Unlimited Pipeline" |
+| `167ab2f` | 31 May 2026 | Fix: API nixpacks.toml to force yarn |
+| `536bd3e` | 29 May 2026 | **FEAT** Unified signal layer, FIGSY tasks, clone best client, context agent panel |
+| `d0aee5d` | 29 May 2026 | Fix: context-aware agent panel for all sidebar routes |
+| `0167ce4` | 29 May 2026 | Docs: Section 40 — competitive audit (ClickUp, Alta, Monday.com) |
+| `c6a7a59` | 28 May 2026 | **FEAT** Website copy rewrite + P1-3 adaptive send volume + P3-5 revenue forecasting |
+| `bd8ff48` | 28 May 2026 | **FEAT** Website restore + new agent images + updated names |
+| `5630989` | 28 May 2026 | **FEAT** Express server for Railway hosting — www.get-kind.com |
+| `4c55504` | 27 May 2026 | Docs: demo playbook + Section 39 going-live checklist |
+| `4ac08d2` | 27 May 2026 | Fix: social_signals migration — add icps.settings column |
+| `312a064` | 27 May 2026 | Fix: minor route cleanup (developer, proposals, tracking) |
+| `55f4df6` | 27 May 2026 | **FEAT** P0-12 Realtime dashboard — Supabase realtime, live indicators |
+| `525f686` | 27 May 2026 | **FEAT** MCP-3 MCP Connect page |
+| `aef1d4d` | 27 May 2026 | **FEAT** P0-4 Email open tracking |
+| `f12e45f` | 27 May 2026 | **FEAT** P0-3 Knowledge base FIGSY preview |
+| `6c4d66b` | 27 May 2026 | **FEAT** P1-9 Deal risk scoring in admin |
+| `32297b8` | 27 May 2026 | **FEAT** P1-8 Warm leads tab in Inbox |
+| `6fd5df2` | 27 May 2026 | **FEAT** P0-5 Notification preferences UI |
+| `88dea2e` | 27 May 2026 | **FEAT** P0-20 Suggested starters on Campaigns + Inbox empty states |
+| `7ff727b` | 27 May 2026 | **FEAT** P0-19 Agent card redesign |
+| `c03a0c7` | 27 May 2026 | **FEAT** P0-18 FIGSY full page / P0-16 KIND AI sidebar / P0-17 personalised greeting / P0-6 analytics empty state |
+| `c5b38e5` | 27 May 2026 | **FEAT** P0-21 Layout overhaul — light sidebar, 220px, clean bg |
+| `99b9d82` | 27 May 2026 | Docs: roadmap audit — Phase 0→3 build queue + both roadmaps synced |
+| `17cc871` | 26 May 2026 | **FEAT** P0-14 Multi-model toggle (Haiku / Sonnet) per campaign |
+| `842f39d` | 26 May 2026 | **FEAT** P0-22 gradient border inputs + P0-23 workforce language pass + Milla language selector |

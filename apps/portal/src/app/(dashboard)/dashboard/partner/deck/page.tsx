@@ -1,12 +1,13 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Zap, Target, TrendingUp, DollarSign, Users,
   CheckCircle, X, ArrowRight, Bot, MessageSquare, Brain,
 } from 'lucide-react'
 
-function Slide({ number, title, children }: { number: number; title: string; children: React.ReactNode }) {
+function Slide({ number, title, children }: { number: number; title: string; children: ReactNode }) {
   return (
     <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
       <div className="px-5 py-3 bg-[#7C3AED]/5 border-b border-purple-100 flex items-center gap-3">

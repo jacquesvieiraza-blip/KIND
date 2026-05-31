@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 27 May 2026 — W1–W6 shipped + Alta deep-dive analysis (28-screenshot live demo)**
+**Single source of truth. Last updated: 31 May 2026 — Agent panel width + ICP typewriter fixed. New session rules: no guessing, MASTER updated after every push.**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 ---
@@ -52,7 +52,24 @@
 
 ---
 
-### 📅 SESSION DATE — 29 May 2026 (Morning) — Design mandate + product vision locked + build queue reordered
+### 📅 SESSION DATE — 31 May 2026 — Agent panel width fixed, ICP typewriter added, session rules locked
+
+**Session rules locked (non-negotiable from now):**
+- No guessing — every finding has a file path + line number. Read it first if not certain.
+- MASTER.md updated after every push — not end of session, immediately after.
+- Full update on page 1 when founder says "run full update" — date/time, cross-referenced status: what's built, what Claude builds, what founder builds, checked against live portal + conversation + MASTER.
+
+**What was fixed this session:**
+- `AgentColumn.tsx:166` — FIGSY wrapper `lg:w-72` → `lg:w-64`. All agent panels now same width as ICP panel.
+- `icp/page.tsx` — Removed static dead context text. Added typewriter on first FIGSY message, identical to AgentSidePanel behaviour.
+- Commit `f4bcf95` pushed to `main`. Railway deploying.
+
+**Confirmed: nothing was lost in mid-push.**
+- Local `main` = `origin/main` = commit `573699b` before this session. All prior work was fully pushed.
+
+---
+
+### 📅 PREVIOUS SESSION — 29 May 2026 (Morning) — Design mandate + product vision locked + build queue reordered
 
 ---
 
@@ -211,7 +228,7 @@
 | Built / Fixed | Detail |
 |---------------|--------|
 | **Floating dots fixed** | `layout.tsx` — dots increased from 3-6px to 5-10px, opacity 0.3→0.12, colour `#A5B4FC`→`#7C3AED`. Now visible on dashboard gradient background. |
-| **Agent panel widths consistent** | `AgentColumn.tsx` — all three agent wrappers changed from `w-72` to `w-64` using `replace_all`. Matches ICP Builder panel exactly. |
+| **Agent panel widths — PARTIAL (see 31 May)** | `AgentColumn.tsx` — Milla + Vida wrappers changed to `w-64`. FIGSY wrapper was still `w-72` in code. Not fully fixed until 31 May. |
 | **Sidebar duplicate FIGSY removed** | `Sidebar.tsx` — duplicate FIGSY status section (avatar + "FIGSY is online" link) below account nav removed entirely. |
 | **KPI calculations fixed** | `kpis/page.tsx` — open rate was `(replies/sent) * 0.28` (fake multiplier) → now `(replies/sent) * 100` (real %). Meeting rate was `(interested/contacted) * 0.4` → now `(meetingsBooked/contacted) * 100`. |
 | **Knowledge URL saving fixed** | `knowledge/page.tsx` — was only saving `urls[0]`. Now sends all URLs as array: `urls: urls.map(u => ({ url: u.url, context: u.label }))`. |
@@ -220,6 +237,13 @@
 | **nixpacks.toml deployed** | `apps/portal/nixpacks.toml` — forces `yarn build` on every Railway deploy. Fixes Turbo cache issue where Railway wasn't rebuilding `next build`. |
 | **Marketing site taken down** | `apps/website/index.html` replaced with "We're currently unavailable" page. All 21 other HTML pages redirect to index. Pushed to main — Vercel auto-deploys. www.get-kind.com now shows unavailable. |
 | **⚠️ BUILD PAUSED** | Legal concern raised — Smartsheet employment contract clauses 17.2 (competing business) and 19.3.2 (IP assignment). Solicitor call booked for Monday 2 June. No new builds until legal clarity. |
+
+#### 31 May 2026 — Agent panel + ICP typewriter
+| Built / Fixed | File | Detail |
+|---------------|------|--------|
+| **FIGSY wrapper width fixed** | `AgentColumn.tsx:166` | `lg:w-72` → `lg:w-64` — FIGSY agent panel now same width as ICP panel. Previous 29 May entry was wrong; code still had w-72. |
+| **ICP FIGSY typewriter added** | `icp/page.tsx:12-35` | Removed static dead "Describe who you want to target" text. Added `shownChars` state + typewriter useEffect (2 chars/28ms). First message now animates with blinking cursor on load — matches AgentSidePanel behaviour. |
+| Commit | `f4bcf95` | Pushed to `main` → Railway auto-deploying |
 
 #### 29 May 2026 — Design mandate + product vision locked
 | Built / Fixed | Detail |

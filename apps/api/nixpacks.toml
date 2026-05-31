@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_20", "yarn"]
 cmds = ["yarn install --frozen-lockfile"]
 
 [phases.build]
-cmds = ["yarn build"]
+cmds = ["yarn workspace @kind/db build && yarn workspace @kind/shared build && yarn workspace @kind/api build"]
 
 [start]
-cmd = "yarn start"
+cmd = "yarn workspace @kind/api start"

@@ -163,7 +163,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   }
 
   return (
-    <div className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
+    <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
       <AgentSidePanel
         agentId="figsy"
         name="FIGSY"

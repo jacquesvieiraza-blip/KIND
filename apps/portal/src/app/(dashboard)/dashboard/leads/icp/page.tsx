@@ -9,15 +9,24 @@ import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, 
 import Image from 'next/image'
 
 // ── FIGSY persistent left-panel ───────────────────────────────────────────────
+const FIGSY_GREETING = "Hi! I'm FIGSY — describe who you want to target and I'll build your ICP automatically. Try: \"SaaS founders in South Africa with 10–200 employees\"."
+
 function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Partial<ICPFormData>) => void }) {
   const [input, setInput]     = useState('')
   const [sending, setSending] = useState(false)
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
-    { role: 'ai', text: "Hi! I'm FIGSY — describe who you want to target and I'll build your ICP automatically. Try: \"SaaS founders in South Africa with 10–200 employees\"." }
+    { role: 'ai', text: FIGSY_GREETING }
   ])
+  const [shownChars, setShownChars] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+  useEffect(() => {
+    if (shownChars >= FIGSY_GREETING.length) return
+    const t = setTimeout(() => setShownChars(n => Math.min(n + 2, FIGSY_GREETING.length)), 28)
+    return () => clearTimeout(t)
+  }, [shownChars])
 
   async function send(text?: string) {
     const msg = (text ?? input).trim()
@@ -68,13 +77,6 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
         </div>
       </div>
 
-      {/* Context message */}
-      <div className="px-4 pt-3 pb-2">
-        <p className="text-xs text-[#7B6FA0] leading-snug">
-          Describe who you want to target. I'll fill this form for you.
-        </p>
-      </div>
-
       {/* Suggestion chips */}
       <div className="px-4 pb-3 flex flex-col gap-1.5">
         {CHIPS.map(chip => (
@@ -103,7 +105,12 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
               m.role === 'user'
                 ? 'bg-[#7C3AED] text-white rounded-br-sm'
                 : 'bg-white text-gray-800 rounded-bl-sm border border-purple-100/60 shadow-sm'
-            }`}>{m.text}</div>
+            }`}>
+              {i === 0 && m.role === 'ai'
+                ? <>{FIGSY_GREETING.slice(0, shownChars)}{shownChars < FIGSY_GREETING.length && <span className="inline-block w-0.5 h-3 bg-purple-300 animate-pulse ml-0.5 align-middle" />}</>
+                : m.text
+              }
+            </div>
           </div>
         ))}
         {sending && (

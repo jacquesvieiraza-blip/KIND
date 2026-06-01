@@ -610,6 +610,17 @@
       answer.classList.add('visible');
     }
   }
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      var isOpen = item.classList.contains('is-open');
+      document.querySelectorAll('.nav-item.is-open').forEach(function(el) { el.classList.remove('is-open'); });
+      if (!isOpen) item.classList.add('is-open');
+      e.stopPropagation();
+    });
+  });
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.nav-item.is-open').forEach(function(el) { el.classList.remove('is-open'); });
+  });
 </script>
 </body>
 </html>

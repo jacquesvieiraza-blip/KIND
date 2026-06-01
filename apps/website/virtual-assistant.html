@@ -35,18 +35,53 @@
     .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: pulse-dot 1.8s ease-in-out infinite; flex-shrink: 0; }
     @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
 
+    /* STATS STRIP */
+    .stats-strip { background: #fff; border-bottom: 1px solid var(--border); }
+    .stats-inner { max-width: 1080px; margin: 0 auto; padding: 28px 48px; display: flex; gap: 0; justify-content: center; }
+    .stat-item { flex: 1; text-align: center; padding: 0 24px; border-right: 1px solid var(--border); }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 1.8rem; font-weight: 900; color: var(--dark); letter-spacing: -0.03em; }
+    .stat-label { font-size: 0.75rem; color: rgba(0,0,0,0.4); margin-top: 2px; }
+
     .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
     .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 16px; }
     .s-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
     .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
 
-    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
-    .step-card { background: var(--light); border-radius: 20px; padding: 36px 32px; }
+    /* STEPS — 2-col grid for 4 steps */
+    .steps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; }
+    .step-card { background: var(--light); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; }
     .step-num { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
     .step-card h3 { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
     .step-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
     .replaces-tag { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; font-size: 0.7rem; font-weight: 700; color: rgba(0,0,0,0.35); background: rgba(0,0,0,0.05); border-radius: 100px; padding: 4px 10px; }
     .replaces-tag::before { content: "Replaces:"; font-weight: 400; }
+
+    /* STEP MOCKUPS */
+    .step-mockup { margin-top: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 14px; padding: 14px 16px; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; }
+    .mock-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.3); margin-bottom: 8px; }
+    .mock-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .mock-badge { font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-purple { background: #ede9fe; color: #5b21b6; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .biz-field { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.72rem; }
+    .biz-field:last-child { border-bottom: none; }
+    .biz-key { color: rgba(0,0,0,0.35); }
+    .biz-val { font-weight: 600; color: var(--dark); }
+    .bar-wrap { margin-top: 8px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.67rem; color: rgba(0,0,0,0.4); margin-bottom: 4px; }
+    .bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-fill.good { background: #7c3aed; }
+    .bar-fill.bad { background: #f87171; }
+    .milla-chat { display: flex; flex-direction: column; gap: 8px; }
+    .chat-bubble { padding: 8px 12px; border-radius: 12px; font-size: 0.67rem; line-height: 1.5; max-width: 90%; }
+    .chat-user { background: var(--accent); color: #fff; align-self: flex-end; border-radius: 12px 12px 4px 12px; }
+    .chat-milla { background: #f0f0f0; color: var(--dark); align-self: flex-start; border-radius: 12px 12px 12px 4px; }
+    .rec-card { background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 10px 12px; }
+    .rec-title { font-size: 0.72rem; font-weight: 700; color: #5b21b6; margin-bottom: 4px; }
+    .rec-body { font-size: 0.67rem; color: #6d28d9; line-height: 1.5; }
 
     .caps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
     .cap-card { background: var(--light); border-radius: 20px; padding: 32px; }
@@ -54,12 +89,53 @@
     .cap-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; margin-bottom: 16px; }
     .cap-replaces { display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 700; color: rgba(0,0,0,0.35); background: rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.08); border-radius: 100px; padding: 4px 12px; }
 
+    /* MILLA CHAT DEMO */
+    .chat-demo-wrap { margin-top: 32px; background: var(--light); border-radius: 20px; padding: 32px; }
+    .chat-demo-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
+    .chat-demo { display: flex; flex-direction: column; gap: 10px; max-width: 620px; }
+    .chat-demo .bubble-user { background: var(--accent); color: #fff; align-self: flex-end; padding: 10px 14px; border-radius: 16px 16px 4px 16px; font-size: 0.82rem; line-height: 1.5; max-width: 80%; }
+    .chat-demo .bubble-milla { background: #fff; border: 1px solid var(--border); align-self: flex-start; padding: 10px 14px; border-radius: 16px 16px 16px 4px; font-size: 0.82rem; line-height: 1.5; max-width: 88%; color: var(--dark); }
+    .chat-demo .bubble-milla strong { color: var(--accent); }
+
+    /* WHO THIS IS FOR */
+    .wf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .wf-card { border: 1px solid var(--border); border-radius: 20px; padding: 32px; }
+    .wf-role { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 12px; }
+    .wf-card h3 { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; }
+    .wf-card ul { list-style: none; padding: 0; }
+    .wf-card ul li { font-size: 0.83rem; color: rgba(0,0,0,0.5); padding: 5px 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 8px; }
+    .wf-card ul li:last-child { border-bottom: none; }
+    .wf-card ul li::before { content: "→"; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+    /* FAQ */
+    .faq-list { border-top: 1px solid var(--border); }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q { width: 100%; background: none; border: none; text-align: left; padding: 22px 0; font-size: 0.95rem; font-weight: 700; color: var(--dark); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-family: inherit; }
+    .faq-icon { font-size: 1.2rem; color: rgba(0,0,0,0.3); flex-shrink: 0; transition: transform .25s; line-height: 1; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+    .faq-a { font-size: 0.88rem; color: rgba(0,0,0,0.5); line-height: 1.8; padding-bottom: 22px; display: none; max-width: 720px; }
+    .faq-a.visible { display: block; }
+
+    /* THREE-AGENT STRIP */
+    .trio-strip { background: var(--dark); padding: 80px 48px; text-align: center; }
+    .trio-headline { font-size: clamp(1.3rem, 3vw, 1.9rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 10px; line-height: 1.2; }
+    .trio-sub { font-size: 0.9rem; color: rgba(255,255,255,0.35); margin-bottom: 48px; max-width: 480px; margin-left: auto; margin-right: auto; }
+    .trio-cards { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; max-width: 720px; margin: 0 auto; }
+    .trio-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px 28px; text-decoration: none; min-width: 180px; transition: background .2s, border-color .2s; text-align: left; flex: 1; }
+    .trio-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.2); }
+    .trio-card-name { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.35); margin-bottom: 4px; }
+    .trio-card-role { font-size: 1rem; font-weight: 800; color: #fff; }
+    .trio-card-desc { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-top: 8px; line-height: 1.5; }
+    .trio-card.current { border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.1); }
+    .trio-card.current .trio-card-name { color: #a78bfa; }
+
     .agent-cta-section { padding: 80px 48px; }
     .agent-cta-inner { max-width: 1080px; margin: 0 auto; }
     .agent-cta-banner { background: var(--dark); border-radius: 32px; padding: 72px 64px; text-align: center; position: relative; overflow: hidden; }
     .agent-cta-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.2) 0%, transparent 60%); pointer-events: none; }
     .agent-cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 12px; }
-    .agent-cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.4); margin-bottom: 32px; }
+    .agent-cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+    .pricing-ref { font-size: 0.82rem; color: rgba(255,255,255,0.25); margin-bottom: 28px; }
     .agent-cta-btn { display: inline-block; background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 36px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
     .agent-cta-btn:hover { opacity: 0.88; }
 
@@ -73,10 +149,15 @@
     @media (max-width: 768px) {
       nav { padding: 0 24px; }
       .agent-hero { padding: 72px 24px 56px; }
+      .stats-inner { padding: 20px 24px; flex-direction: column; gap: 16px; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+      .stat-item:last-child { border-bottom: none; }
       .section { padding: 64px 24px; }
-      .steps-grid, .caps-grid { grid-template-columns: 1fr; }
+      .steps-grid, .caps-grid, .wf-grid { grid-template-columns: 1fr; }
       .agent-cta-section { padding: 56px 24px; }
       .agent-cta-banner { padding: 48px 28px; }
+      .trio-strip { padding: 56px 24px; }
+      .trio-cards { flex-direction: column; }
       footer { padding: 32px 24px; }
     }
   </style>
@@ -102,6 +183,24 @@
   </div>
 </div>
 
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-num">180+</div>
+      <div class="stat-label">Campaigns monitored</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">340+</div>
+      <div class="stat-label">ICPs refined</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">2,400+</div>
+      <div class="stat-label">Weekly digests sent</div>
+    </div>
+  </div>
+</div>
+
 <div class="section">
   <div class="s-label">How Milla works</div>
   <div class="s-title">Always reading. Always thinking.</div>
@@ -112,18 +211,68 @@
       <h3>Connect your business</h3>
       <p>Train Milla on your products, services, client base, and goals. She builds a live model of your business that gets sharper with every interaction.</p>
       <span class="replaces-tag">Onboarding consultant</span>
+      <div class="step-mockup">
+        <div class="mock-label">Business profile</div>
+        <div class="biz-field"><span class="biz-key">Industry</span><span class="biz-val">B2B SaaS</span></div>
+        <div class="biz-field"><span class="biz-key">Target market</span><span class="biz-val">South Africa, East Africa</span></div>
+        <div class="biz-field"><span class="biz-key">Avg deal size</span><span class="biz-val">R180,000</span></div>
+        <div class="biz-field"><span class="biz-key">Sales cycle</span><span class="biz-val">45 days</span></div>
+        <div class="biz-field"><span class="biz-key">Status</span><span class="biz-val" style="color:#065f46">&#x2713; Profile complete</span></div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 02</div>
       <h3>Read campaign signals</h3>
       <p>Milla monitors every outreach campaign running through K.I.N.D. Reply rates, ICP performance, objection patterns &mdash; she reads it all in real time.</p>
       <span class="replaces-tag">Sales analyst &amp; reporting tools</span>
+      <div class="step-mockup">
+        <div class="mock-label">This week&rsquo;s campaigns</div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>FinTech Cape Town</span><span style="color:#065f46;font-weight:700">5.2%</span></div>
+          <div class="bar"><div class="bar-fill good" style="width:87%"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>SaaS Johannesburg</span><span style="color:#b91c1c;font-weight:700">0.7%</span></div>
+          <div class="bar"><div class="bar-fill bad" style="width:12%"></div></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label"><span>Retail Durban</span><span style="color:#92400e;font-weight:700">1.8%</span></div>
+          <div class="bar"><div class="bar-fill" style="width:30%;background:#f59e0b"></div></div>
+        </div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 03</div>
       <h3>Surface actionable intelligence</h3>
       <p>Milla doesn&rsquo;t just show you data &mdash; she tells you what to do. Pause this campaign. Double down on this ICP. Try this message angle. Specific, reasoned recommendations.</p>
       <span class="replaces-tag">Weekly agency reports</span>
+      <div class="step-mockup">
+        <div class="rec-card">
+          <div class="rec-title">&#x1F4A1; Milla recommends</div>
+          <div class="rec-body">Double your FinTech Cape Town credits. Pause SaaS Joburg and reallocate. New ICP angle: CFOs at 50&ndash;200 person companies post-Series A.</div>
+        </div>
+      </div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">Step 04</div>
+      <h3>Recommend &amp; refine</h3>
+      <p>Milla doesn&rsquo;t just report. She tells you exactly what to change and why. Every week, every campaign. Your strategy gets sharper with every cycle.</p>
+      <span class="replaces-tag">Growth consultant</span>
+      <div class="step-mockup">
+        <div class="milla-chat">
+          <div class="chat-bubble" style="background:#7c3aed;color:#fff;padding:8px 12px;border-radius:12px 12px 4px 12px;font-size:0.67rem;align-self:flex-end;max-width:85%">Which campaign is performing best this week?</div>
+          <div class="chat-bubble" style="background:#f0f0f0;color:var(--dark);padding:8px 12px;border-radius:12px 12px 12px 4px;font-size:0.67rem;align-self:flex-start;max-width:95%;line-height:1.5">Your <strong>FinTech Cape Town</strong> campaign is at 5.2% — 4x your average. SaaS Joburg is at 0.7%. I&rsquo;d pause it and reallocate those credits.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE CHAT DEMO for Business Q&A capability -->
+  <div class="chat-demo-wrap">
+    <div class="chat-demo-label">Ask Milla anything about your business</div>
+    <div class="chat-demo">
+      <div class="bubble-user">Which campaign is performing best this week?</div>
+      <div class="bubble-milla">Your <strong>FinTech Cape Town</strong> campaign has a 5.2% reply rate — 4x your average. Your SaaS Johannesburg campaign is at 0.7%. I&rsquo;d pause it and reallocate those credits to FinTech. Want me to draft a new ICP for Joburg instead?</div>
     </div>
   </div>
 </div>
@@ -158,11 +307,135 @@
   </div>
 </div>
 
+<!-- WHO THIS IS FOR -->
+<div class="section">
+  <div class="s-label">Who this is for</div>
+  <div class="s-title">For teams tired of guessing.</div>
+  <p class="s-sub">Milla is for the people who know their campaigns need to be smarter &mdash; but don&rsquo;t have time to build a reporting layer to figure out why.</p>
+  <div class="wf-grid">
+    <div class="wf-card">
+      <div class="wf-role">For Founders</div>
+      <h3>You&rsquo;re too close to the business to see what&rsquo;s working.</h3>
+      <ul>
+        <li>Milla tells you which campaigns to double down on</li>
+        <li>Monday digest in plain English, not spreadsheets</li>
+        <li>Ask Milla anything &mdash; she knows your business</li>
+        <li>No BI tools to configure, no dashboards to build</li>
+      </ul>
+    </div>
+    <div class="wf-card">
+      <div class="wf-role">For Sales Directors</div>
+      <h3>You need data to manage the team, not manage the data.</h3>
+      <ul>
+        <li>Campaign-level intel across the whole team</li>
+        <li>ICP performance ranked and reasoned</li>
+        <li>Milla flags underperforming campaigns before they waste budget</li>
+        <li>Specific recommendations, not just dashboards</li>
+      </ul>
+    </div>
+    <div class="wf-card">
+      <div class="wf-role">For RevOps</div>
+      <h3>You build the systems. Milla runs the analysis.</h3>
+      <ul>
+        <li>Real-time visibility into every outbound motion</li>
+        <li>ICP refinement data flows directly into FIGSY campaigns</li>
+        <li>Replaces fragmented reporting across HubSpot, Apollo, Sheets</li>
+        <li>Audit trail for every recommendation Milla makes</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div style="background:var(--light);padding:80px 48px">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="s-label">Common questions</div>
+    <div class="s-title">Everything you&rsquo;d ask a head of intelligence.</div>
+    <div class="faq-list" style="margin-top:40px">
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Does Milla work with tools I already have?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Milla is built into the K.I.N.D platform and connects natively with FIGSY campaigns. If you&rsquo;re using external CRMs or tools, our team works with you during onboarding to pipe in the relevant data. Milla is most powerful when she can see your full outbound motion &mdash; which is native if you&rsquo;re running FIGSY campaigns.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          How does Milla learn my business?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          During onboarding you complete a business profile &mdash; your industry, target market, products, pricing, and goals. From there, Milla continuously updates her understanding based on which ICPs reply, which campaigns convert, and what you tell her through the Q&amp;A interface. The more campaigns run, the sharper Milla gets.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          What kind of questions can I ask Milla?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Anything about your pipeline, campaigns, or market. &ldquo;Which ICP is converting best?&rdquo; &ldquo;Why is this campaign underperforming?&rdquo; &ldquo;What should I prioritise this week?&rdquo; &ldquo;Which verticals should we enter next?&rdquo; Milla answers in plain English using the data she has about your business.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          How often does Milla update her intelligence?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Continuously. Campaign signals update in real time as replies come in. ICP performance models update daily. You also get a structured Monday digest every week that summarises the previous week and sets priorities for the next. You can query Milla any time between those digests.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Is Milla just a dashboard with an AI label?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          No. A dashboard shows you numbers. Milla tells you what those numbers mean and what to do about them. She surfaces specific, reasoned recommendations &mdash; not just data &mdash; and she answers questions in real time. The goal is zero time spent interpreting reports, and full confidence in every decision you make about your pipeline.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- THREE-AGENT STRIP -->
+<div class="trio-strip">
+  <div class="trio-headline">FIGSY finds them. Milla reads the signals.<br>Vida converts them.</div>
+  <p class="trio-sub" style="margin-top:10px">Three agents. One platform. Unlimited pipeline.</p>
+  <div class="trio-cards">
+    <a href="figsy.html" class="trio-card">
+      <div class="trio-card-name">FIGSY</div>
+      <div class="trio-card-role">The Closer</div>
+      <div class="trio-card-desc">Finds leads, writes outreach, books meetings autonomously.</div>
+    </a>
+    <div class="trio-card current">
+      <div class="trio-card-name">Milla</div>
+      <div class="trio-card-role">The Brain</div>
+      <div class="trio-card-desc">Reads campaign signals and tells you exactly what to do next.</div>
+    </div>
+    <a href="chatbot-agent.html" class="trio-card">
+      <div class="trio-card-name">Vida</div>
+      <div class="trio-card-role">The Connector</div>
+      <div class="trio-card-desc">Qualifies every inbound lead on web and WhatsApp, 24/7.</div>
+    </a>
+  </div>
+</div>
+
 <div class="agent-cta-section">
   <div class="agent-cta-inner">
     <div class="agent-cta-banner">
       <h2>Ready to meet Milla?</h2>
       <p>14-day free trial. No card required. Intelligence from day one.</p>
+      <p class="pricing-ref">Included with every FIGSY Scale plan.</p>
       <a href="https://app.get-kind.com/signup" class="agent-cta-btn">Get started &rarr;</a>
     </div>
   </div>
@@ -180,5 +453,20 @@
   </div>
 </footer>
 
+<script>
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const answer = item.querySelector('.faq-a');
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(el => {
+      el.classList.remove('open');
+      el.querySelector('.faq-a').classList.remove('visible');
+    });
+    if (!isOpen) {
+      item.classList.add('open');
+      answer.classList.add('visible');
+    }
+  }
+</script>
 </body>
 </html>

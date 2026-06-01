@@ -39,6 +39,14 @@
     .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: pulse-dot 1.8s ease-in-out infinite; flex-shrink: 0; }
     @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
 
+    /* STATS STRIP */
+    .stats-strip { background: #fff; border-bottom: 1px solid var(--border); }
+    .stats-inner { max-width: 1080px; margin: 0 auto; padding: 28px 48px; display: flex; gap: 0; justify-content: center; }
+    .stat-item { flex: 1; text-align: center; padding: 0 24px; border-right: 1px solid var(--border); }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 1.8rem; font-weight: 900; color: var(--dark); letter-spacing: -0.03em; }
+    .stat-label { font-size: 0.75rem; color: rgba(0,0,0,0.4); margin-top: 2px; }
+
     /* SECTIONS */
     .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
     .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
@@ -47,12 +55,40 @@
 
     /* HOW IT WORKS */
     .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
-    .step-card { background: var(--light); border-radius: 20px; padding: 36px 32px; }
+    .step-card { background: var(--light); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; }
     .step-num { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
     .step-card h3 { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
     .step-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
     .replaces-tag { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; font-size: 0.7rem; font-weight: 700; color: rgba(0,0,0,0.35); background: rgba(0,0,0,0.05); border-radius: 100px; padding: 4px 10px; }
     .replaces-tag::before { content: "Replaces:"; font-weight: 400; }
+
+    /* STEP MOCKUPS */
+    .step-mockup { margin-top: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 14px; padding: 14px 16px; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; }
+    .mock-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .mock-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.3); }
+    .mock-badge { font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-orange { background: #fed7aa; color: #92400e; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .mock-name { font-size: 0.82rem; font-weight: 700; color: var(--dark); }
+    .mock-meta { font-size: 0.7rem; color: rgba(0,0,0,0.4); margin-top: 2px; }
+    .mock-score-bar { height: 4px; background: #e5e7eb; border-radius: 2px; margin-top: 10px; overflow: hidden; }
+    .mock-score-fill { height: 100%; background: var(--blue); border-radius: 2px; }
+    .mock-score-label { font-size: 0.62rem; color: rgba(0,0,0,0.35); margin-top: 4px; display: flex; justify-content: space-between; }
+    .mock-email-to { font-size: 0.67rem; color: rgba(0,0,0,0.35); margin-bottom: 6px; }
+    .mock-email-subject { font-size: 0.72rem; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+    .mock-email-body { font-size: 0.67rem; color: rgba(0,0,0,0.5); line-height: 1.5; }
+    .mock-reply-bubble { background: #f0f0f0; border-radius: 12px 12px 12px 4px; padding: 8px 12px; font-size: 0.67rem; color: var(--dark); line-height: 1.5; margin-bottom: 6px; }
+    .mock-intent-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 700; color: #065f46; background: #d1fae5; border-radius: 100px; padding: 3px 8px; }
+    .mock-cal { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .mock-cal-header { background: var(--blue); padding: 8px 12px; font-size: 0.67rem; font-weight: 700; color: #fff; }
+    .mock-cal-body { padding: 10px 12px; }
+    .mock-cal-title { font-size: 0.75rem; font-weight: 700; color: var(--dark); }
+    .mock-cal-time { font-size: 0.65rem; color: rgba(0,0,0,0.4); margin-top: 2px; }
+    .mock-alert { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 10px 12px; display: flex; align-items: flex-start; gap: 8px; }
+    .mock-alert-icon { font-size: 0.85rem; flex-shrink: 0; margin-top: 1px; }
+    .mock-alert-text { font-size: 0.67rem; color: #92400e; line-height: 1.5; }
 
     /* CAPABILITIES */
     .caps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -61,13 +97,46 @@
     .cap-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; margin-bottom: 16px; }
     .cap-replaces { display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 700; color: rgba(0,0,0,0.35); background: rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.08); border-radius: 100px; padding: 4px 12px; }
 
+    /* WHO THIS IS FOR */
+    .wf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .wf-card { border: 1px solid var(--border); border-radius: 20px; padding: 32px; }
+    .wf-role { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); margin-bottom: 12px; }
+    .wf-card h3 { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; }
+    .wf-card ul { list-style: none; padding: 0; }
+    .wf-card ul li { font-size: 0.83rem; color: rgba(0,0,0,0.5); padding: 5px 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 8px; }
+    .wf-card ul li:last-child { border-bottom: none; }
+    .wf-card ul li::before { content: "→"; color: var(--blue); font-weight: 700; flex-shrink: 0; }
+
+    /* FAQ */
+    .faq-list { border-top: 1px solid var(--border); }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q { width: 100%; background: none; border: none; text-align: left; padding: 22px 0; font-size: 0.95rem; font-weight: 700; color: var(--dark); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-family: inherit; }
+    .faq-icon { font-size: 1.2rem; color: rgba(0,0,0,0.3); flex-shrink: 0; transition: transform .25s; line-height: 1; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+    .faq-a { font-size: 0.88rem; color: rgba(0,0,0,0.5); line-height: 1.8; padding-bottom: 22px; display: none; max-width: 720px; }
+    .faq-a.visible { display: block; }
+
+    /* THREE-AGENT STRIP */
+    .trio-strip { background: var(--dark); padding: 80px 48px; text-align: center; }
+    .trio-headline { font-size: clamp(1.3rem, 3vw, 1.9rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 10px; line-height: 1.2; }
+    .trio-sub { font-size: 0.9rem; color: rgba(255,255,255,0.35); margin-bottom: 48px; max-width: 480px; margin-left: auto; margin-right: auto; }
+    .trio-cards { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; max-width: 720px; margin: 0 auto; }
+    .trio-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px 28px; text-decoration: none; min-width: 180px; transition: background .2s, border-color .2s; text-align: left; flex: 1; }
+    .trio-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.2); }
+    .trio-card-name { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.35); margin-bottom: 4px; }
+    .trio-card-role { font-size: 1rem; font-weight: 800; color: #fff; }
+    .trio-card-desc { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-top: 8px; line-height: 1.5; }
+    .trio-card.current { border-color: rgba(37,99,235,0.5); background: rgba(37,99,235,0.1); }
+    .trio-card.current .trio-card-name { color: #60a5fa; }
+
     /* CTA */
     .agent-cta-section { padding: 80px 48px; }
     .agent-cta-inner { max-width: 1080px; margin: 0 auto; }
     .agent-cta-banner { background: var(--dark); border-radius: 32px; padding: 72px 64px; text-align: center; position: relative; overflow: hidden; }
     .agent-cta-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.2) 0%, transparent 60%); pointer-events: none; }
     .agent-cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 12px; }
-    .agent-cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.4); margin-bottom: 32px; }
+    .agent-cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+    .pricing-ref { font-size: 0.82rem; color: rgba(255,255,255,0.25); margin-bottom: 28px; }
     .agent-cta-btn { display: inline-block; background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 36px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
     .agent-cta-btn:hover { opacity: 0.88; }
 
@@ -82,10 +151,15 @@
     @media (max-width: 768px) {
       nav { padding: 0 24px; }
       .agent-hero { padding: 72px 24px 56px; }
+      .stats-inner { padding: 20px 24px; flex-direction: column; gap: 16px; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+      .stat-item:last-child { border-bottom: none; }
       .section { padding: 64px 24px; }
-      .steps-grid, .caps-grid { grid-template-columns: 1fr; }
+      .steps-grid, .caps-grid, .wf-grid { grid-template-columns: 1fr; }
       .agent-cta-section { padding: 56px 24px; }
       .agent-cta-banner { padding: 48px 28px; }
+      .trio-strip { padding: 56px 24px; }
+      .trio-cards { flex-direction: column; }
       footer { padding: 32px 24px; }
     }
   </style>
@@ -112,6 +186,24 @@
   </div>
 </div>
 
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-num">2,400+</div>
+      <div class="stat-label">Meetings booked</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">3.2%</div>
+      <div class="stat-label">Average reply rate</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">180+</div>
+      <div class="stat-label">Campaigns running</div>
+    </div>
+  </div>
+</div>
+
 <!-- HOW IT WORKS -->
 <div class="section">
   <div class="s-label">How FIGSY works</div>
@@ -123,30 +215,67 @@
       <h3>ICP-matched lead sourcing</h3>
       <p>Searches 250M+ verified B2B contacts. Scores every match 0&ndash;100 against your Ideal Customer Profile. Only decision-makers above the threshold get through.</p>
       <span class="replaces-tag">Apollo subscription</span>
+      <div class="step-mockup">
+        <div class="mock-row">
+          <span class="mock-label">Lead identified</span>
+          <span class="mock-badge badge-green">ICP Score 94</span>
+        </div>
+        <div class="mock-name">Sarah Molefe</div>
+        <div class="mock-meta">CFO &middot; Series B SaaS &middot; Cape Town</div>
+        <div class="mock-score-bar"><div class="mock-score-fill" style="width:94%"></div></div>
+        <div class="mock-score-label"><span>0</span><span>94 / 100</span></div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 02</div>
       <h3>Hyper-personalised outreach</h3>
       <p>Claude writes a unique email for every lead &mdash; role, company context, industry signals. No templates. No spray-and-pray. Every message sounds like a human who did their homework.</p>
       <span class="replaces-tag">Copywriter &amp; SDR time</span>
+      <div class="step-mockup">
+        <div class="mock-email-to">To: sarah.molefe@techco.co.za</div>
+        <div class="mock-email-subject">Re: scaling RevOps without headcount</div>
+        <div class="mock-email-body">Hi Sarah, saw your recent Series B announcement &mdash; congrats. Given you&rsquo;re now scaling without adding headcount, I wanted to share how we&rsquo;re helping CFOs like you&hellip;</div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 03</div>
       <h3>Intelligent reply handling</h3>
       <p>FIGSY reads every reply. Positive intent? She continues the conversation. Objection? She handles it. Unsubscribe? Suppressed permanently with POPIA consent logged.</p>
       <span class="replaces-tag">Salesloft &amp; Outreach</span>
+      <div class="step-mockup">
+        <div class="mock-reply-bubble">&ldquo;This looks interesting &mdash; can you send me more info on pricing?&rdquo;</div>
+        <div class="mock-row">
+          <span class="mock-intent-tag">&#x2713; Positive intent detected</span>
+          <span class="mock-badge badge-blue">Auto-reply queued</span>
+        </div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 04</div>
       <h3>Meeting booked to your calendar</h3>
       <p>When a prospect is ready, FIGSY books directly into your calendar and sends the invite. You get a notification. You show up. That&rsquo;s it.</p>
       <span class="replaces-tag">SDR salary</span>
+      <div class="step-mockup">
+        <div class="mock-cal">
+          <div class="mock-cal-header">&#x1F4C5; New meeting booked</div>
+          <div class="mock-cal-body">
+            <div class="mock-cal-title">Discovery call &mdash; Sarah Molefe</div>
+            <div class="mock-cal-time">Tuesday, 10 Jun &middot; 10:00&ndash;10:30 SAST</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 05</div>
       <h3>Self-managing campaign intelligence</h3>
       <p>If a campaign drops below 1% reply rate, FIGSY pauses automatically and alerts you. No wasted credits. Every Monday you get a full outreach digest.</p>
       <span class="replaces-tag">Manual campaign management</span>
+      <div class="step-mockup">
+        <div class="mock-alert">
+          <div class="mock-alert-icon">&#x26A0;</div>
+          <div class="mock-alert-text"><strong>Campaign paused</strong><br>SaaS Joburg &mdash; reply rate dropped to 0.6%. Credits preserved. Tap to review.</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -178,7 +307,140 @@
         <p style="color:rgba(255,255,255,0.4)">When a prospect is ready, FIGSY books directly into your calendar. No back-and-forth. No Calendly links to send manually.</p>
         <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: SDR + coordinator</span>
       </div>
+      <div class="cap-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+        <h3 style="color:#fff">FIGSY Memory</h3>
+        <p style="color:rgba(255,255,255,0.4)">FIGSY Memory learns what works across every campaign &mdash; so each new campaign starts smarter than the last.</p>
+        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: Growth consultant retainer</span>
+      </div>
+      <div class="cap-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+        <h3 style="color:#fff">Campaign Intelligence</h3>
+        <p style="color:rgba(255,255,255,0.4)">Auto-pauses campaigns below 1% reply rate. Sends you a Monday digest. No babysitting required.</p>
+        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: Manual campaign monitoring</span>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- WHO THIS IS FOR -->
+<div class="section">
+  <div class="s-label">Who this is for</div>
+  <div class="s-title">Built for teams who need pipeline, not process.</div>
+  <p class="s-sub">FIGSY works hardest for the people who don&rsquo;t have time to manage outbound &mdash; but can&rsquo;t afford to ignore it.</p>
+  <div class="wf-grid">
+    <div class="wf-card">
+      <div class="wf-role">For Founders</div>
+      <h3>You&rsquo;re selling and building simultaneously.</h3>
+      <ul>
+        <li>No SDR budget yet &mdash; FIGSY is your whole outbound team</li>
+        <li>Pipeline runs in the background while you build</li>
+        <li>First campaign live in 5 business days</li>
+        <li>You control ICPs and messaging, she handles execution</li>
+      </ul>
+    </div>
+    <div class="wf-card">
+      <div class="wf-role">For Sales Directors</div>
+      <h3>You need pipeline without headcount risk.</h3>
+      <ul>
+        <li>Scale outbound without scaling the team</li>
+        <li>FIGSY never calls in sick or misses a follow-up</li>
+        <li>Full campaign reporting every Monday</li>
+        <li>Runs alongside your existing reps, not instead of them</li>
+      </ul>
+    </div>
+    <div class="wf-card">
+      <div class="wf-role">For SDR Managers</div>
+      <h3>You want AI-augmented teams, not AI-replaced teams.</h3>
+      <ul>
+        <li>FIGSY handles volume so your SDRs handle quality</li>
+        <li>Warm leads passed to reps at the right moment</li>
+        <li>Campaign intelligence feeds back into team strategy</li>
+        <li>ICP refinement built in &mdash; every campaign sharpens the next</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div style="background:var(--light);padding:80px 48px">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="s-label">Common questions</div>
+    <div class="s-title">Everything you&rsquo;d ask a sales rep.</div>
+    <div class="faq-list" style="margin-top:40px">
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          How quickly can FIGSY start booking meetings?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Your first campaign goes live within 5 business days of signing up &mdash; guaranteed. That includes ICP setup, email account warm-up, and your first sequence launch. Most clients see their first reply within 72 hours of going live.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Can I control which types of leads FIGSY targets?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Completely. You define your ICP &mdash; industry, geography, company size, job title, tech stack, funding stage &mdash; and FIGSY only sources leads that score above your threshold. You can also exclude specific companies or domains. Think of it as a filter you set once, and FIGSY runs through it continuously.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          What happens when a prospect replies negatively or asks to unsubscribe?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          FIGSY handles it instantly. Negative replies are acknowledged and the contact is suppressed permanently &mdash; no further outreach, ever. Unsubscribe requests are logged with timestamp, channel, and consent record in line with POPIA and GDPR requirements. You never have to manage suppression lists manually.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Is FIGSY POPIA and GDPR compliant?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Yes. K.I.N.D is built from the ground up with POPIA compliance as a core requirement. All consent signals are logged, unsubscribe requests are honoured immediately, and your data never leaves the platform for third-party training. We hold a POPIA compliance record for every campaign run.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          How is FIGSY different from just buying an Apollo subscription?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Apollo gives you a database. FIGSY gives you pipeline. Apollo finds the names &mdash; you still need to write the emails, run sequences, handle replies, book meetings, and manage the campaign. FIGSY does all of that autonomously. It replaces Apollo, Salesloft, a copywriter, and an SDR in one platform &mdash; at a fraction of the combined cost.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- THREE-AGENT STRIP -->
+<div class="trio-strip">
+  <div class="trio-headline">FIGSY finds them. Milla reads the signals.<br>Vida converts them.</div>
+  <p class="trio-sub" style="margin-top:10px">Three agents. One platform. Unlimited pipeline.</p>
+  <div class="trio-cards">
+    <div class="trio-card current">
+      <div class="trio-card-name">FIGSY</div>
+      <div class="trio-card-role">The Closer</div>
+      <div class="trio-card-desc">Finds leads, writes outreach, books meetings autonomously.</div>
+    </div>
+    <a href="virtual-assistant.html" class="trio-card">
+      <div class="trio-card-name">Milla</div>
+      <div class="trio-card-role">The Brain</div>
+      <div class="trio-card-desc">Reads campaign signals and tells you exactly what to do next.</div>
+    </a>
+    <a href="chatbot-agent.html" class="trio-card">
+      <div class="trio-card-name">Vida</div>
+      <div class="trio-card-role">The Connector</div>
+      <div class="trio-card-desc">Qualifies every inbound lead on web and WhatsApp, 24/7.</div>
+    </a>
   </div>
 </div>
 
@@ -188,6 +450,7 @@
     <div class="agent-cta-banner">
       <h2>Ready to meet FIGSY?</h2>
       <p>14-day free trial. No card required. First campaign live in 5 business days &mdash; guaranteed.</p>
+      <p class="pricing-ref">From $1 per qualified lead. Start from $20.</p>
       <a href="https://app.get-kind.com/signup" class="agent-cta-btn">Get your first leads free &rarr;</a>
     </div>
   </div>
@@ -205,5 +468,20 @@
   </div>
 </footer>
 
+<script>
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const answer = item.querySelector('.faq-a');
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(el => {
+      el.classList.remove('open');
+      el.querySelector('.faq-a').classList.remove('visible');
+    });
+    if (!isOpen) {
+      item.classList.add('open');
+      answer.classList.add('visible');
+    }
+  }
+</script>
 </body>
 </html>

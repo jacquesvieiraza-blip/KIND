@@ -39,6 +39,14 @@
     .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: pulse-dot 1.8s ease-in-out infinite; flex-shrink: 0; }
     @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
 
+    /* STATS STRIP */
+    .stats-strip { background: #fff; border-bottom: 1px solid var(--border); }
+    .stats-inner { max-width: 1080px; margin: 0 auto; padding: 28px 48px; display: flex; gap: 0; justify-content: center; }
+    .stat-item { flex: 1; text-align: center; padding: 0 24px; border-right: 1px solid var(--border); }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 1.8rem; font-weight: 900; color: var(--dark); letter-spacing: -0.03em; }
+    .stat-label { font-size: 0.75rem; color: rgba(0,0,0,0.4); margin-top: 2px; }
+
     /* SECTIONS */
     .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
     .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
@@ -47,12 +55,61 @@
 
     /* HOW IT WORKS */
     .steps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; }
-    .step-card { background: var(--light); border-radius: 20px; padding: 36px 32px; }
+    .step-card { background: var(--light); border-radius: 20px; padding: 36px 32px; display: flex; flex-direction: column; }
     .step-num { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
     .step-card h3 { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
     .step-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
     .replaces-tag { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; font-size: 0.7rem; font-weight: 700; color: rgba(0,0,0,0.35); background: rgba(0,0,0,0.05); border-radius: 100px; padding: 4px 10px; }
     .replaces-tag::before { content: "Replaces:"; font-weight: 400; }
+
+    /* STEP MOCKUPS */
+    .step-mockup { margin-top: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 14px; padding: 14px 16px; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; }
+    .mock-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.3); margin-bottom: 8px; }
+    .mock-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .mock-badge { font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-indigo { background: #e0e7ff; color: #3730a3; }
+    .upload-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.72rem; }
+    .upload-item:last-child { border-bottom: none; }
+    .upload-icon { font-size: 0.85rem; }
+    .upload-name { flex: 1; color: var(--dark); font-weight: 500; }
+    .upload-status { font-size: 0.62rem; font-weight: 700; color: #065f46; }
+    .persona-field { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.72rem; }
+    .persona-field:last-child { border-bottom: none; }
+    .pf-key { color: rgba(0,0,0,0.35); }
+    .pf-val { font-weight: 600; color: var(--dark); }
+    .code-block { background: #1e1e2e; border-radius: 8px; padding: 10px 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.6rem; line-height: 1.7; color: #cdd6f4; }
+    .code-tag { color: #89b4fa; }
+    .code-attr { color: #a6e3a1; }
+    .code-val { color: #fab387; }
+    .alert-card { background: #faf5ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 10px 12px; display: flex; align-items: flex-start; gap: 8px; }
+    .alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .alert-text { font-size: 0.67rem; color: #5b21b6; line-height: 1.5; }
+
+    /* WHATSAPP SECTION */
+    .whatsapp-section { background: #0a0a0a; padding: 80px 48px; }
+    .whatsapp-inner { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    .wa-content .s-label { color: #25d366; }
+    .wa-content .s-title { color: #fff; }
+    .wa-content .s-sub { color: rgba(255,255,255,0.4); margin-bottom: 28px; }
+    .wa-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(37,211,102,0.12); border: 1px solid rgba(37,211,102,0.25); border-radius: 100px; padding: 6px 14px; font-size: 0.75rem; font-weight: 700; color: #25d366; }
+    .wa-phone { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 20px 16px; max-width: 280px; margin: 0 auto; }
+    .wa-phone-header { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 14px; }
+    .wa-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .wa-name { font-size: 0.82rem; font-weight: 700; color: #fff; }
+    .wa-status { font-size: 0.65rem; color: #25d366; }
+    .wa-messages { display: flex; flex-direction: column; gap: 8px; }
+    .wa-msg { padding: 8px 12px; border-radius: 12px; font-size: 0.67rem; line-height: 1.5; max-width: 85%; }
+    .wa-msg.incoming { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.8); align-self: flex-start; border-radius: 12px 12px 12px 4px; }
+    .wa-msg.outgoing { background: #005c4b; color: #fff; align-self: flex-end; border-radius: 12px 12px 4px 12px; }
+    .wa-time { font-size: 0.55rem; color: rgba(255,255,255,0.3); text-align: right; margin-top: 2px; }
+
+    /* SPEED CLAIM */
+    .speed-band { background: var(--blue); padding: 40px 48px; text-align: center; }
+    .speed-inner { max-width: 800px; margin: 0 auto; }
+    .speed-headline { font-size: clamp(1.3rem, 3vw, 2rem); font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 8px; }
+    .speed-sub { font-size: 0.9rem; color: rgba(255,255,255,0.6); }
 
     /* CAPABILITIES */
     .caps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -61,13 +118,46 @@
     .cap-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; margin-bottom: 16px; }
     .cap-replaces { display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 700; color: rgba(0,0,0,0.35); background: rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.08); border-radius: 100px; padding: 4px 12px; }
 
+    /* WHO THIS IS FOR */
+    .wf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .wf-card { border: 1px solid var(--border); border-radius: 20px; padding: 32px; }
+    .wf-role { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); margin-bottom: 12px; }
+    .wf-card h3 { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; }
+    .wf-card ul { list-style: none; padding: 0; }
+    .wf-card ul li { font-size: 0.83rem; color: rgba(0,0,0,0.5); padding: 5px 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 8px; }
+    .wf-card ul li:last-child { border-bottom: none; }
+    .wf-card ul li::before { content: "→"; color: var(--blue); font-weight: 700; flex-shrink: 0; }
+
+    /* FAQ */
+    .faq-list { border-top: 1px solid var(--border); }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q { width: 100%; background: none; border: none; text-align: left; padding: 22px 0; font-size: 0.95rem; font-weight: 700; color: var(--dark); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-family: inherit; }
+    .faq-icon { font-size: 1.2rem; color: rgba(0,0,0,0.3); flex-shrink: 0; transition: transform .25s; line-height: 1; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+    .faq-a { font-size: 0.88rem; color: rgba(0,0,0,0.5); line-height: 1.8; padding-bottom: 22px; display: none; max-width: 720px; }
+    .faq-a.visible { display: block; }
+
+    /* THREE-AGENT STRIP */
+    .trio-strip { background: var(--dark); padding: 80px 48px; text-align: center; }
+    .trio-headline { font-size: clamp(1.3rem, 3vw, 1.9rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 10px; line-height: 1.2; }
+    .trio-sub { font-size: 0.9rem; color: rgba(255,255,255,0.35); margin-bottom: 48px; max-width: 480px; margin-left: auto; margin-right: auto; }
+    .trio-cards { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; max-width: 720px; margin: 0 auto; }
+    .trio-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px 28px; text-decoration: none; min-width: 180px; transition: background .2s, border-color .2s; text-align: left; flex: 1; }
+    .trio-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.2); }
+    .trio-card-name { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.35); margin-bottom: 4px; }
+    .trio-card-role { font-size: 1rem; font-weight: 800; color: #fff; }
+    .trio-card-desc { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-top: 8px; line-height: 1.5; }
+    .trio-card.current { border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.1); }
+    .trio-card.current .trio-card-name { color: #a5b4fc; }
+
     /* CTA */
     .agent-cta-section { padding: 80px 48px; }
     .agent-cta-inner { max-width: 1080px; margin: 0 auto; }
     .agent-cta-banner { background: var(--dark); border-radius: 32px; padding: 72px 64px; text-align: center; position: relative; overflow: hidden; }
     .agent-cta-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.2) 0%, transparent 60%); pointer-events: none; }
     .agent-cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 12px; }
-    .agent-cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.4); margin-bottom: 32px; }
+    .agent-cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+    .pricing-ref { font-size: 0.82rem; color: rgba(255,255,255,0.25); margin-bottom: 28px; }
     .agent-cta-btn { display: inline-block; background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 36px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
     .agent-cta-btn:hover { opacity: 0.88; }
 
@@ -82,10 +172,19 @@
     @media (max-width: 768px) {
       nav { padding: 0 24px; }
       .agent-hero { padding: 72px 24px 56px; }
+      .stats-inner { padding: 20px 24px; flex-direction: column; gap: 16px; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+      .stat-item:last-child { border-bottom: none; }
       .section { padding: 64px 24px; }
-      .steps-grid, .caps-grid { grid-template-columns: 1fr; }
+      .steps-grid, .caps-grid, .wf-grid { grid-template-columns: 1fr; }
+      .whatsapp-inner { grid-template-columns: 1fr; }
+      .wa-phone { max-width: 100%; }
       .agent-cta-section { padding: 56px 24px; }
       .agent-cta-banner { padding: 48px 28px; }
+      .trio-strip { padding: 56px 24px; }
+      .trio-cards { flex-direction: column; }
+      .whatsapp-section { padding: 56px 24px; }
+      .speed-band { padding: 32px 24px; }
       footer { padding: 32px 24px; }
     }
   </style>
@@ -112,6 +211,24 @@
   </div>
 </div>
 
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-num">12,000+</div>
+      <div class="stat-label">Conversations handled</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">860+</div>
+      <div class="stat-label">Leads captured</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt;3s</div>
+      <div class="stat-label">Avg response time</div>
+    </div>
+  </div>
+</div>
+
 <!-- HOW IT WORKS -->
 <div class="section">
   <div class="s-label">How Vida works</div>
@@ -120,28 +237,110 @@
   <div class="steps-grid">
     <div class="step-card">
       <div class="step-num">Step 01</div>
-      <h3>Upload your content</h3>
-      <p>Connect your website, upload documents, or paste your FAQs. Vida learns your product, pricing, and positioning automatically &mdash; no scripting required.</p>
+      <h3>Learns your business instantly</h3>
+      <p>Upload docs, paste your site URL, or connect your knowledge base. Vida knows your product as well as you do &mdash; no scripting, no manual FAQs, no developer required.</p>
       <span class="replaces-tag">Manual knowledge base setup</span>
+      <div class="step-mockup">
+        <div class="mock-label">Knowledge base</div>
+        <div class="upload-item">
+          <span class="upload-icon">&#x1F4C4;</span>
+          <span class="upload-name">Product overview.pdf</span>
+          <span class="upload-status">&#x2713; Learned</span>
+        </div>
+        <div class="upload-item">
+          <span class="upload-icon">&#x1F310;</span>
+          <span class="upload-name">get-kind.com/pricing</span>
+          <span class="upload-status">&#x2713; Learned</span>
+        </div>
+        <div class="upload-item">
+          <span class="upload-icon">&#x1F4C4;</span>
+          <span class="upload-name">FAQ deck Q2 2026.pdf</span>
+          <span class="upload-status">&#x2713; Learned</span>
+        </div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 02</div>
-      <h3>Set your persona &amp; rules</h3>
-      <p>Give Vida her tone of voice, qualifying questions, and escalation rules. She follows your process and hands off to you at exactly the right moment.</p>
+      <h3>Qualifies every visitor</h3>
+      <p>Asks the right questions, scores intent, and only escalates when someone is genuinely ready to buy. Your time goes to hot leads &mdash; not tyre-kickers.</p>
       <span class="replaces-tag">Live chat training docs</span>
+      <div class="step-mockup">
+        <div class="mock-label">Persona settings</div>
+        <div class="persona-field"><span class="pf-key">Tone</span><span class="pf-val">Warm, direct</span></div>
+        <div class="persona-field"><span class="pf-key">Name</span><span class="pf-val">Vida at K.I.N.D</span></div>
+        <div class="persona-field"><span class="pf-key">Escalate when</span><span class="pf-val">Intent score &gt; 80</span></div>
+        <div class="persona-field"><span class="pf-key">Qualify for</span><span class="pf-val">B2B, 10+ employees</span></div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 03</div>
       <h3>Deploy in one click</h3>
       <p>Add one script tag to your site or connect your WhatsApp Business account. Vida goes live immediately &mdash; no developer needed.</p>
       <span class="replaces-tag">Drift &middot; Intercom setup</span>
+      <div class="step-mockup">
+        <div class="mock-label">Embed code</div>
+        <div class="code-block">
+          <span class="code-tag">&lt;script</span><br>
+          &nbsp;&nbsp;<span class="code-attr">src</span>=<span class="code-val">"vida-widget.js"</span><br>
+          &nbsp;&nbsp;<span class="code-attr">data-key</span>=<span class="code-val">"your-key"</span><br>
+          <span class="code-tag">&gt;&lt;/script&gt;</span>
+        </div>
+        <div style="margin-top:8px;font-size:0.62rem;color:rgba(0,0,0,0.35)">&#x2713; Paste once. Works on any site.</div>
+      </div>
     </div>
     <div class="step-card">
       <div class="step-num">Step 04</div>
       <h3>Watch it work</h3>
       <p>Vida qualifies visitors, captures contact details, and sends you an instant alert when a lead is hot. Every conversation is logged and searchable from your dashboard.</p>
       <span class="replaces-tag">Live chat staff</span>
+      <div class="step-mockup">
+        <div class="alert-card">
+          <div class="alert-icon">&#x1F525;</div>
+          <div class="alert-text">
+            <strong>Hot lead alert</strong><br>
+            Thabo Nkosi &middot; CFO at RetailCo &middot; Intent score 92. Asked about enterprise pricing. Viewing site now.
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- WHATSAPP SECTION -->
+<div class="whatsapp-section">
+  <div class="whatsapp-inner">
+    <div class="wa-content">
+      <div class="s-label" style="color:#25d366">WhatsApp-native</div>
+      <div class="s-title" style="color:#fff;margin-bottom:16px">The first AI agent built for African B2B WhatsApp sales.</div>
+      <p class="s-sub">Same Vida brain, on the channel your prospects actually use. Vida qualifies, answers, and escalates &mdash; directly in WhatsApp Business. No app switches. No missed messages.</p>
+      <span class="wa-badge">&#x1F4F1; Works on WhatsApp Business</span>
+    </div>
+    <div>
+      <div class="wa-phone">
+        <div class="wa-phone-header">
+          <div class="wa-avatar">V</div>
+          <div>
+            <div class="wa-name">Vida &middot; K.I.N.D</div>
+            <div class="wa-status">&#x25CF; Online</div>
+          </div>
+        </div>
+        <div class="wa-messages">
+          <div class="wa-msg incoming">Hi, I saw your LinkedIn ad. How does K.I.N.D work for a 30-person sales team?</div>
+          <div class="wa-msg outgoing">Great question! K.I.N.D replaces your outbound stack &mdash; FIGSY finds and contacts leads automatically. Is your team currently using an SDR or running outbound yourselves?</div>
+          <div class="wa-msg incoming">We have 2 SDRs but they&rsquo;re spending 80% of time on admin, not selling.</div>
+          <div class="wa-msg outgoing">That&rsquo;s exactly who we built this for. Let me get you connected with our team &mdash; what&rsquo;s the best time for a 20-min call?</div>
+          <div class="wa-time">Vida &middot; just now</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEED CLAIM -->
+<div class="speed-band">
+  <div class="speed-inner">
+    <div class="speed-headline">Responds in under 3 seconds. 24/7.</div>
+    <div class="speed-sub">No lunch breaks. No weekends. No missed leads. Vida is always there when your prospects arrive.</div>
   </div>
 </div>
 
@@ -176,12 +375,136 @@
   </div>
 </div>
 
+<!-- WHO THIS IS FOR -->
+<div class="section">
+  <div class="s-label">Who this is for</div>
+  <div class="s-title">For every team that loses leads at the front door.</div>
+  <p class="s-sub">Vida works for any B2B team that has inbound traffic and not enough capacity to respond fast enough &mdash; or at all, outside office hours.</p>
+  <div class="wf-grid">
+    <div class="wf-card">
+      <div class="wf-role">For Growth teams</div>
+      <h3>You&rsquo;re driving traffic. Don&rsquo;t lose it at the door.</h3>
+      <ul>
+        <li>Convert more of your ad and SEO traffic into leads</li>
+        <li>Vida qualifies so your team only talks to real buyers</li>
+        <li>Every conversation logged and searchable</li>
+        <li>Intent data feeds back into your campaign strategy</li>
+      </ul>
+    </div>
+    <div class="wf-card">
+      <div class="wf-role">For Sales teams</div>
+      <h3>You want warm leads, not cold conversations.</h3>
+      <ul>
+        <li>Only speak to prospects Vida has already qualified</li>
+        <li>Full conversation context before you pick up the phone</li>
+        <li>Hot-lead alerts with intent score and contact details</li>
+        <li>Vida handles after-hours so you don&rsquo;t miss Friday leads</li>
+      </ul>
+    </div>
+    <div class="wf-card">
+      <div class="wf-role">For Customer success</div>
+      <h3>Support without the headcount cost.</h3>
+      <ul>
+        <li>Vida answers product and pricing questions instantly</li>
+        <li>Escalates to a human only when it genuinely needs one</li>
+        <li>Runs on your website and WhatsApp simultaneously</li>
+        <li>No Drift subscription, no Intercom bill</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div style="background:var(--light);padding:80px 48px">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="s-label">Common questions</div>
+    <div class="s-title">Everything you&rsquo;d ask before deploying.</div>
+    <div class="faq-list" style="margin-top:40px">
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          How long does it take to set Vida up?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Under 10 minutes for a basic deployment. Upload your docs or paste your site URL, set your persona rules, copy one script tag onto your site, and Vida is live. There&rsquo;s no scripting, no flow-builder, no developer required. For WhatsApp, you connect your WhatsApp Business API account through the K.I.N.D dashboard &mdash; same day setup.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Does Vida work on WhatsApp?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Yes &mdash; Vida is one of the first AI agents built specifically for African B2B WhatsApp sales. One deployment covers both your website widget and your WhatsApp Business number. Same brain, same knowledge base, same persona &mdash; every channel. WhatsApp is particularly powerful for African B2B markets where it&rsquo;s the default first-contact channel.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          What happens when a lead is &ldquo;hot&rdquo;?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          When a visitor crosses your intent threshold &mdash; which you set, typically a score above 70&ndash;80 &mdash; Vida sends you an instant push notification with the lead&rsquo;s name, company, contact details, and the full conversation so far. You can jump in immediately while they&rsquo;re still engaged. Vida holds the conversation until you&rsquo;re ready or continues to nurture if you&rsquo;re unavailable.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Can I control what Vida says and how she sounds?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Completely. You set Vida&rsquo;s name, tone of voice, qualifying questions, escalation rules, and what she should and shouldn&rsquo;t answer. She uses your knowledge base for factual answers &mdash; so she&rsquo;s always on-brand and accurate. You can update her persona and knowledge base at any time from the K.I.N.D dashboard without redeploying.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          What languages does Vida support?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Vida is multilingual by default. She converses in the language the visitor uses &mdash; English, Afrikaans, Zulu, Swahili, French, Portuguese and more. For African B2B markets, this is particularly powerful on WhatsApp where prospects often switch between languages mid-conversation. You can also restrict Vida to specific languages if you prefer.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- THREE-AGENT STRIP -->
+<div class="trio-strip">
+  <div class="trio-headline">FIGSY finds them. Milla reads the signals.<br>Vida converts them.</div>
+  <p class="trio-sub" style="margin-top:10px">Three agents. One platform. Unlimited pipeline.</p>
+  <div class="trio-cards">
+    <a href="figsy.html" class="trio-card">
+      <div class="trio-card-name">FIGSY</div>
+      <div class="trio-card-role">The Closer</div>
+      <div class="trio-card-desc">Finds leads, writes outreach, books meetings autonomously.</div>
+    </a>
+    <a href="virtual-assistant.html" class="trio-card">
+      <div class="trio-card-name">Milla</div>
+      <div class="trio-card-role">The Brain</div>
+      <div class="trio-card-desc">Reads campaign signals and tells you exactly what to do next.</div>
+    </a>
+    <div class="trio-card current">
+      <div class="trio-card-name">Vida</div>
+      <div class="trio-card-role">The Connector</div>
+      <div class="trio-card-desc">Qualifies every inbound lead on web and WhatsApp, 24/7.</div>
+    </div>
+  </div>
+</div>
+
 <!-- CTA -->
 <div class="agent-cta-section">
   <div class="agent-cta-inner">
     <div class="agent-cta-banner">
       <h2>Ready to meet Vida?</h2>
       <p>Deploy your AI connector in under 10 minutes. Free trial included. No credit card required.</p>
+      <p class="pricing-ref">One embed. No monthly staff costs.</p>
       <a href="https://app.get-kind.com/signup" class="agent-cta-btn">Get started &rarr;</a>
     </div>
   </div>
@@ -199,5 +522,21 @@
   </div>
 </footer>
 
+<script src="vida-widget.js" onerror="void 0"></script>
+<script>
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const answer = item.querySelector('.faq-a');
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(el => {
+      el.classList.remove('open');
+      el.querySelector('.faq-a').classList.remove('visible');
+    });
+    if (!isOpen) {
+      item.classList.add('open');
+      answer.classList.add('visible');
+    }
+  }
+</script>
 </body>
 </html>

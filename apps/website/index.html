@@ -618,6 +618,67 @@
     .reasoning-loop:hover .rl-track { animation-play-state: paused; }
     @keyframes rl-scroll { to { transform: translateX(-50%); } }
 
+    /* PHASE 2 — AGENT SHOWCASE */
+    .agents-showcase { max-width: 1080px; margin: 0 auto; padding: 72px 48px 80px; }
+    .agents-intro { text-align: center; margin-bottom: 48px; }
+    .agents-intro .s-label { text-align: center; }
+    .agents-intro .s-title { text-align: center; margin-bottom: 10px; font-size: clamp(1.8rem, 3.5vw, 2.8rem); }
+    .agents-intro p { font-size: 0.95rem; color: rgba(0,0,0,0.4); max-width: 480px; margin: 0 auto; line-height: 1.7; }
+    .agents-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .agent-card {
+      background: #fff;
+      border: 1.5px solid rgba(0,0,0,0.08);
+      border-radius: 24px; padding: 36px 32px;
+      display: flex; flex-direction: column;
+      transition: box-shadow 0.35s cubic-bezier(0.22,1,0.36,1), border-color 0.35s, transform 0.35s cubic-bezier(0.22,1,0.36,1);
+      text-decoration: none; color: inherit;
+    }
+    .agent-card:hover {
+      box-shadow: 0 24px 64px rgba(0,0,0,0.1);
+      border-color: rgba(0,0,0,0.13);
+      transform: translateY(-5px);
+    }
+    .agent-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      object-fit: cover; margin-bottom: 20px;
+      display: block;
+    }
+    .agent-role-tag {
+      display: inline-block; font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 100px; margin-bottom: 14px;
+    }
+    .tag-figsy { background: rgba(37,99,235,0.08); color: #2563eb; }
+    .tag-milla { background: rgba(139,92,246,0.08); color: #7c3aed; }
+    .tag-vida  { background: rgba(99,102,241,0.08); color: #4f46e5; }
+    .agent-card h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; color: var(--dark); margin-bottom: 8px; }
+    .agent-benefit { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.65; flex: 1; margin-bottom: 28px; }
+    .agent-meet {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; font-weight: 700; color: var(--dark);
+      text-decoration: none; border-bottom: 1.5px solid rgba(0,0,0,0.15);
+      padding-bottom: 2px; width: fit-content;
+      transition: border-color 0.2s, opacity 0.2s;
+    }
+    .agent-card:hover .agent-meet { border-color: var(--dark); }
+
+    /* orb highlight layers — appear on agent hover */
+    .orb-hl {
+      position: absolute; border-radius: 50%; pointer-events: none;
+      opacity: 0; transition: opacity 0.55s ease;
+    }
+    .orb-hl-figsy { width: 440px; height: 440px; background: radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 65%); bottom: -60px; left: -60px; }
+    .orb-hl-milla { width: 420px; height: 420px; background: radial-gradient(circle, rgba(37,99,235,0.11) 0%, transparent 65%); top: 20%; left: 30%; }
+    .orb-hl-vida  { width: 440px; height: 440px; background: radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 65%); top: -80px; right: -60px; }
+    .hero-orb-wrap.hov-figsy .orb-hl-figsy,
+    .hero-orb-wrap.hov-milla .orb-hl-milla,
+    .hero-orb-wrap.hov-vida  .orb-hl-vida  { opacity: 1; }
+
+    @media (max-width: 768px) {
+      .agents-showcase { padding: 56px 24px; }
+      .agents-grid { grid-template-columns: 1fr; }
+    }
+
     /* PHASE 1 — LEVEL 3 GLOW PULSE */
     @keyframes level3-pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
@@ -920,6 +981,9 @@
     <div class="hero-orb hero-orb-1"></div>
     <div class="hero-orb hero-orb-2"></div>
     <div class="hero-orb hero-orb-3"></div>
+    <div class="orb-hl orb-hl-figsy"></div>
+    <div class="orb-hl orb-hl-milla"></div>
+    <div class="orb-hl orb-hl-vida"></div>
     <div class="hero-grain"></div>
   </div>
 <div class="hero">
@@ -949,6 +1013,40 @@
 <div class="hero-visual">
   <canvas id="node-canvas"></canvas>
 </div>
+
+<!-- AGENT SHOWCASE -->
+<div class="agents-showcase">
+  <div class="agents-intro reveal">
+    <div class="s-label">Your AI Revenue Team</div>
+    <div class="s-title">Three agents. One platform. Unlimited pipeline.</div>
+    <p>Not a tool with features &mdash; a team. Each agent has a distinct role, runs autonomously, and works 24/7 so you don't have to.</p>
+  </div>
+  <div class="agents-grid">
+    <div class="agent-card reveal" data-agent="figsy">
+      <img src="figsy.png" alt="FIGSY" class="agent-avatar" style="border: 2px solid rgba(37,99,235,0.2);" />
+      <span class="agent-role-tag tag-figsy">FIGSY &mdash; The Closer</span>
+      <h3>FIGSY</h3>
+      <p class="agent-benefit">Finds your ideal clients, writes emails that sound like you, follows up automatically, and books the meeting. You just show up to the call.</p>
+      <a href="#figsy" class="agent-meet">Meet FIGSY &rarr;</a>
+    </div>
+    <div class="agent-card reveal reveal-delay-1" data-agent="milla">
+      <img src="milla.png" alt="Milla" class="agent-avatar" style="border: 2px solid rgba(139,92,246,0.2);" />
+      <span class="agent-role-tag tag-milla">Milla &mdash; The Brain</span>
+      <h3>Milla</h3>
+      <p class="agent-benefit">Reads the intelligence across every campaign and every signal so you always know what&rsquo;s working &mdash; and what to do next. No dashboards to build.</p>
+      <a href="virtual-assistant.html" class="agent-meet">Meet Milla &rarr;</a>
+    </div>
+    <div class="agent-card reveal reveal-delay-2" data-agent="vida">
+      <img src="vida.png" alt="Vida" class="agent-avatar" style="border: 2px solid rgba(99,102,241,0.2);" />
+      <span class="agent-role-tag tag-vida">Vida &mdash; The Connector</span>
+      <h3>Vida</h3>
+      <p class="agent-benefit">Converts your website and WhatsApp visitors 24/7. She answers queries, qualifies intent, captures leads, and hands off to your team &mdash; every time.</p>
+      <a href="chatbot-agent.html" class="agent-meet">Meet Vida &rarr;</a>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
 
 <!-- THE HUMAN CEILING -->
 <div class="problem-section">
@@ -1710,6 +1808,20 @@
     }
     setTimeout(voiceStep, 1200)
   }
+
+  // AGENT CARD — ORB HOVER SHIFT
+  var orbWrap = document.querySelector('.hero-orb-wrap')
+  document.querySelectorAll('.agent-card').forEach(function(card) {
+    card.addEventListener('mouseenter', function() {
+      if (!orbWrap) return
+      orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')
+      orbWrap.classList.add('hov-' + card.dataset.agent)
+    })
+    card.addEventListener('mouseleave', function() {
+      if (!orbWrap) return
+      orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')
+    })
+  })
 
   // Smooth nav dropdowns
   document.querySelectorAll('.nav-item').forEach(function(item) {

@@ -3,30 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Meet Milla &mdash; The Brain &middot; K.I.N.D</title>
-  <meta name="description" content="Milla reads the intelligence across every campaign and every signal so you always know what's working — and what to do next." />
+  <title>Meet FIGSY &mdash; The Closer &middot; K.I.N.D</title>
+  <meta name="description" content="FIGSY is your autonomous AI SDR. She finds, writes, follows up and books — so you just show up to the call." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --blue: #2563eb; --accent: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    :root { --blue: #2563eb; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
+    /* NAV */
     nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
     .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
     .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
     .nav-right { display: flex; align-items: center; gap: 10px; }
-    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
-    .back-link:hover { color: var(--dark); }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
     .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
     .btn-nav-primary:hover { opacity: 0.8; }
+    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .back-link:hover { color: var(--dark); }
 
+    /* HERO */
     .agent-hero { background: var(--dark); padding: 100px 48px 80px; text-align: center; position: relative; overflow: hidden; }
-    .agent-hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 65%); pointer-events: none; }
+    .agent-hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 65%); pointer-events: none; }
     .agent-hero-inner { max-width: 680px; margin: 0 auto; position: relative; z-index: 1; }
-    .agent-avatar-wrap { width: 120px; height: 120px; border-radius: 50%; overflow: hidden; margin: 0 auto 28px; border: 2px solid rgba(139,92,246,0.4); box-shadow: 0 0 48px rgba(139,92,246,0.2); }
+    .agent-avatar-wrap { width: 120px; height: 120px; border-radius: 50%; overflow: hidden; margin: 0 auto 28px; border: 2px solid rgba(37,99,235,0.4); box-shadow: 0 0 48px rgba(37,99,235,0.25); }
     .agent-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-    .agent-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; background: rgba(139,92,246,0.15); color: #a78bfa; margin-bottom: 16px; }
+    .agent-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; background: rgba(37,99,235,0.15); color: #60a5fa; margin-bottom: 16px; }
     .agent-hero h1 { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; letter-spacing: -0.04em; color: #fff; line-height: 1.0; margin-bottom: 16px; }
     .agent-hero p { font-size: 1.05rem; color: rgba(255,255,255,0.45); max-width: 520px; margin: 0 auto 36px; line-height: 1.7; }
     .agent-hero-cta { display: inline-block; background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 36px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
@@ -35,34 +39,39 @@
     .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: pulse-dot 1.8s ease-in-out infinite; flex-shrink: 0; }
     @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
 
+    /* SECTIONS */
     .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
-    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 16px; }
+    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
     .s-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
     .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
 
+    /* HOW IT WORKS */
     .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
     .step-card { background: var(--light); border-radius: 20px; padding: 36px 32px; }
-    .step-num { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+    .step-num { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
     .step-card h3 { font-size: 1.05rem; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
     .step-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
     .replaces-tag { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; font-size: 0.7rem; font-weight: 700; color: rgba(0,0,0,0.35); background: rgba(0,0,0,0.05); border-radius: 100px; padding: 4px 10px; }
     .replaces-tag::before { content: "Replaces:"; font-weight: 400; }
 
+    /* CAPABILITIES */
     .caps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
     .cap-card { background: var(--light); border-radius: 20px; padding: 32px; }
     .cap-card h3 { font-size: 1rem; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
     .cap-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; margin-bottom: 16px; }
     .cap-replaces { display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 700; color: rgba(0,0,0,0.35); background: rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.08); border-radius: 100px; padding: 4px 12px; }
 
+    /* CTA */
     .agent-cta-section { padding: 80px 48px; }
     .agent-cta-inner { max-width: 1080px; margin: 0 auto; }
     .agent-cta-banner { background: var(--dark); border-radius: 32px; padding: 72px 64px; text-align: center; position: relative; overflow: hidden; }
-    .agent-cta-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.2) 0%, transparent 60%); pointer-events: none; }
+    .agent-cta-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.2) 0%, transparent 60%); pointer-events: none; }
     .agent-cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 12px; }
     .agent-cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.4); margin-bottom: 32px; }
     .agent-cta-btn { display: inline-block; background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; padding: 14px 36px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
     .agent-cta-btn:hover { opacity: 0.88; }
 
+    /* FOOTER */
     footer { border-top: 1px solid var(--border); padding: 40px 48px; }
     .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
     .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
@@ -91,79 +100,95 @@
   </div>
 </nav>
 
+<!-- HERO -->
 <div class="agent-hero">
   <div class="agent-hero-inner">
     <div class="agent-status"><span class="live-dot"></span>Online &middot; Powered by Claude</div>
-    <div class="agent-avatar-wrap"><img src="milla.png" alt="Milla" /></div>
-    <span class="agent-tag">Milla &mdash; The Brain</span>
-    <h1>Meet Milla.</h1>
-    <p>Your AI business intelligence layer. Milla reads the intelligence across every campaign and every signal so you always know what&rsquo;s working &mdash; and what to do next. No dashboards to build. No reports to pull.</p>
-    <a href="https://app.get-kind.com/signup" class="agent-hero-cta">Get started &rarr;</a>
+    <div class="agent-avatar-wrap"><img src="figsy.png" alt="FIGSY" /></div>
+    <span class="agent-tag">FIGSY &mdash; The Closer</span>
+    <h1>Meet FIGSY.</h1>
+    <p>Your autonomous AI SDR. She finds your ideal clients, writes emails that sound like you, follows up automatically, and books the meeting. You just show up to the call.</p>
+    <a href="https://app.get-kind.com/signup" class="agent-hero-cta">Get your first leads free &rarr;</a>
   </div>
 </div>
 
+<!-- HOW IT WORKS -->
 <div class="section">
-  <div class="s-label">How Milla works</div>
-  <div class="s-title">Always reading. Always thinking.</div>
-  <p class="s-sub">Milla tracks what&rsquo;s working across every campaign, every ICP, every industry signal &mdash; and surfaces the intelligence you need to make better decisions, faster.</p>
+  <div class="s-label">How FIGSY works</div>
+  <div class="s-title">Five steps. Zero input from you.</div>
+  <p class="s-sub">FIGSY runs the full outbound loop autonomously. From finding your ideal client to booking the meeting &mdash; she handles everything.</p>
   <div class="steps-grid">
     <div class="step-card">
       <div class="step-num">Step 01</div>
-      <h3>Connect your business</h3>
-      <p>Train Milla on your products, services, client base, and goals. She builds a live model of your business that gets sharper with every interaction.</p>
-      <span class="replaces-tag">Onboarding consultant</span>
+      <h3>ICP-matched lead sourcing</h3>
+      <p>Searches 250M+ verified B2B contacts. Scores every match 0&ndash;100 against your Ideal Customer Profile. Only decision-makers above the threshold get through.</p>
+      <span class="replaces-tag">Apollo subscription</span>
     </div>
     <div class="step-card">
       <div class="step-num">Step 02</div>
-      <h3>Read campaign signals</h3>
-      <p>Milla monitors every outreach campaign running through K.I.N.D. Reply rates, ICP performance, objection patterns &mdash; she reads it all in real time.</p>
-      <span class="replaces-tag">Sales analyst &amp; reporting tools</span>
+      <h3>Hyper-personalised outreach</h3>
+      <p>Claude writes a unique email for every lead &mdash; role, company context, industry signals. No templates. No spray-and-pray. Every message sounds like a human who did their homework.</p>
+      <span class="replaces-tag">Copywriter &amp; SDR time</span>
     </div>
     <div class="step-card">
       <div class="step-num">Step 03</div>
-      <h3>Surface actionable intelligence</h3>
-      <p>Milla doesn&rsquo;t just show you data &mdash; she tells you what to do. Pause this campaign. Double down on this ICP. Try this message angle. Specific, reasoned recommendations.</p>
-      <span class="replaces-tag">Weekly agency reports</span>
+      <h3>Intelligent reply handling</h3>
+      <p>FIGSY reads every reply. Positive intent? She continues the conversation. Objection? She handles it. Unsubscribe? Suppressed permanently with POPIA consent logged.</p>
+      <span class="replaces-tag">Salesloft &amp; Outreach</span>
+    </div>
+    <div class="step-card">
+      <div class="step-num">Step 04</div>
+      <h3>Meeting booked to your calendar</h3>
+      <p>When a prospect is ready, FIGSY books directly into your calendar and sends the invite. You get a notification. You show up. That&rsquo;s it.</p>
+      <span class="replaces-tag">SDR salary</span>
+    </div>
+    <div class="step-card">
+      <div class="step-num">Step 05</div>
+      <h3>Self-managing campaign intelligence</h3>
+      <p>If a campaign drops below 1% reply rate, FIGSY pauses automatically and alerts you. No wasted credits. Every Monday you get a full outreach digest.</p>
+      <span class="replaces-tag">Manual campaign management</span>
     </div>
   </div>
 </div>
 
+<!-- CAPABILITIES -->
 <div style="background:var(--dark);padding:100px 48px">
   <div style="max-width:1080px;margin:0 auto">
-    <div class="s-label" style="color:#a78bfa">What Milla replaces</div>
-    <div class="s-title" style="color:#fff">Intelligence without the overhead.</div>
-    <p class="s-sub" style="color:rgba(255,255,255,0.4)">Milla replaces the time, tools, and people you&rsquo;d otherwise need to make sense of your pipeline.</p>
+    <div class="s-label" style="color:#60a5fa">What FIGSY replaces</div>
+    <div class="s-title" style="color:#fff">One platform. Five tools gone.</div>
+    <p class="s-sub" style="color:rgba(255,255,255,0.4)">FIGSY isn&rsquo;t a feature. She&rsquo;s a replacement for an entire outbound stack.</p>
     <div class="caps-grid">
       <div class="cap-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
-        <h3 style="color:#fff">Campaign performance tracking</h3>
-        <p style="color:rgba(255,255,255,0.4)">Milla monitors reply rates, open rates, and ICP scoring accuracy across every campaign &mdash; automatically.</p>
-        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: HubSpot reporting &amp; analysts</span>
+        <h3 style="color:#fff">Lead sourcing</h3>
+        <p style="color:rgba(255,255,255,0.4)">250M+ verified contacts searched, filtered, and scored against your ICP automatically.</p>
+        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: Apollo</span>
       </div>
       <div class="cap-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
-        <h3 style="color:#fff">Business Q&amp;A</h3>
-        <p style="color:rgba(255,255,255,0.4)">Ask Milla anything about your pipeline, your clients, or your market. She answers using everything she knows about your business.</p>
-        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: Business intelligence tools</span>
+        <h3 style="color:#fff">Personalised outreach at scale</h3>
+        <p style="color:rgba(255,255,255,0.4)">Every email unique. Every message researched. Sounds human because Claude writes it that way.</p>
+        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: SDR salary + copywriter</span>
       </div>
       <div class="cap-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
-        <h3 style="color:#fff">ICP refinement</h3>
-        <p style="color:rgba(255,255,255,0.4)">Milla tracks which ICPs convert and which don&rsquo;t. She recommends refinements so FIGSY&rsquo;s sourcing gets sharper every campaign.</p>
-        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: Growth consultant</span>
+        <h3 style="color:#fff">Sequence &amp; follow-up automation</h3>
+        <p style="color:rgba(255,255,255,0.4)">3-step sequences run automatically. FIGSY follows up without being told &mdash; every time, on schedule.</p>
+        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: Salesloft &amp; Outreach</span>
       </div>
       <div class="cap-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
-        <h3 style="color:#fff">Weekly outreach digest</h3>
-        <p style="color:rgba(255,255,255,0.4)">Every Monday, Milla sends you a plain-English summary of what happened last week and what to prioritise this week.</p>
-        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: Agency weekly reports</span>
+        <h3 style="color:#fff">Meeting booking</h3>
+        <p style="color:rgba(255,255,255,0.4)">When a prospect is ready, FIGSY books directly into your calendar. No back-and-forth. No Calendly links to send manually.</p>
+        <span class="cap-replaces" style="background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.1)">Replaces: SDR + coordinator</span>
       </div>
     </div>
   </div>
 </div>
 
+<!-- CTA -->
 <div class="agent-cta-section">
   <div class="agent-cta-inner">
     <div class="agent-cta-banner">
-      <h2>Ready to meet Milla?</h2>
-      <p>14-day free trial. No card required. Intelligence from day one.</p>
-      <a href="https://app.get-kind.com/signup" class="agent-cta-btn">Get started &rarr;</a>
+      <h2>Ready to meet FIGSY?</h2>
+      <p>14-day free trial. No card required. First campaign live in 5 business days &mdash; guaranteed.</p>
+      <a href="https://app.get-kind.com/signup" class="agent-cta-btn">Get your first leads free &rarr;</a>
     </div>
   </div>
 </div>
@@ -173,7 +198,7 @@
     <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
     <div class="footer-links">
       <a href="/">Home</a>
-      <a href="figsy.html">FIGSY</a>
+      <a href="virtual-assistant.html">Milla</a>
       <a href="chatbot-agent.html">Vida</a>
       <a href="pricing.html">Pricing</a>
     </div>

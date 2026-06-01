@@ -122,6 +122,7 @@
       transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s;
       display: block;
       cursor: pointer;
+      text-decoration: none;
     }
     .hero-agents .hero-agent-card:hover {
       transform: translateY(-8px);
@@ -886,6 +887,61 @@
     .video-play-btn svg { margin-left: 4px; }
     .video-caption { font-size: 0.85rem; color: rgba(255,255,255,0.3); }
 
+    /* TASK 6 — TRUST BAR */
+    .trust-bar {
+      background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07);
+      padding: 0 48px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 24px; flex-wrap: wrap; position: relative; z-index: 190;
+    }
+    .trust-stat { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: rgba(0,0,0,0.45); white-space: nowrap; }
+    .trust-stat-num { font-weight: 800; font-size: 0.85rem; color: var(--dark); }
+    .trust-bar-div { width: 1px; height: 14px; background: rgba(0,0,0,0.1); flex-shrink: 0; }
+    .trust-popia { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; color: #059669; white-space: nowrap; }
+    @media (max-width: 768px) { .trust-bar { display: none; } }
+
+    /* TASK 7 — NAV DROPDOWN PROMO BLOCK */
+    .dd-promo {
+      background: var(--dark); border-radius: 12px;
+      padding: 14px 16px; margin: 4px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
+    .dd-promo-text strong { color: #fff; display: block; }
+    .dd-promo-cta {
+      font-size: 0.72rem; font-weight: 700; color: #fff;
+      background: rgba(255,255,255,0.12); padding: 7px 13px;
+      border-radius: 8px; text-decoration: none; white-space: nowrap;
+      transition: background .2s; flex-shrink: 0;
+    }
+    .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
+
+    /* TASK 8 — COMPETITIVE SECTION */
+    .comp-section { background: var(--dark); padding: 100px 48px; }
+    .comp-inner { max-width: 1080px; margin: 0 auto; }
+    .comp-table { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin: 56px 0 48px; border-radius: 20px; overflow: hidden; }
+    .comp-col { padding: 36px 32px; }
+    .comp-them { background: rgba(255,255,255,0.04); }
+    .comp-us { background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.25); border-radius: 0 20px 20px 0; }
+    .comp-col-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 24px; }
+    .comp-them .comp-col-label { color: rgba(255,255,255,0.25); }
+    .comp-us .comp-col-label { color: #60a5fa; }
+    .comp-item { font-size: 0.88rem; line-height: 1.5; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: flex-start; gap: 10px; }
+    .comp-item:last-child { border-bottom: none; }
+    .comp-item.bad { color: rgba(255,255,255,0.3); }
+    .comp-item.bad::before { content: "✗"; color: rgba(255,255,255,0.2); flex-shrink: 0; font-size: 0.8rem; margin-top: 1px; }
+    .comp-item.good { color: rgba(255,255,255,0.8); }
+    .comp-item.good::before { content: "✓"; color: #34d399; flex-shrink: 0; font-weight: 800; font-size: 0.8rem; margin-top: 1px; }
+    .comp-replaces { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 24px 32px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .comp-replaces-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.25); white-space: nowrap; }
+    .comp-replaces-items { display: flex; gap: 8px; flex-wrap: wrap; }
+    .comp-replaces-items span { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 5px 14px; font-size: 0.78rem; color: rgba(255,255,255,0.6); }
+    @media (max-width: 768px) {
+      .comp-section { padding: 64px 24px; }
+      .comp-table { grid-template-columns: 1fr; }
+      .comp-us { border-radius: 0 0 20px 20px; }
+    }
+
     /* RESPONSIVE */
     @media (max-width: 1024px) {
       .prod-grid { grid-template-columns: 1fr 1fr; }
@@ -960,11 +1016,15 @@
   <div class="nav-links">
     <div class="nav-item">
       <a href="#products" class="nav-link">Products <span class="chevron">&#x25BE;</span></a>
-      <div class="nav-dropdown">
-        <a href="#products" class="dd-link"><span class="dd-icon">&#x1F3AF;</span><span><span class="dd-title">K.I.N.D AI &mdash; Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
-        <a href="#figsy" class="dd-link"><span class="dd-icon">&#x1F916;</span><span><span class="dd-title">FIGSY &mdash; The Closer</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
-        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#x1F9E0;</span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
-        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#x1F4AC;</span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot &mdash; one embed away</span></span></a>
+      <div class="nav-dropdown" style="min-width:320px">
+        <a href="figsy.html" class="dd-link"><span class="dd-icon">&#x1F916;</span><span><span class="dd-title">FIGSY &mdash; The Closer</span><span class="dd-sub">Finds, writes, follows up &amp; books &mdash; autonomously</span></span></a>
+        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#x1F9E0;</span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Reads the intelligence so you make better decisions</span></span></a>
+        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#x1F4AC;</span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Converts your website &amp; WhatsApp visitors 24/7</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>Your AI team works while you sleep.</strong>Unlimited pipeline. No SDR salary.</div>
+          <button onclick="openAuth('signup')" class="dd-promo-cta">Start free &rarr;</button>
+        </div>
       </div>
     </div>
     <a href="demo.html" class="nav-link">Demo</a>
@@ -1005,6 +1065,17 @@
   </div>
 </nav>
 
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-stat"><span class="trust-stat-num">[CAMPAIGNS_RUNNING]</span><span>campaigns running</span></div>
+  <div class="trust-bar-div"></div>
+  <div class="trust-stat"><span class="trust-stat-num">[MEETINGS_THIS_MONTH]</span><span>meetings booked this month</span></div>
+  <div class="trust-bar-div"></div>
+  <div class="trust-stat"><span class="trust-stat-num">[LEADS_IN_PIPELINE]</span><span>leads in pipeline</span></div>
+  <div class="trust-bar-div"></div>
+  <div class="trust-popia"><span class="live-dot"></span>POPIA Compliant &middot; Africa-first</div>
+</div>
+
 <!-- HERO -->
 <div class="hero-wrapper">
   <div class="hero-orb-wrap" aria-hidden="true">
@@ -1034,30 +1105,30 @@
     </div>
   </div>
   <div class="hero-agents">
-    <div class="hero-agent-card reveal" data-agent="figsy">
+    <a href="figsy.html" class="hero-agent-card reveal" data-agent="figsy">
       <img src="figsy.png" alt="FIGSY — The Closer" />
       <div class="hero-agent-label">
         <span class="hero-agent-name">FIGSY</span>
         <span class="hero-agent-role">The Closer &middot; Autonomous AI SDR</span>
         <span class="hero-agent-cta">Meet FIGSY &rarr;</span>
       </div>
-    </div>
-    <div class="hero-agent-card reveal reveal-delay-1" data-agent="milla">
+    </a>
+    <a href="virtual-assistant.html" class="hero-agent-card reveal reveal-delay-1" data-agent="milla">
       <img src="milla.png" alt="Milla — The Brain" />
       <div class="hero-agent-label">
         <span class="hero-agent-name">Milla</span>
         <span class="hero-agent-role">The Brain &middot; Business Intelligence</span>
         <span class="hero-agent-cta">Meet Milla &rarr;</span>
       </div>
-    </div>
-    <div class="hero-agent-card reveal reveal-delay-2" data-agent="vida">
+    </a>
+    <a href="chatbot-agent.html" class="hero-agent-card reveal reveal-delay-2" data-agent="vida">
       <img src="vida.png" alt="Vida — The Connector" />
       <div class="hero-agent-label">
         <span class="hero-agent-name">Vida</span>
         <span class="hero-agent-role">The Connector &middot; Web &amp; WhatsApp AI</span>
         <span class="hero-agent-cta">Meet Vida &rarr;</span>
       </div>
-    </div>
+    </a>
   </div>
 </div>
 </div><!-- /hero-wrapper -->
@@ -1434,6 +1505,45 @@
   </div>
 </div>
 
+<!-- COMPETITIVE POSITIONING -->
+<div class="comp-section">
+  <div class="comp-inner">
+    <div class="s-label" style="color:#60a5fa;text-align:center">Why K.I.N.D</div>
+    <div class="s-title" style="color:#fff;text-align:center;margin-bottom:12px">Not another $1,250/month promise.</div>
+    <p style="color:rgba(255,255,255,0.4);text-align:center;font-size:1rem;max-width:520px;margin:0 auto">Most AI SDR tools are built for US enterprise. K.I.N.D is built for Africa &mdash; pay per result, POPIA compliant, live in 5 business days.</p>
+    <div class="comp-table">
+      <div class="comp-col comp-them">
+        <div class="comp-col-label">The Alternative</div>
+        <div class="comp-item bad">From $1,250/mo &mdash; locked in quarterly</div>
+        <div class="comp-item bad">Pricing hidden behind a quote form</div>
+        <div class="comp-item bad">No free trial &mdash; pay before you see results</div>
+        <div class="comp-item bad">US-focused &mdash; no POPIA compliance</div>
+        <div class="comp-item bad">Weeks of setup and onboarding</div>
+        <div class="comp-item bad">Per-seat pricing regardless of results</div>
+      </div>
+      <div class="comp-col comp-us">
+        <div class="comp-col-label">K.I.N.D</div>
+        <div class="comp-item good">From $20 &mdash; pay per qualified lead found</div>
+        <div class="comp-item good">Transparent pricing &mdash; no quote forms, ever</div>
+        <div class="comp-item good">14-day free trial &mdash; no card required</div>
+        <div class="comp-item good">Africa-first &middot; POPIA compliant by default</div>
+        <div class="comp-item good">First campaign live in 5 business days &mdash; guaranteed</div>
+        <div class="comp-item good">Pay only for results &mdash; not promises</div>
+      </div>
+    </div>
+    <div class="comp-replaces">
+      <div class="comp-replaces-label">K.I.N.D replaces</div>
+      <div class="comp-replaces-items">
+        <span>SDR salary</span>
+        <span>Apollo subscription</span>
+        <span>Salesloft &amp; Outreach</span>
+        <span>Manual prospecting</span>
+        <span>Live chat staff</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PRICING -->
 <div class="pricing-section" id="pricing">
   <div class="pricing-inner">
@@ -1441,11 +1551,6 @@
       <div class="s-label" style="text-align:center">Pricing</div>
       <div class="s-title" style="text-align:center;max-width:none">Pay for results, not promises.</div>
       <p style="font-size:1rem;color:rgba(0,0,0,0.4);margin-top:8px">Pay per qualified lead found. No monthly minimums. Cancel anytime.</p>
-    </div>
-    <div class="anti-alta">
-      <div class="aa-item aa-bad">Alta AI SDR &mdash; from $1,250/mo &middot; USD only &middot; Quarterly locked-in &middot; No trial &middot; No refunds</div>
-      <div class="aa-vs">vs</div>
-      <div class="aa-item aa-good">K.I.N.D &mdash; from $20 credit bundle &middot; pay per result &middot; no monthly fee &middot; free trial &middot; cancel anytime</div>
     </div>
     <div class="p-cards">
       <div class="p-card">

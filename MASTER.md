@@ -1,5 +1,5 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 27 May 2026 — W1–W6 shipped + Alta deep-dive analysis (28-screenshot live demo)**
+**Single source of truth. Last updated: 2 June 2026**
 **Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
 
 ---
@@ -52,77 +52,160 @@
 
 ---
 
-### 📅 SESSION DATE — 2 June 2026 — Stripe price IDs in progress · Priority list step-by-step
+### 📅 SESSION DATE — 2 June 2026
 
 ---
 
-### 🔴 FOUNDER — YOUR TO-DO LIST (PRIORITY ORDER — DO THESE FIRST)
+### ✅ WHAT WAS BUILT THIS SESSION — COMPLETE
 
-> **2 June — Morning. Work through this list top to bottom. Step by step with Claude.**
+#### Fixes
+| Fixed | Detail |
+|-------|--------|
+| `ignoreBuildErrors: true` removed from portal | Was hiding 3 TypeScript crashes in production. All 3 fixed immediately. |
+| 3 TypeScript errors fixed | Morning audit — 0 errors across all 3 apps after fix |
+| Billing page prices corrected | Lead Gen $20/$40/$100, FIGSY $20/$40/$100 — code had $38/$88/$60/$110/$250 (wrong) |
+| MASTER pricing model corrected | Removed fictional Starter/Growth tiers — real model is credit bundles + Milla/Vida monthly only |
+| PWA offline page missing `'use client'` | Build failed on Railway — fixed immediately, redeployed |
 
-**STEP 1 — Stripe price IDs into Railway (IN PROGRESS):**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| S1 | Get `price_xxx` for Milla → add as `STRIPE_PRICE_MILLA_MONTHLY` to Railway API service | Stripe → Milla product → click price row → copy price_ ID → Railway | ☐ |
-| S2 | Get `price_xxx` for Vida → add as `STRIPE_PRICE_VIDA_MONTHLY` to Railway API service | Stripe → Vida product → click price row | ☐ |
-| S3 | Get `price_xxx` for Lead Gen 20 → add as `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20` to Railway Portal service | Stripe → Lead Gen 20 product → click price row | ☐ |
-| S4 | Get `price_xxx` for Lead Gen 40 → add as `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40` to Railway Portal service | Same | ☐ |
-| S5 | Get `price_xxx` for Lead Gen 100 → add as `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100` to Railway Portal service | Same | ☐ |
-| S6 | Get `price_xxx` for FIGSY 20 → add as `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20` to Railway Portal service | Same | ☐ |
-| S7 | Get `price_xxx` for FIGSY 40 → add as `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40` to Railway Portal service | Same | ☐ |
-| S8 | Get `price_xxx` for FIGSY 100 → add as `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100` to Railway Portal service | Same | ☐ |
+#### Partner Programme (fully built)
+| Built | Detail |
+|-------|--------|
+| Sandbox auto-provisioning | Admin approves partner → real client account created (`is_demo=true`, 100 credits, SaaS ICP, all 4 products on Starter, Apollo runs in background) |
+| Partner Hub sandbox card | Portal `/dashboard/partner` — status, expiry, one-click magic link login |
+| Admin sandbox column | "Live" badge if provisioned, "Provision" button if not |
+| Day 2 / 7 / 14 drip emails | Fire automatically on partner approval — `sendPartnerDripEmail()` |
+| Partner pricing page | `/dashboard/partner/pricing` |
+| Onboarding step 6 | Updated with real sandbox details |
 
-**STEP 2 — Supabase migration:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| S9 | Run `20260527_stripe_subscription_id.sql` | Supabase → SQL Editor | ☐ |
+#### Portal improvements
+| Built | Detail |
+|-------|--------|
+| Milla language badges | Page header strip: 🇬🇧 English · 🇫🇷 Français · 🇰🇪 Kiswahili · 🇳🇬 Hausa. Also on upgrade screen. |
+| OnboardingChecklist refresh | Heading → "Launch your AI Revenue OS". All indigo → portal purple `#7C3AED`. |
+| OnboardingBanner component | Trial / awaiting_payment states, urgency colouring, dismissable |
+| Dashboard new-user greeting | "Your AI Revenue OS is ready. Build your ICP and FIGSY handles outreach — no SDR required." |
 
-**STEP 3 — Railway config:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| S10 | Set `ADMIN_SECRET_KEY` in Railway API service | Railway → KIND API → Variables — any strong random string | ☐ |
+#### Docs
+| Built | Detail |
+|-------|--------|
+| `DEPLOYMENT_GUIDE.md` | All Paystack refs → Stripe throughout |
+| `client-flow-sop.md` | Paystack → Stripe throughout, date updated |
 
-**STEP 4 — Supabase migration:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| S11 | Run `meetings_booked` migration in Supabase | Supabase → SQL Editor | ☐ |
+#### Stripe
+| Done | Detail |
+|------|--------|
+| Milla product created | prod_UcjOFe7esiG2Xa — Milla Virtual Assistant ($49/mo) |
+| Vida product created | prod_UcjOB0KZXHlmSy — Vida Chatbot Agent ($39/mo) |
+| 6 credit bundle products exist | Lead Gen 20/40/100 + FIGSY 20/40/100 — all $1/credit |
 
-**STEP 5 — Resend:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| S12 | Upgrade Resend to paid plan | resend.com → Billing → Pro ($20/mo) — free plan capped at 100 emails/day | ☐ |
+#### PWA (Progressive Web App)
+| Built | Detail |
+|-------|--------|
+| PWA manifest | `apps/portal/src/app/manifest.ts` — shortcuts, theme `#7C3AED`, standalone display |
+| App icons | `icon.tsx` + `apple-icon.tsx` — purple K, 512px + 180px Apple touch |
+| Service worker | `public/sw.js` — cache-first static, network-first nav, API bypass, offline fallback |
+| Offline page | `app/offline/page.tsx` — branded, retry button |
+| PWARegister | SW registered on mount |
+| PWAInstallBanner | Add to Home Screen prompt — Android native + iOS share-sheet guide, dismissable |
+| Root layout | Viewport meta, manifest, apple-web-app-capable, push notifications ready (iOS 16.4+) |
+| iPhone install | Safari → `app.get-kind.com` → Share → Add to Home Screen → full-screen app |
+| PWA mockup | `docs/pwa-mockup.html` — visual: home screen, dashboard, install flow, push notification |
 
-**STEP 6 — Your account:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| S13 | Add credits to `jacques.vieiraza@gmail.com` | Admin portal → find your client → grant credits | ☐ |
-
-**STEP 7 — Infra:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| S14 | Configure Railway health checks | Railway → KIND API → Settings → Health Check → `/health` | ☐ |
-| S15 | Set up UptimeRobot | uptimerobot.com — free — monitor `https://your-api-url/health` every 5 mins | ☐ |
-
-**STEP 8 — Smoke tests:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| S16 | Run smoke test suite | Section 18 — Tests 1–4, step by step with Claude | ☐ |
+#### Verification audit (15 confirmed working, 3 confirmed stubs)
+| Item | Result |
+|------|--------|
+| KPI time range filters | ✅ Built |
+| Reply from inbox | ✅ Built |
+| Consent token security | ✅ Cryptographic |
+| Campaign pause emails | ✅ Wired |
+| Weekly report email | ✅ Wired |
+| Sequence branching | ✅ Built |
+| Admin cohort analytics | ✅ Real data |
+| Milla chat persistence | ✅ Built |
+| Mobile responsive layout | ✅ Built |
+| NotificationBell | ✅ On-design |
+| AgentSidePanel images | ✅ Working |
+| Knowledge base page | ✅ On-design |
+| Developer portal (P3-1) | ✅ Working |
+| Proposals + e-sign (P3-4) | ✅ Working |
+| Visitor de-anon (P3-7) | ✅ Working — needs `CLEARBIT_API_KEY` in Railway |
+| AI personalised images (P2-13) | ⚠️ Stub — static SVG only, no DALL-E wired |
+| Social signals (P2-14) | ⚠️ Stub — no social API connected |
+| FIGSY vertical modes (P3-2) | ⚠️ Stub — no structured vertical branching |
 
 ---
 
-**REMAINING — high priority (after smoke tests pass):**
+### 🔴 FOUNDER — YOUR TO-DO LIST (IN ORDER)
+
+**PRIORITY 1 — Platform broken without these. Do first.**
 | # | Task | Where | ✓ |
 |---|------|--------|---|
-| T1 | Merge branch `claude/ai-business-roadmap-U3OWJ` → `main` | GitHub → Pull Request → Merge | ☐ |
-| T2 | Confirm Railway auto-deploys | railway.app → KIND API → Deployments | ☐ |
-| T3 | Run `20260525_fix_subscriptions_schema.sql` if not done | Supabase SQL Editor | ☐ |
-| T4 | Run `20260526_drip_and_controls.sql` if not done | Supabase SQL Editor | ☐ |
-| T5 | Run `MASTER_SCHEMA.sql` if not done | Supabase SQL Editor — eliminates all schema drift | ☐ |
-| T6 | Set up Stripe webhook | Stripe → Webhooks → Railway API URL + `/stripe/webhook` → copy secret → `STRIPE_WEBHOOK_SECRET` in Railway | ☐ |
-| T7 | Register UK company | companieshouse.gov.uk — £50, same day | ☐ |
-| T8 | Create HubSpot account | app.hubspot.com (free) → `HUBSPOT_API_KEY` to Railway | ☐ |
-| T9 | Register Resend inbound webhook | Resend → Webhooks → `RESEND_WEBHOOK_SECRET` to Railway | ☐ |
-| T10 | Add `FIGSY_KIND_CLIENT_ID` to Railway | Your UUID from Supabase clients table | ☐ |
+| 1 | Add 8 Stripe `price_xxx` IDs to Railway | Stripe → each product → click price row → copy `price_` ID. **6 credit bundles → Railway Portal service as `NEXT_PUBLIC_STRIPE_PRICE_*`. Milla + Vida → Railway API service as `STRIPE_PRICE_MILLA_MONTHLY` + `STRIPE_PRICE_VIDA_MONTHLY`** | ☐ |
+| 2 | Run `20260527_stripe_subscription_id.sql` | Supabase → SQL Editor | ☐ |
+| 3 | Set `ADMIN_SECRET_KEY` in Railway API service | Any strong random string | ☐ |
+| 4 | Run meetings_booked migration | Supabase SQL Editor → `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` | ☐ |
+| 5 | Upgrade Resend to paid | resend.com → Billing → Pro $20/mo — free plan caps at 100 emails/day | ☐ |
+| 6 | Add credits to `jacques.vieiraza@gmail.com` | Admin portal → your account → grant credits | ☐ |
+
+**PRIORITY 2 — Reliability**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| 7 | Configure Railway health check | Railway → API service → Settings → Health Check path: `/health` | ☐ |
+| 8 | Set up UptimeRobot | uptimerobot.com — free — monitor API `/health` every 5 mins, SMS alert | ☐ |
+| 9 | Run smoke tests with Claude | Section 18 — Tests 1–4 | ☐ |
+
+**PRIORITY 3 — Legal**
+| # | Task | Cost | ✓ |
+|---|------|------|---|
+| 10 | ICO data protection registration | £40/yr | ☐ |
+| 11 | UK Companies House registration | £50 | ☐ |
+| 12 | Open Wise Business account | Free | ☐ |
+| 13 | SEIS advance assurance | Free to apply | ☐ |
+| 14 | Trademarks: K.I.N.D + FIGSY + Milla + Vida at UK IPO | ~£320 total | ☐ |
+| 15 | SeedLegals IP assignment + shareholders agreement | ~£600 | ☐ |
+
+**PRIORITY 4 — Feature flags (5 min each in Railway)**
+| Variable | What it activates |
+|----------|-------------------|
+| `FEATURE_PORTAL_V2=true` | Portal V2 redesign |
+| `FEATURE_CAMPAIGN_INTENT=true` | Campaign intent signals |
+| `FEATURE_ICP_BUILDER=true` | ICP Builder chat |
+| `CLEARBIT_API_KEY=<key>` | Visitor de-anonymisation (built, needs key) |
+
+**PRIORITY 5 — API keys that unlock built features**
+| Key | Unlocks |
+|-----|---------|
+| Apollo Basic upgrade ($49/mo) | Real lead search — free plan returns 0 results |
+| `HUBSPOT_API_KEY` | CRM sync (built, needs key) |
+| `WHATSAPP_TOKEN` etc. | WhatsApp outreach |
+| `GOOGLE_CLIENT_ID` etc. | Google Calendar booking |
+| `VAPI_API_KEY` etc. | Voice agent |
+
+**PRIORITY 6 — GTM (after smoke tests pass)**
+| # | Task |
+|---|------|
+| — | G2 listing (free) |
+| — | Capterra listing (free) |
+| — | Product Hunt launch — Claude writes the copy |
+| — | LinkedIn content programme — Claude writes weekly, you post |
+| — | Run K.I.N.D outbound on yourself using FIGSY |
+| — | Get first 5 paying clients |
+
+---
+
+### 🤖 CLAUDE — WHAT'S LEFT TO BUILD
+
+| # | Task | Blocked on |
+|---|------|------------|
+| 1 | Smoke tests — run Section 18, fix every failure | Nothing — do next session |
+| 2 | Onboarding checklist end-to-end verify | Nothing |
+| 3 | W2 Signal tokens in FIGSY sequences | Nothing — ~1 day |
+| 4 | P2-13 AI personalised images | Your decision: DALL-E? ~$0.04/send |
+| 5 | P2-14 Social signals | Your decision: which API? LinkedIn has ToS risk |
+| 6 | P3-2 FIGSY vertical modes | Your decision: confirm vertical list (SaaS/Agency/E-comm etc.) |
+| 7 | Push notifications backend | VAPID keys + subscription endpoint — wire after PWA confirmed working |
+| 8 | P5 Chat history persistence | AskFigsyButton resets on reload — needs `/figsy/chat/history` |
+| 9 | P6 NotificationBell theme | Mismatches dark sidebar — cosmetic, low priority |
 
 #### 9–11 May 2026 — Platform Scaffold
 | Built | Detail |
@@ -273,19 +356,33 @@
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
-#### 2 June 2026 — PWA (Progressive Web App)
-| Built | Detail |
-|-------|--------|
-| **PWA manifest** | `apps/portal/src/app/manifest.ts` — name, icons, shortcuts (Dashboard / Leads / FIGSY), theme `#7C3AED` |
-| **App icons** | `icon.tsx` + `apple-icon.tsx` — Next.js ImageResponse — purple K on violet gradient, 512px + 180px Apple |
-| **Service worker** | `public/sw.js` — cache-first static, network-first navigation, API routes bypassed, offline fallback |
-| **Offline page** | `app/offline/page.tsx` — branded offline screen with retry button |
-| **PWARegister component** | `src/components/PWARegister.tsx` — registers SW on mount |
-| **PWAInstallBanner** | `src/components/ui/PWAInstallBanner.tsx` — "Add to Home Screen" prompt, Android native install + iOS share-sheet guide, dismissable, localStorage persisted |
-| **Root layout updated** | Viewport meta (theme-color, no-scale), manifest link, apple-web-app-capable, PWARegister + PWAInstallBanner wired |
-| **Push notifications ready** | SW handles `push` event + `notificationclick` — navigate to relevant page on tap. iOS 16.4+ supported. |
-| **iPhone install flow** | Safari → Share → Add to Home Screen → purple K icon → opens full-screen, no browser bar |
-| **PWA mockup** | `docs/pwa-mockup.html` — visual preview: home screen icon, dashboard, install flow, push notification |
+#### 2 June 2026 — Full Session Build
+| Built / Fixed | Detail |
+|---------------|--------|
+| **`ignoreBuildErrors` removed + 3 TS fixes** | Was hiding production crashes — all fixed, 0 errors |
+| **Billing prices corrected** | Lead Gen $20/$40/$100, FIGSY $20/$40/$100 (was wrong) |
+| **MASTER pricing model corrected** | Removed fictional Starter/Growth tiers |
+| **Partner sandbox auto-provisioning** | `provisionPartnerSandbox()` — real client, 100 credits, SaaS ICP, 4 products, Apollo background |
+| **Partner Hub card** | Portal `/dashboard/partner` — status, expiry, magic link login |
+| **Admin sandbox column** | "Live" badge + "Provision" button |
+| **Partner drip email sequence** | Day 2/7/14 — `sendPartnerDripEmail()` |
+| **Partner pricing page** | `/dashboard/partner/pricing` |
+| **Milla language badges** | 🇬🇧 English · 🇫🇷 Français · 🇰🇪 Kiswahili · 🇳🇬 Hausa — header strip + upgrade screen |
+| **OnboardingChecklist refresh** | "Launch your AI Revenue OS" heading, all purple `#7C3AED` |
+| **OnboardingBanner component** | Trial / awaiting_payment, urgency states, dismissable |
+| **Dashboard new-user greeting** | Revenue OS framing |
+| **DEPLOYMENT_GUIDE.md** | Paystack → Stripe throughout |
+| **client-flow-sop.md** | Paystack → Stripe throughout |
+| **Stripe products confirmed** | Milla (prod_UcjOFe7esiG2Xa) + Vida (prod_UcjOB0KZXHlmSy) created by founder |
+| **Verification audit** | 15 items confirmed working, 3 confirmed stubs (P2-13, P2-14, P3-2) |
+| **PWA manifest** | `apps/portal/src/app/manifest.ts` — shortcuts, theme `#7C3AED`, standalone |
+| **App icons** | `icon.tsx` + `apple-icon.tsx` — purple K, 512px + 180px Apple |
+| **Service worker** | `public/sw.js` — cache-first static, network-first nav, API bypass, offline fallback |
+| **Offline page** | `app/offline/page.tsx` — branded, retry button |
+| **PWARegister + PWAInstallBanner** | SW registered on mount. Add to Home Screen prompt — iOS + Android |
+| **Root layout** | Viewport meta, manifest, apple-web-app-capable, push notifications ready (iOS 16.4+) |
+| **PWA mockup** | `docs/pwa-mockup.html` — visual: home screen, dashboard, install flow |
+| **Railway deployed** | Merged to main, build error fixed (`'use client'`), live at app.get-kind.com |
 
 #### 1 June 2026 — Stripe Products + Billing Price Fix
 | Built / Fixed | Detail |

@@ -1,9 +1,31 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { PWARegister } from '@/components/PWARegister'
+import { PWAInstallBanner } from '@/components/ui/PWAInstallBanner'
 
 export const metadata: Metadata = {
-  title: 'KIND Portal',
-  description: 'Your AI intelligence platform',
+  title: 'K.I.N.D — AI Revenue OS',
+  description: 'FIGSY handles your outreach. Milla runs your assistant. You close the deals.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'K.I.N.D',
+  },
+  formatDetection: { telephone: false },
+  openGraph: {
+    type: 'website',
+    title: 'K.I.N.D — AI Revenue OS',
+    description: 'FIGSY handles your outreach. Milla runs your assistant. You close the deals.',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#7C3AED',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,8 +41,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }
           } catch {}
         ` }} />
+        <link rel="mask-icon" href="/icons/icon-512.png" color="#7C3AED" />
+        <meta name="msapplication-TileColor" content="#7C3AED" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PWARegister />
+        <PWAInstallBanner />
+      </body>
     </html>
   )
 }

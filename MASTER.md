@@ -99,11 +99,11 @@ If Railway health checks are not configured or UptimeRobot is not set up, flag t
 
 ---
 
-## 🔴 YOUR ACTION LIST — EVERYTHING YOU NEED TO DO (1 June 2026)
+## 🔴 YOUR ACTION LIST — EVERYTHING YOU NEED TO DO (2 June 2026)
 
 *Complete list. Cross-referenced against full MASTER. Verified accurate. Tick these off as you go.*
 
-**Already done — do not repeat:** RESEND_API_KEY ✅, HubSpot API key ✅, Calendly link ✅, FIGSY_KIND_CLIENT_ID ✅, Resend inbound webhook ✅
+**Already done — do not repeat:** RESEND_API_KEY ✅, HubSpot API key ✅, Calendly link ✅, FIGSY_KIND_CLIENT_ID ✅, Resend inbound webhook ✅, Partner email SQL ✅
 
 ---
 
@@ -136,14 +136,14 @@ If Railway health checks are not configured or UptimeRobot is not set up, flag t
 19. **SeedLegals shareholders agreement** — needed before bringing on any co-founders, employees with equity, or investors.
 20. **MacBook from Currys** — all future development must be on personal hardware (not work laptop). MacBook Neo 13" 2026, £599 from Currys.
 
-### Priority 4 — Partner programme decisions (Claude is blocked until these are answered)
+### Priority 4 — Partner programme decisions
 
-21. **Confirm sandbox specification** — five questions that must be answered before I can build it:
+21. **Confirm sandbox specification** — ✅ Model locked: free sandbox on approval, own pipeline = standard client pricing. Still need:
     - Fake leads pre-loaded? If yes, what industry and how many?
-    - Which plan tier (Starter or Growth)?
-    - How many credits?
-    - What does the partner see when they log into the sandbox?
-    - What does a prospect see when the partner demos it?
+    - Which plan tier for sandbox (Starter or Growth)?
+    - How many credits pre-loaded?
+    - What does the partner see when they log in?
+    - What does the prospect see when partner demos it?
 
 ### Priority 5 — Feature flags to activate (5 minutes each)
 
@@ -178,7 +178,7 @@ If Railway health checks are not configured or UptimeRobot is not set up, flag t
 
 ---
 
-## 🔵 CLAUDE BUILD LIST — EVERYTHING I NEED TO BUILD (1 June 2026)
+## 🔵 CLAUDE BUILD LIST — EVERYTHING I NEED TO BUILD (2 June 2026)
 
 *Complete list cross-referenced against full MASTER. Items already built have been removed.*
 
@@ -186,61 +186,61 @@ If Railway health checks are not configured or UptimeRobot is not set up, flag t
 
 ---
 
-### Critical reliability (nothing else until these are done)
+### Critical reliability
 
 1. ✅ **Remove TypeScript error suppressor** — DONE 2 June. `ignoreBuildErrors: true` removed. 3 hidden errors found and fixed.
 2. ✅ **Morning type-check** — DONE 2 June. 0 errors across all 3 apps.
 3. **Daily type-check** — `tsc --noEmit` at the start of every session. Non-negotiable. Run and report results in chat each morning.
-4. ✅ **API `/health` endpoint** — already exists at `apps/api/src/index.ts:80`. Returns `{ status: 'ok', service: 'kind-api' }`. Confirmed live.
-5. **Morning bug audit** — every session: run type-check, grep for TODO/FIXME, check Railway deploy logs, report findings in chat before building anything. Founder requested this explicitly.
+4. ✅ **API `/health` endpoint** — confirmed live at `apps/api/src/index.ts:80`. Returns `{ status: 'ok', service: 'kind-api' }`.
+5. **Morning bug audit** — every session: run type-check, grep for TODO/FIXME, check Railway deploy logs, report findings in chat before building anything.
 
 ### Verification audit (marked done, never confirmed working end to end)
 
-5. **P2-13 Personalised images** — does image generation actually run?
-6. **P2-14 Social signals** — does it fetch real social data?
-7. **P3-1 Developer portal** — can an API key actually be issued end to end?
-8. **P3-2 FIGSY vertical modes** — do mode-specific prompts actually switch?
-9. **P3-4 Proposals and e-sign** — can a proposal be created and signed?
-10. **P3-7 Visitor de-anonymisation** — does it return real company data?
+6. **P2-13 Personalised images** — does image generation actually run?
+7. **P2-14 Social signals** — does it fetch real social data?
+8. **P3-1 Developer portal** — can an API key actually be issued end to end?
+9. **P3-2 FIGSY vertical modes** — do mode-specific prompts actually switch?
+10. **P3-4 Proposals and e-sign** — can a proposal be created and signed?
+11. **P3-7 Visitor de-anonymisation** — does it return real company data?
 
 ### Documentation updates (stale, causes confusion)
 
-11. **Update `docs/client-flow-sop.md`** — last updated 18 May. Stale. Reflects old flow.
-12. **Update `docs/DEPLOYMENT_GUIDE.md`** — still contains Paystack references. Paystack was removed. Misleading for anyone reading it.
+12. **Update `docs/client-flow-sop.md`** — last updated 18 May. Stale. Reflects old flow.
+13. **Update `docs/DEPLOYMENT_GUIDE.md`** — still contains Paystack references. Paystack was removed. Misleading for anyone reading it.
 
 ### Mobile layout (site is unusable on mobile right now)
 
-13. **Mobile responsive layout** — zero breakpoints currently across the portal. Site is unusable on a phone. This blocks any client who checks their portal on mobile.
+14. **Mobile responsive layout** — zero breakpoints currently across the portal. Site is unusable on a phone. This blocks any client who checks their portal on mobile.
 
-### Partner programme (waiting on your Priority 4 sandbox answers before starting)
+### Partner programme (awaiting sandbox spec answers from Priority 4)
 
-14. **Demo sandbox auto-provisioning** — when you approve a partner in admin, a sandbox client account must be created automatically, pre-loaded with data, and the partner sees the login details in their portal. Nothing happens currently on approval.
-15. **Partner portal sandbox section** — section in the partner portal: sandbox login details, how to use it for demos, and a separate CTA "Want K.I.N.D for your own outreach? Sign up as a client."
-16. **Admin sandbox visibility** — per-partner sandbox status, creation date, manual provision button.
-17. **Partner onboarding email sequence** — day 1 welcome, day 2 sandbox instructions, day 7 first deal registration prompt, day 14 check-in. Only one approval email exists right now.
-18. **Partner pricing page** — one clear page: demo sandbox is free, own pipeline is standard client pricing, commission rates by tier.
-19. **Update partner onboarding guide and value deck** — currently contain placeholder sandbox info, need to reflect confirmed model.
+15. **Demo sandbox auto-provisioning** — when admin approves a partner, a sandbox client account is created automatically, pre-loaded with data. Partner sees login details in their portal. Nothing happens on approval right now.
+16. **Partner portal sandbox section** — shows sandbox credentials, "Use this for demos" instructions, and a separate CTA: "Want K.I.N.D for your own outreach? Sign up as a client."
+17. **Admin sandbox visibility** — per-partner sandbox status, creation date, manual provision button.
+18. **Partner onboarding email sequence** — day 1 welcome, day 2 sandbox instructions, day 7 first deal registration prompt, day 14 check-in. Only one approval email exists right now.
+19. **Partner pricing page** — one clear page: demo sandbox is free, own pipeline is standard client pricing, commission rates by tier.
+20. **Update partner onboarding guide and value deck** — currently contain placeholder sandbox info, need to reflect confirmed model.
 
 ### Portal remaining
 
-20. **Languages discoverability** — Milla supports English, French, Kiswahili, Hausa. No client knows this. Add to Milla description in portal and website.
-21. **P5 Chat history persistence** — Milla chat resets on page reload. Should persist across sessions.
-22. **P6 NotificationBell theme** — notification bell doesn't match current design system.
-23. **Onboarding checklist end-to-end verify** — confirm the 4-step onboarding checklist works correctly from signup through to completion.
+21. **Languages discoverability** — Milla supports English, French, Kiswahili, Hausa. No client knows this. Add to Milla description in portal and website.
+22. **P5 Chat history persistence** — Milla chat resets on page reload. Should persist across sessions.
+23. **P6 NotificationBell theme** — notification bell doesn't match current design system.
+24. **Onboarding checklist end-to-end verify** — confirm the 4-step onboarding checklist works correctly from signup through to completion.
 
 ### Competitive gap queue (features that make us stronger than alternatives)
 
-24. **AgentSidePanel image fix** — agent photos in the side panel need correcting.
-25. **Reply directly from inbox** — clients cannot reply to a lead from the inbox. They have to click out. This must be built in. High friction point.
-26. **KPI time range filters** — clients cannot filter KPIs by date range. Must support last 7, 30, 90 days.
-27. **Knowledge base redesign** — current page needs redesign to match the rest of the portal.
-28. **Consent token security** — consent tokens are UUID-based. Need to be cryptographic random tokens.
-29. **Campaign pause notification emails** — when a campaign auto-pauses, client gets no email. They should be told why.
-30. **Fix smoke-test API failures** — run the full smoke test checklist and fix every failure found.
-31. **W2 sequence branching API wiring** — the UI exists for reply-based branching in sequences. The API wiring is not complete.
-32. **S4 Scheduled report email wiring** — the cron job exists. The actual email send is not wired up.
-33. **S5 "AI Revenue OS" positioning rewrite** — Apex steal: rewrite key portal copy around the Revenue OS framing.
-34. **Admin cohort analytics** — verify `/admin/cohorts` loads real data from the live database, not mock data.
+25. **AgentSidePanel image fix** — agent photos in the side panel need correcting.
+26. **Reply directly from inbox** — clients cannot reply to a lead from the inbox. They have to click out. This must be built in. High friction point.
+27. **KPI time range filters** — clients cannot filter KPIs by date range. Must support last 7, 30, 90 days.
+28. **Knowledge base redesign** — current page needs redesign to match the rest of the portal.
+29. **Consent token security** — consent tokens are UUID-based. Need to be cryptographic random tokens.
+30. **Campaign pause notification emails** — when a campaign auto-pauses, client gets no email. They should be told why.
+31. **Fix smoke-test API failures** — run the full smoke test checklist and fix every failure found.
+32. **W2 sequence branching API wiring** — the UI exists for reply-based branching in sequences. The API wiring is not complete.
+33. **S4 Scheduled report email wiring** — the cron job exists. The actual email send is not wired up.
+34. **S5 "AI Revenue OS" positioning rewrite** — Apex steal: rewrite key portal copy around the Revenue OS framing.
+35. **Admin cohort analytics** — verify `/admin/cohorts` loads real data from the live database, not mock data.
 
 ---
 

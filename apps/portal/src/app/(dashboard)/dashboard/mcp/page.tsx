@@ -150,9 +150,9 @@ export default function McpPage() {
       })
       const json = await res.json()
       const reply: string = json?.data?.reply ?? 'Something went wrong — please try again.'
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }].slice(-20))
+      setMessages(prev => [...prev, { role: 'assistant' as const, content: reply }].slice(-20))
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection issue — please try again.' }])
+      setMessages(prev => [...prev, { role: 'assistant' as const, content: 'Connection issue — please try again.' }])
     } finally {
       setChatLoading(false)
     }

@@ -167,10 +167,11 @@
 
 ### Critical reliability (nothing else until these are done)
 
-1. **Remove TypeScript error suppressor** — `apps/portal/next.config.mjs` has `ignoreBuildErrors: true`. This hid the crash that took down the portal last night. Two minutes to remove. First action of every session.
-2. **Morning type-check** — run across all three apps before touching any code. Confirms no hidden errors sitting in the codebase.
-3. **Daily type-check** — `tsc --noEmit` at the start of every session. Non-negotiable.
-4. **API `/health` endpoint** — add a route that returns `ok`. Required for Railway health check configuration (your action 7).
+1. ✅ **Remove TypeScript error suppressor** — DONE 2 June. `ignoreBuildErrors: true` removed. 3 hidden errors found and fixed.
+2. ✅ **Morning type-check** — DONE 2 June. 0 errors across all 3 apps.
+3. **Daily type-check** — `tsc --noEmit` at the start of every session. Non-negotiable. Run and report results in chat each morning.
+4. ✅ **API `/health` endpoint** — already exists at `apps/api/src/index.ts:80`. Returns `{ status: 'ok', service: 'kind-api' }`. Confirmed live.
+5. **Morning bug audit** — every session: run type-check, grep for TODO/FIXME, check Railway deploy logs, report findings in chat before building anything. Founder requested this explicitly.
 
 ### Verification audit (marked done, never confirmed working end to end)
 
@@ -222,9 +223,23 @@
 
 ---
 
-## 🗓️ SECTION 0 — MORNING BRIEF — 1 JUNE 2026
+## 🗓️ SECTION 0 — MORNING BRIEF — 2 JUNE 2026
 
 *Single source of truth. Read this first, every session. Updated at end of every session. Previous sessions in Section 43.*
+
+---
+
+### 🟢 FIXED THIS SESSION (2 JUNE MORNING)
+
+| Fix | File | Commit |
+|-----|------|--------|
+| Removed `typescript.ignoreBuildErrors: true` | `apps/portal/next.config.mjs` | this session |
+| Fixed `countries` → `geographies` in ICP quick templates (6 instances) | `apps/portal/.../leads/icp/page.tsx` | this session |
+| Fixed `refinement_suggestions: null` → `?? undefined` coerce | `apps/portal/.../leads/icp/page.tsx` | this session |
+| Fixed `role: string` → `role: 'assistant' as const` in MCP chat | `apps/portal/.../mcp/page.tsx` | this session |
+| Morning type-check: 0 errors across all 3 apps | all | this session |
+
+**Partner email SQL:** Founder confirmed running `UPDATE partners SET email = 'jacques.vieiraza@gmail.com' WHERE email = 'jacques.vieiraza@icloud.com'` ✅
 
 ---
 
@@ -242,11 +257,12 @@
 
 | Priority | Task | Who | Why |
 |----------|------|-----|-----|
-| **P0** | Remove `typescript.ignoreBuildErrors: true` from `apps/portal/next.config.mjs` | Claude | #1 reliability risk — TypeScript errors reach production silently. The isPartner crash would have been caught instantly. |
-| **P0** | Run full type-check: `yarn workspace @kind/portal type-check` + `yarn workspace @kind/api build` + `yarn workspace @kind/admin type-check` | Claude | Morning health check — confirm zero errors before building anything new |
+| ✅ DONE | ~~Remove `typescript.ignoreBuildErrors: true`~~ | Claude | Fixed 2 June morning |
+| ✅ DONE | ~~Morning type-check — 0 errors all 3 apps~~ | Claude | Fixed 2 June morning |
 | **P1** | Verify 6 discrepancy items — routes exist but were never confirmed working | Claude | P2-13, P2-14, P3-1, P3-2, P3-4, P3-7 |
-| **P1** | Configure Railway health checks on all 3 services | Founder | Prevents silent failures from going undetected |
+| **P1** | Configure Railway health checks on all 3 services — path `/health` | Founder | `/health` endpoint confirmed live. Just needs Railway config. |
 | **P1** | Set up UptimeRobot (free) for portal + API | Founder | 5-minute alerting — would have caught last night's outage immediately |
+| **P1** | Build partner sandbox provisioning (C4-C8) | Claude | Founder confirmed sandbox model. Awaiting build approval. |
 
 ---
 

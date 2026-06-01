@@ -165,7 +165,7 @@ const VERTICAL_TEMPLATES: Array<{
       industries: ['Fintech', 'Banking', 'Insurance'],
       seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
       company_sizes: ['11–50', '51–200', '201–500'],
-      countries: ['South Africa', 'Nigeria', 'Kenya', 'Ghana'],
+      geographies: ['South Africa', 'Nigeria', 'Kenya', 'Ghana'],
       keywords: ['payments', 'lending', 'fintech', 'digital banking', 'neo-bank'],
       intent_signals: ['recently_funded', 'hiring_sdrs', 'new_executive'],
     },
@@ -180,7 +180,7 @@ const VERTICAL_TEMPLATES: Array<{
       industries: ['Real Estate'],
       seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager'],
       company_sizes: ['11–50', '51–200', '201–500'],
-      countries: ['South Africa', 'Zimbabwe', 'Botswana'],
+      geographies: ['South Africa', 'Zimbabwe', 'Botswana'],
       keywords: ['property developer', 'real estate', 'residential', 'commercial property', 'estate agent'],
       intent_signals: ['hiring_sdrs', 'headcount_growth'],
     },
@@ -195,7 +195,7 @@ const VERTICAL_TEMPLATES: Array<{
       industries: ['Healthtech'],
       seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
       company_sizes: ['1–10', '11–50', '51–200'],
-      countries: ['South Africa', 'Kenya', 'Nigeria'],
+      geographies: ['South Africa', 'Kenya', 'Nigeria'],
       keywords: ['digital health', 'telemedicine', 'health tech', 'medical software', 'patient management'],
       intent_signals: ['recently_funded', 'new_executive'],
     },
@@ -210,7 +210,7 @@ const VERTICAL_TEMPLATES: Array<{
       industries: ['SaaS'],
       seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager'],
       company_sizes: ['11–50', '51–200', '201–500'],
-      countries: ['South Africa', 'Nigeria', 'Kenya', 'Egypt'],
+      geographies: ['South Africa', 'Nigeria', 'Kenya', 'Egypt'],
       keywords: ['SaaS', 'B2B software', 'cloud platform', 'subscription software', 'API'],
       intent_signals: ['recently_funded', 'hiring_sdrs', 'headcount_growth', 'new_executive'],
     },
@@ -225,7 +225,7 @@ const VERTICAL_TEMPLATES: Array<{
       industries: ['Logistics'],
       seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
       company_sizes: ['51–200', '201–500', '501–1,000'],
-      countries: ['South Africa', 'Nigeria', 'Kenya', 'Ethiopia'],
+      geographies: ['South Africa', 'Nigeria', 'Kenya', 'Ethiopia'],
       keywords: ['logistics', 'freight', 'supply chain', 'last mile', 'warehousing', 'fleet management'],
       intent_signals: ['headcount_growth', 'new_executive'],
     },
@@ -240,7 +240,7 @@ const VERTICAL_TEMPLATES: Array<{
       industries: ['E-commerce', 'Retail'],
       seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager'],
       company_sizes: ['11–50', '51–200', '201–500'],
-      countries: ['South Africa', 'Nigeria', 'Kenya', 'Egypt', 'Ghana'],
+      geographies: ['South Africa', 'Nigeria', 'Kenya', 'Egypt', 'Ghana'],
       keywords: ['e-commerce', 'online retail', 'marketplace', 'D2C', 'Shopify'],
       intent_signals: ['recently_funded', 'hiring_sdrs', 'headcount_growth'],
     },
@@ -646,7 +646,7 @@ export default function ICPPage() {
       }
       setIcps(prev => prev.map(i => i.id === id ? {
         ...i,
-        settings: { refinement_suggestions: res.data.suggestions, refinement_summary: res.data.summary, refined_at: new Date().toISOString() }
+        settings: { refinement_suggestions: res.data.suggestions ?? undefined, refinement_summary: res.data.summary, refined_at: new Date().toISOString() }
       } : i))
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'ICP refinement failed — please try again.')

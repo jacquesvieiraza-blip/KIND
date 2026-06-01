@@ -53,10 +53,13 @@
 ---
 
 ### 📅 SESSION DATE — 2 June 2026
+**One-line summary:** Full session build — 3 TS fixes, complete Partner Programme, PWA live on Railway, verification audit (15 working / 3 stubs), billing prices corrected, MASTER pricing corrected, Stripe products confirmed by founder.
+
+**HOSTING NOTE — CRITICAL:** Railway ONLY. Portal, admin, and API all deployed on Railway. There is no Vercel. Any reference to Vercel in this document is an error that has not yet been corrected. Do not follow Vercel instructions.
 
 ---
 
-### ✅ WHAT WAS BUILT THIS SESSION — COMPLETE
+### ✅ WHAT WAS BUILT THIS SESSION (2 June 2026)
 
 #### Fixes
 | Fixed | Detail |
@@ -80,25 +83,25 @@
 #### Portal improvements
 | Built | Detail |
 |-------|--------|
-| Milla language badges | Page header strip: 🇬🇧 English · 🇫🇷 Français · 🇰🇪 Kiswahili · 🇳🇬 Hausa. Also on upgrade screen. |
-| OnboardingChecklist refresh | Heading → "Launch your AI Revenue OS". All indigo → portal purple `#7C3AED`. |
+| Milla language badges | Page header strip: English / Francais / Kiswahili / Hausa. Also on upgrade screen. |
+| OnboardingChecklist refresh | Heading "Launch your AI Revenue OS". All indigo replaced with portal purple `#7C3AED`. |
 | OnboardingBanner component | Trial / awaiting_payment states, urgency colouring, dismissable |
 | Dashboard new-user greeting | "Your AI Revenue OS is ready. Build your ICP and FIGSY handles outreach — no SDR required." |
 
 #### Docs
 | Built | Detail |
 |-------|--------|
-| `DEPLOYMENT_GUIDE.md` | All Paystack refs → Stripe throughout |
-| `client-flow-sop.md` | Paystack → Stripe throughout, date updated |
+| `DEPLOYMENT_GUIDE.md` | All Paystack refs replaced with Stripe throughout |
+| `client-flow-sop.md` | Paystack replaced with Stripe throughout, date updated |
 
-#### Stripe
+#### Stripe (confirmed by founder)
 | Done | Detail |
 |------|--------|
 | Milla product created | prod_UcjOFe7esiG2Xa — Milla Virtual Assistant ($49/mo) |
 | Vida product created | prod_UcjOB0KZXHlmSy — Vida Chatbot Agent ($39/mo) |
 | 6 credit bundle products exist | Lead Gen 20/40/100 + FIGSY 20/40/100 — all $1/credit |
 
-#### PWA (Progressive Web App)
+#### PWA (Progressive Web App) — live at app.get-kind.com
 | Built | Detail |
 |-------|--------|
 | PWA manifest | `apps/portal/src/app/manifest.ts` — shortcuts, theme `#7C3AED`, standalone display |
@@ -114,98 +117,223 @@
 #### Verification audit (15 confirmed working, 3 confirmed stubs)
 | Item | Result |
 |------|--------|
-| KPI time range filters | ✅ Built |
-| Reply from inbox | ✅ Built |
-| Consent token security | ✅ Cryptographic |
-| Campaign pause emails | ✅ Wired |
-| Weekly report email | ✅ Wired |
-| Sequence branching | ✅ Built |
-| Admin cohort analytics | ✅ Real data |
-| Milla chat persistence | ✅ Built |
-| Mobile responsive layout | ✅ Built |
-| NotificationBell | ✅ On-design |
-| AgentSidePanel images | ✅ Working |
-| Knowledge base page | ✅ On-design |
-| Developer portal (P3-1) | ✅ Working |
-| Proposals + e-sign (P3-4) | ✅ Working |
-| Visitor de-anon (P3-7) | ✅ Working — needs `CLEARBIT_API_KEY` in Railway |
-| AI personalised images (P2-13) | ⚠️ Stub — static SVG only, no DALL-E wired |
-| Social signals (P2-14) | ⚠️ Stub — no social API connected |
-| FIGSY vertical modes (P3-2) | ⚠️ Stub — no structured vertical branching |
+| KPI time range filters | Built |
+| Reply from inbox | Built |
+| Consent token security | Cryptographic |
+| Campaign pause emails | Wired |
+| Weekly report email | Wired |
+| Sequence branching | Built |
+| Admin cohort analytics | Real data |
+| Milla chat persistence | Built |
+| Mobile responsive layout | Built |
+| NotificationBell | On-design |
+| AgentSidePanel images | Working |
+| Knowledge base page | On-design |
+| Developer portal (P3-1) | Working |
+| Proposals + e-sign (P3-4) | Working |
+| Visitor de-anon (P3-7) | Working — needs `CLEARBIT_API_KEY` in Railway |
+| AI personalised images (P2-13) | STUB — static SVG only, no DALL-E wired |
+| Social signals (P2-14) | STUB — no social API connected |
+| FIGSY vertical modes (P3-2) | STUB — no structured vertical branching |
 
 ---
 
-### 🔴 FOUNDER — YOUR TO-DO LIST (IN ORDER)
+### ✅ ALREADY DONE — CONFIRMED (do NOT repeat these)
 
-**PRIORITY 1 — Platform broken without these. Do first.**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| 1 | Add 8 Stripe `price_xxx` IDs to Railway | Stripe → each product → click price row → copy `price_` ID. **6 credit bundles → Railway Portal service as `NEXT_PUBLIC_STRIPE_PRICE_*`. Milla + Vida → Railway API service as `STRIPE_PRICE_MILLA_MONTHLY` + `STRIPE_PRICE_VIDA_MONTHLY`** | ☐ |
-| 2 | Run `20260527_stripe_subscription_id.sql` | Supabase → SQL Editor | ☐ |
-| 3 | Set `ADMIN_SECRET_KEY` in Railway API service | Any strong random string | ☐ |
-| 4 | Run meetings_booked migration | Supabase SQL Editor → `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` | ☐ |
-| 5 | Upgrade Resend to paid | resend.com → Billing → Pro $20/mo — free plan caps at 100 emails/day | ☐ |
-| 6 | Add credits to `jacques.vieiraza@gmail.com` | Admin portal → your account → grant credits | ☐ |
+These are confirmed complete. Do not attempt to redo any of them.
 
-**PRIORITY 2 — Reliability**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| 7 | Configure Railway health check | Railway → API service → Settings → Health Check path: `/health` | ☐ |
-| 8 | Set up UptimeRobot | uptimerobot.com — free — monitor API `/health` every 5 mins, SMS alert | ☐ |
-| 9 | Run smoke tests with Claude | Section 18 — Tests 1–4 | ☐ |
+| Item | Status |
+|------|--------|
+| Apollo API key in Railway | Done |
+| `RESEND_API_KEY` in Railway | Done |
+| Railway build green | Done |
+| All SQL migrations (subscriptions, drip, cascade, credit race) | Done |
+| Stripe account created + 6 credit product prices configured | Done |
+| Stripe keys in Railway | Done |
+| `NEXT_PUBLIC_STRIPE_PRICE_*` credit bundle vars in Railway Portal service | Done — NOTE: Railway, NOT Vercel |
+| UK company registration (Companies House) | In progress |
+| HubSpot account + `HUBSPOT_API_KEY` in Railway | Done |
+| Resend inbound webhook + `RESEND_WEBHOOK_SECRET` in Railway | Done |
+| `FIGSY_KIND_CLIENT_ID` in Railway | Done |
+| Calendly link wired site-wide | Done |
 
-**PRIORITY 3 — Legal**
-| # | Task | Cost | ✓ |
-|---|------|------|---|
-| 10 | ICO data protection registration | £40/yr | ☐ |
-| 11 | UK Companies House registration | £50 | ☐ |
-| 12 | Open Wise Business account | Free | ☐ |
-| 13 | SEIS advance assurance | Free to apply | ☐ |
-| 14 | Trademarks: K.I.N.D + FIGSY + Milla + Vida at UK IPO | ~£320 total | ☐ |
-| 15 | SeedLegals IP assignment + shareholders agreement | ~£600 | ☐ |
+---
 
-**PRIORITY 4 — Feature flags (5 min each in Railway)**
-| Variable | What it activates |
-|----------|-------------------|
+### 🔴 FOUNDER — YOUR TO-DO LIST (IN PRIORITY ORDER)
+
+**PRIORITY 1 — Billing is broken without these. Do these first.**
+| # | Task | Where |
+|---|------|-------|
+| 1 | Add 8 Stripe `price_xxx` IDs to Railway | Stripe → each product → click price row → copy `price_` ID. 6 credit bundle IDs → Railway Portal service as `NEXT_PUBLIC_STRIPE_PRICE_*`. Milla monthly ID → Railway API service as `STRIPE_PRICE_MILLA_MONTHLY`. Vida monthly ID → Railway API service as `STRIPE_PRICE_VIDA_MONTHLY`. You already have Milla's `price_xxx` — need 7 more. |
+| 2 | Run `20260527_stripe_subscription_id.sql` | Supabase SQL Editor |
+| 3 | Set `ADMIN_SECRET_KEY` in Railway API service | Any strong random string |
+| 4 | Run meetings_booked migration | Supabase SQL Editor: `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` |
+
+**PRIORITY 2 — Your account:**
+| # | Task | Where |
+|---|------|-------|
+| 5 | Add credits to `jacques.vieiraza@gmail.com` | Admin portal → your account → grant credits |
+
+**PRIORITY 3 — Infra:**
+| # | Task | Where |
+|---|------|-------|
+| 6 | Railway health check | Railway → API service → Settings → Health Check path: `/health` |
+| 7 | UptimeRobot | uptimerobot.com — free — monitor API `/health` every 5 mins, SMS alert |
+| 8 | Railway plan check | Confirm you are not on hobby/starter — upgrade to production if needed |
+
+**PRIORITY 4 — Systems upgrades (revenue-critical at scale):**
+| # | Task | Cost | Why |
+|---|------|------|-----|
+| 9 | Upgrade Resend to paid | $20/mo | Free plan = 100 emails/day cap — FIGSY hits this fast |
+| 10 | Upgrade Apollo to Basic | $49/mo | Free plan = 50 credits/month — barely enough for demos |
+| 11 | Google Workspace | ~$12/mo | When first client or first hire |
+
+**PRIORITY 5 — Feature flags (5 min each in Railway env vars):**
+| Variable | What it unlocks |
+|----------|----------------|
 | `FEATURE_PORTAL_V2=true` | Portal V2 redesign |
 | `FEATURE_CAMPAIGN_INTENT=true` | Campaign intent signals |
 | `FEATURE_ICP_BUILDER=true` | ICP Builder chat |
-| `CLEARBIT_API_KEY=<key>` | Visitor de-anonymisation (built, needs key) |
+| `CLEARBIT_API_KEY=<key>` | Visitor de-anonymisation (built, just needs key) |
 
-**PRIORITY 5 — API keys that unlock built features**
-| Key | Unlocks |
-|-----|---------|
-| Apollo Basic upgrade ($49/mo) | Real lead search — free plan returns 0 results |
-| `HUBSPOT_API_KEY` | CRM sync (built, needs key) |
-| `WHATSAPP_TOKEN` etc. | WhatsApp outreach |
-| `GOOGLE_CLIENT_ID` etc. | Google Calendar booking |
-| `VAPI_API_KEY` etc. | Voice agent |
+**PRIORITY 6 — Integrations (built, need credentials):**
+| # | What | Env vars needed |
+|---|------|----------------|
+| 12 | WhatsApp outreach | `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_VERIFY_TOKEN` — Meta 3-7 day approval. START THE APPLICATION NOW if not started. |
+| 13 | Google Calendar OAuth | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` + `GOOGLE_REDIRECT_URI` |
+| 14 | Vapi.ai Voice | `VAPI_API_KEY` + `VAPI_PHONE_NUMBER_ID` + `VAPI_ASSISTANT_ID` + `VAPI_WEBHOOK_SECRET` |
 
-**PRIORITY 6 — GTM (after smoke tests pass)**
+**PRIORITY 7 — Legal:**
+| # | Task | Cost |
+|---|------|------|
+| 15 | ICO data protection registration | £40/yr |
+| 16 | UK Companies House registration | In progress — ~£50 |
+| 17 | Open Wise Business account | Free — wait until UK company number arrives |
+| 18 | SEIS advance assurance | Free to apply — before any investor conversation |
+| 19 | Trademarks: K.I.N.D + FIGSY + Milla + Vida at UK IPO | ~£320 total |
+| 20 | SeedLegals IP assignment + shareholders agreement | ~£600 |
+
+**PRIORITY 8 — Smoke tests:**
 | # | Task |
 |---|------|
-| — | G2 listing (free) |
-| — | Capterra listing (free) |
-| — | Product Hunt launch — Claude writes the copy |
-| — | LinkedIn content programme — Claude writes weekly, you post |
-| — | Run K.I.N.D outbound on yourself using FIGSY |
-| — | Get first 5 paying clients |
+| 21 | Run Section 18 Tests 1–4 step by step with Claude — report failures as `T1-Step8 — what you saw` |
+
+**PRIORITY 9 — GTM (after smoke tests pass):**
+| # | Task |
+|---|------|
+| 22 | 10 warm personal outreach messages (LinkedIn / WhatsApp) |
+| 23 | G2 listing (free) |
+| 24 | Capterra listing (free) |
+| 25 | Product Hunt launch — Claude writes the copy |
+| 26 | LinkedIn content programme — Claude writes weekly, you post |
+| 27 | First 5 paying clients |
 
 ---
 
-### 🤖 CLAUDE — WHAT'S LEFT TO BUILD
+### 🤖 CLAUDE BUILD QUEUE
 
-| # | Task | Blocked on |
-|---|------|------------|
-| 1 | Smoke tests — run Section 18, fix every failure | Nothing — do next session |
-| 2 | Onboarding checklist end-to-end verify | Nothing |
-| 3 | W2 Signal tokens in FIGSY sequences | Nothing — ~1 day |
-| 4 | P2-13 AI personalised images | Your decision: DALL-E? ~$0.04/send |
-| 5 | P2-14 Social signals | Your decision: which API? LinkedIn has ToS risk |
-| 6 | P3-2 FIGSY vertical modes | Your decision: confirm vertical list (SaaS/Agency/E-comm etc.) |
-| 7 | Push notifications backend | VAPID keys + subscription endpoint — wire after PWA confirmed working |
-| 8 | P5 Chat history persistence | AskFigsyButton resets on reload — needs `/figsy/chat/history` |
-| 9 | P6 NotificationBell theme | Mismatches dark sidebar — cosmetic, low priority |
+**Immediate — no blockers:**
+| # | Task | Est. |
+|---|------|------|
+| 1 | Smoke test fixes — real-time during Section 18 | <15 min each |
+| 2 | Onboarding checklist end-to-end verify | 1h |
+| 3 | S4 Scheduled report emails — cron exists, email not yet wired | ~4h |
+| 4 | W2 Signal tokens in FIGSY sequences | ~1 day |
+| 5 | Push notifications backend — VAPID keys + subscription endpoint | ~1 day |
+| 6 | P5 Chat history persistence — AskFigsyButton resets on reload | ~2h |
+| 7 | P6 NotificationBell theme — mismatches dark sidebar | ~30 min |
+
+**Your decision needed before Claude can build:**
+| # | Task | Decision required |
+|---|------|------------------|
+| 8 | P2-13 AI personalised images | Use DALL-E? ~$0.04/send |
+| 9 | P2-14 Social signals | Which API? LinkedIn has ToS risk |
+| 10 | P3-2 FIGSY vertical modes | Confirm vertical list (SaaS / Agency / E-comm / etc.) |
+
+**At 10+ clients:**
+| # | Build |
+|---|-------|
+| C10 | 3-type memory model — split `figsy_memory` into episodic + long-term + preference |
+| C11 | Deliverability dashboard — SPF/DKIM/DMARC, bounce rate, blacklist per domain |
+| C12 | Email score pre-send — flag weak copy before it fires |
+| C13 | Adaptive send volume — auto-adjust based on domain health |
+| C14 | Intent signal detection — job changes, funding, hiring trigger outreach |
+| C15 | Client morning brief email — extend founder brief to all active clients |
+| C16 | Multi-model toggle per campaign — Haiku (volume) vs Sonnet (quality) |
+
+**At 20+ clients:**
+| # | Build |
+|---|-------|
+| C17 | Configurable agent triggers — UI-driven cron scheduling |
+| C18 | A/B subject line testing — auto-pick winner after 50 sends |
+| C19 | Conditional sequence branching — warm reply triggers different path |
+| C20 | Waterfall enrichment — Apollo → PDL → Hunter → Clearbit |
+| C21 | Kanban deal view |
+| C22 | File approval workflow |
+| C23 | ICP auto-refinement |
+
+**Year 2:**
+| # | Build |
+|---|-------|
+| C24 | Multi-agent orchestration (FIGSY + OTTO + LENA parallel) |
+| C25 | FIGSY Memory v2 with pgvector |
+| C26 | Pipeline forecasting |
+| C27 | In-portal client messaging |
+| C28 | Realtime dashboard (Supabase realtime) |
+| C29 | Proposal + e-sign |
+| C30 | Mobile app (iOS + Android) |
+| C31 | MCP server (K.I.N.D as AI infrastructure) |
+| C32 | 500+ FIGSY skill library |
+
+---
+
+### 🏗️ KNOWN TECHNICAL DEBT
+
+| # | Debt | Severity |
+|---|------|----------|
+| 1 | Duplicate routes `/leads/consent/bulk` + `/leads/bulk-consent` — same functionality, different params | Medium |
+| 2 | Exchange rate hardcoded R19/$ — update monthly at 50+ clients | Low |
+| 3 | Sequence branching — UI built, API wiring pending | Medium |
+| 4 | Meetings booked — metric visible, not yet linked from Hot replies to booking rate | Medium |
+| 5 | Real open-rate tracking — currently estimated heuristic, not true pixel tracking | Medium |
+
+---
+
+### ⚠️ MASTER ERRORS STILL TO FIX (Vercel references and stale content)
+
+These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been corrected yet. Note them here so they are not acted on:
+
+| Location | Error | Correct fact |
+|----------|-------|--------------|
+| Section 21 Key Decisions table | "Hosting: Supabase af-south-1 + Railway + Vercel" | Railway ONLY — no Vercel |
+| Section 17 Tech Stack / Quick Reference | Table shows Vercel as portal host | Remove / replace with Railway |
+| Older "done" list entries | "NEXT_PUBLIC Stripe vars in Vercel" | These are in Railway Portal service |
+| Section 1 Current Status | Portal hosting listed as "Vercel — kind-portal" | Railway |
+| Section 0 historical entries (28 May "Today — Step by Step") | References "Check Vercel portal + admin both deploy successfully" | Stale — Railway only |
+| Stale "Today — Step by Step (28 May 2026)" section | Entire step-by-step for 28 May is obsolete | Archive or remove |
+| Stale "Week Ahead" table (26–31 May) | Sprint plan for a completed week | Update to current |
+| Stale "Open Blockers" section | Most blockers from 28 May are resolved | Update |
+
+---
+
+### 🔒 KEY DECISIONS LOCKED THIS SESSION
+
+| Decision | Outcome |
+|----------|---------|
+| Hosting | Railway ONLY — Portal, Admin, API. No Vercel. Confirmed and noted as MASTER error. |
+| Billing prices | $1/credit across all bundles. Lead Gen: $20/$40/$100. FIGSY: $20/$40/$100. |
+| Pricing model | Credit bundles + Milla ($49/mo) + Vida ($39/mo) monthly add-ons. No subscription tiers (Starter/Growth were fictional). |
+| PWA | Live at app.get-kind.com — Safari Add to Home Screen confirmed working on iPhone. |
+| Partner sandbox | Auto-provisioned on approval — real client, `is_demo=true`, 100 credits, SaaS ICP, all 4 products. |
+| Stubs (no decision yet) | P2-13 (AI images), P2-14 (social signals), P3-2 (FIGSY vertical modes) — all await founder decision. |
+
+---
+
+### 📌 SECTION 0 PROTOCOL
+
+**Jacques: read Section 0 only at the start of each session. Tell Claude what got done from the founder to-do list. Claude reads Section 0, then starts work.**
+**Claude: rewrite Section 0 as the LAST action of every session. Commit immediately. Never leave it stale.**
+
 
 #### 9–11 May 2026 — Platform Scaffold
 | Built | Detail |

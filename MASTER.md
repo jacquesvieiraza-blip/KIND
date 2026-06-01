@@ -283,7 +283,9 @@
 | **PWARegister component** | `src/components/PWARegister.tsx` — registers SW on mount |
 | **PWAInstallBanner** | `src/components/ui/PWAInstallBanner.tsx` — "Add to Home Screen" prompt, Android native install + iOS share-sheet guide, dismissable, localStorage persisted |
 | **Root layout updated** | Viewport meta (theme-color, no-scale), manifest link, apple-web-app-capable, PWARegister + PWAInstallBanner wired |
-| **Push notifications ready** | SW handles `push` event + `notificationclick` — navigate to relevant page on tap |
+| **Push notifications ready** | SW handles `push` event + `notificationclick` — navigate to relevant page on tap. iOS 16.4+ supported. |
+| **iPhone install flow** | Safari → Share → Add to Home Screen → purple K icon → opens full-screen, no browser bar |
+| **PWA mockup** | `docs/pwa-mockup.html` — visual preview: home screen icon, dashboard, install flow, push notification |
 
 #### 1 June 2026 — Stripe Products + Billing Price Fix
 | Built / Fixed | Detail |

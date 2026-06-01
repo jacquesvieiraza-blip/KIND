@@ -1,5 +1,5 @@
 # K.I.N.D — Client Flow SOP
-*Last updated: 18 May 2026*
+*Last updated: 2 June 2026*
 
 Complete start-to-finish — all paths.
 
@@ -22,7 +22,7 @@ Complete start-to-finish — all paths.
 5. Dashboard loads — trial banner visible
 6. Client builds ICP → leads appear → explores for 14 days
 7. Day 14 — trial expires → full-screen overlay: "Your trial has ended"
-8. Client clicks "Choose a Plan" → Billing page → selects plan → Paystack → card entered → paid
+8. Client clicks "Choose a Plan" → Billing page → selects plan → Stripe → card entered → paid
 9. Webhook fires → subscription flips to active → overlay gone → full access
 
 **If they abandon before paying:** subscription stays `trialing (expired)` — no charge ever.
@@ -38,7 +38,7 @@ Complete start-to-finish — all paths.
 5. AE receives alert (or checks admin portal) — sees new client in Clients list with status "Trial"
 6. AE opens client profile in admin portal → reviews subscriptions and details
 7. AE calls/emails the client to walk them through signing
-8. Client goes to Billing → selects their plan → Paystack → done
+8. Client goes to Billing → selects their plan → Stripe → done
 
 ---
 
@@ -48,7 +48,7 @@ Complete start-to-finish — all paths.
 
 1–4. Identical — client signs up and onboards
 5. Dashboard loads with trial banner
-6. Client goes directly to Billing → selects plan → Paystack → card → payment success
+6. Client goes directly to Billing → selects plan → Stripe → card → payment success
 7. Subscription flips to active immediately
 8. No trial overlay, no gates — full access from day 1
 
@@ -66,7 +66,7 @@ Complete start-to-finish — all paths.
 ## Path 5 — Active client upgrades (Lead Gen → Lead Gen + FIGSY bundle)
 
 1. Active client on Lead Gen → Billing → sees FIGSY products
-2. Selects FIGSY bundle → Paystack → payment
+2. Selects FIGSY bundle → Stripe → payment
 3. New subscription created with product: `lead_gen_figsy`
 4. Dashboard shows FIGSY unlocked
 5. **Admin action needed:** cancel the old Lead Gen-only subscription in admin portal
@@ -131,8 +131,8 @@ flowchart TD
     EXPLORE --> TRIAL_END{Day 14\nTrial expires?}
     TRIAL_END -->|Yes| OVERLAY[Full-screen overlay\nYour trial has ended]
     OVERLAY --> BILLING_PAGE[Billing page]
-    BILLING_PAGE --> PAYSTACK[Paystack checkout]
-    PAYSTACK --> PAID{Payment\nsucceeds?}
+    BILLING_PAGE --> STRIPE_CHECKOUT[Stripe checkout]
+    STRIPE_CHECKOUT --> PAID{Payment\nsucceeds?}
     PAID -->|Yes| ACTIVE([Subscription active\nFull access ✅])
     PAID -->|No| ABANDONED([Trial expired\nNo charge\nAdmin shows as expired])
     TRIAL_END -->|No — still in trial| EXPLORE
@@ -144,15 +144,15 @@ flowchart TD
 
     %% ── PATH 3: PAY DAY 1 ──
     DASHBOARD --> SKIP_TRIAL[Client goes straight\nto Billing]
-    SKIP_TRIAL --> PAYSTACK
-    PAYSTACK --> PAID
+    SKIP_TRIAL --> STRIPE_CHECKOUT
+    STRIPE_CHECKOUT --> PAID
 
     %% ── PATH 4: TRIAL EXPIRED, NEVER PAID ──
     OVERLAY -->|Client returns later| BILLING_PAGE
 
     %% ── PATH 5: UPGRADE TO BUNDLE ──
     ACTIVE --> UPGRADE[Active client\ngoes to Billing]
-    UPGRADE --> FIGSY_BUNDLE[Selects FIGSY bundle\nPaystack payment]
+    UPGRADE --> FIGSY_BUNDLE[Selects FIGSY bundle\nStripe payment]
     FIGSY_BUNDLE --> NEW_SUB[(New subscription:\nlead_gen_figsy)]
     NEW_SUB --> FIGSY_UNLOCKED[FIGSY unlocked\non dashboard]
     FIGSY_UNLOCKED --> ADMIN_CANCEL[Admin cancels\nold Lead Gen sub]
@@ -181,7 +181,7 @@ flowchart TD
     classDef decision fill:#d97706,color:#fff,stroke:none
 
     class WEB,AE_SEND,AE_DEMO entry
-    class SIGNUP,ONBOARD,DASHBOARD,ICP,LEADS,EXPLORE,OVERLAY,BILLING_PAGE,PAYSTACK,AE_ALERT,AE_CALL,SKIP_TRIAL,UPGRADE,FIGSY_BUNDLE,FIGSY_UNLOCKED,ADMIN_CANCEL,ADDON,AE_MANUAL,DEMO_FORM,DEMO_LEADS,OPEN_DEMO,DEMO_WALKTHROUGH action
+    class SIGNUP,ONBOARD,DASHBOARD,ICP,LEADS,EXPLORE,OVERLAY,BILLING_PAGE,STRIPE_CHECKOUT,AE_ALERT,AE_CALL,SKIP_TRIAL,UPGRADE,FIGSY_BUNDLE,FIGSY_UNLOCKED,ADMIN_CANCEL,ADDON,AE_MANUAL,DEMO_FORM,DEMO_LEADS,OPEN_DEMO,DEMO_WALKTHROUGH action
     class DB_CREATE,NEW_SUB,DEMO_CREATE db
     class ACTIVE,DEMO_EXPIRED success
     class ABANDONED dead

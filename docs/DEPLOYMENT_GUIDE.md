@@ -1,10 +1,10 @@
 # KIND AI Platform — Deployment Guide
 
-> ⚠️ **Last updated: 18 May 2026. This doc may reference Paystack (removed 27 May) and pre-Stripe billing. For current deployment steps, see `MASTER.md` Section 17 (Tech Stack) and Section 2 (What Founder Needs To Do). This file is preserved for historical reference.**
+> ⚠️ **Last updated: 2 June 2026. Paystack removed 27 May — billing is now Stripe. See `MASTER.md` Section 17 (Tech Stack) and Section 2 (What Founder Needs To Do) for context.**
 
-**Version:** 2.0 · **Date:** May 2026  
+**Version:** 2.1 · **Date:** June 2026  
 **Time required:** ~90 minutes end-to-end (first time)  
-**Prerequisites:** Accounts on Supabase, Vercel, Railway, Stripe, Anthropic, Apollo (Paystack removed — not required)
+**Prerequisites:** Accounts on Supabase, Railway, Vercel, Stripe, Anthropic, Apollo, Resend
 
 ---
 
@@ -17,8 +17,8 @@ Open a temporary notepad. Collect all keys before starting, then follow the step
 | Supabase Project URL | Supabase → Project Settings → API → Project URL | `SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_URL` |
 | Supabase Anon Key | Supabase → Project Settings → API → anon public | `SUPABASE_ANON_KEY` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
 | Supabase Service Role Key | Supabase → Project Settings → API → service_role | `SUPABASE_SERVICE_ROLE_KEY` |
-| Paystack Secret Key | Paystack → Settings → API Keys & Webhooks → Secret Key | `PAYSTACK_SECRET_KEY` |
-| Paystack Public Key | Paystack → Settings → API Keys & Webhooks → Public Key | `PAYSTACK_PUBLIC_KEY` |
+| Stripe Secret Key | Stripe dashboard → Developers → API Keys → Secret key | `STRIPE_SECRET_KEY` |
+| Stripe Webhook Secret | Stripe dashboard → Developers → Webhooks → signing secret | `STRIPE_WEBHOOK_SECRET` |
 | Anthropic API Key | console.anthropic.com → API Keys | `ANTHROPIC_API_KEY` |
 | Apollo API Key | apollo.io → Settings → Integrations → API | `APOLLO_API_KEY` |
 | Resend API Key | resend.com → API Keys | `RESEND_API_KEY` |
@@ -101,8 +101,8 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 APOLLO_API_KEY=your-apollo-key
-PAYSTACK_SECRET_KEY=sk_live_xxxxx                   ← use test key until KYC complete
-PAYSTACK_WEBHOOK_SECRET=your-paystack-webhook-secret
+STRIPE_SECRET_KEY=sk_live_xxxxx                     ← use test key until go-live
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 RESEND_API_KEY=re_xxxxx
 ADMIN_SECRET_KEY=your-random-secret-string
@@ -111,7 +111,7 @@ FIGSY_REPLY_TO=replies@get-kind.com                 ← update after Resend inbo
 FIGSY_DAILY_SEND_LIMIT=20                           ← protects domain reputation
 ```
 
-> **Paystack note:** Use test key (`sk_test_...`) until you complete Paystack KYC. Swap to `sk_live_...` after KYC is approved.
+> **Stripe note:** Use test key (`sk_test_...`) during development. Swap to `sk_live_...` for go-live. Price IDs must be set as Railway env vars — never in code.
 
 ### 2c. Get your Railway API URL
 
@@ -221,30 +221,30 @@ Go to `https://get-kind.com` → you should see the marketing homepage.
 
 ---
 
-## Step 6: Paystack — Plans and Webhook
+## Step 6: Stripe — Products and Webhook
 
 **Time: ~15 minutes**
 
-### 6a. Complete KYC first
+### 6a. Create products in Stripe
 
-Before creating live plans, complete Paystack KYC:
-- dashboard.paystack.com → **Settings** → **Compliance**
-- Submit business documents (business registration, ID, bank details)
-- Approval typically takes 1–3 business days
-
-> Until KYC is complete, only test payments work. Use test key `sk_test_...` in Railway.
+1. Stripe → **Products** → **Add product** — create two products:
+   - **K.I.N.D Starter** — R 1,500/month recurring
+   - **K.I.N.D Growth** — R 3,500/month recurring
+2. After creating each product, copy the **Price ID** (`price_xxx...`)
+3. Add price IDs as Railway env vars (never in code):
+   - `STRIPE_PRICE_STARTER=price_xxxxx`
+   - `STRIPE_PRICE_GROWTH=price_xxxxx`
 
 ### 6b. Set the webhook URL
 
-1. Paystack → **Settings** → **API Keys & Webhooks** → **Webhooks**
-2. Click **Add Webhook**
-3. URL: `https://kindapi-production-e64c.up.railway.app/webhooks/paystack`
-4. Events: `charge.success`, `subscription.create`, `subscription.disable`, `invoice.update`
-5. Click **Save**
+1. Stripe → **Developers** → **Webhooks** → **Add endpoint**
+2. URL: `https://kindapi-production-e64c.up.railway.app/webhooks/stripe`
+3. Events to listen for: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`
+4. Click **Add endpoint** → copy the **Signing secret** (`whsec_xxx...`) → add to Railway as `STRIPE_WEBHOOK_SECRET`
 
 ### 6c. Test the webhook
 
-Use Paystack test card (`4084084084084081`, any future expiry, CVV `408`) to make a test payment on the portal billing page. Check Railway logs — you should see the webhook arrive.
+Use Stripe test card `4242 4242 4242 4242`, any future expiry, any CVV. Make a test checkout from the portal billing page. Check Railway logs — you should see the webhook arrive.
 
 ---
 
@@ -327,8 +327,8 @@ Run through this checklist before going live with a real client.
 - [ ] All leads have AI scores (0–100) with reasoning
 
 ### Billing
-- [ ] Go to Billing → select a plan → Paystack checkout opens
-- [ ] Test payment completes → subscription flips to `active`
+- [ ] Go to Billing → select a plan → Stripe checkout opens
+- [ ] Test payment completes (card: 4242 4242 4242 4242) → subscription flips to `active`
 - [ ] Trial overlay gone → full access
 
 ### Admin Portal
@@ -359,8 +359,8 @@ Run through this checklist before going live with a real client.
 | Portal shows blank page | Missing env vars | Check Vercel env vars, redeploy |
 | Login works but dashboard errors | API not reachable | Check `NEXT_PUBLIC_API_URL` in Vercel, verify Railway is running |
 | "Client not found" errors | RLS policy blocking | Confirm migrations ran, check client row exists in `clients` table |
-| Payment verify fails | Wrong Paystack key | Confirm test vs live keys match. Complete KYC for live key. |
-| Webhook not arriving | Wrong URL or no events | Re-check Paystack → Webhooks URL and event types |
+| Payment verify fails | Wrong Stripe key | Confirm test vs live keys match. Check STRIPE_SECRET_KEY in Railway. |
+| Webhook not arriving | Wrong URL, no events, or missing signing secret | Re-check Stripe → Webhooks URL, event list, and STRIPE_WEBHOOK_SECRET value |
 | Admin proxy 403 | ADMIN_SECRET_KEY mismatch | Confirm same value in Railway and Vercel admin env vars |
 | AI ICP Suggest returns error | Missing Anthropic key | Check `ANTHROPIC_API_KEY` is set in Railway |
 | Demo leads not appearing | Apollo rate limit or quota | Check Railway logs for Apollo errors |
@@ -379,8 +379,10 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 APOLLO_API_KEY=your-apollo-key
-PAYSTACK_SECRET_KEY=sk_live_xxxxx
-PAYSTACK_WEBHOOK_SECRET=your-webhook-secret
+STRIPE_SECRET_KEY=sk_live_xxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+STRIPE_PRICE_STARTER=price_xxxxx
+STRIPE_PRICE_GROWTH=price_xxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 RESEND_API_KEY=re_xxxxx
 ADMIN_SECRET_KEY=your-random-secret-string
@@ -421,7 +423,7 @@ No environment variables needed. Static HTML.
 4. Vercel Admin                                            ← needs Railway URL + ADMIN_SECRET_KEY
 5. Vercel Website                                          ← no dependencies
 6. Google Workspace                                        ← needs domain DNS access
-7. Paystack KYC + webhook                                  ← needs Railway URL for webhook
+7. Stripe products + webhook                               ← needs Railway URL for webhook
 8. Upload 5 PDFs via Admin → Terms Library                 ← needs Admin deployed + Storage bucket
 9. Set up 6 Railway cron jobs                              ← needs API deployed
 10. Smoke test                                             ← all systems must be live

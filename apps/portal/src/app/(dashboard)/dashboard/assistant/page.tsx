@@ -283,7 +283,7 @@ export default function AssistantPage() {
           <p className="text-[#7B6FA0] text-sm">Your AI Virtual Assistant — trained on your business documents. Ask her anything.</p>
         </div>
         <div className="bg-[#F5EEFF]/60 rounded-xl p-5 mb-6 space-y-3">
-          {['Trained on your own documents and SOPs','Answers questions about your business instantly','Drafts emails and messages in your tone','Available 24/7 — never misses a question'].map(f => (
+          {['Trained on your own documents and SOPs','Answers questions about your business instantly','Drafts emails and messages in your tone','Speaks English, Français, Kiswahili, and Hausa','Available 24/7 — never misses a question'].map(f => (
             <div key={f} className="flex items-center gap-3 text-sm text-gray-700">
               <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-2.5 h-2.5 text-[#7C3AED]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
@@ -316,6 +316,14 @@ export default function AssistantPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Milla — Virtual Assistant</h1>
         <p className="text-sm text-[#7B6FA0] mt-0.5">Train Milla on your business documents, then ask questions and get grounded answers.</p>
+        <div className="flex items-center gap-1.5 mt-2">
+          <span className="text-xs text-[#9B8EC4]">Available in:</span>
+          {LANGUAGES.map(l => (
+            <span key={l.value} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F5F0FF] text-[#7C3AED] text-xs font-medium">
+              {l.flag} {l.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="flex gap-1 border-b border-purple-100/60">

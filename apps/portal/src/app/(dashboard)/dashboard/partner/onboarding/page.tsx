@@ -59,7 +59,7 @@ const STEPS = [
     bg: 'bg-purple-50',
     title: 'Demo Sandbox Provisioned',
     desc: 'A live K.I.N.D demo environment is set up so you can walk prospects through the product.',
-    detail: 'Use the demo sandbox to show real leads, live campaigns, and the full FIGSY workflow — not slides. It makes the difference.',
+    detail: 'Your sandbox is a real K.I.N.D account: pre-loaded SaaS leads, 100 credits, all 4 products on Starter, and an active ICP. Logs in instantly from your Partner Hub — no password needed. Valid 90 days, renewable on request.',
   },
   {
     step: 7,

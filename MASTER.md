@@ -52,11 +52,77 @@
 
 ---
 
-### 📅 SESSION DATE — 1 June 2026 — Stripe products created · Billing prices fixed · MASTER pricing model corrected
+### 📅 SESSION DATE — 2 June 2026 — Stripe price IDs in progress · Priority list step-by-step
 
 ---
 
-### ✅ EVERYTHING BUILT — COMPLETE LOG (all sessions, all dates)
+### 🔴 FOUNDER — YOUR TO-DO LIST (PRIORITY ORDER — DO THESE FIRST)
+
+> **2 June — Morning. Work through this list top to bottom. Step by step with Claude.**
+
+**STEP 1 — Stripe price IDs into Railway (IN PROGRESS):**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| S1 | Get `price_xxx` for Milla → add as `STRIPE_PRICE_MILLA_MONTHLY` to Railway API service | Stripe → Milla product → click price row → copy price_ ID → Railway | ☐ |
+| S2 | Get `price_xxx` for Vida → add as `STRIPE_PRICE_VIDA_MONTHLY` to Railway API service | Stripe → Vida product → click price row | ☐ |
+| S3 | Get `price_xxx` for Lead Gen 20 → add as `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20` to Railway Portal service | Stripe → Lead Gen 20 product → click price row | ☐ |
+| S4 | Get `price_xxx` for Lead Gen 40 → add as `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40` to Railway Portal service | Same | ☐ |
+| S5 | Get `price_xxx` for Lead Gen 100 → add as `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100` to Railway Portal service | Same | ☐ |
+| S6 | Get `price_xxx` for FIGSY 20 → add as `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20` to Railway Portal service | Same | ☐ |
+| S7 | Get `price_xxx` for FIGSY 40 → add as `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40` to Railway Portal service | Same | ☐ |
+| S8 | Get `price_xxx` for FIGSY 100 → add as `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100` to Railway Portal service | Same | ☐ |
+
+**STEP 2 — Supabase migration:**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| S9 | Run `20260527_stripe_subscription_id.sql` | Supabase → SQL Editor | ☐ |
+
+**STEP 3 — Railway config:**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| S10 | Set `ADMIN_SECRET_KEY` in Railway API service | Railway → KIND API → Variables — any strong random string | ☐ |
+
+**STEP 4 — Supabase migration:**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| S11 | Run `meetings_booked` migration in Supabase | Supabase → SQL Editor | ☐ |
+
+**STEP 5 — Resend:**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| S12 | Upgrade Resend to paid plan | resend.com → Billing → Pro ($20/mo) — free plan capped at 100 emails/day | ☐ |
+
+**STEP 6 — Your account:**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| S13 | Add credits to `jacques.vieiraza@gmail.com` | Admin portal → find your client → grant credits | ☐ |
+
+**STEP 7 — Infra:**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| S14 | Configure Railway health checks | Railway → KIND API → Settings → Health Check → `/health` | ☐ |
+| S15 | Set up UptimeRobot | uptimerobot.com — free — monitor `https://your-api-url/health` every 5 mins | ☐ |
+
+**STEP 8 — Smoke tests:**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| S16 | Run smoke test suite | Section 18 — Tests 1–4, step by step with Claude | ☐ |
+
+---
+
+**REMAINING — high priority (after smoke tests pass):**
+| # | Task | Where | ✓ |
+|---|------|--------|---|
+| T1 | Merge branch `claude/ai-business-roadmap-U3OWJ` → `main` | GitHub → Pull Request → Merge | ☐ |
+| T2 | Confirm Railway auto-deploys | railway.app → KIND API → Deployments | ☐ |
+| T3 | Run `20260525_fix_subscriptions_schema.sql` if not done | Supabase SQL Editor | ☐ |
+| T4 | Run `20260526_drip_and_controls.sql` if not done | Supabase SQL Editor | ☐ |
+| T5 | Run `MASTER_SCHEMA.sql` if not done | Supabase SQL Editor — eliminates all schema drift | ☐ |
+| T6 | Set up Stripe webhook | Stripe → Webhooks → Railway API URL + `/stripe/webhook` → copy secret → `STRIPE_WEBHOOK_SECRET` in Railway | ☐ |
+| T7 | Register UK company | companieshouse.gov.uk — £50, same day | ☐ |
+| T8 | Create HubSpot account | app.hubspot.com (free) → `HUBSPOT_API_KEY` to Railway | ☐ |
+| T9 | Register Resend inbound webhook | Resend → Webhooks → `RESEND_WEBHOOK_SECRET` to Railway | ☐ |
+| T10 | Add `FIGSY_KIND_CLIENT_ID` to Railway | Your UUID from Supabase clients table | ☐ |
 
 #### 9–11 May 2026 — Platform Scaffold
 | Built | Detail |
@@ -309,73 +375,6 @@
 | **Admin nav bar cramped / mismatched** | 28 May | Replaced with dark sidebar — all 13 nav items visible, portal-matching design |
 
 ---
-
-### 🔴 FOUNDER — YOUR TO-DO LIST
-
-> **28 May — Morning. Everything built. Do these in order. Admin Portal Playbook is Section 36 — read it after you deploy.**
-
-**RIGHT NOW — merge & deploy (10 mins):**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| E1 | Merge branch `claude/ai-business-roadmap-U3OWJ` → `main` | GitHub → Pull Request → Merge | ☐ |
-| E2 | Confirm Railway auto-deploys from main (check deploy logs) | railway.app → KIND API → Deployments | ☐ |
-| E3 | Confirm Vercel auto-deploys portal | vercel.com → Project → Deployments | ☐ |
-
-**Tonight / Before Test 1:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| T1 | Confirm `RESEND_API_KEY` is set in Railway | Railway → KIND API → Variables | ☐ |
-| T2 | Confirm Railway build is green (no red deployments) | railway.app → KIND API → Deployments | ☐ |
-| T3 | Run `20260525_fix_subscriptions_schema.sql` if not done | Supabase SQL Editor | ☐ |
-| T4 | Run `20260526_drip_and_controls.sql` if not done | Supabase SQL Editor | ☐ |
-| T5 | Run `MASTER_SCHEMA.sql` if not done | Supabase SQL Editor — eliminates all schema drift | ☐ |
-
-**Before Test 2 (after Test 1 passes):**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| T6 | Create fresh Gmail — never used on K.I.N.D | gmail.com | ☐ |
-| T7 | Run agent-unlock SQL for test Gmail | Supabase SQL Editor — see Section 18 Test 2 for exact SQL | ☐ |
-| T8 | Grant 10,000 credits to test account | Admin → test client → grant credits | ☐ |
-
-**Before Test 3 (after Test 2 passes):**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| T9 | ✅ Milla product created in Stripe | prod_UcjOFe7esiG2Xa — Milla Virtual Assistant | ✅ |
-| T10 | ✅ Vida product created in Stripe | prod_UcjOB0KZXHlmSy — Vida Chatbot Agent | ✅ |
-| T11 | Add `STRIPE_PRICE_MILLA_MONTHLY` to Railway | Get price_xxx by clicking into Milla product → copy price ID | ☐ |
-| T12 | Add `NEXT_PUBLIC_STRIPE_PRICE_MILLA_MONTHLY` to Vercel | Same price_xxx ID | ☐ |
-| T13 | Add `STRIPE_PRICE_VIDA_MONTHLY` to Railway | Get price_xxx by clicking into Vida product → copy price ID | ☐ |
-| T14 | Add `NEXT_PUBLIC_STRIPE_PRICE_VIDA_MONTHLY` to Vercel | Same price_xxx ID | ☐ |
-| T15 | Run `20260527_stripe_subscription_id.sql` | Supabase SQL Editor | ☐ |
-
-**This week — high priority:**
-| # | Task | Where | ✓ |
-|---|------|--------|---|
-| T16 | Set up Stripe account fully | stripe.com → keys → `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` to Railway | ☐ |
-| T17 | ✅ Stripe credit products created | Lead Gen: 20cr/$20, 40cr/$40, 100cr/$100 · FIGSY: 20cr/$20, 40cr/$40, 100cr/$100 ($1/credit model) | ✅ |
-| T18 | Register UK company | companieshouse.gov.uk — £50, same day — Section 23 | ☐ |
-| T19 | Create HubSpot account + API key | app.hubspot.com (free) → Private Apps → "KIND AI" → `HUBSPOT_API_KEY` to Railway | ☐ |
-| T20 | Register Resend inbound webhook | Resend → Webhooks → Railway URL → set `RESEND_WEBHOOK_SECRET` in Railway | ☐ |
-| T21 | Add `FIGSY_KIND_CLIENT_ID` to Railway | Your UUID from Supabase clients table — self-outreach does nothing without it | ☐ |
-
-**When ready — non-blocking:**
-| # | Task | Notes | ✓ |
-|---|------|-------|---|
-| T36 | Get permission from first paying client to use their logo | One email: "Can we use your logo on our site?" — Claude has the component ready (W6) | ☐ |
-| T22 | Create calendar booking link | calendly.com or cal.com — Claude wires every demo button in 5 mins | ☐ |
-| T23 | Share UK company number with Claude | Wire into footer + legal in 5 mins after registration | ☐ |
-| T24 | Upgrade Apollo plan | $49/mo Basic — unlocks tech stack filter for competitor ICPs | ☐ |
-| T25 | Upgrade Resend to paid | Free = 100 emails/day. Pro = $20/mo — needed at scale | ☐ |
-| T26 | Open Wise Business account | After UK registration — free, multi-currency, receives USD/GBP | ☐ |
-| T27 | Activate Portal V2 | Add `FEATURE_PORTAL_V2=true` to Railway | ☐ |
-| T28 | Activate campaign intent | `FEATURE_CAMPAIGN_INTENT=true` to Railway | ☐ |
-| T29 | Activate ICP builder chat | `FEATURE_ICP_BUILDER=true` to Railway | ☐ |
-| T30 | Flutterwave account (Phase 2) | `FLUTTERWAVE_SECRET_KEY` + `FLUTTERWAVE_WEBHOOK_HASH` | ☐ |
-| T31 | Vapi.ai Voice | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` | ☐ |
-| T32 | WhatsApp Business API | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` (Meta: 3–7 days) | ☐ |
-| T33 | Google Calendar OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | ☐ |
-| T34 | G2 / Capterra / Product Hunt listings | Launch day — Claude drafts copy | ☐ |
-| T35 | Google Workspace | ~$12/mo — when first client or hire. Gmail fine until then. | ☐ |
 
 ---
 

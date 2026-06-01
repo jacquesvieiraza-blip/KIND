@@ -17,6 +17,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { runIcpJob } from './icps'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM   = 'K.I.N.D <hello@get-kind.com>'
@@ -31,6 +32,168 @@ function requireAdminKey(req: Request, res: Response, next: () => void) {
     return
   }
   next()
+}
+
+// ── Sandbox helpers ───────────────────────────────────────────────────────────
+
+async function provisionPartnerSandbox(partner: { id: string; name: string; email: string; referral_code: string | null }) {
+  const suffix = Math.random().toString(36).slice(2, 10)
+  const sandboxEmail    = `sandbox-${partner.referral_code ?? suffix}@kind-demo.internal`
+  const sandboxPassword = `Demo${suffix}!`
+  const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data: userData, error: userErr } = await db.auth.admin.createUser({
+    email: sandboxEmail, password: sandboxPassword, email_confirm: true,
+  })
+  if (userErr) throw new Error(`Sandbox auth user creation failed: ${userErr.message}`)
+  const userId = userData.user!.id
+
+  const { data: client, error: clientErr } = await db.from('clients').insert({
+    user_id:            userId,
+    company_name:       `K.I.N.D Demo — ${partner.name}`,
+    industry:           'SaaS',
+    country:            'South Africa',
+    credit_balance:     100,
+    onboarded_at:       new Date().toISOString(),
+    is_demo:            true,
+    demo_prospect_name: 'Demo Prospect',
+    demo_created_by:    `partner:${partner.name}`,
+    demo_expires_at:    expiresAt,
+  }).select('id').single()
+  if (clientErr) throw new Error(`Sandbox client insert failed: ${clientErr.message}`)
+  const clientId = client.id
+
+  for (const product of ['lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot']) {
+    await db.from('subscriptions').insert({
+      client_id:            clientId,
+      product,
+      tier:                 'starter',
+      status:               'active',
+      billing_interval:     'monthly',
+      current_period_start: new Date().toISOString(),
+      current_period_end:   expiresAt,
+    })
+  }
+
+  const { data: icp, error: icpErr } = await db.from('icps').insert({
+    client_id:       clientId,
+    name:            'Demo ICP — SaaS Decision Makers',
+    industries:      ['SaaS'],
+    geographies:     ['South Africa'],
+    seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
+    company_sizes:   ['11–50', '51–200', '201–500'],
+    job_titles:      [],
+    tech_stack:      [],
+    keywords:        ['SaaS', 'B2B software', 'growth'],
+  }).select('id').single()
+  if (icpErr) throw new Error(`Sandbox ICP insert failed: ${icpErr.message}`)
+
+  runIcpJob(icp.id, clientId, userId).catch(err =>
+    console.error('[partner/sandbox] ICP job failed:', err)
+  )
+
+  await db.from('partners').update({ demo_env_id: clientId }).eq('id', partner.id)
+
+  return { clientId, userId, sandboxEmail, expiresAt }
+}
+
+async function sendSandboxReadyEmail(partner: { name: string; email: string }, expiresAt: string) {
+  if (!resend) return
+  const PARTNERS_FROM = 'K.I.N.D Partners <partners@get-kind.com>'
+  const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
+  const expiryLabel = new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  await resend.emails.send({
+    from:    PARTNERS_FROM,
+    to:      partner.email,
+    subject: `Your K.I.N.D demo sandbox is ready`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <div style="background:#7C3AED;border-radius:12px 12px 0 0;padding:28px 32px">
+          <p style="color:#fff;font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px">K.I.N.D Partner Programme</p>
+          <h1 style="color:#fff;font-size:1.5rem;font-weight:800;margin:0">Your demo sandbox is live.</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e9e9e9;border-top:none;border-radius:0 0 12px 12px;padding:28px 32px">
+          <p style="font-size:0.95rem;color:#444;margin:0 0 20px">
+            Hi ${partner.name}, your K.I.N.D demo environment is set up and ready to use. Log into your partner portal to access it.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0f0f0;border-radius:8px;overflow:hidden;margin-bottom:24px">
+            <tr>
+              <td style="padding:10px 16px;background:#f9fafb;font-size:0.8rem;color:#888;width:140px">What's inside</td>
+              <td style="padding:10px 16px;font-size:0.9rem">Pre-loaded SaaS leads, active ICP, all 4 products on Starter plan</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 16px;background:#f9fafb;font-size:0.8rem;color:#888">Credits</td>
+              <td style="padding:10px 16px;font-size:0.9rem">100 credits — enough to run a full demo</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 16px;background:#f9fafb;font-size:0.8rem;color:#888">Expires</td>
+              <td style="padding:10px 16px;font-size:0.9rem">${expiryLabel} (90 days)</td>
+            </tr>
+          </table>
+          <a href="${portalUrl}/dashboard/partner" style="display:inline-block;background:#7C3AED;color:#fff;font-size:0.9rem;font-weight:600;padding:12px 24px;border-radius:8px;text-decoration:none;margin-bottom:24px">
+            Go to Partner Hub →
+          </a>
+          <p style="font-size:0.85rem;color:#aaa;border-top:1px solid #f0f0f0;padding-top:16px;margin:0">
+            In your Partner Hub you'll find a "Demo Sandbox" section with a one-click login link to show prospects the full K.I.N.D experience.
+          </p>
+        </div>
+      </div>`,
+  }).catch(err => console.error('[partner/sandbox] sandbox ready email error:', err))
+}
+
+async function sendPartnerDripEmail(partner: { name: string; email: string; referral_code: string | null }, day: 2 | 7 | 14) {
+  if (!resend) return
+  const PARTNERS_FROM = 'K.I.N.D Partners <partners@get-kind.com>'
+  const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
+  const refLink = partner.referral_code ? `https://get-kind.com?ref=${partner.referral_code}` : 'https://get-kind.com'
+
+  const emails: Record<number, { subject: string; heading: string; body: string; cta_label: string; cta_url: string }> = {
+    2: {
+      subject: 'Your demo sandbox is ready — here\'s how to use it',
+      heading: 'Walk a prospect through K.I.N.D in 10 minutes',
+      body: `Your demo sandbox is pre-loaded with SaaS leads, an active ICP, and 100 credits. The fastest way to convert a prospect is to log them into it and let them see a campaign running in real time.`,
+      cta_label: 'Open your Partner Hub',
+      cta_url: `${portalUrl}/dashboard/partner`,
+    },
+    7: {
+      subject: 'Have you registered your first deal yet?',
+      heading: 'Lock in 60-day protection on your first prospect',
+      body: `Once you register a deal, no other partner can claim that prospect for 60 days. It takes 30 seconds. If you've had any conversations this week, register them now before they expire.`,
+      cta_label: 'Register a deal',
+      cta_url: `${portalUrl}/dashboard/partner`,
+    },
+    14: {
+      subject: 'How\'s it going? Your referral link is ready to share',
+      heading: '14 days in — let\'s get your first referral',
+      body: `The simplest way to earn is to share your referral link with anyone who runs outbound sales. Every sign-up through your link earns you ${partner.referral_code ? '20%' : '20%'} recurring commission — forever, as long as they stay a client.`,
+      cta_label: 'Copy your referral link',
+      cta_url: refLink,
+    },
+  }
+
+  const e = emails[day]
+  await resend.emails.send({
+    from:    PARTNERS_FROM,
+    to:      partner.email,
+    subject: e.subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <div style="background:#7C3AED;border-radius:12px 12px 0 0;padding:24px 32px">
+          <p style="color:#fff;font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px">K.I.N.D Partner Programme</p>
+          <h1 style="color:#fff;font-size:1.4rem;font-weight:800;margin:0">Hi ${partner.name} — ${e.heading}</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e9e9e9;border-top:none;border-radius:0 0 12px 12px;padding:28px 32px">
+          <p style="font-size:0.95rem;color:#444;margin:0 0 24px">${e.body}</p>
+          <a href="${e.cta_url}" style="display:inline-block;background:#7C3AED;color:#fff;font-size:0.9rem;font-weight:600;padding:12px 24px;border-radius:8px;text-decoration:none">
+            ${e.cta_label} →
+          </a>
+          <p style="font-size:0.85rem;color:#aaa;border-top:1px solid #f0f0f0;padding-top:16px;margin-top:24px">
+            Questions? Reply to this email or contact <a href="mailto:partners@get-kind.com" style="color:#7C3AED">partners@get-kind.com</a>
+          </p>
+        </div>
+      </div>`,
+  }).catch(err => console.error(`[partner/drip] day ${day} email error:`, err))
 }
 
 // ── POST /partners/apply ──────────────────────────────────────────────────────
@@ -320,6 +483,12 @@ partnersRouter.patch('/admin/:partnerId/approve', requireAdminKey, async (req: R
                 with this email address. If you don't have an account yet, sign up at the same URL.
               </p>
 
+              <h2 style="font-size:1rem;font-weight:700;color:#1E1152;margin:0 0 8px">Your demo sandbox</h2>
+              <p style="font-size:0.9rem;color:#444;margin:0 0 20px">
+                We're setting up your demo environment right now. You'll get a separate email when it's ready — usually within a few minutes.
+                It comes pre-loaded with leads, an active ICP, and 100 credits so you can walk any prospect through the full K.I.N.D experience for free.
+              </p>
+
               <h2 style="font-size:1rem;font-weight:700;color:#1E1152;margin:0 0 12px">3 things to do first</h2>
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
                 <tr>
@@ -362,21 +531,57 @@ partnersRouter.patch('/admin/:partnerId/approve', requireAdminKey, async (req: R
 
     // ── Auto-provision demo sandbox ───────────────────────────────────────
     try {
-      const { data: demoEnv } = await db.from('demo_environments').insert({
-        label:  `Partner Demo — ${partner.name}`,
-        type:   'partner',
-        status: 'active',
-      }).select().single()
-
-      if (demoEnv) {
-        await db.from('partners').update({ demo_env_id: demoEnv.id }).eq('id', partner.id)
-      }
+      const { expiresAt } = await provisionPartnerSandbox(partner)
+      await sendSandboxReadyEmail(partner, expiresAt)
     } catch (sandboxErr) {
       console.error('[partners/admin/approve] demo sandbox provision error:', sandboxErr)
     }
+
+    // ── Drip email sequence (day 2, 7, 14) ───────────────────────────────
+    const delayAndSend = (day: 2 | 7 | 14) =>
+      setTimeout(() => {
+        sendPartnerDripEmail(partner, day).catch(err =>
+          console.error(`[partner/drip] day ${day} send error:`, err)
+        )
+      }, day * 24 * 60 * 60 * 1000)
+
+    delayAndSend(2)
+    delayAndSend(7)
+    delayAndSend(14)
   } catch (err) {
     console.error('[partners/admin/approve]', err)
     if (!res.headersSent) res.status(500).json({ success: false, error: 'Failed to approve partner' })
+  }
+})
+
+// POST /partners/admin/:partnerId/provision-sandbox — manual sandbox provision (admin fallback)
+partnersRouter.post('/admin/:partnerId/provision-sandbox', requireAdminKey, async (req: Request, res: Response) => {
+  try {
+    const { partnerId } = req.params
+
+    const { data: partner, error } = await db
+      .from('partners')
+      .select('id, name, email, referral_code, demo_env_id, status')
+      .eq('id', partnerId)
+      .single()
+
+    if (error || !partner) { res.status(404).json({ success: false, error: 'Partner not found' }); return }
+
+    if (partner.demo_env_id) {
+      const { data: existing } = await db.from('clients').select('id, demo_expires_at').eq('id', partner.demo_env_id).single()
+      if (existing) {
+        res.json({ success: true, already_provisioned: true, sandbox_client_id: existing.id, expires_at: existing.demo_expires_at })
+        return
+      }
+    }
+
+    const { clientId, expiresAt } = await provisionPartnerSandbox(partner)
+    await sendSandboxReadyEmail(partner, expiresAt)
+
+    res.json({ success: true, already_provisioned: false, sandbox_client_id: clientId, expires_at: expiresAt })
+  } catch (err) {
+    console.error('[partners/admin/provision-sandbox]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Provision failed' })
   }
 })
 
@@ -614,34 +819,84 @@ partnersRouter.post('/deals', requireAuth, async (req: AuthRequest, res: Respons
   }
 })
 
-// POST /partners/demo-sandbox — provision a demo env for this partner
-partnersRouter.post('/demo-sandbox', requireAuth, async (req: AuthRequest, res: Response) => {
+// GET /partners/me/sandbox — sandbox status for the authenticated partner
+partnersRouter.get('/me/sandbox', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { data: userResp } = await (db as any).auth.admin.getUserById(req.userId!)
     const userEmail = userResp?.user?.email
     if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { data: partner } = await db.from('partners').select('id, demo_env_id').ilike('email', userEmail).single()
+    const { data: partner } = await db
+      .from('partners')
+      .select('id, name, referral_code, demo_env_id, status')
+      .ilike('email', userEmail)
+      .single()
     if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
+    if (partner.status !== 'active') { res.json({ provisioned: false, reason: 'pending_approval' }); return }
 
-    if (partner.demo_env_id) {
-      const { data: env } = await db.from('demo_environments').select('*').eq('id', partner.demo_env_id).single()
-      res.json({ already_exists: true, demo_env: env }); return
+    if (!partner.demo_env_id) {
+      res.json({ provisioned: false }); return
     }
 
-    const { data: env, error } = await db.from('demo_environments').insert({
-      label:  `Partner Demo — ${userEmail}`,
-      type:   'partner',
-      status: 'active',
-    }).select().single()
+    const { data: sandboxClient } = await db
+      .from('clients')
+      .select('id, company_name, demo_expires_at, is_demo')
+      .eq('id', partner.demo_env_id)
+      .eq('is_demo', true)
+      .single()
 
-    if (error) throw error
+    if (!sandboxClient) {
+      res.json({ provisioned: false }); return
+    }
 
-    await db.from('partners').update({ demo_env_id: env.id }).eq('id', partner.id)
-
-    res.json({ already_exists: false, demo_env: env })
+    res.json({
+      provisioned:      true,
+      sandbox_client_id: sandboxClient.id,
+      expires_at:        sandboxClient.demo_expires_at,
+      portal_url:        process.env.PORTAL_URL || 'https://app.get-kind.com',
+    })
   } catch (err: any) {
-    console.error('[partners/demo-sandbox]', err)
+    console.error('[partners/me/sandbox]', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /partners/me/sandbox-login — generate a one-click login link for the sandbox
+partnersRouter.post('/me/sandbox-login', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { data: userResp } = await (db as any).auth.admin.getUserById(req.userId!)
+    const userEmail = userResp?.user?.email
+    if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+    const { data: partner } = await db
+      .from('partners')
+      .select('id, demo_env_id, status')
+      .ilike('email', userEmail)
+      .single()
+    if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
+    if (!partner.demo_env_id) { res.status(404).json({ error: 'Sandbox not provisioned yet' }); return }
+
+    const { data: sandboxClient } = await db
+      .from('clients')
+      .select('user_id, is_demo')
+      .eq('id', partner.demo_env_id)
+      .eq('is_demo', true)
+      .single()
+    if (!sandboxClient) { res.status(404).json({ error: 'Sandbox not found' }); return }
+
+    const { data: { user } } = await db.auth.admin.getUserById(sandboxClient.user_id)
+    if (!user?.email) { res.status(404).json({ error: 'Sandbox user not found' }); return }
+
+    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
+    const { data: linkData } = await db.auth.admin.generateLink({
+      type:  'magiclink',
+      email: user.email,
+      options: { redirectTo: `${portalUrl}/dashboard` },
+    })
+
+    res.json({ success: true, data: { magic_link: linkData?.properties?.action_link ?? null } })
+  } catch (err: any) {
+    console.error('[partners/me/sandbox-login]', err)
     res.status(500).json({ error: err.message })
   }
 })

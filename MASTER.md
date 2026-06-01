@@ -212,14 +212,14 @@ If Railway health checks are not configured or UptimeRobot is not set up, flag t
 
 14. **Mobile responsive layout** — zero breakpoints currently across the portal. Site is unusable on a phone. This blocks any client who checks their portal on mobile.
 
-### Partner programme (awaiting sandbox spec answers from Priority 4)
+### Partner programme
 
-15. **Demo sandbox auto-provisioning** — when admin approves a partner, a sandbox client account is created automatically, pre-loaded with data. Partner sees login details in their portal. Nothing happens on approval right now.
-16. **Partner portal sandbox section** — shows sandbox credentials, "Use this for demos" instructions, and a separate CTA: "Want K.I.N.D for your own outreach? Sign up as a client."
-17. **Admin sandbox visibility** — per-partner sandbox status, creation date, manual provision button.
-18. **Partner onboarding email sequence** — day 1 welcome, day 2 sandbox instructions, day 7 first deal registration prompt, day 14 check-in. Only one approval email exists right now.
-19. **Partner pricing page** — one clear page: demo sandbox is free, own pipeline is standard client pricing, commission rates by tier.
-20. **Update partner onboarding guide and value deck** — currently contain placeholder sandbox info, need to reflect confirmed model.
+15. ✅ **Demo sandbox auto-provisioning** — DONE 2 June. On approval: creates real `clients` row (`is_demo=true`), 4 subscriptions (Starter), default ICP, runs Apollo ICP job in background. `demo_env_id` on partners → `clients.id`. Sends sandbox ready email.
+16. ✅ **Partner portal sandbox section** — DONE 2 June. Shows sandbox status, expiry, credits info, one-click login button, "Want your own pipeline? See pricing →" CTA.
+17. ✅ **Admin sandbox visibility** — DONE 2 June. "Sandbox" column in active partners table. "Live" badge if provisioned, "Provision" button if not.
+18. ✅ **Partner onboarding email sequence** — DONE 2 June. Day 2 (sandbox how-to), day 7 (register first deal), day 14 (share referral link). Scheduled via setTimeout on approval.
+19. ✅ **Partner pricing page** — DONE 2 June. `/dashboard/partner/pricing` — free sandbox, Starter/Growth client pricing, commission rates by tier.
+20. **Update partner onboarding guide and value deck** — still needs updating to reflect correct model.
 
 ### Portal remaining
 

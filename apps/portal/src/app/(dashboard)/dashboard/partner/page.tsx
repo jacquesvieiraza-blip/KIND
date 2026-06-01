@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import {
   Handshake, Copy, CheckCircle, ChevronDown, ChevronUp,
   ExternalLink, Users, TrendingUp, Clock, Briefcase, Circle,
+  Monitor, Loader2, LogIn, ArrowRight,
 } from 'lucide-react'
 
 const INDUSTRIES = [
@@ -138,6 +139,12 @@ export default function PartnerPage() {
 
   const [copiedRef, setCopiedRef] = useState(false)
 
+  // Sandbox state
+  interface SandboxInfo { provisioned: boolean; sandbox_client_id?: string; expires_at?: string; portal_url?: string; reason?: string }
+  const [sandbox, setSandbox] = useState<SandboxInfo | null>(null)
+  const [sandboxLoginLoading, setSandboxLoginLoading] = useState(false)
+  const [sandboxLoginError, setSandboxLoginError] = useState<string | null>(null)
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { setLoading(false); return }
@@ -145,6 +152,11 @@ export default function PartnerPage() {
       try {
         const result = await api.get<DashboardData>('/partners/me', session.access_token)
         setData(result)
+        // Fetch sandbox info
+        try {
+          const sb = await api.get<SandboxInfo>('/partners/me/sandbox', session.access_token)
+          setSandbox(sb)
+        } catch { /* sandbox fetch failure is non-critical */ }
       } catch (err: any) {
         if (err?.status === 404) setNotPartner(true)
         else setFetchError(err?.message ?? 'Failed to load partner dashboard')
@@ -179,6 +191,24 @@ export default function PartnerPage() {
       setDealError(err.message ?? 'Failed to register deal')
     }
     setDealSubmitting(false)
+  }
+
+  async function handleSandboxLogin() {
+    if (!token || sandboxLoginLoading) return
+    setSandboxLoginLoading(true)
+    setSandboxLoginError(null)
+    try {
+      const result = await api.post<{ data: { magic_link: string | null } }>('/partners/me/sandbox-login', {}, token)
+      const link = result?.data?.magic_link
+      if (link) {
+        window.open(link, '_blank', 'noopener,noreferrer')
+      } else {
+        setSandboxLoginError('Could not generate login link — please try again.')
+      }
+    } catch (err: any) {
+      setSandboxLoginError(err.message ?? 'Login failed')
+    }
+    setSandboxLoginLoading(false)
   }
 
   function copyReferralLink() {
@@ -309,6 +339,80 @@ export default function PartnerPage() {
             <span className="text-xs font-semibold text-[#7C3AED]/60 uppercase tracking-wider">Active deals</span>
           </div>
           <p className="text-2xl font-bold text-[#1E1152]">{stats.active_deals}</p>
+        </div>
+      </div>
+
+      {/* ── Demo Sandbox ─────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-purple-50 flex items-center gap-2">
+          <Monitor className="w-4 h-4 text-[#7C3AED]" />
+          <h2 className="font-semibold text-[#1E1152] text-sm">Demo Sandbox</h2>
+          {sandbox?.provisioned && (
+            <span className="ml-auto px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">Active</span>
+          )}
+        </div>
+        <div className="px-5 py-5">
+          {!sandbox && (
+            <p className="text-sm text-gray-400">Loading sandbox status…</p>
+          )}
+          {sandbox && !sandbox.provisioned && sandbox.reason === 'pending_approval' && (
+            <p className="text-sm text-gray-500">Your sandbox will be provisioned when your application is approved.</p>
+          )}
+          {sandbox && !sandbox.provisioned && sandbox.reason !== 'pending_approval' && (
+            <div className="text-sm text-gray-500 space-y-1">
+              <p>Your demo sandbox is being set up — you'll receive an email when it's ready. This usually takes a few minutes.</p>
+            </div>
+          )}
+          {sandbox?.provisioned && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Your demo environment is live and pre-loaded with SaaS leads, an active ICP, and 100 credits.
+                Use it to walk any prospect through K.I.N.D — log in as the demo client and show them the full experience.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div className="bg-purple-50 rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold text-[#7C3AED]/60 uppercase tracking-wider mb-1">Leads</p>
+                  <p className="font-semibold text-[#1E1152]">Pre-loaded SaaS leads</p>
+                </div>
+                <div className="bg-purple-50 rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold text-[#7C3AED]/60 uppercase tracking-wider mb-1">Credits</p>
+                  <p className="font-semibold text-[#1E1152]">100 credits</p>
+                </div>
+                <div className="bg-purple-50 rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold text-[#7C3AED]/60 uppercase tracking-wider mb-1">Expires</p>
+                  <p className="font-semibold text-[#1E1152]">
+                    {sandbox.expires_at
+                      ? new Date(sandbox.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : '90 days'}
+                  </p>
+                </div>
+              </div>
+              {sandboxLoginError && (
+                <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{sandboxLoginError}</p>
+              )}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleSandboxLogin}
+                  disabled={sandboxLoginLoading}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
+                >
+                  {sandboxLoginLoading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Opening sandbox…</>
+                    : <><LogIn className="w-4 h-4" /> Open sandbox (one-click login)</>}
+                </button>
+                <a
+                  href="/dashboard/partner/pricing"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-purple-200 hover:bg-purple-50 text-[#7C3AED] text-sm font-semibold rounded-xl transition-colors"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  Want your own pipeline? See pricing →
+                </a>
+              </div>
+              <p className="text-xs text-gray-400">
+                The sandbox is for demos only. To use K.I.N.D for your own outreach, sign up as a client at standard rates.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

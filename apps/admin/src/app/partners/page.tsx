@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
   Handshake, Clock, CheckCircle2, DollarSign, Loader2, XCircle,
-  Briefcase, TrendingUp, AlertCircle, CreditCard,
+  Briefcase, TrendingUp, AlertCircle, CreditCard, Monitor,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -23,6 +23,7 @@ interface Partner {
   referral_count: number
   total_paid_zar: number
   created_at: string
+  demo_env_id: string | null
 }
 
 interface Deal {
@@ -143,7 +144,7 @@ export default function PartnersPage() {
   const [toast, setToast] = useState<ToastState | null>(null)
 
   // Per-row action loading states
-  const [partnerLoading, setPartnerLoading] = useState<Record<string, 'approve' | 'reject' | null>>({})
+  const [partnerLoading, setPartnerLoading] = useState<Record<string, 'approve' | 'reject' | 'sandbox' | null>>({})
   const [dealLoading, setDealLoading] = useState<Record<string, string | null>>({})
   const [commissionLoading, setCommissionLoading] = useState<Record<string, string | null>>({})
 
@@ -211,6 +212,28 @@ export default function PartnersPage() {
         await fetchAll()
       } else {
         showToast((data as { error?: string }).error || `Failed to ${action} partner`, false)
+      }
+    } catch {
+      showToast('Network error', false)
+    }
+    setPartnerLoading(prev => ({ ...prev, [partnerId]: null }))
+  }
+
+  async function handleProvisionSandbox(partnerId: string, partnerName: string) {
+    if (!window.confirm(`Provision demo sandbox for ${partnerName}?`)) return
+    setPartnerLoading(prev => ({ ...prev, [partnerId]: 'sandbox' }))
+    try {
+      const res = await fetch(`/api/proxy/partners/admin/${partnerId}/provision-sandbox`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        const d = data as { already_provisioned?: boolean }
+        showToast(d.already_provisioned ? 'Sandbox already exists' : `Sandbox provisioned for ${partnerName}`, true)
+        await fetchAll()
+      } else {
+        showToast((data as { error?: string }).error || 'Failed to provision sandbox', false)
       }
     } catch {
       showToast('Network error', false)
@@ -448,7 +471,7 @@ export default function PartnersPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-purple-100">
-                      {['Partner', 'Company', 'Country', 'Tier', 'Referral Code', 'Clients', 'Earned', 'Status', ''].map(h => (
+                      {['Partner', 'Company', 'Country', 'Tier', 'Referral Code', 'Clients', 'Earned', 'Sandbox', 'Status', ''].map(h => (
                         <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
@@ -473,6 +496,24 @@ export default function PartnersPage() {
                         </td>
                         <td className="px-5 py-3 text-gray-700 font-medium">{partner.referral_count ?? 0}</td>
                         <td className="px-5 py-3 text-gray-700 font-medium">{formatZAR(partner.total_paid_zar)}</td>
+                        <td className="px-5 py-3">
+                          {partner.demo_env_id ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                              <Monitor className="w-3 h-3" /> Live
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleProvisionSandbox(partner.id, partner.name)}
+                              disabled={!!partnerLoading[partner.id]}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-60 transition-colors"
+                            >
+                              {partnerLoading[partner.id] === 'sandbox'
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Monitor className="w-3 h-3" />}
+                              Provision
+                            </button>
+                          )}
+                        </td>
                         <td className="px-5 py-3"><PartnerStatusBadge status={partner.status} /></td>
                         <td className="px-5 py-3">
                           <Link href={`/partners/${partner.id}`} className="text-xs text-[#7C3AED] hover:text-purple-800 font-semibold">

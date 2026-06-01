@@ -7406,7 +7406,7 @@ Signed for and on behalf of [PARTNER COMPANY]: _____________________ Date: _____
 
 | Commit | Date | Time (UTC) | What changed |
 |--------|------|------------|-------------|
-| (pending) | 2 Jun 2026 | — | feat: partner sandbox fully built (C4-C8), verification audit, Stripe docs update, Milla languages |
+| `096b411` | 2 Jun 2026 | — | feat: verification audit, Stripe docs, Milla languages, partner onboarding step 6 detail |
 | `6a57bbf` | 31 May 2026 | 20:27 UTC | docs: MASTER.md complete audit — full built/not-built lists, all founder actions F1-F30, commit log Section 43 |
 | `50295d2` | 31 May 2026 | 20:21 UTC | docs: MASTER.md full platform audit — verified routes, partial builds, complete founder + Claude action lists |
 | `9a41d99` | 31 May 2026 | 20:17 UTC | docs: MASTER.md morning brief — full audit, founder action list, redundancy plan, bug audit protocol |

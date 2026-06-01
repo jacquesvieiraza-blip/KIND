@@ -572,6 +572,74 @@
     .reveal-delay-2 { transition-delay: 0.2s; }
     .reveal-delay-3 { transition-delay: 0.3s; }
 
+    /* PHASE 1 — HERO ORBS */
+    .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+    .hero-orb { position: absolute; border-radius: 50%; }
+    .hero-orb-1 {
+      width: 660px; height: 660px;
+      background: radial-gradient(circle, rgba(37,99,235,0.09) 0%, transparent 65%);
+      top: -220px; right: -80px;
+      animation: orb-drift-a 22s ease-in-out infinite alternate;
+    }
+    .hero-orb-2 {
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 65%);
+      bottom: -60px; left: -80px;
+      animation: orb-drift-b 28s ease-in-out infinite alternate;
+    }
+    .hero-orb-3 {
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(10,10,10,0.035) 0%, transparent 65%);
+      top: 35%; left: 42%;
+      animation: orb-drift-c 18s ease-in-out infinite alternate;
+    }
+    @keyframes orb-drift-a { to { transform: translate(-50px, 40px); } }
+    @keyframes orb-drift-b { to { transform: translate(60px, -50px); } }
+    @keyframes orb-drift-c { to { transform: translate(-28px, 22px) scale(1.18); } }
+    .hero-grain {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 220px 220px;
+      opacity: 0.022;
+    }
+    .hero-text, .hero-agent { position: relative; z-index: 1; }
+
+    /* PHASE 1 — REASONING LOOP TICKER */
+    .reasoning-loop-steps {
+      overflow: hidden; display: block; user-select: none;
+      -webkit-mask: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+      mask: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+    }
+    .rl-track {
+      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+      animation: rl-scroll 30s linear infinite;
+    }
+    .reasoning-loop:hover .rl-track { animation-play-state: paused; }
+    @keyframes rl-scroll { to { transform: translateX(-50%); } }
+
+    /* PHASE 1 — LEVEL 3 GLOW PULSE */
+    @keyframes level3-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
+      50% { box-shadow: 0 0 48px rgba(37,99,235,0.22), 0 0 0 1px rgba(37,99,235,0.14); }
+    }
+    .level-card.active-level { animation: level3-pulse 3.8s ease-in-out infinite; }
+
+    /* PHASE 1 — SLIDE FROM LEFT */
+    .reveal-left {
+      opacity: 0; transform: translateX(-28px);
+      transition: opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1);
+    }
+    .reveal-left.visible { opacity: 1; transform: none; }
+
+    /* PHASE 1 — FIGSY VOICE TYPEWRITER */
+    #figsy-voice-text { min-height: 3.6em; }
+
+    /* PHASE 1 — REDUCED MOTION */
+    @media (prefers-reduced-motion: reduce) {
+      .hero-orb, .rl-track, .level-card.active-level { animation: none !important; }
+      .reveal-left { opacity: 1 !important; transform: none !important; transition: none !important; }
+    }
+
     /* HERO LIVE CHIP */
     .live-chip {
       display: inline-flex; align-items: center; gap: 8px;
@@ -847,6 +915,12 @@
 
 <!-- HERO -->
 <div class="hero">
+  <div class="hero-orb-wrap" aria-hidden="true">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+    <div class="hero-grain"></div>
+  </div>
   <div class="hero-text">
     <div class="live-chip"><span class="live-dot"></span>Live now — first leads in under 10 minutes</div>
     <div class="hero-label">⚡ The AI Sales Team That Works While You Sleep</div>
@@ -944,7 +1018,7 @@
       </ul>
       <div style="background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:16px 20px;margin-top:20px">
         <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin-bottom:8px">FIGSY's voice</div>
-        <div style="font-size:0.88rem;font-style:italic;color:rgba(0,0,0,0.7);line-height:1.6">"Saw you're leading growth at [Company] &mdash; thought what we're doing might be relevant. Worth a 15-minute call this week?"</div>
+        <div id="figsy-voice-text" style="font-size:0.88rem;font-style:italic;color:rgba(0,0,0,0.7);line-height:1.6"></div>
       </div>
     </div>
     <div class="prod">
@@ -976,21 +1050,40 @@
     <div class="reasoning-loop">
       <div class="reasoning-loop-label">FIGSY's Reasoning Loop</div>
       <div class="reasoning-loop-steps">
-        <span class="rl-step">Scans 250M+ contacts</span>
-        <span class="rl-arrow">&rarr;</span>
-        <span class="rl-step">Scores against ICP (0&ndash;100)</span>
-        <span class="rl-arrow">&rarr;</span>
-        <span class="rl-step">Writes unique email per lead</span>
-        <span class="rl-arrow">&rarr;</span>
-        <span class="rl-step">Sends &amp; tracks</span>
-        <span class="rl-arrow">&rarr;</span>
-        <span class="rl-step">Reads every reply</span>
-        <span class="rl-arrow">&rarr;</span>
-        <span class="rl-step">Books or follows up</span>
-        <span class="rl-arrow">&rarr;</span>
-        <span class="rl-step">Updates Campaign Intelligence</span>
-        <span class="rl-arrow">&rarr;</span>
-        <span class="rl-step">Starts over</span>
+        <div class="rl-track">
+          <span class="rl-step">Scans 250M+ contacts</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Scores against ICP (0&ndash;100)</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Writes unique email per lead</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Sends &amp; tracks</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Reads every reply</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Books or follows up</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Updates Campaign Intelligence</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Starts over</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Scans 250M+ contacts</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Scores against ICP (0&ndash;100)</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Writes unique email per lead</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Sends &amp; tracks</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Reads every reply</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Books or follows up</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Updates Campaign Intelligence</span>
+          <span class="rl-arrow">&rarr;</span>
+          <span class="rl-step">Starts over</span>
+          <span class="rl-arrow">&rarr;</span>
+        </div>
       </div>
     </div>
 
@@ -1021,7 +1114,7 @@
       </div>
     </div>
 
-    <div class="figsy-steps" id="figsy-steps">
+    <div class="figsy-steps reveal-left" id="figsy-steps">
       <div class="figsy-scroll-step active" data-thought="Scanning 250M+ contacts from Apollo. Filtering by industry, title, geography, and company size to match your ICP exactly. Every lead scored 0-100 before a single email goes out.">
         <div class="step-num">Step 01</div>
         <h4>ICP-matched lead sourcing</h4>
@@ -1089,19 +1182,19 @@
       <p style="text-align:center;color:rgba(255,255,255,0.4);font-size:1rem;max-width:520px;margin:0 auto">K.I.N.D moves you to Level 3 in 10 minutes.</p>
     </div>
     <div class="level-grid">
-      <div class="level-card">
+      <div class="level-card reveal">
         <div class="level-num">Level 1</div>
         <span class="level-badge lb-grey">Reactive</span>
         <h3>You chase leads.</h3>
         <p>Your team spends hours sourcing contacts manually, writing outreach from scratch, and chasing people who never reply. Pipeline depends entirely on how much time your people have.</p>
       </div>
-      <div class="level-card">
+      <div class="level-card reveal reveal-delay-1">
         <div class="level-num">Level 2</div>
         <span class="level-badge lb-muted">Assisted</span>
         <h3>Tools help you.</h3>
         <p>You use platforms to find leads or schedule emails. But someone still has to configure, monitor, write, and decide. You've added technology &mdash; you haven't removed the ceiling.</p>
       </div>
-      <div class="level-card active-level">
+      <div class="level-card active-level reveal reveal-delay-2">
         <div class="level-num">Level 3</div>
         <span class="level-badge lb-blue">Proactive</span>
         <h3>Your AI team does it for you.</h3>
@@ -1432,7 +1525,7 @@
         const dist = Math.sqrt(dx * dx + dy * dy)
         if (dist < 160) {
           ctx.beginPath()
-          ctx.strokeStyle = `rgba(0,102,255,${0.06 * (1 - dist / 160)})`
+          ctx.strokeStyle = `rgba(37,99,235,${0.09 * (1 - dist / 160)})`
           ctx.lineWidth = 0.8
           ctx.moveTo(nodes[i].x, nodes[i].y)
           ctx.lineTo(nodes[j].x, nodes[j].y)
@@ -1444,9 +1537,19 @@
     nodes.forEach(n => {
       n.pulse += 0.02
       const glow = (Math.sin(n.pulse) + 1) / 2
+      // halo
+      const haloR = n.r * 4 + glow * 3
+      const hg = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, haloR)
+      hg.addColorStop(0, `rgba(37,99,235,${0.1 + glow * 0.07})`)
+      hg.addColorStop(1, 'rgba(37,99,235,0)')
       ctx.beginPath()
-      ctx.arc(n.x, n.y, n.r + glow, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(0,102,255,${0.25 + glow * 0.35})`
+      ctx.arc(n.x, n.y, haloR, 0, Math.PI * 2)
+      ctx.fillStyle = hg
+      ctx.fill()
+      // core
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, n.r + glow * 0.6, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(37,99,235,${0.45 + glow * 0.3})`
       ctx.fill()
 
       n.x += n.vx
@@ -1472,7 +1575,7 @@
       }
     })
   }, { threshold: 0.12 })
-  document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el) })
+  document.querySelectorAll('.reveal, .reveal-left').forEach(function(el) { revealObserver.observe(el) })
 
   // STAT COUNTERS
   const counterObserver = new IntersectionObserver(function(entries) {
@@ -1543,6 +1646,42 @@
       })
     }, { threshold: 0.5, rootMargin: '-10% 0px -40% 0px' })
     figsySteps.forEach(function(s) { stepObserver.observe(s) })
+  }
+
+  // FIGSY VOICE TYPEWRITER
+  var voiceEl = document.getElementById('figsy-voice-text')
+  if (voiceEl) {
+    var voiceSamples = [
+      '“Saw you’re leading growth at [Company] — thought what we’re doing might be relevant. Worth a 15-minute call this week?”',
+      '“Hi [Name] — noticed [Company] is scaling fast. We’ve helped similar teams add 3–5 qualified leads a week without extra headcount. Open to a quick 15?”',
+      '“Saw your post on pipeline building, [Name]. We run the same outbound system on our own business — happy to show you how it works.”'
+    ]
+    var vIdx = 0, vChar = 0, vDeleting = false, vPaused = false
+    function voiceStep() {
+      if (vPaused) return
+      var phrase = voiceSamples[vIdx]
+      if (!vDeleting) {
+        vChar++
+        voiceEl.textContent = phrase.substring(0, vChar)
+        if (vChar === phrase.length) {
+          vPaused = true
+          setTimeout(function() { vPaused = false; vDeleting = true; voiceStep() }, 2800)
+          return
+        }
+        setTimeout(voiceStep, 48)
+      } else {
+        vChar--
+        voiceEl.textContent = phrase.substring(0, vChar)
+        if (vChar === 0) {
+          vDeleting = false
+          vIdx = (vIdx + 1) % voiceSamples.length
+          setTimeout(voiceStep, 500)
+          return
+        }
+        setTimeout(voiceStep, 22)
+      }
+    }
+    setTimeout(voiceStep, 1200)
   }
 
   // Smooth nav dropdowns

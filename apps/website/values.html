@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Values &mdash; K.I.N.D</title>
+  <meta name="description" content="The principles that guide how we build K.I.N.D — Transparency, Precision, Africa-first, and Customer obsession." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #2563eb; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .back-link:hover { color: var(--dark); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+
+    /* HERO */
+    .page-hero { background: var(--dark); padding: 100px 48px 80px; position: relative; overflow: hidden; }
+    .page-hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 700px; height: 500px; background: radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 65%); pointer-events: none; }
+    .page-hero-inner { max-width: 720px; margin: 0 auto; position: relative; z-index: 1; }
+    .page-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; background: rgba(37,99,235,0.15); color: #60a5fa; margin-bottom: 20px; }
+    .page-hero h1 { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; letter-spacing: -0.04em; color: #fff; line-height: 1.05; margin-bottom: 20px; }
+    .page-hero p { font-size: 1.1rem; color: rgba(255,255,255,0.45); line-height: 1.75; max-width: 600px; }
+
+    /* VALUES GRID */
+    .values-wrap { max-width: 1080px; margin: 0 auto; padding: 80px 48px; }
+    .values-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; margin-bottom: 80px; }
+    .value-card { background: var(--light); border-radius: 20px; padding: 48px 40px; }
+    .value-icon { font-size: 2rem; margin-bottom: 20px; display: block; }
+    .value-name { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 12px; }
+    .value-card h2 { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.02em; color: var(--dark); margin-bottom: 16px; line-height: 1.2; }
+    .value-card p { font-size: 0.9rem; color: rgba(0,0,0,0.5); line-height: 1.8; margin-bottom: 12px; }
+    .value-card p:last-child { margin-bottom: 0; }
+
+    /* IN PRACTICE */
+    .practice-section { background: var(--dark); border-radius: 24px; padding: 56px 48px; margin-bottom: 80px; }
+    .practice-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #60a5fa; margin-bottom: 16px; }
+    .practice-section h2 { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; margin-bottom: 32px; }
+    .practice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .practice-item { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+    .practice-item h3 { font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .practice-item p { font-size: 0.78rem; color: rgba(255,255,255,0.4); line-height: 1.7; }
+
+    /* BOTTOM LINKS */
+    .story-links { display: flex; gap: 16px; flex-wrap: wrap; padding-top: 40px; border-top: 1px solid var(--border); }
+    .story-link-card { flex: 1; min-width: 200px; border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-decoration: none; transition: border-color .2s, background .2s; }
+    .story-link-card:hover { border-color: rgba(0,0,0,0.2); background: var(--light); }
+    .slc-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 6px; }
+    .slc-title { font-size: 0.95rem; font-weight: 800; color: var(--dark); }
+    .slc-arrow { font-size: 0.8rem; color: rgba(0,0,0,0.3); margin-top: 8px; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .page-hero { padding: 72px 24px 56px; }
+      .values-wrap { padding: 56px 24px; }
+      .values-grid { grid-template-columns: 1fr; }
+      .practice-section { padding: 40px 28px; }
+      .practice-grid { grid-template-columns: 1fr; }
+      footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">&#x26A1;</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-right">
+    <a href="/" class="back-link">&#x2190; Back to home</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <span class="page-tag">Company &mdash; Values</span>
+    <h1>The principles we build on.</h1>
+    <p>Four values that guide every decision we make &mdash; about the product, the platform, and the people we build it for.</p>
+  </div>
+</div>
+
+<div class="values-wrap">
+
+  <div class="values-grid">
+
+    <div class="value-card">
+      <span class="value-icon">&#x1F50D;</span>
+      <div class="value-name">Transparency</div>
+      <h2>No black boxes.</h2>
+      <p>Every lead FIGSY sources, every email she sends, every reply she handles &mdash; fully visible, fully auditable. You always know exactly what your AI team is doing and why.</p>
+      <p>We believe that autonomy without visibility is just risk. Every decision the platform makes is logged, explainable, and reviewable. No opacity. No surprises.</p>
+    </div>
+
+    <div class="value-card">
+      <span class="value-icon">&#x1F3AF;</span>
+      <div class="value-name">Precision</div>
+      <h2>Volume without precision is noise.</h2>
+      <p>We score every lead. We contextualise every message. We monitor every campaign. More contacts does not mean more pipeline &mdash; better-targeted contacts does.</p>
+      <p>K.I.N.D is not built for spray-and-pray. It&rsquo;s built for surgical outbound that earns replies because it deserves them.</p>
+    </div>
+
+    <div class="value-card">
+      <span class="value-icon">&#x1F30D;</span>
+      <div class="value-name">Africa-first</div>
+      <h2>Built on the continent. For the continent.</h2>
+      <p>POPIA compliance is not a checkbox &mdash; it&rsquo;s a default. WhatsApp is not an add-on &mdash; it&rsquo;s core infrastructure. African B2B relationships are not an afterthought &mdash; they&rsquo;re the entire design brief.</p>
+      <p>We did not take a US product and localise it. We built from the ground up for how African B2B sales actually works.</p>
+    </div>
+
+    <div class="value-card">
+      <span class="value-icon">&#x1F91D;</span>
+      <div class="value-name">Customer obsession</div>
+      <h2>We win when you win.</h2>
+      <p>Our success metric is not accounts created or seats sold. It is meetings booked and pipeline built. If K.I.N.D is not generating real pipeline for you, we have failed &mdash; regardless of what the product does on paper.</p>
+      <p>This is why we guarantee your first campaign goes live in 5 business days. Not sometime. Not eventually. In 5 days.</p>
+    </div>
+
+  </div>
+
+  <div class="practice-section">
+    <div class="practice-label">Values in practice</div>
+    <h2>What this looks like in the product</h2>
+    <div class="practice-grid">
+      <div class="practice-item">
+        <h3>Full campaign audit trail</h3>
+        <p>Every lead sourced, every email sent, every reply handled is logged with timestamp, reasoning, and outcome. No hidden actions.</p>
+      </div>
+      <div class="practice-item">
+        <h3>ICP scoring, not volume</h3>
+        <p>Leads are scored 0&ndash;100 against your ICP before a single email is sent. Only decision-makers above your threshold get through.</p>
+      </div>
+      <div class="practice-item">
+        <h3>POPIA consent logging</h3>
+        <p>Every suppression request is logged with timestamp and channel. Compliance is not a setting you turn on &mdash; it runs by default.</p>
+      </div>
+      <div class="practice-item">
+        <h3>WhatsApp native</h3>
+        <p>Vida runs on WhatsApp Business out of the box. No third-party integration fees. No API configuration required.</p>
+      </div>
+      <div class="practice-item">
+        <h3>5-day launch guarantee</h3>
+        <p>Your first campaign goes live within 5 business days of signing up, or we extend your trial. No exceptions.</p>
+      </div>
+      <div class="practice-item">
+        <h3>Campaign auto-pause</h3>
+        <p>If a campaign drops below 1% reply rate, FIGSY pauses it automatically and alerts you. No wasted credits. No babysitting required.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="story-links">
+    <a href="story.html" class="story-link-card">
+      <div class="slc-label">Background</div>
+      <div class="slc-title">Our Story &rarr;</div>
+      <div class="slc-arrow">Why we built K.I.N.D</div>
+    </a>
+    <a href="trust.html" class="story-link-card">
+      <div class="slc-label">Compliance</div>
+      <div class="slc-title">Trust &amp; Security &rarr;</div>
+      <div class="slc-arrow">POPIA, GDPR &amp; data sovereignty</div>
+    </a>
+    <a href="playbook.html" class="story-link-card">
+      <div class="slc-label">Free download</div>
+      <div class="slc-title">The Africa-First Playbook &rarr;</div>
+      <div class="slc-arrow">Outbound frameworks for African B2B</div>
+    </a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="story.html">Story</a>
+      <a href="trust.html">Trust</a>
+      <a href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

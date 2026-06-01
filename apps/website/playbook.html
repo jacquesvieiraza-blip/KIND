@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Africa-First Outbound Playbook &mdash; Free Download &middot; K.I.N.D</title>
+  <meta name="description" content="The complete guide to B2B outbound for African markets. ICP frameworks, email templates, WhatsApp sequences, POPIA checklist. 50+ pages. Free." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #2563eb; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .back-link:hover { color: var(--dark); }
+
+    /* LAYOUT */
+    .page-wrap { max-width: 1080px; margin: 0 auto; padding: 80px 48px; display: grid; grid-template-columns: 1fr 440px; gap: 80px; align-items: start; }
+
+    /* LEFT — copy */
+    .page-tag { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 20px; display: block; }
+    .pb-title { font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1.05; margin-bottom: 20px; }
+    .pb-sub { font-size: 1.05rem; color: rgba(0,0,0,0.45); line-height: 1.8; margin-bottom: 40px; }
+    .pb-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 48px; }
+    .pb-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--light); border: 1px solid var(--border); border-radius: 100px; padding: 5px 14px; font-size: 0.72rem; font-weight: 600; color: rgba(0,0,0,0.5); }
+    .pb-badge::before { content: "✓"; color: var(--blue); font-weight: 700; }
+
+    /* WHAT'S INSIDE */
+    .inside-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 20px; }
+    .inside-list { list-style: none; padding: 0; border-top: 1px solid var(--border); }
+    .inside-item { display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+    .inside-num { font-size: 0.65rem; font-weight: 700; color: var(--blue); min-width: 24px; padding-top: 2px; }
+    .inside-text h3 { font-size: 0.9rem; font-weight: 800; color: var(--dark); margin-bottom: 4px; }
+    .inside-text p { font-size: 0.78rem; color: rgba(0,0,0,0.4); line-height: 1.6; }
+
+    /* RIGHT — form card */
+    .form-card { background: var(--dark); border-radius: 24px; padding: 40px; position: sticky; top: 80px; }
+    .form-card-book { background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.2); border-radius: 16px; aspect-ratio: 3/4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; margin-bottom: 28px; }
+    .book-icon { font-size: 3rem; }
+    .book-title { font-size: 0.82rem; font-weight: 800; color: #fff; text-align: center; max-width: 200px; line-height: 1.3; }
+    .book-sub { font-size: 0.65rem; color: rgba(255,255,255,0.35); }
+    .form-heading { font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .form-sub { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 24px; line-height: 1.6; }
+    .pb-form { display: flex; flex-direction: column; gap: 12px; }
+    .pb-input { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px 16px; font-size: 0.85rem; color: #fff; font-family: inherit; width: 100%; transition: border-color .2s; outline: none; }
+    .pb-input::placeholder { color: rgba(255,255,255,0.3); }
+    .pb-input:focus { border-color: rgba(37,99,235,0.6); }
+    .pb-submit { background: #fff; color: var(--dark); border: none; border-radius: 10px; padding: 14px; font-size: 0.9rem; font-weight: 700; cursor: pointer; font-family: inherit; width: 100%; transition: opacity .2s; margin-top: 4px; }
+    .pb-submit:hover { opacity: 0.88; }
+    .form-disclaimer { font-size: 0.65rem; color: rgba(255,255,255,0.2); text-align: center; margin-top: 12px; line-height: 1.5; }
+
+    /* THANK YOU STATE */
+    .thankyou { display: none; text-align: center; padding: 20px 0; }
+    .ty-icon { font-size: 2.5rem; margin-bottom: 16px; display: block; }
+    .ty-title { font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .ty-sub { font-size: 0.82rem; color: rgba(255,255,255,0.4); line-height: 1.6; }
+    .ty-link { display: inline-block; margin-top: 20px; background: rgba(255,255,255,0.1); color: #fff; font-size: 0.78rem; font-weight: 600; padding: 8px 18px; border-radius: 100px; text-decoration: none; transition: background .2s; }
+    .ty-link:hover { background: rgba(255,255,255,0.15); }
+
+    /* SOCIAL PROOF */
+    .proof-section { max-width: 1080px; margin: 0 auto; padding: 0 48px 80px; }
+    .proof-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 24px; }
+    .proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .proof-card { background: var(--light); border-radius: 16px; padding: 24px; }
+    .proof-quote { font-size: 0.85rem; color: rgba(0,0,0,0.6); line-height: 1.7; margin-bottom: 16px; font-style: italic; }
+    .proof-author { font-size: 0.72rem; font-weight: 700; color: rgba(0,0,0,0.35); }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+
+    @media (max-width: 900px) {
+      .page-wrap { grid-template-columns: 1fr; gap: 48px; }
+      .form-card { position: static; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .page-wrap { padding: 56px 24px; }
+      .proof-section { padding: 0 24px 56px; }
+      .proof-grid { grid-template-columns: 1fr; }
+      footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">&#x26A1;</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-right">
+    <a href="blog.html" class="back-link">&#x2190; Back to blog</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- LEFT: Copy -->
+  <div>
+    <span class="page-tag">Free download &mdash; Lead magnet</span>
+    <div class="pb-title">The Africa-First<br>Outbound Playbook</div>
+    <p class="pb-sub">The complete guide to building B2B outbound for African markets. Written for founders and sales teams who are tired of importing US playbooks that don&rsquo;t work here.</p>
+    <div class="pb-badges">
+      <span class="pb-badge">50+ pages</span>
+      <span class="pb-badge">Free download</span>
+      <span class="pb-badge">No spam, ever</span>
+      <span class="pb-badge">POPIA compliant</span>
+    </div>
+
+    <div class="inside-label">What&rsquo;s inside</div>
+    <ul class="inside-list">
+      <li class="inside-item">
+        <span class="inside-num">01</span>
+        <div class="inside-text">
+          <h3>The African ICP framework</h3>
+          <p>How to build an Ideal Customer Profile for South African, East African, and West African B2B markets. Industry weighting, decision-maker mapping, and POPIA-compliant sourcing criteria.</p>
+        </div>
+      </li>
+      <li class="inside-item">
+        <span class="inside-num">02</span>
+        <div class="inside-text">
+          <h3>Cold email templates that get replies</h3>
+          <p>15 proven email templates written for African B2B contexts &mdash; FinTech, SaaS, Professional Services, Real Estate, and Recruitment. Personalisation variables included.</p>
+        </div>
+      </li>
+      <li class="inside-item">
+        <span class="inside-num">03</span>
+        <div class="inside-text">
+          <h3>WhatsApp B2B sequence playbook</h3>
+          <p>The full WhatsApp outreach framework: first message, follow-up cadence, qualifying questions, and handoff triggers. Built for WhatsApp Business API.</p>
+        </div>
+      </li>
+      <li class="inside-item">
+        <span class="inside-num">04</span>
+        <div class="inside-text">
+          <h3>POPIA compliance checklist</h3>
+          <p>A 20-point compliance checklist for outbound campaigns. Consent basis, suppression management, legitimate interest documentation, and data subject rights.</p>
+        </div>
+      </li>
+      <li class="inside-item">
+        <span class="inside-num">05</span>
+        <div class="inside-text">
+          <h3>Campaign performance benchmarks</h3>
+          <p>Reply rate benchmarks by industry, ICP type, and message format for African B2B markets. Know what good looks like before your first campaign launches.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- RIGHT: Form -->
+  <div>
+    <div class="form-card">
+      <div class="form-card-book">
+        <span class="book-icon">&#x1F4D6;</span>
+        <div class="book-title">The Africa-First Outbound Playbook</div>
+        <div class="book-sub">K.I.N.D &middot; 2026 Edition</div>
+      </div>
+
+      <div id="form-state">
+        <div class="form-heading">Get instant access</div>
+        <p class="form-sub">Enter your details and we&rsquo;ll send the playbook to your inbox immediately. No spam &mdash; just this guide.</p>
+        <form class="pb-form" onsubmit="submitPlaybook(event)">
+          <input class="pb-input" type="text" name="name" placeholder="Your name" required />
+          <input class="pb-input" type="email" name="email" placeholder="Work email" required />
+          <input class="pb-input" type="text" name="company" placeholder="Company name" />
+          <button type="submit" class="pb-submit">Send me the playbook &rarr;</button>
+        </form>
+        <p class="form-disclaimer">By submitting, you agree to receive the playbook and occasional K.I.N.D updates. Unsubscribe any time. POPIA compliant.</p>
+      </div>
+
+      <div class="thankyou" id="ty-state">
+        <span class="ty-icon">&#x1F4EC;</span>
+        <div class="ty-title">Playbook on its way!</div>
+        <p class="ty-sub">Check your inbox &mdash; the Africa-First Outbound Playbook will arrive within a few minutes. Check your spam folder if you don&rsquo;t see it.</p>
+        <a href="https://app.get-kind.com/signup" class="ty-link">Start your free trial while you wait &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- SOCIAL PROOF -->
+<div class="proof-section">
+  <div class="proof-label">What readers say</div>
+  <div class="proof-grid">
+    <div class="proof-card">
+      <div class="proof-quote">&ldquo;Finally a playbook written for how South African B2B actually works. The ICP framework alone saved us months of trial and error.&rdquo;</div>
+      <div class="proof-author">[NAME] &middot; [TITLE] &middot; [COMPANY] &mdash; placeholder</div>
+    </div>
+    <div class="proof-card">
+      <div class="proof-quote">&ldquo;The WhatsApp sequence section is worth the download alone. We&rsquo;d been winging our WhatsApp outreach for two years. This gave us a real framework.&rdquo;</div>
+      <div class="proof-author">[NAME] &middot; [TITLE] &middot; [COMPANY] &mdash; placeholder</div>
+    </div>
+    <div class="proof-card">
+      <div class="proof-quote">&ldquo;The POPIA checklist was the first plain-English compliance guide I&rsquo;ve seen that&rsquo;s actually usable by a non-lawyer. Shared it with our whole team.&rdquo;</div>
+      <div class="proof-author">[NAME] &middot; [TITLE] &middot; [COMPANY] &mdash; placeholder</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="blog.html">Blog</a>
+      <a href="trust.html">Trust</a>
+      <a href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function submitPlaybook(e) {
+    e.preventDefault();
+    // TODO: wire to email service (Mailchimp, ConvertKit, etc.)
+    // form data: new FormData(e.target)
+    document.getElementById('form-state').style.display = 'none';
+    const ty = document.getElementById('ty-state');
+    ty.style.display = 'block';
+  }
+</script>
+</body>
+</html>

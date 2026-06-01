@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog &mdash; K.I.N.D</title>
+  <meta name="description" content="Outbound strategy, AI sales insights, and African B2B growth frameworks from the K.I.N.D team." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #2563eb; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .back-link:hover { color: var(--dark); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+
+    /* HERO */
+    .blog-hero { padding: 80px 48px 64px; border-bottom: 1px solid var(--border); }
+    .blog-hero-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+    .page-tag { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; display: block; }
+    .blog-hero h1 { font-size: clamp(2.2rem, 4.5vw, 3.5rem); font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1.05; }
+    .blog-hero p { font-size: 0.95rem; color: rgba(0,0,0,0.4); margin-top: 12px; max-width: 440px; line-height: 1.7; }
+    .playbook-pill { display: inline-flex; align-items: center; gap: 10px; background: var(--dark); border-radius: 100px; padding: 10px 20px 10px 12px; text-decoration: none; transition: opacity .2s; flex-shrink: 0; }
+    .playbook-pill:hover { opacity: 0.85; }
+    .pp-icon { width: 28px; height: 28px; background: var(--blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+    .pp-text { font-size: 0.78rem; font-weight: 700; color: #fff; }
+    .pp-sub { font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-top: 1px; }
+
+    /* FEATURED */
+    .blog-wrap { max-width: 1080px; margin: 0 auto; padding: 64px 48px; }
+    .featured-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 20px; }
+    .featured-card { background: var(--dark); border-radius: 24px; padding: 56px 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; margin-bottom: 64px; cursor: pointer; transition: opacity .2s; text-decoration: none; }
+    .featured-card:hover { opacity: 0.92; }
+    .fc-tag { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #60a5fa; margin-bottom: 16px; display: block; }
+    .fc-title { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; line-height: 1.15; margin-bottom: 16px; }
+    .fc-desc { font-size: 0.88rem; color: rgba(255,255,255,0.4); line-height: 1.75; margin-bottom: 24px; }
+    .fc-meta { font-size: 0.72rem; color: rgba(255,255,255,0.25); }
+    .fc-cta { display: inline-block; background: #fff; color: var(--dark); font-size: 0.82rem; font-weight: 700; padding: 10px 22px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
+    .fc-thumb { background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.2); border-radius: 16px; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+
+    /* ARTICLE GRID */
+    .articles-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 20px; }
+    .articles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-bottom: 64px; }
+    .article-card { background: var(--light); border-radius: 20px; padding: 32px; display: flex; flex-direction: column; text-decoration: none; transition: background .2s; }
+    .article-card:hover { background: #eeeef0; }
+    .ac-tag { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); margin-bottom: 12px; }
+    .ac-title { font-size: 1rem; font-weight: 800; color: var(--dark); line-height: 1.3; margin-bottom: 12px; }
+    .ac-desc { font-size: 0.8rem; color: rgba(0,0,0,0.45); line-height: 1.7; flex: 1; }
+    .ac-meta { font-size: 0.65rem; color: rgba(0,0,0,0.3); margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.06); }
+
+    /* PLAYBOOK CTA */
+    .playbook-cta { background: var(--blue); border-radius: 24px; padding: 56px; text-align: center; }
+    .playbook-cta h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 12px; }
+    .playbook-cta p { font-size: 0.95rem; color: rgba(255,255,255,0.6); margin-bottom: 28px; }
+    .pb-btn { display: inline-block; background: #fff; color: var(--blue); font-size: 0.9rem; font-weight: 700; padding: 12px 28px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
+    .pb-btn:hover { opacity: 0.88; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .blog-hero { padding: 56px 24px 40px; }
+      .blog-wrap { padding: 48px 24px; }
+      .featured-card { grid-template-columns: 1fr; padding: 36px 28px; gap: 28px; }
+      .fc-thumb { display: none; }
+      .articles-grid { grid-template-columns: 1fr; }
+      .playbook-cta { padding: 40px 28px; }
+      footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">&#x26A1;</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-right">
+    <a href="/" class="back-link">&#x2190; Back to home</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
+  </div>
+</nav>
+
+<div class="blog-hero">
+  <div class="blog-hero-inner">
+    <div>
+      <span class="page-tag">Resources &mdash; Blog</span>
+      <h1>Outbound intelligence<br>for African B2B.</h1>
+      <p>Strategy, frameworks, and real campaign data from teams building pipeline on K.I.N.D.</p>
+    </div>
+    <a href="playbook.html" class="playbook-pill">
+      <div class="pp-icon">&#x1F4D6;</div>
+      <div>
+        <div class="pp-text">Free: Africa-First Outbound Playbook</div>
+        <div class="pp-sub">50+ pages &middot; Download instantly</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="blog-wrap">
+
+  <!-- FEATURED -->
+  <div class="featured-label">Featured</div>
+  <a href="playbook.html" class="featured-card">
+    <div>
+      <span class="fc-tag">&#x1F4D6; Free download</span>
+      <div class="fc-title">The Africa-First Outbound Playbook</div>
+      <div class="fc-desc">The complete guide to building B2B outbound for African markets. ICP frameworks, email templates, WhatsApp sequences, and a POPIA compliance checklist &mdash; in one 50-page guide.</div>
+      <div class="fc-meta">K.I.N.D Team &middot; June 2026 &middot; 50 pages &middot; Free</div>
+      <div style="margin-top:20px"><span class="fc-cta">Download free &rarr;</span></div>
+    </div>
+    <div class="fc-thumb">&#x1F4D6;</div>
+  </a>
+
+  <!-- ARTICLES -->
+  <div class="articles-label">Latest articles</div>
+  <div class="articles-grid">
+
+    <a href="#" class="article-card">
+      <div class="ac-tag">Outbound strategy</div>
+      <div class="ac-title">Why African B2B outbound is broken &mdash; and how we fixed it</div>
+      <div class="ac-desc">Most outbound playbooks are written for US markets. This is what changes when you build for South Africa, Kenya, and Nigeria instead.</div>
+      <div class="ac-meta">[AUTHOR] &middot; [DATE] &middot; [READ_TIME] min read &mdash; placeholder</div>
+    </a>
+
+    <a href="#" class="article-card">
+      <div class="ac-tag">Email performance</div>
+      <div class="ac-title">3 reasons your cold email reply rate is below 1%</div>
+      <div class="ac-desc">Low reply rates are almost never a volume problem. They&rsquo;re a targeting, personalisation, or timing problem. Here&rsquo;s how to diagnose which one.</div>
+      <div class="ac-meta">[AUTHOR] &middot; [DATE] &middot; [READ_TIME] min read &mdash; placeholder</div>
+    </a>
+
+    <a href="#" class="article-card">
+      <div class="ac-tag">Compliance</div>
+      <div class="ac-title">POPIA and outbound sales: what every SA startup needs to know</div>
+      <div class="ac-desc">POPIA does not prohibit outbound. But it does require consent records, suppression management, and a legitimate interest basis. Here&rsquo;s the practical guide.</div>
+      <div class="ac-meta">[AUTHOR] &middot; [DATE] &middot; [READ_TIME] min read &mdash; placeholder</div>
+    </a>
+
+    <a href="#" class="article-card">
+      <div class="ac-tag">WhatsApp sales</div>
+      <div class="ac-title">WhatsApp B2B outreach: the African market advantage</div>
+      <div class="ac-desc">In South Africa and East Africa, WhatsApp has 90%+ open rates for business messages. This is how to build a compliant, high-converting B2B sequence on it.</div>
+      <div class="ac-meta">[AUTHOR] &middot; [DATE] &middot; [READ_TIME] min read &mdash; placeholder</div>
+    </a>
+
+    <a href="#" class="article-card">
+      <div class="ac-tag">ICP strategy</div>
+      <div class="ac-title">How to build an ICP that actually generates replies</div>
+      <div class="ac-desc">Most ICPs are too broad. Here&rsquo;s the framework we use internally to build ICPs that score above 3% reply rate from campaign one.</div>
+      <div class="ac-meta">[AUTHOR] &middot; [DATE] &middot; [READ_TIME] min read &mdash; placeholder</div>
+    </a>
+
+    <a href="#" class="article-card">
+      <div class="ac-tag">AI &amp; sales</div>
+      <div class="ac-title">The AI SDR question: replace, augment, or both?</div>
+      <div class="ac-desc">The real question is not whether AI replaces SDRs. It&rsquo;s about where human judgment creates irreplaceable value and where autonomous execution wins.</div>
+      <div class="ac-meta">[AUTHOR] &middot; [DATE] &middot; [READ_TIME] min read &mdash; placeholder</div>
+    </a>
+
+  </div>
+
+  <!-- PLAYBOOK CTA -->
+  <div class="playbook-cta">
+    <h2>Get the Africa-First Outbound Playbook</h2>
+    <p>50+ pages of ICP frameworks, email templates, WhatsApp sequences, and a POPIA compliance checklist. Free download.</p>
+    <a href="playbook.html" class="pb-btn">Download free &rarr;</a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="playbook.html">Playbook</a>
+      <a href="trust.html">Trust</a>
+      <a href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

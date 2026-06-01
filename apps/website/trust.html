@@ -3,554 +3,292 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trust &amp; Security — K.I.N.D</title>
-  <meta name="description" content="POPIA, GDPR, CAN-SPAM, and CCPA compliant. Data sovereignty in Cape Town. K.I.N.D is built for African business — compliant by design for SA, EU, US, and California contacts." />
+  <title>Trust &amp; Security &mdash; K.I.N.D</title>
+  <meta name="description" content="K.I.N.D is POPIA-compliant by default. Cape Town data sovereignty. GDPR-aligned for international prospects. Full audit trail on every campaign." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --blue: #0066FF;
-      --dark: #0a0a0a;
-      --mid: #444;
-      --light: #f5f5f7;
-      --border: rgba(0,0,0,0.08);
-    }
+    :root { --blue: #2563eb; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); --green: #059669; }
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
-    /* ── NAV ── */
-    nav {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 48px; height: 64px;
-      border-bottom: 1px solid var(--border);
-      position: sticky; top: 0;
-      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
-    }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
     .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
     .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
-    .nav-links { display: flex; align-items: center; gap: 2px; }
-    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
-    .nav-link:hover, .nav-link.active { color: var(--dark); background: rgba(0,0,0,0.04); }
     .nav-right { display: flex; align-items: center; gap: 10px; }
-    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
-    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
-    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .back-link:hover { color: var(--dark); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
     .btn-nav-primary:hover { opacity: 0.8; }
-    .nav-item { position: relative; }
-    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
-    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
-    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
-    .nav-dropdown {
-      opacity: 0; visibility: hidden; pointer-events: none;
-      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
-      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
-      z-index: 300; transition: opacity .15s, visibility .15s;
-    }
-    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
-    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
-    .dd-link:hover { background: rgba(0,0,0,0.04); }
-    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
-    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
-    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
-    .dd-link:hover .dd-title { color: var(--dark); }
-    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
 
-    /* ── SHARED ── */
-    .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
-    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
-    .s-title { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
-    .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
+    .trust-hero { background: var(--dark); padding: 80px 48px 72px; text-align: center; position: relative; overflow: hidden; }
+    .trust-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(5,150,105,0.12) 0%, transparent 60%); pointer-events: none; }
+    .trust-hero-inner { max-width: 800px; margin: 0 auto; position: relative; z-index: 1; }
+    .page-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; background: rgba(5,150,105,0.15); color: #34d399; margin-bottom: 28px; }
+    .trust-hero h1 { font-size: clamp(2.2rem, 4.5vw, 3.5rem); font-weight: 900; letter-spacing: -0.04em; color: #fff; line-height: 1.05; margin-bottom: 16px; }
+    .trust-hero p { font-size: 1rem; color: rgba(255,255,255,0.4); max-width: 560px; margin: 0 auto 48px; line-height: 1.75; }
 
-    /* ── HERO ── */
-    .page-hero {
-      background: var(--dark);
-      padding: 100px 48px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .page-hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.18) 0%, transparent 65%);
-      pointer-events: none;
-    }
-    .page-hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: #60a5fa; margin-bottom: 24px;
-      background: rgba(0,102,255,0.1); border: 1px solid rgba(0,102,255,0.2);
-      padding: 6px 14px; border-radius: 100px;
-    }
-    .page-hero h1 { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; color: #fff; margin-bottom: 20px; }
-    .page-hero p { font-size: 1.1rem; color: rgba(255,255,255,0.45); max-width: 560px; margin: 0 auto; line-height: 1.75; }
+    .badges { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .badge { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px 28px; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 140px; }
+    .badge-icon { font-size: 1.6rem; }
+    .badge-name { font-size: 0.72rem; font-weight: 700; color: #fff; text-align: center; }
+    .badge-status { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #34d399; }
 
-    /* ── TRUST GRID ── */
-    .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .trust-card {
-      background: var(--light); border-radius: 20px; padding: 32px 28px;
-    }
-    .trust-icon { font-size: 1.8rem; margin-bottom: 16px; }
-    .trust-card h3 { font-size: 1rem; font-weight: 700; color: var(--dark); margin-bottom: 10px; }
-    .trust-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.7; }
+    .trust-wrap { max-width: 1080px; margin: 0 auto; padding: 80px 48px; }
+    .trust-section { margin-bottom: 72px; padding-bottom: 72px; border-bottom: 1px solid var(--border); }
+    .trust-section:last-of-type { border-bottom: none; }
+    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--green); margin-bottom: 12px; }
+    .trust-section h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; color: var(--dark); margin-bottom: 16px; }
+    .trust-section .intro { font-size: 1rem; color: rgba(0,0,0,0.45); line-height: 1.8; max-width: 680px; margin-bottom: 40px; }
 
-    /* ── DARK SECTION ── */
-    .dark-section {
-      background: var(--dark);
-      padding: 100px 48px;
-    }
-    .dark-inner { max-width: 1080px; margin: 0 auto; }
-    .dark-section .s-label { color: #60a5fa; }
-    .dark-section .s-title { color: #fff; }
-    .dark-section .s-sub { color: rgba(255,255,255,0.4); }
+    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .detail-card { background: var(--light); border-radius: 16px; padding: 28px; }
+    .detail-card h3 { font-size: 0.9rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; }
+    .detail-card p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.75; margin-bottom: 10px; }
+    .check-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .check-list li { font-size: 0.82rem; color: rgba(0,0,0,0.5); display: flex; align-items: flex-start; gap: 10px; line-height: 1.6; }
+    .check-list li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; }
 
-    /* ── FEATURE LIST ── */
-    .feat-list { list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 40px; }
-    .feat-list li {
-      display: flex; align-items: flex-start; gap: 14px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px; padding: 20px 22px;
-    }
-    .feat-list li .fi { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
-    .feat-list li h4 { font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
-    .feat-list li p { font-size: 0.8rem; color: rgba(255,255,255,0.4); line-height: 1.6; }
+    .sovereignty-block { background: var(--dark); border-radius: 20px; padding: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; margin-bottom: 72px; }
+    .sb-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #34d399; margin-bottom: 12px; }
+    .sb-title { font-size: 1.5rem; font-weight: 900; color: #fff; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .sb-body { font-size: 0.85rem; color: rgba(255,255,255,0.4); line-height: 1.8; }
+    .sb-facts { display: flex; flex-direction: column; gap: 12px; }
+    .sb-fact { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 18px; }
+    .sb-fact-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); margin-bottom: 4px; }
+    .sb-fact-value { font-size: 0.85rem; font-weight: 700; color: #fff; }
 
-    /* ── LIGHT FEAT LIST ── */
-    .feat-list-light { list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 40px; }
-    .feat-list-light li {
-      display: flex; align-items: flex-start; gap: 14px;
-      background: #fff; border: 1px solid var(--border);
-      border-radius: 16px; padding: 20px 22px;
-    }
-    .feat-list-light li .fi { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
-    .feat-list-light li h4 { font-size: 0.88rem; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
-    .feat-list-light li p { font-size: 0.8rem; color: rgba(0,0,0,0.4); line-height: 1.6; }
+    .contact-block { background: var(--light); border-radius: 20px; padding: 40px 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    .contact-block h3 { font-size: 1.1rem; font-weight: 800; color: var(--dark); margin-bottom: 6px; }
+    .contact-block p { font-size: 0.85rem; color: rgba(0,0,0,0.45); }
+    .contact-link { display: inline-block; background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 700; padding: 10px 24px; border-radius: 100px; text-decoration: none; white-space: nowrap; transition: opacity .2s; }
+    .contact-link:hover { opacity: 0.8; }
 
-    /* ── DONT DO ── */
-    .dont-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
-    .dont-card {
-      border: 1.5px solid rgba(220,38,38,0.15); background: rgba(220,38,38,0.03);
-      border-radius: 16px; padding: 24px 22px;
-    }
-    .dont-card .x { color: #dc2626; font-weight: 800; font-size: 1rem; margin-bottom: 10px; }
-    .dont-card p { font-size: 0.85rem; color: rgba(0,0,0,0.5); line-height: 1.65; }
-
-    /* ── CTA BANNER ── */
-    .cta-section { padding: 80px 48px 120px; }
-    .cta-inner { max-width: 1080px; margin: 0 auto; }
-    .cta-banner {
-      background: var(--dark); border-radius: 32px; padding: 80px 64px;
-      text-align: center; position: relative; overflow: hidden;
-    }
-    .cta-banner::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.15) 0%, transparent 60%);
-      pointer-events: none;
-    }
-    .cta-banner h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 14px; }
-    .cta-banner p { font-size: 1rem; color: rgba(255,255,255,0.38); margin-bottom: 36px; }
-    .btn-cta-ghost { background: transparent; color: rgba(255,255,255,0.7); font-size: 0.95rem; font-weight: 500; padding: 14px 32px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: all .2s; text-decoration: none; display: inline-block; }
-    .btn-cta-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
-
-    /* ── FOOTER ── */
-    footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
-    .footer-inner { max-width: 1080px; margin: 0 auto; }
-    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
-    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
-    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
-    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
-    .footer-col a:hover { color: var(--dark); }
-    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
     .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
-    .footer-legal { display: flex; gap: 20px; }
-    .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
-    .footer-legal a:hover { color: var(--dark); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
 
-    .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
-
-    /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       nav { padding: 0 24px; }
-      .nav-links { display: none; }
-      .page-hero { padding: 64px 24px; }
-      .section { padding: 64px 24px; }
-      .dark-section { padding: 64px 24px; }
-      .trust-grid, .feat-list, .feat-list-light, .dont-grid { grid-template-columns: 1fr; }
-      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
-      .cta-section { padding: 64px 24px; }
-      .cta-banner { padding: 48px 28px; }
-    }
-    @media (max-width: 1024px) {
-      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .trust-hero { padding: 64px 24px 56px; }
+      .trust-wrap { padding: 56px 24px; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .sovereignty-block { grid-template-columns: 1fr; gap: 28px; padding: 32px 24px; }
+      .contact-block { padding: 28px 24px; }
+      footer { padding: 32px 24px; }
     }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
-  <a href="/" class="logo">
-    <div class="logo-icon">⚡</div>
-    <span class="logo-text">K.I.N.D</span>
-  </a>
-  <div class="nav-links">
-    <div class="nav-item">
-      <a href="index.html#products" class="nav-link">Products <span class="chevron">▾</span></a>
-      <div class="nav-dropdown">
-        <a href="index.html#products" class="dd-link"><span class="dd-icon">🎯</span><span><span class="dd-title">K.I.N.D AI — Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
-        <a href="index.html#figsy" class="dd-link"><span class="dd-icon">🤖</span><span><span class="dd-title">FIGSY — AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
-        <a href="index.html#products" class="dd-link"><span class="dd-icon">🧠</span><span><span class="dd-title">Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
-        <a href="index.html#products" class="dd-link"><span class="dd-icon">💬</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot — one embed away</span></span></a>
-      </div>
-    </div>
-    <div class="nav-item">
-      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">▾</span></a>
-      <div class="nav-dropdown" style="min-width:264px">
-        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">📊</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
-        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">🏦</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
-        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">🏠</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
-        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">⚖️</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
-      </div>
-    </div>
-    <div class="nav-item">
-      <a href="support.html" class="nav-link">Resources <span class="chevron">▾</span></a>
-      <div class="nav-dropdown">
-        <a href="support.html#faq" class="dd-link"><span class="dd-icon">📖</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
-        <a href="support.html" class="dd-link"><span class="dd-icon">🛟</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
-        <div class="dd-divider"></div>
-        <a href="https://calendly.com/jacques-vieiraza/30min" class="dd-link" target="_blank" rel="noopener noreferrer"><span class="dd-icon">📅</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
-      </div>
-    </div>
-    <div class="nav-item">
-      <a href="about.html" class="nav-link">Company <span class="chevron">▾</span></a>
-      <div class="nav-dropdown">
-        <a href="about.html" class="dd-link"><span class="dd-icon">🏢</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
-        <div class="dd-divider"></div>
-        <a href="trust.html" class="dd-link"><span class="dd-icon">🔒</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
-        <a href="partners.html" class="dd-link"><span class="dd-icon">🤝</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
-      </div>
-    </div>
-    <a href="pricing.html" class="nav-link">Pricing</a>
-    <a href="trust.html" class="nav-link active">Trust &amp; Security</a>
-    <a href="partners.html" class="nav-link">Partners</a>
-  </div>
+  <a href="/" class="logo"><div class="logo-icon">&#x26A1;</div><span class="logo-text">K.I.N.D</span></a>
   <div class="nav-right">
-    <a href="https://kindportal-production.up.railway.app/login" class="btn-nav-ghost">Log in</a>
-    <a href="https://kindportal-production.up.railway.app/signup" class="btn-nav-primary">Start free trial</a>
+    <a href="/" class="back-link">&#x2190; Back to home</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
   </div>
 </nav>
 
-<!-- HERO -->
-<div class="page-hero">
-  <div class="page-hero-inner">
-    <div class="hero-badge">🔒 Trust &amp; Security</div>
-    <h1>Built for African business.<br/>Compliant by design.</h1>
-    <p>POPIA · GDPR · CAN-SPAM · CCPA — all four covered. Data sovereignty in Cape Town. We handle compliance so you can focus on closing deals.</p>
-  </div>
-</div>
-
-<!-- DATA SOVEREIGNTY -->
-<div class="section">
-  <div class="s-label">Data Sovereignty</div>
-  <div class="s-title">Your data never leaves Africa.</div>
-  <p class="s-sub">K.I.N.D runs on Supabase's af-south-1 region — Cape Town, South Africa. Every byte stays on the continent.</p>
-  <div class="trust-grid">
-    <div class="trust-card">
-      <div class="trust-icon">🌍</div>
-      <h3>af-south-1 Cape Town</h3>
-      <p>All data is stored and processed in Supabase's Cape Town region. No cross-border transfers to US or EU data centres.</p>
-    </div>
-    <div class="trust-card">
-      <div class="trust-icon">🏛️</div>
-      <h3>In-country processing</h3>
-      <p>Lead data, email logs, contact records and campaign results are all processed within South Africa's jurisdiction.</p>
-    </div>
-    <div class="trust-card">
-      <div class="trust-icon">✅</div>
-      <h3>No US/EU data residency issues</h3>
-      <p>Your African business data doesn't trigger Schrems II concerns or cross-border POPIA transfer requirements.</p>
-    </div>
-  </div>
-</div>
-
-<div class="divider"></div>
-
-<!-- POPIA COMPLIANCE -->
-<div class="dark-section">
-  <div class="dark-inner">
-    <div class="s-label">POPIA Compliance</div>
-    <div class="s-title">Legitimate interest. Transparent. Always opt-out.</div>
-    <p class="s-sub">Our outreach model is built on POPIA's B2B legitimate interest framework — the same basis used by every professional sales team in South Africa.</p>
-    <ul class="feat-list">
-      <li>
-        <span class="fi">⚖️</span>
-        <div><h4>B2B Legitimate Interest</h4><p>We contact business professionals in their professional capacity, about products relevant to their role. This is the established POPIA basis for B2B outreach — not spam.</p></div>
-      </li>
-      <li>
-        <span class="fi">🪪</span>
-        <div><h4>Clear sender identity</h4><p>Every email identifies who is contacting the prospect, on whose behalf, and why it's relevant to them. No disguised or misleading sender information.</p></div>
-      </li>
-      <li>
-        <span class="fi">🚫</span>
-        <div><h4>One-click opt-out</h4><p>Every single email includes a clear, functional unsubscribe link. One click. No confirmation screen. No re-entry required.</p></div>
-      </li>
-      <li>
-        <span class="fi">📋</span>
-        <div><h4>Permanent blocklist</h4><p>Opt-outs are logged permanently to a blocklist. That contact is never emailed again — from any campaign, from any client on the platform.</p></div>
-      </li>
-    </ul>
-  </div>
-</div>
-
-<!-- GDPR COMPLIANCE -->
-<div class="section">
-  <div class="s-label">GDPR Compliance</div>
-  <div class="s-title">Built for Europe too.</div>
-  <p class="s-sub">K.I.N.D is GDPR-compliant for European contacts. The same principles that make us POPIA-compliant map directly to GDPR's legitimate interest basis for B2B outreach.</p>
-  <ul class="feat-list-light">
-    <li>
-      <span class="fi">⚖️</span>
-      <div><h4>Article 6(1)(f) — Legitimate Interest</h4><p>B2B outreach to business professionals in their professional capacity qualifies as legitimate interest under GDPR. Our LIA (Legitimate Interest Assessment) is documented and available on request.</p></div>
-    </li>
-    <li>
-      <span class="fi">📩</span>
-      <div><h4>Right to erasure (Article 17)</h4><p>Any contact can request deletion. Opt-outs are permanent and cross-platform — the record is removed from all active pipelines and added to a suppression list.</p></div>
-    </li>
-    <li>
-      <span class="fi">📋</span>
-      <div><h4>Transparency obligations (Article 13/14)</h4><p>Every outreach email identifies the sender, the data controller, and includes a one-click opt-out. Contacts are never left wondering who contacted them or why.</p></div>
-    </li>
-    <li>
-      <span class="fi">🌍</span>
-      <div><h4>Data transfers</h4><p>Contact data is processed on Supabase af-south-1 (Cape Town). South Africa's POPIA is recognised as providing adequate protection under GDPR's adequacy framework. No SCCs required for SA-hosted data.</p></div>
-    </li>
-  </ul>
-</div>
-
-<div class="divider"></div>
-
-<!-- CAN-SPAM COMPLIANCE -->
-<div class="dark-section">
-  <div class="dark-inner">
-    <div class="s-label">CAN-SPAM Compliance</div>
-    <div class="s-title">US contacts. Fully covered.</div>
-    <p class="s-sub">K.I.N.D is CAN-SPAM compliant for US-based contacts. All outreach meets the FTC's requirements for commercial email.</p>
-    <ul class="feat-list">
-      <li>
-        <span class="fi">🏢</span>
-        <div><h4>Clear sender identification</h4><p>Every email clearly identifies the sender's name and physical mailing address. No deceptive headers or misleading subject lines.</p></div>
-      </li>
-      <li>
-        <span class="fi">🚫</span>
-        <div><h4>Opt-out mechanism</h4><p>Every email includes a clear unsubscribe link, processed within 10 business days as required by CAN-SPAM. Opt-outs are permanent and cross-campaign.</p></div>
-      </li>
-      <li>
-        <span class="fi">✉️</span>
-        <div><h4>Honest subject lines</h4><p>Subject lines accurately reflect the content of the email. No misleading preview text or deceptive routing information.</p></div>
-      </li>
-      <li>
-        <span class="fi">📍</span>
-        <div><h4>Physical address included</h4><p>All outreach emails include a valid physical postal address for the sending organisation, as required by Section 5 of CAN-SPAM.</p></div>
-      </li>
-    </ul>
-  </div>
-</div>
-
-<!-- CCPA COMPLIANCE -->
-<div class="section">
-  <div class="s-label">CCPA / CPRA Compliance</div>
-  <div class="s-title">California. Also covered.</div>
-  <p class="s-sub">K.I.N.D is CCPA and CPRA compliant for California-based contacts and clients. We don't sell personal data — ever — and we honour all California privacy rights.</p>
-  <ul class="feat-list-light">
-    <li>
-      <span class="fi">⚖️</span>
-      <div><h4>No sale of personal data</h4><p>K.I.N.D does not sell, rent, or share personal information with third parties for monetary consideration. California residents have the right to opt out of data sales — there is nothing to opt out of here.</p></div>
-    </li>
-    <li>
-      <span class="fi">🗑️</span>
-      <div><h4>Right to delete (§1798.105)</h4><p>California residents may request deletion of their personal data held by K.I.N.D. Requests are actioned within 45 days as required under CPRA. Submit requests to privacy@get-kind.com.</p></div>
-    </li>
-    <li>
-      <span class="fi">📋</span>
-      <div><h4>Right to know (§1798.100)</h4><p>California consumers may request disclosure of what personal information K.I.N.D has collected, the sources, the purposes, and any categories shared with third parties. We respond within 45 days.</p></div>
-    </li>
-    <li>
-      <span class="fi">🚫</span>
-      <div><h4>Right to opt out of sharing</h4><p>Under CPRA, California residents may direct us not to share their personal information for cross-context behavioural advertising. K.I.N.D does not engage in this practice — your data is not used for advertising.</p></div>
-    </li>
-  </ul>
-</div>
-
-<div class="divider"></div>
-
-<!-- SECURITY -->
-<div class="section">
-  <div class="s-label">Security</div>
-  <div class="s-title">Enterprise-grade security, startup-friendly pricing.</div>
-  <p class="s-sub">Built on Supabase with row-level security, JWT auth, and zero stored passwords. Security isn't a feature — it's the foundation.</p>
-  <ul class="feat-list-light">
-    <li>
-      <span class="fi">🔐</span>
-      <div><h4>Row-Level Security (RLS)</h4><p>Every database query is scoped to the authenticated user. No tenant can access another tenant's data — enforced at the database level, not just application logic.</p></div>
-    </li>
-    <li>
-      <span class="fi">🔒</span>
-      <div><h4>Encrypted at rest</h4><p>All data is encrypted at rest in Supabase. Campaign data, contact lists, and email logs are protected even if storage media were compromised.</p></div>
-    </li>
-    <li>
-      <span class="fi">🌐</span>
-      <div><h4>HTTPS everywhere</h4><p>All connections — API, dashboard, email tracking — use TLS 1.2+. No HTTP fallback. HSTS enforced on all K.I.N.D domains.</p></div>
-    </li>
-    <li>
-      <span class="fi">🗝️</span>
-      <div><h4>No stored passwords</h4><p>Authentication uses Supabase magic links and OAuth. We never store raw passwords. Even if our database were exfiltrated, no passwords could be extracted.</p></div>
-    </li>
-    <li>
-      <span class="fi">🎫</span>
-      <div><h4>JWT API authentication</h4><p>All API calls are authenticated with short-lived JWTs. Tokens are scoped to the minimum required permissions and expire automatically.</p></div>
-    </li>
-    <li>
-      <span class="fi">🛡️</span>
-      <div><h4>Supabase infrastructure</h4><p>Built on Supabase — SOC 2 compliant infrastructure with dedicated database instances, WAF, and DDoS protection.</p></div>
-    </li>
-  </ul>
-</div>
-
-<div class="divider"></div>
-
-<!-- EMAIL INFRASTRUCTURE -->
-<div class="dark-section">
-  <div class="dark-inner">
-    <div class="s-label">Email Infrastructure</div>
-    <div class="s-title">Deliverability is not an afterthought.</div>
-    <p class="s-sub">We use Resend with a custom sending domain, full email authentication, and a domain warming protocol designed for high deliverability in African markets.</p>
-    <ul class="feat-list">
-      <li>
-        <span class="fi">📨</span>
-        <div><h4>Resend infrastructure</h4><p>All outbound email routes through Resend's enterprise-grade sending infrastructure — the same platform trusted by the world's leading SaaS companies.</p></div>
-      </li>
-      <li>
-        <span class="fi">🌐</span>
-        <div><h4>Custom send domain</h4><p>Emails are sent from send.get-kind.com — a dedicated sending domain separate from our main domain, protecting our root domain reputation.</p></div>
-      </li>
-      <li>
-        <span class="fi">✅</span>
-        <div><h4>SPF / DKIM / DMARC</h4><p>Full email authentication configured. SPF authorises our sending IPs, DKIM signs every message, and DMARC enforces policy — preventing spoofing and improving inbox placement.</p></div>
-      </li>
-      <li>
-        <span class="fi">🔥</span>
-        <div><h4>Domain warming protocol</h4><p>New campaigns start with low volume and ramp up gradually. This protects sender reputation and ensures strong deliverability from day one of your campaign.</p></div>
-      </li>
-    </ul>
-  </div>
-</div>
-
-<!-- WHAT WE DON'T DO -->
-<div class="section">
-  <div class="s-label">Our limits</div>
-  <div class="s-title">What we don't do.</div>
-  <p class="s-sub">Some boundaries are non-negotiable. We've hard-coded these into how the platform works — not just the terms of service.</p>
-  <div class="dont-grid">
-    <div class="dont-card">
-      <div class="x">✕ No scraping without consent</div>
-      <p>We do not scrape contact data without an established consent or legitimate interest framework. All contacts come from verified databases with proper data licensing.</p>
-    </div>
-    <div class="dont-card">
-      <div class="x">✕ No spam lists</div>
-      <p>We do not buy, rent, or resell mass spam lists. Every lead list is sourced through Apollo's verified B2B database with ICP-specific filters applied.</p>
-    </div>
-    <div class="dont-card">
-      <div class="x">✕ No cold calling without POPIA coverage</div>
-      <p>K.I.N.D is designed for email outreach under B2B legitimate interest. We do not support cold calling campaigns without the appropriate POPIA basis established.</p>
-    </div>
-    <div class="dont-card">
-      <div class="x">✕ No data sold to third parties</div>
-      <p>Your lead data, campaign results, and contact lists are yours. We do not sell, share, or monetise your data to any third party — ever.</p>
-    </div>
-    <div class="dont-card">
-      <div class="x">✕ No permanent data retention</div>
-      <p>We follow data minimisation principles. Campaign data is retained only as long as necessary for the service, and you can request deletion at any time.</p>
-    </div>
-    <div class="dont-card">
-      <div class="x">✕ No hidden sub-processors</div>
-      <p>We maintain a transparent list of sub-processors (Supabase, Resend, Apollo). No new sub-processors are added without updating our privacy policy.</p>
+<div class="trust-hero">
+  <div class="trust-hero-inner">
+    <span class="page-tag">Trust &amp; Security</span>
+    <h1>Compliance isn&rsquo;t a feature.<br>It&rsquo;s the foundation.</h1>
+    <p>K.I.N.D is built POPIA-compliant by default. Every campaign, every consent signal, every suppression request is logged and auditable &mdash; automatically.</p>
+    <div class="badges">
+      <div class="badge">
+        <span class="badge-icon">&#x1F1FF;&#x1F1E6;</span>
+        <span class="badge-name">POPIA<br>Compliant</span>
+        <span class="badge-status">&#x25CF; Active</span>
+      </div>
+      <div class="badge">
+        <span class="badge-icon">&#x1F1EA;&#x1F1FA;</span>
+        <span class="badge-name">GDPR<br>Aligned</span>
+        <span class="badge-status">&#x25CF; Active</span>
+      </div>
+      <div class="badge">
+        <span class="badge-icon">&#x1F512;</span>
+        <span class="badge-name">Data<br>Encrypted</span>
+        <span class="badge-status">&#x25CF; TLS 1.3</span>
+      </div>
+      <div class="badge">
+        <span class="badge-icon">&#x1F30D;</span>
+        <span class="badge-name">Cape Town<br>Hosted</span>
+        <span class="badge-status">&#x25CF; In-country</span>
+      </div>
+      <div class="badge">
+        <span class="badge-icon">&#x1F9FE;</span>
+        <span class="badge-name">Audit<br>Trail</span>
+        <span class="badge-status">&#x25CF; Full log</span>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- CTA -->
-<div class="cta-section">
-  <div class="cta-inner">
-    <div class="cta-banner">
-      <h2>Questions about compliance?</h2>
-      <p>Our team is based in South Africa and understands the local regulatory landscape. We're happy to walk through our compliance model.</p>
-      <a href="mailto:hello@get-kind.com?subject=Compliance%20Query" class="btn-cta-ghost">Email us at hello@get-kind.com →</a>
+<div class="trust-wrap">
+
+  <div class="trust-section">
+    <div class="s-label">Protection of Personal Information Act</div>
+    <h2>POPIA compliance, by default.</h2>
+    <p class="intro">South Africa&rsquo;s POPIA sets strict requirements for how personal information is collected, processed, and stored. K.I.N.D is built to meet these requirements automatically &mdash; not through configuration, but through architecture.</p>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Consent management</h3>
+        <p>Every outreach interaction is recorded with consent basis, timestamp, and channel. You hold a compliance record for every contact FIGSY touches.</p>
+        <ul class="check-list">
+          <li>Consent type logged per contact</li>
+          <li>Timestamp and channel recorded</li>
+          <li>Exportable consent records on request</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Suppression &amp; opt-out</h3>
+        <p>Unsubscribe requests are honoured immediately and permanently. No contact is ever re-added to a campaign once suppressed.</p>
+        <ul class="check-list">
+          <li>Instant suppression on unsubscribe</li>
+          <li>Suppression list synced across all campaigns</li>
+          <li>No re-activation without explicit re-consent</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Right to access &amp; erasure</h3>
+        <p>Data subjects can request access to their information or deletion at any time.</p>
+        <ul class="check-list">
+          <li>Access requests: compliance@get-kind.com</li>
+          <li>Erasure processed within [X_DAYS] business days — placeholder</li>
+          <li>Deletion confirmation provided in writing</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Data minimisation</h3>
+        <p>FIGSY only stores data required to run your campaigns. No surplus collection, no profiling beyond campaign relevance.</p>
+        <ul class="check-list">
+          <li>Contact data scoped to campaign use only</li>
+          <li>Auto-expiry after [X] months inactive — placeholder</li>
+          <li>No data sold or shared with third parties</li>
+        </ul>
+      </div>
     </div>
   </div>
+
+  <div class="sovereignty-block">
+    <div>
+      <div class="sb-label">Data sovereignty</div>
+      <div class="sb-title">Your data stays in Cape Town.</div>
+      <div class="sb-body">K.I.N.D is hosted in-country. Your campaign data, contact records, and conversation logs are stored on South African infrastructure &mdash; not routed through US or EU data centres. This matters for POPIA compliance and for the data sovereignty requirements of regulated industries including financial services and healthcare.</div>
+    </div>
+    <div class="sb-facts">
+      <div class="sb-fact">
+        <div class="sb-fact-label">Primary data centre</div>
+        <div class="sb-fact-value">Cape Town, South Africa</div>
+      </div>
+      <div class="sb-fact">
+        <div class="sb-fact-label">Data residency</div>
+        <div class="sb-fact-value">In-country (SA) by default</div>
+      </div>
+      <div class="sb-fact">
+        <div class="sb-fact-label">Cross-border transfers</div>
+        <div class="sb-fact-value">Opt-in only, consent basis required</div>
+      </div>
+      <div class="sb-fact">
+        <div class="sb-fact-label">Backup location</div>
+        <div class="sb-fact-value">[BACKUP_REGION] &mdash; placeholder</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust-section">
+    <div class="s-label">General Data Protection Regulation</div>
+    <h2>GDPR-aligned for international prospects.</h2>
+    <p class="intro">If your outreach targets contacts in the EU or UK, GDPR applies. K.I.N.D&rsquo;s consent and suppression architecture is aligned with GDPR requirements, giving you a defensible compliance posture for cross-border campaigns.</p>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Lawful basis for processing</h3>
+        <p>Outbound B2B email operates under legitimate interest. K.I.N.D logs the legitimate interest assessment for each campaign automatically.</p>
+        <ul class="check-list">
+          <li>Legitimate interest basis documented per campaign</li>
+          <li>Balancing test logged at campaign creation</li>
+          <li>Opt-out mechanism present in every email</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Data processor agreements</h3>
+        <p>K.I.N.D acts as a data processor on your behalf. A Data Processing Agreement (DPA) is available for all customers on request.</p>
+        <ul class="check-list">
+          <li>DPA available on request</li>
+          <li>Sub-processor list maintained and current</li>
+          <li>Anthropic (Claude) DPA in place</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust-section">
+    <div class="s-label">Technical security</div>
+    <h2>Built securely at every layer.</h2>
+    <p class="intro">Security is not a compliance exercise. Every layer &mdash; data in transit, data at rest, access controls, API authentication &mdash; is hardened by default.</p>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Encryption</h3>
+        <ul class="check-list">
+          <li>All data in transit: TLS 1.3</li>
+          <li>All data at rest: AES-256</li>
+          <li>API keys: encrypted at rest, never logged</li>
+          <li>Email credentials: vault-stored, not accessible to staff</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Access controls</h3>
+        <ul class="check-list">
+          <li>Role-based access control (RBAC) on all accounts</li>
+          <li>MFA enforced for all admin access</li>
+          <li>Staff access to customer data: audit-logged</li>
+          <li>Zero standing access policy for production systems</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Infrastructure</h3>
+        <ul class="check-list">
+          <li>Hosted on [INFRA_PROVIDER] &mdash; placeholder</li>
+          <li>SOC 2 Type II compliant infrastructure</li>
+          <li>Automated vulnerability scanning: weekly</li>
+          <li>Penetration testing: [PENTEST_DATE] &mdash; placeholder</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Incident response</h3>
+        <ul class="check-list">
+          <li>Data breach notification: within 72 hours (POPIA)</li>
+          <li>Incident response plan: tested [ANNUALLY] &mdash; placeholder</li>
+          <li>Security contact: security@get-kind.com</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="contact-block">
+    <div>
+      <h3>Compliance queries &amp; DPA requests</h3>
+      <p>For data subject access requests, DPA agreements, or any compliance question, contact our team directly.</p>
+    </div>
+    <a href="mailto:compliance@get-kind.com" class="contact-link">compliance@get-kind.com &rarr;</a>
+  </div>
+
 </div>
 
-<!-- FOOTER -->
 <footer>
-  <div class="footer-inner">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <a href="/" class="logo">
-          <div class="logo-icon">⚡</div>
-          <span class="logo-text">K.I.N.D</span>
-        </a>
-        <p>Knowledge. Intelligence. Networks. Delivered. AI-powered lead generation for ambitious businesses.</p>
-      </div>
-      <div class="footer-col">
-        <h4>Products</h4>
-        <a href="index.html#products">K.I.N.D AI — Lead Gen</a>
-        <a href="index.html#figsy">FIGSY — AI SDR</a>
-        <a href="virtual-assistant.html">Virtual Assistant</a>
-        <a href="chatbot-agent.html">Chatbot Agent</a>
-      </div>
-      <div class="footer-col">
-        <h4>Company</h4>
-        <a href="about.html">About K.I.N.D</a>
-        <a href="use-cases.html">Use Cases</a>
-        <a href="pricing.html">Pricing</a>
-        <a href="trust.html">Trust &amp; Security</a>
-        <a href="dpa.html">Data Processing Agreement</a>
-        <a href="partners.html">Partners</a>
-      </div>
-      <div class="footer-col">
-        <h4>Get in touch</h4>
-        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
-        <a href="https://calendly.com/jacques-vieiraza/30min" target="_blank" rel="noopener noreferrer">Book a Demo</a>
-        <a href="https://kindportal-production.up.railway.app/login">Client login</a>
-        <a href="support.html">Support</a>
-      </div>
-      <div class="footer-col">
-        <h4>Compare</h4>
-        <a href="vs-apollo.html">K.I.N.D vs Apollo</a>
-        <a href="vs-outreach.html">K.I.N.D vs Outreach</a>
-        <a href="vs-salesloft.html">K.I.N.D vs Salesloft</a>
-        <a href="vs-prospecting-manually.html">vs Manual Prospecting</a>
-        <a href="vs-hiring-an-sdr.html">vs Hiring an SDR</a>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>© 2026 K.I.N.D. All rights reserved.</p>
-      <div class="footer-legal">
-        <a href="https://kindportal-production.up.railway.app/terms">Terms of Service</a>
-        <a href="https://kindportal-production.up.railway.app/privacy">Privacy Policy</a>
-        <a href="trust.html">POPIA &amp; GDPR</a>
-      </div>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="story.html">Story</a>
+      <a href="values.html">Values</a>
+      <a href="pricing.html">Pricing</a>
     </div>
   </div>
 </footer>
 
-<script>
-  document.querySelectorAll('.nav-item').forEach(function(item) {
-    var timer
-    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open') })
-    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open') }, 200) })
-  })
-</script>
 </body>
 </html>

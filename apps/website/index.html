@@ -120,12 +120,12 @@
       position: relative;
       border: 1.5px solid rgba(0,0,0,0.07);
       transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s;
-      text-decoration: none;
       display: block;
+      cursor: pointer;
     }
     .hero-agent-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 32px 80px rgba(0,0,0,0.13);
+      transform: translateY(-8px);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.15);
     }
     .hero-agent-card img {
       width: 100%;
@@ -1034,30 +1034,30 @@
     </div>
   </div>
   <div class="hero-agents">
-    <a href="#figsy" class="hero-agent-card reveal" data-agent="figsy">
+    <div class="hero-agent-card reveal" data-agent="figsy">
       <img src="figsy.png" alt="FIGSY — The Closer" />
       <div class="hero-agent-label">
         <span class="hero-agent-name">FIGSY</span>
         <span class="hero-agent-role">The Closer &middot; Autonomous AI SDR</span>
         <span class="hero-agent-cta">Meet FIGSY &rarr;</span>
       </div>
-    </a>
-    <a href="virtual-assistant.html" class="hero-agent-card reveal reveal-delay-1" data-agent="milla">
+    </div>
+    <div class="hero-agent-card reveal reveal-delay-1" data-agent="milla">
       <img src="milla.png" alt="Milla — The Brain" />
       <div class="hero-agent-label">
         <span class="hero-agent-name">Milla</span>
         <span class="hero-agent-role">The Brain &middot; Business Intelligence</span>
         <span class="hero-agent-cta">Meet Milla &rarr;</span>
       </div>
-    </a>
-    <a href="chatbot-agent.html" class="hero-agent-card reveal reveal-delay-2" data-agent="vida">
+    </div>
+    <div class="hero-agent-card reveal reveal-delay-2" data-agent="vida">
       <img src="vida.png" alt="Vida — The Connector" />
       <div class="hero-agent-label">
         <span class="hero-agent-name">Vida</span>
         <span class="hero-agent-role">The Connector &middot; Web &amp; WhatsApp AI</span>
         <span class="hero-agent-cta">Meet Vida &rarr;</span>
       </div>
-    </a>
+    </div>
   </div>
 </div>
 </div><!-- /hero-wrapper -->
@@ -1830,7 +1830,7 @@
 
   // AGENT CARD — ORB HOVER SHIFT
   var orbWrap = document.querySelector('.hero-orb-wrap')
-  document.querySelectorAll('.agent-card').forEach(function(card) {
+  document.querySelectorAll('.hero-agent-card').forEach(function(card) {
     card.addEventListener('mouseenter', function() {
       if (!orbWrap) return
       orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')

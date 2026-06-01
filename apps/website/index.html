@@ -167,11 +167,11 @@
     .hero-visual canvas { width: 100%; height: 100%; }
 
     /* SECTION BASE */
-    .section { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
+    .section { max-width: 1080px; margin: 0 auto; padding: 80px 48px; }
     .divider { height: 1px; background: var(--border); max-width: 1080px; margin: 0 auto; }
-    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 16px; }
-    .s-title { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
-    .s-sub { font-size: 1rem; color: rgba(0,0,0,0.45); max-width: 560px; line-height: 1.75; margin-bottom: 56px; }
+    .s-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 16px; }
+    .s-title { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; color: var(--dark); }
+    .s-sub { font-size: 0.95rem; color: rgba(0,0,0,0.45); max-width: 480px; line-height: 1.75; margin-bottom: 48px; }
 
     /* PROBLEM SECTION */
     .problem-section {
@@ -942,6 +942,42 @@
       .comp-us { border-radius: 0 0 20px 20px; }
     }
 
+    /* LOGO STRIP */
+    .logo-strip { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 18px 48px; }
+    .logo-strip-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
+    .logo-strip-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0,0,0,0.22); white-space: nowrap; flex-shrink: 0; }
+    .logo-strip-logos { display: flex; align-items: center; gap: 24px; flex: 1; flex-wrap: wrap; }
+    .logo-slot { height: 18px; background: rgba(0,0,0,0.06); border-radius: 4px; flex: 1; min-width: 60px; max-width: 100px; }
+
+    /* WHY KIND PILLARS */
+    .why-kind { padding: 80px 48px; }
+    .why-kind-inner { max-width: 1080px; margin: 0 auto; }
+    .wk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 48px; }
+    .wk-card { background: var(--light); border-radius: 20px; padding: 32px 28px; }
+    .wk-icon { font-size: 1.4rem; margin-bottom: 16px; }
+    .wk-card h3 { font-size: 0.95rem; font-weight: 800; color: var(--dark); letter-spacing: -0.01em; margin-bottom: 6px; }
+    .wk-card p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
+
+    /* EVERY TEAM WINS */
+    .team-wins { background: #f9fafb; padding: 80px 48px; }
+    .team-wins-inner { max-width: 1080px; margin: 0 auto; }
+    .tw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
+    .tw-card { background: #fff; border: 1.5px solid rgba(0,0,0,0.07); border-radius: 24px; padding: 36px 32px; }
+    .tw-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; display: block; margin-bottom: 20px; }
+    .tw-for { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.28); margin-bottom: 6px; }
+    .tw-card h3 { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; color: var(--dark); margin-bottom: 8px; }
+    .tw-card p { font-size: 0.85rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
+
+    /* GRADIENT SECTION TRANSITIONS */
+    .grad-wht-dark { height: 48px; background: linear-gradient(to bottom, #fff 0%, #0a0a0a 100%); }
+    .grad-dark-grey { height: 48px; background: linear-gradient(to bottom, #0a0a0a 0%, #f9fafb 100%); }
+    .grad-grey-dark { height: 48px; background: linear-gradient(to bottom, #f9fafb 0%, #0a0a0a 100%); }
+    .grad-dark-wht { height: 48px; background: linear-gradient(to bottom, #0a0a0a 0%, #fff 100%); }
+    .grad-light-to-wht { height: 48px; background: linear-gradient(to bottom, #f5f5f7 0%, #fff 100%); }
+
+    /* HERO ATMOSPHERE BLEED */
+    .hero-bleed { height: 56px; background: linear-gradient(to bottom, rgba(37,99,235,0.05) 0%, transparent 100%); pointer-events: none; }
+
     /* RESPONSIVE */
     @media (max-width: 1024px) {
       .prod-grid { grid-template-columns: 1fr 1fr; }
@@ -954,8 +990,8 @@
       nav { padding: 0 24px; }
       .nav-links { display: none; }
       .hero { padding: 64px 24px 0; }
-      .section { padding: 64px 24px; }
-      .problem-section, .figsy-section, .stats-section, .pricing-section, .cta-section { padding: 64px 24px; }
+      .section { padding: 48px 24px; }
+      .problem-section, .figsy-section, .stats-section, .pricing-section, .cta-section { padding: 48px 24px; }
       .level-section { padding: 64px 24px; }
       .popia-band { padding: 48px 24px; }
       .prod-grid { grid-template-columns: 1fr; }
@@ -965,6 +1001,11 @@
       .footer-grid { grid-template-columns: 1fr; }
       .cta-banner { padding: 48px 28px; }
       .hero { padding: 48px 24px 0; }
+      .why-kind { padding: 48px 24px; }
+      .wk-grid { grid-template-columns: 1fr 1fr; }
+      .team-wins { padding: 48px 24px; }
+      .tw-grid { grid-template-columns: 1fr; }
+      .logo-strip { display: none; }
       .hero-agents { grid-template-columns: 1fr; gap: 12px; margin-top: 40px; }
       .hero-agent-card img { aspect-ratio: 4/3; }
       .hero-visual { margin: 0 -24px 0; }
@@ -1065,17 +1106,6 @@
   </div>
 </nav>
 
-<!-- TRUST BAR -->
-<div class="trust-bar">
-  <div class="trust-stat"><span class="trust-stat-num">[CAMPAIGNS_RUNNING]</span><span>campaigns running</span></div>
-  <div class="trust-bar-div"></div>
-  <div class="trust-stat"><span class="trust-stat-num">[MEETINGS_THIS_MONTH]</span><span>meetings booked this month</span></div>
-  <div class="trust-bar-div"></div>
-  <div class="trust-stat"><span class="trust-stat-num">[LEADS_IN_PIPELINE]</span><span>leads in pipeline</span></div>
-  <div class="trust-bar-div"></div>
-  <div class="trust-popia"><span class="live-dot"></span>POPIA Compliant &middot; Africa-first</div>
-</div>
-
 <!-- HERO -->
 <div class="hero-wrapper">
   <div class="hero-orb-wrap" aria-hidden="true">
@@ -1133,10 +1163,99 @@
 </div>
 </div><!-- /hero-wrapper -->
 
-<!-- Dots strip below hero -->
-<div class="hero-visual">
-  <canvas id="node-canvas"></canvas>
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-stat"><span class="trust-stat-num">[CAMPAIGNS_RUNNING]</span><span>campaigns running</span></div>
+  <div class="trust-bar-div"></div>
+  <div class="trust-stat"><span class="trust-stat-num">[MEETINGS_THIS_MONTH]</span><span>meetings booked this month</span></div>
+  <div class="trust-bar-div"></div>
+  <div class="trust-stat"><span class="trust-stat-num">[LEADS_IN_PIPELINE]</span><span>leads in pipeline</span></div>
+  <div class="trust-bar-div"></div>
+  <div class="trust-popia"><span class="live-dot"></span>POPIA Compliant &middot; Africa-first</div>
 </div>
+
+<!-- HERO ATMOSPHERE BLEED -->
+<div class="hero-bleed"></div>
+
+<!-- LOGO STRIP -->
+<div class="logo-strip">
+  <div class="logo-strip-inner">
+    <span class="logo-strip-label">Trusted by teams across Africa</span>
+    <div class="logo-strip-logos">
+      <div class="logo-slot"></div>
+      <div class="logo-slot"></div>
+      <div class="logo-slot"></div>
+      <div class="logo-slot"></div>
+      <div class="logo-slot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- THREE-AGENT SHOWCASE -->
+<div class="agents-showcase" id="products">
+  <div class="agents-intro reveal">
+    <div class="s-label">YOUR TEAM</div>
+    <div class="s-title">Meet your AI revenue team.</div>
+    <p>Three agents. One platform. FIGSY prospects and books. Milla reads the intelligence. Vida converts your website.</p>
+  </div>
+  <div class="agents-grid">
+    <a href="figsy.html" class="agent-card reveal">
+      <img src="figsy.png" class="agent-avatar" alt="FIGSY" />
+      <span class="agent-role-tag tag-figsy">FIGSY &mdash; The Closer</span>
+      <h3>Autonomous AI SDR</h3>
+      <p class="agent-benefit">Finds your ideal clients, writes emails that sound like you, follows up automatically, and books the meeting. You just show up to the call.</p>
+      <span class="agent-meet">Meet FIGSY &rarr;</span>
+    </a>
+    <a href="virtual-assistant.html" class="agent-card reveal reveal-delay-1">
+      <img src="milla.png" class="agent-avatar" alt="Milla" />
+      <span class="agent-role-tag tag-milla">Milla &mdash; The Brain</span>
+      <h3>Business Intelligence</h3>
+      <p class="agent-benefit">Reads campaign signals, tracks what&rsquo;s working, and surfaces actionable intelligence &mdash; so you make better decisions faster, without building dashboards.</p>
+      <span class="agent-meet">Meet Milla &rarr;</span>
+    </a>
+    <a href="chatbot-agent.html" class="agent-card reveal reveal-delay-2">
+      <img src="vida.png" class="agent-avatar" alt="Vida" />
+      <span class="agent-role-tag tag-vida">Vida &mdash; The Connector</span>
+      <h3>Web &amp; WhatsApp AI</h3>
+      <p class="agent-benefit">Qualifies every website and WhatsApp visitor 24/7, captures leads, and alerts you the moment someone is ready to buy. No live chat staff required.</p>
+      <span class="agent-meet">Meet Vida &rarr;</span>
+    </a>
+  </div>
+</div>
+
+<!-- WHY KIND PILLARS -->
+<div class="why-kind">
+  <div class="why-kind-inner">
+    <div class="s-label">THE METHOD</div>
+    <div class="s-title reveal">Four levers. Unlimited pipeline.</div>
+    <p class="s-sub reveal reveal-delay-1">Most tools address one lever. K.I.N.D runs all four &mdash; simultaneously, autonomously, 24/7.</p>
+    <div class="wk-grid">
+      <div class="wk-card reveal">
+        <div class="wk-icon">&#x1F3AF;</div>
+        <h3>Right leads</h3>
+        <p>ICP-matched contacts scored 0&ndash;100 from 250M+ verified sources. Only decision-makers above your threshold get through.</p>
+      </div>
+      <div class="wk-card reveal reveal-delay-1">
+        <div class="wk-icon">&#x270D;&#xFE0F;</div>
+        <h3>Right message</h3>
+        <p>Every email written by Claude &mdash; unique per lead, personalised per context. No templates. No spray-and-pray.</p>
+      </div>
+      <div class="wk-card reveal reveal-delay-2">
+        <div class="wk-icon">&#x23F1;&#xFE0F;</div>
+        <h3>Right time</h3>
+        <p>Follow-ups sent automatically on the right cadence. No lead falls through because someone forgot to reply.</p>
+      </div>
+      <div class="wk-card reveal reveal-delay-3">
+        <div class="wk-icon">&#x26A1;</div>
+        <h3>Autonomous execution</h3>
+        <p>All four levers run 24/7 without you. Pipeline grows whether you&rsquo;re in the office, on a call, or asleep.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRADIENT TRANSITION: white to dark -->
+<div class="grad-wht-dark"></div>
 
 <!-- THE HUMAN CEILING -->
 <div class="problem-section">
@@ -1166,94 +1285,6 @@
     </div>
   </div>
 </div>
-
-<!-- DOG-FOOD PROOF BAR -->
-<div style="background:#0a0a0a;border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:28px 48px">
-  <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap">
-    <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.35)">Built on our own product</span>
-    <span style="color:rgba(255,255,255,0.15)">|</span>
-    <span style="font-size:0.9rem;color:rgba(255,255,255,0.75);font-weight:500">FIGSY books K.I.N.D&rsquo;s own sales meetings &mdash; the same way it will book yours</span>
-    <span style="color:rgba(255,255,255,0.15)">|</span>
-    <a href="#products" style="font-size:0.85rem;font-weight:700;color:#60a5fa;text-decoration:none">See how FIGSY works &rarr;</a>
-  </div>
-</div>
-
-<!-- PRODUCTS -->
-<div class="section" id="products">
-  <div class="s-label">The AI Revenue Team</div>
-  <div class="s-title">You're not buying software.</div>
-  <p class="s-sub">You're hiring a team. FIGSY prospects and books. Milla reads the intelligence. Vida converts your website. Three AI teammates. One platform. Unlimited pipeline.</p>
-
-  <div class="products-intro">
-    <div class="products-intro-text">Meet your <span>AI revenue team.</span></div>
-    <div class="products-intro-sub">Deployed in 10 minutes. Running 24/7. Pay only for results &mdash; not seats, not promises.</div>
-  </div>
-
-  <div class="prod-grid">
-    <div class="prod">
-      <div class="prod-icon">&#x1F3AF;</div>
-      <span class="prod-tag t-blue">K.I.N.D AI</span>
-      <h3>AI Lead Generation</h3>
-      <p>ICP-matched B2B leads sourced from 250M+ verified contacts. FIGSY emails them first &mdash; you only pay when a lead replies positively. Your pipeline starts filling the moment you launch.</p>
-      <div class="prod-price">$1 <span class="sm">per qualified lead &middot; from $20</span></div>
-      <ul class="prod-features">
-        <li class="g">Apollo-powered lead sourcing</li>
-        <li class="g">3-sequence automated outreach</li>
-        <li class="g">Credit only on positive reply</li>
-        <li class="g">3 AI ICP regenerations/month</li>
-      </ul>
-    </div>
-    <div class="prod">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-        <img src="figsy.png" alt="FIGSY — The Closer" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(16,185,129,0.25);flex-shrink:0" />
-        <div>
-          <span class="prod-tag t-green" style="margin-bottom:4px;display:inline-block">FIGSY &mdash; The Closer</span>
-          <h3 style="margin-bottom:0">Meet FIGSY. Your autonomous AI SDR.</h3>
-        </div>
-      </div>
-      <p>FIGSY doesn't wait to be told. She finds the right people, scores them against your ICP (0&ndash;100), writes emails that sound like a real person, follows up proactively, handles replies, and books the meeting. FIGSY Memory learns what works. Campaign Intelligence tells you what to do next.</p>
-      <div class="prod-price">$3 <span class="sm">per qualified lead &middot; from $60</span></div>
-      <ul class="prod-features">
-        <li class="b">Everything in K.I.N.D AI</li>
-        <li class="b">Adaptive reply handling</li>
-        <li class="b">Objection management</li>
-        <li class="b">Meeting booked to your calendar</li>
-        <li class="b">FIGSY Memory &mdash; learns what works</li>
-        <li class="b">Campaign Intelligence &mdash; auto-pauses weak campaigns</li>
-        <li class="b">Weekly outreach digest every Monday</li>
-        <li class="b">Unlimited ICP regenerations</li>
-      </ul>
-      <div style="background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:16px 20px;margin-top:20px">
-        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin-bottom:8px">FIGSY's voice</div>
-        <div id="figsy-voice-text" style="font-size:0.88rem;font-style:italic;color:rgba(0,0,0,0.7);line-height:1.6"></div>
-      </div>
-    </div>
-    <div class="prod" style="display:flex;flex-direction:column">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-        <img src="milla.png" alt="Milla — The Brain" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(139,92,246,0.2);flex-shrink:0" />
-        <div>
-          <span class="prod-tag t-purple" style="margin-bottom:4px;display:inline-block">Milla &mdash; The Brain</span>
-          <h3 style="margin-bottom:0">Milla's Business Memory</h3>
-        </div>
-      </div>
-      <p>Milla tracks what's working across every campaign, every ICP, every industry signal. She surfaces the intelligence you need to make better decisions &mdash; faster. No dashboards to build. No reports to pull.</p>
-      <a href="https://app.get-kind.com/signup" class="prod-cta">Get started &rarr;</a>
-    </div>
-    <div class="prod" style="display:flex;flex-direction:column">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-        <img src="vida.png" alt="Vida — The Connector" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(99,102,241,0.2);flex-shrink:0" />
-        <div>
-          <span class="prod-tag t-indigo" style="margin-bottom:4px;display:inline-block">Vida &mdash; The Connector</span>
-          <h3 style="margin-bottom:0">Vida converts your visitors.</h3>
-        </div>
-      </div>
-      <p>Vida is your always-on website AI. She answers queries, captures leads, qualifies intent, and hands off to your team &mdash; so no visitor leaves without a conversation. Web and WhatsApp ready.</p>
-      <a href="https://app.get-kind.com/signup" class="prod-cta">Get started &rarr;</a>
-    </div>
-  </div>
-</div>
-
-<div style="height:1px;background:var(--border);max-width:1080px;margin:0 auto"></div>
 
 <!-- FIGSY SCROLL SCENE -->
 <div class="figsy-section" id="figsy">
@@ -1420,45 +1451,34 @@
   </div>
 </div>
 
-<!-- POPIA TRUST BAND -->
-<div class="popia-band">
-  <div class="popia-inner">
-    <div class="popia-shield">&#x1F512;</div>
-    <div>
-      <div class="popia-label">POPIA Compliance &mdash; Built In, Not Bolted On</div>
-      <div class="popia-headline">Every campaign FIGSY runs is POPIA compliant by default.</div>
-      <p class="popia-copy">Opt-outs suppressed permanently. Consent logged automatically. You are protected. K.I.N.D was built from day one around South African data law &mdash; POPIA isn't a checkbox for us, it's architecture. Every email, every reply, every unsubscribe is recorded with a full audit trail.</p>
-      <div class="popia-pills">
-        <span class="popia-pill">Opt-outs suppressed permanently</span>
-        <span class="popia-pill">Consent logged automatically</span>
-        <span class="popia-pill">Data stored in Cape Town, SA</span>
-        <span class="popia-pill">Full audit trail</span>
-        <span class="popia-pill">GDPR aligned</span>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- GRADIENT TRANSITION: dark to grey -->
+<div class="grad-dark-grey"></div>
 
-<!-- HOW IT WORKS -->
-<div class="section" id="how-it-works">
-  <div class="s-label">How it works</div>
-  <div class="s-title">Live in minutes.</div>
-  <p class="s-sub">No integrations. No complex setup. Define your ICP, add credits, and your AI revenue team starts working.</p>
-  <div class="hiw-grid">
-    <div class="hiw-card">
-      <div class="hiw-num">Step 01</div>
-      <h3>Define your ICP</h3>
-      <p>Set your Ideal Customer Profile &mdash; industry, title, company size, geography. FIGSY suggests refinements based on your results. FIGSY Memory stores what works across campaigns.</p>
-    </div>
-    <div class="hiw-card">
-      <div class="hiw-num">Step 02</div>
-      <h3>Add credits &amp; launch</h3>
-      <p>Buy a credit bundle &mdash; from $20. FIGSY sources leads, scores them against your ICP, writes personalised emails, and starts your 3-sequence outreach automatically. No input needed.</p>
-    </div>
-    <div class="hiw-card">
-      <div class="hiw-num">Step 03</div>
-      <h3>Receive qualified leads</h3>
-      <p>When a prospect replies positively, 1 credit is consumed and you're notified instantly. Upgrade to the Scale plan and FIGSY books the meeting directly to your calendar.</p>
+<!-- EVERY TEAM WINS -->
+<div class="team-wins">
+  <div class="team-wins-inner">
+    <div class="s-label" style="color:rgba(0,0,0,0.38)">YOUR TEAM WINS</div>
+    <div class="s-title reveal">Pipeline built for every role.</div>
+    <p class="s-sub reveal reveal-delay-1">K.I.N.D isn&rsquo;t just for Sales. Every role gets value from day one.</p>
+    <div class="tw-grid">
+      <div class="tw-card reveal">
+        <img src="figsy.png" class="tw-avatar" alt="FIGSY" />
+        <div class="tw-for">For Sales</div>
+        <h3>Pipeline built while you sleep</h3>
+        <p>FIGSY sources, scores, writes, and books &mdash; so your team shows up to calls, not cold outreach.</p>
+      </div>
+      <div class="tw-card reveal reveal-delay-1">
+        <img src="milla.png" class="tw-avatar" alt="Milla" />
+        <div class="tw-for">For Leadership</div>
+        <h3>Intelligence without dashboards</h3>
+        <p>Milla tracks campaign performance and ICP signals &mdash; and surfaces what matters, without you asking.</p>
+      </div>
+      <div class="tw-card reveal reveal-delay-2">
+        <img src="vida.png" class="tw-avatar" alt="Vida" />
+        <div class="tw-for">For Growth</div>
+        <h3>Every visitor converted, 24/7</h3>
+        <p>Vida qualifies every website and WhatsApp lead around the clock &mdash; so no opportunity slips through.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -1505,6 +1525,9 @@
   </div>
 </div>
 
+<!-- GRADIENT TRANSITION: grey to dark -->
+<div class="grad-grey-dark"></div>
+
 <!-- COMPETITIVE POSITIONING -->
 <div class="comp-section">
   <div class="comp-inner">
@@ -1539,6 +1562,28 @@
         <span>Salesloft &amp; Outreach</span>
         <span>Manual prospecting</span>
         <span>Live chat staff</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRADIENT TRANSITION: dark to white -->
+<div class="grad-dark-wht"></div>
+
+<!-- POPIA TRUST BAND -->
+<div class="popia-band">
+  <div class="popia-inner">
+    <div class="popia-shield">&#x1F512;</div>
+    <div>
+      <div class="popia-label">POPIA Compliance &mdash; Built In, Not Bolted On</div>
+      <div class="popia-headline">Every campaign FIGSY runs is POPIA compliant by default.</div>
+      <p class="popia-copy">Opt-outs suppressed permanently. Consent logged automatically. You are protected. K.I.N.D was built from day one around South African data law &mdash; POPIA isn&rsquo;t a checkbox for us, it&rsquo;s architecture. Every email, every reply, every unsubscribe is recorded with a full audit trail.</p>
+      <div class="popia-pills">
+        <span class="popia-pill">Opt-outs suppressed permanently</span>
+        <span class="popia-pill">Consent logged automatically</span>
+        <span class="popia-pill">Data stored in Cape Town, SA</span>
+        <span class="popia-pill">Full audit trail</span>
+        <span class="popia-pill">GDPR aligned</span>
       </div>
     </div>
   </div>

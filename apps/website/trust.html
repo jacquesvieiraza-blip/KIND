@@ -95,6 +95,16 @@
     .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
     .footer-links a:hover { color: var(--dark); }
 
+    .dont-section { background: var(--dark); padding: 80px 48px; }
+    .dont-inner { max-width: 1080px; margin: 0 auto; }
+    .dont-section .s-label { color: #f87171; }
+    .dont-section h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 16px; }
+    .dont-section .intro { font-size: 1rem; color: rgba(255,255,255,0.35); line-height: 1.8; max-width: 680px; margin-bottom: 40px; }
+    .dont-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .dont-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 24px; }
+    .dont-card h4 { font-size: 0.88rem; font-weight: 800; color: #fff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .dont-card p { font-size: 0.78rem; color: rgba(255,255,255,0.38); line-height: 1.65; }
+
     @media (max-width: 768px) {
       nav { padding: 0 24px; }
       .trust-hero { padding: 64px 24px 56px; }
@@ -102,6 +112,8 @@
       .detail-grid { grid-template-columns: 1fr; }
       .sovereignty-block { grid-template-columns: 1fr; gap: 28px; padding: 32px 24px; }
       .contact-block { padding: 28px 24px; }
+      .dont-section { padding: 56px 24px; }
+      .dont-grid { grid-template-columns: 1fr; }
       footer { padding: 32px 24px; }
     }
   </style>
@@ -197,6 +209,16 @@
         <span class="badge-icon">&#x1F9FE;</span>
         <span class="badge-name">Audit<br>Trail</span>
         <span class="badge-status">&#x25CF; Full log</span>
+      </div>
+      <div class="badge">
+        <span class="badge-icon">&#x1F1FA;&#x1F1F8;</span>
+        <span class="badge-name">CAN-SPAM<br>Compliant</span>
+        <span class="badge-status">&#x25CF; Active</span>
+      </div>
+      <div class="badge">
+        <span class="badge-icon">&#x1F3D6;</span>
+        <span class="badge-name">CCPA<br>Aligned</span>
+        <span class="badge-status">&#x25CF; Active</span>
       </div>
     </div>
   </div>
@@ -343,6 +365,138 @@
     </div>
   </div>
 
+  <div class="trust-section">
+    <div class="s-label">CAN-SPAM Act &mdash; United States</div>
+    <h2>US email law. Met in full.</h2>
+    <p class="intro">If your outreach touches US-based contacts, the CAN-SPAM Act applies. K.I.N.D&rsquo;s email infrastructure is built to satisfy all FTC requirements automatically — no manual configuration required.</p>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Sender identification</h3>
+        <p>Every email sent through K.I.N.D identifies the true sender clearly. No misleading headers, no deceptive subject lines.</p>
+        <ul class="check-list">
+          <li>From name and domain match the sending account</li>
+          <li>Subject lines accurately reflect message content</li>
+          <li>No hidden or forged routing information</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Physical address</h3>
+        <p>CAN-SPAM requires a valid physical postal address in every commercial email. K.I.N.D includes this in all outbound templates.</p>
+        <ul class="check-list">
+          <li>Physical address included in every email footer</li>
+          <li>Address verified at account setup</li>
+          <li>PO Boxes accepted under FTC guidance</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Opt-out mechanism</h3>
+        <p>Every email includes a clear, working unsubscribe mechanism. Opt-out requests are processed within the FTC-mandated 10 business days.</p>
+        <ul class="check-list">
+          <li>One-click unsubscribe link in every email</li>
+          <li>Opt-out processed within 10 business days</li>
+          <li>No fee or extra steps required to unsubscribe</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Commercial email labelling</h3>
+        <p>Where required, K.I.N.D marks emails as commercial and ensures advertising content is clearly identified.</p>
+        <ul class="check-list">
+          <li>Transactional vs commercial distinction maintained</li>
+          <li>ADV labelling applied where applicable</li>
+          <li>No misleading categorisation of email type</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust-section">
+    <div class="s-label">CCPA / CPRA &mdash; California</div>
+    <h2>California privacy rights. Respected by default.</h2>
+    <p class="intro">The California Consumer Privacy Act (and its 2023 update, CPRA) grants California residents rights over their personal information. K.I.N.D honours these rights without requiring manual workflows.</p>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Right to know</h3>
+        <p>California residents can request details on what personal information K.I.N.D holds about them, where it came from, and how it is used.</p>
+        <ul class="check-list">
+          <li>Data subject requests: compliance@get-kind.com</li>
+          <li>Response within 45 days as required</li>
+          <li>Full category and purpose disclosure provided</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Right to delete</h3>
+        <p>Residents can request deletion of their personal information. K.I.N.D processes deletion requests and propagates suppression across all campaigns.</p>
+        <ul class="check-list">
+          <li>Deletion request processed on receipt</li>
+          <li>Contact suppressed across all active campaigns</li>
+          <li>Deletion confirmed in writing within 45 days</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>No sale of personal information</h3>
+        <p>K.I.N.D does not sell, share, or rent personal information to third parties for monetary or other valuable consideration.</p>
+        <ul class="check-list">
+          <li>No data sold to any third party — ever</li>
+          <li>No data sharing for cross-context behavioural advertising</li>
+          <li>Opt-out of sale: always active by default</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Right to opt-out &amp; correct</h3>
+        <p>California residents can opt out of data processing and request corrections to inaccurate personal information at any time.</p>
+        <ul class="check-list">
+          <li>Opt-out request honoured within 15 business days</li>
+          <li>Correction requests: compliance@get-kind.com</li>
+          <li>CPRA sensitive personal information protections applied</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust-section">
+    <div class="s-label">Email infrastructure</div>
+    <h2>Deliverability built on trust.</h2>
+    <p class="intro">Compliant email requires more than legal wording — it requires infrastructure that major providers trust. K.I.N.D&rsquo;s sending stack is built to land in the inbox, not the spam folder.</p>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Sending infrastructure</h3>
+        <p>K.I.N.D sends via Resend with a dedicated custom domain. No shared IP pools that inherit other senders&rsquo; reputation problems.</p>
+        <ul class="check-list">
+          <li>Dedicated sending domain: send.get-kind.com</li>
+          <li>Not a shared IP pool — isolated reputation</li>
+          <li>Bounce and complaint monitoring active</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Authentication (SPF / DKIM / DMARC)</h3>
+        <p>Full email authentication stack in place. Major providers (Google, Microsoft, Yahoo) require these for bulk senders — K.I.N.D exceeds the minimum requirements.</p>
+        <ul class="check-list">
+          <li>SPF record published and validated</li>
+          <li>DKIM signing on all outbound email</li>
+          <li>DMARC policy: quarantine / reject</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>Domain warming</h3>
+        <p>New customer domains are warmed gradually. Sending volume increases over time to build provider trust before high-volume campaigns start.</p>
+        <ul class="check-list">
+          <li>Automated warmup schedule on new domains</li>
+          <li>Volume caps enforced during warmup period</li>
+          <li>Reputation score monitored throughout</li>
+        </ul>
+      </div>
+      <div class="detail-card">
+        <h3>List hygiene</h3>
+        <p>FIGSY validates contact data before sending. Unverified or high-risk addresses are flagged or removed before a single email goes out.</p>
+        <ul class="check-list">
+          <li>Email validation on import</li>
+          <li>Hard bounces removed automatically</li>
+          <li>Catch-all domain flagging to protect sender score</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <div class="contact-block">
     <div>
       <h3>Compliance queries &amp; DPA requests</h3>
@@ -351,6 +505,40 @@
     <a href="mailto:compliance@get-kind.com" class="contact-link">compliance@get-kind.com &rarr;</a>
   </div>
 
+</div>
+
+<div class="dont-section">
+  <div class="dont-inner">
+    <div class="s-label">Commitments</div>
+    <h2>What we don&rsquo;t do.</h2>
+    <p class="intro">Compliance is as much about what you refuse to do as what you do. These are hard limits — not guidelines, not suggestions.</p>
+    <div class="dont-grid">
+      <div class="dont-card">
+        <h4>&#x274C; No scraped lists</h4>
+        <p>We do not purchase, scrape, or accept contact lists from third-party brokers. Every contact FIGSY reaches must be sourced through verified, lawful means.</p>
+      </div>
+      <div class="dont-card">
+        <h4>&#x274C; No spam list re-use</h4>
+        <p>Suppressed contacts are permanently removed. We do not re-activate opted-out or bounced contacts under any circumstance, even under a new campaign or sender identity.</p>
+      </div>
+      <div class="dont-card">
+        <h4>&#x274C; No data sold — ever</h4>
+        <p>Your campaign data, contact records, and conversation history are yours. We do not sell, rent, or share personal information with any third party for commercial gain.</p>
+      </div>
+      <div class="dont-card">
+        <h4>&#x274C; No indefinite retention</h4>
+        <p>Data is not held indefinitely. Inactive contact records are flagged for review and deleted according to your retention settings and applicable legal requirements.</p>
+      </div>
+      <div class="dont-card">
+        <h4>&#x274C; No hidden sub-processors</h4>
+        <p>Our full sub-processor list is available on request. We do not introduce new sub-processors without notifying affected customers and updating our DPA.</p>
+      </div>
+      <div class="dont-card">
+        <h4>&#x274C; No cold calls without POPIA basis</h4>
+        <p>Phone outreach is only enabled where a lawful basis exists under POPIA. We do not permit unsolicited cold calling to suppressed or non-consenting contacts.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <footer>

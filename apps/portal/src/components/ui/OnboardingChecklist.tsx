@@ -30,15 +30,15 @@ export function OnboardingChecklist({ hasCompanyName, hasIcps, hasLeads, hasFigs
   const progress   = Math.round((completedCount / steps.length) * 100)
 
   return (
-    <div className="bg-white rounded-xl border-t-4 border-indigo-500 border border-purple-100/60 shadow-sm px-5 py-4">
+    <div className="bg-white rounded-xl border-t-4 border-[#7C3AED] border border-purple-100/60 shadow-sm px-5 py-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-sm font-semibold text-gray-900">Get started with K.I.N.D</p>
-          <p className="text-xs text-[#9B8EC4] mt-0.5">{completedCount} of {steps.length} complete</p>
+          <p className="text-sm font-semibold text-gray-900">Launch your AI Revenue OS</p>
+          <p className="text-xs text-[#9B8EC4] mt-0.5">{completedCount} of {steps.length} steps complete</p>
         </div>
-        <div className="w-28 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div className="w-28 h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+            className="h-full bg-[#7C3AED] rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -48,14 +48,14 @@ export function OnboardingChecklist({ hasCompanyName, hasIcps, hasLeads, hasFigs
         {steps.map(step => (
           <li key={step.label} className="flex items-center gap-3 text-sm">
             {step.done ? (
-              <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">✓</span>
+              <span className="w-5 h-5 rounded-full bg-[#7C3AED]/10 text-[#7C3AED] flex items-center justify-center text-xs font-bold shrink-0">✓</span>
             ) : (
-              <span className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600 shrink-0" />
+              <span className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
             )}
             {step.done ? (
               <span className="text-[#9B8EC4] line-through">{step.label}</span>
             ) : (
-              <Link href={step.href} className="text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors">
+              <Link href={step.href} className="text-gray-700 hover:text-[#7C3AED] hover:underline transition-colors">
                 {step.label}
               </Link>
             )}
@@ -67,7 +67,7 @@ export function OnboardingChecklist({ hasCompanyName, hasIcps, hasLeads, hasFigs
         <div className="mt-3 pt-3 border-t border-purple-100/60">
           <p className="text-xs text-[#9B8EC4]">
             Next up:{' '}
-            <Link href={incomplete[0].href} className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+            <Link href={incomplete[0].href} className="text-[#7C3AED] font-medium hover:underline">
               {incomplete[0].label}
             </Link>
           </p>

@@ -191,12 +191,12 @@ If Railway health checks are not configured or UptimeRobot is not set up, flag t
 
 ### Verification audit (marked done, never confirmed working end to end)
 
-6. **P2-13 Personalised images** — does image generation actually run?
-7. **P2-14 Social signals** — does it fetch real social data?
-8. **P3-1 Developer portal** — can an API key actually be issued end to end?
-9. **P3-2 FIGSY vertical modes** — do mode-specific prompts actually switch?
-10. **P3-4 Proposals and e-sign** — can a proposal be created and signed?
-11. **P3-7 Visitor de-anonymisation** — does it return real company data?
+6. ⚠️ **P2-13 Personalised images** — STUB. Generates static SVG with lead name/company embedded in email. No AI image API (DALL-E etc.). The SVG is functional as a visual element but is not AI-generated imagery.
+7. ⚠️ **P2-14 Social signals** — STUB. DB schema and ICP settings column exist but no API integration to LinkedIn or other social platforms. Intent signals come from Apollo data only.
+8. ✅ **P3-1 Developer portal** — WORKING. `developer_keys` table, full CRUD routes (`GET/POST/DELETE /developer/keys`), crypto-generated keys stored hashed, portal UI shows keys, usage tracking.
+9. ⚠️ **P3-2 FIGSY vertical modes** — STUB. `campaign_intent` string field exists and passes to prompt, but no structured vertical branching logic (SaaS/healthcare/real estate etc.). Same Claude prompt used for all verticals.
+10. ✅ **P3-4 Proposals and e-sign** — WORKING. Proposals created in DB, sent via Resend with a public `sign_token` link, signing flow marks proposal as `signed` with timestamp. Consent-based (not DocuSign) but fully functional.
+11. ✅ **P3-7 Visitor de-anonymisation** — WORKING. Calls Clearbit Reveal API (`reveal.clearbit.com/v1/companies/find?ip=`) on each visit, stores company name/domain/country/size. Gracefully skips if `CLEARBIT_API_KEY` not set.
 
 ### Documentation updates (stale, causes confusion)
 
@@ -205,7 +205,7 @@ If Railway health checks are not configured or UptimeRobot is not set up, flag t
 
 ### Mobile layout (site is unusable on mobile right now)
 
-14. **Mobile responsive layout** — zero breakpoints currently across the portal. Site is unusable on a phone. This blocks any client who checks their portal on mobile.
+14. ✅ **Mobile responsive layout** — VERIFIED 2 June. Layout has hamburger menu, slide-in sidebar, responsive grids (2-col mobile, 4-5-col desktop), overflow-x-auto on tables. Already well-built. MASTER was wrong.
 
 ### Partner programme
 
@@ -220,21 +220,21 @@ If Railway health checks are not configured or UptimeRobot is not set up, flag t
 
 21. ✅ **Languages discoverability** — DONE 2 June. Language badge strip added to Milla page header (🇬🇧 English · 🇫🇷 Français · 🇰🇪 Kiswahili · 🇳🇬 Hausa). Also added to upgrade/locked screen feature list.
 22. ✅ **P5 Chat history persistence** — VERIFIED 2 June. `MillaSession` state, `loadSessions`, `activeSession` all exist in `assistant/page.tsx`. Sessions persist across reloads.
-23. **P6 NotificationBell theme** — notification bell component exists. Assess if styling needs updating to match current design system.
+23. ✅ **P6 NotificationBell theme** — VERIFIED 2 June. Uses `text-[#9B8EC4] hover:text-[#7C3AED] hover:bg-purple-50`, dropdown uses `border-purple-100/60`, type icons use portal colour tokens. Already on-design.
 24. **Onboarding checklist end-to-end verify** — confirm the 4-step onboarding checklist works correctly from signup through to completion.
 
 ### Competitive gap queue (features that make us stronger than alternatives)
 
-25. **AgentSidePanel image fix** — agent photos in the side panel need correcting.
+25. ✅ **AgentSidePanel image fix** — VERIFIED 2 June. All 3 images exist (`figsy.png`, `milla.png`, `vida.png`). Component uses `object-cover object-top` with `onError` fallback. Already correct.
 26. ✅ **Reply directly from inbox** — VERIFIED 2 June. `AISuggestionPanel` + `sendReply` exist in `replies/page.tsx`. Reply-from-inbox is live.
 27. ✅ **KPI time range filters** — VERIFIED 2 June. `period` state with 7d/30d/90d/All buttons exists in `kpis/page.tsx`. Already built.
-28. **Knowledge base redesign** — current page needs redesign to match the rest of the portal.
+28. ✅ **Knowledge base redesign** — VERIFIED 2 June. Page uses portal design system throughout (purple tokens, rounded-2xl, border-purple-100/60, FIGSY avatar strip). No redesign needed.
 29. ✅ **Consent token security** — VERIFIED 2 June. `consent.ts` uses `crypto.randomBytes(32).toString('hex')`. Already cryptographic.
 30. ✅ **Campaign pause notification emails** — VERIFIED 2 June. `internal.ts:819` calls `sendCampaignPausedEmail` when campaign auto-pauses. Already wired.
 31. **Fix smoke-test API failures** — run the full smoke test checklist and fix every failure found.
 32. ✅ **W2 sequence branching API wiring** — VERIFIED 2 June. `reply_branch_handled_at` logic in `figsy.ts:230+`. Already implemented.
 33. ✅ **S4 Scheduled report email** — VERIFIED 2 June. `sendWeeklyLeadsDigest` called in `/digest/weekly` route, cron fires Mondays. Already wired.
-34. **S5 "AI Revenue OS" positioning rewrite** — Apex steal: rewrite key portal copy around the Revenue OS framing.
+34. ✅ **S5 "AI Revenue OS" positioning rewrite** — DONE 2 June. OnboardingChecklist heading: "Launch your AI Revenue OS". Dashboard new-user subtitle: "Your AI Revenue OS is ready. Build your ICP and FIGSY handles outreach — no SDR required." Checklist colors fixed: indigo → portal purple (#7C3AED) throughout.
 35. ✅ **Admin cohort analytics** — VERIFIED 2 June. `cohorts/page.tsx` queries Supabase directly — real data, not mock.
 
 ---

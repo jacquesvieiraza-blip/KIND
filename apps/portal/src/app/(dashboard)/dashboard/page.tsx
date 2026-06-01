@@ -125,8 +125,8 @@ export default async function DashboardPage() {
   const greetingSubtitle = leadCount > 0 && totalReplies > 0
     ? `${leadCount.toLocaleString()} leads ready · FIGSY handled ${totalReplies} repl${totalReplies === 1 ? 'y' : 'ies'} this week`
     : leadCount > 0
-    ? 'Your first leads are ready — FIGSY is standing by to start outreach.'
-    : 'Welcome to K.I.N.D. Let\'s build your ICP and launch FIGSY outreach.'
+    ? 'Your first leads are ready — FIGSY is standing by. Start outreach and let it run 24/7.'
+    : 'Your AI Revenue OS is ready. Build your ICP and FIGSY handles outreach — no SDR required.'
 
   return (
     <div className="space-y-4">

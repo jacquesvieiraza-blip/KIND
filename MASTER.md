@@ -52,6 +52,29 @@
 
 ---
 
+### 📅 SESSION DATE — 1 June 2026 (evening — WEBSITE)
+**One-line summary:** Marketing-website session — built company/content pages (story, values, blog, playbook), restored full trust.html compliance (POPIA·GDPR·CAN-SPAM·CCPA·email infra·"what we don't do"), then ran a full 27-page deep audit and fixed every inconsistency (nav, CTA, domain, links, placeholders).
+
+**WEBSITE — what was built/fixed tonight:**
+| Area | Detail |
+|------|--------|
+| New pages | `story.html` (anonymous origin, 2023→2026 timeline), `values.html` (4 value cards + in-practice), `blog.html` (6-article index), `playbook.html` (lead magnet + email capture, JS thank-you) |
+| trust.html restored | Full compliance content back in new layout: POPIA, Data Sovereignty (Cape Town), GDPR, **CAN-SPAM (US)**, **CCPA/CPRA (California)**, Email Infrastructure (Resend/SPF/DKIM/DMARC/warming), Security, "What we don't do" (6 commitments) |
+| Nav — global fix | Full hover dropdown nav (Products/Demo/Use Cases/Resources/Company/Pricing) now consistent on ALL pages. Fixed: agent pages had no nav; inner pages used click (not hover); pricing/about/support/use-cases had diverged nav missing Demo link + old dropdowns |
+| CTA consistency | Every nav primary button standardized to **"Start 14-day trial"** (was a mix of "Start free", "Start free trial", "Start 14-day trial") |
+| Domain unify | All login/signup/terms/privacy links → canonical `app.get-kind.com` (was raw `kindportal-production.up.railway.app` on ~18 pages) |
+| Legal fix | dpa.html entity/governing-law contradiction fixed — aligned to "Jacques Vieira trading as K.I.N.D / England and Wales" (matched terms.html + dpa-us.html) |
+| Content fixes | Removed all visible `[PLACEHOLDER]` tokens (trust/blog/playbook); demo-video.html "12.8 reply rate" → "12.8% reply rate"; terms.html absolute → relative links; Resources dropdown promo dark bg (text was invisible) |
+| Audit method | 4 parallel deep-dive agents covering all 27 pages + final verification sweep: 0 broken internal links, 0 visible placeholders, correct competitor names on all vs-* pages, all nav CTAs correct |
+
+**WEBSITE — known/remaining (for founder section-by-section smoke test):**
+- blog.html article cards link to `href="#"` — no individual article pages exist yet (by design for now)
+- playbook.html email form has `// TODO: wire to email service` (Mailchimp/ConvertKit) — captures but does not yet send
+- Trust-bar / stats numbers on agent pages are illustrative (e.g. "2,400+ meetings booked") — confirm or replace with real data
+- Video pages (figsy-video, platform-video, demo-video, platform-video-standalone) are standalone embeds with no nav/footer by design
+
+---
+
 ### 📅 SESSION DATE — 2 June 2026
 **One-line summary:** Full session build — 3 TS fixes, complete Partner Programme, PWA live on Railway, verification audit (15 working / 3 stubs), billing prices corrected, MASTER pricing corrected, Stripe products confirmed by founder.
 

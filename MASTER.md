@@ -76,6 +76,27 @@
 - Every session's key decisions, builds, and fixes must be logged in Section 0 before the session ends.
 - No item is marked ✅ unless it has been confirmed working — not just "route exists."
 
+**Morning bug audit — mandatory before any build work:**
+
+Run these four steps and report findings in chat before touching any code:
+
+1. `yarn workspace @kind/portal tsc --noEmit` — report every error
+2. `yarn workspace @kind/api build` — report every error
+3. `yarn workspace @kind/admin tsc --noEmit` — report every error
+4. Grep for unresolved issues: `grep -r "TODO\|FIXME\|console\.error" apps/ --include="*.ts" --include="*.tsx" -l`
+
+If any TypeScript errors are found, fix them before building anything new. Hidden errors reach production and take the site down.
+
+**Redundancy checks — verify these are active every session:**
+
+| Check | How | Why |
+|-------|-----|-----|
+| Railway health checks | Railway dashboard → each service → Settings → Health Check → path `/health` | Auto-restarts crashed service within 60 seconds |
+| UptimeRobot monitors | uptimerobot.com → check monitors are green | 5-minute ping, SMS alert to founder if down |
+| API `/health` endpoint | `GET /health` returns `{ status: 'ok' }` | Required for Railway health check to work |
+
+If Railway health checks are not configured or UptimeRobot is not set up, flag this to the founder at the start of the session before doing anything else.
+
 ---
 
 ## 🔴 YOUR ACTION LIST — EVERYTHING YOU NEED TO DO (1 June 2026)

@@ -52,7 +52,7 @@
 
 ---
 
-### 📅 SESSION DATE — 28 May 2026 — Admin redesign + FIGSY widget gating + Admin Portal Playbook
+### 📅 SESSION DATE — 1 June 2026 — Stripe products created · Billing prices fixed · MASTER pricing model corrected
 
 ---
 
@@ -207,6 +207,15 @@
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
+#### 1 June 2026 — Stripe Products + Billing Price Fix
+| Built / Fixed | Detail |
+|---------------|--------|
+| **Billing page prices corrected** | Lead Gen: $20/$40/$100 · FIGSY: $20/$40/$100 (was $38/$88 and $60/$110/$250 — all now $1/credit) |
+| **Milla + Vida Stripe products confirmed** | prod_UcjOFe7esiG2Xa (Milla) + prod_UcjOB0KZXHlmSy (Vida) created by founder |
+| **MASTER pricing model corrected** | Removed fictional Starter/Growth subscription tiers. Real model: credit bundles only + Milla/Vida monthly add-ons |
+| **OnboardingChecklist purple refresh** | Portal purple #7C3AED throughout — heading "Launch your AI Revenue OS" |
+| **OnboardingBanner component** | Trial / awaiting_payment banner with dismiss + urgency states |
+
 #### 28 May 2026 — Admin Redesign + FIGSY Gating + Admin Portal Playbook
 | Built / Fixed | Detail |
 |---------------|--------|
@@ -331,19 +340,19 @@
 **Before Test 3 (after Test 2 passes):**
 | # | Task | Where | ✓ |
 |---|------|--------|---|
-| T9 | Create Milla product in Stripe — Recurring $49/month | Stripe dashboard → Products | ☐ |
-| T10 | Create Vida product in Stripe — Recurring $39/month | Stripe dashboard → Products | ☐ |
-| T11 | Add `STRIPE_PRICE_MILLA_MONTHLY` to Railway | Railway — do NOT paste ID in chat | ☐ |
-| T12 | Add `NEXT_PUBLIC_STRIPE_PRICE_MILLA_MONTHLY` to Railway | Railway + Vercel env vars | ☐ |
-| T13 | Add `STRIPE_PRICE_VIDA_MONTHLY` to Railway | Railway — do NOT paste ID in chat | ☐ |
-| T14 | Add `NEXT_PUBLIC_STRIPE_PRICE_VIDA_MONTHLY` to Railway | Railway + Vercel env vars | ☐ |
+| T9 | ✅ Milla product created in Stripe | prod_UcjOFe7esiG2Xa — Milla Virtual Assistant | ✅ |
+| T10 | ✅ Vida product created in Stripe | prod_UcjOB0KZXHlmSy — Vida Chatbot Agent | ✅ |
+| T11 | Add `STRIPE_PRICE_MILLA_MONTHLY` to Railway | Get price_xxx by clicking into Milla product → copy price ID | ☐ |
+| T12 | Add `NEXT_PUBLIC_STRIPE_PRICE_MILLA_MONTHLY` to Vercel | Same price_xxx ID | ☐ |
+| T13 | Add `STRIPE_PRICE_VIDA_MONTHLY` to Railway | Get price_xxx by clicking into Vida product → copy price ID | ☐ |
+| T14 | Add `NEXT_PUBLIC_STRIPE_PRICE_VIDA_MONTHLY` to Vercel | Same price_xxx ID | ☐ |
 | T15 | Run `20260527_stripe_subscription_id.sql` | Supabase SQL Editor | ☐ |
 
 **This week — high priority:**
 | # | Task | Where | ✓ |
 |---|------|--------|---|
 | T16 | Set up Stripe account fully | stripe.com → keys → `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` to Railway | ☐ |
-| T17 | Create 4 credit bundle prices in Stripe | Lead Gen: 20cr/$20, 40cr/$38, 100cr/$88 · FIGSY: 20cr/$60, 40cr/$110, 100cr/$250 | ☐ |
+| T17 | ✅ Stripe credit products created | Lead Gen: 20cr/$20, 40cr/$40, 100cr/$100 · FIGSY: 20cr/$20, 40cr/$40, 100cr/$100 ($1/credit model) | ✅ |
 | T18 | Register UK company | companieshouse.gov.uk — £50, same day — Section 23 | ☐ |
 | T19 | Create HubSpot account + API key | app.hubspot.com (free) → Private Apps → "KIND AI" → `HUBSPOT_API_KEY` to Railway | ☐ |
 | T20 | Register Resend inbound webhook | Resend → Webhooks → Railway URL → set `RESEND_WEBHOOK_SECRET` in Railway | ☐ |

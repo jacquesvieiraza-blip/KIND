@@ -64,13 +64,13 @@ interface CreditTransaction {
 // ── Stripe credit bundles ─────────────────────────────────────────────────────
 const STRIPE_LEADGEN_BUNDLES = [
   { credits: 20,  priceUsd: 20,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '', creditType: 'lead_gen' as const },
-  { credits: 40,  priceUsd: 38,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '', creditType: 'lead_gen' as const },
-  { credits: 100, priceUsd: 88,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '', creditType: 'lead_gen' as const },
+  { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '', creditType: 'lead_gen' as const },
+  { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '', creditType: 'lead_gen' as const },
 ]
 const STRIPE_FIGSY_BUNDLES = [
-  { credits: 20,  priceUsd: 60,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '', creditType: 'figsy' as const },
-  { credits: 40,  priceUsd: 110, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40  || '', creditType: 'figsy' as const },
-  { credits: 100, priceUsd: 250, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '', creditType: 'figsy' as const },
+  { credits: 20,  priceUsd: 20,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '', creditType: 'figsy' as const },
+  { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40  || '', creditType: 'figsy' as const },
+  { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '', creditType: 'figsy' as const },
 ]
 
 // ── Agent subscription products ───────────────────────────────────────────────

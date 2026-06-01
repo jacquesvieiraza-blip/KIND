@@ -20,6 +20,30 @@
     .back-link:hover { color: var(--dark); }
     .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
     .btn-nav-primary:hover { opacity: 0.8; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); z-index: 300; transition: opacity .15s, visibility .15s; }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+    .dd-promo { background: var(--dark); border-radius: 12px; padding: 14px 16px; margin: 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
+    .dd-promo-text strong { color: #fff; display: block; }
+    .dd-promo-cta { font-size: 0.72rem; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); padding: 7px 13px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background .2s; flex-shrink: 0; }
+    .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
+    @media (max-width: 768px) { .nav-links { display: none; } }
 
     /* HERO */
     .page-hero { background: var(--dark); padding: 100px 48px 80px; position: relative; overflow: hidden; }
@@ -78,8 +102,59 @@
 
 <nav>
   <a href="/" class="logo"><div class="logo-icon">&#x26A1;</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="figsy.html" class="nav-link">Products <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:320px">
+        <a href="figsy.html" class="dd-link"><span class="dd-icon">&#x1F916;</span><span><span class="dd-title">FIGSY &mdash; The Closer</span><span class="dd-sub">Finds, writes, follows up &amp; books &mdash; autonomously</span></span></a>
+        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#x1F9E0;</span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Reads the intelligence so you make better decisions</span></span></a>
+        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#x1F4AC;</span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Converts your website &amp; WhatsApp visitors 24/7</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>Your AI team works while you sleep.</strong>Unlimited pipeline. No SDR salary.</div>
+          <a href="https://app.get-kind.com/signup" class="dd-promo-cta">Start 14-day trial &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <a href="demo.html" class="nav-link">Demo</a>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">&#x1F4CA;</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">&#x1F3E6;</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">&#x1F3E0;</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">&#x2696;&#xFE0F;</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">&#x1F4BB;</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">&#x1F465;</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="blog.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="blog.html" class="dd-link"><span class="dd-icon">&#x270F;&#xFE0F;</span><span><span class="dd-title">Blog</span><span class="dd-sub">Outbound strategy &amp; African B2B insights</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#x2753;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">&#x1F6DF;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>&#x1F4D6; Free: Africa-First Outbound Playbook</strong>ICP frameworks, email templates &amp; POPIA checklist. 50+ pages.</div>
+          <a href="playbook.html" class="dd-promo-cta">Download free &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="story.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown">
+        <a href="story.html" class="dd-link"><span class="dd-icon">&#x1F4D8;</span><span><span class="dd-title">Our Story</span><span class="dd-sub">Why we built K.I.N.D and where we&rsquo;re going</span></span></a>
+        <a href="values.html" class="dd-link"><span class="dd-icon">&#x1F3AF;</span><span><span class="dd-title">Values</span><span class="dd-sub">Transparency, Precision, Africa-first</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">&#x1F512;</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">&#x1F91D;</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
   <div class="nav-right">
-    <a href="/" class="back-link">&#x2190; Back to home</a>
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
     <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
   </div>
 </nav>
@@ -193,5 +268,18 @@
   </div>
 </footer>
 
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      var isOpen = item.classList.contains('is-open');
+      document.querySelectorAll('.nav-item.is-open').forEach(function(el) { el.classList.remove('is-open'); });
+      if (!isOpen) item.classList.add('is-open');
+      e.stopPropagation();
+    });
+  });
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.nav-item.is-open').forEach(function(el) { el.classList.remove('is-open'); });
+  });
+</script>
 </body>
 </html>

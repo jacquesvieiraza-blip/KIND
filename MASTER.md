@@ -273,6 +273,18 @@
 | **MASTER.md full audit** | 170+ commits cross-referenced. All stale entries fixed. |
 | **Section 5 portal/admin/website audit** | Cross-referenced actual code vs MASTER. Fixed: website 16→22 pages (listed all 22). Admin 7→13 routes (added /founder, /playbook, /terms-library, /hubspot, /scalability, /unibox). Portal 15 routes fully listed with routes. |
 
+#### 2 June 2026 — PWA (Progressive Web App)
+| Built | Detail |
+|-------|--------|
+| **PWA manifest** | `apps/portal/src/app/manifest.ts` — name, icons, shortcuts (Dashboard / Leads / FIGSY), theme `#7C3AED` |
+| **App icons** | `icon.tsx` + `apple-icon.tsx` — Next.js ImageResponse — purple K on violet gradient, 512px + 180px Apple |
+| **Service worker** | `public/sw.js` — cache-first static, network-first navigation, API routes bypassed, offline fallback |
+| **Offline page** | `app/offline/page.tsx` — branded offline screen with retry button |
+| **PWARegister component** | `src/components/PWARegister.tsx` — registers SW on mount |
+| **PWAInstallBanner** | `src/components/ui/PWAInstallBanner.tsx` — "Add to Home Screen" prompt, Android native install + iOS share-sheet guide, dismissable, localStorage persisted |
+| **Root layout updated** | Viewport meta (theme-color, no-scale), manifest link, apple-web-app-capable, PWARegister + PWAInstallBanner wired |
+| **Push notifications ready** | SW handles `push` event + `notificationclick` — navigate to relevant page on tap |
+
 #### 1 June 2026 — Stripe Products + Billing Price Fix
 | Built / Fixed | Detail |
 |---------------|--------|

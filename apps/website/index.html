@@ -608,28 +608,31 @@
     /* PHASE 1 — HERO ORBS */
     .hero-wrapper { position: relative; width: 100%; overflow: hidden; }
     .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-    .hero-orb { position: absolute; border-radius: 50%; }
+    .hero-orb { position: absolute; border-radius: 50%; will-change: transform; }
     .hero-orb-1 {
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 65%);
-      top: -160px; right: 0;
-      animation: orb-drift-a 22s ease-in-out infinite alternate;
+      width: 680px; height: 680px;
+      background: rgba(37,99,235,0.52);
+      filter: blur(130px);
+      top: -220px; right: -80px;
+      animation: orb-drift-a 24s ease-in-out infinite alternate;
     }
     .hero-orb-2 {
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 65%);
-      bottom: -120px; left: -80px;
-      animation: orb-drift-b 28s ease-in-out infinite alternate;
+      width: 540px; height: 540px;
+      background: rgba(37,99,235,0.42);
+      filter: blur(110px);
+      bottom: -140px; left: -100px;
+      animation: orb-drift-b 30s ease-in-out infinite alternate;
     }
     .hero-orb-3 {
-      width: 440px; height: 440px;
-      background: radial-gradient(circle, rgba(10,10,10,0.04) 0%, transparent 65%);
-      top: 30%; left: 38%;
-      animation: orb-drift-c 18s ease-in-out infinite alternate;
+      width: 400px; height: 400px;
+      background: rgba(99,102,241,0.32);
+      filter: blur(90px);
+      top: 15%; left: 32%;
+      animation: orb-drift-c 20s ease-in-out infinite alternate;
     }
-    @keyframes orb-drift-a { to { transform: translate(-60px, 50px); } }
-    @keyframes orb-drift-b { to { transform: translate(70px, -60px); } }
-    @keyframes orb-drift-c { to { transform: translate(-30px, 24px) scale(1.2); } }
+    @keyframes orb-drift-a { to { transform: translate(-80px, 70px) scale(1.08); } }
+    @keyframes orb-drift-b { to { transform: translate(90px, -80px) scale(0.94); } }
+    @keyframes orb-drift-c { to { transform: translate(-50px, 50px) scale(1.18); } }
     .hero-grain {
       position: absolute; inset: 0; pointer-events: none;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");

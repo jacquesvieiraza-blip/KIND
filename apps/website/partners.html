@@ -26,7 +26,7 @@
       background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
     }
     .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
     .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
     .nav-links { display: flex; align-items: center; gap: 2px; }
     .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
@@ -395,7 +395,7 @@
       <button type="submit" class="btn-form" id="auth-submit">Create account</button>
       <p class="modal-msg" id="auth-msg"></p>
     </form>
-    <p class="modal-footer">By signing up you agree to our <a href="https://kindportal-production.up.railway.app/terms">Terms of Service</a>.</p>
+    <p class="modal-footer">By signing up you agree to our <a href="https://app.get-kind.com/terms">Terms of Service</a>.</p>
   </div>
 </div>
 
@@ -407,15 +407,14 @@
   </a>
   <div class="nav-links">
     <div class="nav-item">
-      <a href="index.html#products" class="nav-link">Products <span class="chevron">&#9662;</span></a>
-      <div class="nav-dropdown">
-        <a href="index.html#products" class="dd-link"><span class="dd-icon">&#127919;</span><span><span class="dd-title">K.I.N.D AI &mdash; Lead Gen</span><span class="dd-sub">ICP-matched qualified leads delivered to your pipeline</span></span></a>
-        <a href="index.html#figsy" class="dd-link"><span class="dd-icon">&#129302;</span><span><span class="dd-title">FIGSY &mdash; AI SDR</span><span class="dd-sub">Autonomous outreach, follow-up &amp; meeting booking</span></span></a>
-        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#129504;</span><span><span class="dd-title">Milla &mdash; AI Virtual Assistant</span><span class="dd-sub">Claude-powered assistant trained on your business</span></span></a>
-        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#128172;</span><span><span class="dd-title">Vida &mdash; AI Chatbot Agent</span><span class="dd-sub">Qualify leads &amp; convert visitors 24/7</span></span></a>
-        <a href="index.html#products" class="dd-link"><span class="dd-icon">&#128172;</span><span><span class="dd-title">Chatbot Agent</span><span class="dd-sub">Web &amp; WhatsApp AI chatbot &mdash; one embed away</span></span></a>
+      <a href="figsy.html" class="nav-link">Products <span class="chevron">&#9662;</span></a>
+      <div class="nav-dropdown" style="min-width:320px">
+        <a href="figsy.html" class="dd-link"><span class="dd-icon">&#129302;</span><span><span class="dd-title">FIGSY &mdash; The Closer</span><span class="dd-sub">Finds, writes, follows up &amp; books &mdash; autonomously</span></span></a>
+        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#129504;</span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Reads the intelligence so you make better decisions</span></span></a>
+        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#128172;</span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Converts your website &amp; WhatsApp visitors 24/7</span></span></a>
       </div>
     </div>
+    <a href="demo.html" class="nav-link">Demo</a>
     <div class="nav-item">
       <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#9662;</span></a>
       <div class="nav-dropdown" style="min-width:264px">
@@ -428,9 +427,10 @@
       </div>
     </div>
     <div class="nav-item">
-      <a href="support.html" class="nav-link">Resources <span class="chevron">&#9662;</span></a>
-      <div class="nav-dropdown">
-        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#128218;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+      <a href="blog.html" class="nav-link">Resources <span class="chevron">&#9662;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="blog.html" class="dd-link"><span class="dd-icon">&#9999;&#65039;</span><span><span class="dd-title">Blog</span><span class="dd-sub">Outbound strategy &amp; African B2B insights</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#10067;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
         <a href="support.html" class="dd-link"><span class="dd-icon">&#128031;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
         <div class="dd-divider"></div>
         <a href="https://calendly.com/jacques-vieiraza/30min" class="dd-link" target="_blank" rel="noopener noreferrer"><span class="dd-icon">&#128197;</span><span><span class="dd-title">Book a Demo</span><span class="dd-sub">hello@get-kind.com</span></span></a>
@@ -440,16 +440,15 @@
       <a href="about.html" class="nav-link">Company <span class="chevron">&#9662;</span></a>
       <div class="nav-dropdown">
         <a href="about.html" class="dd-link"><span class="dd-icon">&#127970;</span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Our story, mission and values</span></span></a>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">&#128274;</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
         <a href="partners.html" class="dd-link"><span class="dd-icon">&#129309;</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn recurring commission or white-label our platform</span></span></a>
       </div>
     </div>
     <a href="pricing.html" class="nav-link">Pricing</a>
-    <a href="trust.html" class="nav-link">Trust &amp; Security</a>
-    <a href="partners.html" class="nav-link active">Partners</a>
   </div>
   <div class="nav-right">
     <button onclick="openAuth('login')" class="btn-nav-ghost">Log in</button>
-    <button onclick="openAuth('signup')" class="btn-nav-primary">Start free trial</button>
+    <button onclick="openAuth('signup')" class="btn-nav-primary">Start 14-day trial</button>
   </div>
 </nav>
 
@@ -913,7 +912,7 @@
         <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
         <a href="mailto:partners@get-kind.com">partners@get-kind.com</a>
         <a href="https://calendly.com/jacques-vieiraza/30min" target="_blank" rel="noopener noreferrer">Book a Demo</a>
-        <a href="https://kindportal-production.up.railway.app/login">Client login</a>
+        <a href="https://app.get-kind.com/login">Client login</a>
         <a href="support.html">Support</a>
       </div>
       <div class="footer-col">
@@ -928,8 +927,8 @@
     <div class="footer-bottom">
       <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
       <div class="footer-legal">
-        <a href="https://kindportal-production.up.railway.app/terms">Terms of Service</a>
-        <a href="https://kindportal-production.up.railway.app/privacy">Privacy Policy</a>
+        <a href="https://app.get-kind.com/terms">Terms of Service</a>
+        <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
         <a href="about.html#compliance">POPIA &amp; GDPR</a>
       </div>
     </div>
@@ -937,7 +936,7 @@
 </footer>
 
 <script>
-  var PORTAL = 'https://kindportal-production.up.railway.app'
+  var PORTAL = 'https://app.get-kind.com'
   var SUPABASE_URL = 'https://lwtadfdaoyvjmjhrfkgs.supabase.co'
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dGFkZmRhb3l2am1qaHJma2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMDUxNDksImV4cCI6MjA2MTc4MTE0OX0.U-3J1JxkFH8Kgg3xMzN3NJgCVSutXGXEITJHMmPCIPM'
   var authMode = 'signup'

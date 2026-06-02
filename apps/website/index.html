@@ -943,10 +943,30 @@
       gap: 24px; flex-wrap: wrap; position: relative; z-index: 190;
     }
     .trust-stat { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: rgba(0,0,0,0.45); white-space: nowrap; }
-    .trust-stat-num { font-weight: 800; font-size: 0.85rem; color: var(--dark); }
+    .trust-stat-num { font-weight: 800; font-size: 0.85rem; color: #7c3aed; }
     .trust-bar-div { width: 1px; height: 14px; background: rgba(0,0,0,0.1); flex-shrink: 0; }
     .trust-popia { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; color: #059669; white-space: nowrap; }
     @media (max-width: 768px) { .trust-bar { display: none; } }
+
+    /* PROMISE STRIP */
+    .promise-strip { padding: 64px 48px; background: #faf5ff; border-bottom: 1px solid rgba(124,58,237,0.1); }
+    .promise-strip-inner { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+    .promise-item { padding: 8px 40px 8px 0; margin-right: 40px; border-right: 1px solid rgba(124,58,237,0.14); }
+    .promise-item:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+    .promise-big { font-size: 3.2rem; font-weight: 900; color: #7c3aed; line-height: 1; letter-spacing: -0.04em; display: block; }
+    .promise-label { display: block; margin-top: 10px; font-size: 0.95rem; font-weight: 700; color: var(--dark); line-height: 1.3; }
+    .promise-sub { display: block; margin-top: 4px; font-size: 0.8rem; color: rgba(0,0,0,0.4); line-height: 1.4; }
+    @media (max-width: 900px) {
+      .promise-strip { padding: 48px 24px; }
+      .promise-strip-inner { grid-template-columns: repeat(2, 1fr); gap: 32px 0; }
+      .promise-item { border-right: none; margin-right: 0; padding-right: 0; padding-bottom: 32px; border-bottom: 1px solid rgba(124,58,237,0.1); }
+      .promise-item:nth-child(3), .promise-item:last-child { border-bottom: none; padding-bottom: 0; }
+    }
+    @media (max-width: 480px) {
+      .promise-strip-inner { grid-template-columns: 1fr; }
+      .promise-item { border-bottom: 1px solid rgba(124,58,237,0.1) !important; padding-bottom: 28px !important; }
+      .promise-item:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+    }
 
     /* TASK 7 — NAV DROPDOWN PROMO BLOCK */
     .dd-promo {
@@ -1024,7 +1044,7 @@
     .grad-light-to-wht { height: 48px; background: linear-gradient(to bottom, #f5f5f7 0%, #fff 100%); }
 
     /* HERO ATMOSPHERE BLEED */
-    .hero-bleed { height: 56px; background: linear-gradient(to bottom, rgba(37,99,235,0.05) 0%, transparent 100%); pointer-events: none; }
+    .hero-bleed { height: 56px; background: linear-gradient(to bottom, rgba(124,58,237,0.06) 0%, transparent 100%); pointer-events: none; }
 
     /* RESPONSIVE */
     @media (max-width: 1024px) {
@@ -1210,11 +1230,11 @@
 
 <!-- TRUST BAR -->
 <div class="trust-bar">
-  <div class="trust-stat"><span class="trust-stat-num">120+</span><span>campaigns running</span></div>
+  <div class="trust-stat"><span class="trust-stat-num">10 min</span><span>to first campaign live</span></div>
   <div class="trust-bar-div"></div>
-  <div class="trust-stat"><span class="trust-stat-num">340+</span><span>meetings booked this month</span></div>
+  <div class="trust-stat"><span class="trust-stat-num">24 hrs</span><span>to first leads delivered</span></div>
   <div class="trust-bar-div"></div>
-  <div class="trust-stat"><span class="trust-stat-num">18,000+</span><span>leads in pipeline</span></div>
+  <div class="trust-stat"><span class="trust-stat-num">Pay per lead</span><span>— not per seat, not per month</span></div>
   <div class="trust-bar-div"></div>
   <div class="trust-popia"><span class="live-dot"></span>POPIA Compliant &middot; Africa-first</div>
 </div>
@@ -1222,16 +1242,28 @@
 <!-- HERO ATMOSPHERE BLEED -->
 <div class="hero-bleed"></div>
 
-<!-- LOGO STRIP -->
-<div class="logo-strip">
-  <div class="logo-strip-inner">
-    <span class="logo-strip-label">Trusted by teams across Africa</span>
-    <div class="logo-strip-logos">
-      <div class="logo-slot"></div>
-      <div class="logo-slot"></div>
-      <div class="logo-slot"></div>
-      <div class="logo-slot"></div>
-      <div class="logo-slot"></div>
+<!-- PROMISE STRIP -->
+<div class="promise-strip">
+  <div class="promise-strip-inner">
+    <div class="promise-item">
+      <span class="promise-big">10</span>
+      <span class="promise-label">Minutes to your first campaign</span>
+      <span class="promise-sub">From signup to first send — no sales call, no setup fee</span>
+    </div>
+    <div class="promise-item">
+      <span class="promise-big">24h</span>
+      <span class="promise-label">First leads in your inbox</span>
+      <span class="promise-sub">Verified email, ICP-matched, POPIA-consented</span>
+    </div>
+    <div class="promise-item">
+      <span class="promise-big">$0</span>
+      <span class="promise-label">Until leads are delivered</span>
+      <span class="promise-sub">Pay per result, not per seat or per month</span>
+    </div>
+    <div class="promise-item">
+      <span class="promise-big">24/7</span>
+      <span class="promise-label">Your team never stops working</span>
+      <span class="promise-sub">No sick days, no timezone limits, no overtime</span>
     </div>
   </div>
 </div>

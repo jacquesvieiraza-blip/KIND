@@ -754,7 +754,7 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
 
     const { count: sentToday } = await db.from('figsy_sent_emails')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', todayUTC.toISOString())
+      .gte('sent_at', todayUTC.toISOString())
 
     const remaining = Math.max(0, dailyLimit - (sentToday ?? 0))
     if (remaining === 0) {
@@ -762,10 +762,20 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       return
     }
 
+    // Only send for ACTIVE campaigns — paused / archived / low-performance
+    // campaigns must stop sending. Filter enrollments to active campaigns.
+    const { data: activeCamps } = await db.from('figsy_campaigns').select('id').eq('status', 'active')
+    const activeCampaignIds = (activeCamps ?? []).map((c: { id: string }) => c.id)
+    if (activeCampaignIds.length === 0) {
+      res.json({ success: true, data: { sent: 0, no_active_campaigns: true } })
+      return
+    }
+
     const now = new Date().toISOString()
     const { data: due } = await db.from('figsy_enrollments')
       .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
       .in('status', ['enrolled', 'in_progress'])
+      .in('campaign_id', activeCampaignIds)
       .lte('next_send_at', now)
       .limit(remaining)
 

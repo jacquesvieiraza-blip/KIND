@@ -188,8 +188,17 @@ Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const raw = (message.content[0] as { type: string; text: string }).text.trim()
-  const parsed = JSON.parse(raw) as { classification: string; reasoning: string }
+  // Guard the parse: strip any markdown fences and fall back to 'other' rather
+  // than throwing — a parse failure must NOT drop the whole inbound reply.
+  const textBlock = message.content.find(b => b.type === 'text') as { type: 'text'; text: string } | undefined
+  const raw = (textBlock?.text ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
+  let parsed: { classification: string; reasoning: string }
+  try {
+    parsed = JSON.parse(raw) as { classification: string; reasoning: string }
+  } catch {
+    console.error('[classifyReply] could not parse model output, defaulting to other:', raw.slice(0, 200))
+    return { classification: 'other', reasoning: 'Could not classify automatically' }
+  }
 
   // Normalise legacy values that might come back from old prompts
   const legacyMap: Record<string, ReplyClassification> = {
@@ -197,9 +206,11 @@ Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max
     not_interested: 'cold',
     referred:       'referral',
   }
-  const classification = (legacyMap[parsed.classification] ?? parsed.classification) as ReplyClassification
+  const valid: ReplyClassification[] = ['hot','warm','cold','opt_out','unsubscribe','wrong_person','referral','out_of_office','other']
+  const mapped = (legacyMap[parsed?.classification] ?? parsed?.classification) as ReplyClassification
+  const classification: ReplyClassification = valid.includes(mapped) ? mapped : 'other'
 
-  return { classification, reasoning: parsed.reasoning }
+  return { classification, reasoning: parsed?.reasoning ?? '' }
 }
 
 // Days to wait after sending step N before the next step is due.

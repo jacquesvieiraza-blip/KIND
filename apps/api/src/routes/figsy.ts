@@ -38,9 +38,16 @@ figsyRouter.get('/track/open/:emailId', async (req, res) => {
 // No JWT auth — protected by RESEND_WEBHOOK_SECRET header check instead.
 // Resend inbound payload: { from, to, subject, text, html } OR { type, data: { from, ... } }
 figsyRouter.post('/replies/inbound', async (req, res) => {
-  // Verify webhook secret
+  // Verify webhook secret — FAIL CLOSED. If the secret isn't configured we must
+  // NOT accept unauthenticated inbound (forged replies could mark leads opted
+  // out, inject fake hot replies, or trigger auto-topup charges). The secret is
+  // a required env var on every deploy.
   const secret = process.env.RESEND_WEBHOOK_SECRET
-  if (secret && req.headers['x-webhook-secret'] !== secret) {
+  if (!secret) {
+    console.error('[figsy/replies/inbound] RESEND_WEBHOOK_SECRET not set — rejecting inbound. Set it on this deploy.')
+    res.status(503).json({ error: 'Webhook not configured' }); return
+  }
+  if (req.headers['x-webhook-secret'] !== secret) {
     res.status(401).json({ error: 'Unauthorized' }); return
   }
 
@@ -875,7 +882,7 @@ figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
       todayUTC.setUTCHours(0, 0, 0, 0)
       const { count } = await db.from('figsy_sent_emails')
         .select('id', { count: 'exact', head: true })
-        .gte('created_at', todayUTC.toISOString())
+        .gte('sent_at', todayUTC.toISOString())
       const sentToday = count ?? 0
       remaining = Math.max(0, dailyLimit - sentToday)
       if (remaining === 0) {
@@ -884,10 +891,20 @@ figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
       }
     }
 
+    // Only send for this client's ACTIVE campaigns — paused/archived must stop.
+    const { data: activeCamps } = await db.from('figsy_campaigns')
+      .select('id').eq('client_id', clientId).eq('status', 'active')
+    const activeCampaignIds = (activeCamps ?? []).map((c: { id: string }) => c.id)
+    if (activeCampaignIds.length === 0) {
+      res.json({ success: true, data: { sent: 0, no_active_campaigns: true } })
+      return
+    }
+
     const now = new Date().toISOString()
     const { data: due } = await db.from('figsy_enrollments')
       .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
       .eq('client_id', clientId)
+      .in('campaign_id', activeCampaignIds)
       .in('status', ['enrolled', 'in_progress'])
       .lte('next_send_at', now)
       .limit(remaining)

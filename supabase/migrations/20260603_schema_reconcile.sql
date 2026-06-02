@@ -101,6 +101,20 @@ alter table public.credit_transactions
     'manual_grant','refund'
   ));
 
+-- ── 4b. figsy_campaigns.status — allow 'paused_low_performance' ─────────────
+-- check-performance sets status='paused_low_performance' which the original
+-- CHECK rejects → the auto-pause UPDATE throws and the campaign never pauses.
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'figsy_campaigns_status_check') then
+    alter table public.figsy_campaigns drop constraint figsy_campaigns_status_check;
+  end if;
+end $$;
+
+alter table public.figsy_campaigns
+  add constraint figsy_campaigns_status_check
+  check (status in ('draft','active','paused','paused_low_performance','completed','archived'));
+
 -- ── 5. icps.intent_signals ──────────────────────────────────────────────────
 -- ABM organization_names + settings already have migrations; intent_signals does
 -- not. Without it, selected funding/hiring intent filters are silently dropped

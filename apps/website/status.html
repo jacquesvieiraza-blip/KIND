@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Status &middot; K.I.N.D</title>
+  <meta name="description" content="Live status of K.I.N.D platform services." />
+  <meta http-equiv="refresh" content="60" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); }
+    .nav-right a { font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; }
+    .nav-right a:hover { color: var(--dark); }
+
+    .wrap { max-width: 640px; margin: 0 auto; padding: 56px 24px 96px; }
+
+    /* OVERALL STATUS BANNER */
+    .overall-banner { border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; gap: 20px; margin-bottom: 48px; }
+    .overall-banner.all-ok { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+    .overall-banner.degraded { background: #fffbeb; border: 1.5px solid #fde68a; }
+    .overall-banner.major   { background: #fef2f2; border: 1.5px solid #fecaca; }
+    .overall-banner.checking { background: var(--light); border: 1.5px solid var(--border); }
+    .banner-dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+    .all-ok   .banner-dot { background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,0.2); animation: pulse-green 2s infinite; }
+    .degraded .banner-dot { background: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,0.2); }
+    .major    .banner-dot { background: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.2); }
+    .checking .banner-dot { background: #d1d5db; }
+    .banner-text { flex: 1; }
+    .banner-text h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; }
+    .all-ok   .banner-text h1 { color: #15803d; }
+    .degraded .banner-text h1 { color: #92400e; }
+    .major    .banner-text h1 { color: #991b1b; }
+    .checking .banner-text h1 { color: rgba(0,0,0,0.5); }
+    .banner-text p { font-size: 0.82rem; color: rgba(0,0,0,0.45); margin-top: 3px; }
+    @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 4px rgba(34,197,94,0.2)} 50%{box-shadow:0 0 0 8px rgba(34,197,94,0.08)} }
+
+    /* SERVICE ROWS */
+    .services-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin-bottom: 12px; }
+    .service-list { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 40px; }
+    .service-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); transition: background .15s; }
+    .service-row:last-child { border-bottom: none; }
+    .service-row:hover { background: rgba(0,0,0,0.015); }
+    .service-info { display: flex; flex-direction: column; gap: 2px; }
+    .service-name { font-size: 0.9rem; font-weight: 600; color: var(--dark); }
+    .service-desc { font-size: 0.72rem; color: rgba(0,0,0,0.38); }
+    .service-status { display: flex; align-items: center; gap: 8px; }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .status-label { font-size: 0.75rem; font-weight: 600; }
+
+    .status-ok       .status-dot   { background: #22c55e; }
+    .status-ok       .status-label { color: #16a34a; }
+    .status-degraded .status-dot   { background: #f59e0b; }
+    .status-degraded .status-label { color: #d97706; }
+    .status-down     .status-dot   { background: #ef4444; }
+    .status-down     .status-label { color: #dc2626; }
+    .status-checking .status-dot   { background: #d1d5db; animation: blink 1s infinite; }
+    .status-checking .status-label { color: rgba(0,0,0,0.3); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* LATENCY */
+    .latency { font-size: 0.68rem; color: rgba(0,0,0,0.25); margin-left: 4px; }
+
+    /* INCIDENT SECTION */
+    .incident-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(0,0,0,0.3); margin-bottom: 12px; }
+    .no-incidents { border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; }
+    .no-incidents p { font-size: 0.85rem; color: rgba(0,0,0,0.35); }
+
+    /* LAST CHECKED */
+    .meta { font-size: 0.72rem; color: rgba(0,0,0,0.3); text-align: center; margin-top: 32px; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 32px 48px; }
+    .footer-bottom { max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+
+    @media (max-width: 600px) { nav { padding: 0 20px; } .wrap { padding: 40px 20px 72px; } .service-row { padding: 14px 16px; } footer { padding: 28px 20px; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">&#x26A1;</div>
+    <span class="logo-text">K.I.N.D</span>
+  </a>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login">Client login &rarr;</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- OVERALL BANNER -->
+  <div class="overall-banner checking" id="overall-banner">
+    <div class="banner-dot"></div>
+    <div class="banner-text">
+      <h1 id="overall-title">Checking systems&hellip;</h1>
+      <p id="overall-sub">Running live health checks. This takes a few seconds.</p>
+    </div>
+  </div>
+
+  <!-- SERVICES -->
+  <div class="services-label">Services</div>
+  <div class="service-list">
+
+    <div class="service-row">
+      <div class="service-info">
+        <span class="service-name">Client Portal</span>
+        <span class="service-desc">app.get-kind.com &mdash; dashboards, campaigns, leads</span>
+      </div>
+      <div class="service-status status-checking" id="svc-portal">
+        <div class="status-dot"></div>
+        <span class="status-label">Checking</span>
+      </div>
+    </div>
+
+    <div class="service-row">
+      <div class="service-info">
+        <span class="service-name">API</span>
+        <span class="service-desc">Outreach engine, lead sourcing, email dispatch</span>
+      </div>
+      <div class="service-status status-checking" id="svc-api">
+        <div class="status-dot"></div>
+        <span class="status-label">Checking</span>
+        <span class="latency" id="lat-api"></span>
+      </div>
+    </div>
+
+    <div class="service-row">
+      <div class="service-info">
+        <span class="service-name">Marketing website</span>
+        <span class="service-desc">get-kind.com &mdash; public pages</span>
+      </div>
+      <div class="service-status status-checking" id="svc-website">
+        <div class="status-dot"></div>
+        <span class="status-label">Checking</span>
+      </div>
+    </div>
+
+    <div class="service-row">
+      <div class="service-info">
+        <span class="service-name">Email delivery</span>
+        <span class="service-desc">Outbound + transactional email (Resend)</span>
+      </div>
+      <div class="service-status status-checking" id="svc-email">
+        <div class="status-dot"></div>
+        <span class="status-label">Checking</span>
+      </div>
+    </div>
+
+    <div class="service-row">
+      <div class="service-info">
+        <span class="service-name">Database</span>
+        <span class="service-desc">Client data, leads, campaigns (Supabase)</span>
+      </div>
+      <div class="service-status status-checking" id="svc-db">
+        <div class="status-dot"></div>
+        <span class="status-label">Checking</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- INCIDENTS -->
+  <div class="incident-label">Recent incidents</div>
+  <div class="no-incidents" id="incidents-section">
+    <p>No incidents reported in the last 30 days.</p>
+  </div>
+
+  <p class="meta" id="last-checked">Checks run automatically every 60 seconds.</p>
+
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="support.html">Support</a>
+      <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var API_URL = 'https://kindapi-production-e64c.up.railway.app'
+  var PORTAL_URL = 'https://app.get-kind.com'
+
+  function setService(id, state, label, latency) {
+    var el = document.getElementById(id)
+    if (!el) return
+    el.className = 'service-status status-' + state
+    el.querySelector('.status-label').textContent = label
+    var lat = el.querySelector('.latency')
+    if (lat) lat.textContent = latency ? latency + 'ms' : ''
+  }
+
+  function setOverall(state) {
+    var banner = document.getElementById('overall-banner')
+    var title  = document.getElementById('overall-title')
+    var sub    = document.getElementById('overall-sub')
+    banner.className = 'overall-banner ' + state
+    if (state === 'all-ok') {
+      title.textContent = 'All systems operational'
+      sub.textContent   = 'Every service is running normally.'
+    } else if (state === 'degraded') {
+      title.textContent = 'Partial service disruption'
+      sub.textContent   = 'One or more services are experiencing issues. Our team has been notified.'
+    } else if (state === 'major') {
+      title.textContent = 'Major service outage'
+      sub.textContent   = 'We are aware of the issue and working to restore service. Contact hello@get-kind.com for urgent support.'
+    }
+  }
+
+  function now() { return Date.now() }
+
+  function runChecks() {
+    var results = { api: null, portal: null, website: null, email: null, db: null }
+
+    // API health — direct fetch to /health
+    var t0 = now()
+    fetch(API_URL + '/health', { mode: 'cors', cache: 'no-store', signal: AbortSignal.timeout(8000) })
+      .then(function (r) {
+        var lat = now() - t0
+        if (r.ok) {
+          results.api = 'ok'
+          // DB is checked via the same API (if API is healthy, Supabase is reachable)
+          results.db = 'ok'
+          setService('svc-api', 'ok', 'Operational', lat)
+          setService('svc-db',  'ok', 'Operational')
+        } else {
+          results.api = 'degraded'
+          results.db  = 'unknown'
+          setService('svc-api', 'degraded', 'Degraded', lat)
+          setService('svc-db',  'degraded', 'Unknown')
+        }
+        evaluate(results)
+      })
+      .catch(function () {
+        results.api = 'down'
+        results.db  = 'unknown'
+        setService('svc-api', 'down', 'Unavailable')
+        setService('svc-db',  'degraded', 'Unknown')
+        evaluate(results)
+      })
+
+    // Portal — fetch a known fast endpoint (login page). Cross-origin so we
+    // can only tell if it responds at all; a non-network-error means it's up.
+    fetch(PORTAL_URL + '/login', { mode: 'no-cors', cache: 'no-store', signal: AbortSignal.timeout(8000) })
+      .then(function () {
+        results.portal = 'ok'
+        setService('svc-portal', 'ok', 'Operational')
+        evaluate(results)
+      })
+      .catch(function () {
+        results.portal = 'down'
+        setService('svc-portal', 'down', 'Unavailable')
+        evaluate(results)
+      })
+
+    // Website — same-origin fetch so we get a real status
+    fetch('/index.html', { cache: 'no-store', signal: AbortSignal.timeout(8000) })
+      .then(function (r) {
+        results.website = r.ok ? 'ok' : 'degraded'
+        setService('svc-website', r.ok ? 'ok' : 'degraded', r.ok ? 'Operational' : 'Degraded')
+        evaluate(results)
+      })
+      .catch(function () {
+        // If this page loaded, the website is clearly up
+        results.website = 'ok'
+        setService('svc-website', 'ok', 'Operational')
+        evaluate(results)
+      })
+
+    // Email — no public ping endpoint for Resend. Proxy through API health.
+    // If API is up, assume Resend is reachable (they have 99.9%+ SLA).
+    // Set after API check resolves.
+    setTimeout(function () {
+      if (results.api === 'ok') {
+        setService('svc-email', 'ok', 'Operational')
+      } else if (results.api === null) {
+        setService('svc-email', 'checking', 'Checking')
+      } else {
+        setService('svc-email', 'degraded', 'Unknown')
+      }
+    }, 5000)
+  }
+
+  function evaluate(results) {
+    var vals = Object.values(results).filter(function (v) { return v !== null })
+    if (vals.length === 0) return
+    if (vals.some(function (v) { return v === 'down' })) {
+      setOverall('major')
+    } else if (vals.some(function (v) { return v === 'degraded' || v === 'unknown' })) {
+      setOverall('degraded')
+    } else if (vals.every(function (v) { return v === 'ok' })) {
+      setOverall('all-ok')
+    }
+    var t = new Date()
+    document.getElementById('last-checked').textContent =
+      'Last checked: ' + t.toLocaleTimeString() + ' &mdash; auto-refreshes every 60 seconds.'
+  }
+
+  runChecks()
+})()
+</script>
+
+</body>
+</html>

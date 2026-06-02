@@ -962,18 +962,55 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 
 ---
 
-### 🚨 OPEN BLOCKERS (2 June 2026)
+### 🚀 GO-LIVE PLAN — TARGET: MONDAY 8 JUNE 2026
 
-| # | Blocker | Owner | Blocking |
-|---|---------|-------|---------|
-| B1 | 7 remaining Stripe `price_xxx` IDs not in Railway | Jacques | All billing broken |
-| B2 | `20260527_stripe_subscription_id.sql` not run | Jacques | Stripe subscription tracking |
-| B3 | `20260602_linkedin_queue.sql` not run | Jacques | LinkedIn queue silent |
-| B4 | `20260602_human_in_loop.sql` not run | Jacques | Approval queue silent |
-| B5 | `ADMIN_SECRET_KEY` not set in Railway | Jacques | Admin portal ungated |
-| B6 | Render warm standby not deployed | Jacques | API SPOF — Railway = total outage |
-| B7 | UptimeRobot not live | Jacques | No outage alerts |
-| B8 | WhatsApp Meta application status unknown | Jacques | 3-7 day approval — start now |
+**Smoke tests: Saturday 6 June + Sunday 7 June. Go live: Monday 8 June.**
+
+#### 🔴 FOUNDER — MUST DO BEFORE SATURDAY (billing + features blocked without these)
+| # | Action | Where | Blocks |
+|---|--------|-------|--------|
+| 1 | Add 7 Stripe `price_xxx` IDs | Railway (6 → Portal as `NEXT_PUBLIC_STRIPE_PRICE_*`, Milla+Vida → API) | All billing |
+| 2 | Run `20260527_stripe_subscription_id.sql` | Supabase | Subscription tracking |
+| 3 | Run `meetings_booked` migration (`ALTER TABLE figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked int NOT NULL DEFAULT 0;`) | Supabase | KPI metric |
+| 4 | Run `20260602_linkedin_queue.sql` | Supabase | LinkedIn queue |
+| 5 | Run `20260602_human_in_loop.sql` | Supabase | Approval queue |
+| 6 | Run `20260602_figsy_chat_history.sql` | Supabase | FIGSY chat survives reload (works via localStorage without it) |
+| 7 | Run `20260602_push_subscriptions.sql` | Supabase | Web push (optional) |
+| 8 | Set `ADMIN_SECRET_KEY` in Railway API | Railway | Admin gated + ALL crons (cron skips without it!) |
+
+#### 🟡 FOUNDER — BEFORE GO-LIVE (resilience + integrations)
+| # | Action | Where |
+|---|--------|-------|
+| 9 | Deploy Render API standby + Cloudflare LB | `docs/render-cloudflare-failover.md` — removes Railway SPOF |
+| 10 | (Optional) Portal/admin standby | `docs/portal-admin-failover.md` |
+| 11 | Activate website CDN failover | Cloudflare Pages `kind-website` + GitHub secrets |
+| 12 | Set up UptimeRobot on `/health` | uptimerobot.com (free) |
+| 13 | Railway health-check path → `/health` | Railway API settings |
+| 14 | Add PhantomBuster keys | Railway API (LinkedIn auto-dispatch) |
+| 15 | (Optional) VAPID keys for push: `npx web-push generate-vapid-keys` → `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` on API + `NEXT_PUBLIC_VAPID_PUBLIC_KEY` on Portal | Railway |
+| 16 | WhatsApp Meta application — START NOW (3-7 day approval) | Meta |
+| 17 | Grant credits to your own account | Admin portal |
+
+#### 🗓️ SMOKE TEST SCHEDULE
+| Day | Plan |
+|-----|------|
+| **Sat 6 June** | Run Section 18 Test 1 (Core Platform, 17 steps) + Test 2 (Agents). Founder reports `T1-StepN — what I saw`, Claude fixes live. |
+| **Sun 7 June** | Test 3 (Billing/Stripe) + Test 4. Re-run any Sat failures. Final full-check audit. |
+| **Mon 8 June** | Go live. Monitor UptimeRobot + status page. |
+
+#### ✅ CLAUDE — DONE THIS SESSION (committed + pushed)
+- 3 blog articles + wired (blog.html zero dead links)
+- All page banners made consistent with homepage (light lavender)
+- S4 scheduled weekly client emails — verified already wired (cron → `/digest/weekly`)
+- P5 FIGSY chat history — server-side persistence (graceful degrade)
+- Push notifications backend — full infra (no-op until VAPID keys set)
+- Portal/admin Render standby configs + failover doc
+- API redundancy (render.yaml) + status page (status.html)
+
+#### ⏳ CLAUDE — REMAINING (non-blocking for launch)
+- P6 NotificationBell dark-mode polish (only affects flagged-off Portal V2; correct in live light sidebar)
+- Push: wire more triggers (low-credit, trial-expiring) — hot-reply trigger done
+- Portal/admin live failover deploy is a founder action
 
 ---
 

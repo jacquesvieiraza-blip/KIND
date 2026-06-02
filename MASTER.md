@@ -1015,12 +1015,14 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 - 🔴 [CODE] Widget never checks subscription → serves + bills Anthropic for cancelled clients forever.
 - 🟠 [CODE] Default color still old blue #0066FF in DB default + API fallback + widget. Rate limiter incomplete + X-Forwarded-For spoofable.
 
-**FIX PLAN (priority order, in progress):**
-1. ✅ Schema reconciliation SQL (keystone) — built.
-2. Money integrity — delivery gate, atomic/idempotent credits, Stripe webhook idempotency, email dedupe.
-3. Journey blockers — onboarding gate, partner ref, ICP activate, remaining client_id bugs, paused-campaign sends, Vida API host, Milla+Vida sub gates.
-4. Booking last-mile — inject booking link into sequences + unify meetings_booked KPI.
-5. Verify every fix against live DB during smoke tests.
+**FIX PLAN — ✅ ALL SHIPPED (2 June 2026, verified tsc-green on api/portal/admin):**
+1. ✅ Schema reconciliation SQL `20260603_schema_reconcile.sql` (keystone — run in Supabase): figsy_campaigns.settings + status widen, figsy_sent_emails.created_at/status, figsy_replies from_name/body_text/nullable campaign_id/classification widen, credit_transactions.type widen, icps.intent_signals, clients.booking_url, leads.delivered_at + grandfather, calendar_bookings/push/chat tables.
+2. ✅ Money integrity: Stripe webhook idempotency, atomic+idempotent drip (RPC + delivered_at claim), immediate deliver+charge on ICP run, client lead list/stats/export gated on delivered_at, all 4 figsy_sent_emails.client_id bugs fixed (share/internal/founder-brief/leads).
+3. ✅ Journey: onboarding gate (dashboard → /onboard if no client row), partner ?ref= codes accepted + attributed, ICP activate now sources leads, /icps/builder/chat added, /enroll opt-out re-check, paused-campaign sends stopped, webhook fail-closed, classifyReply guarded.
+4. ✅ Milla: API sub gate + day-1 value + crons gated to active subs. Vida: API host, sub gate, color, rate-limit, msg persistence. trust proxy set.
+5. ✅ Booking: client booking_url injected into FIGSY sequences (settable via PATCH /clients/me); /calendar/book increments meetings_booked + stamps reply.
+
+**STILL TO VERIFY (weekend smoke tests, against LIVE DB):** run the reconcile SQL first, then exercise signup→ICP→leads→FIGSY→reply→booking end-to-end. **Remaining cosmetic:** ~51 `#0066FF` (old blue) in email templates + admin + landing pages — brand polish, client-facing in emails, not yet swept.
 
 ---
 

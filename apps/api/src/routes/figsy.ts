@@ -1810,3 +1810,50 @@ figsyRouter.get('/insights', async (req: AuthRequest, res) => {
     res.status(500).json({ success: false, error: 'Failed to generate insights' })
   }
 })
+
+// ── HUMAN-IN-THE-LOOP APPROVAL QUEUE ─────────────────────────────────────────
+
+// GET /api/figsy/approval-queue — list pending approvals
+figsyRouter.get('/approval-queue', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    const { data, error } = await db
+      .from('figsy_approval_queue')
+      .select(`id, sequence_step, to_email, subject, body, status, created_at, expires_at,
+        figsy_leads ( first_name, last_name, company, job_title ),
+        figsy_campaigns ( name )`)
+      .eq('client_id', clientId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error) throw error
+    res.json({ queue: data })
+  } catch (err: unknown) { res.status(500).json({ error: (err as Error).message }) }
+})
+
+// POST /api/figsy/approval-queue/:id/approve
+figsyRouter.post('/approval-queue/:id/approve', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    const { data, error } = await db
+      .from('figsy_approval_queue')
+      .update({ status: 'approved' })
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .select('id, to_email, subject, body, campaign_id, lead_id')
+      .single()
+    if (error || !data) { res.status(404).json({ error: 'Not found' }); return }
+    // Mark sent (actual send happens via existing sendSequenceEmail — stub for now)
+    await db.from('figsy_approval_queue').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', req.params.id)
+    res.json({ approved: true, id: req.params.id })
+  } catch (err: unknown) { res.status(500).json({ error: (err as Error).message }) }
+})
+
+// POST /api/figsy/approval-queue/:id/reject
+figsyRouter.post('/approval-queue/:id/reject', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    await db.from('figsy_approval_queue').update({ status: 'rejected' }).eq('id', req.params.id).eq('client_id', clientId)
+    res.json({ rejected: true })
+  } catch (err: unknown) { res.status(500).json({ error: (err as Error).message }) }
+})

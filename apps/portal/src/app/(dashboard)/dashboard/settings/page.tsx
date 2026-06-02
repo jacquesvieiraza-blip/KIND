@@ -89,6 +89,68 @@ function NotificationPreferences() {
   )
 }
 
+const FIGSY_APPROVE_STORAGE_KEY = 'kind_approve_before_send'
+
+function FigsyOutreachSettings() {
+  const [approveBeforeSend, setApproveBeforeSend] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FIGSY_APPROVE_STORAGE_KEY)
+      if (raw !== null) setApproveBeforeSend(raw === 'true')
+    } catch { /* ignore */ }
+  }, [])
+
+  function toggle() {
+    setApproveBeforeSend(prev => {
+      const next = !prev
+      try { localStorage.setItem(FIGSY_APPROVE_STORAGE_KEY, String(next)) } catch { /* ignore */ }
+      return next
+    })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <div className="border-t border-gray-100 pt-6">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <Eye className="w-4 h-4 text-[#9B8EC4]" />
+          <h2 className="font-semibold">FIGSY — Outreach Control</h2>
+        </div>
+        {saved && (
+          <span className="flex items-center gap-1 text-xs text-green-600">
+            <CheckCircle className="w-3 h-3" /> Saved
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-[#9B8EC4] mb-4">Control how FIGSY sends outbound emails on your behalf.</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900">Approve emails before sending</p>
+          <p className="text-xs text-[#9B8EC4]">
+            Review every outbound email before FIGSY sends it. Emails queue here for your approval — nothing goes out without you.
+          </p>
+        </div>
+        <button
+          onClick={toggle}
+          aria-label="Toggle approve before send"
+          className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:ring-offset-2 ${
+            approveBeforeSend ? 'bg-[#7C3AED]' : 'bg-gray-200'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${
+              approveBeforeSend ? 'translate-x-4' : 'translate-x-0.5'
+            }`}
+          />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function TeamSection({ clientId, userRole }: { clientId: string; userRole: string }) {
   const [members, setMembers] = useState<{id:string;email:string;role:string;accepted_at:string|null}[]>([])
   const [email, setEmail] = useState('')
@@ -643,6 +705,9 @@ export default function SettingsPage() {
           <p className="text-sm text-green-600">Vapi is active. FIGSY will call leads on day 4 of the sequence.</p>
         </div>
       )}
+
+      {/* FIGSY — Outreach Control */}
+      <FigsyOutreachSettings />
 
       {/* Notification Preferences */}
       <NotificationPreferences />

@@ -8,7 +8,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --blue: #0066FF;
+      --blue: #7c3aed;
       --dark: #0a0a0a;
       --mid: #444;
       --light: #f5f5f7;
@@ -60,7 +60,7 @@
 
     /* ── HERO ── */
     .page-hero { max-width: 640px; margin: 0 auto; padding: 80px 24px 0; text-align: center; }
-    .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); margin-bottom: 24px; display: inline-block; background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.15); padding: 6px 14px; border-radius: 100px; }
+    .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); margin-bottom: 24px; display: inline-block; background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.15); padding: 6px 14px; border-radius: 100px; }
     .page-hero h1 { font-size: clamp(2.6rem, 5vw, 4.2rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px; color: var(--dark); }
     .page-hero p { font-size: 1rem; color: rgba(0,0,0,0.45); line-height: 1.75; }
 
@@ -116,7 +116,7 @@
     .p-card ul li::before { content: "✓"; color: #059669; font-weight: 800; flex-shrink: 0; }
     .p-card ul li.b::before { color: var(--blue); }
     .p-card.pop ul li::before { color: #34d399; }
-    .p-card.pop ul li.b::before { color: #60a5fa; }
+    .p-card.pop ul li.b::before { color: #a78bfa; }
     .p-card ul li.dim { color: rgba(0,0,0,0.25); }
     .p-card ul li.dim::before { color: rgba(0,0,0,0.15); }
     .p-btn { display: block; text-align: center; padding: 12px; border-radius: 100px; font-size: 0.875rem; font-weight: 700; text-decoration: none; transition: all .2s; border: none; cursor: pointer; margin-top: auto; }
@@ -185,7 +185,7 @@
     .cta-banner::before {
       content: '';
       position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.15) 0%, transparent 60%);
+      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, transparent 60%);
       pointer-events: none;
     }
     .cta-banner h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 14px; color: #fff; position: relative; z-index: 1; }
@@ -608,14 +608,14 @@
 <div style="max-width:1080px;margin:0 auto 80px;padding:0 24px">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div style="background:#f5f5f7;border-radius:20px;padding:36px 32px;display:flex;flex-direction:column;gap:12px">
-      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#0066FF">Partner Programme</div>
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#7c3aed">Partner Programme</div>
       <h3 style="font-size:1.3rem;font-weight:900;letter-spacing:-0.02em;color:#0a0a0a;line-height:1.2">Know businesses that need more pipeline?</h3>
       <p style="font-size:0.85rem;color:rgba(0,0,0,0.45);line-height:1.7">Refer clients to K.I.N.D at standard pricing and earn 20% recurring commission for 12 months. No minimums. No exclusivity. No paperwork to get started.</p>
       <a href="partners.html" style="display:inline-block;margin-top:8px;background:#0a0a0a;color:#fff;font-size:0.875rem;font-weight:700;padding:11px 24px;border-radius:100px;text-decoration:none;transition:opacity .2s;width:fit-content">View Partner Programme &rarr;</a>
     </div>
     <div style="background:#0a0a0a;border-radius:20px;padding:36px 32px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden">
-      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 100% 0%,rgba(0,102,255,0.2) 0%,transparent 55%);pointer-events:none"></div>
-      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#60a5fa;position:relative">Agency &amp; White-label</div>
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 100% 0%,rgba(124,58,237,0.2) 0%,transparent 55%);pointer-events:none"></div>
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#a78bfa;position:relative">Agency &amp; White-label</div>
       <h3 style="font-size:1.3rem;font-weight:900;letter-spacing:-0.02em;color:#fff;line-height:1.2;position:relative">Run K.I.N.D under your brand.</h3>
       <p style="font-size:0.85rem;color:rgba(255,255,255,0.4);line-height:1.7;position:relative">Agency partners earn 25&ndash;30% managing K.I.N.D for clients. White-label partners run the full platform under their logo. Annual contract. Minimum 10 seats.</p>
       <a href="partners.html#apply" style="display:inline-block;margin-top:8px;background:#fff;color:#0a0a0a;font-size:0.875rem;font-weight:700;padding:11px 24px;border-radius:100px;text-decoration:none;transition:opacity .2s;width:fit-content;position:relative">Apply to partner &rarr;</a>
@@ -722,11 +722,11 @@
       ctx.clearRect(0,0,W,H)
       for (let i = 0; i < nodes.length; i++) for (let j = i+1; j < nodes.length; j++) {
         const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y, dist=Math.sqrt(dx*dx+dy*dy)
-        if (dist < 160) { ctx.beginPath(); ctx.strokeStyle=`rgba(0,102,255,${0.06*(1-dist/160)})`; ctx.lineWidth=0.8; ctx.moveTo(nodes[i].x,nodes[i].y); ctx.lineTo(nodes[j].x,nodes[j].y); ctx.stroke() }
+        if (dist < 160) { ctx.beginPath(); ctx.strokeStyle=`rgba(124,58,237,${0.06*(1-dist/160)})`; ctx.lineWidth=0.8; ctx.moveTo(nodes[i].x,nodes[i].y); ctx.lineTo(nodes[j].x,nodes[j].y); ctx.stroke() }
       }
       nodes.forEach(n => {
         n.pulse+=.02; const glow=(Math.sin(n.pulse)+1)/2
-        ctx.beginPath(); ctx.arc(n.x,n.y,n.r+glow,0,Math.PI*2); ctx.fillStyle=`rgba(0,102,255,${.25+glow*.35})`; ctx.fill()
+        ctx.beginPath(); ctx.arc(n.x,n.y,n.r+glow,0,Math.PI*2); ctx.fillStyle=`rgba(124,58,237,${.25+glow*.35})`; ctx.fill()
         n.x+=n.vx; n.y+=n.vy; if(n.x<0||n.x>W)n.vx*=-1; if(n.y<0||n.y>H)n.vy*=-1
       })
       requestAnimationFrame(draw)

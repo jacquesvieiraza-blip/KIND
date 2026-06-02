@@ -72,8 +72,8 @@
     .hero-label {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--blue); margin-bottom: 24px;
-      background: rgba(0,102,255,0.06); border: 1px solid rgba(0,102,255,0.15);
+      color: #60a5fa; margin-bottom: 24px;
+      background: rgba(37,99,235,0.18); border: 1px solid rgba(37,99,235,0.3);
       padding: 6px 14px; border-radius: 100px;
     }
     .hero h1 {
@@ -81,32 +81,32 @@
       font-weight: 900;
       letter-spacing: -0.04em;
       line-height: 1.0;
-      color: var(--dark);
+      color: #fff;
       margin-bottom: 20px;
     }
     .hero h1 span { color: var(--blue); }
     .hero-sub {
       font-size: 0.97rem;
-      color: rgba(0,0,0,0.45);
+      color: rgba(255,255,255,0.48);
       max-width: 520px;
       margin: 0 auto 24px;
       line-height: 1.65;
     }
     .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 0; justify-content: center; }
     .btn-hero-primary {
-      background: var(--dark); color: #fff; font-size: 0.95rem; font-weight: 600;
+      background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700;
       padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer;
       transition: opacity .2s; text-decoration: none;
     }
-    .btn-hero-primary:hover { opacity: 0.8; }
+    .btn-hero-primary:hover { opacity: 0.88; }
     .btn-hero-ghost {
-      background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 500;
-      padding: 14px 32px; border-radius: 100px; border: 1.5px solid rgba(0,0,0,0.15);
+      background: rgba(255,255,255,0.08); color: #fff; font-size: 0.95rem; font-weight: 500;
+      padding: 14px 32px; border-radius: 100px; border: 1.5px solid rgba(255,255,255,0.2);
       cursor: pointer; transition: all .2s; text-decoration: none;
     }
-    .btn-hero-ghost:hover { border-color: rgba(0,0,0,0.35); }
+    .btn-hero-ghost:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
 
-    /* HERO AGENT CARDS — Alta-style full portrait, visible above fold */
+    /* HERO AGENT CARDS — Alta-style full portrait inside dark box */
     .hero-agents {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -114,22 +114,22 @@
       width: 100%;
       max-width: 1080px;
       margin: 28px auto 0;
-      padding: 0 48px;
+      padding: 0 28px 28px;
     }
     .hero-agent-card {
       border-radius: 20px;
       overflow: hidden;
       position: relative;
-      border: 1.5px solid rgba(0,0,0,0.08);
+      border: none;
       transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s;
       display: block;
       cursor: pointer;
       text-decoration: none;
-      height: 520px;
+      height: 500px;
     }
     .hero-agents .hero-agent-card:hover {
       transform: translateY(-6px);
-      box-shadow: 0 28px 64px rgba(37,99,235,0.18), 0 8px 24px rgba(0,0,0,0.12);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
     }
     .hero-agent-card img {
       width: 100%;
@@ -138,26 +138,6 @@
       object-position: top center;
       display: block;
     }
-    .hero-agent-label {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
-      padding: 64px 22px 22px;
-    }
-    .hero-agent-name {
-      font-size: 1.15rem; font-weight: 800; color: #fff;
-      letter-spacing: -0.02em; display: block; margin-bottom: 3px;
-    }
-    .hero-agent-role {
-      font-size: 0.72rem; color: rgba(255,255,255,0.52);
-      display: block; margin-bottom: 12px; letter-spacing: 0.02em;
-    }
-    .hero-agent-cta {
-      font-size: 0.78rem; font-weight: 700; color: #60a5fa;
-      display: inline-flex; align-items: center; gap: 4px;
-      transition: color 0.2s;
-    }
-    .hero-agent-card:hover .hero-agent-cta { color: #fff; }
 
     /* NODE NETWORK */
     .hero-visual {
@@ -609,7 +589,7 @@
     .reveal-delay-3 { transition-delay: 0.3s; }
 
     /* PHASE 1 — HERO ORBS */
-    .hero-wrapper { position: relative; width: 100%; overflow: hidden; min-height: 100svh; display: flex; flex-direction: column; }
+    .hero-wrapper { position: relative; overflow: hidden; margin: 0 16px; border-radius: 28px; background: var(--dark); }
     /* === OPTION D — BREATHING CORE === */
     .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 
@@ -1149,42 +1129,26 @@
     <div class="live-chip"><span class="live-dot"></span>Live now — first campaign running in 5 business days</div>
     <div class="hero-label">⚡ The AI Sales Team That Works While You Sleep</div>
     <h1>Stop chasing leads.<br/><span id="tw-target">Break the ceiling.</span><span class="tw-cursor" id="tw-cursor"></span></h1>
-    <p class="hero-sub reveal">FIGSY is your AI SDR — it finds your ideal clients, writes emails that sound like you, follows up automatically, and delivers warm leads straight to your inbox. You just show up to the call. Africa-first. POPIA compliant. No SDR salary required.</p>
     <div class="hero-btns reveal reveal-delay-1">
       <button onclick="openAuth('signup')" class="btn-hero-primary">Get your first leads free →</button>
       <a href="#figsy" class="btn-hero-ghost">See how it works</a>
     </div>
     <div style="margin-top:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center">
-      <span style="font-size:0.78rem;color:rgba(0,0,0,0.45);display:flex;align-items:center;gap:5px">✓ No setup fees</span>
-      <span style="font-size:0.78rem;color:rgba(0,0,0,0.45);display:flex;align-items:center;gap:5px">✓ Pay per lead — not per seat</span>
-      <span style="font-size:0.78rem;color:rgba(0,0,0,0.45);display:flex;align-items:center;gap:5px">✓ Cancel anytime</span>
-      <span style="font-size:0.78rem;color:rgba(0,0,0,0.45);display:flex;align-items:center;gap:5px">✓ First campaign live in 5 business days — guaranteed</span>
+      <span style="font-size:0.78rem;color:rgba(255,255,255,0.38);display:flex;align-items:center;gap:5px">✓ No setup fees</span>
+      <span style="font-size:0.78rem;color:rgba(255,255,255,0.38);display:flex;align-items:center;gap:5px">✓ Pay per lead — not per seat</span>
+      <span style="font-size:0.78rem;color:rgba(255,255,255,0.38);display:flex;align-items:center;gap:5px">✓ Cancel anytime</span>
+      <span style="font-size:0.78rem;color:rgba(255,255,255,0.38);display:flex;align-items:center;gap:5px">✓ First campaign live in 5 business days — guaranteed</span>
     </div>
   </div>
   <div class="hero-agents">
     <a href="figsy.html" class="hero-agent-card" data-agent="figsy">
       <img src="figsy.png" alt="FIGSY — The Closer" />
-      <div class="hero-agent-label">
-        <span class="hero-agent-name">FIGSY</span>
-        <span class="hero-agent-role">The Closer &middot; Autonomous AI SDR</span>
-        <span class="hero-agent-cta">Meet FIGSY &rarr;</span>
-      </div>
     </a>
     <a href="virtual-assistant.html" class="hero-agent-card" data-agent="milla">
       <img src="milla.png" alt="Milla — The Brain" />
-      <div class="hero-agent-label">
-        <span class="hero-agent-name">Milla</span>
-        <span class="hero-agent-role">The Brain &middot; Business Intelligence</span>
-        <span class="hero-agent-cta">Meet Milla &rarr;</span>
-      </div>
     </a>
     <a href="chatbot-agent.html" class="hero-agent-card" data-agent="vida">
       <img src="vida.png" alt="Vida — The Connector" />
-      <div class="hero-agent-label">
-        <span class="hero-agent-name">Vida</span>
-        <span class="hero-agent-role">The Connector &middot; Web &amp; WhatsApp AI</span>
-        <span class="hero-agent-cta">Meet Vida &rarr;</span>
-      </div>
     </a>
   </div>
 </div>

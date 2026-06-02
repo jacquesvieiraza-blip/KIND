@@ -962,9 +962,71 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 
 ---
 
-### 🚀 GO-LIVE PLAN — TARGET: MONDAY 8 JUNE 2026
+### 🔬 FULL CLIENT-JOURNEY AUDIT — 2 June 2026 (8 parallel deep audits)
 
-**Smoke tests: Saturday 6 June + Sunday 7 June. Go live: Monday 8 June.**
+**Trigger:** Founder: "ensure the client process... every step checked, verified, works, no bugs... a client must be satisfied with the leads." Audited the entire money-path: signup → onboarding → ICP → leads → FIGSY → booking, plus Milla + Vida.
+
+**🚨 ROOT CAUSE (ties ~half the findings together): MIGRATION DRIFT.** The committed migrations do NOT match the live DB — the code reads columns/constraints no migration creates (live DB was hand-patched over time). `supabase/MASTER_SCHEMA.sql` is incomplete (481 lines, missing figsy_sent_emails + classification). **A fresh deploy (Render standby) would build a broken DB.** Fix: `supabase/migrations/20260603_schema_reconcile.sql` (idempotent, non-destructive — safe on live DB and makes standby deployable).
+
+**LAUNCH DECISION (founder, 2 June): SLIP to a verified date.** Monday 8 June cancelled. New date set only when the money-path passes smoke tests against the live DB. Soft-launch to 1-2 design partners is the likely first step.
+
+**CONFIRMED FINDINGS (tag: [CODE]=real regardless of DB · [DB]=schema-dependent):**
+
+*Signup/onboarding:*
+- 🔴 [CODE] Abandon onboarding chat → auth user, no client row, stranded on broken dashboard (no server-side onboarding gate).
+- 🔴 [CODE] Partner `?ref=` codes aren't UUIDs → onboarding POST 400s → every partner signup dies.
+- 🟠 [DB] `trial_bonus` ledger insert violated CHECK → FIXED by reconcile (widened credit_transactions.type).
+
+*ICP→leads:*
+- 🔴 [CODE] Activate is a no-op; nothing re-runs the active ICP.
+- 🔴 [CODE] Conversational builder page calls non-existent `/icps/builder/chat` → 404 every message.
+- 🔴 [DB] `intent_signals` dropped on save (FIXED by reconcile). NOTE: organization_names/settings DO have migrations (ICP agent over-claimed).
+- 🟠 [CODE] Double lead-gen run on create (create auto-run + UI run) → 2× Apollo spend.
+
+*Leads + credits (MONEY INTEGRITY):*
+- 🔴 [CODE] Client lead list/export ignores `delivered_at` → clients get ALL leads instantly, free, before any credit charged. Revenue leak.
+- 🔴 [CODE] Drip credit deduction non-atomic + non-idempotent → double-charge on retry, lost credits on concurrent top-up.
+- 🟠 [CODE] Dedupe by apollo_id only, never email → same lead charged twice.
+- ✅ Apollo 3-pass fallback, scoring isolation, credit PURCHASE path = solid.
+
+*FIGSY:*
+- 🔴 [DB] Send cron filters `figsy_sent_emails.created_at` (missing) → NO follow-ups send. FIXED by reconcile.
+- 🔴 [DB] `classification` CHECK + missing from_name/body_text + NOT NULL campaign_id → replies silently dropped, hot leads never surface. FIXED by reconcile.
+- 🔴 [DB] `figsy_campaigns.settings` missing → campaign/sequence saves 500. FIXED by reconcile.
+- 🔴 [CODE] Approve-before-send does nothing — always sends live.
+- 🔴 [CODE] Paused/low-perf campaigns keep sending (no campaign-status check in send loops; `paused_low_performance` violates status CHECK).
+- 🟠 [CODE] No consent re-check in `/enroll` (POPIA). Webhook fail-open if RESEND_WEBHOOK_SECRET unset. Old `client_id`-on-figsy_sent_emails bug still in share.ts/leads.ts/internal.ts/founder-brief.ts. classifyReply JSON.parse unguarded.
+
+*Booking (the goal):*
+- 🔴 [CODE] FIGSY emails contain NO booking link — leads literally can't book.
+- 🔴 [CODE] `/calendar/book` wrote to missing table (FIXED: calendar_bookings migration) + doesn't move meetings_booked KPI; analytics chart fabricates meetings from interested-reply count.
+
+*Billing:*
+- 🔴 [CODE] Duplicate Stripe webhook double-credits (no idempotency on checkout.session.completed).
+- 🟠 [CODE] Lapse cron can strand a paid renewal as `lapsed`. Trials never actually expire (gated by credits only).
+
+*Milla:*
+- 🔴 [CODE] Morning-brief + anomaly crons ignore subscription → EVERY client gets the paid $49 Milla emails free + spam.
+- 🔴 [CODE] Milla chat API has no subscription gate (paywall is client-side only) → free Claude usage via direct call.
+- 🟠 [CODE] Doc-RAG only: day-1 subscriber with no uploads gets "not in your documents" for the advertised questions.
+
+*Vida:*
+- 🔴 [CODE] Widget points to WRONG API host (`...83cb...` vs `...e64c...`) → public widget 100% dead on every client site.
+- 🔴 [CODE] Widget never checks subscription → serves + bills Anthropic for cancelled clients forever.
+- 🟠 [CODE] Default color still old blue #0066FF in DB default + API fallback + widget. Rate limiter incomplete + X-Forwarded-For spoofable.
+
+**FIX PLAN (priority order, in progress):**
+1. ✅ Schema reconciliation SQL (keystone) — built.
+2. Money integrity — delivery gate, atomic/idempotent credits, Stripe webhook idempotency, email dedupe.
+3. Journey blockers — onboarding gate, partner ref, ICP activate, remaining client_id bugs, paused-campaign sends, Vida API host, Milla+Vida sub gates.
+4. Booking last-mile — inject booking link into sequences + unify meetings_booked KPI.
+5. Verify every fix against live DB during smoke tests.
+
+---
+
+### 🚀 GO-LIVE PLAN — (DATE SLIPPED 2 June — was Monday 8 June, now TBD after audit)
+
+**Smoke tests: TBD weekend once fixes land. Go live: only when money-path passes.**
 
 #### 🔴 FOUNDER — MUST DO BEFORE SATURDAY (billing + features blocked without these)
 | # | Action | Where | Blocks |

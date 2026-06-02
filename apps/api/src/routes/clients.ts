@@ -225,6 +225,51 @@ clientRouter.get('/me/notifications', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, data: [] }) }
 })
 
+// ── Web Push (PWA notifications) ────────────────────────────────────────────
+// GET /clients/push/vapid-key — the public key the browser needs to subscribe.
+// Returns enabled:false when VAPID keys are not configured, so the UI hides
+// the "enable notifications" prompt rather than erroring.
+clientRouter.get('/push/vapid-key', (_req, res) => {
+  const key = process.env.VAPID_PUBLIC_KEY
+  res.json({ success: true, data: { enabled: Boolean(key), publicKey: key ?? null } })
+})
+
+// POST /clients/me/push-subscribe — store a browser push subscription.
+// Body: { endpoint, keys: { p256dh, auth } }
+clientRouter.post('/me/push-subscribe', async (req: AuthRequest, res) => {
+  try {
+    const sub = z.object({
+      endpoint: z.string().url(),
+      keys: z.object({ p256dh: z.string(), auth: z.string() }),
+    }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { error } = await db.from('push_subscriptions').upsert({
+      client_id: clientId,
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+    }, { onConflict: 'endpoint' })
+    if (error) { res.status(500).json({ success: false, error: error.message }); return }
+    res.json({ success: true })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    res.status(500).json({ success: false, error: 'Failed to save subscription' })
+  }
+})
+
+// POST /clients/me/push-unsubscribe — remove a browser push subscription.
+clientRouter.post('/me/push-unsubscribe', async (req: AuthRequest, res) => {
+  try {
+    const { endpoint } = z.object({ endpoint: z.string() }).parse(req.body)
+    await db.from('push_subscriptions').delete().eq('endpoint', endpoint).then(() => {}, () => {})
+    res.json({ success: true })
+  } catch {
+    res.json({ success: true })
+  }
+})
+
 async function getClientId(userId: string): Promise<string | null> {
   const { data } = await db.from('clients').select('id').eq('user_id', userId).single()
   return data?.id ?? null

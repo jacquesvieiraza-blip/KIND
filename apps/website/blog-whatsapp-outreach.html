@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp B2B outreach: the African market advantage &middot; K.I.N.D</title>
+  <meta name="description" content="In South Africa and East Africa, WhatsApp business messages see 90%+ open rates. Here&rsquo;s how to build a compliant, high-converting B2B sequence on it &mdash; the POPIA way." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .back-link:hover { color: var(--dark); }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); z-index: 300; transition: opacity .15s, visibility .15s; }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+    .dd-promo { background: var(--dark); border-radius: 12px; padding: 14px 16px; margin: 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
+    .dd-promo-text strong { color: #fff; display: block; }
+    .dd-promo-cta { font-size: 0.72rem; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); padding: 7px 13px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background .2s; flex-shrink: 0; }
+    .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
+    @media (max-width: 768px) { .nav-links { display: none; } }
+
+    /* ARTICLE LAYOUT */
+    .article-wrap { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; }
+
+    .article-hero { margin-bottom: 48px; }
+    .article-tag { display: inline-block; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; background: rgba(124,58,237,0.1); color: var(--blue); margin-bottom: 20px; }
+    .article-hero h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1.1; margin-bottom: 20px; }
+    .article-meta { font-size: 0.78rem; color: rgba(0,0,0,0.38); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .article-meta span { display: flex; align-items: center; gap: 6px; }
+    .meta-dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(0,0,0,0.2); }
+
+    .article-divider { height: 1px; background: var(--border); margin: 40px 0; }
+
+    /* BODY TYPOGRAPHY */
+    .article-body { font-size: 1.0rem; line-height: 1.8; color: rgba(0,0,0,0.82); }
+    .article-body p { margin-bottom: 24px; }
+    .article-body h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; color: var(--dark); margin: 48px 0 16px; line-height: 1.25; }
+    .article-body h3 { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin: 32px 0 12px; }
+    .article-body ul, .article-body ol { padding-left: 24px; margin-bottom: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--dark); font-weight: 700; }
+
+    /* CALLOUT BOXES */
+    .callout { background: rgba(124,58,237,0.06); border-left: 3px solid var(--blue); border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0; }
+    .callout-stat { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; color: var(--blue); line-height: 1; margin-bottom: 6px; }
+    .callout p { margin-bottom: 0; font-size: 0.9rem; color: rgba(0,0,0,0.6); line-height: 1.6; }
+    .callout-quote { background: var(--light); border-left: 3px solid var(--blue); border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.65); line-height: 1.7; }
+    .callout-quote cite { display: block; font-style: normal; font-size: 0.78rem; font-weight: 700; color: rgba(0,0,0,0.38); margin-top: 10px; }
+
+    /* SCORE TABLE */
+    .score-table { width: 100%; border-collapse: collapse; margin: 24px 0 32px; font-size: 0.88rem; }
+    .score-table th { text-align: left; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.38); padding: 10px 16px; border-bottom: 2px solid var(--border); }
+    .score-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: rgba(0,0,0,0.75); vertical-align: top; }
+    .score-table tr:last-child td { border-bottom: none; }
+    .score-table td:first-child { font-weight: 700; color: var(--dark); white-space: nowrap; }
+    .score-weight { display: inline-block; font-size: 0.7rem; font-weight: 800; color: var(--blue); background: rgba(124,58,237,0.1); border-radius: 6px; padding: 2px 8px; }
+
+    /* CTA */
+    .article-cta { background: var(--dark); border-radius: 20px; padding: 48px 40px; text-align: center; margin-top: 64px; }
+    .article-cta h2 { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; margin-bottom: 12px; }
+    .article-cta p { font-size: 0.9rem; color: rgba(255,255,255,0.45); margin-bottom: 28px; line-height: 1.6; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--dark); font-size: 0.9rem; font-weight: 700; padding: 13px 30px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
+    .cta-btn:hover { opacity: 0.88; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .article-wrap { padding: 40px 20px 72px; }
+      .score-table { font-size: 0.82rem; }
+      .score-table th, .score-table td { padding: 10px 10px; }
+      .article-cta { padding: 36px 24px; }
+      footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">&#x26A1;</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="figsy.html" class="nav-link">Products <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:320px">
+        <a href="figsy.html" class="dd-link"><span class="dd-icon">&#x1F916;</span><span><span class="dd-title">FIGSY &mdash; The Closer</span><span class="dd-sub">Finds, writes, follows up &amp; books &mdash; autonomously</span></span></a>
+        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#x1F9E0;</span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Reads the intelligence so you make better decisions</span></span></a>
+        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#x1F4AC;</span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Converts your website &amp; WhatsApp visitors 24/7</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>Your AI team works while you sleep.</strong>Unlimited pipeline. No SDR salary.</div>
+          <a href="https://app.get-kind.com/signup" class="dd-promo-cta">Start 14-day trial &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <a href="demo.html" class="nav-link">Demo</a>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">&#x1F4CA;</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">&#x1F3E6;</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">&#x1F3E0;</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">&#x2696;&#xFE0F;</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">&#x1F4BB;</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">&#x1F465;</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="blog.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="blog.html" class="dd-link"><span class="dd-icon">&#x270F;&#xFE0F;</span><span><span class="dd-title">Blog</span><span class="dd-sub">Outbound strategy &amp; African B2B insights</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#x2753;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">&#x1F6DF;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>&#x1F4D6; Free: Africa-First Outbound Playbook</strong>ICP frameworks, email templates &amp; POPIA checklist. 50+ pages.</div>
+          <a href="playbook.html" class="dd-promo-cta">Download free &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="story.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown">
+        <a href="story.html" class="dd-link"><span class="dd-icon">&#x1F4D8;</span><span><span class="dd-title">Our Story</span><span class="dd-sub">Why we built K.I.N.D and where we&rsquo;re going</span></span></a>
+        <a href="values.html" class="dd-link"><span class="dd-icon">&#x1F3AF;</span><span><span class="dd-title">Values</span><span class="dd-sub">Transparency, Precision, Africa-first</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">&#x1F512;</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">&#x1F91D;</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
+  </div>
+</nav>
+
+<div class="article-wrap">
+
+  <article>
+
+    <div class="article-hero">
+      <a href="blog.html" style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:rgba(0,0,0,0.38);text-decoration:none;margin-bottom:28px;transition:color .2s;" onmouseover="this.style.color='#0a0a0a'" onmouseout="this.style.color='rgba(0,0,0,0.38)'">&#x2190; Back to blog</a>
+      <div class="article-tag">WhatsApp sales</div>
+      <h1>WhatsApp B2B outreach: the African market advantage</h1>
+      <div class="article-meta">
+        <span>K.I.N.D Team</span>
+        <span class="meta-dot"></span>
+        <span>April 2026</span>
+        <span class="meta-dot"></span>
+        <span>7 min read</span>
+      </div>
+    </div>
+
+    <div class="article-divider"></div>
+
+    <div class="article-body">
+
+      <p>In most of the world, B2B outreach means email and LinkedIn. In South Africa and East Africa, the most important business channel sits on every phone in the country &mdash; WhatsApp. For a foreign-built sales playbook, this is a blind spot. For a team that takes it seriously, it is one of the largest unfair advantages available in African B2B.</p>
+
+      <p>WhatsApp business messages routinely see open rates above 90%, against the roughly 20&ndash;30% you might expect from a good cold email. The reason is simple: in Johannesburg, Nairobi, and Lagos, WhatsApp is not a marketing channel people tolerate. It is where business actually happens &mdash; quotes, negotiations, supplier coordination, and deal-making all run through it. A message there is read because that is where the buyer already lives.</p>
+
+      <div class="callout">
+        <div class="callout-stat">90%+</div>
+        <p>Open rate for business messages on WhatsApp in South Africa and East Africa. The channel buyers already use to run their business is the channel where your message actually gets seen.</p>
+      </div>
+
+      <h2>Why WhatsApp dominates African business comms</h2>
+
+      <p>Three forces stack up here. First, mobile-first adoption &mdash; the smartphone, not the desktop, is the primary work device for a huge share of decision-makers. Second, data economics &mdash; WhatsApp is cheap to run and often zero-rated, while email and web carry more friction. Third, culture &mdash; African business runs on relationships and direct conversation, and WhatsApp is the digital form of that. A voice note or a quick reply feels personal in a way an email thread never will.</p>
+
+      <p>The practical upshot: a decision-maker who would let your email sit unread for a week will often reply to a well-framed WhatsApp message within the hour. But that reach only works if you earn it. Used wrong, WhatsApp goes from advantage to liability faster than any other channel &mdash; both legally and in reputation.</p>
+
+      <h2>Start with consent: the POPIA angle</h2>
+
+      <p>Under South Africa&rsquo;s Protection of Personal Information Act (POPIA), sending unsolicited electronic direct marketing &mdash; and WhatsApp counts &mdash; generally requires consent. This is stricter than email in practice, because WhatsApp reaches a personal number and feels intrusive when uninvited. Getting this wrong is not just bad manners; it carries real regulatory exposure.</p>
+
+      <p>What compliant WhatsApp outreach looks like:</p>
+
+      <ul>
+        <li><strong>Obtain opt-in.</strong> The cleanest path is consent gathered at a touchpoint the prospect chose &mdash; a website form, an event, an existing relationship, a reply to an email where they agreed to continue on WhatsApp.</li>
+        <li><strong>Identify yourself clearly.</strong> Say who you are and why you are messaging in the first line. No bait-and-switch.</li>
+        <li><strong>Honour opt-out instantly.</strong> If someone asks you to stop, stop &mdash; and record the suppression so they are never contacted again.</li>
+        <li><strong>Keep records.</strong> Maintain proof of consent and a suppression list. If a regulator or prospect ever asks, you can show your basis.</li>
+      </ul>
+
+      <p>Consent is not just compliance theatre. An opted-in audience is also a warmer audience &mdash; which is exactly why consent-based WhatsApp converts so well.</p>
+
+      <h2>Business API vs personal: use the right tool</h2>
+
+      <p>Do not run B2B outreach off a personal WhatsApp account. It violates WhatsApp&rsquo;s terms, gets numbers banned, and gives you no audit trail. The WhatsApp Business API (via an approved provider) is built for this: it supports message templates, opt-out handling, delivery and read receipts, and the volume controls you need to stay both compliant and unbanned.</p>
+
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Need</th>
+            <th>Personal app</th>
+            <th>Business API</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>B2B outreach</td>
+            <td>Against terms &mdash; risk of ban</td>
+            <td>Built for it &mdash; compliant</td>
+          </tr>
+          <tr>
+            <td>Opt-out tracking</td>
+            <td>Manual, error-prone</td>
+            <td>Automated suppression</td>
+          </tr>
+          <tr>
+            <td>Audit trail</td>
+            <td>None</td>
+            <td>Full delivery &amp; consent records</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>How to structure a high-converting sequence</h2>
+
+      <p>WhatsApp rewards brevity and punishes the email mindset. A wall of text dies on a phone screen. The structure that works:</p>
+
+      <ul>
+        <li><strong>Message 1 &mdash; identify and earn the reply.</strong> Who you are, one specific reason you are reaching out to <em>them</em>, and a single low-friction question. Two or three short sentences, maximum.</li>
+        <li><strong>Message 2 &mdash; value, not a chase.</strong> If no reply after a couple of days, send something useful: a relevant insight, a short case point, a link they would actually want. Never &ldquo;just following up.&rdquo;</li>
+        <li><strong>Message 3 &mdash; the soft close.</strong> Offer a clear, easy next step &mdash; a quick call, a demo, or a yes/no. Then stop. Three touches is plenty; persistence past that reads as harassment on a personal channel.</li>
+      </ul>
+
+      <p>Cadence should be patient: space touches across days, not hours, and send during local business hours. A WhatsApp at 7pm reads as an intrusion in a way a 7pm email never does.</p>
+
+      <h2>When to use WhatsApp vs email</h2>
+
+      <p>WhatsApp is not a replacement for email &mdash; it is a different gear. Use email for the first cold touch to people you have no relationship or consent with, for anything that needs detail or attachments, and for a formal record. Switch to WhatsApp once there is consent or a warm signal: an email reply, a form fill, an event connection. That is where WhatsApp&rsquo;s speed and intimacy turn interest into a booked call.</p>
+
+      <div class="callout-quote">
+        &ldquo;Email opened the door. The deal actually moved when the conversation shifted to WhatsApp &mdash; replies that took days over email came back in minutes.&rdquo;
+        <cite>&mdash; KIND customer, financial services, Nairobi</cite>
+      </div>
+
+      <h2>Common mistakes to avoid</h2>
+
+      <ul>
+        <li>Blasting cold numbers with no consent &mdash; the fastest way to a ban and a POPIA complaint.</li>
+        <li>Pasting your email copy in. WhatsApp needs shorter, more conversational language.</li>
+        <li>Over-messaging. More than three unanswered touches damages your brand on a personal channel.</li>
+        <li>Ignoring opt-outs. One missed &ldquo;please stop&rdquo; can undo a quarter of goodwill.</li>
+      </ul>
+
+      <h2>The multi-channel approach</h2>
+
+      <p>This is where KIND&rsquo;s thinking lands: WhatsApp is not a standalone tactic but one channel in a coordinated sequence. FIGSY runs the outbound, Vida handles inbound WhatsApp and website conversations, and the whole motion respects consent and POPIA suppression across channels. Email earns the first yes; WhatsApp turns that yes into a conversation &mdash; with the compliance and records to back every message. Played that way, the African WhatsApp advantage stops being a hack and becomes a system.</p>
+
+    </div>
+
+    <div class="article-cta">
+      <h2>Win on the channel buyers actually use</h2>
+      <p>Run compliant, multi-channel outreach across email and WhatsApp &mdash; with consent and POPIA suppression built in.</p>
+      <a href="https://app.get-kind.com/signup" class="cta-btn">Start your 14-day free trial &rarr;</a>
+    </div>
+
+  </article>
+
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="playbook.html">Playbook</a>
+      <a href="trust.html">Trust</a>
+      <a href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer;
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open'); });
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open'); }, 200); });
+  });
+</script>
+</body>
+</html>

@@ -14,6 +14,52 @@ async function getClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
+/**
+ * Resolves the caller's client id and verifies they hold an ACTIVE Milla
+ * ('virtual_assistant') subscription. Mirrors the portal check
+ * (product === 'virtual_assistant' && status === 'active').
+ *
+ * Returns:
+ *   { clientId }                       → caller is allowed through
+ *   { error, status }                  → caller should be rejected with that status
+ *
+ * FAIL SAFE: if the subscription lookup throws a transient error we log it and
+ * allow the request through rather than hard-blocking a paying customer. We only
+ * return 403 on a definitive "no active subscription" result.
+ */
+async function requireMillaAccess(
+  userId: string,
+): Promise<{ clientId: string } | { error: string; status: number }> {
+  const clientId = await getClientId(userId)
+  if (!clientId) return { error: 'Client not found', status: 404 }
+
+  try {
+    const { data, error } = await db.from('subscriptions')
+      .select('product, status')
+      .eq('client_id', clientId)
+      .eq('product', 'virtual_assistant')
+      .eq('status', 'active')
+      .limit(1)
+
+    if (error) {
+      // Transient/lookup error — fail safe, do not block a paying user.
+      console.error('[milla/requireMillaAccess] subscription lookup error (failing open):', error)
+      return { clientId }
+    }
+
+    const hasActive = (data ?? []).some(s => s.product === 'virtual_assistant' && s.status === 'active')
+    if (!hasActive) {
+      return { error: 'An active Milla (Virtual Assistant) subscription is required to use this feature.', status: 403 }
+    }
+
+    return { clientId }
+  } catch (err) {
+    // Transient/network error — fail safe, do not block a paying user.
+    console.error('[milla/requireMillaAccess] subscription lookup threw (failing open):', err)
+    return { clientId }
+  }
+}
+
 // ── STATUS ────────────────────────────────────────────────────────────────────
 
 millaRouter.get('/status', async (req: AuthRequest, res) => {
@@ -49,8 +95,9 @@ millaRouter.post('/documents', async (req: AuthRequest, res) => {
       content: z.string().min(1),
     }).parse(req.body)
 
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const access = await requireMillaAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+    const clientId = access.clientId
 
     const { data, error } = await db.from('milla_documents')
       .insert({
@@ -80,8 +127,9 @@ millaRouter.post('/documents', async (req: AuthRequest, res) => {
 
 millaRouter.get('/documents', async (req: AuthRequest, res) => {
   try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const access = await requireMillaAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+    const clientId = access.clientId
 
     const { data, error } = await db.from('milla_documents')
       .select('id, name, type, status, created_at')
@@ -98,8 +146,9 @@ millaRouter.get('/documents', async (req: AuthRequest, res) => {
 
 millaRouter.delete('/documents/:documentId', async (req: AuthRequest, res) => {
   try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const access = await requireMillaAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+    const clientId = access.clientId
 
     const { error } = await db.from('milla_documents')
       .delete()
@@ -187,8 +236,9 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
   try {
     const { message } = z.object({ message: z.string().min(1) }).parse(req.body)
 
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const access = await requireMillaAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+    const clientId = access.clientId
 
     // Verify session belongs to client
     const { data: session } = await db.from('milla_sessions')

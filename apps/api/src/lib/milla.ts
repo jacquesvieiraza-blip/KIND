@@ -137,15 +137,31 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // Fetch relevant context chunks
   const chunks = await searchChunks(clientId, userMessage)
 
-  const contextText = chunks.length > 0
+  const hasContext = chunks.length > 0
+
+  const contextText = hasContext
     ? chunks.map((c, i) => `[${i + 1}] (${c.document_name})\n${c.content}`).join('\n\n')
     : 'No relevant documents found.'
 
   const systemPrompt =
-    "You are Milla, a professional AI assistant trained on the company's business documents. " +
-    'Answer questions accurately using the provided context. ' +
-    "If the answer isn't in the documents, say so honestly. " +
-    'Keep responses professional and concise.'
+    'You are Milla, the AI virtual assistant for K.I.N.D — a platform that helps businesses ' +
+    'with lead generation, sales outreach, and growth (including the FIGSY lead-gen tool). ' +
+    'You are a knowledgeable business and sales assistant. You can help with lead-generation ' +
+    'strategy, defining and refining an Ideal Customer Profile (ICP), how FIGSY works and how to ' +
+    'set it up, cold outreach and email best practices, and general business and sales questions — ' +
+    'drawing on your general expertise.\n\n' +
+    (hasContext
+      ? 'The user has uploaded business documents, and relevant excerpts are provided below as context. ' +
+        'When the answer is found in those documents, ground your response in them and prefer that ' +
+        'information over general knowledge. If part of the answer is in the documents and part is not, ' +
+        'use the documents for the client-specific facts and your general expertise for the rest.'
+      : 'No relevant uploaded documents were found for this question. Still be genuinely helpful: ' +
+        'answer using your general K.I.N.D business and sales expertise (lead-gen strategy, ICP guidance, ' +
+        'how FIGSY works, outreach best practices, etc.). Do NOT refuse simply because there are no ' +
+        'documents. Do not invent client-specific facts, numbers, or data you do not actually have — ' +
+        'if the user asks about their specific leads/data and you have none, say you do not have that ' +
+        'data yet and suggest they upload the relevant document, but still offer useful general guidance.') +
+    '\n\nKeep responses professional, clear, and concise.'
 
   // Build message history for Claude (last N turns already filtered by caller)
   const history: Anthropic.Messages.MessageParam[] = messageHistory
@@ -168,7 +184,11 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
     messages:   history,
   })
 
-  const reply = (response.content[0] as { type: string; text: string }).text.trim()
+  // Find the first text block — do not assume content[0] is text.
+  const textBlock = response.content.find(
+    (block): block is Anthropic.Messages.TextBlock => block.type === 'text',
+  )
+  const reply = textBlock?.text.trim() || "I'm sorry, I wasn't able to generate a response. Please try rephrasing your question."
 
   const sources = chunks.map(c => ({
     document_name: c.document_name,

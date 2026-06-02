@@ -280,10 +280,10 @@ export default function AssistantPage() {
             Now available
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Meet Milla</h1>
-          <p className="text-[#7B6FA0] text-sm">Your AI Virtual Assistant — trained on your business documents. Ask her anything.</p>
+          <p className="text-[#7B6FA0] text-sm">Your AI Virtual Assistant — your K.I.N.D business and sales expert. Ask her anything, and train her on your own documents for grounded answers.</p>
         </div>
         <div className="bg-[#F5EEFF]/60 rounded-xl p-5 mb-6 space-y-3">
-          {['Trained on your own documents and SOPs','Answers questions about your business instantly','Drafts emails and messages in your tone','Speaks English, Français, Kiswahili, and Hausa','Available 24/7 — never misses a question'].map(f => (
+          {['Helps with lead-gen strategy, your ICP, and setting up FIGSY','Answers business and sales questions from day one — no setup required','Train her on your own documents and SOPs for grounded answers','Drafts emails and messages in your tone','Speaks English, Français, Kiswahili, and Hausa','Available 24/7 — never misses a question'].map(f => (
             <div key={f} className="flex items-center gap-3 text-sm text-gray-700">
               <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-2.5 h-2.5 text-[#7C3AED]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
@@ -315,7 +315,7 @@ export default function AssistantPage() {
       )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Milla — Virtual Assistant</h1>
-        <p className="text-sm text-[#7B6FA0] mt-0.5">Train Milla on your business documents, then ask questions and get grounded answers.</p>
+        <p className="text-sm text-[#7B6FA0] mt-0.5">Ask Milla about lead-gen strategy, your ICP, or how to set up FIGSY — and train her on your documents for answers grounded in your own data.</p>
         <div className="flex items-center gap-1.5 mt-2">
           <span className="text-xs text-[#9B8EC4]">Available in:</span>
           {LANGUAGES.map(l => (
@@ -506,7 +506,7 @@ export default function AssistantPage() {
                 <div className="flex-1 flex items-center justify-center text-center p-8">
                   <div>
                     <p className="text-[#7B6FA0] font-medium">Select a chat or start a new one</p>
-                    <p className="text-sm text-[#9B8EC4] mt-1">Milla will answer questions using your uploaded documents.</p>
+                    <p className="text-sm text-[#9B8EC4] mt-1">Milla answers business and sales questions out of the box, and uses your uploaded documents when relevant.</p>
                   </div>
                 </div>
               ) : (

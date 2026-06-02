@@ -94,17 +94,19 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    // Use allSettled so one failed count doesn't blank the whole stats panel
+    // Use allSettled so one failed count doesn't blank the whole stats panel.
+    // Only count DELIVERED leads — the client is only shown (and charged for)
+    // delivered leads, so stats must match what they can actually see.
     const [total, scored, consented, exported_, optedOut] = (await Promise.allSettled([
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('score', 'is', null),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'consent_given'),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'exported'),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'opted_out'),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).not('score', 'is', null),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'consent_given'),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'exported'),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'opted_out'),
     ])).map(r => r.status === 'fulfilled' ? r.value : { count: 0 })
 
     const { data: avgData } = await db.from('leads').select('score, estimated_deal_value_usd')
-      .eq('client_id', clientId).not('score', 'is', null)
+      .eq('client_id', clientId).not('delivered_at', 'is', null).not('score', 'is', null)
 
     const avgScore = avgData?.length
       ? Math.round(avgData.reduce((sum: number, l: any) => sum + (Number(l.score) || 0), 0) / avgData.length)
@@ -133,8 +135,11 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // Only show DELIVERED leads — undelivered leads are not yet paid for and
+    // must not appear in the client's list/export (drip/run delivers + charges).
     let query = db.from('leads').select('*', { count: 'exact' })
       .eq('client_id', clientId)
+      .not('delivered_at', 'is', null)
       .order('score', { ascending: false, nullsFirst: false })
       .range((Number(page) - 1) * Number(limit), Number(page) * Number(limit) - 1)
 
@@ -674,9 +679,12 @@ leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const EXPORT_LIMIT = 5000
+    // Only export DELIVERED leads — clients can't export leads they haven't
+    // been charged for / can't see.
     let query = db.from('leads')
       .select('first_name,last_name,email,phone,job_title,company,industry,country,score,status,created_at')
       .eq('client_id', clientId)
+      .not('delivered_at', 'is', null)
       .order('score', { ascending: false, nullsFirst: false })
       .limit(EXPORT_LIMIT)
 
@@ -717,15 +725,20 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // figsy_sent_emails has NO client_id column — scope it via the client's campaigns.
+    const { data: campRows } = await db.from('figsy_campaigns').select('id').eq('client_id', clientId)
+    const campaignIds = (campRows ?? []).map((c: { id: string }) => c.id)
+    const campaignFilter = campaignIds.length > 0 ? campaignIds : ['00000000-0000-0000-0000-000000000000']
+
     const [
       { data: leads },
       { data: emails },
       { data: replies },
       { data: icps },
     ] = await Promise.all([
-      db.from('leads').select('id, created_at, score, status, icp_id, industry, seniority').eq('client_id', clientId),
-      db.from('figsy_sent_emails').select('id, created_at').eq('client_id', clientId),
-      db.from('figsy_replies').select('id, created_at, classification').eq('client_id', clientId),
+      db.from('leads').select('id, created_at, score, status, icp_id, industry, seniority').eq('client_id', clientId).not('delivered_at', 'is', null),
+      db.from('figsy_sent_emails').select('id, sent_at').in('campaign_id', campaignFilter),
+      db.from('figsy_replies').select('id, received_at, classification').eq('client_id', clientId),
       db.from('icps').select('id, name').eq('client_id', clientId),
     ])
 
@@ -742,8 +755,8 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
 
     const byMonth = months.map(m => {
       const mLeads   = (leads   || []).filter((l: any) => l.created_at?.slice(0,7) === m.key)
-      const mEmails  = (emails  || []).filter((e: any) => e.created_at?.slice(0,7) === m.key)
-      const mReplies = (replies || []).filter((r: any) => r.created_at?.slice(0,7) === m.key)
+      const mEmails  = (emails  || []).filter((e: any) => e.sent_at?.slice(0,7) === m.key)
+      const mReplies = (replies || []).filter((r: any) => r.received_at?.slice(0,7) === m.key)
       const mInterested = mReplies.filter((r: any) => r.classification === 'interested' || r.classification === 'hot')
       return {
         month:      m.label,
@@ -802,6 +815,7 @@ leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
     const { data, error } = await db.from('leads')
       .select('first_name,last_name,email,phone,job_title,company,linkedin_url,country,score,status,consent_given_at')
       .eq('client_id', clientId)
+      .not('delivered_at', 'is', null)
       .eq('status', 'consent_given')
       .order('score', { ascending: false, nullsFirst: false })
 

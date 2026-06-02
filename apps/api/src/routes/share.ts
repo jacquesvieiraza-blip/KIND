@@ -25,12 +25,17 @@ shareRouter.get('/:token', async (req, res) => {
     const since = new Date(Date.now() - 6 * 86400000)
     since.setUTCHours(0, 0, 0, 0)
 
+    // figsy_sent_emails has NO client_id column — scope it via the client's campaigns.
+    const { data: shareCampRows } = await db.from('figsy_campaigns').select('id').eq('client_id', client.id)
+    const shareCampaignIds = (shareCampRows ?? []).map((c: { id: string }) => c.id)
+    const shareCampFilter = shareCampaignIds.length > 0 ? shareCampaignIds : ['00000000-0000-0000-0000-000000000000']
+
     const [sentRes, repliesRes, interestedRes, activeRes, dailyRes] = await Promise.all([
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', shareCampFilter),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'hot'),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
-      db.from('figsy_sent_emails').select('sent_at').eq('client_id', client.id).gte('sent_at', since.toISOString()),
+      db.from('figsy_sent_emails').select('sent_at').in('campaign_id', shareCampFilter).gte('sent_at', since.toISOString()),
     ])
 
     const buckets: Record<string, number> = {}

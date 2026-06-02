@@ -133,6 +133,34 @@ export async function runIcpJob(
 
   await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
 
+  // Deliver freshly-inserted leads IMMEDIATELY so the client sees them the moment
+  // the run finishes — never an empty dashboard (client-facing views gate on
+  // delivered_at). Charge once here via the atomic RPC, capped at the current
+  // balance so we never over-deliver or go negative; any remainder stays
+  // undelivered for the daily drip. The `.is('delivered_at', null)` claim makes
+  // this idempotent with the drip (no double-charge).
+  if (insertedIds.length > 0) {
+    const { data: balRow } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+    const deliverNow = insertedIds.slice(0, Math.max(0, balRow?.credit_balance ?? 0))
+    if (deliverNow.length > 0) {
+      const nowTs = new Date().toISOString()
+      const { data: claimedNow } = await db.from('leads')
+        .update({ delivered_at: nowTs })
+        .in('id', deliverNow)
+        .is('delivered_at', null)
+        .select('id')
+      const n = claimedNow?.length ?? 0
+      if (n > 0) {
+        const { error: rpcErr } = await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: -n })
+        if (rpcErr) console.error('[runIcpJob] immediate-delivery credit deduction failed:', rpcErr)
+        else await db.from('credit_transactions').insert({
+          client_id: clientId, amount: -n, type: 'usage',
+          note: `${n} lead${n === 1 ? '' : 's'} delivered`, created_at: nowTs,
+        }).then(() => {}, () => {})
+      }
+    }
+  }
+
   if (inserted > 0) {
     const { data: clientRow } = await db.from('clients')
       .select('id, company_name, referred_by, first_icp_run_at, credit_balance')

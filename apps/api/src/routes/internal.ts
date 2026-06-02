@@ -27,6 +27,14 @@ const DASH   = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboar
 
 export const internalRouter = Router()
 
+// figsy_sent_emails has NO client_id column — it's keyed by campaign_id. Returns
+// the client's campaign IDs (or a sentinel that matches nothing) for scoping.
+async function clientCampaignFilter(clientId: string): Promise<string[]> {
+  const { data } = await db.from('figsy_campaigns').select('id').eq('client_id', clientId)
+  const ids = (data ?? []).map((c: { id: string }) => c.id)
+  return ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']
+}
+
 function requireAdminKey(req: Request, res: Response, next: () => void) {
   if (!process.env.ADMIN_SECRET_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_SECRET_KEY) {
     res.status(401).json({ success: false, error: 'Unauthorized' })
@@ -57,12 +65,13 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
         const email = user?.email
         if (!email) continue
 
+        const campFilter = await clientCampaignFilter(client.id)
         const [totalRes, newRes, avgRes, consentedRes, figsySentRes, figsyRepliesRes, figsyInterestedRes, figsyCampaignsRes] = await Promise.all([
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('created_at', weekStart),
           db.from('leads').select('score, estimated_deal_value_usd').eq('client_id', client.id).not('score', 'is', null),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'consent_given'),
-          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', weekStart),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campFilter).gte('sent_at', weekStart),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', weekStart),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', weekStart),
           db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
@@ -1052,6 +1061,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
         const email = user?.email
         if (!email) continue
 
+        const briefCampFilter = await clientCampaignFilter(client.id)
         const [
           { count: totalLeads },
           { count: newToday },
@@ -1064,7 +1074,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('created_at', todayUTC.toISOString()),
           db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
-          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', weekStart),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', briefCampFilter).gte('sent_at', weekStart),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', weekStart),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', weekStart),
           db.from('leads').select('first_name, last_name, job_title, company, score').eq('client_id', client.id).not('score', 'is', null).order('score', { ascending: false }).limit(3),
@@ -1170,19 +1180,20 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
         const email = user?.email
         if (!email) continue
 
+        const anomCampFilter = await clientCampaignFilter(client.id)
         const [
           { count: sent7d },  { count: replied7d },  { count: interested7d },
           { count: sent14d }, { count: replied14d },
           { count: activeCampaigns },
           { count: sentLast48h },
         ] = await Promise.all([
-          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', prev7d),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', anomCampFilter).gte('sent_at', prev7d),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', prev7d),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', prev7d),
-          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', prev14d).lt('sent_at', prev7d),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', anomCampFilter).gte('sent_at', prev14d).lt('sent_at', prev7d),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', prev14d).lt('received_at', prev7d),
           db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
-          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('sent_at', last48h),
+          db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', anomCampFilter).gte('sent_at', last48h),
         ])
 
         const anomalies: string[] = []
@@ -1430,30 +1441,45 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
 
         if (!pending || pending.length === 0) continue
 
-        const ids = pending.map((l: { id: string }) => l.id)
+        const candidateIds = pending.map((l: { id: string }) => l.id)
         const now = new Date().toISOString()
 
-        // Set delivered_at on these leads
-        await db.from('leads')
+        // Claim leads ATOMICALLY: the `.is('delivered_at', null)` filter on the
+        // UPDATE means a concurrent or retried drip run can never re-claim a lead
+        // that's already delivered. `.select()` returns only the rows THIS call
+        // actually transitioned — that exact count is what we charge for. This
+        // makes delivery + billing idempotent without a cross-table transaction.
+        const { data: claimed } = await db.from('leads')
           .update({ delivered_at: now })
-          .in('id', ids)
+          .eq('client_id', client.id)
+          .is('delivered_at', null)
+          .in('id', candidateIds)
+          .select('id')
 
-        // Deduct 1 credit per delivered lead
-        const newBalance = Math.max(0, balance - ids.length)
-        await db.from('clients')
-          .update({ credit_balance: newBalance })
-          .eq('id', client.id)
+        const claimedCount = claimed?.length ?? 0
+        if (claimedCount === 0) continue
 
-        // Record the credit transaction
-        await db.from('credit_transactions').insert({
-          client_id: client.id,
-          amount: -ids.length,
-          type: 'usage',
-          note: `${ids.length} lead${ids.length === 1 ? '' : 's'} delivered`,
-          created_at: now,
+        // Deduct 1 credit per delivered lead via the atomic RPC (no read-modify-
+        // write race). Client favours delivery: leads are claimed first, so a
+        // transient deduction failure leaves the client with their leads rather
+        // than charged for nothing — logged loudly for reconciliation.
+        const { error: rpcErr } = await db.rpc('increment_client_credits', {
+          p_client_id: client.id,
+          p_amount: -claimedCount,
         })
+        if (rpcErr) {
+          console.error(`[leads/drip] credit deduction FAILED for client ${client.id} after delivering ${claimedCount} leads:`, rpcErr)
+        } else {
+          await db.from('credit_transactions').insert({
+            client_id: client.id,
+            amount: -claimedCount,
+            type: 'usage',
+            note: `${claimedCount} lead${claimedCount === 1 ? '' : 's'} delivered`,
+            created_at: now,
+          }).then(() => {}, () => {})
+        }
 
-        totalDelivered += ids.length
+        totalDelivered += claimedCount
       } catch (err) {
         console.error(`[leads/drip] failed for client ${client.id}:`, err)
       }

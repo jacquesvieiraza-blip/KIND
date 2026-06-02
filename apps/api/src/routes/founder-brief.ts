@@ -29,7 +29,7 @@ router.post('/founder-brief', async (_req, res) => {
     ] = await Promise.all([
       db.from('clients').select('id, company_name, credit_balance, created_at').order('created_at', { ascending: false }),
       db.from('leads').select('client_id, score').gte('created_at', ago24),
-      db.from('figsy_sent_emails').select('client_id, id').gte('sent_at', ago7),
+      db.from('figsy_sent_emails').select('id').gte('sent_at', ago7),
       db.from('figsy_replies').select('client_id, classification').gte('received_at', ago7),
       db.from('figsy_replies').select('client_id').eq('classification', 'interested').gte('received_at', ago7),
       db.from('credit_transactions').select('client_id, amount').gte('created_at', monthStart).gt('amount', 0),

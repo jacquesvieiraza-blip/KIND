@@ -221,6 +221,17 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
 
         if (isNaN(credits) || credits <= 0) { res.sendStatus(200); return }
 
+        // Idempotency: Stripe delivers webhooks at-least-once. If we've already
+        // recorded a credit_transaction for this session, do nothing — otherwise
+        // a retried webhook would re-read the already-incremented balance and
+        // double-credit the customer.
+        const { data: already } = await db.from('credit_transactions')
+          .select('id').eq('reference', session.id).maybeSingle()
+        if (already) {
+          console.log(`[Stripe] Duplicate webhook for session ${session.id} — already credited, skipping`)
+          res.sendStatus(200); return
+        }
+
         const { data: client } = await db.from('clients')
           .select('id, credit_balance, figsy_credits_remaining')
           .eq('id', clientId).single()

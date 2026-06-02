@@ -113,8 +113,16 @@ alter table public.icps
 alter table public.icps
   add column if not exists settings jsonb not null default '{}'::jsonb;
 
--- ── 6. leads.delivered_at ───────────────────────────────────────────────────
+-- ── 6. leads.delivered_at + grandfather existing leads ──────────────────────
 -- The drip system meters delivery + charges credits via delivered_at. Confirm it
--- exists so the (forthcoming) client-facing delivery gate has a column to read.
+-- exists so the client-facing delivery gate has a column to read.
 alter table public.leads
   add column if not exists delivered_at timestamptz;
+
+-- Client-facing lead views now gate on delivered_at IS NOT NULL. Any lead that
+-- already existed before this gate was already visible to the client, so mark it
+-- delivered (grandfather) — otherwise the gate would suddenly hide their leads.
+-- New leads going forward are delivered+charged at run time / by the drip.
+update public.leads
+  set delivered_at = coalesce(delivered_at, created_at, now())
+  where delivered_at is null;

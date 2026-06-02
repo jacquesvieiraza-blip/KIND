@@ -61,7 +61,8 @@ including the clean ones. Three-list format enforced.
 - All 4 services (portal, admin, API, website) → Railway. Still a shared blast radius.
 - ✅ Website now has Cloudflare Pages CDN failover (code built; needs founder secrets to activate).
 - 🛑 Portal / admin / API have NO failover — dynamic, need a 2nd host. Logged, not built.
-- 🛑 No public status page live. UptimeRobot not live. Supabase backup/restore unverified.
+- ✅ Status page built: `get-kind.com/status` (status.html, pings all services). Custom domain `status.get-kind.com` = founder DNS action.
+- 🛑 UptimeRobot NOT live (founder to-do #7). Supabase backup/restore unverified.
 
 **2. DEAD / DUPLICATE CODE**
 - ✅ Removed 3× `vercel.json` + 2× `milla.png..png`.
@@ -444,14 +445,15 @@ These are confirmed complete. Do not attempt to redo any of them.
 | 5 | Push notifications backend — VAPID keys + subscription endpoint | ~1 day |
 | 6 | P5 Chat history persistence — AskFigsyButton resets on reload | ~2h |
 | 7 | P6 NotificationBell theme — mismatches dark sidebar | ~30 min |
-| 8 | `status.get-kind.com` public status/maintenance page | ~45 min |
-| 9 | 3 remaining blog articles (WhatsApp / cold email reply rate / AI SDR) | ~1h |
+| 8 | 3 remaining blog articles (WhatsApp B2B / cold email reply rate / AI SDR) | ~1h |
 
 **✅ DONE THIS SESSION — removed from queue (were previously listed as pending):**
 - ~~Portal LinkedIn queue UI~~ → built (`dashboard/figsy/linkedin/page.tsx`)
 - ~~Blog article pages (cards linked `href="#"`)~~ → 3 articles built + wired
 - ~~Website CDN failover backup plan~~ → workflow + edge config built (needs founder secrets)
 - ~~FIGSY agent avatar cropped in portal~~ → fixed (`object-top`)
+- ~~`status.get-kind.com` public status/maintenance page~~ → `apps/website/status.html` built (319 lines, pings all 3 services, auto-refresh 60s). Custom domain setup = founder action.
+- ~~API warm standby / Plan B redundancy~~ → `render.yaml` + `docs/render-cloudflare-failover.md` built. Needs founder to deploy on Render + configure Cloudflare LB.
 
 **Your decision needed before Claude can build:**
 | # | Task | Decision required |

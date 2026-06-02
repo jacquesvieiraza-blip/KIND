@@ -607,32 +607,65 @@
 
     /* PHASE 1 — HERO ORBS */
     .hero-wrapper { position: relative; width: 100%; overflow: hidden; }
-    .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-    .hero-orb { position: absolute; border-radius: 50%; will-change: transform; }
-    .hero-orb-1 {
-      width: 680px; height: 680px;
-      background: rgba(37,99,235,0.52);
-      filter: blur(130px);
-      top: -220px; right: -80px;
-      animation: orb-drift-a 24s ease-in-out infinite alternate;
+    /* === OPTION D — BREATHING CORE === */
+    .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+
+    /* Central AI brain — pulses like it's alive */
+    .orb-core {
+      position: absolute;
+      width: 560px; height: 560px;
+      border-radius: 50%;
+      background: rgba(37,99,235,0.44);
+      filter: blur(120px);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      animation: orb-breathe 5s ease-in-out infinite alternate;
+      will-change: transform, opacity;
     }
-    .hero-orb-2 {
-      width: 540px; height: 540px;
-      background: rgba(37,99,235,0.42);
-      filter: blur(110px);
-      bottom: -140px; left: -100px;
-      animation: orb-drift-b 30s ease-in-out infinite alternate;
+    @keyframes orb-breathe {
+      from { transform: translate(-50%, -50%) scale(1);    opacity: 0.44; }
+      to   { transform: translate(-50%, -50%) scale(1.22); opacity: 0.62; }
     }
-    .hero-orb-3 {
-      width: 400px; height: 400px;
-      background: rgba(99,102,241,0.32);
-      filter: blur(90px);
-      top: 15%; left: 32%;
-      animation: orb-drift-c 20s ease-in-out infinite alternate;
+
+    /* Satellite orbit wrappers — spin around the core centre */
+    .orb-orbit {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 0; height: 0;
+      transform-origin: 0 0;
+      will-change: transform;
     }
-    @keyframes orb-drift-a { to { transform: translate(-80px, 70px) scale(1.08); } }
-    @keyframes orb-drift-b { to { transform: translate(90px, -80px) scale(0.94); } }
-    @keyframes orb-drift-c { to { transform: translate(-50px, 50px) scale(1.18); } }
+    .orb-orbit-1 { animation: orbit-cw  22s linear infinite; }
+    .orb-orbit-2 { animation: orbit-ccw 16s linear infinite; }
+    @keyframes orbit-cw  {
+      from { transform: rotate(0deg)   translateX(280px) rotate(0deg); }
+      to   { transform: rotate(360deg) translateX(280px) rotate(-360deg); }
+    }
+    @keyframes orbit-ccw {
+      from { transform: rotate(0deg)    translateX(360px) rotate(0deg); }
+      to   { transform: rotate(-360deg) translateX(360px) rotate(360deg); }
+    }
+
+    /* The satellite orbs themselves */
+    .orb-sat {
+      border-radius: 50%;
+      position: absolute;
+      transform: translate(-50%, -50%);
+    }
+    .orb-sat-1 {
+      width: 300px; height: 300px;
+      background: rgba(30,58,138,0.58);
+      filter: blur(80px);
+    }
+    .orb-sat-2 {
+      width: 220px; height: 220px;
+      background: rgba(37,99,235,0.40);
+      filter: blur(60px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .orb-core, .orb-orbit-1, .orb-orbit-2 { animation: none !important; }
+    }
     .hero-grain {
       position: absolute; inset: 0; pointer-events: none;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -1117,9 +1150,13 @@
 <!-- HERO -->
 <div class="hero-wrapper">
   <div class="hero-orb-wrap" aria-hidden="true">
-    <div class="hero-orb hero-orb-1"></div>
-    <div class="hero-orb hero-orb-2"></div>
-    <div class="hero-orb hero-orb-3"></div>
+    <!-- Breathing Core — the central AI brain -->
+    <div class="orb-core"></div>
+    <!-- Satellite 1 — orbits clockwise, slower -->
+    <div class="orb-orbit orb-orbit-1"><div class="orb-sat orb-sat-1"></div></div>
+    <!-- Satellite 2 — orbits counter-clockwise, faster -->
+    <div class="orb-orbit orb-orbit-2"><div class="orb-sat orb-sat-2"></div></div>
+    <!-- Agent hover highlights (unchanged) -->
     <div class="orb-hl orb-hl-figsy"></div>
     <div class="orb-hl orb-hl-milla"></div>
     <div class="orb-hl orb-hl-vida"></div>

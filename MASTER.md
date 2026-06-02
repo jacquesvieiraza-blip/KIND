@@ -52,9 +52,10 @@
 
 ---
 
-### ☀️ MORNING BRIEF — 3 June 2026 (built overnight)
+### ☀️ MORNING BRIEF — 3 June 2026 (built overnight, complete audit)
 
 **This is a real full-check — `scripts/full-check.sh` was RUN, not recalled. Results below are live.**
+**MASTER audit also done: every outstanding item — technical, business, legal, integrations, GTM — is now listed in FOUNDER DO TOMORROW below. Nothing held in memory.**
 
 **FULL-CHECK (live run, 3 June):**
 | Category | Result |
@@ -74,29 +75,144 @@
 
 ---
 
-### 📋 FOUNDER — DO TOMORROW (3 June, priority order — THIS is your list)
+### 📋 FOUNDER — COMPLETE OUTSTANDING LIST (3 June, every item — no gaps)
+*This is the FULL list. Technical + business + legal + integrations + GTM. Every item Claude can find from MASTER, our sessions, and the full-check. Nothing left in memory.*
 
-**🔴 BLOCK 1 — Unblocks everything (do first, ~30 min):**
-1. **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase (keystone — idempotent/safe; the reply/send/credit pipeline depends on it).
-2. Also run (if not already): `20260602_*` migrations (linkedin_queue, human_in_loop, figsy_chat_history, push_subscriptions, calendar_bookings), `20260527_stripe_subscription_id.sql`, meetings_booked.
-3. **Railway API env:** set `ADMIN_SECRET_KEY` (ALL crons + self-outreach need it) · confirm `RESEND_WEBHOOK_SECRET` (inbound replies now fail-closed without it).
+---
 
-**🔴 BLOCK 2 — Billing (do before any paid test):**
-4. Add the 7 Stripe `price_xxx` IDs to Railway (6 credit bundles → Portal, Milla+Vida → API).
+#### 🔴 CRITICAL — PLATFORM BREAKS WITHOUT THESE
 
-**🟠 BLOCK 3 — MONDAY MADNESS dogfood engine (turns on your own outbound):**
-5. **Confirm `calendly.com/kind-ai/demo` event is LIVE** (whole site + FIGSY now point there).
-6. Create the K.I.N.D account at `app.get-kind.com`, onboard as "K.I.N.D", build ICP = your ideal clients, unlock FIGSY + grant credits (admin).
-7. Set `FIGSY_KIND_CLIENT_ID=<that account's uuid>` in Railway API → activates the Monday self-outreach cron.
-8. Set your `booking_url` in portal Settings so FIGSY emails carry your booking link.
+- [ ] **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase SQL editor — THE KEYSTONE. Idempotent/safe. The reply/send/credit pipeline, booking-link injection, and paused-campaign stops all depend on this one migration. Do it first.
+- [ ] Run `apps/api/src/migrations/20260602_calendar_bookings.sql` — booking KPI tracking
+- [ ] Run `apps/api/src/migrations/20260602_figsy_chat_history.sql` — FIGSY ask history
+- [ ] Run `apps/api/src/migrations/20260602_push_subscriptions.sql` — PWA push notifications
+- [ ] Run `apps/api/src/migrations/20260602_human_in_loop.sql` — human-in-loop approval queue
+- [ ] Run `apps/api/src/migrations/20260602_linkedin_queue.sql` — LinkedIn outreach queue
+- [ ] Run `supabase/migrations/20260527_stripe_subscription_id.sql` — billing schema (if not already run)
+- [ ] Run `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` in Supabase (if reconcile SQL hasn't already done it — it does, but verify)
+- [ ] **Railway API env:** set `ADMIN_SECRET_KEY` — ALL crons + admin portal skip without it. Every cron, self-outreach, and internal route is blind without this.
+- [ ] **Railway API env:** confirm `RESEND_WEBHOOK_SECRET` is set — inbound replies are now **fail-closed** without it. Clients will NOT see replies in their inbox.
 
-**🟡 BLOCK 4 — Run the smoke test (`docs/SMOKE_TEST.md`):** prove the journey end-to-end; log any `T#-Step#` failure → Claude fixes.
+---
 
-**🟢 BLOCK 5 — Resilience (before real clients):**
-9. Deploy Render API standby + Cloudflare LB (`docs/render-cloudflare-failover.md`) · Activate Cloudflare Pages CDN · UptimeRobot on `/health` · Railway health-check path `/health`.
+#### 🔴 BILLING BLOCKED — NO STRIPE = NO REVENUE
 
-**⚪ BLOCK 6 — Slower / external:**
-10. WhatsApp Meta application (START NOW — 3–7 day approval) · PhantomBuster keys · UK Companies House (then swap legal entity name in terms/dpa → "K.I.N.D Ltd").
+- [ ] Add **6 credit bundle `price_xxx` IDs** to **Railway Portal** env vars:
+  - `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20`
+  - `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40`
+  - `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100`
+  - `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20`
+  - `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40`
+  - `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100`
+- [ ] Add **Milla subscription `price_xxx`** to **Railway API** env: `STRIPE_PRICE_MILLA_MONTHLY`
+- [ ] Add **Vida subscription `price_xxx`** to **Railway API** env: `STRIPE_PRICE_VIDA_MONTHLY`
+- [ ] Confirm `STRIPE_WEBHOOK_SECRET` is set in Railway API (Stripe idempotency fix depends on it)
+
+---
+
+#### 🟠 MONDAY MADNESS — TURN ON YOUR OWN OUTBOUND ENGINE
+
+- [ ] Confirm **`calendly.com/kind-ai/demo`** Calendly event is LIVE — 37 occurrences across the entire site + FIGSY emails now point there. If it's dead, every CTA on the site is broken.
+- [ ] Create the **K.I.N.D client account** at `app.get-kind.com` — sign up with any email you control. Onboard: Company = "K.I.N.D", build ICP = your ideal clients (SA B2B founders, SaaS, agencies doing outbound).
+- [ ] **Grant FIGSY + credits** to that account in the admin portal (client detail → grant credits).
+- [ ] Grab that account's `client_id` from admin → set **`FIGSY_KIND_CLIENT_ID=<uuid>`** in Railway API. This turns on the Monday self-outreach cron.
+- [ ] Set **`booking_url`** in portal Settings for that account so FIGSY emails carry the booking link.
+- [ ] Add credits to your own account (admin portal → your client → grant credits) if needed for testing.
+
+---
+
+#### 🟡 SMOKE TESTS — PROVES THE PRODUCT WORKS
+
+- [ ] **Run `docs/SMOKE_TEST.md` end-to-end** (7 tests: signup → ICP → leads → FIGSY → reply → booking → billing → Vida). This is the ONLY way to prove the money path works on the live DB.
+- [ ] Log any failure as `T#-Step# — what I saw` → Claude fixes immediately.
+- [ ] Run smoke tests Saturday + Sunday before Monday launch. Both days. Don't skip.
+
+---
+
+#### 🟡 RESILIENCE — BEFORE REAL CLIENTS
+
+- [ ] **Deploy Render API standby** — follow `docs/render-cloudflare-failover.md` ($7/mo). Platform is one Railway outage away from complete downtime.
+- [ ] **Set up Cloudflare Load Balancer** for `api.get-kind.com` — $5/mo. Routes traffic to Railway primary, Render standby on failure.
+- [ ] **Update `NEXT_PUBLIC_API_URL`** in Railway Portal + Admin → `https://api.get-kind.com` (once LB is live)
+- [ ] **Activate Cloudflare Pages CDN** for website — create project `kind-website`, add `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` to GitHub repo secrets. Then push to main. Railway-independent copy of the marketing site.
+- [ ] **Set Railway health-check path** → `/health` for all 3 Railway services (portal, admin, API)
+- [ ] **Set up UptimeRobot** (free) — monitor `/health` on all 3 services. SMS alert on down. Takes 5 min.
+- [ ] Confirm Railway plan is NOT hobby/starter — upgrade to production/team plan if needed. Hobby plans have sleep + limited uptime SLA.
+- [ ] (Optional, $14/mo extra) Deploy portal + admin Render standbys — see `docs/portal-admin-failover.md`
+
+---
+
+#### 🟡 INTEGRATIONS — CODE IS BUILT, JUST NEED CREDENTIALS
+
+- [ ] **Google Workspace** (~$12/mo) — professional `@get-kind.com` email for your inbox. Without this, your email footprint is personal Gmail. Set up BEFORE first external meeting.
+  - Go to workspace.google.com → Business Starter → verify `get-kind.com` domain → add MX records in Cloudflare/your DNS
+  - Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` → Railway API (for Google Calendar OAuth — already coded)
+- [ ] **WhatsApp — START META APPLICATION NOW** (3–7 day approval window — every day you wait is a lost day):
+  - Go to developers.facebook.com → My Apps → Create → Business → WhatsApp Product
+  - Set up phone number, get `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN` → Railway API
+- [ ] **Google Calendar OAuth** (needed for booking sync):
+  - Google Cloud Console → OAuth → credentials → `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` → Railway API
+- [ ] **Vapi.ai Voice** (code built, needs keys):
+  - `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` → Railway API
+- [ ] **Clearbit visitor de-anonymisation** (Vida lead capture):
+  - `CLEARBIT_API_KEY` → Railway API
+- [ ] **PhantomBuster LinkedIn** (LinkedIn outreach queue built, silent without this):
+  - `PHANTOMBUSTER_API_KEY` + `PHANTOMBUSTER_LINKEDIN_AGENT_ID` → Railway API
+- [ ] Set `FOUNDER_EMAIL` in Railway API (founder brief destination — currently falls back to `hello@get-kind.com`)
+
+---
+
+#### 🟡 FEATURE FLAGS — 5 MIN EACH IN RAILWAY
+
+- [ ] `FEATURE_CAMPAIGN_INTENT=true` → Railway API — unlocks campaign intent signals UI
+- [ ] `FEATURE_ICP_BUILDER=true` → Railway API — unlocks conversational ICP builder chat
+- [ ] `FEATURE_PORTAL_V2=true` → Railway API — unlocks Portal V2 redesign when ready
+
+---
+
+#### 🟡 PAID PLAN UPGRADES — REVENUE-CRITICAL AT SCALE
+
+- [ ] **Upgrade Resend to paid** ($20/mo) — free plan caps at **100 emails/day**. FIGSY will hit this cap on day 1 with real clients. Without this, sends silently fail after the 100th email.
+- [ ] **Upgrade Apollo to Basic** ($49/mo) — free plan = 50 export credits/month. Barely enough for a single demo run. ICP lead sourcing dies instantly at scale.
+
+---
+
+#### 🔴 LEGAL — UK (DO IN ORDER)
+
+- [ ] **Register at UK Companies House** — companieshouse.gov.uk → Incorporate a private limited company → ~£50, same-day online. You need this number for everything below. Status: in progress.
+- [ ] **Once registered:** Claude swaps `"Jacques Vieira trading as K.I.N.D"` → `"K.I.N.D Ltd (company no. XXXXXXXX)"` in `apps/website/terms.html`, `apps/website/dpa.html`, `apps/website/dpa-us.html`. Give Claude the number and it's a 5-min job.
+- [ ] **Open Wise Business account** (free) — wait until Companies House number arrives. Use for client payments while banking is set up.
+- [ ] **ICO data protection registration** (£40/yr) — required by law for processing UK/EU personal data. Register at ico.org.uk/registration. Without this, every B2B data-processing claim in your terms is legally exposed.
+- [ ] **SEIS advance assurance** (free to apply) — apply to HMRC before ANY investor conversation. Investors ask for this. Leaving it until a deal is in progress costs weeks.
+- [ ] **Trademarks: K.I.N.D + FIGSY + Milla + Vida at UK IPO** (~£80 each = ~£320 total, 4 marks). Apply at ipo.gov.uk. Do this before any PR or press coverage — otherwise you're building brand equity on an unprotected name.
+- [ ] **SeedLegals IP assignment + shareholders agreement** (~£600) — before any equity conversation or co-founder discussion. Without this, IP ownership is ambiguous.
+
+---
+
+#### 🟡 GTM EXECUTION (after smoke tests pass)
+
+- [ ] **10 warm personal outreach messages** via LinkedIn/WhatsApp — to people who already know you. Not cold. Use after smoke tests confirm the product works.
+- [ ] **Submit G2 listing** (free) — creates a search-engine footprint and a review surface. Takes 30 min.
+- [ ] **Submit Capterra listing** (free) — same as G2, different audience (procurement buyers).
+- [ ] **LinkedIn content programme** — 1 sharp post/day, founder story + product proof. Start with the dogfood story: "I built it. I used it. Here's what happened."
+- [ ] **Open 1–2 design-partner slots** (soft launch, hand-held, discounted) — first logos, first case study, first social proof. Required before Product Hunt.
+- [ ] **Product Hunt launch** — ONLY after 2–3 design-partner proof points. A launch with zero social proof underperforms and wastes the spike.
+
+---
+
+#### ⚪ WEBSITE / CONTENT (Claude does these — just say go)
+
+- [ ] Wire playbook email form to Mailchimp/ConvertKit (`apps/website/playbook.html` line ~180) — needs credentials
+- [ ] Agent image compression — run locally: `cwebp -q 82 -resize 600 0 figsy.png -o figsy.webp` (no CLI tools on server)
+- [ ] `status.get-kind.com` custom domain — founder DNS action (CNAME `status.get-kind.com` → Railway `get-kind.com/status`)
+
+---
+
+#### ⚪ OLDER MIGRATIONS (status unclear — may already be run)
+
+- [ ] `supabase/MASTER_SCHEMA.sql` — if the DB was never cleanly migrated, run this first to eliminate all historical drift. The reconcile migration is idempotent on top of it.
+- [ ] `20260525_fix_subscriptions_schema.sql`
+- [ ] `20260526_drip_and_controls.sql` — adds `delivered_at` to leads. The reconcile migration handles this too (idempotent), but verify.
 
 ---
 

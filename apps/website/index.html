@@ -61,14 +61,14 @@
     /* HERO */
     .hero {
       max-width: 1080px; margin: 0 auto;
-      padding: 80px 48px 56px;
+      padding: 44px 48px 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
       position: relative;
     }
-    .hero-text { text-align: center; max-width: 720px; }
+    .hero-text { text-align: center; max-width: 680px; }
     .hero-label {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
@@ -77,20 +77,20 @@
       padding: 6px 14px; border-radius: 100px;
     }
     .hero h1 {
-      font-size: clamp(2.8rem, 5.5vw, 5.5rem);
+      font-size: clamp(2.4rem, 4.8vw, 4.8rem);
       font-weight: 900;
       letter-spacing: -0.04em;
       line-height: 1.0;
       color: var(--dark);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .hero h1 span { color: var(--blue); }
     .hero-sub {
-      font-size: 1.05rem;
+      font-size: 0.97rem;
       color: rgba(0,0,0,0.45);
-      max-width: 560px;
-      margin: 0 auto 36px;
-      line-height: 1.7;
+      max-width: 520px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
     }
     .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 0; justify-content: center; }
     .btn-hero-primary {
@@ -106,31 +106,34 @@
     }
     .btn-hero-ghost:hover { border-color: rgba(0,0,0,0.35); }
 
-    /* HERO AGENT CARDS */
+    /* HERO AGENT CARDS — Alta-style full portrait, visible above fold */
     .hero-agents {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      gap: 14px;
       width: 100%;
-      margin-top: 56px;
+      max-width: 1080px;
+      margin: 28px auto 0;
+      padding: 0 48px;
     }
     .hero-agent-card {
-      border-radius: 24px;
+      border-radius: 20px;
       overflow: hidden;
       position: relative;
-      border: 1.5px solid rgba(0,0,0,0.07);
+      border: 1.5px solid rgba(0,0,0,0.08);
       transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s;
       display: block;
       cursor: pointer;
       text-decoration: none;
+      height: 520px;
     }
     .hero-agents .hero-agent-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 32px 80px rgba(0,0,0,0.15);
+      transform: translateY(-6px);
+      box-shadow: 0 28px 64px rgba(37,99,235,0.18), 0 8px 24px rgba(0,0,0,0.12);
     }
     .hero-agent-card img {
       width: 100%;
-      aspect-ratio: 3/4;
+      height: 100%;
       object-fit: cover;
       object-position: top center;
       display: block;
@@ -138,19 +141,19 @@
     .hero-agent-label {
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 55%, transparent 100%);
-      padding: 56px 20px 20px;
+      background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
+      padding: 64px 22px 22px;
     }
     .hero-agent-name {
-      font-size: 1.05rem; font-weight: 800; color: #fff;
-      letter-spacing: -0.02em; display: block; margin-bottom: 2px;
+      font-size: 1.15rem; font-weight: 800; color: #fff;
+      letter-spacing: -0.02em; display: block; margin-bottom: 3px;
     }
     .hero-agent-role {
-      font-size: 0.72rem; color: rgba(255,255,255,0.55);
-      display: block; margin-bottom: 10px;
+      font-size: 0.72rem; color: rgba(255,255,255,0.52);
+      display: block; margin-bottom: 12px; letter-spacing: 0.02em;
     }
     .hero-agent-cta {
-      font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.65);
+      font-size: 0.78rem; font-weight: 700; color: #60a5fa;
       display: inline-flex; align-items: center; gap: 4px;
       transition: color 0.2s;
     }
@@ -606,7 +609,7 @@
     .reveal-delay-3 { transition-delay: 0.3s; }
 
     /* PHASE 1 — HERO ORBS */
-    .hero-wrapper { position: relative; width: 100%; overflow: hidden; }
+    .hero-wrapper { position: relative; width: 100%; overflow: hidden; min-height: 100svh; display: flex; flex-direction: column; }
     /* === OPTION D — BREATHING CORE === */
     .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 
@@ -1025,8 +1028,8 @@
       .team-wins { padding: 48px 24px; }
       .tw-grid { grid-template-columns: 1fr; }
       .logo-strip { display: none; }
-      .hero-agents { grid-template-columns: 1fr; gap: 12px; margin-top: 40px; }
-      .hero-agent-card img { aspect-ratio: 4/3; }
+      .hero-agents { grid-template-columns: 1fr; gap: 12px; margin-top: 24px; padding: 0 24px; }
+      .hero-agent-card { height: 360px; }
       .hero-visual { margin: 0 -24px 0; }
       .figsy-scene { grid-template-columns: 1fr; gap: 40px; }
       .figsy-sticky { position: static; }

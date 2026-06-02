@@ -1,0 +1,62 @@
+# Static-CDN failover for the marketing website.
+#
+# WHY THIS EXISTS:
+# The whole platform runs on Railway — portal, admin, API, AND the marketing
+# website (apps/website, served by an Express static server). If Railway has an
+# outage, get-kind.com disappears along with everything else. This workflow
+# publishes the static website to Cloudflare Pages on every push to main, so
+# there is always a Railway-independent copy of the marketing site living on
+# Cloudflare's global edge. If Railway dies, you flip DNS to the Cloudflare
+# Pages deployment and the brand stays up.
+#
+# FOUNDER SETUP (one-time):
+#   1. Cloudflare dashboard → Workers & Pages → Create → Pages → "kind-website"
+#   2. Create an API token: My Profile → API Tokens → "Edit Cloudflare Workers"
+#      template (or custom with Account: Cloudflare Pages: Edit).
+#   3. GitHub repo → Settings → Secrets and variables → Actions → add:
+#        CLOUDFLARE_API_TOKEN   = <the token>
+#        CLOUDFLARE_ACCOUNT_ID  = <Cloudflare account id, right sidebar of dashboard>
+#   4. After first successful run, the site is live at
+#      https://kind-website.pages.dev — verify it renders.
+#   5. FAILOVER: in Cloudflare DNS, point get-kind.com CNAME at
+#      kind-website.pages.dev (or add it as a custom domain on the Pages project).
+#      Keep Railway as primary; flip to Pages only during a Railway outage —
+#      or run Pages as primary and Railway as the dynamic-app host.
+
+name: Deploy website to Cloudflare Pages (CDN failover)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/website/**'
+      - '.github/workflows/deploy-website-cloudflare.yml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Guard — skip if Cloudflare secrets are not configured
+        id: guard
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "Cloudflare secrets not set — skipping deploy. See workflow header for setup."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish apps/website to Cloudflare Pages
+        if: steps.guard.outputs.skip == 'false'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/website --project-name=kind-website --branch=main

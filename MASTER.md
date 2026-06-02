@@ -112,6 +112,60 @@
 - [ ] D-ID talking agent animation — deferred until D-ID paid plan
 - [ ] Agent image compression — run locally: `cwebp -q 82 -resize 600 0 figsy.png -o figsy.webp`
 
+---
+
+### 🛡️ PLATFORM RESILIENCE — SINGLE POINT OF FAILURE (logged 2 June 2026)
+
+**THE RISK:** Everything runs on Railway — portal, admin, API, AND the marketing
+website (`apps/website`, Express static server). A Railway outage takes the
+entire business offline simultaneously. There was no backup. This was discussed
+earlier and never built — and a "full teardown" missed it. Now logged and partly
+fixed.
+
+**WHAT IS NOW IN PLACE (built 2 June 2026):**
+| Item | Status | Detail |
+|------|--------|--------|
+| Cloudflare Pages CDN failover for website | ✅ CODE BUILT — needs founder secrets | `.github/workflows/deploy-website-cloudflare.yml` publishes `apps/website` to Cloudflare Pages on every push to main. Railway-independent edge copy of the marketing site. |
+| Edge config | ✅ BUILT | `apps/website/_headers` (security + cache), `apps/website/_redirects` (clean URLs + homepage fallback, mirrors Express). |
+| Dead config removed | ✅ DONE | Deleted 3× `vercel.json` + 2× `milla.png..png` — the vercel.json files were the source of the earlier wrong "where is this hosted" conclusion. |
+
+**FOUNDER ACTION TO ACTIVATE FAILOVER:**
+1. Cloudflare → Workers & Pages → Create → Pages → project name `kind-website`.
+2. Create API token (Cloudflare Pages: Edit).
+3. GitHub repo → Settings → Secrets → Actions → add `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`.
+4. Push to main (or run workflow manually) → site live at `kind-website.pages.dev`.
+5. Failover: point `get-kind.com` DNS at the Pages deployment during a Railway outage (or run Pages as primary for the static site, Railway for the dynamic app).
+
+**STILL MISSING — RESILIENCE GAPS (not yet built):**
+- [ ] No CDN/failover for `app.get-kind.com` (portal) or `api.get-kind.com` — these are dynamic, harder; needs a second host (Render/Fly.io) or Railway multi-region.
+- [ ] No public status page (`status.get-kind.com`) clients see during downtime.
+- [ ] UptimeRobot NOT live (founder to-do item 7) — you won't know you're down.
+- [ ] Supabase DB backup cadence + tested restore — unverified.
+- [ ] Single-vendor dependencies with no fallback: Supabase (DB), Resend (email), Anthropic (AI).
+
+---
+
+### 🔍 AUDIT PROTOCOL — MANDATORY (added 2 June 2026)
+
+**Why:** A "full teardown" on 2 June missed the Railway single-point-of-failure
+because the audit was scoped to "what I built this session" instead of "the whole
+system." That can't repeat.
+
+**Rule:** Whenever the founder asks for an audit, teardown, full check, or "make
+sure we're done" — Claude MUST:
+1. Run `bash scripts/full-check.sh` (surfaces SPOFs, dead files, stubs, build
+   health, git state, brand consistency, placeholders).
+2. Work through every section of `FULL_CHECK.md` and report on each — including
+   the ones that come back clean.
+3. Report in three explicit lists: ✅ LIVE & VERIFIED / 🛑 STOPPED / ⏳ PENDING
+   (split founder-action vs Claude-build-queue).
+
+`FULL_CHECK.md` is the checklist. `scripts/full-check.sh` is the fact-gatherer.
+Neither replaces reasoning about resilience and standing commitments — those are
+sections the script flags but cannot judge.
+
+---
+
 **FOUNDER CRITICAL — still blocking billing:**
 
 ### 📅 SESSION DATE — 1 June 2026 (evening — WEBSITE)
@@ -254,6 +308,14 @@ These are confirmed complete. Do not attempt to redo any of them.
 | 3 | Set `ADMIN_SECRET_KEY` in Railway API service | Any strong random string |
 | 4 | Run meetings_booked migration | Supabase SQL Editor: `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` |
 
+**PRIORITY 1b — New this session (2 June). Features are built but silent until done.**
+| # | Task | Where |
+|---|------|-------|
+| L1 | Run `20260602_linkedin_queue.sql` | Supabase SQL Editor — LinkedIn queue silent without it |
+| L2 | Run `20260602_human_in_loop.sql` | Supabase SQL Editor — approval queue silent without it |
+| L3 | Add `PHANTOMBUSTER_API_KEY` + `PHANTOMBUSTER_LINKEDIN_AGENT_ID` | Railway API service — LinkedIn auto-dispatch dead without them (queues manually otherwise) |
+| L4 | Activate website CDN failover | Cloudflare Pages project `kind-website` + GitHub secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`. See 🛡️ Platform Resilience in Section 0. |
+
 **PRIORITY 2 — Your account:**
 | # | Task | Where |
 |---|------|-------|
@@ -327,6 +389,14 @@ These are confirmed complete. Do not attempt to redo any of them.
 | 5 | Push notifications backend — VAPID keys + subscription endpoint | ~1 day |
 | 6 | P5 Chat history persistence — AskFigsyButton resets on reload | ~2h |
 | 7 | P6 NotificationBell theme — mismatches dark sidebar | ~30 min |
+| 8 | `status.get-kind.com` public status/maintenance page | ~45 min |
+| 9 | 3 remaining blog articles (WhatsApp / cold email reply rate / AI SDR) | ~1h |
+
+**✅ DONE THIS SESSION — removed from queue (were previously listed as pending):**
+- ~~Portal LinkedIn queue UI~~ → built (`dashboard/figsy/linkedin/page.tsx`)
+- ~~Blog article pages (cards linked `href="#"`)~~ → 3 articles built + wired
+- ~~Website CDN failover backup plan~~ → workflow + edge config built (needs founder secrets)
+- ~~FIGSY agent avatar cropped in portal~~ → fixed (`object-top`)
 
 **Your decision needed before Claude can build:**
 | # | Task | Decision required |

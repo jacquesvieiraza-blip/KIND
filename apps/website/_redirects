@@ -1,0 +1,7 @@
+# Cloudflare Pages redirects/rewrites for the marketing site.
+# Cloudflare Pages serves clean URLs automatically (/pricing -> pricing.html),
+# matching the Railway Express `extensions: ['html']` behaviour.
+# Unknown paths fall back to the homepage with a 200 (same as the Express
+# catch-all `app.get('*')`).
+
+/*    /index.html   200

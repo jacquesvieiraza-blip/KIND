@@ -1,6 +1,0 @@
-{
-  "framework": "nextjs",
-  "buildCommand": "next build",
-  "installCommand": "cd ../.. && yarn install",
-  "outputDirectory": ".next"
-}

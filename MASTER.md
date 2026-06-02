@@ -902,9 +902,13 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | C1 | Run smoke tests T1–T4 | Founder runs, Claude fixes any failures | <15 min each |
 | C5 | S4: Scheduled report emails | Weekly client digest — cron already exists, just needs wiring | 4h |
 | C6 | "AI Revenue OS" positioning rewrite | Website, pricing, landing, demo pages — Apex steal | 2h |
-| C7 | Wire Calendly URL site-wide | 5 min — needs URL from T22 | 5 min |
-| C8 | Wire UK company number into footer + legal | 5 min — needs number from T23 | 5 min |
-| C9 | Update `docs/client-flow-sop.md` | Stale since 18 May — Paystack refs, outdated paths | 30 min |
+| ~~C7~~ | ~~Wire Calendly URL site-wide~~ | ~~Done — Calendly wired site-wide 26 May~~ | ✅ Done |
+| C8 | Wire UK company number into footer + legal | 5 min — needs number when Companies House registration completes | 5 min |
+| ~~C9~~ | ~~Update `docs/client-flow-sop.md`~~ | ~~Done — updated 2 June (Paystack → Stripe)~~ | ✅ Done |
+| C10 | 3 remaining blog articles | WhatsApp B2B / cold email reply rate / AI SDR question | 1h |
+| C11 | P5 Chat history persistence | AskFigsyButton resets on reload | 2h |
+| C12 | P6 NotificationBell theme | Mismatches dark sidebar | 30 min |
+| C13 | Portal/admin failover | Dynamic Next.js — needs Render or Railway multi-region | TBD |
 
 **At 10+ clients:**
 | # | Build | What |
@@ -943,69 +947,33 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 
 ---
 
-### 📋 TODAY — STEP BY STEP (28 May 2026)
+### 📋 TODAY — STEP BY STEP (2 June 2026 — current)
 
-> Demo Playbook is Section 35. Admin Portal Playbook is Section 36. Read both before doing anything.
+**PRIORITY ORDER:**
+1. Run the 4 SQL migrations that are blocking features (L1, L2, items 2 + 4 from founder to-do)
+2. Activate Render warm standby — follow `docs/render-cloudflare-failover.md`
+3. Add remaining Stripe price IDs to Railway (billing blocked)
+4. Set `ADMIN_SECRET_KEY` in Railway API
 
-**Deploy (do first — 10 min):**
-1. Merge `claude/ai-business-roadmap-U3OWJ` → `main` on GitHub
-2. Check Railway build is green after merge
-3. Check Vercel portal + admin both deploy successfully
-4. Confirm `RESEND_API_KEY` is in Railway
-
-**Before Test 1:**
-4. Create new Gmail — never used on K.I.N.D before
-
-**Run Test 1 — Core Platform (Section 18, Steps 1–17):**
-> See also Section 35 Scene 1–6 for demo narration of each step.
-
-**Run Test 1 — Core Platform (Section 18, Steps 1–17):**
-> See also Section 35 Scene 1–6 for demo narration of each step.
-5. Sign up at `app.get-kind.com` with new Gmail
-6. Complete onboarding (company name, industry, country, phone, website)
-7. Confirm welcome email + POPIA notice in Gmail inbox
-8. Go to Leads → Build ICP → click "Suggest with AI" → check it pre-fills
-9. Save ICP → confirm leads start appearing
-10. Check lead scores (0–100) and reasoning visible
-11. Click one lead → Send POPIA consent → status changes to `consent_sent`
-12. Go to FIGSY in sidebar → confirm upgrade/lock screen shows (not FIGSY dashboard — you haven't unlocked)
-13. Press Cmd+K → confirm command palette opens, keyboard nav works
-14. Go to Billing → confirm credit balance visible, Stripe buy buttons show
-15. Go to Admin → confirm test client appears in client list
-16. Admin → Unibox → confirm page loads (may be empty — that's fine)
-17. Admin → grant yourself 100 credits → confirm balance updates in portal
-18. Logout → login again → confirm session persists correctly
-
-**Report failures as:** `T1-Step8 — what you saw` → I fix in <15 minutes
+**Ongoing:**
+- Smoke tests (Section 18) — still not run
+- UptimeRobot — not live
+- WhatsApp Meta application — start if not started
 
 ---
 
-### 📅 WEEK AHEAD
-
-| Day | Date | Action | Owner |
-|-----|------|--------|-------|
-| Day 1 | Wed 28 May | Test 1 — Core Platform (17 steps). Fix all failures. | Both |
-| Day 2 | Thu 29 May | SQL agent unlock → grant credits → Test 2 — Agents (17 steps) | Both |
-| Day 3 | Fri 30 May | Stripe prices in Railway → stripe_subscription_id SQL → Test 3 + 4 (23 steps) | Both |
-| Day 4 | Sat 31 May | All tests green → Claude builds S4 (weekly report email) + S5 (AI Revenue OS rewrite) | Claude |
-| Day 5 | Sun 1 June | Review live. GTM prep. UK registration. First 5 client targets. Scope C10–C16. | Jacques |
-| Week 2 | 2–7 June | First paid client. FIGSY self-outreach running. Build C10 (3-type memory). | Both |
-
----
-
-### 🚨 OPEN BLOCKERS
+### 🚨 OPEN BLOCKERS (2 June 2026)
 
 | # | Blocker | Owner | Blocking |
 |---|---------|-------|---------|
-| B1 | `RESEND_API_KEY` — confirm set in Railway | Jacques | Test 1 email steps (Steps 6) |
-| B2 | `MASTER_SCHEMA.sql` — confirm run in Supabase | Jacques | Schema integrity |
-| B3 | `20260527_stripe_subscription_id.sql` — not yet run | Jacques | Test 3 (Milla/Vida checkout) |
-| B4 | Stripe price IDs for Milla ($49) + Vida ($39) | Jacques | Test 3 |
-| B5 | Stripe account not yet fully activated | Jacques | Test 3 + all live payments |
-| B6 | UK company not yet registered | Jacques | Stripe proper + credibility |
-| B7 | `FIGSY_KIND_CLIENT_ID` not set | Jacques | Self-outreach does nothing |
-| B8 | `docs/client-flow-sop.md` stale (18 May) | Claude | Documentation accuracy |
-| B9 | `docs/DEPLOYMENT_GUIDE.md` has stale Paystack refs | Claude | New team member confusion |
+| B1 | 7 remaining Stripe `price_xxx` IDs not in Railway | Jacques | All billing broken |
+| B2 | `20260527_stripe_subscription_id.sql` not run | Jacques | Stripe subscription tracking |
+| B3 | `20260602_linkedin_queue.sql` not run | Jacques | LinkedIn queue silent |
+| B4 | `20260602_human_in_loop.sql` not run | Jacques | Approval queue silent |
+| B5 | `ADMIN_SECRET_KEY` not set in Railway | Jacques | Admin portal ungated |
+| B6 | Render warm standby not deployed | Jacques | API SPOF — Railway = total outage |
+| B7 | UptimeRobot not live | Jacques | No outage alerts |
+| B8 | WhatsApp Meta application status unknown | Jacques | 3-7 day approval — start now |
 
 ---
 
@@ -1024,7 +992,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | LinkedIn automation | Will not build — ToS risk, permanent ban | Locked |
 | AI provider | Claude Haiku (volume) + Sonnet (quality) | Locked |
 | Data source | Apollo.io | Locked |
-| Hosting | Supabase af-south-1 + Railway + Vercel | Locked |
+| Hosting | Supabase af-south-1 + Railway ONLY. No Vercel. | Locked |
 | Business registration | UK — Companies House | Locked |
 | CRM | HubSpot push only — built-in CRM Year 2 | Locked |
 
@@ -1107,14 +1075,15 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 
 ## 1. CURRENT STATUS — WHAT'S LIVE
 
-*Last updated: 27 May 2026 (overnight build + competitive audit)*
+*Last updated: 2 June 2026*
+**HOSTING: Railway ONLY — portal, admin, API, website. No Vercel. Any Vercel reference below this line is a stale error.**
 
 ### Infrastructure
 | Item | Status | Notes |
 |---|---|---|
-| Website — `get-kind.com` | ✅ Live | Full rewrite 20 May — new positioning, FIGSY Reasoning Loop, POPIA trust, Start/Scale/Dominate |
-| Client Portal — `app.get-kind.com` | ✅ Live | Vercel — kind-portal project |
-| Admin Dashboard — `admin.get-kind.com` | ✅ Live | Vercel — kind-admin-h5q6 project |
+| Website — `get-kind.com` | ✅ Live | Railway — Express static server |
+| Client Portal — `app.get-kind.com` | ✅ Live | Railway — Next.js 14 |
+| Admin Dashboard — `admin.get-kind.com` | ✅ Live | Railway — Next.js 14 |
 | Railway API | ✅ Running | kindapi-production-e64c.up.railway.app |
 | Supabase — all tables + RLS | ✅ Live | All schema + migrations run |
 | Supabase auth — no email confirmation | ✅ Live | Signup → instant dashboard |

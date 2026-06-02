@@ -589,15 +589,15 @@
     .reveal-delay-3 { transition-delay: 0.3s; }
 
     /* PHASE 1 — HERO ORBS */
-    .hero-wrapper { position: relative; overflow: hidden; margin: 0 16px; border-radius: 28px; background: #f0f4ff; }
+    .hero-wrapper { position: relative; overflow: hidden; margin: 16px 16px 0; border-radius: 28px; background: #f0f4ff; border: 1px solid rgba(0,0,0,0.09); box-shadow: 0 4px 32px rgba(0,0,0,0.06); }
     /* === OPTION D — BREATHING CORE === */
     .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 
     .orb-core {
       position: absolute;
-      width: 560px; height: 560px;
+      width: 600px; height: 600px;
       border-radius: 50%;
-      background: rgba(37,99,235,0.44);
+      background: rgba(37,99,235,0.62);
       filter: blur(120px);
       top: 50%; left: 50%;
       transform: translate(-50%, -50%) scale(1);
@@ -605,8 +605,8 @@
       will-change: transform, opacity;
     }
     @keyframes orb-breathe {
-      from { transform: translate(-50%, -50%) scale(1);    opacity: 0.44; }
-      to   { transform: translate(-50%, -50%) scale(1.22); opacity: 0.62; }
+      from { transform: translate(-50%, -50%) scale(1);    opacity: 0.62; }
+      to   { transform: translate(-50%, -50%) scale(1.22); opacity: 0.82; }
     }
     .orb-orbit {
       position: absolute;
@@ -626,8 +626,8 @@
       to   { transform: rotate(-360deg) translateX(360px) rotate(360deg); }
     }
     .orb-sat { border-radius: 50%; position: absolute; transform: translate(-50%, -50%); }
-    .orb-sat-1 { width: 300px; height: 300px; background: rgba(30,58,138,0.58); filter: blur(80px); }
-    .orb-sat-2 { width: 220px; height: 220px; background: rgba(37,99,235,0.40); filter: blur(60px); }
+    .orb-sat-1 { width: 340px; height: 340px; background: rgba(30,58,138,0.72); filter: blur(80px); }
+    .orb-sat-2 { width: 260px; height: 260px; background: rgba(37,99,235,0.58); filter: blur(60px); }
 
     @media (prefers-reduced-motion: reduce) {
       .orb-core, .orb-orbit-1, .orb-orbit-2 { animation: none !important; }

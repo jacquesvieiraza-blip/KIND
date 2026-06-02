@@ -41,6 +41,25 @@ export function AskFigsyButton({ hasFigsy = false }: { hasFigsy?: boolean }) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-20))) } catch { /* ignore */ }
   }, [messages])
 
+  // Hydrate from the server-side thread once on mount, so the conversation
+  // follows the user across devices and cache-clears. Falls back to the
+  // localStorage thread (already loaded above) if the server has nothing.
+  useEffect(() => {
+    let cancelled = false
+    async function hydrate() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const res = await api.get<{ data: Message[] }>('/figsy/chat/history', session.access_token)
+        if (cancelled || !res.data?.length) return
+        const greeting: Message = { role: 'assistant', content: hasFigsy ? FIGSY_GREETING : LEAD_GEN_GREETING }
+        setMessages([greeting, ...res.data.map(m => ({ role: m.role, content: m.content }))])
+      } catch { /* keep localStorage thread */ }
+    }
+    hydrate()
+    return () => { cancelled = true }
+  }, [supabase, hasFigsy])
+
   async function handleSend() {
     if (!input.trim() || loading) return
     const userMsg = input.trim()

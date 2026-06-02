@@ -5,6 +5,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
+import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
 
 export const figsyRouter = Router()
@@ -126,6 +127,14 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     if (classification === 'hot' && enrollment) {
       await db.from('figsy_enrollments')
         .update({ status: 'replied' }).eq('id', enrollment.id)
+
+      // Web push — alert the client instantly on a hot reply (no-op if VAPID unset)
+      sendPushToClient(lead.client_id, {
+        title: '🔥 Hot reply',
+        body: `${fromEmail} replied positively to your outreach.`,
+        url: '/dashboard/figsy',
+        tag: 'hot-reply',
+      }).catch(() => {})
 
       const { data: camp } = await db.from('figsy_campaigns')
         .select('replies_interested, replies_total').eq('id', enrollment.campaign_id).maybeSingle()
@@ -1417,11 +1426,58 @@ Keep replies concise (2-4 sentences max). Be direct and helpful.`
     })
 
     const reply = (response.content[0] as { type: string; text: string }).text.trim()
+
+    // Persist the latest user turn + this reply so the thread survives reloads,
+    // cache-clears, and device switches. Degrades silently if the table is absent.
+    if (clientId) {
+      const lastUser = messages[messages.length - 1]
+      const rows = [
+        ...(lastUser?.role === 'user' ? [{ client_id: clientId, role: 'user', content: lastUser.content }] : []),
+        { client_id: clientId, role: 'assistant', content: reply },
+      ]
+      await db.from('figsy_chat_messages').insert(rows).then(
+        () => {},
+        () => {}, // table may not exist yet — chat still works via localStorage
+      )
+    }
+
     res.json({ success: true, data: { reply } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[figsy/chat]', err)
     res.status(500).json({ success: false, error: 'Failed to generate response' })
+  }
+})
+
+// GET /figsy/chat/history — load the persisted chat thread (last 50 turns).
+// Returns an empty list if the table isn't there yet, so the UI falls back to
+// localStorage without erroring.
+figsyRouter.get('/chat/history', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.json({ success: true, data: [] }); return }
+    const { data, error } = await db.from('figsy_chat_messages')
+      .select('role, content, created_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: true })
+      .limit(50)
+    if (error) { res.json({ success: true, data: [] }); return }
+    res.json({ success: true, data: data ?? [] })
+  } catch {
+    res.json({ success: true, data: [] })
+  }
+})
+
+// DELETE /figsy/chat/history — clear the persisted thread (user "clear chat").
+figsyRouter.delete('/chat/history', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (clientId) {
+      await db.from('figsy_chat_messages').delete().eq('client_id', clientId).then(() => {}, () => {})
+    }
+    res.json({ success: true })
+  } catch {
+    res.json({ success: true })
   }
 })
 

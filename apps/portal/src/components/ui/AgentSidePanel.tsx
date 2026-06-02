@@ -220,7 +220,7 @@ export function AgentSidePanel({
         <img
           src={`/agents/${agentId}.png`}
           alt={name}
-          className="w-full h-full object-cover object-top"
+          className="w-full h-full object-cover object-center agent-img-float"
           onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
         />
       </div>

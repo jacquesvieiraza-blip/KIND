@@ -59,3 +59,18 @@
   .ds-text-muted { color: rgb(var(--text-muted)); }
   .ds-text-faint { color: rgb(var(--text-faint)); }
 }
+
+/* ── Agent image float animation ──────────────────────────────────────── */
+@keyframes agent-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+
+.agent-img-float {
+  animation: agent-float 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-img-float { animation: none !important; }
+}

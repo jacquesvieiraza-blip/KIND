@@ -116,27 +116,59 @@
       margin: 28px auto 0;
       padding: 0 28px 28px;
     }
+    @keyframes agent-float {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-14px); }
+    }
     .hero-agent-card {
       border-radius: 20px;
       overflow: hidden;
       position: relative;
       border: none;
-      transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s;
       display: block;
       cursor: pointer;
       text-decoration: none;
       height: 500px;
+      animation: agent-float 4s ease-in-out infinite;
+      will-change: transform;
+      transition: box-shadow 0.35s, filter 0.35s;
     }
+    .hero-agent-card:nth-child(1) { animation-delay: 0s; }
+    .hero-agent-card:nth-child(2) { animation-delay: -1.35s; }
+    .hero-agent-card:nth-child(3) { animation-delay: -2.7s; }
     .hero-agents .hero-agent-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      animation-play-state: paused;
+      box-shadow: 0 32px 72px rgba(99,51,190,0.28);
+      filter: brightness(1.05);
     }
     .hero-agent-card img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: top center;
+      object-position: center center;
       display: block;
+    }
+    .agent-card-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(10,10,20,0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 14px 18px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .agent-card-label span {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0.01em;
+      opacity: 0.65;
+      font-size: 0.76rem;
+      display: block;
+      margin-top: 2px;
     }
 
     /* NODE NETWORK */
@@ -630,7 +662,7 @@
     .orb-sat-2 { width: 260px; height: 260px; background: rgba(37,99,235,0.58); filter: blur(60px); }
 
     @media (prefers-reduced-motion: reduce) {
-      .orb-core, .orb-orbit-1, .orb-orbit-2 { animation: none !important; }
+      .orb-core, .orb-orbit-1, .orb-orbit-2, .hero-agent-card { animation: none !important; }
     }
     .hero-grain {
       position: absolute; inset: 0; pointer-events: none;
@@ -1142,13 +1174,16 @@
   </div>
   <div class="hero-agents">
     <a href="figsy.html" class="hero-agent-card" data-agent="figsy">
-      <img src="figsy.png" alt="FIGSY — The Closer" />
+      <img src="figsy.png" alt="FIGSY — AI Sales Agent" />
+      <div class="agent-card-label">FIGSY <span>AI Sales Agent</span></div>
     </a>
     <a href="virtual-assistant.html" class="hero-agent-card" data-agent="milla">
-      <img src="milla.png" alt="Milla — The Brain" />
+      <img src="milla.png" alt="Milla — AI Virtual Assistant" />
+      <div class="agent-card-label">Milla <span>AI Virtual Assistant</span></div>
     </a>
     <a href="chatbot-agent.html" class="hero-agent-card" data-agent="vida">
-      <img src="vida.png" alt="Vida — The Connector" />
+      <img src="vida.png" alt="Vida — AI Chat Agent" />
+      <div class="agent-card-label">Vida <span>AI Chat Agent</span></div>
     </a>
   </div>
 </div>

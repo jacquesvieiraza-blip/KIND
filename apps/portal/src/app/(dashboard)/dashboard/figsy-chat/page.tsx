@@ -293,12 +293,9 @@ export default function FigsyChatPage() {
         {/* Agent photo card */}
         <div className="rounded-2xl overflow-hidden border border-purple-100 shadow-sm bg-white">
           <div className="h-40 overflow-hidden">
-            <img
-              src="/agents/figsy.png"
-              alt="FIGSY"
-              className="w-full h-full object-cover object-center agent-img-float"
-              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-            />
+            <video autoPlay loop muted playsInline className="w-full h-full object-cover object-center">
+              <source src="/agents/figsy.mp4" type="video/mp4" />
+            </video>
           </div>
           <div className="bg-[#0F0929] px-4 py-3">
             <div className="flex items-baseline gap-2">

@@ -52,54 +52,65 @@
 
 ---
 
-### 📅 SESSION DATE — 2 June 2026 (WEBSITE POLISH + LINKEDIN BACKEND)
-**One-line summary:** Full purple rebrand across every website page, promise strip added to homepage, competitive teardown vs Alta, human availability strip on 5 pages, LinkedIn outreach backend built (queue, AI note generation, PhantomBuster dispatch, portal route), MASTER updated.
+### 📅 SESSION DATE — 2 June 2026 (EXTENDED — FULL SITE POLISH + BACKEND + CONTENT)
+**One-line summary:** Mass purple rebrand across all 30 website pages (zero blues confirmed), promise strip + human strip on 5 pages, LinkedIn channel positioning on FIGSY, full LinkedIn backend (queue/AI notes/PhantomBuster), human-in-loop approval queue, portal LinkedIn UI + settings toggle, 3 blog articles live with wired links, agent images in demo/platform pages, demo emoji replaced with Pixar faces.
 
-**WHAT WAS BUILT THIS SESSION:**
-| Area | Detail |
+**WHAT WAS BUILT THIS SESSION — VERIFIED LIVE:**
+| Area | Status | Detail |
+|------|--------|--------|
+| **Mass purple rebrand — ALL 30 pages** | ✅ LIVE | Every `*.html` file: `#0066FF`/`#2563eb`/`#4f46e5` → `#7c3aed`. `rgba(37,99,235,...)` → `rgba(124,58,237,...)`. `#60a5fa` → `#a78bfa`. `#dbeafe` → `#ede9fe`. `#1e40af` → `#5b21b6`. `#1e3a8a` → `#4c1d95`. `#93c5fd` → `#c4b5fd`. Verified: zero non-purple blues in any HTML file. |
+| **Promise strip** | ✅ LIVE | `index.html` — 4-column section between hero and agents: `10 min to first campaign` / `24h to first leads` / `$0 platform fee` / `24/7 autonomous` — replaces empty logo placeholder. |
+| **Trust bar copy** | ✅ LIVE | Honest founder promises replacing fake metrics. |
+| **Human availability strip** | ✅ LIVE | `.human-strip` lavender section with Calendly CTA on `index.html`, `figsy.html`, `virtual-assistant.html`, `chatbot-agent.html`. Pricing variant ("Not sure which plan fits?") on `pricing.html`. |
+| **LinkedIn channel badges** | ✅ LIVE | `figsy.html` hero: "Email outreach — Live" (pulsing green dot) + "LinkedIn outreach — Coming soon" (dashed pill). |
+| **LinkedIn capability card** | ✅ LIVE | Full-width dashed purple card in FIGSY capabilities grid (`grid-column: span 2`). "Coming soon" pill. Multi-channel same-ICP positioning. |
+| **CRM tier fix** | ✅ LIVE | HubSpot/Salesforce on Scale tier. Dominate = "Custom CRM setup & dedicated onboarding". No `$100/mo minimum`. |
+| **Milla integration story** | ✅ LIVE | `virtual-assistant.html` — connected intelligence loop section (Month 1/3/6 stats). |
+| **Agent images — demo-video.html** | ✅ LIVE | Replaced 🤖/💬 emoji with circular `figsy.png` (44×44px) and `vida.png` (30×30px) crops. |
+| **Agent images — platform-video.html** | ✅ LIVE | All 3 agent pills: 🤖/✨/💬 replaced with `figsy.png`, `milla.png`, `vida.png` (22×22px circular). |
+| **Blog article: African outbound** | ✅ LIVE | `blog-african-outbound.html` — "Why African B2B outbound is broken" (~850 words, WhatsApp + POPIA angle). |
+| **Blog article: POPIA guide** | ✅ LIVE | `blog-popia-outbound.html` — "POPIA and outbound sales" (~850 words, Section 11, 3 requirements, compliance record format). |
+| **Blog article: ICP guide** | ✅ LIVE | `blog-icp-guide.html` — "How to build an ICP that actually generates replies" (~850 words, 5-dimension scoring framework). |
+| **blog.html links wired** | ✅ LIVE | All 3 matching article cards now link to actual pages (was `href="#"`). |
+| **LinkedIn backend** | ✅ LIVE (needs SQL + env vars) | `apps/api/src/lib/linkedin.ts`: `generateLinkedInNote` (Claude Haiku, ≤280 chars), `enqueueLinkedInStep`, `dispatchLinkedInStep` (PhantomBuster if key present, manual fallback). `apps/api/src/routes/linkedin.ts`: 4 routes. Wired in `index.ts`. |
+| **LinkedIn queue migration** | ✅ FILE EXISTS (run in Supabase) | `apps/api/src/migrations/20260602_linkedin_queue.sql` — `figsy_linkedin_queue` table. |
+| **Human-in-loop migration** | ✅ FILE EXISTS (run in Supabase) | `apps/api/src/migrations/20260602_human_in_loop.sql` — `figsy_approval_queue` table + `approve_before_send` column on campaigns. |
+| **Approval queue API** | ✅ LIVE | 3 endpoints in `apps/api/src/routes/figsy.ts`: GET `/api/figsy/approval-queue`, POST `/:id/approve`, POST `/:id/reject`. |
+| **Portal LinkedIn queue UI** | ✅ LIVE | `apps/portal/src/app/(dashboard)/dashboard/figsy/linkedin/page.tsx` — shows pending LinkedIn steps, approve/skip, PhantomBuster manual banner. |
+| **Portal approve-before-send toggle** | ✅ LIVE | `apps/portal/src/app/(dashboard)/dashboard/settings/page.tsx` — `FigsyOutreachSettings` component, purple pill toggle, localStorage. |
+
+**WHAT WAS STOPPED / NOT BUILT:**
+| Item | Reason |
 |------|--------|
-| Full purple rebrand | Every website page (`index.html`, `figsy.html`, `virtual-assistant.html`, `chatbot-agent.html`, `playbook.html`, `pricing.html`) — all `#0066FF`/`#2563eb`/`#4f46e5`/`rgba(37,99,235,...)` replaced with `#7c3aed`/`rgba(124,58,237,...)`. CSS variable `--blue` = `#7c3aed` everywhere. `#60a5fa` → `#a78bfa`. Zero blue values remain. |
-| Promise strip | New section on `index.html` between hero and agent showcase: 4 columns — `10 min` / `24h` / `$0` / `24/7` — concrete provable claims replacing empty placeholder logo strip. Replaces aspirational fake metrics with honest founder promises. |
-| Hero bleed | Updated from blue to purple tint (`rgba(124,58,237,0.06)`) |
-| Trust bar copy | Replaced fake metrics (120+ campaigns etc.) with promise claims: "10 min to first campaign live", "24 hrs to first leads", "Pay per lead — not per seat" |
-| Pricing card interactions | `translateY(-4px)` lift + purple shadow on hover for all `.p-card` |
-| Button hover transforms | All CTAs: `translateY(-1px/-2px)` on hover across all pages |
-| Mobile CTAs | Full-width stacked on mobile (`max-width: 480px`) |
-| Trust note under pricing | POPIA · No contracts · Cancel anytime · Pay per lead — now bold and legible |
-| Pricing badge | "Most popular" badge now purple (was blue) |
-| Logo icon | Now purple on all pages |
-| Human strip | "Rather talk it through first?" — lavender strip with Calendly CTA on: `index.html`, `figsy.html`, `virtual-assistant.html`, `chatbot-agent.html`. Pricing variant: "Not sure which plan fits?" on `pricing.html`. Lavender background, dark button, full-width on mobile. |
-| LinkedIn channel badges | On `figsy.html` hero: "Email outreach — Live" (pulsing dot) + "LinkedIn outreach — Coming soon" (dashed). |
-| LinkedIn capability card | Full-width dashed purple card at bottom of FIGSY capabilities grid: same-ICP multi-channel positioning, "Coming soon" pill. |
-| LinkedIn backend | `figsy_linkedin_queue` table migration. `lib/linkedin.ts`: `generateLinkedInNote` (Claude Haiku ≤280 chars), `enqueueLinkedInStep`, `dispatchLinkedInStep` (PhantomBuster if key present, manual queue fallback). `routes/linkedin.ts`: `GET /api/linkedin/queue`, `POST /api/linkedin/enqueue`, `POST /api/linkedin/approve/:id`, `POST /api/linkedin/skip/:id`. Wired in `index.ts`. Zero TS errors. |
-| Milla integration story | `virtual-assistant.html` — hero copy updated, connected intelligence loop section added (connects tools, feeds back to FIGSY, always learning with Month 1/3/6 stats). |
-| CRM tier fix | HubSpot/Salesforce moved to Scale tier on `pricing.html` + `index.html`. Dominate updated to "Custom CRM setup & dedicated onboarding". |
-| Pricing FAQ fix | Removed `$100/mo minimum` — replaced with bundle-of-20 explanation (no monthly minimum). |
+| Agent image compression (PNG → WebP) | No `cwebp`/`convert`/`ffmpeg` on server. Founder to run locally or via CI. |
+| D-ID talking agent animations | Requires D-ID paid plan. Not built. |
+| Product Hunt listing copy | Deferred — founder doing manually. |
+| Playbook email form → email service | `// TODO: wire to Mailchimp/ConvertKit` remains. No credentials. |
+| Blog: "3 reasons cold email < 1%" article | No page created — card still `href="#"` in blog.html. |
+| Blog: "WhatsApp B2B outreach" article | No page created — card still `href="#"` in blog.html. |
+| Blog: "The AI SDR question" article | No page created — card still `href="#"` in blog.html. |
+
+**FOUNDER ACTIONS REQUIRED TO GO LIVE:**
+
+| Action | Urgency | Where |
+|--------|---------|-------|
+| Run `20260602_linkedin_queue.sql` in Supabase | HIGH — LinkedIn backend silent until this runs | Supabase SQL editor |
+| Run `20260602_human_in_loop.sql` in Supabase | HIGH — approval queue silent until this runs | Supabase SQL editor |
+| Add `PHANTOMBUSTER_API_KEY` to Railway API | MEDIUM — LinkedIn queues manually without it | Railway → API service → Variables |
+| Add `PHANTOMBUSTER_LINKEDIN_AGENT_ID` to Railway API | MEDIUM — same | Railway → API service → Variables |
+| Stripe price IDs (7 still needed) | HIGH — billing blocked | Railway → Portal service → Variables |
+| `ADMIN_SECRET_KEY` set in Railway | HIGH — admin portal gated | Railway → Admin service → Variables |
+| Run `20260527_stripe_subscription_id.sql` | HIGH — billing schema incomplete | Supabase SQL editor |
+| Wire playbook email form to Mailchimp/ConvertKit | LOW | `apps/website/playbook.html` line ~180 |
 
 **COMPETITIVE CONTEXT LOCKED:**
-- Alta's brand colour is also `#7c3aed` — same purple. Differentiation must come from personality, warmth, agent design, and pricing transparency — not colour.
-- Alta: enterprise-only, demo-gated, $7M raised, G2 badge, multi-channel (email + LinkedIn + voice).
-- KIND advantages: transparent pricing from $20, self-serve 24/7, Pixar agent personalities, connected intelligence story, Africa/POPIA local moat, human strip (available without gating).
-- KIND gaps remaining: social proof (client-gated), LinkedIn live (backend built, needs `PHANTOMBUSTER_API_KEY`), voice channel.
-
-**LINKEDIN BACKEND — ENV VARS NEEDED TO GO LIVE:**
-| Var | Where | Purpose |
-|-----|-------|---------|
-| `PHANTOMBUSTER_API_KEY` | Railway API service | Enables auto-dispatch of LinkedIn connection requests |
-| `PHANTOMBUSTER_LINKEDIN_AGENT_ID` | Railway API service | The PhantomBuster phantom ID for LinkedIn Connection Requests |
-
-Without these, LinkedIn steps queue as `pending` for manual review — no data is lost.
-
-**SQL TO RUN IN SUPABASE:**
-```sql
--- Run: apps/api/src/migrations/20260602_linkedin_queue.sql
-```
+- Alta brand colour = `#7c3aed` (same). KIND differentiation: personality, warmth, Pixar agents, transparent pricing from $20, self-serve, Africa/POPIA local moat, human strip without demo gate.
+- Alta advantages still outstanding: LinkedIn live (KIND has backend, needs PhantomBuster keys), voice channel (not built), social proof (zero public case studies).
 
 **REMAINING — Claude build queue:**
-- [ ] D-ID talking animation — deferred until D-ID paid plan
-- [ ] Portal LinkedIn queue UI — show pending LinkedIn steps in portal dashboard
-- [ ] Blog article pages — cards currently link to `href="#"` (by design for now)
-- [ ] Agent image compression — convert 1024×1536 PNGs to WebP at 600px max for mobile performance
+- [ ] 3 remaining blog articles (WhatsApp B2B / cold email reply rate / AI SDR question)
+- [ ] D-ID talking agent animation — deferred until D-ID paid plan
+- [ ] Agent image compression — run locally: `cwebp -q 82 -resize 600 0 figsy.png -o figsy.webp`
 
 **FOUNDER CRITICAL — still blocking billing:**
 

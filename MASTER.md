@@ -52,6 +52,82 @@
 
 ---
 
+### ☀️ MORNING BRIEF — 3 June 2026 (built overnight)
+
+**This is a real full-check — `scripts/full-check.sh` was RUN, not recalled. Results below are live.**
+
+**FULL-CHECK (live run, 3 June):**
+| Category | Result |
+|---|---|
+| 1. SPOFs / redundancy | 4 services on Railway. ✅ CDN failover + Render standby + LB guide all BUILT. ⚠️ Render standby returns 403 = not deployed yet (founder action). Status page live. |
+| 2. Dead/dup config | Only legacy `paystack`/`flutterwave` routes mounted — intentional, documented. No stale vercel.json, no dup files. |
+| 3. Stubs/TODOs | ✅ 0 TODO/FIXME/STUB in app source. |
+| 4. Build health | ✅ tsc clean: portal, api, admin. |
+| 5. Git | ✅ working tree clean, all commits pushed. |
+| 6. Brand (purple lock) | ✅ zero blues in website HTML **and** (swept overnight) zero in email templates / admin / portal / landing. |
+| 7. Links/placeholders | 1 `href="#"` = benign `toggleContract()` JS handler in partners.html. No real dead links. |
+
+**SHIPPED OVERNIGHT (committed + pushed):**
+- ✅ Brand sweep — old blue → purple across all client-facing emails, admin pages, landing, portal ICP builder (0 old-blues left in shipped source).
+- ✅ `docs/SMOKE_TEST.md` — tight end-to-end test script to PROVE the money path (signup → ICP → leads → FIGSY → reply → booking → billing → Vida). Run it after the pre-flight.
+- ✅ (earlier this session) full client-journey fix sprint: schema reconcile, money integrity, journey blockers, Milla/Vida, booking, name scrub. All tsc-green.
+
+---
+
+### 📋 FOUNDER — DO TOMORROW (3 June, priority order — THIS is your list)
+
+**🔴 BLOCK 1 — Unblocks everything (do first, ~30 min):**
+1. **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase (keystone — idempotent/safe; the reply/send/credit pipeline depends on it).
+2. Also run (if not already): `20260602_*` migrations (linkedin_queue, human_in_loop, figsy_chat_history, push_subscriptions, calendar_bookings), `20260527_stripe_subscription_id.sql`, meetings_booked.
+3. **Railway API env:** set `ADMIN_SECRET_KEY` (ALL crons + self-outreach need it) · confirm `RESEND_WEBHOOK_SECRET` (inbound replies now fail-closed without it).
+
+**🔴 BLOCK 2 — Billing (do before any paid test):**
+4. Add the 7 Stripe `price_xxx` IDs to Railway (6 credit bundles → Portal, Milla+Vida → API).
+
+**🟠 BLOCK 3 — MONDAY MADNESS dogfood engine (turns on your own outbound):**
+5. **Confirm `calendly.com/kind-ai/demo` event is LIVE** (whole site + FIGSY now point there).
+6. Create the K.I.N.D account at `app.get-kind.com`, onboard as "K.I.N.D", build ICP = your ideal clients, unlock FIGSY + grant credits (admin).
+7. Set `FIGSY_KIND_CLIENT_ID=<that account's uuid>` in Railway API → activates the Monday self-outreach cron.
+8. Set your `booking_url` in portal Settings so FIGSY emails carry your booking link.
+
+**🟡 BLOCK 4 — Run the smoke test (`docs/SMOKE_TEST.md`):** prove the journey end-to-end; log any `T#-Step#` failure → Claude fixes.
+
+**🟢 BLOCK 5 — Resilience (before real clients):**
+9. Deploy Render API standby + Cloudflare LB (`docs/render-cloudflare-failover.md`) · Activate Cloudflare Pages CDN · UptimeRobot on `/health` · Railway health-check path `/health`.
+
+**⚪ BLOCK 6 — Slower / external:**
+10. WhatsApp Meta application (START NOW — 3–7 day approval) · PhantomBuster keys · UK Companies House (then swap legal entity name in terms/dpa → "K.I.N.D Ltd").
+
+---
+
+### 🚀 GTM STRATEGY v2 — assessed against MASTER + sharpened (3 June)
+
+**Verdict on the existing GTM (Section 22):** the *bones are strong* — dogfooding motion, $20 wedge, POPIA moat, a real battlecard and persona. But it has **5 fixable weaknesses** that would blunt a launch. Below: what's good, what's weak, and the sharper plan.
+
+**✅ What's already strong (keep):**
+- "K.I.N.D sells itself using K.I.N.D" dogfood motion (live but un-activated — Block 3 above turns it on).
+- Pricing wedge: start at **$20**, 14-day no-card trial — Alta starts ~$1,250/mo, quarterly, no trial. Structurally un-undercuttable.
+- **POPIA/Africa moat** + WhatsApp/Vida as a distribution channel Alta lacks.
+- Existing assets: partner programme (20% recurring), referral (100 credits both ways), 3 live blog articles, playbook lead magnet, 5 comparison/SEO pages, admin CMO/Unibox tooling.
+
+**🛠️ The 5 weaknesses → the fix:**
+1. **ICP too broad → lead with the two sharpest wedges.** Primary Phase-1 ICP = (a) the **"individual AE/founder"** blocked by enterprise procurement (can self-serve $20, prove ROI personally), and (b) **competitor-tool switchers** — Lemlist/Instantly/Clay/Apollo users *in Africa* (already-paying, proven buyers; Apollo `technology_names` filter finds ~200/run — seed file exists). These two convert fastest. Make them THE targets, not 7 industries.
+2. **Single-channel risk → add 2 more Phase-1 channels.** Today it's ~all FIGSY cold email + personal network. Add: **(i) LinkedIn founder-led content** (highest-intent for this ICP — 1 sharp post/day, story + proof, not 3/week), **(ii) niche communities** (SA founder/SaaS Slack/WhatsApp groups, Indie Hackers, local startup ecosystems) with genuine value, not pitches.
+3. **Pricing doc out of sync → publish a clean plan table.** Section 12 omits Milla ($49) / Vida ($39); the public "from $20" vs FIGSY-Advanced ($60–$250) gap can break expectations at the paywall. Fix: one pricing table showing Lead Gen ($20–$100) + FIGSY ($60–$250) + Milla $49 + Vida $39, with the $20 entry framed as "start finding leads for $20; FIGSY does the outreach from $60."
+4. **No social proof → manufacture it honestly + fast.** Use your OWN dogfood results as the first case study ("K.I.N.D used FIGSY to book its first N demos in week 1"). Fill the (already-built) social-proof slot with design-partner logos as they land. Add a POPIA trust/credibility lead magnet (merchandise the moat — it's currently only 1 of 6 blog posts).
+5. **No GTM funnel metrics → instrument the launch.** Current KPIs are product/ops (TTFL, reply rate, churn). Add: outreach→reply→demo→close by channel, CAC, trial→paid by source, content/SEO traffic, Product Hunt/G2 pipeline. You can't optimise a launch you can't attribute.
+
+**THE TOMORROW GTM PLAY (concrete):**
+- **Activate the dogfood engine** (Block 3) → FIGSY starts booking your demos. This is GTM step 1 and product proof simultaneously.
+- **Point FIGSY's first batch at the competitor-switcher ICP** (Apollo tech filter, Africa) — warmest possible leads.
+- **Post the founder story on LinkedIn** (anonymously framed — no name needed): "I got tired of $1,250/mo sales tools built for enterprises, so I built one that starts at $20 and runs your outbound for you. Here's what happened in week one." Drive to the 14-day trial.
+- **Open to 1–2 design partners** (soft launch) — hand-held, real feedback, first logos/case study.
+- **Defer Product Hunt/G2** until you have 2–3 design-partner proof points (a PH launch with zero social proof underperforms).
+
+**Phased targets (from MASTER, hold these):** Phase 1 = 5 paying clients (40% trial→paid from ~200 touches) → Phase 2 = 20 (add PH/G2/partners) → Phase 3 = 60 (voice, pan-Africa, recurring tiers). MRR ladder: $2.5K → $8K → $26K → $100K.
+
+---
+
 ### 🔥 MONDAY MADNESS — Dogfood K.I.N.D to win K.I.N.D's own clients (Monday)
 
 **Goal:** Use our own product to do K.I.N.D's outbound. FIGSY finds prospects, emails them from our verified domain, and books demos into our inbox — proof the product works, on the product itself.

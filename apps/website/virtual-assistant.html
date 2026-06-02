@@ -7,7 +7,7 @@
   <meta name="description" content="Milla reads the intelligence across every campaign and every signal so you always know what's working — and what to do next." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --blue: #2563eb; --accent: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    :root { --blue: #7c3aed; --accent: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
@@ -88,7 +88,7 @@
     .mock-badge { font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
     .badge-green { background: #d1fae5; color: #065f46; }
     .badge-purple { background: #ede9fe; color: #5b21b6; }
-    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-blue { background: #ede9fe; color: #5b21b6; }
     .biz-field { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.72rem; }
     .biz-field:last-child { border-bottom: none; }
     .biz-key { color: rgba(0,0,0,0.35); }
@@ -184,6 +184,15 @@
       .trio-cards { flex-direction: column; }
       footer { padding: 32px 24px; }
     }
+
+/* HUMAN STRIP */
+.human-strip { border-top: 1px solid rgba(124,58,237,0.1); border-bottom: 1px solid rgba(124,58,237,0.1); padding: 44px 48px; background: #faf5ff; }
+.human-strip-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+.human-strip-hed { font-size: 1.15rem; font-weight: 800; color: var(--dark); letter-spacing: -0.02em; margin-bottom: 6px; }
+.human-strip-sub { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.6; max-width: 520px; }
+.human-strip-btn { display: inline-block; background: var(--dark); color: #fff; font-size: 0.88rem; font-weight: 700; padding: 13px 26px; border-radius: 100px; text-decoration: none; white-space: nowrap; transition: opacity .2s, transform .2s; flex-shrink: 0; }
+.human-strip-btn:hover { opacity: 0.8; transform: translateY(-1px); }
+@media (max-width: 640px) { .human-strip { padding: 32px 24px; } .human-strip-btn { width: 100%; text-align: center; } }
   </style>
 </head>
 <body>
@@ -550,6 +559,17 @@
       <div class="trio-card-role">The Connector</div>
       <div class="trio-card-desc">Qualifies every inbound lead on web and WhatsApp, 24/7.</div>
     </a>
+  </div>
+</div>
+
+<!-- HUMAN STRIP -->
+<div class="human-strip">
+  <div class="human-strip-inner">
+    <div>
+      <div class="human-strip-hed">Rather talk it through first?</div>
+      <p class="human-strip-sub">Every KIND customer has a real human available &mdash; not a ticket queue. Book a free 15-minute call before you commit to anything.</p>
+    </div>
+    <a href="https://calendly.com/jacques-vieiraza/30min" class="human-strip-btn" target="_blank" rel="noopener noreferrer">Book a free 15-min call &rarr;</a>
   </div>
 </div>
 

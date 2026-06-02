@@ -42,6 +42,7 @@ import trackingRouter from './routes/tracking'
 import signalsRouter from './routes/signals'
 import figsyTasksRouter from './routes/figsy-tasks'
 import lookalikeRouter from './routes/lookalike'
+import { linkedinRouter } from './routes/linkedin'
 import { startCrons } from './cron'
 
 const app = express()
@@ -121,6 +122,7 @@ app.use('/track',         trackingRouter)
 app.use('/signals',       signalsRouter)
 app.use('/figsy-tasks',   figsyTasksRouter)
 app.use('/lookalike',     lookalikeRouter)
+app.use('/api/linkedin', linkedinRouter)
 
 // MCP discovery endpoint for Claude Desktop / Cursor
 app.get('/.well-known/mcp.json', (_req, res) => {

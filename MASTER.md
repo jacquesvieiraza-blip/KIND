@@ -52,6 +52,37 @@
 
 ---
 
+### 🔍 FULL-CHECK AUDIT SNAPSHOT — 2 June 2026 (run via `scripts/full-check.sh` + FULL_CHECK.md)
+
+**Method:** Ran the mandatory audit protocol. Every category below was checked —
+including the clean ones. Three-list format enforced.
+
+**1. SINGLE POINTS OF FAILURE / REDUNDANCY**
+- All 4 services (portal, admin, API, website) → Railway. Still a shared blast radius.
+- ✅ Website now has Cloudflare Pages CDN failover (code built; needs founder secrets to activate).
+- 🛑 Portal / admin / API have NO failover — dynamic, need a 2nd host. Logged, not built.
+- 🛑 No public status page live. UptimeRobot not live. Supabase backup/restore unverified.
+
+**2. DEAD / DUPLICATE CODE**
+- ✅ Removed 3× `vercel.json` + 2× `milla.png..png`.
+- ⚠️ `paystack` + `flutterwave` routes still mounted in `index.ts` — intentional (legacy data); documented. `paystack.ts` reads `PAYSTACK_SECRET_KEY!` (non-null) — only a risk if the route is hit without the env var; not in client path.
+
+**3. STUBS / TODOs** — 0 TODO/FIXME/STUB markers in app source. Known product stubs (P2-13 AI images, P2-14 social signals, P3-2 vertical modes) await founder decision.
+
+**4. BUILD HEALTH** — ✅ tsc clean on portal, api, admin.
+
+**5. GIT** — ✅ working tree clean, all pushed.
+
+**6. BRAND** — ✅ zero non-purple blues across all website HTML.
+
+**7. LINKS / PLACEHOLDERS** — 2 files flagged, both benign: `blog.html` (3 cards = unbuilt articles, in queue), `partners.html` (1 = JS `toggleContract()` handler, not a dead link). No real placeholders.
+
+**OPEN ITEMS AFTER THIS AUDIT:**
+- ⏳ Founder: activate CDN failover (Cloudflare secrets), run 2 LinkedIn SQL migrations, PhantomBuster keys, billing blockers.
+- ⏳ Claude: portal/admin/API failover, status page, 3 blog articles.
+
+---
+
 ### 📅 SESSION DATE — 2 June 2026 (EXTENDED — FULL SITE POLISH + BACKEND + CONTENT)
 **One-line summary:** Mass purple rebrand across all 30 website pages (zero blues confirmed), promise strip + human strip on 5 pages, LinkedIn channel positioning on FIGSY, full LinkedIn backend (queue/AI notes/PhantomBuster), human-in-loop approval queue, portal LinkedIn UI + settings toggle, 3 blog articles live with wired links, agent images in demo/platform pages, demo emoji replaced with Pixar faces.
 

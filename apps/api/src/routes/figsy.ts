@@ -242,6 +242,15 @@ async function getClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
+// figsy_sent_emails is keyed by campaign_id (no client_id column). Returns the
+// client's campaign IDs, with a non-matching sentinel when there are none so
+// `.in('campaign_id', ids)` returns zero rows instead of erroring on [].
+async function getClientCampaignIds(clientId: string): Promise<string[]> {
+  const { data } = await db.from('figsy_campaigns').select('id').eq('client_id', clientId)
+  const ids = (data ?? []).map((c: { id: string }) => c.id)
+  return ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']
+}
+
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
   try {
@@ -254,7 +263,10 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
                 : period === '90d' ? new Date(Date.now() - 90 * 86400000).toISOString()
                 : null
 
-    let sentQuery = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId)
+    // figsy_sent_emails has no client_id — scope it via the client's campaigns.
+    const campaignIds = await getClientCampaignIds(clientId)
+
+    let sentQuery = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds)
     if (since !== null) sentQuery = sentQuery.gte('sent_at', since)
 
     let repliesQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId)
@@ -266,7 +278,7 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
     let optOutQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out')
     if (since !== null) optOutQuery = optOutQuery.gte('received_at', since)
 
-    let opensQuery = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('opened_at', 'is', null)
+    let opensQuery = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds).not('opened_at', 'is', null)
     if (since !== null) opensQuery = opensQuery.gte('sent_at', since)
 
     const [
@@ -339,9 +351,10 @@ figsyRouter.get('/sends-daily', async (req: AuthRequest, res) => {
     const since = new Date(Date.now() - (days - 1) * 86400000)
     since.setUTCHours(0, 0, 0, 0)
 
+    const campaignIds = await getClientCampaignIds(clientId)
     const { data, error } = await db.from('figsy_sent_emails')
       .select('sent_at')
-      .eq('client_id', clientId)
+      .in('campaign_id', campaignIds)
       .gte('sent_at', since.toISOString())
     if (error) throw error
 
@@ -1322,11 +1335,11 @@ figsyRouter.post('/emails/:id/approve', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    // Verify the email belongs to this client
+    // figsy_sent_emails has no client_id — scope via the email's campaign.
     const { data: email } = await db.from('figsy_sent_emails')
-      .select('id, campaign_id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+      .select('id, campaign_id').eq('id', req.params.id).maybeSingle()
     if (!email) { res.status(404).json({ success: false, error: 'Email not found' }); return }
-    // Verify campaign belongs to client
+    // Verify campaign belongs to client — this is the real ownership check
     const { data: campaign } = await db.from('figsy_campaigns')
       .select('id').eq('id', email.campaign_id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(403).json({ success: false, error: 'Forbidden' }); return }
@@ -1343,8 +1356,9 @@ figsyRouter.delete('/emails/:id/draft', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // figsy_sent_emails has no client_id — scope via the email's campaign.
     const { data: email } = await db.from('figsy_sent_emails')
-      .select('id, campaign_id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+      .select('id, campaign_id').eq('id', req.params.id).maybeSingle()
     if (!email) { res.status(404).json({ success: false, error: 'Email not found' }); return }
     const { data: campaign } = await db.from('figsy_campaigns')
       .select('id').eq('id', email.campaign_id).eq('client_id', clientId).maybeSingle()
@@ -1417,11 +1431,12 @@ figsyRouter.get('/activity', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const limit = Math.min(parseInt(String(req.query.limit ?? '20')), 50)
+    const campaignIds = await getClientCampaignIds(clientId)
 
     const [sentRes, repliesRes, campaignsRes, leadsRes] = await Promise.all([
       db.from('figsy_sent_emails')
         .select('id, sent_at, step, leads(first_name, last_name, company)')
-        .eq('client_id', clientId)
+        .in('campaign_id', campaignIds)
         .order('sent_at', { ascending: false })
         .limit(limit),
       db.from('figsy_replies')

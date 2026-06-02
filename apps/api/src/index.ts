@@ -136,6 +136,17 @@ app.get('/.well-known/mcp.json', (_req, res) => {
 
 app.use(errorHandler)
 
+// ── Process-level safety net ──────────────────────────────────────────────
+// A single unhandled error in one route must NOT take down the whole API and
+// every client's dashboard with it. Log it loudly and keep serving everyone
+// else. (Railway still restarts the container on a genuine fatal crash.)
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException] API kept alive — investigate:', err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection] API kept alive — investigate:', reason)
+})
+
 app.listen(PORT, () => {
   console.log(`KIND API running on port ${PORT}`)
   startCrons()

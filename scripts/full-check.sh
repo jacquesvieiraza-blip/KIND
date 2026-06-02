@@ -28,6 +28,28 @@ if find apps/website -name "_redirects" -o -name "netlify.toml" -o -name "wrangl
 else
   warn "NO static-CDN failover — get-kind.com dies if Railway is down"
 fi
+echo "  Render API warm standby?"
+if [ -f "render.yaml" ]; then
+  ok "render.yaml exists — standby deploy config present"
+  # If curl available, ping the standby health endpoint (skip gracefully if not reachable)
+  if command -v curl >/dev/null 2>&1; then
+    RENDER_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 \
+      "https://kind-api-standby.onrender.com/health" 2>/dev/null || echo "ERR")
+    if [ "$RENDER_HEALTH" = "200" ]; then
+      ok "Render standby is LIVE (/health → 200)"
+    else
+      warn "Render standby health check returned: $RENDER_HEALTH (may be starting up, or not yet deployed)"
+    fi
+  fi
+else
+  warn "NO render.yaml — API has zero failover. Railway outage = total outage."
+fi
+echo "  Cloudflare LB for api.get-kind.com?"
+if grep -q "api.get-kind.com" docs/render-cloudflare-failover.md 2>/dev/null; then
+  ok "LB setup guide exists (docs/render-cloudflare-failover.md)"
+else
+  warn "No LB documentation found"
+fi
 echo "  Status page for downtime?"
 grep -rqi "status.get-kind\|maintenance" apps/website 2>/dev/null && ok "status reference found" || warn "no public status/maintenance page found in website"
 

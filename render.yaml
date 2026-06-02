@@ -1,0 +1,77 @@
+services:
+  - type: web
+    name: kind-api-standby
+    runtime: node
+    rootDir: .
+    region: oregon          # us-west-2 — geographically separate from Railway eu-west
+    plan: starter           # $7/mo — keeps 1 instance warm (no cold-start delay)
+    buildCommand: >
+      yarn install &&
+      yarn workspace @kind/db build &&
+      yarn workspace @kind/shared build &&
+      yarn workspace @kind/api build
+    startCommand: yarn workspace @kind/api start
+    healthCheckPath: /health
+    autoDeploy: false       # push-triggered via GitHub; disable auto so Railway remains primary
+    envVars:
+      # ── Required — copy these values from Railway API environment ──────────
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+
+      # ── Supabase ──────────────────────────────────────────────────────────
+      # Set these in the Render dashboard (not here — never commit secrets)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+
+      # ── Auth / JWT ────────────────────────────────────────────────────────
+      - key: JWT_SECRET
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+
+      # ── AI ───────────────────────────────────────────────────────────────
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      # ── Email ────────────────────────────────────────────────────────────
+      - key: RESEND_API_KEY
+        sync: false
+
+      # ── Payments ─────────────────────────────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # ── App URLs (point at production, not standby) ───────────────────────
+      # The standby serves API calls only — portal/admin still live at their
+      # primary domains. Cloudflare LB routes /api traffic here when Railway
+      # is unhealthy.
+      - key: API_URL
+        sync: false
+      - key: PORTAL_URL
+        value: https://app.get-kind.com
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://app.get-kind.com
+
+      # ── Optional / Integrations ───────────────────────────────────────────
+      - key: PHANTOMBUSTER_API_KEY
+        sync: false
+      - key: PHANTOMBUSTER_LINKEDIN_AGENT_ID
+        sync: false
+      - key: ADMIN_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: EXTRA_ALLOWED_ORIGINS
+        sync: false

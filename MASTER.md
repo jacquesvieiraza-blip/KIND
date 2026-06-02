@@ -78,8 +78,8 @@ including the clean ones. Three-list format enforced.
 **7. LINKS / PLACEHOLDERS** — 2 files flagged, both benign: `blog.html` (3 cards = unbuilt articles, in queue), `partners.html` (1 = JS `toggleContract()` handler, not a dead link). No real placeholders.
 
 **OPEN ITEMS AFTER THIS AUDIT:**
-- ⏳ Founder: activate CDN failover (Cloudflare secrets), run 2 LinkedIn SQL migrations, PhantomBuster keys, billing blockers.
-- ⏳ Claude: portal/admin/API failover, status page, 3 blog articles.
+- ⏳ Founder: activate CDN failover (Cloudflare secrets), deploy Render standby + Cloudflare LB (see `docs/render-cloudflare-failover.md`), run 2 LinkedIn SQL migrations, PhantomBuster keys, billing blockers.
+- ⏳ Claude: portal/admin failover (dynamic — harder), 3 blog articles.
 
 ---
 
@@ -143,6 +143,9 @@ including the clean ones. Three-list format enforced.
 - [ ] D-ID talking agent animation — deferred until D-ID paid plan
 - [ ] Agent image compression — run locally: `cwebp -q 82 -resize 600 0 figsy.png -o figsy.webp`
 
+**COMPLETED THIS EXTENSION SESSION:**
+- ✅ API warm standby — `render.yaml` + `docs/render-cloudflare-failover.md` + `full-check.sh` updated
+
 ---
 
 ### 🛡️ PLATFORM RESILIENCE — SINGLE POINT OF FAILURE (logged 2 June 2026)
@@ -167,10 +170,31 @@ fixed.
 4. Push to main (or run workflow manually) → site live at `kind-website.pages.dev`.
 5. Failover: point `get-kind.com` DNS at the Pages deployment during a Railway outage (or run Pages as primary for the static site, Railway for the dynamic app).
 
-**STILL MISSING — RESILIENCE GAPS (not yet built):**
-- [ ] No CDN/failover for `app.get-kind.com` (portal) or `api.get-kind.com` — these are dynamic, harder; needs a second host (Render/Fly.io) or Railway multi-region.
-- [ ] No public status page (`status.get-kind.com`) clients see during downtime.
-- [ ] UptimeRobot NOT live (founder to-do item 7) — you won't know you're down.
+**API WARM STANDBY — PLAN B (built 2 June 2026, needs founder activation):**
+| Item | Status | Detail |
+|------|--------|--------|
+| `render.yaml` | ✅ CODE BUILT — needs founder deploy | Render Starter ($7/mo) web service config. Monorepo build steps, health check at `/health`, all env var keys listed — values set in Render dashboard. |
+| Setup guide | ✅ DOCS BUILT | `docs/render-cloudflare-failover.md` — complete step-by-step: Render deploy, Cloudflare LB (both pools + failover policy), test procedure, Stripe webhook note. |
+| `full-check.sh` updated | ✅ | Now pings `kind-api-standby.onrender.com/health` and flags if standby is unreachable. |
+
+**Failover architecture once activated:**
+```
+Portal / Admin → api.get-kind.com (Cloudflare LB)
+                      ├── PRIMARY: Railway API (always first)
+                      └── STANDBY: Render API (auto-failover, ~30 s)
+```
+
+**FOUNDER ACTION TO ACTIVATE API FAILOVER:**
+1. Read `docs/render-cloudflare-failover.md` — full instructions.
+2. Deploy to Render: connect GitHub → `kind-api-standby` → Starter plan → add env vars from Railway.
+3. Set up Cloudflare LB: two pools (`railway-primary` + `render-standby`), `/health` checks.
+4. Update `NEXT_PUBLIC_API_URL` in Railway portal + admin to `https://api.get-kind.com`.
+5. Test failover: disable Railway pool in CF → confirm Render serves `/health` within 30 s.
+- **Cost:** $7 Render + $5 Cloudflare LB = **$12/mo total**
+
+**STILL MISSING — RESILIENCE GAPS:**
+- [ ] Portal / admin have zero failover (dynamic Next.js — needs Railway multi-region or second Render deploy).
+- [ ] UptimeRobot NOT live (founder to-do) — you won't know you're down before clients do.
 - [ ] Supabase DB backup cadence + tested restore — unverified.
 - [ ] Single-vendor dependencies with no fallback: Supabase (DB), Resend (email), Anthropic (AI).
 

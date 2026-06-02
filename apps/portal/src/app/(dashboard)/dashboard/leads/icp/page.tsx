@@ -57,11 +57,11 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
   return (
     <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 rounded-2xl overflow-hidden border border-purple-100 shadow-sm bg-white">
       {/* Photo area */}
-      <div className="w-full h-28 overflow-hidden">
+      <div className="w-full h-44 overflow-hidden bg-purple-50">
         <img
           src="/agents/figsy.png"
           alt="FIGSY"
-          className="w-full h-full object-cover object-top"
+          className="w-full h-full object-cover object-[50%_20%]"
         />
       </div>
 

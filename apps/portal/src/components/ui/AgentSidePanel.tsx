@@ -216,11 +216,11 @@ export function AgentSidePanel({
     <div className="rounded-2xl overflow-hidden shadow-lg border border-purple-100/40 bg-white">
 
       {/* ── Full agent photo — no dark overlay ───────────────────── */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-60 overflow-hidden bg-purple-50">
         <img
           src={`/agents/${agentId}.png`}
           alt={name}
-          className="w-full h-full object-cover object-top agent-img-float"
+          className="w-full h-[calc(100%+24px)] object-cover object-top agent-img-float"
           onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
         />
       </div>

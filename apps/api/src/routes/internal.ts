@@ -1059,6 +1059,12 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
     todayUTC.setUTCHours(0, 0, 0, 0)
     const weekStart = new Date(now.getTime() - 7 * 86400000).toISOString()
 
+    // Milla is a paid product — only brief clients with an ACTIVE Milla sub.
+    // (Previously this emailed every client, leaking the $49/mo value + spam.)
+    const { data: millaSubs } = await db.from('subscriptions')
+      .select('client_id').eq('product', 'virtual_assistant').eq('status', 'active')
+    const millaClientIds = new Set((millaSubs ?? []).map((s: { client_id: string }) => s.client_id))
+
     const { data: clients } = await db.from('clients')
       .select('id, company_name, user_id')
       .not('user_id', 'is', null)
@@ -1066,6 +1072,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
     let sent = 0
 
     for (const client of clients ?? []) {
+      if (!millaClientIds.has(client.id)) continue
       try {
         const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
         const email = user?.email
@@ -1178,6 +1185,11 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
     const prev14d  = new Date(now.getTime() - 14 * 86400000).toISOString()
     const last48h  = new Date(now.getTime() - 2  * 86400000).toISOString()
 
+    // Milla is a paid product — only alert clients with an ACTIVE Milla sub.
+    const { data: millaSubs } = await db.from('subscriptions')
+      .select('client_id').eq('product', 'virtual_assistant').eq('status', 'active')
+    const millaClientIds = new Set((millaSubs ?? []).map((s: { client_id: string }) => s.client_id))
+
     const { data: clients } = await db.from('clients')
       .select('id, company_name, user_id')
       .not('user_id', 'is', null)
@@ -1185,6 +1197,7 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
     let alertsSent = 0
 
     for (const client of clients ?? []) {
+      if (!millaClientIds.has(client.id)) continue
       try {
         const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
         const email = user?.email

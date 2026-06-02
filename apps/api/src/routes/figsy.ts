@@ -750,17 +750,28 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).maybeSingle()
+      .select('company_name, industry, booking_url').eq('id', clientId).maybeSingle()
 
     const { data: leads } = await db.from('leads')
       .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
       .in('id', lead_ids).eq('client_id', clientId)
+
+    // POPIA: never enrol anyone on the opt-out blocklist. Pull the blocklisted
+    // emails for this batch up front so we can skip them.
+    const batchEmails = (leads ?? []).map((l: { email: string | null }) => l.email).filter(Boolean) as string[]
+    const blocked = new Set<string>()
+    if (batchEmails.length > 0) {
+      const { data: blockRows } = await db.from('opt_out_blocklist')
+        .select('email').in('email', batchEmails).is('opted_back_in_at', null)
+      for (const r of blockRows ?? []) blocked.add((r as { email: string }).email)
+    }
 
     let enrolled = 0
     let skipped  = 0
 
     for (const lead of leads ?? []) {
       if (!lead.email) { skipped++; continue }
+      if (blocked.has(lead.email)) { skipped++; continue }   // opted out — never email
 
       // Skip if already enrolled
       const { data: existing } = await db.from('figsy_enrollments')
@@ -768,7 +779,7 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
       if (existing) { skipped++; continue }
 
       try {
-        const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null)
+        const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null)
 
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,

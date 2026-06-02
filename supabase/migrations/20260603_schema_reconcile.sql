@@ -133,6 +133,11 @@ alter table public.icps
 alter table public.leads
   add column if not exists delivered_at timestamptz;
 
+-- Client booking link (Calendly / Cal.com / Google) injected into FIGSY emails
+-- so leads can actually book a meeting (the core "FIGSY books meetings" promise).
+alter table public.clients
+  add column if not exists booking_url text;
+
 -- Client-facing lead views now gate on delivered_at IS NOT NULL. Any lead that
 -- already existed before this gate was already visible to the client, so mark it
 -- delivered (grandfather) — otherwise the gate would suddenly hide their leads.

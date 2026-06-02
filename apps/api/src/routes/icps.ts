@@ -366,6 +366,74 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
   }
 })
 
+// ── BUILDER CHAT — conversational ICP builder for the /leads/icp/builder page ──
+// Contract: { messages:[{role,content}] } -> { type:'question'|'complete', content?, icp?, summary? }
+// (The builder page previously POSTed to a non-existent route and 404'd on every turn.)
+icpRouter.post('/builder/chat', async (req: AuthRequest, res) => {
+  try {
+    const { messages } = z.object({
+      messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).min(1).max(40),
+    }).parse(req.body)
+
+    const system = `You are Milla, an ICP (Ideal Customer Profile) builder for K.I.N.D, a B2B lead-gen platform.
+Have a short, friendly conversation to learn who the user wants to target, then produce a structured ICP.
+
+Respond with ONLY valid JSON (no markdown):
+- If you still need more info: {"type":"question","content":"<your friendly reply, max 2 sentences>"}
+- Once you have enough (at minimum industries OR job titles, plus a rough sense of who): {"type":"complete","summary":"<one-sentence summary>","icp":{
+    "name": "<short ICP name>",
+    "industries": [from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy],
+    "job_titles": ["CTO", ...],
+    "seniority_levels": [from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor],
+    "company_sizes": [from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+],
+    "geographies": ["South Africa", ...],
+    "tech_stack": [...],
+    "keywords": ["hiring","Series A", ...],
+    "apollo_only_consented": true
+  }}
+Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 questions before completing.`
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 700,
+      system,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+    })
+
+    const textBlock = response.content.find(b => b.type === 'text') as { type: 'text'; text: string } | undefined
+    const raw = (textBlock?.text ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
+    let parsed: { type?: string; content?: string; summary?: string; icp?: Record<string, unknown> }
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      parsed = { type: 'question', content: 'Tell me more — what industry, job titles, company size, and region are you targeting?' }
+    }
+
+    if (parsed.type === 'complete' && parsed.icp) {
+      const icp = parsed.icp as Record<string, unknown>
+      const draft = {
+        name:                  typeof icp.name === 'string' ? icp.name : 'My ICP',
+        industries:            Array.isArray(icp.industries) ? icp.industries : [],
+        job_titles:            Array.isArray(icp.job_titles) ? icp.job_titles : [],
+        seniority_levels:      Array.isArray(icp.seniority_levels) ? icp.seniority_levels : [],
+        company_sizes:         Array.isArray(icp.company_sizes) ? icp.company_sizes : [],
+        geographies:           Array.isArray(icp.geographies) ? icp.geographies : [],
+        tech_stack:            Array.isArray(icp.tech_stack) ? icp.tech_stack : [],
+        keywords:              Array.isArray(icp.keywords) ? icp.keywords : [],
+        apollo_only_consented: icp.apollo_only_consented !== false,
+      }
+      res.json({ success: true, data: { type: 'complete', icp: draft, summary: parsed.summary ?? null } })
+      return
+    }
+
+    res.json({ success: true, data: { type: 'question', content: parsed.content ?? 'Tell me a bit more about who you want to reach.' } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[icps/builder/chat]', err)
+    res.status(500).json({ success: false, error: 'Failed to process message' })
+  }
+})
+
 icpRouter.post('/', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.parse(req.body)
@@ -573,6 +641,22 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     const { data, error } = await db.from('icps')
       .update({ is_active: true }).eq('id', req.params.id).eq('client_id', clientId).select().single()
     if (error) throw error
-    res.json({ success: true, data })
+
+    // If this ICP has never sourced leads, activating it should actually FIND
+    // leads — otherwise "set active" silently does nothing and the client waits
+    // forever. Only auto-run a never-run ICP with credits available; an already-
+    // run ICP is left alone (no surprise re-spend). Fire-and-forget so the
+    // response is fast; runIcpJob delivers + charges, capped at balance.
+    let started = false
+    if (data && !data.last_run_at) {
+      const { data: bal } = await db.from('clients').select('credit_balance, first_icp_run_at').eq('id', clientId).single()
+      const credits = bal?.credit_balance ?? 0
+      if (credits > 0 || !bal?.first_icp_run_at) {
+        started = true
+        runIcpJob(req.params.id, clientId, req.userId!, credits > 0 ? credits : 20)
+          .catch(e => console.error('[icps/activate] auto-run failed:', e))
+      }
+    }
+    res.json({ success: true, data, sourcing: started })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to activate ICP' }) }
 })

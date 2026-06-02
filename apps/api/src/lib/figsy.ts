@@ -50,6 +50,7 @@ export async function generateSequence(
   senderCompanyName: string,
   senderIndustry: string | null,
   campaignIntent?: string,
+  bookingUrl?: string | null,
 ): Promise<SequenceDraft> {
   // ── Signal detection — pick the best personalization hook ─────────────────
   const signals: string[] = []
@@ -81,7 +82,7 @@ Write a 3-email sequence:
 Step 1 (Day 0) — First touch:
 - MANDATORY: Open with a specific observation using the personalization signal provided above. If they use Salesforce, reference it. If they're in fintech, reference it. Make them feel like you actually looked them up — because we did.
 - One sentence on what ${senderCompanyName} does and why it matters to them specifically.
-- One soft CTA: quick call, 15 minutes.
+- One soft CTA: ${bookingUrl ? `invite them to grab a 15-minute slot and include this exact booking link on its own line: ${bookingUrl}` : 'quick call, 15 minutes.'}
 - Max 70 words. No subject line tricks. Subject should feel like a colleague's email.
 
 Step 2 (Day 4) — Follow-up:
@@ -93,6 +94,7 @@ Step 2 (Day 4) — Follow-up:
 Step 3 (Day 9) — Final touch:
 - Be direct: this is the last email.
 - Leave it genuinely open — no guilt, no urgency tactics.
+${bookingUrl ? `- Include the booking link once more on its own line: ${bookingUrl}` : ''}
 - 3–4 sentences max.
 
 Hard rules (violating any of these makes the email useless):
@@ -532,8 +534,12 @@ export async function generateSequenceWithMemory(
   }
   const { data: memory } = memoryResult
 
+  // Client booking link to offer leads (FIGSY's whole job is booking meetings).
+  const { data: clientBooking } = await db.from('clients').select('booking_url').eq('id', clientId).maybeSingle()
+  const bookingUrl: string | null = (clientBooking?.booking_url as string | null) ?? null
+
   if (!memory || (memory.total_sent_all_time ?? 0) < 20) {
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl)
   }
 
   // P2-1: 3-type memory model
@@ -603,9 +609,9 @@ ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(',
 
 Write a 3-email sequence that applies the lessons from Campaign Intelligence above.
 
-Step 1 (Day 0): First touch — under 70 words. MANDATORY: Open with the personalization signal above. One CTA.
+Step 1 (Day 0): First touch — under 70 words. MANDATORY: Open with the personalization signal above. ${bookingUrl ? `CTA: invite them to book a 15-min slot and include this exact link on its own line: ${bookingUrl}` : 'One soft CTA (quick 15-min call).'}
 Step 2 (Day 4): Follow-up — new angle, shorter. Acknowledge step 1 was sent.
-Step 3 (Day 9): Final — direct, no pressure, leave it open.
+Step 3 (Day 9): Final — direct, no pressure, leave it open.${bookingUrl ? ` Include the booking link once more: ${bookingUrl}` : ''}
 
 Hard rules:
 - Never say "Hope this finds you well", "I wanted to reach out", "touch base", "synergy", "leverage", "game-changer"
@@ -632,7 +638,7 @@ Return ONLY valid JSON:
     return JSON.parse(stripJson(raw)) as SequenceDraft
   } catch {
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
-    return generateSequence(lead, senderCompanyName, senderIndustry)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl)
   }
 }
 

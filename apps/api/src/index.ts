@@ -48,6 +48,11 @@ import { startCrons } from './cron'
 const app = express()
 const PORT = process.env.PORT || 4000
 
+// Behind Railway/Render/Cloudflare — trust the first proxy hop so req.ip is the
+// real client IP (used by the public widget rate limiter) and not spoofable via
+// a forged X-Forwarded-For.
+app.set('trust proxy', 1)
+
 app.use(helmet())
 const ALLOWED_ORIGINS = [
   'https://get-kind.com',

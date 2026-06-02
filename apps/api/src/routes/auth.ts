@@ -54,8 +54,12 @@ const onboardSchema = z.object({
   country:      z.string().min(2),
   website:      emptyToUndefined.pipe(z.string().url().optional()),
   phone:        emptyToUndefined.optional(),
-  referred_by:  z.string().uuid().optional(),
+  // Accept ANY ref value: a client UUID (client referral) OR an 8-char partner
+  // code. Validating as uuid() here used to 400 every partner-link signup.
+  referred_by:  emptyToUndefined.optional(),
 })
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 authRouter.post('/onboard', async (req, res) => {
   try {
@@ -65,10 +69,19 @@ authRouter.post('/onboard', async (req, res) => {
     if (authError || !user) { res.status(401).json({ success: false, error: 'Invalid token' }); return }
     const { referred_by, ...profileFields } = onboardSchema.parse(req.body)
 
-    let resolvedReferredBy: string | undefined
+    // A ref can be a client UUID (client referral) or an 8-char partner code.
+    let resolvedReferredBy: string | undefined   // client referrer id
+    let partnerRef: { partner_id: string; code: string } | undefined
     if (referred_by) {
-      const { data: referrer } = await db.from('clients').select('id').eq('id', referred_by).maybeSingle()
-      if (referrer) resolvedReferredBy = referrer.id
+      if (UUID_RE.test(referred_by)) {
+        const { data: referrer } = await db.from('clients').select('id').eq('id', referred_by).maybeSingle()
+        if (referrer) resolvedReferredBy = referrer.id
+      } else {
+        // Treat as a partner referral code — record attribution after client exists.
+        const { data: partner } = await db.from('partners')
+          .select('id').eq('referral_code', referred_by).maybeSingle()
+        if (partner) partnerRef = { partner_id: partner.id, code: referred_by }
+      }
     }
 
     const now = new Date().toISOString()
@@ -99,6 +112,16 @@ authRouter.post('/onboard', async (req, res) => {
         .single()
       if (insertErr) throw new Error(`Insert failed: ${insertErr.message} (${insertErr.code})`)
       clientId = inserted.id
+    }
+
+    // Record partner referral attribution (idempotent — unique(client_id)).
+    if (partnerRef) {
+      await db.from('partner_referrals').upsert({
+        partner_id:    partnerRef.partner_id,
+        client_id:     clientId,
+        referral_code: partnerRef.code,
+        status:        'trial',
+      }, { onConflict: 'client_id' }).then(() => {}, () => {})
     }
 
     const trialEnd = new Date()

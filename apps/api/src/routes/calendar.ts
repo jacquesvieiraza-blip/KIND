@@ -225,6 +225,37 @@ calendarRouter.post('/book', requireAuth, async (req: AuthRequest, res) => {
 
     if (insertErr) throw insertErr
 
+    // Unify the booking KPI: a real calendar booking must move meetings_booked
+    // (previously only the manual "Mark as booked" button did). Attribute it to
+    // the lead's active enrollment's campaign, and stamp the matching reply.
+    try {
+      let campaignId: string | null = null
+      if (body.enrollmentId) {
+        const { data: enr } = await db.from('figsy_enrollments')
+          .select('campaign_id').eq('id', body.enrollmentId).maybeSingle()
+        campaignId = enr?.campaign_id ?? null
+      }
+      if (!campaignId) {
+        const { data: enr } = await db.from('figsy_enrollments')
+          .select('campaign_id').eq('lead_id', body.leadId).order('enrolled_at', { ascending: false }).limit(1).maybeSingle()
+        campaignId = enr?.campaign_id ?? null
+      }
+      if (campaignId) {
+        const { data: camp } = await db.from('figsy_campaigns').select('meetings_booked').eq('id', campaignId).maybeSingle()
+        await db.from('figsy_campaigns')
+          .update({ meetings_booked: (camp?.meetings_booked ?? 0) + 1 })
+          .eq('id', campaignId)
+      }
+      // Stamp the most recent hot/warm reply from this lead as booked (idempotent-ish).
+      await db.from('figsy_replies')
+        .update({ meeting_booked_at: new Date().toISOString() })
+        .eq('lead_id', body.leadId).is('meeting_booked_at', null)
+        .in('classification', ['hot', 'warm'])
+        .then(() => {}, () => {})
+    } catch (kpiErr) {
+      console.error('[calendar/book] KPI update failed (booking still saved):', kpiErr)
+    }
+
     res.status(201).json({ success: true, meetLink, eventId })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

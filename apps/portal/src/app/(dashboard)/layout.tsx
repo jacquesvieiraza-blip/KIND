@@ -44,6 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
   } catch { isPartner = false }
 
+  let clientRowExists = false
   try {
     const { data: clientRow } = await supabase
       .from('clients')
@@ -52,6 +53,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       .maybeSingle()
 
     if (clientRow) {
+      clientRowExists = true
       creditBalance = clientRow.credit_balance ?? 0
       const subs = (clientRow.subscriptions as { status: string; product?: string; trial_ends_at?: string }[]) ?? []
 
@@ -77,6 +79,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       leadCount = count ?? 0
     }
   } catch { }
+
+  // Onboarding gate: a logged-in user with NO client row (and who isn't a
+  // partner) has abandoned onboarding — send them back to finish it instead of
+  // stranding them on a half-broken dashboard. Redirect MUST be outside the
+  // try/catch above (it throws NEXT_REDIRECT which the empty catch would eat).
+  if (!clientRowExists && !isPartner) redirect('/onboard')
 
   const isNewUser = leadCount === 0
 

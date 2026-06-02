@@ -90,6 +90,8 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       crm_sync_enabled:  z.boolean().optional(),
       leads_per_run:     z.number().int().min(1).optional(),
       daily_drip_rate:   z.number().int().min(1).optional(),
+      // Booking link (Calendly / Cal.com / Google) that FIGSY emails offer leads.
+      booking_url:       z.string().url().optional().or(z.literal('')),
     }).parse(req.body)
     // Upsert: creates the row if none exists (partner accounts have no client row by default)
     const { data, error } = await db.from('clients')

@@ -75,3 +75,104 @@ services:
         sync: false
       - key: EXTRA_ALLOWED_ORIGINS
         sync: false
+
+  # ════════════════════════════════════════════════════════════════════════
+  # PORTAL standby — Next.js 14 app (apps/portal)
+  # Optional belt-and-suspenders failover for app.get-kind.com.
+  # The API is the critical shared dependency; portal/admin standby is nice-to-have.
+  # ════════════════════════════════════════════════════════════════════════
+  - type: web
+    name: kind-portal-standby
+    runtime: node
+    rootDir: .
+    region: oregon          # us-west-2 — geographically separate from Railway eu-west
+    plan: starter           # $7/mo — keeps 1 Next.js instance warm
+    buildCommand: >
+      yarn install &&
+      yarn workspace @kind/db build &&
+      yarn workspace @kind/shared build &&
+      yarn workspace @kind/portal build
+    startCommand: yarn workspace @kind/portal start
+    healthCheckPath: /login # "/" 307-redirects to /login — health-check the real 200
+    autoDeploy: false       # push-triggered via GitHub; disable so Railway stays primary
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+
+      # ── API base URL — point at the load-balanced API domain, NOT Railway ──
+      # This is the whole point: the standby portal must reach the API via the
+      # Cloudflare LB so it survives a Railway API outage too.
+      - key: NEXT_PUBLIC_API_URL
+        value: https://api.get-kind.com
+
+      # ── Supabase (public — baked into the client bundle at build time) ─────
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+
+      # ── Stripe public price IDs (copy from Railway portal env) ────────────
+      - key: NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100
+        sync: false
+
+      # ── Feature flags (optional — copy from Railway if set) ───────────────
+      - key: FEATURE_PORTAL_V2
+        sync: false
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN standby — Next.js 14 app (apps/admin)
+  # Optional belt-and-suspenders failover for admin.get-kind.com.
+  # ════════════════════════════════════════════════════════════════════════
+  - type: web
+    name: kind-admin-standby
+    runtime: node
+    rootDir: .
+    region: oregon          # us-west-2 — geographically separate from Railway eu-west
+    plan: starter           # $7/mo — keeps 1 Next.js instance warm
+    buildCommand: >
+      yarn install &&
+      yarn workspace @kind/db build &&
+      yarn workspace @kind/shared build &&
+      yarn workspace @kind/admin build
+    startCommand: yarn workspace @kind/admin start
+    healthCheckPath: /health # dedicated lightweight status page (returns 200)
+    autoDeploy: false        # push-triggered via GitHub; disable so Railway stays primary
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"        # admin's `next start -p 3001` — keep PORT in sync
+
+      # ── API base URL — point at the load-balanced API domain, NOT Railway ──
+      - key: NEXT_PUBLIC_API_URL
+        value: https://api.get-kind.com
+
+      # ── Supabase ──────────────────────────────────────────────────────────
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # ── Admin auth (copy from Railway admin env) ──────────────────────────
+      - key: NEXT_PUBLIC_ADMIN_KEY
+        sync: false
+      - key: ADMIN_SECRET
+        sync: false
+      - key: ADMIN_SECRET_KEY
+        sync: false
+
+      # ── Email (admin sends via Resend) ────────────────────────────────────
+      - key: RESEND_API_KEY
+        sync: false

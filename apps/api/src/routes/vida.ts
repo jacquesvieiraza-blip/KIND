@@ -17,6 +17,30 @@ async function getClientId(userId: string): Promise<string | null> {
   return (data as any)?.id ?? null
 }
 
+// Returns true if the client has an active Vida (chatbot) subscription.
+// FAIL SAFE: on lookup error, log and return true so a transient DB error
+// never takes a paying client's widget offline.
+async function hasActiveVidaSubscription(clientId: string): Promise<boolean> {
+  try {
+    const { data, error } = await db
+      .from('subscriptions')
+      .select('id')
+      .eq('client_id', clientId)
+      .in('product', ['chatbot', 'vida'])
+      .eq('status', 'active')
+      .limit(1)
+
+    if (error) {
+      console.error('[vida] subscription lookup failed — failing open:', error)
+      return true
+    }
+    return Array.isArray(data) && data.length > 0
+  } catch (err) {
+    console.error('[vida] subscription lookup threw — failing open:', err)
+    return true
+  }
+}
+
 async function getOrCreateConfig(clientId: string) {
   const { data: existing } = await db
     .from('vida_configs')
@@ -188,7 +212,11 @@ const _widgetRateMap = new Map<string, { count: number; resetAt: number }>()
 const WIDGET_RATE_LIMIT = 20
 const WIDGET_RATE_WINDOW_MS = 60_000
 function widgetRateLimit(req: any, res: any, next: any) {
-  const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ?? req.ip ?? 'unknown'
+  // Prefer the Express-resolved req.ip (honours app 'trust proxy' config) over
+  // the raw X-Forwarded-For first token, which is trivially spoofable.
+  const ip = req.ip
+    ?? (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim()
+    ?? 'unknown'
   const now = Date.now()
   const entry = _widgetRateMap.get(ip)
   if (!entry || now > entry.resetAt) {
@@ -215,6 +243,12 @@ widgetRouter.get('/:clientId/config', async (req, res) => {
   try {
     const { clientId } = req.params
 
+    // Don't serve the widget for clients without an active subscription.
+    if (!(await hasActiveVidaSubscription(clientId))) {
+      res.json({ success: true, data: { enabled: false } })
+      return
+    }
+
     const { data: config, error } = await db
       .from('vida_configs')
       .select('bot_name, greeting, primary_color, collect_email, collect_phone')
@@ -227,9 +261,10 @@ widgetRouter.get('/:clientId/config', async (req, res) => {
       res.json({
         success: true,
         data: {
+          enabled:       true,
           bot_name:      'Vida',
           greeting:      'Hi! How can I help you today?',
-          primary_color: '#0066FF',
+          primary_color: '#7C3AED',
           collect_email: true,
           collect_phone: false,
         },
@@ -237,7 +272,7 @@ widgetRouter.get('/:clientId/config', async (req, res) => {
       return
     }
 
-    res.json({ success: true, data: config })
+    res.json({ success: true, data: { enabled: true, ...config } })
   } catch (err) {
     console.error(err)
     res.status(500).json({ success: false, error: 'Failed to fetch widget config' })
@@ -245,10 +280,15 @@ widgetRouter.get('/:clientId/config', async (req, res) => {
 })
 
 // POST /vida/widget/:clientId/session
-widgetRouter.post('/:clientId/session', async (req, res) => {
+widgetRouter.post('/:clientId/session', widgetRateLimit, async (req, res) => {
   try {
     const { clientId } = req.params
     const channel = req.body?.channel ?? 'web'
+
+    // Don't create sessions for clients without an active subscription.
+    if (!(await hasActiveVidaSubscription(clientId))) {
+      res.status(403).json({ success: false, error: 'Chatbot is not active' }); return
+    }
 
     const { data, error } = await db
       .from('vida_sessions')
@@ -284,6 +324,15 @@ widgetRouter.post('/:clientId/session/:sessionId/message', widgetRateLimit, asyn
 
     const { message, visitorName, visitorEmail, visitorPhone } = parsed.data
 
+    // Don't answer (and don't spend on Anthropic) for inactive clients.
+    if (!(await hasActiveVidaSubscription(clientId))) {
+      res.json({
+        success: true,
+        data: { reply: 'This chat is currently unavailable. Please try again later.', shouldCollectEmail: false, shouldCollectPhone: false },
+      })
+      return
+    }
+
     // Update visitor info if provided
     const visitorUpdate: Record<string, string> = {}
     if (visitorName)  visitorUpdate.visitor_name  = visitorName
@@ -308,15 +357,28 @@ widgetRouter.post('/:clientId/session/:sessionId/message', widgetRateLimit, asyn
       collect_phone: (configData as any)?.collect_phone ?? false,
     }
 
-    // Fetch recent message history (last 10 messages for context)
+    // Persist the inbound visitor message BEFORE the AI call so it isn't lost
+    // if Anthropic fails mid-conversation.
+    await db.from('vida_messages').insert([
+      { session_id: sessionId, client_id: clientId, role: 'user', content: message },
+    ])
+
+    // Fetch recent message history (last 10 messages for context).
+    // The just-inserted user message is excluded here and passed separately as
+    // userMessage to avoid duplicating it in the prompt.
     const { data: history } = await db
       .from('vida_messages')
       .select('role, content')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true })
-      .limit(10)
+      .limit(11)
 
-    const messageHistory = (history ?? []) as { role: string; content: string }[]
+    const allHistory = (history ?? []) as { role: string; content: string }[]
+    // Drop the trailing user message we just inserted — it's sent as userMessage.
+    const messageHistory =
+      allHistory.length && allHistory[allHistory.length - 1].role === 'user'
+        ? allHistory.slice(0, -1)
+        : allHistory
 
     // Generate reply
     const { reply, shouldCollectEmail, shouldCollectPhone, isHotLead } = await generateVidaReply({
@@ -327,9 +389,8 @@ widgetRouter.post('/:clientId/session/:sessionId/message', widgetRateLimit, asyn
       messageHistory,
     })
 
-    // Save both messages to DB
+    // Save the assistant reply (the visitor message was already persisted above)
     await db.from('vida_messages').insert([
-      { session_id: sessionId, client_id: clientId, role: 'user',      content: message },
       { session_id: sessionId, client_id: clientId, role: 'assistant', content: reply },
     ])
 

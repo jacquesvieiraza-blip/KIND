@@ -1,7 +1,7 @@
 ;(function () {
   'use strict'
 
-  var API_BASE = 'https://kindapi-production-83cb.up.railway.app'
+  var API_BASE = 'https://kindapi-production-e64c.up.railway.app'
 
   var cfg = window.VidaConfig || {}
   var clientId = cfg.clientId
@@ -42,7 +42,7 @@
 
   function buildWidget(vidaCfg) {
     widgetCfg = vidaCfg
-    var color = vidaCfg.primary_color || '#0066FF'
+    var color = vidaCfg.primary_color || '#7C3AED'
 
     // ── Bubble ──────────────────────────────────────────────────────────────
     var bubble = el('button', {
@@ -385,6 +385,8 @@
   // ── Bootstrap ──────────────────────────────────────────────────────────────
   apiFetch('GET', '/vida/widget/' + clientId + '/config', null, function (err, data) {
     if (err || !data || !data.data) return
+    // Subscription inactive / widget disabled — do not render anything
+    if (data.data.enabled === false) return
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function () { buildWidget(data.data) })
     } else {

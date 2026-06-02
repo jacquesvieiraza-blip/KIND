@@ -10,7 +10,7 @@ create table if not exists public.vida_configs (
   bot_name        text        not null default 'Vida',
   greeting        text        not null default 'Hi! How can I help you today?',
   system_prompt   text,
-  primary_color   text        not null default '#0066FF',
+  primary_color   text        not null default '#7C3AED',
   collect_email   boolean     not null default true,
   collect_phone   boolean     not null default false,
   notify_email    text,

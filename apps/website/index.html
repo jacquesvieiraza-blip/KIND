@@ -1971,17 +1971,21 @@
     setTimeout(voiceStep, 1200)
   }
 
-  // AGENT CARD — ORB HOVER SHIFT
+  // AGENT CARD — ORB HOVER SHIFT + VIDEO HOVER PLAY
   var orbWrap = document.querySelector('.hero-orb-wrap')
   document.querySelectorAll('.hero-agent-card').forEach(function(card) {
+    var video = card.querySelector('video')
+    if (video) { video.pause(); video.currentTime = 0 }
     card.addEventListener('mouseenter', function() {
-      if (!orbWrap) return
-      orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')
-      orbWrap.classList.add('hov-' + card.dataset.agent)
+      if (orbWrap) {
+        orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')
+        orbWrap.classList.add('hov-' + card.dataset.agent)
+      }
+      if (video) video.play()
     })
     card.addEventListener('mouseleave', function() {
-      if (!orbWrap) return
-      orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')
+      if (orbWrap) orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')
+      if (video) { video.pause(); video.currentTime = 0 }
     })
   })
 

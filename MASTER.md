@@ -52,36 +52,54 @@
 
 ---
 
-### 📅 SESSION DATE — 2 June 2026 (WEBSITE + PORTAL — Agent Image Redesign)
-**One-line summary:** Replaced all three agent images with Pixar/Disney 3D cartoon style characters (FIGSY, Milla, Vida) — consistent soft lavender backgrounds — and added staggered float animations across website and portal. Built hero playfulness (Alta-style floating balls), wired playbook email form to real API, added portal subscriber capture endpoint.
+### 📅 SESSION DATE — 2 June 2026 (WEBSITE POLISH + LINKEDIN BACKEND)
+**One-line summary:** Full purple rebrand across every website page, promise strip added to homepage, competitive teardown vs Alta, human availability strip on 5 pages, LinkedIn outreach backend built (queue, AI note generation, PhantomBuster dispatch, portal route), MASTER updated.
 
-**WHAT WAS BUILT:**
+**WHAT WAS BUILT THIS SESSION:**
 | Area | Detail |
 |------|--------|
-| Agent images | New Pixar-style 3D portraits: FIGSY (man, earpiece), Milla (glasses, dark hair up), Vida (wavy hair, warm smile). Soft lavender background. 1024×1536. Deployed to `apps/website/` and `apps/portal/public/agents/` |
-| Float animations | `@keyframes agent-float` — 14px vertical bob, 4s ease-in-out. Staggered delays (0s / -1.35s / -2.7s). Hover pauses float + purple glow. Applied to: website hero cards, portal AgentSidePanel, figsy-chat h-40 card, onboarding h-52 card |
-| Hero card labels | Alta-style dark translucent label bar on each hero card: FIGSY \| AI Sales Agent, Milla \| AI Virtual Assistant, Vida \| AI Chat Agent. `backdrop-filter: blur(10px)` |
-| Hero playfulness | Alta-style floating background balls — 5 purple/violet 3D radial-gradient spheres drifting slowly behind hero content. Hero background updated from `#f0f4ff` (blue) to `#faf5ff` (lavender — brand correct) |
-| Playbook form | Wired `submitPlaybook()` to `POST /api/public/subscribe` — real fetch, loading state, error handling |
-| Subscribe API | New `/api/public/subscribe` endpoint — saves to Supabase `subscribers` table, emails founder via Resend |
-| `prefers-reduced-motion` | All new animations (agent float, hero balls) respect the media query |
+| Full purple rebrand | Every website page (`index.html`, `figsy.html`, `virtual-assistant.html`, `chatbot-agent.html`, `playbook.html`, `pricing.html`) — all `#0066FF`/`#2563eb`/`#4f46e5`/`rgba(37,99,235,...)` replaced with `#7c3aed`/`rgba(124,58,237,...)`. CSS variable `--blue` = `#7c3aed` everywhere. `#60a5fa` → `#a78bfa`. Zero blue values remain. |
+| Promise strip | New section on `index.html` between hero and agent showcase: 4 columns — `10 min` / `24h` / `$0` / `24/7` — concrete provable claims replacing empty placeholder logo strip. Replaces aspirational fake metrics with honest founder promises. |
+| Hero bleed | Updated from blue to purple tint (`rgba(124,58,237,0.06)`) |
+| Trust bar copy | Replaced fake metrics (120+ campaigns etc.) with promise claims: "10 min to first campaign live", "24 hrs to first leads", "Pay per lead — not per seat" |
+| Pricing card interactions | `translateY(-4px)` lift + purple shadow on hover for all `.p-card` |
+| Button hover transforms | All CTAs: `translateY(-1px/-2px)` on hover across all pages |
+| Mobile CTAs | Full-width stacked on mobile (`max-width: 480px`) |
+| Trust note under pricing | POPIA · No contracts · Cancel anytime · Pay per lead — now bold and legible |
+| Pricing badge | "Most popular" badge now purple (was blue) |
+| Logo icon | Now purple on all pages |
+| Human strip | "Rather talk it through first?" — lavender strip with Calendly CTA on: `index.html`, `figsy.html`, `virtual-assistant.html`, `chatbot-agent.html`. Pricing variant: "Not sure which plan fits?" on `pricing.html`. Lavender background, dark button, full-width on mobile. |
+| LinkedIn channel badges | On `figsy.html` hero: "Email outreach — Live" (pulsing dot) + "LinkedIn outreach — Coming soon" (dashed). |
+| LinkedIn capability card | Full-width dashed purple card at bottom of FIGSY capabilities grid: same-ICP multi-channel positioning, "Coming soon" pill. |
+| LinkedIn backend | `figsy_linkedin_queue` table migration. `lib/linkedin.ts`: `generateLinkedInNote` (Claude Haiku ≤280 chars), `enqueueLinkedInStep`, `dispatchLinkedInStep` (PhantomBuster if key present, manual queue fallback). `routes/linkedin.ts`: `GET /api/linkedin/queue`, `POST /api/linkedin/enqueue`, `POST /api/linkedin/approve/:id`, `POST /api/linkedin/skip/:id`. Wired in `index.ts`. Zero TS errors. |
+| Milla integration story | `virtual-assistant.html` — hero copy updated, connected intelligence loop section added (connects tools, feeds back to FIGSY, always learning with Month 1/3/6 stats). |
+| CRM tier fix | HubSpot/Salesforce moved to Scale tier on `pricing.html` + `index.html`. Dominate updated to "Custom CRM setup & dedicated onboarding". |
+| Pricing FAQ fix | Removed `$100/mo minimum` — replaced with bundle-of-20 explanation (no monthly minimum). |
 
-**BRAND DECISION LOCKED:**
-- Brand colour is **purple/violet** (not electric blue). Hero background, ball colours, card shadow all updated.
-- Agent character style locked as **Pixar 3D animated** — NOT photorealistic photos.
-- Animations apply **website AND portal** consistently.
+**COMPETITIVE CONTEXT LOCKED:**
+- Alta's brand colour is also `#7c3aed` — same purple. Differentiation must come from personality, warmth, agent design, and pricing transparency — not colour.
+- Alta: enterprise-only, demo-gated, $7M raised, G2 badge, multi-channel (email + LinkedIn + voice).
+- KIND advantages: transparent pricing from $20, self-serve 24/7, Pixar agent personalities, connected intelligence story, Africa/POPIA local moat, human strip (available without gating).
+- KIND gaps remaining: social proof (client-gated), LinkedIn live (backend built, needs `PHANTOMBUSTER_API_KEY`), voice channel.
 
-**DALL-E PROMPTS (saved for regeneration):**
-- FIGSY: `3D animated film character portrait, Pixar and Disney style render. Confident white man, late 30s, short neat dark hair, light stubble, strong jaw, confident smile, small wireless earpiece. Wearing a crisp dark navy blazer over a white shirt. Very soft light lavender and pale lilac background, almost white, with extremely subtle out-of-focus bokeh dots, airy and minimal. No text. 8K Pixar quality.`
-- Milla: same style, white woman early 30s, dark hair up, thin-frame glasses, navy blazer, same lavender background.
-- Vida: same style, white woman late 20s, wavy light brown hair down, warm smile, no glasses, navy blazer, same lavender background.
+**LINKEDIN BACKEND — ENV VARS NEEDED TO GO LIVE:**
+| Var | Where | Purpose |
+|-----|-------|---------|
+| `PHANTOMBUSTER_API_KEY` | Railway API service | Enables auto-dispatch of LinkedIn connection requests |
+| `PHANTOMBUSTER_LINKEDIN_AGENT_ID` | Railway API service | The PhantomBuster phantom ID for LinkedIn Connection Requests |
+
+Without these, LinkedIn steps queue as `pending` for manual review — no data is lost.
+
+**SQL TO RUN IN SUPABASE:**
+```sql
+-- Run: apps/api/src/migrations/20260602_linkedin_queue.sql
+```
 
 **REMAINING — Claude build queue:**
-- [ ] D-ID talking animation — upload FIGSY/Milla/Vida to d-id.com → generate 5s idle loop → swap `<img>` for `<video autoplay loop muted playsinline>` — test FIGSY first
-- [ ] Portal agent animations on remaining pages: KPI page large displays, knowledge page large displays — investigate if containers are actually large enough
-- [ ] Hero orb colours — currently still blue (`rgba(37,99,235,...)`). Could update to purple to match brand. Deferred.
+- [ ] D-ID talking animation — deferred until D-ID paid plan
+- [ ] Portal LinkedIn queue UI — show pending LinkedIn steps in portal dashboard
 - [ ] Blog article pages — cards currently link to `href="#"` (by design for now)
-- [ ] Website audit residual items from Groups A/B/D
+- [ ] Agent image compression — convert 1024×1536 PNGs to WebP at 600px max for mobile performance
 
 **FOUNDER CRITICAL — still blocking billing:**
 

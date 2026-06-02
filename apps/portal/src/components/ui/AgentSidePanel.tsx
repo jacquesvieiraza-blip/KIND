@@ -217,18 +217,12 @@ export function AgentSidePanel({
 
       {/* ── Full agent photo — no dark overlay ───────────────────── */}
       <div className="relative h-48 overflow-hidden">
-        {agentId === 'figsy' ? (
-          <video autoPlay loop muted playsInline className="w-full h-full object-cover object-center">
-            <source src="/agents/figsy.mp4" type="video/mp4" />
-          </video>
-        ) : (
-          <img
-            src={`/agents/${agentId}.png`}
-            alt={name}
-            className="w-full h-full object-cover object-center agent-img-float"
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-          />
-        )}
+        <img
+          src={`/agents/${agentId}.png`}
+          alt={name}
+          className="w-full h-full object-cover object-center agent-img-float"
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
       </div>
 
       {/* ── Identity bar ─────────────────────────────────────────── */}

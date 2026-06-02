@@ -236,9 +236,11 @@ function OnboardChat() {
 
           {/* Photo */}
           <div className="relative h-52 bg-[#0F0929]">
-            <video autoPlay loop muted playsInline className="w-full h-full object-cover object-center">
-              <source src="/agents/figsy.mp4" type="video/mp4" />
-            </video>
+            <img
+              src="/agents/figsy.png"
+              alt="FIGSY"
+              className="w-full h-full object-cover object-center agent-img-float"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0F0929] via-[#0F0929]/10 to-transparent" />
           </div>
 

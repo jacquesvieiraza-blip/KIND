@@ -621,7 +621,20 @@
     .reveal-delay-3 { transition-delay: 0.3s; }
 
     /* PHASE 1 — HERO ORBS */
-    .hero-wrapper { position: relative; overflow: hidden; margin: 16px 16px 0; border-radius: 28px; background: #f0f4ff; border: 1px solid rgba(0,0,0,0.09); box-shadow: 0 4px 32px rgba(0,0,0,0.06); }
+    .hero-wrapper { position: relative; overflow: hidden; margin: 16px 16px 0; border-radius: 28px; background: #faf5ff; border: 1px solid rgba(124,58,237,0.12); box-shadow: 0 4px 32px rgba(124,58,237,0.08); }
+
+    /* ── Floating background balls (playful, like Alta) ────────────── */
+    .hero-ball { position: absolute; border-radius: 50%; pointer-events: none; }
+    .hero-ball-1 { width: 320px; height: 320px; background: radial-gradient(circle at 33% 33%, #ddd6fe, #7c3aed 55%, #4c1d95); top: -80px; left: -60px; animation: ball-drift-1 20s ease-in-out infinite alternate; opacity: 0.5; }
+    .hero-ball-2 { width: 200px; height: 200px; background: radial-gradient(circle at 33% 33%, #f3e8ff, #a855f7 55%, #7e22ce); top: 25%; right: -60px; animation: ball-drift-2 25s ease-in-out infinite alternate; opacity: 0.42; }
+    .hero-ball-3 { width: 130px; height: 130px; background: radial-gradient(circle at 33% 33%, #ede9fe, #8b5cf6 55%, #5b21b6); bottom: 12%; left: 12%; animation: ball-drift-3 17s ease-in-out infinite alternate; opacity: 0.38; }
+    .hero-ball-4 { width: 240px; height: 240px; background: radial-gradient(circle at 33% 33%, #fdf4ff, #c084fc 55%, #9333ea); bottom: -50px; right: 18%; animation: ball-drift-4 22s ease-in-out infinite alternate; opacity: 0.48; }
+    .hero-ball-5 { width: 100px; height: 100px; background: radial-gradient(circle at 33% 33%, #f5f3ff, #7c3aed 55%, #4c1d95); top: 18%; left: 28%; animation: ball-drift-5 14s ease-in-out infinite alternate; opacity: 0.32; }
+    @keyframes ball-drift-1 { from { transform: translate(0,0); } to { transform: translate(28px,44px); } }
+    @keyframes ball-drift-2 { from { transform: translate(0,0); } to { transform: translate(-22px,32px); } }
+    @keyframes ball-drift-3 { from { transform: translate(0,0); } to { transform: translate(18px,-22px); } }
+    @keyframes ball-drift-4 { from { transform: translate(0,0); } to { transform: translate(-28px,-18px); } }
+    @keyframes ball-drift-5 { from { transform: translate(0,0); } to { transform: translate(14px,18px); } }
     /* === OPTION D — BREATHING CORE === */
     .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 
@@ -662,7 +675,8 @@
     .orb-sat-2 { width: 260px; height: 260px; background: rgba(37,99,235,0.58); filter: blur(60px); }
 
     @media (prefers-reduced-motion: reduce) {
-      .orb-core, .orb-orbit-1, .orb-orbit-2, .hero-agent-card { animation: none !important; }
+      .orb-core, .orb-orbit-1, .orb-orbit-2, .hero-agent-card,
+      .hero-ball-1, .hero-ball-2, .hero-ball-3, .hero-ball-4, .hero-ball-5 { animation: none !important; }
     }
     .hero-grain {
       position: absolute; inset: 0; pointer-events: none;
@@ -1154,6 +1168,11 @@
     <div class="orb-hl orb-hl-figsy"></div>
     <div class="orb-hl orb-hl-milla"></div>
     <div class="orb-hl orb-hl-vida"></div>
+    <div class="hero-ball hero-ball-1"></div>
+    <div class="hero-ball hero-ball-2"></div>
+    <div class="hero-ball hero-ball-3"></div>
+    <div class="hero-ball hero-ball-4"></div>
+    <div class="hero-ball hero-ball-5"></div>
     <div class="hero-grain"></div>
   </div>
 <div class="hero">

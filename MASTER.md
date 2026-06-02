@@ -52,6 +52,39 @@
 
 ---
 
+### 📅 SESSION DATE — 2 June 2026 (WEBSITE + PORTAL — Agent Image Redesign)
+**One-line summary:** Replaced all three agent images with Pixar/Disney 3D cartoon style characters (FIGSY, Milla, Vida) — consistent soft lavender backgrounds — and added staggered float animations across website and portal. Built hero playfulness (Alta-style floating balls), wired playbook email form to real API, added portal subscriber capture endpoint.
+
+**WHAT WAS BUILT:**
+| Area | Detail |
+|------|--------|
+| Agent images | New Pixar-style 3D portraits: FIGSY (man, earpiece), Milla (glasses, dark hair up), Vida (wavy hair, warm smile). Soft lavender background. 1024×1536. Deployed to `apps/website/` and `apps/portal/public/agents/` |
+| Float animations | `@keyframes agent-float` — 14px vertical bob, 4s ease-in-out. Staggered delays (0s / -1.35s / -2.7s). Hover pauses float + purple glow. Applied to: website hero cards, portal AgentSidePanel, figsy-chat h-40 card, onboarding h-52 card |
+| Hero card labels | Alta-style dark translucent label bar on each hero card: FIGSY \| AI Sales Agent, Milla \| AI Virtual Assistant, Vida \| AI Chat Agent. `backdrop-filter: blur(10px)` |
+| Hero playfulness | Alta-style floating background balls — 5 purple/violet 3D radial-gradient spheres drifting slowly behind hero content. Hero background updated from `#f0f4ff` (blue) to `#faf5ff` (lavender — brand correct) |
+| Playbook form | Wired `submitPlaybook()` to `POST /api/public/subscribe` — real fetch, loading state, error handling |
+| Subscribe API | New `/api/public/subscribe` endpoint — saves to Supabase `subscribers` table, emails founder via Resend |
+| `prefers-reduced-motion` | All new animations (agent float, hero balls) respect the media query |
+
+**BRAND DECISION LOCKED:**
+- Brand colour is **purple/violet** (not electric blue). Hero background, ball colours, card shadow all updated.
+- Agent character style locked as **Pixar 3D animated** — NOT photorealistic photos.
+- Animations apply **website AND portal** consistently.
+
+**DALL-E PROMPTS (saved for regeneration):**
+- FIGSY: `3D animated film character portrait, Pixar and Disney style render. Confident white man, late 30s, short neat dark hair, light stubble, strong jaw, confident smile, small wireless earpiece. Wearing a crisp dark navy blazer over a white shirt. Very soft light lavender and pale lilac background, almost white, with extremely subtle out-of-focus bokeh dots, airy and minimal. No text. 8K Pixar quality.`
+- Milla: same style, white woman early 30s, dark hair up, thin-frame glasses, navy blazer, same lavender background.
+- Vida: same style, white woman late 20s, wavy light brown hair down, warm smile, no glasses, navy blazer, same lavender background.
+
+**REMAINING — Claude build queue:**
+- [ ] D-ID talking animation — upload FIGSY/Milla/Vida to d-id.com → generate 5s idle loop → swap `<img>` for `<video autoplay loop muted playsinline>` — test FIGSY first
+- [ ] Portal agent animations on remaining pages: KPI page large displays, knowledge page large displays — investigate if containers are actually large enough
+- [ ] Hero orb colours — currently still blue (`rgba(37,99,235,...)`). Could update to purple to match brand. Deferred.
+- [ ] Blog article pages — cards currently link to `href="#"` (by design for now)
+- [ ] Website audit residual items from Groups A/B/D
+
+**FOUNDER CRITICAL — still blocking billing:**
+
 ### 📅 SESSION DATE — 1 June 2026 (evening — WEBSITE)
 **One-line summary:** Marketing-website session — built company/content pages (story, values, blog, playbook), restored full trust.html compliance (POPIA·GDPR·CAN-SPAM·CCPA·email infra·"what we don't do"), then ran a full 27-page deep audit and fixed every inconsistency (nav, CTA, domain, links, placeholders).
 

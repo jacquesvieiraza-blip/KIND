@@ -239,7 +239,7 @@ function OnboardChat() {
             <img
               src="/agents/figsy.png"
               alt="FIGSY"
-              className="w-full h-full object-cover object-top"
+              className="w-full h-full object-cover object-center agent-img-float"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0F0929] via-[#0F0929]/10 to-transparent" />
           </div>

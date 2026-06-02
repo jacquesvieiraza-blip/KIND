@@ -31,6 +31,7 @@ import { statsRouter } from './routes/stats'
 import { internalBriefsRouter } from './routes/internal-briefs'
 import founderBriefRouter from './routes/founder-brief'
 import demoRequestRouter from './routes/demo-request'
+import subscribeRouter from './routes/subscribe'
 import { statusRouter } from './routes/status'
 import { shareRouter } from './routes/share'
 import teamRouter from './routes/team'
@@ -109,6 +110,7 @@ app.use('/stats',         statsRouter)
 app.use('/internal/briefs', internalBriefsRouter)
 app.use('/internal', founderBriefRouter)
 app.use('/api', demoRequestRouter)
+app.use('/api', subscribeRouter)
 app.use('/internal/status', statusRouter)
 app.use('/share',         shareRouter)
 app.use('/team',          teamRouter)

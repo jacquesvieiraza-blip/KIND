@@ -303,11 +303,41 @@
 
   function submitPlaybook(e) {
     e.preventDefault();
-    // TODO: wire to email service (Mailchimp, ConvertKit, etc.)
-    // form data: new FormData(e.target)
-    document.getElementById('form-state').style.display = 'none';
-    const ty = document.getElementById('ty-state');
-    ty.style.display = 'block';
+    var form = e.target;
+    var btn = form.querySelector('button[type="submit"]');
+    var name = form.elements['name'].value.trim();
+    var email = form.elements['email'].value.trim();
+    var company = form.elements['company'].value.trim();
+
+    // Remove any previous error message
+    var existing = form.querySelector('.pb-error');
+    if (existing) existing.remove();
+
+    // Loading state
+    btn.disabled = true;
+    var originalText = btn.textContent;
+    btn.textContent = 'Sending…';
+
+    fetch('https://kindapi-production-e64c.up.railway.app/api/public/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, email: email, company: company })
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('non-ok');
+      document.getElementById('form-state').style.display = 'none';
+      var ty = document.getElementById('ty-state');
+      ty.style.display = 'block';
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      var err = document.createElement('p');
+      err.className = 'pb-error';
+      err.style.cssText = 'font-size:0.78rem;color:#f87171;margin-top:8px;text-align:center;';
+      err.textContent = 'Something went wrong — try again or email hello@get-kind.com';
+      form.appendChild(err);
+    });
   }
 </script>
 </body>

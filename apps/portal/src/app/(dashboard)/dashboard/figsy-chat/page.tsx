@@ -296,7 +296,7 @@ export default function FigsyChatPage() {
             <img
               src="/agents/figsy.png"
               alt="FIGSY"
-              className="w-full h-full object-cover object-top"
+              className="w-full h-full object-cover object-center agent-img-float"
               onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
             />
           </div>

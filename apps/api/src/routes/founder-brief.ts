@@ -99,7 +99,7 @@ End with one line: "— Your K.I.N.D OS, ${dateStr}"`
       html: `
         <div style="font-family:monospace;background:#0a0a0a;padding:32px;max-width:600px;margin:0 auto;border:1px solid #1f2937;border-radius:8px;">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #1f2937;">
-            <div style="width:28px;height:28px;background:#0066FF;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <div style="width:28px;height:28px;background:#7C3AED;border-radius:6px;display:flex;align-items:center;justify-content:center;">
               <span style="color:white;font-weight:bold;font-size:12px;">K</span>
             </div>
             <div>

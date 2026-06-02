@@ -39,7 +39,7 @@ router.post('/public/subscribe', async (req, res) => {
     subject: `📖 New Playbook Download — ${name} <${email}>`,
     html: `
       <div style="font-family:sans-serif;background:#0a0a0a;padding:32px;max-width:500px;border:1px solid #1f2937;border-radius:8px;">
-        <p style="color:#0066FF;font-weight:600;margin:0 0 16px;">New Playbook Download</p>
+        <p style="color:#7C3AED;font-weight:600;margin:0 0 16px;">New Playbook Download</p>
         <table style="width:100%;border-collapse:collapse;">
           <tr><td style="color:#6b7280;padding:6px 0;font-size:13px;">Name</td><td style="color:#e5e7eb;font-size:13px;font-weight:600;">${name}</td></tr>
           <tr><td style="color:#6b7280;padding:6px 0;font-size:13px;">Email</td><td style="color:#e5e7eb;font-size:13px;">${email}</td></tr>

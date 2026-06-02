@@ -647,7 +647,7 @@ function generatePersonalizedImageHtml(lead: { first_name?: string|null, company
   const name = lead.first_name ?? 'there'
   const company = lead.company ?? ''
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="560" height="120" viewBox="0 0 560 120">
-    <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#6d28d9"/><stop offset="100%" style="stop-color:#2563eb"/></linearGradient></defs>
+    <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#6d28d9"/><stop offset="100%" style="stop-color:#7C3AED"/></linearGradient></defs>
     <rect width="560" height="120" rx="12" fill="url(#g)"/>
     <text x="32" y="48" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="22" font-weight="700" fill="white">Hi ${name} 👋</text>
     <text x="32" y="80" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="15" fill="rgba(255,255,255,0.7)">${company}</text>

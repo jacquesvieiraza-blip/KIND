@@ -141,7 +141,7 @@ export default async function DocPage({ params }: { params: { doc: string } }) {
               href="https://github.com/jacquesvieiraza-blip/KIND/issues?q=label%3Aaudit"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#4d94ff] hover:text-[#0066FF] underline underline-offset-2"
+              className="text-[#4d94ff] hover:text-[#7C3AED] underline underline-offset-2"
             >
               github.com/jacquesvieiraza-blip/KIND/issues
             </a>
@@ -217,7 +217,7 @@ export default async function DocPage({ params }: { params: { doc: string } }) {
         .doc-content td { padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); }
         .doc-content tr:hover td { background: rgba(255,255,255,0.02); }
         .doc-content a { color: #4d94ff; text-decoration: underline; text-underline-offset: 2px; }
-        .doc-content a:hover { color: #0066FF; }
+        .doc-content a:hover { color: #7C3AED; }
       `}</style>
     </main>
   )

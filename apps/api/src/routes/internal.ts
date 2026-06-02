@@ -159,7 +159,7 @@ internalRouter.post('/ae/at-risk', async (_req: Request, res: Response) => {
           <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#dc2626">${c.reason}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#888">${c.days_old}d old</td>
           <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0">
-            <a href="https://admin.get-kind.com" style="color:#0066FF;font-size:0.8rem">View →</a>
+            <a href="https://admin.get-kind.com" style="color:#7C3AED;font-size:0.8rem">View →</a>
           </td>
         </tr>`
       ).join('')
@@ -311,7 +311,7 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
             <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
               ${body}
               <a href="${DASH}/billing"
-                 style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+                 style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
                 Subscribe now →
               </a>
               <p style="color:#999;font-size:0.8rem;margin-top:24px">
@@ -467,7 +467,7 @@ Tone: honest, direct, no fluff. Like a trusted advisor, not a PR spin.`
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f7ff;border-radius:8px;overflow:hidden;margin-bottom:24px">
               <tr>
                 <td align="center" style="padding:16px 12px">
-                  <p style="margin:0;font-size:1.3rem;font-weight:700;color:#0066FF">$${mrrUsd.toLocaleString()}</p>
+                  <p style="margin:0;font-size:1.3rem;font-weight:700;color:#7C3AED">$${mrrUsd.toLocaleString()}</p>
                   <p style="margin:2px 0 0;font-size:0.7rem;color:#888;text-transform:uppercase">MRR</p>
                 </td>
                 <td align="center" style="padding:16px 12px;border-left:1px solid #d0e8ff">
@@ -485,7 +485,7 @@ Tone: honest, direct, no fluff. Like a trusted advisor, not a PR spin.`
               </tr>
             </table>
             <a href="https://admin.get-kind.com"
-               style="display:inline-block;background:#0066FF;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600;font-size:0.85rem">
+               style="display:inline-block;background:#7C3AED;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600;font-size:0.85rem">
               Open admin dashboard →
             </a>
           </div>`,
@@ -700,8 +700,8 @@ internalRouter.post('/cmo/prospect', async (_req: Request, res: Response) => {
         <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#555">${c.organization?.name ?? c.organization_name ?? '—'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#555">${c.country ?? '—'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0">
-          ${c.email ? `<a href="mailto:${c.email}" style="color:#0066FF">${c.email}</a>` : '—'}
-          ${c.linkedin_url ? ` · <a href="${c.linkedin_url}" style="color:#0066FF">LinkedIn</a>` : ''}
+          ${c.email ? `<a href="mailto:${c.email}" style="color:#7C3AED">${c.email}</a>` : '—'}
+          ${c.linkedin_url ? ` · <a href="${c.linkedin_url}" style="color:#7C3AED">LinkedIn</a>` : ''}
         </td>
       </tr>`).join('')
 
@@ -1015,7 +1015,7 @@ internalRouter.post('/figsy/auto-replenish', async (_req: Request, res: Response
           <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0">${a.company_name}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#d97706">${a.enrollments_remaining} left</td>
           <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0">
-            <a href="https://admin.get-kind.com" style="color:#0066FF;font-size:0.8rem">Review →</a>
+            <a href="https://admin.get-kind.com" style="color:#7C3AED;font-size:0.8rem">Review →</a>
           </td>
         </tr>`
       ).join('')
@@ -1106,7 +1106,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
             (topScored ?? []).map((l: any) =>
               `<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:0.85rem">
                 <strong>${l.first_name} ${l.last_name}</strong> · ${l.job_title ?? '—'} at ${l.company ?? '—'}
-                <span style="margin-left:8px;background:#f0f7ff;color:#0066FF;font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:100px">Score ${l.score}</span>
+                <span style="margin-left:8px;background:#f0f7ff;color:#7C3AED;font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:100px">Score ${l.score}</span>
               </div>`
             ).join('')
           : ''
@@ -1134,7 +1134,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
                       <p style="margin:2px 0 0;font-size:0.7rem;color:#888;text-transform:uppercase">Added today</p>
                     </td>
                     <td align="center" style="padding:16px 12px;border-left:1px solid #ebebeb">
-                      <p style="margin:0;font-size:1.4rem;font-weight:800;color:#0066FF">${activeCampaigns ?? 0}</p>
+                      <p style="margin:0;font-size:1.4rem;font-weight:800;color:#7C3AED">${activeCampaigns ?? 0}</p>
                       <p style="margin:2px 0 0;font-size:0.7rem;color:#888;text-transform:uppercase">Active campaigns</p>
                     </td>
                     <td align="center" style="padding:16px 12px;border-left:1px solid #ebebeb">
@@ -1252,7 +1252,7 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
               <p style="color:#888;font-size:0.78rem;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Milla · Proactive Intelligence</p>
               <h2 style="margin-top:0">I spotted ${anomalies.length > 1 ? 'a few things' : 'something'} in your pipeline.</h2>
               ${anomalies.map(a => `
-                <div style="background:#fafafa;border-left:3px solid #0066FF;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:12px">
+                <div style="background:#fafafa;border-left:3px solid #7C3AED;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:12px">
                   <p style="margin:0;font-size:0.9rem;color:#333;line-height:1.6">${a}</p>
                 </div>`).join('')}
               <a href="https://app.get-kind.com/dashboard"
@@ -1355,7 +1355,7 @@ internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) =
             </p>
             <p style="color:#555;line-height:1.7">FIGSY is now sending personalised sequences to each of them automatically. You'll get replies in your inbox.</p>
             <a href="https://admin.get-kind.com"
-               style="display:inline-block;margin-top:12px;background:#0066FF;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
+               style="display:inline-block;margin-top:12px;background:#7C3AED;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
               View in admin →
             </a>
           </div>`,
@@ -1408,7 +1408,7 @@ internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
                 Top up now to keep your ICP running and leads flowing.
               </p>
               <a href="${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard/billing"
-                 style="display:inline-block;margin-top:12px;background:#0066FF;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
+                 style="display:inline-block;margin-top:12px;background:#7C3AED;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
                 Top up credits →
               </a>
               <p style="color:#9ca3af;font-size:0.8rem;margin-top:24px">K.I.N.D · <a href="https://get-kind.com" style="color:#9ca3af">get-kind.com</a></p>
@@ -1776,7 +1776,7 @@ internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Re
                 Renew now to restore access.
               </p>
               <a href="${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard/billing"
-                 style="display:inline-block;margin-top:12px;background:#0066FF;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
+                 style="display:inline-block;margin-top:12px;background:#7C3AED;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:0.85rem">
                 Renew subscription →
               </a>
             </div>`,

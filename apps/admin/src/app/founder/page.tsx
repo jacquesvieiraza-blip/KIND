@@ -77,7 +77,7 @@ export default function FounderPage() {
     ae:      'bg-purple-400/10 border border-purple-400/20 text-purple-400',
   }
 
-  const inputClass = 'w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-gray-300'
+  const inputClass = 'w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300'
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">

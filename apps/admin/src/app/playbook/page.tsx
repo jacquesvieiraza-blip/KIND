@@ -515,7 +515,7 @@ function ProposalContent() {
         </ul>
       </div>
 
-      <div className="border-2 border-[#0066FF] rounded-xl p-5 text-center space-y-2">
+      <div className="border-2 border-[#7C3AED] rounded-xl p-5 text-center space-y-2">
         <p className="font-bold text-gray-900">Next Step — One Action</p>
         <p className="text-sm text-gray-500">
           Click the link to start your 14-day trial and book your onboarding call. Or reply to this email and I&#39;ll set it up on a call.

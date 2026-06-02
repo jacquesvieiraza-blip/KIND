@@ -162,7 +162,7 @@ export default async function RevenuePage() {
       {/* Current month progress */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-5">
-          <Target className="w-5 h-5 text-[#0066FF]" />
+          <Target className="w-5 h-5 text-[#7C3AED]" />
           <h2 className="font-semibold text-gray-900">KPI Progress — {current.month}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -172,7 +172,7 @@ export default async function RevenuePage() {
               <span className="font-semibold text-gray-900">${stats.mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2">
-              <div className={`h-2 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-emerald-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#0066FF]'}`}
+              <div className={`h-2 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-emerald-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
                    style={{ width: `${mrrPct}%` }} />
             </div>
             <p className="text-xs text-gray-400 mt-1">{mrrPct.toFixed(1)}% of target</p>
@@ -251,7 +251,7 @@ export default async function RevenuePage() {
                   <tr key={t.month} className={isCurrentMonth ? 'bg-purple-50' : 'hover:bg-purple-50/30'}>
                     <td className="px-3 py-3">
                       <span className="font-medium text-gray-900">{t.month}</span>
-                      {isCurrentMonth && <span className="ml-2 text-xs bg-[#0066FF]/20 text-[#4d94ff] px-1.5 py-0.5 rounded font-medium">Now</span>}
+                      {isCurrentMonth && <span className="ml-2 text-xs bg-[#7C3AED]/20 text-[#4d94ff] px-1.5 py-0.5 rounded font-medium">Now</span>}
                     </td>
                     <td className="px-3 py-3 font-medium text-gray-700">${t.mrrTarget.toLocaleString()}</td>
                     <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>
@@ -261,7 +261,7 @@ export default async function RevenuePage() {
                       ) : (
                         <div className="flex items-center gap-2">
                           <div className="w-24 bg-white/10 rounded-full h-1.5">
-                            <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-emerald-500' : ragStatus(pct) === 'amber' ? 'bg-amber-500' : 'bg-[#0066FF]'}`}
+                            <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-emerald-500' : ragStatus(pct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
                                  style={{ width: `${pct}%` }} />
                           </div>
                           <span className="text-xs text-gray-500">{pct.toFixed(0)}%</span>

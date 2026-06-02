@@ -255,7 +255,7 @@ partnersRouter.post('/apply', async (req: Request, res: Response) => {
               </tr>
               <tr>
                 <td style="padding:10px 16px;background:#f9fafb;font-size:0.8rem;color:#888">Email</td>
-                <td style="padding:10px 16px;font-size:0.9rem"><a href="mailto:${body.email}" style="color:#0066FF">${body.email}</a></td>
+                <td style="padding:10px 16px;font-size:0.9rem"><a href="mailto:${body.email}" style="color:#7C3AED">${body.email}</a></td>
               </tr>
               <tr>
                 <td style="padding:10px 16px;background:#f9fafb;font-size:0.8rem;color:#888">Company</td>
@@ -272,7 +272,7 @@ partnersRouter.post('/apply', async (req: Request, res: Response) => {
               </tr>` : ''}
             </table>
             <p style="margin-top:20px">
-              <a href="https://admin.get-kind.com" style="display:inline-block;background:#0066FF;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600;font-size:0.85rem">
+              <a href="https://admin.get-kind.com" style="display:inline-block;background:#7C3AED;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600;font-size:0.85rem">
                 Review in admin →
               </a>
             </p>

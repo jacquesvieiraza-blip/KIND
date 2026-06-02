@@ -110,7 +110,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="w-6 h-6 animate-spin text-[#0066FF]" />
+      <Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" />
     </div>
   )
   if (!client) return (
@@ -214,12 +214,12 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
               <label className="block text-xs text-gray-400 mb-1">Amount</label>
               <input type="number" min="1" value={grantAmt} onChange={e => setGrantAmt(e.target.value)}
                 placeholder="e.g. 100"
-                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-gray-300" />
+                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300" />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Type</label>
               <select value={grantType} onChange={e => setGrantType(e.target.value as 'manual_grant' | 'refund')}
-                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF]">
+                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED]">
                 <option value="manual_grant">Manual Grant (add)</option>
                 <option value="refund">Refund (add back)</option>
               </select>
@@ -228,14 +228,14 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
               <label className="block text-xs text-gray-400 mb-1">Note (optional)</label>
               <input type="text" value={grantNote} onChange={e => setGrantNote(e.target.value)}
                 placeholder="Reason / reference"
-                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0066FF] placeholder:text-gray-300" />
+                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300" />
             </div>
           </div>
           {grantMsg && (
             <p className={`text-sm ${grantMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{grantMsg.text}</p>
           )}
           <button type="submit" disabled={granting}
-            className="flex items-center gap-2 bg-[#0066FF] hover:bg-[#0052cc] text-gray-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60 transition-colors">
+            className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#0052cc] text-gray-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60 transition-colors">
             {granting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Apply Credits
           </button>

@@ -50,7 +50,7 @@ function leadCard(lead: LeadRow): string {
 
 function digestHeader(companyName: string, totalLeads: number, avgScore: number, pipelineValue: number): string {
   return `
-    <div style="background:#0066FF;border-radius:12px 12px 0 0;padding:28px 32px">
+    <div style="background:#7C3AED;border-radius:12px 12px 0 0;padding:28px 32px">
       <p style="margin:0;color:rgba(255,255,255,0.7);font-size:0.8rem;letter-spacing:1px;text-transform:uppercase">K.I.N.D Lead Report</p>
       <h1 style="margin:6px 0 0;color:#fff;font-size:1.4rem;font-weight:700">${companyName}</h1>
     </div>
@@ -90,7 +90,7 @@ export async function sendWelcomeEmail(to: string, companyName: string) {
           <li>Your first leads will appear within 24 hours</li>
         </ol>
         <a href="${DASH}"
-           style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+           style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
           Go to my dashboard →
         </a>
         <p style="color:#999;font-size:0.8rem;margin-top:32px">
@@ -176,7 +176,7 @@ export async function sendFirstLeadsReadyEmail(
           </p>
           ${leadsHtml}
           <a href="${DASH}/leads"
-             style="display:inline-block;margin-top:24px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.9rem">
+             style="display:inline-block;margin-top:24px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.9rem">
             View all ${leadCount} leads →
           </a>
           <p style="color:#999;font-size:0.8rem;margin-top:32px;border-top:1px solid #f5f5f5;padding-top:16px">
@@ -211,7 +211,7 @@ export async function sendNurtureEmail(
             <li>Pre-consented leads land in your pipeline within the hour</li>
           </ol>
           <a href="${DASH}/leads/icp"
-             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+             style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
             Build my ICP now →
           </a>
           <p style="color:#999;font-size:0.8rem;margin-top:32px">
@@ -234,7 +234,7 @@ export async function sendNurtureEmail(
               : `The next step is to send consent emails to your top leads.`}
           </p>
           <a href="${DASH}/leads"
-             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+             style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
             Review my leads →
           </a>
         </div>`
@@ -250,7 +250,7 @@ export async function sendNurtureEmail(
             Clients who wait get leads much later — or not at all.
           </p>
           <a href="${DASH}/leads/icp"
-             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+             style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
             Build my ICP (60 seconds) →
           </a>
         </div>`,
@@ -282,7 +282,7 @@ export async function sendNurtureEmail(
             That's where your highest-value conversations start.
           </p>
           <a href="${DASH}/leads"
-             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+             style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
             View my scored leads →
           </a>
         </div>`,
@@ -304,7 +304,7 @@ export async function sendNurtureEmail(
                 <p style="margin:4px 0 0;font-size:0.75rem;color:#888">Consented</p>
               </td>
               <td align="center" style="padding:16px 12px;border-left:1px solid #d0e8ff">
-                <p style="margin:0;font-size:1.5rem;font-weight:700;color:#0066FF">${Math.max(0, context.lead_count - context.consented_count)}</p>
+                <p style="margin:0;font-size:1.5rem;font-weight:700;color:#7C3AED">${Math.max(0, context.lead_count - context.consented_count)}</p>
                 <p style="margin:4px 0 0;font-size:0.75rem;color:#888">Pending</p>
               </td>
             </tr>
@@ -316,7 +316,7 @@ export async function sendNurtureEmail(
             Send consent emails to your top 10 this week.
           </p>` : ''}
           <a href="${DASH}/leads"
-             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+             style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
             Open my pipeline →
           </a>
         </div>`,
@@ -341,7 +341,7 @@ export async function sendNurtureEmail(
             Our Lead Gen Starter is R1,900/mo — that's 100 scored, POPIA-compliant leads delivered every month.
           </p>
           <a href="${DASH}/billing"
-             style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+             style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
             Subscribe now →
           </a>
           <p style="color:#999;font-size:0.8rem;margin-top:24px">
@@ -390,7 +390,7 @@ export async function sendZeroCreditsWarning(
           <strong>⚠️ Your account will be suspended if no top-up is received in the next 24 hours.</strong>
         </p>` : ''}
         <a href="${DASH}/billing"
-           style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+           style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
           Top up credits now →
         </a>
         <p style="color:#999;font-size:0.8rem;margin-top:24px">
@@ -429,7 +429,7 @@ export async function sendCampaignPausedEmail(
           needs a sharper hook. Tweak your targeting or copy, then reactivate — I'll pick it straight back up.
         </p>
         <a href="${DASH}/figsy"
-           style="display:inline-block;margin-top:16px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+           style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
           Review &amp; reactivate campaign →
         </a>
         <p style="color:#999;font-size:0.8rem;margin-top:24px">
@@ -508,7 +508,7 @@ export async function sendWeeklyLeadsDigest(
 
           ${stats.new_this_week > 0 ? `
           <div style="background:#f0f7ff;border-radius:8px;padding:12px 16px;margin-bottom:20px">
-            <p style="margin:0;font-size:0.9rem;color:#0066FF;font-weight:600">
+            <p style="margin:0;font-size:0.9rem;color:#7C3AED;font-weight:600">
               +${stats.new_this_week} new lead${stats.new_this_week !== 1 ? 's' : ''} this week
             </p>
           </div>` : ''}
@@ -538,7 +538,7 @@ export async function sendWeeklyLeadsDigest(
           ${figsySection}
 
           <a href="${DASH}/leads"
-             style="display:inline-block;margin-top:24px;background:#0066FF;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.9rem">
+             style="display:inline-block;margin-top:24px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.9rem">
             Open my leads dashboard →
           </a>
           <p style="color:#bbb;font-size:0.75rem;margin-top:24px;border-top:1px solid #f5f5f5;padding-top:16px">

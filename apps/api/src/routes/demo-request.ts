@@ -40,7 +40,7 @@ router.post('/demo-request', async (req, res) => {
     subject: `🎯 Demo Request — ${productNames[product]}`,
     html: `
       <div style="font-family:sans-serif;background:#0a0a0a;padding:32px;max-width:500px;border:1px solid #1f2937;border-radius:8px;">
-        <p style="color:#0066FF;font-weight:600;margin:0 0 16px;">New Demo Request</p>
+        <p style="color:#7C3AED;font-weight:600;margin:0 0 16px;">New Demo Request</p>
         <table style="width:100%;border-collapse:collapse;">
           <tr><td style="color:#6b7280;padding:6px 0;font-size:13px;">Product</td><td style="color:#e5e7eb;font-size:13px;font-weight:600;">${productNames[product]}</td></tr>
           <tr><td style="color:#6b7280;padding:6px 0;font-size:13px;">Company</td><td style="color:#e5e7eb;font-size:13px;">${client?.company_name || client_id}</td></tr>
@@ -48,7 +48,7 @@ router.post('/demo-request', async (req, res) => {
           <tr><td style="color:#6b7280;padding:6px 0;font-size:13px;">Industry</td><td style="color:#e5e7eb;font-size:13px;">${client?.industry || '—'}</td></tr>
           ${message ? `<tr><td style="color:#6b7280;padding:6px 0;font-size:13px;">Message</td><td style="color:#e5e7eb;font-size:13px;">${message}</td></tr>` : ''}
         </table>
-        <a href="https://admin.get-kind.com/clients" style="display:inline-block;margin-top:20px;background:#0066FF;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">View in Admin →</a>
+        <a href="https://admin.get-kind.com/clients" style="display:inline-block;margin-top:20px;background:#7C3AED;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">View in Admin →</a>
       </div>
     `,
   })

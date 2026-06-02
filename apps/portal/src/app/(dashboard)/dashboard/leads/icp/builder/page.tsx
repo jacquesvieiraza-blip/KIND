@@ -189,7 +189,7 @@ export default function IcpBuilderPage() {
               className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 msg.role === 'assistant'
                   ? 'bg-gray-50 text-gray-800 rounded-tl-sm'
-                  : 'bg-[#0066FF] text-white rounded-tr-sm'
+                  : 'bg-[#7C3AED] text-white rounded-tr-sm'
               }`}
             >
               {msg.content}
@@ -286,7 +286,7 @@ export default function IcpBuilderPage() {
             <button
               onClick={() => sendMessage()}
               disabled={sending || !input.trim()}
-              className="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+              className="px-4 py-2 bg-[#7C3AED] hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
             >
               Send
             </button>

@@ -253,10 +253,20 @@
     @media (max-width: 768px) {
       .footer-grid { grid-template-columns: 1fr; }
       .cta-banner { padding: 48px 28px; }
+      .human-strip { padding: 32px 24px; }
+      .human-strip-btn { width: 100%; text-align: center; }
     }
     @media (max-width: 600px) {
       .cta-banner { padding: 44px 24px; }
     }
+
+    /* HUMAN STRIP */
+    .human-strip { border-top: 1px solid rgba(124,58,237,0.1); border-bottom: 1px solid rgba(124,58,237,0.1); padding: 44px 48px; background: #faf5ff; }
+    .human-strip-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+    .human-strip-hed { font-size: 1.15rem; font-weight: 800; color: #0a0a0a; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .human-strip-sub { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.6; max-width: 520px; }
+    .human-strip-btn { display: inline-block; background: #0a0a0a; color: #fff; font-size: 0.88rem; font-weight: 700; padding: 13px 26px; border-radius: 100px; text-decoration: none; white-space: nowrap; transition: opacity .2s, transform .2s; flex-shrink: 0; }
+    .human-strip-btn:hover { opacity: 0.8; transform: translateY(-1px); }
   </style>
 </head>
 <body>
@@ -569,6 +579,17 @@
     <div class="faq-a"><p>Yes. Volume discounts are available from 500+ leads per month. Enterprise contracts include dedicated account management, custom SLAs, and bespoke ICP configuration. Email <a href="mailto:hello@get-kind.com">hello@get-kind.com</a> to discuss.</p></div>
   </div>
 
+</div>
+
+<!-- HUMAN STRIP -->
+<div class="human-strip">
+  <div class="human-strip-inner">
+    <div>
+      <div class="human-strip-hed">Not sure which plan fits?</div>
+      <p class="human-strip-sub">We&rsquo;ll help you figure it out in 15 minutes &mdash; no sales pitch, no pressure. Just an honest conversation about what you need.</p>
+    </div>
+    <a href="https://calendly.com/jacques-vieiraza/30min" class="human-strip-btn" target="_blank" rel="noopener noreferrer">Book a free 15-min call &rarr;</a>
+  </div>
 </div>
 
 <!-- CTA -->

@@ -1096,7 +1096,17 @@
       .cta-btns { flex-direction: column; gap: 12px; }
       .btn-cta-primary, .btn-cta-ghost { width: 100%; text-align: center; }
       .p-btn { font-size: 0.92rem; }
+      .human-strip { padding: 32px 24px; }
+      .human-strip-btn { width: 100%; text-align: center; }
     }
+
+    /* HUMAN STRIP */
+    .human-strip { border-top: 1px solid rgba(124,58,237,0.1); border-bottom: 1px solid rgba(124,58,237,0.1); padding: 44px 48px; background: #faf5ff; }
+    .human-strip-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+    .human-strip-hed { font-size: 1.15rem; font-weight: 800; color: var(--dark); letter-spacing: -0.02em; margin-bottom: 6px; }
+    .human-strip-sub { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.6; max-width: 520px; }
+    .human-strip-btn { display: inline-block; background: var(--dark); color: #fff; font-size: 0.88rem; font-weight: 700; padding: 13px 26px; border-radius: 100px; text-decoration: none; white-space: nowrap; transition: opacity .2s, transform .2s; flex-shrink: 0; }
+    .human-strip-btn:hover { opacity: 0.8; transform: translateY(-1px); }
   </style>
 </head>
 <body>
@@ -1742,6 +1752,17 @@
       </div>
     </div>
     <p class="p-vol-note"><strong>POPIA compliant &middot; No contracts &middot; Cancel anytime &middot; Pay per lead, not per seat</strong> &middot; USD billing &middot; <a href="mailto:hello@get-kind.com" style="color:rgba(0,0,0,0.3);text-decoration:none">hello@get-kind.com</a></p>
+  </div>
+</div>
+
+<!-- HUMAN STRIP -->
+<div class="human-strip">
+  <div class="human-strip-inner">
+    <div>
+      <div class="human-strip-hed">Rather talk it through first?</div>
+      <p class="human-strip-sub">Every KIND customer has a real human available &mdash; not a ticket queue. Book a free 15-minute call before you commit to anything.</p>
+    </div>
+    <a href="https://calendly.com/jacques-vieiraza/30min" class="human-strip-btn" target="_blank" rel="noopener noreferrer">Book a free 15-min call &rarr;</a>
   </div>
 </div>
 

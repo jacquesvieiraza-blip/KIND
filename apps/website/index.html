@@ -72,8 +72,8 @@
     .hero-label {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: #60a5fa; margin-bottom: 24px;
-      background: rgba(37,99,235,0.18); border: 1px solid rgba(37,99,235,0.3);
+      color: var(--blue); margin-bottom: 24px;
+      background: rgba(0,102,255,0.07); border: 1px solid rgba(0,102,255,0.18);
       padding: 6px 14px; border-radius: 100px;
     }
     .hero h1 {
@@ -81,30 +81,30 @@
       font-weight: 900;
       letter-spacing: -0.04em;
       line-height: 1.0;
-      color: #fff;
+      color: var(--dark);
       margin-bottom: 20px;
     }
     .hero h1 span { color: var(--blue); }
     .hero-sub {
       font-size: 0.97rem;
-      color: rgba(255,255,255,0.48);
+      color: rgba(0,0,0,0.45);
       max-width: 520px;
       margin: 0 auto 24px;
       line-height: 1.65;
     }
     .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 0; justify-content: center; }
     .btn-hero-primary {
-      background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700;
+      background: var(--dark); color: #fff; font-size: 0.95rem; font-weight: 600;
       padding: 14px 32px; border-radius: 100px; border: none; cursor: pointer;
       transition: opacity .2s; text-decoration: none;
     }
-    .btn-hero-primary:hover { opacity: 0.88; }
+    .btn-hero-primary:hover { opacity: 0.8; }
     .btn-hero-ghost {
-      background: rgba(255,255,255,0.08); color: #fff; font-size: 0.95rem; font-weight: 500;
-      padding: 14px 32px; border-radius: 100px; border: 1.5px solid rgba(255,255,255,0.2);
+      background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 500;
+      padding: 14px 32px; border-radius: 100px; border: 1.5px solid rgba(0,0,0,0.15);
       cursor: pointer; transition: all .2s; text-decoration: none;
     }
-    .btn-hero-ghost:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
+    .btn-hero-ghost:hover { border-color: rgba(0,0,0,0.35); }
 
     /* HERO AGENT CARDS — Alta-style full portrait inside dark box */
     .hero-agents {
@@ -589,7 +589,7 @@
     .reveal-delay-3 { transition-delay: 0.3s; }
 
     /* PHASE 1 — HERO ORBS */
-    .hero-wrapper { position: relative; overflow: hidden; margin: 0 16px; border-radius: 28px; background: var(--dark); }
+    .hero-wrapper { position: relative; overflow: hidden; margin: 0 16px; border-radius: 28px; background: #f0f4ff; }
     /* === OPTION D — BREATHING CORE === */
     .hero-orb-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 
@@ -1134,10 +1134,10 @@
       <a href="#figsy" class="btn-hero-ghost">See how it works</a>
     </div>
     <div style="margin-top:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center">
-      <span style="font-size:0.78rem;color:rgba(255,255,255,0.38);display:flex;align-items:center;gap:5px">✓ No setup fees</span>
-      <span style="font-size:0.78rem;color:rgba(255,255,255,0.38);display:flex;align-items:center;gap:5px">✓ Pay per lead — not per seat</span>
-      <span style="font-size:0.78rem;color:rgba(255,255,255,0.38);display:flex;align-items:center;gap:5px">✓ Cancel anytime</span>
-      <span style="font-size:0.78rem;color:rgba(255,255,255,0.38);display:flex;align-items:center;gap:5px">✓ First campaign live in 5 business days — guaranteed</span>
+      <span style="font-size:0.78rem;color:rgba(0,0,0,0.42);display:flex;align-items:center;gap:5px">✓ No setup fees</span>
+      <span style="font-size:0.78rem;color:rgba(0,0,0,0.42);display:flex;align-items:center;gap:5px">✓ Pay per lead — not per seat</span>
+      <span style="font-size:0.78rem;color:rgba(0,0,0,0.42);display:flex;align-items:center;gap:5px">✓ Cancel anytime</span>
+      <span style="font-size:0.78rem;color:rgba(0,0,0,0.42);display:flex;align-items:center;gap:5px">✓ First campaign live in 5 business days — guaranteed</span>
     </div>
   </div>
   <div class="hero-agents">

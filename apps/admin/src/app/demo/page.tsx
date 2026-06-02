@@ -16,7 +16,7 @@ interface Demo {
   expired: boolean
 }
 
-const SALES_TEAM = ['Jacques', 'Sales Engineer', 'Other']
+const SALES_TEAM = ['Founder', 'Sales Engineer', 'Other']
 
 const SUPPORTED_COUNTRIES = [
   'South Africa', 'Nigeria', 'Kenya', 'Ghana', 'Egypt', 'United Kingdom',

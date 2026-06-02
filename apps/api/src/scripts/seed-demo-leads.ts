@@ -8,7 +8,7 @@
 import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
 
-const TARGET_EMAIL = 'jacques.vieiraza@icloud.com'
+const TARGET_EMAIL = 'founder@get-kind.com'
 
 const db = createClient(
   process.env.SUPABASE_URL!,
@@ -29,7 +29,7 @@ const LEADS = [
   { first_name: 'Thandeka',last_name: 'Sithole',    job_title: 'VP Sales & Marketing',  company: 'Ozow',                  industry: 'Fintech',        seniority: 'VP / Director', score: 85, email: 'thandeka.sithole@ozow.com',    linkedin_url: 'https://linkedin.com/in/thandeka-sithole',country: 'South Africa' },
   { first_name: 'Ruan',    last_name: 'Botha',      job_title: 'Founder & CTO',         company: 'Lumkani',               industry: 'SaaS',           seniority: 'C-Suite',       score: 78, email: 'ruan@lumkani.com',             linkedin_url: 'https://linkedin.com/in/ruan-botha',      country: 'South Africa' },
   { first_name: 'Naledi',  last_name: 'Dube',       job_title: 'Head of Sales',         company: 'FinCraft',              industry: 'SaaS',           seniority: 'Head of',       score: 72, email: 'naledi.dube@fincraft.io',      linkedin_url: 'https://linkedin.com/in/naledi-dube',     country: 'South Africa' },
-  { first_name: 'Jacques', last_name: 'Marais',     job_title: 'Sales Director',        company: 'Nomanini',              industry: 'SaaS',           seniority: 'VP / Director', score: 80, email: 'jacques.marais@nomanini.com',  linkedin_url: 'https://linkedin.com/in/jacques-marais',  country: 'South Africa' },
+  { first_name: 'Thabo', last_name: 'Nkosi',     job_title: 'Sales Director',        company: 'Nomanini',              industry: 'SaaS',           seniority: 'VP / Director', score: 80, email: 'thabo.nkosi@nomanini.com',  linkedin_url: 'https://linkedin.com/in/thabo-nkosi',  country: 'South Africa' },
   { first_name: 'Fatima',  last_name: 'Patel',      job_title: 'Founder',               company: 'Franc',                 industry: 'Fintech',        seniority: 'C-Suite',       score: 88, email: 'fatima@franc.co.za',           linkedin_url: 'https://linkedin.com/in/fatima-patel',    country: 'South Africa' },
   { first_name: 'Lungelo', last_name: 'Ngcobo',     job_title: 'VP of Partnerships',    company: 'Sendmarc',              industry: 'SaaS',           seniority: 'VP / Director', score: 74, email: 'lungelo.ngcobo@sendmarc.com',  linkedin_url: 'https://linkedin.com/in/lungelo-ngcobo',  country: 'South Africa' },
   { first_name: 'Megan',   last_name: 'van Wyk',    job_title: 'Chief Sales Officer',   company: 'RetailTribe',           industry: 'SaaS',           seniority: 'C-Suite',       score: 86, email: 'megan@retailtribe.com',        linkedin_url: 'https://linkedin.com/in/megan-vanwyk',    country: 'South Africa' },

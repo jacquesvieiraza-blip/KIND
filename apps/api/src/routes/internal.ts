@@ -1518,7 +1518,7 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
 // ── FOUNDER MORNING BRIEF — daily 07:00 SAST (05:00 UTC) platform digest ────────
 internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
   try {
-    const founderEmail = process.env.FOUNDER_EMAIL || 'jacques.vieiraza@gmail.com'
+    const founderEmail = process.env.FOUNDER_EMAIL || 'hello@get-kind.com'
     const now     = new Date()
     const ago24h  = new Date(now.getTime() - 86400000).toISOString()
     const dateStr = now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })

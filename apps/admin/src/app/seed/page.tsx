@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Loader2, CheckCircle, AlertCircle, Users } from 'lucide-react'
 
 export default function SeedPage() {
-  const [email, setEmail] = useState('jacques.vieiraza@icloud.com')
+  const [email, setEmail] = useState('founder@get-kind.com')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
 

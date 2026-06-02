@@ -36,7 +36,7 @@ const DEMO_LEADS = [
   { first_name: 'Ethan',    last_name: 'Meyer',        job_title: 'Sales Director',           company: 'iKhokha',            industry: 'Fintech', seniority: 'VP / Director', score: 79, lead_email: 'ethan.meyer@ikhokha.com',       linkedin_url: 'https://linkedin.com/in/ethan-meyer',      company_size: '201–500' },
   { first_name: 'Carla',    last_name: 'Rossouw',      job_title: 'Head of Growth',           company: 'Nuvei Africa',       industry: 'SaaS',    seniority: 'Head of',       score: 70, lead_email: 'carla.rossouw@nuvei.com',       linkedin_url: 'https://linkedin.com/in/carla-rossouw',    company_size: '201–500' },
   { first_name: 'Dillon',   last_name: 'de Koker',     job_title: 'Founder',                  company: 'Lendico SA',         industry: 'Fintech', seniority: 'C-Suite',       score: 87, lead_email: 'dillon@lendico.co.za',          linkedin_url: 'https://linkedin.com/in/dillon-dekoker',   company_size: '51–200'  },
-  { first_name: 'Jacques',  last_name: 'Marais',       job_title: 'Sales Director',           company: 'Nomanini',           industry: 'SaaS',    seniority: 'VP / Director', score: 80, lead_email: 'jacques.marais@nomanini.com',   linkedin_url: 'https://linkedin.com/in/jacques-marais',   company_size: '51–200'  },
+  { first_name: 'Thabo',  last_name: 'Nkosi',       job_title: 'Sales Director',           company: 'Nomanini',           industry: 'SaaS',    seniority: 'VP / Director', score: 80, lead_email: 'thabo.nkosi@nomanini.com',   linkedin_url: 'https://linkedin.com/in/thabo-nkosi',   company_size: '51–200'  },
 ]
 
 export async function POST(req: NextRequest) {

@@ -52,6 +52,48 @@
 
 ---
 
+### 🔥 MONDAY MADNESS — Dogfood K.I.N.D to win K.I.N.D's own clients (Monday)
+
+**Goal:** Use our own product to do K.I.N.D's outbound. FIGSY finds prospects, emails them from our verified domain, and books demos into our inbox — proof the product works, on the product itself.
+
+**THE KEY CONCEPT — two different emails (don't confuse them):**
+- **Login email** = how you sign into the portal. Can be ANY email you control. Just your identity.
+- **Sending email** = what prospects SEE. Set by Resend, currently `hello@get-kind.com` (verified). NOT your login. Replies come back to `hello@get-kind.com` → portal inbox.
+- You do NOT log in with the Resend email. Log in with any account; FIGSY sends from `hello@get-kind.com` on your behalf.
+
+**PRE-FLIGHT (must be done first — in order):**
+1. Run `supabase/migrations/20260603_schema_reconcile.sql` in Supabase (send/reply/credit pipeline depends on it).
+2. Railway API env: set `ADMIN_SECRET_KEY` (all crons + self-outreach need it), confirm `RESEND_API_KEY` + `RESEND_WEBHOOK_SECRET` (inbound replies now fail-closed without the secret).
+3. Confirm `get-kind.com` is verified in Resend (it is).
+
+**SETUP STEPS (Monday):**
+1. **Create the K.I.N.D account** at `app.get-kind.com` — sign up with any email you control. Onboard: Company = "K.I.N.D", build the **ICP = our ideal clients** (e.g. SA B2B founders / agencies / SaaS doing outbound).
+2. **Unlock FIGSY + grant credits** for that account in the **admin portal** (client detail → grant credits; ensure FIGSY active).
+3. **Grab that account's `client_id`** (admin client detail) → set `FIGSY_KIND_CLIENT_ID=<uuid>` in Railway API. This turns on the Monday self-outreach cron (`findKindProspects` → auto-enrol).
+4. **Set your booking link** in portal Settings (`booking_url`) so FIGSY emails include it → prospects book straight into your calendar. (Booking link must be the NEUTRAL `calendly.com/kind-ai/demo` — see name note below.)
+5. **(Optional)** `FIGSY_REPLY_TO` if you want replies somewhere other than `hello@get-kind.com`.
+6. **Watch replies** land in portal inbox / admin Unibox, auto-classified 🔥hot/warm/etc. Mark hot ones booked → moves the meetings KPI.
+
+**FOUNDER ACTIONS THIS NEEDS:**
+- [ ] Create/confirm the **neutral Calendly event `calendly.com/kind-ai/demo`** is LIVE (the whole site + FIGSY now point at it — see name scrub below).
+- [ ] Run reconcile SQL · set `ADMIN_SECRET_KEY` · confirm `RESEND_WEBHOOK_SECRET`.
+- [ ] Create K.I.N.D account, unlock FIGSY, set `FIGSY_KIND_CLIENT_ID`.
+
+**OPTIONAL FUTURE (NOT built — say the word):** custom from-address (e.g. `outbound@get-kind.com`) instead of `hello@get-kind.com` — the `FROM` is currently fixed; ~5-min change + verify the address in Resend.
+
+---
+
+### 🕵️ NAME PRIVACY — "Jacques" scrubbed from the shipped product (2 June)
+
+Founder wants their name nowhere client-facing. Done across all shipped code:
+- ✅ Calendly URL `calendly.com/jacques-vieiraza/30min` → `calendly.com/kind-ai/demo` (37 occurrences, 20 files: website, portal, landing). **ACTION: confirm that neutral Calendly event is live.**
+- ✅ about.html personal LinkedIn link → "Get in touch" (mailto).
+- ✅ landing form placeholder "Jacques" → "Your name".
+- ✅ Sample/demo lead "Jacques Marais" → "Thabo Nkosi"; admin seed/demo defaults → neutral; `FOUNDER_EMAIL` fallback → `hello@get-kind.com`.
+- ⚠️ **LEGAL (not auto-changed — your call):** terms.html + dpa.html name the operating entity "Jacques Vieira trading as K.I.N.D". This is legally-operative (the contracting party). Don't just delete it — it becomes **"K.I.N.D Ltd (company no. …)"** once Companies House registration completes. Until then, removing it may make the legal terms invalid. Decide: keep until incorporation, or swap now if you have a registered entity.
+
+---
+
 ### 🔍 FULL-CHECK AUDIT SNAPSHOT — 2 June 2026 (run via `scripts/full-check.sh` + FULL_CHECK.md)
 
 **Method:** Ran the mandatory audit protocol. Every category below was checked —

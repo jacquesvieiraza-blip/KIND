@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How to build an ICP that actually generates replies &middot; K.I.N.D</title>
+  <meta name="description" content="Most ICPs are too broad. Here's the ICP score framework we use internally to build targeting profiles that score above 3% reply rate from campaign one." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .back-link:hover { color: var(--dark); }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); z-index: 300; transition: opacity .15s, visibility .15s; }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+    .dd-promo { background: var(--dark); border-radius: 12px; padding: 14px 16px; margin: 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
+    .dd-promo-text strong { color: #fff; display: block; }
+    .dd-promo-cta { font-size: 0.72rem; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); padding: 7px 13px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background .2s; flex-shrink: 0; }
+    .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
+    @media (max-width: 768px) { .nav-links { display: none; } }
+
+    /* ARTICLE LAYOUT */
+    .article-wrap { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; }
+
+    .article-hero { margin-bottom: 48px; }
+    .article-tag { display: inline-block; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; background: rgba(124,58,237,0.1); color: var(--blue); margin-bottom: 20px; }
+    .article-hero h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1.1; margin-bottom: 20px; }
+    .article-meta { font-size: 0.78rem; color: rgba(0,0,0,0.38); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .article-meta span { display: flex; align-items: center; gap: 6px; }
+    .meta-dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(0,0,0,0.2); }
+
+    .article-divider { height: 1px; background: var(--border); margin: 40px 0; }
+
+    /* BODY TYPOGRAPHY */
+    .article-body { font-size: 1.0rem; line-height: 1.8; color: rgba(0,0,0,0.82); }
+    .article-body p { margin-bottom: 24px; }
+    .article-body h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; color: var(--dark); margin: 48px 0 16px; line-height: 1.25; }
+    .article-body h3 { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin: 32px 0 12px; }
+    .article-body ul, .article-body ol { padding-left: 24px; margin-bottom: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--dark); font-weight: 700; }
+
+    /* CALLOUT BOXES */
+    .callout { background: rgba(124,58,237,0.06); border-left: 3px solid var(--blue); border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0; }
+    .callout-stat { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; color: var(--blue); line-height: 1; margin-bottom: 6px; }
+    .callout p { margin-bottom: 0; font-size: 0.9rem; color: rgba(0,0,0,0.6); line-height: 1.6; }
+    .callout-quote { background: var(--light); border-left: 3px solid var(--blue); border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.65); line-height: 1.7; }
+    .callout-quote cite { display: block; font-style: normal; font-size: 0.78rem; font-weight: 700; color: rgba(0,0,0,0.38); margin-top: 10px; }
+
+    /* SCORE TABLE */
+    .score-table { width: 100%; border-collapse: collapse; margin: 24px 0 32px; font-size: 0.88rem; }
+    .score-table th { text-align: left; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.38); padding: 10px 16px; border-bottom: 2px solid var(--border); }
+    .score-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: rgba(0,0,0,0.75); vertical-align: top; }
+    .score-table tr:last-child td { border-bottom: none; }
+    .score-table td:first-child { font-weight: 700; color: var(--dark); white-space: nowrap; }
+    .score-weight { display: inline-block; font-size: 0.7rem; font-weight: 800; color: var(--blue); background: rgba(124,58,237,0.1); border-radius: 6px; padding: 2px 8px; }
+
+    /* CTA */
+    .article-cta { background: var(--dark); border-radius: 20px; padding: 48px 40px; text-align: center; margin-top: 64px; }
+    .article-cta h2 { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; margin-bottom: 12px; }
+    .article-cta p { font-size: 0.9rem; color: rgba(255,255,255,0.45); margin-bottom: 28px; line-height: 1.6; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--dark); font-size: 0.9rem; font-weight: 700; padding: 13px 30px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
+    .cta-btn:hover { opacity: 0.88; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .article-wrap { padding: 40px 20px 72px; }
+      .score-table { font-size: 0.82rem; }
+      .score-table th, .score-table td { padding: 10px 10px; }
+      .article-cta { padding: 36px 24px; }
+      footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">&#x26A1;</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="figsy.html" class="nav-link">Products <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:320px">
+        <a href="figsy.html" class="dd-link"><span class="dd-icon">&#x1F916;</span><span><span class="dd-title">FIGSY &mdash; The Closer</span><span class="dd-sub">Finds, writes, follows up &amp; books &mdash; autonomously</span></span></a>
+        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#x1F9E0;</span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Reads the intelligence so you make better decisions</span></span></a>
+        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#x1F4AC;</span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Converts your website &amp; WhatsApp visitors 24/7</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>Your AI team works while you sleep.</strong>Unlimited pipeline. No SDR salary.</div>
+          <a href="https://app.get-kind.com/signup" class="dd-promo-cta">Start 14-day trial &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <a href="demo.html" class="nav-link">Demo</a>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">&#x1F4CA;</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">&#x1F3E6;</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">&#x1F3E0;</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">&#x2696;&#xFE0F;</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">&#x1F4BB;</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">&#x1F465;</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="blog.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="blog.html" class="dd-link"><span class="dd-icon">&#x270F;&#xFE0F;</span><span><span class="dd-title">Blog</span><span class="dd-sub">Outbound strategy &amp; African B2B insights</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#x2753;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">&#x1F6DF;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>&#x1F4D6; Free: Africa-First Outbound Playbook</strong>ICP frameworks, email templates &amp; POPIA checklist. 50+ pages.</div>
+          <a href="playbook.html" class="dd-promo-cta">Download free &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="story.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown">
+        <a href="story.html" class="dd-link"><span class="dd-icon">&#x1F4D8;</span><span><span class="dd-title">Our Story</span><span class="dd-sub">Why we built K.I.N.D and where we&rsquo;re going</span></span></a>
+        <a href="values.html" class="dd-link"><span class="dd-icon">&#x1F3AF;</span><span><span class="dd-title">Values</span><span class="dd-sub">Transparency, Precision, Africa-first</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">&#x1F512;</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">&#x1F91D;</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
+  </div>
+</nav>
+
+<div class="article-wrap">
+
+  <article>
+
+    <div class="article-hero">
+      <a href="blog.html" style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:rgba(0,0,0,0.38);text-decoration:none;margin-bottom:28px;transition:color .2s;" onmouseover="this.style.color='#0a0a0a'" onmouseout="this.style.color='rgba(0,0,0,0.38)'">&#x2190; Back to blog</a>
+      <div class="article-tag">ICP strategy</div>
+      <h1>How to build an ICP that actually generates replies</h1>
+      <div class="article-meta">
+        <span>K.I.N.D Team</span>
+        <span class="meta-dot"></span>
+        <span>2 June 2026</span>
+        <span class="meta-dot"></span>
+        <span>5 min read</span>
+      </div>
+    </div>
+
+    <div class="article-divider"></div>
+
+    <div class="article-body">
+
+      <p>Every founder who has run a cold outbound campaign has written the same ICP at some point: &ldquo;CEO or CXO at a B2B company with 10&ndash;500 employees.&rdquo; It sounds logical. It covers a lot of ground. And it produces reply rates below 1%.</p>
+
+      <p>The problem is not the execution. The message might be well-written. The sequence might be well-timed. The ICP is just not real. It is a description of a job title, not a description of a person who actually has a problem your product solves right now. Broad ICPs do not produce replies because they produce irrelevant outreach &mdash; and irrelevant outreach gets ignored, regardless of how good the copywriting is.</p>
+
+      <p>Here is the framework we use internally at KIND to build ICPs that consistently generate reply rates above 3%.</p>
+
+      <h2>The ICP score framework</h2>
+
+      <p>Instead of a binary &ldquo;is this person in my ICP or not?&rdquo;, we score every lead on a 0&ndash;100 scale across five dimensions. A lead only enters a campaign if their total score exceeds the threshold &mdash; and the threshold is set before any outreach begins.</p>
+
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Weight</th>
+            <th>What you&rsquo;re measuring</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Industry fit</td>
+            <td><span class="score-weight">25 pts</span></td>
+            <td>Is this person&rsquo;s company in an industry where your product creates demonstrable value? Not &ldquo;could potentially benefit from&rdquo; &mdash; &ldquo;has a specific, named problem you solve.&rdquo;</td>
+          </tr>
+          <tr>
+            <td>Seniority fit</td>
+            <td><span class="score-weight">25 pts</span></td>
+            <td>Does this person have authority over the budget or decision relevant to your product? Not just a senior title &mdash; the right kind of senior.</td>
+          </tr>
+          <tr>
+            <td>Company size fit</td>
+            <td><span class="score-weight">20 pts</span></td>
+            <td>Is the company at a size where the problem is real, the budget exists, and the buying process is manageable? A 5-person startup and a 5,000-person enterprise both score poorly if your sweet spot is 50&ndash;300.</td>
+          </tr>
+          <tr>
+            <td>Growth signal</td>
+            <td><span class="score-weight">20 pts</span></td>
+            <td>Has something happened recently that makes this prospect more likely to act? New funding, new hire, new product launch, expansion into a new geography, regulatory change in their sector. A growth signal turns a passive prospect into an active one.</td>
+          </tr>
+          <tr>
+            <td>Geographic fit</td>
+            <td><span class="score-weight">10 pts</span></td>
+            <td>Are they in a market you can actually serve, with the compliance posture, payment infrastructure, and support capacity to deliver? For African B2B, this means country-level specificity &mdash; not &ldquo;Africa&rdquo;.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The total score runs from 0 to 100. Our internal benchmark is: only contact leads who score 70 or above.</p>
+
+      <div class="callout">
+        <div class="callout-stat">70+</div>
+        <p>The minimum ICP score threshold that consistently produces reply rates above 3%. Below 70, you&rsquo;re in the zone where relevance drops faster than volume grows &mdash; and the reply rate reflects it.</p>
+      </div>
+
+      <h2>The threshold principle</h2>
+
+      <p>The 70-point threshold is not arbitrary. It represents the point where all five dimensions of fit are present at a level sufficient to make the outreach genuinely relevant. A lead who scores 65 might have perfect industry and seniority fit, but lacks a growth signal and is in a geography you serve partially. That lead is not &ldquo;almost there&rdquo; &mdash; they are missing a critical dimension of readiness.</p>
+
+      <p>The instinct to lower the threshold in order to increase volume is almost always wrong. More leads at lower quality does not produce more replies. It produces more sends, the same number of replies, a lower reply rate, and a damaged sender reputation. The economics are worse in every direction.</p>
+
+      <div class="callout-quote">
+        &ldquo;We cut our send volume by 40% when we raised the ICP threshold from 60 to 75. Our total number of positive replies went up by 22% in the same period. Less outreach, more results.&rdquo;
+        <cite>&mdash; KIND customer, B2B SaaS, Johannesburg, Q1 2026</cite>
+      </div>
+
+      <h2>How to find your threshold: the 20-lead test</h2>
+
+      <p>Before scaling any campaign, run a 20-lead test at your proposed threshold. This means sourcing 20 leads who meet your ICP criteria, sending a well-crafted sequence, and measuring what happens.</p>
+
+      <p>Twenty leads is a small enough number to be fast and cheap. It is large enough to be diagnostic. The outcomes you are looking for:</p>
+
+      <ul>
+        <li><strong>3+ positive replies (15%+):</strong> Your ICP threshold is well-calibrated. Scale with confidence.</li>
+        <li><strong>1&ndash;2 positive replies (5&ndash;10%):</strong> The ICP is directionally correct but not tight enough. Review which dimension is underscoring &mdash; usually seniority or growth signal &mdash; and tighten it before scaling.</li>
+        <li><strong>0 positive replies:</strong> The ICP has a fundamental problem. Either the industry fit is wrong (the problem you solve is not real for this audience), the seniority targeting is off, or the message does not match the ICP at all. Do not scale this campaign. Fix the ICP first.</li>
+      </ul>
+
+      <p>The 20-lead test is cheap insurance against the much more expensive mistake of sending 500 poorly-targeted emails and concluding that outbound &ldquo;doesn&rsquo;t work.&rdquo;</p>
+
+      <h2>The compounding effect of a tight ICP</h2>
+
+      <p>Here is the part of ICP strategy that most teams miss: a tighter ICP does not just produce better results on the current campaign. It makes every future campaign smarter.</p>
+
+      <h3>Higher reply rates accelerate learning</h3>
+
+      <p>When your campaign generates a 4% reply rate instead of a 0.8% reply rate, you collect five times more signal from the same number of sends. You learn faster which industries are responding, which seniority levels are engaging, which subject lines are opening, which growth signals are most predictive. That intelligence compounds forward.</p>
+
+      <h3>Better data builds a better model</h3>
+
+      <p>KIND tracks ICP score against campaign outcome for every lead. Over time, the scoring model learns which combinations of industry + seniority + company size + growth signal + geography produce the highest conversion rates for a given product category. A customer who runs their second campaign with KIND benefits from everything learned in the first campaign &mdash; and from everything learned across similar campaigns in their industry.</p>
+
+      <h3>Each campaign is smarter than the last</h3>
+
+      <p>A broad ICP produces a flat learning curve. You send a lot, you learn a little, you make minor adjustments, you send again. A tight ICP with a high threshold produces a steep learning curve. You send less, you learn more per send, you make material adjustments, and each new campaign targets a materially better-defined audience than the last.</p>
+
+      <p>The compounding effect is real and it is measurable. In our data, customers running their third KIND campaign see a 40&ndash;60% higher reply rate than their first campaign, holding message quality constant. Almost all of that improvement comes from ICP refinement, not copywriting.</p>
+
+      <p>Start narrow. Run the test. Learn fast. Then scale into precision.</p>
+
+    </div>
+
+    <div class="article-cta">
+      <h2>Ready to put this into practice?</h2>
+      <p>Build your first ICP-scored campaign with KIND and see what a 70+ threshold actually looks like in your market.</p>
+      <a href="https://app.get-kind.com/signup" class="cta-btn">Start your 14-day free trial &rarr;</a>
+    </div>
+
+  </article>
+
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="playbook.html">Playbook</a>
+      <a href="trust.html">Trust</a>
+      <a href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer;
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open'); });
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open'); }, 200); });
+  });
+</script>
+</body>
+</html>

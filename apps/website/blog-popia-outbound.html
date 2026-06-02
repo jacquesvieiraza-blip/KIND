@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POPIA and outbound sales: what every SA startup needs to know &middot; K.I.N.D</title>
+  <meta name="description" content="POPIA does not ban outbound sales. But it does require legitimate interest basis, consent records, and proper suppression management. Here's the practical guide." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .back-link:hover { color: var(--dark); }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); z-index: 300; transition: opacity .15s, visibility .15s; }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+    .dd-promo { background: var(--dark); border-radius: 12px; padding: 14px 16px; margin: 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
+    .dd-promo-text strong { color: #fff; display: block; }
+    .dd-promo-cta { font-size: 0.72rem; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); padding: 7px 13px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background .2s; flex-shrink: 0; }
+    .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
+    @media (max-width: 768px) { .nav-links { display: none; } }
+
+    /* ARTICLE LAYOUT */
+    .article-wrap { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; }
+
+    .article-hero { margin-bottom: 48px; }
+    .article-tag { display: inline-block; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; background: rgba(124,58,237,0.1); color: var(--blue); margin-bottom: 20px; }
+    .article-hero h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1.1; margin-bottom: 20px; }
+    .article-meta { font-size: 0.78rem; color: rgba(0,0,0,0.38); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .article-meta span { display: flex; align-items: center; gap: 6px; }
+    .meta-dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(0,0,0,0.2); }
+
+    .article-divider { height: 1px; background: var(--border); margin: 40px 0; }
+
+    /* BODY TYPOGRAPHY */
+    .article-body { font-size: 1.0rem; line-height: 1.8; color: rgba(0,0,0,0.82); }
+    .article-body p { margin-bottom: 24px; }
+    .article-body h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; color: var(--dark); margin: 48px 0 16px; line-height: 1.25; }
+    .article-body h3 { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin: 32px 0 12px; }
+    .article-body ul, .article-body ol { padding-left: 24px; margin-bottom: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--dark); font-weight: 700; }
+
+    /* CALLOUT BOXES */
+    .callout { background: rgba(124,58,237,0.06); border-left: 3px solid var(--blue); border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0; }
+    .callout-stat { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; color: var(--blue); line-height: 1; margin-bottom: 6px; }
+    .callout p { margin-bottom: 0; font-size: 0.9rem; color: rgba(0,0,0,0.6); line-height: 1.6; }
+    .callout-quote { background: var(--light); border-left: 3px solid var(--blue); border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0; font-size: 1.05rem; font-style: italic; color: rgba(0,0,0,0.65); line-height: 1.7; }
+    .callout-quote cite { display: block; font-style: normal; font-size: 0.78rem; font-weight: 700; color: rgba(0,0,0,0.38); margin-top: 10px; }
+
+    /* REQUIREMENT CARDS */
+    .req-list { list-style: none; padding: 0; margin: 24px 0 32px; }
+    .req-list li { display: flex; gap: 16px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .req-list li:last-child { border-bottom: none; }
+    .req-num { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); background: rgba(124,58,237,0.1); border-radius: 6px; padding: 4px 8px; flex-shrink: 0; margin-top: 2px; line-height: 1; }
+    .req-body strong { display: block; font-size: 0.95rem; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+    .req-body span { font-size: 0.88rem; color: rgba(0,0,0,0.55); line-height: 1.6; }
+
+    /* CTA */
+    .article-cta { background: var(--dark); border-radius: 20px; padding: 48px 40px; text-align: center; margin-top: 64px; }
+    .article-cta h2 { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; margin-bottom: 12px; }
+    .article-cta p { font-size: 0.9rem; color: rgba(255,255,255,0.45); margin-bottom: 28px; line-height: 1.6; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--dark); font-size: 0.9rem; font-weight: 700; padding: 13px 30px; border-radius: 100px; text-decoration: none; transition: opacity .2s; }
+    .cta-btn:hover { opacity: 0.88; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; }
+      .article-wrap { padding: 40px 20px 72px; }
+      .article-cta { padding: 36px 24px; }
+      footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">&#x26A1;</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="figsy.html" class="nav-link">Products <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:320px">
+        <a href="figsy.html" class="dd-link"><span class="dd-icon">&#x1F916;</span><span><span class="dd-title">FIGSY &mdash; The Closer</span><span class="dd-sub">Finds, writes, follows up &amp; books &mdash; autonomously</span></span></a>
+        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#x1F9E0;</span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Reads the intelligence so you make better decisions</span></span></a>
+        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#x1F4AC;</span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Converts your website &amp; WhatsApp visitors 24/7</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>Your AI team works while you sleep.</strong>Unlimited pipeline. No SDR salary.</div>
+          <a href="https://app.get-kind.com/signup" class="dd-promo-cta">Start 14-day trial &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <a href="demo.html" class="nav-link">Demo</a>
+    <div class="nav-item">
+      <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:264px">
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">&#x1F4CA;</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">&#x1F3E6;</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">&#x1F3E0;</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">&#x2696;&#xFE0F;</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">&#x1F4BB;</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">&#x1F465;</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="blog.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="blog.html" class="dd-link"><span class="dd-icon">&#x270F;&#xFE0F;</span><span><span class="dd-title">Blog</span><span class="dd-sub">Outbound strategy &amp; African B2B insights</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#x2753;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon">&#x1F6DF;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <div class="dd-divider"></div>
+        <div class="dd-promo">
+          <div class="dd-promo-text"><strong>&#x1F4D6; Free: Africa-First Outbound Playbook</strong>ICP frameworks, email templates &amp; POPIA checklist. 50+ pages.</div>
+          <a href="playbook.html" class="dd-promo-cta">Download free &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="story.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown">
+        <a href="story.html" class="dd-link"><span class="dd-icon">&#x1F4D8;</span><span><span class="dd-title">Our Story</span><span class="dd-sub">Why we built K.I.N.D and where we&rsquo;re going</span></span></a>
+        <a href="values.html" class="dd-link"><span class="dd-icon">&#x1F3AF;</span><span><span class="dd-title">Values</span><span class="dd-sub">Transparency, Precision, Africa-first</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="trust.html" class="dd-link"><span class="dd-icon">&#x1F512;</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon">&#x1F91D;</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
+  </div>
+</nav>
+
+<div class="article-wrap">
+
+  <article>
+
+    <div class="article-hero">
+      <a href="blog.html" style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:rgba(0,0,0,0.38);text-decoration:none;margin-bottom:28px;transition:color .2s;" onmouseover="this.style.color='#0a0a0a'" onmouseout="this.style.color='rgba(0,0,0,0.38)'">&#x2190; Back to blog</a>
+      <div class="article-tag">Compliance</div>
+      <h1>POPIA and outbound sales: what every SA startup needs to know</h1>
+      <div class="article-meta">
+        <span>K.I.N.D Team</span>
+        <span class="meta-dot"></span>
+        <span>2 June 2026</span>
+        <span class="meta-dot"></span>
+        <span>5 min read</span>
+      </div>
+    </div>
+
+    <div class="article-divider"></div>
+
+    <div class="article-body">
+
+      <p>There is a persistent myth circulating in South African startup circles: that POPIA &mdash; the Protection of Personal Information Act &mdash; effectively prohibits cold outbound sales. Founders pause campaigns, SDRs second-guess sequences, and sales teams waste months waiting for legal sign-off that never quite arrives. All of it is based on a misreading of what the Act actually says.</p>
+
+      <p>POPIA does not ban outbound sales. What it does do is set clear, enforceable rules around how personal information can be processed, stored, and acted upon. Understanding those rules is not optional for any South African startup doing outbound &mdash; but understanding them also reveals a practical, compliant path forward.</p>
+
+      <h2>The legitimate interest basis: your legal foundation</h2>
+
+      <p>Section 11 of POPIA lists the conditions under which personal information may be processed. Condition 4 &mdash; legitimate interest &mdash; is the one that makes B2B outbound sales lawful. It states that you may process personal information if it is necessary for pursuing the legitimate interests of the responsible party or a third party, provided those interests are not overridden by the data subject&rsquo;s rights.</p>
+
+      <p>In plain English: if you have a genuine, proportionate business reason to contact a prospect, and that reason is relevant to their role and circumstances, POPIA permits it. A SaaS founder contacting a CFO about a relevant financial automation tool has a legitimate interest basis. A lead generation company selling irrelevant consumer offers to a recycled list does not.</p>
+
+      <div class="callout">
+        <div class="callout-stat">Section 11</div>
+        <p>POPIA&rsquo;s legitimate interest condition (Section 11(1)(f)) is the standard legal basis for B2B outbound sales in South Africa &mdash; the same framework used for outbound across GDPR-regulated European markets.</p>
+      </div>
+
+      <p>The three practical requirements that flow from this are non-negotiable. Most outbound tools get all three wrong.</p>
+
+      <h2>The 3 things you must do</h2>
+
+      <ul class="req-list">
+        <li>
+          <span class="req-num">01</span>
+          <div class="req-body">
+            <strong>Log consent signals and sourcing records</strong>
+            <span>Every contact you reach out to needs a documented sourcing record: where the data came from, when it was collected, on what legal basis it was obtained, and what the intended use is. This is not a once-off exercise. It is a per-contact record that must be retrievable if a data subject or regulator ever asks. If you cannot answer the question &ldquo;where did you get my details?&rdquo; with a specific, dated, verifiable answer, you are not compliant.</span>
+          </div>
+        </li>
+        <li>
+          <span class="req-num">02</span>
+          <div class="req-body">
+            <strong>Honour unsubscribe requests immediately, with a timestamp</strong>
+            <span>When a prospect opts out &mdash; whether by replying &ldquo;unsubscribe&rdquo;, clicking an unsubscribe link, or explicitly asking to be removed &mdash; that request must be honoured immediately, and the timestamp of that action must be recorded. POPIA section 11(3) establishes the data subject&rsquo;s right to object to processing for marketing purposes. There is no grace period. There is no &ldquo;we&rsquo;ll remove you from the next campaign&rdquo;. The removal is effective immediately, and the record of it is the evidence that it happened.</span>
+          </div>
+        </li>
+        <li>
+          <span class="req-num">03</span>
+          <div class="req-body">
+            <strong>Never re-contact suppressed contacts</strong>
+            <span>This is the step where most outbound operations fail quietly over time. A contact opts out. They are removed from the current campaign. Six months later, they are imported from a new list, re-enrolled in a sequence, and receive a cold email again. Under POPIA, that second contact is a violation. The suppression list must be permanent, actively applied to every new import, and maintained across the entire responsible party &mdash; not just the tool that processed the original opt-out.</span>
+          </div>
+        </li>
+      </ul>
+
+      <h2>What most tools get wrong</h2>
+
+      <p>The majority of outbound platforms were designed for US or European markets and then sold into South Africa without meaningful modification. The compliance gaps are consistent and predictable.</p>
+
+      <h3>No suppression management</h3>
+
+      <p>Most tools maintain a per-campaign unsubscribe list. A contact who opts out of Campaign A is not automatically suppressed from Campaign B, Campaign C, or a future re-import. There is no cross-campaign, cross-workspace suppression layer. This means that compliance depends entirely on the human remembering to check a list before launching &mdash; a process that fails at scale.</p>
+
+      <h3>No consent records</h3>
+
+      <p>Tools that pull from Apollo, Lusha, or scraped LinkedIn data typically record nothing about where the data came from. There is no sourcing log, no collection date, no basis statement. If a contact or regulator asks how you obtained their information, the honest answer is &ldquo;we don&rsquo;t know&rdquo; &mdash; which is not a defensible position under POPIA.</p>
+
+      <div class="callout-quote">
+        &ldquo;The Information Regulator has been clear: the burden of proof for lawful processing sits with the responsible party. Not with the data subject to prove a violation.&rdquo;
+        <cite>&mdash; South African Information Regulator, Guidance Note on POPIA, 2024</cite>
+      </div>
+
+      <h3>No POPIA-auditable logs</h3>
+
+      <p>When a regulator investigation begins, the first thing requested is a log of all processing activities related to the data subject in question: when they were contacted, on what basis, what communications were sent, and when and how they opted out. Most outbound tools produce no such log. The campaign history exists in fragments across an inbox, a CRM, and a sequence tool &mdash; none of which were designed to produce a coherent compliance record.</p>
+
+      <h2>How KIND handles it</h2>
+
+      <p>POPIA compliance is not a feature in KIND &mdash; it is a structural requirement that shapes how every campaign is built and operated.</p>
+
+      <p><strong>Every campaign has a POPIA compliance record.</strong> When leads are sourced or imported into KIND, the source, collection date, and legitimate interest basis are recorded per contact. This record is attached to the contact permanently, not to the campaign.</p>
+
+      <p><strong>Suppression is permanent and timestamped.</strong> When a contact opts out through any channel &mdash; email reply, unsubscribe link, or manual removal &mdash; the suppression is recorded with a precise timestamp and applied across all future campaigns in the workspace. Re-importing that contact from a new list will not override the suppression; it will be flagged and excluded automatically.</p>
+
+      <p><strong>Unsubscribes are logged per POPIA section 11.</strong> The opt-out record includes the contact identifier, the timestamp, the channel through which the request was received, and the action taken. This record is exportable in a format suitable for regulatory review. If the Information Regulator ever asks, you have an answer.</p>
+
+      <p>Running compliant outbound in South Africa is not hard. It is just precise. And precision is exactly what most outbound tools were not built for.</p>
+
+    </div>
+
+    <div class="article-cta">
+      <h2>Ready to put this into practice?</h2>
+      <p>Run POPIA-compliant outbound from day one. Every KIND campaign includes consent logging, permanent suppression, and a full compliance record.</p>
+      <a href="https://app.get-kind.com/signup" class="cta-btn">Start your 14-day free trial &rarr;</a>
+    </div>
+
+  </article>
+
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="playbook.html">Playbook</a>
+      <a href="trust.html">Trust</a>
+      <a href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var timer;
+    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open'); });
+    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open'); }, 200); });
+  });
+</script>
+</body>
+</html>

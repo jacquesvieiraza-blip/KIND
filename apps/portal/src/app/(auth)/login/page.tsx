@@ -56,11 +56,20 @@ function LoginForm() {
         setError(error.message)
       } else {
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/clients/me`, {
-            headers: { Authorization: `Bearer ${data.session?.access_token}` },
-          })
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+          const token   = data.session?.access_token
+          const headers = { Authorization: `Bearer ${token}` }
+
+          const res = await fetch(`${apiBase}/clients/me`, { headers })
+
           if (res.status === 404) {
-            router.push('/onboard')
+            // No client row — check if this is a partner account before sending to onboard
+            const partnerRes = await fetch(`${apiBase}/partners/me`, { headers })
+            if (partnerRes.ok) {
+              router.push('/dashboard/partner')
+            } else {
+              router.push('/onboard')
+            }
           } else {
             const body = await res.json()
             if (!body?.data?.company_name) {

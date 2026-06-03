@@ -67,9 +67,12 @@
 
 ## 👤 FOUNDER — OPEN ITEMS (priority order, every item, deduped)
 
-### 🔴 TIER 1 — blocks selling or testing
+### 🔴 TIER 0 — do these first (5 minutes, unblocks everything)
+- [ ] **Merge `claude/ai-business-roadmap-U3OWJ` → `main`** — hero click fix (Meet Milla was opening Vida), credits.ts boot-blocker fix, all 7 migrations, legal entity swap, cashflow rebuild are all sitting on this branch and **NOT LIVE**. Merge = deploy.
 - [ ] **Set `FOUNDER_EMAIL` in Railway API** → `jacques.vieiraza@gmail.com` (or `partners@get-kind.com`). Without this, partner applications save to Supabase but you get **zero notification email**. ← confirmed gap 3 Jun 2026
-- [ ] **Wire the Resend INBOUND webhook** → `https://<api>/figsy/replies/inbound` (Resend dashboard → domain → Inbound). *Route + secret exist; without the webhook pointed, replies never reach the Portal Inbox = you can't see or answer prospects.* ← **the #1 gap, not previously tracked**
+
+### 🔴 TIER 1 — blocks selling or testing
+- [ ] **Wire the Resend INBOUND webhook** → `https://<api>/figsy/replies/inbound` (Resend dashboard → domain → Inbound). *Route + secret exist; without the webhook pointed, replies never reach the Portal Inbox = you can't see or answer prospects.* ← **the #1 gap**
 - [ ] **Stripe go-live:** add **6** bundle price IDs → Railway **Portal** (`NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100`, `..._FIGSY_20/40/100`); add **2** subs → Railway **API** (`STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`); confirm `STRIPE_WEBHOOK_SECRET`. (Blocks billing + smoke test T5.)
 - [ ] **Dogfood account = how we get clients:** create K.I.N.D account at app.get-kind.com → build ICP (your ideal clients) → admin grant FIGSY + credits → set `FIGSY_KIND_CLIENT_ID` (Railway API) → set `booking_url` in Settings. Turns on the Monday self-outreach cron.
 - [ ] **Confirm Calendly `calendly.com/kind-ai/demo` is LIVE** (36 site/email links point at it; dead = every CTA broken).

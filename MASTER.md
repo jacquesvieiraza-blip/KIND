@@ -150,9 +150,9 @@
 - [ ] **Swap `[COMPANY NUMBER PENDING]` × 4** — terms.html, dpa.html, portal terms page (when number arrives)
 - [ ] **Fix smoke test failures** as reported Saturday/Sunday (same-day turnaround)
 - [ ] **Build onboarding v2 + Loom embed slots** — (1) post-onboard Welcome screen + 3 action buttons, (2) inline Loom cards on ICP + FIGSY pages, (3) day-0/3/7 Resend welcome email sequence (after smoke tests pass)
-- [ ] **Fix `DEPLOYMENT_GUIDE.md`** — still says Vercel, a trap if followed
-- [ ] **Scrub 25 stale Vercel refs** in MASTER (Railway-only platform)
-- [ ] **Archive `KIND_Roadmap.md` + `KIND_SOP.md`** — both last updated 18 May, both call themselves "single source of truth", both have Vercel refs. Stale. Move to `docs/archive/`.
+- [x] ✅ **Fixed `DEPLOYMENT_GUIDE.md`** — Steps 3/4/5 rewritten Vercel→Railway, stale Stripe price vars corrected, env reference + deploy order + troubleshooting all Railway (3 Jun)
+- [x] ✅ **Archived `KIND_Roadmap.md` + `KIND_SOP.md`** → `docs/archive/` with README pointing to MASTER (3 Jun)
+- [ ] **Scrub remaining stale Vercel refs in MASTER body** (historical sections below the canonical block — ~30 refs, mostly in old session logs; low risk as they're under the "historical" line)
 - [ ] **Roll `kind.css`** across 32 remaining website pages (Tuesday, post-launch)
 - [ ] **YouTube 10-video content plan** — mapped to ICP + KIND story (on request)
 - [ ] **3 blog articles** — WhatsApp B2B / cold-email reply rates in Africa / AI SDR vs human SDR

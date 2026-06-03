@@ -1,26 +1,44 @@
 # K.I.N.D — Run Costs & Cashflow Model
-*Last updated: 25 May 2026*
+*Last updated: 3 June 2026 — corrected to actual stack (Railway-only hosting, Stripe billing; removed stale Vercel + Paystack entries). Added resilience costs (Render standby + Cloudflare LB).*
 
 ---
 
 ## 1. Tech Stack — Fixed Monthly Costs
 
-These run whether you have zero clients or one hundred.
+These run whether you have zero clients or one hundred. **Hosting is Railway only — there is no Vercel.** Billing is Stripe (no fixed fee — see §2).
 
+### Group A — Upgrade NOW (launch floor)
 | Service | What it does | Plan | Cost/mo |
 |---|---|---|---|
-| Supabase | Database, auth, file storage | Pro (required for Cape Town / af-south-1 — POPIA) | $25 |
-| Vercel | Hosts portal + website + admin (3 projects) | Pro (Hobby is non-commercial) | $20 |
-| Railway | API server (Node.js backend) | Usage-based | $10–20 |
-| Apollo.io | Lead data source | **Basic minimum ($49) · Professional recommended ($99)** | $49–99 |
-| Resend | Transactional email (welcome, POPIA consent, nurture) | Free up to 3,000/mo → Pro at scale | $0–20 |
-| get-kind.com domain | Domain registration | Annual ~$15 | $1.25 |
-| Google Workspace | hello@get-kind.com mailbox + domain email | Business Starter | $12–18 |
-| **Claude Code (development)** | AI-assisted development — building and maintaining the entire platform | Max plan | **$100–200** |
-| **Total floor (excl. Claude Code)** | | | **$117–203/mo** |
-| **Total floor (incl. Claude Code)** | | | **$217–403/mo** |
+| Supabase | Database, auth, file storage **+ daily backups** (Free plan has NO backups) | Pro (af-south-1 Cape Town / POPIA) | $25 |
+| Railway | Hosts API + portal + admin + website (all 4 services) | Pro + usage | ~$20 |
+| Resend | FIGSY + transactional email — Free caps at 100/day, hits day 1 | Pro | $20 |
+| Apollo.io | Lead data source — Free plan blocks the API entirely (zero leads) | Basic ($49) · Pro recommended ($99) | $49–99 |
+| **Group A subtotal** | | | **~$114–164/mo** |
 
-> ⚠️ **Apollo free plan = $0/mo but API access is fully blocked.** The `/mixed_people/search` endpoint requires at minimum the Basic plan ($49/mo). The platform cannot find a single lead without this. Upgrade immediately at app.apollo.io → Settings → Plan & Billing.
+### Group B — Soon (first weeks / before real volume)
+| Service | What it does | Plan | Cost/mo |
+|---|---|---|---|
+| Google Workspace | Pro email `@get-kind.com` | Business Starter | $12–18 |
+| Render | API warm standby (crash failover) | Starter | $7 |
+| Cloudflare | Load balancer → routes to standby on outage | LB Basic | $5 |
+| get-kind.com domain | Domain registration | Annual ~$15 | $1.25 |
+| **Group B subtotal** | | | **~$25–31/mo** |
+
+### Group C — Development
+| Service | What it does | Plan | Cost/mo |
+|---|---|---|---|
+| Claude Code | AI-assisted development of the entire platform | Max | $100–200 |
+
+| **Total** | | |
+|---|---|---|
+| **Launch floor (Group A only)** | | **~$114/mo** |
+| **Launch + email + failover (A + B)** | | **~$139/mo** |
+| **All-in incl. Claude Code dev** | | **~$239–395/mo** |
+
+> ⚠️ **Apollo free plan = $0/mo but API access is fully blocked.** The `/mixed_people/search` endpoint requires at minimum the Basic plan ($49/mo). The platform cannot find a single lead without this. Upgrade at app.apollo.io → Settings → Plan & Billing.
+> ⚠️ **Supabase Free plan has NO database backups** (confirmed 3 June). One bad query = total data loss. Pro is non-negotiable before onboarding paying clients.
+> ℹ️ **Stripe has no fixed monthly cost** — it charges per transaction (~2.9% + 30¢). "Going live" = switch from test to live keys + add price IDs. See §2.
 
 **Apollo plan guide:**
 - Basic: $49/mo — API access unlocked, ~9,600 credits/mo — sufficient for first 10 clients
@@ -41,7 +59,7 @@ These run whether you have zero clients or one hundred.
 | Apollo — cost per delivered lead | ~$0.008 | 24,000 credits ÷ ~60% yield |
 | Anthropic (Claude) — lead scoring | ~$0.0004/lead | Claude Haiku |
 | Anthropic (Claude) — FIGSY email generation | ~$0.01–0.02/email | Claude Haiku |
-| Paystack — payment processing | 2.9% per transaction | Cost of revenue, not fixed |
+| Stripe — payment processing | ~2.9% + 30¢ per transaction | Cost of revenue, not a fixed fee. Free until money flows. |
 
 **Total variable cost per delivered lead: ~$0.009** (sub-cent at any volume)
 
@@ -226,8 +244,9 @@ The difference between conservative and optimistic scenarios is primarily ARPU. 
 
 | Metric | Value |
 |---|---|
-| Floor cost to operate (tech stack only) | ~$117–203/mo |
-| Floor cost including Claude Code | ~$217–403/mo |
+| Launch floor (Group A: Supabase+Railway+Resend+Apollo) | ~$114/mo |
+| Launch + email + failover (A + B) | ~$139/mo |
+| All-in including Claude Code dev | ~$239–395/mo |
 | Break-even (tech stack, $80 ARPU) | 3 clients |
 | Break-even (tech stack, $160 ARPU) | 2 clients |
 | Gross margin per lead | ~99% |

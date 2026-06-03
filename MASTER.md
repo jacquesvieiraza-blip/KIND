@@ -2708,16 +2708,30 @@ Client → Billing → selects plan → Stripe checkout → webhook fires → su
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Portal (client-facing) | Next.js 14, TypeScript, Tailwind | apps/portal — Vercel (kind-portal) |
-| Admin (internal) | Next.js 14, TypeScript, Tailwind | apps/admin — Vercel (kind-admin-h5q6) |
-| API | Express, TypeScript | apps/api — Railway |
-| Database | Supabase (PostgreSQL, af-south-1 Cape Town) | RLS on all tables |
+| Portal (client-facing) | Next.js 14, TypeScript, Tailwind | apps/portal — **Railway** |
+| Admin (internal) | Next.js 14, TypeScript, Tailwind | apps/admin — **Railway** |
+| API | Express, TypeScript | apps/api — **Railway** |
+| Database | Supabase (PostgreSQL, af-south-1 Cape Town) | RLS on all tables. **Pro plan required — Free has no backups** |
 | Auth | Supabase Auth | Email + password, no email confirmation |
 | AI | Anthropic Claude (Haiku + Sonnet) | Haiku for volume, Sonnet for quality |
 | Lead data | Apollo.io API | Pre-consented contacts first |
 | Email sending | Resend | replies@get-kind.com (FIGSY), hello@get-kind.com (Workspace) |
 | Payments | Stripe (USD/GBP — primary, live) + Flutterwave (ZAR/NGN/KES/GHS — Phase 2, code complete) | Credit bundles + subscriptions |
-| Website | Static HTML | apps/website — Vercel (kind-admin) |
+| Website | Static HTML (Express) | apps/website — **Railway** (Cloudflare Pages = failover copy) |
+| Failover | Render standby + Cloudflare LB | API standby built (`render.yaml`), needs founder activation |
+
+> **HOSTING NOTE — CRITICAL: Railway ONLY.** Portal, admin, API, and website all on Railway. There is no Vercel.
+
+### 💰 RUN COSTS — fixed monthly (corrected 3 June 2026; full detail in `docs/run-costs-and-cashflow.md`)
+| Group | Services | Cost/mo |
+|---|---|---|
+| **A — Upgrade NOW (launch floor)** | Supabase Pro $25 · Railway Pro+usage ~$20 · Resend Pro $20 · Apollo Basic $49 | **~$114** |
+| **B — Soon (weeks)** | Google Workspace ~$12 · Render standby $7 · Cloudflare LB $5 · domain ~$1.25 | **~$25** |
+| **C — Dev** | Claude Code Max | $100–200 |
+| **Stripe** | NOT a fixed fee — ~2.9% + 30¢ per transaction, free until money flows | per-sale |
+| **All-in (A+B+Claude)** | | **~$239–395/mo** |
+
+Break-even ≈ **3 paying clients** (~$80 blended ARPU). >90% margin thereafter.
 
 ### Railway API URL
 `https://kindapi-production-e64c.up.railway.app`

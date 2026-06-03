@@ -2165,14 +2165,22 @@
     function clamp(v,a,b){ return Math.max(a, Math.min(b, v)) }
     function isStacked(){ return reduce || window.innerWidth <= 860 }
     function onScroll(){
-      if (isStacked()) return            // mobile / reduced-motion: agents shown stacked via CSS
+      if (isStacked()){          // mobile / reduced-motion: agents stacked via CSS, all clickable
+        agents.forEach(function(a){ a.style.pointerEvents = 'auto'; a.style.zIndex = '' })
+        return
+      }
       var rect = scene.getBoundingClientRect()
       var total = scene.offsetHeight - window.innerHeight
       var p = clamp(-rect.top / total, 0, 1)
       var pos = p * (N - 1)
+      var front = clamp(Math.round(pos), 0, N - 1)   // the agent currently faded in
       agents.forEach(function(a, i){
         var d = Math.abs(pos - i)
         a.style.opacity = clamp(1 - d * 1.6, 0, 1)
+        // Only the front agent is clickable; the stacked others must not swallow clicks
+        // (they overlap at inset:0, so the last in DOM would otherwise capture every click).
+        a.style.pointerEvents = (i === front) ? 'auto' : 'none'
+        a.style.zIndex = (i === front) ? '5' : '1'
         var fig = a.querySelector('.kf-figure')
         if (fig) fig.style.transform = 'translateY(' + ((pos - i) * 36) + 'px) scale(' + (1 - d * 0.05) + ')'
       })

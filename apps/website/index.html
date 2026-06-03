@@ -1212,8 +1212,13 @@
 <style>
   /* ---- pinned agent banners (ClickUp-style contained block) ---- */
   .kf-scene{ position:relative; height:300vh; }
-  .kf-sticky{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:14px 14px 0; }
-  .kf-block{ position:relative; width:100%; max-width:1480px; height:calc(100vh - 96px); border-radius:30px; overflow:clip; box-shadow:0 30px 80px rgba(20,18,45,.12); }
+  .kf-sticky{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:14px; padding:22px 14px 0; }
+  /* headline now lives inside the hero, above the agent stage (one composition) */
+  .kf-head{ width:100%; max-width:820px; text-align:center; }
+  .kf-head h1{ font-family:'Outfit',sans-serif; font-size:clamp(1.9rem,4.1vw,3.3rem); font-weight:900; letter-spacing:-.045em; line-height:1.02; margin:4px 0 10px; }
+  .kf-head h1 .grad{ background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .kf-head-sub{ font-size:.98rem; color:rgba(0,0,0,.5); max-width:540px; margin:0 auto 14px; font-weight:500; line-height:1.6; }
+  .kf-block{ position:relative; width:100%; max-width:1480px; height:calc(100vh - 320px); min-height:340px; border-radius:30px; overflow:clip; box-shadow:0 30px 80px rgba(20,18,45,.12); }
   /* film grain for depth (ClickUp-like texture) */
   .kf-block::after{ content:''; position:absolute; inset:0; z-index:7; pointer-events:none; opacity:.5; mix-blend-mode:soft-light;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -1273,7 +1278,7 @@
     .kf-scene{ height:auto; }
     .kf-sticky{ position:static; height:auto; display:block; padding:14px; }
     .kf-block{ height:auto; }
-    .kf-agent{ position:static; opacity:1 !important; display:block; min-height:80vh; }
+    .kf-agent{ position:relative; opacity:1 !important; display:block; min-height:80vh; margin-bottom:14px; }
     .kf-ghost{ font-size:clamp(3rem,18vw,7rem); }
     .kf-figure img{ height:auto; width:88%; }
     .kf-call{ display:none; }
@@ -1291,6 +1296,15 @@
 <!-- PINNED AGENT HERO — FIGSY (visible) → Milla → Vida as you scroll -->
 <div class="kf-scene" id="kf-scene">
   <div class="kf-sticky">
+    <div class="kf-head">
+      <div class="live-chip"><span class="live-dot"></span>Live now — first campaign running in 5 business days</div>
+      <h1>Stop chasing leads.<br/><span class="grad" id="tw-target">Break the ceiling.</span><span class="tw-cursor" id="tw-cursor"></span></h1>
+      <p class="kf-head-sub">Your AI family finds leads, books meetings, and converts your site — while you sleep. From $20. No setup fees. Cancel anytime.</p>
+      <div class="hero-btns" style="justify-content:center">
+        <button onclick="openAuth('signup')" class="btn-hero-primary">Get your first leads free →</button>
+        <a href="#figsy" class="btn-hero-ghost">See how it works</a>
+      </div>
+    </div>
     <div class="kf-block">
       <a class="kf-agent" data-i="0" data-agent="figsy" href="figsy.html">
         <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 128%, rgba(255,46,196,.70) 0%, rgba(255,46,196,.22) 42%, transparent 68%), linear-gradient(180deg,#ffffff 0%,#ffe9f7 50%,#ffc7e7 100%);"></div>
@@ -1327,17 +1341,6 @@
       <div class="seg"><i></i></div><div class="seg"><i></i></div><div class="seg"><i></i></div>
       <div class="lbl" id="kf-rlbl">FIGSY · THE CLOSER</div>
     </div>
-  </div>
-</div>
-
-<!-- TEXT BANNER — below the agents -->
-<div class="kf-intro">
-  <div class="live-chip" style="margin-bottom:14px"><span class="live-dot"></span>Live now — first campaign running in 5 business days</div>
-  <h1>Stop chasing leads.<br/><span class="grad" id="tw-target">Break the ceiling.</span><span class="tw-cursor" id="tw-cursor"></span></h1>
-  <p class="kf-intro-sub">Your AI family finds leads, books meetings, and converts your site — while you sleep. From $20. No setup fees. Cancel anytime.</p>
-  <div class="hero-btns reveal reveal-delay-1" style="justify-content:center">
-    <button onclick="openAuth('signup')" class="btn-hero-primary">Get your first leads free →</button>
-    <a href="#figsy" class="btn-hero-ghost">See how it works</a>
   </div>
 </div>
 

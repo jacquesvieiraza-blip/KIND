@@ -56,3 +56,63 @@ body{ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI
 @media (prefers-reduced-motion: reduce){
   .kind-glow{ animation:none !important; }
 }
+
+/* ============================================================
+   DEPTH PASS — ClickUp-inspired (3 June)
+   Brand identity, deep-space dark sections, lit cards, breathing room.
+   ============================================================ */
+
+/* ---- 1. Brand typography: broaden Outfit + heavier display ---- */
+.kf-head h1,.agent-card h3,.wk-card h3,.hiw-card h3,.tw-card h3,
+.video-header .s-title,.figsy-name,.p-card h3,.popia-headline,
+.products-intro-text,.human-strip-hed{
+  font-family:'Outfit',system-ui,sans-serif; letter-spacing:-0.03em;
+}
+.hero h1,.problem-headline,.cta-banner h2,.kf-head h1{ font-weight:900; }
+
+/* ---- 2. Deep-space dark sections: shifted base + corner glows ---- */
+.problem-section,.figsy-section,.level-section,.comp-section{
+  position:relative;
+  background-color:#080812;
+  background-image:
+    radial-gradient(58% 55% at 12% -8%, rgba(154,77,255,.20) 0%, transparent 60%),
+    radial-gradient(54% 50% at 104% 110%, rgba(54,197,240,.15) 0%, transparent 62%);
+  background-repeat:no-repeat;
+}
+.cta-banner{ background-color:#080812; }
+/* film grain carried through from the hero stage */
+.problem-section::after,.figsy-section::after,.level-section::after,
+.comp-section::after,.cta-banner::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  opacity:.5; mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:200px 200px;
+}
+
+/* ---- 6. Dark cards: lit-from-above top edge + a touch more body ---- */
+.prob-card,.figsy-step,.level-card:not(.active-level),.comp-them,.dogfood-callout{
+  background:rgba(255,255,255,.055);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+}
+.prob-card,.figsy-step,.level-card:not(.active-level){
+  border-top-color:rgba(255,255,255,.16);
+}
+
+/* ---- 7. Gradient primary buttons get a little lift ---- */
+.btn-hero-primary{ box-shadow:0 10px 28px rgba(154,77,255,.28); }
+.btn-hero-primary:hover{ box-shadow:0 14px 34px rgba(154,77,255,.36); }
+
+/* ---- 4. Spacing: breathe (desktop only — mobile keeps tight padding) ---- */
+.wk-grid,.figsy-flow,.level-grid{ gap:14px; }
+@media (min-width:769px){
+  .why-kind,.team-wins{ padding-top:112px; padding-bottom:112px; }
+  .problem-section,.figsy-section,.comp-section{ padding-top:120px; padding-bottom:120px; }
+  .cta-section{ padding-top:120px; padding-bottom:140px; }
+}
+
+/* ---- 5. Section transitions: short, crisp seams on the new base ---- */
+.grad-wht-dark,.grad-dark-grey,.grad-grey-dark,.grad-dark-wht,.grad-light-to-wht{ height:14px; }
+.grad-wht-dark{ background:linear-gradient(to bottom,#fff 0%,#080812 100%); }
+.grad-dark-grey{ background:linear-gradient(to bottom,#080812 0%,#f9fafb 100%); }
+.grad-grey-dark{ background:linear-gradient(to bottom,#f9fafb 0%,#080812 100%); }
+.grad-dark-wht{ background:linear-gradient(to bottom,#080812 0%,#fff 100%); }

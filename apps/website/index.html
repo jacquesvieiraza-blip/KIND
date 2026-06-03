@@ -2112,20 +2112,6 @@
     setTimeout(voiceStep, 1200)
   }
 
-  // AGENT CARD — ORB HOVER SHIFT
-  var orbWrap = document.querySelector('.hero-orb-wrap')
-  document.querySelectorAll('.hero-agent-card').forEach(function(card) {
-    card.addEventListener('mouseenter', function() {
-      if (!orbWrap) return
-      orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')
-      orbWrap.classList.add('hov-' + card.dataset.agent)
-    })
-    card.addEventListener('mouseleave', function() {
-      if (!orbWrap) return
-      orbWrap.classList.remove('hov-figsy', 'hov-milla', 'hov-vida')
-    })
-  })
-
   // Smooth nav dropdowns
   document.querySelectorAll('.nav-item').forEach(function(item) {
     var timer
@@ -2134,7 +2120,7 @@
   })
 
   // PINNED AI-FAMILY HERO — scroll drives FIGSY → Milla → Vida
-  (function(){
+  ;(function(){
     var scene = document.getElementById('kf-scene')
     if (!scene) return
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches

@@ -52,6 +52,79 @@
 
 ---
 
+# ⭐ CANONICAL LIVE STATUS — SINGLE SOURCE OF TRUTH (3 June 2026, PM)
+**This block supersedes every older to-do list below it.** When asked for "an update," read THIS block + the most recent git log — do not recall from memory. Every item here was reconciled against the live code, build, and git this session (TSC clean ×3, 0 TODOs, 36 Calendly links all `kind-ai/demo`, reply-loop routes present). Older session blocks below (🎨 redesign, 🔴 FOUNDER TO-DO, 🤖 build queues, etc.) are HISTORICAL — kept for context, not the live list.
+
+## ✅ DONE — verified this session
+- **7 Supabase migrations** run (keystone + 5 standalone + stripe_sub_id); fixed `figsy_leads`→`leads` FK bug in 2 of them.
+- **Upgrades paid:** Supabase **Pro $25** (daily backups; Free had NONE), Railway **Pro**, Resend **Pro $15.46**, Apollo **Basic $65**. → operating floor **~$125/mo**.
+- **Env confirmed in Railway API:** `ADMIN_SECRET_KEY`, `RESEND_WEBHOOK_SECRET`.
+- **Boot-blocker FIXED:** `credits.ts` no longer crashes the API when legacy `PAYSTACK_SECRET_KEY` is absent (was a silent killer for the Render standby). TSC clean.
+- **Companies House submitted:** K.I.N.D Technologies Ltd, ltd by shares, SIC 62012/62020/63110, ref 116-471065. Number pending ≤2 wd.
+- **Legal entity swapped** in terms.html / dpa.html / portal terms — company number = `[COMPANY NUMBER PENDING]` token (4 spots, 30-sec swap on arrival).
+- **Costs + cashflow rebuilt** on actual numbers (this doc §17 + `docs/run-costs-and-cashflow.md` §5b). Break-even = **2 clients infra / 5 all-in**.
+- Build health verified: TSC clean (portal/api/admin), 0 TODO/FIXME, all work pushed to `claude/ai-business-roadmap-U3OWJ`.
+
+## 👤 FOUNDER — OPEN ITEMS (priority order, every item, deduped)
+
+### 🔴 TIER 0 — do these first (5 minutes, unblocks everything)
+- [ ] **Merge `claude/ai-business-roadmap-U3OWJ` → `main`** — hero click fix (Meet Milla was opening Vida), credits.ts boot-blocker fix, all 7 migrations, legal entity swap, cashflow rebuild are all sitting on this branch and **NOT LIVE**. Merge = deploy.
+- [ ] **Set `FOUNDER_EMAIL` in Railway API** → `jacques.vieiraza@gmail.com` (or `partners@get-kind.com`). Without this, partner applications save to Supabase but you get **zero notification email**. ← confirmed gap 3 Jun 2026
+
+### 🔴 TIER 1 — blocks selling or testing
+- [ ] **Wire the Resend INBOUND webhook** → `https://<api>/figsy/replies/inbound` (Resend dashboard → domain → Inbound). *Route + secret exist; without the webhook pointed, replies never reach the Portal Inbox = you can't see or answer prospects.* ← **the #1 gap**
+- [ ] **Stripe go-live:** add **6** bundle price IDs → Railway **Portal** (`NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100`, `..._FIGSY_20/40/100`); add **2** subs → Railway **API** (`STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`); confirm `STRIPE_WEBHOOK_SECRET`. (Blocks billing + smoke test T5.)
+- [ ] **Dogfood account = how we get clients:** create K.I.N.D account at app.get-kind.com → build ICP (your ideal clients) → admin grant FIGSY + credits → set `FIGSY_KIND_CLIENT_ID` (Railway API) → set `booking_url` in Settings. Turns on the Monday self-outreach cron.
+- [ ] **Confirm Calendly `calendly.com/kind-ai/demo` is LIVE** (36 site/email links point at it; dead = every CTA broken).
+
+### 🟠 TIER 2 — prove it works
+- [ ] **3 feature flags:** `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → Railway **API**; `FEATURE_PORTAL_V2=true` → Railway **Portal** (code reads it in portal, NOT api).
+- [ ] **Smoke tests** `docs/SMOKE_TEST.md` end-to-end — **Saturday AND Sunday**; log failures `T#-Step#` → Claude fixes.
+
+### 🟡 TIER 3 — before real clients lean on it
+- [ ] Render API standby ($7) · [ ] Cloudflare LB for `api.get-kind.com` ($5) · [ ] then update `NEXT_PUBLIC_API_URL=https://api.get-kind.com` (Railway Portal+Admin)
+- [ ] Cloudflare Pages CDN for website (`CLOUDFLARE_API_TOKEN`+`ACCOUNT_ID` → GitHub secrets) · [ ] `/health` path on all 3 Railway services · [ ] UptimeRobot (free)
+- [ ] (optional $14/mo) portal+admin Render standbys
+
+### 🟢 TIER 4 — legal (gated on company number, ≤2 days)
+- [ ] **Send Claude the company number** → swaps 4 `[COMPANY NUMBER PENDING]` tokens
+- [ ] ICO registration £40/yr (ico.org.uk) · [ ] Wise Business account (free)
+- [ ] SEIS advance assurance (free, file soon — 3-yr clock from incorporation)
+- [ ] Trademarks K.I.N.D+FIGSY+Milla+Vida ~£320 (can wait for revenue) · [ ] SeedLegals IP assignment ~£600 (wait until raise)
+
+### ⚪ TIER 5 — parked / optional (NOT launch blockers)
+- [ ] Email inbox: Google Workspace $12/mo OR free Cloudflare Email Routing forward of hello@get-kind.com
+- [ ] WhatsApp/Meta — **PARKED** (no Facebook account; not on the money path)
+- [ ] Google Calendar OAuth · Vapi voice · Clearbit · PhantomBuster · `FOUNDER_EMAIL` · `status.get-kind.com` CNAME
+
+### ⚪ TIER 6 — GTM (after smoke tests pass)
+- [ ] 10 warm outreach msgs · [ ] G2 listing · [ ] Capterra listing · [ ] LinkedIn 1 post/day (dogfood story) · [ ] 1–2 design partners · [ ] Product Hunt (LAST, after 2–3 proof points)
+
+#### 🌍 CHANNEL PARTNERS
+| Partner | Region | Status | Notes |
+|---------|--------|--------|-------|
+| TBC | Nigeria / Africa | 🟡 Inbound — follow up | First channel partner. Onboard via partners.get-kind.com once `FOUNDER_EMAIL` is set and smoke tests pass. |
+
+### ⚪ TIER 7 — compliance (later)
+- [ ] AI Risk Register · [ ] GDPR/CCPA badges on trust page · [ ] compliance page in sales deck
+
+## 🤖 CLAUDE — OPEN ITEMS (priority order)
+- [ ] Walk founder through the **Resend inbound webhook** check (paired with founder Tier-1 #1)
+- [ ] Swap `[COMPANY NUMBER PENDING]` → real number when provided (terms/dpa/portal)
+- [ ] **Fix stale `DEPLOYMENT_GUIDE.md`** (still says Vercel — a trap if followed)
+- [ ] **Scrub 25 stale "Vercel" refs in MASTER** (Railway-only)
+- [ ] Fix smoke-test failures as reported
+- [ ] Roll `kind.css` across the other 32 website pages (Tuesday, post-launch)
+- [ ] 3 blog articles (WhatsApp B2B / cold-email reply rate / AI SDR)
+- [ ] Draft SEIS application + trademark class list (on request)
+- [ ] Wire playbook email form to Mailchimp/ConvertKit (needs founder's provider+key)
+
+## ⚠️ HONEST RISK FLAGS (don't lose)
+- Resend inbound webhook unverified (Tier-1 #1). · Portal/admin have NO failover (only API standby built) — acceptable for launch, logged. · DEPLOYMENT_GUIDE.md + 25 MASTER lines still say Vercel (contradict Railway-only). · 3 older migrations (MASTER_SCHEMA / fix_subscriptions / drip_and_controls) status "unclear" — reconcile migration covers their columns idempotently; revisit only if a smoke test throws missing-column.
+
+---
+*— historical session blocks below; superseded by the canonical block above —*
+
 ### 🎨 WEBSITE REDESIGN — break from Alta, own our look (decided 3 June)
 
 **Why:** the site was visually too close to Alta (code literally said "Alta-style" + "like Alta"). The cheaper challenger CANNOT look derivative — originality IS credibility. Reference borrowed = **ClickUp** (different field, invisible borrow). Content/headlines/wording are perfect and FROZEN — only the visual language changes.
@@ -101,18 +174,31 @@
 
 ---
 
-#### 🔴 CRITICAL — PLATFORM BREAKS WITHOUT THESE
+#### ✅ COMPLETED — 3 JUNE (PM SESSION)
+- ✅ **All 7 Supabase migrations run** by founder (keystone `20260603_schema_reconcile` + 5 standalone + `20260527_stripe_subscription_id`).
+- ✅ **Migration bug fixed** — `figsy_leads`→`leads` FK in `linkedin_queue.sql` + `human_in_loop.sql` (those tables never existed; would have failed on a clean DB).
+- ✅ **`ADMIN_SECRET_KEY` + `RESEND_WEBHOOK_SECRET`** confirmed set in Railway API.
+- ✅ **Boot-blocker fixed** — `credits.ts` threw at module load without legacy `PAYSTACK_SECRET_KEY`, crashing the WHOLE API on a fresh deploy (would have silently broken the Render failover standby). Now fail-soft; live billing is Stripe.
+- ✅ **Companies House submitted** — **K.I.N.D Technologies Ltd**, private limited **by shares**, SIC **62012** (+ secondary 62020/63110). Ref 116-471065. Company number pending (≤2 working days).
+- ✅ **Legal entity swapped** — "Jacques Vieira trading as K.I.N.D" → "K.I.N.D Technologies Ltd" in `terms.html`, `dpa.html`, portal `terms/page.tsx`. Company number = `[COMPANY NUMBER PENDING]` token, awaiting the CH email (4 spots, 30-sec swap).
+- ✅ **PAID UPGRADES DONE:** Supabase **Pro $25** (daily backups — Free plan had NONE, confirmed), Railway **Pro**, Resend **Pro ($15.46)**, Apollo **Basic ($65)**.
+- ✅ **Run costs corrected** (§17 + `docs/run-costs-and-cashflow.md`) — removed stale Vercel/Paystack; launch floor ~$114/mo; Stripe is per-transaction, not a fixed fee.
 
-- [ ] **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase SQL editor — THE KEYSTONE. Idempotent/safe. The reply/send/credit pipeline, booking-link injection, and paused-campaign stops all depend on this one migration. Do it first.
-- [ ] Run `apps/api/src/migrations/20260602_calendar_bookings.sql` — booking KPI tracking
-- [ ] Run `apps/api/src/migrations/20260602_figsy_chat_history.sql` — FIGSY ask history
-- [ ] Run `apps/api/src/migrations/20260602_push_subscriptions.sql` — PWA push notifications
-- [ ] Run `apps/api/src/migrations/20260602_human_in_loop.sql` — human-in-loop approval queue
-- [ ] Run `apps/api/src/migrations/20260602_linkedin_queue.sql` — LinkedIn outreach queue
-- [ ] Run `supabase/migrations/20260527_stripe_subscription_id.sql` — billing schema (if not already run)
-- [ ] Run `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` in Supabase (if reconcile SQL hasn't already done it — it does, but verify)
-- [ ] **Railway API env:** set `ADMIN_SECRET_KEY` — ALL crons + admin portal skip without it. Every cron, self-outreach, and internal route is blind without this.
-- [ ] **Railway API env:** confirm `RESEND_WEBHOOK_SECRET` is set — inbound replies are now **fail-closed** without it. Clients will NOT see replies in their inbox.
+---
+
+#### 🔴 CRITICAL — PLATFORM BREAKS WITHOUT THESE
+*(migrations + the two env vars below = ✅ DONE 3 June — kept here for the record)*
+
+- [x] **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase SQL editor — THE KEYSTONE. Idempotent/safe. The reply/send/credit pipeline, booking-link injection, and paused-campaign stops all depend on this one migration. Do it first.
+- [x] Run `apps/api/src/migrations/20260602_calendar_bookings.sql` — booking KPI tracking
+- [x] Run `apps/api/src/migrations/20260602_figsy_chat_history.sql` — FIGSY ask history
+- [x] Run `apps/api/src/migrations/20260602_push_subscriptions.sql` — PWA push notifications
+- [x] Run `apps/api/src/migrations/20260602_human_in_loop.sql` — human-in-loop approval queue
+- [x] Run `apps/api/src/migrations/20260602_linkedin_queue.sql` — LinkedIn outreach queue
+- [x] Run `supabase/migrations/20260527_stripe_subscription_id.sql` — billing schema (if not already run)
+- [x] Run `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` in Supabase (if reconcile SQL hasn't already done it — it does, but verify)
+- [x] **Railway API env:** set `ADMIN_SECRET_KEY` — ALL crons + admin portal skip without it. Every cron, self-outreach, and internal route is blind without this.
+- [x] **Railway API env:** confirm `RESEND_WEBHOOK_SECRET` is set — inbound replies are now **fail-closed** without it. Clients will NOT see replies in their inbox.
 
 ---
 
@@ -193,14 +279,14 @@
 
 #### 🟡 PAID PLAN UPGRADES — REVENUE-CRITICAL AT SCALE
 
-- [ ] **Upgrade Resend to paid** ($20/mo) — free plan caps at **100 emails/day**. FIGSY will hit this cap on day 1 with real clients. Without this, sends silently fail after the 100th email.
-- [ ] **Upgrade Apollo to Basic** ($49/mo) — free plan = 50 export credits/month. Barely enough for a single demo run. ICP lead sourcing dies instantly at scale.
+- [x] **Upgrade Resend to paid** ($20/mo) — free plan caps at **100 emails/day**. FIGSY will hit this cap on day 1 with real clients. Without this, sends silently fail after the 100th email.
+- [x] **Upgrade Apollo to Basic** ($49/mo) — free plan = 50 export credits/month. Barely enough for a single demo run. ICP lead sourcing dies instantly at scale.
 
 ---
 
 #### 🔴 LEGAL — UK (DO IN ORDER)
 
-- [ ] **Register at UK Companies House** — companieshouse.gov.uk → Incorporate a private limited company → ~£50, same-day online. You need this number for everything below. Status: in progress.
+- [x] **Register at UK Companies House** — companieshouse.gov.uk → Incorporate a private limited company → ~£50, same-day online. You need this number for everything below. Status: in progress.
 - [ ] **Once registered:** Claude swaps `"Jacques Vieira trading as K.I.N.D"` → `"K.I.N.D Ltd (company no. XXXXXXXX)"` in `apps/website/terms.html`, `apps/website/dpa.html`, `apps/website/dpa-us.html`. Give Claude the number and it's a 5-min job.
 - [ ] **Open Wise Business account** (free) — wait until Companies House number arrives. Use for client payments while banking is set up.
 - [ ] **ICO data protection registration** (£40/yr) — required by law for processing UK/EU personal data. Register at ico.org.uk/registration. Without this, every B2B data-processing claim in your terms is legally exposed.
@@ -317,7 +403,7 @@ including the clean ones. Three-list format enforced.
 - ✅ Website now has Cloudflare Pages CDN failover (code built; needs founder secrets to activate).
 - 🛑 Portal / admin / API have NO failover — dynamic, need a 2nd host. Logged, not built.
 - ✅ Status page built: `get-kind.com/status` (status.html, pings all services). Custom domain `status.get-kind.com` = founder DNS action.
-- 🛑 UptimeRobot NOT live (founder to-do #7). Supabase backup/restore unverified.
+- 🛑 UptimeRobot NOT live (founder to-do #7). ✅ Supabase backups now ON (Pro plan, daily, 7-day retention — upgraded 3 June; Free had none).
 
 **2. DEAD / DUPLICATE CODE**
 - ✅ Removed 3× `vercel.json` + 2× `milla.png..png`.
@@ -2708,16 +2794,43 @@ Client → Billing → selects plan → Stripe checkout → webhook fires → su
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Portal (client-facing) | Next.js 14, TypeScript, Tailwind | apps/portal — Vercel (kind-portal) |
-| Admin (internal) | Next.js 14, TypeScript, Tailwind | apps/admin — Vercel (kind-admin-h5q6) |
-| API | Express, TypeScript | apps/api — Railway |
-| Database | Supabase (PostgreSQL, af-south-1 Cape Town) | RLS on all tables |
+| Portal (client-facing) | Next.js 14, TypeScript, Tailwind | apps/portal — **Railway** |
+| Admin (internal) | Next.js 14, TypeScript, Tailwind | apps/admin — **Railway** |
+| API | Express, TypeScript | apps/api — **Railway** |
+| Database | Supabase (PostgreSQL, af-south-1 Cape Town) | RLS on all tables. **Pro plan required — Free has no backups** |
 | Auth | Supabase Auth | Email + password, no email confirmation |
 | AI | Anthropic Claude (Haiku + Sonnet) | Haiku for volume, Sonnet for quality |
 | Lead data | Apollo.io API | Pre-consented contacts first |
 | Email sending | Resend | replies@get-kind.com (FIGSY), hello@get-kind.com (Workspace) |
 | Payments | Stripe (USD/GBP — primary, live) + Flutterwave (ZAR/NGN/KES/GHS — Phase 2, code complete) | Credit bundles + subscriptions |
-| Website | Static HTML | apps/website — Vercel (kind-admin) |
+| Website | Static HTML (Express) | apps/website — **Railway** (Cloudflare Pages = failover copy) |
+| Failover | Render standby + Cloudflare LB | API standby built (`render.yaml`), needs founder activation |
+
+> **HOSTING NOTE — CRITICAL: Railway ONLY.** Portal, admin, API, and website all on Railway. There is no Vercel.
+
+### 💰 RUN COSTS — fixed monthly (corrected 3 June 2026; full detail in `docs/run-costs-and-cashflow.md`)
+| Group | Services | Cost/mo |
+|---|---|---|
+| **A — Upgrade NOW (launch floor)** | Supabase Pro $25 · Railway Pro+usage ~$20 · Resend Pro $20 · Apollo Basic $49 | **~$114** |
+| **B — Soon (weeks)** | Google Workspace ~$12 · Render standby $7 · Cloudflare LB $5 · domain ~$1.25 | **~$25** |
+| **C — Dev** | Claude Code Max | $100–200 |
+| **Stripe** | NOT a fixed fee — ~2.9% + 30¢ per transaction, free until money flows | per-sale |
+| **All-in (A+B+Claude)** | | **~$239–395/mo** |
+
+### 🎯 CASHFLOW & SALES TARGETS — actual costs (3 June 2026; full model in `docs/run-costs-and-cashflow.md` §5b)
+**Operating floor live now: ~$125/mo** (Supabase $25 + Railway ~$20 + Resend $15.46 + Apollo $65). + failover ~$13 = **~$138/mo**. Claude Code dev $100–200 separate. Stripe = ~2.9% + 30¢/txn, not fixed.
+**Net contribution/client:** ~$76 @ $80 ARPU · ~$154 @ $160 ARPU.
+
+| Milestone | Clients @ $80 | Clients @ $160 |
+|---|---|---|
+| Break-even (infra) | **2** | **1** |
+| Break-even (incl. Claude Code dev) | **5** | **3** |
+| $1,000 MRR | 13 | 7 |
+| $5,000 MRR (founder salary) | 63 | 31 |
+| $10,000 MRR (first hire) | 125 | 63 |
+| $25,000 MRR (Series A) | 313 | 156 |
+
+**Funnel (40% trial→paid):** ~2.5 trials per paying client (~60 quality touches each). Dogfood engine + warm network + 1 agency partner (~10 clients/mo) are the levers. **ARPU is the #1 lever — push FIGSY upsell ($160+) after first leads land.** Margin >78% past ~10 clients.
 
 ### Railway API URL
 `https://kindapi-production-e64c.up.railway.app`

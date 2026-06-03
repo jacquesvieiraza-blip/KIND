@@ -1224,9 +1224,11 @@
     font-size:clamp(4rem,15vw,13rem); color:rgba(20,18,45,.06); white-space:nowrap; pointer-events:none; user-select:none; text-align:center; }
   .kf-eyebrow2{ position:absolute; z-index:4; top:30px; left:0; right:0; text-align:center;
     font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(20,18,45,.5); }
-  .kf-figure{ position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; padding-bottom:40px; }
-  .kf-figure img{ height:74%; width:auto; max-width:88%; object-fit:cover; display:block;
-    border-radius:26px; box-shadow:0 30px 70px rgba(20,18,45,.22); }
+  .kf-figure{ position:absolute; inset:0; z-index:2; display:flex; align-items:flex-end; justify-content:center; }
+  .kf-figure img{ height:88%; width:auto; max-width:92%; object-fit:contain; display:block;
+    /* edge fade so the portrait dissolves into the gradient (not a solid block) */
+    -webkit-mask-image:radial-gradient(ellipse 58% 70% at 50% 44%, #000 46%, transparent 78%);
+    mask-image:radial-gradient(ellipse 58% 70% at 50% 44%, #000 46%, transparent 78%); }
   .kf-cta{ position:absolute; z-index:6; bottom:30px; left:50%; transform:translateX(-50%);
     background:#0a0a0a; color:#fff; font-weight:700; font-size:.92rem; padding:13px 26px; border-radius:14px;
     text-decoration:none; box-shadow:0 14px 34px rgba(0,0,0,.28); transition:transform .2s; white-space:nowrap; }

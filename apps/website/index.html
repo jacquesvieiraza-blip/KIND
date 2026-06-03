@@ -1214,6 +1214,10 @@
   .kf-scene{ position:relative; height:300vh; }
   .kf-sticky{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:14px 14px 0; }
   .kf-block{ position:relative; width:100%; max-width:1480px; height:calc(100vh - 96px); border-radius:30px; overflow:clip; box-shadow:0 30px 80px rgba(20,18,45,.12); }
+  /* film grain for depth (ClickUp-like texture) */
+  .kf-block::after{ content:''; position:absolute; inset:0; z-index:7; pointer-events:none; opacity:.5; mix-blend-mode:soft-light;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:200px 200px; }
 
   .kf-agent{ position:absolute; inset:0; opacity:0; transition:opacity .3s linear; text-decoration:none; color:inherit; display:block; }
   .kf-agent[data-i="0"]{ opacity:1; }
@@ -1237,19 +1241,20 @@
   /* floating callouts with L-shaped connector lines (horizontal → diagonal toward figure) */
   .kf-call{ position:absolute; z-index:3; font-family:'JetBrains Mono',monospace; font-size:.74rem;
     letter-spacing:.13em; text-transform:uppercase; color:rgba(20,18,45,.6); white-space:nowrap; }
-  .kf-call span, .kf-call::after{ content:''; position:absolute; height:1.5px; background:rgba(20,18,45,.32); }
-  /* c1 — left side: line runs right, then angles down-right toward the figure */
-  .kf-call.c1{ top:32%; left:6%; }
-  .kf-call.c1 span{ top:170%; left:2px; width:120px; }
-  .kf-call.c1::after{ top:170%; left:120px; width:78px; transform-origin:left center; transform:rotate(36deg); }
-  /* c2 — upper right: line runs left, then angles down-left */
-  .kf-call.c2{ top:20%; right:10%; text-align:right; }
-  .kf-call.c2 span{ top:170%; right:2px; width:96px; }
-  .kf-call.c2::after{ top:170%; right:96px; width:78px; transform-origin:right center; transform:rotate(36deg); }
-  /* c3 — lower right: line runs left, then angles up-left */
-  .kf-call.c3{ top:58%; right:6%; text-align:right; }
-  .kf-call.c3 span{ top:170%; right:2px; width:110px; }
-  .kf-call.c3::after{ top:170%; right:110px; width:78px; transform-origin:right center; transform:rotate(-36deg); }
+  .kf-call span, .kf-call::after{ content:''; position:absolute; height:1.5px; background:rgba(20,18,45,.42); }
+  /* lines run from the label, then angle in and reach toward the figure */
+  /* c1 — left side: horizontal right, then down-right toward FIGSY */
+  .kf-call.c1{ top:30%; left:5%; }
+  .kf-call.c1 span{ top:160%; left:2px; width:150px; }
+  .kf-call.c1::after{ top:160%; left:150px; width:150px; transform-origin:left center; transform:rotate(34deg); }
+  /* c2 — upper right: horizontal left, then down-left toward figure */
+  .kf-call.c2{ top:18%; right:9%; text-align:right; }
+  .kf-call.c2 span{ top:160%; right:2px; width:130px; }
+  .kf-call.c2::after{ top:160%; right:130px; width:150px; transform-origin:right center; transform:rotate(34deg); }
+  /* c3 — lower right: horizontal left, then up-left toward figure */
+  .kf-call.c3{ top:60%; right:5%; text-align:right; }
+  .kf-call.c3 span{ top:160%; right:2px; width:150px; }
+  .kf-call.c3::after{ top:160%; right:150px; width:150px; transform-origin:right center; transform:rotate(-34deg); }
 
   /* progress rail under the block */
   .kf-rail{ position:relative; margin-top:18px; display:flex; gap:10px; height:34px; align-items:flex-start; }
@@ -1288,7 +1293,7 @@
   <div class="kf-sticky">
     <div class="kf-block">
       <a class="kf-agent" data-i="0" data-agent="figsy" href="figsy.html">
-        <div class="kf-bg" style="background:radial-gradient(125% 95% at 50% 118%, rgba(255,46,196,.30), #fff0fa 56%);"></div>
+        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 128%, rgba(255,46,196,.58) 0%, rgba(255,46,196,.16) 42%, transparent 68%), linear-gradient(180deg,#ffffff 0%,#fff1fb 50%,#ffd9f0 100%);"></div>
         <div class="kf-ghost">FIGSY</div>
         <div class="kf-eyebrow2">Agent 01 · The Closer · Autonomous AI SDR</div>
         <div class="kf-call c1">Works 24/7<span></span></div>
@@ -1298,7 +1303,7 @@
         <span class="kf-cta">Meet FIGSY →</span>
       </a>
       <a class="kf-agent" data-i="1" data-agent="milla" href="virtual-assistant.html">
-        <div class="kf-bg" style="background:radial-gradient(125% 95% at 50% 118%, rgba(154,77,255,.30), #f5f0ff 56%);"></div>
+        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 128%, rgba(154,77,255,.55) 0%, rgba(154,77,255,.16) 42%, transparent 68%), linear-gradient(180deg,#ffffff 0%,#f6f0ff 50%,#e7daff 100%);"></div>
         <div class="kf-ghost">MILLA</div>
         <div class="kf-eyebrow2">Agent 02 · The Brain · Business Intelligence</div>
         <div class="kf-call c1">Reads the signals<span></span></div>
@@ -1308,7 +1313,7 @@
         <span class="kf-cta">Meet Milla →</span>
       </a>
       <a class="kf-agent" data-i="2" data-agent="vida" href="chatbot-agent.html">
-        <div class="kf-bg" style="background:radial-gradient(125% 95% at 50% 118%, rgba(54,197,240,.32), #eef8ff 56%);"></div>
+        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 128%, rgba(54,197,240,.58) 0%, rgba(54,197,240,.16) 42%, transparent 68%), linear-gradient(180deg,#ffffff 0%,#eef9ff 50%,#d6efff 100%);"></div>
         <div class="kf-ghost">VIDA</div>
         <div class="kf-eyebrow2">Agent 03 · The Connector · Web &amp; WhatsApp AI</div>
         <div class="kf-call c1">Qualifies 24/7<span></span></div>

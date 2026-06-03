@@ -6,8 +6,13 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 export const creditRouter = Router()
 creditRouter.use(requireAuth)
 
-if (!process.env.PAYSTACK_SECRET_KEY) throw new Error('PAYSTACK_SECRET_KEY is required')
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY
+// Paystack is LEGACY here — live billing runs on Stripe. This key is optional;
+// only the legacy /topup and /verify routes below use it, and they fail-soft
+// (503) when it's absent. NEVER throw at module load: this router is imported at
+// boot in index.ts, so a top-level throw would crash the ENTIRE API — including
+// the GET / balance endpoint the portal depends on — on a fresh deploy that
+// doesn't carry the legacy key (e.g. the Render standby). Degrade, don't crash.
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || ''
 
 // Pricing locked — two tiers only. Must match packages/shared/src/constants/index.ts exactly.
 const BUNDLES: Record<'kind_ai' | 'figsy', Record<number, number>> = {
@@ -40,6 +45,7 @@ creditRouter.get('/', async (req: AuthRequest, res) => {
 // ── INITIATE top-up ────────────────────────────────────────────────────────────
 creditRouter.post('/topup', async (req: AuthRequest, res) => {
   try {
+    if (!PAYSTACK_SECRET) { res.status(503).json({ success: false, error: 'Paystack billing not configured (legacy path — use Stripe checkout)' }); return }
     const { plan, bundle_size, terms_accepted } = z.object({
       plan:           z.enum(['kind_ai', 'figsy']),
       bundle_size:    z.number().int().positive(),
@@ -96,6 +102,7 @@ creditRouter.post('/topup', async (req: AuthRequest, res) => {
 // ── VERIFY + apply credits ─────────────────────────────────────────────────────
 creditRouter.post('/verify', async (req: AuthRequest, res) => {
   try {
+    if (!PAYSTACK_SECRET) { res.status(503).json({ success: false, error: 'Paystack billing not configured (legacy path — use Stripe checkout)' }); return }
     const { reference } = z.object({ reference: z.string().min(1) }).parse(req.body)
 
     const paystackRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {

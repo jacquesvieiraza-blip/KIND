@@ -1208,20 +1208,14 @@
   </div>
 </nav>
 
-<!-- ===== AI FAMILY HERO (pinned scroll) ===== -->
+<!-- ===== AI FAMILY HERO (pinned scroll — starts immediately after nav) ===== -->
 <style>
-  .kf-hero-wrap{ position:relative; overflow:hidden; padding-top:8px; }
-  .kf-hero-sub{ font-size:1.02rem; color:rgba(0,0,0,.5); max-width:560px; margin:0 auto 26px; font-weight:500; line-height:1.7; }
-  .kf-ticks{ margin-top:18px; display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
-  .kf-ticks span{ font-size:0.8rem; color:rgba(0,0,0,.48); font-weight:600; display:flex; align-items:center; gap:6px; }
-  .kf-ticks .ck{ background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-weight:800; }
-  .kf-scroll-hint{ font-family:'JetBrains Mono',monospace; font-size:.66rem; letter-spacing:.16em; text-transform:uppercase; color:rgba(0,0,0,.4); margin-top:34px; animation:kf-bob 1.8s ease-in-out infinite; }
-  @keyframes kf-bob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
-
-  .kf-scene{ position:relative; height:360vh; }
+  .kf-scene{ position:relative; height:300vh; }
   .kf-sticky{ position:sticky; top:0; height:100vh; display:flex; align-items:center; overflow:hidden; }
   .kf-stage{ position:relative; width:100%; max-width:1180px; margin:0 auto; padding:0 56px; height:80vh; display:flex; align-items:center; }
+  /* agent[0] starts visible — JS overrides on scroll */
   .kf-agent{ position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:0 56px; opacity:0; transition:opacity .25s linear; }
+  .kf-agent[data-i="0"]{ opacity:1; }
   .kf-txt{ max-width:460px; }
   .kf-eyebrow{ font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:rgba(0,0,0,.45); margin-bottom:14px; }
   .kf-name{ font-family:'Outfit',sans-serif; font-size:clamp(3rem,6vw,5.4rem); font-weight:900; letter-spacing:-.04em; line-height:.95; margin-bottom:8px; background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
@@ -1249,8 +1243,7 @@
     .kf-portrait img{ width:100%; height:auto; }
     .kf-rail{ display:none; }
   }
-  @media (prefers-reduced-motion: reduce){
-    .kf-scroll-hint{ animation:none; }
+  @media (prefers-reduced-motion:reduce){
     .kf-scene{ height:auto; }
     .kf-sticky{ position:static; height:auto; display:block; padding:8px 0 40px; }
     .kf-stage{ height:auto; display:block; }
@@ -1259,38 +1252,16 @@
   }
 </style>
 
-<!-- HERO — intro -->
-<div class="kf-hero-wrap">
-  <div class="kind-glow g-pink"   style="width:520px;height:520px;top:-180px;left:-120px;"></div>
-  <div class="kind-glow g-blue"   style="width:520px;height:520px;top:-150px;right:-140px;"></div>
-  <div class="kind-glow g-purple" style="width:560px;height:560px;bottom:-280px;left:30%;"></div>
-  <div class="hero">
-    <div class="hero-text">
-      <div class="live-chip"><span class="live-dot"></span>Live now — first campaign running in 5 business days</div>
-      <div class="hero-label">⚡ Meet your AI family — the team that works while you sleep</div>
-      <h1>Stop chasing leads.<br/><span id="tw-target">Break the ceiling.</span><span class="tw-cursor" id="tw-cursor"></span></h1>
-      <p class="kf-hero-sub">Three agents that find leads, book meetings, and convert your site &mdash; while you sleep. FIGSY finds and books, Milla reads the intelligence, Vida converts.</p>
-      <div class="hero-btns reveal reveal-delay-1">
-        <button onclick="openAuth('signup')" class="btn-hero-primary">Get your first leads free →</button>
-        <a href="#figsy" class="btn-hero-ghost">See how it works</a>
-      </div>
-      <div class="kf-ticks">
-        <span><span class="ck">✓</span> No setup fees</span>
-        <span><span class="ck">✓</span> Pay per lead — not per seat</span>
-        <span><span class="ck">✓</span> Cancel anytime</span>
-        <span><span class="ck">✓</span> First campaign live in 5 business days — guaranteed</span>
-      </div>
-      <div class="kf-scroll-hint">↓ Scroll to meet the family</div>
-    </div>
-  </div>
-</div>
-
-<!-- PINNED SCROLL — meet the family, one at a time -->
+<!-- PINNED SCROLL HERO — FIGSY visible on load, fades to Milla then Vida -->
 <div class="kf-scene" id="kf-scene">
   <div class="kf-sticky">
+    <div class="kind-glow g-pink"   style="width:600px;height:600px;top:-200px;left:-150px;pointer-events:none;z-index:0;"></div>
+    <div class="kind-glow g-blue"   style="width:600px;height:600px;top:-150px;right:-180px;pointer-events:none;z-index:0;"></div>
+    <div class="kind-glow g-purple" style="width:640px;height:640px;bottom:-300px;left:35%;pointer-events:none;z-index:0;"></div>
     <div class="kf-stage">
       <a class="kf-agent" data-i="0" href="figsy.html" style="text-decoration:none;color:inherit">
         <div class="kf-txt">
+          <div class="live-chip" style="margin-bottom:18px"><span class="live-dot"></span>Live now — first campaign in 5 business days</div>
           <div class="kf-eyebrow">Agent 01 · The Closer</div>
           <div class="kf-name">FIGSY</div>
           <div class="kf-role">Autonomous AI SDR</div>

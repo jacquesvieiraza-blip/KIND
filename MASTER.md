@@ -101,18 +101,31 @@
 
 ---
 
-#### 🔴 CRITICAL — PLATFORM BREAKS WITHOUT THESE
+#### ✅ COMPLETED — 3 JUNE (PM SESSION)
+- ✅ **All 7 Supabase migrations run** by founder (keystone `20260603_schema_reconcile` + 5 standalone + `20260527_stripe_subscription_id`).
+- ✅ **Migration bug fixed** — `figsy_leads`→`leads` FK in `linkedin_queue.sql` + `human_in_loop.sql` (those tables never existed; would have failed on a clean DB).
+- ✅ **`ADMIN_SECRET_KEY` + `RESEND_WEBHOOK_SECRET`** confirmed set in Railway API.
+- ✅ **Boot-blocker fixed** — `credits.ts` threw at module load without legacy `PAYSTACK_SECRET_KEY`, crashing the WHOLE API on a fresh deploy (would have silently broken the Render failover standby). Now fail-soft; live billing is Stripe.
+- ✅ **Companies House submitted** — **K.I.N.D Technologies Ltd**, private limited **by shares**, SIC **62012** (+ secondary 62020/63110). Ref 116-471065. Company number pending (≤2 working days).
+- ✅ **Legal entity swapped** — "Jacques Vieira trading as K.I.N.D" → "K.I.N.D Technologies Ltd" in `terms.html`, `dpa.html`, portal `terms/page.tsx`. Company number = `[COMPANY NUMBER PENDING]` token, awaiting the CH email (4 spots, 30-sec swap).
+- ✅ **PAID UPGRADES DONE:** Supabase **Pro $25** (daily backups — Free plan had NONE, confirmed), Railway **Pro**, Resend **Pro ($15.46)**, Apollo **Basic ($65)**.
+- ✅ **Run costs corrected** (§17 + `docs/run-costs-and-cashflow.md`) — removed stale Vercel/Paystack; launch floor ~$114/mo; Stripe is per-transaction, not a fixed fee.
 
-- [ ] **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase SQL editor — THE KEYSTONE. Idempotent/safe. The reply/send/credit pipeline, booking-link injection, and paused-campaign stops all depend on this one migration. Do it first.
-- [ ] Run `apps/api/src/migrations/20260602_calendar_bookings.sql` — booking KPI tracking
-- [ ] Run `apps/api/src/migrations/20260602_figsy_chat_history.sql` — FIGSY ask history
-- [ ] Run `apps/api/src/migrations/20260602_push_subscriptions.sql` — PWA push notifications
-- [ ] Run `apps/api/src/migrations/20260602_human_in_loop.sql` — human-in-loop approval queue
-- [ ] Run `apps/api/src/migrations/20260602_linkedin_queue.sql` — LinkedIn outreach queue
-- [ ] Run `supabase/migrations/20260527_stripe_subscription_id.sql` — billing schema (if not already run)
-- [ ] Run `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` in Supabase (if reconcile SQL hasn't already done it — it does, but verify)
-- [ ] **Railway API env:** set `ADMIN_SECRET_KEY` — ALL crons + admin portal skip without it. Every cron, self-outreach, and internal route is blind without this.
-- [ ] **Railway API env:** confirm `RESEND_WEBHOOK_SECRET` is set — inbound replies are now **fail-closed** without it. Clients will NOT see replies in their inbox.
+---
+
+#### 🔴 CRITICAL — PLATFORM BREAKS WITHOUT THESE
+*(migrations + the two env vars below = ✅ DONE 3 June — kept here for the record)*
+
+- [x] **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase SQL editor — THE KEYSTONE. Idempotent/safe. The reply/send/credit pipeline, booking-link injection, and paused-campaign stops all depend on this one migration. Do it first.
+- [x] Run `apps/api/src/migrations/20260602_calendar_bookings.sql` — booking KPI tracking
+- [x] Run `apps/api/src/migrations/20260602_figsy_chat_history.sql` — FIGSY ask history
+- [x] Run `apps/api/src/migrations/20260602_push_subscriptions.sql` — PWA push notifications
+- [x] Run `apps/api/src/migrations/20260602_human_in_loop.sql` — human-in-loop approval queue
+- [x] Run `apps/api/src/migrations/20260602_linkedin_queue.sql` — LinkedIn outreach queue
+- [x] Run `supabase/migrations/20260527_stripe_subscription_id.sql` — billing schema (if not already run)
+- [x] Run `ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0;` in Supabase (if reconcile SQL hasn't already done it — it does, but verify)
+- [x] **Railway API env:** set `ADMIN_SECRET_KEY` — ALL crons + admin portal skip without it. Every cron, self-outreach, and internal route is blind without this.
+- [x] **Railway API env:** confirm `RESEND_WEBHOOK_SECRET` is set — inbound replies are now **fail-closed** without it. Clients will NOT see replies in their inbox.
 
 ---
 
@@ -193,14 +206,14 @@
 
 #### 🟡 PAID PLAN UPGRADES — REVENUE-CRITICAL AT SCALE
 
-- [ ] **Upgrade Resend to paid** ($20/mo) — free plan caps at **100 emails/day**. FIGSY will hit this cap on day 1 with real clients. Without this, sends silently fail after the 100th email.
-- [ ] **Upgrade Apollo to Basic** ($49/mo) — free plan = 50 export credits/month. Barely enough for a single demo run. ICP lead sourcing dies instantly at scale.
+- [x] **Upgrade Resend to paid** ($20/mo) — free plan caps at **100 emails/day**. FIGSY will hit this cap on day 1 with real clients. Without this, sends silently fail after the 100th email.
+- [x] **Upgrade Apollo to Basic** ($49/mo) — free plan = 50 export credits/month. Barely enough for a single demo run. ICP lead sourcing dies instantly at scale.
 
 ---
 
 #### 🔴 LEGAL — UK (DO IN ORDER)
 
-- [ ] **Register at UK Companies House** — companieshouse.gov.uk → Incorporate a private limited company → ~£50, same-day online. You need this number for everything below. Status: in progress.
+- [x] **Register at UK Companies House** — companieshouse.gov.uk → Incorporate a private limited company → ~£50, same-day online. You need this number for everything below. Status: in progress.
 - [ ] **Once registered:** Claude swaps `"Jacques Vieira trading as K.I.N.D"` → `"K.I.N.D Ltd (company no. XXXXXXXX)"` in `apps/website/terms.html`, `apps/website/dpa.html`, `apps/website/dpa-us.html`. Give Claude the number and it's a 5-min job.
 - [ ] **Open Wise Business account** (free) — wait until Companies House number arrives. Use for client payments while banking is set up.
 - [ ] **ICO data protection registration** (£40/yr) — required by law for processing UK/EU personal data. Register at ico.org.uk/registration. Without this, every B2B data-processing claim in your terms is legally exposed.
@@ -317,7 +330,7 @@ including the clean ones. Three-list format enforced.
 - ✅ Website now has Cloudflare Pages CDN failover (code built; needs founder secrets to activate).
 - 🛑 Portal / admin / API have NO failover — dynamic, need a 2nd host. Logged, not built.
 - ✅ Status page built: `get-kind.com/status` (status.html, pings all services). Custom domain `status.get-kind.com` = founder DNS action.
-- 🛑 UptimeRobot NOT live (founder to-do #7). Supabase backup/restore unverified.
+- 🛑 UptimeRobot NOT live (founder to-do #7). ✅ Supabase backups now ON (Pro plan, daily, 7-day retention — upgraded 3 June; Free had none).
 
 **2. DEAD / DUPLICATE CODE**
 - ✅ Removed 3× `vercel.json` + 2× `milla.png..png`.

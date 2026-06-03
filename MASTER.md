@@ -80,6 +80,7 @@
 ### 🟠 TIER 2 — prove it works
 - [ ] **3 feature flags:** `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → Railway **API**; `FEATURE_PORTAL_V2=true` → Railway **Portal** (code reads it in portal, NOT api).
 - [ ] **Smoke tests** `docs/SMOKE_TEST.md` end-to-end — **Saturday AND Sunday**; log failures `T#-Step#` → Claude fixes.
+- [ ] **Onboarding v2 + Loom video slots** ← *after smoke tests pass* — Claude builds: (1) post-onboard Welcome screen with Loom embed slot + 3 action buttons, (2) inline Loom cards on ICP + FIGSY pages, (3) day-0/3/7 Resend welcome email sequence. Founder records 3 Loom videos (2–3 min each): Welcome, Build your ICP, Launch your first FIGSY campaign. Paste Loom IDs into code. **Strategy: clients who don't activate in week 1 almost never reach month 2.**
 
 ### 🟡 TIER 3 — before real clients lean on it
 - [ ] Render API standby ($7) · [ ] Cloudflare LB for `api.get-kind.com` ($5) · [ ] then update `NEXT_PUBLIC_API_URL=https://api.get-kind.com` (Railway Portal+Admin)

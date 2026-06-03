@@ -110,6 +110,22 @@ body{ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI
   .cta-section{ padding-top:120px; padding-bottom:140px; }
 }
 
+/* ---- Honest proof strip (first-party dogfooding, no fake social proof) ---- */
+.proof-strip{ padding:88px 48px; background:#faf5ff; border-top:1px solid rgba(154,77,255,.12); border-bottom:1px solid rgba(154,77,255,.12); }
+.proof-inner{ max-width:1080px; margin:0 auto; display:grid; grid-template-columns:1.4fr 1fr; gap:56px; align-items:center; }
+.proof-copy .s-title{ margin-bottom:16px; }
+.proof-copy p{ font-size:.96rem; color:rgba(0,0,0,.55); line-height:1.8; margin-bottom:14px; max-width:560px; }
+.proof-honest{ font-size:.86rem !important; color:rgba(0,0,0,.4) !important; }
+.proof-stat{ text-align:center; background:#fff; border:1px solid rgba(154,77,255,.16); border-radius:24px; padding:40px 32px; box-shadow:0 18px 48px rgba(154,77,255,.10); }
+.proof-stat-num{ font-family:'Outfit',system-ui,sans-serif; font-size:4.4rem; font-weight:900; letter-spacing:-.04em; line-height:1;
+  background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
+.proof-stat-num span{ font-size:2rem; opacity:.55; }
+.proof-stat-label{ margin-top:14px; font-size:.85rem; color:rgba(0,0,0,.5); line-height:1.55; }
+@media (max-width:768px){
+  .proof-strip{ padding:48px 24px; }
+  .proof-inner{ grid-template-columns:1fr; gap:32px; }
+}
+
 /* ---- 5. Section transitions: short, crisp seams on the new base ---- */
 .grad-wht-dark,.grad-dark-grey,.grad-grey-dark,.grad-dark-wht,.grad-light-to-wht{ height:14px; }
 .grad-wht-dark{ background:linear-gradient(to bottom,#fff 0%,#080812 100%); }

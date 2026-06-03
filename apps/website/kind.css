@@ -1,0 +1,58 @@
+/* ============================================================
+   K.I.N.D — SHARED DESIGN SYSTEM  (kind.css)
+   Loaded AFTER each page's inline <style> so these rules win.
+   Homepage adopted 3 June; rolled across all pages Tuesday.
+   Brand: warm, human "AI Family" — pink→purple→blue gradient,
+   distinct from Alta's flat purple.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap');
+
+:root{
+  --g1:#ff2ec4;            /* pink  */
+  --g2:#9a4dff;            /* purple */
+  --g3:#36c5f0;            /* blue  */
+  --grad:linear-gradient(100deg,#ff2ec4 0%,#9a4dff 48%,#36c5f0 100%);
+  --grad-soft:linear-gradient(100deg,rgba(255,46,196,.12),rgba(54,197,240,.12));
+}
+
+/* ---- Typography ------------------------------------------------ */
+body{ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; }
+.hero h1,.s-title,.problem-headline,.cta-banner h2,.promise-big,.stat-num,
+.p-price,.prod h3,.agents-intro .s-title,.figsy-scroll-step h4,.level-card h3,
+.comp-inner .s-title,.why-kind .s-title,.team-wins .s-title{
+  font-family:'Outfit',system-ui,sans-serif; letter-spacing:-0.03em;
+}
+
+/* ---- Gradient signature on primary CTAs ----------------------- */
+.btn-nav-primary,.btn-hero-primary,.prod-cta,.p-badge,.dd-promo-cta,
+.p-btn-dark,.human-strip-btn{
+  background:var(--grad); border:none; color:#fff;
+}
+.btn-nav-primary:hover,.btn-hero-primary:hover,.prod-cta:hover,
+.p-btn-dark:hover,.human-strip-btn:hover{ opacity:.9; }
+
+/* ---- Gradient text on eyebrow labels -------------------------- */
+.s-label,.hero-label,.trust-stat-num,.promise-big,.stat-num span{
+  background:var(--grad);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+
+/* ---- Logo: real K mark replaces the emoji tile ---------------- */
+.logo-icon{
+  background:transparent !important; box-shadow:none !important;
+  width:34px; height:34px; border-radius:8px; overflow:hidden;
+  font-size:0 !important;             /* hide the ⚡ emoji text node */
+}
+.logo-icon img{ width:100%; height:100%; object-fit:contain; display:block; }
+
+/* ---- Reusable ambient glow (replaces the floating orbs) ------- */
+.kind-glow{ position:absolute; border-radius:50%; filter:blur(60px); pointer-events:none; z-index:0; }
+.kind-glow.g-pink{ background:radial-gradient(circle,rgba(255,46,196,.22),transparent 65%); }
+.kind-glow.g-purple{ background:radial-gradient(circle,rgba(154,77,255,.20),transparent 65%); }
+.kind-glow.g-blue{ background:radial-gradient(circle,rgba(54,197,240,.22),transparent 65%); }
+
+@media (prefers-reduced-motion: reduce){
+  .kind-glow{ animation:none !important; }
+}

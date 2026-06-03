@@ -2744,7 +2744,20 @@ Client → Billing → selects plan → Stripe checkout → webhook fires → su
 | **Stripe** | NOT a fixed fee — ~2.9% + 30¢ per transaction, free until money flows | per-sale |
 | **All-in (A+B+Claude)** | | **~$239–395/mo** |
 
-Break-even ≈ **3 paying clients** (~$80 blended ARPU). >90% margin thereafter.
+### 🎯 CASHFLOW & SALES TARGETS — actual costs (3 June 2026; full model in `docs/run-costs-and-cashflow.md` §5b)
+**Operating floor live now: ~$125/mo** (Supabase $25 + Railway ~$20 + Resend $15.46 + Apollo $65). + failover ~$13 = **~$138/mo**. Claude Code dev $100–200 separate. Stripe = ~2.9% + 30¢/txn, not fixed.
+**Net contribution/client:** ~$76 @ $80 ARPU · ~$154 @ $160 ARPU.
+
+| Milestone | Clients @ $80 | Clients @ $160 |
+|---|---|---|
+| Break-even (infra) | **2** | **1** |
+| Break-even (incl. Claude Code dev) | **5** | **3** |
+| $1,000 MRR | 13 | 7 |
+| $5,000 MRR (founder salary) | 63 | 31 |
+| $10,000 MRR (first hire) | 125 | 63 |
+| $25,000 MRR (Series A) | 313 | 156 |
+
+**Funnel (40% trial→paid):** ~2.5 trials per paying client (~60 quality touches each). Dogfood engine + warm network + 1 agency partner (~10 clients/mo) are the levers. **ARPU is the #1 lever — push FIGSY upsell ($160+) after first leads land.** Margin >78% past ~10 clients.
 
 ### Railway API URL
 `https://kindapi-production-e64c.up.railway.app`

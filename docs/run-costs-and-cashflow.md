@@ -110,7 +110,71 @@ The difference between conservative and optimistic scenarios is primarily ARPU. 
 
 ---
 
+## 5b. UPDATED CASHFLOW & SALES TARGETS — ACTUAL COSTS (3 June 2026)
+*Rebuilt on the real locked-in stack, replacing the old $203 / Paystack assumptions. This is the version to set sales targets against.*
+
+### Locked monthly costs (actuals)
+| Line | Cost/mo |
+|---|---|
+| Supabase Pro | $25.00 |
+| Railway Pro (+usage) | ~$20.00 |
+| Resend Pro | $15.46 |
+| Apollo Basic | $65.00 |
+| **Operating floor (live now)** | **~$125/mo** |
+| + Render standby $7 + Cloudflare LB $5 + domain $1.25 (failover, soon) | +$13 |
+| **Operating floor + failover** | **~$138/mo** |
+| Claude Code (build investment, separate) | $100–200 |
+| Stripe processing | NOT fixed — ~2.9% + $0.30 per transaction |
+
+### Contribution per client
+At **$80 blended ARPU**: Stripe takes ~$2.62 (2.9% + 30¢) + ~$1 data (Apollo+Anthropic) → **net ~$76/client/mo**.
+At **$160 ARPU** (Growth profile): net ~$154/client/mo.
+
+### 🎯 SALES TARGET LADDER — the numbers to hit
+*Clients needed to clear each milestone. Two columns because ARPU is the biggest lever.*
+
+| Milestone | What it means | Clients @ $80 ARPU | Clients @ $160 ARPU |
+|---|---|---|---|
+| **Break-even (infra only)** | Stack pays for itself | **2** | **1** |
+| **Break-even (infra + failover)** | Resilient + self-funding | **2** | **1** |
+| **Break-even (incl. Claude Code dev)** | Whole operation self-funding | **5** | **3** |
+| **$1,000 MRR** | Comfortable; reinvest | **13** | **7** |
+| **$5,000 MRR** | Founder salary begins | **63** | **31** |
+| **$10,000 MRR** | First hire possible | **125** | **63** |
+| **$25,000 MRR** | Series A conversations | **313** | **156** |
+
+### 🎯 Your funnel targets (to convert outreach → paying clients)
+*Base assumption: 40% trial→paid. So each paying client needs ~2.5 trials.*
+
+| To land… | You need ~trials | Rough outreach (at ~4% reply→trial) |
+|---|---|---|
+| 1 paying client | 2.5 trials | ~60 quality touches |
+| 5 paying (all-in break-even) | ~13 trials | ~315 touches |
+| 13 paying ($1k MRR) | ~33 trials | ~815 touches |
+
+> The dogfood engine (FIGSY self-outreach) + warm network are how you hit the touch counts without paying for ads. One good agency **partner** can deliver ~10 clients/month alone — the single fastest lever.
+
+### Net profit by client count (ARPU $80, operating+failover $138/mo)
+| Clients | MRR | Stripe+data | Fixed | **Net/mo** | Margin |
+|---|---|---|---|---|---|
+| 1 | $80 | $4 | $138 | **−$62** | — |
+| **2** | $160 | $7 | $138 | **+$15** | 9% |
+| 3 | $240 | $11 | $138 | **+$91** | 38% |
+| 5 | $400 | $18 | $138 | **+$244** | 61% |
+| 10 | $800 | $36 | $138 | **+$626** | 78% |
+| 20 | $1,600 | $73 | $138 | **+$1,389** | 87% |
+| 50 | $4,000 | $181 | $222* | **+$3,597** | 90% |
+| 100 | $8,000 | $362 | $242** | **+$7,396** | 92% |
+| 165 | $13,200 | $597 | $242 | **+$12,361** | 94% |
+
+\* Apollo → Organization ($149) at ~50 clients · \** + Resend higher tier at scale
+
+**Break-even: 2 clients (infra) · 5 clients (incl. Claude Code dev).** After ~10 clients it's 78%+ margin — the model is almost pure margin once the fixed stack is covered. **The lever that matters is ARPU: a FIGSY client ($160+) is worth ~2× a starter ($80).** Push FIGSY upsell after first leads land.
+
+---
+
 ## 6. Three Scenarios — Month by Month
+*Note: net-profit columns below use the OLD $203 fixed stack — directional only. Use §5b for current break-even. Client-growth assumptions still hold.*
 
 ### 🔵 Conservative
 *Assumptions: 30% trial→paid conversion, 5% monthly churn, $80 blended ARPU*

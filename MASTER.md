@@ -52,6 +52,27 @@
 
 ---
 
+### 🎨 WEBSITE REDESIGN — break from Alta, own our look (decided 3 June)
+
+**Why:** the site was visually too close to Alta (code literally said "Alta-style" + "like Alta"). The cheaper challenger CANNOT look derivative — originality IS credibility. Reference borrowed = **ClickUp** (different field, invisible borrow). Content/headlines/wording are perfect and FROZEN — only the visual language changes.
+
+**LOCKED DECISIONS:**
+- **Positioning:** "AI Revenue Team" → **"AI Family"** (the agents are the founder's daughters' personalities — Milla = the brain, Vida = the connector; FIGSY the closer). Pair with a functional subline so B2B buyers still get "it makes money." Alta can never copy this.
+- **Colours:** Preview 1 vibrant **pink → purple → blue gradient** (`#FF2EC4 → #9A4DFF → #36C5F0`). Off Alta's flat `#7c3aed`. Must be consistent on every section, tab, and hero banner.
+- **Hero:** kill the 3-card grid (Alta tell). New **pinned scroll hero** — banner pins, agent transitions FIGSY → Milla → Vida in-frame as you scroll, then releases. One big cinematic agent at a time.
+- **Orbs/balls → soft drifting gradient glows + light grain.**
+- **Lower 3-agent grid:** KEEP (it's an explainer grid, not the Alta pattern) — re-skin + heading → "Meet your AI family."
+- **Build:** extract shared **`kind.css`** (colours/font/buttons/nav/footer/cards/glows) so consistency holds across all pages. Page-specific layout stays inline.
+- **Credibility:** real **logo coming from founder** (build with clean placeholder wordmark slot, drop in when supplied); **favicon + OG** to match; agent images keep dark backgrounds for now (swap later — not a launch blocker); compress 2MB PNGs → WebP later (founder tooling task).
+- **Don't-break:** preserve auth modal, dropdowns, CTAs, scroll-reveal, live chip; mobile fallback for pinned scroll; respect reduced-motion.
+
+**ROLLOUT PLAN:**
+- **TODAY (3 June):** rebuild the **homepage** only (new skin + pinned scroll hero + `kind.css` foundation). Homepage is what prospects judge first.
+- **TUESDAY (post-Monday launch):** roll the `kind.css` skin across the other 32 pages. ← **NOTE: this is the planned Tuesday work — change the rest of the site Tuesday.**
+- Monday's launch checklist (migrations/billing/legal/smoke tests) takes priority over redesign — homepage-first protects it.
+
+---
+
 ### ☀️ MORNING BRIEF — 3 June 2026 (built overnight, complete audit)
 
 **This is a real full-check — `scripts/full-check.sh` was RUN, not recalled. Results below are live.**

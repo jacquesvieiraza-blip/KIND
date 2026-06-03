@@ -52,6 +52,70 @@
 
 ---
 
+# ⭐ CANONICAL LIVE STATUS — SINGLE SOURCE OF TRUTH (3 June 2026, PM)
+**This block supersedes every older to-do list below it.** When asked for "an update," read THIS block + the most recent git log — do not recall from memory. Every item here was reconciled against the live code, build, and git this session (TSC clean ×3, 0 TODOs, 36 Calendly links all `kind-ai/demo`, reply-loop routes present). Older session blocks below (🎨 redesign, 🔴 FOUNDER TO-DO, 🤖 build queues, etc.) are HISTORICAL — kept for context, not the live list.
+
+## ✅ DONE — verified this session
+- **7 Supabase migrations** run (keystone + 5 standalone + stripe_sub_id); fixed `figsy_leads`→`leads` FK bug in 2 of them.
+- **Upgrades paid:** Supabase **Pro $25** (daily backups; Free had NONE), Railway **Pro**, Resend **Pro $15.46**, Apollo **Basic $65**. → operating floor **~$125/mo**.
+- **Env confirmed in Railway API:** `ADMIN_SECRET_KEY`, `RESEND_WEBHOOK_SECRET`.
+- **Boot-blocker FIXED:** `credits.ts` no longer crashes the API when legacy `PAYSTACK_SECRET_KEY` is absent (was a silent killer for the Render standby). TSC clean.
+- **Companies House submitted:** K.I.N.D Technologies Ltd, ltd by shares, SIC 62012/62020/63110, ref 116-471065. Number pending ≤2 wd.
+- **Legal entity swapped** in terms.html / dpa.html / portal terms — company number = `[COMPANY NUMBER PENDING]` token (4 spots, 30-sec swap on arrival).
+- **Costs + cashflow rebuilt** on actual numbers (this doc §17 + `docs/run-costs-and-cashflow.md` §5b). Break-even = **2 clients infra / 5 all-in**.
+- Build health verified: TSC clean (portal/api/admin), 0 TODO/FIXME, all work pushed to `claude/ai-business-roadmap-U3OWJ`.
+
+## 👤 FOUNDER — OPEN ITEMS (priority order, every item, deduped)
+
+### 🔴 TIER 1 — blocks selling or testing
+- [ ] **Wire the Resend INBOUND webhook** → `https://<api>/figsy/replies/inbound` (Resend dashboard → domain → Inbound). *Route + secret exist; without the webhook pointed, replies never reach the Portal Inbox = you can't see or answer prospects.* ← **the #1 gap, not previously tracked**
+- [ ] **Stripe go-live:** add **6** bundle price IDs → Railway **Portal** (`NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100`, `..._FIGSY_20/40/100`); add **2** subs → Railway **API** (`STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`); confirm `STRIPE_WEBHOOK_SECRET`. (Blocks billing + smoke test T5.)
+- [ ] **Dogfood account = how we get clients:** create K.I.N.D account at app.get-kind.com → build ICP (your ideal clients) → admin grant FIGSY + credits → set `FIGSY_KIND_CLIENT_ID` (Railway API) → set `booking_url` in Settings. Turns on the Monday self-outreach cron.
+- [ ] **Confirm Calendly `calendly.com/kind-ai/demo` is LIVE** (36 site/email links point at it; dead = every CTA broken).
+
+### 🟠 TIER 2 — prove it works
+- [ ] **3 feature flags:** `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → Railway **API**; `FEATURE_PORTAL_V2=true` → Railway **Portal** (code reads it in portal, NOT api).
+- [ ] **Smoke tests** `docs/SMOKE_TEST.md` end-to-end — **Saturday AND Sunday**; log failures `T#-Step#` → Claude fixes.
+
+### 🟡 TIER 3 — before real clients lean on it
+- [ ] Render API standby ($7) · [ ] Cloudflare LB for `api.get-kind.com` ($5) · [ ] then update `NEXT_PUBLIC_API_URL=https://api.get-kind.com` (Railway Portal+Admin)
+- [ ] Cloudflare Pages CDN for website (`CLOUDFLARE_API_TOKEN`+`ACCOUNT_ID` → GitHub secrets) · [ ] `/health` path on all 3 Railway services · [ ] UptimeRobot (free)
+- [ ] (optional $14/mo) portal+admin Render standbys
+
+### 🟢 TIER 4 — legal (gated on company number, ≤2 days)
+- [ ] **Send Claude the company number** → swaps 4 `[COMPANY NUMBER PENDING]` tokens
+- [ ] ICO registration £40/yr (ico.org.uk) · [ ] Wise Business account (free)
+- [ ] SEIS advance assurance (free, file soon — 3-yr clock from incorporation)
+- [ ] Trademarks K.I.N.D+FIGSY+Milla+Vida ~£320 (can wait for revenue) · [ ] SeedLegals IP assignment ~£600 (wait until raise)
+
+### ⚪ TIER 5 — parked / optional (NOT launch blockers)
+- [ ] Email inbox: Google Workspace $12/mo OR free Cloudflare Email Routing forward of hello@get-kind.com
+- [ ] WhatsApp/Meta — **PARKED** (no Facebook account; not on the money path)
+- [ ] Google Calendar OAuth · Vapi voice · Clearbit · PhantomBuster · `FOUNDER_EMAIL` · `status.get-kind.com` CNAME
+
+### ⚪ TIER 6 — GTM (after smoke tests pass)
+- [ ] 10 warm outreach msgs · [ ] G2 listing · [ ] Capterra listing · [ ] LinkedIn 1 post/day (dogfood story) · [ ] 1–2 design partners · [ ] Product Hunt (LAST, after 2–3 proof points)
+
+### ⚪ TIER 7 — compliance (later)
+- [ ] AI Risk Register · [ ] GDPR/CCPA badges on trust page · [ ] compliance page in sales deck
+
+## 🤖 CLAUDE — OPEN ITEMS (priority order)
+- [ ] Walk founder through the **Resend inbound webhook** check (paired with founder Tier-1 #1)
+- [ ] Swap `[COMPANY NUMBER PENDING]` → real number when provided (terms/dpa/portal)
+- [ ] **Fix stale `DEPLOYMENT_GUIDE.md`** (still says Vercel — a trap if followed)
+- [ ] **Scrub 25 stale "Vercel" refs in MASTER** (Railway-only)
+- [ ] Fix smoke-test failures as reported
+- [ ] Roll `kind.css` across the other 32 website pages (Tuesday, post-launch)
+- [ ] 3 blog articles (WhatsApp B2B / cold-email reply rate / AI SDR)
+- [ ] Draft SEIS application + trademark class list (on request)
+- [ ] Wire playbook email form to Mailchimp/ConvertKit (needs founder's provider+key)
+
+## ⚠️ HONEST RISK FLAGS (don't lose)
+- Resend inbound webhook unverified (Tier-1 #1). · Portal/admin have NO failover (only API standby built) — acceptable for launch, logged. · DEPLOYMENT_GUIDE.md + 25 MASTER lines still say Vercel (contradict Railway-only). · 3 older migrations (MASTER_SCHEMA / fix_subscriptions / drip_and_controls) status "unclear" — reconcile migration covers their columns idempotently; revisit only if a smoke test throws missing-column.
+
+---
+*— historical session blocks below; superseded by the canonical block above —*
+
 ### 🎨 WEBSITE REDESIGN — break from Alta, own our look (decided 3 June)
 
 **Why:** the site was visually too close to Alta (code literally said "Alta-style" + "like Alta"). The cheaper challenger CANNOT look derivative — originality IS credibility. Reference borrowed = **ClickUp** (different field, invisible borrow). Content/headlines/wording are perfect and FROZEN — only the visual language changes.

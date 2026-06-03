@@ -156,7 +156,6 @@
 - [ ] **Roll `kind.css`** across 32 remaining website pages (Tuesday, post-launch)
 - [ ] **YouTube 10-video content plan** — mapped to ICP + KIND story (on request)
 - [ ] **3 blog articles** — WhatsApp B2B / cold-email reply rates in Africa / AI SDR vs human SDR
-- [ ] **Fix Vida rate limiting** — public `/widget/:clientId/message` endpoint has no IP rate limit; add `express-rate-limit` (5 req/min per IP) before smoke tests
 - [ ] **Draft SEIS advance assurance application + trademark class list** (on request)
 - [ ] **Wire playbook email form** (needs founder's email provider choice + API key)
 
@@ -169,8 +168,8 @@
 | Resend inbound webhook not wired | 🔴 Critical | Tier 1 founder action |
 | Stripe not live (no price IDs in Railway) | 🔴 Critical | Tier 1 founder action |
 | No paying clients yet | 🔴 Critical | GTM launch after smoke tests |
-| Vida public widget — no rate limiting | 🟠 Medium | Claude to fix before smoke tests |
 | `DEPLOYMENT_GUIDE.md` says Vercel | 🟠 Medium | Claude to fix |
+| Supabase region unverified in repo | 🟡 Low | Dashboard setting — confirm POPIA region (af-south-1 Cape Town intended); not assertable from code |
 | Company number pending | 🟡 Low | Arrives this week |
 | `KIND_Roadmap.md` / `KIND_SOP.md` contradict MASTER | 🟡 Low | Claude to archive |
 | No trademark protection | 🟡 Low | Deferred to revenue |
@@ -183,7 +182,7 @@
 
 | Integration | Status | Notes |
 |-------------|--------|-------|
-| Supabase (DB + auth) | ✅ Live | Pro, EU region (GDPR) |
+| Supabase (DB + auth) | ✅ Live | Pro plan, daily backups. Region = dashboard setting (confirm POPIA region) |
 | Railway (hosting) | ✅ Live | Pro, 3 services auto-deploy |
 | Claude / Anthropic | ✅ Live | Sonnet 4.6 (Milla, FIGSY) + Haiku 4.5 (scoring, scraping) |
 | Apollo.io | ✅ Live | Basic $65/mo, ICP search + enrichment |
@@ -213,12 +212,12 @@
 | Base Year 1 ARR | $158K (10 clients avg) |
 | Optimistic Year 1 ARR | $336K (20 clients avg) |
 
-**Pricing (LOCKED — never changed):**
-- Lead Gen credits: $1/credit — bundles: 20/$20 · 40/$38 · 100/$88
-- FIGSY credits: $3/credit — bundles: 20/$60 · 40/$110 · 100/$250
-- Milla: $49/mo subscription
-- Vida: $39/mo subscription
-- Bundle (Milla + Vida): $69/mo
+**Pricing (LOCKED — verified against `packages/shared/src/constants/index.ts` 3 Jun):**
+- Lead Gen credits: $1/credit — bundles: 20/$20 · 40/$40 · 100/$100
+- FIGSY credits: $3/credit — bundles: 20/$60 · 40/$120 · 100/$300
+- Milla (Virtual Assistant): $49/mo
+- Vida (Chatbot): **$29/mo** (not $39 — corrected 3 Jun)
+- Bundle (Milla + Vida): $69/mo (saves $9)
 - Partner commission: 20% Lead Gen · 25% FIGSY · 30% Agents · +10% volume bonus (5+ clients/mo)
 
 ---

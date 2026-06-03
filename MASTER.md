@@ -68,6 +68,7 @@
 ## 👤 FOUNDER — OPEN ITEMS (priority order, every item, deduped)
 
 ### 🔴 TIER 1 — blocks selling or testing
+- [ ] **Set `FOUNDER_EMAIL` in Railway API** → `jacques.vieiraza@gmail.com` (or `partners@get-kind.com`). Without this, partner applications save to Supabase but you get **zero notification email**. ← confirmed gap 3 Jun 2026
 - [ ] **Wire the Resend INBOUND webhook** → `https://<api>/figsy/replies/inbound` (Resend dashboard → domain → Inbound). *Route + secret exist; without the webhook pointed, replies never reach the Portal Inbox = you can't see or answer prospects.* ← **the #1 gap, not previously tracked**
 - [ ] **Stripe go-live:** add **6** bundle price IDs → Railway **Portal** (`NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100`, `..._FIGSY_20/40/100`); add **2** subs → Railway **API** (`STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`); confirm `STRIPE_WEBHOOK_SECRET`. (Blocks billing + smoke test T5.)
 - [ ] **Dogfood account = how we get clients:** create K.I.N.D account at app.get-kind.com → build ICP (your ideal clients) → admin grant FIGSY + credits → set `FIGSY_KIND_CLIENT_ID` (Railway API) → set `booking_url` in Settings. Turns on the Monday self-outreach cron.
@@ -95,6 +96,11 @@
 
 ### ⚪ TIER 6 — GTM (after smoke tests pass)
 - [ ] 10 warm outreach msgs · [ ] G2 listing · [ ] Capterra listing · [ ] LinkedIn 1 post/day (dogfood story) · [ ] 1–2 design partners · [ ] Product Hunt (LAST, after 2–3 proof points)
+
+#### 🌍 CHANNEL PARTNERS
+| Partner | Region | Status | Notes |
+|---------|--------|--------|-------|
+| TBC | Nigeria / Africa | 🟡 Inbound — follow up | First channel partner. Onboard via partners.get-kind.com once `FOUNDER_EMAIL` is set and smoke tests pass. |
 
 ### ⚪ TIER 7 — compliance (later)
 - [ ] AI Risk Register · [ ] GDPR/CCPA badges on trust page · [ ] compliance page in sales deck

@@ -169,7 +169,7 @@
 | Stripe not live (no price IDs in Railway) | 🔴 Critical | Tier 1 founder action |
 | No paying clients yet | 🔴 Critical | GTM launch after smoke tests |
 | `DEPLOYMENT_GUIDE.md` says Vercel | 🟠 Medium | Claude to fix |
-| Supabase region unverified in repo | 🟡 Low | Dashboard setting — confirm POPIA region (af-south-1 Cape Town intended); not assertable from code |
+| ~~Supabase region~~ | ✅ Resolved | af-south-1 Cape Town (POPIA) — confirmed in locked decisions |
 | Company number pending | 🟡 Low | Arrives this week |
 | `KIND_Roadmap.md` / `KIND_SOP.md` contradict MASTER | 🟡 Low | Claude to archive |
 | No trademark protection | 🟡 Low | Deferred to revenue |
@@ -182,7 +182,7 @@
 
 | Integration | Status | Notes |
 |-------------|--------|-------|
-| Supabase (DB + auth) | ✅ Live | Pro plan, daily backups. Region = dashboard setting (confirm POPIA region) |
+| Supabase (DB + auth) | ✅ Live | Pro plan, daily backups, **af-south-1 (Cape Town)** for POPIA |
 | Railway (hosting) | ✅ Live | Pro, 3 services auto-deploy |
 | Claude / Anthropic | ✅ Live | Sonnet 4.6 (Milla, FIGSY) + Haiku 4.5 (scoring, scraping) |
 | Apollo.io | ✅ Live | Basic $65/mo, ICP search + enrichment |

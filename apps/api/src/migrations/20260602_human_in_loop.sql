@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.figsy_approval_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
   campaign_id UUID NOT NULL REFERENCES public.figsy_campaigns(id) ON DELETE CASCADE,
-  lead_id UUID NOT NULL REFERENCES public.figsy_leads(id) ON DELETE CASCADE,
+  lead_id UUID NOT NULL REFERENCES public.leads(id) ON DELETE CASCADE,
   sequence_step INTEGER NOT NULL DEFAULT 1,
   to_email TEXT NOT NULL,
   subject TEXT NOT NULL,

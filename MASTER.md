@@ -1,6 +1,6 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 2 June 2026**
-**Business: UK registration pending (Companies House) · Platform: Africa-first, world-ready**
+**Single source of truth. Last updated: 3 June 2026 (PM session)**
+**Business: UK registration pending (Companies House ref 116-471065) · Platform: Africa-first, world-ready**
 
 ---
 
@@ -53,74 +53,222 @@
 ---
 
 # ⭐ CANONICAL LIVE STATUS — SINGLE SOURCE OF TRUTH (3 June 2026, PM)
-**This block supersedes every older to-do list below it.** When asked for "an update," read THIS block + the most recent git log — do not recall from memory. Every item here was reconciled against the live code, build, and git this session (TSC clean ×3, 0 TODOs, 36 Calendly links all `kind-ai/demo`, reply-loop routes present). Older session blocks below (🎨 redesign, 🔴 FOUNDER TO-DO, 🤖 build queues, etc.) are HISTORICAL — kept for context, not the live list.
+**This block supersedes every older to-do list below it.** When asked for "an update," read THIS block + the most recent git log. Older session blocks below are HISTORICAL — kept for context, not the live list.
 
-## ✅ DONE — verified this session
-- **7 Supabase migrations** run (keystone + 5 standalone + stripe_sub_id); fixed `figsy_leads`→`leads` FK bug in 2 of them.
-- **Upgrades paid:** Supabase **Pro $25** (daily backups; Free had NONE), Railway **Pro**, Resend **Pro $15.46**, Apollo **Basic $65**. → operating floor **~$125/mo**.
-- **Env confirmed in Railway API:** `ADMIN_SECRET_KEY`, `RESEND_WEBHOOK_SECRET`.
-- **Boot-blocker FIXED:** `credits.ts` no longer crashes the API when legacy `PAYSTACK_SECRET_KEY` is absent (was a silent killer for the Render standby). TSC clean.
-- **Companies House submitted:** K.I.N.D Technologies Ltd, ltd by shares, SIC 62012/62020/63110, ref 116-471065. Number pending ≤2 wd.
-- **Legal entity swapped** in terms.html / dpa.html / portal terms — company number = `[COMPANY NUMBER PENDING]` token (4 spots, 30-sec swap on arrival).
-- **Costs + cashflow rebuilt** on actual numbers (this doc §17 + `docs/run-costs-and-cashflow.md` §5b). Break-even = **2 clients infra / 5 all-in**.
-- Build health verified: TSC clean (portal/api/admin), 0 TODO/FIXME, all work pushed to `claude/ai-business-roadmap-U3OWJ`.
+---
 
-## 👤 FOUNDER — OPEN ITEMS (priority order, every item, deduped)
+## ✅ CONFIRMED COMPLETE (all verified, committed, live on main)
 
-### 🔴 TIER 0 — do these first (5 minutes, unblocks everything)
-- [ ] **Merge `claude/ai-business-roadmap-U3OWJ` → `main`** — hero click fix (Meet Milla was opening Vida), credits.ts boot-blocker fix, all 7 migrations, legal entity swap, cashflow rebuild are all sitting on this branch and **NOT LIVE**. Merge = deploy.
-- [ ] **Set `FOUNDER_EMAIL` in Railway API** → `jacques.vieiraza@gmail.com` (or `partners@get-kind.com`). Without this, partner applications save to Supabase but you get **zero notification email**. ← confirmed gap 3 Jun 2026
+### Infrastructure & Ops
+- **Branch `claude/ai-business-roadmap-U3OWJ` merged → main** (PR #426, 3 Jun PM) — all fixes live
+- **7 Supabase migrations** run — keystone schema reconcile + 5 standalone + stripe_sub_id; FK bug fixed (`figsy_leads`→`leads`)
+- **Paid upgrades:** Supabase Pro $25 (daily backups), Railway Pro, Resend Pro $15.46, Apollo Basic $65 → floor **~$125/mo**
+- **Boot-blocker FIXED** — `credits.ts` no longer crashes API when `PAYSTACK_SECRET_KEY` absent
+- **Hero click bug FIXED** — Meet Milla was opening Vida (pointer-events management added to scroll handler)
+- **Env confirmed in Railway API:** `ADMIN_SECRET_KEY`, `RESEND_WEBHOOK_SECRET`
+- **TSC clean** (portal/api/admin), 0 TODO/FIXME in source
 
-### 🔴 TIER 1 — blocks selling or testing
-- [ ] **Wire the Resend INBOUND webhook** → `https://<api>/figsy/replies/inbound` (Resend dashboard → domain → Inbound). *Route + secret exist; without the webhook pointed, replies never reach the Portal Inbox = you can't see or answer prospects.* ← **the #1 gap**
-- [ ] **Stripe go-live:** add **6** bundle price IDs → Railway **Portal** (`NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100`, `..._FIGSY_20/40/100`); add **2** subs → Railway **API** (`STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`); confirm `STRIPE_WEBHOOK_SECRET`. (Blocks billing + smoke test T5.)
-- [ ] **Dogfood account = how we get clients:** create K.I.N.D account at app.get-kind.com → build ICP (your ideal clients) → admin grant FIGSY + credits → set `FIGSY_KIND_CLIENT_ID` (Railway API) → set `booking_url` in Settings. Turns on the Monday self-outreach cron.
-- [ ] **Confirm Calendly `calendly.com/kind-ai/demo` is LIVE** (36 site/email links point at it; dead = every CTA broken).
+### Products (code-complete, deployed)
+- **FIGSY** — AI SDR, campaign orchestration, reply intelligence, FIGSY Memory, 19 API endpoints, 5 cron jobs
+- **Lead Gen** — ICP builder, Apollo 3-pass search, Claude lead scoring, POPIA consent, drip (10/day)
+- **Milla** — Virtual assistant, Stripe subscription wired, awaiting price ID in Railway
+- **Vida** — Chatbot agent, Stripe subscription wired, awaiting price ID in Railway
+- **Portal** — Client dashboard (leads, campaigns, billing, inbox, settings, documents, roadmap)
+- **Admin** — Founder control centre (KPIs, client mgmt, compliance, revenue, partner management)
+- **Website** — 30+ pages (landing, pricing, about, use cases, comparisons, partners, legal)
+- **19 cron jobs** running — campaign perf, lead drip, health, briefs, subscription expiry
+- **Founder morning brief** — daily 07:05 SAST (platform health, FIGSY 24h, revenue, alerts)
 
-### 🟠 TIER 2 — prove it works
-- [ ] **3 feature flags:** `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → Railway **API**; `FEATURE_PORTAL_V2=true` → Railway **Portal** (code reads it in portal, NOT api).
-- [ ] **Smoke tests** `docs/SMOKE_TEST.md` end-to-end — **Saturday AND Sunday**; log failures `T#-Step#` → Claude fixes.
+### Legal & Compliance (all docs written, deployed)
+- **T&Cs, Privacy Policy, DPA, DPA-US** — ECTA/POPIA/GDPR/CCPA compliant
+- **Legal entity swapped** to K.I.N.D Technologies Ltd in terms.html / dpa.html / portal terms
+- **`[COMPANY NUMBER PENDING]`** token in 4 spots — 30-sec swap on Companies House email
+- **Companies House submitted** — K.I.N.D Technologies Ltd, ltd by shares, SIC 62012/62020/63110, ref 116-471065. Number pending ≤2 wd
+- **Smartsheet employment legal review DONE (3 Jun)** — lawyer consulted, risk assessed, proceeding ✅. Key: built after hours, personal equipment. Clause 17.2 risk acknowledged and accepted.
 
-### 🟡 TIER 3 — before real clients lean on it
-- [ ] Render API standby ($7) · [ ] Cloudflare LB for `api.get-kind.com` ($5) · [ ] then update `NEXT_PUBLIC_API_URL=https://api.get-kind.com` (Railway Portal+Admin)
-- [ ] Cloudflare Pages CDN for website (`CLOUDFLARE_API_TOKEN`+`ACCOUNT_ID` → GitHub secrets) · [ ] `/health` path on all 3 Railway services · [ ] UptimeRobot (free)
-- [ ] (optional $14/mo) portal+admin Render standbys
+### Financials
+- **Costs + cashflow rebuilt** on actual numbers — `docs/run-costs-and-cashflow.md` §5b
+- **Break-even:** 2 clients (infra only) / 5 clients (all-in inc Claude Code)
+- **Gross margin:** 95%+
 
-### 🟢 TIER 4 — legal (gated on company number, ≤2 days)
-- [ ] **Send Claude the company number** → swaps 4 `[COMPANY NUMBER PENDING]` tokens
-- [ ] ICO registration £40/yr (ico.org.uk) · [ ] Wise Business account (free)
-- [ ] SEIS advance assurance (free, file soon — 3-yr clock from incorporation)
-- [ ] Trademarks K.I.N.D+FIGSY+Milla+Vida ~£320 (can wait for revenue) · [ ] SeedLegals IP assignment ~£600 (wait until raise)
+---
 
-### ⚪ TIER 5 — parked / optional (NOT launch blockers)
-- [ ] Email inbox: Google Workspace $12/mo OR free Cloudflare Email Routing forward of hello@get-kind.com
-- [ ] WhatsApp/Meta — **PARKED** (no Facebook account; not on the money path)
-- [ ] Google Calendar OAuth · Vapi voice · Clearbit · PhantomBuster · `FOUNDER_EMAIL` · `status.get-kind.com` CNAME
+## 👤 FOUNDER — OPEN ITEMS (priority order, every item)
 
-### ⚪ TIER 6 — GTM (after smoke tests pass)
-- [ ] 10 warm outreach msgs · [ ] G2 listing · [ ] Capterra listing · [ ] LinkedIn 1 post/day (dogfood story) · [ ] 1–2 design partners · [ ] Product Hunt (LAST, after 2–3 proof points)
+### 🔴 TIER 1 — blocks selling (do this week)
+- [ ] **Set `FOUNDER_EMAIL`** → Railway API → `jacques.vieiraza@gmail.com`. Without this, partner applications save silently — zero notification email. ← confirmed gap 3 Jun
+- [ ] **Wire Resend INBOUND webhook** → Resend dashboard → your domain → Inbound → `https://<api-url>/figsy/replies/inbound`. Without this, every prospect reply vanishes — you cannot see or answer them. ← **#1 gap**
+- [ ] **Stripe go-live** — create 6 bundle price IDs → Railway **Portal** (`NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100`, `..._FIGSY_20/40/100`); create 2 subscription price IDs → Railway **API** (`STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`); confirm `STRIPE_WEBHOOK_SECRET`. Blocks all billing + smoke test T5.
+- [ ] **Confirm Calendly `calendly.com/kind-ai/demo` is LIVE** — 36 site + email links point to it; dead = every CTA broken.
+- [ ] **3 feature flags** → Railway: `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → API; `FEATURE_PORTAL_V2=true` → Portal.
+- [ ] **Create dogfood account** — app.get-kind.com → build ICP → Claude grants FIGSY + credits via admin → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API. Turns on Monday self-outreach cron. **This is how you get your first clients.**
 
-#### 🌍 CHANNEL PARTNERS
-| Partner | Region | Status | Notes |
-|---------|--------|--------|-------|
-| TBC | Nigeria / Africa | 🟡 Inbound — follow up | First channel partner. Onboard via partners.get-kind.com once `FOUNDER_EMAIL` is set and smoke tests pass. |
+### 🟠 TIER 2 — prove the platform works
+- [ ] **Smoke tests** — `docs/SMOKE_TEST.md`, Saturday + Sunday, log failures as `T#-Step#` → Claude fixes same day
+- [ ] **Onboarding run-through** (private, pre-Loom) — onboard yourself, note every friction point → Claude fixes → THEN record clean Loom videos. Strategy: clients who don't activate in week 1 almost never reach month 2.
 
-### ⚪ TIER 7 — compliance (later)
-- [ ] AI Risk Register · [ ] GDPR/CCPA badges on trust page · [ ] compliance page in sales deck
+### 🟡 TIER 3 — before clients stress-test it
+- [ ] Render API standby ($7) + Cloudflare LB for `api.get-kind.com` ($5) + update `NEXT_PUBLIC_API_URL` → Railway Portal + Admin
+- [ ] Cloudflare Pages CDN for website + `/health` paths on all 3 Railway services + UptimeRobot (free)
+- [ ] (optional $14/mo) Portal + admin Render standbys
+
+### 🟢 TIER 4 — legal (gated on company number, arrives this week)
+- [ ] **Send Claude the company number** → 30-sec swap of 4 `[COMPANY NUMBER PENDING]` tokens
+- [ ] **ICO registration** — ico.org.uk, £40/yr (data controller registration, legally required)
+- [ ] **Wise Business account** — free, needed for business banking before revenue
+- [ ] **SEIS advance assurance** — free to file, 3-yr clock starts from incorporation date. File soon.
+- [ ] Trademarks K.I.N.D + FIGSY + Milla + Vida ~£320 (can wait for first revenue)
+- [ ] SeedLegals IP assignment ~£600 (wait until raise/co-founder conversation)
+
+### ⚪ TIER 5 — GTM (after smoke tests pass)
+- [ ] **Nigeria/Africa channel partner** — follow up, send to partners.get-kind.com to apply formally. First channel partner.
+- [ ] **10 warm outreach messages** to personal network (this is how client 1 arrives)
+- [ ] **LinkedIn** — 1 post/day, dogfood story (FIGSY booking your own demos is the story)
+- [ ] **Design partners** — 1–2 companies, free/discounted access in exchange for testimonials + feedback
+- [ ] G2 listing · Capterra listing
+- [ ] Product Hunt — **LAST**, only after 2–3 proof points with real clients
+
+### ⚪ TIER 6 — content & brand (start post-smoke tests)
+- [ ] **YouTube channel** — set up, plan 10 videos before recording one. Loom onboarding videos do double duty (record once, use in product + YouTube).
+- [ ] **Loom videos** (record after private run-through, not before) — 3 videos: (1) Welcome to K.I.N.D, (2) Build your ICP, (3) Launch your first FIGSY campaign. 2–3 min each, clean, no friction.
+
+### ⚪ TIER 7 — parked (not on the money path right now)
+- [ ] WhatsApp/Meta — PARKED (no Facebook account; inbound only when active, never cold outreach)
+- [ ] Google Workspace — PARKED (Cloudflare Email Routing forward covers inbox at $0)
+- [ ] Vapi voice integration — Phase 2 (after lead quality baseline established)
+- [ ] Google Calendar OAuth · Clearbit · PhantomBuster
+
+### ⚪ TIER 8 — compliance (post-revenue)
+- [ ] AI Risk Register · GDPR/CCPA badges on trust page · compliance page in sales deck
+
+---
 
 ## 🤖 CLAUDE — OPEN ITEMS (priority order)
-- [ ] Walk founder through the **Resend inbound webhook** check (paired with founder Tier-1 #1)
-- [ ] Swap `[COMPANY NUMBER PENDING]` → real number when provided (terms/dpa/portal)
-- [ ] **Fix stale `DEPLOYMENT_GUIDE.md`** (still says Vercel — a trap if followed)
-- [ ] **Scrub 25 stale "Vercel" refs in MASTER** (Railway-only)
-- [ ] Fix smoke-test failures as reported
-- [ ] Roll `kind.css` across the other 32 website pages (Tuesday, post-launch)
-- [ ] 3 blog articles (WhatsApp B2B / cold-email reply rate / AI SDR)
-- [ ] Draft SEIS application + trademark class list (on request)
-- [ ] Wire playbook email form to Mailchimp/ConvertKit (needs founder's provider+key)
 
-## ⚠️ HONEST RISK FLAGS (don't lose)
-- Resend inbound webhook unverified (Tier-1 #1). · Portal/admin have NO failover (only API standby built) — acceptable for launch, logged. · DEPLOYMENT_GUIDE.md + 25 MASTER lines still say Vercel (contradict Railway-only). · 3 older migrations (MASTER_SCHEMA / fix_subscriptions / drip_and_controls) status "unclear" — reconcile migration covers their columns idempotently; revisit only if a smoke test throws missing-column.
+- [ ] **Walk founder through Resend inbound webhook setup** (step by step, when ready)
+- [ ] **Grant FIGSY + credits** to founder dogfood account via admin (when account created)
+- [ ] **Swap `[COMPANY NUMBER PENDING]` × 4** — terms.html, dpa.html, portal terms page (when number arrives)
+- [ ] **Fix smoke test failures** as reported Saturday/Sunday (same-day turnaround)
+- [ ] **Build onboarding v2 + Loom embed slots** — (1) post-onboard Welcome screen + 3 action buttons, (2) inline Loom cards on ICP + FIGSY pages, (3) day-0/3/7 Resend welcome email sequence (after smoke tests pass)
+- [x] ✅ **Fixed `DEPLOYMENT_GUIDE.md`** — Steps 3/4/5 rewritten Vercel→Railway, stale Stripe price vars corrected, env reference + deploy order + troubleshooting all Railway (3 Jun)
+- [x] ✅ **Archived `KIND_Roadmap.md` + `KIND_SOP.md`** → `docs/archive/` with README pointing to MASTER (3 Jun)
+- [ ] **Scrub remaining stale Vercel refs in MASTER body** (historical sections below the canonical block — ~30 refs, mostly in old session logs; low risk as they're under the "historical" line)
+- [ ] **Roll `kind.css`** across 32 remaining website pages (Tuesday, post-launch)
+- [ ] **YouTube 10-video content plan** — mapped to ICP + KIND story (on request)
+- [ ] **3 blog articles** — WhatsApp B2B / cold-email reply rates in Africa / AI SDR vs human SDR
+- [ ] **Draft SEIS advance assurance application + trademark class list** (on request)
+- [ ] **Wire playbook email form** (needs founder's email provider choice + API key)
+
+---
+
+## ⚠️ RISK FLAGS (honest, don't lose these)
+
+| Risk | Severity | Status |
+|------|----------|--------|
+| Resend inbound webhook not wired | 🔴 Critical | Tier 1 founder action |
+| Stripe not live (no price IDs in Railway) | 🔴 Critical | Tier 1 founder action |
+| No paying clients yet | 🔴 Critical | GTM launch after smoke tests |
+| `DEPLOYMENT_GUIDE.md` says Vercel | 🟠 Medium | Claude to fix |
+| ~~Supabase region~~ | ✅ Resolved | af-south-1 Cape Town (POPIA) — confirmed in locked decisions |
+| Company number pending | 🟡 Low | Arrives this week |
+| `KIND_Roadmap.md` / `KIND_SOP.md` contradict MASTER | 🟡 Low | Claude to archive |
+| No trademark protection | 🟡 Low | Deferred to revenue |
+| CCPA implementation incomplete | 🟡 Low | US expansion deferred |
+| Portal/admin have no failover | 🟡 Low | Acceptable for launch; Tier 3 |
+
+---
+
+## 🔌 INTEGRATIONS — FULL STATUS
+
+| Integration | Status | Notes |
+|-------------|--------|-------|
+| Supabase (DB + auth) | ✅ Live | Pro plan, daily backups, **af-south-1 (Cape Town)** for POPIA |
+| Railway (hosting) | ✅ Live | Pro, 3 services auto-deploy |
+| Claude / Anthropic | ✅ Live | Sonnet 4.6 (Milla, FIGSY) + Haiku 4.5 (scoring, scraping) |
+| Apollo.io | ✅ Live | Basic $65/mo, ICP search + enrichment |
+| Resend (sending) | ✅ Live | Pro $15.46/mo |
+| Resend (inbound webhook) | 🔴 Not wired | Tier 1 — prospect replies lost until done |
+| Stripe (code) | 🟠 Code done | Needs 8 env vars in Railway |
+| Calendly | 🟠 Linked | Needs confirmation it's live |
+| HubSpot | ⏸ Ready | Code ready, needs `HUBSPOT_API_KEY` |
+| Flutterwave | ⏸ Phase 2 | African local currencies (ZAR/NGN/KES/GHS) |
+| WhatsApp Business API | ⏸ Parked | Inbound only when active; no Facebook account yet |
+| Vapi (voice) | ⏸ Phase 2 | After lead quality baseline |
+| LinkedIn API | ⏸ Phase 2 | Post-launch |
+| Paystack | ❌ Removed | UK-based founder; replaced by Stripe |
+| Vercel | ❌ Removed | Railway-only |
+
+---
+
+## 💰 FINANCIAL SNAPSHOT
+
+| Metric | Figure |
+|--------|--------|
+| Monthly run cost (floor) | ~$125/mo |
+| Infra break-even | 2 clients |
+| All-in break-even (inc Claude Code) | 5 clients |
+| Gross margin | 95%+ |
+| Conservative Year 1 ARR | $57.6K (4 clients avg) |
+| Base Year 1 ARR | $158K (10 clients avg) |
+| Optimistic Year 1 ARR | $336K (20 clients avg) |
+
+**Pricing (LOCKED — verified against `packages/shared/src/constants/index.ts` 3 Jun):**
+- Lead Gen credits: $1/credit — bundles: 20/$20 · 40/$40 · 100/$100
+- FIGSY credits: $3/credit — bundles: 20/$60 · 40/$120 · 100/$300
+- Milla (Virtual Assistant): $49/mo
+- Vida (Chatbot): **$29/mo** (not $39 — corrected 3 Jun)
+- Bundle (Milla + Vida): $69/mo (saves $9)
+- Partner commission: 20% Lead Gen · 25% FIGSY · 30% Agents · +10% volume bonus (5+ clients/mo)
+
+---
+
+## 🌍 CHANNEL PARTNERS
+
+| Partner | Region | Status | Action |
+|---------|--------|--------|--------|
+| TBC (name pending) | Nigeria / Africa | 🟡 Inbound — first partner | Follow up → send to partners.get-kind.com |
+
+---
+
+## 🔒 LOCKED DECISIONS (never revisit)
+
+1. Pricing is fixed — never changed, never discounted
+2. Africa-first (SA, NG, KE, GH, EG, RW, TZ, UG, SN, CI) → US/UK Phase 2
+3. Railway only — no Vercel, no Netlify, no GoDaddy hosting
+4. Stripe primary, Flutterwave Phase 2, Paystack removed
+5. Claude Sonnet 4.6 for complex tasks, Haiku 4.5 for batch/scoring
+6. Outcome pricing — pay per lead delivered, not per seat
+7. Credit-based model — no monthly minimum, no seat pricing
+8. One-signature legal model (ECTA) — Order Form covers all PDFs by reference
+9. South Africa governing law (ECTA)
+10. No cold WhatsApp outreach — inbound + warm follow-up only
+11. Private limited by shares — SEIS-ready from Day 1
+12. POPIA + GDPR + CCPA compliance built into Day 1
+13. Supabase EU region (eu-west-1 Ireland) — GDPR
+14. No LinkedIn in MVP — Phase 2
+15. Agent images: Pixar 3D animated, NOT photorealistic
+16. No fake testimonials, no invented social proof — "we don't ever provide fake news"
+
+---
+
+## 🗓️ DEFERRED — PHASE 2 & BEYOND
+
+| Feature | Phase | Notes |
+|---------|-------|-------|
+| LinkedIn outreach | Phase 2 (June+) | OAuth complexity + rate limits |
+| Vapi voice calling | Phase 2 (July+) | Needs lead quality baseline first |
+| YouTube channel | Phase 2 | Plan 10 videos before recording one |
+| Onboarding v2 + Loom | Post smoke tests | Private run-through first, then record clean |
+| Partner program dashboard | Phase 2 | Infrastructure coded, portal needs UI |
+| HubSpot full sync | Phase 2 | API key needed to activate |
+| Flutterwave (African payments) | Phase 2 | Code ready, needs secret key |
+| WhatsApp Business API | Phase 2 | Needs Facebook account first |
+| REEVE (Revenue Execution) | Year 2 | |
+| LENA (Lead Nurture) | Year 2 | |
+| OTTO (Operations) | Year 2 | |
+| FIGSY Memory Level 2–3 | Year 2 | ICP auto-refinement + A/B testing |
+| MCP server (K.I.N.D as infra) | Year 2 | "Twilio of B2B outreach" |
+| Data licensing marketplace | Year 2+ | |
 
 ---
 *— historical session blocks below; superseded by the canonical block above —*

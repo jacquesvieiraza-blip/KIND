@@ -4,7 +4,9 @@
 
 **Version:** 2.1 · **Date:** June 2026  
 **Time required:** ~90 minutes end-to-end (first time)  
-**Prerequisites:** Accounts on Supabase, Railway, Vercel, Stripe, Anthropic, Apollo, Resend
+**Prerequisites:** Accounts on Supabase, Railway, Stripe, Anthropic, Apollo, Resend
+
+> ⚠️ **HOSTING: Railway ONLY.** Portal, Admin, API, and Website are all deployed as separate Railway services from the same monorepo (each with its own Root Directory). There is NO Vercel. If any older copy of this guide mentions Vercel, it is stale — follow the Railway steps below.
 
 ---
 
@@ -129,34 +131,33 @@ You should see: `{"status":"ok"}`.
 
 ---
 
-## Step 3: Vercel — Deploy the Portal (client-facing)
+## Step 3: Railway — Deploy the Portal (client-facing)
 
 **Time: ~10 minutes**
 
 ### 3a. Deploy
 
-1. Vercel → **Add New Project** → import `jacquesvieiraza-blip/KIND`
-2. Set **Framework Preset:** Next.js
-3. Set **Root Directory:** `apps/portal`
-4. Click **Deploy** (first deploy may fail before env vars — that's expected)
+1. Railway → your project → **New** → **GitHub Repo** → select `jacquesvieiraza-blip/KIND`
+2. On the new service → **Settings** → **Root Directory:** `apps/portal`
+3. Railway auto-detects Next.js. First deploy may fail before env vars — that's expected.
 
 ### 3b. Set environment variables
 
-Vercel → portal project → **Settings** → **Environment Variables**:
+Railway → portal service → **Variables**:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_API_URL=https://your-railway-url.up.railway.app
+NEXT_PUBLIC_API_URL=https://your-railway-api-url.up.railway.app
 ```
 
 ### 3c. Add custom domain
 
-Vercel → portal → **Settings** → **Domains** → add `app.get-kind.com`
+Railway → portal service → **Settings** → **Networking** → **Custom Domain** → add `app.get-kind.com` (then add the shown CNAME at your DNS provider).
 
 ### 3d. Redeploy
 
-Vercel → **Deployments** → three dots on latest → **Redeploy**
+Railway → portal service → **Deployments** → **Redeploy** latest.
 
 ### 3e. Verify
 
@@ -164,31 +165,32 @@ Go to `https://app.get-kind.com` → you should see the login page.
 
 ---
 
-## Step 4: Vercel — Deploy the Admin Portal
+## Step 4: Railway — Deploy the Admin Portal
 
 **Time: ~8 minutes**
 
 ### 4a. Deploy
 
-1. Vercel → **Add New Project** → import same repo
-2. Set **Root Directory:** `apps/admin`
-3. Set **Framework Preset:** Next.js
-4. Click **Deploy**
+1. Railway → project → **New** → **GitHub Repo** → same repo
+2. New service → **Settings** → **Root Directory:** `apps/admin`
+3. Railway auto-detects Next.js → it builds automatically.
 
 ### 4b. Set environment variables
+
+Railway → admin service → **Variables**:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_API_URL=https://your-railway-url.up.railway.app
-ADMIN_SECRET_KEY=your-admin-secret-key              ← same value as Railway
+NEXT_PUBLIC_API_URL=https://your-railway-api-url.up.railway.app
+ADMIN_SECRET_KEY=your-admin-secret-key              ← same value as the API service
 ```
 
-> The admin portal routes all management calls through the API using ADMIN_SECRET_KEY. The service role key is NOT used client-side in admin — all admin operations proxy through Railway.
+> The admin portal routes all management calls through the API using ADMIN_SECRET_KEY. The service role key is NOT used client-side in admin — all admin operations proxy through the API on Railway.
 
 ### 4c. Add custom domain
 
-Vercel → admin project → **Settings** → **Domains** → add `admin.get-kind.com`
+Railway → admin service → **Settings** → **Networking** → **Custom Domain** → add `admin.get-kind.com`.
 
 ### 4d. Redeploy and verify
 
@@ -196,28 +198,27 @@ Go to `https://admin.get-kind.com` → you should see the admin dashboard.
 
 ---
 
-## Step 5: Vercel — Deploy the Website
+## Step 5: Railway — Deploy the Website
 
 **Time: ~5 minutes**
 
 ### 5a. Deploy
 
-1. Vercel → **Add New Project** → import same repo
-2. Set **Framework Preset:** Other
-3. Set **Root Directory:** `apps/website`
-4. Set **Build command:** (leave empty or `echo done`)
-5. Set **Output directory:** `.`
-6. Click **Deploy**
+1. Railway → project → **New** → **GitHub Repo** → same repo
+2. New service → **Settings** → **Root Directory:** `apps/website`
+3. It's a static site — set **Build Command** to empty (or `echo done`) and serve the directory. Railway's static/Nixpacks build will serve `apps/website` directly.
 
 ### 5b. Add custom domains
 
-Vercel → website project → **Settings** → **Domains**:
+Railway → website service → **Settings** → **Networking** → **Custom Domain**:
 - Add `get-kind.com`
 - Add `www.get-kind.com`
 
 ### 5c. Verify
 
 Go to `https://get-kind.com` → you should see the marketing homepage.
+
+> **Note:** the website may alternatively be served via Cloudflare Pages CDN (see MASTER Tier 3) — but the canonical hosting is Railway.
 
 ---
 
@@ -356,12 +357,12 @@ Run through this checklist before going live with a real client.
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| Portal shows blank page | Missing env vars | Check Vercel env vars, redeploy |
-| Login works but dashboard errors | API not reachable | Check `NEXT_PUBLIC_API_URL` in Vercel, verify Railway is running |
+| Portal shows blank page | Missing env vars | Check Portal service Variables in Railway, redeploy |
+| Login works but dashboard errors | API not reachable | Check `NEXT_PUBLIC_API_URL` in the Portal service (Railway), verify the API service is running |
 | "Client not found" errors | RLS policy blocking | Confirm migrations ran, check client row exists in `clients` table |
 | Payment verify fails | Wrong Stripe key | Confirm test vs live keys match. Check STRIPE_SECRET_KEY in Railway. |
 | Webhook not arriving | Wrong URL, no events, or missing signing secret | Re-check Stripe → Webhooks URL, event list, and STRIPE_WEBHOOK_SECRET value |
-| Admin proxy 403 | ADMIN_SECRET_KEY mismatch | Confirm same value in Railway and Vercel admin env vars |
+| Admin proxy 403 | ADMIN_SECRET_KEY mismatch | Confirm same value in the API service and Admin service (both on Railway) |
 | AI ICP Suggest returns error | Missing Anthropic key | Check `ANTHROPIC_API_KEY` is set in Railway |
 | Demo leads not appearing | Apollo rate limit or quota | Check Railway logs for Apollo errors |
 | Terms Library shows upload errors | Bucket missing or not public | Create `agreement-templates` bucket in Supabase Storage (public) |
@@ -381,8 +382,8 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 APOLLO_API_KEY=your-apollo-key
 STRIPE_SECRET_KEY=sk_live_xxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxx
-STRIPE_PRICE_STARTER=price_xxxxx
-STRIPE_PRICE_GROWTH=price_xxxxx
+STRIPE_PRICE_MILLA_MONTHLY=price_xxxxx
+STRIPE_PRICE_VIDA_MONTHLY=price_xxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 RESEND_API_KEY=re_xxxxx
 ADMIN_SECRET_KEY=your-random-secret-string
@@ -391,15 +392,23 @@ FIGSY_REPLY_TO=replies@get-kind.com
 FIGSY_DAILY_SEND_LIMIT=20
 ```
 
-### `apps/portal` (Vercel)
+> **Stripe bundle price IDs** (the 6 `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100` + `..._FIGSY_20/40/100`) live on the **Portal** service, not the API. See Portal vars below.
+
+### `apps/portal` (Railway)
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_API_URL=https://kindapi-production-e64c.up.railway.app
+NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100=price_xxxxx
 ```
 
-### `apps/admin` (Vercel)
+### `apps/admin` (Railway)
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -408,7 +417,7 @@ NEXT_PUBLIC_API_URL=https://kindapi-production-e64c.up.railway.app
 ADMIN_SECRET_KEY=your-random-secret-string
 ```
 
-### `apps/website` (Vercel)
+### `apps/website` (Railway)
 
 No environment variables needed. Static HTML.
 
@@ -418,10 +427,10 @@ No environment variables needed. Static HTML.
 
 ```
 1. Supabase (schema + migrations + auth config + bucket)   ← no dependencies
-2. Railway (API + env vars)                                ← needs Supabase keys
-3. Vercel Portal                                           ← needs Railway URL + Supabase keys
-4. Vercel Admin                                            ← needs Railway URL + ADMIN_SECRET_KEY
-5. Vercel Website                                          ← no dependencies
+2. Railway API service (+ env vars)                        ← needs Supabase keys
+3. Railway Portal service                                  ← needs Railway API URL + Supabase keys
+4. Railway Admin service                                   ← needs Railway API URL + ADMIN_SECRET_KEY
+5. Railway Website service                                 ← no dependencies
 6. Google Workspace                                        ← needs domain DNS access
 7. Stripe products + webhook                               ← needs Railway URL for webhook
 8. Upload 5 PDFs via Admin → Terms Library                 ← needs Admin deployed + Storage bucket

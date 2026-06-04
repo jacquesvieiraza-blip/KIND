@@ -153,10 +153,10 @@
 - [x] ✅ **Fixed `DEPLOYMENT_GUIDE.md`** — Steps 3/4/5 rewritten Vercel→Railway, stale Stripe price vars corrected, env reference + deploy order + troubleshooting all Railway (3 Jun)
 - [x] ✅ **Archived `KIND_Roadmap.md` + `KIND_SOP.md`** → `docs/archive/` with README pointing to MASTER (3 Jun)
 - [ ] **Scrub remaining stale Vercel refs in MASTER body** (historical sections below the canonical block — ~30 refs, mostly in old session logs; low risk as they're under the "historical" line)
-- [ ] **Roll `kind.css`** across 32 remaining website pages (Tuesday, post-launch)
-- [ ] **YouTube 10-video content plan** — mapped to ICP + KIND story (on request)
-- [ ] **3 blog articles** — WhatsApp B2B / cold-email reply rates in Africa / AI SDR vs human SDR
-- [ ] **Draft SEIS advance assurance application + trademark class list** (on request)
+- [ ] **Full website branding pass** — roll `kind.css` + brand gradient + nav/footer + hero style across ALL remaining pages to match the main homepage. Every page should feel like the same site. Scope: 32 remaining pages in `apps/website/`. Do after smoke tests pass.
+- [x] ✅ **YouTube 10-video content plan** — saved to `docs/content/youtube-plan.md` (4 Jun)
+- [x] ✅ **3 blog articles** — saved to `docs/content/blog-articles.md` (4 Jun)
+- [x] ✅ **Draft SEIS advance assurance application + trademark class list** — saved to `docs/legal/seis-advance-assurance-draft.md` (4 Jun)
 - [ ] **Wire playbook email form** (needs founder's email provider choice + API key)
 
 ---

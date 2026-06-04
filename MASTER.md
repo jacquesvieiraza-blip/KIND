@@ -55,7 +55,8 @@
 2. **Move `FEATURE_PORTAL_V2=true` to the Portal service** (it's wrongly on API). 30 sec.
 3. **Create dogfood account** → ping Claude to grant FIGSY + credits.
 4. **Review + merge branch `claude/ai-business-roadmap-U3OWJ`** — contains Calendly fix, CRM dedup feature (needs migration 010 run), content docs, redacted chat-archive. Then run migration `010_crm_dedup.sql`.
-5. **DEMO CONTENT — "shoot once, cut many" (REVIEW TOGETHER, don't build yet):** the homepage #44 demo and social content are ONE production, not two. Plan to capture the real FIGSY flow (lead found → email sent → reply → meeting booked) ONCE at high res from the dogfood account, then cut it into: homepage muted auto-loop (16:9) · YouTube Shorts / Reels / TikTok (9:16, 15–30s) · LinkedIn native clip · 2-min Loom walkthrough · cold-email GIF. Frame capture for BOTH 16:9 and 9:16 crops up front (expensive to redo). Fold into `docs/content/youtube-plan.md`. **Blocked on:** dogfood account being live (→ Tier 0 + account creation first). Founder wants to scope this together before any build.
+5. **FIX DNS — all custom domains** (founder action in Railway + DNS provider — see DNS section below).
+6. **DEMO CONTENT — "shoot once, cut many" (REVIEW TOGETHER, don't build yet):** the homepage #44 demo and social content are ONE production, not two. Plan to capture the real FIGSY flow (lead found → email sent → reply → meeting booked) ONCE at high res from the dogfood account, then cut it into: homepage muted auto-loop (16:9) · YouTube Shorts / Reels / TikTok (9:16, 15–30s) · LinkedIn native clip · 2-min Loom walkthrough · cold-email GIF. Frame capture for BOTH 16:9 and 9:16 crops up front (expensive to redo). Fold into `docs/content/youtube-plan.md`. **Blocked on:** dogfood account being live (→ Tier 0 + account creation first). Founder wants to scope this together before any build.
 
 **Done 4 Jun:** company number 17260532 in all legal docs · FOUNDER_EMAIL · Resend inbound webhook · Stripe 8 price IDs + pricing fix · Calendly 404 fixed (all 40+ buttons) · API build crash solved (newline in STRIPE_WEBHOOK_SECRET) · 2/3 feature flags · **CRM dedup feature built (backend+portal, on branch)** · 3 blog articles · YouTube plan · SEIS+trademark draft · Glean competitor review + site-improvement items 44–47 · **chat backup (446MB private archive + 409 redacted logs committed)**.
 
@@ -150,16 +151,31 @@
 - Note: Paystack keys exposed were `sk_test_` (test mode) — lower priority but rotate for hygiene.
 
 ### 🔴 TIER 1 — blocks selling (do this week)
-- [x] ✅ **API build crash FIXED (4 Jun)** — root cause was a trailing newline baked into `STRIPE_WEBHOOK_SECRET`'s value (pasted with a line break). Nixpacks injects every var as `ENV`; the newline created a blank-named ENV → "ENV names can not be blank" on line 12. Fix: delete + re-add the var clean (typed, not pasted). Builds green. (The newline would also have broken Stripe webhook signature verification at runtime.)
+- [x] ✅ **API build crash FIXED (4 Jun)**
 - [x] ✅ **Set `FOUNDER_EMAIL`** → Railway API → `jacques.vieiraza@gmail.com` (4 Jun)
-- [x] ✅ **Wire Resend INBOUND webhook** → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound`, signing secret matches Railway (4 Jun)
-- [x] ✅ **Stripe go-live** — 6 bundle price IDs in Railway Portal + 2 subscription IDs in Railway API; pricing corrected in Stripe (Vida $29, FIGSY $3/cr) (4 Jun). ⚠️ Verify billing end-to-end in smoke test T5.
-- [x] ✅ **Calendly LIVE** — old `kind-ai/demo` was 404; founder created event 4 Jun, all 40+ buttons repointed to live `calendly.com/kind-ai-demo/new-meeting`
-- [x] ✅ **API + Portal online** — API restarted (new Stripe + FOUNDER_EMAIL vars loaded, `/health` OK); Portal green build with bundle prices baked in (4 Jun)
-- [~] **3 feature flags** — `FEATURE_CAMPAIGN_INTENT` + `FEATURE_ICP_BUILDER` ✅ set on API (correct). ⚠️ `FEATURE_PORTAL_V2` is currently on the API by mistake — it's read by **Portal**. TODO: add `FEATURE_PORTAL_V2=true` to the **@kind/portal** service (delete the stray API copy). ← **one flag left, wrong service**
-- [ ] **Create dogfood account** — app.get-kind.com → build ICP → Claude grants FIGSY + credits via admin → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API. Turns on Monday self-outreach cron. **This is how you get your first clients.** ← **still open**
+- [x] ✅ **Wire Resend INBOUND webhook** (4 Jun)
+- [x] ✅ **Stripe go-live** — 8 price IDs in Railway (4 Jun). ⚠️ Verify billing in smoke test T5.
+- [x] ✅ **Calendly LIVE** — all 40+ buttons repointed (4 Jun)
+- [x] ✅ **API + Portal online** (4 Jun)
+- [~] **3 feature flags** — `FEATURE_CAMPAIGN_INTENT` + `FEATURE_ICP_BUILDER` ✅ set. ⚠️ `FEATURE_PORTAL_V2` is on API by mistake — move to **Portal** service.
+- [ ] **Create dogfood account** — app.get-kind.com → build ICP → ping Claude to grant FIGSY + credits → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API.
 
-> **▶ TOMORROW START HERE (4 Jun EOD):** 1) Rotate exposed secrets (Tier 0 above) — Stripe live key first. 2) Move `FEATURE_PORTAL_V2` to Portal. 3) Create dogfood account → ping Claude to grant FIGSY + credits. Everything else below is green. Not live yet — no rush, do it fresh.
+### 🔴 TIER 1B — DNS (custom domains — blocks professional launch)
+> All services currently run on raw Railway URLs (`kindportal-production.up.railway.app` etc). These need proper custom domains before launch. Two steps per domain: (1) add in Railway service Settings → Custom Domain, (2) add CNAME in your DNS provider (Cloudflare).
+
+**Africa / UK stack (existing — fix now):**
+- [ ] `app.get-kind.com` → Railway **portal** service custom domain
+- [ ] `api.get-kind.com` → Railway **API** service custom domain
+- [ ] `admin.get-kind.com` → Railway **admin** service custom domain
+- [ ] `status.get-kind.com` → Railway status page (CNAME → `get-kind.com/status`)
+- [ ] After DNS live: update `NEXT_PUBLIC_API_URL` → `https://api.get-kind.com` in Railway Portal + Admin env vars
+- [ ] After DNS live: update Resend inbound webhook URL → `https://api.get-kind.com/figsy/replies/inbound`
+
+**US stack (new — build before simultaneous launch):**
+- [ ] `us.app.get-kind.com` → Railway **portal-us** service (build first, then DNS)
+- [ ] `us.api.get-kind.com` → Railway **api-us** service (build first, then DNS)
+
+> **▶ TOMORROW START HERE (4 Jun EOD):** 1) Rotate exposed secrets (Tier 0 above) — Stripe live key first. 2) Move `FEATURE_PORTAL_V2` to Portal. 3) Create dogfood account → ping Claude to grant FIGSY + credits. 4) Fix DNS for all custom domains. Everything else below is green.
 
 ### 🟠 TIER 2 — prove the platform works
 - [ ] **Smoke tests** — `docs/SMOKE_TEST.md`, Saturday + Sunday, log failures as `T#-Step#` → Claude fixes same day
@@ -231,6 +247,27 @@
 - [x] ✅ **Draft SEIS advance assurance application + trademark class list** — saved to `docs/legal/seis-advance-assurance-draft.md` (4 Jun)
 - [ ] **Wire playbook email form** (needs founder's email provider choice + API key)
 
+#### 🇺🇸 US MARKET LAUNCH — SIMULTANEOUS WITH AFRICA/UK (decided 4 Jun)
+*Both markets launch together. US clients get data in Virginia, Africa/UK clients in Cape Town. Same codebase, separate Railway stacks.*
+
+**Claude builds (no founder input needed):**
+- [ ] **Add AAA arbitration clause to `terms.html`** — one paragraph: US clients may elect binding arbitration under AAA rules (American Arbitration Association) instead of English courts. Standard US SaaS boilerplate.
+- [ ] **Update `privacy.html`** — add explicit US data residency statement: "US clients on us.app.get-kind.com have their data stored exclusively in us-east-1 (Virginia, USA)"
+- [ ] **Update homepage + pricing copy** — change "Africa-first. World-ready." hook to dual-market framing. Add "USD · US & UK teams welcome" to pricing. Spell out "USD" not just "$".
+- [ ] **Add CCPA + CAN-SPAM trust badges** to `trust.html` alongside existing POPIA/GDPR badges
+- [ ] **Region selector on signup flow** — website signup/CTA: one-step region picker ("Where is your business based? 🌍 Africa / UK / Rest of world → app.get-kind.com · 🇺🇸 United States → us.app.get-kind.com")
+- [ ] **Admin region switcher** — toggle in admin panel between af-south-1 and us-east-1 data views
+- [ ] **Dual-project migration checklist** — add step to deployment SOP: every migration runs on BOTH Supabase projects
+
+**Founder does (infrastructure):**
+- [ ] Create Supabase project `kind-us` in us-east-1 region → share credentials with Claude to wire env vars
+- [ ] Create Railway services `portal-us` + `api-us` → set env vars (US Supabase credentials, same other vars)
+- [ ] Run all existing migrations on `kind-us` Supabase project (Claude provides the commands)
+- [ ] Set DNS: `us.app.get-kind.com` + `us.api.get-kind.com` → Railway US services
+
+**Together (one decision needed):**
+- [ ] Confirm US portal subdomain preference: `us.app.get-kind.com` (recommended) vs `app.us.get-kind.com`
+
 ---
 
 ## ⚠️ RISK FLAGS (honest, don't lose these)
@@ -252,7 +289,9 @@
 | Dogfood account not created | 🟠 Medium | Tier 1 — this is how first clients arrive |
 | 32 website pages not yet on-brand | 🟠 Medium | Claude — branding pass after smoke tests |
 | No trademark protection | 🟡 Low | Deferred to revenue (draft + class list ready) |
-| CCPA implementation incomplete | 🟡 Low | US expansion deferred |
+| Custom domain DNS not set | 🔴 High | Tier 1B founder action — portal/api/admin still on raw Railway URLs |
+| US stack not built | 🟠 Medium | Claude + founder — simultaneous launch decision 4 Jun; needs Supabase us-east-1 + Railway US services |
+| CCPA implementation incomplete | 🟡 Low | Claude will update terms + privacy for US launch |
 | Portal/admin have no failover | 🟡 Low | Acceptable for launch; Tier 3 |
 
 ---

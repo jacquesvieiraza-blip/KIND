@@ -261,8 +261,9 @@
 **Claude builds (no founder input needed):**
 - [ ] **Add AAA arbitration clause to `terms.html`** — one paragraph: US clients may elect binding arbitration under AAA rules (American Arbitration Association) instead of English courts. Standard US SaaS boilerplate.
 - [ ] **Update `privacy.html`** — add explicit US data residency statement: "US clients on us.app.get-kind.com have their data stored exclusively in us-east-1 (Virginia, USA)"
-- [ ] **Update homepage + pricing copy** — change "Africa-first. World-ready." hook to dual-market framing. Add "USD · US & UK teams welcome" to pricing. Spell out "USD" not just "$".
-- [ ] **Add CCPA + CAN-SPAM trust badges** to `trust.html` alongside existing POPIA/GDPR badges
+- [ ] **Homepage subheadline** — add one line under the hero subhead: *"Built for B2B teams in Africa, the US, and the UK"* (or equivalent). Neutral dual-market framing, replaces Africa-only positioning.
+- [ ] **Pricing page copy** — (1) spell out "USD" not just "$" throughout, (2) add strip under headline: *"Billed in USD · Stripe-secured · Cancel anytime"*
+- [ ] **Add CCPA + CAN-SPAM compliance badges** to `trust.html` alongside existing POPIA/GDPR badges
 - [ ] **Region selector on signup flow** — website signup/CTA: one-step region picker ("Where is your business based? 🌍 Africa / UK / Rest of world → app.get-kind.com · 🇺🇸 United States → us.app.get-kind.com")
 - [ ] **Admin region switcher** — toggle in admin panel between af-south-1 and us-east-1 data views
 - [ ] **Dual-project migration checklist** — add step to deployment SOP: every migration runs on BOTH Supabase projects

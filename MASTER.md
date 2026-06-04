@@ -95,14 +95,26 @@
 
 ## 👤 FOUNDER — OPEN ITEMS (priority order, every item)
 
+### 🚨 TIER 0 — SECURITY (do FIRST next session — credentials exposed in chat 4 Jun)
+**On 4 Jun the full API variable list (incl. live secrets) was pasted into the Claude chat while debugging a build error. These MUST be rotated. Priority order:**
+- [ ] **`STRIPE_SECRET_KEY`** (`sk_live_...`) — rotate in Stripe → Developers → API keys → roll key. Update Railway API. **HIGHEST — live money key.**
+- [ ] **`SUPABASE_SERVICE_ROLE_KEY`** — rotate in Supabase → Settings → API. Full DB access, bypasses RLS. Update Railway API.
+- [ ] **`DATABASE_URL`** — DB password (`Necas!Denise@ckal66`) exposed. Reset Postgres password in Supabase → update `DATABASE_URL` in Railway API.
+- [ ] **`SUPABASE_ANON_KEY`** — rotates with the project JWT secret (do alongside service-role). Update API + Portal + Admin (it's `NEXT_PUBLIC_` in the front-ends).
+- [ ] **`ANTHROPIC_API_KEY`** · **`RESEND_API_KEY`** · **`RESEND_WEBHOOK_SECRET`** · **`APOLLO_API_KEY`** · **`HUBSPOT_API_KEY`** · **`ADMIN_SECRET_KEY`** · **`STRIPE_WEBHOOK_SECRET`** — rotate each at its provider, update Railway.
+- Note: Paystack keys exposed were `sk_test_` (test mode) — lower priority but rotate for hygiene.
+
 ### 🔴 TIER 1 — blocks selling (do this week)
+- [x] ✅ **API build crash FIXED (4 Jun)** — root cause was a trailing newline baked into `STRIPE_WEBHOOK_SECRET`'s value (pasted with a line break). Nixpacks injects every var as `ENV`; the newline created a blank-named ENV → "ENV names can not be blank" on line 12. Fix: delete + re-add the var clean (typed, not pasted). Builds green. (The newline would also have broken Stripe webhook signature verification at runtime.)
 - [x] ✅ **Set `FOUNDER_EMAIL`** → Railway API → `jacques.vieiraza@gmail.com` (4 Jun)
 - [x] ✅ **Wire Resend INBOUND webhook** → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound`, signing secret matches Railway (4 Jun)
 - [x] ✅ **Stripe go-live** — 6 bundle price IDs in Railway Portal + 2 subscription IDs in Railway API; pricing corrected in Stripe (Vida $29, FIGSY $3/cr) (4 Jun). ⚠️ Verify billing end-to-end in smoke test T5.
 - [x] ✅ **Calendly LIVE** — old `kind-ai/demo` was 404; founder created event 4 Jun, all 40+ buttons repointed to live `calendly.com/kind-ai-demo/new-meeting`
 - [x] ✅ **API + Portal online** — API restarted (new Stripe + FOUNDER_EMAIL vars loaded, `/health` OK); Portal green build with bundle prices baked in (4 Jun)
-- [ ] **3 feature flags** → Railway: `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → API; `FEATURE_PORTAL_V2=true` → Portal. ← **still open**
+- [~] **3 feature flags** — `FEATURE_CAMPAIGN_INTENT` + `FEATURE_ICP_BUILDER` ✅ set on API (correct). ⚠️ `FEATURE_PORTAL_V2` is currently on the API by mistake — it's read by **Portal**. TODO: add `FEATURE_PORTAL_V2=true` to the **@kind/portal** service (delete the stray API copy). ← **one flag left, wrong service**
 - [ ] **Create dogfood account** — app.get-kind.com → build ICP → Claude grants FIGSY + credits via admin → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API. Turns on Monday self-outreach cron. **This is how you get your first clients.** ← **still open**
+
+> **▶ TOMORROW START HERE (4 Jun EOD):** 1) Rotate exposed secrets (Tier 0 above) — Stripe live key first. 2) Move `FEATURE_PORTAL_V2` to Portal. 3) Create dogfood account → ping Claude to grant FIGSY + credits. Everything else below is green. Not live yet — no rush, do it fresh.
 
 ### 🟠 TIER 2 — prove the platform works
 - [ ] **Smoke tests** — `docs/SMOKE_TEST.md`, Saturday + Sunday, log failures as `T#-Step#` → Claude fixes same day

@@ -54,9 +54,10 @@
 1. **🚨 SECURITY — rotate exposed credentials** (pasted in chat 4 Jun while debugging). Order: `STRIPE_SECRET_KEY` (sk_live) → `SUPABASE_SERVICE_ROLE_KEY` → DB password (`DATABASE_URL`) → `SUPABASE_ANON_KEY` → then Anthropic/Resend/Apollo/HubSpot/Admin/Stripe-webhook keys. Claude will walk each step.
 2. **Move `FEATURE_PORTAL_V2=true` to the Portal service** (it's wrongly on API). 30 sec.
 3. **Create dogfood account** → ping Claude to grant FIGSY + credits.
-4. **Review + merge branch `claude/ai-business-roadmap-U3OWJ`** — contains Calendly fix, CRM dedup feature (needs migration 010 run), content docs. Then run migration `010_crm_dedup.sql`.
+4. **Review + merge branch `claude/ai-business-roadmap-U3OWJ`** — contains Calendly fix, CRM dedup feature (needs migration 010 run), content docs, redacted chat-archive. Then run migration `010_crm_dedup.sql`.
+5. **DEMO CONTENT — "shoot once, cut many" (REVIEW TOGETHER, don't build yet):** the homepage #44 demo and social content are ONE production, not two. Plan to capture the real FIGSY flow (lead found → email sent → reply → meeting booked) ONCE at high res from the dogfood account, then cut it into: homepage muted auto-loop (16:9) · YouTube Shorts / Reels / TikTok (9:16, 15–30s) · LinkedIn native clip · 2-min Loom walkthrough · cold-email GIF. Frame capture for BOTH 16:9 and 9:16 crops up front (expensive to redo). Fold into `docs/content/youtube-plan.md`. **Blocked on:** dogfood account being live (→ Tier 0 + account creation first). Founder wants to scope this together before any build.
 
-**Done 4 Jun:** company number 17260532 in all legal docs · FOUNDER_EMAIL · Resend inbound webhook · Stripe 8 price IDs + pricing fix · Calendly 404 fixed (all 40+ buttons) · API build crash solved (newline in STRIPE_WEBHOOK_SECRET) · 2/3 feature flags · **CRM dedup feature built (backend+portal, on branch)** · 3 blog articles · YouTube plan · SEIS+trademark draft · Glean competitor review + site-improvement items 44–47.
+**Done 4 Jun:** company number 17260532 in all legal docs · FOUNDER_EMAIL · Resend inbound webhook · Stripe 8 price IDs + pricing fix · Calendly 404 fixed (all 40+ buttons) · API build crash solved (newline in STRIPE_WEBHOOK_SECRET) · 2/3 feature flags · **CRM dedup feature built (backend+portal, on branch)** · 3 blog articles · YouTube plan · SEIS+trademark draft · Glean competitor review + site-improvement items 44–47 · **chat backup (446MB private archive + 409 redacted logs committed)**.
 
 ---
 

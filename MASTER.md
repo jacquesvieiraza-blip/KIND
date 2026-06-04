@@ -187,11 +187,33 @@
 - [ ] Cloudflare Pages CDN for website + `/health` paths on all 3 Railway services + UptimeRobot (free)
 - [ ] (optional $14/mo) Portal + admin Render standbys
 
+### 🔒 EXPOSURE MINIMISATION — FOUNDER STAYS INVISIBLE (locked decision, 4 Jun)
+> **Goal: the BUSINESS (K.I.N.D) gets coverage; the FOUNDER (you) is not personally visible anywhere.** Driven by the Bradley Arterton / Revolut Business incident — he found you because Companies House published "K.I.N.D Technologies Ltd → director Jacques Vieira" the day you incorporated, a sales tool scraped it, matched your name to your LinkedIn, and auto-sent a connection request + pitch ("Congrats on forming your new company!"). An employer could do the identical lookup. This is the threat model.
+>
+> **HARD LEGAL FLOOR (cannot be changed):** As a UK Ltd director + Person with Significant Control (PSC), your *name* is permanently public on the Companies House register. This is law — it cannot be removed or suppressed. Everything below minimises every *other* signal and breaks the cross-reference chain, but the name itself stays public. Plan around that fact.
+
+**Address & register (do this week — highest value):**
+- [ ] **SR01 — suppress home address on Companies House** — free, companieshouse.gov.uk · removes your residential address from the public register (the most sensitive leaked field). Apply now.
+- [ ] **Registered office address service** — ~£20-50/yr · 1st Formations / Hoxton Mix · replaces your home address as the company's public registered office on all future filings.
+- [ ] **Director service (correspondence) address** — set this to the registered-office service address too, NOT your home. Separate field on Companies House; both must be changed.
+- [ ] **Domain WHOIS privacy** — confirm `get-kind.com` registration uses WHOIS redaction/privacy (no personal name/home address/personal email in public WHOIS). Most registrars do this free under GDPR — verify it's on.
+
+**Online footprint (founder personal = invisible):**
+- [ ] **LinkedIn privacy lockdown** — set profile to not appear in public search engines; restrict "who can see your connections"; turn off "viewers also viewed"; do NOT accept the Bradley/Revolut-type sales connection requests (accepting widens who can associate you with the company).
+- [ ] **Never add K.I.N.D to your personal LinkedIn / personal socials** — no employer, no "founder of", no company link.
+- [x] ✅ Website is already anonymised — `about.html` personal LinkedIn link → "Get in touch" mailto; `story.html` is an anonymous origin story (no name).
+- [ ] **All public-facing contact = business only** — `hello@get-kind.com`, never personal Gmail in any public place.
+- [ ] **Press / PR / testimonials** — attribute to "the K.I.N.D team" or a role title, never your personal name.
+
+**LinkedIn for BUSINESS coverage (decided: anonymous brand only):**
+- [ ] Coverage runs through a **K.I.N.D company page / brand handle**, not your personal profile. Founder story told anonymously ("I got tired of $1,250/mo tools, so I built one…") — no name, no face. (Supersedes any "personal founder content" note elsewhere in this doc.)
+
+> **Residual risk (be honest):** the company is already registered and already scraped (Bradley proves it). Your name being tied to K.I.N.D on the public register can't be undone. The above removes the home address, breaks the personal-profile link, and stops *future* easy cross-referencing — but an employer who specifically searches Companies House for your name will still see you're a director. Most don't; automated sales tools (like Revolut's) are the common case, and these steps blunt those. The address suppression is the single highest-value action.
+
 ### 🟢 TIER 4 — legal (this week — privacy + compliance)
 - [x] ✅ **Company number received: 17260532** — K.I.N.D Technologies Ltd. All 4 tokens swapped (4 Jun)
 - [ ] **ICO registration** — ico.org.uk · £40/yr · legal requirement for processing personal data · **do this week before launch** · without this every compliance claim on the site is exposed
-- [ ] **Suppress personal address on Companies House** — apply via form SR01 at companieshouse.gov.uk · free · removes your home address from the public register · prevents employer/social contacts finding personal address via Companies House. *Background: new company registrations are automatically scraped by sales tools — Revolut Business already found and messaged via LinkedIn (4 Jun). Employer could do same.*
-- [ ] **Get registered office address service** — ~£20-50/yr · 1st Formations or Hoxton Mix · do at the same time as SR01 · replaces personal address with a professional London address on all public filings going forward
+- [ ] **Companies House privacy** — see EXPOSURE MINIMISATION block above (SR01 + registered office + service address + WHOIS). Highest-value: SR01 home-address suppression.
 - [ ] **Wise Business account** — free, needed for business banking before revenue (Revolut Business also an option — multi-currency, good for Africa)
 - [ ] **Directors & Officers (D&O) insurance** — ~£500-1,000/yr · Hiscox/Markel/CFC · protects you personally as a director · do by Month 2
 - [ ] **SEIS advance assurance** — free to file, 3-yr clock starts from incorporation date. File soon. Draft at `docs/legal/seis-advance-assurance-draft.md`

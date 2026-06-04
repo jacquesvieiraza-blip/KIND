@@ -99,10 +99,10 @@
 - [x] ✅ **Set `FOUNDER_EMAIL`** → Railway API → `jacques.vieiraza@gmail.com` (4 Jun)
 - [x] ✅ **Wire Resend INBOUND webhook** → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound`, signing secret matches Railway (4 Jun)
 - [x] ✅ **Stripe go-live** — 6 bundle price IDs in Railway Portal + 2 subscription IDs in Railway API; pricing corrected in Stripe (Vida $29, FIGSY $3/cr) (4 Jun). ⚠️ Verify billing end-to-end in smoke test T5.
-- [ ] **Confirm Calendly `calendly.com/kind-ai/demo` is LIVE** — 36 site + email links point to it; dead = every CTA broken. ← **still open**
+- [x] ✅ **Calendly LIVE** — old `kind-ai/demo` was 404; founder created event 4 Jun, all 40+ buttons repointed to live `calendly.com/kind-ai-demo/new-meeting`
+- [x] ✅ **API + Portal online** — API restarted (new Stripe + FOUNDER_EMAIL vars loaded, `/health` OK); Portal green build with bundle prices baked in (4 Jun)
 - [ ] **3 feature flags** → Railway: `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → API; `FEATURE_PORTAL_V2=true` → Portal. ← **still open**
 - [ ] **Create dogfood account** — app.get-kind.com → build ICP → Claude grants FIGSY + credits via admin → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API. Turns on Monday self-outreach cron. **This is how you get your first clients.** ← **still open**
-- [ ] **Confirm API build is green** — Dockerfile fix merged 4 Jun (PR #434). Watch Railway API deploy. ← **verify now**
 
 ### 🟠 TIER 2 — prove the platform works
 - [ ] **Smoke tests** — `docs/SMOKE_TEST.md`, Saturday + Sunday, log failures as `T#-Step#` → Claude fixes same day
@@ -178,7 +178,7 @@
 | ~~Supabase region~~ | ✅ Resolved | af-south-1 Cape Town (POPIA) |
 | ~~Company number pending~~ | ✅ Resolved | 17260532 received + swapped 4 Jun |
 | ~~`KIND_Roadmap.md` / `KIND_SOP.md` contradict MASTER~~ | ✅ Resolved | Archived 3 Jun |
-| Calendly link unconfirmed | 🟠 Medium | Tier 1 founder action — confirm `calendly.com/kind-ai/demo` live |
+| Calendly link unconfirmed | 🟠 Medium | Tier 1 founder action — confirm `calendly.com/kind-ai-demo/new-meeting` live |
 | 3 feature flags not set in Railway | 🟠 Medium | Tier 1 founder action |
 | Dogfood account not created | 🟠 Medium | Tier 1 — this is how first clients arrive |
 | 32 website pages not yet on-brand | 🟠 Medium | Claude — branding pass after smoke tests |
@@ -377,7 +377,7 @@
 
 #### 🟠 MONDAY MADNESS — TURN ON YOUR OWN OUTBOUND ENGINE
 
-- [ ] Confirm **`calendly.com/kind-ai/demo`** Calendly event is LIVE — 37 occurrences across the entire site + FIGSY emails now point there. If it's dead, every CTA on the site is broken.
+- [ ] Confirm **`calendly.com/kind-ai-demo/new-meeting`** Calendly event is LIVE — 37 occurrences across the entire site + FIGSY emails now point there. If it's dead, every CTA on the site is broken.
 - [ ] Create the **K.I.N.D client account** at `app.get-kind.com` — sign up with any email you control. Onboard: Company = "K.I.N.D", build ICP = your ideal clients (SA B2B founders, SaaS, agencies doing outbound).
 - [ ] **Grant FIGSY + credits** to that account in the admin portal (client detail → grant credits).
 - [ ] Grab that account's `client_id` from admin → set **`FIGSY_KIND_CLIENT_ID=<uuid>`** in Railway API. This turns on the Monday self-outreach cron.
@@ -527,12 +527,12 @@
 1. **Create the K.I.N.D account** at `app.get-kind.com` — sign up with any email you control. Onboard: Company = "K.I.N.D", build the **ICP = our ideal clients** (e.g. SA B2B founders / agencies / SaaS doing outbound).
 2. **Unlock FIGSY + grant credits** for that account in the **admin portal** (client detail → grant credits; ensure FIGSY active).
 3. **Grab that account's `client_id`** (admin client detail) → set `FIGSY_KIND_CLIENT_ID=<uuid>` in Railway API. This turns on the Monday self-outreach cron (`findKindProspects` → auto-enrol).
-4. **Set your booking link** in portal Settings (`booking_url`) so FIGSY emails include it → prospects book straight into your calendar. (Booking link must be the NEUTRAL `calendly.com/kind-ai/demo` — see name note below.)
+4. **Set your booking link** in portal Settings (`booking_url`) so FIGSY emails include it → prospects book straight into your calendar. (Booking link must be the NEUTRAL `calendly.com/kind-ai-demo/new-meeting` — see name note below.)
 5. **(Optional)** `FIGSY_REPLY_TO` if you want replies somewhere other than `hello@get-kind.com`.
 6. **Watch replies** land in portal inbox / admin Unibox, auto-classified 🔥hot/warm/etc. Mark hot ones booked → moves the meetings KPI.
 
 **FOUNDER ACTIONS THIS NEEDS:**
-- [ ] Create/confirm the **neutral Calendly event `calendly.com/kind-ai/demo`** is LIVE (the whole site + FIGSY now point at it — see name scrub below).
+- [ ] Create/confirm the **neutral Calendly event `calendly.com/kind-ai-demo/new-meeting`** is LIVE (the whole site + FIGSY now point at it — see name scrub below).
 - [ ] Run reconcile SQL · set `ADMIN_SECRET_KEY` · confirm `RESEND_WEBHOOK_SECRET`.
 - [ ] Create K.I.N.D account, unlock FIGSY, set `FIGSY_KIND_CLIENT_ID`.
 
@@ -543,7 +543,7 @@
 ### 🕵️ NAME PRIVACY — "Jacques" scrubbed from the shipped product (2 June)
 
 Founder wants their name nowhere client-facing. Done across all shipped code:
-- ✅ Calendly URL `calendly.com/jacques-vieiraza/30min` → `calendly.com/kind-ai/demo` (37 occurrences, 20 files: website, portal, landing). **ACTION: confirm that neutral Calendly event is live.**
+- ✅ Calendly URL `calendly.com/jacques-vieiraza/30min` → `calendly.com/kind-ai-demo/new-meeting` (37 occurrences, 20 files: website, portal, landing). **ACTION: confirm that neutral Calendly event is live.**
 - ✅ about.html personal LinkedIn link → "Get in touch" (mailto).
 - ✅ landing form placeholder "Jacques" → "Your name".
 - ✅ Sample/demo lead "Jacques Marais" → "Thabo Nkosi"; admin seed/demo defaults → neutral; `FOUNDER_EMAIL` fallback → `hello@get-kind.com`.

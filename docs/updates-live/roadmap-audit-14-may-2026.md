@@ -382,7 +382,7 @@
 
 ### Current state
 - There is NO calendar integration anywhere in the codebase
-- The only calendar reference is a hardcoded text string `calendly.com/kind-ai/demo` inside an email draft in founder.ts
+- The only calendar reference is a hardcoded text string `calendly.com/kind-ai-demo/new-meeting` inside an email draft in founder.ts
 - Nothing connects to Calendly, Cal.com, Google Calendar, or any booking API
 - The marketing copy ("meetings booked to your calendar") is aspirational — it is not live
 

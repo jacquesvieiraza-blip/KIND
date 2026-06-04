@@ -66,6 +66,7 @@
 
 #### THIS WEEK — launch prep
 1. Rotate all credentials (TIER 0) · 2. Move FEATURE_PORTAL_V2 to Portal · 3. Create dogfood account · 4. Merge branch + run migration 010 · 5. Sat smoke test 1 · 6. Sun smoke test 2 · 7. Mon lock + confirm · 8. **Tue LAUNCH**
+9. **Register with ICO** — ico.org.uk · £40/yr · legal requirement · do before launch · 10. **Suppress personal address on Companies House** — apply free via form SR01 at companieshouse.gov.uk · removes home address from public register · 11. **Get registered office address service** — ~£20-50/yr (1st Formations or Hoxton Mix) · replaces personal address on Companies House with a professional address · prevents employer/social contacts finding your home address · **do alongside SR01**
 
 #### WEEK 1 POST-LAUNCH
 9. 10 warm personal outreach messages (LinkedIn/WhatsApp) · 10. LinkedIn founder content: 1 post/day from day 1 — dogfood story first · 11. Activate LinkedIn outreach (backend built — needs PhantomBuster keys + SQL migration) · 12. Start Meta/WhatsApp Business API application (3-7 day window, start immediately) · 13. Surface comparison + use-case pages in nav (#47 — all pages exist) · 14. Record real product demo — "shoot once, cut many" (Screen Studio, 16:9 + 9:16 same take) · 15. Cut #44 — replace homepage CSS animation with real product loop · 16. Instrument GTM funnel (outreach→reply→demo→close by channel, CAC, trial→paid by source)
@@ -169,12 +170,15 @@
 - [ ] Cloudflare Pages CDN for website + `/health` paths on all 3 Railway services + UptimeRobot (free)
 - [ ] (optional $14/mo) Portal + admin Render standbys
 
-### 🟢 TIER 4 — legal (gated on company number, arrives this week)
+### 🟢 TIER 4 — legal (this week — privacy + compliance)
 - [x] ✅ **Company number received: 17260532** — K.I.N.D Technologies Ltd. All 4 tokens swapped (4 Jun)
-- [ ] **ICO registration** — ico.org.uk, £40/yr (data controller registration, legally required)
-- [ ] **Wise Business account** — free, needed for business banking before revenue
-- [ ] **SEIS advance assurance** — free to file, 3-yr clock starts from incorporation date. File soon.
-- [ ] Trademarks K.I.N.D + FIGSY + Milla + Vida ~£320 (can wait for first revenue)
+- [ ] **ICO registration** — ico.org.uk · £40/yr · legal requirement for processing personal data · **do this week before launch** · without this every compliance claim on the site is exposed
+- [ ] **Suppress personal address on Companies House** — apply via form SR01 at companieshouse.gov.uk · free · removes your home address from the public register · prevents employer/social contacts finding personal address via Companies House. *Background: new company registrations are automatically scraped by sales tools — Revolut Business already found and messaged via LinkedIn (4 Jun). Employer could do same.*
+- [ ] **Get registered office address service** — ~£20-50/yr · 1st Formations or Hoxton Mix · do at the same time as SR01 · replaces personal address with a professional London address on all public filings going forward
+- [ ] **Wise Business account** — free, needed for business banking before revenue (Revolut Business also an option — multi-currency, good for Africa)
+- [ ] **Directors & Officers (D&O) insurance** — ~£500-1,000/yr · Hiscox/Markel/CFC · protects you personally as a director · do by Month 2
+- [ ] **SEIS advance assurance** — free to file, 3-yr clock starts from incorporation date. File soon. Draft at `docs/legal/seis-advance-assurance-draft.md`
+- [ ] Trademarks K.I.N.D + FIGSY + Milla + Vida ~£320 (Month 2-3 — after first revenue)
 - [ ] SeedLegals IP assignment ~£600 (wait until raise/co-founder conversation)
 
 ### ⚪ TIER 5 — GTM (after smoke tests pass)

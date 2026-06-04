@@ -281,14 +281,17 @@
 *Both markets launch together. US clients get data in Virginia, Africa/UK clients in Cape Town. Same codebase, separate Railway stacks.*
 
 **Claude builds (no founder input needed):**
-- [ ] **Add AAA arbitration clause to `terms.html`** — one paragraph: US clients may elect binding arbitration under AAA rules (American Arbitration Association) instead of English courts. Standard US SaaS boilerplate.
-- [ ] **Update `privacy.html`** — add explicit US data residency statement: "US clients on us.app.get-kind.com have their data stored exclusively in us-east-1 (Virginia, USA)"
-- [ ] **Homepage subheadline** — add one line under the hero subhead: *"Built for B2B teams in Africa, the US, and the UK"* (or equivalent). Neutral dual-market framing, replaces Africa-only positioning.
-- [ ] **Pricing page copy** — (1) spell out "USD" not just "$" throughout, (2) add strip under headline: *"Billed in USD · Stripe-secured · Cancel anytime"*
-- [ ] **Add CCPA + CAN-SPAM compliance badges** to `trust.html` alongside existing POPIA/GDPR badges
-- [ ] **Region selector on signup flow** — website signup/CTA: one-step region picker ("Where is your business based? 🌍 Africa / UK / Rest of world → app.get-kind.com · 🇺🇸 United States → us.app.get-kind.com")
-- [ ] **Admin region switcher** — toggle in admin panel between af-south-1 and us-east-1 data views
-- [ ] **Dual-project migration checklist** — add step to deployment SOP: every migration runs on BOTH Supabase projects
+- [x] ✅ **AAA arbitration clause in `terms.html`** — DONE (commit ab5acc3). Section 12 "US Clients — Arbitration Option".
+- [x] ✅ **`privacy.html` US data residency statement** — DONE (4 Jun). New para in §4: US clients on us.app.get-kind.com stored exclusively in us-east-1 (Virginia). Also fixed wrong purple `#9a4dff`→`#7c3aed`.
+- [x] ✅ **Homepage dual-market framing** — DONE (4 Jun). Trust bar + OG description now "Built for Africa, the US & the UK". Hero subhead left intact (strongest copy — deliberate).
+- [x] ✅ **Pricing page USD strip** — DONE (4 Jun). "Billed in USD · Stripe-secured · Cancel anytime · No contracts…".
+- [x] ✅ **CCPA + CAN-SPAM badges on `trust.html`** — already existed (audit confirmed lines 213–222). No action needed.
+- [x] ✅ **`terms.html` sub-processor bug fixed** — was listing Paystack + Vercel (both removed from stack); now Stripe + Railway only, Supabase region noted. (Bug surfaced in 4 Jun audit — published legal docs were inconsistent.)
+- [x] ✅ **Honest proof block fixed** — homepage proof strip had a FABRICATED "4/8 replies closed" stat (dogfood campaign hasn't run — account not yet created). Violated locked "no fake stats" rule. Replaced with honest "Live — real metrics populate at launch" pending state. (#45 build-now-populate-later satisfied.)
+- [x] ✅ **Dual-project migration checklist** — DONE. Added to `docs/DEPLOYMENT_GUIDE.md` §1b: every migration runs on BOTH Supabase projects (af-south-1 + us-east-1), schemas kept byte-identical.
+- [ ] **Region selector on signup flow** — ⏸ DEFERRED until US stack live. A picker that routes US users to `us.app.get-kind.com` is a dead link until the US Supabase + Railway + DNS exist (founder infra tasks below). Build the moment the US subdomain resolves.
+- [ ] **Admin region switcher** — ⏸ DEFERRED until `kind-us` Supabase exists. Switcher needs two live data sources; building against a non-existent project is throwaway work. Build right after founder creates `kind-us`.
+- [ ] **#47 — comparison pages into nav** — ⏸ FOLDED INTO website consistency pass. Adding a "Compare" dropdown to only the homepage nav would diverge it from the other 31 pages — the exact inconsistency the consistency pass exists to fix. Will add "Compare" (vs-apollo/outreach/salesloft/hiring-an-sdr/manual) to ALL navs in one pass post-smoke-test.
 
 **Founder does (infrastructure):**
 - [ ] Create Supabase project `kind-us` in us-east-1 region → share credentials with Claude to wire env vars

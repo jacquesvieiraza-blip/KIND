@@ -7,7 +7,7 @@
   <meta name="description" content="K.I.N.D Technologies Ltd Privacy Policy — how we collect, use, and protect your data under UK GDPR, POPIA, and CCPA." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --blue: #9a4dff; --border: rgba(255,255,255,0.08); }
+    :root { --blue: #7c3aed; --border: rgba(255,255,255,0.08); }
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; line-height: 1.6; overflow-x: hidden; }
     nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(16px); z-index: 200; }
@@ -45,7 +45,7 @@
     .section a:hover { text-decoration: underline; }
     .section strong { color: rgba(255,255,255,0.85); }
     .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    .pill { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(154,77,255,0.12); color: var(--blue); border: 1px solid rgba(154,77,255,0.25); border-radius: 20px; padding: 4px 12px; }
+    .pill { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(124,58,237,0.12); color: var(--blue); border: 1px solid rgba(124,58,237,0.25); border-radius: 20px; padding: 4px 12px; }
     footer { border-top: 1px solid var(--border); padding: 32px 48px; display: flex; align-items: center; justify-content: space-between; }
     footer p { font-size: 0.8rem; color: rgba(255,255,255,0.25); }
     .footer-links { display: flex; gap: 24px; }
@@ -143,6 +143,7 @@
   <div class="section" id="hosting">
     <h2>4. Data hosting &amp; transfers</h2>
     <p><strong>Database:</strong> All client account data and lead data is stored on <strong>Supabase</strong>, hosted in the <strong>af-south-1 region (Cape Town, South Africa)</strong>. This ensures data residency within Africa for POPIA compliance.</p>
+    <p><strong>US clients &mdash; data residency:</strong> Clients who sign up via <strong>us.app.get-kind.com</strong> have their account and lead data stored exclusively in the <strong>us-east-1 region (Virginia, USA)</strong> on a dedicated US Supabase instance. US client data does not leave the United States. All other clients (Africa, UK, rest of world) are hosted in Cape Town as above.</p>
     <p><strong>Application hosting:</strong> The K.I.N.D platform (Portal, API, Admin) runs on <strong>Railway</strong>, which operates on SOC 2-audited infrastructure. No personal data is stored in Railway environment variables — only configuration keys.</p>
     <p><strong>Email delivery:</strong> Outbound emails are sent via <strong>Resend</strong>, which processes recipient email addresses to deliver messages. Resend is GDPR-compliant.</p>
     <p><strong>Lead enrichment:</strong> Lead data is sourced via <strong>Apollo.io</strong>. Apollo maintains its own consent infrastructure for B2B contact data. We process Apollo data under lawful business purpose.</p>

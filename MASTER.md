@@ -275,23 +275,28 @@
 - [x] ✅ **Draft SEIS advance assurance application + trademark class list** — saved to `docs/legal/seis-advance-assurance-draft.md` (4 Jun)
 - [ ] **Wire playbook email form** (needs founder's email provider choice + API key)
 
-#### 🇺🇸 US MARKET LAUNCH — SIMULTANEOUS WITH AFRICA/UK (decided 4 Jun)
-*Both markets launch together. US clients get data in Virginia, Africa/UK clients in Cape Town. Same codebase, separate Railway stacks.*
+#### 🇺🇸 US MARKET LAUNCH — MONDAY, ALONGSIDE AFRICA/UK (decided 4 Jun)
+*Single URL `app.get-kind.com`, single Cape Town database serves ALL markets (US + Africa/UK). NO separate stacks, NO `us.` subdomains, NO second DB at launch. US data-residency option added later only if a signed enterprise contract requires it. See REGION ARCHITECTURE — LOCKED below. Everything needed to SELL to + BILL + run campaigns for US clients is done:*
 
-**Claude builds (no founder input needed):**
-- [x] ✅ **AAA arbitration clause in `terms.html`** — DONE (commit ab5acc3). Section 12 "US Clients — Arbitration Option".
-- [x] ✅ **`privacy.html` US data residency statement** — DONE (4 Jun). New para in §4: US clients on us.app.get-kind.com stored exclusively in us-east-1 (Virginia). Also fixed wrong purple `#9a4dff`→`#7c3aed`.
-- [x] ✅ **Homepage dual-market framing** — DONE (4 Jun). Trust bar + OG description now "Built for Africa, the US & the UK". Hero subhead left intact (strongest copy — deliberate).
-- [x] ✅ **Pricing page USD strip** — DONE (4 Jun). "Billed in USD · Stripe-secured · Cancel anytime · No contracts…".
-- [x] ✅ **CCPA + CAN-SPAM badges on `trust.html`** — already existed (audit confirmed lines 213–222). No action needed.
-- [x] ✅ **`terms.html` sub-processor bug fixed** — was listing Paystack + Vercel (both removed from stack); now Stripe + Railway only, Supabase region noted. (Bug surfaced in 4 Jun audit — published legal docs were inconsistent.)
-- [x] ✅ **Honest proof block fixed** — homepage proof strip had a FABRICATED "4/8 replies closed" stat (dogfood campaign hasn't run — account not yet created). Violated locked "no fake stats" rule. Replaced with honest "Live — real metrics populate at launch" pending state. (#45 build-now-populate-later satisfied.)
-- [x] ✅ **Dual-project migration checklist** — DONE. Added to `docs/DEPLOYMENT_GUIDE.md` §1b: every migration runs on BOTH Supabase projects (af-south-1 + us-east-1), schemas kept byte-identical.
-- [ ] **Region selector on signup flow** — ⏸ DEFERRED until US stack live. A picker that routes US users to `us.app.get-kind.com` is a dead link until the US Supabase + Railway + DNS exist (founder infra tasks below). Build the moment the US subdomain resolves.
-- [ ] **Admin region switcher** — ⏸ DEFERRED until `kind-us` Supabase exists. Switcher needs two live data sources; building against a non-existent project is throwaway work. Build right after founder creates `kind-us`.
-- [ ] **#47 — comparison pages into nav** — ⏸ FOLDED INTO website consistency pass. Adding a "Compare" dropdown to only the homepage nav would diverge it from the other 31 pages — the exact inconsistency the consistency pass exists to fix. Will add "Compare" (vs-apollo/outreach/salesloft/hiring-an-sdr/manual) to ALL navs in one pass post-smoke-test.
+**Claude builds — ALL DONE (verified in repo 4 Jun):**
+- [x] ✅ **AAA arbitration clause in `terms.html`** — commit ab5acc3. §12 "US Clients — Arbitration Option". *(verified present)*
+- [x] ✅ **`privacy.html` residency statement** — §4 now states: all data hosted in Cape Town (af-south-1); US has no B2B-SaaS residency law; CCPA-compliant; **US enterprise can request US residency** via hello@get-kind.com. Wrong purple `#9a4dff`→`#7c3aed` also fixed. *(verified — no `us.app` claim remains)*
+- [x] ✅ **Homepage dual-market framing** — trust bar + OG = "Built for Africa, the US & the UK". Hero subhead left intact (strongest copy — deliberate). *(verified, 2 hits)*
+- [x] ✅ **Pricing USD strip** — "Billed in USD · Stripe-secured · Cancel anytime · No contracts…". *(verified)*
+- [x] ✅ **CCPA + CAN-SPAM badges on `trust.html`** — already existed (lines 213–222). *(verified, both present)*
+- [x] ✅ **`terms.html` sub-processor bug fixed** — Paystack + Vercel (both off-stack) → Stripe + Railway only. Was contradicting privacy.html. *(verified — 0 Paystack/Vercel)*
+- [x] ✅ **#45 Honest proof block** — removed a LIVE fabricated "4/8 replies closed" stat (dogfood campaign hasn't run); now honest "Live — real metrics populate at launch, never placeholders". *(verified — 0 fake stat)*
+- [x] ✅ **#46 Homepage throughline** — founder-approved, applied: "One family, one shared memory — every agent learns from your market and feeds the others" (gradient on key phrase). *(verified present)*
+- [x] ✅ **Deployment SOP** — `docs/DEPLOYMENT_GUIDE.md` §1b: single-region at launch; dual-region migration rule documented for the future enterprise trigger only.
 
-**Founder infrastructure for US: NONE NEEDED.** Single URL, single Cape Town database serves US clients at launch. No `kind-us` project, no `portal-us`/`api-us`, no US DNS, no US migrations. (All deferred to the future-enterprise trigger below.)
+**Claude builds — NOT NEEDED at launch (single-DB decision closed these):**
+- [×] ~~Region selector on signup~~ — NOT NEEDED. One URL, one DB → nothing to select. (Two-URL selector was built then reverted when single-DB was locked.)
+- [×] ~~Admin region switcher~~ — NOT NEEDED. One DB → nothing to switch between.
+
+**Claude builds — gated post-smoke-test (folded into consistency pass):**
+- [ ] **#47 — comparison pages into nav** — add "Compare" dropdown (vs-apollo / vs-outreach / vs-salesloft / vs-hiring-an-sdr / vs-prospecting-manually) to ALL 32 pages in the one consistency pass, so navs stay identical. Doing only the homepage now would create the exact divergence the pass fixes.
+
+**Founder infrastructure for US: NONE.** No `kind-us`, no `portal-us`/`api-us`, no US DNS, no US migrations. US clients are served by the existing Cape Town stack on the existing single URL.
 
 ---
 

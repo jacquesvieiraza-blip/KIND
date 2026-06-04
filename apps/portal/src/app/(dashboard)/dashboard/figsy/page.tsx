@@ -657,7 +657,7 @@ export default function FigsyPage() {
               Upgrade to FIGSY →
             </a>
             <a
-              href="https://calendly.com/kind-ai/demo"
+              href="https://calendly.com/kind-ai-demo/new-meeting"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-purple-100/80"

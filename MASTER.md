@@ -1,6 +1,6 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 3 June 2026 (PM session)**
-**Business: UK registration pending (Companies House ref 116-471065) · Platform: Africa-first, world-ready**
+**Single source of truth. Last updated: 4 June 2026**
+**Business: K.I.N.D TECHNOLOGIES LTD — company number 17260532, registered England & Wales ✅ · Platform: Africa-first, world-ready**
 
 ---
 
@@ -96,12 +96,13 @@
 ## 👤 FOUNDER — OPEN ITEMS (priority order, every item)
 
 ### 🔴 TIER 1 — blocks selling (do this week)
-- [ ] **Set `FOUNDER_EMAIL`** → Railway API → `jacques.vieiraza@gmail.com`. Without this, partner applications save silently — zero notification email. ← confirmed gap 3 Jun
-- [ ] **Wire Resend INBOUND webhook** → Resend dashboard → your domain → Inbound → `https://<api-url>/figsy/replies/inbound`. Without this, every prospect reply vanishes — you cannot see or answer them. ← **#1 gap**
-- [ ] **Stripe go-live** — create 6 bundle price IDs → Railway **Portal** (`NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100`, `..._FIGSY_20/40/100`); create 2 subscription price IDs → Railway **API** (`STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`); confirm `STRIPE_WEBHOOK_SECRET`. Blocks all billing + smoke test T5.
-- [ ] **Confirm Calendly `calendly.com/kind-ai/demo` is LIVE** — 36 site + email links point to it; dead = every CTA broken.
-- [ ] **3 feature flags** → Railway: `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → API; `FEATURE_PORTAL_V2=true` → Portal.
-- [ ] **Create dogfood account** — app.get-kind.com → build ICP → Claude grants FIGSY + credits via admin → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API. Turns on Monday self-outreach cron. **This is how you get your first clients.**
+- [x] ✅ **Set `FOUNDER_EMAIL`** → Railway API → `jacques.vieiraza@gmail.com` (4 Jun)
+- [x] ✅ **Wire Resend INBOUND webhook** → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound`, signing secret matches Railway (4 Jun)
+- [x] ✅ **Stripe go-live** — 6 bundle price IDs in Railway Portal + 2 subscription IDs in Railway API; pricing corrected in Stripe (Vida $29, FIGSY $3/cr) (4 Jun). ⚠️ Verify billing end-to-end in smoke test T5.
+- [x] ✅ **Calendly LIVE** — old `kind-ai/demo` was 404; founder created event 4 Jun, all 40+ buttons repointed to live `calendly.com/kind-ai-demo/new-meeting`
+- [x] ✅ **API + Portal online** — API restarted (new Stripe + FOUNDER_EMAIL vars loaded, `/health` OK); Portal green build with bundle prices baked in (4 Jun)
+- [ ] **3 feature flags** → Railway: `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → API; `FEATURE_PORTAL_V2=true` → Portal. ← **still open**
+- [ ] **Create dogfood account** — app.get-kind.com → build ICP → Claude grants FIGSY + credits via admin → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API. Turns on Monday self-outreach cron. **This is how you get your first clients.** ← **still open**
 
 ### 🟠 TIER 2 — prove the platform works
 - [ ] **Smoke tests** — `docs/SMOKE_TEST.md`, Saturday + Sunday, log failures as `T#-Step#` → Claude fixes same day
@@ -145,7 +146,9 @@
 
 ## 🤖 CLAUDE — OPEN ITEMS (priority order)
 
-- [ ] **Walk founder through Resend inbound webhook setup** (step by step, when ready)
+- [x] ✅ **Walked founder through Resend inbound webhook setup** — wired + verified 4 Jun
+- [x] ✅ **Fixed API build crash** — Nixpacks generated blank ENV name; replaced with explicit Dockerfile (PR #434, 4 Jun)
+- [ ] **Fix Portal/Admin build if they hit the same Nixpacks blank-name crash** — Portal needs `NEXT_PUBLIC_` vars at build time, so needs a Dockerfile with build ARGs or a verified-clean Nixpacks. Handle when Portal redeploys.
 - [ ] **Grant FIGSY + credits** to founder dogfood account via admin (when account created)
 - [x] ✅ **Swap `[COMPANY NUMBER PENDING]` × 4** — DONE 4 Jun, number 17260532
 - [ ] **Fix smoke test failures** as reported Saturday/Sunday (same-day turnaround)
@@ -153,10 +156,10 @@
 - [x] ✅ **Fixed `DEPLOYMENT_GUIDE.md`** — Steps 3/4/5 rewritten Vercel→Railway, stale Stripe price vars corrected, env reference + deploy order + troubleshooting all Railway (3 Jun)
 - [x] ✅ **Archived `KIND_Roadmap.md` + `KIND_SOP.md`** → `docs/archive/` with README pointing to MASTER (3 Jun)
 - [ ] **Scrub remaining stale Vercel refs in MASTER body** (historical sections below the canonical block — ~30 refs, mostly in old session logs; low risk as they're under the "historical" line)
-- [ ] **Roll `kind.css`** across 32 remaining website pages (Tuesday, post-launch)
-- [ ] **YouTube 10-video content plan** — mapped to ICP + KIND story (on request)
-- [ ] **3 blog articles** — WhatsApp B2B / cold-email reply rates in Africa / AI SDR vs human SDR
-- [ ] **Draft SEIS advance assurance application + trademark class list** (on request)
+- [ ] **Full website branding pass** — roll `kind.css` + brand gradient + nav/footer + hero style across ALL remaining pages to match the main homepage. Every page should feel like the same site. Scope: 32 remaining pages in `apps/website/`. Do after smoke tests pass.
+- [x] ✅ **YouTube 10-video content plan** — saved to `docs/content/youtube-plan.md` (4 Jun)
+- [x] ✅ **3 blog articles** — saved to `docs/content/blog-articles.md` (4 Jun)
+- [x] ✅ **Draft SEIS advance assurance application + trademark class list** — saved to `docs/legal/seis-advance-assurance-draft.md` (4 Jun)
 - [ ] **Wire playbook email form** (needs founder's email provider choice + API key)
 
 ---
@@ -165,14 +168,21 @@
 
 | Risk | Severity | Status |
 |------|----------|--------|
-| Resend inbound webhook not wired | 🔴 Critical | Tier 1 founder action |
-| Stripe not live (no price IDs in Railway) | 🔴 Critical | Tier 1 founder action |
+| ~~API Dockerfile untested~~ | ✅ Resolved | 4 Jun — reverted ALL services to Nixpacks (deleted API/Portal/Admin Dockerfiles). Root cause of the original API crash was the bad `KIND Production` variable (space in name), now deleted. Nixpacks proven clean on Portal; API should build clean post-deletion. ⚠️ Watch the first post-merge API build to confirm. |
 | No paying clients yet | 🔴 Critical | GTM launch after smoke tests |
-| `DEPLOYMENT_GUIDE.md` says Vercel | 🟠 Medium | Claude to fix |
-| ~~Supabase region~~ | ✅ Resolved | af-south-1 Cape Town (POPIA) — confirmed in locked decisions |
-| Company number pending | 🟡 Low | Arrives this week |
-| `KIND_Roadmap.md` / `KIND_SOP.md` contradict MASTER | 🟡 Low | Claude to archive |
-| No trademark protection | 🟡 Low | Deferred to revenue |
+| ~~Portal/Admin Nixpacks blank-name crash~~ | ✅ Not a risk | 4 Jun — Portal builds clean on Nixpacks (zero failures, green build with Stripe `NEXT_PUBLIC_` vars baked in). Crash was unique to one bad API variable (`KIND Production`, space in name — deleted). Portal/Admin Dockerfiles deleted 4 Jun — all services on Nixpacks. |
+| ~~Resend inbound webhook not wired~~ | ✅ Resolved | Wired 4 Jun → `/figsy/replies/inbound`, secret matches Railway |
+| ~~Stripe not live~~ | ✅ Resolved | 8 price IDs added to Railway (6 Portal + 2 API), pricing corrected (Vida $29, FIGSY $3/cr) 4 Jun |
+| ~~`FOUNDER_EMAIL` not set~~ | ✅ Resolved | Set in Railway API 4 Jun |
+| ~~`DEPLOYMENT_GUIDE.md` says Vercel~~ | ✅ Resolved | Fixed 3 Jun |
+| ~~Supabase region~~ | ✅ Resolved | af-south-1 Cape Town (POPIA) |
+| ~~Company number pending~~ | ✅ Resolved | 17260532 received + swapped 4 Jun |
+| ~~`KIND_Roadmap.md` / `KIND_SOP.md` contradict MASTER~~ | ✅ Resolved | Archived 3 Jun |
+| Calendly link unconfirmed | 🟠 Medium | Tier 1 founder action — confirm `calendly.com/kind-ai-demo/new-meeting` live |
+| 3 feature flags not set in Railway | 🟠 Medium | Tier 1 founder action |
+| Dogfood account not created | 🟠 Medium | Tier 1 — this is how first clients arrive |
+| 32 website pages not yet on-brand | 🟠 Medium | Claude — branding pass after smoke tests |
+| No trademark protection | 🟡 Low | Deferred to revenue (draft + class list ready) |
 | CCPA implementation incomplete | 🟡 Low | US expansion deferred |
 | Portal/admin have no failover | 🟡 Low | Acceptable for launch; Tier 3 |
 
@@ -187,8 +197,8 @@
 | Claude / Anthropic | ✅ Live | Sonnet 4.6 (Milla, FIGSY) + Haiku 4.5 (scoring, scraping) |
 | Apollo.io | ✅ Live | Basic $65/mo, ICP search + enrichment |
 | Resend (sending) | ✅ Live | Pro $15.46/mo |
-| Resend (inbound webhook) | 🔴 Not wired | Tier 1 — prospect replies lost until done |
-| Stripe (code) | 🟠 Code done | Needs 8 env vars in Railway |
+| Resend (inbound webhook) | ✅ Wired | `/figsy/replies/inbound`, secret matches Railway (4 Jun) |
+| Stripe (billing) | ✅ Live | 8 price IDs in Railway (6 Portal + 2 API), pricing corrected (4 Jun) |
 | Calendly | 🟠 Linked | Needs confirmation it's live |
 | HubSpot | ⏸ Ready | Code ready, needs `HUBSPOT_API_KEY` |
 | Flutterwave | ⏸ Phase 2 | African local currencies (ZAR/NGN/KES/GHS) |
@@ -244,7 +254,7 @@
 10. No cold WhatsApp outreach — inbound + warm follow-up only
 11. Private limited by shares — SEIS-ready from Day 1
 12. POPIA + GDPR + CCPA compliance built into Day 1
-13. Supabase EU region (eu-west-1 Ireland) — GDPR
+13. Supabase **af-south-1 (Cape Town)** — POPIA data residency (corrected 4 Jun; earlier "eu-west-1 Ireland" note was stale)
 14. No LinkedIn in MVP — Phase 2
 15. Agent images: Pixar 3D animated, NOT photorealistic
 16. No fake testimonials, no invented social proof — "we don't ever provide fake news"
@@ -367,7 +377,7 @@
 
 #### 🟠 MONDAY MADNESS — TURN ON YOUR OWN OUTBOUND ENGINE
 
-- [ ] Confirm **`calendly.com/kind-ai/demo`** Calendly event is LIVE — 37 occurrences across the entire site + FIGSY emails now point there. If it's dead, every CTA on the site is broken.
+- [ ] Confirm **`calendly.com/kind-ai-demo/new-meeting`** Calendly event is LIVE — 37 occurrences across the entire site + FIGSY emails now point there. If it's dead, every CTA on the site is broken.
 - [ ] Create the **K.I.N.D client account** at `app.get-kind.com` — sign up with any email you control. Onboard: Company = "K.I.N.D", build ICP = your ideal clients (SA B2B founders, SaaS, agencies doing outbound).
 - [ ] **Grant FIGSY + credits** to that account in the admin portal (client detail → grant credits).
 - [ ] Grab that account's `client_id` from admin → set **`FIGSY_KIND_CLIENT_ID=<uuid>`** in Railway API. This turns on the Monday self-outreach cron.
@@ -517,12 +527,12 @@
 1. **Create the K.I.N.D account** at `app.get-kind.com` — sign up with any email you control. Onboard: Company = "K.I.N.D", build the **ICP = our ideal clients** (e.g. SA B2B founders / agencies / SaaS doing outbound).
 2. **Unlock FIGSY + grant credits** for that account in the **admin portal** (client detail → grant credits; ensure FIGSY active).
 3. **Grab that account's `client_id`** (admin client detail) → set `FIGSY_KIND_CLIENT_ID=<uuid>` in Railway API. This turns on the Monday self-outreach cron (`findKindProspects` → auto-enrol).
-4. **Set your booking link** in portal Settings (`booking_url`) so FIGSY emails include it → prospects book straight into your calendar. (Booking link must be the NEUTRAL `calendly.com/kind-ai/demo` — see name note below.)
+4. **Set your booking link** in portal Settings (`booking_url`) so FIGSY emails include it → prospects book straight into your calendar. (Booking link must be the NEUTRAL `calendly.com/kind-ai-demo/new-meeting` — see name note below.)
 5. **(Optional)** `FIGSY_REPLY_TO` if you want replies somewhere other than `hello@get-kind.com`.
 6. **Watch replies** land in portal inbox / admin Unibox, auto-classified 🔥hot/warm/etc. Mark hot ones booked → moves the meetings KPI.
 
 **FOUNDER ACTIONS THIS NEEDS:**
-- [ ] Create/confirm the **neutral Calendly event `calendly.com/kind-ai/demo`** is LIVE (the whole site + FIGSY now point at it — see name scrub below).
+- [ ] Create/confirm the **neutral Calendly event `calendly.com/kind-ai-demo/new-meeting`** is LIVE (the whole site + FIGSY now point at it — see name scrub below).
 - [ ] Run reconcile SQL · set `ADMIN_SECRET_KEY` · confirm `RESEND_WEBHOOK_SECRET`.
 - [ ] Create K.I.N.D account, unlock FIGSY, set `FIGSY_KIND_CLIENT_ID`.
 
@@ -533,7 +543,7 @@
 ### 🕵️ NAME PRIVACY — "Jacques" scrubbed from the shipped product (2 June)
 
 Founder wants their name nowhere client-facing. Done across all shipped code:
-- ✅ Calendly URL `calendly.com/jacques-vieiraza/30min` → `calendly.com/kind-ai/demo` (37 occurrences, 20 files: website, portal, landing). **ACTION: confirm that neutral Calendly event is live.**
+- ✅ Calendly URL `calendly.com/jacques-vieiraza/30min` → `calendly.com/kind-ai-demo/new-meeting` (37 occurrences, 20 files: website, portal, landing). **ACTION: confirm that neutral Calendly event is live.**
 - ✅ about.html personal LinkedIn link → "Get in touch" (mailto).
 - ✅ landing form placeholder "Jacques" → "Your name".
 - ✅ Sample/demo lead "Jacques Marais" → "Thabo Nkosi"; admin seed/demo defaults → neutral; `FOUNDER_EMAIL` fallback → `hello@get-kind.com`.

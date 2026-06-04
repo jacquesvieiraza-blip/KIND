@@ -211,7 +211,7 @@ The email should:
 1. Thank them for their interest
 2. Give 2-3 specific meeting time options (Mon/Wed/Fri next week, 10am or 2pm GMT+2)
 3. Mention a relevant benefit of K.I.N.D based on their context
-4. Include a Calendly fallback: calendly.com/kind-ai/demo
+4. Include a Calendly fallback: calendly.com/kind-ai-demo/new-meeting
 5. Be warm, confident, and under 100 words
 
 Output: SUBJECT: ...\nBODY: ...`,

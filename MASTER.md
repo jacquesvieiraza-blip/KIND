@@ -171,9 +171,7 @@
 - [ ] After DNS live: update `NEXT_PUBLIC_API_URL` → `https://api.get-kind.com` in Railway Portal + Admin env vars
 - [ ] After DNS live: update Resend inbound webhook URL → `https://api.get-kind.com/figsy/replies/inbound`
 
-**US stack (new — build before simultaneous launch):**
-- [ ] `us.app.get-kind.com` → Railway **portal-us** service (build first, then DNS)
-- [ ] `us.api.get-kind.com` → Railway **api-us** service (build first, then DNS)
+**US stack — NOT NEEDED FOR LAUNCH (decided 4 Jun):** No `us.` subdomains. K.I.N.D launches on a **single URL** (`app.get-kind.com`) with **one Cape Town database** serving all markets (Africa, UK, US, rest of world). See "REGION ARCHITECTURE — LOCKED" below. The US stack is only built if/when a signed US enterprise contract requires US data residency.
 
 > **▶ TOMORROW START HERE (4 Jun EOD):** 1) Rotate exposed secrets (Tier 0 above) — Stripe live key first. 2) Move `FEATURE_PORTAL_V2` to Portal. 3) Create dogfood account → ping Claude to grant FIGSY + credits. 4) Fix DNS for all custom domains. Everything else below is green.
 
@@ -293,14 +291,31 @@
 - [ ] **Admin region switcher** — ⏸ DEFERRED until `kind-us` Supabase exists. Switcher needs two live data sources; building against a non-existent project is throwaway work. Build right after founder creates `kind-us`.
 - [ ] **#47 — comparison pages into nav** — ⏸ FOLDED INTO website consistency pass. Adding a "Compare" dropdown to only the homepage nav would diverge it from the other 31 pages — the exact inconsistency the consistency pass exists to fix. Will add "Compare" (vs-apollo/outreach/salesloft/hiring-an-sdr/manual) to ALL navs in one pass post-smoke-test.
 
-**Founder does (infrastructure):**
-- [ ] Create Supabase project `kind-us` in us-east-1 region → share credentials with Claude to wire env vars
-- [ ] Create Railway services `portal-us` + `api-us` → set env vars (US Supabase credentials, same other vars)
-- [ ] Run all existing migrations on `kind-us` Supabase project (Claude provides the commands)
-- [ ] Set DNS: `us.app.get-kind.com` + `us.api.get-kind.com` → Railway US services
+**Founder infrastructure for US: NONE NEEDED.** Single URL, single Cape Town database serves US clients at launch. No `kind-us` project, no `portal-us`/`api-us`, no US DNS, no US migrations. (All deferred to the future-enterprise trigger below.)
 
-**Together (one decision needed):**
-- [ ] Confirm US portal subdomain preference: `us.app.get-kind.com` (recommended) vs `app.us.get-kind.com`
+---
+
+## 🌍 REGION ARCHITECTURE — LOCKED (4 Jun)
+
+> **Decision: One database, one URL, for launch. Add the second region only when a paying client's contract actually requires it.**
+
+**At launch:**
+- **One URL** — `app.get-kind.com` — for every client, every market (Africa, UK, US, rest of world).
+- **One database** — Supabase `kind`, af-south-1 (Cape Town).
+- **No region selector, no `us.` subdomains, no second Supabase project.**
+- Legally clean: US has no B2B-SaaS data-residency law; CCPA is about rights not location; POPIA satisfied by Cape Town. Selling to + billing US clients + running US campaigns all work from the single Cape Town DB today.
+
+**Why not dual-DB now:** zero clients need it; an auth refactor 3 days before launch is the highest-risk thing we could ship (auth bug = nobody logs in = dead launch); and it costs nothing to add later because the single URL stays stable.
+
+**FUTURE trigger — build region #2 only when a signed US enterprise contract requires US data residency:**
+- Provision Supabase `kind-us` (us-east-1, Virginia).
+- Add `data_region` column to `clients` (default `af-south-1`) at that time.
+- Client picks region at signup + login (dropdown); the login picker resolves the chicken-and-egg of which DB to authenticate against. **URL never changes** — routing is invisible.
+- Every migration then runs on BOTH projects, byte-identical. (Documented in `docs/DEPLOYMENT_GUIDE.md` §1b.)
+- **Do NOT build any of this until the contract exists.**
+
+**What this means is already DONE for US market launch (no second DB):**
+- ✅ Stripe USD billing · ✅ CCPA + CAN-SPAM in legal docs · ✅ AAA arbitration for US clients (terms.html) · ✅ dual-market copy (homepage/pricing) · ✅ privacy.html states data is Cape Town with US residency available to enterprise on request.
 
 ---
 
@@ -324,7 +339,7 @@
 | 32 website pages not yet on-brand | 🟠 Medium | Claude — branding pass after smoke tests |
 | No trademark protection | 🟡 Low | Deferred to revenue (draft + class list ready) |
 | Custom domain DNS not set | 🔴 High | Tier 1B founder action — portal/api/admin still on raw Railway URLs |
-| US stack not built | 🟠 Medium | Claude + founder — simultaneous launch decision 4 Jun; needs Supabase us-east-1 + Railway US services |
+| ~~US stack not built~~ | ✅ Not needed | 4 Jun — single URL + single Cape Town DB serves all markets at launch. Dual-DB deferred until a US enterprise contract requires residency. See REGION ARCHITECTURE — LOCKED. |
 | CCPA implementation incomplete | 🟡 Low | Claude will update terms + privacy for US launch |
 | Portal/admin have no failover | 🟡 Low | Acceptable for launch; Tier 3 |
 

@@ -56,14 +56,9 @@ supabase/migrations/20260518_company_registration.sql
 
 **Do not skip the credit_transactions_rls migration.** Without it, financial data is exposed across clients.
 
-> ⚠️ **DUAL-REGION RULE (US + Africa/UK launch).** K.I.N.D runs **two** Supabase projects: `kind` (af-south-1, Cape Town — Africa/UK/rest-of-world clients) and `kind-us` (us-east-1, Virginia — US clients signing up via `us.app.get-kind.com`). **Every schema change and every migration MUST be run on BOTH projects, in the same order.** A migration applied to only one region silently breaks that region's data layer. Process for any new migration:
-> ```
-> # 1. Africa/UK project
-> supabase db push --project-ref <af-south-1-ref>
-> # 2. US project — same file, immediately after
-> supabase db push --project-ref <us-east-1-ref>
-> ```
-> Or, if running by hand in the SQL Editor: paste the identical SQL into **both** projects' SQL Editors before marking the migration done. Keep the two schemas byte-identical — the only thing that differs between regions is the data residency location, never the structure.
+> ℹ️ **SINGLE-REGION AT LAUNCH (decided 4 Jun).** K.I.N.D launches with **one** Supabase project: `kind` (af-south-1, Cape Town) on a **single URL** `app.get-kind.com`, serving all clients (Africa, UK, US, rest of world). The US has no data-residency requirement for B2B SaaS, so one Cape Town database is legally clean for all markets.
+>
+> **FUTURE — when a US enterprise contract requires US data residency:** provision a second Supabase project `kind-us` (us-east-1, Virginia). The client URL never changes (`app.get-kind.com`); region is selected by the client at signup/login and the app routes to the correct database. At that point, **every migration must run on BOTH projects, in the same order, kept byte-identical** — a migration applied to only one region silently breaks that region. Do NOT build this until a signed contract requires it.
 
 ### 1c. Supabase Auth configuration
 

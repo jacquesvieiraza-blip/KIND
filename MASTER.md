@@ -50,6 +50,14 @@
 *Rewritten at the end of every session. Always current. Read this first — nothing else matters until this is clear.*
 *Claude protocol: read Section 0 before touching anything. Update Section 0 as the last action of every session. Commit immediately.*
 
+### ▶ 4 JUN — END OF DAY. NOT LIVE YET. TOMORROW START HERE (in order):
+1. **🚨 SECURITY — rotate exposed credentials** (pasted in chat 4 Jun while debugging). Order: `STRIPE_SECRET_KEY` (sk_live) → `SUPABASE_SERVICE_ROLE_KEY` → DB password (`DATABASE_URL`) → `SUPABASE_ANON_KEY` → then Anthropic/Resend/Apollo/HubSpot/Admin/Stripe-webhook keys. Claude will walk each step.
+2. **Move `FEATURE_PORTAL_V2=true` to the Portal service** (it's wrongly on API). 30 sec.
+3. **Create dogfood account** → ping Claude to grant FIGSY + credits.
+4. **Review + merge branch `claude/ai-business-roadmap-U3OWJ`** — contains Calendly fix, CRM dedup feature (needs migration 010 run), content docs. Then run migration `010_crm_dedup.sql`.
+
+**Done 4 Jun:** company number 17260532 in all legal docs · FOUNDER_EMAIL · Resend inbound webhook · Stripe 8 price IDs + pricing fix · Calendly 404 fixed (all 40+ buttons) · API build crash solved (newline in STRIPE_WEBHOOK_SECRET) · 2/3 feature flags · **CRM dedup feature built (backend+portal, on branch)** · 3 blog articles · YouTube plan · SEIS+trademark draft · Glean competitor review + site-improvement items 44–47.
+
 ---
 
 # ⭐ CANONICAL LIVE STATUS — SINGLE SOURCE OF TRUTH (3 June 2026, PM)
@@ -160,7 +168,7 @@
 
 - [x] ✅ **Walked founder through Resend inbound webhook setup** — wired + verified 4 Jun
 - [x] ✅ **Fixed API build crash (4 Jun)** — root cause was a trailing newline baked into `STRIPE_WEBHOOK_SECRET`'s value → Nixpacks generated a blank-named ENV. Fixed by deleting + re-adding the var clean. All Dockerfiles removed; all services back on proven Nixpacks.
-- [ ] **🆕 BUILD: Client CRM dedup connector (HubSpot first)** ← **ACTIVE, started 5 Jun** — read-only connect to a client's CRM; before FIGSY contacts anyone, check if they're already a customer / active deal / known contact → SKIP or flag. Build + test now (no client needed to build); ready for when first client connects. HubSpot scaffolded already; Salesforce/Pipedrive next. **Trust unlock + sales line: "we never cold-email your existing customers."**
+- [x] ✅ **BUILT: Client CRM dedup (HubSpot + Pipedrive)** — 4 Jun, on branch, tsc clean. Backend `checkCrmDuplicate()` (HubSpot contact+company-by-domain, Pipedrive person; ignores generic gmail/yahoo domains), fail-soft dedup gate in `autoEnrollLead` (before credit spend), settings API field, portal toggle ("Never contact people already in my CRM"). Migration `010_crm_dedup.sql`. **TO ACTIVATE:** (1) run migration 010, (2) merge to main, (3) client connects their CRM + ticks the toggle in Settings. Salesforce next.
 - [ ] **Grant FIGSY + credits** to founder dogfood account via admin (when account created)
 - [x] ✅ **Swap `[COMPANY NUMBER PENDING]` × 4** — DONE 4 Jun, number 17260532
 - [ ] **Fix smoke test failures** as reported Saturday/Sunday (same-day turnaround)
@@ -174,7 +182,7 @@
 *Glean's site beats ours on two things: it SHOWS the product, and it LEADS with proof. Both have honest fixes. These are improvements, not copies — see MASTER competitor notes.*
 - [ ] **44 — Homepage product demo** *(biggest win)* — embed a real "watch FIGSY book a meeting" demo/video on the homepage (campaign → reply → booked meeting). ⚠️ Depends on Loom footage (recorded after smoke-test run-through); until then, an annotated screenshot/GIF of a real campaign works as a placeholder.
 - [ ] **45 — First-party proof block** — surface REAL dogfood metrics once FIGSY runs ("FIGSY booked X meetings for K.I.N.D in N days"). No fake stats (locked rule). Build the block now, populate when numbers exist.
-- [ ] **46 — Functional throughline line** — add one concrete sentence under the "AI Family" hero: e.g. *"One family, one shared memory — every agent learns from your market and feeds the others."* Keeps the emotional hook, adds the functional spine a B2B buyer wants. Claude can draft + ship now.
+- [ ] **46 — Functional throughline line** — READY TO APPLY (held: homepage is design-sensitive, want founder OK first). Proposed: add under the hero subhead (`index.html:1302`) a line like *"One family, one shared memory — every agent learns from your market and feeds the others."* One-word approve → Claude ships it. Keeps the emotional hook, adds the functional spine.
 - [ ] **47 — Surface comparison/use-case pages in nav** — we already out-content Glean here (vs-apollo, vs-salesloft, use-cases) but the depth may be buried. Make discoverable in the nav. Claude can do now.
 - Note: deliberately NOT copying Glean's "platform / layer-beneath-the-interface" narrative — we're product-level, not infra; borrowing it would break the honest positioning.
 

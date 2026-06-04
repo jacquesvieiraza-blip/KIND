@@ -159,8 +159,8 @@
 ## 🤖 CLAUDE — OPEN ITEMS (priority order)
 
 - [x] ✅ **Walked founder through Resend inbound webhook setup** — wired + verified 4 Jun
-- [x] ✅ **Fixed API build crash** — Nixpacks generated blank ENV name; replaced with explicit Dockerfile (PR #434, 4 Jun)
-- [ ] **Fix Portal/Admin build if they hit the same Nixpacks blank-name crash** — Portal needs `NEXT_PUBLIC_` vars at build time, so needs a Dockerfile with build ARGs or a verified-clean Nixpacks. Handle when Portal redeploys.
+- [x] ✅ **Fixed API build crash (4 Jun)** — root cause was a trailing newline baked into `STRIPE_WEBHOOK_SECRET`'s value → Nixpacks generated a blank-named ENV. Fixed by deleting + re-adding the var clean. All Dockerfiles removed; all services back on proven Nixpacks.
+- [ ] **🆕 BUILD: Client CRM dedup connector (HubSpot first)** ← **ACTIVE, started 5 Jun** — read-only connect to a client's CRM; before FIGSY contacts anyone, check if they're already a customer / active deal / known contact → SKIP or flag. Build + test now (no client needed to build); ready for when first client connects. HubSpot scaffolded already; Salesforce/Pipedrive next. **Trust unlock + sales line: "we never cold-email your existing customers."**
 - [ ] **Grant FIGSY + credits** to founder dogfood account via admin (when account created)
 - [x] ✅ **Swap `[COMPANY NUMBER PENDING]` × 4** — DONE 4 Jun, number 17260532
 - [ ] **Fix smoke test failures** as reported Saturday/Sunday (same-day turnaround)
@@ -294,7 +294,7 @@
 | HubSpot full sync | Phase 2 | API key needed to activate |
 | Flutterwave (African payments) | Phase 2 | Code ready, needs secret key |
 | WhatsApp Business API | Phase 2 | Needs Facebook account first |
-| **Client CRM dedup (HubSpot first)** | **Phase 2a — HIGH PRIORITY** | Read-only connect to client's CRM → before FIGSY contacts anyone, check if they're already a customer / active deal / known contact → SKIP or flag. **Trust unlock + sales line** ("we never cold-email your existing customers"). Saves client credits. HubSpot head-start (key + sync already scaffolded). Salesforce/Pipedrive next. |
+| **Client CRM dedup (HubSpot first)** | **→ NOW ACTIVE (Claude build, 5 Jun)** | Moved from roadmap to active Claude task at founder request. See Claude Open Items. Read-only CRM connect → dedup before FIGSY outreach. HubSpot first; Salesforce/Pipedrive next. |
 | **Milla full-context pull from client CRM** | **Phase 3** | Milla reads CRM history, deal stage, notes → FIGSY personalises with real customer context, not just Apollo job title. The Glean-pattern moat: "outbound AI that knows the full customer." ~10-client-onward. |
 | REEVE (Revenue Execution) | Year 2 | |
 | LENA (Lead Nurture) | Year 2 | |

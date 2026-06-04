@@ -285,6 +285,8 @@
 | HubSpot full sync | Phase 2 | API key needed to activate |
 | Flutterwave (African payments) | Phase 2 | Code ready, needs secret key |
 | WhatsApp Business API | Phase 2 | Needs Facebook account first |
+| **Client CRM dedup (HubSpot first)** | **Phase 2a — HIGH PRIORITY** | Read-only connect to client's CRM → before FIGSY contacts anyone, check if they're already a customer / active deal / known contact → SKIP or flag. **Trust unlock + sales line** ("we never cold-email your existing customers"). Saves client credits. HubSpot head-start (key + sync already scaffolded). Salesforce/Pipedrive next. |
+| **Milla full-context pull from client CRM** | **Phase 3** | Milla reads CRM history, deal stage, notes → FIGSY personalises with real customer context, not just Apollo job title. The Glean-pattern moat: "outbound AI that knows the full customer." ~10-client-onward. |
 | REEVE (Revenue Execution) | Year 2 | |
 | LENA (Lead Nurture) | Year 2 | |
 | OTTO (Operations) | Year 2 | |

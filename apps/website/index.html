@@ -1217,7 +1217,9 @@
   .kf-head{ width:100%; max-width:820px; text-align:center; }
   .kf-head h1{ font-family:'Outfit',sans-serif; font-size:clamp(1.9rem,4.1vw,3.3rem); font-weight:900; letter-spacing:-.045em; line-height:1.02; margin:4px 0 10px; }
   .kf-head h1 .grad{ background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-  .kf-head-sub{ font-size:.98rem; color:rgba(0,0,0,.5); max-width:540px; margin:0 auto 14px; font-weight:500; line-height:1.6; }
+  .kf-head-sub{ font-size:.98rem; color:rgba(0,0,0,.5); max-width:540px; margin:0 auto 10px; font-weight:500; line-height:1.6; }
+  .kf-head-line{ font-size:.82rem; color:rgba(0,0,0,.42); max-width:520px; margin:0 auto 16px; font-weight:600; line-height:1.5; letter-spacing:-.01em; }
+  .kf-head-line .grad{ background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .kf-block{ position:relative; width:100%; max-width:1480px; height:calc(100vh - 320px); min-height:340px; border-radius:30px; overflow:clip; box-shadow:0 30px 80px rgba(20,18,45,.12); }
   /* film grain for depth (ClickUp-like texture) */
   .kf-block::after{ content:''; position:absolute; inset:0; z-index:7; pointer-events:none; opacity:.5; mix-blend-mode:soft-light;
@@ -1300,6 +1302,7 @@
       <div class="live-chip"><span class="live-dot"></span>Live now — first campaign running in 5 business days</div>
       <h1>Stop chasing leads.<br/><span class="grad" id="tw-target">Break the ceiling.</span><span class="tw-cursor" id="tw-cursor"></span></h1>
       <p class="kf-head-sub">Your AI family finds leads, books meetings, and converts your site — while you sleep. From $20. No setup fees. Cancel anytime.</p>
+      <p class="kf-head-line"><span class="grad">One family, one shared memory</span> — every agent learns from your market and feeds the others.</p>
       <div class="hero-btns" style="justify-content:center">
         <button onclick="openAuth('signup')" class="btn-hero-primary">Get your first leads free →</button>
         <a href="#figsy" class="btn-hero-ghost">See how it works</a>

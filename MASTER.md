@@ -61,6 +61,41 @@
 
 ---
 
+### 🗓️ COMPRESSED GROWTH TIMELINE — REVISED 4 JUN
+> **Everything previously labelled Year 2 or Year 3 is now Month 3. Only ISO certifications remain Year 2. Speed is the only strategy.**
+
+#### THIS WEEK — launch prep
+1. Rotate all credentials (TIER 0) · 2. Move FEATURE_PORTAL_V2 to Portal · 3. Create dogfood account · 4. Merge branch + run migration 010 · 5. Sat smoke test 1 · 6. Sun smoke test 2 · 7. Mon lock + confirm · 8. **Tue LAUNCH**
+
+#### WEEK 1 POST-LAUNCH
+9. 10 warm personal outreach messages (LinkedIn/WhatsApp) · 10. LinkedIn founder content: 1 post/day from day 1 — dogfood story first · 11. Activate LinkedIn outreach (backend built — needs PhantomBuster keys + SQL migration) · 12. Start Meta/WhatsApp Business API application (3-7 day window, start immediately) · 13. Surface comparison + use-case pages in nav (#47 — all pages exist) · 14. Record real product demo — "shoot once, cut many" (Screen Studio, 16:9 + 9:16 same take) · 15. Cut #44 — replace homepage CSS animation with real product loop · 16. Instrument GTM funnel (outreach→reply→demo→close by channel, CAC, trial→paid by source)
+
+#### WEEKS 2-4
+17. Open 2 design partner slots (hand-held, discounted, for case study + logo) · 18. Cut social content from demo footage (9:16, Reels/TikTok/LinkedIn, music + captions) · 19. Record 3 onboarding Loom videos · 20. Build onboarding v2 + Loom embed slots + day 0/3/7 email sequence · 21. Populate proof block with real dogfood numbers (#45) · 22. Add functional throughline to homepage hero (#46 — 1 word from founder → Claude ships) · 23. Activate Flutterwave (code ready, needs key — opens ZAR/NGN/KES/GHS) · 24. Launch YouTube channel (10-video plan exists in `docs/content/youtube-plan.md`)
+
+#### MONTH 2
+25. Intent signal detection (job changes, funding, hiring → auto-trigger FIGSY) · 26. A/B subject line testing (auto-pick winner after 50 sends) · 27. Client morning brief email (extend founder brief to all active clients) · 28. ICP auto-refinement (FIGSY analyses replies → suggests ICP improvements) · 29. Conditional sequence branching (warm reply → different path) · 30. Waterfall enrichment (Apollo → PDL → Hunter → Clearbit) · 31. Deliverability dashboard (SPF/DKIM/DMARC + bounce + blacklist in portal) · 32. **FIGSY Memory v2 — pgvector** (semantic memory, inferred patterns, compounding moat) · 33. Milla full-context CRM pull (reads client CRM → FIGSY personalises with real customer context) · 34. Vapi voice calling (FIGSY calls leads after positive reply — build once lead quality baseline established) · 35. Product Hunt launch (only after 2-3 named design partners with real case study numbers) · 36. G2 listing (5 reviews minimum — ask design partners)
+
+#### MONTH 3
+37. **Launch REEVE** — Revenue Execution Agent (AE: books discovery calls, follows up pipeline, drafts proposals) · 38. **Launch LENA** — Customer Success Agent (monitors health, flags at-risk, handles check-ins) · 39. **Launch OTTO** — Ops & Analytics Agent (pipeline health, revenue forecasting, anomaly alerts) · 40. Multi-agent orchestration — FIGSY + REEVE + LENA + OTTO in parallel, shared memory · 41. Multi-model toggle per campaign (Haiku volume vs Sonnet/Opus quality, client picks per campaign) · 42. **500+ FIGSY skill library** (modular skills per vertical: SaaS, African fintech, recruitment, professional services, logistics) · 43. **MCP server — K.I.N.D as AI infrastructure** (Notion/Salesforce/Linear agents can call K.I.N.D agents — distribution without a sales team) · 44. **Outcome-based pricing tier — "per meeting booked"** (removes buyer risk objection entirely; alongside credit model) · 45. Mobile app — iOS + Android · 46. **Built-in CRM** (agents create/update/close deals natively — clients stop paying for HubSpot) · 47. Open pan-African design partner slots (Nigeria, Kenya, Ghana, Egypt, Rwanda — first-mover window closes in 12-18 months) · 48. **Platform-level intelligence — cross-client learning** (at 50+ clients: predictive ICP, industry benchmarks, "here's what's working for companies like yours right now") · 49. **Data licensing marketplace** (proprietary African B2B outreach dataset → product for VCs, corporates, government bodies — no competitor has this)
+
+#### YEAR 2 ONLY (expensive, can't compress)
+50. ISO 27001 (opens Nigerian banks, Kenyan fintechs, SA corporate procurement — trigger: first enterprise contract or 50+ clients, ~£20K) · 51. ISO 42001 AI Governance (no African AI company has it — differentiator for regulated industries, ~£15K)
+
+---
+
+**Target numbers:**
+| When | Clients | MRR |
+|------|---------|-----|
+| Launch | 0 | £0 |
+| Week 2-3 | 2-3 design partners | ~£2,500 |
+| Month 1 | 5 (break-even all-in) | ~£4,000 |
+| Month 2 | 20 + Product Hunt | ~£12,000 |
+| Month 3 | 50 + agent family live | ~£40,000 |
+| Month 3+ | 100+ + platform intelligence | £100,000+ |
+
+---
+
 # ⭐ CANONICAL LIVE STATUS — SINGLE SOURCE OF TRUTH (3 June 2026, PM)
 **This block supersedes every older to-do list below it.** When asked for "an update," read THIS block + the most recent git log. Older session blocks below are HISTORICAL — kept for context, not the live list.
 
@@ -291,26 +326,42 @@
 
 ---
 
-## 🗓️ DEFERRED — PHASE 2 & BEYOND
+## 🗓️ GROWTH ROADMAP — COMPRESSED (revised 4 Jun)
+> **Former "Year 2" and "Year 3" items are now Month 3 targets. Only ISO certifications remain Year 2. Speed is the strategy.**
 
-| Feature | Phase | Notes |
-|---------|-------|-------|
-| LinkedIn outreach | Phase 2 (June+) | OAuth complexity + rate limits |
-| Vapi voice calling | Phase 2 (July+) | Needs lead quality baseline first |
-| YouTube channel | Phase 2 | Plan 10 videos before recording one |
-| Onboarding v2 + Loom | Post smoke tests | Private run-through first, then record clean |
-| Partner program dashboard | Phase 2 | Infrastructure coded, portal needs UI |
-| HubSpot full sync | Phase 2 | API key needed to activate |
-| Flutterwave (African payments) | Phase 2 | Code ready, needs secret key |
-| WhatsApp Business API | Phase 2 | Needs Facebook account first |
-| **Client CRM dedup (HubSpot first)** | **→ NOW ACTIVE (Claude build, 5 Jun)** | Moved from roadmap to active Claude task at founder request. See Claude Open Items. Read-only CRM connect → dedup before FIGSY outreach. HubSpot first; Salesforce/Pipedrive next. |
-| **Milla full-context pull from client CRM** | **Phase 3** | Milla reads CRM history, deal stage, notes → FIGSY personalises with real customer context, not just Apollo job title. The Glean-pattern moat: "outbound AI that knows the full customer." ~10-client-onward. |
-| REEVE (Revenue Execution) | Year 2 | |
-| LENA (Lead Nurture) | Year 2 | |
-| OTTO (Operations) | Year 2 | |
-| FIGSY Memory Level 2–3 | Year 2 | ICP auto-refinement + A/B testing |
-| MCP server (K.I.N.D as infra) | Year 2 | "Twilio of B2B outreach" |
-| Data licensing marketplace | Year 2+ | |
+| Feature | Target | Notes |
+|---------|--------|-------|
+| LinkedIn outreach | **Week 1** | Backend built — needs PhantomBuster keys + SQL migration |
+| WhatsApp Business API | **Week 1** | Start Meta application immediately (3-7 day window) |
+| Flutterwave (African payments) | **Week 2** | Code ready — needs secret key in Railway |
+| Onboarding v2 + Loom | **Week 2** | Private run-through first, then record clean |
+| YouTube channel | **Week 2** | Plan exists — `docs/content/youtube-plan.md` |
+| Demo content "shoot once, cut many" | **Week 1** | Homepage loop + Reels/TikTok/LinkedIn all from one recording |
+| **Client CRM dedup (HubSpot first)** | **✅ BUILT** | On branch — merge + run migration 010 |
+| Milla full-context CRM pull | **Month 2** | ~10 clients onward — Glean-pattern moat |
+| Vapi voice calling | **Month 2** | After lead quality baseline from live data |
+| Intent signal detection | **Month 2** | Job changes, funding, hiring → auto-trigger FIGSY |
+| A/B subject line testing | **Month 2** | Auto-pick winner after 50 sends |
+| Client morning brief email | **Month 2** | Extend founder brief to all active clients |
+| ICP auto-refinement | **Month 2** | FIGSY analyses replies → suggests ICP improvements |
+| FIGSY Memory v2 — pgvector | **Month 2** | Semantic memory, inferred patterns — compounding moat |
+| Product Hunt | **Month 2** | Only after 2-3 named design partners with real numbers |
+| G2 listing | **Month 2** | 5 reviews minimum |
+| **REEVE** (Revenue Execution Agent) | **Month 3** | AE: books discovery calls, follows up pipeline, drafts proposals |
+| **LENA** (Customer Success Agent) | **Month 3** | CS: monitors health, flags at-risk, handles check-ins |
+| **OTTO** (Ops & Analytics Agent) | **Month 3** | CRO: pipeline health, revenue forecasting, anomaly alerts |
+| Multi-agent orchestration | **Month 3** | FIGSY + REEVE + LENA + OTTO in parallel, shared memory |
+| 500+ FIGSY skill library | **Month 3** | Modular per vertical: SaaS, African fintech, recruitment, logistics |
+| MCP server — K.I.N.D as infra | **Month 3** | Other tools plug into K.I.N.D agents — distribution without sales team |
+| Outcome-based pricing ("per meeting booked") | **Month 3** | Alongside credit model — removes buyer risk objection |
+| Mobile app (iOS + Android) | **Month 3** | |
+| Built-in CRM | **Month 3** | Agents create/update/close deals natively — clients stop paying HubSpot |
+| Pan-African expansion (NG/KE/GH/EG/RW) | **Month 3** | First-mover window closes in 12-18 months — move now |
+| Platform-level intelligence (cross-client learning) | **Month 3+** | At 50+ clients: predictive ICP, industry benchmarks |
+| Data licensing marketplace | **Month 3+** | Proprietary African B2B outreach dataset → product in itself |
+| Partner program dashboard | **Month 3** | Infrastructure coded, portal needs UI |
+| ISO 27001 | **Year 2** | Opens Nigerian banks, SA corporate procurement — ~£20K |
+| ISO 42001 (AI Governance) | **Year 2** | No African AI company has it — ~£15K |
 
 ---
 *— historical session blocks below; superseded by the canonical block above —*
@@ -3309,47 +3360,56 @@ Send them here. I fix in real time.
 
 ---
 
-## 19. PRODUCT VISION — 1, 3, 5 YEARS
+## 19. PRODUCT VISION — COMPRESSED TIMELINE (revised 4 Jun)
 
-> **The first-mover window in Africa is 18–24 months.** The moat being built now — the data, the brand, the client relationships — is what makes K.I.N.D unconquerable when bigger players arrive.
+> **The first-mover window in Africa is 18–24 months — not 3 years.** Everything previously labelled Year 2 or Year 3 is now a Month 3 target. Only ISO certifications remain Year 2. Speed is the only strategy.
 
 > **TTFL (Time to First Lead) is not just a metric. It is the competitive weapon.** Every competitor makes you wait. We deliver in under 2 hours.
 
-> **Data accumulates from Day 1.** Every lead scored, every ICP run, every FIGSY email sent is a proprietary dataset no competitor can buy. By Year 3, that dataset is the product.
+> **Data accumulates from Day 1.** Every lead scored, every ICP run, every FIGSY email sent is a proprietary dataset no competitor can buy. At 50+ clients, that dataset becomes a moat. At 500+ clients, it becomes the product.
 
-### Year 1 (by May 2027) — $40,000 MRR
-- 150+ paying clients (SA, UK, US, Nigeria, Kenya)
-- Lead Gen + FIGSY proven and reliable
-- Milla (VA) + Vida (Chatbot) live for 30+ clients
-- K.I.N.D's own outbound running entirely on FIGSY
-- **Critical output:** Data. Every client run builds the dataset.
+> **Memory compounds.** Every client, every campaign, every reply makes the next one smarter. The companies that accumulate context fastest win. Tuesday starts the clock.
 
-### Year 2 (2027) — $120,000 MRR / 450 clients
-- **Full B2B Revenue OS** — K.I.N.D handles the entire journey from stranger to signed contract
-- Built-in CRM — clients stop needing HubSpot or Salesforce
-- Pipeline forecasting — AI predicts close probability from lead score + FIGSY engagement
-- Multi-channel FIGSY — email, LinkedIn, WhatsApp, voice
-- Pan-African launch: Nigeria, Kenya, Ghana, Egypt
-- Recurring subscription model becomes primary revenue
+### Month 1 (by July 2026) — £4,000 MRR
+- Launch Tuesday. First 5 paying clients.
+- Dogfood engine running — FIGSY books K.I.N.D's own demos.
+- LinkedIn + WhatsApp outreach live (multi-channel from week 1).
+- Real product demo on homepage. LinkedIn founder content daily.
+- 2 design partner slots open.
 
-### Year 3 (2028) — $300,000 MRR / 1,000 clients
-- **Data Advantage** — proprietary dataset: leads scored + converted across thousands of African B2B companies
-- Predictive ICP — K.I.N.D tells you who to target before you ask
-- Industry benchmarks — "Companies like yours convert at 3.2% — you're at 1.8%"
-- White-label offering for agencies
-- SOC 2 Type II certified
+### Month 2 (by August 2026) — £12,000 MRR
+- 20 paying clients.
+- Product Hunt launched (with 2-3 named case studies).
+- FIGSY Memory v2 (pgvector) live — semantic, compounding intelligence.
+- Intent signals, A/B testing, ICP auto-refinement, conditional branching.
+- Milla CRM full-context pull. Vapi voice calling.
+- Client morning brief email to all active clients.
 
-### Year 4 (2029) — $700,000 MRR / 2,500 clients
-- **The Network Effect** — K.I.N.D sits between buyers and sellers across thousands of companies
-- Warm B2B introductions — K.I.N.D knows who wants to buy and who wants to sell
-- Marketplace dynamics — deals happen on the platform
-- **K.I.N.D becomes a B2B network, not just software**
-- First institutional funding or strategic acquisition interest
+### Month 3 (by September 2026) — £40,000 MRR
+- 50+ paying clients across SA, UK, Nigeria, Kenya.
+- **Full agent family live: REEVE + LENA + OTTO** alongside FIGSY.
+- Multi-agent orchestration — all four agents share memory and run in parallel.
+- 500+ FIGSY skill library. MCP server live.
+- Outcome-based "per meeting booked" pricing tier.
+- Built-in CRM. Mobile app. Pan-African expansion open.
+- Platform-level intelligence beginning — cross-client learning at 50+ clients.
 
-### Year 5 (2030) — Market Leader
-- 5,000+ clients, 10+ countries, IPO-ready on JSE
-- Or acquisition by global CRM, data, or AI player at $50–100M+
-- **The Salesforce of Africa — AI-native from day one**
+### Month 3+ (Q4 2026 onwards) — £100,000+ MRR
+- 100+ clients. Data licensing marketplace live.
+- Platform-level intelligence: predictive ICP, industry benchmarks.
+- White-label for agencies.
+- K.I.N.D is the AI infrastructure for African B2B revenue — not just an SDR tool.
+
+### Year 2 (2027) — Scale + certification
+- ISO 27001 + ISO 42001 certified.
+- Nigerian banks, Kenyan fintechs, SA corporate procurement unlocked.
+- 450+ clients, £120,000+ MRR.
+- First institutional funding or strategic acquisition interest.
+
+### Year 3+ (2028+) — Market leader
+- 1,000+ clients, 10+ countries, IPO-ready on JSE.
+- Or acquisition by global CRM, data, or AI player at $50–100M+.
+- **The Salesforce of Africa — AI-native from day one.**
 
 ---
 
@@ -4282,11 +4342,11 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | Agent | ClickUp equivalent | K.I.N.D role | Status |
 |-------|------------------|-------------|--------|
 | FIGSY | Super Agent — outbound | AI SDR: finds leads, writes emails, handles replies, learns what works | ✅ Live |
-| Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | July 2026 |
-| Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | July 2026 |
-| REEVE | Sales Agent | AE: books discovery calls, follows up pipeline, drafts proposals | Year 2 |
-| LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | Year 2 |
-| OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | Year 2 |
+| Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | ✅ Live |
+| Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | ✅ Live |
+| REEVE | Sales Agent | AE: books discovery calls, follows up pipeline, drafts proposals | **Month 3** |
+| LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | **Month 3** |
+| OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | **Month 3** |
 
 **Each agent (when fully built):**
 - Named identity card in portal with avatar, live stats, last active timestamp
@@ -4300,7 +4360,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 
 > *"If a traditional AI agent can run a quick data analysis, a Super Agent is the analyst — who gathers the data, runs the model, interprets the results, and delivers the report in the right format to the right stakeholder, without being explicitly told each step."*
 
-**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Year 2, clients don't use K.I.N.D. They work *with* K.I.N.D.
+**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Month 3, clients don't use K.I.N.D. They work *with* K.I.N.D.
 
 **The pricing insight:** ClickUp charges $9/user/month for their AI add-on. 1,500 credits included. K.I.N.D charges per outcome ($1/lead, $3/FIGSY credit). This is better — the client pays for results, not for compute. Keep this model.
 
@@ -5606,7 +5666,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 
 > *"If a traditional AI agent can run a quick data analysis, a Super Agent is the analyst — who gathers the data, runs the model, interprets the results, and delivers the report in the right format to the right stakeholder, without being explicitly told each step."*
 
-**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Year 2, clients don't use K.I.N.D. They work *with* K.I.N.D.
+**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Month 3, clients don't use K.I.N.D. They work *with* K.I.N.D.
 
 **The pricing insight:** ClickUp charges $9/user/month for their AI add-on. 1,500 credits included. K.I.N.D charges per outcome ($1/lead, $3/FIGSY credit). This is better — the client pays for results, not for compute. Keep this model.
 

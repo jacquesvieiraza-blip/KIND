@@ -66,7 +66,7 @@
 > **Everything previously labelled Year 2 or Year 3 is now Month 3. Only ISO certifications remain Year 2. Speed is the only strategy.**
 
 #### THIS WEEK — launch prep
-1. Rotate all credentials (TIER 0) · 2. Move FEATURE_PORTAL_V2 to Portal · 3. Create dogfood account · 4. Merge branch + run migration 010 · 5. Sat smoke test 1 · 6. Sun smoke test 2 · 7. Mon lock + confirm · 8. **Tue LAUNCH**
+1. Rotate all credentials (TIER 0) · 2. Move FEATURE_PORTAL_V2 to Portal · 3. Create dogfood account · 4. Merge branch + run migration 010 · 5. Fix DNS (app/api/admin/status) · 6. **Sat smoke test 1** · 7. **Sun smoke test 2** · 8. **MON — LAUNCH BOTH MARKETS (US + Africa/UK) with multiple campaigns.** One URL `app.get-kind.com`, one Cape Town DB serves all markets. US data-residency option added later only if a signed enterprise contract requires it (see REGION ARCHITECTURE — LOCKED).
 9. **Register with ICO** — ico.org.uk · £40/yr · legal requirement · do before launch · 10. **Suppress personal address on Companies House** — apply free via form SR01 at companieshouse.gov.uk · removes home address from public register · 11. **Get registered office address service** — ~£20-50/yr (1st Formations or Hoxton Mix) · replaces personal address on Companies House with a professional address · prevents employer/social contacts finding your home address · **do alongside SR01**
 
 #### WEEK 1 POST-LAUNCH

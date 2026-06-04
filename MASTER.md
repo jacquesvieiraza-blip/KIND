@@ -180,6 +180,7 @@
 ### 🟠 TIER 2 — prove the platform works
 - [ ] **Smoke tests** — `docs/SMOKE_TEST.md`, Saturday + Sunday, log failures as `T#-Step#` → Claude fixes same day
 - [ ] **Onboarding run-through** (private, pre-Loom) — onboard yourself, note every friction point → Claude fixes → THEN record clean Loom videos. Strategy: clients who don't activate in week 1 almost never reach month 2.
+- [ ] **🎨 After smoke tests → ping Claude: "do website consistency pass"** — Claude will make all 32 website pages fully match the homepage (nav, footer, colours, fonts, CTAs). Nothing ships to paying clients until this is done.
 
 ### 🟡 TIER 3 — before clients stress-test it
 - [ ] Render API standby ($7) + Cloudflare LB for `api.get-kind.com` ($5) + update `NEXT_PUBLIC_API_URL` → Railway Portal + Admin
@@ -232,7 +233,14 @@
 - [x] ✅ **Fixed `DEPLOYMENT_GUIDE.md`** — Steps 3/4/5 rewritten Vercel→Railway, stale Stripe price vars corrected, env reference + deploy order + troubleshooting all Railway (3 Jun)
 - [x] ✅ **Archived `KIND_Roadmap.md` + `KIND_SOP.md`** → `docs/archive/` with README pointing to MASTER (3 Jun)
 - [ ] **Scrub remaining stale Vercel refs in MASTER body** (historical sections below the canonical block — ~30 refs, mostly in old session logs; low risk as they're under the "historical" line)
-- [ ] **Full website branding pass** — roll `kind.css` + brand gradient + nav/footer + hero style across ALL remaining pages to match the main homepage. Every page should feel like the same site. Scope: 32 remaining pages in `apps/website/`. Do after smoke tests pass. (Audit done 4 Jun: 30 pages off by one purple shade `#7c3aed`→`#9a4dff`; 3 video pages missing nav/footer.)
+- [ ] **🎨 FULL WEBSITE CONSISTENCY PASS — do immediately after smoke tests pass**
+  Audit done 4 Jun. Every page must match `index.html` exactly: same nav, same footer, same font stack, same purple `#7C3AED` (not `#9a4dff`), same `kind.css` tokens, same CTA button style. Scope: **32 pages** in `apps/website/`. Known issues:
+  - 30 pages using wrong purple shade (`#9a4dff` instead of `#7C3AED`)
+  - 3 video/demo pages missing nav + footer entirely
+  - Legal pages (terms, privacy, dpa, dpa-us) need footer link audit
+  - All comparison pages (`vs-*.html`) need nav consistency check
+  - Trust page updated but needs final visual QA against homepage style
+  Full pass = one session, done in order: nav → footer → colours → typography → CTAs. Nothing ships to clients until this is done.
 
 #### 🆕 WEBSITE IMPROVEMENTS — from Glean site review (4 Jun) — TOMORROW
 *Glean's site beats ours on two things: it SHOWS the product, and it LEADS with proof. Both have honest fixes. These are improvements, not copies — see MASTER competitor notes.*

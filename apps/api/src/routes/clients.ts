@@ -88,6 +88,8 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       crm_type:          z.enum(['hubspot', 'pipedrive', 'none']).optional(),
       crm_api_key:       z.string().optional(),
       crm_sync_enabled:  z.boolean().optional(),
+      crm_dedup_enabled: z.boolean().optional(), // never cold-email existing CRM contacts
+
       leads_per_run:     z.number().int().min(1).optional(),
       daily_drip_rate:   z.number().int().min(1).optional(),
       // Booking link (Calendly / Cal.com / Google) that FIGSY emails offer leads.

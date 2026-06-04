@@ -1,5 +1,8 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 4 June 2026**
+
+> ⚠️ **THIS IS NOW A HISTORICAL ARCHIVE (as of 4 Jun 2026).** The live, de-duplicated, reconciled working list is **`docs/EVERYTHING.md`** — read and update THAT first. MASTER is kept for history/context only and contains ~15 known internal contradictions (listed in `docs/EVERYTHING.md` Part 8). Do not treat values here as canonical; `EVERYTHING.md` overrides.
+
+**Historical reference. Last updated: 4 June 2026**
 **Business: K.I.N.D TECHNOLOGIES LTD — company number 17260532, registered England & Wales ✅ · Platform: Africa-first, world-ready**
 
 ---

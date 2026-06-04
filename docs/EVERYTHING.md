@@ -1,7 +1,10 @@
 # K.I.N.D — EVERYTHING
 
+> ✅ **THIS IS THE WORKING SOURCE OF TRUTH (as of 4 Jun 2026).** Read this first, update this first. `MASTER.md` is now a historical archive only — kept for context, not canonical. Where the two disagree, THIS document wins.
+> **Protocol:** at the start of a session read this file; at the end of a session update it and commit.
+
 **The complete, de-duplicated register of every actionable item, every built feature, every decision, and every known contradiction across MASTER.md.**
-Built 4 Jun 2026 from a full end-to-end read of MASTER (8,141 lines). Contradictions reconciled to canonical/correct values (see Part 8 for the list of fixes still owed to MASTER itself).
+Built 4 Jun 2026 from a full end-to-end read of MASTER (8,141 lines). Contradictions reconciled to canonical/correct values (see Part 8 for the list of fixes still owed to the MASTER archive).
 
 > **How to use this:** Parts 1–2 are what you *do*. Parts 3–6 are the current *state* (so nothing is forgotten or rebuilt). Part 7 is recurring ops. Part 8 is the MASTER cleanup backlog.
 

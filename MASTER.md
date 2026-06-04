@@ -168,9 +168,9 @@
 
 | Risk | Severity | Status |
 |------|----------|--------|
-| **API Dockerfile on main is UNTESTED** | 🟠 Medium | 4 Jun — API build aborted on a Railway snapshot infra glitch; API is live only via a *restart* of the old Nixpacks build (which loaded the new runtime vars fine). Next real API rebuild will use the untested Dockerfile. NEXT SESSION: confirm API service Root Directory = repo root (Dockerfile works) OR revert to Nixpacks. Nothing broken now. |
+| ~~API Dockerfile untested~~ | ✅ Resolved | 4 Jun — reverted ALL services to Nixpacks (deleted API/Portal/Admin Dockerfiles). Root cause of the original API crash was the bad `KIND Production` variable (space in name), now deleted. Nixpacks proven clean on Portal; API should build clean post-deletion. ⚠️ Watch the first post-merge API build to confirm. |
 | No paying clients yet | 🔴 Critical | GTM launch after smoke tests |
-| ~~Portal/Admin Nixpacks blank-name crash~~ | ✅ Not a risk | 4 Jun — Portal builds clean on Nixpacks (zero failures, green build with Stripe `NEXT_PUBLIC_` vars baked in). Crash was unique to one bad API variable (`KIND Production`, space in name — deleted). Portal/Admin Dockerfiles parked UNMERGED on branch as fallback; do NOT merge (would swap working build for untested one). |
+| ~~Portal/Admin Nixpacks blank-name crash~~ | ✅ Not a risk | 4 Jun — Portal builds clean on Nixpacks (zero failures, green build with Stripe `NEXT_PUBLIC_` vars baked in). Crash was unique to one bad API variable (`KIND Production`, space in name — deleted). Portal/Admin Dockerfiles deleted 4 Jun — all services on Nixpacks. |
 | ~~Resend inbound webhook not wired~~ | ✅ Resolved | Wired 4 Jun → `/figsy/replies/inbound`, secret matches Railway |
 | ~~Stripe not live~~ | ✅ Resolved | 8 price IDs added to Railway (6 Portal + 2 API), pricing corrected (Vida $29, FIGSY $3/cr) 4 Jun |
 | ~~`FOUNDER_EMAIL` not set~~ | ✅ Resolved | Set in Railway API 4 Jun |

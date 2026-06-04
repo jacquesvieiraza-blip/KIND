@@ -82,7 +82,7 @@
 ### Legal & Compliance (all docs written, deployed)
 - **T&Cs, Privacy Policy, DPA, DPA-US** — ECTA/POPIA/GDPR/CCPA compliant
 - **Legal entity swapped** to K.I.N.D Technologies Ltd in terms.html / dpa.html / portal terms
-- **`[COMPANY NUMBER PENDING]`** token in 4 spots — 30-sec swap on Companies House email
+- **Company number: 17260532** — K.I.N.D Technologies Ltd, registered England & Wales ✅
 - **Companies House submitted** — K.I.N.D Technologies Ltd, ltd by shares, SIC 62012/62020/63110, ref 116-471065. Number pending ≤2 wd
 - **Smartsheet employment legal review DONE (3 Jun)** — lawyer consulted, risk assessed, proceeding ✅. Key: built after hours, personal equipment. Clause 17.2 risk acknowledged and accepted.
 
@@ -113,7 +113,7 @@
 - [ ] (optional $14/mo) Portal + admin Render standbys
 
 ### 🟢 TIER 4 — legal (gated on company number, arrives this week)
-- [ ] **Send Claude the company number** → 30-sec swap of 4 `[COMPANY NUMBER PENDING]` tokens
+- [x] ✅ **Company number received: 17260532** — K.I.N.D Technologies Ltd. All 4 tokens swapped (4 Jun)
 - [ ] **ICO registration** — ico.org.uk, £40/yr (data controller registration, legally required)
 - [ ] **Wise Business account** — free, needed for business banking before revenue
 - [ ] **SEIS advance assurance** — free to file, 3-yr clock starts from incorporation date. File soon.
@@ -147,7 +147,7 @@
 
 - [ ] **Walk founder through Resend inbound webhook setup** (step by step, when ready)
 - [ ] **Grant FIGSY + credits** to founder dogfood account via admin (when account created)
-- [ ] **Swap `[COMPANY NUMBER PENDING]` × 4** — terms.html, dpa.html, portal terms page (when number arrives)
+- [x] ✅ **Swap `[COMPANY NUMBER PENDING]` × 4** — DONE 4 Jun, number 17260532
 - [ ] **Fix smoke test failures** as reported Saturday/Sunday (same-day turnaround)
 - [ ] **Build onboarding v2 + Loom embed slots** — (1) post-onboard Welcome screen + 3 action buttons, (2) inline Loom cards on ICP + FIGSY pages, (3) day-0/3/7 Resend welcome email sequence (after smoke tests pass)
 - [x] ✅ **Fixed `DEPLOYMENT_GUIDE.md`** — Steps 3/4/5 rewritten Vercel→Railway, stale Stripe price vars corrected, env reference + deploy order + troubleshooting all Railway (3 Jun)
@@ -328,7 +328,7 @@
 - ✅ **`ADMIN_SECRET_KEY` + `RESEND_WEBHOOK_SECRET`** confirmed set in Railway API.
 - ✅ **Boot-blocker fixed** — `credits.ts` threw at module load without legacy `PAYSTACK_SECRET_KEY`, crashing the WHOLE API on a fresh deploy (would have silently broken the Render failover standby). Now fail-soft; live billing is Stripe.
 - ✅ **Companies House submitted** — **K.I.N.D Technologies Ltd**, private limited **by shares**, SIC **62012** (+ secondary 62020/63110). Ref 116-471065. Company number pending (≤2 working days).
-- ✅ **Legal entity swapped** — "Jacques Vieira trading as K.I.N.D" → "K.I.N.D Technologies Ltd" in `terms.html`, `dpa.html`, portal `terms/page.tsx`. Company number = `[COMPANY NUMBER PENDING]` token, awaiting the CH email (4 spots, 30-sec swap).
+- ✅ **Legal entity swapped** — "Jacques Vieira trading as K.I.N.D" → "K.I.N.D Technologies Ltd" in `terms.html`, `dpa.html`, portal `terms/page.tsx`. Company number = **17260532** ✅ (swapped 4 Jun).
 - ✅ **PAID UPGRADES DONE:** Supabase **Pro $25** (daily backups — Free plan had NONE, confirmed), Railway **Pro**, Resend **Pro ($15.46)**, Apollo **Basic ($65)**.
 - ✅ **Run costs corrected** (§17 + `docs/run-costs-and-cashflow.md`) — removed stale Vercel/Paystack; launch floor ~$114/mo; Stripe is per-transaction, not a fixed fee.
 

@@ -168,7 +168,16 @@
 - [x] ✅ **Fixed `DEPLOYMENT_GUIDE.md`** — Steps 3/4/5 rewritten Vercel→Railway, stale Stripe price vars corrected, env reference + deploy order + troubleshooting all Railway (3 Jun)
 - [x] ✅ **Archived `KIND_Roadmap.md` + `KIND_SOP.md`** → `docs/archive/` with README pointing to MASTER (3 Jun)
 - [ ] **Scrub remaining stale Vercel refs in MASTER body** (historical sections below the canonical block — ~30 refs, mostly in old session logs; low risk as they're under the "historical" line)
-- [ ] **Full website branding pass** — roll `kind.css` + brand gradient + nav/footer + hero style across ALL remaining pages to match the main homepage. Every page should feel like the same site. Scope: 32 remaining pages in `apps/website/`. Do after smoke tests pass.
+- [ ] **Full website branding pass** — roll `kind.css` + brand gradient + nav/footer + hero style across ALL remaining pages to match the main homepage. Every page should feel like the same site. Scope: 32 remaining pages in `apps/website/`. Do after smoke tests pass. (Audit done 4 Jun: 30 pages off by one purple shade `#7c3aed`→`#9a4dff`; 3 video pages missing nav/footer.)
+
+#### 🆕 WEBSITE IMPROVEMENTS — from Glean site review (4 Jun) — TOMORROW
+*Glean's site beats ours on two things: it SHOWS the product, and it LEADS with proof. Both have honest fixes. These are improvements, not copies — see MASTER competitor notes.*
+- [ ] **44 — Homepage product demo** *(biggest win)* — embed a real "watch FIGSY book a meeting" demo/video on the homepage (campaign → reply → booked meeting). ⚠️ Depends on Loom footage (recorded after smoke-test run-through); until then, an annotated screenshot/GIF of a real campaign works as a placeholder.
+- [ ] **45 — First-party proof block** — surface REAL dogfood metrics once FIGSY runs ("FIGSY booked X meetings for K.I.N.D in N days"). No fake stats (locked rule). Build the block now, populate when numbers exist.
+- [ ] **46 — Functional throughline line** — add one concrete sentence under the "AI Family" hero: e.g. *"One family, one shared memory — every agent learns from your market and feeds the others."* Keeps the emotional hook, adds the functional spine a B2B buyer wants. Claude can draft + ship now.
+- [ ] **47 — Surface comparison/use-case pages in nav** — we already out-content Glean here (vs-apollo, vs-salesloft, use-cases) but the depth may be buried. Make discoverable in the nav. Claude can do now.
+- Note: deliberately NOT copying Glean's "platform / layer-beneath-the-interface" narrative — we're product-level, not infra; borrowing it would break the honest positioning.
+
 - [x] ✅ **YouTube 10-video content plan** — saved to `docs/content/youtube-plan.md` (4 Jun)
 - [x] ✅ **3 blog articles** — saved to `docs/content/blog-articles.md` (4 Jun)
 - [x] ✅ **Draft SEIS advance assurance application + trademark class list** — saved to `docs/legal/seis-advance-assurance-draft.md` (4 Jun)

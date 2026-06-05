@@ -86,6 +86,11 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 34 | Launch YouTube channel (10-video plan exists) | 🧍 |
 | 35 | Wire playbook email form (needs provider: ConvertKit/Mailchimp) | 🤝 |
 | 36 | "AI Revenue OS" positioning copy rewrite (Apex steal — hero/pricing/deck) | 🤖 |
+| 61a | **Atlas steal #1 — Performance guarantee copy** · Add "30-day results guarantee" to FIGSY pricing page + portal onboarding. "Results or your money back." Near-zero cost at $29/mo, removes purchase friction entirely. | 🤖 |
+| 61b | **Atlas steal #2 — "60-second" specificity hook** · Pick one concrete number and own it across all hero copy. Options: "Your first meeting booked within 24 hours." / "FIGSY replies to every new lead in under 60 seconds." Run A/B. | 🤝 |
+| 61c | **Atlas steal #3 — "Clone yourself" framing** · Sharpen FIGSY copy from generic "AI SDR" to personal: "FIGSY prospects the way you would — in your voice, at 3am, to every lead on your list." Update hero + about copy. | 🤖 |
+| 61d | **Atlas steal #4 — Cold CRM re-engagement angle** · Add explicit use case to FIGSY page + use-cases.html: "Have 200 leads going cold? FIGSY re-engages them all — tonight." High-urgency, high-pain, every SMB has this problem. | 🤖 |
+| 61e | **Atlas steal #5 — Influencer/community distribution** · Identify 1–2 SA SMB communities (Startup Grind CPT, specific trades/services forums) + 1–2 US equivalents. Pursue co-marketing or endorsement. Dan Martell is Atlas's real acquisition channel — we need ours. | 🧍 |
 
 ## 🟨 MONTH 2 — intelligence layer (Tier 2 build queue, 10+ clients)
 37 Intent signal detection · 38 A/B subject testing · 39 Client morning brief email · 40 ICP auto-refinement · 41 Conditional sequence branching · 42 Waterfall enrichment (Apollo→PDL→Hunter→Clearbit; needs PDL+Hunter keys) · 43 Deliverability dashboard (SPF/DKIM/DMARC+bounce+blacklist) · 44 Email score pre-send · 45 Adaptive send volume · 46 **FIGSY Memory v2 (pgvector)** · 47 Milla full-context CRM pull · 48 Vapi voice calling · 49 Product Hunt (with proof) · 50 G2 listing (5 reviews) · 51 Configurable agent triggers · 52 Multi-model toggle per campaign · 53 Inbox rotation / multiple sending domains (Instantly steal)
@@ -209,7 +214,7 @@ Reason it waits is not the code — it's that outcome pricing moves result-risk 
 
 # PART 5B — COMPETITIVE LANDSCAPE + STRATEGIC POSITION (synthesised 5 Jun)
 
-> Source: deep research run 5 Jun covering Glean, Monday.com, ClickUp, Notion, Linear, Salesforce Agentforce, Intercom Fin, and macro SaaS AI pricing data.
+> Source: deep research run 5 Jun covering Glean, Monday.com, ClickUp, Notion, Linear, Salesforce Agentforce, Intercom Fin, and macro SaaS AI pricing data. youratlas.com added 5 Jun (see §Atlas below).
 
 ## What the outside world shipped (May–Jun 2026)
 
@@ -244,6 +249,22 @@ Reason it waits is not the code — it's that outcome pricing moves result-risk 
 
 ## MCP pulled forward — updated
 Item #59 MCP server moved from Month 3 → Month 2 (alongside pgvector and FIGSY v2). First milestone: K.I.N.D exposes a single MCP endpoint that lets external agents call FIGSY to start a campaign. That's the distribution unlock — no UI required, no sales call needed. A Notion agent or Linear bot can trigger a K.I.N.D campaign by calling one tool. Build after 10+ clients (so there's a pipeline to trigger).
+
+---
+
+## §Atlas — youratlas.com (researched 5 Jun 2026)
+
+**What they are:** Done-for-you AI Revenue Engine. Agency model, not SaaS. $5,000+ setup, 14-day white-glove build, performance guarantee ("results or you don't pay"). Target: US appointment-driven service businesses (healthcare, trades, home services, clinics).
+
+**Three weapons:** (1) Voice AI — answers every inbound call in <30 seconds, qualifies, books, syncs CRM. (2) iMessage Outreach — clones owner's voice/style into iMessage (92% claimed open rate, contacts every new lead within 3 seconds). (3) CRM Re-engagement — works dormant lead lists automatically.
+
+**Tagline:** "Clone your best humans." **Hook:** "60 seconds — that's where fortunes are won." **Social proof:** Dan Martell endorsement, 15,000+ businesses claimed. **No public pricing tiers.**
+
+**Where they beat us:** Voice AI (genuine moat for call-heavy businesses), iMessage channel (novel, high open rate), done-for-you removes all friction for non-technical buyers.
+
+**Where we beat them:** Price (not close — $29/mo vs $5,000+), self-serve, multi-agent ecosystem with shared memory, Milla, DENISE (coming), full revenue lifecycle vs one vertical, SA+US vs US-only, live in minutes not 14 days.
+
+**Strategic read:** Different buyer, different price point — not a direct competitor today. But their *messaging discipline* (one number, one fear, one promise) is sharper than ours. Steal the copy craft, not the product. Items #61a–61e capture the steals.
 
 ---
 

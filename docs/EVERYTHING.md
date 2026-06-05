@@ -80,7 +80,7 @@ Status: ✅ fixed in code (on `main`) · ⏳ fixed, awaiting website-service dep
 - **Run cost floor:** ~$125/mo. Break-even: 2 clients (infra) / 5 (all-in). Margin 95%+.
 - **Brand purple:** `#7C3AED` everywhere. No stray hex variants.
 - **Logo:** `logo-k.png` image on every page nav. No ⚡ emoji.
-- **Positioning:** "Built in Africa. Works anywhere." — Africa is proof, not a market gate.
+- **Positioning:** GLOBAL (decided 5 Jun). US + Africa are the first markets, not the brand identity. Lead global; "Africa-first" removed from chrome/taglines. Targeted African blog content retained.
 
 ---
 

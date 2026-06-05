@@ -1,4 +1,4 @@
-build: pending-merge (from 66f2329)
+build: pending-merge (from 215fa59)
 deployed-from: main
-stamped: 2026-06-05T17:49:52Z
+stamped: 2026-06-05T17:54:53Z
 note: visit get-kind.com/version.txt — if 'stamped' is recent, the website service is current.

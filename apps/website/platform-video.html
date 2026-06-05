@@ -652,6 +652,32 @@
     </div>
   </div>
 
+  <!-- ───────────── S10b — Meet Denise ───────────── -->
+  <div class="scene bg-warm" id="s10b">
+    <div class="orb" style="width:500px;height:500px;background:rgba(217,119,6,0.18);bottom:-150px;right:-100px;animation-delay:-3s"></div>
+    <div style="z-index:2;max-width:340px">
+      <div class="tag fade-up" style="color:#fbbf24;border-color:rgba(217,119,6,0.5);background:rgba(217,119,6,0.15)">Live now &middot; $99/mo</div>
+      <div style="font-size:clamp(3.2rem,8vw,5.5rem);font-weight:900;letter-spacing:-0.04em;background:linear-gradient(90deg,#fbbf24,#f59e0b,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:0.92;margin-bottom:10px" class="fade-up-delay">Denise</div>
+      <p style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:18px" class="fade-up-delay">AI Account Executive &middot; by K.I.N.D</p>
+      <p style="font-size:0.86rem;color:rgba(255,255,255,0.8);line-height:1.65;max-width:280px;margin-bottom:24px" class="fade-up-delay2">Closes what FIGSY opens. Confirms meetings, drafts proposals, and follows up warm leads until they sign.</p>
+      <div class="ann-chip" id="dan1"><div class="ann-dot" style="background:#fbbf24"></div>Confirms every booked meeting</div>
+      <div class="ann-chip" id="dan2"><div class="ann-dot green"></div>Drafts the proposal from your call</div>
+      <div class="ann-chip" id="dan3"><div class="ann-dot"></div>Follows up so leads never go cold</div>
+      <div class="ann-chip" id="dan4"><div class="ann-dot pink"></div>Warmth, never pressure</div>
+    </div>
+    <div style="z-index:2;position:relative">
+      <img src="denise.png" alt="Denise — AI Account Executive"
+           style="height:min(72vh,480px);width:auto;border-radius:24px;box-shadow:0 40px 100px rgba(217,119,6,0.4);display:block;object-fit:contain;animation:floatImg 5s ease-in-out infinite"
+           onerror="this.parentElement.innerHTML='<div style=\'width:260px;height:380px;border-radius:24px;background:linear-gradient(135deg,#fde68a,#d97706);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:5rem;box-shadow:0 40px 100px rgba(217,119,6,0.4)\'>🤝<div style=\'font-size:1rem;font-weight:800;color:#fff;margin-top:12px\'>Denise</div></div>'" />
+      <div class="agent-pill" id="denise-pill" style="bottom:-10px">
+        <img src="denise.png" style="width:22px;height:22px;border-radius:50%;object-fit:cover;object-position:top;flex-shrink:0" alt="Denise" />
+        <span class="ap-text">Meet Denise, your AI closer</span>
+        <div class="ap-arrow">→</div>
+      </div>
+      <div class="agent-badge" id="denise-badge" style="bottom:-46px;left:50%;transform:translateX(-50%);background:rgba(217,119,6,0.2);color:#fbbf24;border:1px solid rgba(217,119,6,0.35)">Turns booked meetings into signed deals 🤝</div>
+    </div>
+  </div>
+
   <!-- ───────────── S11 — KPI Dashboard ───────────── -->
   <div class="scene bg-dark" id="s11">
     <div class="orb" style="width:460px;height:460px;background:rgba(124,58,237,0.15);top:50%;left:50%;transform:translate(-80%,-50%);animation-delay:-2s"></div>
@@ -804,13 +830,13 @@
   <div class="dot" onclick="goTo(8)"></div><div class="dot" onclick="goTo(9)"></div>
   <div class="dot" onclick="goTo(10)"></div><div class="dot" onclick="goTo(11)"></div>
   <div class="dot" onclick="goTo(12)"></div><div class="dot" onclick="goTo(13)"></div>
-  <div class="dot" onclick="goTo(14)"></div><div class="dot" onclick="goTo(15)"></div>
+  <div class="dot" onclick="goTo(14)"></div><div class="dot" onclick="goTo(15)"></div><div class="dot" onclick="goTo(16)"></div>
 </div>
 <button id="replay-btn" onclick="restart()">↺ Replay</button>
 
 <script>
 const SCENE_DUR = 5500
-const TOTAL = 16
+const TOTAL = 17
 let cur = 0, mainTimer = null, progTimer = null, progStart = null
 let sceneTimers = []
 
@@ -958,6 +984,15 @@ function onSceneEnter(idx) {
 
   // S11 — KPI dashboard + funnel
   if (idx === 10) {
+    ;['dan1','dan2','dan3','dan4'].forEach((id, i) => {
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*400)
+      sceneTimers.push(t)
+    })
+    const t1 = setTimeout(() => document.getElementById('denise-pill')?.classList.add('visible'), 1800)
+    const t2 = setTimeout(() => document.getElementById('denise-badge')?.classList.add('visible'), 2300)
+    sceneTimers.push(t1, t2)
+  }
+  if (idx === 11) {
     ;['kpi1','kpi2','kpi3','kpi4'].forEach((id, i) => {
       const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*150)
       sceneTimers.push(t)
@@ -970,7 +1005,7 @@ function onSceneEnter(idx) {
   }
 
   // S12 — Alerts
-  if (idx === 11) {
+  if (idx === 12) {
     ;['al1','al2','al3'].forEach((id, i) => {
       const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*500)
       sceneTimers.push(t)
@@ -978,7 +1013,7 @@ function onSceneEnter(idx) {
   }
 
   // S13 — Pipeline chart + counter
-  if (idx === 12) {
+  if (idx === 13) {
     ;['cb1','cb2','cb3','cb4','cb5','cb6','cb7','cb8','cb9','cb10'].forEach((id, i) => {
       const t = setTimeout(() => document.getElementById(id)?.classList.add('grown'), 400 + i*120)
       sceneTimers.push(t)
@@ -997,7 +1032,7 @@ function onSceneEnter(idx) {
   }
 
   // S15 — Partner stats
-  if (idx === 14) {
+  if (idx === 15) {
     ;['ps1','ps2','ps3'].forEach((id, i) => {
       const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 400 + i*250)
       sceneTimers.push(t)
@@ -1005,7 +1040,7 @@ function onSceneEnter(idx) {
   }
 
   // S16 — Agent pills pop in
-  if (idx === 15) {
+  if (idx === 16) {
     ;['ap1','ap2','ap3','ap4','ap5'].forEach((id, i) => {
       const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 400 + i*180)
       sceneTimers.push(t)
@@ -1027,6 +1062,7 @@ function clearSceneTimers() {
     'man1','man2','man3','man4','milla-pill','milla-badge',
     'cm1','cm2','cm3','cm4','cm5',
     'van1','van2','van3','van4','vida-pill','vida-badge',
+    'dan1','dan2','dan3','dan4','denise-pill','denise-badge',
     'kpi1','kpi2','kpi3','kpi4',
     'al1','al2','al3',
     'cb1','cb2','cb3','cb4','cb5','cb6','cb7','cb8','cb9','cb10',

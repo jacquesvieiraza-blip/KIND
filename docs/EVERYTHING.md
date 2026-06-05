@@ -91,6 +91,8 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 61c | **Atlas steal #3 — "Clone yourself" framing** · Sharpen FIGSY copy from generic "AI SDR" to personal: "FIGSY prospects the way you would — in your voice, at 3am, to every lead on your list." Update hero + about copy. | 🤖 |
 | 61d | **Atlas steal #4 — Cold CRM re-engagement angle** · Add explicit use case to FIGSY page + use-cases.html: "Have 200 leads going cold? FIGSY re-engages them all — tonight." High-urgency, high-pain, every SMB has this problem. | 🤖 |
 | 61e | **Atlas steal #5 — Influencer/community distribution** · Identify 1–2 SA SMB communities (Startup Grind CPT, specific trades/services forums) + 1–2 US equivalents. Pursue co-marketing or endorsement. Dan Martell is Atlas's real acquisition channel — we need ours. | 🧍 |
+| 61f | **Atlas steal #6 — Pipeline / ROI calculator** · Build a "Pipeline Calculator" on the site: input lead list size, current reply rate, average deal value → output meetings + revenue FIGSY would book. Pre-qualifies the buyer and sells the product before they speak to anyone. Atlas has a "speed-to-lead simulator" doing exactly this. | 🤖 |
+| 61g | **Atlas steal #7 — 90-day guarantee framing** · Sharpen the guarantee from "30-day money back" to "90-day results guarantee — your pipeline grows or you don't pay." 90 days gives enough campaign data to show results; stronger commitment signal than 30 days. | 🤝 |
 
 ## 🟨 MONTH 2 — intelligence layer (Tier 2 build queue, 10+ clients)
 37 Intent signal detection · 38 A/B subject testing · 39 Client morning brief email · 40 ICP auto-refinement · 41 Conditional sequence branching · 42 Waterfall enrichment (Apollo→PDL→Hunter→Clearbit; needs PDL+Hunter keys) · 43 Deliverability dashboard (SPF/DKIM/DMARC+bounce+blacklist) · 44 Email score pre-send · 45 Adaptive send volume · 46 **FIGSY Memory v2 (pgvector)** · 47 Milla full-context CRM pull · 48 Vapi voice calling · 49 Product Hunt (with proof) · 50 G2 listing (5 reviews) · 51 Configurable agent triggers · 52 Multi-model toggle per campaign · 53 Inbox rotation / multiple sending domains (Instantly steal)
@@ -252,19 +254,27 @@ Item #59 MCP server moved from Month 3 → Month 2 (alongside pgvector and FIGSY
 
 ---
 
-## §Atlas — youratlas.com (researched 5 Jun 2026)
+## §Atlas — youratlas.com (researched 5 Jun 2026, deep scrape completed)
 
-**What they are:** Done-for-you AI Revenue Engine. Agency model, not SaaS. $5,000+ setup, 14-day white-glove build, performance guarantee ("results or you don't pay"). Target: US appointment-driven service businesses (healthcare, trades, home services, clinics).
+**What they are:** Done-for-you AI Revenue Engine. Agency model, not SaaS. $5,000+ setup, 7–14-day white-glove build, 90-day performance guarantee ("results or you don't pay" — minimum ad spend required, Atlas selects clients). Target: US appointment-driven service businesses (healthcare, trades, home services, clinics). Legal entity: AQX Global Corp. Founded 2024. ~74 employees. Pre-seed, BDev Ventures. Founder: Omer Jamal (third startup; ex-Scotiabank/TD/CIBC; previously DiscoverData acquired + Fortuna.ai fintech).
 
-**Three weapons:** (1) Voice AI — answers every inbound call in <30 seconds, qualifies, books, syncs CRM. (2) iMessage Outreach — clones owner's voice/style into iMessage (92% claimed open rate, contacts every new lead within 3 seconds). (3) CRM Re-engagement — works dormant lead lists automatically.
+**Two agents (product architecture):**
+1. **Demand Creation Agent** — launches streaming TV ad campaigns on Disney+, ESPN, Amazon in under 10 minutes. Positions local SMBs as national-scale advertisers without an agency.
+2. **Demand Response Agent** — Voice AI answers every inbound call in <30 seconds + iMessage outreach (92% claimed open rate, contacts leads in 3 seconds) + CRM re-engagement of cold lists. GoHighLevel CRM integration documented (v1+v2 API).
 
-**Tagline:** "Clone your best humans." **Hook:** "60 seconds — that's where fortunes are won." **Social proof:** Dan Martell endorsement, 15,000+ businesses claimed. **No public pricing tiers.**
+**Claimed stats [unverified]:** 92% iMessage open rate vs 35% SMS · 300% more conversions · 10x ROAS · 30% lift in website conversion · saves up to 70% in costs · conversion drops 80% if lead not contacted within 5 minutes · 40% of leads come in nights/weekends. Case studies: law firm recovered $28K in 90 days from written-off leads; plumbing no-shows 28%→6% in 60 days; 4 appts in 7 days, 3 closed at $6K each.
 
-**Where they beat us:** Voice AI (genuine moat for call-heavy businesses), iMessage channel (novel, high open rate), done-for-you removes all friction for non-technical buyers.
+**Public API:** apidocs.youratlas.com — campaigns, call records, bookings, knowledge base (file upload + URL extraction), GoHighLevel enrichment. They are building developer infrastructure alongside the agency service.
 
-**Where we beat them:** Price (not close — $29/mo vs $5,000+), self-serve, multi-agent ecosystem with shared memory, Milla, DENISE (coming), full revenue lifecycle vs one vertical, SA+US vs US-only, live in minutes not 14 days.
+**Speed-to-lead simulator:** Interactive ROI calculator — input lead volume/contact rate/deal value → output revenue lost to slow follow-up. Clever top-of-funnel tool that pre-qualifies buyers before they ever book a demo.
 
-**Strategic read:** Different buyer, different price point — not a direct competitor today. But their *messaging discipline* (one number, one fear, one promise) is sharper than ours. Steal the copy craft, not the product. Items #61a–61e capture the steals.
+**Distribution:** Dan Martell (SaaS Academy, Buy Back Your Time author, 3,000+ business clients). His endorsement is their primary acquisition channel. 10,000+ businesses claimed (some pages say 15,000 — take lower number).
+
+**Where they beat us:** Voice AI (genuine moat for call-heavy services), iMessage channel (novel, high open rate), CTV ads (no-one else doing this for SMBs), done-for-you removes all friction, 90-day guarantee signals confidence, proper API/dev docs.
+
+**Where we beat them:** Price ($29/mo vs $5,000+), self-serve, multi-agent ecosystem with shared memory, Milla, DENISE (coming), full revenue lifecycle vs appointment-booking only, SA+US vs US-only, live in minutes not 14 days.
+
+**Strategic read:** Different buyer (appointment-driven services vs our SMB generalist), different price point, different model (DFY vs SaaS) — not a direct competitor. But their messaging is sharper and their tools (ROI calculator, performance guarantee) are worth stealing. Items #61a–61g capture the steals.
 
 ---
 

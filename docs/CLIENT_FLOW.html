@@ -25,6 +25,7 @@
     <span><span class="dot" style="background:#0ea5e9"></span>Milla — The Brain (VA, $49/mo)</span>
     <span><span class="dot" style="background:#10b981"></span>Vida — The Connector (Chatbot, $29/mo)</span>
     <span><span class="dot" style="background:#d97706"></span>Denise — The Closer (AE, $99/mo)</span>
+    <span><span class="dot" style="background:#cbd5e1;border:1px dashed #94a3b8"></span>Pending — coming soon (WhatsApp, Voice)</span>
   </div>
   <div class="card">
   <pre class="mermaid">
@@ -44,17 +45,22 @@ flowchart TD
 
     subgraph VID[VIDA -- The Connector]
       direction TB
-      V1[One-line widget on your site + WhatsApp] --> V2[Qualifies every visitor 24/7]
+      V1[One-line widget on your website] --> V2[Qualifies every visitor 24/7]
+      VW[WhatsApp Business inbound]:::pending -. pending: Meta approval .-> V2
       V2 --> V3[Captures inbound leads, routes hot ones to you]
     end
     V3 --> H
 
     subgraph FIG[FIGSY -- The Opener]
       direction TB
-      H --> I[Campaign + multi-step email sequence]
-      I --> J[[Cron every 2h: send due emails]]
-      J --> K[AI writes each email in your voice -- sent via Resend]
+      H --> I[Campaign + multi-step sequence]
+      I --> J[[Cron every 2h: send due outreach]]
+      J --> K[Email: AI writes in your voice -- via Resend]
+      J -. pending: Meta approval .-> WA[WhatsApp outreach to enrolled leads]:::pending
+      J -. pending: Vapi keys .-> VC[AI voice calls -- Vapi]:::pending
       K --> L[Opens tracked - replies come back in]
+      WA -.-> L
+      VC -.-> L
       L --> M{Reply classified by AI}
       M -->|interested| N[Hot lead -> your Inbox]
       M -->|opt-out| O[Added to blocklist, sequence stops]
@@ -84,6 +90,7 @@ flowchart TD
 
     classDef sys fill:#f3eeff,stroke:#c9b8f5,color:#1e1152;
     classDef data fill:#fff7ed,stroke:#d97706,color:#92400e;
+    classDef pending fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:5 4;
     style LG fill:#fbf8ff,stroke:#c9b8f5
     style FIG fill:#f3eeff,stroke:#7c3aed
     style MIL fill:#eff8ff,stroke:#0ea5e9

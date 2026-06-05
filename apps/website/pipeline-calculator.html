@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline Calculator — see what FIGSY could add | K.I.N.D</title>
+  <meta name="description" content="Put in your own numbers and see an honest estimate of the meetings and revenue FIGSY could add to your pipeline. Every assumption is yours to adjust." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --mid: #444; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; background: none; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+    .page-hero { max-width: 1080px; margin: 0 auto; padding: 80px 48px 40px; text-align: center; }
+    .hero-label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 24px; background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.15); padding: 6px 14px; border-radius: 100px; }
+    .page-hero h1 { font-size: clamp(2.2rem, 4.5vw, 3.6rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px; }
+    .page-hero p { font-size: 1.05rem; color: rgba(0,0,0,0.45); max-width: 600px; margin: 0 auto; line-height: 1.7; }
+
+    .calc-wrap { max-width: 1000px; margin: 0 auto 40px; padding: 0 48px; }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    .calc-card { border: 1px solid var(--border); border-radius: 24px; padding: 36px; background: #fff; }
+    .calc-card.inputs { box-shadow: 0 4px 24px rgba(0,0,0,0.04); }
+    .calc-card.results { background: var(--dark); color: #fff; position: sticky; top: 88px; }
+    .calc-card h2 { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 28px; }
+    .calc-card.results h2 { color: #a78bfa; }
+    .field { margin-bottom: 26px; }
+    .field label { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem; font-weight: 600; color: rgba(0,0,0,0.7); margin-bottom: 10px; }
+    .field .val { font-weight: 800; color: var(--blue); font-size: 0.95rem; }
+    .field input[type=number] { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 1rem; font-weight: 600; color: var(--dark); font-family: inherit; }
+    .field input[type=number]:focus { outline: none; border-color: var(--blue); }
+    .field input[type=range] { width: 100%; accent-color: var(--blue); height: 4px; cursor: pointer; }
+    .field .hint { font-size: 0.74rem; color: rgba(0,0,0,0.38); margin-top: 8px; line-height: 1.5; }
+    .assume-head { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.35); margin: 8px 0 20px; padding-top: 24px; border-top: 1px dashed var(--border); }
+
+    .result-row { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .result-row:last-of-type { border-bottom: none; }
+    .result-row .label { font-size: 0.88rem; color: rgba(255,255,255,0.55); }
+    .result-row .num { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+    .result-hero { text-align: center; padding: 24px 0 8px; }
+    .result-hero .label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a78bfa; margin-bottom: 8px; }
+    .result-hero .num { font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em; background: linear-gradient(120deg,#c4b5fd,#fff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .result-hero .sub { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
+    .btn-cta { display: block; text-align: center; background: #fff; color: var(--dark); font-size: 0.9rem; font-weight: 700; padding: 14px; border-radius: 100px; text-decoration: none; margin-top: 28px; transition: opacity .2s; }
+    .btn-cta:hover { opacity: 0.88; }
+
+    .disclaimer { max-width: 1000px; margin: 0 auto 90px; padding: 0 48px; }
+    .disclaimer-box { background: var(--light); border-radius: 16px; padding: 24px 28px; display: flex; gap: 16px; align-items: flex-start; }
+    .disclaimer-box .icon { font-size: 1.2rem; flex-shrink: 0; }
+    .disclaimer-box p { font-size: 0.82rem; color: rgba(0,0,0,0.5); line-height: 1.7; }
+    .disclaimer-box strong { color: rgba(0,0,0,0.7); }
+
+    footer { border-top: 1px solid var(--border); padding: 48px; text-align: center; }
+    footer p { font-size: 0.78rem; color: rgba(0,0,0,0.3); }
+    footer a { color: rgba(0,0,0,0.5); text-decoration: none; }
+    footer a:hover { color: var(--dark); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; } .nav-links { display: none; }
+      .page-hero { padding: 48px 24px 32px; } .calc-wrap, .disclaimer { padding: 0 24px; }
+      .calc-grid { grid-template-columns: 1fr; } .calc-card.results { position: static; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo"><div class="logo-icon">⚡</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <a href="figsy.html" class="nav-link">FIGSY</a>
+    <a href="use-cases.html" class="nav-link">Use Cases</a>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+    <a href="about.html" class="nav-link">Company</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Log in</a>
+    <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="hero-label">Pipeline Calculator</div>
+  <h1>Your numbers. An honest estimate.</h1>
+  <p>Put in what your pipeline looks like today and see what FIGSY could add. Every assumption below is yours to move — we'd rather show you a conservative number you trust than a flashy one you don't.</p>
+</div>
+
+<!-- CALCULATOR -->
+<div class="calc-wrap">
+  <div class="calc-grid">
+    <!-- INPUTS -->
+    <div class="calc-card inputs">
+      <h2>Your pipeline today</h2>
+
+      <div class="field">
+        <label for="leads">Leads FIGSY works each month <span class="val" id="leads-val">300</span></label>
+        <input type="number" id="leads" min="0" step="10" value="300" />
+        <p class="hint">New enquiries plus any dormant list you'd put back into play.</p>
+      </div>
+
+      <div class="field">
+        <label for="deal">Average value of one client <span class="val" id="deal-val">R 25,000</span></label>
+        <input type="number" id="deal" min="0" step="1000" value="25000" />
+        <p class="hint">Use whatever a single closed client is worth to you — first deal or lifetime, your call.</p>
+      </div>
+
+      <div class="assume-head">Assumptions — drag to match your reality</div>
+
+      <div class="field">
+        <label for="reply">Share of leads that reply <span class="val" id="reply-val">8%</span></label>
+        <input type="range" id="reply" min="1" max="30" step="1" value="8" />
+        <p class="hint">Set conservatively by default. Move it to whatever your own outreach actually achieves.</p>
+      </div>
+
+      <div class="field">
+        <label for="meeting">Replies that turn into a meeting <span class="val" id="meeting-val">40%</span></label>
+        <input type="range" id="meeting" min="5" max="80" step="5" value="40" />
+      </div>
+
+      <div class="field">
+        <label for="close">Meetings that become clients <span class="val" id="close-val">25%</span></label>
+        <input type="range" id="close" min="5" max="80" step="5" value="25" />
+        <p class="hint">This is your close rate — the part only you can do. FIGSY gets them to the table; you win them.</p>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="calc-card results">
+      <h2>What that could look like</h2>
+      <div class="result-row">
+        <span class="label">Replies / month</span>
+        <span class="num" id="out-replies">24</span>
+      </div>
+      <div class="result-row">
+        <span class="label">Meetings booked / month</span>
+        <span class="num" id="out-meetings">10</span>
+      </div>
+      <div class="result-row">
+        <span class="label">New clients / month</span>
+        <span class="num" id="out-clients">2</span>
+      </div>
+      <div class="result-hero">
+        <div class="label">Estimated revenue added / year</div>
+        <div class="num" id="out-revenue">R 720,000</div>
+        <div class="sub">based entirely on the numbers you entered above</div>
+      </div>
+      <a href="https://app.get-kind.com/signup" class="btn-cta">Start a 14-day trial →</a>
+    </div>
+  </div>
+</div>
+
+<!-- DISCLAIMER -->
+<div class="disclaimer">
+  <div class="disclaimer-box">
+    <div class="icon">ℹ️</div>
+    <p><strong>This is an estimate, not a promise.</strong> Every figure is calculated live from the numbers and assumptions you set — we don't pre-load inflated rates or quote results we can't stand behind. Real outcomes depend on your market, your offer, and your list. We'd rather you start from a number you believe.</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2026 K.I.N.D · <a href="pricing.html">Pricing</a> · <a href="figsy.html">Meet FIGSY</a> · <a href="about.html">About</a></p>
+</footer>
+
+<script>
+  // ── FOUNDER NOTE ────────────────────────────────────────────────────────────
+  // These are the DEFAULT assumption values only. They are intentionally
+  // conservative and fully user-adjustable via the sliders. They are NOT presented
+  // anywhere as a guaranteed or measured result. Adjust the defaults below once you
+  // have real benchmark data — see EVERYTHING.md item #61f.
+  var DEFAULTS = { leads: 300, deal: 25000, reply: 8, meeting: 40, close: 25 }
+  var CURRENCY = 'R' // change to '$' for the US edition
+
+  function fmtMoney(n) {
+    return CURRENCY + ' ' + Math.round(n).toLocaleString('en-ZA')
+  }
+
+  var el = function(id) { return document.getElementById(id) }
+  var inputs = ['leads','deal','reply','meeting','close']
+
+  function recalc() {
+    var leads   = Math.max(0, +el('leads').value || 0)
+    var deal    = Math.max(0, +el('deal').value || 0)
+    var replyPc = +el('reply').value
+    var meetPc  = +el('meeting').value
+    var closePc = +el('close').value
+
+    var replies  = leads * (replyPc / 100)
+    var meetings = replies * (meetPc / 100)
+    var clients  = meetings * (closePc / 100)
+    var revenue  = clients * deal * 12
+
+    el('leads-val').textContent   = leads.toLocaleString('en-ZA')
+    el('deal-val').textContent    = fmtMoney(deal)
+    el('reply-val').textContent   = replyPc + '%'
+    el('meeting-val').textContent = meetPc + '%'
+    el('close-val').textContent   = closePc + '%'
+
+    el('out-replies').textContent  = Math.round(replies).toLocaleString('en-ZA')
+    el('out-meetings').textContent = Math.round(meetings).toLocaleString('en-ZA')
+    el('out-clients').textContent  = Math.round(clients).toLocaleString('en-ZA')
+    el('out-revenue').textContent  = fmtMoney(revenue)
+  }
+
+  inputs.forEach(function(id) {
+    el(id).addEventListener('input', recalc)
+  })
+  recalc()
+</script>
+</body>
+</html>

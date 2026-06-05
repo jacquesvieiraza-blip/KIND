@@ -196,7 +196,7 @@ export default function FigsyChatPage() {
             Hello{userName ? `, ${userName}` : ''}
           </h1>
           <p className="text-[#7C3AED]/60 mt-1 text-sm">
-            FIGSY · <span className="text-[#7C3AED] font-medium">The Closer</span> · AI SDR · Outbound Sales Specialist
+            FIGSY · <span className="text-[#7C3AED] font-medium">The Opener</span> · AI SDR · Outbound Sales Specialist
           </p>
         </div>
 
@@ -303,7 +303,7 @@ export default function FigsyChatPage() {
           <div className="bg-[#0F0929] px-4 py-3">
             <div className="flex items-baseline gap-2">
               <p className="text-white font-bold text-base leading-tight">FIGSY</p>
-              <span className="text-[#7C3AED] text-xs font-semibold">The Closer</span>
+              <span className="text-[#7C3AED] text-xs font-semibold">The Opener</span>
             </div>
             <p className="text-[#9B8EC4] text-xs mt-0.5">AI SDR · Outbound Sales Specialist</p>
             <div className="flex items-center gap-1.5 mt-1.5">

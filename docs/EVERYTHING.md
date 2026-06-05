@@ -85,7 +85,20 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 33 | Activate Flutterwave (needs key — ZAR/NGN/KES/GHS) | 🧍 |
 | 34 | Launch YouTube channel (10-video plan exists) | 🧍 |
 | 35 | Wire playbook email form (needs provider: ConvertKit/Mailchimp) | 🤝 |
-| 36 | "AI Revenue OS" positioning copy rewrite (Apex steal — hero/pricing/deck) | 🤖 |
+| 36 | "AI Revenue OS" positioning · ✅ DONE — **Hero Option B LIVE** on index.html ("You close the deals. We'll bring you the meetings."). Draft retained for pricing/deck reframe. | 🤖 |
+| 61a/g | **Performance guarantee** · ✅ DONE (branch) — **90-Day Pipeline Guarantee** band live on pricing.html. ⚠️ **FOUNDER TODO:** add matching clause to terms.html defining "qualified meeting", refund mechanics, min lead volume — copy currently points to ToS. | 🤝 |
+| 61b | **The one number we own** · ✅ DECIDED & LIVE — **"$20"** (true entry price, pay-per-result; NOT $29). Applied to homepage hero. Roll into pricing/deck next. | 🤝 |
+| 61c | **Atlas steal #3 — "Clone yourself" framing** · ✅ DONE (branch) — figsy.html hero rewritten "learns the way you sell… writes every email in your own voice." Original wording, not Atlas's. | 🤖 |
+| 61d | **Atlas steal #4 — Cold CRM re-engagement angle** · ✅ DONE (branch) — new "The list you gave up on is still worth money" section on figsy.html (drop-in list → re-open → warm ones return). Original copy. | 🤖 |
+| 61e | **Atlas steal #5 — Influencer/community distribution** · Identify 1–2 SA SMB communities (Startup Grind CPT, specific trades/services forums) + 1–2 US equivalents. Pursue co-marketing or endorsement. Dan Martell is Atlas's real acquisition channel — we need ours. | 🧍 |
+| 61f | **Atlas steal #6 — Pipeline / ROI calculator** · ✅ DONE + LINKED — `pipeline-calculator.html`. User enters own leads + deal value; sliders w/ conservative defaults (8%/40%/25%, founder-approved) + "estimate, not a promise" disclaimer. Now in the Use Cases dropdown across 24 pages. | 🤖 |
+| 61g | **Atlas steal #7 — 90-day guarantee framing** · Sharpen the guarantee from "30-day money back" to "90-day results guarantee — your pipeline grows or you don't pay." 90 days gives enough campaign data to show results; stronger commitment signal than 30 days. | 🤝 |
+| 62a | **Revio steal #1 — "Trained on closed-won deals" credibility hook** · Add to FIGSY + DENISE copy: "Battle-tested on X real campaigns, X meetings booked." Articulate what the agents are trained on — this is a direct trust signal that Revio uses effectively. Populate with real numbers as they come in. | 🤖 |
+| 62b | **Revio steal #2 — Coaching layer bundled into onboarding** · Add a "Revenue Playbook Session" (30-min call) to KIND onboarding flow — founder or agent walks new client through campaign setup, ICP targeting, and first sequence. Especially important for SA market. Reduces churn, increases perceived value, creates personal relationship. | 🧍 |
+| 62c | **Revio steal #3 — Homepage outcome numbers** · 2–3 concrete client outcome stats on the homepage as soon as first clients produce results: meetings booked, reply rates, revenue generated. "30,065 leads last month" style specificity. Do NOT fabricate — hold the slot, populate when real. | 🤝 |
+| 62d | **Revio steal #4 — "Revenue Blueprint Session" demo framing** · Rename the demo CTA from "Book a Demo" to "Book a Revenue Blueprint Session" for higher-ticket inbound leads. Reframes sales call as consultative delivery, not a pitch. Higher perceived value, higher show rate. | 🤖 |
+| 62e | **Revio steal #5 — Vertical niche landing pages** · ✅ DONE + LINKED — `for-estate-agents.html`, `for-insurance-brokers.html`, `for-financial-advisers.html`. Vertical pain + FIGSY solution + POPIA/FAIS note, original copy. Now in the Use Cases dropdown across 24 pages. US equivalents = phase 2. | 🤖 |
+| — | **Denise on homepage + image wiring** · ✅ DONE — founder uploaded Denise.png; renamed→`denise.png` (website) + moved→`portal/public/agents/denise.png`; generated transparent `denise-cut.png`; added "Coming soon — Denise, The Closer" gold teaser to index.html after the agent hero. Fixed leftover "THE CLOSER" rail label (static + JS) → "THE OPENER". | 🤖 |
 
 ## 🟨 MONTH 2 — intelligence layer (Tier 2 build queue, 10+ clients)
 37 Intent signal detection · 38 A/B subject testing · 39 Client morning brief email · 40 ICP auto-refinement · 41 Conditional sequence branching · 42 Waterfall enrichment (Apollo→PDL→Hunter→Clearbit; needs PDL+Hunter keys) · 43 Deliverability dashboard (SPF/DKIM/DMARC+bounce+blacklist) · 44 Email score pre-send · 45 Adaptive send volume · 46 **FIGSY Memory v2 (pgvector)** · 47 Milla full-context CRM pull · 48 Vapi voice calling · 49 Product Hunt (with proof) · 50 G2 listing (5 reviews) · 51 Configurable agent triggers · 52 Multi-model toggle per campaign · 53 Inbox rotation / multiple sending domains (Instantly steal)
@@ -209,7 +222,7 @@ Reason it waits is not the code — it's that outcome pricing moves result-risk 
 
 # PART 5B — COMPETITIVE LANDSCAPE + STRATEGIC POSITION (synthesised 5 Jun)
 
-> Source: deep research run 5 Jun covering Glean, Monday.com, ClickUp, Notion, Linear, Salesforce Agentforce, Intercom Fin, and macro SaaS AI pricing data.
+> Source: deep research run 5 Jun covering Glean, Monday.com, ClickUp, Notion, Linear, Salesforce Agentforce, Intercom Fin, and macro SaaS AI pricing data. youratlas.com added 5 Jun (see §Atlas below).
 
 ## What the outside world shipped (May–Jun 2026)
 
@@ -244,6 +257,78 @@ Reason it waits is not the code — it's that outcome pricing moves result-risk 
 
 ## MCP pulled forward — updated
 Item #59 MCP server moved from Month 3 → Month 2 (alongside pgvector and FIGSY v2). First milestone: K.I.N.D exposes a single MCP endpoint that lets external agents call FIGSY to start a campaign. That's the distribution unlock — no UI required, no sales call needed. A Notion agent or Linear bot can trigger a K.I.N.D campaign by calling one tool. Build after 10+ clients (so there's a pipeline to trigger).
+
+---
+
+## §Atlas — youratlas.com (researched 5 Jun 2026, deep scrape completed)
+
+**What they are:** Done-for-you AI Revenue Engine. Agency model, not SaaS. $5,000+ setup, 7–14-day white-glove build, 90-day performance guarantee ("results or you don't pay" — minimum ad spend required, Atlas selects clients). Target: US appointment-driven service businesses (healthcare, trades, home services, clinics). Legal entity: AQX Global Corp. Founded 2024. ~74 employees. Pre-seed, BDev Ventures. Founder: Omer Jamal (third startup; ex-Scotiabank/TD/CIBC; previously DiscoverData acquired + Fortuna.ai fintech).
+
+**Two agents (product architecture):**
+1. **Demand Creation Agent** — launches streaming TV ad campaigns on Disney+, ESPN, Amazon in under 10 minutes. Positions local SMBs as national-scale advertisers without an agency.
+2. **Demand Response Agent** — Voice AI answers every inbound call in <30 seconds + iMessage outreach (92% claimed open rate, contacts leads in 3 seconds) + CRM re-engagement of cold lists. GoHighLevel CRM integration documented (v1+v2 API).
+
+**Claimed stats [unverified]:** 92% iMessage open rate vs 35% SMS · 300% more conversions · 10x ROAS · 30% lift in website conversion · saves up to 70% in costs · conversion drops 80% if lead not contacted within 5 minutes · 40% of leads come in nights/weekends. Case studies: law firm recovered $28K in 90 days from written-off leads; plumbing no-shows 28%→6% in 60 days; 4 appts in 7 days, 3 closed at $6K each.
+
+**Public API:** apidocs.youratlas.com — campaigns, call records, bookings, knowledge base (file upload + URL extraction), GoHighLevel enrichment. They are building developer infrastructure alongside the agency service.
+
+**Speed-to-lead simulator:** Interactive ROI calculator — input lead volume/contact rate/deal value → output revenue lost to slow follow-up. Clever top-of-funnel tool that pre-qualifies buyers before they ever book a demo.
+
+**Distribution:** Dan Martell (SaaS Academy, Buy Back Your Time author, 3,000+ business clients). His endorsement is their primary acquisition channel. 10,000+ businesses claimed (some pages say 15,000 — take lower number).
+
+**Where they beat us:** Voice AI (genuine moat for call-heavy services), iMessage channel (novel, high open rate), CTV ads (no-one else doing this for SMBs), done-for-you removes all friction, 90-day guarantee signals confidence, proper API/dev docs.
+
+**Where we beat them:** Price ($29/mo vs $5,000+), self-serve, multi-agent ecosystem with shared memory, Milla, DENISE (coming), full revenue lifecycle vs appointment-booking only, SA+US vs US-only, live in minutes not 14 days.
+
+**Strategic read:** Different buyer (appointment-driven services vs our SMB generalist), different price point, different model (DFY vs SaaS) — not a direct competitor. But their messaging is sharper and their tools (ROI calculator, performance guarantee) are worth stealing. Items #61a–61g capture the steals.
+
+## §Revio — getrevio.com (researched 5 Jun 2026)
+
+**What they are:** AI social selling CRM for Instagram/Facebook-native coaches, consultants, and creators. Scans existing follower base, scores leads by conversion likelihood, auto-sends personalised DMs, and acts as a real-time AI co-pilot suggesting exact replies based on closed-won deal transcripts. Human coaching layer bundled: live group calls + 1:1 onboarding + expert setup. Underlying product: SellByChatCRM (rebranded). LinkedIn ~4,026 followers — early stage. Dan Martell promoted them (same distribution channel as Atlas).
+
+**Pricing:** ~$500/month (third-party source, medium confidence). No public pricing — gated behind "Growth Session" demo call. High-touch, consultative sales model. No self-serve.
+
+**Channels:** Instagram + Facebook. LinkedIn "coming soon."
+
+**ICP:** Solopreneurs and small teams (1–10) in the creator/coach/consultant economy who already have a social following. NOT traditional B2B outbound. NOT South Africa (no SA presence detected).
+
+**Claimed stats [unverified]:** 50% conversion rate increase from chats to close · 30,065 IG leads generated in one month (customer case study) · $60K/month in 7 months (Dan Martell-cited).
+
+**Where they beat us:** Depth of social selling workflow for Instagram-native creators; human coaching layer bundled in; battle-tested reply suggestions from closed deals; tight niche positioning.
+
+**Where we beat them:** Autonomous agents vs co-pilot (human still sends with Revio); cold outbound (FIGSY can find leads without an existing audience); full revenue lifecycle vs DM-to-appointment only; $29/mo vs ~$500/mo; SA market uncontested; broader ICP.
+
+**Watch signal:** LinkedIn integration is on their public roadmap. If they ship cold outbound via LinkedIn + email, they enter FIGSY's territory. Monitor their changelog (product.sellbychatcrm.com/changelog).
+
+**Strategic read:** Indirect competitor — different buyer (creator economy vs SMB), different channel (social DMs vs email/outbound). Real risk is if they add B2B cold outbound. Steal their coaching model and case study specificity (items #62a–62e); ignore the rest for now.
+
+---
+
+# PART 5C — FUNDING STRATEGY (decided 5 Jun 2026)
+
+> Triggered by "how do we get funding like Atlas/Revio?" The honest answer reframed the question.
+
+**The core truth: Atlas and Revio were not funded on their product — they were funded on founder pedigree + influencer distribution.**
+- **Atlas** raised pre-seed (BDev Ventures) on Omer Jamal's track record: 3rd-time founder, prior acquisition (DiscoverData), ex-Scotiabank/TD/CIBC. VCs at pre-seed back the *person*, not traction. Dan Martell then gave distribution.
+- **Revio** is barely VC-funded; its growth engine is also Dan Martell, not a round.
+- **Two levers, neither is the product:** (1) founder reputation, (2) influencer distribution.
+
+**THE DECISION: do not chase funding yet. Bootstrap to traction first.**
+Rationale: K.I.N.D is lean, software-only, $29/mo self-serve, near-zero marginal cost. Atlas runs ~74 employees burning hard *pre-revenue* — that only works because they raised; it is the opposite of our model. We can reach ramen-profitability without diluting. Traction is the only thing that gets an *unknown* founder a good term sheet anyway. This matches the standing strategy: "wins + data, then a data-informed decision."
+
+**The tension to resolve — "invisible founder" vs investor reputation:**
+Fundraising is reputation-driven; VCs back people they can meet. The "founder stays invisible" decision is **brand/customer-facing only.** You can pitch under your real name in a private investor process while keeping the public brand faceless. The two coexist — but you cannot raise while invisible to *everyone*. Separate the two deliberately.
+
+**Routes, in priority order (when/if we choose to raise):**
+| # | Route | Timing | Dilution | Notes |
+|---|---|---|---|---|
+| F1 | **Cloud + AI credits** (Microsoft for Startups Founders Hub, Google for Startups, AWS Activate) | **NOW — this week** | None | Tens of $K incl. model API spend. Directly extends runway (Anthropic + Railway burn). Zero downside. |
+| F2 | **SA ecosystem** (Grindstone/Knife Capital, Startupbootcamp AfriTech, Founders Factory Africa, E Squared, 4Di, Kalon, HAVAÍC, Endeavor SA) | After 5–10 clients | Low / accelerator | Cape Town base is an advantage. Several take little/no equity, open doors. |
+| F3 | **YC / remote accelerators** | After paying clients | ~7% standard | CPT + US AI-agents-for-SMBs fits thesis. Apply with traction. |
+| F4 | **Revenue-based financing** | Once predictable MRR | None (debt) | Borrow against MRR. Better SaaS fit than VC. |
+| F5 | **Influencer lever (the real insight)** | Ongoing — see #61e | None | Both competitors grew on ONE influencer (Dan Martell). Find the SA/US equivalent. Worth more than a seed round for our ICP. |
+
+**Immediate action:** F1 (free credits) this week — zero downside, extends runway. Everything else is gated on client traction. Revisit the raise/bootstrap decision at 20–30 paying clients, from leverage not need.
 
 ---
 

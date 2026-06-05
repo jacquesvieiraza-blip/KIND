@@ -1,12 +1,13 @@
 import { notFound } from 'next/navigation'
 import AgentBriefSection from './BriefSection'
 
-type AgentId = 'otto' | 'lena' | 'reeve' | 'cmo' | 'cto' | 'cfo'
+type AgentId = 'otto' | 'lena' | 'denise' | 'cmo' | 'cto' | 'cfo'
 
 interface AgentDef {
   name: string
   title: string
   mandate: string
+  story?: string
   accent: string
   accentBg: string
 }
@@ -26,10 +27,11 @@ const AGENTS: Record<AgentId, AgentDef> = {
     accent: 'text-blue-400',
     accentBg: 'bg-blue-400/10 border-blue-400/20',
   },
-  reeve: {
-    name: 'REEVE',
-    title: 'Account Executive',
-    mandate: 'Prospect pipeline, cold outreach follow-up, re-engagement drafts, meeting pipeline.',
+  denise: {
+    name: 'DENISE',
+    title: 'The Closer · Autonomous AI Account Executive',
+    mandate: 'Closes what FIGSY opens. Confirms booked meetings, joins calls as a notetaker, surfaces objections, drafts proposals from the conversation, and follows up the pipeline so no warm lead ever goes cold.',
+    story: 'Named after a woman who built a successful sales business from nothing and was the kind of personality people remembered long after the meeting ended. She closed because people liked and trusted her — never by cornering them. That is the DENISE every client gets: a relationship closer with warmth, charm and zero desperation. FIGSY opens the door; DENISE is who you actually want walking through it.',
     accent: 'text-purple-400',
     accentBg: 'bg-purple-400/10 border-purple-400/20',
   },
@@ -74,6 +76,9 @@ export default async function AgentPage({ params }: { params: { agent: string } 
             <h1 className={`text-3xl font-bold ${agent.accent}`}>{agent.name}</h1>
             <p className="text-gray-500 font-medium mt-0.5">{agent.title}</p>
             <p className="text-sm text-gray-400 mt-2 max-w-2xl">{agent.mandate}</p>
+            {agent.story && (
+              <p className="text-sm text-gray-400 mt-3 max-w-2xl italic border-l-2 border-white/10 pl-3">{agent.story}</p>
+            )}
           </div>
         </div>
       </div>
@@ -126,7 +131,7 @@ export function generateStaticParams() {
   return [
     { agent: 'otto' },
     { agent: 'lena' },
-    { agent: 'reeve' },
+    { agent: 'denise' },
     { agent: 'cmo' },
     { agent: 'cto' },
     { agent: 'cfo' },

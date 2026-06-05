@@ -310,7 +310,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
       <AgentSidePanel
         agentId="figsy"
         name="FIGSY"
-        subtitle="The Closer"
+        subtitle="The Opener"
         role="AI SDR · Outbound Sales Specialist"
         tagline="I reach out. You close."
         contextMessage={contextMessage}

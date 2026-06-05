@@ -10,6 +10,7 @@
 import { Router, Request, Response } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
+import { fetchDeniseData, deniseSystemPrompt } from '../lib/denise'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -31,13 +32,13 @@ function requireAdminKey(req: Request, res: Response, next: () => void) {
 internalBriefsRouter.use(requireAdminKey)
 
 // ── Agent definitions ─────────────────────────────────────────────────────────
-type AgentId = 'otto' | 'lena' | 'reeve' | 'cmo' | 'cto' | 'cfo'
+type AgentId = 'otto' | 'lena' | 'denise' | 'cmo' | 'cto' | 'cfo'
 
 const AGENT_META: Record<AgentId, { name: string; title: string }> = {
-  otto:  { name: 'OTTO',  title: 'Chief Revenue Officer' },
-  lena:  { name: 'LENA',  title: 'Chief Customer Success' },
-  reeve: { name: 'REEVE', title: 'Account Executive' },
-  cmo:   { name: 'CMO',   title: 'Chief Marketing Officer' },
+  otto:   { name: 'OTTO',   title: 'Chief Revenue Officer' },
+  lena:   { name: 'LENA',   title: 'Chief Customer Success' },
+  denise: { name: 'DENISE', title: 'The Closer · Account Executive' },
+  cmo:    { name: 'CMO',    title: 'Chief Marketing Officer' },
   cto:   { name: 'CTO',   title: 'Chief Technology Officer' },
   cfo:   { name: 'CFO',   title: 'Chief Financial Officer' },
 }
@@ -106,28 +107,6 @@ async function fetchLenaData() {
     low_credit_count: (lowBalance || []).length,
     auto_paused_campaigns: (pausedCampaigns || []).length,
     paused_campaign_names: (pausedCampaigns || []).map(c => c.name).slice(0, 5),
-  }
-}
-
-async function fetchReeveData() {
-  const now = new Date()
-  const ago30 = new Date(now.getTime() - 30 * 86400000).toISOString()
-
-  const [{ data: newClients }, { data: starterSubs }] = await Promise.all([
-    db.from('clients').select('id, company_name, created_at, industry, country').gte('created_at', ago30),
-    db.from('subscriptions').select('client_id, product, tier, status').eq('tier', 'starter').eq('status', 'active'),
-  ])
-
-  return {
-    new_clients_30d: (newClients || []).length,
-    new_client_details: (newClients || []).slice(0, 8).map(c => ({
-      name: c.company_name,
-      country: c.country,
-      industry: c.industry,
-      days_ago: Math.floor((now.getTime() - new Date(c.created_at).getTime()) / 86400000),
-    })),
-    starter_tier_clients: (starterSubs || []).length,
-    upsell_client_ids: (starterSubs || []).map(s => s.client_id).slice(0, 5),
   }
 }
 
@@ -220,12 +199,12 @@ async function fetchCfoData() {
 }
 
 const DATA_FETCHERS: Record<AgentId, () => Promise<Record<string, unknown>>> = {
-  otto:  fetchOttoData,
-  lena:  fetchLenaData,
-  reeve: fetchReeveData,
-  cmo:   fetchCmoData,
-  cto:   fetchCtoData,
-  cfo:   fetchCfoData,
+  otto:   fetchOttoData,
+  lena:   fetchLenaData,
+  denise: fetchDeniseData,
+  cmo:    fetchCmoData,
+  cto:    fetchCtoData,
+  cfo:    fetchCfoData,
 }
 
 // ── Route ──────────────────────────────────────────────────────────────────────
@@ -242,10 +221,13 @@ internalBriefsRouter.get('/:agent', async (req: Request, res: Response) => {
     const dataFetcher = DATA_FETCHERS[agentId]
     const snapshot = await dataFetcher()
 
-    const systemPrompt = `You are ${agentMeta.name}, the ${agentMeta.title} for K.I.N.D, an AI-powered B2B lead generation platform serving African SMEs.
-Write a concise daily brief for the Founder. 3-5 bullet points. Each bullet starts with an emoji.
+    const briefRules = `\nWrite a concise daily brief for the Founder. 3-5 bullet points. Each bullet starts with an emoji.
 Plain language. Specific numbers where available. One clear recommended action at the end.
 Format: bullet points only, no headers, no markdown beyond bullets.`
+
+    const systemPrompt = agentId === 'denise'
+      ? deniseSystemPrompt() + briefRules
+      : `You are ${agentMeta.name}, the ${agentMeta.title} for K.I.N.D, an AI-powered B2B lead generation platform serving African SMEs.` + briefRules
 
     const userPrompt = `Here is today's data:\n${JSON.stringify(snapshot, null, 2)}\n\nWrite the brief.`
 

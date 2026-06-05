@@ -277,7 +277,7 @@ export function Sidebar({
 
             {/* Active agent card */}
             <div
-              className="flex items-center rounded-xl border border-purple-100 transition-all group overflow-hidden shadow-sm"
+              className="rounded-xl border border-purple-100 overflow-hidden shadow-sm"
               style={{
                 background: `${agent.accent}08`,
                 borderLeft: `3px solid ${agent.accent}`,
@@ -285,9 +285,9 @@ export function Sidebar({
             >
               <Link
                 href={AGENT_HREFS[activeId]}
-                className="flex items-center gap-3 px-3 py-3 flex-1 min-w-0"
+                className="flex items-center gap-3 px-3 py-3"
               >
-                <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-sm`}>
+                <div className={`w-12 h-12 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-sm`}>
                   <img
                     src={`/agents/${agent.id}.png`}
                     alt={agent.name}
@@ -296,33 +296,32 @@ export function Sidebar({
                   />
                 </div>
                 <div className="flex-1 text-left min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-[#1E1152] font-bold text-sm">{agent.name}</p>
-                    <span className="text-[10px] font-semibold" style={{ color: agent.accent }}>{agent.subtitle}</span>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <p className="text-[#1E1152] font-bold text-sm truncate">{agent.name}</p>
                     {unlocked
-                      ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      : <Lock className="w-3 h-3 text-[#7C3AED]/25" />
+                      ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      : <Lock className="w-3 h-3 text-[#7C3AED]/25 shrink-0" />
                     }
                   </div>
-                  <p className="text-xs truncate" style={{ color: `${agent.accent}99` }}>{agent.role}</p>
+                  <p className="text-[10px] font-semibold truncate" style={{ color: agent.accent }}>{agent.subtitle}</p>
                   {!unlocked && agent.price && (
-                    <p className="text-[10px] text-[#6B7280] mt-0.5">{agent.price} · Tap to unlock</p>
+                    <p className="text-[10px] text-[#6B7280] mt-0.5">{agent.price} · tap to unlock</p>
                   )}
                 </div>
               </Link>
+              {/* Clear, full-width agent switcher */}
               <button
                 onClick={() => setOpen(o => !o)}
-                className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-3 shrink-0 self-stretch border-l transition-opacity hover:opacity-80"
-                style={{ color: agent.accent, background: `${agent.accent}14`, borderColor: `${agent.accent}22` }}
-                title="Switch agent"
+                className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold border-t transition-colors hover:bg-white/70"
+                style={{ color: agent.accent, background: `${agent.accent}0c`, borderColor: `${agent.accent}1f` }}
                 aria-label="Switch agent"
               >
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-                <span className="text-[8px] font-bold uppercase tracking-wide leading-none">Switch</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+                {open ? 'Hide agents' : 'Switch agent'}
               </button>
             </div>
             {!open && (
-              <p className="px-3 pt-1 text-[10px] text-[#7C3AED]/40">
+              <p className="px-3 pt-1.5 text-[10px] text-[#7C3AED]/40">
                 4 agents · <button onClick={() => setOpen(true)} className="font-semibold text-[#7C3AED]/70 hover:text-[#7C3AED] transition-colors">switch or unlock →</button>
               </p>
             )}

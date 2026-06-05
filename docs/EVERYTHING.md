@@ -207,6 +207,46 @@ Reason it waits is not the code — it's that outcome pricing moves result-risk 
 
 ---
 
+# PART 5B — COMPETITIVE LANDSCAPE + STRATEGIC POSITION (synthesised 5 Jun)
+
+> Source: deep research run 5 Jun covering Glean, Monday.com, ClickUp, Notion, Linear, Salesforce Agentforce, Intercom Fin, and macro SaaS AI pricing data.
+
+## What the outside world shipped (May–Jun 2026)
+
+| Company | What they shipped | Strategic signal |
+|---|---|---|
+| **Glean ($7.2B)** | Enterprise Graph (memory + connectors + personal + org graphs + governance). "Enterprise AI coworker" — proactively manages tasks, runs multiple workstreams, personalises per employee. Agent Development Lifecycle (ADLC) framework. Full MCP adoption. | Context always wins. The agent with the most context beats on quality every time. |
+| **Monday.com** | Full relaunch as "AI Work Platform." Native agents any team member can configure — draft campaigns, qualify leads, close support, onboard, process POs, 24/7. Claude + OpenAI + MS365 Copilot via single AI Platform Gateway. | "Agents sit inside a single structured platform with context across the entire business." General-purpose, context-native. |
+| **ClickUp** | Acquired Codegen (Cursor competitor). "Super Agents" — autonomous project completion, 500+ work skills, human-level memory that learns from every interaction. 3,000 internal AI agents at 3:1 AI:human ratio. **Laid off 22% of staff.** Million-dollar bands for 100x humans who manage AI systems. | Most aggressive "agents replace headcount" bet. General-purpose. |
+| **Notion** | Custom Agents (team-wide bots on schedules + triggers). MCP-native: Linear, HubSpot, Figma, Slack, Attio CRM. "Notion Workers" hosted runtime — agents run sandboxed custom code, no server needed. | Workspace = the agent runtime. MCP is the wiring. |
+| **Linear** | Linear Agent: triages new work, assesses it, routes to the right team, Code Intelligence (controlled codebase access). The PM tool becomes the intelligence layer that directs work. | Product intelligence, not just tracking. |
+| **Salesforce** | AgentExchange — agent marketplace. "$6 trillion digital labour market." $2/AI conversation (vs $30–50 human agent cost). Agentforce on Slack up 300% since Jan 2026. | Outcome pricing at enterprise scale. Pricing by result, not seat. |
+| **Intercom Fin** | $0.99 per fully-resolved support ticket. Zero cost if unresolved. Pure outcome model. Working. | The clearest pricing proof point in the market — outcome pricing is proven and live. |
+
+## Macro numbers (5 Jun 2026)
+- 40% of enterprise apps will have task-specific agents by end of 2026 (was <5% in 2025)
+- 50%+ of B2B sales teams will be smaller than in 2025
+- AI handling 40–60% of initial customer interactions
+- Outcome-based pricing: <10% adoption today → projected dominant model by 2027
+- Credit wallets + usage-based already standard: 43% of SaaS on hybrid models → 61% projected by year end
+
+## Five strategic reads for K.I.N.D
+
+**1. We launched on the right pricing curve.** Credit wallets, usage-based, per-action — every major player is migrating toward this. We launched there. Outcome pricing (#60) is the right next step — Intercom and Salesforce proved the model. It stays gated until we have margin data, but the direction is confirmed.
+
+**2. The warmth window is narrow — use it now.** Monday/Notion/ClickUp all now talk about "agents as team members." We've had named personalities and a family narrative since Day 1 (Pixar 3D, named by founder's family). That emotional layer is actually a *stronger* narrative than corporate "agent platform" language — but the window where we look differentiated (not just different) is shrinking as everyone humanises their agent UX. Differentiate on warmth *now*, before it becomes table stakes.
+
+**3. MCP is being pulled forward — it's distribution, not just product.** Glean, Notion, Linear, Salesforce are all wiring MCP natively. Item #59 (MCP server — K.I.N.D as AI infrastructure) was Month 3. Given this signal, it moves to Month 2. Being MCP-compatible means other tools' agents (Notion, Linear, Slack) can call K.I.N.D agents without a K.I.N.D sales team. That is free distribution. **MCP is now Month 2, not Month 3.**
+
+**4. Our defensible lane is specialisation, not breadth.** Monday and ClickUp are building general-purpose agent platforms. We're building a specialised revenue team: African market data, POPIA compliance, $20 entry point, named family agents. They cannot replicate the data moat or the compliance posture without years of presence. That specialisation is the lane — hold it, don't try to match their breadth.
+
+**5. The risk is speed, not direction.** K.I.N.D's product direction is correct — the market is validating it in real time. The danger is the window where a small fast team can build what the big players haven't yet shipped into our market. That window is shrinking. DENISE (the "meeting booked → close" seam) is the highest-value next build because it extends the existing FIGSY pipeline — no new front opened, maximum leverage on what's already working.
+
+## MCP pulled forward — updated
+Item #59 MCP server moved from Month 3 → Month 2 (alongside pgvector and FIGSY v2). First milestone: K.I.N.D exposes a single MCP endpoint that lets external agents call FIGSY to start a campaign. That's the distribution unlock — no UI required, no sales call needed. A Notion agent or Linear bot can trigger a K.I.N.D campaign by calling one tool. Build after 10+ clients (so there's a pipeline to trigger).
+
+---
+
 # PART 6 — WILL NOT BUILD / PARKED
 ⏸ Collaborative docs · whiteboards · self-hosted · custom emoji · internal team chat · multi-year contracts (Never) · 50+ data sources (50+ clients) · African-language (after WhatsApp).
 ⚠️ **Note:** "LinkedIn automation — never build" is SUPERSEDED — backend is built and activates Week 1. Remove the contradictory "never" lines from MASTER (Part 8).

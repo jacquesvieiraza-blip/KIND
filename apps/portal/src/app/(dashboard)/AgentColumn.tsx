@@ -44,6 +44,10 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   // Agents overview page manages its own layout
   if (pathname.startsWith('/dashboard/agents')) return null
 
+  // Denise's workspace is itself a dedicated tool — no side panel (and never
+  // show FIGSY's panel on her page)
+  if (pathname.startsWith('/dashboard/denise')) return null
+
   const agentId: 'figsy' | 'milla' | 'vida' =
     pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents') ? 'milla' :
     pathname.startsWith('/dashboard/chatbot') ? 'vida' : 'figsy'

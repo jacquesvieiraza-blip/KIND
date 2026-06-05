@@ -41,6 +41,14 @@ Status: ✅ fixed in code (on `main`) · ⏳ fixed, awaiting website-service dep
 | 20 | figsy trio strip / footers missing Denise | ✅ | figsy trio + chatbot/denise footers |
 | 21 | Homepage reel is old (FIGSY-only) | ⏳ | swapped embed → platform-video.html (FIGSY/Milla/Vida; no dedicated Denise scene yet) |
 | 22 | Company page "doesn't show Denise" (repeated) | ⏳ | code correct (verified GitHub); **website deploy/cache lag** — hard-refresh + check Railway website service |
+| 23 | Portal agent-switcher dropdown not discoverable | ✅ | Sidebar: labeled "Switch" strip + "4 agents · switch or unlock →" hint |
+| 24 | Denise demo button 400'd (enum missing) | ✅ | demo-request.ts enum + productNames + denise |
+| 25 | Vida $39 stale in chatbot page + stripe comment | ✅ | → $29 |
+| 26 | DB CHECK rejected figsy_addon/denise_addon | ✅ | migration 011 + schema constraint extended |
+
+### DEEP AUDITS RUN 5 Jun (evidence-based, not memory)
+- **Website audit (exhaustive):** 0 broken links/anchors/buttons, all dropdowns 4 agents + working promo blocks, logo correct everywhere, no fabricated aggregate stats, USD throughout. Fixed: figsy trio strip, chatbot+denise footers, .dd-promo CSS on 4 pages.
+- **Portal audit (exhaustive):** Denise verified wired end-to-end across 14-step client journey (signup→billing→Stripe→webhook→workspace→API). Logo all `/logo-k.png`. Agent-panel routes all correct. Pricing now consistent. 4 bugs found + fixed (above).
 
 ### ⚠️ KNOWN-OPEN (honest)
 - **#21 reel** — platform-video.html shows FIGSY/Milla/Vida; **no dedicated Denise animated scene** (text mentions her). Full Denise reel scene = follow-up build (delicate animation).

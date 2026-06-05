@@ -1235,7 +1235,7 @@
   .kf-head-sub{ font-size:.98rem; color:rgba(0,0,0,.5); max-width:540px; margin:0 auto 10px; font-weight:500; line-height:1.6; }
   .kf-head-line{ font-size:.82rem; color:rgba(0,0,0,.42); max-width:520px; margin:0 auto 16px; font-weight:600; line-height:1.5; letter-spacing:-.01em; }
   .kf-head-line .grad{ background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-  .kf-block{ position:relative; width:100%; max-width:1480px; height:calc(100vh - 320px); min-height:340px; border-radius:30px; overflow:clip; box-shadow:0 30px 80px rgba(20,18,45,.12); }
+  .kf-block{ position:relative; width:100%; max-width:1480px; height:clamp(420px, 56vh, 560px); min-height:420px; border-radius:30px; overflow:clip; box-shadow:0 30px 80px rgba(20,18,45,.12); }
   /* film grain / dots texture — visible, like the ClickUp reference */
   .kf-block::after{ content:''; position:absolute; inset:0; z-index:7; pointer-events:none; opacity:.85; mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");

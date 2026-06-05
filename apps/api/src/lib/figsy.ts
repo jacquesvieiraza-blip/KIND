@@ -676,7 +676,32 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     if (!lead?.email) return
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).single()
+      .select('company_name, industry, crm_dedup_enabled, crm_type, crm_api_key').eq('id', clientId).single()
+
+    // ── CRM DEDUP GATE ─────────────────────────────────────────────────────────
+    // Never cold-email a client's existing customers / known contacts. If the
+    // client enabled dedup and connected a CRM, check it BEFORE enrolling (and
+    // before spending a credit). Fail-soft: if the CRM check errors, we proceed
+    // with outreach rather than silently dropping the lead.
+    if (client?.crm_dedup_enabled && client.crm_type && client.crm_type !== 'none' && client.crm_api_key) {
+      try {
+        const { checkCrmDuplicate } = await import('./crm')
+        const dup = await checkCrmDuplicate(client.crm_type, client.crm_api_key, {
+          email: lead.email,
+          company: lead.company,
+        })
+        if (dup.exists) {
+          await db.from('leads').update({
+            crm_existing: true,
+            crm_match_reason: dup.reason ?? 'Already in your CRM',
+          }).eq('id', leadId)
+          console.log(`[figsy] dedup: skipped lead ${leadId} — ${dup.reason}`)
+          return // skip enrollment + credit spend
+        }
+      } catch (err) {
+        console.warn(`[figsy] dedup: CRM check failed for lead ${leadId}, proceeding with outreach —`, err instanceof Error ? err.message : err)
+      }
+    }
 
     const draft = await generateSequenceWithMemory(
       lead as Lead,

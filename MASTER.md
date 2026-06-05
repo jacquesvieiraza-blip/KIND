@@ -1,5 +1,8 @@
 # K.I.N.D — MASTER DOCUMENT
-**Single source of truth. Last updated: 4 June 2026**
+
+> ⚠️ **THIS IS NOW A HISTORICAL ARCHIVE (as of 4 Jun 2026).** The live, de-duplicated, reconciled working list is **`docs/EVERYTHING.md`** — read and update THAT first. MASTER is kept for history/context only and contains ~15 known internal contradictions (listed in `docs/EVERYTHING.md` Part 8). Do not treat values here as canonical; `EVERYTHING.md` overrides.
+
+**Historical reference. Last updated: 4 June 2026**
 **Business: K.I.N.D TECHNOLOGIES LTD — company number 17260532, registered England & Wales ✅ · Platform: Africa-first, world-ready**
 
 ---
@@ -50,6 +53,52 @@
 *Rewritten at the end of every session. Always current. Read this first — nothing else matters until this is clear.*
 *Claude protocol: read Section 0 before touching anything. Update Section 0 as the last action of every session. Commit immediately.*
 
+### ▶ 4 JUN — END OF DAY. NOT LIVE YET. TOMORROW START HERE (in order):
+1. **🚨 SECURITY — rotate exposed credentials** (pasted in chat 4 Jun while debugging). Order: `STRIPE_SECRET_KEY` (sk_live) → `SUPABASE_SERVICE_ROLE_KEY` → DB password (`DATABASE_URL`) → `SUPABASE_ANON_KEY` → then Anthropic/Resend/Apollo/HubSpot/Admin/Stripe-webhook keys. Claude will walk each step.
+2. **Move `FEATURE_PORTAL_V2=true` to the Portal service** (it's wrongly on API). 30 sec.
+3. **Create dogfood account** → ping Claude to grant FIGSY + credits.
+4. **Review + merge branch `claude/ai-business-roadmap-U3OWJ`** — contains Calendly fix, CRM dedup feature (needs migration 010 run), content docs, redacted chat-archive. Then run migration `010_crm_dedup.sql`.
+5. **FIX DNS — all custom domains** (founder action in Railway + DNS provider — see DNS section below).
+6. **DEMO CONTENT — "shoot once, cut many" (REVIEW TOGETHER, don't build yet):** the homepage #44 demo and social content are ONE production, not two. Plan to capture the real FIGSY flow (lead found → email sent → reply → meeting booked) ONCE at high res from the dogfood account, then cut it into: homepage muted auto-loop (16:9) · YouTube Shorts / Reels / TikTok (9:16, 15–30s) · LinkedIn native clip · 2-min Loom walkthrough · cold-email GIF. Frame capture for BOTH 16:9 and 9:16 crops up front (expensive to redo). Fold into `docs/content/youtube-plan.md`. **Blocked on:** dogfood account being live (→ Tier 0 + account creation first). Founder wants to scope this together before any build.
+
+**Done 4 Jun:** company number 17260532 in all legal docs · FOUNDER_EMAIL · Resend inbound webhook · Stripe 8 price IDs + pricing fix · Calendly 404 fixed (all 40+ buttons) · API build crash solved (newline in STRIPE_WEBHOOK_SECRET) · 2/3 feature flags · **CRM dedup feature built (backend+portal, on branch)** · 3 blog articles · YouTube plan · SEIS+trademark draft · Glean competitor review + site-improvement items 44–47 · **chat backup (446MB private archive + 409 redacted logs committed)**.
+
+---
+
+### 🗓️ COMPRESSED GROWTH TIMELINE — REVISED 4 JUN
+> **Everything previously labelled Year 2 or Year 3 is now Month 3. Only ISO certifications remain Year 2. Speed is the only strategy.**
+
+#### THIS WEEK — launch prep
+1. Rotate all credentials (TIER 0) · 2. Move FEATURE_PORTAL_V2 to Portal · 3. Create dogfood account · 4. Merge branch + run migration 010 · 5. Fix DNS (app/api/admin/status) · 6. **Sat smoke test 1** · 7. **Sun smoke test 2** · 8. **MON — LAUNCH BOTH MARKETS (US + Africa/UK) with multiple campaigns.** One URL `app.get-kind.com`, one Cape Town DB serves all markets. US data-residency option added later only if a signed enterprise contract requires it (see REGION ARCHITECTURE — LOCKED).
+9. **Register with ICO** — ico.org.uk · £40/yr · legal requirement · do before launch · 10. **Suppress personal address on Companies House** — apply free via form SR01 at companieshouse.gov.uk · removes home address from public register · 11. **Get registered office address service** — ~£20-50/yr (1st Formations or Hoxton Mix) · replaces personal address on Companies House with a professional address · prevents employer/social contacts finding your home address · **do alongside SR01**
+
+#### WEEK 1 POST-LAUNCH
+9. 10 warm personal outreach messages (LinkedIn/WhatsApp) · 10. LinkedIn founder content: 1 post/day from day 1 — dogfood story first · 11. Activate LinkedIn outreach (backend built — needs PhantomBuster keys + SQL migration) · 12. Start Meta/WhatsApp Business API application (3-7 day window, start immediately) · 13. Surface comparison + use-case pages in nav (#47 — all pages exist) · 14. Record real product demo — "shoot once, cut many" (Screen Studio, 16:9 + 9:16 same take) · 15. Cut #44 — replace homepage CSS animation with real product loop · 16. Instrument GTM funnel (outreach→reply→demo→close by channel, CAC, trial→paid by source)
+
+#### WEEKS 2-4
+17. Open 2 design partner slots (hand-held, discounted, for case study + logo) · 18. Cut social content from demo footage (9:16, Reels/TikTok/LinkedIn, music + captions) · 19. Record 3 onboarding Loom videos · 20. Build onboarding v2 + Loom embed slots + day 0/3/7 email sequence · 21. Populate proof block with real dogfood numbers (#45) · 22. Add functional throughline to homepage hero (#46 — 1 word from founder → Claude ships) · 23. Activate Flutterwave (code ready, needs key — opens ZAR/NGN/KES/GHS) · 24. Launch YouTube channel (10-video plan exists in `docs/content/youtube-plan.md`)
+
+#### MONTH 2
+25. Intent signal detection (job changes, funding, hiring → auto-trigger FIGSY) · 26. A/B subject line testing (auto-pick winner after 50 sends) · 27. Client morning brief email (extend founder brief to all active clients) · 28. ICP auto-refinement (FIGSY analyses replies → suggests ICP improvements) · 29. Conditional sequence branching (warm reply → different path) · 30. Waterfall enrichment (Apollo → PDL → Hunter → Clearbit) · 31. Deliverability dashboard (SPF/DKIM/DMARC + bounce + blacklist in portal) · 32. **FIGSY Memory v2 — pgvector** (semantic memory, inferred patterns, compounding moat) · 33. Milla full-context CRM pull (reads client CRM → FIGSY personalises with real customer context) · 34. Vapi voice calling (FIGSY calls leads after positive reply — build once lead quality baseline established) · 35. Product Hunt launch (only after 2-3 named design partners with real case study numbers) · 36. G2 listing (5 reviews minimum — ask design partners)
+
+#### MONTH 3
+37. **Launch REEVE** — Revenue Execution Agent (AE: books discovery calls, follows up pipeline, drafts proposals) · 38. **Launch LENA** — Customer Success Agent (monitors health, flags at-risk, handles check-ins) · 39. **Launch OTTO** — Ops & Analytics Agent (pipeline health, revenue forecasting, anomaly alerts) · 40. Multi-agent orchestration — FIGSY + REEVE + LENA + OTTO in parallel, shared memory · 41. Multi-model toggle per campaign (Haiku volume vs Sonnet/Opus quality, client picks per campaign) · 42. **500+ FIGSY skill library** (modular skills per vertical: SaaS, African fintech, recruitment, professional services, logistics) · 43. **MCP server — K.I.N.D as AI infrastructure** (Notion/Salesforce/Linear agents can call K.I.N.D agents — distribution without a sales team) · 44. **Outcome-based pricing tier — "per meeting booked"** (removes buyer risk objection entirely; alongside credit model) · 45. Mobile app — iOS + Android · 46. **Built-in CRM** (agents create/update/close deals natively — clients stop paying for HubSpot) · 47. Open pan-African design partner slots (Nigeria, Kenya, Ghana, Egypt, Rwanda — first-mover window closes in 12-18 months) · 48. **Platform-level intelligence — cross-client learning** (at 50+ clients: predictive ICP, industry benchmarks, "here's what's working for companies like yours right now") · 49. **Data licensing marketplace** (proprietary African B2B outreach dataset → product for VCs, corporates, government bodies — no competitor has this)
+
+#### YEAR 2 ONLY (expensive, can't compress)
+50. ISO 27001 (opens Nigerian banks, Kenyan fintechs, SA corporate procurement — trigger: first enterprise contract or 50+ clients, ~£20K) · 51. ISO 42001 AI Governance (no African AI company has it — differentiator for regulated industries, ~£15K)
+
+---
+
+**Target numbers:**
+| When | Clients | MRR |
+|------|---------|-----|
+| Launch | 0 | £0 |
+| Week 2-3 | 2-3 design partners | ~£2,500 |
+| Month 1 | 5 (break-even all-in) | ~£4,000 |
+| Month 2 | 20 + Product Hunt | ~£12,000 |
+| Month 3 | 50 + agent family live | ~£40,000 |
+| Month 3+ | 100+ + platform intelligence | £100,000+ |
+
 ---
 
 # ⭐ CANONICAL LIVE STATUS — SINGLE SOURCE OF TRUTH (3 June 2026, PM)
@@ -95,30 +144,81 @@
 
 ## 👤 FOUNDER — OPEN ITEMS (priority order, every item)
 
+### 🚨 TIER 0 — SECURITY (do FIRST next session — credentials exposed in chat 4 Jun)
+**On 4 Jun the full API variable list (incl. live secrets) was pasted into the Claude chat while debugging a build error. These MUST be rotated. Priority order:**
+- [ ] **`STRIPE_SECRET_KEY`** (`sk_live_...`) — rotate in Stripe → Developers → API keys → roll key. Update Railway API. **HIGHEST — live money key.**
+- [ ] **`SUPABASE_SERVICE_ROLE_KEY`** — rotate in Supabase → Settings → API. Full DB access, bypasses RLS. Update Railway API.
+- [ ] **`DATABASE_URL`** — DB password (`Necas!Denise@ckal66`) exposed. Reset Postgres password in Supabase → update `DATABASE_URL` in Railway API.
+- [ ] **`SUPABASE_ANON_KEY`** — rotates with the project JWT secret (do alongside service-role). Update API + Portal + Admin (it's `NEXT_PUBLIC_` in the front-ends).
+- [ ] **`ANTHROPIC_API_KEY`** · **`RESEND_API_KEY`** · **`RESEND_WEBHOOK_SECRET`** · **`APOLLO_API_KEY`** · **`HUBSPOT_API_KEY`** · **`ADMIN_SECRET_KEY`** · **`STRIPE_WEBHOOK_SECRET`** — rotate each at its provider, update Railway.
+- Note: Paystack keys exposed were `sk_test_` (test mode) — lower priority but rotate for hygiene.
+
 ### 🔴 TIER 1 — blocks selling (do this week)
+- [x] ✅ **API build crash FIXED (4 Jun)**
 - [x] ✅ **Set `FOUNDER_EMAIL`** → Railway API → `jacques.vieiraza@gmail.com` (4 Jun)
-- [x] ✅ **Wire Resend INBOUND webhook** → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound`, signing secret matches Railway (4 Jun)
-- [x] ✅ **Stripe go-live** — 6 bundle price IDs in Railway Portal + 2 subscription IDs in Railway API; pricing corrected in Stripe (Vida $29, FIGSY $3/cr) (4 Jun). ⚠️ Verify billing end-to-end in smoke test T5.
-- [x] ✅ **Calendly LIVE** — old `kind-ai/demo` was 404; founder created event 4 Jun, all 40+ buttons repointed to live `calendly.com/kind-ai-demo/new-meeting`
-- [x] ✅ **API + Portal online** — API restarted (new Stripe + FOUNDER_EMAIL vars loaded, `/health` OK); Portal green build with bundle prices baked in (4 Jun)
-- [ ] **3 feature flags** → Railway: `FEATURE_CAMPAIGN_INTENT=true` + `FEATURE_ICP_BUILDER=true` → API; `FEATURE_PORTAL_V2=true` → Portal. ← **still open**
-- [ ] **Create dogfood account** — app.get-kind.com → build ICP → Claude grants FIGSY + credits via admin → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API. Turns on Monday self-outreach cron. **This is how you get your first clients.** ← **still open**
+- [x] ✅ **Wire Resend INBOUND webhook** (4 Jun)
+- [x] ✅ **Stripe go-live** — 8 price IDs in Railway (4 Jun). ⚠️ Verify billing in smoke test T5.
+- [x] ✅ **Calendly LIVE** — all 40+ buttons repointed (4 Jun)
+- [x] ✅ **API + Portal online** (4 Jun)
+- [~] **3 feature flags** — `FEATURE_CAMPAIGN_INTENT` + `FEATURE_ICP_BUILDER` ✅ set. ⚠️ `FEATURE_PORTAL_V2` is on API by mistake — move to **Portal** service.
+- [ ] **Create dogfood account** — app.get-kind.com → build ICP → ping Claude to grant FIGSY + credits → set `FIGSY_KIND_CLIENT_ID` + `booking_url` in Railway API.
+
+### 🔴 TIER 1B — DNS (custom domains — blocks professional launch)
+> All services currently run on raw Railway URLs (`kindportal-production.up.railway.app` etc). These need proper custom domains before launch. Two steps per domain: (1) add in Railway service Settings → Custom Domain, (2) add CNAME in your DNS provider (Cloudflare).
+
+**Africa / UK stack (existing — fix now):**
+- [ ] `app.get-kind.com` → Railway **portal** service custom domain
+- [ ] `api.get-kind.com` → Railway **API** service custom domain
+- [ ] `admin.get-kind.com` → Railway **admin** service custom domain
+- [ ] `status.get-kind.com` → Railway status page (CNAME → `get-kind.com/status`)
+- [ ] After DNS live: update `NEXT_PUBLIC_API_URL` → `https://api.get-kind.com` in Railway Portal + Admin env vars
+- [ ] After DNS live: update Resend inbound webhook URL → `https://api.get-kind.com/figsy/replies/inbound`
+
+**US stack — NOT NEEDED FOR LAUNCH (decided 4 Jun):** No `us.` subdomains. K.I.N.D launches on a **single URL** (`app.get-kind.com`) with **one Cape Town database** serving all markets (Africa, UK, US, rest of world). See "REGION ARCHITECTURE — LOCKED" below. The US stack is only built if/when a signed US enterprise contract requires US data residency.
+
+> **▶ TOMORROW START HERE (4 Jun EOD):** 1) Rotate exposed secrets (Tier 0 above) — Stripe live key first. 2) Move `FEATURE_PORTAL_V2` to Portal. 3) Create dogfood account → ping Claude to grant FIGSY + credits. 4) Fix DNS for all custom domains. Everything else below is green.
 
 ### 🟠 TIER 2 — prove the platform works
 - [ ] **Smoke tests** — `docs/SMOKE_TEST.md`, Saturday + Sunday, log failures as `T#-Step#` → Claude fixes same day
 - [ ] **Onboarding run-through** (private, pre-Loom) — onboard yourself, note every friction point → Claude fixes → THEN record clean Loom videos. Strategy: clients who don't activate in week 1 almost never reach month 2.
+- [ ] **🎨 After smoke tests → ping Claude: "do website consistency pass"** — Claude will make all 32 website pages fully match the homepage (nav, footer, colours, fonts, CTAs). Nothing ships to paying clients until this is done.
 
 ### 🟡 TIER 3 — before clients stress-test it
 - [ ] Render API standby ($7) + Cloudflare LB for `api.get-kind.com` ($5) + update `NEXT_PUBLIC_API_URL` → Railway Portal + Admin
 - [ ] Cloudflare Pages CDN for website + `/health` paths on all 3 Railway services + UptimeRobot (free)
 - [ ] (optional $14/mo) Portal + admin Render standbys
 
-### 🟢 TIER 4 — legal (gated on company number, arrives this week)
+### 🔒 EXPOSURE MINIMISATION — FOUNDER STAYS INVISIBLE (locked decision, 4 Jun)
+> **Goal: the BUSINESS (K.I.N.D) gets coverage; the FOUNDER (you) is not personally visible anywhere.** Driven by the Bradley Arterton / Revolut Business incident — he found you because Companies House published "K.I.N.D Technologies Ltd → director Jacques Vieira" the day you incorporated, a sales tool scraped it, matched your name to your LinkedIn, and auto-sent a connection request + pitch ("Congrats on forming your new company!"). An employer could do the identical lookup. This is the threat model.
+>
+> **HARD LEGAL FLOOR (cannot be changed):** As a UK Ltd director + Person with Significant Control (PSC), your *name* is permanently public on the Companies House register. This is law — it cannot be removed or suppressed. Everything below minimises every *other* signal and breaks the cross-reference chain, but the name itself stays public. Plan around that fact.
+
+**Address & register (do this week — highest value):**
+- [ ] **SR01 — suppress home address on Companies House** — free, companieshouse.gov.uk · removes your residential address from the public register (the most sensitive leaked field). Apply now.
+- [ ] **Registered office address service** — ~£20-50/yr · 1st Formations / Hoxton Mix · replaces your home address as the company's public registered office on all future filings.
+- [ ] **Director service (correspondence) address** — set this to the registered-office service address too, NOT your home. Separate field on Companies House; both must be changed.
+- [ ] **Domain WHOIS privacy** — confirm `get-kind.com` registration uses WHOIS redaction/privacy (no personal name/home address/personal email in public WHOIS). Most registrars do this free under GDPR — verify it's on.
+
+**Online footprint (founder personal = invisible):**
+- [ ] **LinkedIn privacy lockdown** — set profile to not appear in public search engines; restrict "who can see your connections"; turn off "viewers also viewed"; do NOT accept the Bradley/Revolut-type sales connection requests (accepting widens who can associate you with the company).
+- [ ] **Never add K.I.N.D to your personal LinkedIn / personal socials** — no employer, no "founder of", no company link.
+- [x] ✅ Website is already anonymised — `about.html` personal LinkedIn link → "Get in touch" mailto; `story.html` is an anonymous origin story (no name).
+- [ ] **All public-facing contact = business only** — `hello@get-kind.com`, never personal Gmail in any public place.
+- [ ] **Press / PR / testimonials** — attribute to "the K.I.N.D team" or a role title, never your personal name.
+
+**LinkedIn for BUSINESS coverage (decided: anonymous brand only):**
+- [ ] Coverage runs through a **K.I.N.D company page / brand handle**, not your personal profile. Founder story told anonymously ("I got tired of $1,250/mo tools, so I built one…") — no name, no face. (Supersedes any "personal founder content" note elsewhere in this doc.)
+
+> **Residual risk (be honest):** the company is already registered and already scraped (Bradley proves it). Your name being tied to K.I.N.D on the public register can't be undone. The above removes the home address, breaks the personal-profile link, and stops *future* easy cross-referencing — but an employer who specifically searches Companies House for your name will still see you're a director. Most don't; automated sales tools (like Revolut's) are the common case, and these steps blunt those. The address suppression is the single highest-value action.
+
+### 🟢 TIER 4 — legal (this week — privacy + compliance)
 - [x] ✅ **Company number received: 17260532** — K.I.N.D Technologies Ltd. All 4 tokens swapped (4 Jun)
-- [ ] **ICO registration** — ico.org.uk, £40/yr (data controller registration, legally required)
-- [ ] **Wise Business account** — free, needed for business banking before revenue
-- [ ] **SEIS advance assurance** — free to file, 3-yr clock starts from incorporation date. File soon.
-- [ ] Trademarks K.I.N.D + FIGSY + Milla + Vida ~£320 (can wait for first revenue)
+- [ ] **ICO registration** — ico.org.uk · £40/yr · legal requirement for processing personal data · **do this week before launch** · without this every compliance claim on the site is exposed
+- [ ] **Companies House privacy** — see EXPOSURE MINIMISATION block above (SR01 + registered office + service address + WHOIS). Highest-value: SR01 home-address suppression.
+- [ ] **Wise Business account** — free, needed for business banking before revenue (Revolut Business also an option — multi-currency, good for Africa)
+- [ ] **Directors & Officers (D&O) insurance** — ~£500-1,000/yr · Hiscox/Markel/CFC · protects you personally as a director · do by Month 2
+- [ ] **SEIS advance assurance** — free to file, 3-yr clock starts from incorporation date. File soon. Draft at `docs/legal/seis-advance-assurance-draft.md`
+- [ ] Trademarks K.I.N.D + FIGSY + Milla + Vida ~£320 (Month 2-3 — after first revenue)
 - [ ] SeedLegals IP assignment ~£600 (wait until raise/co-founder conversation)
 
 ### ⚪ TIER 5 — GTM (after smoke tests pass)
@@ -147,8 +247,8 @@
 ## 🤖 CLAUDE — OPEN ITEMS (priority order)
 
 - [x] ✅ **Walked founder through Resend inbound webhook setup** — wired + verified 4 Jun
-- [x] ✅ **Fixed API build crash** — Nixpacks generated blank ENV name; replaced with explicit Dockerfile (PR #434, 4 Jun)
-- [ ] **Fix Portal/Admin build if they hit the same Nixpacks blank-name crash** — Portal needs `NEXT_PUBLIC_` vars at build time, so needs a Dockerfile with build ARGs or a verified-clean Nixpacks. Handle when Portal redeploys.
+- [x] ✅ **Fixed API build crash (4 Jun)** — root cause was a trailing newline baked into `STRIPE_WEBHOOK_SECRET`'s value → Nixpacks generated a blank-named ENV. Fixed by deleting + re-adding the var clean. All Dockerfiles removed; all services back on proven Nixpacks.
+- [x] ✅ **BUILT: Client CRM dedup (HubSpot + Pipedrive)** — 4 Jun, on branch, tsc clean. Backend `checkCrmDuplicate()` (HubSpot contact+company-by-domain, Pipedrive person; ignores generic gmail/yahoo domains), fail-soft dedup gate in `autoEnrollLead` (before credit spend), settings API field, portal toggle ("Never contact people already in my CRM"). Migration `010_crm_dedup.sql`. **TO ACTIVATE:** (1) run migration 010, (2) merge to main, (3) client connects their CRM + ticks the toggle in Settings. Salesforce next.
 - [ ] **Grant FIGSY + credits** to founder dogfood account via admin (when account created)
 - [x] ✅ **Swap `[COMPANY NUMBER PENDING]` × 4** — DONE 4 Jun, number 17260532
 - [ ] **Fix smoke test failures** as reported Saturday/Sunday (same-day turnaround)
@@ -156,11 +256,74 @@
 - [x] ✅ **Fixed `DEPLOYMENT_GUIDE.md`** — Steps 3/4/5 rewritten Vercel→Railway, stale Stripe price vars corrected, env reference + deploy order + troubleshooting all Railway (3 Jun)
 - [x] ✅ **Archived `KIND_Roadmap.md` + `KIND_SOP.md`** → `docs/archive/` with README pointing to MASTER (3 Jun)
 - [ ] **Scrub remaining stale Vercel refs in MASTER body** (historical sections below the canonical block — ~30 refs, mostly in old session logs; low risk as they're under the "historical" line)
-- [ ] **Full website branding pass** — roll `kind.css` + brand gradient + nav/footer + hero style across ALL remaining pages to match the main homepage. Every page should feel like the same site. Scope: 32 remaining pages in `apps/website/`. Do after smoke tests pass.
+- [ ] **🎨 FULL WEBSITE CONSISTENCY PASS — do immediately after smoke tests pass**
+  Audit done 4 Jun. Every page must match `index.html` exactly: same nav, same footer, same font stack, same purple `#7C3AED` (not `#9a4dff`), same `kind.css` tokens, same CTA button style. Scope: **32 pages** in `apps/website/`. Known issues:
+  - 30 pages using wrong purple shade (`#9a4dff` instead of `#7C3AED`)
+  - 3 video/demo pages missing nav + footer entirely
+  - Legal pages (terms, privacy, dpa, dpa-us) need footer link audit
+  - All comparison pages (`vs-*.html`) need nav consistency check
+  - Trust page updated but needs final visual QA against homepage style
+  Full pass = one session, done in order: nav → footer → colours → typography → CTAs. Nothing ships to clients until this is done.
+
+#### 🆕 WEBSITE IMPROVEMENTS — from Glean site review (4 Jun) — TOMORROW
+*Glean's site beats ours on two things: it SHOWS the product, and it LEADS with proof. Both have honest fixes. These are improvements, not copies — see MASTER competitor notes.*
+- [ ] **44 — Homepage product demo** *(biggest win)* — embed a real "watch FIGSY book a meeting" demo/video on the homepage (campaign → reply → booked meeting). ⚠️ Depends on Loom footage (recorded after smoke-test run-through); until then, an annotated screenshot/GIF of a real campaign works as a placeholder. **STATUS: blocked on dogfood + footage — scope together.**
+- [x] ✅ **45 — First-party proof block** — DONE (4 Jun). Block built on homepage (`.proof-strip`). Removed a FABRICATED "4/8 replies closed" stat that was live (dogfood campaign hasn't run). Now an honest "Live — real metrics populate at launch, never placeholders" state; fills with real numbers when FIGSY runs. No fake stats.
+- [x] ✅ **46 — Functional throughline line** — DONE (4 Jun, founder-approved). Added under the hero subhead (`index.html`): *"<span class=grad>One family, one shared memory</span> — every agent learns from your market and feeds the others."* Brand gradient on the key phrase. Emotional hook kept, functional spine added.
+- [ ] **47 — Surface comparison/use-case pages in nav** — ⏸ FOLDED INTO website consistency pass (post-smoke-test). Adding a "Compare" dropdown (vs-apollo/outreach/salesloft/hiring-an-sdr/manual) to only the homepage would diverge its nav from the other 31 pages — done across ALL pages in the one consistency pass to stay identical.
+- Note: deliberately NOT copying Glean's "platform / layer-beneath-the-interface" narrative — we're product-level, not infra; borrowing it would break the honest positioning.
+
 - [x] ✅ **YouTube 10-video content plan** — saved to `docs/content/youtube-plan.md` (4 Jun)
 - [x] ✅ **3 blog articles** — saved to `docs/content/blog-articles.md` (4 Jun)
 - [x] ✅ **Draft SEIS advance assurance application + trademark class list** — saved to `docs/legal/seis-advance-assurance-draft.md` (4 Jun)
 - [ ] **Wire playbook email form** (needs founder's email provider choice + API key)
+
+#### 🇺🇸 US MARKET LAUNCH — MONDAY, ALONGSIDE AFRICA/UK (decided 4 Jun)
+*Single URL `app.get-kind.com`, single Cape Town database serves ALL markets (US + Africa/UK). NO separate stacks, NO `us.` subdomains, NO second DB at launch. US data-residency option added later only if a signed enterprise contract requires it. See REGION ARCHITECTURE — LOCKED below. Everything needed to SELL to + BILL + run campaigns for US clients is done:*
+
+**Claude builds — ALL DONE (verified in repo 4 Jun):**
+- [x] ✅ **AAA arbitration clause in `terms.html`** — commit ab5acc3. §12 "US Clients — Arbitration Option". *(verified present)*
+- [x] ✅ **`privacy.html` residency statement** — §4 now states: all data hosted in Cape Town (af-south-1); US has no B2B-SaaS residency law; CCPA-compliant; **US enterprise can request US residency** via hello@get-kind.com. Wrong purple `#9a4dff`→`#7c3aed` also fixed. *(verified — no `us.app` claim remains)*
+- [x] ✅ **Homepage dual-market framing** — trust bar + OG = "Built for Africa, the US & the UK". Hero subhead left intact (strongest copy — deliberate). *(verified, 2 hits)*
+- [x] ✅ **Pricing USD strip** — "Billed in USD · Stripe-secured · Cancel anytime · No contracts…". *(verified)*
+- [x] ✅ **CCPA + CAN-SPAM badges on `trust.html`** — already existed (lines 213–222). *(verified, both present)*
+- [x] ✅ **`terms.html` sub-processor bug fixed** — Paystack + Vercel (both off-stack) → Stripe + Railway only. Was contradicting privacy.html. *(verified — 0 Paystack/Vercel)*
+- [x] ✅ **#45 Honest proof block** — removed a LIVE fabricated "4/8 replies closed" stat (dogfood campaign hasn't run); now honest "Live — real metrics populate at launch, never placeholders". *(verified — 0 fake stat)*
+- [x] ✅ **#46 Homepage throughline** — founder-approved, applied: "One family, one shared memory — every agent learns from your market and feeds the others" (gradient on key phrase). *(verified present)*
+- [x] ✅ **Deployment SOP** — `docs/DEPLOYMENT_GUIDE.md` §1b: single-region at launch; dual-region migration rule documented for the future enterprise trigger only.
+
+**Claude builds — NOT NEEDED at launch (single-DB decision closed these):**
+- [×] ~~Region selector on signup~~ — NOT NEEDED. One URL, one DB → nothing to select. (Two-URL selector was built then reverted when single-DB was locked.)
+- [×] ~~Admin region switcher~~ — NOT NEEDED. One DB → nothing to switch between.
+
+**Claude builds — gated post-smoke-test (folded into consistency pass):**
+- [ ] **#47 — comparison pages into nav** — add "Compare" dropdown (vs-apollo / vs-outreach / vs-salesloft / vs-hiring-an-sdr / vs-prospecting-manually) to ALL 32 pages in the one consistency pass, so navs stay identical. Doing only the homepage now would create the exact divergence the pass fixes.
+
+**Founder infrastructure for US: NONE.** No `kind-us`, no `portal-us`/`api-us`, no US DNS, no US migrations. US clients are served by the existing Cape Town stack on the existing single URL.
+
+---
+
+## 🌍 REGION ARCHITECTURE — LOCKED (4 Jun)
+
+> **Decision: One database, one URL, for launch. Add the second region only when a paying client's contract actually requires it.**
+
+**At launch:**
+- **One URL** — `app.get-kind.com` — for every client, every market (Africa, UK, US, rest of world).
+- **One database** — Supabase `kind`, af-south-1 (Cape Town).
+- **No region selector, no `us.` subdomains, no second Supabase project.**
+- Legally clean: US has no B2B-SaaS data-residency law; CCPA is about rights not location; POPIA satisfied by Cape Town. Selling to + billing US clients + running US campaigns all work from the single Cape Town DB today.
+
+**Why not dual-DB now:** zero clients need it; an auth refactor 3 days before launch is the highest-risk thing we could ship (auth bug = nobody logs in = dead launch); and it costs nothing to add later because the single URL stays stable.
+
+**FUTURE trigger — build region #2 only when a signed US enterprise contract requires US data residency:**
+- Provision Supabase `kind-us` (us-east-1, Virginia).
+- Add `data_region` column to `clients` (default `af-south-1`) at that time.
+- Client picks region at signup + login (dropdown); the login picker resolves the chicken-and-egg of which DB to authenticate against. **URL never changes** — routing is invisible.
+- Every migration then runs on BOTH projects, byte-identical. (Documented in `docs/DEPLOYMENT_GUIDE.md` §1b.)
+- **Do NOT build any of this until the contract exists.**
+
+**What this means is already DONE for US market launch (no second DB):**
+- ✅ Stripe USD billing · ✅ CCPA + CAN-SPAM in legal docs · ✅ AAA arbitration for US clients (terms.html) · ✅ dual-market copy (homepage/pricing) · ✅ privacy.html states data is Cape Town with US residency available to enterprise on request.
 
 ---
 
@@ -183,7 +346,9 @@
 | Dogfood account not created | 🟠 Medium | Tier 1 — this is how first clients arrive |
 | 32 website pages not yet on-brand | 🟠 Medium | Claude — branding pass after smoke tests |
 | No trademark protection | 🟡 Low | Deferred to revenue (draft + class list ready) |
-| CCPA implementation incomplete | 🟡 Low | US expansion deferred |
+| Custom domain DNS not set | 🔴 High | Tier 1B founder action — portal/api/admin still on raw Railway URLs |
+| ~~US stack not built~~ | ✅ Not needed | 4 Jun — single URL + single Cape Town DB serves all markets at launch. Dual-DB deferred until a US enterprise contract requires residency. See REGION ARCHITECTURE — LOCKED. |
+| CCPA implementation incomplete | 🟡 Low | Claude will update terms + privacy for US launch |
 | Portal/admin have no failover | 🟡 Low | Acceptable for launch; Tier 3 |
 
 ---
@@ -261,24 +426,42 @@
 
 ---
 
-## 🗓️ DEFERRED — PHASE 2 & BEYOND
+## 🗓️ GROWTH ROADMAP — COMPRESSED (revised 4 Jun)
+> **Former "Year 2" and "Year 3" items are now Month 3 targets. Only ISO certifications remain Year 2. Speed is the strategy.**
 
-| Feature | Phase | Notes |
-|---------|-------|-------|
-| LinkedIn outreach | Phase 2 (June+) | OAuth complexity + rate limits |
-| Vapi voice calling | Phase 2 (July+) | Needs lead quality baseline first |
-| YouTube channel | Phase 2 | Plan 10 videos before recording one |
-| Onboarding v2 + Loom | Post smoke tests | Private run-through first, then record clean |
-| Partner program dashboard | Phase 2 | Infrastructure coded, portal needs UI |
-| HubSpot full sync | Phase 2 | API key needed to activate |
-| Flutterwave (African payments) | Phase 2 | Code ready, needs secret key |
-| WhatsApp Business API | Phase 2 | Needs Facebook account first |
-| REEVE (Revenue Execution) | Year 2 | |
-| LENA (Lead Nurture) | Year 2 | |
-| OTTO (Operations) | Year 2 | |
-| FIGSY Memory Level 2–3 | Year 2 | ICP auto-refinement + A/B testing |
-| MCP server (K.I.N.D as infra) | Year 2 | "Twilio of B2B outreach" |
-| Data licensing marketplace | Year 2+ | |
+| Feature | Target | Notes |
+|---------|--------|-------|
+| LinkedIn outreach | **Week 1** | Backend built — needs PhantomBuster keys + SQL migration |
+| WhatsApp Business API | **Week 1** | Start Meta application immediately (3-7 day window) |
+| Flutterwave (African payments) | **Week 2** | Code ready — needs secret key in Railway |
+| Onboarding v2 + Loom | **Week 2** | Private run-through first, then record clean |
+| YouTube channel | **Week 2** | Plan exists — `docs/content/youtube-plan.md` |
+| Demo content "shoot once, cut many" | **Week 1** | Homepage loop + Reels/TikTok/LinkedIn all from one recording |
+| **Client CRM dedup (HubSpot first)** | **✅ BUILT** | On branch — merge + run migration 010 |
+| Milla full-context CRM pull | **Month 2** | ~10 clients onward — Glean-pattern moat |
+| Vapi voice calling | **Month 2** | After lead quality baseline from live data |
+| Intent signal detection | **Month 2** | Job changes, funding, hiring → auto-trigger FIGSY |
+| A/B subject line testing | **Month 2** | Auto-pick winner after 50 sends |
+| Client morning brief email | **Month 2** | Extend founder brief to all active clients |
+| ICP auto-refinement | **Month 2** | FIGSY analyses replies → suggests ICP improvements |
+| FIGSY Memory v2 — pgvector | **Month 2** | Semantic memory, inferred patterns — compounding moat |
+| Product Hunt | **Month 2** | Only after 2-3 named design partners with real numbers |
+| G2 listing | **Month 2** | 5 reviews minimum |
+| **REEVE** (Revenue Execution Agent) | **Month 3** | AE: books discovery calls, follows up pipeline, drafts proposals |
+| **LENA** (Customer Success Agent) | **Month 3** | CS: monitors health, flags at-risk, handles check-ins |
+| **OTTO** (Ops & Analytics Agent) | **Month 3** | CRO: pipeline health, revenue forecasting, anomaly alerts |
+| Multi-agent orchestration | **Month 3** | FIGSY + REEVE + LENA + OTTO in parallel, shared memory |
+| 500+ FIGSY skill library | **Month 3** | Modular per vertical: SaaS, African fintech, recruitment, logistics |
+| MCP server — K.I.N.D as infra | **Month 3** | Other tools plug into K.I.N.D agents — distribution without sales team |
+| Outcome-based pricing ("per meeting booked") | **Month 3** | Alongside credit model — removes buyer risk objection |
+| Mobile app (iOS + Android) | **Month 3** | |
+| Built-in CRM | **Month 3** | Agents create/update/close deals natively — clients stop paying HubSpot |
+| Pan-African expansion (NG/KE/GH/EG/RW) | **Month 3** | First-mover window closes in 12-18 months — move now |
+| Platform-level intelligence (cross-client learning) | **Month 3+** | At 50+ clients: predictive ICP, industry benchmarks |
+| Data licensing marketplace | **Month 3+** | Proprietary African B2B outreach dataset → product in itself |
+| Partner program dashboard | **Month 3** | Infrastructure coded, portal needs UI |
+| ISO 27001 | **Year 2** | Opens Nigerian banks, SA corporate procurement — ~£20K |
+| ISO 42001 (AI Governance) | **Year 2** | No African AI company has it — ~£15K |
 
 ---
 *— historical session blocks below; superseded by the canonical block above —*
@@ -3277,47 +3460,56 @@ Send them here. I fix in real time.
 
 ---
 
-## 19. PRODUCT VISION — 1, 3, 5 YEARS
+## 19. PRODUCT VISION — COMPRESSED TIMELINE (revised 4 Jun)
 
-> **The first-mover window in Africa is 18–24 months.** The moat being built now — the data, the brand, the client relationships — is what makes K.I.N.D unconquerable when bigger players arrive.
+> **The first-mover window in Africa is 18–24 months — not 3 years.** Everything previously labelled Year 2 or Year 3 is now a Month 3 target. Only ISO certifications remain Year 2. Speed is the only strategy.
 
 > **TTFL (Time to First Lead) is not just a metric. It is the competitive weapon.** Every competitor makes you wait. We deliver in under 2 hours.
 
-> **Data accumulates from Day 1.** Every lead scored, every ICP run, every FIGSY email sent is a proprietary dataset no competitor can buy. By Year 3, that dataset is the product.
+> **Data accumulates from Day 1.** Every lead scored, every ICP run, every FIGSY email sent is a proprietary dataset no competitor can buy. At 50+ clients, that dataset becomes a moat. At 500+ clients, it becomes the product.
 
-### Year 1 (by May 2027) — $40,000 MRR
-- 150+ paying clients (SA, UK, US, Nigeria, Kenya)
-- Lead Gen + FIGSY proven and reliable
-- Milla (VA) + Vida (Chatbot) live for 30+ clients
-- K.I.N.D's own outbound running entirely on FIGSY
-- **Critical output:** Data. Every client run builds the dataset.
+> **Memory compounds.** Every client, every campaign, every reply makes the next one smarter. The companies that accumulate context fastest win. Tuesday starts the clock.
 
-### Year 2 (2027) — $120,000 MRR / 450 clients
-- **Full B2B Revenue OS** — K.I.N.D handles the entire journey from stranger to signed contract
-- Built-in CRM — clients stop needing HubSpot or Salesforce
-- Pipeline forecasting — AI predicts close probability from lead score + FIGSY engagement
-- Multi-channel FIGSY — email, LinkedIn, WhatsApp, voice
-- Pan-African launch: Nigeria, Kenya, Ghana, Egypt
-- Recurring subscription model becomes primary revenue
+### Month 1 (by July 2026) — £4,000 MRR
+- Launch Tuesday. First 5 paying clients.
+- Dogfood engine running — FIGSY books K.I.N.D's own demos.
+- LinkedIn + WhatsApp outreach live (multi-channel from week 1).
+- Real product demo on homepage. LinkedIn founder content daily.
+- 2 design partner slots open.
 
-### Year 3 (2028) — $300,000 MRR / 1,000 clients
-- **Data Advantage** — proprietary dataset: leads scored + converted across thousands of African B2B companies
-- Predictive ICP — K.I.N.D tells you who to target before you ask
-- Industry benchmarks — "Companies like yours convert at 3.2% — you're at 1.8%"
-- White-label offering for agencies
-- SOC 2 Type II certified
+### Month 2 (by August 2026) — £12,000 MRR
+- 20 paying clients.
+- Product Hunt launched (with 2-3 named case studies).
+- FIGSY Memory v2 (pgvector) live — semantic, compounding intelligence.
+- Intent signals, A/B testing, ICP auto-refinement, conditional branching.
+- Milla CRM full-context pull. Vapi voice calling.
+- Client morning brief email to all active clients.
 
-### Year 4 (2029) — $700,000 MRR / 2,500 clients
-- **The Network Effect** — K.I.N.D sits between buyers and sellers across thousands of companies
-- Warm B2B introductions — K.I.N.D knows who wants to buy and who wants to sell
-- Marketplace dynamics — deals happen on the platform
-- **K.I.N.D becomes a B2B network, not just software**
-- First institutional funding or strategic acquisition interest
+### Month 3 (by September 2026) — £40,000 MRR
+- 50+ paying clients across SA, UK, Nigeria, Kenya.
+- **Full agent family live: REEVE + LENA + OTTO** alongside FIGSY.
+- Multi-agent orchestration — all four agents share memory and run in parallel.
+- 500+ FIGSY skill library. MCP server live.
+- Outcome-based "per meeting booked" pricing tier.
+- Built-in CRM. Mobile app. Pan-African expansion open.
+- Platform-level intelligence beginning — cross-client learning at 50+ clients.
 
-### Year 5 (2030) — Market Leader
-- 5,000+ clients, 10+ countries, IPO-ready on JSE
-- Or acquisition by global CRM, data, or AI player at $50–100M+
-- **The Salesforce of Africa — AI-native from day one**
+### Month 3+ (Q4 2026 onwards) — £100,000+ MRR
+- 100+ clients. Data licensing marketplace live.
+- Platform-level intelligence: predictive ICP, industry benchmarks.
+- White-label for agencies.
+- K.I.N.D is the AI infrastructure for African B2B revenue — not just an SDR tool.
+
+### Year 2 (2027) — Scale + certification
+- ISO 27001 + ISO 42001 certified.
+- Nigerian banks, Kenyan fintechs, SA corporate procurement unlocked.
+- 450+ clients, £120,000+ MRR.
+- First institutional funding or strategic acquisition interest.
+
+### Year 3+ (2028+) — Market leader
+- 1,000+ clients, 10+ countries, IPO-ready on JSE.
+- Or acquisition by global CRM, data, or AI player at $50–100M+.
+- **The Salesforce of Africa — AI-native from day one.**
 
 ---
 
@@ -4250,11 +4442,11 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | Agent | ClickUp equivalent | K.I.N.D role | Status |
 |-------|------------------|-------------|--------|
 | FIGSY | Super Agent — outbound | AI SDR: finds leads, writes emails, handles replies, learns what works | ✅ Live |
-| Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | July 2026 |
-| Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | July 2026 |
-| REEVE | Sales Agent | AE: books discovery calls, follows up pipeline, drafts proposals | Year 2 |
-| LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | Year 2 |
-| OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | Year 2 |
+| Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | ✅ Live |
+| Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | ✅ Live |
+| REEVE | Sales Agent | AE: books discovery calls, follows up pipeline, drafts proposals | **Month 3** |
+| LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | **Month 3** |
+| OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | **Month 3** |
 
 **Each agent (when fully built):**
 - Named identity card in portal with avatar, live stats, last active timestamp
@@ -4268,7 +4460,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 
 > *"If a traditional AI agent can run a quick data analysis, a Super Agent is the analyst — who gathers the data, runs the model, interprets the results, and delivers the report in the right format to the right stakeholder, without being explicitly told each step."*
 
-**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Year 2, clients don't use K.I.N.D. They work *with* K.I.N.D.
+**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Month 3, clients don't use K.I.N.D. They work *with* K.I.N.D.
 
 **The pricing insight:** ClickUp charges $9/user/month for their AI add-on. 1,500 credits included. K.I.N.D charges per outcome ($1/lead, $3/FIGSY credit). This is better — the client pays for results, not for compute. Keep this model.
 
@@ -5574,7 +5766,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 
 > *"If a traditional AI agent can run a quick data analysis, a Super Agent is the analyst — who gathers the data, runs the model, interprets the results, and delivers the report in the right format to the right stakeholder, without being explicitly told each step."*
 
-**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Year 2, clients don't use K.I.N.D. They work *with* K.I.N.D.
+**This is K.I.N.D's long-term product vision in one sentence.** FIGSY doesn't just send emails — it is the SDR. Milla doesn't just answer questions — it is the Chief of Staff. By Month 3, clients don't use K.I.N.D. They work *with* K.I.N.D.
 
 **The pricing insight:** ClickUp charges $9/user/month for their AI add-on. 1,500 credits included. K.I.N.D charges per outcome ($1/lead, $3/FIGSY credit). This is better — the client pays for results, not for compute. Keep this model.
 

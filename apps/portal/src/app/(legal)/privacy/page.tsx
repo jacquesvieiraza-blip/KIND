@@ -19,8 +19,8 @@ export default function PrivacyPage() {
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Who we are</h2>
-            <p>K.I.N.D AI (Pty) Ltd ("KIND") operates the KIND AI Platform. We are a responsible party under POPIA and, where applicable, a data controller under GDPR. Registered address: South Africa.</p>
-            <p className="mt-2">Contact: <a href="mailto:privacy@kind.ai" className="text-[#7C3AED] hover:underline">privacy@kind.ai</a></p>
+            <p>K.I.N.D Technologies Ltd ("K.I.N.D", "we", "us") operates the K.I.N.D AI Platform. We are registered in England &amp; Wales (Company No. 17260532). We are a data controller under UK GDPR, a responsible party under POPIA, and act as data processor on behalf of clients for lead data.</p>
+            <p className="mt-2">Contact: <a href="mailto:hello@get-kind.com" className="text-[#7C3AED] hover:underline">hello@get-kind.com</a></p>
           </section>
 
           <section>
@@ -34,8 +34,8 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">3. How we use your data</h2>
             <ul className="list-disc ml-4 space-y-1.5">
               <li>Deliver and improve the Platform</li>
-              <li>Process payments via Paystack</li>
-              <li>Comply with legal obligations (POPIA, GDPR, ECTA)</li>
+              <li>Process payments via Stripe</li>
+              <li>Comply with legal obligations (UK GDPR, POPIA, NDPR, Kenya DPA, CCPA)</li>
               <li>Send service communications (not marketing without consent)</li>
               <li>Generate AI-powered features using Anthropic's Claude API</li>
             </ul>
@@ -43,8 +43,8 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">4. Data hosting & transfers</h2>
-            <p>Client and platform data is hosted on <strong>Supabase</strong> (PostgreSQL database hosted on AWS in the EU region — <strong>eu-west-1, Ireland</strong>). AI features use <strong>Anthropic's API</strong> (US-based). Payments are processed by <strong>Paystack</strong> (Nigeria/South Africa).</p>
-            <p className="mt-2">Where data is transferred outside South Africa or the EU, KIND ensures appropriate safeguards are in place (SCCs for GDPR, POPIA section 72 conditions for cross-border transfers).</p>
+            <p>Client and platform data is hosted on <strong>Supabase</strong> in the <strong>af-south-1 region (Cape Town, South Africa)</strong> — ensuring data residency within Africa for POPIA compliance. Application hosting runs on <strong>Railway</strong> (SOC 2-audited infrastructure). AI features use <strong>Anthropic&apos;s Claude API</strong> (US-based — no personal data in prompts). Payments are processed by <strong>Stripe</strong> (PCI DSS Level 1 certified).</p>
+            <p className="mt-2">Where data is transferred outside South Africa or the UK, K.I.N.D applies Standard Contractual Clauses (GDPR) and POPIA section 72 conditions for cross-border transfers.</p>
           </section>
 
           <section>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
             <p><strong>Under POPIA:</strong> right to access, correct, delete your personal information; right to object to processing; right to lodge a complaint with the Information Regulator (South Africa).</p>
             <p className="mt-2"><strong>Under GDPR (EU/UK users):</strong> right to access, rectification, erasure, portability, restriction, object to processing; right to lodge a complaint with your national supervisory authority.</p>
             <p className="mt-2"><strong>Under CCPA (California, US):</strong> right to know, delete, opt-out of sale of personal information. KIND does not sell personal information.</p>
-            <p className="mt-2">To exercise any right: <a href="mailto:privacy@kind.ai" className="text-[#7C3AED] hover:underline">privacy@kind.ai</a> — we respond within 30 days.</p>
+            <p className="mt-2">To exercise any right: <a href="mailto:hello@get-kind.com" className="text-[#7C3AED] hover:underline">hello@get-kind.com</a> — we respond within 30 days.</p>
           </section>
 
           <section>
@@ -77,8 +77,8 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">10. Contact</h2>
-            <p>Data protection enquiries: <a href="mailto:privacy@kind.ai" className="text-[#7C3AED] hover:underline">privacy@kind.ai</a><br />
-            General enquiries: <a href="mailto:hello@kind.ai" className="text-[#7C3AED] hover:underline">hello@kind.ai</a></p>
+            <p>Data protection enquiries: <a href="mailto:hello@get-kind.com" className="text-[#7C3AED] hover:underline">hello@get-kind.com</a><br />
+            General enquiries: <a href="mailto:hello@get-kind.com" className="text-[#7C3AED] hover:underline">hello@get-kind.com</a></p>
           </section>
         </div>
       </main>

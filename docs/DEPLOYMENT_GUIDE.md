@@ -56,6 +56,10 @@ supabase/migrations/20260518_company_registration.sql
 
 **Do not skip the credit_transactions_rls migration.** Without it, financial data is exposed across clients.
 
+> ℹ️ **SINGLE-REGION AT LAUNCH (decided 4 Jun).** K.I.N.D launches with **one** Supabase project: `kind` (af-south-1, Cape Town) on a **single URL** `app.get-kind.com`, serving all clients (Africa, UK, US, rest of world). The US has no data-residency requirement for B2B SaaS, so one Cape Town database is legally clean for all markets.
+>
+> **FUTURE — when a US enterprise contract requires US data residency:** provision a second Supabase project `kind-us` (us-east-1, Virginia). The client URL never changes (`app.get-kind.com`); region is selected by the client at signup/login and the app routes to the correct database. At that point, **every migration must run on BOTH projects, in the same order, kept byte-identical** — a migration applied to only one region silently breaks that region. Do NOT build this until a signed contract requires it.
+
 ### 1c. Supabase Auth configuration
 
 1. Supabase → **Authentication** → **URL Configuration**

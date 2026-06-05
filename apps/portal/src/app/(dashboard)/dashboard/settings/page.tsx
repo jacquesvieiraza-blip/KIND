@@ -254,6 +254,7 @@ interface ClientData {
   crm_type: string
   crm_api_key: string
   crm_sync_enabled: boolean
+  crm_dedup_enabled: boolean
   leads_per_run: number
   daily_drip_rate: number
 }
@@ -269,7 +270,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [form, setForm] = useState({ company_name: '', industry: '', country: 'South Africa', website: '', phone: '', company_registration: '', vat_number: '', leads_per_run: 20, daily_drip_rate: 5 })
-  const [crm, setCrm] = useState({ crm_type: 'none', crm_api_key: '', crm_sync_enabled: false })
+  const [crm, setCrm] = useState({ crm_type: 'none', crm_api_key: '', crm_sync_enabled: false, crm_dedup_enabled: false })
   const [crmSaving, setCrmSaving] = useState(false)
   const [crmSaved, setCrmSaved] = useState(false)
   const [crmTesting, setCrmTesting] = useState(false)
@@ -297,7 +298,7 @@ export default function SettingsPage() {
         const res = await api.get<{ data: ClientData & { id: string } }>('/clients/me', session.access_token)
         const c = res.data
         setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '', leads_per_run: c.leads_per_run ?? 20, daily_drip_rate: c.daily_drip_rate ?? 5 })
-        setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false })
+        setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
         if (c.id) {
           setClientId(c.id)
           // Fetch the user's role in this team
@@ -626,6 +627,21 @@ export default function SettingsPage() {
                 />
                 <span className="text-sm text-gray-700">
                   Auto-sync consented leads to {crm.crm_type === 'hubspot' ? 'HubSpot' : 'Pipedrive'}
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={crm.crm_dedup_enabled}
+                  onChange={e => setCrm({ ...crm, crm_dedup_enabled: e.target.checked })}
+                  className="w-4 h-4 mt-0.5 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED]"
+                />
+                <span className="text-sm text-gray-700">
+                  Never contact people already in my {crm.crm_type === 'hubspot' ? 'HubSpot' : 'Pipedrive'}
+                  <span className="block text-xs text-[#9B8EC4] mt-0.5">
+                    Before FIGSY reaches out, we check your CRM. Existing contacts (or companies already in your account) are skipped — so we never cold-email your customers, and you don&apos;t spend credits on people you already know.
+                  </span>
                 </span>
               </label>
             </>

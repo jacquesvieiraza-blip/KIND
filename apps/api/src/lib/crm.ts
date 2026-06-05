@@ -193,6 +193,106 @@ export async function pushDealToCrm(
   return { success: false, error: `Unknown CRM type: ${crmType}` }
 }
 
+// ── DEDUP — read-only "does this prospect already exist in the client's CRM?" ──
+// Used BEFORE FIGSY contacts a lead, so we never cold-email a client's existing
+// customers / active deals, and never waste their credits on known contacts.
+
+export interface CrmDuplicateResult {
+  exists: boolean
+  reason?: string // human-readable, surfaced in the portal (e.g. "Already a contact in HubSpot")
+}
+
+/** HubSpot: search contacts by exact email. */
+async function findContactInHubSpot(apiKey: string, email: string): Promise<boolean> {
+  const res = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: email }] }],
+      properties: ['email'],
+      limit: 1,
+    }),
+  })
+  if (!res.ok) throw new Error(`HubSpot contact search ${res.status}`)
+  const data = await res.json() as { results?: unknown[] }
+  return (data.results?.length ?? 0) > 0
+}
+
+/** HubSpot: search companies by domain (derived from the lead's email). */
+async function findCompanyInHubSpot(apiKey: string, domain: string): Promise<boolean> {
+  const res = await fetch('https://api.hubapi.com/crm/v3/objects/companies/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      filterGroups: [{ filters: [{ propertyName: 'domain', operator: 'EQ', value: domain }] }],
+      properties: ['domain'],
+      limit: 1,
+    }),
+  })
+  if (!res.ok) throw new Error(`HubSpot company search ${res.status}`)
+  const data = await res.json() as { results?: unknown[] }
+  return (data.results?.length ?? 0) > 0
+}
+
+/** Pipedrive: exact-term person search by email. */
+async function findPersonInPipedrive(apiKey: string, email: string): Promise<boolean> {
+  const url = `https://api.pipedrive.com/v1/persons/search?term=${encodeURIComponent(email)}&fields=email&exact_match=true&limit=1&api_token=${apiKey}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Pipedrive person search ${res.status}`)
+  const data = await res.json() as { data?: { items?: unknown[] } | null }
+  return (data.data?.items?.length ?? 0) > 0
+}
+
+function domainFromEmail(email: string): string | null {
+  const at = email.lastIndexOf('@')
+  if (at === -1) return null
+  const d = email.slice(at + 1).toLowerCase().trim()
+  return d.length > 0 ? d : null
+}
+
+// Free / generic mailbox domains — a match here means nothing (everyone has gmail),
+// so we only dedup on company domain when it's a real business domain.
+const GENERIC_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
+  'aol.com', 'protonmail.com', 'gmx.com', 'live.com', 'mail.com',
+])
+
+/**
+ * Checks whether a prospect already exists in the client's CRM.
+ * - Contact match (by email) → definitely skip.
+ * - Company match (by business domain) → skip too; they're already an account.
+ * Throws on API/network error so the caller can decide to fail-soft (proceed
+ * with outreach rather than silently dropping a lead).
+ */
+export async function checkCrmDuplicate(
+  crmType: string,
+  apiKey: string,
+  lead: { email: string | null; company?: string | null },
+): Promise<CrmDuplicateResult> {
+  if (!lead.email) return { exists: false }
+  const email = lead.email.toLowerCase().trim()
+
+  if (crmType === 'hubspot') {
+    if (await findContactInHubSpot(apiKey, email)) {
+      return { exists: true, reason: 'Already a contact in your HubSpot' }
+    }
+    const domain = domainFromEmail(email)
+    if (domain && !GENERIC_EMAIL_DOMAINS.has(domain) && await findCompanyInHubSpot(apiKey, domain)) {
+      return { exists: true, reason: `Their company (${domain}) is already an account in your HubSpot` }
+    }
+    return { exists: false }
+  }
+
+  if (crmType === 'pipedrive') {
+    if (await findPersonInPipedrive(apiKey, email)) {
+      return { exists: true, reason: 'Already a contact in your Pipedrive' }
+    }
+    return { exists: false }
+  }
+
+  return { exists: false }
+}
+
 export async function testCrmConnection(crmType: string, apiKey: string): Promise<{ success: boolean; error?: string }> {
   try {
     if (crmType === 'hubspot') {

@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="logo-k.png" />
   <link rel="apple-touch-icon" href="logo-k.png" />
   <meta property="og:title" content="K.I.N.D — Your AI Family. Unlimited Pipeline." />
-  <meta property="og:description" content="FIGSY finds and books, Milla reads the intelligence, Vida converts your site — while you sleep. From $20. POPIA-compliant. Africa-first." />
+  <meta property="og:description" content="FIGSY finds and books, Milla reads the intelligence, Vida converts your site — while you sleep. From $20. POPIA-compliant. Built for Africa, the US & the UK." />
   <meta property="og:image" content="logo-k.png" />
   <meta property="og:type" content="website" />
   <style>
@@ -1142,7 +1142,7 @@
       <button type="submit" class="btn-form" id="auth-submit">Create account</button>
       <p class="modal-msg" id="auth-msg"></p>
     </form>
-    <p class="modal-footer">By signing up you agree to our <a href="https://app.get-kind.com/terms">Terms of Service</a>.</p>
+    <p class="modal-footer">By signing up you agree to our <a href="terms.html">Terms of Service</a>.</p>
   </div>
 </div>
 
@@ -1217,27 +1217,30 @@
   .kf-head{ width:100%; max-width:820px; text-align:center; }
   .kf-head h1{ font-family:'Outfit',sans-serif; font-size:clamp(1.9rem,4.1vw,3.3rem); font-weight:900; letter-spacing:-.045em; line-height:1.02; margin:4px 0 10px; }
   .kf-head h1 .grad{ background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-  .kf-head-sub{ font-size:.98rem; color:rgba(0,0,0,.5); max-width:540px; margin:0 auto 14px; font-weight:500; line-height:1.6; }
+  .kf-head-sub{ font-size:.98rem; color:rgba(0,0,0,.5); max-width:540px; margin:0 auto 10px; font-weight:500; line-height:1.6; }
+  .kf-head-line{ font-size:.82rem; color:rgba(0,0,0,.42); max-width:520px; margin:0 auto 16px; font-weight:600; line-height:1.5; letter-spacing:-.01em; }
+  .kf-head-line .grad{ background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .kf-block{ position:relative; width:100%; max-width:1480px; height:calc(100vh - 320px); min-height:340px; border-radius:30px; overflow:clip; box-shadow:0 30px 80px rgba(20,18,45,.12); }
-  /* film grain for depth (ClickUp-like texture) */
-  .kf-block::after{ content:''; position:absolute; inset:0; z-index:7; pointer-events:none; opacity:.5; mix-blend-mode:soft-light;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size:200px 200px; }
+  /* film grain / dots texture — visible, like the ClickUp reference */
+  .kf-block::after{ content:''; position:absolute; inset:0; z-index:7; pointer-events:none; opacity:.85; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:180px 180px; }
 
   .kf-agent{ position:absolute; inset:0; opacity:0; transition:opacity .3s linear; text-decoration:none; color:inherit; display:block; }
   .kf-agent[data-i="0"]{ opacity:1; }
 
   .kf-bg{ position:absolute; inset:0; z-index:0; }
-  .kf-ghost{ position:absolute; z-index:1; left:50%; top:40%; transform:translate(-50%,-50%);
+  .kf-ghost{ position:absolute; z-index:1; left:50%; top:42%; transform:translate(-50%,-50%);
     font-family:'Outfit',sans-serif; font-weight:900; letter-spacing:-.04em; line-height:.78;
     font-size:clamp(4rem,15vw,13rem); color:rgba(20,18,45,.06); white-space:nowrap; pointer-events:none; user-select:none; text-align:center; }
   .kf-eyebrow2{ position:absolute; z-index:4; top:30px; left:0; right:0; text-align:center;
     font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(20,18,45,.5); }
   .kf-figure{ position:absolute; inset:0; z-index:2; display:flex; align-items:flex-end; justify-content:center; }
-  .kf-figure img{ height:88%; width:auto; max-width:92%; object-fit:contain; display:block;
-    /* edge fade so the portrait dissolves into the gradient (not a solid block) */
-    -webkit-mask-image:radial-gradient(ellipse 58% 70% at 50% 44%, #000 46%, transparent 78%);
-    mask-image:radial-gradient(ellipse 58% 70% at 50% 44%, #000 46%, transparent 78%); }
+  .kf-figure img{ height:96%; width:auto; max-width:96%; object-fit:contain; display:block;
+    filter:drop-shadow(0 30px 55px rgba(20,18,45,.24));
+    /* feather ONLY the bottom crop edge so the hard straight line dissolves — figure stays solid */
+    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 84%, transparent 100%);
+    mask-image:linear-gradient(to bottom, #000 0%, #000 84%, transparent 100%); }
   .kf-cta{ position:absolute; z-index:6; bottom:30px; left:50%; transform:translateX(-50%);
     background:#0a0a0a; color:#fff; font-weight:700; font-size:.92rem; padding:13px 26px; border-radius:14px;
     text-decoration:none; box-shadow:0 14px 34px rgba(0,0,0,.28); transition:transform .2s; white-space:nowrap; }
@@ -1300,6 +1303,7 @@
       <div class="live-chip"><span class="live-dot"></span>Live now — first campaign running in 5 business days</div>
       <h1>Stop chasing leads.<br/><span class="grad" id="tw-target">Break the ceiling.</span><span class="tw-cursor" id="tw-cursor"></span></h1>
       <p class="kf-head-sub">Your AI family finds leads, books meetings, and converts your site — while you sleep. From $20. No setup fees. Cancel anytime.</p>
+      <p class="kf-head-line"><span class="grad">One family, one shared memory</span> — every agent learns from your market and feeds the others.</p>
       <div class="hero-btns" style="justify-content:center">
         <button onclick="openAuth('signup')" class="btn-hero-primary">Get your first leads free →</button>
         <a href="#figsy" class="btn-hero-ghost">See how it works</a>
@@ -1307,33 +1311,33 @@
     </div>
     <div class="kf-block">
       <a class="kf-agent" data-i="0" data-agent="figsy" href="figsy.html">
-        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 128%, rgba(255,46,196,.70) 0%, rgba(255,46,196,.22) 42%, transparent 68%), linear-gradient(180deg,#ffffff 0%,#ffe9f7 50%,#ffc7e7 100%);"></div>
+        <div class="kf-bg" style="background:linear-gradient(160deg,#ffd6ed 0%,#ffb3d9 45%,#ff85c0 100%);"></div>
         <div class="kf-ghost">FIGSY</div>
         <div class="kf-eyebrow2">Agent 01 · The Closer · Autonomous AI SDR</div>
         <div class="kf-call c1">Works 24/7<span></span></div>
         <div class="kf-call c2">Writes like you<span></span></div>
         <div class="kf-call c3">Books the meeting<span></span></div>
-        <div class="kf-figure"><img src="figsy.png" alt="FIGSY — Autonomous AI SDR" /></div>
+        <div class="kf-figure"><img src="figsy-cut.png" alt="FIGSY — Autonomous AI SDR" /></div>
         <span class="kf-cta">Meet FIGSY →</span>
       </a>
       <a class="kf-agent" data-i="1" data-agent="milla" href="virtual-assistant.html">
-        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 128%, rgba(154,77,255,.55) 0%, rgba(154,77,255,.16) 42%, transparent 68%), linear-gradient(180deg,#ffffff 0%,#f6f0ff 50%,#e7daff 100%);"></div>
+        <div class="kf-bg" style="background:linear-gradient(160deg,#e8d8ff 0%,#d0b8ff 45%,#b88fff 100%);"></div>
         <div class="kf-ghost">MILLA</div>
         <div class="kf-eyebrow2">Agent 02 · The Brain · Business Intelligence</div>
         <div class="kf-call c1">Reads the signals<span></span></div>
         <div class="kf-call c2">Tracks what works<span></span></div>
         <div class="kf-call c3">No dashboards<span></span></div>
-        <div class="kf-figure"><img src="milla.png" alt="Milla — Business Intelligence" /></div>
+        <div class="kf-figure"><img src="milla-cut.png" alt="Milla — Business Intelligence" /></div>
         <span class="kf-cta">Meet Milla →</span>
       </a>
       <a class="kf-agent" data-i="2" data-agent="vida" href="chatbot-agent.html">
-        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 128%, rgba(54,197,240,.58) 0%, rgba(54,197,240,.16) 42%, transparent 68%), linear-gradient(180deg,#ffffff 0%,#eef9ff 50%,#d6efff 100%);"></div>
+        <div class="kf-bg" style="background:linear-gradient(160deg,#c8ecff 0%,#96d8ff 45%,#5cbfff 100%);"></div>
         <div class="kf-ghost">VIDA</div>
         <div class="kf-eyebrow2">Agent 03 · The Connector · Web &amp; WhatsApp AI</div>
         <div class="kf-call c1">Qualifies 24/7<span></span></div>
         <div class="kf-call c2">Web + WhatsApp<span></span></div>
         <div class="kf-call c3">Captures leads<span></span></div>
-        <div class="kf-figure"><img src="vida.png" alt="Vida — Web &amp; WhatsApp AI" /></div>
+        <div class="kf-figure"><img src="vida-cut.png" alt="Vida — Web &amp; WhatsApp AI" /></div>
         <span class="kf-cta">Meet Vida →</span>
       </a>
     </div>
@@ -1352,7 +1356,7 @@
   <div class="trust-bar-div"></div>
   <div class="trust-stat"><span class="trust-stat-num">Pay per lead</span><span>— not per seat, not per month</span></div>
   <div class="trust-bar-div"></div>
-  <div class="trust-popia"><span class="live-dot"></span>POPIA Compliant &middot; Africa-first</div>
+  <div class="trust-popia"><span class="live-dot"></span>POPIA Compliant &middot; Built for Africa, the US &amp; the UK</div>
 </div>
 
 <!-- HERO ATMOSPHERE BLEED -->
@@ -1416,18 +1420,18 @@
   </div>
 </div>
 
-<!-- HONEST PROOF — first-party dogfooding (no fake logos / testimonials) -->
+<!-- HONEST PROOF — first-party dogfooding (no fake logos / testimonials / invented stats) -->
 <div class="proof-strip">
   <div class="proof-inner">
     <div class="proof-copy">
       <div class="s-label">Proof — first-party</div>
-      <h2 class="s-title">We found our first clients with FIGSY.</h2>
-      <p>Before K.I.N.D had a single customer, FIGSY ran outreach to our own ICP &mdash; scored the replies, followed up automatically, and booked the calls. The system that built our pipeline is the exact one you get on day one.</p>
-      <p class="proof-honest">No demo data. No borrowed logos. When we have named clients who say yes, you&rsquo;ll see them here &mdash; until then, our own results speak.</p>
+      <h2 class="s-title">We use FIGSY to find our own clients.</h2>
+      <p>K.I.N.D runs its own outreach on FIGSY &mdash; the exact system you get on day one. It sources our ICP, scores the replies, follows up automatically, and books the calls.</p>
+      <p class="proof-honest">No demo data. No borrowed logos. No invented numbers. The moment our first campaign delivers real results they appear right here &mdash; and named clients follow as they say yes.</p>
     </div>
     <div class="proof-stat">
-      <div class="proof-stat-num">4<span>/8</span></div>
-      <div class="proof-stat-label">of our first eight replies closed &mdash; from FIGSY&rsquo;s own outreach</div>
+      <div class="proof-stat-num" style="display:flex;align-items:center;gap:12px;font-size:2.2rem"><span class="live-dot"></span>Live</div>
+      <div class="proof-stat-label">First campaign goes live at launch &mdash; real metrics populate here, never placeholders</div>
     </div>
   </div>
 </div>
@@ -1552,7 +1556,7 @@
     <div class="figsy-sticky">
       <div class="figsy-character">
         <div class="figsy-avatar" id="figsy-avatar">
-          <img src="figsy.png" alt="FIGSY AI SDR" />
+          <img src="figsy-cut.png" alt="FIGSY AI SDR" />
           <div class="figsy-avatar-ring"></div>
         </div>
         <div class="figsy-name">FIGSY</div>
@@ -1947,9 +1951,9 @@
     <div class="footer-bottom">
       <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
       <div class="footer-legal">
-        <a href="https://app.get-kind.com/terms">Terms of Service</a>
-        <a href="https://app.get-kind.com/privacy">Privacy Policy</a>
-        <a href="about.html#compliance">POPIA &amp; GDPR</a>
+        <a href="terms.html">Terms of Service</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="dpa.html">POPIA &amp; GDPR</a>
       </div>
     </div>
   </div>

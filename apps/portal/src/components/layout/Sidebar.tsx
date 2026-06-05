@@ -72,11 +72,13 @@ const AGENTS: AgentDef[] = [
     id: 'denise',
     name: 'Denise',
     subtitle: 'The Closer',
-    role: 'AI Account Executive · Coming Soon',
+    role: 'AI Account Executive · Closing',
     accent: '#D97706',
     ring: 'ring-amber-300/30',
-    price: 'Coming soon',
-    nav: [],
+    price: '$99/mo',
+    nav: [
+      { href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake },
+    ],
   },
 ]
 
@@ -84,7 +86,7 @@ const AGENT_HREFS: Record<AgentId, string> = {
   figsy:   '/dashboard/figsy',
   milla:   '/dashboard/assistant',
   vida:    '/dashboard/chatbot',
-  denise:  '/dashboard/agents',
+  denise:  '/dashboard/denise',
 }
 
 const LEAD_GEN_NAV = [

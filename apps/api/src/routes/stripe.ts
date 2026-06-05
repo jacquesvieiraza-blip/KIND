@@ -135,7 +135,7 @@ stripeRouter.post('/subscribe', requireAuth, async (req: AuthRequest, res: Respo
 
   try {
     const { product } = z.object({
-      product: z.enum(['milla', 'vida']),
+      product: z.enum(['milla', 'vida', 'denise']),
     }).parse(req.body)
 
     const priceId = getStripeSubscriptionPriceId(product)
@@ -167,7 +167,7 @@ stripeRouter.post('/subscribe', requireAuth, async (req: AuthRequest, res: Respo
     const clientEmail = user?.email || ''
 
     const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
-    const successPage = product === 'milla' ? 'assistant' : 'chatbot'
+    const successPage = product === 'milla' ? 'assistant' : product === 'denise' ? 'denise' : 'chatbot'
 
     const url = await createSubscriptionCheckoutSession({
       clientId:   client.id,

@@ -30,8 +30,9 @@ export const STRIPE_BUNDLES = {
 } as const
 
 export const STRIPE_SUBSCRIPTIONS = {
-  milla: { priceEnvVar: 'STRIPE_PRICE_MILLA_MONTHLY', product: 'virtual_assistant', label: 'Milla — Virtual Assistant', priceUsd: 49 },
-  vida:  { priceEnvVar: 'STRIPE_PRICE_VIDA_MONTHLY',  product: 'chatbot',           label: 'Vida — Chatbot Agent',      priceUsd: 39 },
+  milla:  { priceEnvVar: 'STRIPE_PRICE_MILLA_MONTHLY',  product: 'virtual_assistant', label: 'Milla — Virtual Assistant',     priceUsd: 49 },
+  vida:   { priceEnvVar: 'STRIPE_PRICE_VIDA_MONTHLY',   product: 'chatbot',           label: 'Vida — Chatbot Agent',          priceUsd: 29 },
+  denise: { priceEnvVar: 'STRIPE_PRICE_DENISE_MONTHLY', product: 'denise',            label: 'Denise — AI Account Executive', priceUsd: 99 },
 } as const
 
 export type SubscriptionProduct = keyof typeof STRIPE_SUBSCRIPTIONS

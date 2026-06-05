@@ -93,6 +93,11 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 61e | **Atlas steal #5 — Influencer/community distribution** · Identify 1–2 SA SMB communities (Startup Grind CPT, specific trades/services forums) + 1–2 US equivalents. Pursue co-marketing or endorsement. Dan Martell is Atlas's real acquisition channel — we need ours. | 🧍 |
 | 61f | **Atlas steal #6 — Pipeline / ROI calculator** · Build a "Pipeline Calculator" on the site: input lead list size, current reply rate, average deal value → output meetings + revenue FIGSY would book. Pre-qualifies the buyer and sells the product before they speak to anyone. Atlas has a "speed-to-lead simulator" doing exactly this. | 🤖 |
 | 61g | **Atlas steal #7 — 90-day guarantee framing** · Sharpen the guarantee from "30-day money back" to "90-day results guarantee — your pipeline grows or you don't pay." 90 days gives enough campaign data to show results; stronger commitment signal than 30 days. | 🤝 |
+| 62a | **Revio steal #1 — "Trained on closed-won deals" credibility hook** · Add to FIGSY + DENISE copy: "Battle-tested on X real campaigns, X meetings booked." Articulate what the agents are trained on — this is a direct trust signal that Revio uses effectively. Populate with real numbers as they come in. | 🤖 |
+| 62b | **Revio steal #2 — Coaching layer bundled into onboarding** · Add a "Revenue Playbook Session" (30-min call) to KIND onboarding flow — founder or agent walks new client through campaign setup, ICP targeting, and first sequence. Especially important for SA market. Reduces churn, increases perceived value, creates personal relationship. | 🧍 |
+| 62c | **Revio steal #3 — Homepage outcome numbers** · 2–3 concrete client outcome stats on the homepage as soon as first clients produce results: meetings booked, reply rates, revenue generated. "30,065 leads last month" style specificity. Do NOT fabricate — hold the slot, populate when real. | 🤝 |
+| 62d | **Revio steal #4 — "Revenue Blueprint Session" demo framing** · Rename the demo CTA from "Book a Demo" to "Book a Revenue Blueprint Session" for higher-ticket inbound leads. Reframes sales call as consultative delivery, not a pitch. Higher perceived value, higher show rate. | 🤖 |
+| 62e | **Revio steal #5 — Vertical niche landing pages** · Build 2–3 tight SA vertical pages: estate agents · insurance brokers · financial advisers (each ~500 words, specific pain, specific FIGSY outcome). Broad messaging loses to niche depth when a buyer Googles their job title. US equivalents second phase. | 🤖 |
 
 ## 🟨 MONTH 2 — intelligence layer (Tier 2 build queue, 10+ clients)
 37 Intent signal detection · 38 A/B subject testing · 39 Client morning brief email · 40 ICP auto-refinement · 41 Conditional sequence branching · 42 Waterfall enrichment (Apollo→PDL→Hunter→Clearbit; needs PDL+Hunter keys) · 43 Deliverability dashboard (SPF/DKIM/DMARC+bounce+blacklist) · 44 Email score pre-send · 45 Adaptive send volume · 46 **FIGSY Memory v2 (pgvector)** · 47 Milla full-context CRM pull · 48 Vapi voice calling · 49 Product Hunt (with proof) · 50 G2 listing (5 reviews) · 51 Configurable agent triggers · 52 Multi-model toggle per campaign · 53 Inbox rotation / multiple sending domains (Instantly steal)
@@ -275,6 +280,26 @@ Item #59 MCP server moved from Month 3 → Month 2 (alongside pgvector and FIGSY
 **Where we beat them:** Price ($29/mo vs $5,000+), self-serve, multi-agent ecosystem with shared memory, Milla, DENISE (coming), full revenue lifecycle vs appointment-booking only, SA+US vs US-only, live in minutes not 14 days.
 
 **Strategic read:** Different buyer (appointment-driven services vs our SMB generalist), different price point, different model (DFY vs SaaS) — not a direct competitor. But their messaging is sharper and their tools (ROI calculator, performance guarantee) are worth stealing. Items #61a–61g capture the steals.
+
+## §Revio — getrevio.com (researched 5 Jun 2026)
+
+**What they are:** AI social selling CRM for Instagram/Facebook-native coaches, consultants, and creators. Scans existing follower base, scores leads by conversion likelihood, auto-sends personalised DMs, and acts as a real-time AI co-pilot suggesting exact replies based on closed-won deal transcripts. Human coaching layer bundled: live group calls + 1:1 onboarding + expert setup. Underlying product: SellByChatCRM (rebranded). LinkedIn ~4,026 followers — early stage. Dan Martell promoted them (same distribution channel as Atlas).
+
+**Pricing:** ~$500/month (third-party source, medium confidence). No public pricing — gated behind "Growth Session" demo call. High-touch, consultative sales model. No self-serve.
+
+**Channels:** Instagram + Facebook. LinkedIn "coming soon."
+
+**ICP:** Solopreneurs and small teams (1–10) in the creator/coach/consultant economy who already have a social following. NOT traditional B2B outbound. NOT South Africa (no SA presence detected).
+
+**Claimed stats [unverified]:** 50% conversion rate increase from chats to close · 30,065 IG leads generated in one month (customer case study) · $60K/month in 7 months (Dan Martell-cited).
+
+**Where they beat us:** Depth of social selling workflow for Instagram-native creators; human coaching layer bundled in; battle-tested reply suggestions from closed deals; tight niche positioning.
+
+**Where we beat them:** Autonomous agents vs co-pilot (human still sends with Revio); cold outbound (FIGSY can find leads without an existing audience); full revenue lifecycle vs DM-to-appointment only; $29/mo vs ~$500/mo; SA market uncontested; broader ICP.
+
+**Watch signal:** LinkedIn integration is on their public roadmap. If they ship cold outbound via LinkedIn + email, they enter FIGSY's territory. Monitor their changelog (product.sellbychatcrm.com/changelog).
+
+**Strategic read:** Indirect competitor — different buyer (creator economy vs SMB), different channel (social DMs vs email/outbound). Real risk is if they add B2B cold outbound. Steal their coaching model and case study specificity (items #62a–62e); ignore the rest for now.
 
 ---
 

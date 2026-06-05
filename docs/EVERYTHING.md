@@ -90,7 +90,31 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 37 Intent signal detection · 38 A/B subject testing · 39 Client morning brief email · 40 ICP auto-refinement · 41 Conditional sequence branching · 42 Waterfall enrichment (Apollo→PDL→Hunter→Clearbit; needs PDL+Hunter keys) · 43 Deliverability dashboard (SPF/DKIM/DMARC+bounce+blacklist) · 44 Email score pre-send · 45 Adaptive send volume · 46 **FIGSY Memory v2 (pgvector)** · 47 Milla full-context CRM pull · 48 Vapi voice calling · 49 Product Hunt (with proof) · 50 G2 listing (5 reviews) · 51 Configurable agent triggers · 52 Multi-model toggle per campaign · 53 Inbox rotation / multiple sending domains (Instantly steal)
 
 ## 🟦 MONTH 3 — agent family + platform (Tier 3/4)
-54 **REEVE** · 55 **LENA** · 56 **OTTO** · 57 Multi-agent orchestration (shared memory) · 58 500+ FIGSY skill library · 59 **MCP server** (K.I.N.D as AI infrastructure) · 60 Outcome pricing ("per meeting booked") · 61 Mobile app iOS+Android · 62 Built-in CRM (persistent prospect DB / Kanban deal view) · 63 Pan-African design partners (NG/KE/GH/EG/RW) · 64 Platform-level cross-client intelligence · 65 Data licensing marketplace · 66 ICP auto-refinement advanced · 67 Pipeline forecasting · 68 In-portal messaging · 69 Proposal + e-sign · 70 Meeting notetaker
+54 **REEVE** · 55 **LENA** · 56 **OTTO** · 57 Multi-agent orchestration (shared memory) · 58 500+ FIGSY skill library · 59 **MCP server** (K.I.N.D as AI infrastructure) · 60 **Outcome pricing ("per meeting booked") — GATED, see spec below** · 61 Mobile app iOS+Android · 62 Built-in CRM (persistent prospect DB / Kanban deal view) · 63 Pan-African design partners (NG/KE/GH/EG/RW) · 64 Platform-level cross-client intelligence · 65 Data licensing marketplace · 66 ICP auto-refinement advanced · 67 Pipeline forecasting · 68 In-portal messaging · 69 Proposal + e-sign · 70 Meeting notetaker
+
+### #60 Outcome pricing — spec (DO NOT BUILD YET — gated on data + cash)
+
+**Decision (5 Jun): parked. Not now. We need wins, then data, then a data-informed call.**
+Reason it waits is not the code — it's that outcome pricing moves result-risk onto K.I.N.D, and a pre-revenue company offering outcome pricing is offering free labour with extra steps. Build only after: (a) paying wins on credit pricing, (b) dogfood + real campaigns give the one number this whole model needs.
+
+**The one number that unlocks it:** *average credits consumed to produce one booked meeting.* Without it, the price is a guess.
+- If ~8 credits → cost ≈ $24 → charge $40 → ~40% margin. Works.
+- If ~20 credits → cost ≈ $60 → charge $40 → lose $20/meeting. Bankrupts at scale.
+- **Margin floor to proceed: 28% gross.** Below that, do not enable.
+
+**It is a separate menu, NOT an add-on. Client picks ONE plan, never both:**
+| Plan | Client pays | Risk bearer |
+|---|---|---|
+| Credit (live today) | $1/action (Lead Gen), $3/conversation (FIGSY) | Client eats the waste |
+| Outcome (this item) | $0 per action — pays ONLY on result | K.I.N.D eats failed outreach |
+
+**Critical rule — no double-charge across the pipeline:** on the outcome plan, a client running Lead Gen→FIGSY is billed for the **final outcome only (the meeting)**. The per-qualified-reply price ($15) exists *strictly* for Lead-Gen-only clients who never touch FIGSY. Never charge reply + meeting on the same prospect.
+- Lead Gen (standalone, outcome plan): **$15 / qualified reply** (intent signal, not "unsubscribe"). Anchor: agencies charge $35–80.
+- FIGSY (outcome plan): **$40 / confirmed meeting**. Anchor: human SDR = $75–200.
+
+**"Confirmed" must be machine-decided, never a human judgment call** (or every charge becomes an argument): calendar event created via the FIGSY booking link = billable, full stop. No-shows are NOT refunded (stated in ToS — same logic as Intercom not refunding re-opened tickets). Cancellation after booking = still billable.
+
+**Build checklist when greenlit (Month 3+):** `outcome_events(id, client_id, type, metadata, billed_at, amount)` table · Calendly/Cal.com webhook → confirm → Stripe charge · reply-qualifier LLM call at inbound · Stripe metered billing switch · pricing-page toggle behind flag · ToS clause (no no-show refunds).
 
 ## 🔵 YEAR 2 — certifications + enterprise
 71 ISO 27001 (~£15–25K) · 72 ISO 42001 AI Governance (~£10–15K) · 73 SOC 2 Type II (~$50K, Vanta) · 74 Triple-cert via Vanta (~70% shared controls) · 75 3-type memory model · 76 Visitor de-anonymisation (Clearbit) · 77 Churn-risk scoring · 78 Revenue forecasting · 79 Call intelligence

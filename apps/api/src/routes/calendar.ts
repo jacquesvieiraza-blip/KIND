@@ -4,6 +4,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { logOutcomeEvent } from '../lib/outcomes'
 import {
   getAuthUrl,
   exchangeCodeForTokens,
@@ -224,6 +225,17 @@ calendarRouter.post('/book', requireAuth, async (req: AuthRequest, res) => {
     })
 
     if (insertErr) throw insertErr
+
+    // THE DATA FLOOR (#17b) — a real calendar booking is the highest-value
+    // outcome and cannot be back-filled. Log it before anything else can fail.
+    void logOutcomeEvent({
+      client_id:     clientId,
+      lead_id:       body.leadId,
+      enrollment_id: body.enrollmentId ?? null,
+      event_type:    'meeting_booked',
+      channel:       'calendar',
+      payload:       { google_event_id: eventId, meeting_link: meetLink, start: body.start, end: body.end, source: 'calendar_book' },
+    })
 
     // Unify the booking KPI: a real calendar booking must move meetings_booked
     // (previously only the manual "Mark as booked" button did). Attribute it to

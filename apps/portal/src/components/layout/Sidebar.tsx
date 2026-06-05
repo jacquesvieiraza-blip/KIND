@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
-type AgentId = 'figsy' | 'milla' | 'vida'
+type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
 
 interface AgentDef {
   id: AgentId
@@ -63,17 +63,28 @@ const AGENTS: AgentDef[] = [
     role: 'Chatbot Agent · Inbound Specialist',
     accent: '#14B8A6',
     ring: 'ring-teal-300/30',
-    price: '$39/mo',
+    price: '$29/mo',
     nav: [
       { href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare },
     ],
   },
+  {
+    id: 'denise',
+    name: 'Denise',
+    subtitle: 'The Closer',
+    role: 'AI Account Executive · Coming Soon',
+    accent: '#D97706',
+    ring: 'ring-amber-300/30',
+    price: 'Coming soon',
+    nav: [],
+  },
 ]
 
 const AGENT_HREFS: Record<AgentId, string> = {
-  figsy: '/dashboard/figsy',
-  milla: '/dashboard/assistant',
-  vida:  '/dashboard/chatbot',
+  figsy:   '/dashboard/figsy',
+  milla:   '/dashboard/assistant',
+  vida:    '/dashboard/chatbot',
+  denise:  '/dashboard/agents',
 }
 
 const LEAD_GEN_NAV = [
@@ -120,6 +131,7 @@ export function Sidebar({
   hasFigsy = false,
   hasMilla = false,
   hasVida  = false,
+  hasDenise = false,
   isNewUser = false,
   isPartner = false,
 }: {
@@ -128,6 +140,7 @@ export function Sidebar({
   hasFigsy?: boolean
   hasMilla?: boolean
   hasVida?: boolean
+  hasDenise?: boolean
   isNewUser?: boolean
   isPartner?: boolean
 }) {
@@ -148,7 +161,8 @@ export function Sidebar({
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
-  const isUnlocked = (id: AgentId) => id === 'figsy' ? hasFigsy : id === 'milla' ? hasMilla : hasVida
+  const isUnlocked = (id: AgentId) =>
+    id === 'figsy' ? hasFigsy : id === 'milla' ? hasMilla : id === 'vida' ? hasVida : hasDenise
   const agent = AGENTS.find(a => a.id === activeId)!
   const unlocked = isUnlocked(activeId)
 

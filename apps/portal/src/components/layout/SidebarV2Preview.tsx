@@ -10,7 +10,7 @@ import {
   CreditCard, LayoutDashboard, Webhook,
 } from 'lucide-react'
 
-type AgentId = 'figsy' | 'milla' | 'vida'
+type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
 
 const AGENTS: {
   id: AgentId
@@ -58,6 +58,15 @@ const AGENTS: {
     nav: [
       { href: '/v2/vida',                  label: 'Chatbot',    icon: MessageSquare },
     ],
+  },
+  {
+    id: 'denise',
+    name: 'Denise',
+    role: 'AI Account Executive',
+    emoji: '🤝',
+    color: '#D97706',
+    gradient: 'from-[#D97706] to-[#b45309]',
+    nav: [],
   },
 ]
 

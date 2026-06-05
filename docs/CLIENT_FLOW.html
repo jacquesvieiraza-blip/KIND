@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>K.I.N.D — How the platform works (client flow)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background:#faf7ff; color:#1e1152; margin:0; padding:32px; }
+  h1 { font-size:1.6rem; letter-spacing:-0.02em; margin-bottom:4px; }
+  p.sub { color:#7c3aed; margin-top:0; font-weight:600; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:0.8rem; margin:16px 0 28px; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:12px; height:12px; border-radius:3px; display:inline-block; }
+  .card { background:#fff; border:1px solid #ece6fb; border-radius:18px; padding:24px; box-shadow:0 8px 30px rgba(124,58,237,0.06); overflow:auto; }
+  .mermaid { font-size:14px; }
+  footer { color:#9b8ec4; font-size:0.75rem; margin-top:20px; }
+</style>
+</head>
+<body>
+  <h1>K.I.N.D — how the platform actually works</h1>
+  <p class="sub">Lead Gen + Vida feed leads → FIGSY opens → Denise closes → Milla reads it all. Every outcome logged.</p>
+  <div class="legend">
+    <span><span class="dot" style="background:#7c3aed"></span>FIGSY — The Opener (AI SDR)</span>
+    <span><span class="dot" style="background:#0ea5e9"></span>Milla — The Brain (VA, $49/mo)</span>
+    <span><span class="dot" style="background:#10b981"></span>Vida — The Connector (Chatbot, $29/mo)</span>
+    <span><span class="dot" style="background:#d97706"></span>Denise — The Closer (AE, $99/mo)</span>
+  </div>
+  <div class="card">
+  <pre class="mermaid">
+flowchart TD
+    A([Client signs up]):::sys --> B[Onboarding: company, industry, country, website]:::sys
+    B --> C[ICP auto-prefilled from the website]:::sys
+
+    subgraph LG[LEAD GEN -- sourcing the right people]
+      direction TB
+      C --> D[Client builds / confirms ICP]
+      D --> E[ICP run: Apollo sources matching contacts]
+      E --> F[AI scores every lead 0-100 vs your ICP]
+      F --> G{Score &gt;= 60?}
+      G -->|yes| H[Consent + auto-enrol into FIGSY]
+      G -->|no| Z[Held back / refine ICP]
+    end
+
+    subgraph VID[VIDA -- The Connector]
+      direction TB
+      V1[One-line widget on your site + WhatsApp] --> V2[Qualifies every visitor 24/7]
+      V2 --> V3[Captures inbound leads, routes hot ones to you]
+    end
+    V3 --> H
+
+    subgraph FIG[FIGSY -- The Opener]
+      direction TB
+      H --> I[Campaign + multi-step email sequence]
+      I --> J[[Cron every 2h: send due emails]]
+      J --> K[AI writes each email in your voice -- sent via Resend]
+      K --> L[Opens tracked - replies come back in]
+      L --> M{Reply classified by AI}
+      M -->|interested| N[Hot lead -> your Inbox]
+      M -->|opt-out| O[Added to blocklist, sequence stops]
+      N --> P[Prospect books via FIGSY booking link]
+      P --> Q[[Calendar event created + meeting booked]]
+      J -. auto-pause if reply rate &lt; 1% .-> I
+    end
+
+    subgraph DEN[DENISE -- The Closer]
+      direction TB
+      Q --> R[Confirms the meeting -- warm, specific]
+      R --> S[Drafts warm follow-ups to quiet prospects]
+      S --> T[Turns your call notes into a proposal]
+      T --> U[Deal closed]
+    end
+
+    subgraph MIL[MILLA -- The Brain]
+      direction TB
+      W1[Trained on your docs + whole pipeline] --> W2[Daily morning brief + anomaly alerts]
+      W2 --> W3[Monday: weekly leads digest]
+      W3 --> W4[Ask her anything: 'what's working?']
+    end
+
+    L -. signals .-> W1
+    Q -. feeds results .-> W1
+    Q --> DF[(Outcome events logged:<br/>send - reply - opt_out - meeting_booked<br/>THE DATA FLOOR)]:::data
+
+    classDef sys fill:#f3eeff,stroke:#c9b8f5,color:#1e1152;
+    classDef data fill:#fff7ed,stroke:#d97706,color:#92400e;
+    style LG fill:#fbf8ff,stroke:#c9b8f5
+    style FIG fill:#f3eeff,stroke:#7c3aed
+    style MIL fill:#eff8ff,stroke:#0ea5e9
+    style VID fill:#effdf6,stroke:#10b981
+    style DEN fill:#fffaf0,stroke:#d97706
+  </pre>
+  </div>
+  <footer>K.I.N.D — generated from the live codebase (routes/figsy.ts, icps.ts, calendar.ts, milla.ts, vida.ts, denise.ts, cron.ts). Open in any browser.</footer>
+<script>mermaid.initialize({ startOnLoad:true, flowchart:{ curve:'basis' }, securityLevel:'loose' });</script>
+</body>
+</html>

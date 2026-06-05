@@ -25,18 +25,24 @@ We are deliberately NOT borrowing the literal phrases competitors own:
 
 ---
 
-## Hero options (pick one to develop)
+## DECISIONS LOCKED (5 Jun)
+- **Hero = Option B** (outcome frame) — ✅ live on index.html
+- **Number we own = $20** (true entry price; pay-per-result). NOT $29. ✅ applied
+- **Guarantee = 90-day results** — ✅ live on pricing.html (ToS clause still needed)
 
-**Option A — the team frame (recommended)**
-> # The sales team that never sleeps, never quits, and only costs $29.
+## Hero options (B chosen)
+
+**Option A — the team frame**
+> # The sales team that never sleeps, never quits, and starts at $20.
 > FIGSY finds and opens. Milla reads the signals. Vida converts your visitors.
 > Soon, Denise closes. One AI family, one shared memory — working your pipeline
 > around the clock.
 
-**Option B — the outcome frame**
+**Option B — the outcome frame ✅ CHOSEN & LIVE**
 > # You close the deals. We'll bring you the meetings.
 > An AI revenue team that prospects, replies, follows up and books — in your
 > voice, on your calendar, while you get on with the work that pays.
+> From $20, pay per result.
 
 **Option C — the honesty frame (counters the over-promisers)**
 > # No hype. Just a pipeline that fills itself.
@@ -49,10 +55,10 @@ We are deliberately NOT borrowing the literal phrases competitors own:
 
 Competitors each own a single number. We need ours. Candidates, pick one:
 - **"Live in minutes."** (counters Atlas's 14-day build — true for us, self-serve)
-- **"From $29."** (counters their $5,000 — our sharpest structural advantage)
+- **"From $20."** (counters their $5,000 — our sharpest structural advantage) ✅ CHOSEN
 - **"Every lead, every time."** (consistency, not a fabricated metric)
 
-Recommendation: lead with **"From $29 — not $5,000"** as the positioning wedge,
+Recommendation: lead with **"From $20 — not $5,000"** as the positioning wedge,
 and **"live in minutes, not months"** as the speed proof. Both are true today
 and need no client data.
 
@@ -71,7 +77,7 @@ Reframe the three tiers as **"your team"**, not "your plan":
 1. The problem: SMBs can't afford a real revenue team.
 2. The shift: AI makes a full team affordable for the first time.
 3. The team: FIGSY / Milla / Vida / Denise — with the shared-memory moat.
-4. The wedge: $29 self-serve vs $5,000 done-for-you incumbents.
+4. The wedge: $20 self-serve vs $5,000 done-for-you incumbents.
 5. The moat: cross-customer outcome data (gets smarter with every client).
 6. The ask / the offer.
 

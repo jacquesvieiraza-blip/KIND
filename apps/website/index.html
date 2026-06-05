@@ -1175,6 +1175,11 @@
         <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">&#x2696;&#xFE0F;</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
         <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">&#x1F4BB;</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
         <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">&#x1F465;</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+        <div class="dd-divider"></div>
+        <a href="for-estate-agents.html" class="dd-link"><span class="dd-icon">🏡</span><span><span class="dd-title">For Estate Agents</span><span class="dd-sub">Work your farm area &amp; book valuations</span></span></a>
+        <a href="for-insurance-brokers.html" class="dd-link"><span class="dd-icon">🛡️</span><span><span class="dd-title">For Insurance Brokers</span><span class="dd-sub">Re-open your book &amp; book reviews</span></span></a>
+        <a href="for-financial-advisers.html" class="dd-link"><span class="dd-icon">📈</span><span><span class="dd-title">For Financial Advisers</span><span class="dd-sub">Fill your diary beyond referrals</span></span></a>
+        <a href="pipeline-calculator.html" class="dd-link"><span class="dd-icon">🧮</span><span><span class="dd-title">Pipeline Calculator</span><span class="dd-sub">Estimate the meetings FIGSY could add</span></span></a>
       </div>
     </div>
     <div class="nav-item">
@@ -1311,8 +1316,8 @@
   <div class="kf-sticky">
     <div class="kf-head">
       <div class="live-chip"><span class="live-dot"></span>Live now — first campaign running in 5 business days</div>
-      <h1>Stop chasing leads.<br/><span class="grad" id="tw-target">Break the ceiling.</span><span class="tw-cursor" id="tw-cursor"></span></h1>
-      <p class="kf-head-sub">Your AI family finds leads, books meetings, and converts your site — while you sleep. From $20. No setup fees. Cancel anytime.</p>
+      <h1>You close the deals.<br/><span class="grad" id="tw-target">We bring the meetings.</span><span class="tw-cursor" id="tw-cursor"></span></h1>
+      <p class="kf-head-sub">An AI revenue team that prospects, replies, follows up and books — in your voice, on your calendar, while you get on with the work that pays. From $20, pay per result. No setup fees. Cancel anytime.</p>
       <p class="kf-head-line"><span class="grad">One family, one shared memory</span> — every agent learns from your market and feeds the others.</p>
       <div class="hero-btns" style="justify-content:center">
         <button onclick="openAuth('signup')" class="btn-hero-primary">Get your first leads free →</button>
@@ -1353,7 +1358,22 @@
     </div>
     <div class="kf-rail" id="kf-rail">
       <div class="seg"><i></i></div><div class="seg"><i></i></div><div class="seg"><i></i></div>
-      <div class="lbl" id="kf-rlbl">FIGSY · THE CLOSER</div>
+      <div class="lbl" id="kf-rlbl">FIGSY · THE OPENER</div>
+    </div>
+  </div>
+</div>
+
+<!-- DENISE — COMING SOON TEASER -->
+<div style="max-width:1080px;margin:0 auto;padding:0 24px 8px">
+  <div style="position:relative;overflow:hidden;border-radius:32px;background:linear-gradient(160deg,#fff3d6 0%,#ffe1a6 45%,#f5c46b 100%);display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:end;min-height:300px">
+    <div style="padding:48px 8px 48px 48px">
+      <div style="display:inline-flex;align-items:center;gap:7px;font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#9a6a00;background:rgba(255,255,255,0.55);border:1px solid rgba(154,106,0,0.2);padding:6px 13px;border-radius:100px;margin-bottom:18px">Agent 04 · Coming soon</div>
+      <h2 style="font-size:clamp(1.9rem,3.5vw,2.8rem);font-weight:900;letter-spacing:-0.03em;line-height:1.05;color:#3d2a00;margin-bottom:14px">Meet Denise.<br/>The Closer.</h2>
+      <p style="font-size:1rem;color:#5e4400;line-height:1.7;max-width:440px;margin-bottom:10px">FIGSY opens the door. Denise is who you'd want walking through it — she confirms the meeting, handles the objections, drafts the proposal, and never lets a warm lead go cold.</p>
+      <p style="font-size:0.85rem;color:rgba(61,42,0,0.6);line-height:1.6;max-width:440px;font-style:italic">Named after a woman who built a sales business from nothing — and closed because people simply liked and trusted her.</p>
+    </div>
+    <div style="align-self:end;height:100%;display:flex;align-items:flex-end;justify-content:center">
+      <img src="denise-cut.png" alt="Denise — The Closer, AI Account Executive" style="max-height:300px;width:auto;object-fit:contain;object-position:bottom;filter:drop-shadow(0 24px 44px rgba(120,80,0,0.28))" />
     </div>
   </div>
 </div>
@@ -2174,7 +2194,7 @@
     var agents = [].slice.call(scene.querySelectorAll('.kf-agent'))
     var segs   = [].slice.call(scene.querySelectorAll('.kf-rail .seg i'))
     var rlbl   = document.getElementById('kf-rlbl')
-    var labels = ['FIGSY · THE CLOSER','MILLA · THE BRAIN','VIDA · THE CONNECTOR']
+    var labels = ['FIGSY · THE OPENER','MILLA · THE BRAIN','VIDA · THE CONNECTOR']
     var N = agents.length
     function clamp(v,a,b){ return Math.max(a, Math.min(b, v)) }
     function isStacked(){ return reduce || window.innerWidth <= 860 }

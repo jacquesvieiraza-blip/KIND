@@ -303,6 +303,34 @@ Item #59 MCP server moved from Month 3 → Month 2 (alongside pgvector and FIGSY
 
 ---
 
+# PART 5C — FUNDING STRATEGY (decided 5 Jun 2026)
+
+> Triggered by "how do we get funding like Atlas/Revio?" The honest answer reframed the question.
+
+**The core truth: Atlas and Revio were not funded on their product — they were funded on founder pedigree + influencer distribution.**
+- **Atlas** raised pre-seed (BDev Ventures) on Omer Jamal's track record: 3rd-time founder, prior acquisition (DiscoverData), ex-Scotiabank/TD/CIBC. VCs at pre-seed back the *person*, not traction. Dan Martell then gave distribution.
+- **Revio** is barely VC-funded; its growth engine is also Dan Martell, not a round.
+- **Two levers, neither is the product:** (1) founder reputation, (2) influencer distribution.
+
+**THE DECISION: do not chase funding yet. Bootstrap to traction first.**
+Rationale: K.I.N.D is lean, software-only, $29/mo self-serve, near-zero marginal cost. Atlas runs ~74 employees burning hard *pre-revenue* — that only works because they raised; it is the opposite of our model. We can reach ramen-profitability without diluting. Traction is the only thing that gets an *unknown* founder a good term sheet anyway. This matches the standing strategy: "wins + data, then a data-informed decision."
+
+**The tension to resolve — "invisible founder" vs investor reputation:**
+Fundraising is reputation-driven; VCs back people they can meet. The "founder stays invisible" decision is **brand/customer-facing only.** You can pitch under your real name in a private investor process while keeping the public brand faceless. The two coexist — but you cannot raise while invisible to *everyone*. Separate the two deliberately.
+
+**Routes, in priority order (when/if we choose to raise):**
+| # | Route | Timing | Dilution | Notes |
+|---|---|---|---|---|
+| F1 | **Cloud + AI credits** (Microsoft for Startups Founders Hub, Google for Startups, AWS Activate) | **NOW — this week** | None | Tens of $K incl. model API spend. Directly extends runway (Anthropic + Railway burn). Zero downside. |
+| F2 | **SA ecosystem** (Grindstone/Knife Capital, Startupbootcamp AfriTech, Founders Factory Africa, E Squared, 4Di, Kalon, HAVAÍC, Endeavor SA) | After 5–10 clients | Low / accelerator | Cape Town base is an advantage. Several take little/no equity, open doors. |
+| F3 | **YC / remote accelerators** | After paying clients | ~7% standard | CPT + US AI-agents-for-SMBs fits thesis. Apply with traction. |
+| F4 | **Revenue-based financing** | Once predictable MRR | None (debt) | Borrow against MRR. Better SaaS fit than VC. |
+| F5 | **Influencer lever (the real insight)** | Ongoing — see #61e | None | Both competitors grew on ONE influencer (Dan Martell). Find the SA/US equivalent. Worth more than a seed round for our ICP. |
+
+**Immediate action:** F1 (free credits) this week — zero downside, extends runway. Everything else is gated on client traction. Revisit the raise/bootstrap decision at 20–30 paying clients, from leverage not need.
+
+---
+
 # PART 6 — WILL NOT BUILD / PARKED
 ⏸ Collaborative docs · whiteboards · self-hosted · custom emoji · internal team chat · multi-year contracts (Never) · 50+ data sources (50+ clients) · African-language (after WhatsApp).
 ⚠️ **Note:** "LinkedIn automation — never build" is SUPERSEDED — backend is built and activates Week 1. Remove the contradictory "never" lines from MASTER (Part 8).

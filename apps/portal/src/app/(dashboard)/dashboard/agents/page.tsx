@@ -8,15 +8,15 @@ const AGENTS = [
   {
     id: 'figsy',
     name: 'FIGSY',
-    subtitle: 'The Closer',
+    subtitle: 'The Opener',
     role: 'AI SDR',
     category: 'Outbound Sales Specialist',
-    description: 'Reaches out to your leads, writes personalised emails, handles replies, and books meetings. I reach out. You close.',
+    description: 'Reaches out to your leads, writes personalised emails, handles replies, and books meetings. I open the door — Denise walks through it.',
     href: '/dashboard/figsy-chat',
     accent: '#7C3AED',
     accentLight: '#F5F3FF',
     features: [
-      { label: 'Outbound Expert', desc: 'I reach out. You close.' },
+      { label: 'Outbound Expert', desc: 'I open the door. You close.' },
       { label: 'Personalised Sequences', desc: 'Tailored outreach that gets replies.' },
       { label: 'Meetings Booked', desc: 'More meetings. More pipeline.' },
       { label: 'Results Driven', desc: "I don't send. I get results." },
@@ -62,6 +62,26 @@ const AGENTS = [
     cta: 'Chat with Vida',
     productKey: 'hasVida' as const,
   },
+  {
+  {
+    id: 'denise',
+    name: 'DENISE',
+    subtitle: 'The Closer',
+    role: 'AI Account Executive',
+    category: 'Closing & Proposals',
+    description: 'Closes what FIGSY opens. Confirms meetings, surfaces objections, drafts proposals, and follows up so no warm lead goes cold.',
+    href: '#',
+    accent: '#D97706',
+    accentLight: '#FFFBEB',
+    features: [
+      { label: 'Meeting Confirmed', desc: 'Every booked meeting gets a personalised follow-up.' },
+      { label: 'Proposal Drafts', desc: 'Full proposal from the conversation — in minutes.' },
+      { label: 'Objection Handling', desc: 'Surfaces blockers before they kill the deal.' },
+      { label: 'Pipeline Follow-Up', desc: 'No warm lead ever goes cold on her watch.' },
+    ],
+    cta: 'Coming Soon',
+    productKey: 'hasDenise' as const,
+  },
 ]
 
 export default async function AgentsPage() {
@@ -79,19 +99,20 @@ export default async function AgentsPage() {
   const isLive = (p: string) => subs.some(s => (s.product === p) && (s.status === 'active' || s.status === 'trialing'))
 
   const access = {
-    hasFigsy: isLive('lead_gen_figsy') || isLive('figsy_addon'),
-    hasMilla: isLive('virtual_assistant'),
-    hasVida:  isLive('chatbot'),
+    hasFigsy:  isLive('lead_gen_figsy') || isLive('figsy_addon'),
+    hasMilla:  isLive('virtual_assistant'),
+    hasVida:   isLive('chatbot'),
+    hasDenise: isLive('denise') || isLive('denise_addon'),
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Your AI Team</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Three agents. One revenue machine. Click any agent to open their workspace.</p>
+        <p className="text-gray-500 text-sm mt-0.5">Four agents. One revenue machine. Click any agent to open their workspace.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {AGENTS.map(agent => {
           const unlocked = access[agent.productKey]
           return (

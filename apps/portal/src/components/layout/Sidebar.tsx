@@ -30,7 +30,7 @@ const AGENTS: AgentDef[] = [
   {
     id: 'figsy',
     name: 'FIGSY',
-    subtitle: 'The Closer',
+    subtitle: 'The Opener',
     role: 'AI SDR · Outbound Sales Specialist',
     accent: '#7C3AED',
     ring: 'ring-[#7C3AED]/20',

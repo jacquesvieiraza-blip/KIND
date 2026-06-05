@@ -102,7 +102,7 @@ router.post('/call', async (req, res): Promise<void> => {
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 512,
-        system: 'You are FIGSY, an AI SDR known as The Closer. Suggest campaign strategies in a direct, results-focused tone.',
+        system: 'You are FIGSY, an AI SDR known as The Opener. Suggest campaign strategies in a direct, results-focused tone.',
         messages: [{
           role: 'user',
           content: `Suggest a campaign for this target: ${input.target_description}. Return: campaign name, 3 subject line options, and a one-line rationale.`,

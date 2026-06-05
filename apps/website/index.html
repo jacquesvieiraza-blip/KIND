@@ -1232,12 +1232,15 @@
   .kf-bg{ position:absolute; inset:0; z-index:0; }
   .kf-ghost{ position:absolute; z-index:1; left:50%; top:42%; transform:translate(-50%,-50%);
     font-family:'Outfit',sans-serif; font-weight:900; letter-spacing:-.04em; line-height:.78;
-    font-size:clamp(4rem,15vw,13rem); color:rgba(20,18,45,.13); white-space:nowrap; pointer-events:none; user-select:none; text-align:center; }
+    font-size:clamp(4rem,15vw,13rem); color:rgba(20,18,45,.06); white-space:nowrap; pointer-events:none; user-select:none; text-align:center; }
   .kf-eyebrow2{ position:absolute; z-index:4; top:30px; left:0; right:0; text-align:center;
     font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(20,18,45,.5); }
   .kf-figure{ position:absolute; inset:0; z-index:2; display:flex; align-items:flex-end; justify-content:center; }
   .kf-figure img{ height:96%; width:auto; max-width:96%; object-fit:contain; display:block;
-    filter:drop-shadow(0 30px 55px rgba(20,18,45,.24)); }
+    filter:drop-shadow(0 30px 55px rgba(20,18,45,.24));
+    /* feather ONLY the bottom crop edge so the hard straight line dissolves — figure stays solid */
+    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 84%, transparent 100%);
+    mask-image:linear-gradient(to bottom, #000 0%, #000 84%, transparent 100%); }
   .kf-cta{ position:absolute; z-index:6; bottom:30px; left:50%; transform:translateX(-50%);
     background:#0a0a0a; color:#fff; font-weight:700; font-size:.92rem; padding:13px 26px; border-radius:14px;
     text-decoration:none; box-shadow:0 14px 34px rgba(0,0,0,.28); transition:transform .2s; white-space:nowrap; }

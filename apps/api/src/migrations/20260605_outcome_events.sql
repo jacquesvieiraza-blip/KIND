@@ -1,0 +1,39 @@
+-- THE DATA FLOOR (EVERYTHING.md item #17b).
+-- An append-only, row-level log of every outcome event — never aggregated away,
+-- never updated, never deleted. This is the one thing we cannot back-fill:
+-- the cross-client outcome moat (and one day per-meeting pricing) can only ever
+-- learn from data we start keeping NOW. Aggregates like figsy_campaigns.reply_count
+-- are summaries; this table is the raw truth behind them.
+--
+-- Write path: lib/outcomes.ts logOutcomeEvent() — fire-and-forget, must never
+-- block or break the main flow. Read path: analytics only, much later.
+
+create table if not exists public.outcome_events (
+  id            uuid primary key default uuid_generate_v4(),
+  client_id     uuid references public.clients(id) on delete cascade,
+  campaign_id   uuid,
+  lead_id       uuid,
+  enrollment_id uuid,
+  -- send | reply | meeting_booked | opt_out | ... (free text on purpose — never
+  -- constrain the vocabulary; capture whatever happens, classify later)
+  event_type    text not null,
+  channel       text,                      -- email | linkedin | whatsapp | ...
+  -- the raw, full-fidelity detail of the event: subject, body, reply text,
+  -- classification, model used, timings — whatever the call site has. Stored
+  -- verbatim so granularity is never lost.
+  payload       jsonb not null default '{}'::jsonb,
+  occurred_at   timestamptz not null default now(),
+  created_at    timestamptz not null default now()
+);
+
+-- Read indexes for future analytics (credits-per-booked-meeting etc.).
+create index if not exists outcome_events_client_type_idx
+  on public.outcome_events (client_id, event_type, occurred_at);
+create index if not exists outcome_events_campaign_idx
+  on public.outcome_events (campaign_id);
+create index if not exists outcome_events_lead_idx
+  on public.outcome_events (lead_id);
+
+alter table public.outcome_events enable row level security;
+-- Service role (API) only — append-only at the application layer. No update/delete
+-- path exists in code. All access scoped by client_id in the API.

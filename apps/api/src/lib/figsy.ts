@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { Resend } from 'resend'
+import { logOutcomeEvent } from './outcomes'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -21,6 +22,7 @@ function stripJson(text: string): string {
 
 interface Lead {
   id: string
+  client_id?: string | null
   first_name: string
   last_name: string
   email: string | null
@@ -382,6 +384,17 @@ export async function sendSequenceEmail(
     next_send_at: nextSendAt,
     ...(step === 3 ? { completed_at: new Date().toISOString() } : {}),
   }).eq('id', enrollmentId)
+
+  // THE DATA FLOOR (#17b) — log the send (the credit-spend denominator). Fire-and-forget.
+  void logOutcomeEvent({
+    client_id:     lead.client_id,
+    campaign_id:   campaignId,
+    lead_id:       lead.id,
+    enrollment_id: enrollmentId,
+    event_type:    'send',
+    channel:       'email',
+    payload:       { step, subject, sent: !!resend, resend_id: messageId ?? null },
+  })
 
   // Bump campaign email count
   try {

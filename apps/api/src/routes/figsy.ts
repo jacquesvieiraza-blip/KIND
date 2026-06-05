@@ -4,6 +4,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
+import { logOutcomeEvent } from '../lib/outcomes'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
@@ -103,6 +104,17 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       processed_at:                new Date().toISOString(),
       received_at:                 new Date().toISOString(),
     }).select('id').single()
+
+    // THE DATA FLOOR (#17b) — append-only raw outcome log. Fire-and-forget.
+    void logOutcomeEvent({
+      client_id:     lead.client_id,
+      campaign_id:   enrollment?.campaign_id ?? null,
+      lead_id:       lead.id,
+      enrollment_id: enrollment?.id ?? null,
+      event_type:    classification === 'opt_out' ? 'opt_out' : 'reply',
+      channel:       'email',
+      payload:       { classification, reasoning, subject: (payload.subject as string) ?? null, body, from_email: fromEmail },
+    })
 
     // Handle opt-out — pause enrollment and add to blocklist
     if (classification === 'opt_out') {
@@ -1146,6 +1158,15 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
     await db.from('figsy_replies').update({
       meeting_booked_at: new Date().toISOString(),
     }).eq('id', req.params.id)
+
+    // THE DATA FLOOR (#17b) — the outcome that matters most for credits-per-meeting.
+    void logOutcomeEvent({
+      client_id:   clientId,
+      campaign_id: reply.campaign_id ?? null,
+      event_type:  'meeting_booked',
+      channel:     'email',
+      payload:     { reply_id: reply.id },
+    })
 
     if (reply.campaign_id) {
       const { data: camp } = await db.from('figsy_campaigns')

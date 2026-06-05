@@ -18,7 +18,7 @@ Built 4 Jun 2026 from a full end-to-end read of MASTER (8,141 lines). Contradict
 - **Billing:** Stripe primary. Flutterwave Phase 2 (code-complete, needs key). Paystack REMOVED.
 - **Pricing:** Lead Gen $1/credit (20/40/100 = $20/$40/$100). FIGSY $3/credit (20/40/100 = $60/$120/$300). Milla $49/mo. **Vida $29/mo** (corrected 3 Jun — NOT $39). Bundle $69/mo.
 - **Cron jobs:** 16 live (the 3 status-snapshot crons were planned, never built).
-- **Agents live:** FIGSY, Milla, Vida. **REEVE / LENA / OTTO = Month 3.**
+- **Agents live:** FIGSY, Milla, Vida. **DENISE (the closer) = #1 next build, pulled forward. LENA / OTTO = Month 3.** (DENISE was formerly codenamed REEVE.)
 - **Models:** Sonnet 4.6 (Milla, FIGSY) + Haiku 4.5 (scoring, scraping).
 - **Run cost floor:** ~$125/mo. Break-even: 2 clients (infra) / 5 (all-in). Margin 95%+.
 
@@ -90,7 +90,29 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 37 Intent signal detection · 38 A/B subject testing · 39 Client morning brief email · 40 ICP auto-refinement · 41 Conditional sequence branching · 42 Waterfall enrichment (Apollo→PDL→Hunter→Clearbit; needs PDL+Hunter keys) · 43 Deliverability dashboard (SPF/DKIM/DMARC+bounce+blacklist) · 44 Email score pre-send · 45 Adaptive send volume · 46 **FIGSY Memory v2 (pgvector)** · 47 Milla full-context CRM pull · 48 Vapi voice calling · 49 Product Hunt (with proof) · 50 G2 listing (5 reviews) · 51 Configurable agent triggers · 52 Multi-model toggle per campaign · 53 Inbox rotation / multiple sending domains (Instantly steal)
 
 ## 🟦 MONTH 3 — agent family + platform (Tier 3/4)
-54 **REEVE** · 55 **LENA** · 56 **OTTO** · 57 Multi-agent orchestration (shared memory) · 58 500+ FIGSY skill library · 59 **MCP server** (K.I.N.D as AI infrastructure) · 60 **Outcome pricing ("per meeting booked") — GATED, see spec below** · 61 Mobile app iOS+Android · 62 Built-in CRM (persistent prospect DB / Kanban deal view) · 63 Pan-African design partners (NG/KE/GH/EG/RW) · 64 Platform-level cross-client intelligence · 65 Data licensing marketplace · 66 ICP auto-refinement advanced · 67 Pipeline forecasting · 68 In-portal messaging · 69 Proposal + e-sign · 70 Meeting notetaker
+54 **DENISE** (the closer — PULLED FORWARD, see priority spec below) · 55 **LENA** · 56 **OTTO** · 57 Multi-agent orchestration (shared memory) · 58 500+ FIGSY skill library · 59 **MCP server** (K.I.N.D as AI infrastructure) · 60 **Outcome pricing ("per meeting booked") — GATED, see spec below** · 61 Mobile app iOS+Android · 62 Built-in CRM (persistent prospect DB / Kanban deal view) · 63 Pan-African design partners (NG/KE/GH/EG/RW) · 64 Platform-level cross-client intelligence · 65 Data licensing marketplace · 66 ICP auto-refinement advanced · 67 Pipeline forecasting · 68 In-portal messaging · 69 Proposal + e-sign · 70 Meeting notetaker
+
+### #54 DENISE — the closer (PRIORITY: #1 build after launch stabilises — pulled forward from Month 3)
+
+**Decision (5 Jun): DENISE goes next.** Not LENA, not OTTO — DENISE first, built deep. Reason: she extends FIGSY's *existing* pipeline instead of opening a new front. FIGSY currently dies at the exact seam "meeting booked → human takes over." DENISE eats that seam. That one handoff is worth more than launching LENA + OTTO shallow. Codename was REEVE; renamed DENISE.
+
+**Persona / storyline (her character — load-bearing for tone, copy, and prompt):**
+DENISE is the closer. Named after the founder's mother — a woman who **built a successful sales business from the ground up** and is a **huge, warm, unforgettable personality** in the room. That's the character: she's the one who walks into the deal and people *remember her*. Not a slick, pushy closer — a relationship closer. She makes the prospect feel handled, follows up like she genuinely cares (because the person she's modelled on did), and never lets a warm lead go cold. Confident, warm, a little bit of charm, zero desperation. The kind of salesperson who closes because people *like* her, not because she cornered them.
+- **Voice:** warm authority. Big personality, but never loud or salesy. "Let's get you sorted" energy.
+- **Why this matters commercially:** FIGSY opens the door; DENISE is who you'd actually want walking through it. The persona is the product — clients aren't buying "an AE agent," they're buying *Denise*.
+
+**Role & capabilities (from MASTER, confirmed):**
+- Books the discovery call to Calendly **automatically** (removes today's manual founder handoff)
+- Joins the discovery call as an **AI notetaker** — surfaces objections live
+- **Drafts the proposal from the call transcript**
+- Follows up the pipeline — chases warm leads so none go cold
+- The handoff seam she owns: `Meeting booked → DENISE` (today the client takes over here)
+
+**Why deep-not-shallow:** the whole bet is that DENISE *feels* like a real closer. A half-built AE that just dumps a Calendly link is not Denise — it's a worse FIGSY. Build the notetaker + objection-surfacing + proposal-draft loop properly or don't ship her.
+
+**Build checklist (post-launch, ahead of LENA/OTTO):** Calendly auto-book on positive FIGSY reply · call-join + transcription (notetaker) · live objection extraction · proposal draft from transcript · pipeline follow-up sequencer · DENISE persona/system prompt (the storyline above, written tight) · admin `/agents/denise` identity card.
+
+---
 
 ### #60 Outcome pricing — spec (DO NOT BUILD YET — gated on data + cash)
 
@@ -195,7 +217,7 @@ Found in the full read. None block launch; all should be cleaned so MASTER stops
 3. **Vida price $39 vs $29** — canonical $29 (corrected 3 Jun) but $39 still in Stripe product refs (L975/1395/1410), demo script (L7509), §32/§34. → $29.
 4. **Pricing tables disagree** — §12 (L3023) shows $20/$38/$88 + $60/$110/$250 vs canonical $1/credit flat. → canonical.
 5. **Cron count 16 vs 19** — §17/§0 say 19; bug log (L1488) + §1 say 16 (3 status crons never built). → 16.
-6. **REEVE/LENA/OTTO Month 3 vs Year 2** — §0/§19 Month 3; §28/§32/§34 Year 2. → Month 3.
+6. **DENISE(REEVE)/LENA/OTTO Month 3 vs Year 2** — §0/§19 Month 3; §28/§32/§34 Year 2. → DENISE = #1 next build (pulled forward); LENA/OTTO = Month 3. (All MASTER "REEVE" refs = DENISE.)
 7. **LinkedIn "never build" vs built** — backend exists + activates Week 1, but "never build" lines persist (L420/1772/2317/2936/§27). → built/activating.
 8. **Duplicate sections** — 24/25/26/27/28 appear twice (draft L3988–4734 vs canonical L4735–6040); §27 means two different things. 5-day-plan printed twice (L2060 + L2354). → delete the draft/duplicate set + one 5-day plan.
 9. **Calendly personal link残** — `calendly.com/jacques-vieiraza/30min` still in Quick-Ref (L2341/2588) though scrubbed everywhere else to `kind-ai-demo/new-meeting`. → neutral link (also a name-exposure risk — Part 2 Ring 1).

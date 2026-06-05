@@ -108,7 +108,7 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 15 | **Sat** smoke test 1 (57-step suite, `docs/SMOKE_TEST.md`) → log `T#-Step#` | 🧍 | ⬜ |
 | 16 | **Sun** smoke test 2 → confirm fixes | 🧍 | ⬜ |
 | 17 | Fix smoke failures same-day | 🤖 | ⬜ |
-| 17b | **Raw outcome-event capture — append-only log (THE DATA FLOOR, see memory spec below). The only thing that can't be back-filled. Cheap. Build before first campaign sends.** | 🤖 | ⬜ NOW |
+| 17b | **Raw outcome-event capture — append-only log (THE DATA FLOOR).** ✅ DONE — `outcome_events` table + `logOutcomeEvent()` (append-only, fire-and-forget). Coverage: send · reply · opt_out · meeting_booked (FIGSY flow + calendar /book). | 🤖 | ✅ |
 | 18 | **MON — LAUNCH both markets, multiple campaigns** | 🤝 | ⬜ |
 
 ## ✅ DONE THIS SESSION (4 Jun — verified in repo)
@@ -153,10 +153,10 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 61e | **Atlas steal #5 — Influencer/community distribution** · Identify 1–2 SA SMB communities (Startup Grind CPT, specific trades/services forums) + 1–2 US equivalents. Pursue co-marketing or endorsement. Dan Martell is Atlas's real acquisition channel — we need ours. | 🧍 |
 | 61f | **Atlas steal #6 — Pipeline / ROI calculator** · ✅ DONE + LINKED — `pipeline-calculator.html`. User enters own leads + deal value; sliders w/ conservative defaults (8%/40%/25%, founder-approved) + "estimate, not a promise" disclaimer. Now in the Use Cases dropdown across 24 pages. | 🤖 |
 | 61g | **Atlas steal #7 — 90-day guarantee framing** · Sharpen the guarantee from "30-day money back" to "90-day results guarantee — your pipeline grows or you don't pay." 90 days gives enough campaign data to show results; stronger commitment signal than 30 days. | 🤝 |
-| 62a | **Revio steal #1 — "Trained on closed-won deals" credibility hook** · Add to FIGSY + DENISE copy: "Battle-tested on X real campaigns, X meetings booked." Articulate what the agents are trained on — this is a direct trust signal that Revio uses effectively. Populate with real numbers as they come in. | 🤖 |
+| 62a | **Revio steal #1 — "Trained on closed-won deals" credibility hook** · ✅ DONE — honest "trained on" line on figsy.html ("trained on your business, your ICP, every campaign") + denise.html ("trained on relationship selling + your closed-won deals"). NO fabricated numbers — real-number slot populates as data comes in. | 🤖 |
 | 62b | **Revio steal #2 — Coaching layer bundled into onboarding** · Add a "Revenue Playbook Session" (30-min call) to KIND onboarding flow — founder or agent walks new client through campaign setup, ICP targeting, and first sequence. Especially important for SA market. Reduces churn, increases perceived value, creates personal relationship. | 🧍 |
 | 62c | **Revio steal #3 — Homepage outcome numbers** · 2–3 concrete client outcome stats on the homepage as soon as first clients produce results: meetings booked, reply rates, revenue generated. "30,065 leads last month" style specificity. Do NOT fabricate — hold the slot, populate when real. | 🤝 |
-| 62d | **Revio steal #4 — "Revenue Blueprint Session" demo framing** · Rename the demo CTA from "Book a Demo" to "Book a Revenue Blueprint Session" for higher-ticket inbound leads. Reframes sales call as consultative delivery, not a pitch. Higher perceived value, higher show rate. | 🤖 |
+| 62d | **Revio steal #4 — "Revenue Blueprint Session" demo framing** · ✅ DONE — renamed 29 demo CTAs site-wide (15 files) "Book a Demo" → "Book a Revenue Blueprint Session". | 🤖 |
 | 62e | **Revio steal #5 — Vertical niche landing pages** · ✅ DONE + LINKED — `for-estate-agents.html`, `for-insurance-brokers.html`, `for-financial-advisers.html`. Vertical pain + FIGSY solution + POPIA/FAIS note, original copy. Now in the Use Cases dropdown across 24 pages. US equivalents = phase 2. | 🤖 |
 | — | **Denise on homepage + image wiring** · ✅ DONE — founder uploaded Denise.png; renamed→`denise.png` (website) + moved→`portal/public/agents/denise.png`; generated transparent `denise-cut.png`; added "Coming soon — Denise, The Closer" gold teaser to index.html after the agent hero. Fixed leftover "THE CLOSER" rail label (static + JS) → "THE OPENER". | 🤖 |
 

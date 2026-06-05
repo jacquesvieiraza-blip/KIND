@@ -63,7 +63,6 @@ const AGENTS = [
     productKey: 'hasVida' as const,
   },
   {
-  {
     id: 'denise',
     name: 'DENISE',
     subtitle: 'The Closer',

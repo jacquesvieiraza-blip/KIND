@@ -48,6 +48,7 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 15 | **Sat** smoke test 1 (57-step suite, `docs/SMOKE_TEST.md`) → log `T#-Step#` | 🧍 | ⬜ |
 | 16 | **Sun** smoke test 2 → confirm fixes | 🧍 | ⬜ |
 | 17 | Fix smoke failures same-day | 🤖 | ⬜ |
+| 17b | **Raw outcome-event capture — append-only log (THE DATA FLOOR, see memory spec below). The only thing that can't be back-filled. Cheap. Build before first campaign sends.** | 🤖 | ⬜ NOW |
 | 18 | **MON — LAUNCH both markets, multiple campaigns** | 🤝 | ⬜ |
 
 ## ✅ DONE THIS SESSION (4 Jun — verified in repo)
@@ -88,6 +89,18 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 
 ## 🟨 MONTH 2 — intelligence layer (Tier 2 build queue, 10+ clients)
 37 Intent signal detection · 38 A/B subject testing · 39 Client morning brief email · 40 ICP auto-refinement · 41 Conditional sequence branching · 42 Waterfall enrichment (Apollo→PDL→Hunter→Clearbit; needs PDL+Hunter keys) · 43 Deliverability dashboard (SPF/DKIM/DMARC+bounce+blacklist) · 44 Email score pre-send · 45 Adaptive send volume · 46 **FIGSY Memory v2 (pgvector)** · 47 Milla full-context CRM pull · 48 Vapi voice calling · 49 Product Hunt (with proof) · 50 G2 listing (5 reviews) · 51 Configurable agent triggers · 52 Multi-model toggle per campaign · 53 Inbox rotation / multiple sending domains (Instantly steal)
+
+### MEMORY = THE MOAT — architecture + the data floor (clarified 5 Jun)
+
+**Two threads, do not conflate them:**
+- **Thread A — the Learning Stack (what gets smarter, the product):** L1 per-client memory ✅ BUILT (`figsy_memory`: best subjects, winning angles, reply rates) → L2 ICP auto-refinement (monthly AI review of who actually replies, ~Month 6, 10+ clients) → L3 adaptive per-campaign (real-time A/B within a campaign) → L4 platform/cross-client intelligence (benchmarks, predictive ICP — Year 3, 500+ clients).
+- **Thread B — the substrate (how it's stored, the plumbing):** flat `figsy_memory` table today → pgvector (semantic embeddings) → 3-type split (episodic / long-term / preference). Build at ~10 clients. **Plumbing does NOT make FIGSY smarter on its own — it only lets L2–L4 scale. Do not pull engineering here before client volume exists.**
+
+**Our moat is rarer than Glean's — and that changes the strategy.** Glean's moat is per-customer context (locks in each client, no benefit to the next). Ours is **outcome data** (who replied/converted, which angle, which African vertical) — a **cross-customer** moat where every client makes the platform smarter for the next one in their industry. Glean doesn't have that network effect. But it only exists *if we capture the data to feed it.*
+
+**THE DATA FLOOR (item 17b — pre-launch, the one irreversible thing):** an **append-only raw outcome-event log** — every lead, send, exact reply text, timing, and outcome, stored row-level and **never discarded or pre-aggregated away.** L4 in 2028 can only learn from data we start keeping in 2026. Aggregates (`avg_reply_rate_30d`, `last_winning_angle`) are summaries — you **cannot back-fill** the granular truth you threw away. Cheap on one Cape Town DB. This is the only memory work that must ship before the first campaign sends.
+
+**The accelerant rule:** you do NOT accelerate the moat by building the top of the stack faster. Pre-revenue, memory compounds on N — one client's memory is worthless. **The accelerant = (1) capture raw data at full fidelity now, (2) get clients.** The smart layers (L2–L4, pgvector, 3-type) are worthless without volume and a dangerous distraction before it. Build the *capture* layer early; build the *smart* layers at 10+ clients.
 
 ## 🟦 MONTH 3 — agent family + platform (Tier 3/4)
 54 **DENISE** (the closer — PULLED FORWARD, see priority spec below) · 55 **LENA** · 56 **OTTO** · 57 Multi-agent orchestration (shared memory) · 58 500+ FIGSY skill library · 59 **MCP server** (K.I.N.D as AI infrastructure) · 60 **Outcome pricing ("per meeting booked") — GATED, see spec below** · 61 Mobile app iOS+Android · 62 Built-in CRM (persistent prospect DB / Kanban deal view) · 63 Pan-African design partners (NG/KE/GH/EG/RW) · 64 Platform-level cross-client intelligence · 65 Data licensing marketplace · 66 ICP auto-refinement advanced · 67 Pipeline forecasting · 68 In-portal messaging · 69 Proposal + e-sign · 70 Meeting notetaker

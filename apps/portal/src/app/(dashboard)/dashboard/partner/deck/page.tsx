@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Zap, Target, TrendingUp, DollarSign, Users,
-  CheckCircle, X, ArrowRight, Bot, MessageSquare, Brain,
+  CheckCircle, X, ArrowRight, Bot, MessageSquare, Brain, Handshake,
 } from 'lucide-react'
 
 function Slide({ number, title, children }: { number: number; title: string; children: ReactNode }) {
@@ -95,8 +95,8 @@ export default function PartnerDeckPage() {
       {/* Slide 3: The Solution */}
       <Slide number={3} title="The Solution — What K.I.N.D Is">
         <div className="space-y-3">
-          <p className="text-sm text-gray-600">K.I.N.D is an AI sales platform with three purpose-built agents:</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <p className="text-sm text-gray-600">K.I.N.D is an AI sales platform with four purpose-built agents:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
               {
                 icon: Bot,
@@ -137,6 +137,19 @@ export default function PartnerDeckPage() {
                   'Fully branded to your business',
                 ],
               },
+              {
+                icon: Handshake,
+                name: 'Denise',
+                subtitle: 'AI Account Executive · Closing',
+                color: 'text-amber-600',
+                bg: 'bg-amber-50',
+                points: [
+                  'Confirms meetings and preps proposals',
+                  'Surfaces objections before the call',
+                  'Follows up until the deal is done',
+                  'Coming soon — waitlist open',
+                ],
+              },
             ].map(({ icon: Icon, name, subtitle, color, bg, points }) => (
               <div key={name} className="border border-purple-100 rounded-xl p-4 space-y-2">
                 <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center`}>
@@ -166,15 +179,14 @@ export default function PartnerDeckPage() {
           <p className="text-sm text-gray-600">Credit-based pricing — clients only pay for what they use. No wasted spend.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
-              { name: 'Starter', price: 'R 4,900', usd: '~$270', credits: '500 credits/mo', note: 'Great for solo founders' },
-              { name: 'Growth', price: 'R 9,900', usd: '~$545', credits: '1,200 credits/mo', note: 'Most popular — small teams', highlight: true },
-              { name: 'Scale', price: 'R 19,900', usd: '~$1,095', credits: '3,000 credits/mo', note: 'Agencies & larger teams' },
-            ].map(({ name, price, usd, credits, note, highlight }) => (
+              { name: 'Starter', price: '$20', credits: '20 outreach credits/mo', note: 'Great for solo founders' },
+              { name: 'Growth', price: '$40', credits: '40 outreach credits/mo', note: 'Most popular — small teams', highlight: true },
+              { name: 'Scale', price: '$100', credits: '100 outreach credits/mo', note: 'Agencies & larger teams' },
+            ].map(({ name, price, credits, note, highlight }) => (
               <div key={name} className={`rounded-xl p-4 border ${highlight ? 'border-[#7C3AED] bg-[#7C3AED]/5' : 'border-purple-100 bg-white'}`}>
                 {highlight && <span className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-wider">Most popular</span>}
                 <p className="font-bold text-[#1E1152] text-sm mt-1">{name}</p>
                 <p className="text-2xl font-bold text-[#1E1152] mt-1">{price}<span className="text-xs font-normal text-gray-400 ml-1">/mo</span></p>
-                <p className="text-xs text-gray-400">{usd}/mo USD</p>
                 <p className="text-xs text-[#7C3AED] font-semibold mt-2">{credits}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{note}</p>
               </div>

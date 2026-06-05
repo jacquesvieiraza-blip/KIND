@@ -1236,10 +1236,9 @@
   .kf-eyebrow2{ position:absolute; z-index:4; top:30px; left:0; right:0; text-align:center;
     font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(20,18,45,.5); }
   .kf-figure{ position:absolute; inset:0; z-index:2; display:flex; align-items:flex-end; justify-content:center; }
-  .kf-figure img{ height:92%; width:auto; max-width:92%; object-fit:contain; display:block;
-    /* solid from head to waist, fade only at the feet — character feels planted, not ghostly */
-    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
-    mask-image:linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%); }
+  .kf-figure img{ height:94%; width:auto; max-width:94%; object-fit:contain; display:block;
+    /* solid cutout figure — no mask. Soft shadow grounds it on the gradient. */
+    filter:drop-shadow(0 26px 50px rgba(20,18,45,.20)); }
   .kf-cta{ position:absolute; z-index:6; bottom:30px; left:50%; transform:translateX(-50%);
     background:#0a0a0a; color:#fff; font-weight:700; font-size:.92rem; padding:13px 26px; border-radius:14px;
     text-decoration:none; box-shadow:0 14px 34px rgba(0,0,0,.28); transition:transform .2s; white-space:nowrap; }
@@ -1310,33 +1309,33 @@
     </div>
     <div class="kf-block">
       <a class="kf-agent" data-i="0" data-agent="figsy" href="figsy.html">
-        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 120%, rgba(255,46,196,.85) 0%, rgba(255,46,196,.38) 48%, transparent 72%), linear-gradient(180deg,#fce8f5 0%,#ffd4ee 45%,#ffb3e0 100%);"></div>
+        <div class="kf-bg" style="background:radial-gradient(70% 60% at 50% 38%, rgba(255,255,255,.65) 0%, transparent 60%), radial-gradient(110% 80% at 50% 118%, rgba(255,46,196,.42) 0%, transparent 66%), linear-gradient(180deg,#fdeef7 0%,#ffe0f1 100%);"></div>
         <div class="kf-ghost">FIGSY</div>
         <div class="kf-eyebrow2">Agent 01 · The Closer · Autonomous AI SDR</div>
         <div class="kf-call c1">Works 24/7<span></span></div>
         <div class="kf-call c2">Writes like you<span></span></div>
         <div class="kf-call c3">Books the meeting<span></span></div>
-        <div class="kf-figure"><img src="figsy.png" alt="FIGSY — Autonomous AI SDR" /></div>
+        <div class="kf-figure"><img src="figsy-cut.png" alt="FIGSY — Autonomous AI SDR" /></div>
         <span class="kf-cta">Meet FIGSY →</span>
       </a>
       <a class="kf-agent" data-i="1" data-agent="milla" href="virtual-assistant.html">
-        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 120%, rgba(124,58,237,.75) 0%, rgba(154,77,255,.32) 48%, transparent 72%), linear-gradient(180deg,#ede8ff 0%,#ddd4ff 45%,#c9b8ff 100%);"></div>
+        <div class="kf-bg" style="background:radial-gradient(70% 60% at 50% 38%, rgba(255,255,255,.65) 0%, transparent 60%), radial-gradient(110% 80% at 50% 118%, rgba(124,58,237,.38) 0%, transparent 66%), linear-gradient(180deg,#f1ecff 0%,#e4dbff 100%);"></div>
         <div class="kf-ghost">MILLA</div>
         <div class="kf-eyebrow2">Agent 02 · The Brain · Business Intelligence</div>
         <div class="kf-call c1">Reads the signals<span></span></div>
         <div class="kf-call c2">Tracks what works<span></span></div>
         <div class="kf-call c3">No dashboards<span></span></div>
-        <div class="kf-figure"><img src="milla.png" alt="Milla — Business Intelligence" /></div>
+        <div class="kf-figure"><img src="milla-cut.png" alt="Milla — Business Intelligence" /></div>
         <span class="kf-cta">Meet Milla →</span>
       </a>
       <a class="kf-agent" data-i="2" data-agent="vida" href="chatbot-agent.html">
-        <div class="kf-bg" style="background:radial-gradient(135% 105% at 50% 120%, rgba(14,165,233,.78) 0%, rgba(54,197,240,.32) 48%, transparent 72%), linear-gradient(180deg,#dff5ff 0%,#c8edff 45%,#a8dcf7 100%);"></div>
+        <div class="kf-bg" style="background:radial-gradient(70% 60% at 50% 38%, rgba(255,255,255,.65) 0%, transparent 60%), radial-gradient(110% 80% at 50% 118%, rgba(14,165,233,.40) 0%, transparent 66%), linear-gradient(180deg,#e6f6ff 0%,#cfeeff 100%);"></div>
         <div class="kf-ghost">VIDA</div>
         <div class="kf-eyebrow2">Agent 03 · The Connector · Web &amp; WhatsApp AI</div>
         <div class="kf-call c1">Qualifies 24/7<span></span></div>
         <div class="kf-call c2">Web + WhatsApp<span></span></div>
         <div class="kf-call c3">Captures leads<span></span></div>
-        <div class="kf-figure"><img src="vida.png" alt="Vida — Web &amp; WhatsApp AI" /></div>
+        <div class="kf-figure"><img src="vida-cut.png" alt="Vida — Web &amp; WhatsApp AI" /></div>
         <span class="kf-cta">Meet Vida →</span>
       </a>
     </div>
@@ -1555,7 +1554,7 @@
     <div class="figsy-sticky">
       <div class="figsy-character">
         <div class="figsy-avatar" id="figsy-avatar">
-          <img src="figsy.png" alt="FIGSY AI SDR" />
+          <img src="figsy-cut.png" alt="FIGSY AI SDR" />
           <div class="figsy-avatar-ring"></div>
         </div>
         <div class="figsy-name">FIGSY</div>

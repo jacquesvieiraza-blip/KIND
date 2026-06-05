@@ -312,13 +312,20 @@ export function Sidebar({
               </Link>
               <button
                 onClick={() => setOpen(o => !o)}
-                className="px-2.5 py-3 transition-colors shrink-0"
-                style={{ color: `${agent.accent}60` }}
+                className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-3 shrink-0 self-stretch border-l transition-opacity hover:opacity-80"
+                style={{ color: agent.accent, background: `${agent.accent}14`, borderColor: `${agent.accent}22` }}
                 title="Switch agent"
+                aria-label="Switch agent"
               >
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+                <span className="text-[8px] font-bold uppercase tracking-wide leading-none">Switch</span>
               </button>
             </div>
+            {!open && (
+              <p className="px-3 pt-1 text-[10px] text-[#7C3AED]/40">
+                4 agents · <button onClick={() => setOpen(true)} className="font-semibold text-[#7C3AED]/70 hover:text-[#7C3AED] transition-colors">switch or unlock →</button>
+              </p>
+            )}
 
             {/* Dropdown */}
             {open && (

@@ -6,7 +6,7 @@ import { z } from 'zod'
 const router = Router()
 
 const schema = z.object({
-  product: z.enum(['milla', 'vida', 'figsy', 'general']),
+  product: z.enum(['milla', 'vida', 'denise', 'figsy', 'general']),
   client_id: z.string().uuid(),
   message: z.string().max(500).optional(),
 })
@@ -25,6 +25,7 @@ router.post('/demo-request', async (req, res) => {
   const productNames: Record<string, string> = {
     milla: 'Milla — Virtual Assistant ($49/month)',
     vida: 'Vida — Chatbot Agent ($29/month)',
+    denise: 'Denise — AI Account Executive ($99/month)',
     figsy: 'FIGSY — AI SDR',
     general: 'K.I.N.D Platform',
   }

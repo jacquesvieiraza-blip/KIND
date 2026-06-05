@@ -28,7 +28,7 @@ create table if not exists public.clients (
 create table if not exists public.subscriptions (
   id                        uuid primary key default uuid_generate_v4(),
   client_id                 uuid not null references public.clients(id) on delete cascade,
-  product                   text not null check (product in ('lead_gen','lead_gen_figsy','virtual_assistant','chatbot','denise')),
+  product                   text not null check (product in ('lead_gen','lead_gen_figsy','figsy_addon','virtual_assistant','chatbot','denise','denise_addon')),
   tier                      text not null check (tier in ('starter','advanced','pro','enterprise')),
   status                    text not null default 'trialing'
                               check (status in ('active','inactive','trialing','past_due','cancelled')),

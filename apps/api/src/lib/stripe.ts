@@ -13,8 +13,9 @@ const stripe = process.env.STRIPE_SECRET_KEY
 // STRIPE_PRICE_FIGSY_100   — 100 FIGSY credits ($250)
 
 // ── Subscription price IDs (recurring monthly) ───────────────────────────────
-// STRIPE_PRICE_MILLA_MONTHLY — Milla VA $49/month
-// STRIPE_PRICE_VIDA_MONTHLY  — Vida Chatbot $39/month
+// STRIPE_PRICE_MILLA_MONTHLY  — Milla VA $49/month
+// STRIPE_PRICE_VIDA_MONTHLY   — Vida Chatbot $29/month
+// STRIPE_PRICE_DENISE_MONTHLY — Denise AI Account Executive $99/month
 
 export const STRIPE_BUNDLES = {
   lead_gen: [

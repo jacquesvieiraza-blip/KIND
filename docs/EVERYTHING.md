@@ -5,35 +5,55 @@
 
 ---
 
-## 🗓 SESSION STATE — 5 Jun 2026 (end of day)
+## 🗓 SESSION STATE — 5 Jun 2026
 
-### What was built / decided today (5 Jun)
-| Done | Item |
-|------|------|
-| ✅ | **Logo standardised** — `logo-k.png` image on all 35 website pages (was ⚡ emoji on most) |
-| ✅ | **Colors standardised** — collapsed 7 stray purples → `#7C3AED` site-wide (8 files) |
-| ✅ | **Denise full site consistency** — added to: demo.html (4 agents), platform-video×2, story.html timeline, portal Sidebar + SidebarV2Preview (type + AGENTS array + isUnlocked), partner deck (four agents), pricing.html add-ons (coming soon card) |
-| ✅ | **about.html**: removed duplicate "Meet the agents" section; `id="denise"` anchor on family section; Denise uses `denise.png` (full image, matches Milla/Vida) |
-| ✅ | **Vida price bug fixed** — Sidebar.tsx was showing `$39/mo` → now `$29/mo` (canonical) |
-| ✅ | **Partner deck pricing** — was Rand (R 4,900/9,900/19,900) → now USD ($20/$40/$100) |
-| ✅ | **Pipeline calculator** — currency R → $ (JS + hard-coded initial HTML values) |
-| ✅ | **Positioning updated** — values.html + nav sub "Africa-first" → "Built in Africa · Global"; Africa kept as founding-story/proof angle, $ pricing as global signal |
-| ✅ | **story.html** — "Three agents: FIGSY, Milla, Vida" → "Four agents: FIGSY, Milla, Vida & Denise" |
-| ✅ | **Atlas deep-scrape** + **Revio research** + 12 steals (#61a–g, #62a–e) in build list |
-| ✅ | **Funding strategy** (Part 5C) — bootstrap-first decision; F1 free cloud credits; F5 influencer lever |
-| ⚠️ | **Denise pricing on pricing.html** — card added as "Coming soon / Join waitlist" — **FOUNDER: confirm price before launch** |
+### KEY DECISIONS LOCKED (5 Jun)
+- **Denise = full transactional agent, $99/mo, LIVE** (not "coming soon"). Premium closer tier.
+- **Logo = `logo-k.png` image** (from homepage), everywhere — website + portal. No ⚡ emoji.
+- **Colors = homepage palette, `#7C3AED` canonical.**
+- **Currency = USD ($).** Africa = founding-story/proof only.
+- **Homepage walkthrough reel = `platform-video.html`** (multi-agent), not figsy-video.html.
 
-### Still open on me (🤖) for next session
-- `#62d` Rename demo CTA → "Revenue Blueprint Session"
-- `#62a` "Trained on closed-won" credibility hook (needs real campaign numbers)
-- `#62c` Homepage outcome numbers slot (hold — no fake news)
+### ISSUE LOG — every item the founder raised 5 Jun (not from memory; from the session)
+Status: ✅ fixed in code (on `main`) · ⏳ fixed, awaiting website-service deploy/cache · ❓ needs founder · 🔁 decision
 
-### Still open on you (🧍) before launch
-1. **Confirm Denise pricing** — pricing.html add-on card shows "Coming soon". What's the number?
-2. **TIER 0 credential rotation** — all exposed keys from 4 Jun must be rotated (Stripe, Supabase service role, DATABASE_URL, etc.)
-3. **Merge branch** `claude/ai-business-roadmap-U3OWJ` → `main` (Railway auto-deploys)
-4. **Free cloud credits F1** — Microsoft for Startups Founders Hub, Google for Startups, AWS Activate (zero downside, do this week)
-5. **Launch checklist** — DNS, dogfood account, Calendly confirm, ICO, SR01, smoke tests ×2, LinkedIn lockdown → Monday launch
+| # | Founder raised | Status | Where |
+|---|----------------|--------|-------|
+| 1 | Pipeline calculator showed Rand not $ | ✅ | pipeline-calculator.html (JS + initial values) |
+| 2 | about.html#denise link / needs Denise pic | ✅ | about.html (Denise card, denise.png, #denise anchor) |
+| 3 | Logo inconsistent (⚡ emoji vs image) | ✅ | all 36 website pages → logo-k.png |
+| 4 | Colors inconsistent (7 purples) | ✅ | → #7C3AED site-wide |
+| 5 | Remove "Meet the agents" duplicate on about | ✅ | about.html (section removed) |
+| 6 | Vida price wrong ($39) | ✅ | Sidebar.tsx + billing → $29 |
+| 7 | Partner deck Rand pricing | ✅ | deck/page.tsx → USD $20/$40/$100 |
+| 8 | "Three agents" / Denise missing in copy | ✅ | story, demo, platform-video, index, founder quote |
+| 9 | Denise missing on homepage "every role" | ✅ | index.html added Denise card |
+| 10 | Denise missing on story.html family | ✅ | story.html added Denise + mother intro |
+| 11 | Denise needs her own dedicated page | ✅ | **denise.html created**; Products dropdown + footer → denise.html |
+| 12 | Add Denise pricing on site + portal | ✅ | pricing.html $99/mo live; billing $99/mo |
+| 13 | Portal: no Denise, logo wrong, e2e unclear | ✅ | portal logo→image; Denise wired sidebar/layout/agents/billing/workspace/API |
+| 14 | Railway build failing (duplicate brace) | ✅ | agents/page.tsx fixed; builds green |
+| 15 | Denise = full transactional agent @ $99 | ✅ | API route, Stripe cfg, migration 011, workspace page |
+| 16 | demo tab nothing about Denise | ✅ | demo.html "Four teammates" + Denise card |
+| 17 | Resources/Products dropdown promo block had no colour | ✅ | **.dd-promo CSS missing on 4 pages** — real bug, fixed |
+| 18 | Portal Denise page showed FIGSY on right | ✅ | AgentColumn renders Denise panel on /dashboard/denise |
+| 19 | "No agent on right talking" on Denise page | ✅ | AgentColumn Denise side-panel + hasDenise wired |
+| 20 | figsy trio strip / footers missing Denise | ✅ | figsy trio + chatbot/denise footers |
+| 21 | Homepage reel is old (FIGSY-only) | ⏳ | swapped embed → platform-video.html (FIGSY/Milla/Vida; no dedicated Denise scene yet) |
+| 22 | Company page "doesn't show Denise" (repeated) | ⏳ | code correct (verified GitHub); **website deploy/cache lag** — hard-refresh + check Railway website service |
+
+### ⚠️ KNOWN-OPEN (honest)
+- **#21 reel** — platform-video.html shows FIGSY/Milla/Vida; **no dedicated Denise animated scene** (text mentions her). Full Denise reel scene = follow-up build (delicate animation).
+- **Video reels** demo-video/platform-video contain illustrative reply-rate numbers (8.2%/12.8%) in mockup notifications — founder to decide keep vs remove (no-fake-news judgement).
+- **Africa-First positioning** still in Resources playbook + vs-* pages + values — 🔁 founder decision (US/global vs Africa-first vs dual).
+- **Deploy/cache:** website is a separate Railway service; it lags the portal. Several "still broken" reports are stale cache, not code. Verify Railway website-service deploy = latest `main`; purge CDN; hard-refresh.
+
+### Still open on FOUNDER (🧍) before launch
+1. **Denise go-live:** create Stripe product + $99/mo price → `STRIPE_PRICE_DENISE_MONTHLY` on Railway; **run migration `011_denise.sql`**.
+2. **TIER 0 credential rotation** (all keys exposed 4 Jun).
+3. **Check Railway website-service deploy** is on latest `main` + purge cache.
+4. **Free cloud credits F1** (Microsoft/Google/AWS).
+5. **Launch checklist** — DNS, dogfood account, Calendly, ICO, SR01, smoke tests ×2, LinkedIn lockdown → Monday.
 
 ---
 
@@ -43,10 +63,11 @@
 - **Region:** ONE URL `app.get-kind.com`, ONE Cape Town DB (Supabase af-south-1). US served from Cape Town.
 - **Hosting:** Railway ONLY. No Vercel. (Portal, API, Admin, Website = 4 Railway services.)
 - **Billing:** Stripe primary. Flutterwave Phase 2 (code-complete, needs key). Paystack REMOVED.
-- **Pricing:** Lead Gen $1/credit (20/40/100 = $20/$40/$100). FIGSY $3/credit (20/40/100 = $60/$120/$300). Milla $49/mo. Vida **$29/mo** (NOT $39 — fixed 3 Jun in code, 5 Jun in MASTER). Bundle $69/mo. **Denise: TBC — founder to confirm.**
+- **Pricing:** Lead Gen $1/credit (20/40/100 = $20/$40/$100). FIGSY $3/credit (20/40/100 = $60/$120/$300). Milla $49/mo. Vida **$29/mo** (NOT $39). **Denise $99/mo** (decided 5 Jun — premium closer). Bundle $69/mo.
 - **Currency:** USD ($) globally. Africa-first as founding story/proof angle only — not pricing or positioning.
 - **Cron jobs:** 16 live (the 3 status-snapshot crons were planned, never built).
-- **Agents:** FIGSY (The Opener · AI SDR) · Milla (The Brain · VA) · Vida (The Connector · Chatbot) · **Denise (The Closer · AI AE) = coming soon, #1 next build.** LENA/OTTO = Month 3.
+- **Agents:** FIGSY (The Opener · AI SDR) · Milla (The Brain · VA) · Vida (The Connector · Chatbot) · **Denise (The Closer · AI AE · $99/mo) = LIVE & transactional as of 5 Jun** (own page, billing, workspace, API). LENA/OTTO = Month 3.
+  - ⚠️ **Denise go-live needs 2 FOUNDER actions:** (1) create Stripe product + $99/mo recurring price → add `STRIPE_PRICE_DENISE_MONTHLY` to Railway; (2) run migration `011_denise.sql`.
 - **Models:** Sonnet 4.6 (Milla, FIGSY) + Haiku 4.5 (scoring, scraping).
 - **Run cost floor:** ~$125/mo. Break-even: 2 clients (infra) / 5 (all-in). Margin 95%+.
 - **Brand purple:** `#7C3AED` everywhere. No stray hex variants.

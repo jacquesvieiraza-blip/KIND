@@ -1,26 +1,57 @@
 # K.I.N.D — EVERYTHING
 
-> ✅ **THIS IS THE WORKING SOURCE OF TRUTH (as of 4 Jun 2026).** Read this first, update this first. `MASTER.md` is now a historical archive only — kept for context, not canonical. Where the two disagree, THIS document wins.
+> ✅ **THIS IS THE WORKING SOURCE OF TRUTH (updated 5 Jun 2026).** Read this first, update this first. `MASTER.md` is now a historical archive only. Where the two disagree, THIS document wins.
 > **Protocol:** at the start of a session read this file; at the end of a session update it and commit.
 
-**The complete, de-duplicated register of every actionable item, every built feature, every decision, and every known contradiction across MASTER.md.**
-Built 4 Jun 2026 from a full end-to-end read of MASTER (8,141 lines). Contradictions reconciled to canonical/correct values (see Part 8 for the list of fixes still owed to the MASTER archive).
+---
 
-> **How to use this:** Parts 1–2 are what you *do*. Parts 3–6 are the current *state* (so nothing is forgotten or rebuilt). Part 7 is recurring ops. Part 8 is the MASTER cleanup backlog.
+## 🗓 SESSION STATE — 5 Jun 2026 (end of day)
+
+### What was built / decided today (5 Jun)
+| Done | Item |
+|------|------|
+| ✅ | **Logo standardised** — `logo-k.png` image on all 35 website pages (was ⚡ emoji on most) |
+| ✅ | **Colors standardised** — collapsed 7 stray purples → `#7C3AED` site-wide (8 files) |
+| ✅ | **Denise full site consistency** — added to: demo.html (4 agents), platform-video×2, story.html timeline, portal Sidebar + SidebarV2Preview (type + AGENTS array + isUnlocked), partner deck (four agents), pricing.html add-ons (coming soon card) |
+| ✅ | **about.html**: removed duplicate "Meet the agents" section; `id="denise"` anchor on family section; Denise uses `denise.png` (full image, matches Milla/Vida) |
+| ✅ | **Vida price bug fixed** — Sidebar.tsx was showing `$39/mo` → now `$29/mo` (canonical) |
+| ✅ | **Partner deck pricing** — was Rand (R 4,900/9,900/19,900) → now USD ($20/$40/$100) |
+| ✅ | **Pipeline calculator** — currency R → $ (JS + hard-coded initial HTML values) |
+| ✅ | **Positioning updated** — values.html + nav sub "Africa-first" → "Built in Africa · Global"; Africa kept as founding-story/proof angle, $ pricing as global signal |
+| ✅ | **story.html** — "Three agents: FIGSY, Milla, Vida" → "Four agents: FIGSY, Milla, Vida & Denise" |
+| ✅ | **Atlas deep-scrape** + **Revio research** + 12 steals (#61a–g, #62a–e) in build list |
+| ✅ | **Funding strategy** (Part 5C) — bootstrap-first decision; F1 free cloud credits; F5 influencer lever |
+| ⚠️ | **Denise pricing on pricing.html** — card added as "Coming soon / Join waitlist" — **FOUNDER: confirm price before launch** |
+
+### Still open on me (🤖) for next session
+- `#62d` Rename demo CTA → "Revenue Blueprint Session"
+- `#62a` "Trained on closed-won" credibility hook (needs real campaign numbers)
+- `#62c` Homepage outcome numbers slot (hold — no fake news)
+
+### Still open on you (🧍) before launch
+1. **Confirm Denise pricing** — pricing.html add-on card shows "Coming soon". What's the number?
+2. **TIER 0 credential rotation** — all exposed keys from 4 Jun must be rotated (Stripe, Supabase service role, DATABASE_URL, etc.)
+3. **Merge branch** `claude/ai-business-roadmap-U3OWJ` → `main` (Railway auto-deploys)
+4. **Free cloud credits F1** — Microsoft for Startups Founders Hub, Google for Startups, AWS Activate (zero downside, do this week)
+5. **Launch checklist** — DNS, dogfood account, Calendly confirm, ICO, SR01, smoke tests ×2, LinkedIn lockdown → Monday launch
 
 ---
 
 ## CANONICAL FACTS (the reconciled truth — supersedes any stale value in MASTER)
 
-- **Launch:** MONDAY, both markets (US + Africa/UK), multiple campaigns.
-- **Region:** ONE URL `app.get-kind.com`, ONE Cape Town DB (Supabase af-south-1). US served from Cape Town; US data residency added only on a signed enterprise contract.
+- **Launch:** MONDAY, both markets (US + Africa), multiple campaigns.
+- **Region:** ONE URL `app.get-kind.com`, ONE Cape Town DB (Supabase af-south-1). US served from Cape Town.
 - **Hosting:** Railway ONLY. No Vercel. (Portal, API, Admin, Website = 4 Railway services.)
 - **Billing:** Stripe primary. Flutterwave Phase 2 (code-complete, needs key). Paystack REMOVED.
-- **Pricing:** Lead Gen $1/credit (20/40/100 = $20/$40/$100). FIGSY $3/credit (20/40/100 = $60/$120/$300). Milla $49/mo. **Vida $29/mo** (corrected 3 Jun — NOT $39). Bundle $69/mo.
+- **Pricing:** Lead Gen $1/credit (20/40/100 = $20/$40/$100). FIGSY $3/credit (20/40/100 = $60/$120/$300). Milla $49/mo. Vida **$29/mo** (NOT $39 — fixed 3 Jun in code, 5 Jun in MASTER). Bundle $69/mo. **Denise: TBC — founder to confirm.**
+- **Currency:** USD ($) globally. Africa-first as founding story/proof angle only — not pricing or positioning.
 - **Cron jobs:** 16 live (the 3 status-snapshot crons were planned, never built).
-- **Agents live:** FIGSY, Milla, Vida. **DENISE (the closer) = #1 next build, pulled forward. LENA / OTTO = Month 3.** (DENISE was formerly codenamed REEVE.)
+- **Agents:** FIGSY (The Opener · AI SDR) · Milla (The Brain · VA) · Vida (The Connector · Chatbot) · **Denise (The Closer · AI AE) = coming soon, #1 next build.** LENA/OTTO = Month 3.
 - **Models:** Sonnet 4.6 (Milla, FIGSY) + Haiku 4.5 (scoring, scraping).
 - **Run cost floor:** ~$125/mo. Break-even: 2 clients (infra) / 5 (all-in). Margin 95%+.
+- **Brand purple:** `#7C3AED` everywhere. No stray hex variants.
+- **Logo:** `logo-k.png` image on every page nav. No ⚡ emoji.
+- **Positioning:** "Built in Africa. Works anywhere." — Africa is proof, not a market gate.
 
 ---
 
@@ -35,7 +66,7 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 2 | Move `FEATURE_PORTAL_V2=true` API → Portal service | 🧍 | ⬜ |
 | 3 | Create dogfood account → ping Claude | 🧍 | ⬜ |
 | 4 | Grant FIGSY + credits, set `FIGSY_KIND_CLIENT_ID` + `booking_url` | 🤖 | ⬜ (on #3) |
-| 5 | Merge branch `claude/ai-business-roadmap-U3OWJ` | 🧍 | ⬜ |
+| 5 | Merge branch `claude/ai-business-roadmap-U3OWJ` | 🧍 | ⬜ READY — branch is up to date |
 | 6 | Run migration `010_crm_dedup.sql` | 🧍 | ⬜ |
 | 7 | DNS: `app` / `api` / `admin` / `status`.get-kind.com (Railway + CNAME) | 🧍 | ⬜ |
 | 8 | After DNS: update `NEXT_PUBLIC_API_URL` (Portal+Admin) + Resend inbound webhook URL | 🧍 | ⬜ |
@@ -81,7 +112,7 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 29 | Record 3 onboarding Loom videos | 🧍 |
 | 30 | Onboarding v2 + Loom slots + day-0/3/7 email sequence | 🤖 (gated on run-through) |
 | 31 | Populate proof block with real dogfood numbers (#45 block is built) | 🤖 |
-| 32 | **Website consistency pass** — 32 pages (nav/footer/colour `#7C3AED`/type/CTA) **+ #47 Compare nav** | 🤖 (post-smoke) |
+| 32 | **Website consistency pass** — ✅ DONE 5 Jun: logo (35 pages), colors (#7C3AED), Denise site-wide, demo/platform-video/story/pricing/values/about | 🤖 ✅ |
 | 33 | Activate Flutterwave (needs key — ZAR/NGN/KES/GHS) | 🧍 |
 | 34 | Launch YouTube channel (10-video plan exists) | 🧍 |
 | 35 | Wire playbook email form (needs provider: ConvertKit/Mailchimp) | 🤝 |

@@ -3,102 +3,195 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>K.I.N.D — How the platform works (client flow)</title>
+<title>K.I.N.D — How it works</title>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background:#faf7ff; color:#1e1152; margin:0; padding:32px; }
-  h1 { font-size:1.6rem; letter-spacing:-0.02em; margin-bottom:4px; }
-  p.sub { color:#7c3aed; margin-top:0; font-weight:600; }
-  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:0.8rem; margin:16px 0 28px; }
-  .legend span { display:inline-flex; align-items:center; gap:6px; }
-  .dot { width:12px; height:12px; border-radius:3px; display:inline-block; }
-  .card { background:#fff; border:1px solid #ece6fb; border-radius:18px; padding:24px; box-shadow:0 8px 30px rgba(124,58,237,0.06); overflow:auto; }
-  .mermaid { font-size:14px; }
-  footer { color:#9b8ec4; font-size:0.75rem; margin-top:20px; }
+  :root{
+    --purple:#7C3AED; --purple-d:#5b21b6; --ink:#1E1152; --paper:#ffffff;
+    --bg:#f7f5fc; --line:#ece6fb; --muted:#6b6494;
+    --figsy:#7C3AED; --milla:#0ea5e9; --vida:#10b981; --denise:#d97706;
+  }
+  *{ box-sizing:border-box; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink); margin:0; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 28px 64px; }
+
+  /* hero */
+  .hero{ background:linear-gradient(135deg,#2a1066 0%,#7C3AED 70%,#a855f7 100%); color:#fff; padding:52px 28px 60px; text-align:center; position:relative; overflow:hidden; }
+  .hero::after{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 80% -10%,rgba(255,255,255,.18),transparent 45%); pointer-events:none; }
+  .hero .badge{ display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25); padding:6px 14px; border-radius:100px; margin-bottom:18px; }
+  .hero h1{ font-size:clamp(1.9rem,4vw,3rem); font-weight:900; letter-spacing:-.03em; margin:0 0 12px; }
+  .hero p{ font-size:clamp(1rem,1.6vw,1.2rem); color:rgba(255,255,255,.82); max-width:680px; margin:0 auto; }
+
+  /* agent legend cards */
+  .agents{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:-32px auto 8px; max-width:1120px; padding:0 28px; position:relative; z-index:2; }
+  .acard{ background:var(--paper); border-radius:16px; padding:16px 16px 14px; box-shadow:0 12px 36px rgba(30,17,82,.10); border-top:4px solid var(--c); }
+  .acard .role{ font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--c); }
+  .acard .name{ font-size:1.15rem; font-weight:900; letter-spacing:-.02em; margin:2px 0 2px; }
+  .acard .desc{ font-size:.8rem; color:var(--muted); line-height:1.45; }
+  .acard .price{ font-size:.72rem; font-weight:700; color:var(--ink); margin-top:8px; display:inline-block; background:#f3eeff; padding:3px 9px; border-radius:100px; }
+
+  /* sections */
+  .sec-h{ display:flex; align-items:baseline; gap:12px; margin:46px 0 6px; }
+  .sec-h h2{ font-size:1.4rem; font-weight:900; letter-spacing:-.02em; margin:0; }
+  .sec-h span{ font-size:.85rem; color:var(--purple); font-weight:600; }
+  .panel{ background:var(--paper); border:1px solid var(--line); border-radius:22px; padding:26px; box-shadow:0 10px 40px rgba(124,58,237,.07); overflow:auto; }
+  .mermaid{ display:flex; justify-content:center; }
+  .note{ font-size:.86rem; color:#475569; max-width:820px; margin:14px 2px 0; }
+  .note strong{ color:var(--ink); }
+  .keys{ display:flex; gap:16px; flex-wrap:wrap; font-size:.76rem; color:var(--muted); margin:10px 2px 0; }
+  .keys b{ color:var(--ink); }
+  footer{ color:#9b8ec4; font-size:.74rem; margin-top:30px; text-align:center; }
+  @media(max-width:820px){ .agents{ grid-template-columns:repeat(2,1fr); } }
 </style>
 </head>
 <body>
-  <h1>K.I.N.D — how the platform actually works</h1>
-  <p class="sub">Lead Gen + Vida feed leads → FIGSY opens → Denise closes → Milla reads it all. Every outcome logged.</p>
-  <div class="legend">
-    <span><span class="dot" style="background:#7c3aed"></span>FIGSY — The Opener (AI SDR)</span>
-    <span><span class="dot" style="background:#0ea5e9"></span>Milla — The Brain (VA, $49/mo)</span>
-    <span><span class="dot" style="background:#10b981"></span>Vida — The Connector (Chatbot, $29/mo)</span>
-    <span><span class="dot" style="background:#d97706"></span>Denise — The Closer (AE, $99/mo)</span>
-    <span><span class="dot" style="background:#cbd5e1;border:1px dashed #94a3b8"></span>Pending — coming soon (WhatsApp, Voice)</span>
+
+  <div class="hero">
+    <div class="badge">K.I.N.D · AI Revenue Team</div>
+    <h1>One team. Every step from stranger to signed deal.</h1>
+    <p>Vida and Lead Gen fill the top of the funnel · FIGSY opens and books · Denise closes · Milla reads every signal — while every result is recorded.</p>
   </div>
-  <div class="card">
-  <pre class="mermaid">
+
+  <div class="agents">
+    <div class="acard" style="--c:var(--figsy)">
+      <div class="role">The Opener</div><div class="name">FIGSY</div>
+      <div class="desc">AI SDR. Finds ideal clients, writes in your voice, follows up, books the meeting.</div>
+      <span class="price">Pay per result</span>
+    </div>
+    <div class="acard" style="--c:var(--milla)">
+      <div class="role">The Brain</div><div class="name">Milla</div>
+      <div class="desc">Reads your pipeline + docs. Tells you what's working and what to change next.</div>
+      <span class="price">$49 / mo</span>
+    </div>
+    <div class="acard" style="--c:var(--vida)">
+      <div class="role">The Connector</div><div class="name">Vida</div>
+      <div class="desc">Website + WhatsApp chatbot. Qualifies every visitor 24/7 and routes hot leads.</div>
+      <span class="price">$29 / mo</span>
+    </div>
+    <div class="acard" style="--c:var(--denise)">
+      <div class="role">The Closer</div><div class="name">Denise</div>
+      <div class="desc">AI Account Executive. Confirms meetings, handles objections, drafts proposals, closes.</div>
+      <span class="price">$99 / mo</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="sec-h"><h2>The journey</h2><span>stranger → signed deal</span></div>
+    <div class="panel">
+      <pre class="mermaid">
 flowchart TD
-    A([Client signs up]):::sys --> B[Onboarding: company, industry, country, website]:::sys
-    B --> C[ICP auto-prefilled from the website]:::sys
+    A(["A new prospect"]):::start --> SRC
 
-    subgraph LG[LEAD GEN -- sourcing the right people]
-      direction TB
-      C --> D[Client builds / confirms ICP]
-      D --> E[ICP run: Apollo sources matching contacts]
-      E --> F[AI scores every lead 0-100 vs your ICP]
-      F --> G{Score &gt;= 60?}
-      G -->|yes| H[Consent + auto-enrol into FIGSY]
-      G -->|no| Z[Held back / refine ICP]
+    subgraph SRC[ ]
+      direction LR
+      L1["FIND THEM<br/><b>Lead Gen + ICP</b><br/>AI sources & scores 0-100"]:::neutral
+      L2["VIDA — inbound<br/><b>Site + WhatsApp</b><br/>qualifies visitors 24/7"]:::vida
     end
 
-    subgraph VID[VIDA -- The Connector]
-      direction TB
-      V1[One-line widget on your website] --> V2[Qualifies every visitor 24/7]
-      VW[WhatsApp Business inbound]:::pending -. pending: Meta approval .-> V2
-      V2 --> V3[Captures inbound leads, routes hot ones to you]
-    end
-    V3 --> H
+    SRC --> B["<b>FIGSY opens</b><br/>personalised email in your voice,<br/>sent &amp; followed up automatically"]:::figsy
+    B --> C{"Interested?"}
+    C -->|"No / opt-out"| X["Stops · respects opt-out"]:::neutral
+    C -->|"Yes"| D["<b>Meeting booked</b><br/>onto YOUR calendar, automatically"]:::figsy
+    D --> E["<b>Denise closes</b><br/>confirms · handles objections ·<br/>drafts the proposal · follows up"]:::denise
+    E --> F(["💰 Signed deal"]):::win
 
-    subgraph FIG[FIGSY -- The Opener]
-      direction TB
-      H --> I[Campaign + multi-step sequence]
-      I --> J[[Cron every 2h: send due outreach]]
-      J --> K[Email: AI writes in your voice -- via Resend]
-      J -. pending: Meta approval .-> WA[WhatsApp outreach to enrolled leads]:::pending
-      J -. pending: Vapi keys .-> VC[AI voice calls -- Vapi]:::pending
-      K --> L[Opens tracked - replies come back in]
-      WA -.-> L
-      VC -.-> L
-      L --> M{Reply classified by AI}
-      M -->|interested| N[Hot lead -> your Inbox]
-      M -->|opt-out| O[Added to blocklist, sequence stops]
-      N --> P[Prospect books via FIGSY booking link]
-      P --> Q[[Calendar event created + meeting booked]]
-      J -. auto-pause if reply rate &lt; 1% .-> I
-    end
+    M["<b>Milla — the brain</b><br/>reads every signal · Monday digest ·<br/>'what's working, what to change'"]:::milla
+    B -. signals .-> M
+    D -. results .-> M
+    F -. outcome .-> M
 
-    subgraph DEN[DENISE -- The Closer]
-      direction TB
-      Q --> R[Confirms the meeting -- warm, specific]
-      R --> S[Drafts warm follow-ups to quiet prospects]
-      S --> T[Turns your call notes into a proposal]
-      T --> U[Deal closed]
-    end
+    F --> DATA[("Every result recorded<br/>send · reply · meeting · close")]:::data
+    DATA -. makes the team smarter .-> B
 
-    subgraph MIL[MILLA -- The Brain]
-      direction TB
-      W1[Trained on your docs + whole pipeline] --> W2[Daily morning brief + anomaly alerts]
-      W2 --> W3[Monday: weekly leads digest]
-      W3 --> W4[Ask her anything: 'what's working?']
-    end
-
-    L -. signals .-> W1
-    Q -. feeds results .-> W1
-    Q --> DF[(Outcome events logged:<br/>send - reply - opt_out - meeting_booked<br/>THE DATA FLOOR)]:::data
-
-    classDef sys fill:#f3eeff,stroke:#c9b8f5,color:#1e1152;
+    classDef start fill:#ede9fe,stroke:#7C3AED,color:#1E1152,font-weight:bold;
+    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
+    classDef milla fill:#eff8ff,stroke:#0ea5e9,color:#0c4a6e;
+    classDef vida fill:#effdf6,stroke:#10b981,color:#065f46;
+    classDef denise fill:#fffaf0,stroke:#d97706,color:#92400e;
+    classDef neutral fill:#f8fafc,stroke:#cbd5e1,color:#475569;
     classDef data fill:#fff7ed,stroke:#d97706,color:#92400e;
+    classDef win fill:#1E1152,stroke:#7C3AED,color:#fff,font-weight:bold;
+    style SRC fill:#fbfaff,stroke:#ece6fb;
+      </pre>
+    </div>
+    <div class="keys">
+      <span><b>Solid line</b> = the deal moving forward</span>
+      <span><b>Dotted line</b> = intelligence feeding back</span>
+      <span>Meetings book onto <b>the client's own calendar</b></span>
+    </div>
+
+    <div class="sec-h"><h2>The channels FIGSY uses</h2><span>more ways to reach, same brain</span></div>
+    <div class="panel">
+      <pre class="mermaid">
+flowchart LR
+    F["<b>FIGSY</b><br/>one ICP-matched lead,<br/>written in your voice"]:::figsy
+    F --> E1["📧 Email<br/><b>Live</b>"]:::live
+    F --> E2["💬 WhatsApp<br/>outreach"]:::pending
+    F --> E3["📞 AI voice call<br/>(Vapi)"]:::pending
+    F --> E4["in LinkedIn"]:::pending
+    E1 --> R["Reply → booked meeting → Denise"]:::denise
+    E2 --> R
+    E3 --> R
+    E4 --> R
+    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
+    classDef live fill:#ecfdf5,stroke:#10b981,color:#065f46,font-weight:bold;
     classDef pending fill:#f1f5f9,stroke:#94a3b8,color:#475569,stroke-dasharray:5 4;
-    style LG fill:#fbf8ff,stroke:#c9b8f5
-    style FIG fill:#f3eeff,stroke:#7c3aed
-    style MIL fill:#eff8ff,stroke:#0ea5e9
-    style VID fill:#effdf6,stroke:#10b981
-    style DEN fill:#fffaf0,stroke:#d97706
-  </pre>
+    classDef denise fill:#fffaf0,stroke:#d97706,color:#92400e;
+      </pre>
+    </div>
+    <div class="keys"><span><b>Green</b> = live today</span><span><b>Dashed grey</b> = coming soon (WhatsApp = Meta approval · Voice = Vapi keys · LinkedIn = queued)</span></div>
+
+    <div class="sec-h"><h2>Denise — the power curve</h2><span>does more · gets sharper · gets paid on results</span></div>
+    <div class="panel">
+      <pre class="mermaid">
+flowchart LR
+    subgraph NOW["TODAY · LIVE"]
+      direction TB
+      T["Drafts warm follow-ups<br/>+ proposals from your notes"]:::live
+    end
+    subgraph DEEP["DOES MORE · next build"]
+      direction TB
+      D["Auto-books → joins the call as<br/>notetaker → surfaces objections →<br/>proposal from the transcript →<br/>autonomous follow-up → voice"]:::next
+    end
+    subgraph LEARN["GETS SHARPER · the flywheel"]
+      direction TB
+      F1["Close a deal"] --> F2[("Outcome recorded")]:::data
+      F2 --> F3["Learns what closes<br/>for YOUR business"]:::milla
+      F3 --> F4["Next draft is sharper"] --> F1
+    end
+    NOW ==> DEEP ==> LEARN ==> END["💰 OUTCOME PRICING<br/>paid per closed deal,<br/>not per action"]:::win
+
+    classDef live fill:#fffaf0,stroke:#d97706,color:#92400e,font-weight:bold;
+    classDef next fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
+    classDef milla fill:#eff8ff,stroke:#0ea5e9,color:#0c4a6e;
+    classDef data fill:#ecfdf5,stroke:#10b981,color:#065f46;
+    classDef win fill:#1E1152,stroke:#7C3AED,color:#fff,font-weight:bold;
+    style NOW fill:#fffaf0,stroke:#d97706;
+    style DEEP fill:#f6f2ff,stroke:#7C3AED;
+    style LEARN fill:#f0fdf9,stroke:#10b981;
+      </pre>
+    </div>
+    <p class="note"><strong>The one-liner for a pitch:</strong> "Most tools just send emails. K.I.N.D runs the whole journey — finds the right people, opens the conversation in your voice, books the meeting onto your calendar, and a closer who gets sharper with every deal takes it to signed. You stay human where it counts."</p>
+
+    <footer>K.I.N.D — built from the live product. Dashed = coming soon. Open / present in any browser.</footer>
   </div>
-  <footer>K.I.N.D — generated from the live codebase (routes/figsy.ts, icps.ts, calendar.ts, milla.ts, vida.ts, denise.ts, cron.ts). Open in any browser.</footer>
-<script>mermaid.initialize({ startOnLoad:true, flowchart:{ curve:'basis' }, securityLevel:'loose' });</script>
+
+<script>
+  mermaid.initialize({
+    startOnLoad:true,
+    securityLevel:'loose',
+    theme:'base',
+    themeVariables:{
+      fontFamily:"-apple-system,Segoe UI,system-ui,sans-serif",
+      fontSize:'15px',
+      lineColor:'#b9a8e8',
+      primaryColor:'#f3eeff',
+      primaryBorderColor:'#7C3AED',
+      primaryTextColor:'#1E1152'
+    },
+    flowchart:{ curve:'basis', nodeSpacing:42, rankSpacing:54, padding:14 }
+  });
+</script>
 </body>
 </html>

@@ -113,6 +113,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             hasFigsy={hasFigsy}
             hasMilla={hasMilla}
             hasVida={hasVida}
+            hasDenise={hasDenise}
             leadCount={leadCount}
             creditBalance={creditBalance}
             isNewUser={isNewUser}

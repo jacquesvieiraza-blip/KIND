@@ -1221,10 +1221,10 @@
   .kf-head-line{ font-size:.82rem; color:rgba(0,0,0,.42); max-width:520px; margin:0 auto 16px; font-weight:600; line-height:1.5; letter-spacing:-.01em; }
   .kf-head-line .grad{ background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .kf-block{ position:relative; width:100%; max-width:1480px; height:calc(100vh - 320px); min-height:340px; border-radius:30px; overflow:clip; box-shadow:0 30px 80px rgba(20,18,45,.12); }
-  /* film grain for depth (ClickUp-like texture) */
-  .kf-block::after{ content:''; position:absolute; inset:0; z-index:7; pointer-events:none; opacity:.5; mix-blend-mode:soft-light;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size:200px 200px; }
+  /* film grain / dots texture — visible, like the ClickUp reference */
+  .kf-block::after{ content:''; position:absolute; inset:0; z-index:7; pointer-events:none; opacity:.85; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:180px 180px; }
 
   .kf-agent{ position:absolute; inset:0; opacity:0; transition:opacity .3s linear; text-decoration:none; color:inherit; display:block; }
   .kf-agent[data-i="0"]{ opacity:1; }
@@ -1236,9 +1236,8 @@
   .kf-eyebrow2{ position:absolute; z-index:4; top:30px; left:0; right:0; text-align:center;
     font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(20,18,45,.5); }
   .kf-figure{ position:absolute; inset:0; z-index:2; display:flex; align-items:flex-end; justify-content:center; }
-  .kf-figure img{ height:94%; width:auto; max-width:94%; object-fit:contain; display:block;
-    /* solid cutout figure — no mask. Soft shadow grounds it on the gradient. */
-    filter:drop-shadow(0 26px 50px rgba(20,18,45,.20)); }
+  .kf-figure img{ height:96%; width:auto; max-width:96%; object-fit:contain; display:block;
+    filter:drop-shadow(0 30px 55px rgba(20,18,45,.24)); }
   .kf-cta{ position:absolute; z-index:6; bottom:30px; left:50%; transform:translateX(-50%);
     background:#0a0a0a; color:#fff; font-weight:700; font-size:.92rem; padding:13px 26px; border-radius:14px;
     text-decoration:none; box-shadow:0 14px 34px rgba(0,0,0,.28); transition:transform .2s; white-space:nowrap; }
@@ -1309,7 +1308,7 @@
     </div>
     <div class="kf-block">
       <a class="kf-agent" data-i="0" data-agent="figsy" href="figsy.html">
-        <div class="kf-bg" style="background:radial-gradient(70% 60% at 50% 38%, rgba(255,255,255,.65) 0%, transparent 60%), radial-gradient(110% 80% at 50% 118%, rgba(255,46,196,.42) 0%, transparent 66%), linear-gradient(180deg,#fdeef7 0%,#ffe0f1 100%);"></div>
+        <div class="kf-bg" style="background:linear-gradient(160deg,#ffd6ed 0%,#ffb3d9 45%,#ff85c0 100%);"></div>
         <div class="kf-ghost">FIGSY</div>
         <div class="kf-eyebrow2">Agent 01 · The Closer · Autonomous AI SDR</div>
         <div class="kf-call c1">Works 24/7<span></span></div>
@@ -1319,7 +1318,7 @@
         <span class="kf-cta">Meet FIGSY →</span>
       </a>
       <a class="kf-agent" data-i="1" data-agent="milla" href="virtual-assistant.html">
-        <div class="kf-bg" style="background:radial-gradient(70% 60% at 50% 38%, rgba(255,255,255,.65) 0%, transparent 60%), radial-gradient(110% 80% at 50% 118%, rgba(124,58,237,.38) 0%, transparent 66%), linear-gradient(180deg,#f1ecff 0%,#e4dbff 100%);"></div>
+        <div class="kf-bg" style="background:linear-gradient(160deg,#e8d8ff 0%,#d0b8ff 45%,#b88fff 100%);"></div>
         <div class="kf-ghost">MILLA</div>
         <div class="kf-eyebrow2">Agent 02 · The Brain · Business Intelligence</div>
         <div class="kf-call c1">Reads the signals<span></span></div>
@@ -1329,7 +1328,7 @@
         <span class="kf-cta">Meet Milla →</span>
       </a>
       <a class="kf-agent" data-i="2" data-agent="vida" href="chatbot-agent.html">
-        <div class="kf-bg" style="background:radial-gradient(70% 60% at 50% 38%, rgba(255,255,255,.65) 0%, transparent 60%), radial-gradient(110% 80% at 50% 118%, rgba(14,165,233,.40) 0%, transparent 66%), linear-gradient(180deg,#e6f6ff 0%,#cfeeff 100%);"></div>
+        <div class="kf-bg" style="background:linear-gradient(160deg,#c8ecff 0%,#96d8ff 45%,#5cbfff 100%);"></div>
         <div class="kf-ghost">VIDA</div>
         <div class="kf-eyebrow2">Agent 03 · The Connector · Web &amp; WhatsApp AI</div>
         <div class="kf-call c1">Qualifies 24/7<span></span></div>

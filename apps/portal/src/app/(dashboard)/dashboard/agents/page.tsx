@@ -69,7 +69,7 @@ const AGENTS = [
     role: 'AI Account Executive',
     category: 'Closing & Proposals',
     description: 'Closes what FIGSY opens. Confirms meetings, surfaces objections, drafts proposals, and follows up so no warm lead goes cold.',
-    href: '#',
+    href: '/dashboard/denise',
     accent: '#D97706',
     accentLight: '#FFFBEB',
     features: [
@@ -78,7 +78,7 @@ const AGENTS = [
       { label: 'Objection Handling', desc: 'Surfaces blockers before they kill the deal.' },
       { label: 'Pipeline Follow-Up', desc: 'No warm lead ever goes cold on her watch.' },
     ],
-    cta: 'Coming Soon',
+    cta: 'Close with Denise',
     productKey: 'hasDenise' as const,
   },
 ]

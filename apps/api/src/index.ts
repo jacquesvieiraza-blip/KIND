@@ -24,6 +24,7 @@ import { whatsappRouter } from './routes/whatsapp'
 import { calendarRouter } from './routes/calendar'
 import { millaRouter } from './routes/milla'
 import { vidaRouter } from './routes/vida'
+import { deniseRouter } from './routes/denise'
 import { stripeRouter } from './routes/stripe'
 import { flutterwaveRouter } from './routes/flutterwave'
 import { orderFormRouter } from './routes/order-forms'
@@ -109,6 +110,7 @@ app.use('/whatsapp',      whatsappRouter)
 app.use('/calendar',      calendarRouter)
 app.use('/milla',         millaRouter)
 app.use('/vida',          vidaRouter)
+app.use('/denise',        deniseRouter)
 app.use('/stripe',        stripeRouter)
 app.use('/flutterwave',   flutterwaveRouter)
 app.use('/order-forms',   orderFormRouter)

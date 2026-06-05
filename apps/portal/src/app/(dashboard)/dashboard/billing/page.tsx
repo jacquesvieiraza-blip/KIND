@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
   Coins, Zap, TrendingUp, Loader2, Check, ChevronDown,
-  Shield, CreditCard, Bot, MessageSquare, CheckCircle,
+  Shield, CreditCard, Bot, MessageSquare, CheckCircle, Handshake,
 } from 'lucide-react'
 
 // ── Sparkline chart (pure SVG, no library) ───────────────────────────────────
@@ -88,10 +88,19 @@ const AGENT_PRODUCTS = [
     key:      'vida' as const,
     label:    'Vida',
     subtitle: 'AI Chatbot Agent',
-    price:    39,
+    price:    29,
     icon:     MessageSquare,
     color:    'bg-indigo-600',
     features: ['Answers product questions instantly', 'Captures and qualifies leads 24/7', 'Hands off to your team when needed', 'One-line embed — any website'],
+  },
+  {
+    key:      'denise' as const,
+    label:    'Denise',
+    subtitle: 'AI Account Executive',
+    price:    99,
+    icon:     Handshake,
+    color:    'bg-amber-600',
+    features: ['Drafts warm follow-ups to quiet prospects', 'Turns call notes into a proposal in minutes', 'Surfaces objections before they kill the deal', 'Closes what FIGSY opens — in your voice'],
   },
 ]
 
@@ -198,7 +207,7 @@ export default function BillingPage() {
     setCreditInitiating(null)
   }
 
-  async function handleSubscribe(product: 'milla' | 'vida') {
+  async function handleSubscribe(product: 'milla' | 'vida' | 'denise') {
     setSubInitiating(product)
     setBuyError(null)
     const { data: { session } } = await supabase.auth.getSession()
@@ -403,7 +412,7 @@ export default function BillingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {AGENT_PRODUCTS.map(agent => {
-            const dbProduct     = agent.key === 'milla' ? 'virtual_assistant' : 'chatbot'
+            const dbProduct     = agent.key === 'milla' ? 'virtual_assistant' : agent.key === 'denise' ? 'denise' : 'chatbot'
             const isActive      = activeProducts.includes(dbProduct)
             const isLoading     = subInitiating === agent.key
             const Icon          = agent.icon
@@ -442,7 +451,7 @@ export default function BillingPage() {
                   {isActive ? (
                     <div className="flex items-center justify-center gap-2 w-full bg-green-50 text-green-700 font-semibold rounded-xl px-6 py-3 text-sm border border-green-200">
                       <CheckCircle className="w-4 h-4" /> Subscribed — go to{' '}
-                      <a href={`/dashboard/${agent.key === 'milla' ? 'assistant' : 'chatbot'}`} className="underline">
+                      <a href={`/dashboard/${agent.key === 'milla' ? 'assistant' : agent.key === 'denise' ? 'denise' : 'chatbot'}`} className="underline">
                         {agent.label}
                       </a>
                     </div>

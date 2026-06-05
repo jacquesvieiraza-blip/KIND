@@ -13,7 +13,8 @@ alter table public.subscriptions
 alter table public.subscriptions
   add constraint subscriptions_product_check
   check (product in (
-    'lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot', 'denise'
+    'lead_gen', 'lead_gen_figsy', 'figsy_addon',
+    'virtual_assistant', 'chatbot', 'denise', 'denise_addon'
   ));
 
 -- ─────────────────────────────────────────────

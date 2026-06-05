@@ -101,8 +101,8 @@
 
 ---
 
-# ⭐ CANONICAL LIVE STATUS — SINGLE SOURCE OF TRUTH (3 June 2026, PM)
-**This block supersedes every older to-do list below it.** When asked for "an update," read THIS block + the most recent git log. Older session blocks below are HISTORICAL — kept for context, not the live list.
+# ⭐ CANONICAL LIVE STATUS (3 June 2026, PM) — HISTORICAL SNAPSHOT
+**NOTE: `docs/EVERYTHING.md` is now the single source of truth. This block is a historical snapshot — it superseded every older to-do list below it as of 3 June, but `EVERYTHING.md` overrides everything here.** Older session blocks below are HISTORICAL — kept for context, not the live list.
 
 ---
 
@@ -125,7 +125,7 @@
 - **Portal** — Client dashboard (leads, campaigns, billing, inbox, settings, documents, roadmap)
 - **Admin** — Founder control centre (KPIs, client mgmt, compliance, revenue, partner management)
 - **Website** — 30+ pages (landing, pricing, about, use cases, comparisons, partners, legal)
-- **19 cron jobs** running — campaign perf, lead drip, health, briefs, subscription expiry
+- **16 cron jobs** running — campaign perf, lead drip, health, briefs, subscription expiry (the 3 status-snapshot crons were planned, never built)
 - **Founder morning brief** — daily 07:05 SAST (platform health, FIGSY 24h, revenue, alerts)
 
 ### Legal & Compliance (all docs written, deployed)
@@ -447,10 +447,10 @@
 | FIGSY Memory v2 — pgvector | **Month 2** | Semantic memory, inferred patterns — compounding moat |
 | Product Hunt | **Month 2** | Only after 2-3 named design partners with real numbers |
 | G2 listing | **Month 2** | 5 reviews minimum |
-| **REEVE** (Revenue Execution Agent) | **Month 3** | AE: books discovery calls, follows up pipeline, drafts proposals |
+| **DENISE** (Revenue Execution Agent — formerly codenamed REEVE) | **#1 next build (pulled forward)** | AE: closes deals, books discovery calls, follows up pipeline, drafts proposals |
 | **LENA** (Customer Success Agent) | **Month 3** | CS: monitors health, flags at-risk, handles check-ins |
 | **OTTO** (Ops & Analytics Agent) | **Month 3** | CRO: pipeline health, revenue forecasting, anomaly alerts |
-| Multi-agent orchestration | **Month 3** | FIGSY + REEVE + LENA + OTTO in parallel, shared memory |
+| Multi-agent orchestration | **Month 3** | FIGSY + DENISE + LENA + OTTO in parallel, shared memory |
 | 500+ FIGSY skill library | **Month 3** | Modular per vertical: SaaS, African fintech, recruitment, logistics |
 | MCP server — K.I.N.D as infra | **Month 3** | Other tools plug into K.I.N.D agents — distribution without sales team |
 | Outcome-based pricing ("per meeting booked") | **Month 3** | Alongside credit model — removes buyer risk objection |
@@ -677,7 +677,7 @@
 **🛠️ The 5 weaknesses → the fix:**
 1. **ICP too broad → lead with the two sharpest wedges.** Primary Phase-1 ICP = (a) the **"individual AE/founder"** blocked by enterprise procurement (can self-serve $20, prove ROI personally), and (b) **competitor-tool switchers** — Lemlist/Instantly/Clay/Apollo users *in Africa* (already-paying, proven buyers; Apollo `technology_names` filter finds ~200/run — seed file exists). These two convert fastest. Make them THE targets, not 7 industries.
 2. **Single-channel risk → add 2 more Phase-1 channels.** Today it's ~all FIGSY cold email + personal network. Add: **(i) LinkedIn founder-led content** (highest-intent for this ICP — 1 sharp post/day, story + proof, not 3/week), **(ii) niche communities** (SA founder/SaaS Slack/WhatsApp groups, Indie Hackers, local startup ecosystems) with genuine value, not pitches.
-3. **Pricing doc out of sync → publish a clean plan table.** Section 12 omits Milla ($49) / Vida ($39); the public "from $20" vs FIGSY-Advanced ($60–$250) gap can break expectations at the paywall. Fix: one pricing table showing Lead Gen ($20–$100) + FIGSY ($60–$250) + Milla $49 + Vida $39, with the $20 entry framed as "start finding leads for $20; FIGSY does the outreach from $60."
+3. **Pricing doc out of sync → publish a clean plan table.** Section 12 omits Milla ($49) / Vida ($29); the public "from $20" vs FIGSY-Advanced ($60–$300) gap can break expectations at the paywall. Fix: one pricing table showing Lead Gen ($20–$100) + FIGSY ($60–$300) + Milla $49 + Vida $29, with the $20 entry framed as "start finding leads for $20; FIGSY does the outreach from $60."
 4. **No social proof → manufacture it honestly + fast.** Use your OWN dogfood results as the first case study ("K.I.N.D used FIGSY to book its first N demos in week 1"). Fill the (already-built) social-proof slot with design-partner logos as they land. Add a POPIA trust/credibility lead magnet (merchandise the moat — it's currently only 1 of 6 blog posts).
 5. **No GTM funnel metrics → instrument the launch.** Current KPIs are product/ops (TTFL, reply rate, churn). Add: outreach→reply→demo→close by channel, CAC, trial→paid by source, content/SEO traffic, Product Hunt/G2 pipeline. You can't optimise a launch you can't attribute.
 
@@ -975,7 +975,7 @@ sections the script flags but cannot judge.
 | Done | Detail |
 |------|--------|
 | Milla product created | prod_UcjOFe7esiG2Xa — Milla Virtual Assistant ($49/mo) |
-| Vida product created | prod_UcjOB0KZXHlmSy — Vida Chatbot Agent ($39/mo) |
+| Vida product created | prod_UcjOB0KZXHlmSy — Vida Chatbot Agent ($29/mo) |
 | 6 credit bundle products exist | Lead Gen 20/40/100 + FIGSY 20/40/100 — all $1/credit |
 
 #### PWA (Progressive Web App) — live at app.get-kind.com
@@ -1000,7 +1000,7 @@ sections the script flags but cannot judge.
 | Campaign pause emails | Wired |
 | Weekly report email | Wired |
 | Sequence branching | Built |
-| Admin cohort analytics | Real data |
+| Admin cohort analytics | ⏳ Not built — route does not exist (build at 10+ clients) |
 | Milla chat persistence | Built |
 | Mobile responsive layout | Built |
 | NotificationBell | On-design |
@@ -1216,7 +1216,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 |----------|---------|
 | Hosting | Railway ONLY — Portal, Admin, API. No Vercel. Confirmed and noted as MASTER error. |
 | Billing prices | $1/credit across all bundles. Lead Gen: $20/$40/$100. FIGSY: $20/$40/$100. |
-| Pricing model | Credit bundles + Milla ($49/mo) + Vida ($39/mo) monthly add-ons. No subscription tiers (Starter/Growth were fictional). |
+| Pricing model | Credit bundles + Milla ($49/mo) + Vida ($29/mo) monthly add-ons. No subscription tiers (Starter/Growth were fictional). |
 | PWA | Live at app.get-kind.com — Safari Add to Home Screen confirmed working on iPhone. |
 | Partner sandbox | Auto-provisioned on approval — real client, `is_demo=true`, 100 credits, SaaS ICP, all 4 products. |
 | Stubs (no decision yet) | P2-13 (AI images), P2-14 (social signals), P3-2 (FIGSY vertical modes) — all await founder decision. |
@@ -1282,7 +1282,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | FIGSY auto-replenish cron | 05:00 UTC |
 | K.I.N.D self-outreach cron | Monday 06:00 UTC — Apollo search auto-enrols prospects |
 | `/stats/platform` | Public endpoint — live platform stats |
-| 12 cron jobs at this point | Final count grew to 19 by 26 May |
+| 12 cron jobs at this point | Final live count: 16 (3 planned status-snapshot crons never built) |
 
 #### 22–24 May 2026
 | Built | Detail |
@@ -1292,8 +1292,8 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | Conversational ICP builder | Feature flagged — `FEATURE_ICP_BUILDER=true` |
 | Web Speech API voice input | Mic button on both above — Chrome/Safari/Edge |
 | ICP website scan | "Scan website" → `/icps/prefill` → pre-fills from URL |
-| Admin cohort analytics | `/admin/cohorts` — monthly grouping, activation/conversion/churn |
-| Portal analytics page | `/dashboard/analytics` — 6-month trends, ICP breakdown, score distribution |
+| Admin cohort analytics | ⏳ Not built — `/admin/cohorts` route does not exist (planned, build at 10+ clients) |
+| Portal analytics page | ⏳ Not built — `/dashboard/analytics` route does not exist (planned, build at 10+ clients) |
 | Stripe billing wired | Fully activates on `STRIPE_SECRET_KEY` env var |
 | Portal dark mode + UI upgrade | Dashboard redesign + grouped sidebar |
 | Portal V2 full redesign | SidebarV2, Mission Control — behind `FEATURE_PORTAL_V2=true` |
@@ -1316,7 +1316,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | **Admin dark restyle** | Clients list, client detail — health scoring, at-risk filter, credit management |
 | **Internal briefs router** | `POST /internal/briefs/*` — AI exec team daily briefs |
 | **Waitlist landing page** | Pre-launch interest capture (`netlify-waitlist/`) |
-| **Milla + Vida billing launch** | Lock screens, demo request, pricing ($49/$39) in portal |
+| **Milla + Vida billing launch** | Lock screens, demo request, pricing ($49/$29) in portal |
 | **Sales playbook** | `docs/sales-playbook.md` — discovery script, objections, demo flow, proposal |
 | Art of the Possible (Sections 24–28) | 15 pieces, 3 teachers, MCP vision, full competitor study |
 | AI Learning capability doc | Section 27 |
@@ -1366,11 +1366,11 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | **AI reply 7-category upgrade** | 🔥 Hot / 🌤️ Warm / ❄️ Cold / 🚫 Opted out / 👤 Wrong person / ✈️ OOO / ❓ Other. Backward compatible. |
 | **Admin Unibox** | `/unibox` — all FIGSY replies across all clients, filter by category, hot-sorted, limit 200 |
 | **Portal reply inbox upgrade** | Emoji labels, actionable summary bar, priority sort |
-| **Self-serve Stripe subscriptions** | Milla ($49/mo) + Vida ($39/mo) → Stripe checkout → webhook → DB activation |
+| **Self-serve Stripe subscriptions** | Milla ($49/mo) + Vida ($29/mo) → Stripe checkout → webhook → DB activation |
 | **Stripe webhook handlers** | subscription.created/updated → DB upsert · deleted → cancelled · payment_failed → log |
 | **Paystack fully removed from billing UI** | Stripe-only portal. Paystack API routes preserved for legacy data only. |
 | **Milla upgrade screen** | "Unlock Milla — $49/month →" → `/dashboard/billing`. Demo option retained. |
-| **Vida upgrade screen** | "Unlock Vida — $39/month →" → `/dashboard/billing`. Demo option retained. |
+| **Vida upgrade screen** | "Unlock Vida — $29/month →" → `/dashboard/billing`. Demo option retained. |
 | **Homepage hero rewrite** | "Stop chasing leads. Let FIGSY book them." — website + landing |
 | **Full 4-test smoke suite** | Section 18 — 57 steps across Test 1–4 |
 | **Sections 28–34 restored** | Pulled from `main` — Art of Possible deep dives, Compliance, Competitor Targeting, AI Learning, ClickUp Brain, Full Competitive Landscape (917 lines), The Unbuilt Future |
@@ -1766,13 +1766,13 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 |----------|---------|------|
 | Payment processor | Stripe (primary) + Flutterwave (Phase 2). Paystack removed — requires SA entity. | 27 May |
 | Milla pricing | $49/month recurring via Stripe | 27 May |
-| Vida pricing | $39/month recurring via Stripe | 27 May |
+| Vida pricing | $29/month recurring via Stripe | 27 May |
 | Smoke test order | Test 1 → 2 → 3 → 4 — in order, no skipping | 27 May |
 | Build sequence | Zero new features until all 4 tests pass | 27 May |
 | Art of Possible steals S1–S3 | ✅ Built 27 May evening — S4 + S5 queued for Day 4 (31 May) | 27 May |
 | AskFigsyButton (floating widget) | Shows on all portal pages for all users. Mode: lead-gen helper only. Full FIGSY features (campaigns, inbox, knowledge, sequences) require FIGSY subscription — upgrade wall enforced. | 27 May |
 | Apex positioning | "AI Revenue OS" — apply after smoke tests | 27 May |
-| LinkedIn automation | Will not build — ToS risk, permanent ban | Locked |
+| LinkedIn outreach | Backend BUILT (PhantomBuster + human-in-loop approval queue) — activates Week 1 once keys + SQL migration land. (Earlier "never build" decision superseded.) | Built |
 | AI provider | Claude Haiku (volume) + Sonnet (quality) | Locked |
 | Data source | Apollo.io | Locked |
 | Hosting | Supabase af-south-1 + Railway ONLY. No Vercel. | Locked |
@@ -1940,7 +1940,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | **Run `20260526_drip_and_controls.sql`** | ⏳ MUST RUN | Supabase SQL Editor — adds `delivered_at` to leads + `daily_drip_rate` to clients |
 | **HubSpot account + API key** | ⏳ Pending | app.hubspot.com (free) → Settings → Private Apps → "KIND AI" → add `HUBSPOT_API_KEY` to Railway |
 | **Register Resend webhook** | ⏳ Pending | Resend dashboard → Webhooks → `https://kindapi-production-e64c.up.railway.app/figsy/replies/inbound` + set `RESEND_WEBHOOK_SECRET` in Railway |
-| **Stripe price IDs — Milla + Vida** | ⏳ MUST DO BEFORE TEST 3 | Stripe dashboard → create Milla ($49/mo recurring) + Vida ($39/mo recurring) → copy Price IDs → add to Railway as `STRIPE_PRICE_MILLA_MONTHLY` + `STRIPE_PRICE_VIDA_MONTHLY` + `NEXT_PUBLIC_` versions |
+| **Stripe price IDs — Milla + Vida** | ⏳ MUST DO BEFORE TEST 3 | Stripe dashboard → create Milla ($49/mo recurring) + Vida ($29/mo recurring) → copy Price IDs → add to Railway as `STRIPE_PRICE_MILLA_MONTHLY` + `STRIPE_PRICE_VIDA_MONTHLY` + `NEXT_PUBLIC_` versions |
 | **Run `20260527_stripe_subscription_id.sql`** | ⏳ MUST RUN | Supabase SQL Editor — adds `stripe_subscription_id` column to subscriptions table |
 | **Credit race condition fix** | ✅ Fixed 27 May | Unique index on `credit_transactions.reference` + atomic `increment_client_credits()` RPC. Migration `20260526_credit_race_condition_fix.sql` — user confirmed run. |
 | **Startup env check** | ✅ Built 27 May | `apps/api/src/lib/startup-check.ts` — logs CRITICAL/IMPORTANT/OPTIONAL at boot, refuses to start if CRITICAL missing |
@@ -1948,10 +1948,10 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | **Admin Unibox** | ✅ Built 27 May | `/unibox` in admin — all FIGSY replies across all clients, filter by classification, hot-sorted, limit 200. Added to admin nav. |
 | **Portal reply inbox upgrade** | ✅ Built 27 May | Emoji labels, actionable summary bar (Hot + Warm count), sorted by priority |
 | **Homepage hero rewrite** | ✅ Built 27 May | "Stop chasing leads. Let FIGSY book them." — website + landing |
-| **Self-serve Stripe subscriptions — Milla + Vida** | ✅ Built 27 May | Billing page: Milla ($49/mo) + Vida ($39/mo) subscribe buttons → `POST /stripe/subscribe` → Stripe checkout → webhook → DB activation |
+| **Self-serve Stripe subscriptions — Milla + Vida** | ✅ Built 27 May | Billing page: Milla ($49/mo) + Vida ($29/mo) subscribe buttons → `POST /stripe/subscribe` → Stripe checkout → webhook → DB activation |
 | **Paystack fully removed from billing UI** | ✅ Done 27 May | Portal billing page Stripe-only. Paystack API routes preserved (legacy) but no client-facing UI. |
 | **Milla upgrade screen updated** | ✅ Done 27 May | "Unlock Milla — $49/month →" → /dashboard/billing. Demo request button retained. |
-| **Vida upgrade screen updated** | ✅ Done 27 May | "Unlock Vida — $39/month →" → /dashboard/billing. Demo request button retained. |
+| **Vida upgrade screen updated** | ✅ Done 27 May | "Unlock Vida — $29/month →" → /dashboard/billing. Demo request button retained. |
 | **ClickUp competitive audit** | ✅ Done 27 May | Section 24 — steal-now list S1–S8, 2 structural gaps documented |
 | **Apex (apex.host) competitive audit** | ✅ Done 27 May | Section 25 — positioning steal: "AI Revenue OS" framing |
 
@@ -1978,7 +1978,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | ~~2~~ | ~~RESEND_API_KEY in Railway~~ | ✅ **Done** | — |
 | ~~3~~ | ~~Railway deploy logs~~ | ✅ **Done — green** | — |
 | ~~4/5/6~~ | ~~SQL migrations~~ | ✅ **Done** — subscriptions schema + drip system applied | — |
-| **7** | **Set up Stripe** | stripe.com → create account → get keys → create 6 prices (4 credit bundles + Milla $49/mo + Vida $39/mo) → add to Railway | Primary payment processor. UK business, bills African + global clients in USD/GBP. Already fully built — activates on env vars. |
+| **7** | **Set up Stripe** | stripe.com → create account → get keys → create 6 prices (4 credit bundles + Milla $49/mo + Vida $29/mo) → add to Railway | Primary payment processor. UK business, bills African + global clients in USD/GBP. Already fully built — activates on env vars. |
 | **7b** | **Add Milla + Vida subscription prices to Railway** | Stripe dashboard → create recurring products → add `STRIPE_PRICE_MILLA_MONTHLY`, `STRIPE_PRICE_VIDA_MONTHLY`, + NEXT_PUBLIC versions | Required before Test 3. Do NOT paste IDs in chat — add directly to Railway. |
 | **7c** | **Run `20260527_stripe_subscription_id.sql`** | Supabase SQL Editor — paste and run | Adds `stripe_subscription_id` column to subscriptions — required for Milla/Vida webhook processing |
 | **8** | **Register UK company** | companieshouse.gov.uk — £50, same day | Required for Stripe UK account + professional credibility. See Section 23. |
@@ -2049,7 +2049,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | Railway green build | ✅ |
 | All SQL migrations applied | ✅ |
 | Stripe account + 6 prices + keys in Railway | ✅ |
-| NEXT_PUBLIC Stripe vars in Vercel | ✅ |
+| NEXT_PUBLIC Stripe vars in Railway Portal service | ✅ |
 | UK company registration submitted | ✅ In progress — awaiting Companies House |
 | HubSpot account + API key in Railway | ✅ |
 | Resend inbound webhook + secret in Railway | ✅ |
@@ -2279,7 +2279,7 @@ Admin → CMO Tools → copy the drafted post → change the first line to your 
 |---|---|
 | Platform blockers cleared (Stripe webhook, Resend, prices) | — |
 | Supabase platform_status migration applied | — |
-| Smoke test: all 15 steps passing | — |
+| Smoke test: full 57-step suite passing (`docs/SMOKE_TEST.md`) | — |
 | WhatsApp Business API application submitted | — |
 | 15+ outreach messages sent | — |
 | 3+ replies received | — |
@@ -2317,7 +2317,7 @@ Admin → CMO Tools → copy the drafted post → change the first line to your 
 |---|---|---|
 | Email warmup infrastructure | Need to decide on provider first (Lemwarm, Mailreach, or self-hosted pool) — ask me and we'll pick one together | Phase 2 |
 | WhatsApp code changes | Already built — waiting for your 3 env vars from Meta | When Meta approves |
-| LinkedIn automation | ToS risk — always off the table | Never |
+| LinkedIn outreach | Backend BUILT (PhantomBuster + human-in-loop approval) — activates Week 1. Earlier "never build" decision superseded. | Built / activating Week 1 |
 | Milla + Vida launch | July — after first 5 clients | July 2026 |
 | MCP server | Phase 3 | 20+ clients |
 | Conditional sequence branching | Phase 2 | Core loop proven |
@@ -2335,13 +2335,12 @@ Admin → CMO Tools → copy the drafted post → change the first line to your 
 | Admin | admin.get-kind.com |
 | API | kindapi-production-e64c.up.railway.app |
 | Supabase | supabase.com → kind project |
-| Railway | railway.app → KIND API |
-| Vercel | vercel.com → kind-portal + kind-admin |
+| Railway | railway.app → KIND (API + Portal + Admin + Website — no Vercel) |
 | Stripe | dashboard.stripe.com |
 | Resend | resend.com |
 | Apollo | app.apollo.io |
 | HubSpot | app.hubspot.com |
-| Calendly | calendly.com/jacques-vieiraza/30min |
+| Calendly | calendly.com/kind-ai-demo/new-meeting |
 | Sales Playbook | admin.get-kind.com/docs/sales-playbook |
 | Admin Status | admin.get-kind.com/status |
 | Demo Envs | admin.get-kind.com/demo |
@@ -2527,7 +2526,7 @@ Target: 10 messages sent by end of day. Aim for 3 responses.
 
 | Target | Status |
 |---|---|
-| Smoke test: all 15 steps passing | — |
+| Smoke test: full 57-step suite passing (`docs/SMOKE_TEST.md`) | — |
 | Platform blockers cleared (Stripe webhook, Resend, prices) | — |
 | 15+ outreach messages sent | — |
 | 3+ replies received | — |
@@ -2564,7 +2563,7 @@ In priority order. Working through these in parallel with your smoke test and ou
 | Item | Why not now |
 |---|---|
 | Email warmup infrastructure | Requires a third-party warmup pool service — needs a decision on which one (Lemwarm, Mailreach, etc.) before I can build the integration. Ask me and we'll decide together. |
-| LinkedIn automation | ToS risk — always off the table |
+| LinkedIn outreach | Backend BUILT (PhantomBuster + human-in-loop approval) — activates Week 1. Earlier "never build" decision superseded. |
 | Milla + Vida launch | July — not touching these until after first 5 clients |
 | MCP server | Phase 3 — after 20+ clients |
 | Conditional sequence branching | Phase 2 — after core loop proven |
@@ -2582,13 +2581,12 @@ In priority order. Working through these in parallel with your smoke test and ou
 | Admin | admin.get-kind.com |
 | API | kindapi-production-e64c.up.railway.app |
 | Supabase | supabase.com → kind project |
-| Railway | railway.app → KIND API |
-| Vercel | vercel.com → kind-portal, kind-admin |
+| Railway | railway.app → KIND (API + Portal + Admin + Website — no Vercel) |
 | Stripe | dashboard.stripe.com |
 | Resend | resend.com |
 | Apollo | app.apollo.io |
 | HubSpot | app.hubspot.com |
-| Calendly | calendly.com/jacques-vieiraza/30min |
+| Calendly | calendly.com/kind-ai-demo/new-meeting |
 | Sales Playbook | admin.get-kind.com/docs/sales-playbook |
 | Admin Status | admin.get-kind.com/status |
 | Demo Envs | admin.get-kind.com/demo |
@@ -2622,15 +2620,15 @@ In priority order. Working through these in parallel with your smoke test and ou
 | FIGSY auto-replenish cron | 20 May |
 | K.I.N.D self-outreach (CMO cron) | 20 May |
 | /stats/platform public endpoint | 20 May |
-| 12 cron jobs total | 20 May | *(final count: 19 as of 26 May — 3× daily auto-status, founder brief, and additional monitoring crons added)* |
+| 12 cron jobs total | 20 May | *(final live count: 16 — founder brief + monitoring crons added; the 3 status-snapshot crons were planned but never built)* |
 | Founder name removed from all public pages | 20 May |
 | Campaign intent prompt — feature flagged | 24 May |
 | Conversational ICP builder — feature flagged | 24 May |
 | Web Speech API voice input — on both above | 24 May |
 | MASTER.md updated — added GTM strategy + UK registration | 24 May |
 | ICP website scan — "Scan website" button in portal ICP form | 24 May |
-| Admin cohort analytics — /admin/cohorts, monthly grouping, activation/conversion/churn | 24 May |
-| Portal analytics page — /dashboard/analytics, 6-month trends, ICP breakdown, score distribution | 24 May |
+| Admin cohort analytics — /admin/cohorts (NOTE: later corrected 27 May — route never actually existed; NOT built) | 24 May |
+| Portal analytics page — /dashboard/analytics (NOTE: later corrected 27 May — route never actually existed; NOT built) | 24 May |
 | Stripe billing confirmed fully wired — activates on STRIPE_SECRET_KEY env var | 24 May |
 | MASTER.md full update — reflects all 24 May builds | 24 May |
 | Admin dark theme full rollout — all pages restyled to dark-first design | 25 May |
@@ -2643,7 +2641,7 @@ In priority order. Working through these in parallel with your smoke test and ou
 | Internal briefs router — POST /internal/briefs/* AI exec team daily briefs | 25 May |
 | Waitlist landing page — pre-launch interest capture (netlify-waitlist/) | 25 May |
 | Portal V2 full redesign — SidebarV2, Mission Control Dashboard (FEATURE_PORTAL_V2=true) | 25 May |
-| Milla + Vida billing launch — lock screens, demo request, pricing ($49/$39) in portal | 25 May |
+| Milla + Vida billing launch — lock screens, demo request, pricing ($49/$29) in portal | 25 May |
 | Sales playbook file — docs/sales-playbook.md: discovery script, objections, demo flow, proposal template | 25 May |
 | Lead drip system — delivered_at column, daily_drip_rate per client, 08:10 UTC cron | 26 May |
 | Credits deduct at delivery — /leads/drip deducts 1 credit per lead on deliver | 26 May |
@@ -2928,7 +2926,7 @@ In priority order. Working through these in parallel with your smoke test and ou
 | **WhatsApp** | Meta Business API approval | WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN |
 | **Google Calendar** | Google Cloud project + OAuth | GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI |
 | **Resend inbound routing** | Upgrade Resend to paid | Then configure webhook to /figsy/replies/inbound |
-| **Milla + Vida subscriptions** | Self-serve billing LIVE — Stripe checkout built. Awaiting Jacques to create Stripe recurring prices ($49 Milla, $39 Vida) and add price IDs to Railway | STRIPE_PRICE_MILLA_MONTHLY, STRIPE_PRICE_VIDA_MONTHLY |
+| **Milla + Vida subscriptions** | Self-serve billing LIVE — Stripe checkout built. Awaiting Jacques to create Stripe recurring prices ($49 Milla, $29 Vida) and add price IDs to Railway | STRIPE_PRICE_MILLA_MONTHLY, STRIPE_PRICE_VIDA_MONTHLY |
 
 ---
 
@@ -2936,7 +2934,7 @@ In priority order. Working through these in parallel with your smoke test and ou
 
 | Item | Why | Revisit when |
 |---|---|---|
-| LinkedIn automation | ToS risk, wrong channel | Never |
+| LinkedIn outreach | Backend BUILT (PhantomBuster + human-in-loop approval) — activates Week 1; earlier "never build" decision superseded | Built / activating Week 1 |
 | 50+ data sources | Apollo covers the market | 50+ clients |
 | SOC 2 Type II | Expensive, overkill pre-enterprise | Q1 2027 |
 | ICP self-improvement | Needs 3+ months live data | 6 months post-launch |
@@ -3024,11 +3022,11 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | Product | Credits | Price USD | Price ZAR |
 |---|---|---|---|
 | K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 |
-| K.I.N.D AI — Lead Gen Pro | 40 | $38 | R722 |
-| K.I.N.D AI — Lead Gen Pro | 100 | $88 | R1,672 |
+| K.I.N.D AI — Lead Gen Pro | 40 | $40 | R760 |
+| K.I.N.D AI — Lead Gen Pro | 100 | $100 | R1,900 |
 | FIGSY Advanced | 20 | $60 | R1,140 |
-| FIGSY Advanced | 40 | $110 | R2,090 |
-| FIGSY Advanced | 100 | $250 | R4,750 |
+| FIGSY Advanced | 40 | $120 | R2,280 |
+| FIGSY Advanced | 100 | $300 | R5,700 |
 
 **Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once value is proven.
 
@@ -3065,13 +3063,12 @@ Full audit completed 18 May 2026. All tables and routes checked.
 | Service | Plan | Cost/mo |
 |---|---|---|
 | Supabase | Pro (af-south-1 required) | $25 |
-| Vercel | Pro | $20 |
-| Railway | Usage-based | $10–20 |
-| Apollo.io | Free now (50 credits/mo) → Monthly Basic ($99/mo) when client 1 pays → Annual ($49/mo) when MRR covers $588 upfront | $0 → $99 |
+| Railway | Usage-based (all services — no Vercel) | $10–20 |
+| Apollo.io | Free now (50 credits/mo) → Annual Basic ($49/mo) when client 1 pays; ~$49–65 effective | $0 → $49–65 |
 | Google Workspace | Business Starter (hello@get-kind.com) | $12–18 |
 | Resend | Free → Pro at scale | $0–20 |
 | Domain | Annual | ~$1 |
-| **Total floor (excl. Claude Code)** | | **$167–203/mo** |
+| **Total floor (excl. Claude Code)** | | **~$125/mo** |
 
 **Variable costs per lead:** ~$0.009
 
@@ -3200,7 +3197,7 @@ HUBSPOT_API_KEY=                ← from HubSpot → Settings → Private Apps �
 STRIPE_PRICE_LEADGEN_40=        ← 40-credit Lead Gen bundle
 STRIPE_PRICE_FIGSY_40=          ← 40-credit FIGSY bundle  
 STRIPE_PRICE_MILLA_MONTHLY=     ← Milla $49/mo subscription
-STRIPE_PRICE_VIDA_MONTHLY=      ← Vida $39/mo subscription
+STRIPE_PRICE_VIDA_MONTHLY=      ← Vida $29/mo subscription
 NEXT_PUBLIC_STRIPE_PRICE_MILLA_MONTHLY=
 NEXT_PUBLIC_STRIPE_PRICE_VIDA_MONTHLY=
 FLUTTERWAVE_SECRET_KEY=     ← from Flutterwave dashboard → API Keys
@@ -3392,7 +3389,7 @@ END $$;
 #### 💬 Vida Subscription
 | # | Do this | Pass ✅ | Fail ❌ |
 |---|---------|---------|---------|
-| 43 | Billing → Vida card → **Unlock Vida — $39/month** | Stripe checkout opens in **subscription mode** | Nothing — `STRIPE_PRICE_VIDA_MONTHLY` missing |
+| 43 | Billing → Vida card → **Unlock Vida — $29/month** | Stripe checkout opens in **subscription mode** | Nothing — `STRIPE_PRICE_VIDA_MONTHLY` missing |
 | 44 | Complete with test card | Redirects to `/dashboard/chatbot?subscribed=1` | Stuck on Stripe |
 | 45 | Vida page loads — no upgrade prompt | Full Vida config page visible | Still shows upgrade prompt — webhook not firing |
 | 46 | Go back to Billing | Vida card shows green **Subscribed** badge | Still shows buy button |
@@ -3468,10 +3465,10 @@ Send them here. I fix in real time.
 
 > **Data accumulates from Day 1.** Every lead scored, every ICP run, every FIGSY email sent is a proprietary dataset no competitor can buy. At 50+ clients, that dataset becomes a moat. At 500+ clients, it becomes the product.
 
-> **Memory compounds.** Every client, every campaign, every reply makes the next one smarter. The companies that accumulate context fastest win. Tuesday starts the clock.
+> **Memory compounds.** Every client, every campaign, every reply makes the next one smarter. The companies that accumulate context fastest win. Monday starts the clock.
 
 ### Month 1 (by July 2026) — £4,000 MRR
-- Launch Tuesday. First 5 paying clients.
+- Launch Monday. First 5 paying clients.
 - Dogfood engine running — FIGSY books K.I.N.D's own demos.
 - LinkedIn + WhatsApp outreach live (multi-channel from week 1).
 - Real product demo on homepage. LinkedIn founder content daily.
@@ -3487,7 +3484,7 @@ Send them here. I fix in real time.
 
 ### Month 3 (by September 2026) — £40,000 MRR
 - 50+ paying clients across SA, UK, Nigeria, Kenya.
-- **Full agent family live: REEVE + LENA + OTTO** alongside FIGSY.
+- **Full agent family live: DENISE (formerly REEVE) + LENA + OTTO** alongside FIGSY. (DENISE was pulled forward as the #1 next build.)
 - Multi-agent orchestration — all four agents share memory and run in parallel.
 - 500+ FIGSY skill library. MCP server live.
 - Outcome-based "per meeting booked" pricing tier.
@@ -3803,8 +3800,8 @@ Alta has WhatsApp inside sequences only. K.I.N.D has Vida — a full WhatsApp ch
 | Payment processor | **Stripe (USD/GBP) — primary**. Founder is UK-based, Paystack requires SA entity. African clients pay in USD via international card. Flutterwave Phase 2 for local African payment methods (M-Pesa etc). |
 | AI provider | Anthropic Claude — Haiku for volume, Sonnet for quality |
 | Data source | Apollo.io |
-| Hosting | Supabase af-south-1 + Railway + Vercel |
-| LinkedIn automation | Will not build — ToS risk |
+| Hosting | Supabase af-south-1 + Railway ONLY (no Vercel) |
+| LinkedIn automation | Backend built — activates Week 1 (PhantomBuster keys + SQL) |
 | SOC 2 | Q1 2027 |
 | Business registration | UK — Companies House |
 | No email confirmation | Removed — signup is instant |
@@ -4444,7 +4441,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | FIGSY | Super Agent — outbound | AI SDR: finds leads, writes emails, handles replies, learns what works | ✅ Live |
 | Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | ✅ Live |
 | Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | ✅ Live |
-| REEVE | Sales Agent | AE: books discovery calls, follows up pipeline, drafts proposals | **Month 3** |
+| DENISE (formerly REEVE) | Sales/Closer Agent | AE: closes deals, books discovery calls, follows up pipeline, drafts proposals | **#1 next build (pulled forward)** |
 | LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | **Month 3** |
 | OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | **Month 3** |
 
@@ -4567,7 +4564,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | Client health view | ⚠️ Task-based, not client-health | ✅ At-risk client tracking | ✅ We win |
 | Revenue dashboard | ⚠️ Time billing reports only | ✅ Revenue page | ✅ We win |
 | AI exec team view | ❌ Not built | ✅ /agents/otto, /lena, /reeve, /cmo, /cto, /cfo | ✅ We win |
-| Cohort tracking | ❌ Not built | ✅ /cohorts | ✅ We win |
+| Cohort tracking | ❌ Not built | ⏳ Planned (`/cohorts` route not yet built — at 10+ clients) | Tie |
 | Lead pipeline view | ❌ Not built | ✅ HubSpot integration | ✅ We win |
 | Scalability modelling | ❌ Not built | ✅ /scalability | ✅ We win |
 | Terms library | ❌ Not built | ✅ /terms-library | ✅ We win |
@@ -4656,7 +4653,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | Mobile app | High cost, low priority | Year 2+ |
 | Meeting notetaker | Joins calls, transcribes, creates tasks | Parked (Section 28) |
 | 500+ modular skill library | FIGSY vertical skills | Year 2 |
-| Multi-agent orchestration | FIGSY + OTTO + LENA in parallel | Year 2 |
+| Multi-agent orchestration | FIGSY + DENISE + OTTO + LENA in parallel | Month 3 |
 
 ---
 
@@ -4820,7 +4817,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | Client health view | ⚠️ Task-based, not client-health | ✅ At-risk client tracking |
 | Revenue dashboard | ⚠️ Time billing reports only | ✅ Revenue page |
 | AI exec team view | ❌ Not built | ✅ /agents/otto, /lena, /reeve, /cmo, /cto, /cfo |
-| Cohort tracking | ❌ Not built | ✅ /cohorts |
+| Cohort tracking | ❌ Not built | ⏳ Planned (`/cohorts` route not yet built — at 10+ clients) |
 | Lead pipeline view | ❌ Not built | ✅ HubSpot integration |
 | Scalability modelling | ❌ Not built | ✅ /scalability |
 | Terms library | ❌ Not built | ✅ /terms-library |
@@ -4902,7 +4899,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 |---------|-----------|
 | Mobile app | Cost vs priority — not blocking revenue |
 | 500+ AI skill library | Need client volume to know which to build |
-| Multi-agent orchestration (FIGSY + OTTO + LENA parallel) | Section 28 — Year 2 architecture |
+| Multi-agent orchestration (FIGSY + DENISE + OTTO + LENA parallel) | Month 3 (DENISE = #1 next build, pulled forward) |
 | Meeting notetaker | Month 6-12 in roadmap already |
 | Collaborative docs | Notion/ClickUp territory — not our domain |
 
@@ -5262,7 +5259,7 @@ Same product. 10x the perception. Update this across website, deck, and GTM when
 
 | # | Feature | Stolen from | What it does | Status |
 |---|---------|------------|-------------|--------|
-| 21 | **Multi-agent orchestration** | ClickUp / Apex | FIGSY + OTTO + LENA running in parallel — coordinated campaigns | 🔴 |
+| 21 | **Multi-agent orchestration** | ClickUp / Apex | FIGSY + DENISE + OTTO + LENA running in parallel — coordinated campaigns | 🔴 |
 | 22 | **FIGSY Memory v2** | ClickUp + Apex | Full 3-type memory with vector embeddings (pgvector) — personalisation at scale | 🔴 |
 | 23 | **Pipeline forecasting** | Industry standard | AI predicts close probability based on reply classification + ICP match score | 🔴 |
 | 24 | **In-portal client messaging** | ClickUp | Direct message thread between client and your team — in portal, no email needed | 🔴 |
@@ -5750,9 +5747,9 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | FIGSY | Super Agent — outbound | AI SDR: finds leads, writes emails, handles replies, learns what works | ✅ Live |
 | Milla | Brain Notetaker + Knowledge Agent | VA: answers questions, runs morning brief, drafts documents | Subscription billing live — awaiting Stripe price IDs in Railway |
 | Vida | Automation Agent — inbound | Chatbot: qualifies website visitors, WhatsApp handler | Subscription billing live — awaiting Stripe price IDs in Railway |
-| REEVE | Sales Agent | AE: books discovery calls, follows up pipeline, drafts proposals | Year 2 |
-| LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | Year 2 |
-| OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | Year 2 |
+| DENISE (formerly REEVE) | Sales/Closer Agent | AE: closes deals, books discovery calls, follows up pipeline, drafts proposals | #1 next build (pulled forward) |
+| LENA | CS Agent | Customer Success: monitors health, flags at-risk, handles check-ins | Month 3 |
+| OTTO | Ops/Analytics Agent | CRO: pipeline health, revenue forecasting, anomaly alerts | Month 3 |
 
 **Each agent (when fully built):**
 - Named identity card in portal with avatar, live stats, last active timestamp
@@ -5873,7 +5870,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | Client health view | ⚠️ Task-based, not client-health | ✅ At-risk client tracking | ✅ We win |
 | Revenue dashboard | ⚠️ Time billing reports only | ✅ Revenue page | ✅ We win |
 | AI exec team view | ❌ Not built | ✅ /agents/otto, /lena, /reeve, /cmo, /cto, /cfo | ✅ We win |
-| Cohort tracking | ❌ Not built | ✅ /cohorts | ✅ We win |
+| Cohort tracking | ❌ Not built | ⏳ Planned (`/cohorts` route not yet built — at 10+ clients) | Tie |
 | Lead pipeline view | ❌ Not built | ✅ HubSpot integration | ✅ We win |
 | Scalability modelling | ❌ Not built | ✅ /scalability | ✅ We win |
 | Terms library | ❌ Not built | ✅ /terms-library | ✅ We win |
@@ -5962,7 +5959,7 @@ ClickUp's Super Agents are "coworkers, not tools." They are available 24/7, they
 | Mobile app | High cost, low priority | Year 2+ |
 | Meeting notetaker | Joins calls, transcribes, creates tasks | Parked (Section 28) |
 | 500+ modular skill library | FIGSY vertical skills | Year 2 |
-| Multi-agent orchestration | FIGSY + OTTO + LENA in parallel | Year 2 |
+| Multi-agent orchestration | FIGSY + DENISE + OTTO + LENA in parallel | Month 3 |
 
 ---
 
@@ -6656,7 +6653,7 @@ Competitors are grouped into 7 tiers by category. Each entry covers: what they a
 **Pricing:** $49–145/user/month
 
 **What to steal**
-- Power dialer concept: for REEVE (Year 2) — AI SDR that can actually call prospects
+- Power dialer concept: for DENISE (formerly REEVE; #1 next build, pulled forward) — AI SDR that can actually call prospects
 - Activity timeline per client: everything that happened on this account in chronological order
 
 ---
@@ -7025,9 +7022,9 @@ A growing African SMB needs:
 - Someone to find and contact leads (BDR) → **FIGSY** — *built*
 - Someone to run morning briefings and manage documents (Chief of Staff / VA) → **Milla** — *Subscription billing live — awaiting Stripe price IDs in Railway*
 - Someone to handle inbound and qualify website visitors (Inbound SDR) → **Vida** — *Subscription billing live — awaiting Stripe price IDs in Railway*
-- Someone to close the deal (Account Executive) → **REEVE** — *Year 2*
-- Someone to retain and grow existing clients (Customer Success) → **LENA** — *Year 2*
-- Someone to watch revenue, flag risk, forecast (CRO) → **OTTO** — *Year 2*
+- Someone to close the deal (Account Executive) → **DENISE** (formerly REEVE) — *#1 next build (pulled forward)*
+- Someone to retain and grow existing clients (Customer Success) → **LENA** — *Month 3*
+- Someone to watch revenue, flag risk, forecast (CRO) → **OTTO** — *Month 3*
 - Someone to manage cash, invoices, financial health (CFO agent) → *Year 3*
 - Someone to manage brand, campaigns, market positioning (CMO agent) → *Year 3*
 
@@ -7090,9 +7087,9 @@ The full commercial journey K.I.N.D could own:
 | Prospect identified | ✅ Apollo → FIGSY | ✅ |
 | Sequence written + sent | ✅ FIGSY | ✅ |
 | Reply handled | ✅ auto-pause + alert | ✅ |
-| Meeting booked | ⚠️ client takes over | REEVE books it to Calendly automatically |
-| Discovery call | ❌ | REEVE joins as AI notetaker, surfaces objections live |
-| Proposal drafted | ❌ | REEVE drafts proposal from call transcript |
+| Meeting booked | ⚠️ client takes over | DENISE books it to Calendly automatically |
+| Discovery call | ❌ | DENISE joins as AI notetaker, surfaces objections live |
+| Proposal drafted | ❌ | DENISE drafts proposal from call transcript |
 | Contract sent | ❌ | Vida sends DocuSign via HubSpot integration |
 | Invoice raised | ❌ | CFO agent raises invoice in Xero/Wave |
 | Onboarding | ❌ | Milla runs onboarding checklist automatically |
@@ -7255,7 +7252,7 @@ Not a lead generation tool. Not an AI SDR. Not even a sales platform.
 Every African business that wants to grow installs K.I.N.D the way they install an accountant, a lawyer, a bank account — it is infrastructure, not an option.
 
 - **FIGSY** finds new clients automatically
-- **REEVE** closes deals automatically
+- **DENISE** (formerly REEVE) closes deals automatically
 - **LENA** keeps clients and grows accounts automatically
 - **OTTO** watches the numbers and alerts the founder to what matters
 - **Milla** manages the paperwork, briefings, documents, scheduling
@@ -7509,7 +7506,7 @@ Point to the credit bundles.
 
 Show the Milla / Vida subscription cards.
 
-**Say:** *"Milla and Vida are $49 and $39 a month. One click, Stripe handles it — you're live in under a minute."*
+**Say:** *"Milla and Vida are $49 and $29 a month. One click, Stripe handles it — you're live in under a minute."*
 
 **Smoke check:** Billing page loads ✅ / Stripe checkout opens ✅ / Balance updates after payment ✅
 

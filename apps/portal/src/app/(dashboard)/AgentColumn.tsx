@@ -11,6 +11,7 @@ interface Props {
   hasFigsy: boolean
   hasMilla: boolean
   hasVida: boolean
+  hasDenise: boolean
   leadCount: number
   creditBalance: number
   isNewUser?: boolean
@@ -18,7 +19,7 @@ interface Props {
   partnerDealCount?: number
 }
 
-export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBalance, isNewUser = false, partnerStatus = '', partnerDealCount = 0 }: Props) {
+export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount, creditBalance, isNewUser = false, partnerStatus = '', partnerDealCount = 0 }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
 
@@ -44,13 +45,10 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
   // Agents overview page manages its own layout
   if (pathname.startsWith('/dashboard/agents')) return null
 
-  // Denise's workspace is itself a dedicated tool — no side panel (and never
-  // show FIGSY's panel on her page)
-  if (pathname.startsWith('/dashboard/denise')) return null
-
-  const agentId: 'figsy' | 'milla' | 'vida' =
+  const agentId: 'figsy' | 'milla' | 'vida' | 'denise' =
     pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents') ? 'milla' :
-    pathname.startsWith('/dashboard/chatbot') ? 'vida' : 'figsy'
+    pathname.startsWith('/dashboard/chatbot') ? 'vida' :
+    pathname.startsWith('/dashboard/denise') ? 'denise' : 'figsy'
 
   // Collapsed: narrow strip with avatar + expand chevron
   if (collapsed) {
@@ -128,6 +126,31 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, leadCount, creditBala
           onSend={msg => router.push(`/dashboard/chatbot?q=${encodeURIComponent(msg)}`)}
           inputPlaceholder="Ask Vida anything…"
           online={hasVida}
+        />
+      </div>
+    )
+  }
+
+  // ── Denise ──────────────────────────────────────────────────────────────────
+  if (agentId === 'denise') {
+    return (
+      <div className="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {collapseBtn}
+        <AgentSidePanel
+          agentId="denise"
+          name="Denise"
+          subtitle="The Closer"
+          role="AI Account Executive · Closing"
+          tagline="I close what FIGSY opens."
+          contextMessage="FIGSY books the meeting — I take it from there. Give me the context and I'll draft the warm follow-up or turn your call notes into a proposal. No pressure, all relationship."
+          chips={[
+            { label: 'Draft a warm follow-up', onClick: () => router.push('/dashboard/denise') },
+            { label: 'Proposal from a call',   onClick: () => router.push('/dashboard/denise') },
+            { label: 'See my drafts',          onClick: () => router.push('/dashboard/denise') },
+          ]}
+          onSend={() => router.push('/dashboard/denise')}
+          inputPlaceholder="Ask Denise to draft…"
+          online={hasDenise}
         />
       </div>
     )

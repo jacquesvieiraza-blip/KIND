@@ -39,29 +39,61 @@ Status: ✅ fixed in code (on `main`) · ⏳ fixed, awaiting website-service dep
 | 18 | Portal Denise page showed FIGSY on right | ✅ | AgentColumn renders Denise panel on /dashboard/denise |
 | 19 | "No agent on right talking" on Denise page | ✅ | AgentColumn Denise side-panel + hasDenise wired |
 | 20 | figsy trio strip / footers missing Denise | ✅ | figsy trio + chatbot/denise footers |
-| 21 | Homepage reel is old (FIGSY-only) | ⏳ | swapped embed → platform-video.html (FIGSY/Milla/Vida; no dedicated Denise scene yet) |
-| 22 | Company page "doesn't show Denise" (repeated) | ⏳ | code correct (verified GitHub); **website deploy/cache lag** — hard-refresh + check Railway website service |
-| 23 | Portal agent-switcher dropdown not discoverable | ✅ | Sidebar: labeled "Switch" strip + "4 agents · switch or unlock →" hint |
+| 21 | Homepage reel is old (FIGSY-only) | ✅ | embed → platform-video.html + **dedicated Denise scene** (Vida→Denise→KPI, gold, "Live now · $99/mo") |
+| 22 | Company page "doesn't show Denise" (repeated) | ✅(code) | code correct + verified; was **website deploy/cache lag** — `version.txt` marker added to verify deploy |
+| 23 | Portal agent-switcher dropdown not discoverable / "very bad" | ✅ | redesigned: clean card + full-width "Switch agent ▾" bar (old cramped strip removed) |
 | 24 | Denise demo button 400'd (enum missing) | ✅ | demo-request.ts enum + productNames + denise |
 | 25 | Vida $39 stale in chatbot page + stripe comment | ✅ | → $29 |
 | 26 | DB CHECK rejected figsy_addon/denise_addon | ✅ | migration 011 + schema constraint extended |
+| 27 | Africa-First positioning → GLOBAL | ✅ | swept 25+ pages; playbook→"The B2B Outbound Playbook"; African blog article kept |
+| 28 | #62a trained-on hook · #62d "Revenue Blueprint Session" | ✅ | FIGSY+Denise trained-on lines (no fake numbers); 29 demo CTAs renamed |
+| 29 | #17b outcome-event data floor | ✅ | send/reply/opt_out/meeting_booked (FIGSY + calendar paths) |
+| 30 | R420k Rand in reel KPI mockups | ✅ | → $420k (all 3 reel files) |
 
-### DEEP AUDITS RUN 5 Jun (evidence-based, not memory)
-- **Website audit (exhaustive):** 0 broken links/anchors/buttons, all dropdowns 4 agents + working promo blocks, logo correct everywhere, no fabricated aggregate stats, USD throughout. Fixed: figsy trio strip, chatbot+denise footers, .dd-promo CSS on 4 pages.
-- **Portal audit (exhaustive):** Denise verified wired end-to-end across 14-step client journey (signup→billing→Stripe→webhook→workspace→API). Logo all `/logo-k.png`. Agent-panel routes all correct. Pricing now consistent. 4 bugs found + fixed (above).
+### DEEP AUDITS — TWO FULL SWEEPS, 5 Jun (evidence-based, not memory)
+- **Website sweep ×2:** 0 broken links/anchors/buttons; all dropdowns 4 agents + working promo blocks; logo correct; USD throughout; positioning global. Final sweep found 1 bug (R420k) → fixed. **Now: 0 confirmed issues.**
+- **Portal sweep ×2:** Denise wired end-to-end across full client journey (signup→billing→Stripe→webhook→workspace→API); logo all `/logo-k.png`; agent-panel routes correct; pricing consistent; switcher clean; build green. **Final sweep: 0 confirmed issues.**
 
-### ⚠️ KNOWN-OPEN (honest)
-- **#21 reel** — platform-video.html shows FIGSY/Milla/Vida; **no dedicated Denise animated scene** (text mentions her). Full Denise reel scene = follow-up build (delicate animation).
-- **Video reels** demo-video/platform-video contain illustrative reply-rate numbers (8.2%/12.8%) in mockup notifications — founder to decide keep vs remove (no-fake-news judgement).
-- **Africa-First positioning** still in Resources playbook + vs-* pages + values — 🔁 founder decision (US/global vs Africa-first vs dual).
-- **Deploy/cache:** website is a separate Railway service; it lags the portal. Several "still broken" reports are stale cache, not code. Verify Railway website-service deploy = latest `main`; purge CDN; hard-refresh.
+### ⚠️ KNOWN-OPEN (honest — decisions made / by design)
+- **Reel mockup numbers** (reply-rate 8.2%/12.8%) — ✅ DECISION: KEEP as illustrative demo UI; swap for real numbers once #17b data flows. Not fake-news (clearly in-product demo).
+- **Homepage outcome numbers (#62c)** — hold the slot, populate with REAL numbers post-launch (no fabrication).
+- **Deploy/cache:** website is a separate Railway service that lags the portal. `get-kind.com/version.txt` is the live-vs-code check. Server already sends `no-cache` on HTML.
 
-### Still open on FOUNDER (🧍) before launch
-1. **Denise go-live:** create Stripe product + $99/mo price → `STRIPE_PRICE_DENISE_MONTHLY` on Railway; **run migration `011_denise.sql`**.
-2. **TIER 0 credential rotation** (all keys exposed 4 Jun).
-3. **Check Railway website-service deploy** is on latest `main` + purge cache.
-4. **Free cloud credits F1** (Microsoft/Google/AWS).
-5. **Launch checklist** — DNS, dogfood account, Calendly, ICO, SR01, smoke tests ×2, LinkedIn lockdown → Monday.
+---
+
+## 🏁 PRE-LAUNCH SPLIT — what's yours, what's mine, what I'm waiting on
+
+### 🤖 CLAUDE — DONE (code complete, on `main`, verified by 2 sweeps)
+Website (logo, colors, USD, 4-agent consistency, denise.html, global positioning, reel+Denise scene, dd-promo, trio/footers, pricing) · Portal (Denise transactional end-to-end: sidebar/switcher, layout access, AgentColumn panel, workspace, agents card, billing $99) · API (denise routes, Stripe config, demo-request) · DB (migration 011 + schema) · #17b data floor · #62a/#62d steals.
+
+### 🤖 CLAUDE — REMAINING (gated on founder, not blocking launch)
+- **#17 Fix smoke-test failures** — Sat/Sun, after your smoke tests (the core weekend loop).
+- **#4 Grant FIGSY + credits, set `FIGSY_KIND_CLIENT_ID` + `booking_url`** — after you create the dogfood account (#3).
+- **#44 Replace homepage hero animation with real product loop** — after you record real demo footage.
+- **#62c Homepage outcome numbers** — after first real results.
+
+### 🧍 FOUNDER — before Monday (your list)
+1. **Denise go-live (2 steps left):** create $99/mo Stripe price → `STRIPE_PRICE_DENISE_MONTHLY` on Railway API service + redeploy. (Migration 011 ✅ done.)
+2. **TIER 0 credential rotation** (all keys exposed 4 Jun) — FIRST.
+3. **Confirm Railway website-service** deployed latest `main` (check `get-kind.com/version.txt`).
+4. **Move `FEATURE_PORTAL_V2=true`** API → Portal service.
+5. **Create dogfood account → ping me** (unblocks my #4).
+6. **Run migration `010_crm_dedup.sql`** (011 already done).
+7. **DNS** `app`/`api`/`admin`/`status`.get-kind.com → then update `NEXT_PUBLIC_API_URL` + Resend webhook.
+8. **Confirm Calendly** live · **ICO** £40 · **SR01** suppression · **registered office** · **WHOIS privacy** · **LinkedIn lockdown**.
+9. **Free cloud credits F1** (Microsoft/Google/AWS — zero downside).
+
+### ⏳ WHAT I'M WAITING ON YOU FOR (to fully finish)
+1. **Dogfood account** → so I can grant FIGSY + set client config (#4).
+2. **Smoke test 1 & 2 results** → so I can fix any failures same-day (#17) — the main Sat/Sun work.
+3. **(Optional) real demo footage** → to replace the homepage animation.
+Everything else of mine is done.
+
+### 🗓 WEEKEND → MONDAY (your plan, mapped)
+- **Sat AM (you):** run · clean · finish your to-do items · do Denise Stripe step + credential rotation + DNS.
+- **Sat PM:** **smoke test 1** (57-step, `docs/SMOKE_TEST.md`) → log `T#-Step#` failures → ping me, I fix same-day.
+- **Sun:** confirm fixes · **smoke test 2** · refine · green on all fronts.
+- **Mon:** 🚀 **LAUNCH** both markets, multiple campaigns.
 
 ---
 

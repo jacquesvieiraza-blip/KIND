@@ -1,4 +1,4 @@
-build: 9cd4cdf
+build: pending-merge (from 66f2329)
 deployed-from: main
-stamped: 2026-06-05T17:37:43Z
-note: visit get-kind.com/version.txt — if this matches the latest commit, the website service is current. If older/404, the deploy is stale.
+stamped: 2026-06-05T17:49:52Z
+note: visit get-kind.com/version.txt — if 'stamped' is recent, the website service is current.

@@ -112,8 +112,8 @@ export function SidebarV2Preview({ userEmail }: { userEmail: string }) {
       {/* Logo */}
       <div className="px-4 py-4 border-b border-white/[0.06]">
         <Link href="/v2" className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-[#7C3AED] rounded-lg flex items-center justify-center shrink-0">
-            <Zap className="w-4 h-4 text-white" />
+          <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+            <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
           </div>
           <span className="text-white font-bold text-sm tracking-tight">K·I·N·D</span>
           <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#7C3AED]/40 text-[#a78bfa] tracking-wide">v2</span>

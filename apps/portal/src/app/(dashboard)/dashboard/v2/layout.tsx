@@ -28,6 +28,7 @@ export default async function V2Layout({ children }: { children: React.ReactNode
         hasFigsy={true}
         hasMilla={true}
         hasVida={true}
+        hasDenise={true}
       />
       <main className="flex-1 overflow-y-auto">
         {children}

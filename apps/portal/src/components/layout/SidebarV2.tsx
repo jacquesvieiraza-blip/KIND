@@ -118,8 +118,8 @@ export function SidebarV2({ userEmail, creditBalance = 0 }: { userEmail: string;
       {/* ── Logo ─────────────────────────────────────────────────────── */}
       <div className="px-5 py-5 border-b border-white/[0.06]">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center shrink-0 shadow-ds-brand">
-            <Zap className="w-4 h-4 text-white" />
+          <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center shrink-0 shadow-ds-brand">
+            <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
           </div>
           <span className="text-white font-bold text-base tracking-tight">K.I.N.D</span>
         </div>

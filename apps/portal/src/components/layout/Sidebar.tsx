@@ -216,8 +216,8 @@ export function Sidebar({
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-[#7C3AED] flex items-center justify-center">
-            <Zap className="w-3.5 h-3.5 text-white" />
+          <div className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center">
+            <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
           </div>
           <span className="text-[#1E1152] font-bold text-sm tracking-tight">K.I.N.D</span>
         </div>
@@ -243,8 +243,8 @@ export function Sidebar({
 
         {/* ── Logo ─────────────────────────────────────────────────── */}
         <div className="px-4 pt-5 pb-4 flex items-center gap-2.5 border-b border-purple-100">
-          <div className="w-7 h-7 rounded-lg bg-[#7C3AED] flex items-center justify-center shadow-sm shadow-purple-200">
-            <Zap className="w-4 h-4 text-white" />
+          <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center shadow-sm shadow-purple-200">
+            <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
           </div>
           <span className="text-[#1E1152] font-bold text-sm tracking-tight">K.I.N.D</span>
           <button

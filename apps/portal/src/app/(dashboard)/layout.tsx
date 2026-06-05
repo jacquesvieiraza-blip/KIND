@@ -18,6 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let hasFigsy          = false
   let hasMilla          = false
   let hasVida           = false
+  let hasDenise         = false
   let leadCount         = 0
   let isPartner         = false
   let partnerStatus     = ''
@@ -58,9 +59,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
       const subs = (clientRow.subscriptions as { status: string; product?: string; trial_ends_at?: string }[]) ?? []
 
       const isLive = (p: string) => subs.some(s => s.product === p && (s.status === 'active' || s.status === 'trialing'))
-      hasFigsy = isLive('lead_gen_figsy') || isLive('figsy_addon')
-      hasMilla = isLive('virtual_assistant')
-      hasVida  = isLive('chatbot')
+      hasFigsy  = isLive('lead_gen_figsy') || isLive('figsy_addon')
+      hasMilla  = isLive('virtual_assistant')
+      hasVida   = isLive('chatbot')
+      hasDenise = isLive('denise') || isLive('denise_addon')
 
       const hasAny = subs.some((s) => s.status === 'active')
       if (!hasAny) {
@@ -96,6 +98,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         hasFigsy={hasFigsy}
         hasMilla={hasMilla}
         hasVida={hasVida}
+        hasDenise={hasDenise}
         isNewUser={isNewUser}
         isPartner={isPartner}
       />

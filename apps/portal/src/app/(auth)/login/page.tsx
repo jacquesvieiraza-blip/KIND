@@ -148,8 +148,8 @@ function LoginForm() {
         {/* Logo */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2.5 mb-2">
-            <div className="w-9 h-9 rounded-xl bg-[#7C3AED] flex items-center justify-center shadow-lg shadow-purple-500/25">
-              <Zap className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-lg shadow-purple-500/25">
+              <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
             </div>
             <span className="text-2xl font-bold text-[#1E0A5C]">K.I.N.D</span>
           </div>

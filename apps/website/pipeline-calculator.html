@@ -180,10 +180,10 @@
   // anywhere as a guaranteed or measured result. Adjust the defaults below once you
   // have real benchmark data — see EVERYTHING.md item #61f.
   var DEFAULTS = { leads: 300, deal: 25000, reply: 8, meeting: 40, close: 25 }
-  var CURRENCY = 'R' // change to '$' for the US edition
+  var CURRENCY = '$'
 
   function fmtMoney(n) {
-    return CURRENCY + ' ' + Math.round(n).toLocaleString('en-ZA')
+    return CURRENCY + Math.round(n).toLocaleString('en-US')
   }
 
   var el = function(id) { return document.getElementById(id) }
@@ -201,15 +201,15 @@
     var clients  = meetings * (closePc / 100)
     var revenue  = clients * deal * 12
 
-    el('leads-val').textContent   = leads.toLocaleString('en-ZA')
+    el('leads-val').textContent   = leads.toLocaleString('en-US')
     el('deal-val').textContent    = fmtMoney(deal)
     el('reply-val').textContent   = replyPc + '%'
     el('meeting-val').textContent = meetPc + '%'
     el('close-val').textContent   = closePc + '%'
 
-    el('out-replies').textContent  = Math.round(replies).toLocaleString('en-ZA')
-    el('out-meetings').textContent = Math.round(meetings).toLocaleString('en-ZA')
-    el('out-clients').textContent  = Math.round(clients).toLocaleString('en-ZA')
+    el('out-replies').textContent  = Math.round(replies).toLocaleString('en-US')
+    el('out-meetings').textContent = Math.round(meetings).toLocaleString('en-US')
+    el('out-clients').textContent  = Math.round(clients).toLocaleString('en-US')
     el('out-revenue').textContent  = fmtMoney(revenue)
   }
 

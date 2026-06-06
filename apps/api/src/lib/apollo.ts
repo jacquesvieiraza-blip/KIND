@@ -1,8 +1,11 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 
-const APOLLO_BASE = 'https://api.apollo.io/v1'
-// Apollo deprecated /mixed_people/search for API callers (returns HTTP 422). The
-// supported people-search endpoint is /mixed_people/api_search.
+// Apollo's PUBLIC REST API is under /api/v1. The bare /v1 host is Apollo's internal
+// web API (session/OAuth) — calling it with an X-Api-Key is accepted but runs
+// without account context, returning HTTP 200 with zero results. Must be /api/v1.
+const APOLLO_BASE = 'https://api.apollo.io/api/v1'
+// People search endpoint. /mixed_people/search is deprecated for API callers (422);
+// the supported path is /mixed_people/api_search (no-credit, net-new prospecting).
 // Ref: https://docs.apollo.io/reference/people-api-search
 const APOLLO_PEOPLE_SEARCH = `${APOLLO_BASE}/mixed_people/api_search`
 

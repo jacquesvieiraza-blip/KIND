@@ -167,8 +167,14 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
       body:    JSON.stringify(body),
     })
     if (!res.ok) return 0
-    const data = await res.json() as { pagination?: { total_entries?: number } }
-    return data.pagination?.total_entries ?? 0
+    // Apollo returns the match count as a top-level `total_entries` on the current
+    // API; older/other shapes nest it under `pagination.total_entries`. Read both,
+    // or the preview banner reports 0 for every ICP no matter how broad the query.
+    const data = await res.json() as {
+      total_entries?: number
+      pagination?: { total_entries?: number }
+    }
+    return data.pagination?.total_entries ?? data.total_entries ?? 0
   } catch {
     return 0
   }

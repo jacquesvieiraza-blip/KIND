@@ -750,6 +750,16 @@ export default function ICPPage() {
           </div>
         )}
 
+        {/* Run result banner — the outcome of "Run ICP" (was computed but never shown) */}
+        {runBannerMsg && (
+          <div className="mb-4 flex items-start justify-between gap-4 rounded-xl border border-purple-100 bg-[#F5F0FF] px-4 py-3">
+            <p className="text-sm text-[#4C1D95]">{runBannerMsg}</p>
+            <button onClick={() => setRunBannerMsg(null)} className="text-[#9B8EC4] hover:text-[#7C3AED] transition-colors shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  PREVIEW MOCKUP — for review only. Not wired to live data.
+  Proposed /dashboard/setup landing page for K.I.N.D
+  Static, self-contained. Inline CSS + minimal vanilla JS (modal only).
+  ============================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>K.I.N.D — Setup</title>
+<style>
+  :root{
+    --purple:#7C3AED;
+    --purple-hover:#6D28D9;
+    --ink:#1E1152;
+    --panel-dark:#0F0929;
+    --muted:#9B8EC4;
+    --green:#10b981;
+    --figsy:#7C3AED;
+    --milla:#0ea5e9;
+    --vida:#10b981;
+    --denise:#d97706;
+    --border:#ece6fb;
+    --card-shadow:0 12px 36px rgba(124,58,237,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background:linear-gradient(135deg, #FFF5EE 0%, #FAF0FF 55%, #EDE6FF 100%);
+    background-attachment:fixed;
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+
+  /* preview banner */
+  .preview-banner{
+    display:flex;align-items:center;justify-content:center;gap:12px;
+    background:var(--ink);
+    color:#fff;
+    font-size:13px;font-weight:600;letter-spacing:.2px;
+    padding:9px 16px;text-align:center;
+  }
+  .preview-banner .dot{width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;}
+  .preview-banner button{
+    background:rgba(255,255,255,.14);border:none;color:#fff;
+    width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1;
+    transition:background .15s;
+  }
+  .preview-banner button:hover{background:rgba(255,255,255,.28);}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:34px 22px 80px;}
+
+  /* brand row */
+  .brandrow{display:flex;align-items:center;gap:12px;margin-bottom:34px;}
+  .logo-mark{
+    width:42px;height:42px;border-radius:13px;
+    background:linear-gradient(135deg,#7C3AED,#a855f7);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:15px;letter-spacing:.5px;
+    box-shadow:0 6px 18px rgba(124,58,237,.32);
+  }
+  .brandrow .name{font-weight:800;font-size:18px;letter-spacing:.5px;color:var(--ink);}
+  .brandrow .tag{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.3px;margin-top:-2px;}
+
+  /* layout grid */
+  .grid{display:grid;grid-template-columns:1fr 320px;gap:26px;align-items:start;}
+
+  /* welcome header */
+  .welcome h1{
+    font-size:30px;line-height:1.2;font-weight:800;margin:0 0 8px;
+    letter-spacing:-.5px;color:var(--ink);
+  }
+  .welcome .sub{font-size:16px;color:#6b6088;margin:0 0 22px;}
+  .progress-shell{
+    background:#fff;border:1px solid var(--border);border-radius:18px;
+    box-shadow:var(--card-shadow);padding:20px 22px;margin-bottom:26px;
+  }
+  .progress-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+  .progress-top .label{font-weight:700;font-size:14px;color:var(--ink);}
+  .progress-top .pct{font-size:13px;font-weight:700;color:var(--purple);}
+  .bar{height:10px;border-radius:99px;background:#f1ecfb;overflow:hidden;}
+  .bar > i{
+    display:block;height:100%;width:33%;border-radius:99px;
+    background:linear-gradient(90deg,#7C3AED,#a855f7);
+    box-shadow:0 2px 8px rgba(124,58,237,.4);
+  }
+
+  /* step cards */
+  .steps{display:flex;flex-direction:column;gap:16px;}
+  .step{
+    background:#fff;border:1px solid var(--border);border-radius:20px;
+    box-shadow:var(--card-shadow);padding:22px 24px;
+    display:flex;gap:18px;align-items:flex-start;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .step.current{
+    border-left:4px solid var(--purple);
+    box-shadow:0 16px 44px rgba(124,58,237,.18);
+    background:linear-gradient(180deg,#ffffff 0%,#fbf8ff 100%);
+  }
+  .step.done{background:#fbfbfd;border-color:#eef0f4;box-shadow:0 6px 18px rgba(30,17,82,.04);}
+  .step.future{opacity:.62;}
+
+  .badge{
+    flex:0 0 auto;width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:14px;margin-top:2px;
+  }
+  .badge.num{background:#f1ecfb;color:var(--purple);border:1.5px solid #e3d9fa;}
+  .step.current .badge.num{background:var(--purple);color:#fff;border-color:var(--purple);box-shadow:0 4px 12px rgba(124,58,237,.4);}
+  .badge.todo{background:#fff;border:2px solid #dcd6ea;color:transparent;}
+  .badge.check{background:rgba(16,185,129,.14);color:var(--green);border:1.5px solid rgba(16,185,129,.35);font-size:16px;}
+
+  .step .body{flex:1;min-width:0;}
+  .step .title{font-weight:700;font-size:17px;color:var(--ink);margin:1px 0 4px;}
+  .step.done .title{color:#9ea0ad;text-decoration:line-through;text-decoration-color:#cfd1da;font-weight:600;}
+  .step .why{font-size:14px;color:#6b6088;margin:0 0 14px;max-width:62ch;}
+  .step.done .why{display:none;}
+  .step.current .pill{
+    display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;
+    color:var(--purple);background:#f1ecfb;border-radius:99px;padding:3px 9px;margin-bottom:8px;text-transform:uppercase;
+  }
+  .step.done .donelabel{font-size:13px;color:var(--green);font-weight:700;}
+
+  .actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .btn{
+    border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;
+    border-radius:12px;padding:11px 20px;transition:background .15s, transform .1s, box-shadow .15s;
+  }
+  .btn-primary{background:var(--purple);color:#fff;box-shadow:0 6px 16px rgba(124,58,237,.28);}
+  .btn-primary:hover{background:var(--purple-hover);transform:translateY(-1px);}
+  .btn-ghost{
+    background:transparent;color:var(--purple);font-weight:700;font-size:13px;
+    padding:8px 6px;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn-ghost:hover{color:var(--purple-hover);}
+  .btn-ghost .tri{font-size:11px;}
+
+  /* sidebar: your team */
+  .side{display:flex;flex-direction:column;gap:20px;position:sticky;top:24px;}
+  .panel{
+    background:#fff;border:1px solid var(--border);border-radius:20px;
+    box-shadow:var(--card-shadow);padding:22px;
+  }
+  .panel h3{margin:0 0 4px;font-size:15px;font-weight:800;color:var(--ink);}
+  .panel .panelsub{margin:0 0 16px;font-size:12.5px;color:var(--muted);}
+  .member{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #f3f0fa;}
+  .member:last-of-type{border-bottom:none;}
+  .avatar{
+    width:38px;height:38px;border-radius:50%;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:14px;
+  }
+  .member .mname{font-weight:700;font-size:14px;color:var(--ink);}
+  .member .mrole{font-size:12px;color:var(--muted);}
+  .member .mstatus{margin-left:auto;font-size:11px;font-weight:700;border-radius:99px;padding:3px 8px;}
+  .mstatus.owner{background:#f1ecfb;color:var(--purple);}
+  .mstatus.pending{background:#fff4e6;color:var(--denise);}
+  .invite-btn{
+    margin-top:16px;width:100%;background:#f7f4fe;color:var(--purple);
+    border:1.5px dashed #d9cdf7;border-radius:12px;padding:11px;font-weight:700;font-size:14px;cursor:pointer;
+    transition:background .15s;
+  }
+  .invite-btn:hover{background:#f1ecfb;}
+
+  .helpbox{font-size:13px;color:#6b6088;}
+  .helpbox a{color:var(--purple);font-weight:700;text-decoration:none;}
+
+  /* meet your team strip */
+  .meet{margin-top:30px;}
+  .meet h2{font-size:15px;font-weight:800;color:var(--ink);margin:0 0 4px;}
+  .meet .meetsub{font-size:13px;color:var(--muted);margin:0 0 16px;}
+  .agents{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .agent{
+    background:#fff;border:1px solid var(--border);border-radius:16px;
+    box-shadow:0 8px 22px rgba(124,58,237,.07);padding:16px;
+    display:flex;flex-direction:column;gap:9px;
+  }
+  .agent .top{display:flex;align-items:center;gap:11px;}
+  .agent .ico{
+    width:40px;height:40px;border-radius:50%;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;
+  }
+  .agent .an{font-weight:800;font-size:14px;color:var(--ink);}
+  .agent .ar{font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;}
+  .agent .ad{font-size:12.5px;color:#6b6088;margin:0;}
+
+  /* modal */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(15,9,41,.62);backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;padding:20px;z-index:100;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:#fff;border-radius:22px;max-width:600px;width:100%;
+    padding:24px;box-shadow:0 30px 80px rgba(15,9,41,.4);
+    animation:pop .2s ease;
+  }
+  @keyframes pop{from{transform:scale(.96);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .modal-head h4{margin:0;font-size:16px;font-weight:800;color:var(--ink);}
+  .modal-head .x{background:#f1ecfb;border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;color:var(--purple);}
+  .videoframe{
+    background:linear-gradient(135deg,#1E1152,#0F0929);
+    border-radius:16px;aspect-ratio:16/9;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    color:#cfc4ee;
+  }
+  .playbtn{
+    width:74px;height:74px;border-radius:50%;
+    background:rgba(124,58,237,.92);box-shadow:0 10px 30px rgba(124,58,237,.5);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .playbtn:after{content:"";border-left:22px solid #fff;border-top:13px solid transparent;border-bottom:13px solid transparent;margin-left:5px;}
+  .videoframe .cap{font-size:13px;font-weight:600;letter-spacing:.3px;}
+
+  @media (max-width:880px){
+    .grid{grid-template-columns:1fr;}
+    .side{position:static;}
+    .agents{grid-template-columns:1fr 1fr;}
+    .welcome h1{font-size:25px;}
+  }
+  @media (max-width:520px){
+    .agents{grid-template-columns:1fr;}
+    .step{padding:18px;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="preview-banner" id="previewBanner">
+    <span class="dot"></span>
+    <span>PREVIEW MOCKUP — for review only. Not wired to live data.</span>
+    <button onclick="document.getElementById('previewBanner').style.display='none'" title="Dismiss">&times;</button>
+  </div>
+
+  <div class="wrap">
+
+    <div class="brandrow">
+      <div class="logo-mark">KIND</div>
+      <div>
+        <div class="name">K.I.N.D</div>
+        <div class="tag">AI Revenue Team</div>
+      </div>
+    </div>
+
+    <div class="grid">
+
+      <!-- MAIN COLUMN -->
+      <div>
+        <div class="welcome">
+          <h1>Welcome to K.I.N.D, Northwind Labs 👋</h1>
+          <p class="sub">Let's get your AI revenue team working. ~10 minutes.</p>
+        </div>
+
+        <div class="progress-shell">
+          <div class="progress-top">
+            <span class="label">2 of 6 steps complete</span>
+            <span class="pct">33%</span>
+          </div>
+          <div class="bar"><i></i></div>
+        </div>
+
+        <div class="steps">
+
+          <!-- STEP 1 — DONE -->
+          <div class="step done">
+            <div class="badge check">✓</div>
+            <div class="body">
+              <div class="title">Tell us about your business</div>
+              <div class="donelabel">Done — captured during your signup chat with FIGSY</div>
+            </div>
+          </div>
+
+          <!-- STEP 2 — DONE (so progress reads 2 of 6). Kept as completed prior step -->
+          <!-- NOTE: spec lists step 2 as the current step; we mark business + a baseline as done.
+               Per the brief, the ICP review is the emphasized current step below. -->
+
+          <!-- STEP 2 — CURRENT: Confirm ICP -->
+          <div class="step current">
+            <div class="badge num">2</div>
+            <div class="body">
+              <span class="pill">Start here</span>
+              <div class="title">Confirm your Ideal Customer Profile (ICP)</div>
+              <p class="why">We pre-filled this from your website — check it's right so FIGSY targets the correct people.</p>
+              <div class="actions">
+                <button class="btn btn-primary">Review ICP</button>
+                <button class="btn btn-ghost" onclick="openDemo('Confirm your ICP')"><span class="tri">▶</span> Watch 60-sec demo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3 -->
+          <div class="step">
+            <div class="badge num">3</div>
+            <div class="body">
+              <div class="title">Connect your sending email</div>
+              <p class="why">So FIGSY sends outreach from your address, not ours.</p>
+              <div class="actions">
+                <button class="btn btn-primary">Connect email</button>
+                <button class="btn btn-ghost" onclick="openDemo('Connect your sending email')"><span class="tri">▶</span> Watch 60-sec demo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 4 -->
+          <div class="step future">
+            <div class="badge num">4</div>
+            <div class="body">
+              <div class="title">Review your first leads</div>
+              <p class="why">AI-sourced and scored 0–100. Approve who FIGSY should contact.</p>
+              <div class="actions">
+                <button class="btn btn-primary">View leads</button>
+                <button class="btn btn-ghost" onclick="openDemo('Review your first leads')"><span class="tri">▶</span> Watch 60-sec demo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 5 -->
+          <div class="step future">
+            <div class="badge num">5</div>
+            <div class="body">
+              <div class="title">Launch your first campaign</div>
+              <p class="why">FIGSY writes in your voice, sends, and books meetings on your calendar.</p>
+              <div class="actions">
+                <button class="btn btn-primary">Create campaign</button>
+                <button class="btn btn-ghost" onclick="openDemo('Launch your first campaign')"><span class="tri">▶</span> Watch 60-sec demo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 6 -->
+          <div class="step future">
+            <div class="badge num">6</div>
+            <div class="body">
+              <div class="title">Invite your team <span style="font-weight:600;color:var(--muted);font-size:14px;">(optional)</span></div>
+              <p class="why">Add colleagues so everyone sees the pipeline.</p>
+              <div class="actions">
+                <button class="btn btn-primary">Invite teammate</button>
+                <button class="btn btn-ghost" onclick="openDemo('Invite your team')"><span class="tri">▶</span> Watch 60-sec demo</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- MEET YOUR TEAM -->
+        <div class="meet">
+          <h2>Meet your AI revenue team</h2>
+          <p class="meetsub">Four specialists working your pipeline around the clock.</p>
+          <div class="agents">
+            <div class="agent">
+              <div class="top">
+                <div class="ico" style="background:var(--figsy);">F</div>
+                <div>
+                  <div class="an">FIGSY</div>
+                  <div class="ar" style="color:var(--figsy);">The Opener</div>
+                </div>
+              </div>
+              <p class="ad">AI SDR — finds and contacts your best-fit leads.</p>
+            </div>
+            <div class="agent">
+              <div class="top">
+                <div class="ico" style="background:var(--milla);">M</div>
+                <div>
+                  <div class="an">Milla</div>
+                  <div class="ar" style="color:var(--milla);">The Brain</div>
+                </div>
+              </div>
+              <p class="ad">Insights — turns your pipeline data into decisions.</p>
+            </div>
+            <div class="agent">
+              <div class="top">
+                <div class="ico" style="background:var(--vida);">V</div>
+                <div>
+                  <div class="an">Vida</div>
+                  <div class="ar" style="color:var(--vida);">The Connector</div>
+                </div>
+              </div>
+              <p class="ad">Site + WhatsApp chatbot — engages inbound visitors.</p>
+            </div>
+            <div class="agent">
+              <div class="top">
+                <div class="ico" style="background:var(--denise);">D</div>
+                <div>
+                  <div class="an">Denise</div>
+                  <div class="ar" style="color:var(--denise);">The Closer</div>
+                </div>
+              </div>
+              <p class="ad">AI account exec — nurtures and closes the deal.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <aside class="side">
+        <div class="panel">
+          <h3>Your team</h3>
+          <p class="panelsub">Everyone here shares one pipeline.</p>
+
+          <div class="member">
+            <div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#a855f7);">JV</div>
+            <div>
+              <div class="mname">Jacques Vieira</div>
+              <div class="mrole">jacques.vieiraza@gmail.com</div>
+            </div>
+            <span class="mstatus owner">Owner</span>
+          </div>
+
+          <div class="member">
+            <div class="avatar" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);">AS</div>
+            <div>
+              <div class="mname">Amara Silva</div>
+              <div class="mrole">Invited · Sales</div>
+            </div>
+            <span class="mstatus pending">Pending</span>
+          </div>
+
+          <button class="invite-btn">+ Invite teammate</button>
+        </div>
+
+        <div class="panel">
+          <h3>Need a hand?</h3>
+          <p class="panelsub" style="margin-bottom:10px;">Setup usually takes about 10 minutes.</p>
+          <div class="helpbox">
+            Watch the <a href="#" onclick="openDemo('Full product walkthrough');return false;">full walkthrough</a> or
+            <a href="#">message support</a> — we'll get you live fast.
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- DEMO MODAL -->
+  <div class="modal-overlay" id="demoModal" onclick="if(event.target===this)closeDemo()">
+    <div class="modal">
+      <div class="modal-head">
+        <h4 id="demoTitle">Demo</h4>
+        <button class="x" onclick="closeDemo()" title="Close">&times;</button>
+      </div>
+      <div class="videoframe">
+        <div class="playbtn"></div>
+        <div class="cap">Demo video — coming soon</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var modal = document.getElementById('demoModal');
+    function openDemo(name){
+      document.getElementById('demoTitle').textContent = name ? (name + ' — 60-sec demo') : 'Demo';
+      modal.classList.add('open');
+    }
+    function closeDemo(){ modal.classList.remove('open'); }
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeDemo(); });
+  </script>
+
+</body>
+</html>

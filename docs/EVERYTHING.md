@@ -153,7 +153,7 @@ Status: ✅ fixed in code (on `main`) · ⏳ fixed, awaiting website-service dep
 68. ⬜ V2-9 Teams Hub (Critical)
 69. ⬜ V2-3 Conversational agent setup (Medium)
 70. ⬜ V2-4 Structured agent config panel (Medium)
-70b. ⬜ V2-10 **Onboarding Assistant agent** (non-family, distinct image, guides setup — ClickUp-style) (High)
+70b. ⬜ V2-10 **Casey — Onboarding agent** (non-family, portal-only, `casey.png`, guides setup — ClickUp-style) (High)
 
 ### P4 — MONTH 3 (agent family + platform)
 71. ⏸ #54 **DENISE deep build** (#1 next agent) — Calendly auto-book · call-join transcription/notetaker · live objection extraction · proposal draft from transcript · pipeline follow-up · persona prompt · admin card
@@ -343,7 +343,7 @@ Two full passes planned: **Smoke Test 1 (Sat)** and **Smoke Test 2 (Sun)**, each
 7. Invite teammate (header + modal) — growth loop — *High*
 8. AI Notetaker → action items (Milla) — *Critical*
 9. Teams Hub (members, activity, per-person agent usage) — *Critical*
-10. **Onboarding Assistant agent** — a dedicated **non-family** support agent (à la ClickUp's "Onboarding Assistant") that guides new clients through setup (business profile → ICP → first leads → first campaign). NOT one of the FIGSY/Milla/Vida/Denise family; **distinct visual identity — its own friendly style, NOT the Pixar mask portrait.** Lives on the setup/onboarding dashboard (`docs/setup-dashboard-preview.html`). Backend agent + chat surface. — *High* — **NEW 6 Jun**
+10. **Casey — Onboarding agent** — a dedicated **non-family** support agent (à la ClickUp's "Onboarding Assistant") that guides new clients through setup (business profile → ICP → first leads → first campaign). NOT one of the FIGSY/Milla/Vida/Denise revenue family. **PORTAL ONLY — never on the website.** Warm Pixar-3D style (own identity). Image: `apps/portal/public/agents/casey.png` (added by founder 6 Jun). Lives on the setup/onboarding dashboard (`docs/setup-dashboard-preview.html`). Backend agent + chat surface. — *High* — **NEW 6 Jun**
 
 ## ✅ DONE THIS SESSION (4 Jun — verified in repo)
 - terms.html sub-processor bug (Paystack/Vercel → Stripe/Railway) · AAA arbitration §12

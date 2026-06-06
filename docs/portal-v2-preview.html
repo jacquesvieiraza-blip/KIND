@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.N.D Portal V2 — Layout Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4ff; color: #1a1a2e; }
+
+  .nav { background: #fff; border-bottom: 1px solid #ede9fe; padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .nav-logo { font-weight: 800; font-size: 18px; letter-spacing: -0.5px; color: #7C3AED; }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab { padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #6b7280; cursor: pointer; border: none; background: none; }
+  .nav-tab.active { background: #f3f0ff; color: #7C3AED; }
+
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #9B8EC4; margin-bottom: 16px; padding: 0 2px; }
+  .section-title { font-size: 22px; font-weight: 800; color: #1a1a2e; margin-bottom: 6px; }
+  .section-sub { font-size: 13px; color: #6b7280; margin-bottom: 28px; }
+
+  /* ───── SECTION WRAPPERS ───── */
+  .preview-section { padding: 48px 40px; border-bottom: 1px solid #e5e0f8; background: #fff; }
+  .preview-section:nth-child(even) { background: #faf9ff; }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: #f3f0ff; color: #7C3AED; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 20px; }
+  .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: #7C3AED; }
+
+  /* ───── 1. AGENT CARD GRID ───── */
+  .agent-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 900px; }
+  .agent-card { background: #fff; border-radius: 20px; border: 1.5px solid #ede9fe; padding: 24px 20px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 2px 12px rgba(124,58,237,0.06); transition: transform .2s, box-shadow .2s; cursor: pointer; position: relative; }
+  .agent-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(124,58,237,0.13); }
+  .agent-card.locked { opacity: 0.55; }
+  .agent-avatar { width: 72px; height: 72px; border-radius: 50%; margin-bottom: 14px; object-fit: cover; background: linear-gradient(135deg, #c4b5fd, #7C3AED); display: flex; align-items: center; justify-content: center; font-size: 32px; }
+  .agent-name { font-weight: 800; font-size: 15px; color: #1a1a2e; margin-bottom: 4px; }
+  .agent-role { font-size: 12px; color: #9B8EC4; margin-bottom: 14px; line-height: 1.4; }
+  .agent-status { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-active { color: #059669; }
+  .status-dot.active { background: #10b981; }
+  .status-inactive { color: #9B8EC4; }
+  .status-dot.inactive { background: #d1d5db; }
+  .lock-badge { position: absolute; top: 14px; right: 14px; background: #f3f0ff; border-radius: 8px; padding: 3px 8px; font-size: 10px; font-weight: 700; color: #7C3AED; }
+  .activate-btn { margin-top: 12px; background: #7C3AED; color: #fff; border: none; border-radius: 10px; padding: 7px 18px; font-size: 12px; font-weight: 700; cursor: pointer; width: 100%; }
+  .agent-meta { font-size: 11px; color: #9B8EC4; margin-top: 10px; }
+
+  /* ───── 2. THINKING STATE ───── */
+  .thinking-card { max-width: 640px; background: #fff; border-radius: 20px; border: 1.5px solid #ede9fe; overflow: hidden; box-shadow: 0 2px 12px rgba(124,58,237,0.07); }
+  .thinking-header { padding: 18px 22px; border-bottom: 1px solid #f3f0ff; display: flex; align-items: center; gap: 12px; }
+  .thinking-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #c4b5fd, #7C3AED); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .thinking-name { font-weight: 700; font-size: 14px; }
+  .thinking-tagline { font-size: 12px; color: #9B8EC4; }
+  .thinking-body { padding: 20px 22px; }
+  .step { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f9f8ff; }
+  .step:last-child { border-bottom: none; }
+  .step-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .step-done { background: #d1fae5; color: #059669; }
+  .step-active { background: #ede9fe; color: #7C3AED; animation: pulse 1.5s infinite; }
+  .step-pending { background: #f3f4f6; color: #9ca3af; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .step-text { font-size: 13px; font-weight: 600; }
+  .step-sub { font-size: 11px; color: #9B8EC4; }
+  .step-done-text { color: #374151; }
+  .step-active-text { color: #7C3AED; }
+  .step-pending-text { color: #9ca3af; }
+  .progress-bar-wrap { margin: 18px 22px 20px; }
+  .progress-label { font-size: 11px; color: #9B8EC4; margin-bottom-6px; display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: #f3f0ff; border-radius: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #7C3AED, #a78bfa); border-radius: 10px; width: 60%; transition: width .5s; }
+
+  /* ───── 3. CONVERSATIONAL SETUP ───── */
+  .chat-shell { max-width: 580px; background: #fff; border-radius: 20px; border: 1.5px solid #ede9fe; overflow: hidden; box-shadow: 0 2px 12px rgba(124,58,237,0.07); }
+  .chat-top { padding: 16px 20px; background: linear-gradient(135deg, #7C3AED, #a78bfa); display: flex; align-items: center; gap: 12px; }
+  .chat-avatar { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .chat-top-name { font-weight: 700; font-size: 14px; color: #fff; }
+  .chat-top-sub { font-size: 11px; color: rgba(255,255,255,0.75); }
+  .chat-messages { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { max-width: 82%; }
+  .msg-agent { align-self: flex-start; }
+  .msg-user { align-self: flex-end; }
+  .msg-bubble { padding: 11px 15px; border-radius: 16px; font-size: 13px; line-height: 1.5; }
+  .msg-agent .msg-bubble { background: #f3f0ff; color: #1a1a2e; border-bottom-left-radius: 4px; }
+  .msg-user .msg-bubble { background: #7C3AED; color: #fff; border-bottom-right-radius: 4px; }
+  .msg-label { font-size: 10px; color: #9B8EC4; margin-bottom: 4px; font-weight: 600; letter-spacing: 0.5px; }
+  .msg-user .msg-label { text-align: right; }
+  .options-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .option-chip { background: #fff; border: 1.5px solid #c4b5fd; color: #7C3AED; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .option-chip:hover { background: #f3f0ff; }
+  .chat-input-row { padding: 14px 20px; border-top: 1px solid #f3f0ff; display: flex; gap: 10px; }
+  .chat-input { flex: 1; border: 1.5px solid #ede9fe; border-radius: 12px; padding: 10px 14px; font-size: 13px; outline: none; color: #374151; }
+  .chat-send { background: #7C3AED; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+  /* ───── 4. CONFIG PANEL ───── */
+  .config-shell { max-width: 700px; background: #fff; border-radius: 20px; border: 1.5px solid #ede9fe; overflow: hidden; box-shadow: 0 2px 12px rgba(124,58,237,0.07); display: grid; grid-template-columns: 220px 1fr; }
+  .config-sidebar { background: #faf9ff; border-right: 1px solid #ede9fe; padding: 20px 0; }
+  .config-sidebar-header { padding: 0 18px 16px; border-bottom: 1px solid #ede9fe; margin-bottom: 8px; }
+  .config-sidebar-name { font-weight: 800; font-size: 15px; }
+  .config-sidebar-role { font-size: 11px; color: #9B8EC4; margin-top: 2px; }
+  .config-nav-item { padding: 9px 18px; font-size: 13px; font-weight: 500; color: #6b7280; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+  .config-nav-item.active { background: #f3f0ff; color: #7C3AED; font-weight: 700; border-right: 3px solid #7C3AED; }
+  .config-nav-icon { font-size: 14px; width: 20px; text-align: center; }
+  .config-main { padding: 24px; }
+  .config-section-title { font-weight: 800; font-size: 16px; margin-bottom: 4px; }
+  .config-section-sub { font-size: 12px; color: #9B8EC4; margin-bottom: 20px; }
+  .config-field { margin-bottom: 16px; }
+  .config-label { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; display: block; }
+  .config-input { width: 100%; border: 1.5px solid #ede9fe; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #374151; outline: none; background: #faf9ff; }
+  .config-input:focus { border-color: #a78bfa; background: #fff; }
+  .config-textarea { width: 100%; border: 1.5px solid #ede9fe; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #374151; outline: none; background: #faf9ff; resize: vertical; min-height: 90px; font-family: inherit; }
+  .config-save { background: #7C3AED; color: #fff; border: none; border-radius: 10px; padding: 10px 24px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+
+  /* ───── 5. MARKETPLACE ───── */
+  .market-hero { background: linear-gradient(135deg, #7C3AED, #a78bfa); border-radius: 20px; padding: 32px; color: #fff; margin-bottom: 24px; max-width: 860px; display: flex; align-items: center; justify-content: space-between; }
+  .market-hero h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  .market-hero p { font-size: 14px; opacity: 0.85; max-width: 380px; line-height: 1.6; }
+  .market-hero-badges { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 700; }
+  .market-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 860px; }
+  .market-card { background: #fff; border-radius: 18px; border: 1.5px solid #ede9fe; padding: 22px 18px; text-align: center; box-shadow: 0 2px 10px rgba(124,58,237,0.06); position: relative; }
+  .market-avatar { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .market-name { font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+  .market-desc { font-size: 11px; color: #6b7280; line-height: 1.5; margin-bottom: 16px; }
+  .certified-badge { position: absolute; top: 12px; right: 12px; background: #d1fae5; color: #059669; font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 10px; letter-spacing: 0.5px; }
+  .market-activate { width: 100%; padding: 9px; background: #f3f0ff; color: #7C3AED; border: none; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .market-activate.active-btn { background: #7C3AED; color: #fff; }
+
+  /* Gradient blobs */
+  .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.07; pointer-events: none; }
+
+  .page-header { padding: 40px 40px 0; }
+  .page-title { font-size: 28px; font-weight: 900; color: #1a1a2e; letter-spacing: -0.5px; }
+  .page-sub { font-size: 14px; color: #9B8EC4; margin-top: 6px; margin-bottom: 8px; }
+  hr.divider { border: none; border-top: 1px solid #ede9fe; margin: 0; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-logo">K.I.N.D</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active">Dashboard</button>
+    <button class="nav-tab">Leads</button>
+    <button class="nav-tab">Campaigns</button>
+    <button class="nav-tab">Settings</button>
+  </div>
+  <div style="font-size:13px;color:#9B8EC4;">hello@get-kind.com</div>
+</div>
+
+<div class="page-header">
+  <div class="page-title">Portal V2 — Layout Preview</div>
+  <div class="page-sub">5 proposed upgrades for Month 2. All concepts, not live code.</div>
+</div>
+<hr class="divider" style="margin: 24px 0 0;">
+
+<!-- ─────────────────────────────────────── -->
+<!-- 1. AGENT CARD GRID -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 1 — High Priority</div>
+  <div class="section-title">Agent Card Grid</div>
+  <div class="section-sub">Replace tabs with a visual card grid. Each agent front and centre with their portrait.</div>
+
+  <div class="agent-grid">
+
+    <div class="agent-card">
+      <div class="agent-avatar">🤖</div>
+      <div class="agent-name">FIGSY</div>
+      <div class="agent-role">Cold outreach &amp; campaign automation</div>
+      <div class="agent-status status-active"><span class="status-dot active"></span> Active</div>
+      <div class="agent-meta">Last run: 2 hours ago</div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-avatar">💼</div>
+      <div class="agent-name">Milla</div>
+      <div class="agent-role">Lead qualification &amp; pipeline scoring</div>
+      <div class="agent-status status-active"><span class="status-dot active"></span> Active</div>
+      <div class="agent-meta">Last run: 5 hours ago</div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-avatar">🌱</div>
+      <div class="agent-name">Vida</div>
+      <div class="agent-role">Nurture sequences &amp; re-engagement</div>
+      <div class="agent-status status-active"><span class="status-dot active"></span> Active</div>
+      <div class="agent-meta">Last run: yesterday</div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-avatar">🎯</div>
+      <div class="agent-name">Denise</div>
+      <div class="agent-role">Warm follow-up &amp; closing support</div>
+      <div class="agent-status status-active"><span class="status-dot active"></span> Active</div>
+      <div class="agent-meta">Last run: 1 day ago</div>
+    </div>
+
+  </div>
+
+  <p style="font-size:12px;color:#9B8EC4;margin-top:20px;">↑ Locked agents show an "Activate" button instead of status. New clients see this as the activation marketplace.</p>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 2. THINKING / WORKING STATE -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 2 — High Priority</div>
+  <div class="section-title">Agent Thinking State</div>
+  <div class="section-sub">When FIGSY (or any agent) is running, show live step-by-step progress so the user knows it's working.</div>
+
+  <div class="thinking-card">
+    <div class="thinking-header">
+      <div class="thinking-avatar">🤖</div>
+      <div>
+        <div class="thinking-name">FIGSY is working…</div>
+        <div class="thinking-tagline">Building your lead list for "SaaS Founders UK"</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>Progress</span><span>60%</span></div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+    <div class="thinking-body">
+      <div class="step">
+        <div class="step-icon step-done">✓</div>
+        <div>
+          <div class="step-text step-done-text">ICP loaded</div>
+          <div class="step-sub">SaaS Founders UK — 12 filters applied</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-icon step-done">✓</div>
+        <div>
+          <div class="step-text step-done-text">Contacts sourced</div>
+          <div class="step-sub">247 matches found via Apollo</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-icon step-active">⟳</div>
+        <div>
+          <div class="step-text step-active-text">Writing emails…</div>
+          <div class="step-sub">Personalising each message to their role</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-icon step-pending">○</div>
+        <div>
+          <div class="step-text step-pending-text">Schedule for review</div>
+          <div class="step-sub">Waiting…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 3. CONVERSATIONAL SETUP -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 3 — Medium Priority</div>
+  <div class="section-title">Conversational Agent Setup</div>
+  <div class="section-sub">Replace the ICP form with a guided chat. FIGSY asks the questions, fills the config behind the scenes.</div>
+
+  <div class="chat-shell">
+    <div class="chat-top">
+      <div class="chat-avatar">🤖</div>
+      <div>
+        <div class="chat-top-name">FIGSY</div>
+        <div class="chat-top-sub">Let's set up your first campaign</div>
+      </div>
+    </div>
+    <div class="chat-messages">
+
+      <div class="msg msg-agent">
+        <div class="msg-label">FIGSY</div>
+        <div class="msg-bubble">Hey! I'm FIGSY — I'll handle your cold outreach. To write emails that land, I need to understand who you're targeting. What kind of companies are your best clients?</div>
+      </div>
+
+      <div class="msg msg-user">
+        <div class="msg-label">You</div>
+        <div class="msg-bubble">SaaS companies, usually 10–50 people, UK-based</div>
+      </div>
+
+      <div class="msg msg-agent">
+        <div class="msg-label">FIGSY</div>
+        <div class="msg-bubble">Got it — SaaS, 10–50 employees, UK. What's the job title of the person who would actually buy from you?</div>
+        <div class="options-row">
+          <div class="option-chip">Founder / CEO</div>
+          <div class="option-chip">Head of Sales</div>
+          <div class="option-chip">Head of Marketing</div>
+          <div class="option-chip">Other</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" type="text" placeholder="Type your answer…" />
+      <button class="chat-send">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 4. STRUCTURED CONFIG PANEL -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 4 — Medium Priority</div>
+  <div class="section-title">Structured Agent Config Panel</div>
+  <div class="section-sub">Replace the current mixed settings page with clear named sections.</div>
+
+  <div class="config-shell">
+    <div class="config-sidebar">
+      <div class="config-sidebar-header">
+        <div class="config-sidebar-name">FIGSY</div>
+        <div class="config-sidebar-role">Cold Outreach Agent</div>
+      </div>
+      <div class="config-nav-item active"><span class="config-nav-icon">📋</span> Role</div>
+      <div class="config-nav-item"><span class="config-nav-icon">🎯</span> ICP</div>
+      <div class="config-nav-item"><span class="config-nav-icon">✍️</span> Tone &amp; Messaging</div>
+      <div class="config-nav-item"><span class="config-nav-icon">📅</span> Schedule</div>
+      <div class="config-nav-item"><span class="config-nav-icon">📚</span> Knowledge</div>
+    </div>
+    <div class="config-main">
+      <div class="config-section-title">Role</div>
+      <div class="config-section-sub">What does this agent do? Be specific — this shapes every email it writes.</div>
+
+      <div class="config-field">
+        <label class="config-label">Agent Name</label>
+        <input class="config-input" type="text" value="FIGSY" />
+      </div>
+      <div class="config-field">
+        <label class="config-label">Primary Objective</label>
+        <textarea class="config-textarea">You are FIGSY, K.I.N.D's outreach agent. Your job is to book discovery calls for the founder by sending personalised cold emails that open with the prospect's pain, not a pitch.</textarea>
+      </div>
+      <div class="config-field">
+        <label class="config-label">Problem We Solve</label>
+        <textarea class="config-textarea" style="min-height:70px;">Founders are wasting 10+ hours a week on manual prospecting and getting ignored. We automate the entire outreach pipeline with AI.</textarea>
+      </div>
+      <button class="config-save">Save Role</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 5. AGENT MARKETPLACE -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 5 — Month 3</div>
+  <div class="section-title">Agent Marketplace</div>
+  <div class="section-sub">New client onboarding flow. "Meet your AI Revenue Team." One-click activate per agent.</div>
+
+  <div class="market-hero">
+    <div>
+      <h2>Meet your AI Revenue Team</h2>
+      <p>Pre-built, certified, and ready to work. Activate the agents you need and your revenue OS starts today.</p>
+      <div class="market-hero-badges">
+        <div class="badge">✓ Pre-trained</div>
+        <div class="badge">✓ Problem-led messaging</div>
+        <div class="badge">✓ No setup required</div>
+      </div>
+    </div>
+    <div style="font-size:72px;opacity:0.3;">🤖</div>
+  </div>
+
+  <div class="market-grid">
+
+    <div class="market-card">
+      <div class="certified-badge">CERTIFIED</div>
+      <div class="market-avatar" style="background:#ede9fe;">🤖</div>
+      <div class="market-name">FIGSY</div>
+      <div class="market-desc">Cold outreach that opens with your prospect's pain and books calls on autopilot.</div>
+      <button class="market-activate active-btn">Active ✓</button>
+    </div>
+
+    <div class="market-card">
+      <div class="certified-badge">CERTIFIED</div>
+      <div class="market-avatar" style="background:#fce7f3;">💼</div>
+      <div class="market-name">Milla</div>
+      <div class="market-desc">Scores and qualifies every inbound lead so you only talk to the right people.</div>
+      <button class="market-activate active-btn">Active ✓</button>
+    </div>
+
+    <div class="market-card">
+      <div class="certified-badge">CERTIFIED</div>
+      <div class="market-avatar" style="background:#d1fae5;">🌱</div>
+      <div class="market-name">Vida</div>
+      <div class="market-desc">Keeps warm leads engaged with smart nurture sequences until they're ready to buy.</div>
+      <button class="market-activate active-btn">Active ✓</button>
+    </div>
+
+    <div class="market-card">
+      <div class="certified-badge">CERTIFIED</div>
+      <div class="market-avatar" style="background:#fef3c7;">🎯</div>
+      <div class="market-name">Denise</div>
+      <div class="market-desc">Follows up on warm leads and supports closing — the human touch, automated.</div>
+      <button class="market-activate active-btn">Active ✓</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 6. SLIM SIDEBAR + TOP-RIGHT HEADER -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 6 — High Priority</div>
+  <div class="section-title">Slim Sidebar + Top-Right Header</div>
+  <div class="section-sub">Cut the sidebar from 18 items to 8. Move Usage, Billing, Roadmap, Settings into a profile dropdown top-right — like Notion, Linear, Slack.</div>
+
+  <div style="max-width:860px;border:1.5px solid #ede9fe;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(124,58,237,0.07);">
+
+    <!-- Top bar -->
+    <div style="background:#fff;border-bottom:1px solid #ede9fe;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#c4b5fd,#7C3AED);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px;">K</div>
+        <span style="font-weight:800;font-size:14px;color:#1a1a2e;">K.I.N.D</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <!-- Invite button -->
+        <button style="display:flex;align-items:center;gap:6px;background:#f3f0ff;border:1.5px solid #c4b5fd;color:#7C3AED;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">
+          + Invite teammate
+        </button>
+        <!-- Roadmap icon -->
+        <button style="width:32px;height:32px;border-radius:8px;border:1.5px solid #ede9fe;background:#faf9ff;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;" title="Roadmap">🗺️</button>
+        <!-- Notifications -->
+        <button style="width:32px;height:32px;border-radius:8px;border:1.5px solid #ede9fe;background:#faf9ff;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;position:relative;" title="Notifications">
+          🔔
+          <span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#7C3AED;border-radius:50%;border:2px solid #fff;"></span>
+        </button>
+        <!-- Credits -->
+        <div style="display:flex;align-items:center;gap:5px;background:#fffbeb;border:1px solid #fcd34d;border-radius:20px;padding:5px 10px;">
+          <span style="font-size:12px;">🪙</span>
+          <span style="font-size:12px;font-weight:700;color:#d97706;">999,999</span>
+        </div>
+        <!-- Profile avatar -->
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#c4b5fd,#7C3AED);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;cursor:pointer;position:relative;">
+          J
+          <div style="position:absolute;top:38px;right:0;background:#fff;border:1.5px solid #ede9fe;border-radius:14px;padding:8px 0;min-width:180px;box-shadow:0 8px 24px rgba(124,58,237,0.12);z-index:10;">
+            <div style="padding:4px 14px 10px;border-bottom:1px solid #f3f0ff;">
+              <div style="font-size:12px;font-weight:700;color:#1a1a2e;">hello@get-kind.com</div>
+              <div style="font-size:10px;color:#9B8EC4;margin-top:1px;">Admin</div>
+            </div>
+            <div style="padding:6px 0;">
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">📊 Usage</div>
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">💳 Billing</div>
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">👥 Team</div>
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">⚙️ Settings</div>
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">🔌 Developer API</div>
+            </div>
+            <div style="border-top:1px solid #f3f0ff;padding:6px 0 2px;">
+              <div style="padding:7px 14px;font-size:12px;color:#ef4444;cursor:pointer;display:flex;align-items:center;gap:8px;">🚪 Sign out</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body: slim sidebar + content -->
+    <div style="display:flex;height:320px;">
+      <!-- Slim sidebar -->
+      <div style="width:180px;background:#faf9ff;border-right:1px solid #ede9fe;padding:16px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0;">
+        <div style="font-size:10px;color:#9B8EC4;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:0 8px 8px;">Lead Gen</div>
+        <div style="padding:8px;border-radius:8px;background:#f3f0ff;color:#7C3AED;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;">🏠 Home</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">👥 People</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">🎯 ICP Builder</div>
+        <div style="margin-top:12px;font-size:10px;color:#9B8EC4;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:0 8px 8px;">KIND AI</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">🤖 FIGSY</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">💼 Milla</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">🌱 Vida</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">🎯 Denise</div>
+      </div>
+      <!-- Content placeholder -->
+      <div style="flex:1;padding:24px;background:#fff;display:flex;align-items:center;justify-content:center;">
+        <div style="text-align:center;color:#9B8EC4;">
+          <div style="font-size:32px;margin-bottom:10px;">✨</div>
+          <div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">8 items in sidebar</div>
+          <div style="font-size:12px;">vs 18 today — 55% cleaner</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">Profile dropdown (shown open above) replaces the entire Account nav section. Invite button is always visible — every click is a potential new user.</p>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 7. INVITE TEAMMATE MODAL -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 7 — Growth Mechanic</div>
+  <div class="section-title">Invite Teammate</div>
+  <div class="section-sub">One click from the header. Growth loop: existing user invites colleague → colleague signs up → new seat. Every invite is a qualified lead for K.I.N.D.</div>
+
+  <div style="max-width:480px;background:#fff;border-radius:20px;border:1.5px solid #ede9fe;overflow:hidden;box-shadow:0 4px 24px rgba(124,58,237,0.1);">
+    <div style="padding:24px 24px 0;">
+      <div style="font-size:18px;font-weight:800;color:#1a1a2e;margin-bottom:4px;">Invite your team</div>
+      <div style="font-size:13px;color:#9B8EC4;margin-bottom:20px;">Your team gets full access to the K.I.N.D dashboard.</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <input type="email" placeholder="colleague@company.com" style="flex:1;border:1.5px solid #ede9fe;border-radius:10px;padding:10px 14px;font-size:13px;outline:none;color:#374151;background:#faf9ff;" />
+        <button style="background:#7C3AED;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Send invite</button>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Or share invite link</div>
+        <div style="display:flex;gap:8px;align-items:center;background:#faf9ff;border:1.5px solid #ede9fe;border-radius:10px;padding:10px 14px;">
+          <span style="flex:1;font-size:12px;color:#9B8EC4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">https://app.get-kind.com/invite/abc123xyz</span>
+          <button style="background:#f3f0ff;color:#7C3AED;border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Copy</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 24px;background:#faf9ff;border-top:1px solid #ede9fe;">
+      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:10px;">Pending invites</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ede9fe;">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#374151;">sarah@acmecorp.com</div>
+          <div style="font-size:10px;color:#9B8EC4;">Invited 2 days ago</div>
+        </div>
+        <span style="background:#fef3c7;color:#d97706;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">Pending</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#374151;">mike@acmecorp.com</div>
+          <div style="font-size:10px;color:#9B8EC4;">Joined yesterday</div>
+        </div>
+        <span style="background:#d1fae5;color:#059669;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">Joined ✓</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 8. AI NOTETAKER TO ACTION ITEMS -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 8 — Critical · Month 2</div>
+  <div class="section-title">AI Notetaker → Action Items</div>
+  <div class="section-sub">Drop in a meeting transcript or recording. Milla extracts every action item, owner, and deadline — zero manual notes.</div>
+
+  <div style="max-width:680px;display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+    <!-- Input -->
+    <div style="background:#fff;border-radius:18px;border:1.5px solid #ede9fe;padding:20px;box-shadow:0 2px 10px rgba(124,58,237,0.06);">
+      <div style="font-size:12px;font-weight:700;color:#9B8EC4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Drop in your meeting</div>
+      <div style="border:2px dashed #c4b5fd;border-radius:12px;padding:24px;text-align:center;background:#faf9ff;margin-bottom:14px;">
+        <div style="font-size:28px;margin-bottom:8px;">🎙️</div>
+        <div style="font-size:13px;font-weight:600;color:#7C3AED;margin-bottom:4px;">Paste transcript or upload recording</div>
+        <div style="font-size:11px;color:#9B8EC4;">Zoom · Teams · Google Meet · .txt · .mp3</div>
+      </div>
+      <div style="font-size:11px;color:#9B8EC4;text-align:center;">or paste below</div>
+      <textarea style="width:100%;margin-top:8px;border:1.5px solid #ede9fe;border-radius:10px;padding:10px;font-size:11px;color:#374151;background:#faf9ff;resize:none;height:80px;font-family:inherit;">[Jacques]: So the priority this week is getting the ICP builder shipped before Monday...
+[Sarah]: I can handle the email templates by Wednesday...</textarea>
+      <button style="width:100%;margin-top:10px;background:#7C3AED;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Extract action items →</button>
+    </div>
+
+    <!-- Output -->
+    <div style="background:#fff;border-radius:18px;border:1.5px solid #ede9fe;padding:20px;box-shadow:0 2px 10px rgba(124,58,237,0.06);">
+      <div style="font-size:12px;font-weight:700;color:#9B8EC4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Action items — extracted by Milla</div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="background:#faf9ff;border-radius:10px;border:1px solid #ede9fe;padding:12px;">
+          <div style="display:flex;align-items:flex-start;gap:8px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:#7C3AED;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#1a1a2e;">Ship ICP builder before Monday</div>
+              <div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Owner: Jacques · Due: Mon 8 Jun</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#faf9ff;border-radius:10px;border:1px solid #ede9fe;padding:12px;">
+          <div style="display:flex;align-items:flex-start;gap:8px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:#F472B6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#1a1a2e;">Finalise email templates</div>
+              <div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Owner: Sarah · Due: Wed 10 Jun</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#faf9ff;border-radius:10px;border:1px solid #ede9fe;padding:12px;">
+          <div style="display:flex;align-items:flex-start;gap:8px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:#14B8A6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#1a1a2e;">Review FIGSY campaign copy</div>
+              <div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Owner: Jacques · Due: Fri 12 Jun</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #ede9fe;display:flex;gap:8px;">
+        <button style="flex:1;background:#f3f0ff;color:#7C3AED;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;">Add to Milla's tasks</button>
+        <button style="flex:1;background:#f3f0ff;color:#7C3AED;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;">Export to Slack</button>
+      </div>
+    </div>
+
+  </div>
+  <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">Milla owns this feature. Input: Zoom/Teams transcript paste or upload. Output: structured action items with owner + deadline, pushable to tasks or Slack.</p>
+</div>
+
+<!-- ── 9. TEAMS HUB ── -->
+<div style="padding:48px 40px;border-bottom:1px solid #e5e0f8;background:#faf9ff;">
+  <div style="display:inline-flex;align-items:center;gap:6px;background:#fef2f2;color:#dc2626;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:20px;"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;display:inline-block;"></span>Concept 9 — Critical · Month 2</div>
+  <div style="font-size:22px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">Teams Hub</div>
+  <div style="font-size:13px;color:#6b7280;margin-bottom:28px;">Create teams, add members, see who's active, track per-person agent usage. Replaces the basic /team page.</div>
+
+  <div style="max-width:860px;border:1.5px solid #ede9fe;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(124,58,237,0.07);">
+    <!-- Header -->
+    <div style="background:#fff;border-bottom:1px solid #ede9fe;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <div><div style="font-size:18px;font-weight:800;color:#1a1a2e;">Teams Hub</div><div style="font-size:12px;color:#9B8EC4;margin-top:2px;">3 members · 2 active now</div></div>
+      <div style="display:flex;gap:8px;">
+        <button style="background:#f3f0ff;color:#7C3AED;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">+ Create team</button>
+        <button style="background:#7C3AED;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">+ Add member</button>
+      </div>
+    </div>
+    <!-- Tabs -->
+    <div style="background:#faf9ff;border-bottom:1px solid #ede9fe;padding:0 24px;display:flex;gap:4px;">
+      <div style="padding:12px 14px;font-size:12px;font-weight:700;color:#7C3AED;border-bottom:2px solid #7C3AED;cursor:pointer;">Overview</div>
+      <div style="padding:12px 14px;font-size:12px;font-weight:500;color:#9B8EC4;cursor:pointer;">Analytics</div>
+      <div style="padding:12px 14px;font-size:12px;font-weight:500;color:#9B8EC4;cursor:pointer;">Activity</div>
+      <div style="padding:12px 14px;font-size:12px;font-weight:500;color:#9B8EC4;cursor:pointer;">Permissions</div>
+    </div>
+    <!-- Body -->
+    <div style="display:grid;grid-template-columns:1fr 290px;background:#fff;">
+      <!-- Members list -->
+      <div style="padding:20px 24px;border-right:1px solid #ede9fe;">
+        <div style="font-size:11px;font-weight:700;color:#9B8EC4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;">Members</div>
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f3f0ff;">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#c4b5fd,#7C3AED);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;position:relative;">J<span style="position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#10b981;border-radius:50%;border:2px solid #fff;"></span></div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#1a1a2e;">Jacques V</div><div style="font-size:11px;color:#9B8EC4;">hello@get-kind.com · Admin</div></div>
+          <div style="display:flex;gap:6px;"><span style="background:#ede9fe;color:#7C3AED;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">FIGSY</span><span style="background:#fce7f3;color:#F472B6;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">Milla</span></div>
+          <div style="text-align:right;"><div style="font-size:12px;font-weight:700;color:#1a1a2e;">247</div><div style="font-size:10px;color:#9B8EC4;">leads today</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f3f0ff;">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#fbcfe8,#F472B6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;position:relative;">S<span style="position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#10b981;border-radius:50%;border:2px solid #fff;"></span></div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#1a1a2e;">Sarah K</div><div style="font-size:11px;color:#9B8EC4;">sarah@acmecorp.com · Member</div></div>
+          <div style="display:flex;gap:6px;"><span style="background:#ede9fe;color:#7C3AED;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">FIGSY</span></div>
+          <div style="text-align:right;"><div style="font-size:12px;font-weight:700;color:#1a1a2e;">83</div><div style="font-size:10px;color:#9B8EC4;">leads today</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;">
+          <div style="width:40px;height:40px;border-radius:50%;background:#f3f0ff;display:flex;align-items:center;justify-content:center;color:#9B8EC4;font-weight:800;font-size:15px;flex-shrink:0;">M</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#9B8EC4;">mike@acmecorp.com</div><div style="font-size:11px;color:#9B8EC4;">Invite pending</div></div>
+          <span style="background:#fef3c7;color:#d97706;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">Pending</span>
+          <div style="text-align:right;"><div style="font-size:12px;font-weight:700;color:#9B8EC4;">—</div><div style="font-size:10px;color:#9B8EC4;">not joined</div></div>
+        </div>
+      </div>
+      <!-- Analytics panel -->
+      <div style="padding:20px;background:#faf9ff;">
+        <div style="font-size:11px;font-weight:700;color:#9B8EC4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;">Team Analytics</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+          <div style="background:#fff;border-radius:12px;border:1px solid #ede9fe;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#7C3AED;">330</div><div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Leads today</div></div>
+          <div style="background:#fff;border-radius:12px;border:1px solid #ede9fe;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#059669;">12</div><div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Emails sent</div></div>
+          <div style="background:#fff;border-radius:12px;border:1px solid #ede9fe;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#F472B6;">4</div><div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Campaigns live</div></div>
+          <div style="background:#fff;border-radius:12px;border:1px solid #ede9fe;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#D97706;">2</div><div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Active now</div></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:10px;">Agent usage this week</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="font-weight:600;">FIGSY</span><span style="color:#9B8EC4;">2 members</span></div><div style="height:5px;background:#f3f0ff;border-radius:10px;"><div style="height:100%;width:90%;background:#7C3AED;border-radius:10px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="font-weight:600;">Milla</span><span style="color:#9B8EC4;">1 member</span></div><div style="height:5px;background:#f3f0ff;border-radius:10px;"><div style="height:100%;width:45%;background:#F472B6;border-radius:10px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="font-weight:600;">Vida</span><span style="color:#9B8EC4;">1 member</span></div><div style="height:5px;background:#f3f0ff;border-radius:10px;"><div style="height:100%;width:30%;background:#14B8A6;border-radius:10px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="font-weight:600;">Denise</span><span style="color:#9B8EC4;">1 member</span></div><div style="height:5px;background:#f3f0ff;border-radius:10px;"><div style="height:100%;width:20%;background:#D97706;border-radius:10px;"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">Green dot = active now. Agent usage bars show adoption across the team. Admins manage roles from Permissions tab.</p>
+</div>
+
+<div style="padding:32px 40px;text-align:center;color:#9B8EC4;font-size:12px;border-top:1px solid #ede9fe;background:#fff;">
+  K.I.N.D Portal V2 — 9 Concepts · Not live code · Post-launch Month 2
+</div>
+
+</body>
+</html>

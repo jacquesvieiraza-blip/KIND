@@ -5,7 +5,15 @@
 
 ---
 
-## 🗓 SESSION STATE — 5 Jun 2026
+## 🗓 SESSION STATE — 6 Jun 2026 (updated)
+
+### KEY DECISIONS LOCKED (6 Jun)
+- **app.get-kind.com = HTTPS enforced, padlock confirmed.** Railway forwards plain HTTP internally; fixed by using `x-forwarded-proto/host` in middleware + auth/callback. GoDaddy CNAME updated to new Railway target.
+- **Dogfood account (hello@get-kind.com) = FULLY SET UP.** All 4 agents active, 999,999 credits on both pools, subscriptions to 2099, no trial banner.
+- **Portal V2 = concepts only (not live).** 9 UI concepts documented in `docs/portal-v2-preview.html` — agent card grid, thinking state, conversational setup, config panel, marketplace, slim sidebar, invite teammate, AI notetaker, Teams Hub. Nothing is live yet.
+- **DB schema drift noted.** `product_type` is an ENUM in production but text+CHECK in repo migrations. Reconcile Wednesday.
+- **3 portal bugs fixed:** (1) FIGSY archive 404 → `PATCH /figsy/campaigns/:id {status: 'archived'}`. (2) Save settings wrong method/field → `PATCH` + `review_required`. (3) ICP suggest crashes on JSON fences → strip code fences before `JSON.parse`.
+- **Smoke test = Saturday (today), pending.** ICP Builder → source leads → FIGSY campaign → test send.
 
 ### KEY DECISIONS LOCKED (5 Jun)
 - **Denise = full transactional agent, $99/mo, LIVE** (not "coming soon"). Premium closer tier.
@@ -84,8 +92,8 @@ Website (logo, colors, USD, 4-agent consistency, denise.html, global positioning
 9. **Free cloud credits F1** (Microsoft/Google/AWS — zero downside).
 
 ### ⏳ WHAT I'M WAITING ON YOU FOR (to fully finish)
-1. **Dogfood account** → so I can grant FIGSY + set client config (#4).
-2. **Smoke test 1 & 2 results** → so I can fix any failures same-day (#17) — the main Sat/Sun work.
+1. ~~**Dogfood account**~~ ✅ Done — hello@get-kind.com set up 6 Jun.
+2. **Smoke test 1 results** → so I can fix any failures same-day (#17) — the main Sat work.
 3. **(Optional) real demo footage** → to replace the homepage animation.
 Everything else of mine is done.
 
@@ -125,8 +133,8 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 |---|------|-------|--------|
 | 1 | Rotate exposed credentials — TIER 0 (full list in Part 2 / Ring 3) | 🧍 | ⬜ FIRST |
 | 2 | Move `FEATURE_PORTAL_V2=true` API → Portal service | 🧍 | ⬜ |
-| 3 | Create dogfood account → ping Claude | 🧍 | ⬜ |
-| 4 | Grant FIGSY + credits, set `FIGSY_KIND_CLIENT_ID` + `booking_url` | 🤖 | ⬜ (on #3) |
+| 3 | Create dogfood account → ping Claude | 🧍 | ✅ hello@get-kind.com — all 4 agents, 999,999 credits |
+| 4 | Grant FIGSY + credits, set `FIGSY_KIND_CLIENT_ID` + `booking_url` | 🤖 | ✅ Done via SQL 6 Jun |
 | 5 | Merge branch `claude/ai-business-roadmap-U3OWJ` | 🧍 | ⬜ READY — branch is up to date |
 | 6 | Run migration `010_crm_dedup.sql` | 🧍 | ⬜ |
 | 7 | DNS: `app` / `api` / `admin` / `status`.get-kind.com (Railway + CNAME) | 🧍 | ⬜ |
@@ -137,11 +145,18 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 12 | Registered office + director service address (~£20-50/yr) | 🧍 | ⬜ |
 | 13 | Domain WHOIS privacy verify | 🧍 | ⬜ |
 | 14 | LinkedIn lockdown (don't accept Bradley-type requests; no K.I.N.D on personal) | 🧍 | ⬜ |
-| 15 | **Sat** smoke test 1 (57-step suite, `docs/SMOKE_TEST.md`) → log `T#-Step#` | 🧍 | ⬜ |
+| 15 | **Sat** smoke test 1 (57-step suite, `docs/SMOKE_TEST.md`) → log `T#-Step#` | 🧍 | ⏳ TODAY |
 | 16 | **Sun** smoke test 2 → confirm fixes | 🧍 | ⬜ |
 | 17 | Fix smoke failures same-day | 🤖 | ⬜ |
 | 17b | **Raw outcome-event capture — append-only log (THE DATA FLOOR).** ✅ DONE — `outcome_events` table + `logOutcomeEvent()` (append-only, fire-and-forget). Coverage: send · reply · opt_out · meeting_booked (FIGSY flow + calendar /book). | 🤖 | ✅ |
 | 18 | **MON — LAUNCH both markets, multiple campaigns** | 🤝 | ⬜ |
+
+## ✅ DONE THIS SESSION (6 Jun — verified in repo)
+- **HTTPS enforced site-wide** — `middleware.ts` checks `x-forwarded-proto`, returns 308 redirect to https. `auth/callback/route.ts` uses forwarded host/proto for origin. GoDaddy CNAME updated. Padlock confirmed in incognito.
+- **3 portal bugs fixed:** FIGSY archive (404 → PATCH), save settings (wrong method + `copilot_mode` → `review_required`), ICP suggest (JSON code fence crash).
+- **Dogfood account fully set up** — 999,999 credits (lead gen + FIGSY), all 4 agents active, subscriptions to 2099. SQL fixes: product_type::cast + `alter type add value 'denise'`.
+- **Portal V2 concepts** — `docs/portal-v2-preview.html` (9 concepts: card grid, thinking state, chat setup, config panel, marketplace, slim sidebar, invite teammate, AI notetaker, Teams Hub). `docs/portal-v2-layout.md` spec. None live.
+- **⚠️ SCHEMA DRIFT NOTED:** `product_type` is ENUM in production, text+CHECK in repo. Reconcile Wednesday.
 
 ## ✅ DONE THIS SESSION (4 Jun — verified in repo)
 - terms.html sub-processor bug (Paystack/Vercel → Stripe/Railway) · AAA arbitration §12

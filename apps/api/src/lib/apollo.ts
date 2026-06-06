@@ -159,14 +159,26 @@ export function buildSearchBody(icp: {
 export interface PreviewCountResult {
   count: number
   error: string | null
-  debug: { keyConfigured: boolean; httpStatus: number | null; rawCountField: string | null; sentBody: unknown }
+  debug: {
+    keyConfigured: boolean
+    keyTail: string | null       // last 4 chars of the key, to identify WHICH key is in use
+    httpStatus: number | null
+    rawCountField: string | null
+    sentBody: unknown
+  }
 }
 
 export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): Promise<PreviewCountResult> {
   const apiKey = process.env.APOLLO_API_KEY
   const body = buildSearchBody(icp, 1)
   body.per_page = 1
-  const baseDebug = { keyConfigured: !!apiKey, httpStatus: null as number | null, rawCountField: null as string | null, sentBody: body }
+  const baseDebug = {
+    keyConfigured: !!apiKey,
+    keyTail: apiKey ? apiKey.slice(-4) : null,
+    httpStatus: null as number | null,
+    rawCountField: null as string | null,
+    sentBody: body,
+  }
 
   if (!apiKey) return { count: 0, error: 'APOLLO_API_KEY is not set on the API service', debug: baseDebug }
 

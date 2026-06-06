@@ -397,6 +397,7 @@ export default function ICPPage() {
   const [previewSamples, setPreviewSamples] = useState<Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }>>([])
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [previewDebug, setPreviewDebug] = useState<{ keyConfigured?: boolean; keyTail?: string | null; httpStatus?: number | null; rawCountField?: string | null } | null>(null)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ABM mode
@@ -466,6 +467,7 @@ export default function ICPPage() {
       setPreviewCount(res.data.count)
       setPreviewSamples(res.data.samples ?? [])
       setPreviewError(res.data.error ?? null)
+      setPreviewDebug(res.data.debug ?? null)
       // Surface the exact Apollo query + response shape for debugging zero-match issues.
       if (res.data.debug) console.info('[icp preview-count]', { count: res.data.count, error: res.data.error, debug: res.data.debug })
     } catch (e) {
@@ -1030,9 +1032,16 @@ export default function ICPPage() {
                     <p className="text-sm text-red-700">Lead search error — {previewError}</p>
                   </div>
                 ) : previewCount === 0 ? (
-                  <div className="flex items-center gap-3">
-                    <Users2 className="w-4 h-4 text-amber-500 shrink-0" />
-                    <p className="text-sm text-amber-700">No exact matches yet — try broadening your filters.</p>
+                  <div className="flex items-start gap-3">
+                    <Users2 className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-700">No exact matches yet — try broadening your filters.</p>
+                      {previewDebug && (
+                        <p className="text-[11px] text-amber-600/80 mt-1 font-mono">
+                          diag · key:{previewDebug.keyConfigured ? `…${previewDebug.keyTail}` : 'MISSING'} · http:{previewDebug.httpStatus ?? 'n/a'} · countField:{previewDebug.rawCountField ?? 'n/a'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex-1">

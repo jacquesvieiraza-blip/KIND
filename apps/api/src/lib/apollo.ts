@@ -1,6 +1,10 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 
 const APOLLO_BASE = 'https://api.apollo.io/v1'
+// Apollo deprecated /mixed_people/search for API callers (returns HTTP 422). The
+// supported people-search endpoint is /mixed_people/api_search.
+// Ref: https://docs.apollo.io/reference/people-api-search
+const APOLLO_PEOPLE_SEARCH = `${APOLLO_BASE}/mixed_people/api_search`
 
 // ── Seniority mapping ─────────────────────────────────────────────────────────
 const SENIORITY_MAP: Record<string, string[]> = {
@@ -183,7 +187,7 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
   if (!apiKey) return { count: 0, error: 'APOLLO_API_KEY is not set on the API service', debug: baseDebug }
 
   try {
-    const res = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
+    const res = await fetch(APOLLO_PEOPLE_SEARCH, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
       body:    JSON.stringify(body),
@@ -255,7 +259,7 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
   const apiKey = process.env.APOLLO_API_KEY
   if (!apiKey) throw new Error('APOLLO_API_KEY env var is not set')
 
-  const res = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
+  const res = await fetch(APOLLO_PEOPLE_SEARCH, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
     body:    JSON.stringify(body),

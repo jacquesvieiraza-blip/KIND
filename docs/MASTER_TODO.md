@@ -1,152 +1,164 @@
-# K.I.N.D — MASTER TO-DO (consolidated)
+# K.I.N.D — MASTER TO-DO (consolidated, cross-referenced)
 
-> Single source of truth for everything outstanding, compiled 6 Jun 2026.
-> Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏳ IN PROGRESS · ✅ DONE.
-> Pulls together: weekend smoke test, this-session findings, cosmetic backlog,
-> V2 builds, and the full EVERYTHING.md roadmap.
+> Single source of truth, compiled + reconciled 6 Jun 2026 against the full day's
+> work and EVERYTHING.md. Owner: 🧍 Founder · 🤖 Claude · 🤝 Both.
+> Status: ⬜ TODO · ⏳ IN PROGRESS · ✅ DONE · 🚫 DELIBERATELY NOT DOING.
+
+---
+
+## 0. ✅ COMPLETED TODAY (6 Jun) — do not redo
+
+- **HTTPS enforced** — `middleware.ts` 308-redirects http→https via `x-forwarded-proto`; `auth/callback` uses forwarded host/proto. Padlock confirmed. (Earlier today.)
+- **3 portal bugs fixed** — FIGSY archive 404 (→PATCH), save-settings wrong method/field (→PATCH + `review_required`), ICP suggest JSON-fence crash.
+- **Dogfood account live** — hello@get-kind.com: 999,999 credits (both pools), all 4 agents active to 2099, no trial banner. (EVERYTHING.md items 3 & 4 = ✅.)
+- **🔑 Apollo key rotated** — the live master key was pasted in chat (TIER-0 exposure) → regenerated. New key live on Railway.
+- **Apollo lead sourcing FIXED — 7 stacked issues, all verified live (72k+ pool):**
+  1. industries → `q_organization_keyword_tags` (was literal `q_keywords` → near-zero)
+  2. tolerant company-size mapping (`toEmployeeRange`) — handles AI-emitted "2–10" etc.
+  3. preview count reads `total_entries` (was `pagination.total_entries` → always 0)
+  4. endpoint `/mixed_people/api_search` (old `/mixed_people/search` → 422 deprecated)
+  5. base URL `/api/v1` (bare `/v1` = internal API → 200-with-0)
+  6. **`q_keywords` prose dump removed** — builder emitted "manual outreach pipeline building…" → 0
+  7. `tech_stack` dropped from search (auto-gen junk, not valid Apollo UIDs)
+- **Run-result banner rendered** — was computed but never shown.
+- **Smoke Test 1 · T2 (steps 5–7) PASSED** — ICP built, real leads sourced into People, credits dropped. *(This is one slice of one test in Pass 1 — the rest of Smoke Test 1 and all of Smoke Test 2 are still outstanding, see A1/A2.)*
+- **Deploy pipeline root cause found** — `KIND System Audit` CI fails every push; Railway auto-deploy unreliable; required manual GitHub disconnect/reconnect to pull `main`.
+- **Docs** — `portal-v2-preview.html` (9 concepts), `portal-v2-layout.md`, this `MASTER_TODO.md`, EVERYTHING.md synced.
+
+---
+
+## 0b. 🚫 DELIBERATE DECISIONS — do NOT do these (and why)
+
+| Item | Why NOT | 
+|------|---------|
+| **Enable `FEATURE_PORTAL_V2=true`** | ⚠️ The flag swaps the live portal for a **dormant, incomplete V2 build** (EVERYTHING.md line 312). It would break the exact V1 flow we just tested and fixed. **Launch on V1.** The V2 *redesign* (section D) is new Month-2 work, unrelated to this dead flag. → Recommend deleting the dormant V2 + flag during Wednesday cleanup so it can't be flipped by accident. |
+| Send `tech_stack` to Apollo search | Auto-generated values ("Email outreach tools", "CRM") aren't valid Apollo UIDs → zeroes the search. Dropped on purpose. |
+| Put `icp.keywords` in literal `q_keywords` | Builder emits descriptive prose → literal full-text match → 0 results. Removed on purpose. |
+| Upgrade the Apollo plan | Basic plan is fine — today's 0-results was an endpoint/key/query bug, not a plan limit. No upgrade needed. |
+| Build outcome pricing (#60) now | Gated pre-revenue — needs real margin data (≥28% gross floor). Decision stands. |
+| Build memory smart layers (pgvector / L2–L4) | Worthless below ~10 clients; capture raw `outcome_events` now, build smart layers at volume. |
+| Chase funding now | Bootstrap to traction first (20–30 paying clients), then decide from leverage. |
+| Will-not-build list | Collaborative docs · whiteboards · self-hosted · custom emoji · internal team chat · multi-year contracts · 50+ data sources · African-language (all parked per EVERYTHING.md Part 6). |
 
 ---
 
 ## A. 🔴 IMMEDIATE — finish the weekend smoke test
 
-### A0. Cleanup from the lead-sourcing bug hunt (do FIRST)
+### A0. Cleanup from today's bug hunt (do FIRST)
 | # | Item | Owner | Status |
 |---|------|-------|--------|
 | A0.1 | Strip debug lines from ICP banner (`diag ·`, `body:`) — must be gone before clients see them | 🤖 | ⬜ |
 | A0.2 | Remove API startup `BUILD MARKER` line | 🤖 | ⬜ |
-| A0.3 | Fix the deploy pipeline — `KIND System Audit` GitHub check fails on every push and blocks Railway auto-deploy; Railway needed a manual reconnect. Fix the audit so deploys flow automatically | 🤝 | ⬜ |
+| A0.3 | Fix deploy pipeline — repair/neutralise the failing `KIND System Audit` check so Railway auto-deploys `main` (no more manual reconnect) | 🤝 | ⬜ |
+| A0.4 | Tighten the conversational ICP-builder prompt so it stops emitting prose keywords + non-standard size labels (defended in code, but fix at source) | 🤖 | ⬜ |
 
-### A1. Smoke test — remaining steps (`docs/SMOKE_TEST.md`)
+### A1. SMOKE TEST 1 — first full pass (Saturday, 57-step `docs/SMOKE_TEST.md`)
+> Status: barely started. Only the ICP-build + lead-sourcing slice of Test 2 is done.
+> **Test 1 was NOT run** — we used the pre-set-up dogfood account and started from the
+> dashboard, so fresh signup / onboarding / gate has never been exercised.
+
+| Test | Steps | What it proves | Status |
+|------|-------|----------------|--------|
+| **T1 — Signup → Onboarding → gate** | 1–4 | Fresh signup lands on `/onboard`; onboarding completes → dashboard, 20 credits; abandon-onboarding redirects back; logout/login persists | ⬜ **NOT DONE** (skipped — used dogfood) |
+| **T2 — ICP → Leads** | 5–9 | 5 Suggest-AI ✅ · 6 Find Leads appear+scored ✅ · 7 credits drop ✅ · 8 2nd ICP "Set active" re-sources ⬜ · 9 CSV exports only delivered leads ⬜ | ⏳ **PARTIAL** (5–7 ✅, 8–9 ⬜) |
+| **T3 — FIGSY → reply → hot** | 10–13 | Campaign + enrol test emails; send from `hello@get-kind.com` w/ booking link; reply → 🔥 hot + sequence paused; paused campaign stops sending | ⬜ NOT DONE |
+| **T4 — Booking + KPI** | 14 | Google Cal / "Mark as booked" → `meetings_booked`++ | ⬜ NOT DONE |
+| **T5 — Billing** | 15–17 | Stripe bundle single-charge · webhook idempotency · Milla subscribe → non-sub 403 | ⬜ NOT DONE |
+| **T6 — Vida widget** | 18 | Embed renders · purple not blue · replies · captures lead | ⬜ NOT DONE |
+| **T7 — Milla/cron hygiene** | 19 | Non-Milla client gets no morning-brief/anomaly emails | ⬜ NOT DONE |
+| **Fixes** | — | Claude fixes any failures same-day | 🤖 ⬜ |
+
+### A2. SMOKE TEST 2 — second full pass (Sunday)
 | # | Item | Owner | Status |
 |---|------|-------|--------|
-| A1.1 | **Test 1** — signup gate: abandon-onboarding redirect, logout/login persistence | 🧍 | ⬜ |
-| A1.2 | **Test 2** — ✅ ICP → leads sourced + charged (PASSED 6 Jun). Still: 2nd-ICP "Set active" re-sources; CSV export only delivered leads | 🧍 | ⏳ |
-| A1.3 | **Test 3** — FIGSY: create campaign, enrol test emails, trigger send from `hello@get-kind.com` w/ booking link, reply → 🔥 hot + sequence paused, paused-campaign stops sending | 🧍 | ⬜ |
-| A1.4 | **Test 4** — Booking: connect Google Cal / "Mark as booked" → `meetings_booked` increments | 🧍 | ⬜ |
-| A1.5 | **Test 5** — Billing: Stripe bundle (single-charge), webhook idempotency, Milla subscribe → API 403 for non-subscriber | 🧍 | ⬜ |
-| A1.6 | **Test 6** — Vida widget: embed renders, purple not blue, replies, captures lead | 🧍 | ⬜ |
-| A1.7 | **Test 7** — Milla cron hygiene: non-Milla client gets no morning-brief/anomaly emails | 🧍 | ⬜ |
-| A1.8 | Fix any smoke-test failures same-day | 🤖 | ⬜ |
+| A2.1 | Re-run **all** of T1–T7 to confirm Pass-1 fixes held — green on every front | 🧍 | ⬜ NOT STARTED |
+| A2.2 | Fix any new failures same-day | 🤖 | ⬜ |
 
 ---
 
-## B. 🟠 PRE-LAUNCH — before Monday (from EVERYTHING.md "THIS WEEK")
+## B. 🟠 PRE-LAUNCH — before Monday
 | # | Item | Owner | Status |
 |---|------|-------|--------|
-| B1 | **Rotate exposed credentials — TIER 0.** Apollo key rotated 6 Jun ✅. Still: `STRIPE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `HUBSPOT_API_KEY`, `ADMIN_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | 🧍 | ⏳ |
-| B2 | Move `FEATURE_PORTAL_V2=true` API → Portal service | 🧍 | ⬜ |
-| B3 | Denise go-live: create $99/mo Stripe price → `STRIPE_PRICE_DENISE_MONTHLY` on Railway | 🧍 | ⬜ |
-| B4 | Run migration `010_crm_dedup.sql` | 🧍 | ⬜ |
-| B5 | DNS: `app`/`api`/`admin`/`status`.get-kind.com → then update `NEXT_PUBLIC_API_URL` + Resend webhook | 🧍 | ⬜ |
-| B6 | Confirm Calendly `kind-ai-demo/new-meeting` live | 🧍 | ⬜ |
-| B7 | **Reconcile DB schema drift** — `product_type` is a Postgres ENUM in prod but text+CHECK in repo migrations | 🤝 | ⬜ |
-| B8 | Free cloud + AI credits (Microsoft for Startups, Google for Startups, AWS Activate) | 🧍 | ⬜ |
-| B9 | Swap all 4 agent images to Pixar-3D animated (verify FIGSY/Milla/Vida/Denise consistent) | 🤝 | ⬜ |
+| B1 | **Rotate remaining TIER-0 creds** (Apollo ✅ done today). Still: `STRIPE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `HUBSPOT_API_KEY`, `ADMIN_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | 🧍 | ⏳ |
+| B2 | Denise go-live: $99/mo Stripe price → `STRIPE_PRICE_DENISE_MONTHLY` on Railway | 🧍 | ⬜ |
+| B3 | Run migration `010_crm_dedup.sql` | 🧍 | ⬜ |
+| B4 | DNS: `app`/`api`/`admin`/`status`.get-kind.com → then update `NEXT_PUBLIC_API_URL` + Resend webhook | 🧍 | ⬜ |
+| B5 | Confirm Calendly `kind-ai-demo/new-meeting` live | 🧍 | ⬜ |
+| B6 | **Reconcile DB schema drift** — `product_type` ENUM (prod) vs text+CHECK (repo) | 🤝 | ⬜ |
+| B7 | **Verify** all 4 agent images are Pixar-3D (FIGSY confirmed Pixar by founder; check Milla/Vida/Denise — only swap any that are photoreal) | 🤝 | ⬜ |
+| B8 | Free cloud + AI credits (Microsoft/Google/AWS) | 🧍 | ⬜ |
+| ~~B-x~~ | ~~Move `FEATURE_PORTAL_V2=true`~~ → **REMOVED — see 0b. Would break the working portal.** | — | 🚫 |
 
 ### B-Legal (before launch)
-| # | Item | Owner | Status |
-|---|------|-------|--------|
-| BL1 | ICO registration — ico.org.uk £40/yr | 🧍 | ⬜ |
-| BL2 | SR01 home-address suppression (free) | 🧍 | ⬜ |
-| BL3 | Registered office + director service address (~£20–50/yr) | 🧍 | ⬜ |
-| BL4 | Domain WHOIS privacy verify | 🧍 | ⬜ |
-| BL5 | LinkedIn lockdown / anonymous brand-only; founder stays invisible | 🧍 | ⬜ |
-| BL6 | SEIS advance assurance (free, draft ready) | 🧍 | ⬜ |
+ICO £40 · SR01 suppression · registered office + service address · WHOIS privacy · LinkedIn lockdown (founder invisible) · SEIS advance assurance (free, draft ready). — all 🧍 ⬜
 
 ### B-Launch
-| # | Item | Owner | Status |
-|---|------|-------|--------|
-| B-MON | **MON — LAUNCH both markets (US + Africa), multiple campaigns** | 🤝 | ⬜ |
+**MON — LAUNCH both markets, multiple campaigns** — 🤝 ⬜
 
 ---
 
-## C. 🎨 COSMETIC — batch after smoke test (logged this session)
+## C. 🎨 COSMETIC — batch after smoke test (logged today)
 | # | Item | Owner | Status |
 |---|------|-------|--------|
-| C1 | Sidebar: move **ICP Builder above People** in Lead Gen section | 🤖 | ⬜ |
-| C2 | **Agent cards** — standardise length + layout across all agents | 🤖 | ⬜ |
-| C3 | ICP preview banner — show "20,000+ available · we deliver your 20/run" instead of raw scary count | 🤖 | ⬜ |
-| C4 | **Agent panel** — every agent (Milla, Vida, Denise) uses the FIGSY layout: large Pixar portrait, name+role, suggestion chips, intro message, "Ask … anything" input | 🤖 | ⬜ |
-| C5 | **Signup screen** — ClickUp-style: "Seconds to sign up!", Continue with Google, clean name/email/password, marketing-consent checkbox + Terms/data-transfer-outside-UK consent | 🤖 | ⬜ |
+| C1 | Sidebar: **ICP Builder above People** | 🤖 | ⬜ |
+| C2 | **Agent cards** — consistent length + layout across all agents | 🤖 | ⬜ |
+| C3 | ICP banner — "20,000+ available · we deliver your 20/run" instead of raw count | 🤖 | ⬜ |
+| C4 | **Agent panel** — every agent (Milla/Vida/Denise) uses the FIGSY layout (portrait, role, chips, intro, input) | 🤖 | ⬜ |
+| C5 | **Signup screen** — ClickUp-style: "Seconds to sign up!", Continue with Google, clean fields, marketing + data-transfer-outside-UK consent checkboxes | 🤖 | ⬜ |
 
 ---
 
-## D. 🟣 V2 BUILDS — Month 2 portal upgrade (`docs/portal-v2-preview.html`)
-| # | Concept | Priority | Status |
-|---|---------|----------|--------|
-| D1 | Agent card grid (dashboard home) — Pixar avatars, status, last activity | High | ⬜ |
-| D2 | Agent thinking/working state — live step progress | High | ⬜ |
-| D3 | Conversational agent setup — chat-style ICP/campaign builder | Medium | ⬜ |
-| D4 | Structured agent config panel — Role/ICP/Tone/Schedule/Knowledge | Medium | ⬜ |
-| D5 | Agent marketplace — "Meet your AI Revenue Team", one-click activate | Month 3 | ⬜ |
-| D6 | Slim sidebar + top-right header — profile dropdown (Usage/Billing/Settings/Team/API) | High | ⬜ |
-| D7 | Invite teammate (header + modal) — growth loop | High | ⬜ |
-| D8 | AI Notetaker → action items (Milla) — transcript in, owners+deadlines out | Critical | ⬜ |
-| D9 | Teams Hub — create teams, members, who's active, per-person agent usage | Critical | ⬜ |
+## D. 🟣 V2 BUILDS — Month 2 portal redesign (`docs/portal-v2-preview.html`)
+> NB: this is a **new redesign**, NOT the dead `FEATURE_PORTAL_V2` flag (see 0b).
+
+| # | Concept | Priority |
+|---|---------|----------|
+| D1 | Agent card grid (dashboard home) | High |
+| D2 | Agent thinking/working state | High |
+| D3 | Conversational agent setup | Medium |
+| D4 | Structured agent config panel (Role/ICP/Tone/Schedule/Knowledge) | Medium |
+| D5 | Agent marketplace ("Meet your AI Revenue Team") | Month 3 |
+| D6 | Slim sidebar + top-right header (profile dropdown) | High |
+| D7 | Invite teammate (growth loop) | High |
+| D8 | AI Notetaker → action items (Milla) | Critical |
+| D9 | Teams Hub (members, activity, per-person usage) | Critical |
 
 ---
 
 ## E. 🟡 POST-LAUNCH ROADMAP (from EVERYTHING.md)
 
-### E1. Week 1 post-launch
-| # | Item | Owner |
-|---|------|-------|
-| E1.1 | 10 warm outreach messages (network) | 🧍 |
-| E1.2 | LinkedIn content 1/day via anonymous brand handle | 🧍 |
-| E1.3 | Activate LinkedIn outreach — run `20260602_linkedin_queue.sql` + PhantomBuster keys | 🧍 |
-| E1.4 | Start Meta/WhatsApp Business API application (3–7 day window) | 🧍 |
-| E1.5 | Record real product demo ("shoot once, cut many", 16:9 + 9:16) | 🧍 |
-| E1.6 | Replace homepage hero animation with real product loop (blocked on E1.5) | 🤝 |
-| E1.7 | Instrument GTM funnel (channel→reply→demo→close, CAC, trial→paid) | 🤝 |
-| E1.8 | Activate dogfood self-outreach engine + point FIGSY at competitor-switcher ICP | 🧍 |
+**E1 — Week 1:** 10 warm outreach · LinkedIn 1/day (anon brand) · activate LinkedIn outreach (PhantomBuster + SQL) · WhatsApp Business API application · record real demo · replace hero animation · instrument GTM funnel · dogfood self-outreach engine.
 
-### E2. Weeks 2–4
-| # | Item | Owner |
-|---|------|-------|
-| E2.1 | Open 2 design-partner slots (case study + logo) | 🧍 |
-| E2.2 | Cut social content from demo footage (9:16) | 🤝 |
-| E2.3 | Record 3 onboarding Loom videos | 🧍 |
-| E2.4 | Onboarding v2 + day-0/3/7 email sequence | 🤖 |
-| E2.5 | Populate proof block with real dogfood numbers (no fabrication) | 🤖 |
-| E2.6 | Activate Flutterwave (needs key — ZAR/NGN/KES/GHS) | 🧍 |
-| E2.7 | Launch YouTube channel (10-video plan exists) | 🧍 |
-| E2.8 | Wire playbook email form (needs ConvertKit/Mailchimp) | 🤝 |
-| E2.9 | Performance guarantee clause in terms.html (define "qualified meeting", refund mechanics) | 🤝 |
-| E2.10 | Atlas/Revio steals: influencer/community distribution (SA + US); coaching "Revenue Playbook Session" in onboarding | 🧍 |
+**E2 — Weeks 2–4:** 2 design-partner slots · social cuts from demo · 3 onboarding Looms · onboarding v2 + day-0/3/7 emails · real proof numbers · Flutterwave · YouTube · playbook email form · perf-guarantee terms clause · Atlas/Revio steals (influencer distribution + coaching session).
 
-### E3. Month 2 — intelligence layer (10+ clients)
-Intent signal detection · A/B subject testing · client morning-brief email · ICP auto-refinement · conditional sequence branching · waterfall enrichment (Apollo→PDL→Hunter→Clearbit) · deliverability dashboard (SPF/DKIM/DMARC) · email score pre-send · adaptive send volume · **FIGSY Memory v2 (pgvector)** · Milla full-context CRM · Vapi voice · Product Hunt · G2 listing · configurable agent triggers · multi-model toggle · inbox rotation / multiple sending domains · **MCP server (pulled fwd from M3 — distribution unlock)**.
-- **Data floor (the moat):** keep the append-only `outcome_events` log at full fidelity (✅ built; capture send/reply/opt_out/meeting_booked).
+**E3 — Month 2 (10+ clients, intelligence layer):** intent signals · A/B subjects · client morning brief · ICP auto-refine · conditional branching · waterfall enrichment · deliverability dashboard · email pre-send score · adaptive send volume · **FIGSY Memory v2 (pgvector)** · Milla full-context CRM · Vapi voice · Product Hunt · G2 · configurable triggers · multi-model toggle · inbox rotation · **MCP server (pulled fwd — distribution unlock)**. Keep the append-only `outcome_events` data floor at full fidelity (✅ built).
 
-### E4. Month 3 — agent family + platform
-**DENISE (the closer — #1 build after launch stabilises):** Calendly auto-book · call-join transcription (notetaker) · live objection extraction · proposal draft from transcript · pipeline follow-up sequencer · persona/system prompt · admin identity card.
-Then: LENA · OTTO · multi-agent orchestration (shared memory) · 500+ FIGSY skill library · MCP server · **outcome pricing (#60 — GATED on margin data, ≥28% gross floor)** · mobile app · built-in CRM/Kanban · pan-African design partners · cross-client intelligence · data licensing · pipeline forecasting · in-portal messaging · proposal + e-sign · meeting notetaker.
+**E4 — Month 3:** **DENISE first** (Calendly auto-book · notetaker transcription · live objection extraction · proposal draft · pipeline follow-up · persona prompt · admin card) → then LENA · OTTO · multi-agent orchestration · 500+ skill library · **outcome pricing #60 (GATED)** · mobile app · built-in CRM/Kanban · pan-African partners · cross-client intelligence · data licensing · forecasting · in-portal messaging · proposal+e-sign.
 
-### E5. Year 2 — certifications + enterprise
-ISO 27001 · ISO 42001 (AI governance) · SOC 2 Type II (Vanta) · 3-type memory model · visitor de-anonymisation · churn-risk scoring · revenue forecasting · call intelligence.
+**E5 — Year 2:** ISO 27001 · ISO 42001 · SOC 2 (Vanta) · 3-type memory · visitor de-anon · churn scoring · revenue forecasting · call intelligence.
 
 ---
 
-## F. ⚖️ LEGAL & COMPLIANCE (4 rings — ongoing)
-- **Ring 1 (Corporate/Personal):** SR01 · registered office · WHOIS · LinkedIn lockdown · D&O insurance (~£500–1k/yr, M2).
-- **Ring 2 (Data):** ICO £40 (pre-launch) · ODPC Kenya / NDPR (first NG/KE client).
-- **Ring 3 (InfoSec):** rotate TIER 0 creds · AI Risk Register (free, start now) · pen test (~£2–5k, M3) · SOC2/ISO (Y2).
-- **Ring 4 (Contract/IP):** SEIS advance assurance (free) · trademarks K.I.N.D+FIGSY+Milla+Vida (~£320, M2–3) · VAT at £90k · annual confirmation statement.
+## F. ⚖️ LEGAL & COMPLIANCE (4 rings)
+- **R1 Corporate/Personal:** SR01 · registered office · WHOIS · LinkedIn lockdown · D&O insurance (~£500–1k, M2).
+- **R2 Data:** ICO £40 (pre-launch) · ODPC Kenya/NDPR (first NG/KE client).
+- **R3 InfoSec:** rotate TIER-0 (Apollo ✅) · AI Risk Register (free, now) · pen test (M3) · SOC2/ISO (Y2).
+- **R4 Contract/IP:** SEIS (free) · trademarks K.I.N.D+FIGSY+Milla+Vida (~£320, M2–3) · VAT at £90k · annual confirmation statement.
 
 ---
 
-## G. 🧰 KNOWN ISSUES / TECH DEBT (from this session)
-| # | Item | Owner | Status |
-|---|------|-------|--------|
-| G1 | Deploy pipeline: `KIND System Audit` check fails on every push; Railway auto-deploy unreliable, needed manual reconnect | 🤝 | ⬜ |
-| G2 | DB schema drift: `product_type` ENUM (prod) vs text+CHECK (repo) | 🤝 | ⬜ |
-| G3 | Apollo integration hardening: `q_keywords`/`tech_stack` no longer dumped into literal search; consider a validated keyword/tech picker for power users | 🤖 | ⬜ |
-| G4 | Conversational ICP builder emits prose keywords + non-standard company-size labels — now defended in `buildSearchBody`; consider tightening the builder prompt | 🤖 | ⬜ |
-| G5 | Remove temporary preview-count diagnostics once stable (ties to A0.1) | 🤖 | ⬜ |
-| G6 | Admin proxy hardcoded URL fix (deferred) | 🤖 | ⬜ |
-| G7 | Commit signing — stop-hook warns commits show as Unverified | 🧍 | ⬜ |
+## G. 🧰 TECH DEBT / KNOWN ISSUES (from today)
+| # | Item | Owner |
+|---|------|-------|
+| G1 | Deploy pipeline: `KIND System Audit` fails every push; Railway needs manual reconnect (ties to A0.3) | 🤝 |
+| G2 | DB schema drift: `product_type` ENUM vs text+CHECK (ties to B6) | 🤝 |
+| G3 | Delete dormant Portal-V2 build + `FEATURE_PORTAL_V2` flag so it can't be enabled by accident | 🤝 |
+| G4 | Apollo: consider a validated keyword/tech picker for power users (currently dropped) | 🤖 |
+| G5 | Remove preview-count diagnostics once stable (ties to A0.1) | 🤖 |
+| G6 | Admin proxy hardcoded URL fix (deferred) | 🤖 |
+| G7 | Commit signing — commits show Unverified (stop-hook warns) | 🧍 |
 
 ---
 
 ## H. ⏸ BLOCKED — needs credentials only (no build)
-Milla/Vida Stripe price IDs · Flutterwave key · HubSpot key · Vapi voice · WhatsApp (Meta approval) · Google Calendar OAuth · Clearbit · PhantomBuster (LinkedIn) · Cloudflare CDN failover · Render standbys + UptimeRobot.
+Milla/Vida Stripe price IDs · Flutterwave · HubSpot · Vapi · WhatsApp (Meta) · Google Calendar OAuth · Clearbit · PhantomBuster · Cloudflare CDN · Render standbys + UptimeRobot.

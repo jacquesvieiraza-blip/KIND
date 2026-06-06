@@ -506,6 +506,75 @@ Reason it waits is not the code — it's that outcome pricing moves result-risk 
 
 ---
 
+# PART 4B — STAGING ENVIRONMENT (set up BEFORE first V2 work post-launch)
+
+> **Why:** once real clients are live on production, every V2 feature and future launch must be built + smoke-tested on staging before it touches main. Clients can't be the ones who find the bugs. This costs ~$10–15/mo extra on Railway and takes ~20 minutes to set up.
+
+## Architecture
+
+```
+feature branch → auto-deploy → staging (staging.app.get-kind.com)
+                                  ↓ smoke test passes
+                              merge to main → production (app.get-kind.com)
+```
+
+Three isolated pieces — staging never shares any data or keys with production:
+- **Railway staging services** (Portal + API, pointing at `staging` branch)
+- **Supabase `kind-staging` project** (separate DB — no client data, no cross-contamination)
+- **Stripe test-mode keys** (staging always test mode; production always live mode)
+
+## Setup checklist (one-time, ~20 min, do BEFORE first V2 branch merges)
+
+### Step 1 — Supabase staging project
+- [ ] Create new project: `kind-staging` in Supabase (af-south-1, same region)
+- [ ] Run all migrations (001 → latest) in staging SQL editor
+- [ ] Save `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` — these are staging-only values
+
+### Step 2 — Railway staging services
+- [ ] In Railway: duplicate the `@kind/api` service → rename `kind-api-staging`
+  - Set source branch: `staging`
+  - Update all env vars to staging values (staging Supabase URL/keys, Stripe test keys, `NODE_ENV=staging`)
+  - Set `PORT` to a different value if needed (Railway handles this automatically)
+  - Custom domain: `api-staging.get-kind.com` (or use the Railway-generated URL)
+- [ ] In Railway: duplicate the `@kind/portal` service → rename `kind-portal-staging`
+  - Set source branch: `staging`
+  - Update `NEXT_PUBLIC_API_URL` → staging API URL
+  - Update `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` → staging values
+  - Update all `NEXT_PUBLIC_STRIPE_PRICE_*` → Stripe **test-mode** price IDs
+  - Custom domain: `staging.app.get-kind.com`
+
+### Step 3 — Create `staging` branch in GitHub
+- [ ] `git checkout -b staging && git push -u origin staging`
+- [ ] On Railway: both staging services watch this branch (auto-deploy on push to `staging`)
+
+### Step 4 — Verify
+- [ ] Push a harmless change to `staging` branch → both Railway staging services rebuild
+- [ ] Visit `staging.app.get-kind.com` → sign up with a test email → dashboard loads
+- [ ] Confirm no production DB rows affected (check Supabase production project — should be untouched)
+
+## Development workflow (every V2 feature from here)
+
+```
+1. Build on a feature branch  (e.g. claude/v2-agent-cards)
+2. Push feature branch → open PR into `staging`
+3. Staging Railway auto-deploys
+4. Run smoke test on staging.app.get-kind.com
+5. Pass → merge staging → main → production auto-deploys
+```
+
+## What never changes on this rule
+- **Production = `main` only.** No direct pushes to main for V2 work.
+- **Staging DB is throwaway.** Wipe and re-seed any time — no client data ever lives there.
+- **Stripe always test-mode on staging.** No live charges on staging, ever.
+- If a hot fix is needed in production (security, broken live path), it goes: `hotfix/branch` → test on staging → fast-merge to main. Never patch production directly.
+
+## Cost
+- 2 extra Railway services (~$10–15/mo, sleep when idle)
+- 1 extra Supabase project (free tier covers staging easily)
+- Total: ~$10–15/mo — cheaper than one client churn event
+
+---
+
 # PART 5 — COMPETITIVE STEAL-NOW (action items extracted from §20/24/25/26/33)
 ✅ Already taken: command palette, activity feed, shareable dashboards, sequence-branching UI, Meetings-Booked KPI, Mission Control, agent photos, warm palette, AskFigsyButton, benchmark, anomaly alerts, Unibox two-way, demo narration.
 ⬜ Now (zero/low build): "AI Revenue OS" positioning (Apex) · daily client briefing (Apex, Month 1) · scheduled report emails (S4).

@@ -169,6 +169,7 @@ export interface PreviewCountResult {
   debug: {
     keyConfigured: boolean
     keyTail: string | null       // last 4 chars of the key, to identify WHICH key is in use
+    endpoint: string             // the exact URL hit — verifies which build is running
     httpStatus: number | null
     rawCountField: string | null
     sentBody: unknown
@@ -182,6 +183,7 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
   const baseDebug = {
     keyConfigured: !!apiKey,
     keyTail: apiKey ? apiKey.slice(-4) : null,
+    endpoint: APOLLO_PEOPLE_SEARCH,
     httpStatus: null as number | null,
     rawCountField: null as string | null,
     sentBody: body,

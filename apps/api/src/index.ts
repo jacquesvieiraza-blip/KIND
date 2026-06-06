@@ -156,5 +156,9 @@ process.on('unhandledRejection', (reason) => {
 
 app.listen(PORT, () => {
   console.log(`KIND API running on port ${PORT}`)
+  // BUILD MARKER — bump this string on each deploy-verification push so the live
+  // build is identifiable from the startup log. If this line is absent/old in the
+  // deploy logs, Railway is serving a stale build (not main HEAD).
+  console.log('KIND API BUILD MARKER → apollo-apiv1-fix · 2026-06-06T17:55Z')
   startCrons()
 })

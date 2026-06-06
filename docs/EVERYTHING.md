@@ -69,6 +69,137 @@ Status: ✅ fixed in code (on `main`) · ⏳ fixed, awaiting website-service dep
 
 ---
 
+## 🧭 FUTURE UPDATES — RANKED (high → low). Every item. ✅ done · ⬜ todo · ⏸ gated · 🚫 won't.
+> Derived view of everything still ahead, ordered by priority band. Details/specs live in their original sections below.
+
+### P0 — LAUNCH-BLOCKING (before Monday)
+1. ⬜ Finish **Smoke Test 1** (T1 fresh signup→onboarding · T2 steps 8–9 · T3 FIGSY send→reply→hot · T4 booking · T5 billing · T6 Vida widget · T7 Milla cron hygiene) → log `T#-Step#`
+2. ⬜ **Smoke Test 2** — full re-run of T1–T7, confirm fixes, green everywhere
+3. ⬜ 🤖 Fix smoke-test failures same-day
+4. ⏳ Rotate remaining **TIER-0 creds** (Apollo ✅): `STRIPE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `HUBSPOT_API_KEY`, `ADMIN_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+5. ⬜ **Fix deploy pipeline** — `KIND System Audit` fails every push; make Railway auto-deploy `main` reliably (no manual reconnect)
+6. ⬜ **Strip launch-blocking debug** — ICP banner `diag·`/`body:` lines, API `BUILD MARKER`, `previewCount` diagnostics
+7. ⬜ Denise go-live: $99/mo Stripe price → `STRIPE_PRICE_DENISE_MONTHLY`
+8. ⬜ Run migration `010_crm_dedup.sql`
+9. ⬜ DNS `app`/`api`/`admin`/`status`.get-kind.com → then `NEXT_PUBLIC_API_URL` + Resend webhook
+10. ⬜ Confirm Calendly `kind-ai-demo/new-meeting` live
+11. ⬜ Reconcile DB schema drift (`product_type` ENUM vs text+CHECK)
+12. ⬜ Verify all 4 agent images are Pixar-3D (only swap any photoreal)
+13. 🚫 **Do NOT enable `FEATURE_PORTAL_V2`** (breaks live portal); delete dormant V2 + flag
+14. ⬜ **Legal before launch:** ICO £40 · SR01 suppression · registered office + service address · WHOIS privacy · LinkedIn lockdown · SEIS advance assurance
+15. ⬜ Free cloud + AI credits — Microsoft/Google/AWS (F1, zero downside)
+16. ⬜ **MON — LAUNCH** both markets, multiple campaigns
+
+### P1 — WEEK 1 POST-LAUNCH
+17. ⬜ 10 warm outreach messages (network)
+18. ⬜ LinkedIn content 1/day via anonymous brand handle
+19. ⬜ Activate LinkedIn outreach — run `20260602_linkedin_queue.sql` + PhantomBuster keys
+20. ⬜ Start Meta/WhatsApp Business API application (3–7 day window)
+21. ⬜ Record real product demo ("shoot once, cut many", 16:9 + 9:16)
+22. ⬜ #44 Replace homepage hero animation with real product loop (blocked on demo)
+23. ⬜ Instrument GTM funnel (channel→reply→demo→close, CAC, trial→paid)
+24. ⬜ Activate dogfood self-outreach engine + point FIGSY at competitor-switcher ICP
+25. ⬜ Daily client briefing email (Apex steal)
+26. ⬜ One pre-launch fresh-signup check (since smoke test uses dogfood acct)
+
+### P2 — WEEKS 2–4
+27. ⬜ Open 2 design-partner slots (case study + logo)
+28. ⬜ Cut social content from demo footage (9:16)
+29. ⬜ Record 3 onboarding Loom videos
+30. ⬜ Onboarding v2 + day-0/3/7 email sequence
+31. ⬜ Populate proof block + homepage outcome numbers with REAL data (#31/#62c — no fabrication)
+32. ⬜ Activate Flutterwave (needs key — ZAR/NGN/KES/GHS)
+33. ⬜ Launch YouTube channel (10-video plan exists)
+34. ⬜ Wire playbook email form (ConvertKit/Mailchimp)
+35. ⬜ #61a/g Performance-guarantee clause in terms.html (define "qualified meeting", refund mechanics, min volume)
+36. ⬜ #61e Atlas steal — influencer/community distribution (1–2 SA + 1–2 US communities; find our Dan-Martell)
+37. ⬜ #61g Atlas steal — sharpen guarantee to "90-day results or you don't pay"
+38. ⬜ #62b Revio steal — bundle "Revenue Playbook Session" (30-min) into onboarding
+39. ⬜ Scheduled report emails (S4 steal)
+
+### P2.5 — COSMETIC (batch after Smoke Test 1)
+40. ⬜ Sidebar: ICP Builder above People
+41. ⬜ Agent cards — consistent length + layout
+42. ⬜ ICP banner — "20,000+ available · we deliver your 20/run"
+43. ⬜ Agent panel — every agent uses FIGSY layout
+44. ⬜ Signup screen — ClickUp-style (Continue with Google, consent checkboxes)
+
+### P3 — MONTH 2 (10+ clients; intelligence layer + V2 portal)
+**Intelligence (37–53 in Part 1):**
+45. ⬜ #37 Intent signal detection
+46. ⬜ #38 A/B subject testing
+47. ⬜ #39 Client morning-brief email
+48. ⬜ #40 ICP auto-refinement (L2 learning layer)
+49. ⬜ #41 Conditional sequence branching
+50. ⬜ #42 Waterfall enrichment (Apollo→PDL→Hunter→Clearbit; needs keys)
+51. ⬜ #43 Deliverability dashboard (SPF/DKIM/DMARC + bounce + blacklist)
+52. ⬜ #44 Email score pre-send
+53. ⬜ #45 Adaptive send volume
+54. ⬜ #46 **FIGSY Memory v2 (pgvector)**
+55. ⬜ #47 Milla full-context CRM pull
+56. ⬜ #48 Vapi voice calling
+57. ⬜ #49 Product Hunt (with proof)
+58. ⬜ #50 G2 listing (5 reviews)
+59. ⬜ #51 Configurable agent triggers
+60. ⬜ #52 Multi-model toggle per campaign
+61. ⬜ #53 Inbox rotation / multiple sending domains (Instantly steal)
+62. ⬜ #59 **MCP server** (pulled fwd from M3 — distribution unlock)
+**V2 portal redesign (`portal-v2-preview.html`):**
+63. ⬜ V2-1 Agent card grid (High)
+64. ⬜ V2-2 Agent thinking/working state (High)
+65. ⬜ V2-6 Slim sidebar + top-right header (High)
+66. ⬜ V2-7 Invite teammate / growth loop (High)
+67. ⬜ V2-8 AI Notetaker → action items / Milla (Critical)
+68. ⬜ V2-9 Teams Hub (Critical)
+69. ⬜ V2-3 Conversational agent setup (Medium)
+70. ⬜ V2-4 Structured agent config panel (Medium)
+70b. ⬜ V2-10 **Onboarding Assistant agent** (non-family, distinct image, guides setup — ClickUp-style) (High)
+
+### P4 — MONTH 3 (agent family + platform)
+71. ⏸ #54 **DENISE deep build** (#1 next agent) — Calendly auto-book · call-join transcription/notetaker · live objection extraction · proposal draft from transcript · pipeline follow-up · persona prompt · admin card
+72. ⏸ #55 **LENA**
+73. ⏸ #56 **OTTO**
+74. ⏸ #57 Multi-agent orchestration (shared memory)
+75. ⏸ #58 500+ FIGSY skill library
+76. ⏸ #60 **Outcome pricing** (per meeting booked) — GATED on ≥28% gross margin data
+77. ⏸ #61 Mobile app (iOS + Android)
+78. ⏸ #62 Built-in CRM (persistent prospect DB / Kanban deal view)
+79. ⏸ V2-5 Agent marketplace ("Meet your AI Revenue Team")
+80. ⏸ #63 Pan-African design partners (NG/KE/GH/EG/RW)
+81. ⏸ #64 Platform-level cross-client intelligence (L4 moat)
+82. ⏸ #65 Data licensing marketplace
+83. ⏸ #66 ICP auto-refinement advanced
+84. ⏸ #67 Pipeline forecasting
+85. ⏸ #68 In-portal messaging
+86. ⏸ #69 Proposal + e-sign
+87. ⏸ #70 Meeting notetaker
+
+### P5 — YEAR 2 (certifications + enterprise)
+88. ⏸ #71 ISO 27001 (~£15–25k)
+89. ⏸ #72 ISO 42001 AI Governance (~£10–15k)
+90. ⏸ #73 SOC 2 Type II (~$50k, Vanta)
+91. ⏸ #74 Triple-cert via Vanta (~70% shared controls)
+92. ⏸ #75 3-type memory model (episodic/long-term/preference)
+93. ⏸ #76 Visitor de-anonymisation (Clearbit)
+94. ⏸ #77 Churn-risk scoring
+95. ⏸ #78 Revenue forecasting
+96. ⏸ #79 Call intelligence
+
+### ONGOING — legal · funding · ops · tech-debt
+- **Legal (Part 2):** D&O insurance (~£500–1k, M2) · ODPC Kenya/NDPR (first NG/KE client) · AI Risk Register (free, start now) · pen test (~£2–5k, M3) · trademarks K.I.N.D+FIGSY+Milla+Vida (~£320, M2–3) · IR35/contractor IP (first hire) · SeedLegals IP (~£600, at raise) · VAT at £90k · annual confirmation statement + accounts + CT return.
+- **Funding (Part 5C):** F1 cloud credits (now) · F2 SA ecosystem (5–10 clients) · F3 YC/accelerators (paying clients) · F4 revenue-based financing (predictable MRR) · F5 influencer lever (ongoing). Revisit raise vs bootstrap at 20–30 paying clients.
+- **Tech-debt (6 Jun):** delete dormant Portal-V2 + flag · Apollo validated keyword/tech picker · tighten ICP-builder prompt (no prose keywords) · admin proxy hardcoded URL · commit signing (Unverified warnings).
+- **MASTER.md cleanup (Part 8):** 15 contradictions to reconcile (Vercel refs, launch-day, Vida price, pricing tables, cron count, agent timing, LinkedIn "never", duplicate sections, Calendly personal link, done/pending conflicts, cashflow, us.app remnants, eu-west-1, fake "built" routes, old smoke test).
+
+### ⏸ BLOCKED — needs credentials only (no build) — Part 4
+Milla/Vida Stripe price IDs · Flutterwave key · HubSpot key · Vapi · WhatsApp (Meta) · Google Calendar OAuth · Clearbit · PhantomBuster · Cloudflare CDN · Render standbys + UptimeRobot.
+
+### ✅ STEALS ALREADY DONE (reference — do not rebuild)
+Command palette · activity feed · shareable dashboards · sequence-branching UI · Meetings-Booked KPI · Mission Control · agent photos · warm palette · AskFigsyButton · benchmark · anomaly alerts · Unibox two-way · demo narration · "AI Revenue OS" hero · pipeline/ROI calculator (#61f) · "clone yourself" figsy hero (#61c) · cold-CRM re-engagement (#61d) · "trained on" hook (#62a) · "Revenue Blueprint Session" CTAs (#62d) · vertical landing pages (#62e) · 90-Day Pipeline Guarantee band (#61a) · "$20" entry number (#61b).
+📌 NOT stealing: Glean "platform/layer" narrative (we're product-level — breaks honest positioning).
+
+---
+
 ## 🏁 PRE-LAUNCH SPLIT — what's yours, what's mine, what I'm waiting on
 
 ### 🤖 CLAUDE — DONE (code complete, on `main`, verified by 2 sweeps)
@@ -202,7 +333,7 @@ Two full passes planned: **Smoke Test 1 (Sat)** and **Smoke Test 2 (Sun)**, each
 5. **Signup screen** — ClickUp-style: "Seconds to sign up!", Continue with Google, clean name/email/password, marketing-consent + data-transfer-outside-UK consent checkboxes.
 
 ## 🟣 V2 BUILDS — Month-2 portal redesign (`docs/portal-v2-preview.html`)
-> NEW redesign — NOT the dead `FEATURE_PORTAL_V2` flag. 9 concepts:
+> NEW redesign — NOT the dead `FEATURE_PORTAL_V2` flag. 10 concepts:
 1. Agent card grid (dashboard home) — *High*
 2. Agent thinking/working state — *High*
 3. Conversational agent setup — *Medium*
@@ -212,6 +343,7 @@ Two full passes planned: **Smoke Test 1 (Sat)** and **Smoke Test 2 (Sun)**, each
 7. Invite teammate (header + modal) — growth loop — *High*
 8. AI Notetaker → action items (Milla) — *Critical*
 9. Teams Hub (members, activity, per-person agent usage) — *Critical*
+10. **Onboarding Assistant agent** — a dedicated **non-family** support agent (à la ClickUp's "Onboarding Assistant") that guides new clients through setup (business profile → ICP → first leads → first campaign). NOT one of the FIGSY/Milla/Vida/Denise family; **distinct visual identity — its own friendly style, NOT the Pixar mask portrait.** Lives on the setup/onboarding dashboard (`docs/setup-dashboard-preview.html`). Backend agent + chat surface. — *High* — **NEW 6 Jun**
 
 ## ✅ DONE THIS SESSION (4 Jun — verified in repo)
 - terms.html sub-processor bug (Paystack/Vercel → Stripe/Railway) · AAA arbitration §12

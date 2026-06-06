@@ -593,8 +593,76 @@
   <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">Milla owns this feature. Input: Zoom/Teams transcript paste or upload. Output: structured action items with owner + deadline, pushable to tasks or Slack.</p>
 </div>
 
+<!-- ── 9. TEAMS HUB ── -->
+<div style="padding:48px 40px;border-bottom:1px solid #e5e0f8;background:#faf9ff;">
+  <div style="display:inline-flex;align-items:center;gap:6px;background:#fef2f2;color:#dc2626;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:20px;"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;display:inline-block;"></span>Concept 9 — Critical · Month 2</div>
+  <div style="font-size:22px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">Teams Hub</div>
+  <div style="font-size:13px;color:#6b7280;margin-bottom:28px;">Create teams, add members, see who's active, track per-person agent usage. Replaces the basic /team page.</div>
+
+  <div style="max-width:860px;border:1.5px solid #ede9fe;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(124,58,237,0.07);">
+    <!-- Header -->
+    <div style="background:#fff;border-bottom:1px solid #ede9fe;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <div><div style="font-size:18px;font-weight:800;color:#1a1a2e;">Teams Hub</div><div style="font-size:12px;color:#9B8EC4;margin-top:2px;">3 members · 2 active now</div></div>
+      <div style="display:flex;gap:8px;">
+        <button style="background:#f3f0ff;color:#7C3AED;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">+ Create team</button>
+        <button style="background:#7C3AED;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">+ Add member</button>
+      </div>
+    </div>
+    <!-- Tabs -->
+    <div style="background:#faf9ff;border-bottom:1px solid #ede9fe;padding:0 24px;display:flex;gap:4px;">
+      <div style="padding:12px 14px;font-size:12px;font-weight:700;color:#7C3AED;border-bottom:2px solid #7C3AED;cursor:pointer;">Overview</div>
+      <div style="padding:12px 14px;font-size:12px;font-weight:500;color:#9B8EC4;cursor:pointer;">Analytics</div>
+      <div style="padding:12px 14px;font-size:12px;font-weight:500;color:#9B8EC4;cursor:pointer;">Activity</div>
+      <div style="padding:12px 14px;font-size:12px;font-weight:500;color:#9B8EC4;cursor:pointer;">Permissions</div>
+    </div>
+    <!-- Body -->
+    <div style="display:grid;grid-template-columns:1fr 290px;background:#fff;">
+      <!-- Members list -->
+      <div style="padding:20px 24px;border-right:1px solid #ede9fe;">
+        <div style="font-size:11px;font-weight:700;color:#9B8EC4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;">Members</div>
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f3f0ff;">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#c4b5fd,#7C3AED);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;position:relative;">J<span style="position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#10b981;border-radius:50%;border:2px solid #fff;"></span></div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#1a1a2e;">Jacques V</div><div style="font-size:11px;color:#9B8EC4;">hello@get-kind.com · Admin</div></div>
+          <div style="display:flex;gap:6px;"><span style="background:#ede9fe;color:#7C3AED;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">FIGSY</span><span style="background:#fce7f3;color:#F472B6;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">Milla</span></div>
+          <div style="text-align:right;"><div style="font-size:12px;font-weight:700;color:#1a1a2e;">247</div><div style="font-size:10px;color:#9B8EC4;">leads today</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f3f0ff;">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#fbcfe8,#F472B6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;position:relative;">S<span style="position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#10b981;border-radius:50%;border:2px solid #fff;"></span></div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#1a1a2e;">Sarah K</div><div style="font-size:11px;color:#9B8EC4;">sarah@acmecorp.com · Member</div></div>
+          <div style="display:flex;gap:6px;"><span style="background:#ede9fe;color:#7C3AED;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">FIGSY</span></div>
+          <div style="text-align:right;"><div style="font-size:12px;font-weight:700;color:#1a1a2e;">83</div><div style="font-size:10px;color:#9B8EC4;">leads today</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 0;">
+          <div style="width:40px;height:40px;border-radius:50%;background:#f3f0ff;display:flex;align-items:center;justify-content:center;color:#9B8EC4;font-weight:800;font-size:15px;flex-shrink:0;">M</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#9B8EC4;">mike@acmecorp.com</div><div style="font-size:11px;color:#9B8EC4;">Invite pending</div></div>
+          <span style="background:#fef3c7;color:#d97706;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">Pending</span>
+          <div style="text-align:right;"><div style="font-size:12px;font-weight:700;color:#9B8EC4;">—</div><div style="font-size:10px;color:#9B8EC4;">not joined</div></div>
+        </div>
+      </div>
+      <!-- Analytics panel -->
+      <div style="padding:20px;background:#faf9ff;">
+        <div style="font-size:11px;font-weight:700;color:#9B8EC4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;">Team Analytics</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+          <div style="background:#fff;border-radius:12px;border:1px solid #ede9fe;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#7C3AED;">330</div><div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Leads today</div></div>
+          <div style="background:#fff;border-radius:12px;border:1px solid #ede9fe;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#059669;">12</div><div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Emails sent</div></div>
+          <div style="background:#fff;border-radius:12px;border:1px solid #ede9fe;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#F472B6;">4</div><div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Campaigns live</div></div>
+          <div style="background:#fff;border-radius:12px;border:1px solid #ede9fe;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#D97706;">2</div><div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Active now</div></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:10px;">Agent usage this week</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="font-weight:600;">FIGSY</span><span style="color:#9B8EC4;">2 members</span></div><div style="height:5px;background:#f3f0ff;border-radius:10px;"><div style="height:100%;width:90%;background:#7C3AED;border-radius:10px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="font-weight:600;">Milla</span><span style="color:#9B8EC4;">1 member</span></div><div style="height:5px;background:#f3f0ff;border-radius:10px;"><div style="height:100%;width:45%;background:#F472B6;border-radius:10px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="font-weight:600;">Vida</span><span style="color:#9B8EC4;">1 member</span></div><div style="height:5px;background:#f3f0ff;border-radius:10px;"><div style="height:100%;width:30%;background:#14B8A6;border-radius:10px;"></div></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span style="font-weight:600;">Denise</span><span style="color:#9B8EC4;">1 member</span></div><div style="height:5px;background:#f3f0ff;border-radius:10px;"><div style="height:100%;width:20%;background:#D97706;border-radius:10px;"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">Green dot = active now. Agent usage bars show adoption across the team. Admins manage roles from Permissions tab.</p>
+</div>
+
 <div style="padding:32px 40px;text-align:center;color:#9B8EC4;font-size:12px;border-top:1px solid #ede9fe;background:#fff;">
-  K.I.N.D Portal V2 — Concept Preview · Not live code · Post-launch Month 2
+  K.I.N.D Portal V2 — 9 Concepts · Not live code · Post-launch Month 2
 </div>
 
 </body>

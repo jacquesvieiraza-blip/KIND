@@ -2,6 +2,19 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Railway terminates TLS at the edge and forwards to the app over plain HTTP.
+  // If the client actually arrived over http, x-forwarded-proto is 'http' — bump
+  // them to https at the entry point so no downstream redirect can land on http
+  // (which shows "Not Secure"). Done first, before any other work.
+  const proto = request.headers.get('x-forwarded-proto')
+  const host  = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+  if (proto === 'http' && host) {
+    return NextResponse.redirect(
+      new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, `https://${host}`),
+      308,
+    )
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

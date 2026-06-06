@@ -7,9 +7,16 @@ import { cookies } from 'next/headers'
 // We exchange the code for a session (sets httpOnly cookies on this domain),
 // then forward the user to the intended destination.
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams, origin: internalOrigin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
+
+  // Railway forwards to the app over plain HTTP, so request.url's origin is
+  // http:// internally — redirecting to it downgrades the browser to "Not
+  // Secure". Honour x-forwarded-proto/host to keep the https scheme.
+  const fwdProto = request.headers.get('x-forwarded-proto')
+  const fwdHost  = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+  const origin   = fwdProto && fwdHost ? `${fwdProto}://${fwdHost}` : internalOrigin
 
   if (code) {
     const cookieStore = await cookies()

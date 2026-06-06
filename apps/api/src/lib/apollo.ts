@@ -152,13 +152,23 @@ export function buildSearchBody(icp: {
   return body
 }
 
-// Returns total matching leads for an ICP (uses per_page:1 to minimise credit use)
-export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): Promise<number> {
-  const apiKey = process.env.APOLLO_API_KEY
-  if (!apiKey) return 0
+// Returns total matching leads for an ICP (uses per_page:1 to minimise credit use).
+// Returns a diagnostic envelope — NOT a bare 0 — so a silent failure (missing key,
+// 401, throttle, unexpected response shape) is visible instead of masquerading as
+// "no matches". `debug.sentBody` echoes the exact Apollo query that was built.
+export interface PreviewCountResult {
+  count: number
+  error: string | null
+  debug: { keyConfigured: boolean; httpStatus: number | null; rawCountField: string | null; sentBody: unknown }
+}
 
+export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): Promise<PreviewCountResult> {
+  const apiKey = process.env.APOLLO_API_KEY
   const body = buildSearchBody(icp, 1)
   body.per_page = 1
+  const baseDebug = { keyConfigured: !!apiKey, httpStatus: null as number | null, rawCountField: null as string | null, sentBody: body }
+
+  if (!apiKey) return { count: 0, error: 'APOLLO_API_KEY is not set on the API service', debug: baseDebug }
 
   try {
     const res = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
@@ -166,7 +176,10 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
       body:    JSON.stringify(body),
     })
-    if (!res.ok) return 0
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      return { count: 0, error: `Apollo ${res.status}: ${text.slice(0, 240)}`, debug: { ...baseDebug, httpStatus: res.status } }
+    }
     // Apollo returns the match count as a top-level `total_entries` on the current
     // API; older/other shapes nest it under `pagination.total_entries`. Read both,
     // or the preview banner reports 0 for every ICP no matter how broad the query.
@@ -174,9 +187,13 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
       total_entries?: number
       pagination?: { total_entries?: number }
     }
-    return data.pagination?.total_entries ?? data.total_entries ?? 0
-  } catch {
-    return 0
+    const fromPagination = data.pagination?.total_entries
+    const fromTop = data.total_entries
+    const count = fromPagination ?? fromTop ?? 0
+    const rawCountField = fromPagination != null ? 'pagination.total_entries' : fromTop != null ? 'total_entries' : 'none-found'
+    return { count, error: null, debug: { ...baseDebug, httpStatus: res.status, rawCountField } }
+  } catch (e) {
+    return { count: 0, error: e instanceof Error ? e.message : 'preview request failed', debug: baseDebug }
   }
 }
 

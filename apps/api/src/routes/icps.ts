@@ -265,29 +265,42 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
     }
 
     // Run count + sample contacts in parallel (per_page:1 for count, per_page:3 for samples)
-    const [count, sampleData] = await Promise.all([
+    const [countResult, sampleResult] = await Promise.all([
       previewCount(icpArg),
-      (async () => {
+      (async (): Promise<{ samples: unknown[]; sampleError: string | null }> => {
         try {
           const searchBody = buildSearchBody(icpArg, 1)
           searchBody.per_page = 3
           const contacts = await searchPeople(searchBody)
-          return contacts.slice(0, 3).map(c => ({
-            first_name:   c.first_name,
-            last_name:    c.last_name,
-            title:        c.title,
-            company:      c.organization_name ?? c.organization?.name ?? null,
-            linkedin_url: c.linkedin_url,
-          }))
-        } catch {
-          return []
+          return {
+            samples: contacts.slice(0, 3).map(c => ({
+              first_name:   c.first_name,
+              last_name:    c.last_name,
+              title:        c.title,
+              company:      c.organization_name ?? c.organization?.name ?? null,
+              linkedin_url: c.linkedin_url,
+            })),
+            sampleError: null,
+          }
+        } catch (e) {
+          return { samples: [], sampleError: e instanceof Error ? e.message : 'sample fetch failed' }
         }
       })(),
     ])
 
-    res.json({ success: true, data: { count, samples: sampleData } })
+    res.json({
+      success: true,
+      data: {
+        count:   countResult.count,
+        samples: sampleResult.samples,
+        // Diagnostics — surfaced so a silent 0 (bad key, 401, throttle, response-shape
+        // drift) is visible instead of masquerading as "no matches".
+        error:   countResult.error ?? sampleResult.sampleError ?? null,
+        debug:   countResult.debug,
+      },
+    })
   } catch (err) {
-    res.json({ success: true, data: { count: 0, samples: [] } }) // Never fail hard
+    res.json({ success: true, data: { count: 0, samples: [], error: err instanceof Error ? err.message : 'preview failed', debug: null } })
   }
 })
 

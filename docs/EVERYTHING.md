@@ -82,10 +82,10 @@ Website (logo, colors, USD, 4-agent consistency, denise.html, global positioning
 
 ### 🧍 FOUNDER — before Monday (your list)
 1. **Denise go-live (2 steps left):** create $99/mo Stripe price → `STRIPE_PRICE_DENISE_MONTHLY` on Railway API service + redeploy. (Migration 011 ✅ done.)
-2. **TIER 0 credential rotation** (all keys exposed 4 Jun) — FIRST.
+2. **TIER 0 credential rotation** — Apollo ✅ rotated 6 Jun; rest still pending (FIRST).
 3. **Confirm Railway website-service** deployed latest `main` (check `get-kind.com/version.txt`).
-4. **Move `FEATURE_PORTAL_V2=true`** API → Portal service.
-5. **Create dogfood account → ping me** (unblocks my #4).
+4. ~~Move `FEATURE_PORTAL_V2=true`~~ 🚫 **DO NOT — breaks the working portal (dormant V2 build). Launch on V1.**
+5. ~~Create dogfood account~~ ✅ Done 6 Jun (hello@get-kind.com).
 6. **Run migration `010_crm_dedup.sql`** (011 already done).
 7. **DNS** `app`/`api`/`admin`/`status`.get-kind.com → then update `NEXT_PUBLIC_API_URL` + Resend webhook.
 8. **Confirm Calendly** live · **ICO** £40 · **SR01** suppression · **registered office** · **WHOIS privacy** · **LinkedIn lockdown**.
@@ -131,8 +131,8 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 ## 🚨 THIS WEEK — launch
 | # | Item | Owner | Status |
 |---|------|-------|--------|
-| 1 | Rotate exposed credentials — TIER 0 (full list in Part 2 / Ring 3) | 🧍 | ⬜ FIRST |
-| 2 | Move `FEATURE_PORTAL_V2=true` API → Portal service | 🧍 | ⬜ |
+| 1 | Rotate exposed credentials — TIER 0 (full list in Part 2 / Ring 3) | 🧍 | ⏳ Apollo key rotated 6 Jun (was leaked in chat); rest pending |
+| 2 | ~~Move `FEATURE_PORTAL_V2=true` API → Portal service~~ | — | 🚫 **DO NOT ENABLE — would break the working portal.** The flag swaps live V1 for the *dormant, incomplete* Portal-V2 build (Part 3). Launch on V1. The V2 *redesign* (see §V2 BUILDS) is separate new Month-2 work. TODO Wed: delete the dead build + flag so it can't be flipped by accident. |
 | 3 | Create dogfood account → ping Claude | 🧍 | ✅ hello@get-kind.com — all 4 agents, 999,999 credits |
 | 4 | Grant FIGSY + credits, set `FIGSY_KIND_CLIENT_ID` + `booking_url` | 🤖 | ✅ Done via SQL 6 Jun |
 | 5 | Merge branch `claude/ai-business-roadmap-U3OWJ` | 🧍 | ⬜ READY — branch is up to date |
@@ -145,8 +145,8 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 | 12 | Registered office + director service address (~£20-50/yr) | 🧍 | ⬜ |
 | 13 | Domain WHOIS privacy verify | 🧍 | ⬜ |
 | 14 | LinkedIn lockdown (don't accept Bradley-type requests; no K.I.N.D on personal) | 🧍 | ⬜ |
-| 15 | **Sat** smoke test 1 (57-step suite, `docs/SMOKE_TEST.md`) → log `T#-Step#` | 🧍 | ⏳ TODAY |
-| 16 | **Sun** smoke test 2 → confirm fixes | 🧍 | ⬜ |
+| 15 | **Sat** smoke test 1 (57-step suite, `docs/SMOKE_TEST.md`) → log `T#-Step#` | 🧍 | ⏳ **BARELY STARTED** — only T2 steps 5–7 (ICP→leads→charge) PASSED 6 Jun. **T1 (fresh signup/onboarding) NOT run** (used dogfood). T3–T7 outstanding. See §SMOKE-TEST STATE below. |
+| 16 | **Sun** smoke test 2 → confirm fixes | 🧍 | ⬜ NOT STARTED (full second pass of T1–T7) |
 | 17 | Fix smoke failures same-day | 🤖 | ⬜ |
 | 17b | **Raw outcome-event capture — append-only log (THE DATA FLOOR).** ✅ DONE — `outcome_events` table + `logOutcomeEvent()` (append-only, fire-and-forget). Coverage: send · reply · opt_out · meeting_booked (FIGSY flow + calendar /book). | 🤖 | ✅ |
 | 18 | **MON — LAUNCH both markets, multiple campaigns** | 🤝 | ⬜ |
@@ -155,8 +155,63 @@ Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEF
 - **HTTPS enforced site-wide** — `middleware.ts` checks `x-forwarded-proto`, returns 308 redirect to https. `auth/callback/route.ts` uses forwarded host/proto for origin. GoDaddy CNAME updated. Padlock confirmed in incognito.
 - **3 portal bugs fixed:** FIGSY archive (404 → PATCH), save settings (wrong method + `copilot_mode` → `review_required`), ICP suggest (JSON code fence crash).
 - **Dogfood account fully set up** — 999,999 credits (lead gen + FIGSY), all 4 agents active, subscriptions to 2099. SQL fixes: product_type::cast + `alter type add value 'denise'`.
+- **🟢 LEAD SOURCING FIXED END-TO-END — 7 stacked bugs, all verified live (Apollo returns ~72k for the dogfood ICP). This was the single biggest risk to launch — it would have given EVERY client zero leads.** Fixes in `apps/api/src/lib/apollo.ts`:
+  1. industries → `q_organization_keyword_tags` (was literal `q_keywords` → near-zero)
+  2. tolerant company-size mapping (`toEmployeeRange`) — handles AI-emitted "2–10" etc.
+  3. preview count reads top-level `total_entries` (was `pagination.total_entries` → always 0)
+  4. endpoint → `/mixed_people/api_search` (old `/mixed_people/search` = HTTP 422 deprecated)
+  5. base URL → `/api/v1` (bare `/v1` = Apollo internal API → HTTP 200 with 0 results)
+  6. **removed `icp.keywords` from literal `q_keywords`** — builder emitted prose ("manual outreach pipeline building…") → 0
+  7. `tech_stack` dropped from search (auto-gen junk, not valid Apollo UIDs)
+  - Also: rendered the previously-invisible **Run-result banner**; added preview diagnostics (to be stripped — see §CLEANUP).
+- **🔑 TIER-0: Apollo master key was pasted in chat → ROTATED.** New key live on Railway. (Add to credential-rotation log, Ring 3.)
+- **DEPLOY PIPELINE root cause found** — the `KIND System Audit` GitHub Action fails on every push to main and Railway's auto-deploy is unreliable; the API served a stale build for hours until a manual GitHub **disconnect/reconnect** forced it to pull `main`. See §DEPLOY PIPELINE below.
 - **Portal V2 concepts** — `docs/portal-v2-preview.html` (9 concepts: card grid, thinking state, chat setup, config panel, marketplace, slim sidebar, invite teammate, AI notetaker, Teams Hub). `docs/portal-v2-layout.md` spec. None live.
 - **⚠️ SCHEMA DRIFT NOTED:** `product_type` is ENUM in production, text+CHECK in repo. Reconcile Wednesday.
+
+---
+
+## 🧪 SMOKE-TEST STATE (6 Jun — honest)
+Two full passes planned: **Smoke Test 1 (Sat)** and **Smoke Test 2 (Sun)**, each = all 7 tests in `docs/SMOKE_TEST.md`. Current reality:
+| Test | Steps | Status |
+|------|-------|--------|
+| T1 — Signup → Onboarding → gate | 1–4 | ⬜ **NOT DONE** (skipped — used pre-set dogfood acct; fresh signup never exercised) |
+| T2 — ICP → Leads | 5–9 | ⏳ **5–7 ✅** (built ICP, sourced real leads, credits dropped) · **8–9 ⬜** (2nd-ICP "Set active", CSV export) |
+| T3 — FIGSY → reply → hot | 10–13 | ⬜ NOT DONE |
+| T4 — Booking + KPI | 14 | ⬜ NOT DONE |
+| T5 — Billing | 15–17 | ⬜ NOT DONE |
+| T6 — Vida widget | 18 | ⬜ NOT DONE |
+| T7 — Milla/cron hygiene | 19 | ⬜ NOT DONE |
+**→ Smoke Test 2 (full re-run): NOT STARTED.** Start Pass 1 at **T1 with a fresh email** — that's the first thing a real client hits Monday and it has never run end-to-end.
+
+## 🧹 CLEANUP (do before launch / before clients see it)
+- Strip ICP preview-banner debug lines (`diag ·`, `body:`) — `apps/portal/.../leads/icp/page.tsx`.
+- Remove API startup `BUILD MARKER` line — `apps/api/src/index.ts`.
+- Remove the `previewCount` diagnostic envelope once stable — `apps/api/src/lib/apollo.ts` / `routes/icps.ts`.
+
+## 🛠 DEPLOY PIPELINE (must fix — caused hours of stale-build pain 6 Jun)
+- **Symptom:** pushes to `main` reach GitHub but Railway keeps serving an old build (and env-var changes only redeploy the *old* commit). Required a manual GitHub disconnect/reconnect on `@kind/api` to pull latest.
+- **Likely cause:** `.github/workflows/daily-audit.yml` ("KIND System Audit") fails on **every** push; if any Railway service has "Wait for CI" on (both were off this time) it blocks deploys — but auto-deploy was unreliable regardless.
+- **TODO:** (a) repair or make non-blocking the `KIND System Audit` workflow so checks go green; (b) confirm Railway auto-deploy fires on every `main` push for `@kind/api` and `@kind/portal`; (c) keep a build marker pattern for verifying live builds.
+
+## 🎨 COSMETIC BACKLOG (batch after Smoke Test 1 — logged 6 Jun)
+1. Sidebar: move **ICP Builder above People** (Lead Gen section).
+2. **Agent cards** — standardise length + layout across all agents.
+3. ICP preview banner — show "20,000+ available · we deliver your 20/run" instead of the raw scary count.
+4. **Agent panel** — every agent (Milla/Vida/Denise) uses the FIGSY layout: large Pixar portrait, name+role, suggestion chips, intro message, "Ask … anything" input.
+5. **Signup screen** — ClickUp-style: "Seconds to sign up!", Continue with Google, clean name/email/password, marketing-consent + data-transfer-outside-UK consent checkboxes.
+
+## 🟣 V2 BUILDS — Month-2 portal redesign (`docs/portal-v2-preview.html`)
+> NEW redesign — NOT the dead `FEATURE_PORTAL_V2` flag. 9 concepts:
+1. Agent card grid (dashboard home) — *High*
+2. Agent thinking/working state — *High*
+3. Conversational agent setup — *Medium*
+4. Structured agent config panel (Role/ICP/Tone/Schedule/Knowledge) — *Medium*
+5. Agent marketplace ("Meet your AI Revenue Team") — *Month 3*
+6. Slim sidebar + top-right header (profile dropdown: Usage/Billing/Settings/Team/API) — *High*
+7. Invite teammate (header + modal) — growth loop — *High*
+8. AI Notetaker → action items (Milla) — *Critical*
+9. Teams Hub (members, activity, per-person agent usage) — *Critical*
 
 ## ✅ DONE THIS SESSION (4 Jun — verified in repo)
 - terms.html sub-processor bug (Paystack/Vercel → Stripe/Railway) · AAA arbitration §12

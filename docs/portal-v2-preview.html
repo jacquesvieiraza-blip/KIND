@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.N.D Portal V2 — Layout Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4ff; color: #1a1a2e; }
+
+  .nav { background: #fff; border-bottom: 1px solid #ede9fe; padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .nav-logo { font-weight: 800; font-size: 18px; letter-spacing: -0.5px; color: #7C3AED; }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab { padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #6b7280; cursor: pointer; border: none; background: none; }
+  .nav-tab.active { background: #f3f0ff; color: #7C3AED; }
+
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #9B8EC4; margin-bottom: 16px; padding: 0 2px; }
+  .section-title { font-size: 22px; font-weight: 800; color: #1a1a2e; margin-bottom: 6px; }
+  .section-sub { font-size: 13px; color: #6b7280; margin-bottom: 28px; }
+
+  /* ───── SECTION WRAPPERS ───── */
+  .preview-section { padding: 48px 40px; border-bottom: 1px solid #e5e0f8; background: #fff; }
+  .preview-section:nth-child(even) { background: #faf9ff; }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: #f3f0ff; color: #7C3AED; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 20px; }
+  .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: #7C3AED; }
+
+  /* ───── 1. AGENT CARD GRID ───── */
+  .agent-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 900px; }
+  .agent-card { background: #fff; border-radius: 20px; border: 1.5px solid #ede9fe; padding: 24px 20px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 2px 12px rgba(124,58,237,0.06); transition: transform .2s, box-shadow .2s; cursor: pointer; position: relative; }
+  .agent-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(124,58,237,0.13); }
+  .agent-card.locked { opacity: 0.55; }
+  .agent-avatar { width: 72px; height: 72px; border-radius: 50%; margin-bottom: 14px; object-fit: cover; background: linear-gradient(135deg, #c4b5fd, #7C3AED); display: flex; align-items: center; justify-content: center; font-size: 32px; }
+  .agent-name { font-weight: 800; font-size: 15px; color: #1a1a2e; margin-bottom: 4px; }
+  .agent-role { font-size: 12px; color: #9B8EC4; margin-bottom: 14px; line-height: 1.4; }
+  .agent-status { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-active { color: #059669; }
+  .status-dot.active { background: #10b981; }
+  .status-inactive { color: #9B8EC4; }
+  .status-dot.inactive { background: #d1d5db; }
+  .lock-badge { position: absolute; top: 14px; right: 14px; background: #f3f0ff; border-radius: 8px; padding: 3px 8px; font-size: 10px; font-weight: 700; color: #7C3AED; }
+  .activate-btn { margin-top: 12px; background: #7C3AED; color: #fff; border: none; border-radius: 10px; padding: 7px 18px; font-size: 12px; font-weight: 700; cursor: pointer; width: 100%; }
+  .agent-meta { font-size: 11px; color: #9B8EC4; margin-top: 10px; }
+
+  /* ───── 2. THINKING STATE ───── */
+  .thinking-card { max-width: 640px; background: #fff; border-radius: 20px; border: 1.5px solid #ede9fe; overflow: hidden; box-shadow: 0 2px 12px rgba(124,58,237,0.07); }
+  .thinking-header { padding: 18px 22px; border-bottom: 1px solid #f3f0ff; display: flex; align-items: center; gap: 12px; }
+  .thinking-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #c4b5fd, #7C3AED); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .thinking-name { font-weight: 700; font-size: 14px; }
+  .thinking-tagline { font-size: 12px; color: #9B8EC4; }
+  .thinking-body { padding: 20px 22px; }
+  .step { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f9f8ff; }
+  .step:last-child { border-bottom: none; }
+  .step-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .step-done { background: #d1fae5; color: #059669; }
+  .step-active { background: #ede9fe; color: #7C3AED; animation: pulse 1.5s infinite; }
+  .step-pending { background: #f3f4f6; color: #9ca3af; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .step-text { font-size: 13px; font-weight: 600; }
+  .step-sub { font-size: 11px; color: #9B8EC4; }
+  .step-done-text { color: #374151; }
+  .step-active-text { color: #7C3AED; }
+  .step-pending-text { color: #9ca3af; }
+  .progress-bar-wrap { margin: 18px 22px 20px; }
+  .progress-label { font-size: 11px; color: #9B8EC4; margin-bottom-6px; display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: #f3f0ff; border-radius: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #7C3AED, #a78bfa); border-radius: 10px; width: 60%; transition: width .5s; }
+
+  /* ───── 3. CONVERSATIONAL SETUP ───── */
+  .chat-shell { max-width: 580px; background: #fff; border-radius: 20px; border: 1.5px solid #ede9fe; overflow: hidden; box-shadow: 0 2px 12px rgba(124,58,237,0.07); }
+  .chat-top { padding: 16px 20px; background: linear-gradient(135deg, #7C3AED, #a78bfa); display: flex; align-items: center; gap: 12px; }
+  .chat-avatar { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .chat-top-name { font-weight: 700; font-size: 14px; color: #fff; }
+  .chat-top-sub { font-size: 11px; color: rgba(255,255,255,0.75); }
+  .chat-messages { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { max-width: 82%; }
+  .msg-agent { align-self: flex-start; }
+  .msg-user { align-self: flex-end; }
+  .msg-bubble { padding: 11px 15px; border-radius: 16px; font-size: 13px; line-height: 1.5; }
+  .msg-agent .msg-bubble { background: #f3f0ff; color: #1a1a2e; border-bottom-left-radius: 4px; }
+  .msg-user .msg-bubble { background: #7C3AED; color: #fff; border-bottom-right-radius: 4px; }
+  .msg-label { font-size: 10px; color: #9B8EC4; margin-bottom: 4px; font-weight: 600; letter-spacing: 0.5px; }
+  .msg-user .msg-label { text-align: right; }
+  .options-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .option-chip { background: #fff; border: 1.5px solid #c4b5fd; color: #7C3AED; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .option-chip:hover { background: #f3f0ff; }
+  .chat-input-row { padding: 14px 20px; border-top: 1px solid #f3f0ff; display: flex; gap: 10px; }
+  .chat-input { flex: 1; border: 1.5px solid #ede9fe; border-radius: 12px; padding: 10px 14px; font-size: 13px; outline: none; color: #374151; }
+  .chat-send { background: #7C3AED; color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+  /* ───── 4. CONFIG PANEL ───── */
+  .config-shell { max-width: 700px; background: #fff; border-radius: 20px; border: 1.5px solid #ede9fe; overflow: hidden; box-shadow: 0 2px 12px rgba(124,58,237,0.07); display: grid; grid-template-columns: 220px 1fr; }
+  .config-sidebar { background: #faf9ff; border-right: 1px solid #ede9fe; padding: 20px 0; }
+  .config-sidebar-header { padding: 0 18px 16px; border-bottom: 1px solid #ede9fe; margin-bottom: 8px; }
+  .config-sidebar-name { font-weight: 800; font-size: 15px; }
+  .config-sidebar-role { font-size: 11px; color: #9B8EC4; margin-top: 2px; }
+  .config-nav-item { padding: 9px 18px; font-size: 13px; font-weight: 500; color: #6b7280; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+  .config-nav-item.active { background: #f3f0ff; color: #7C3AED; font-weight: 700; border-right: 3px solid #7C3AED; }
+  .config-nav-icon { font-size: 14px; width: 20px; text-align: center; }
+  .config-main { padding: 24px; }
+  .config-section-title { font-weight: 800; font-size: 16px; margin-bottom: 4px; }
+  .config-section-sub { font-size: 12px; color: #9B8EC4; margin-bottom: 20px; }
+  .config-field { margin-bottom: 16px; }
+  .config-label { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; display: block; }
+  .config-input { width: 100%; border: 1.5px solid #ede9fe; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #374151; outline: none; background: #faf9ff; }
+  .config-input:focus { border-color: #a78bfa; background: #fff; }
+  .config-textarea { width: 100%; border: 1.5px solid #ede9fe; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #374151; outline: none; background: #faf9ff; resize: vertical; min-height: 90px; font-family: inherit; }
+  .config-save { background: #7C3AED; color: #fff; border: none; border-radius: 10px; padding: 10px 24px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+
+  /* ───── 5. MARKETPLACE ───── */
+  .market-hero { background: linear-gradient(135deg, #7C3AED, #a78bfa); border-radius: 20px; padding: 32px; color: #fff; margin-bottom: 24px; max-width: 860px; display: flex; align-items: center; justify-content: space-between; }
+  .market-hero h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  .market-hero p { font-size: 14px; opacity: 0.85; max-width: 380px; line-height: 1.6; }
+  .market-hero-badges { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 700; }
+  .market-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 860px; }
+  .market-card { background: #fff; border-radius: 18px; border: 1.5px solid #ede9fe; padding: 22px 18px; text-align: center; box-shadow: 0 2px 10px rgba(124,58,237,0.06); position: relative; }
+  .market-avatar { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .market-name { font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+  .market-desc { font-size: 11px; color: #6b7280; line-height: 1.5; margin-bottom: 16px; }
+  .certified-badge { position: absolute; top: 12px; right: 12px; background: #d1fae5; color: #059669; font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 10px; letter-spacing: 0.5px; }
+  .market-activate { width: 100%; padding: 9px; background: #f3f0ff; color: #7C3AED; border: none; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .market-activate.active-btn { background: #7C3AED; color: #fff; }
+
+  /* Gradient blobs */
+  .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.07; pointer-events: none; }
+
+  .page-header { padding: 40px 40px 0; }
+  .page-title { font-size: 28px; font-weight: 900; color: #1a1a2e; letter-spacing: -0.5px; }
+  .page-sub { font-size: 14px; color: #9B8EC4; margin-top: 6px; margin-bottom: 8px; }
+  hr.divider { border: none; border-top: 1px solid #ede9fe; margin: 0; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-logo">K.I.N.D</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active">Dashboard</button>
+    <button class="nav-tab">Leads</button>
+    <button class="nav-tab">Campaigns</button>
+    <button class="nav-tab">Settings</button>
+  </div>
+  <div style="font-size:13px;color:#9B8EC4;">hello@get-kind.com</div>
+</div>
+
+<div class="page-header">
+  <div class="page-title">Portal V2 — Layout Preview</div>
+  <div class="page-sub">5 proposed upgrades for Month 2. All concepts, not live code.</div>
+</div>
+<hr class="divider" style="margin: 24px 0 0;">
+
+<!-- ─────────────────────────────────────── -->
+<!-- 1. AGENT CARD GRID -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 1 — High Priority</div>
+  <div class="section-title">Agent Card Grid</div>
+  <div class="section-sub">Replace tabs with a visual card grid. Each agent front and centre with their portrait.</div>
+
+  <div class="agent-grid">
+
+    <div class="agent-card">
+      <div class="agent-avatar">🤖</div>
+      <div class="agent-name">FIGSY</div>
+      <div class="agent-role">Cold outreach &amp; campaign automation</div>
+      <div class="agent-status status-active"><span class="status-dot active"></span> Active</div>
+      <div class="agent-meta">Last run: 2 hours ago</div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-avatar">💼</div>
+      <div class="agent-name">Milla</div>
+      <div class="agent-role">Lead qualification &amp; pipeline scoring</div>
+      <div class="agent-status status-active"><span class="status-dot active"></span> Active</div>
+      <div class="agent-meta">Last run: 5 hours ago</div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-avatar">🌱</div>
+      <div class="agent-name">Vida</div>
+      <div class="agent-role">Nurture sequences &amp; re-engagement</div>
+      <div class="agent-status status-active"><span class="status-dot active"></span> Active</div>
+      <div class="agent-meta">Last run: yesterday</div>
+    </div>
+
+    <div class="agent-card">
+      <div class="agent-avatar">🎯</div>
+      <div class="agent-name">Denise</div>
+      <div class="agent-role">Warm follow-up &amp; closing support</div>
+      <div class="agent-status status-active"><span class="status-dot active"></span> Active</div>
+      <div class="agent-meta">Last run: 1 day ago</div>
+    </div>
+
+  </div>
+
+  <p style="font-size:12px;color:#9B8EC4;margin-top:20px;">↑ Locked agents show an "Activate" button instead of status. New clients see this as the activation marketplace.</p>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 2. THINKING / WORKING STATE -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 2 — High Priority</div>
+  <div class="section-title">Agent Thinking State</div>
+  <div class="section-sub">When FIGSY (or any agent) is running, show live step-by-step progress so the user knows it's working.</div>
+
+  <div class="thinking-card">
+    <div class="thinking-header">
+      <div class="thinking-avatar">🤖</div>
+      <div>
+        <div class="thinking-name">FIGSY is working…</div>
+        <div class="thinking-tagline">Building your lead list for "SaaS Founders UK"</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>Progress</span><span>60%</span></div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+    <div class="thinking-body">
+      <div class="step">
+        <div class="step-icon step-done">✓</div>
+        <div>
+          <div class="step-text step-done-text">ICP loaded</div>
+          <div class="step-sub">SaaS Founders UK — 12 filters applied</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-icon step-done">✓</div>
+        <div>
+          <div class="step-text step-done-text">Contacts sourced</div>
+          <div class="step-sub">247 matches found via Apollo</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-icon step-active">⟳</div>
+        <div>
+          <div class="step-text step-active-text">Writing emails…</div>
+          <div class="step-sub">Personalising each message to their role</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-icon step-pending">○</div>
+        <div>
+          <div class="step-text step-pending-text">Schedule for review</div>
+          <div class="step-sub">Waiting…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 3. CONVERSATIONAL SETUP -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 3 — Medium Priority</div>
+  <div class="section-title">Conversational Agent Setup</div>
+  <div class="section-sub">Replace the ICP form with a guided chat. FIGSY asks the questions, fills the config behind the scenes.</div>
+
+  <div class="chat-shell">
+    <div class="chat-top">
+      <div class="chat-avatar">🤖</div>
+      <div>
+        <div class="chat-top-name">FIGSY</div>
+        <div class="chat-top-sub">Let's set up your first campaign</div>
+      </div>
+    </div>
+    <div class="chat-messages">
+
+      <div class="msg msg-agent">
+        <div class="msg-label">FIGSY</div>
+        <div class="msg-bubble">Hey! I'm FIGSY — I'll handle your cold outreach. To write emails that land, I need to understand who you're targeting. What kind of companies are your best clients?</div>
+      </div>
+
+      <div class="msg msg-user">
+        <div class="msg-label">You</div>
+        <div class="msg-bubble">SaaS companies, usually 10–50 people, UK-based</div>
+      </div>
+
+      <div class="msg msg-agent">
+        <div class="msg-label">FIGSY</div>
+        <div class="msg-bubble">Got it — SaaS, 10–50 employees, UK. What's the job title of the person who would actually buy from you?</div>
+        <div class="options-row">
+          <div class="option-chip">Founder / CEO</div>
+          <div class="option-chip">Head of Sales</div>
+          <div class="option-chip">Head of Marketing</div>
+          <div class="option-chip">Other</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" type="text" placeholder="Type your answer…" />
+      <button class="chat-send">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 4. STRUCTURED CONFIG PANEL -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 4 — Medium Priority</div>
+  <div class="section-title">Structured Agent Config Panel</div>
+  <div class="section-sub">Replace the current mixed settings page with clear named sections.</div>
+
+  <div class="config-shell">
+    <div class="config-sidebar">
+      <div class="config-sidebar-header">
+        <div class="config-sidebar-name">FIGSY</div>
+        <div class="config-sidebar-role">Cold Outreach Agent</div>
+      </div>
+      <div class="config-nav-item active"><span class="config-nav-icon">📋</span> Role</div>
+      <div class="config-nav-item"><span class="config-nav-icon">🎯</span> ICP</div>
+      <div class="config-nav-item"><span class="config-nav-icon">✍️</span> Tone &amp; Messaging</div>
+      <div class="config-nav-item"><span class="config-nav-icon">📅</span> Schedule</div>
+      <div class="config-nav-item"><span class="config-nav-icon">📚</span> Knowledge</div>
+    </div>
+    <div class="config-main">
+      <div class="config-section-title">Role</div>
+      <div class="config-section-sub">What does this agent do? Be specific — this shapes every email it writes.</div>
+
+      <div class="config-field">
+        <label class="config-label">Agent Name</label>
+        <input class="config-input" type="text" value="FIGSY" />
+      </div>
+      <div class="config-field">
+        <label class="config-label">Primary Objective</label>
+        <textarea class="config-textarea">You are FIGSY, K.I.N.D's outreach agent. Your job is to book discovery calls for the founder by sending personalised cold emails that open with the prospect's pain, not a pitch.</textarea>
+      </div>
+      <div class="config-field">
+        <label class="config-label">Problem We Solve</label>
+        <textarea class="config-textarea" style="min-height:70px;">Founders are wasting 10+ hours a week on manual prospecting and getting ignored. We automate the entire outreach pipeline with AI.</textarea>
+      </div>
+      <button class="config-save">Save Role</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 5. AGENT MARKETPLACE -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 5 — Month 3</div>
+  <div class="section-title">Agent Marketplace</div>
+  <div class="section-sub">New client onboarding flow. "Meet your AI Revenue Team." One-click activate per agent.</div>
+
+  <div class="market-hero">
+    <div>
+      <h2>Meet your AI Revenue Team</h2>
+      <p>Pre-built, certified, and ready to work. Activate the agents you need and your revenue OS starts today.</p>
+      <div class="market-hero-badges">
+        <div class="badge">✓ Pre-trained</div>
+        <div class="badge">✓ Problem-led messaging</div>
+        <div class="badge">✓ No setup required</div>
+      </div>
+    </div>
+    <div style="font-size:72px;opacity:0.3;">🤖</div>
+  </div>
+
+  <div class="market-grid">
+
+    <div class="market-card">
+      <div class="certified-badge">CERTIFIED</div>
+      <div class="market-avatar" style="background:#ede9fe;">🤖</div>
+      <div class="market-name">FIGSY</div>
+      <div class="market-desc">Cold outreach that opens with your prospect's pain and books calls on autopilot.</div>
+      <button class="market-activate active-btn">Active ✓</button>
+    </div>
+
+    <div class="market-card">
+      <div class="certified-badge">CERTIFIED</div>
+      <div class="market-avatar" style="background:#fce7f3;">💼</div>
+      <div class="market-name">Milla</div>
+      <div class="market-desc">Scores and qualifies every inbound lead so you only talk to the right people.</div>
+      <button class="market-activate active-btn">Active ✓</button>
+    </div>
+
+    <div class="market-card">
+      <div class="certified-badge">CERTIFIED</div>
+      <div class="market-avatar" style="background:#d1fae5;">🌱</div>
+      <div class="market-name">Vida</div>
+      <div class="market-desc">Keeps warm leads engaged with smart nurture sequences until they're ready to buy.</div>
+      <button class="market-activate active-btn">Active ✓</button>
+    </div>
+
+    <div class="market-card">
+      <div class="certified-badge">CERTIFIED</div>
+      <div class="market-avatar" style="background:#fef3c7;">🎯</div>
+      <div class="market-name">Denise</div>
+      <div class="market-desc">Follows up on warm leads and supports closing — the human touch, automated.</div>
+      <button class="market-activate active-btn">Active ✓</button>
+    </div>
+
+  </div>
+</div>
+
+<div style="padding:32px 40px;text-align:center;color:#9B8EC4;font-size:12px;border-top:1px solid #ede9fe;background:#fff;">
+  K.I.N.D Portal V2 — Concept Preview · Not live code · Post-launch Month 2
+</div>
+
+</body>
+</html>

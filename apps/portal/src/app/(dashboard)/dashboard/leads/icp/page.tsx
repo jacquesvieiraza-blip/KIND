@@ -396,6 +396,7 @@ export default function ICPPage() {
   const [previewCount, setPreviewCount] = useState<number | null>(null)
   const [previewSamples, setPreviewSamples] = useState<Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }>>([])
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ABM mode
@@ -461,11 +462,14 @@ export default function ICPPage() {
 
     setPreviewLoading(true)
     try {
-      const res = await api.post<{ data: { count: number; samples: Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }> } }>('/icps/preview-count', currentForm, currentToken)
+      const res = await api.post<{ data: { count: number; samples: Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }>; error?: string | null; debug?: unknown } }>('/icps/preview-count', currentForm, currentToken)
       setPreviewCount(res.data.count)
       setPreviewSamples(res.data.samples ?? [])
-    } catch {
-      // Silently fail — count is a nice-to-have
+      setPreviewError(res.data.error ?? null)
+      // Surface the exact Apollo query + response shape for debugging zero-match issues.
+      if (res.data.debug) console.info('[icp preview-count]', { count: res.data.count, error: res.data.error, debug: res.data.debug })
+    } catch (e) {
+      setPreviewError(e instanceof Error ? e.message : 'preview request failed')
     }
     setPreviewLoading(false)
   }, [])
@@ -1019,6 +1023,11 @@ export default function ICPPage() {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-4 h-4 text-[#9B8EC4] animate-spin shrink-0" />
                     <p className="text-sm text-[#9B8EC4]">Searching Apollo database…</p>
+                  </div>
+                ) : previewCount === 0 && previewError ? (
+                  <div className="flex items-center gap-3">
+                    <Users2 className="w-4 h-4 text-red-500 shrink-0" />
+                    <p className="text-sm text-red-700">Lead search error — {previewError}</p>
                   </div>
                 ) : previewCount === 0 ? (
                   <div className="flex items-center gap-3">

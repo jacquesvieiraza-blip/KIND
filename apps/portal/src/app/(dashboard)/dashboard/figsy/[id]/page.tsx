@@ -365,11 +365,11 @@ export default function CampaignDetailPage() {
         setCampaign(res.data)
         setCampaignName(res.data.name)
         // Initialize audience sliders from campaign if fields exist
-        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number; copilot_mode?: boolean }
+        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number; settings?: { review_required?: boolean } }
         setMinScore(c.min_score ?? 50)
         setMaxScore(c.max_score ?? 100)
         setDailyLimit(c.daily_limit ?? 5)
-        setCopilotMode(c.copilot_mode ?? false)
+        setCopilotMode(c.settings?.review_required ?? false)
       } catch {
         // campaign not found — go back
       }
@@ -437,7 +437,7 @@ export default function CampaignDetailPage() {
     if (!token) return
     setSavingSettings(true)
     try {
-      const res = await api.put<{ data: Campaign }>(`/figsy/campaigns/${id}`, { name: campaignName, copilot_mode: copilotMode }, token)
+      const res = await api.patch<{ data: Campaign }>(`/figsy/campaigns/${id}`, { name: campaignName, review_required: copilotMode }, token)
       setCampaign(res.data)
       showToast('Settings saved')
     } catch (err) {
@@ -451,7 +451,7 @@ export default function CampaignDetailPage() {
     if (!token) return
     setArchiving(true)
     try {
-      await api.post(`/figsy/campaigns/${id}/archive`, {}, token)
+      await api.patch(`/figsy/campaigns/${id}`, { status: 'archived' }, token)
       router.push('/dashboard/figsy')
     } catch (err) {
       showToast((err as Error).message || 'Failed to archive campaign', 'error')

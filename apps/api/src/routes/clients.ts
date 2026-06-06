@@ -165,7 +165,8 @@ clientRouter.post('/me/suggest-icp', async (req: AuthRequest, res) => {
       }],
     })
 
-    const raw = (msg.content[0] as { type: string; text: string }).text.trim()
+    const raw = (msg.content[0] as { type: string; text: string }).text
+      .trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
     const suggestion = JSON.parse(raw)
     res.json({ success: true, data: suggestion })
   } catch (err) {

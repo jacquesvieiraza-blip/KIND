@@ -25,12 +25,20 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Railway terminates TLS at the edge and forwards to the app over plain HTTP,
+  // so request.url is http:// internally. Building redirects from it downgrades
+  // the browser to http (→ "Not Secure"). Honour x-forwarded-proto/host so the
+  // Location header keeps the https scheme the client actually arrived on.
+  const fwdProto = request.headers.get('x-forwarded-proto')
+  const fwdHost  = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+  const base = fwdProto && fwdHost ? `${fwdProto}://${fwdHost}` : request.url
+
   if (!user && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/login', base))
   }
 
   if (user && (pathname === '/login' || pathname === '/')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/dashboard', base))
   }
 
   return supabaseResponse

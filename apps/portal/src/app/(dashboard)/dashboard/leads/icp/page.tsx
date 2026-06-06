@@ -397,7 +397,7 @@ export default function ICPPage() {
   const [previewSamples, setPreviewSamples] = useState<Array<{ first_name: string; last_name: string; title: string | null; company: string | null; linkedin_url: string | null }>>([])
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
-  const [previewDebug, setPreviewDebug] = useState<{ keyConfigured?: boolean; keyTail?: string | null; httpStatus?: number | null; rawCountField?: string | null } | null>(null)
+  const [previewDebug, setPreviewDebug] = useState<{ keyConfigured?: boolean; keyTail?: string | null; endpoint?: string; httpStatus?: number | null; rawCountField?: string | null } | null>(null)
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ABM mode
@@ -1037,8 +1037,8 @@ export default function ICPPage() {
                     <div>
                       <p className="text-sm text-amber-700">No exact matches yet — try broadening your filters.</p>
                       {previewDebug && (
-                        <p className="text-[11px] text-amber-600/80 mt-1 font-mono">
-                          diag · key:{previewDebug.keyConfigured ? `…${previewDebug.keyTail}` : 'MISSING'} · http:{previewDebug.httpStatus ?? 'n/a'} · countField:{previewDebug.rawCountField ?? 'n/a'}
+                        <p className="text-[11px] text-amber-600/80 mt-1 font-mono break-all">
+                          diag · key:{previewDebug.keyConfigured ? `…${previewDebug.keyTail}` : 'MISSING'} · http:{previewDebug.httpStatus ?? 'n/a'} · countField:{previewDebug.rawCountField ?? 'n/a'} · url:{previewDebug.endpoint ?? 'n/a'}
                         </p>
                       )}
                     </div>

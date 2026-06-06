@@ -398,6 +398,201 @@
   </div>
 </div>
 
+<!-- ─────────────────────────────────────── -->
+<!-- 6. SLIM SIDEBAR + TOP-RIGHT HEADER -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 6 — High Priority</div>
+  <div class="section-title">Slim Sidebar + Top-Right Header</div>
+  <div class="section-sub">Cut the sidebar from 18 items to 8. Move Usage, Billing, Roadmap, Settings into a profile dropdown top-right — like Notion, Linear, Slack.</div>
+
+  <div style="max-width:860px;border:1.5px solid #ede9fe;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(124,58,237,0.07);">
+
+    <!-- Top bar -->
+    <div style="background:#fff;border-bottom:1px solid #ede9fe;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#c4b5fd,#7C3AED);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px;">K</div>
+        <span style="font-weight:800;font-size:14px;color:#1a1a2e;">K.I.N.D</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <!-- Invite button -->
+        <button style="display:flex;align-items:center;gap:6px;background:#f3f0ff;border:1.5px solid #c4b5fd;color:#7C3AED;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">
+          + Invite teammate
+        </button>
+        <!-- Roadmap icon -->
+        <button style="width:32px;height:32px;border-radius:8px;border:1.5px solid #ede9fe;background:#faf9ff;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;" title="Roadmap">🗺️</button>
+        <!-- Notifications -->
+        <button style="width:32px;height:32px;border-radius:8px;border:1.5px solid #ede9fe;background:#faf9ff;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;position:relative;" title="Notifications">
+          🔔
+          <span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#7C3AED;border-radius:50%;border:2px solid #fff;"></span>
+        </button>
+        <!-- Credits -->
+        <div style="display:flex;align-items:center;gap:5px;background:#fffbeb;border:1px solid #fcd34d;border-radius:20px;padding:5px 10px;">
+          <span style="font-size:12px;">🪙</span>
+          <span style="font-size:12px;font-weight:700;color:#d97706;">999,999</span>
+        </div>
+        <!-- Profile avatar -->
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#c4b5fd,#7C3AED);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;cursor:pointer;position:relative;">
+          J
+          <div style="position:absolute;top:38px;right:0;background:#fff;border:1.5px solid #ede9fe;border-radius:14px;padding:8px 0;min-width:180px;box-shadow:0 8px 24px rgba(124,58,237,0.12);z-index:10;">
+            <div style="padding:4px 14px 10px;border-bottom:1px solid #f3f0ff;">
+              <div style="font-size:12px;font-weight:700;color:#1a1a2e;">hello@get-kind.com</div>
+              <div style="font-size:10px;color:#9B8EC4;margin-top:1px;">Admin</div>
+            </div>
+            <div style="padding:6px 0;">
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">📊 Usage</div>
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">💳 Billing</div>
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">👥 Team</div>
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">⚙️ Settings</div>
+              <div style="padding:7px 14px;font-size:12px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;">🔌 Developer API</div>
+            </div>
+            <div style="border-top:1px solid #f3f0ff;padding:6px 0 2px;">
+              <div style="padding:7px 14px;font-size:12px;color:#ef4444;cursor:pointer;display:flex;align-items:center;gap:8px;">🚪 Sign out</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body: slim sidebar + content -->
+    <div style="display:flex;height:320px;">
+      <!-- Slim sidebar -->
+      <div style="width:180px;background:#faf9ff;border-right:1px solid #ede9fe;padding:16px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0;">
+        <div style="font-size:10px;color:#9B8EC4;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:0 8px 8px;">Lead Gen</div>
+        <div style="padding:8px;border-radius:8px;background:#f3f0ff;color:#7C3AED;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;">🏠 Home</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">👥 People</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">🎯 ICP Builder</div>
+        <div style="margin-top:12px;font-size:10px;color:#9B8EC4;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:0 8px 8px;">KIND AI</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">🤖 FIGSY</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">💼 Milla</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">🌱 Vida</div>
+        <div style="padding:8px;border-radius:8px;color:#6b7280;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;">🎯 Denise</div>
+      </div>
+      <!-- Content placeholder -->
+      <div style="flex:1;padding:24px;background:#fff;display:flex;align-items:center;justify-content:center;">
+        <div style="text-align:center;color:#9B8EC4;">
+          <div style="font-size:32px;margin-bottom:10px;">✨</div>
+          <div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">8 items in sidebar</div>
+          <div style="font-size:12px;">vs 18 today — 55% cleaner</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">Profile dropdown (shown open above) replaces the entire Account nav section. Invite button is always visible — every click is a potential new user.</p>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 7. INVITE TEAMMATE MODAL -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 7 — Growth Mechanic</div>
+  <div class="section-title">Invite Teammate</div>
+  <div class="section-sub">One click from the header. Growth loop: existing user invites colleague → colleague signs up → new seat. Every invite is a qualified lead for K.I.N.D.</div>
+
+  <div style="max-width:480px;background:#fff;border-radius:20px;border:1.5px solid #ede9fe;overflow:hidden;box-shadow:0 4px 24px rgba(124,58,237,0.1);">
+    <div style="padding:24px 24px 0;">
+      <div style="font-size:18px;font-weight:800;color:#1a1a2e;margin-bottom:4px;">Invite your team</div>
+      <div style="font-size:13px;color:#9B8EC4;margin-bottom:20px;">Your team gets full access to the K.I.N.D dashboard.</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <input type="email" placeholder="colleague@company.com" style="flex:1;border:1.5px solid #ede9fe;border-radius:10px;padding:10px 14px;font-size:13px;outline:none;color:#374151;background:#faf9ff;" />
+        <button style="background:#7C3AED;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Send invite</button>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Or share invite link</div>
+        <div style="display:flex;gap:8px;align-items:center;background:#faf9ff;border:1.5px solid #ede9fe;border-radius:10px;padding:10px 14px;">
+          <span style="flex:1;font-size:12px;color:#9B8EC4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">https://app.get-kind.com/invite/abc123xyz</span>
+          <button style="background:#f3f0ff;color:#7C3AED;border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">Copy</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 24px;background:#faf9ff;border-top:1px solid #ede9fe;">
+      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:10px;">Pending invites</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ede9fe;">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#374151;">sarah@acmecorp.com</div>
+          <div style="font-size:10px;color:#9B8EC4;">Invited 2 days ago</div>
+        </div>
+        <span style="background:#fef3c7;color:#d97706;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">Pending</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#374151;">mike@acmecorp.com</div>
+          <div style="font-size:10px;color:#9B8EC4;">Joined yesterday</div>
+        </div>
+        <span style="background:#d1fae5;color:#059669;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;">Joined ✓</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- 8. AI NOTETAKER TO ACTION ITEMS -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="chip"><span class="chip-dot"></span>Concept 8 — Critical · Month 2</div>
+  <div class="section-title">AI Notetaker → Action Items</div>
+  <div class="section-sub">Drop in a meeting transcript or recording. Milla extracts every action item, owner, and deadline — zero manual notes.</div>
+
+  <div style="max-width:680px;display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+    <!-- Input -->
+    <div style="background:#fff;border-radius:18px;border:1.5px solid #ede9fe;padding:20px;box-shadow:0 2px 10px rgba(124,58,237,0.06);">
+      <div style="font-size:12px;font-weight:700;color:#9B8EC4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Drop in your meeting</div>
+      <div style="border:2px dashed #c4b5fd;border-radius:12px;padding:24px;text-align:center;background:#faf9ff;margin-bottom:14px;">
+        <div style="font-size:28px;margin-bottom:8px;">🎙️</div>
+        <div style="font-size:13px;font-weight:600;color:#7C3AED;margin-bottom:4px;">Paste transcript or upload recording</div>
+        <div style="font-size:11px;color:#9B8EC4;">Zoom · Teams · Google Meet · .txt · .mp3</div>
+      </div>
+      <div style="font-size:11px;color:#9B8EC4;text-align:center;">or paste below</div>
+      <textarea style="width:100%;margin-top:8px;border:1.5px solid #ede9fe;border-radius:10px;padding:10px;font-size:11px;color:#374151;background:#faf9ff;resize:none;height:80px;font-family:inherit;">[Jacques]: So the priority this week is getting the ICP builder shipped before Monday...
+[Sarah]: I can handle the email templates by Wednesday...</textarea>
+      <button style="width:100%;margin-top:10px;background:#7C3AED;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Extract action items →</button>
+    </div>
+
+    <!-- Output -->
+    <div style="background:#fff;border-radius:18px;border:1.5px solid #ede9fe;padding:20px;box-shadow:0 2px 10px rgba(124,58,237,0.06);">
+      <div style="font-size:12px;font-weight:700;color:#9B8EC4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Action items — extracted by Milla</div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="background:#faf9ff;border-radius:10px;border:1px solid #ede9fe;padding:12px;">
+          <div style="display:flex;align-items:flex-start;gap:8px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:#7C3AED;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#1a1a2e;">Ship ICP builder before Monday</div>
+              <div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Owner: Jacques · Due: Mon 8 Jun</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#faf9ff;border-radius:10px;border:1px solid #ede9fe;padding:12px;">
+          <div style="display:flex;align-items:flex-start;gap:8px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:#F472B6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#1a1a2e;">Finalise email templates</div>
+              <div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Owner: Sarah · Due: Wed 10 Jun</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#faf9ff;border-radius:10px;border:1px solid #ede9fe;padding:12px;">
+          <div style="display:flex;align-items:flex-start;gap:8px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:#14B8A6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#1a1a2e;">Review FIGSY campaign copy</div>
+              <div style="font-size:10px;color:#9B8EC4;margin-top:2px;">Owner: Jacques · Due: Fri 12 Jun</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #ede9fe;display:flex;gap:8px;">
+        <button style="flex:1;background:#f3f0ff;color:#7C3AED;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;">Add to Milla's tasks</button>
+        <button style="flex:1;background:#f3f0ff;color:#7C3AED;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;">Export to Slack</button>
+      </div>
+    </div>
+
+  </div>
+  <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">Milla owns this feature. Input: Zoom/Teams transcript paste or upload. Output: structured action items with owner + deadline, pushable to tasks or Slack.</p>
+</div>
+
 <div style="padding:32px 40px;text-align:center;color:#9B8EC4;font-size:12px;border-top:1px solid #ede9fe;background:#fff;">
   K.I.N.D Portal V2 — Concept Preview · Not live code · Post-launch Month 2
 </div>

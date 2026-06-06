@@ -121,9 +121,13 @@ export function buildSearchBody(icp: {
   // which are not valid Apollo technology UIDs — applying them as a technology
   // filter zeroes the search. A validated tech picker can reintroduce this later.
 
-  // Only genuine free-text keywords belong in q_keywords.
-  if (icp.keywords.length)
-    body.q_keywords = icp.keywords.join(' ')
+  // icp.keywords is deliberately NOT sent to Apollo. q_keywords is a LITERAL
+  // full-text match across the whole profile, so multi-word values collapse the
+  // result set to ~0 (e.g. the conversational builder emits prose like
+  // "manual outreach pipeline building sales scaling…", which matches nobody).
+  // The structured filters above (titles, seniority, industry tags, geo, size)
+  // are what actually target. Keyword/intent targeting belongs in the OR-based
+  // q_organization_keyword_tags, handled for intent signals below.
 
   // Intent signals
   if (icp.intent_signals && icp.intent_signals.length > 0) {
@@ -146,10 +150,10 @@ export function buildSearchBody(icp: {
     }
 
     if (fundingStages.length) body.organization_latest_funding_stage_cd = fundingStages
-    if (orgKwTags.length) {
-      const existing = body.q_keywords ?? ''
-      body.q_keywords = [existing, ...orgKwTags].filter(Boolean).join(' ')
-    }
+    // Intent keyword tags OR into the org keyword-tag field (NOT literal q_keywords),
+    // so they widen rather than collapse the search.
+    if (orgKwTags.length)
+      body.q_organization_keyword_tags = [...(body.q_organization_keyword_tags ?? []), ...orgKwTags]
   }
 
   // ABM — named account targeting

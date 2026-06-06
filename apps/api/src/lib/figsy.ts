@@ -319,6 +319,19 @@ export async function sendSequenceEmail(
 ): Promise<void> {
   if (!lead.email) throw new Error('Lead has no email')
 
+  // POPIA safety net — never send to an opted-out address, no matter which path
+  // enrolled this lead. This is the single chokepoint every step-1/2/3 send funnels
+  // through, so one check here closes the gap where someone opts out via one campaign
+  // but still has an active enrollment in another: the inbound webhook only marks the
+  // single matched enrollment opted_out, not every enrollment for that email.
+  const { data: blocked } = await db.from('opt_out_blocklist')
+    .select('id').eq('email', lead.email).is('opted_back_in_at', null).maybeSingle()
+  if (blocked) {
+    console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the opt-out blocklist — step ${step} NOT sent; marking enrollment opted_out.`)
+    await db.from('figsy_enrollments').update({ status: 'opted_out' }).eq('id', enrollmentId)
+    return
+  }
+
   let messageId: string | undefined
 
   // Insert the DB record first so we have the emailId for the tracking pixel

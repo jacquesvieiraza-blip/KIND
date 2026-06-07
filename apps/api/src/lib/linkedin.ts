@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
+import { isSuppressed } from './suppression'
 
 const anthropic = new Anthropic()
 
@@ -52,11 +53,21 @@ export async function dispatchLinkedInStep(queueId: string): Promise<{ sent: boo
 
   const { data: step } = await db
     .from('figsy_linkedin_queue')
-    .select('linkedin_url, connection_note')
+    .select('linkedin_url, connection_note, lead_id')
     .eq('id', queueId)
     .single()
 
   if (!step) return { sent: false, method: 'manual' }
+
+  // DO-NOT-CONTACT: final hard gate before any LinkedIn touch — never message
+  // anyone connected to the founder's employer.
+  const { data: liLead } = await db.from('leads')
+    .select('email, company, linkedin_url').eq('id', step.lead_id).maybeSingle()
+  if (liLead && isSuppressed({ email: liLead.email, company: liLead.company, linkedin: liLead.linkedin_url || step.linkedin_url })) {
+    console.warn(`[linkedin] dispatch blocked — lead ${step.lead_id} is on the do-not-contact list`)
+    await db.from('figsy_linkedin_queue').update({ status: 'failed' }).eq('id', queueId)
+    return { sent: false, method: 'manual' }
+  }
 
   // PhantomBuster: trigger LinkedIn Connection Request phantom
   const pbRes = await fetch('https://api.phantombuster.com/api/v2/agents/launch', {

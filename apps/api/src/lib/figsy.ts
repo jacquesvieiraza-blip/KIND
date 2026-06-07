@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
+import { isSuppressed } from './suppression'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -319,6 +320,13 @@ export async function sendSequenceEmail(
 ): Promise<void> {
   if (!lead.email) throw new Error('Lead has no email')
 
+  // DO-NOT-CONTACT: hard stop — never email anyone connected to the founder's
+  // employer, no matter how this lead got enrolled.
+  if (isSuppressed({ email: lead.email, company: lead.company })) {
+    console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the do-not-contact list — step ${step} NOT sent.`)
+    return
+  }
+
   // POPIA safety net — never send to an opted-out address, no matter which path
   // enrolled this lead. This is the single chokepoint every step-1/2/3 send funnels
   // through, so one check here closes the gap where someone opts out via one campaign
@@ -497,6 +505,9 @@ export async function sendDay1OutreachBatch(
 
   for (const lead of (leads ?? []) as Lead[]) {
     if (!lead.email) continue
+
+    // DO-NOT-CONTACT: never day-1 email anyone connected to the founder's employer.
+    if (isSuppressed({ email: lead.email, company: lead.company })) continue
 
     const { data: blocked } = await db.from('opt_out_blocklist')
       .select('id').eq('email', lead.email).is('opted_back_in_at', null).maybeSingle()
@@ -708,6 +719,12 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
       .eq('id', leadId).single()
     if (!lead?.email) return
+
+    // DO-NOT-CONTACT: never enroll anyone connected to the founder's employer.
+    if (isSuppressed({ email: lead.email, company: lead.company })) {
+      console.warn(`[figsy] autoEnrollLead: ${lead.email} is on the do-not-contact list — not enrolled.`)
+      return
+    }
 
     const { data: client } = await db.from('clients')
       .select('company_name, industry, crm_dedup_enabled, crm_type, crm_api_key').eq('id', clientId).single()

@@ -10,6 +10,7 @@ import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
+import { isSuppressed } from '../lib/suppression'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -88,6 +89,11 @@ export async function runIcpJob(
     if (inserted >= effectiveCap) {
       skipped++
       continue
+    }
+
+    // DO-NOT-CONTACT: never even source anyone connected to the founder's employer.
+    if (isSuppressed({ email: contact.email, company: contact.organization?.name ?? contact.organization_name, linkedin: contact.linkedin_url })) {
+      skipped++; continue
     }
 
     if (contact.email) {

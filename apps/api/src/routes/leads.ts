@@ -8,6 +8,7 @@ import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
+import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
 
 export const leadRouter = Router()
@@ -346,6 +347,11 @@ leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
     if (leadErr || !lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 
     if (!lead.email) { res.status(422).json({ success: false, error: 'Lead has no email address' }); return }
+
+    // DO-NOT-CONTACT: never email anyone connected to the founder's employer.
+    if (isSuppressed({ email: lead.email, company: lead.company, linkedin: lead.linkedin_url })) {
+      res.status(403).json({ success: false, error: 'This lead is on the do-not-contact list and cannot be contacted.' }); return
+    }
 
     if (lead.status === 'consent_given' || lead.status === 'opted_out') {
       res.status(409).json({ success: false, error: `Lead has already ${lead.status === 'consent_given' ? 'consented' : 'opted out'}` })

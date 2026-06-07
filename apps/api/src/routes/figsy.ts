@@ -101,7 +101,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     const emailId = (payload.email_id as string) || (payload.id as string) || ''
     if (!body && emailId && process.env.RESEND_API_KEY) {
       try {
-        const r = await fetch(`https://api.resend.com/emails/${emailId}`, {
+        const r = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
           headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
         })
         if (r.ok) {

@@ -812,11 +812,15 @@ leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // Export every DELIVERED (= charged) lead the client can see, excluding only
+    // those who opted out. Leads are worked under legitimate interest, so gating
+    // on status='consent_given' was wrong — it returned an EMPTY file for every
+    // client (nobody clicks an explicit opt-in link), despite paid-for leads.
     const { data, error } = await db.from('leads')
       .select('first_name,last_name,email,phone,job_title,company,linkedin_url,country,score,status,consent_given_at')
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
-      .eq('status', 'consent_given')
+      .neq('status', 'opted_out')
       .order('score', { ascending: false, nullsFirst: false })
 
     if (error) throw error

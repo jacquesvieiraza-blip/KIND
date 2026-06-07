@@ -105,6 +105,83 @@ All preserved below, just re-sequenced: **Week 1** (§WEEK 1 POST-LAUNCH) · **W
 
 ---
 
+# 📆 MASTER TIMELINE — EVERY ELEMENT, DATED (built 7 Jun)
+
+> The single chronological view of **every element** in this doc. Calendar dates are firm for pre-launch (Mon 8 → Fri 19 Jun); post-launch windows are estimates **gated on the trigger named** (client count / margin data / credentials), not hard dates. Owner: 🧍 Founder · 🤖 Claude · 🤝 Both. ✅ done · ⬜ todo · ⏳ in progress · ⏸ gated · 🚫 won't. **Cosmetics (C1–C7) moved INTO pre-launch (Fri 12 / Mon 15).**
+
+## ① PRE-LAUNCH · Mon 8 Jun → Fri 19 Jun 2026 (firm dates)
+
+| Date | Element (ID) | Owner |
+|------|--------------|-------|
+| **Mon 8** | Deliverability code **D1–D5** (List-Unsub+one-click, plaintext, pixel fix, cold-FROM, transactional headers) | 🤖 |
+| **Mon 8** | **D6–D8** buy cold domain(s); SPF/DKIM/DMARC; verify Resend; **START warmup**; verify get-kind.com auth; confirm `API_URL` set | 🧍 |
+| **Mon 8** | Start **#1** TIER-0 credential rotation (Stripe, Supabase service-role, DATABASE_URL, anon, Anthropic, Resend×2, HubSpot, Admin secret, Stripe webhook; Apollo ✅) | 🧍 |
+| **Tue 9** | Finish **#1** rotation · **#6** migration `010_crm_dedup.sql` · **#7** Denise Stripe price `STRIPE_PRICE_DENISE_MONTHLY` + redeploy · **#7/8** DNS app/api/admin/status → `NEXT_PUBLIC_API_URL` + Resend webhook | 🧍 |
+| **Tue 9** | **DEPLOY** fix pipeline (KIND System Audit non-blocking + Railway auto-deploy) · **P-b** strip `BUILD MARKER` · **P-a** "sign emails as" setting · **#2** delete dead Portal-V2 + flag (🚫 never enable) | 🤖 |
+| **Tue 9** | Smoke Test 1A: **T1** (fresh email signup→onboard→gate) · **T2** 8–9 · **T3** 10–13 (incl. step 13 pause→no send) → log `T#-Step#` | 🧍 |
+| **Wed 10** | Smoke Test 1B: **T4** booking+KPI · **T5** billing (single-charge, webhook idempotency, Milla 403) · **T6** Vida widget · **T7** Milla cron leak | 🧍 |
+| **Wed 10** | **#17** fix smoke failures same-day (✅ **#17b** data floor already shipped) | 🤖 |
+| **Fri 12** | **Cosmetics C1–C7** (sidebar ICP-above-People · agent-card consistency · ICP banner "20k+ available·deliver 20/run" · all agent panels→FIGSY layout · ClickUp-style signup · New-ICP opens at top · "Est. pipeline value" relabel) | 🤖 |
+| **Fri 12** | Clear remaining smoke failures · deliverability mid-warmup check | 🤝 |
+| **Sat 13** | **ST2** Smoke Test 2 — full clean re-run T1–T7 green | 🤝 |
+| **Sun 14** | Legal pre-launch: **#10** ICO £40 · **#11** SR01 suppression · **#12** registered office + service address (fixes home-address exposure in terms.html) · **#13** WHOIS privacy · **#14** LinkedIn lockdown · **#9** confirm Calendly + `version.txt` | 🧍 |
+| **Sun 14** | **D9** inbox-placement test (mail-tester/GlockApps → 10/10) → fix auth gaps | 🤖 |
+| **Mon 15** | **Buffer** — absorb slip; re-run any failed track; any cosmetic spillover; placement re-check | 🤝 |
+| **Tue 16** | Dress rehearsal — one fresh-signup end-to-end as a brand-new client (not dogfood); warmup status review | 🧍 |
+| **Wed 17** | Final fixes; prep launch campaigns (low-volume ramp); confirm `AUTO_OUTREACH_ENABLED` plan | 🤝 |
+| **Thu 18** | **Go/No-Go** — full checklist sign-off; set day-1 ramped send volume | 🤝 |
+| **Fri 19** | 🚀 **LAUNCH** both markets — transactional fully live; cold outreach **ramped** (domains ~11 days warmed) | 🤝 |
+| Parallel | **F1** free cloud + AI credits (Microsoft/Google/AWS — zero downside, extends runway) · **SEIS** advance assurance (free, draft ready — file soon) | 🧍 |
+
+## ② WEEK 1 POST-LAUNCH · ~Mon 22 → Sun 28 Jun
+**#19** 10 warm network outreach 🧍 · **#20** LinkedIn 1/day (anon brand handle) 🧍 · **#21** activate LinkedIn outreach (`20260602_linkedin_queue.sql` + PhantomBuster keys) 🧍 · **#22** start Meta/WhatsApp Business API application (3–7 day window) 🧍 · **#23** record real product demo (16:9 + 9:16) 🧍 · **#24** replace homepage hero animation w/ real loop 🤝 (blocked on #23) · **#25** instrument GTM funnel (channel→reply→demo→close, CAC, trial→paid) 🤝 · **#26** activate dogfood self-outreach + competitor-switcher ICP 🧍 · daily client briefing email (Apex steal) 🤝.
+**Ongoing ops begin:** daily Admin/Unibox/founder-brief check (TTFL >4h → intervene); weekly Fri KPI/clients/roadmap/scalability/HubSpot review; sales SOP (Qualify→Discovery→Demo→Proposal→Payment→Onboarding).
+
+## ③ WEEKS 2–4 · ~Mon 29 Jun → Sun 19 Jul
+**#27** open 2 design-partner slots 🧍 · **#28** cut 9:16 social from demo 🤝 · **#29** 3 onboarding Looms 🧍 · **#30** onboarding v2 + day-0/3/7 sequence 🤖 · **#31** proof block real dogfood numbers 🤖 · **#33** Flutterwave activate (needs key) 🧍 · **#34** YouTube channel (10-video plan) 🧍 · **#35** wire playbook email form (ConvertKit/Mailchimp) 🤝.
+**Remaining steals:** **61a/g** performance-guarantee clause in terms.html ("90-day results or you don't pay" — define qualified meeting, refund mechanics, min volume) 🤝 · **61e** influencer/community distribution (1–2 SA + 1–2 US communities; find our Dan-Martell) 🧍 · **62b** "Revenue Playbook Session" (30-min) in onboarding 🧍 · **62c** homepage outcome numbers (REAL data only) 🤝.
+**Legal trigger:** ODPC Kenya/NDPR DPCO ⏸ on first NG/KE client.
+
+## ④ MONTH 2 · ~late Jul → late Aug (GATED: 10+ clients)
+**PREREQUISITE — do FIRST (Part 4B):** stand up **staging** (Supabase `kind-staging` af-south-1 + 2 Railway staging services + `staging` branch + test-mode Stripe) before ANY V2 work touches main. ~$10–15/mo, ~20 min.
+**Intelligence layer:** **#37** intent signals · **#38** A/B subject testing · **#39** client morning brief · **#40** ICP auto-refinement (L2) · **#41** conditional branching · **#42** waterfall enrichment (PDL/Hunter/Clearbit keys) · **#43** deliverability dashboard (SPF/DKIM/DMARC+bounce+blacklist) · **#44** email score pre-send · **#45** adaptive send volume · **#46** FIGSY Memory v2 (pgvector) · **#47** Milla full-context CRM · **#48** Vapi voice · **#49** Product Hunt (with proof) · **#50** G2 listing · **#51** configurable triggers · **#52** multi-model per campaign · **#53** inbox rotation/multi-domain.
+**#59 MCP server — PULLED FWD M3→M2** (1st milestone: one MCP endpoint to start a FIGSY campaign — free distribution).
+**Memory moat:** keep capturing raw data at fidelity (✅ floor built); build smart layers L2–L4 only now that volume exists.
+**V2 portal redesign (13):** V2-1 card grid · V2-2 thinking state · V2-3 conversational setup · V2-4 config panel · V2-5 marketplace · V2-6 slim sidebar · V2-7 invite teammate · **V2-8 AI Notetaker (Critical)** · **V2-9 Teams Hub (Critical)** · V2-10 Casey onboarding agent · **V2-11 🔴 Vida in-portal help bubble (Critical)** · **V2-12 🔴 strong client dashboards (Monday-style)** · V2-13 multi-provider calendar (Outlook/Calendly/Zoho + `booking_url` field) + agent-led onboarding.
+**Legal:** **D&O insurance** (~£500–1k) · trademarks K.I.N.D+FIGSY+Milla+Vida (~£320, before PR).
+
+## ⑤ MONTH 3 · ~late Aug → late Sep (GATED: family build + margin data)
+**#54 DENISE deep build (#1 priority)** — Calendly auto-book on positive reply · call-join + transcription (notetaker) · live objection extraction · proposal draft from transcript · pipeline follow-up sequencer · persona/system prompt (mother-modelled warm closer) · admin `/agents/denise` card. *Build deep or don't ship.*
+**#55** LENA · **#56** OTTO · **#57** multi-agent orchestration (shared memory) · **#58** 500+ FIGSY skill library · **#60** outcome pricing ⏸ **GATED ≥28% gross margin** (the one number: avg credits/booked meeting; separate menu not add-on; machine-decided "confirmed"; no double-charge; `outcome_events` + Stripe metered) · **#61** mobile app iOS+Android · **#62** built-in CRM (Kanban) · **#63** pan-African design partners (NG/KE/GH/EG/RW) · **#64** cross-client intelligence (L4) · **#65** data licensing · **#66** advanced ICP refinement · **#67** pipeline forecasting · **#68** in-portal messaging · **#69** proposal + e-sign · **#70** meeting notetaker.
+**Legal:** pen test (~£2–5k).
+
+## ⑥ YEAR 2 · 2027 (certs + enterprise)
+**#71** ISO 27001 (~£15–25k) · **#72** ISO 42001 AI Governance (~£10–15k) · **#73** SOC 2 Type II (~$50k, Vanta) · **#74** Vanta triple-cert (~70% shared controls) · **#75** 3-type memory (episodic/long-term/preference) · **#76** visitor de-anon (Clearbit) · **#77** churn-risk scoring · **#78** revenue forecasting · **#79** call intelligence.
+
+## ⑦ ONGOING / PARALLEL (trigger-based, no fixed date)
+- **Legal rings (Part 2):** ✅ corporate shield, data-protection stack, infosec controls, contracts/IP largely done. Open/triggered: AI Risk Register (free, start now) · VAT reg at £90k · IR35/contractor IP (first hire) · SeedLegals IP (~£600, at raise) · annual confirmation statement + accounts + CT return · scrub founder name from internal mockups before any external share · Cloudflare WAF AS46582 block (once site proxied).
+- **Funding (Part 5C):** **F1** credits NOW → **F2** SA ecosystem (5–10 clients) → **F3** YC/accelerators (paying clients) → **F4** revenue-based financing (predictable MRR) → **F5** influencer lever (ongoing). Revisit raise-vs-bootstrap at 20–30 paying clients, from leverage not need. Keep public brand faceless; pitch under real name in private investor process.
+- **Tech-debt:** delete dormant Portal-V2 + flag (also a pre-launch item) · Apollo validated keyword/tech picker · tighten ICP-builder prompt (no prose keywords) · admin proxy hardcoded URL · commit signing (Unverified warnings).
+- **MASTER.md cleanup (Part 8 — 15 contradictions, none block launch):** Vercel refs→Railway · launch-day printed 3 ways · Vida $39→$29 · pricing tables→canonical · cron 16 not 19 · DENISE/LENA/OTTO timing · LinkedIn "never"→built · duplicate §24–28 + double 5-day plan · Calendly personal link→neutral · done/pending conflicts · cashflow §14 stale · us.app remnants · eu-west-1→af-south-1 · admin/portal analytics "built"→not built · 15-step→57-step smoke test.
+- **Competitive watch:** monitor Revio changelog (if they add B2B cold outbound they enter FIGSY's lane); hold the specialisation lane (African data, POPIA, $20 entry, named family) vs Monday/ClickUp breadth; use the warmth window NOW.
+
+## ⑧ ⏸ BLOCKED — credentials only (unblocks the instant a key lands)
+Milla/Vida Stripe price IDs · Flutterwave key · `HUBSPOT_API_KEY` · Vapi keys · WhatsApp (Meta approval + number) · Google Calendar OAuth (`GOOGLE_CLIENT_ID/SECRET/REDIRECT`) · `CLEARBIT_API_KEY` · PhantomBuster keys · Cloudflare (`CLOUDFLARE_API_TOKEN/ACCOUNT_ID`) · Render standbys + UptimeRobot.
+
+## 🚫 WILL NOT BUILD / PARKED (Part 6)
+Collaborative docs · whiteboards · self-hosted · custom emoji · internal team chat · multi-year contracts (never) · 50+ data sources (50+ clients) · African-language (after WhatsApp). *(NOTE: "LinkedIn automation — never" is SUPERSEDED — backend built, activates Week 1.)*
+
+## 📈 TARGETS (NUMBERS)
+| When | Clients | MRR |
+|------|---------|-----|
+| Launch (19 Jun) | 0 | £0 |
+| Week 2–3 | 2–3 design partners | ~£2,500 |
+| Month 1 | 5 (break-even all-in) | ~£4,000 |
+| Month 2 | 20 + Product Hunt | ~£12,000 |
+| Month 3 | 50 + agent family | ~£40,000 |
+
+---
+
 ## 🗓 SESSION STATE — 7 Jun 2026 (the big smoke-test fix day)
 
 **Decision locked: NOT launching Monday half-baked. Finish the product properly → Smoke Test 2 green → then a date.** Founder's call, correct call.

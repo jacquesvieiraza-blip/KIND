@@ -734,8 +734,8 @@ export default function LeadsPage() {
       <div className="bg-[#F5F0FF] border border-purple-100 rounded-xl px-4 py-3 flex items-start gap-3">
         <ShieldCheck className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
         <p className="text-xs text-[#6D28D9]">
-          <strong>POPIA & GDPR compliant.</strong> All leads are sourced from Apollo with consent filters active.
-          Opt-out requests are permanently blocked across all clients. Only send outreach to <strong>Consented</strong> leads.
+          <strong>POPIA & GDPR compliant.</strong> Leads are sourced from Apollo for B2B outreach under <strong>legitimate interest</strong>.
+          Every email carries a one-click opt-out, and anyone who opts out is permanently blocked across all clients and never contacted again.
         </p>
       </div>
 
@@ -1176,7 +1176,7 @@ export default function LeadsPage() {
                 Close
               </button>
             </div>
-            <p className="text-xs text-[#9B8EC4] mt-3 text-center">Review before sending. Only send to POPIA-consented leads.</p>
+            <p className="text-xs text-[#9B8EC4] mt-3 text-center">Review before sending. Every email includes a one-click opt-out.</p>
           </div>
         </div>
       )}

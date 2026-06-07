@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
@@ -34,27 +35,49 @@ figsyRouter.get('/track/open/:emailId', async (req, res) => {
   }
 })
 
+// Verify a Resend (Svix) webhook signature over the raw body. Resend signs each
+// webhook with svix-id / svix-timestamp / svix-signature using the endpoint's
+// signing secret (whsec_…). signedContent = `${id}.${ts}.${body}`, HMAC-SHA256,
+// base64. The signature header is a space-separated list of `v1,<sig>`.
+function verifySvixSignature(body: Buffer, headers: Record<string, string | string[] | undefined>, secret: string): boolean {
+  try {
+    const id  = headers['svix-id']
+    const ts  = headers['svix-timestamp']
+    const sig = headers['svix-signature']
+    if (!id || !ts || !sig) return false
+    const key = secret.startsWith('whsec_') ? Buffer.from(secret.slice(6), 'base64') : Buffer.from(secret)
+    const signedContent = `${id}.${ts}.${body.toString('utf8')}`
+    const expected = crypto.createHmac('sha256', key).update(signedContent).digest('base64')
+    const provided = String(sig).split(' ').map(p => p.split(',')[1]).filter(Boolean)
+    return provided.some(p => {
+      try { return crypto.timingSafeEqual(Buffer.from(p), Buffer.from(expected)) } catch { return false }
+    })
+  } catch { return false }
+}
+
 // ── INBOUND REPLY WEBHOOK — must be registered BEFORE requireAuth ─────────────
 // Called by Resend when a prospect replies to a FIGSY sequence email.
-// No JWT auth — protected by RESEND_WEBHOOK_SECRET header check instead.
-// Resend inbound payload: { from, to, subject, text, html } OR { type, data: { from, ... } }
+// Authenticated by the Resend/Svix signature (or a plain x-webhook-secret header
+// for manual callers). Raw body is captured via express.raw in index.ts.
+// Resend `email.received` payload: { type, data: { email_id, from, to, subject } }.
 figsyRouter.post('/replies/inbound', async (req, res) => {
-  // Verify webhook secret — FAIL CLOSED. If the secret isn't configured we must
-  // NOT accept unauthenticated inbound (forged replies could mark leads opted
-  // out, inject fake hot replies, or trigger auto-topup charges). The secret is
-  // a required env var on every deploy.
+  // FAIL CLOSED. Without the secret we cannot authenticate, so reject — a forged
+  // reply could opt-out leads, inject fake hot replies, or trigger charges.
   const secret = process.env.RESEND_WEBHOOK_SECRET
   if (!secret) {
     console.error('[figsy/replies/inbound] RESEND_WEBHOOK_SECRET not set — rejecting inbound. Set it on this deploy.')
     res.status(503).json({ error: 'Webhook not configured' }); return
   }
-  if (req.headers['x-webhook-secret'] !== secret) {
+  // req.body is the raw Buffer (express.raw for this route). Accept a valid Resend
+  // signature OR a matching x-webhook-secret header.
+  const rawBuf: Buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body ?? {}))
+  if (!verifySvixSignature(rawBuf, req.headers, secret) && req.headers['x-webhook-secret'] !== secret) {
     res.status(401).json({ error: 'Unauthorized' }); return
   }
 
   try {
     // Handle both Resend webhook format { type, data: {...} } and flat { from, subject, text }
-    const raw = req.body as Record<string, unknown>
+    const raw = JSON.parse(rawBuf.toString('utf8') || '{}') as Record<string, unknown>
     const payload = (raw.type === 'email.received' && raw.data && typeof raw.data === 'object')
       ? raw.data as Record<string, unknown>
       : raw

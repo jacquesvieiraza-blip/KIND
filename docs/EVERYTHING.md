@@ -87,11 +87,21 @@ Only **T2** (ICP→leads→charge) + **T3 send→reply→hot** are proven. Untes
 ## 2. FOUNDER INFRA / SECURITY — all open (detail in §PRE-LAUNCH SPLIT / PART 2)
 TIER-0 credential rotation (Stripe, Supabase service-role, DATABASE_URL, anon key, Anthropic, Resend ×2, HubSpot, Admin secret, Stripe webhook — Apollo ✅) · migration `010_crm_dedup.sql` · Denise Stripe price → `STRIPE_PRICE_DENISE_MONTHLY` · DNS app/api/admin/status → `NEXT_PUBLIC_API_URL` + Resend webhook · Legal (ICO £40, SR01, registered office/service address, WHOIS privacy, LinkedIn lockdown) · confirm Calendly + `version.txt` · fix deploy pipeline.
 
-## 3. POLISH (fast, low-risk)
-"Sign emails as" sender-name setting (kills AI-invented "Thandeka"/"Thabo" signature — `figsy.ts:445`) · strip `BUILD MARKER` (`apps/api/src/index.ts:165`) · cosmetic batch (§COSMETIC BACKLOG — 7 items). *Note: `previewCount` is a real feature, NOT debug — do not strip.*
+## 3. POLISH + COSMETIC (fast, low-risk — batched Fri 12, before clients see it)
+**Polish:** "Sign emails as" sender-name setting (kills AI-invented "Thandeka"/"Thabo" signature — `figsy.ts:445`) · strip `BUILD MARKER` (`apps/api/src/index.ts:165`). *Note: `previewCount` is a real feature, NOT debug — do not strip.*
+**Cosmetic backlog (all 7 — §COSMETIC BACKLOG has detail):**
+1. Sidebar: **ICP Builder above People** (Lead Gen section).
+2. **Agent cards** — standardise length + layout across all agents.
+3. **ICP preview banner** — show "20,000+ available · we deliver your 20/run" instead of the raw scary count.
+4. **Agent panel** — every agent (Milla/Vida/Denise) uses the FIGSY layout (Pixar portrait, role, chips, intro, "Ask … anything").
+5. **Signup screen** — ClickUp-style ("Seconds to sign up!", Continue with Google, marketing + data-transfer consent checkboxes).
+6. **ICP Builder "New ICP"** — open the form at the top / modal (no scrolling past all existing cards).
+7. **"Pipeline Value"** → relabel **"Est. pipeline value"** + tooltip (it's the sum of AI-estimated deal values, not booked revenue — no-fake-news).
 
 ## 4. POST-LAUNCH (unchanged backlog — starts AFTER 19 Jun)
-All preserved below, just re-sequenced: **Week 1** (§WEEK 1 POST-LAUNCH) · **Weeks 2–4** (§WEEKS 2–4 + the 61/62 steals) · **Month 2** intelligence layer #37–53 + memory moat + **V2 portal redesign** (13 concepts, §V2 BUILDS) · **Month 3** #54 Denise deep build (#1) + Lena/Otto + MCP + outcome pricing + CRM + mobile · **Year 2** certs (ISO 27001/42001, SOC 2) + advanced memory/forecasting · **Ongoing** legal/funding/ops/tech-debt + MASTER.md cleanup · **Blocked-on-creds** list. See the ranked "FUTURE UPDATES" list and PART 1 timeframe sections below for every item.
+All preserved below, just re-sequenced: **Week 1** (§WEEK 1 POST-LAUNCH) · **Weeks 2–4** (§WEEKS 2–4 + the 61/62 steals) · **Month 2** intelligence layer #37–53 + memory moat + **#59 MCP server** (distribution unlock — **pulled fwd M3→M2 per strategic read #3**) + **V2 portal redesign** (13 concepts, §V2 BUILDS) · **Month 3** #54 Denise deep build (#1) + Lena/Otto + outcome pricing + CRM + mobile · **Year 2** certs (ISO 27001/42001, SOC 2) + advanced memory/forecasting · **Ongoing** legal/funding/ops/tech-debt + MASTER.md cleanup · **Blocked-on-creds** list. See the ranked "FUTURE UPDATES" list and PART 1 timeframe sections below for every item.
+
+> 📡 **Market context (May–Jun 2026) — informs the sequence above. Full detail in §PART 5 / 5B.** Five strategic reads: (1) we launched on the right pricing curve — outcome pricing (#60) is validated by Intercom Fin ($0.99/resolved ticket) + Salesforce ($2/conversation), stays gated on margin data; (2) the **warmth window is narrowing** — Monday/Notion/ClickUp now all say "agents as team members"; our named family + Pixar warmth is a stronger narrative — lean on it NOW; (3) **MCP = distribution, not just product** → #59 pulled to Month 2; (4) our lane is **specialisation** (African data, POPIA, $20 entry, family agents), not breadth — don't chase Monday/ClickUp's general-purpose platform; (5) the risk is **speed, not direction** — the market is validating us in real time, so **DENISE (the "meeting booked → close" seam) is the #1 post-launch build** (max leverage on the working FIGSY pipeline). Competitors mapped: Glean, Monday, ClickUp, Notion, Linear, Salesforce, Intercom Fin + deep dives §Atlas (DFY, $5k+, voice AI/iMessage/CTV) and §Revio (social-DM selling, creator economy).
 
 ---
 
@@ -553,7 +563,7 @@ Two full passes planned: **Smoke Test 1 (Sat)** and **Smoke Test 2 (Sun)**, each
 **The accelerant rule:** you do NOT accelerate the moat by building the top of the stack faster. Pre-revenue, memory compounds on N — one client's memory is worthless. **The accelerant = (1) capture raw data at full fidelity now, (2) get clients.** The smart layers (L2–L4, pgvector, 3-type) are worthless without volume and a dangerous distraction before it. Build the *capture* layer early; build the *smart* layers at 10+ clients.
 
 ## 🟦 MONTH 3 — agent family + platform (Tier 3/4)
-54 **DENISE** (the closer — PULLED FORWARD, see priority spec below) · 55 **LENA** · 56 **OTTO** · 57 Multi-agent orchestration (shared memory) · 58 500+ FIGSY skill library · 59 **MCP server** (K.I.N.D as AI infrastructure) · 60 **Outcome pricing ("per meeting booked") — GATED, see spec below** · 61 Mobile app iOS+Android · 62 Built-in CRM (persistent prospect DB / Kanban deal view) · 63 Pan-African design partners (NG/KE/GH/EG/RW) · 64 Platform-level cross-client intelligence · 65 Data licensing marketplace · 66 ICP auto-refinement advanced · 67 Pipeline forecasting · 68 In-portal messaging · 69 Proposal + e-sign · 70 Meeting notetaker
+54 **DENISE** (the closer — PULLED FORWARD, see priority spec below) · 55 **LENA** · 56 **OTTO** · 57 Multi-agent orchestration (shared memory) · 58 500+ FIGSY skill library · ~~59 MCP server~~ → **MOVED TO MONTH 2** (distribution unlock — strategic read #3) · 60 **Outcome pricing ("per meeting booked") — GATED, see spec below** · 61 Mobile app iOS+Android · 62 Built-in CRM (persistent prospect DB / Kanban deal view) · 63 Pan-African design partners (NG/KE/GH/EG/RW) · 64 Platform-level cross-client intelligence · 65 Data licensing marketplace · 66 ICP auto-refinement advanced · 67 Pipeline forecasting · 68 In-portal messaging · 69 Proposal + e-sign · 70 Meeting notetaker
 
 ### #54 DENISE — the closer (PRIORITY: #1 build after launch stabilises — pulled forward from Month 3)
 

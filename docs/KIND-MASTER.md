@@ -34,6 +34,7 @@
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **7 Jun:** Logged Ch.1 WATCH note on **monday Vibe** (AI vibe-coding app builder, verified via web search) → reinforces specialisation lane; prompt-to-build UX validates V2-3 conversational setup (bump priority).
 - **7 Jun:** Added Ch.1 strategic takeaway: Monday converging on our look + tactics → defend depth + velocity (specialisation + speed), not the design lane.
 - **7 Jun:** Logged **#81** (milestone outcome share-to-LinkedIn) + **#82** (Certified Partner badge) — Monday growth-loop steals. Added Ch.1 WATCH note: Monday now uses Pixar-3D agent characters (warmth window closing). Total 97→99.
 - **7 Jun:** Logged new build **#80** (speed-to-lead: Vida → instant FIGSY/Denise handoff, Atlas steal) in Ch.3 Phase 2.
@@ -138,6 +139,19 @@ Monday/Notion/ClickUp all now talk about "agents as team members." We've had nam
 > ours).** Don't defend the design lane; defend the depth + velocity. The share-loops are worth
 > grabbing as free distribution, but the real moat move is shipping specialisation faster than
 > the generalists can copy warmth.
+>
+> 🟡 **WATCH (7 Jun) — monday Vibe (verified via web search).** Monday shipped **"Vibe"**: AI
+> *vibe-coding* — describe an app in plain language → it generates a working custom app
+> (dashboards, trackers, forms, portals, calculators) that runs on monday's infra, connects to
+> live boards, and can call AI actions. Pricing: **$10 / published app / month** (draft free,
+> pay on publish). **Strategic read:** this is the general-purpose platform play at its limit —
+> *build any tool yourself.* It **reinforces our specialisation lane (Read #4):** Vibe hands you
+> an empty shell you must design + source data for + make compliant; K.I.N.D hands you FIGSY who
+> *already* does outbound (Apollo sourcing + enrichment + scoring + POPIA/GDPR + warmed domain).
+> Someone can vibe a basic lead tracker; they cannot vibe a trained SDR with our data +
+> deliverability + compliance moat. **Transferable idea:** Vibe's prompt-to-build UX validates
+> **V2-3 (conversational agent setup with Casey)** — "describe your ICP, the agent configures
+> itself." Bump V2-3's priority. Source: monday.com/w/vibe.
 
 ### **3. MCP is being pulled forward — it's distribution, not just product.**
 Glean, Notion, Linear, Salesforce are all wiring MCP natively. Item #59 (MCP server) was Month 3. **Given this market signal, it moves to Month 2.** Being MCP-compatible means other tools' agents can call K.I.N.D without a K.I.N.D sales team. That is **free distribution.**

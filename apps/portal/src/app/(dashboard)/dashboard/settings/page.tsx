@@ -161,7 +161,7 @@ function TeamSection({ clientId, userRole }: { clientId: string; userRole: strin
 
   useEffect(() => {
     fetch(`${apiUrl}/team/members?client_id=${clientId}`)
-      .then(r => r.json()).then(setMembers).catch(() => {})
+      .then(r => r.ok ? r.json() : []).then(d => setMembers(Array.isArray(d) ? d : [])).catch(() => setMembers([]))
   }, [clientId])
 
   async function invite(e: React.FormEvent) {
@@ -177,7 +177,7 @@ function TeamSection({ clientId, userRole }: { clientId: string; userRole: strin
     setEmail('')
     // Refresh list
     fetch(`${apiUrl}/team/members?client_id=${clientId}`)
-      .then(r => r.json()).then(setMembers).catch(() => {})
+      .then(r => r.ok ? r.json() : []).then(d => setMembers(Array.isArray(d) ? d : [])).catch(() => setMembers([]))
     setTimeout(() => setSent(false), 3000)
   }
 

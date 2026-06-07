@@ -1,6 +1,10 @@
 # K.I.N.D — EVERYTHING
 
-> ✅ **THIS IS THE WORKING SOURCE OF TRUTH (updated 5 Jun 2026).** Read this first, update this first. `MASTER.md` is now a historical archive only. Where the two disagree, THIS document wins.
+> ⛔️ **SUPERSEDED (7 Jun 2026). This document is now a HISTORICAL ARCHIVE.**
+> The single source of truth is **`docs/KIND-MASTER.md`** — read and update that instead.
+> Everything below is retained for history only. Where this disagrees with KIND-MASTER, **KIND-MASTER wins.**
+
+> _(Former header:)_ ✅ THIS IS THE WORKING SOURCE OF TRUTH (updated 5 Jun 2026). Read this first, update this first. `MASTER.md` is now a historical archive only. Where the two disagree, THIS document wins.
 > **Protocol:** at the start of a session read this file; at the end of a session update it and commit.
 
 ---

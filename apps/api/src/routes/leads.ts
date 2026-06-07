@@ -837,7 +837,13 @@ leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
     res.setHeader('Content-Type', 'text/csv')
     res.setHeader('Content-Disposition', 'attachment; filename="kind-leads.csv"')
     res.send(csv)
-  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to export leads' }) }
+  } catch (err) {
+    // Surface the real reason (tagged for log search + returned in the body) so an
+    // export failure can be diagnosed without guessing.
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[leads/export/csv] FAILED:', msg)
+    res.status(500).json({ success: false, error: `Failed to export leads: ${msg}` })
+  }
 })
 
 // ── IMPORT FROM LINKEDIN / ZOOMINFO CSV ───────────────────────────────────────

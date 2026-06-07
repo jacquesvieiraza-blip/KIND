@@ -291,60 +291,50 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
 }
 
 // People Bulk Match — the PAID enrichment step that reveals work emails.
-// The search endpoint (/mixed_people/api_search) returns NO emails by design, so
-// every sourced lead arrives email-less. This call reveals them. Cost: 1 Apollo
-// credit per matched person, 0 if unmatched (so ≤ N credits for N people). Apollo
-// caps each request at 10 people, so we batch. Returns a Map of the correlation
-// id we pass in (the lead id) → revealed email, for matched + emailable people only.
+// The search endpoint (/mixed_people/api_search) returns NO email and MASKS the
+// last name (e.g. "La***n"); the only strong identifier it gives is Apollo's
+// internal person id. So we enrich by that id — passing it as the match key
+// reliably returns the full record incl. a verified work email. Matching by name
+// fails (the name is masked). Cost: 1 Apollo credit per matched person, 0 if
+// unmatched. Apollo caps each request at 10, so we batch. Returns a Map of
+// apollo_id → revealed email, for matched + emailable people only.
 const APOLLO_BULK_MATCH = `${APOLLO_BASE}/people/bulk_match`
 
-export interface EnrichPersonInput {
-  id:                 string        // our correlation id (the lead id)
-  first_name?:        string | null
-  last_name?:         string | null
-  organization_name?: string | null
-  linkedin_url?:      string | null
-}
-
-export async function bulkMatchEmails(people: EnrichPersonInput[]): Promise<Map<string, string>> {
+export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   const apiKey = process.env.APOLLO_API_KEY
-  if (!apiKey || people.length === 0) return out
+  const ids = apolloIds.filter(Boolean)
+  if (!apiKey || ids.length === 0) return out
 
-  for (let i = 0; i < people.length; i += 10) {
-    const batch = people.slice(i, i + 10)
+  for (let i = 0; i < ids.length; i += 10) {
+    const batch = ids.slice(i, i + 10)
     try {
       const res = await fetch(APOLLO_BULK_MATCH, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
         body: JSON.stringify({
           reveal_personal_emails: false,
-          details: batch.map(p => ({
-            id:                p.id,
-            first_name:        p.first_name        ?? undefined,
-            last_name:         p.last_name         ?? undefined,
-            organization_name: p.organization_name ?? undefined,
-            linkedin_url:      p.linkedin_url       ?? undefined,
-          })),
+          details: batch.map(id => ({ id })),   // match by Apollo person id
         }),
       })
       if (!res.ok) {
         console.error(`[apollo] bulk_match ${res.status}: ${(await res.text().catch(() => '')).slice(0, 300)}`)
         continue
       }
-      // Apollo returns `matches` aligned to the input order; each entry carries the
-      // enriched person (with `email`) or null when unmatched.
-      const data = await res.json() as { matches?: Array<{ email?: string | null } | null> }
+      // Apollo returns `matches` aligned to input order; each entry echoes the id
+      // and carries the enriched person (with `email`), or null when unmatched.
+      const data = await res.json() as { matches?: Array<{ id?: string; email?: string | null } | null> }
       ;(data.matches ?? []).forEach((m, idx) => {
-        const corrId = batch[idx]?.id
-        const email  = m?.email
-        if (corrId && email && email.includes('@') && !email.includes('email_not_unlocked')) {
-          out.set(corrId, email)
+        const apolloId = m?.id ?? batch[idx]
+        const email    = m?.email
+        if (apolloId && email && email.includes('@') && !email.includes('email_not_unlocked')) {
+          out.set(apolloId, email)
         }
       })
     } catch (err) {
       console.error('[apollo] bulk_match batch failed:', err)
     }
   }
+  console.log(`[apollo] bulk_match: revealed ${out.size} email(s) from ${ids.length} apollo id(s)`)
   return out
 }

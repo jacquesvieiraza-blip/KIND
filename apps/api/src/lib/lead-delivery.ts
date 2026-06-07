@@ -20,25 +20,24 @@ export async function enrichAndDeliverLeads(
 ): Promise<number> {
   if (candidateIds.length === 0) return 0
 
-  // 1. Reveal emails for candidates that don't already have one.
+  // 1. Reveal emails for candidates that don't already have one, by enriching on
+  //    the Apollo person id (the search masks names + hides emails, so id is the
+  //    only reliable match key). revealed maps apollo_id → email.
   const { data: rows } = await db.from('leads')
-    .select('id, email, first_name, last_name, company, linkedin_url')
+    .select('id, email, apollo_id')
     .in('id', candidateIds)
     .is('delivered_at', null)
 
-  const needEmail = (rows ?? []).filter(r => !r.email)
+  const needEmail = (rows ?? []).filter(r => !r.email && r.apollo_id)
   if (needEmail.length > 0) {
-    const revealed = await bulkMatchEmails(needEmail.map(r => ({
-      id:                r.id,
-      first_name:        r.first_name,
-      last_name:         r.last_name,
-      organization_name: r.company,
-      linkedin_url:      r.linkedin_url,
-    })))
-    for (const [leadId, email] of revealed) {
-      // apollo_consented: this lead came through Apollo's verified-email filter and
-      // we now hold a real work email — mark it as Apollo-sourced contactable.
-      await db.from('leads').update({ email, apollo_consented: true }).eq('id', leadId)
+    const revealed = await bulkMatchEmails(needEmail.map(r => r.apollo_id as string))
+    for (const r of needEmail) {
+      const email = revealed.get(r.apollo_id as string)
+      if (email) {
+        // apollo_consented: came through Apollo's verified-email filter and we now
+        // hold a real work email — mark it as Apollo-sourced contactable.
+        await db.from('leads').update({ email, apollo_consented: true }).eq('id', r.id)
+      }
     }
   }
 

@@ -67,7 +67,31 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     // Extract name from "Name <email>" format
     const fromName = rawFrom.includes('<') ? rawFrom.split('<')[0].trim().replace(/^["']|["']$/g, '') : null
 
-    const body = (payload.text as string) || ((payload.html as string)?.replace(/<[^>]+>/g, ' ') ?? '') || ''
+    let body = (payload.text as string) || ((payload.html as string)?.replace(/<[^>]+>/g, ' ') ?? '') || ''
+
+    // Resend's `email.received` webhook is METADATA-ONLY — it carries email_id but
+    // NOT the body. Without this fetch, every real reply classifies on an empty
+    // string and is dropped. Pull the full message from Resend's API by email_id.
+    // (Flat inbound payloads that already include text skip this.) The raw status
+    // is logged so we can confirm/correct the exact endpoint against the first live
+    // reply.
+    const emailId = (payload.email_id as string) || (payload.id as string) || ''
+    if (!body && emailId && process.env.RESEND_API_KEY) {
+      try {
+        const r = await fetch(`https://api.resend.com/emails/${emailId}`, {
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+        })
+        if (r.ok) {
+          const full = await r.json() as { text?: string; html?: string }
+          body = (full.text || full.html?.replace(/<[^>]+>/g, ' ') || '').trim()
+          console.log(`[figsy/replies/inbound] fetched received email ${emailId} — body length ${body.length}`)
+        } else {
+          console.error(`[figsy/replies/inbound] fetch received email ${emailId} failed: ${r.status} ${(await r.text().catch(() => '')).slice(0, 200)}`)
+        }
+      } catch (e) {
+        console.error('[figsy/replies/inbound] fetch received email error:', e)
+      }
+    }
 
     if (!fromEmail || !body) { res.status(200).json({ received: true }); return }
 

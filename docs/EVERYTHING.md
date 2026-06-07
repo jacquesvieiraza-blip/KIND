@@ -467,7 +467,12 @@ Reason it waits is not the code — it's that outcome pricing moves result-risk 
 
 ### 🔵 RING 1 — Corporate & Personal Shield
 ✅ Ltd formed (17260532, England & Wales) · ✅ Limited-liability shield · ✅ Employment ring-fence (after-hours/personal-kit; Smartsheet clause 17.2 reviewed+accepted) · ✅ `docs/legal/legal-pack.md`
+✅ **Smartsheet DO-NOT-CONTACT guard (`lib/suppression.ts`)** — hard-coded floor `smartsheet.com, brandfolder.com, outfit.io, slopeapp.com` (+ editable `SUPPRESSED_DOMAINS` env). Enforced at every outreach path: sourcing, day-1 email, FIGSY sequence, campaign enroll, consent email, LinkedIn dispatch. Cannot be turned off.
+✅ **Pitch deck scrubbed** (`docs/kind-pitch-deck.html`) — removed fabricated "Jacques V., AE at Smartsheet EMEA" testimonial + `jacques@` → `hello@`, "Contact Jacques" → "Contact us". (Legal pages already name only the company — no personal name there.)
+⚠️ **PRIORITY — registered office in `terms.html` is the founder's HOME address (33 Townsend Road, Stratford-upon-Avon).** Publicly exposed. Fix = service/registered-office address at Companies House before launch. (Ties to SR01 below.)
+⬜ **Cloudflare WAF: block Smartsheet network** — rule `(ip.geoip.asnum eq 46582)` → Block, on get-kind.com (speed bump for office-network discovery; needs site proxied through Cloudflare).
 ⬜ SR01 home-address suppression · ⬜ Registered office + director service address · ⬜ WHOIS privacy · ⬜ LinkedIn lockdown / anonymous brand-only coverage · ⬜ All public contact = business email · ⬜ Press attributed to "K.I.N.D team" · ⬜ **D&O insurance** (~£500–1,000/yr, Month 2)
+⬜ Internal mockups still contain the founder name/personal email (`setup-dashboard-preview.html`, `pwa-mockup.html`, `portal-v2-preview.html`, `roadmap-flowchart.html`) — internal-only, scrub before any are shared externally.
 📌 Hard floor: PSC director name is permanently public — cannot be removed.
 
 ### 🟢 RING 2 — Data Protection

@@ -4,10 +4,37 @@
 > Supersedes `EVERYTHING.md`, `SESSION-HANDOFF-7JUN.md`, and all earlier roadmap fragments.
 > Where any other doc disagrees, **THIS document wins.**
 >
-> **Protocol:** at the start of a session read this file; at the end of a session update it + commit.
+> **Protocol (LIVING DOC — keep current):**
+> 1. **Start of session:** read the **RESUME HERE** block below, then the relevant chapter.
+> 2. **During work:** flip item status as it changes (⬜→🔄→✅) in Chapters 2 & 3.
+> 3. **End of session:** update the **RESUME HERE** block + add one line to the **SESSION LOG**, then commit + push. This is what lets a brand-new chat pick up with full context.
 >
 > **Launch date:** 🚀 **FRIDAY 19 JUNE 2026** (firm — deferred from Mon 8 Jun until deliverability + Smoke Test 2 pass).
 > **Last updated:** 7 Jun 2026.
+
+---
+
+## ▶️ RESUME HERE — LIVE STATUS (a fresh session reads THIS first)
+
+> **This block is the cold-start handoff.** Any new chat/session must read this to know exactly
+> where we are. **Keep it current** — update it at the end of every working session before commit.
+
+- **Today / baseline:** Sprint **starts Mon 8 Jun 2026**. 12-day countdown to **Fri 19 Jun** launch.
+- **What's already shipped (verified on `main`, deployed to Railway):**
+  - Apollo email enrichment (bulk_match by id) — real emails delivered
+  - FIGSY inbound reply pipeline — end-to-end, 🔥 Hot classification verified live
+  - Compliance suppression guard — hard-coded at all 6 outreach paths
+  - ICP run async · schema drift (lead_status ENUM) reconciled · auto-outreach gated (`AUTO_OUTREACH_ENABLED` default OFF)
+  - Outcome-event data floor (#17b) — append-only log live
+- **THE #1 BLOCKER:** Deliverability (mail → spam). Long pole = email warmup clock. Must start Mon 8.
+- **NEXT ACTIONS (Mon 8):**
+  - 🤖 Claude: Deliverability code **D1–D5** (List-Unsubscribe + one-click · plain-text MIME · tracking-pixel fix · cold-FROM config · transactional headers) — see Chapter 2, Mon 8.
+  - 🧍 Founder: **D6–D8** (buy cold domain(s) · SPF/DKIM/DMARC · verify Resend · **START warmup** · verify `API_URL` + get-kind.com auth) + start **#1 TIER-0 credential rotation**.
+- **Smoke Test 1:** T2 ✅, T3 mostly ✅ (send + reply→🔥Hot verified). **Left:** T3-13 (pause→no send), T4, T5, T6, T7, and **T1 fresh signup (never run end-to-end)**. Full detail: Chapter 2 (Tue 9 / Wed 10) + Chapter 3 (#15).
+- **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
+
+### 🔄 SESSION LOG (newest first — append one line per working session)
+- **7 Jun:** Consolidated all roadmap docs into this single `KIND-MASTER.md`. Marked `EVERYTHING.md` superseded. Sprint begins tomorrow (Mon 8).
 
 ---
 

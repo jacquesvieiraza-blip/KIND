@@ -5,7 +5,53 @@
 
 ---
 
-## 🗓 SESSION STATE — 6 Jun 2026 (updated)
+## 🗓 SESSION STATE — 7 Jun 2026 (latest — read this first)
+
+> Launch was targeted Mon 8 Jun. **Deferred until Smoke Test 2 passes.** This session = pre-launch sprint: built the real email + reply pipeline end-to-end, fixed the launch-blocker (leads had no emails), added the compliance suppression guard, ran most of Smoke Test 1.
+
+### THE BIG FIXES (this session) — all on `main`, deployed to Railway
+- **Launch-blocker SOLVED — leads now get real emails.** Apollo's *search* API never returns emails by design. Enriching by name fails (last names are masked, `La***n`). Fix: store each person's Apollo `apollo_id` during search, then enrich via `bulk_match` **by id** → returns real verified emails. Proved live (`gabe.larsen@atonom.ai` revealed). Files: `apollo.ts` (`bulkMatchEmails`), new `lead-delivery.ts` (`enrichAndDeliverLeads` — only charges credits for leads that actually get an email).
+- **FIGSY reply pipeline — built end-to-end, VERIFIED LIVE.** FIGSY sends → prospect replies → reply lands in portal Inbox classified 🔥 Hot. Stack: Resend inbound subdomain `reply.get-kind.com` (MX → `inbound-smtp.eu-west-1.amazonaws.com`), Svix HMAC-SHA256 webhook auth, body fetched via `GET /emails/receiving/{id}` (webhook is metadata-only). `FIGSY_REPLY_TO=figsy@reply.get-kind.com`.
+- **Compliance suppression guard — hard-coded, cannot be disabled.** New `suppression.ts`: floor list `smartsheet.com, brandfolder.com, outfit.io, slopeapp.com` + `SUPPRESSED_DOMAINS` env. Enforced at **all 6 outreach paths** (sequence send, day-1 batch, auto-enroll, ICP run, consent endpoint, drip).
+- **ICP run made async** — portal's 15s timeout was killing the synchronous run. Route now fires-and-forgets, returns `{started:true}` instantly, portal polls at 8s/20s/40s.
+- **Schema drift fixed on live DB** — `lead_status` is a native Postgres ENUM; missing values caused 22P02. `ALTER TYPE ADD VALUE` for all statuses incl. `opted_out`. CSV export `.neq('status','opted_out')` removed.
+- Settings page white-screen crash (team fetch 500 → `.map` on non-array) — guarded.
+- Usage counter now counts `delivered_at` (reconciles with credits charged), not `created_at`.
+- Error logging: Supabase errors are plain objects → log `e?.message||e?.details||e?.hint||e?.code` not `String(err)` (`[object Object]`).
+
+### SMOKE TEST 1 — STATUS (`docs/SMOKE_TEST.md`, 57-step)
+| Test | Area | Status |
+|------|------|--------|
+| **T2** | Lead sourcing (Apollo search → enrich by id → real emails delivered) | ✅ done & verified |
+| **T3** | FIGSY send ✅ · reply → 🔥 Hot in Inbox ✅ | ✅ mostly — **step 13 left** |
+| **T3-13** | Pause campaign → send again → **no** further emails go out | ⬜ NEXT |
+| **T4** | Book meeting (Google Cal / "Mark as booked") → `meetings_booked` increments | ⬜ |
+| **T5** | Stripe: buy credits (added once) · replay webhook (idempotent) · Milla subscribe unlocks / non-sub 403 | ⬜ |
+| **T6** | Vida chatbot: embed snippet · purple bubble · visitor reply · lead captured | ⬜ |
+| **T7** | Non-Milla client does **not** receive Milla morning briefs | ⬜ |
+| **T1** | Signup → onboard gate | ⬜ **parked for last** (founder's call) |
+
+### OPEN CODE FIXES (logged, not launch-blockers)
+- "Sign emails as {name}" setting — FIGSY currently invents a signer name per email (Thandeka/Thabo) because the prompt passes company but not sender name.
+- Relabel "Pipeline Value" as an estimate.
+- ICP Builder "New ICP" scroll fix; notifications panel clip.
+- **Deliverability (launch-critical):** SPF/DKIM/DMARC alignment + domain warmup — FIGSY mail lands in Promotions/Spam.
+
+### FOUNDER ACTIONS (you)
+- Set `AUTO_OUTREACH_ENABLED=true` on Railway API for launch (default OFF so test runs don't email real people).
+- Registered office → service address (home address on `terms.html` is priority).
+- Cloudflare WAF rule (AS46582) · TIER-0 credential rotation · DNS · Denise $99/mo Stripe price (`STRIPE_PRICE_DENISE_MONTHLY`) · migration 010.
+
+### CANONICAL AGENT GENDERS
+**FIGSY = he/him (male).** Milla, Vida, Denise, Casey = she/her (female).
+
+### DELIVERABLES THIS SESSION
+- `docs/demo-walkthrough-script.html` — 12-scene client demo talk track (On screen / Say this / Why it lands / Tip). FIGSY he/him throughout.
+- Staging-environment docs (build V2 without touching live clients).
+
+---
+
+## 🗓 SESSION STATE — 6 Jun 2026
 
 ### KEY DECISIONS LOCKED (6 Jun)
 - **app.get-kind.com = HTTPS enforced, padlock confirmed.** Railway forwards plain HTTP internally; fixed by using `x-forwarded-proto/host` in middleware + auth/callback. GoDaddy CNAME updated to new Railway target.
@@ -13,7 +59,11 @@
 - **Portal V2 = concepts only (not live).** 9 UI concepts documented in `docs/portal-v2-preview.html` — agent card grid, thinking state, conversational setup, config panel, marketplace, slim sidebar, invite teammate, AI notetaker, Teams Hub. Nothing is live yet.
 - **DB schema drift noted.** `product_type` is an ENUM in production but text+CHECK in repo migrations. Reconcile Wednesday.
 - **3 portal bugs fixed:** (1) FIGSY archive 404 → `PATCH /figsy/campaigns/:id {status: 'archived'}`. (2) Save settings wrong method/field → `PATCH` + `review_required`. (3) ICP suggest crashes on JSON fences → strip code fences before `JSON.parse`.
-- **Smoke test = Saturday (today), pending.** ICP Builder → source leads → FIGSY campaign → test send.
+- **Smoke test = Saturday, pending.** ICP Builder → source leads → FIGSY campaign → test send.
+
+---
+
+## 🗓 SESSION STATE — 5 Jun 2026
 
 ### KEY DECISIONS LOCKED (5 Jun)
 - **Denise = full transactional agent, $99/mo, LIVE** (not "coming soon"). Premium closer tier.

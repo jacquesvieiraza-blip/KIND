@@ -19,6 +19,7 @@ import { Resend } from 'resend'
 import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
+import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -1465,42 +1466,14 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
         if (!pending || pending.length === 0) continue
 
         const candidateIds = pending.map((l: { id: string }) => l.id)
-        const now = new Date().toISOString()
 
-        // Claim leads ATOMICALLY: the `.is('delivered_at', null)` filter on the
-        // UPDATE means a concurrent or retried drip run can never re-claim a lead
-        // that's already delivered. `.select()` returns only the rows THIS call
-        // actually transitioned — that exact count is what we charge for. This
-        // makes delivery + billing idempotent without a cross-table transaction.
-        const { data: claimed } = await db.from('leads')
-          .update({ delivered_at: now })
-          .eq('client_id', client.id)
-          .is('delivered_at', null)
-          .in('id', candidateIds)
-          .select('id')
-
-        const claimedCount = claimed?.length ?? 0
+        // enrichAndDeliverLeads reveals each lead's email (Apollo search returns
+        // none), then atomically delivers + charges only the emailable ones — a
+        // lead we can't get an email for is never charged. Idempotent: the
+        // `.is('delivered_at', null)` claim inside prevents double-delivery across
+        // concurrent/retried drip runs.
+        const claimedCount = await enrichAndDeliverLeads(client.id, candidateIds)
         if (claimedCount === 0) continue
-
-        // Deduct 1 credit per delivered lead via the atomic RPC (no read-modify-
-        // write race). Client favours delivery: leads are claimed first, so a
-        // transient deduction failure leaves the client with their leads rather
-        // than charged for nothing — logged loudly for reconciliation.
-        const { error: rpcErr } = await db.rpc('increment_client_credits', {
-          p_client_id: client.id,
-          p_amount: -claimedCount,
-        })
-        if (rpcErr) {
-          console.error(`[leads/drip] credit deduction FAILED for client ${client.id} after delivering ${claimedCount} leads:`, rpcErr)
-        } else {
-          await db.from('credit_transactions').insert({
-            client_id: client.id,
-            amount: -claimedCount,
-            type: 'usage',
-            note: `${claimedCount} lead${claimedCount === 1 ? '' : 's'} delivered`,
-            created_at: now,
-          }).then(() => {}, () => {})
-        }
 
         totalDelivered += claimedCount
       } catch (err) {

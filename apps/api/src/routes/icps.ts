@@ -9,6 +9,7 @@ import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
+import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -135,30 +136,15 @@ export async function runIcpJob(
 
   // Deliver freshly-inserted leads IMMEDIATELY so the client sees them the moment
   // the run finishes — never an empty dashboard (client-facing views gate on
-  // delivered_at). Charge once here via the atomic RPC, capped at the current
-  // balance so we never over-deliver or go negative; any remainder stays
-  // undelivered for the daily drip. The `.is('delivered_at', null)` claim makes
-  // this idempotent with the drip (no double-charge).
+  // delivered_at). enrichAndDeliverLeads reveals each lead's email (Apollo search
+  // returns none), then delivers + charges only the emailable ones, capped at the
+  // current balance. Any remainder stays undelivered for the daily drip. The
+  // atomic `.is('delivered_at', null)` claim inside keeps it idempotent (no
+  // double-charge with the drip).
   if (insertedIds.length > 0) {
     const { data: balRow } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
     const deliverNow = insertedIds.slice(0, Math.max(0, balRow?.credit_balance ?? 0))
-    if (deliverNow.length > 0) {
-      const nowTs = new Date().toISOString()
-      const { data: claimedNow } = await db.from('leads')
-        .update({ delivered_at: nowTs })
-        .in('id', deliverNow)
-        .is('delivered_at', null)
-        .select('id')
-      const n = claimedNow?.length ?? 0
-      if (n > 0) {
-        const { error: rpcErr } = await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: -n })
-        if (rpcErr) console.error('[runIcpJob] immediate-delivery credit deduction failed:', rpcErr)
-        else await db.from('credit_transactions').insert({
-          client_id: clientId, amount: -n, type: 'usage',
-          note: `${n} lead${n === 1 ? '' : 's'} delivered`, created_at: nowTs,
-        }).then(() => {}, () => {})
-      }
-    }
+    await enrichAndDeliverLeads(clientId, deliverNow)
   }
 
   if (inserted > 0) {

@@ -4,8 +4,9 @@ on:
   schedule:
     - cron: '0 2 * * *'   # 04:00 SAST (UTC+2)
     - cron: '0 14 * * *'  # 16:00 SAST (UTC+2)
-  push:
-    branches: [main]
+  # NOTE: deliberately NOT triggered on push. This is a twice-daily audit; running
+  # it on every push to main added a failing check on each commit that could gate
+  # Railway's "wait for CI" auto-deploy and added noise. Run manually if needed.
   workflow_dispatch:
 
 jobs:

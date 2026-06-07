@@ -34,6 +34,7 @@
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **7 Jun:** ClickUp "More" grid review → logged **#83** (lead-capture Forms) + **#84** (Integrations Hub), folded Goals into V2-12, bumped V2-3 to High, added Ch.1 Read #6 **DESIGN PRINCIPLE: portal stays narrow (≤5 revenue tiles), reject the generalist app-grid.** Total 99→101.
 - **7 Jun:** Logged Ch.1 WATCH note on **monday Vibe** (AI vibe-coding app builder, verified via web search) → reinforces specialisation lane; prompt-to-build UX validates V2-3 conversational setup (bump priority).
 - **7 Jun:** Added Ch.1 strategic takeaway: Monday converging on our look + tactics → defend depth + velocity (specialisation + speed), not the design lane.
 - **7 Jun:** Logged **#81** (milestone outcome share-to-LinkedIn) + **#82** (Certified Partner badge) — Monday growth-loop steals. Added Ch.1 WATCH note: Monday now uses Pixar-3D agent characters (warmth window closing). Total 97→99.
@@ -167,6 +168,19 @@ Monday and ClickUp are building general-purpose platforms. We're building a spec
 K.I.N.D's product direction is correct — the market is validating it in real time. **The danger is the window where a small fast team can build what the big players haven't yet shipped into our market. That window is shrinking.** DENISE (#54) is the highest-value next build because she extends the existing FIGSY pipeline (no new front opened, max leverage).
 
 **Action:** Build deep, not wide. One agent at a time, fully. DENISE first (Month 3).
+
+### **6. DESIGN PRINCIPLE — the portal stays a narrow revenue surface (locked 7 Jun).**
+ClickUp's "More" launcher is **10 tiles** (Spaces, Chat, Docs, Dashboards, Whiteboards, Forms,
+Clips, Goals, Timesheets, Apps). Monday/ClickUp/Notion all sprawl into general-purpose tool
+grids. **That breadth is the generalists' trap, not a target.** Six of ClickUp's ten tiles are
+in our WILL NOT BUILD list or aren't our product. If K.I.N.D ever ships a "More" grid, it is
+**≤5 tiles, all revenue: Agents · Leads · Campaigns · Inbox · Dashboards** (+ Integrations).
+The narrowness **is** the product — a 10-tile grid would make us a worse ClickUp. Steal only the
+revenue-relevant tiles (Forms → lead capture #83, Apps → Integrations Hub #84, Goals → folded
+into dashboards V2-12); skip Docs/Whiteboards/Clips/Timesheets/Chat/Spaces.
+
+**Action:** Reject the app-grid. Every new portal surface must answer "does this directly help
+the client get a meeting/close?" If not, it doesn't belong in the portal.
 
 ---
 
@@ -967,7 +981,7 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 |---|------|------|-------|--------|----------|----------|
 | **V2-1** | Agent card grid | Dashboard home: replace left-nav + empty space with card grid (all 4 agents) | 🤖 | ⬜ | Month 2 | High |
 | **V2-2** | Agent thinking state | Show when working ("Writing 17 emails…") — transparency | 🤖 | ⬜ | Month 2 | High |
-| **V2-3** | Conversational agent setup | Chat with Casey instead of forms ("Tell me your ICP" → agent clarifies) | 🤖 | ⬜ | Month 2 | Medium |
+| **V2-3** | Conversational agent setup | Chat with Casey instead of forms ("Tell me your ICP" → agent clarifies). **Priority bumped Medium→High** — monday Vibe validated prompt-to-build as the market direction. | 🤖 | ⬜ | Month 2 | **High** |
 | **V2-4** | Structured agent config panel | Clean cards: Role/ICP/Tone/Schedule/Knowledge (replace dense text) | 🤖 | ⬜ | Month 2 | Medium |
 | **V2-5** | Agent marketplace | "Meet your AI Revenue Team" (Month 3+, gated on volume) | 🤖 | ⏸ | Month 3 | Medium |
 | **V2-6** | Slim sidebar + top-right header | Profile/Billing/Settings/Team in dropdown (Notion/Linear style) | 🤖 | ⬜ | Month 2 | High |
@@ -976,10 +990,12 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 | **V2-9** | **Teams Hub** | Members, activity, per-person usage (admin oversight) | 🤖 | ⬜ | Month 2 | **Critical** |
 | **V2-10** | **Casey — Onboarding agent** | Non-family support bot (ClickUp-style + Revio coaching model). Portal only. Warm Pixar 3D. | 🤖 | ⬜ | Month 2 | High |
 | **V2-11** | **Vida in-portal help bubble** | Bottom-right, context-aware, pulls live data (basic pre-launch Fri 12, deep Month 2) | 🤖 | ⬜ | Month 2 | **Critical** |
-| **V2-12** | **Strong client dashboards** | Monday-style: ICP cards · campaign perf · pipeline value · credit usage · trends | 🤖 | ⬜ | Month 2 | Critical |
+| **V2-12** | **Strong client dashboards** | Monday-style: ICP cards · campaign perf · pipeline value · credit usage · trends. **+ Goals (ClickUp steal):** client KPI targets with progress ("book 10 meetings this month") folded in — NOT a standalone module. | 🤖 | ⬜ | Month 2 | Critical |
 | **V2-13** | **Multi-provider calendar** | **(a)** Outlook/Zoho/Calendly OAuth · **(b)** agent-led onboarding (Casey asks "Google or Outlook?") | 🤖 | ⬜ | Month 2 | Critical |
+| **#83** | **Embeddable lead-capture Forms** (ClickUp steal, revenue-adapted) | A simple embeddable lead-capture form (NOT a survey tool). A submission is another inbound trigger that hands straight to FIGSY/Denise — pairs with Vida + **#80 speed-to-lead**. Stays on-strategy (revenue surface, not generic forms). | 🤖 | ⬜ | Month 2 | Feeds funnel |
+| **#84** | **Integrations Hub** (ClickUp "Apps" steal) | One clean screen for all connections: HubSpot · Pipedrive · Calendar (Google/Outlook/Zoho) · WhatsApp · LinkedIn. Today they're scattered. This is where V2-13 calendar OAuth naturally lives. | 🤖 | ⬜ | Month 2 | UX consolidation |
 
-**MONTH 2 TOTAL:** 36 items (Intelligence 18 + MCP 1 + V2 17).
+**MONTH 2 TOTAL:** 38 items (Intelligence 18 + MCP 1 + V2 17 + Forms/Integrations 2).
 
 ---
 
@@ -1051,12 +1067,12 @@ Collaborative docs · whiteboards · self-hosted · custom emoji · internal tea
 | **Phase 0** (pre-launch) | 28 | Mon 8 – Fri 19 Jun | 🔄 In progress |
 | **Phase 1** (Week 1) | 10 | Jun 19–28 | ⬜ Pending |
 | **Phase 2** (Weeks 2–4) | 17 | Jun 29 – Jul 19 | ⬜ Pending |
-| **Phase 3** (Month 2) | 36 | Late Jul – Aug | ⏸ Gated on 10+ clients |
+| **Phase 3** (Month 2) | 38 | Late Jul – Aug | ⏸ Gated on 10+ clients |
 | **Phase 4** (Month 3) | 17 | Late Aug – Sep | ⏸ Gated on margin data |
 | **Phase 5** (Year 2) | 9 | 2027 | ⏸ Enterprise only |
 | **Ongoing** | 5 | Parallel | 🔄 Continuous |
 | **Won't build** | — | — | 🚫 Out of scope |
-| **TOTAL** | **99** | — | — |
+| **TOTAL** | **101** | — | — |
 
 ---
 

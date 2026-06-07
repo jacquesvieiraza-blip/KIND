@@ -34,6 +34,7 @@
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **7 Jun:** Logged new build **#80** (speed-to-lead: Vida → instant FIGSY/Denise handoff, Atlas steal) in Ch.3 Phase 2.
 - **7 Jun:** Consolidated all roadmap docs into this single `KIND-MASTER.md`. Marked `EVERYTHING.md` superseded. Sprint begins tomorrow (Mon 8).
 
 ---
@@ -892,8 +893,9 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 | **#62c** | Homepage outcome numbers | Specific client results (real data only) | 🤖 | ⏸ | Weeks 2–4 (wait for data) | Proof |
 | **#62d** | "Revenue Blueprint Session" CTAs | ✅ DONE — 29 CTAs renamed | ✅ | ✅ | ✅ | — |
 | **#62e** | Vertical landing pages | Estate agents, brokers, advisers (SA + US) + case studies (Revio moat) | ✅ | ✅ (Africa) | Weeks 2–4 (US) | Specialisation |
+| **#80** | **Speed-to-lead: Vida → instant FIGSY/Denise handoff** (Atlas steal) | When Vida captures an inbound lead, auto-hand it to FIGSY (or Denise) immediately — no manual seam. Atlas's core principle: conversion drops ~80% if a lead isn't contacted within 5 min; 40% of leads arrive nights/weekends. Build: on Vida lead-capture event → trigger instant FIGSY enrol / first-touch (respecting suppression + opt-out + AUTO_OUTREACH gate). Inbound path, NOT cold outbound. | 🤖 | ⬜ | Weeks 2–4 (needs inbound traffic + Vida configured) | Atlas's one operating principle that upgrades our funnel. Vida + FIGSY both already built — this is the wiring between them. |
 
-**WEEKS 2–4 TOTAL:** 14 items.
+**WEEKS 2–4 TOTAL:** 15 items.
 
 ---
 
@@ -1013,13 +1015,13 @@ Collaborative docs · whiteboards · self-hosted · custom emoji · internal tea
 |-------|-------|----------|--------|
 | **Phase 0** (pre-launch) | 28 | Mon 8 – Fri 19 Jun | 🔄 In progress |
 | **Phase 1** (Week 1) | 10 | Jun 19–28 | ⬜ Pending |
-| **Phase 2** (Weeks 2–4) | 14 | Jun 29 – Jul 19 | ⬜ Pending |
+| **Phase 2** (Weeks 2–4) | 15 | Jun 29 – Jul 19 | ⬜ Pending |
 | **Phase 3** (Month 2) | 36 | Late Jul – Aug | ⏸ Gated on 10+ clients |
 | **Phase 4** (Month 3) | 17 | Late Aug – Sep | ⏸ Gated on margin data |
 | **Phase 5** (Year 2) | 9 | 2027 | ⏸ Enterprise only |
 | **Ongoing** | 5 | Parallel | 🔄 Continuous |
 | **Won't build** | — | — | 🚫 Out of scope |
-| **TOTAL** | **96** | — | — |
+| **TOTAL** | **97** | — | — |
 
 ---
 

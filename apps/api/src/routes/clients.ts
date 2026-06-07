@@ -52,10 +52,16 @@ clientRouter.get('/me/usage', async (req: AuthRequest, res) => {
       periodEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
     }
 
+    // Count by delivered_at, not created_at: a client is charged a credit the
+    // moment a lead is *delivered*, so "leads used this period" must mirror that
+    // to reconcile with credits-used. Counting created_at undercounts Revival
+    // leads (recycled from a prior run, old created_at) that are re-delivered
+    // and re-charged this period — they'd show "0 used" after paying for them.
     const { count } = await db.from('leads')
       .select('id', { count: 'exact', head: true })
       .eq('client_id', clientId)
-      .gte('created_at', periodStart)
+      .not('delivered_at', 'is', null)
+      .gte('delivered_at', periodStart)
       .neq('status', 'opted_out')
 
     const INCLUDED = 100

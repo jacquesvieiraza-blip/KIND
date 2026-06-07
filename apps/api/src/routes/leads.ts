@@ -838,10 +838,11 @@ leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="kind-leads.csv"')
     res.send(csv)
   } catch (err) {
-    // Surface the real reason (tagged for log search + returned in the body) so an
-    // export failure can be diagnosed without guessing.
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[leads/export/csv] FAILED:', msg)
+    // Supabase/PostgREST errors are plain objects (not JS Errors), so String(err)
+    // gave "[object Object]". Pull the actual fields so the real cause is visible.
+    const e = err as { message?: string; details?: string; hint?: string; code?: string }
+    const msg = e?.message || e?.details || e?.hint || e?.code || JSON.stringify(err)
+    console.error('[leads/export/csv] FAILED:', msg, '| code:', e?.code, '| details:', e?.details)
     res.status(500).json({ success: false, error: `Failed to export leads: ${msg}` })
   }
 })

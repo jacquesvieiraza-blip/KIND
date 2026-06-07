@@ -1,7 +1,52 @@
 # K.I.N.D — EVERYTHING
 
-> ✅ **THIS IS THE WORKING SOURCE OF TRUTH (updated 5 Jun 2026).** Read this first, update this first. `MASTER.md` is now a historical archive only. Where the two disagree, THIS document wins.
+> ✅ **THIS IS THE WORKING SOURCE OF TRUTH (updated 7 Jun 2026).** Read this first, update this first. `MASTER.md` is now a historical archive only. Where the two disagree, THIS document wins.
 > **Protocol:** at the start of a session read this file; at the end of a session update it and commit.
+
+---
+
+## 🗓 SESSION STATE — 7 Jun 2026 (the big smoke-test fix day)
+
+**Decision locked: NOT launching Monday half-baked. Finish the product properly → Smoke Test 2 green → then a date.** Founder's call, correct call.
+
+### ✅ SHIPPED + VERIFIED LIVE today (all on `main`, deployed to Railway)
+- **Apollo email enrichment (THE blocker).** Search (`/mixed_people/api_search`) returns NO email and MASKS last names — only an internal person id. Enrichment now matches by **`apollo_id`** via `/people/bulk_match` (proved live: returns verified work emails). `lib/lead-delivery.ts` + `lib/apollo.ts:bulkMatchEmails`. Delivers + charges only emailable leads.
+- **ICP run made ASYNC.** `POST /icps/:id/run` was synchronous (Apollo search + ~200 DB ops + enrichment) and blew the portal's **15s timeout** (`api.ts`), silently killing enrichment → no emails. Now fire-and-forget; portal polls. **This was the root cause behind the no-emails symptom.**
+- **Schema drift reconciled on LIVE DB** (founder ran in Supabase): `20260603_schema_reconcile.sql` (figsy_replies/campaigns/sent_emails/credits/icps/delivered_at) + `lead_status` enum `ADD VALUE` for all statuses incl. `opted_out`. Drift was the disease behind: Settings crash (`client_members` table missing), CSV export 500 (enum), "Opted Out: 0" (silent fail), and figsy_replies (hot replies would never surface).
+- **CSV export** — was 500ing on the missing enum value; fixed (delivered-leads filter, no enum compare).
+- **Settings page crash** — `/team` 500 (missing `client_members` table) crashed the whole page; guarded + table migrated.
+- **Day-1 email** brittle `JSON.parse` hardened (regex fallback).
+- **Auto-outreach GATED** behind `AUTO_OUTREACH_ENABLED=true` — test runs source/score/enrich but DON'T email real prospects. **Set this env on @kind/api to turn outreach on for launch.**
+- **🔴 INBOUND REPLY PIPELINE BUILT END-TO-END (T3 reply→hot VERIFIED LIVE).** This is the big one:
+  - Resend inbound on subdomain **`reply.get-kind.com`** (verified MX → AWS inbound-smtp.eu-west-1).
+  - `FIGSY_REPLY_TO=figsy@reply.get-kind.com` (was `replies@get-kind.com` which didn't exist → every reply bounced).
+  - Resend `email.received` webhook → `https://api.get-kind.com/figsy/replies/inbound`.
+  - Endpoint now **verifies the Svix signature** (was checking a plain `x-webhook-secret` Resend never sends → would 401 everything). `RESEND_WEBHOOK_SECRET` = the webhook's `whsec_…` signing secret.
+  - Webhook is **metadata-only** → endpoint fetches the body from `/emails/receiving/{id}` (NOT `/emails/{id}` = sent).
+  - **Verified live:** real reply → routed → signed → body fetched (321 chars) → classified **🔥 Hot** → surfaced in portal Inbox. The core money path works.
+- **Compliance:** Smartsheet **do-not-contact guard** (`lib/suppression.ts`, hard floor `smartsheet.com,brandfolder.com,outfit.io,slopeapp.com` + `SUPPRESSED_DOMAINS` env) enforced at sourcing/day-1/sequence/enroll/consent/LinkedIn. **Pitch deck scrubbed** of founder name + Smartsheet link. **Cloudflare rule** `(ip.geoip.asnum eq 46582)` to block Smartsheet network (when site's on Cloudflare).
+
+### 🧾 SMOKE TEST 1 — state after today
+- **T1** (signup→onboard gate) — ⬜ parked for last (founder's call).
+- **T2** (ICP→leads) — ✅ leads, scoring, charge-on-delivery, **emails**, export all verified.
+- **T3** (FIGSY) — ✅ **send verified**, ✅ **reply→🔥hot verified live**. ⬜ step 13 (pause→no send), ⬜ booking-link in email (needs calendar).
+- **T4** booking+KPI · **T5** billing · **T6** Vida widget · **T7** Milla crons — ⬜ not run.
+
+### ⚠️ OPEN FINDINGS (logged, fix in batch)
+1. **🔴 Deliverability** — FIGSY emails land in **Spam / Promotions**. Launch-critical. Needs SPF/DKIM/DMARC alignment + domain warmup. (Different From `hello@get-kind.com` vs Reply-To `figsy@reply.get-kind.com` may also need DMARC care.)
+2. **Email signature is AI-invented** — prompt (`figsy.ts:445`) passes company but no sender name, so Claude makes one up (saw "Thandeka", then "Thabo", then "Thabo"). Add a "sign emails as" setting → pass into prompt.
+3. **"Pipeline Value" stat is an estimate** (sum of AI `estimated_deal_value_usd`) — relabel honestly.
+4. **ICP Builder "New ICP"** opens below all existing ICP cards — scroll/modal fix.
+5. **Notifications panel** clips off-screen bottom-left.
+6. **Reply lead-matching + plus-addressing** — works for real prospects (reply email = lead email); only the test needed the base address. (Optional: normalize +tags on lookup.)
+
+### 🧍 FOUNDER ACTIONS (when ready)
+- **PRIORITY:** registered office → **service address** at Companies House (home address `33 Townsend Road` is on terms.html).
+- Set `AUTO_OUTREACH_ENABLED=true` on @kind/api for launch.
+- Cloudflare WAF rule (AS46582) once site is proxied.
+- TIER-0 credential rotation (still pending), DNS, Denise Stripe price, migration 010.
+
+### 🟣 V2 (logged today, see §V2 BUILDS): Vida in-portal help bubble (Critical) · strong client dashboards · multi-provider calendar (Google-only today) + agent-led onboarding.
 
 ---
 

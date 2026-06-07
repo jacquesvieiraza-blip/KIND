@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.N.D — Demo Walkthrough & Talk Track</title>
+<style>
+  :root{
+    --purple:#7C3AED; --purple-d:#6D28D9; --ink:#1E0A5C; --muted:#7B6FA0;
+    --bg:#FAFAFE; --card:#fff; --line:#ede9fe; --coral:#ea6a3a;
+    --green:#16a34a; --amber:#d97706;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:#2b2440;line-height:1.6;padding:0 0 80px}
+  .wrap{max-width:880px;margin:0 auto;padding:0 20px}
+
+  /* Hero */
+  header{background:linear-gradient(135deg,#1E0A5C 0%,#3b1d8f 55%,#7C3AED 100%);color:#fff;padding:48px 0 40px;margin-bottom:8px}
+  header .wrap{display:flex;flex-direction:column;gap:14px}
+  .logo{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:.5px}
+  .logo .dot{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.15);display:grid;place-items:center;font-size:15px}
+  h1{font-size:30px;line-height:1.2;font-weight:800;margin-top:6px}
+  header p{color:#d9ccff;max-width:620px}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:600;color:#efe8ff}
+
+  /* How to use */
+  .howto{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:22px 0 8px;box-shadow:0 6px 22px rgba(124,58,237,.06)}
+  .howto h3{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--purple);margin-bottom:8px}
+  .howto ul{margin-left:18px;color:#4b4368;font-size:14.5px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:12.5px}
+  .legend span{display:inline-flex;align-items:center;gap:7px;color:#574d75}
+  .key{width:14px;height:14px;border-radius:5px;display:inline-block}
+
+  /* Scene */
+  .scene{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:0;margin:20px 0;overflow:hidden;box-shadow:0 8px 28px rgba(30,10,92,.05)}
+  .scene-head{display:flex;align-items:center;gap:14px;padding:18px 22px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#faf8ff,#fff)}
+  .num{flex:0 0 auto;width:38px;height:38px;border-radius:11px;background:var(--purple);color:#fff;font-weight:800;display:grid;place-items:center;font-size:16px}
+  .scene-head .t{flex:1}
+  .scene-head h2{font-size:18px;color:var(--ink);font-weight:800;line-height:1.25}
+  .scene-head .time{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+  .scene-body{padding:20px 22px}
+  .block{margin-bottom:16px}
+  .block:last-child{margin-bottom:0}
+  .label{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+  .label.screen{color:#3b82f6}
+  .label.say{color:var(--purple)}
+  .label.point{color:var(--green)}
+  .label.tip{color:var(--amber)}
+  .screen-txt{color:#574d75;font-size:14.5px}
+  .say-txt{background:#f6f1ff;border-left:3px solid var(--purple);border-radius:0 12px 12px 0;padding:14px 16px;font-size:15.5px;color:#2b2440;font-style:italic}
+  .say-txt strong{font-style:normal;color:var(--ink)}
+  .point-txt{color:#3f6b4e;font-size:14px;background:#f0fdf4;border-radius:10px;padding:10px 14px}
+  .tip-txt{color:#7c5a16;font-size:13.5px;background:#fffbeb;border-radius:10px;padding:10px 14px}
+  .chip{display:inline-block;background:#ede9fe;color:var(--purple-d);font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;margin-left:8px}
+
+  .section-break{display:flex;align-items:center;gap:14px;margin:34px 4px 10px}
+  .section-break:before,.section-break:after{content:"";flex:1;height:1px;background:var(--line)}
+  .section-break span{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+  footer{margin-top:36px;text-align:center;color:var(--muted);font-size:13px}
+  .rule{font-size:12px;color:#9588b8;background:#fff;border:1px dashed var(--line);border-radius:12px;padding:14px 16px;margin:18px 0}
+  .rule b{color:var(--coral)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo"><span class="dot">K</span> K.I.N.D</div>
+    <h1>Demo Walkthrough &amp; Talk Track</h1>
+    <p>The full client-facing demo, broken into elements — what's on screen, exactly what to say, and why it lands. Use it to learn the talk track and as the script for your onboarding videos.</p>
+    <div class="meta">
+      <span class="pill">🎬 12 scenes · ~8 min</span>
+      <span class="pill">🎙 Verbatim talk track</span>
+      <span class="pill">📹 Onboarding-video ready</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="howto">
+    <h3>How to use this</h3>
+    <ul>
+      <li>Each scene = one screen / one idea. Learn them one at a time.</li>
+      <li><b>Say this</b> is a starting script — make it yours, don't read it robotically.</li>
+      <li>For onboarding videos, record one scene per clip — short, focused, re-shoot easily.</li>
+    </ul>
+    <div class="legend">
+      <span><i class="key" style="background:#3b82f6"></i> On screen — what to show</span>
+      <span><i class="key" style="background:#7C3AED"></i> Say this — the talk track</span>
+      <span><i class="key" style="background:#16a34a"></i> Why it lands — the point</span>
+      <span><i class="key" style="background:#d97706"></i> Tip — delivery note</span>
+    </div>
+  </div>
+
+  <div class="rule">⚠️ <b>Honesty rule:</b> no invented numbers, no fake testimonials, no "30,065 leads" stats we can't back. The product is the proof — show it working live. Replace any [bracketed] placeholder with a real value before recording.</div>
+
+  <div class="section-break"><span>Part 1 · The Hook</span></div>
+
+  <!-- 1 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">1</div><div class="t"><h2>Open with the problem</h2><div class="time">0:00 – 0:30 · Black screen or your face</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">You, talking to camera, or a clean title card. No product yet.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"Every business needs more meetings in the calendar. But finding the right people, writing the emails, following up, spotting who's actually interested — it's a full-time job most small teams don't have time for. <strong>So what if you had a team that did it for you — for the price of a couple of coffees a month?</strong> That's K.I.N.D. Let me show you."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">Name the pain first. Don't open with features — open with the thing keeping them up at night: an empty pipeline.</div></div>
+      <div class="block"><div class="label tip">💡 Tip</div><div class="tip-txt">Keep it under 30 seconds. Energy high. Don't say "AI" yet — say "a team."</div></div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">2</div><div class="t"><h2>Meet your AI revenue team</h2><div class="time">0:30 – 1:00 · Dashboard / agents</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">The dashboard with the agent cards — FIGSY, Milla, Vida, Denise.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"This is your team. <strong>FIGSY</strong> is your opener — she finds leads and reaches out. <strong>Milla</strong> is your brain — she knows your business and answers anything. <strong>Vida</strong> is your connector — she handles your website chat. And <strong>Denise</strong> is your closer. They each have a name and a job, just like real teammates — because that's how they work for you."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">The named, human team is the differentiator. It's warm where competitors are cold "agent platforms." Lead with that.</div></div>
+      <div class="block"><div class="label tip">💡 Tip</div><div class="tip-txt">Point at each card as you name them. Make them feel like people.</div></div>
+    </div>
+  </div>
+
+  <div class="section-break"><span>Part 2 · Getting started</span></div>
+
+  <!-- 3 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">3</div><div class="t"><h2>Sign up in seconds</h2><div class="time">1:00 – 1:30 · Onboarding chat</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">The signup → FIGSY onboarding chat. A few quick questions: company, what you do, country, website.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"Signing up takes seconds. No long forms — FIGSY just asks a few questions like a real conversation: who you are, what you do, where your customers are. <strong>And you don't need anyone's approval to start.</strong> Drop in your website and she'll even read it to learn your business."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">"Seconds to start, no approval needed" is the anti-enterprise message — your $20 self-serve edge. Say it out loud.</div></div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">4</div><div class="t"><h2>Build your ICP — just talk to FIGSY</h2><div class="time">1:30 – 2:30 · ICP Builder</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">ICP Builder. Type a plain-English target into FIGSY: e.g. "SaaS revenue leaders in the US and UK, 50–500 staff." Watch the form fill in.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"Now we tell FIGSY who your ideal customer is — and you can just <em>say it</em>. Watch: 'VPs of Sales and Revenue at SaaS companies, 50 to 500 people, US and UK.' She turns that into a real targeting profile automatically. No spreadsheets, no Boolean filters."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">The "just talk to it" moment removes the scariest part of prospecting tools. Show the form auto-filling — that's the wow.</div></div>
+      <div class="block"><div class="label tip">💡 Tip</div><div class="tip-txt">Have your example phrase ready. Let the live preview count appear ("X matching leads") — it's real proof.</div></div>
+    </div>
+  </div>
+
+  <div class="section-break"><span>Part 3 · The product working</span></div>
+
+  <!-- 5 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">5</div><div class="t"><h2>Find leads in one click</h2><div class="time">2:30 – 3:30 · Run ICP → People</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">Click <b>Run ICP</b> → "FIGSY is sourcing your leads…" → People page fills with real, named leads, each with a <b>score</b> and a <b>verified email</b>.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"One click. FIGSY goes out, finds real people who match, and brings them back — <strong>scored</strong>, so you start with the warmest, and with a <strong>verified email</strong> so you can actually reach them. This is the part that normally takes a junior rep a whole afternoon."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">Real names + real emails + a score = "this is a working product, not a demo." Click into one lead to show the email is real.</div></div>
+      <div class="block"><div class="label tip">💡 Tip</div><div class="tip-txt">Pre-run it just before recording so leads appear fast — sourcing takes a minute in the background.</div></div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">6</div><div class="t"><h2>Your scored pipeline</h2><div class="time">3:30 – 4:00 · People page</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">Hover the scores and signals — "High fit", "Decision maker", "Hiring". Show the score column 0–100.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"Every lead is graded out of 100 and tagged with why they're a good fit — decision-maker, growing team, right industry. So you're never guessing who to talk to first. FIGSY does the qualifying; you get a ranked list."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">Scoring = "we do the thinking." It reframes a list of names into a prioritised plan of action.</div></div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">7</div><div class="t"><h2>FIGSY writes &amp; sends</h2><div class="time">4:00 – 5:00 · Campaign</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">A campaign with a 3-step sequence (Day 0, Day 4, Day 9). Open a generated email — short, personalised, human.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"Now FIGSY writes the outreach — in your voice, personalised to each person, not a template. A first email, then a couple of follow-ups if they don't reply. Here's a real one she wrote. Short. Human. No 'hope this finds you well.' <strong>She sends it for you and follows up automatically.</strong>"</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">Show a real generated email. The quality of the copy sells itself — let them read it for a beat.</div></div>
+      <div class="block"><div class="label tip">💡 Tip</div><div class="tip-txt">Pick a clean, well-written sample ahead of time. Mention follow-ups stop the moment someone replies.</div></div>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">8</div><div class="t"><h2>The magic moment — a reply becomes a hot lead</h2><div class="time">5:00 – 6:00 · Inbox</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">The Inbox. A reply appears, auto-classified <b>🔥 Hot</b>, with an <b>AI draft reply</b> ready and a <b>Mark meeting booked</b> button.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"And this is the part that matters. When someone replies, FIGSY reads it, decides if they're interested, and flags the hot ones for you — right here. <strong>You don't dig through an inbox. The interested people come to you, marked hot, with a reply already drafted.</strong> All you do is hit send and book the call."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">This is the emotional peak of the demo — "the interested people come to you." Slow down. Let it breathe.</div></div>
+      <div class="block"><div class="label tip">💡 Tip</div><div class="tip-txt">If possible, show a real hot reply landing live. It's the single most convincing moment in the whole demo.</div></div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">9</div><div class="t"><h2>Book the meeting</h2><div class="time">6:00 – 6:30 · Booking</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">Connect a calendar / the booking link in the email; "Mark meeting booked" updating the KPI.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"Connect your calendar and your booking link goes straight into the emails, so a hot lead can book a time in one click. When a meeting's booked, it counts it for you — so you can see your pipeline growing in real numbers."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">Close the loop: leads → reply → <b>meeting booked</b>. That's the outcome they're buying. Tie it back to scene 1's promise.</div></div>
+    </div>
+  </div>
+
+  <div class="section-break"><span>Part 4 · The bigger picture</span></div>
+
+  <!-- 10 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">10</div><div class="t"><h2>The rest of the team</h2><div class="time">6:30 – 7:30 · Milla · Vida · Denise</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">Quick flashes: Milla answering a question from uploaded docs; Vida's chat bubble on a website; Denise's closer panel.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"FIGSY opens the door — but she's not alone. <strong>Milla</strong> knows your business inside out: ask her anything, she drafts documents and answers from your own knowledge. <strong>Vida</strong> sits on your website catching visitors and turning them into leads. And <strong>Denise</strong>, your closer, takes a warm lead and helps carry it over the line. One subscription, a whole revenue team."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">Show breadth without losing focus — FIGSY is the hero, the others are "and there's more." Keep each to ~15 seconds.</div></div>
+      <div class="block"><div class="label tip">💡 Tip</div><div class="tip-txt">Don't deep-dive here. A taste each. The full demo of Milla/Vida/Denise can be its own onboarding clip.</div></div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">11</div><div class="t"><h2>Start for $20</h2><div class="time">7:30 – 8:00 · Pricing</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">Pricing / billing — the $20 entry, pay-as-you-go credits, clear and simple.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"Here's the part no one else can say: you can <strong>start for $20</strong>. No big contract, no procurement, no sales call to get in. You pay for results as you grow. Try it on a small list this week and see real leads come back."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">"$20, no approval" is your one ownable number. End the value story on it — it removes the last objection.</div></div>
+    </div>
+  </div>
+
+  <!-- 12 -->
+  <div class="scene">
+    <div class="scene-head"><div class="num">12</div><div class="t"><h2>Close &amp; call to action</h2><div class="time">8:00 – 8:30 · Your face / CTA card</div></div></div>
+    <div class="scene-body">
+      <div class="block"><div class="label screen">📺 On screen</div><div class="screen-txt">Back to you, or a clean CTA card with the URL: <b>app.get-kind.com</b>.</div></div>
+      <div class="block"><div class="label say">🎙 Say this</div><div class="say-txt">"So that's K.I.N.D — a revenue team that finds your leads, reaches out, spots the interested ones, and books you the meetings. <strong>You close the deals. We'll bring you the meetings.</strong> Start today at app.get-kind.com — it takes two minutes."</div></div>
+      <div class="block"><div class="label point">✅ Why it lands</div><div class="point-txt">End on the brand line and one clear action. One CTA only. Don't trail off — finish strong.</div></div>
+      <div class="block"><div class="label tip">💡 Tip</div><div class="tip-txt">Smile on the last line. The last 5 seconds are what they remember.</div></div>
+    </div>
+  </div>
+
+  <div class="rule" style="margin-top:30px">📝 <b>Founder polish pass:</b> tighten any line that feels scripted, swap [brackets] for real values, and cut anything that doesn't earn its place. Aim for energy + clarity over completeness. Re-record scene-by-scene until each clip feels natural.</div>
+
+  <footer>K.I.N.D — Demo Walkthrough &amp; Talk Track · draft for polish · "You close the deals. We'll bring you the meetings."</footer>
+
+</div>
+</body>
+</html>

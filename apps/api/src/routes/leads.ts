@@ -816,11 +816,16 @@ leadRouter.get('/export/csv', async (req: AuthRequest, res) => {
     // those who opted out. Leads are worked under legitimate interest, so gating
     // on status='consent_given' was wrong — it returned an EMPTY file for every
     // client (nobody clicks an explicit opt-in link), despite paid-for leads.
+    // NOTE: do NOT filter `.neq('status','opted_out')` — the live lead_status enum
+    // doesn't contain 'opted_out' (schema drift), so comparing against it throws
+    // 22P02 and 500s the whole export. Opt-outs are tracked in opt_out_blocklist,
+    // not this status, and no lead can hold an enum value that doesn't exist — so
+    // there's nothing to exclude here. Matches the working /bulk-export endpoint:
+    // delivered (= charged) leads only.
     const { data, error } = await db.from('leads')
       .select('first_name,last_name,email,phone,job_title,company,linkedin_url,country,score,status,consent_given_at')
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
-      .neq('status', 'opted_out')
       .order('score', { ascending: false, nullsFirst: false })
 
     if (error) throw error

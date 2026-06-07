@@ -517,23 +517,25 @@ icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
     const { data: afterGrant } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
     const effectiveBalance = afterGrant?.credit_balance ?? 0
 
-    const { inserted, skipped, relaxed } = await runIcpJob(req.params.id, clientId, req.userId!, effectiveBalance)
+    // The full job (Apollo search + inserts + scoring + email enrichment + delivery)
+    // takes far longer than the client's 15s request timeout, so run it in the
+    // BACKGROUND and respond immediately. The client polls /leads to see results
+    // appear. Mirrors the fire-and-forget pattern in /activate. Apollo/credit errors
+    // surface in the logs (and as "no new leads"), not as a request error.
+    // Credits are deducted at DELIVERY inside the job, not at insertion.
+    runIcpJob(req.params.id, clientId, req.userId!, effectiveBalance)
+      .catch((err) => {
+        if (err instanceof ApolloCreditsExhaustedError) console.error('[icps/run] Apollo search credits exhausted')
+        else if (err instanceof ApolloRateLimitError)   console.error('[icps/run] Apollo rate limit hit')
+        else console.error('[icps/run] background job failed:', err)
+      })
 
-    // NOTE: Credits are deducted at DELIVERY (drip), not at insertion.
-    // The daily /leads/drip cron deducts 1 credit per lead when setting delivered_at.
-
-    res.json({ success: true, data: { inserted, skipped, total: inserted + skipped, relaxed } })
+    res.json({ success: true, data: { started: true } })
   } catch (err) {
-    if (err instanceof ApolloCreditsExhaustedError) {
-      res.status(402).json({ success: false, error: 'Apollo search credits exhausted. Upgrade your Apollo plan at app.apollo.io or wait for your monthly reset.' }); return
-    }
-    if (err instanceof ApolloRateLimitError) {
-      res.status(429).json({ success: false, error: 'Apollo rate limit hit. Wait a few minutes and try again.' }); return
-    }
     console.error(err)
     res.status(500).json({
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to run ICP',
+      error: err instanceof Error ? err.message : 'Failed to start ICP run',
     })
   }
 })

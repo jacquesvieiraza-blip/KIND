@@ -467,12 +467,20 @@ Return ONLY valid JSON: {"subject": "...", "body": "..."}`
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
-  try {
-    return JSON.parse(stripJson(raw)) as Day1Draft
-  } catch {
-    console.error('[figsy] generateDay1Email JSON parse failed, raw:', raw.slice(0, 200))
-    throw new Error('Failed to generate Day 1 email — Claude returned invalid JSON')
+  // Robust parse: the model occasionally wraps the JSON in prose or code fences.
+  // Try the fence-stripped text, then the raw text, then the first {...} block —
+  // mirroring the fallback already used in leads.ts — before giving up.
+  const tryParse = (s: string): Day1Draft | null => {
+    try { return JSON.parse(s) as Day1Draft } catch { return null }
   }
+  let draft = tryParse(stripJson(raw)) ?? tryParse(raw)
+  if (!draft) {
+    const block = raw.match(/\{[\s\S]*\}/)
+    if (block) draft = tryParse(block[0])
+  }
+  if (draft?.subject && draft?.body) return draft
+  console.error('[figsy] generateDay1Email JSON parse failed, raw:', raw.slice(0, 200))
+  throw new Error('Failed to generate Day 1 email — Claude returned invalid JSON')
 }
 
 export async function sendDay1OutreachBatch(

@@ -533,21 +533,16 @@ export default function LeadsPage() {
     setRunningIcp(true)
     setRunResult(null)
     try {
-      const res = await api.post<{ data: { inserted: number; skipped: number; total: number; relaxed: string | null } }>(
-        `/icps/${activeIcp.id}/run`, {}, tok
-      )
-      const { inserted, relaxed } = res.data
-      setRunResult({ inserted, relaxed })
-      if (inserted > 0) {
-        showToast(`✓ ${inserted} lead${inserted !== 1 ? 's' : ''} found — scoring now (takes ~30 seconds)`)
-        // Refresh data after a short delay to let scoring start
-        setTimeout(() => fetchData(tok), 3000)
-        setTimeout(() => fetchData(tok), 10000)
-      } else {
-        showToast(relaxed ?? 'No leads found. Try wider criteria in ICP Settings.', 'error')
-      }
+      // The run is asynchronous: the API starts sourcing in the background (search →
+      // score → reveal emails → deliver) and returns instantly, so it no longer trips
+      // the 15s request timeout. Poll a few times so delivered leads stream in.
+      await api.post(`/icps/${activeIcp.id}/run`, {}, tok)
+      showToast('FIGSY is sourcing your leads — they\'ll appear here as they\'re ready (about a minute)')
+      setTimeout(() => fetchData(tok), 8000)
+      setTimeout(() => fetchData(tok), 20000)
+      setTimeout(() => fetchData(tok), 40000)
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to run ICP — please try again', 'error')
+      showToast(err instanceof Error ? err.message : 'Failed to start ICP run — please try again', 'error')
     }
     setRunningIcp(false)
   }

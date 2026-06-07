@@ -538,21 +538,14 @@ export default function ICPPage() {
     setRunningId(icpId)
     setRunBannerMsg(null)
     try {
-      const res = await api.post<{ data: { inserted: number; skipped: number; total: number; relaxed: string | null } }>(
-        `/icps/${icpId}/run`, {}, token
-      )
-      const { inserted, relaxed } = res.data
-      if (inserted > 0) {
-        setRunBannerMsg(`✅ ${inserted} lead${inserted !== 1 ? 's' : ''} found and being scored — go to Lead Gen to see them.`)
-      } else {
-        setRunBannerMsg(
-          relaxed
-            ? `⚠️ ${relaxed}`
-            : '⚠️ No leads found. Try broadening your criteria — more industries, more geographies, or fewer company size restrictions.'
-        )
-      }
+      // The run is now asynchronous — the API kicks off sourcing in the background
+      // (Apollo search + scoring + email enrichment + delivery) and returns instantly,
+      // so a long run no longer trips the 15s request timeout. Leads stream into People
+      // as the job completes.
+      await api.post(`/icps/${icpId}/run`, {}, token)
+      setRunBannerMsg('✅ FIGSY is sourcing your leads now — they\'ll appear in People within a minute or two. You can keep working.')
     } catch (err) {
-      setRunBannerMsg(`❌ ${err instanceof Error ? err.message : 'Failed to run ICP — please try again.'}`)
+      setRunBannerMsg(`❌ ${err instanceof Error ? err.message : 'Failed to start ICP run — please try again.'}`)
     }
     setRunningId(null)
   }

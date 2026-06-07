@@ -291,6 +291,7 @@ Everything else of mine is done.
 - **Currency:** USD ($) globally. Africa-first as founding story/proof angle only — not pricing or positioning.
 - **Cron jobs:** 16 live (the 3 status-snapshot crons were planned, never built).
 - **Agents:** FIGSY (The Opener · AI SDR) · Milla (The Brain · VA) · Vida (The Connector · Chatbot) · **Denise (The Closer · AI AE · $99/mo) = LIVE & transactional as of 5 Jun** (own page, billing, workspace, API). LENA/OTTO = Month 3.
+  - **Genders (canonical — use correctly in all copy):** **FIGSY = he/him** (male). **Milla, Vida, Denise = she/her** (female). Casey (onboarding, portal-only) = she/her.
   - ⚠️ **Denise go-live needs 2 FOUNDER actions:** (1) create Stripe product + $99/mo recurring price → add `STRIPE_PRICE_DENISE_MONTHLY` to Railway; (2) run migration `011_denise.sql`.
 - **Models:** Sonnet 4.6 (Milla, FIGSY) + Haiku 4.5 (scoring, scraping).
 - **Run cost floor:** ~$125/mo. Break-even: 2 clients (infra) / 5 (all-in). Margin 95%+.

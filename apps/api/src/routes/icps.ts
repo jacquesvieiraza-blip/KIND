@@ -157,16 +157,24 @@ export async function runIcpJob(
       .catch(console.error)
 
     // S5 — FIGSY auto-start: enroll all scored leads (POPIA legitimate interest — no consent gate needed)
-    // If client has no active FIGSY campaign, send Lead Gen Pro Day 1 outreach instead
-    const { data: figsyCampaign } = await db.from('figsy_campaigns')
-      .select('id').eq('client_id', clientId).eq('status', 'active').maybeSingle()
+    // If client has no active FIGSY campaign, send Lead Gen Pro Day 1 outreach instead.
+    // GATED: auto-outreach sends REAL emails to sourced prospects on every run. It only
+    // fires when AUTO_OUTREACH_ENABLED=true, so test runs source + score + enrich leads
+    // without emailing real people. Set AUTO_OUTREACH_ENABLED=true on the API service to
+    // turn it on for launch.
+    if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
+      const { data: figsyCampaign } = await db.from('figsy_campaigns')
+        .select('id').eq('client_id', clientId).eq('status', 'active').maybeSingle()
 
-    if (figsyCampaign) {
-      for (const leadId of insertedIds) {
-        autoEnrollLead(leadId, clientId).catch(console.error)
+      if (figsyCampaign) {
+        for (const leadId of insertedIds) {
+          autoEnrollLead(leadId, clientId).catch(console.error)
+        }
+      } else {
+        sendDay1OutreachBatch(insertedIds, clientId, clientRow?.company_name ?? '').catch(console.error)
       }
     } else {
-      sendDay1OutreachBatch(insertedIds, clientId, clientRow?.company_name ?? '').catch(console.error)
+      console.log(`[icp] auto-outreach OFF (AUTO_OUTREACH_ENABLED != true) — ${insertedIds.length} leads sourced + enriched, no emails sent`)
     }
 
     if (clientRow && !clientRow.first_icp_run_at) {

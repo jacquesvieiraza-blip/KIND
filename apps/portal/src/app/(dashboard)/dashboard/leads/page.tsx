@@ -966,7 +966,7 @@ export default function LeadsPage() {
                                 Consent
                               </button>
                             )}
-                            {lead.status === 'scored' && (
+                            {lead.status === 'scored' && lead.email && (
                               <button onClick={() => updateStatus(lead.id, 'consent_sent')}
                                 disabled={actionLoading === `status-${lead.id}`}
                                 title="Send POPIA consent"

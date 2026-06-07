@@ -331,6 +331,8 @@ Two full passes planned: **Smoke Test 1 (Sat)** and **Smoke Test 2 (Sun)**, each
 3. ICP preview banner — show "20,000+ available · we deliver your 20/run" instead of the raw scary count.
 4. **Agent panel** — every agent (Milla/Vida/Denise) uses the FIGSY layout: large Pixar portrait, name+role, suggestion chips, intro message, "Ask … anything" input.
 5. **Signup screen** — ClickUp-style: "Seconds to sign up!", Continue with Google, clean name/email/password, marketing-consent + data-transfer-outside-UK consent checkboxes.
+6. **ICP Builder → "New ICP"** — clicking New ICP makes you scroll past ALL existing ICP cards to reach the empty form. Open the form at the top (or auto-scroll to it / show it in a modal). — **NEW 7 Jun**
+7. **"Pipeline Value" stat is an ESTIMATE** — it's the sum of each delivered lead's AI-estimated `estimated_deal_value_usd` (`leads.ts:115`), NOT real/booked pipeline. Label it honestly ("Est. pipeline value" / tooltip "AI estimate of potential deal value across your leads") so clients don't read $1M as booked revenue. (No-fake-news.) — **NEW 7 Jun**
 
 ## 🟣 V2 BUILDS — Month-2 portal redesign (`docs/portal-v2-preview.html`)
 > NEW redesign — NOT the dead `FEATURE_PORTAL_V2` flag. 10 concepts:
@@ -344,6 +346,9 @@ Two full passes planned: **Smoke Test 1 (Sat)** and **Smoke Test 2 (Sun)**, each
 8. AI Notetaker → action items (Milla) — *Critical*
 9. Teams Hub (members, activity, per-person agent usage) — *Critical*
 10. **Casey — Onboarding agent** — a dedicated **non-family** support agent (à la ClickUp's "Onboarding Assistant") that guides new clients through setup (business profile → ICP → first leads → first campaign). NOT one of the FIGSY/Milla/Vida/Denise revenue family. **PORTAL ONLY — never on the website.** Warm Pixar-3D style (own identity). Image: `apps/portal/public/agents/casey.png` (added by founder 6 Jun). Lives on the setup/onboarding dashboard (`docs/setup-dashboard-preview.html`). Backend agent + chat surface. — *High* — **NEW 6 Jun**
+11. **🔴 BIG — Vida help bubble live IN the portal** — persistent support-chat bubble, bottom-right of every portal page, so a stuck client can always reach help without hunting for it. (Vida already exists as the website/embed chatbot — reuse it as in-app support.) A client who gets stuck currently has NO obvious way to ask for help. — *Critical* — **NEW 7 Jun**
+12. **🔴 Strong client dashboards** — Monday.com-style data dashboards for clients (budget/spend, performance charts, pipeline progress, team workload, campaign tracking — see founder ref image). Replace the thin stat cards with real, visual reporting clients can act on. — *High* — **NEW 7 Jun**
+13. **Multi-provider calendar + agent-led onboarding** — TWO parts. (a) **Providers:** native calendar is **Google-only** today (`gcal.ts`, Settings "Connect Google Calendar"); `booking_url` exists in the data model but has **no UI field**. Add **Microsoft/Outlook, Calendly, Zoho** (many clients aren't on Google) — at minimum a `booking_url` paste field so Calendly/Cal.com/Zoho links work now. (b) **Onboarding:** the right-hand agent panel should walk a new client through the FIGSY setup steps (incl. *connect your calendar*), so they actually know it happened and where it lives (today it sits quietly under Milla/Settings). — *High* — **NEW 7 Jun**
 
 ## ✅ DONE THIS SESSION (4 Jun — verified in repo)
 - terms.html sub-processor bug (Paystack/Vercel → Stripe/Railway) · AAA arbitration §12

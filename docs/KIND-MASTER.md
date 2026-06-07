@@ -34,6 +34,7 @@
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **7 Jun:** Logged **#81** (milestone outcome share-to-LinkedIn) + **#82** (Certified Partner badge) — Monday growth-loop steals. Added Ch.1 WATCH note: Monday now uses Pixar-3D agent characters (warmth window closing). Total 97→99.
 - **7 Jun:** Logged new build **#80** (speed-to-lead: Vida → instant FIGSY/Denise handoff, Atlas steal) in Ch.3 Phase 2.
 - **7 Jun:** Consolidated all roadmap docs into this single `KIND-MASTER.md`. Marked `EVERYTHING.md` superseded. Sprint begins tomorrow (Mon 8).
 
@@ -119,6 +120,15 @@ Credit wallets, usage-based, per-action — **every major player is migrating to
 Monday/Notion/ClickUp all now talk about "agents as team members." We've had named personalities and a family narrative since Day 1 (Pixar 3D, family names). That emotional layer is *stronger* than corporate "agent platform" language — **but the window where we look differentiated (not just different) is shrinking** as everyone humanises their UX.
 
 **Action:** Differentiate on warmth *now*. Record real demo (Week 1 / item #21). Use the Pixar family in every asset. When everyone has agents, personality is the moat.
+
+> 🔴 **WATCH (7 Jun) — Monday is now in our exact design lane.** Monday's in-app
+> "Certified AI Agent Creator" badge uses **warm Pixar-3D human characters** (stylish,
+> diverse, "your team") on a premium dark card — the same aesthetic as FIGSY/Milla/Vida/Denise.
+> A general-purpose platform has adopted our differentiator. This **accelerates** the action above:
+> our warmth/family narrative looks differentiated *today* but won't for long. Ship the real
+> demo + family storytelling fast. Also worth stealing their **share-to-LinkedIn growth loop**
+> (logged #81 client-outcome version, #82 partner-cert version) — but anchored to OUTCOMES, not
+> a vanity "creator" badge (wrong audience for our SMB buyer).
 
 ### **3. MCP is being pulled forward — it's distribution, not just product.**
 Glean, Notion, Linear, Salesforce are all wiring MCP natively. Item #59 (MCP server) was Month 3. **Given this market signal, it moves to Month 2.** Being MCP-compatible means other tools' agents can call K.I.N.D without a K.I.N.D sales team. That is **free distribution.**
@@ -894,8 +904,10 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 | **#62d** | "Revenue Blueprint Session" CTAs | ✅ DONE — 29 CTAs renamed | ✅ | ✅ | ✅ | — |
 | **#62e** | Vertical landing pages | Estate agents, brokers, advisers (SA + US) + case studies (Revio moat) | ✅ | ✅ (Africa) | Weeks 2–4 (US) | Specialisation |
 | **#80** | **Speed-to-lead: Vida → instant FIGSY/Denise handoff** (Atlas steal) | When Vida captures an inbound lead, auto-hand it to FIGSY (or Denise) immediately — no manual seam. Atlas's core principle: conversion drops ~80% if a lead isn't contacted within 5 min; 40% of leads arrive nights/weekends. Build: on Vida lead-capture event → trigger instant FIGSY enrol / first-touch (respecting suppression + opt-out + AUTO_OUTREACH gate). Inbound path, NOT cold outbound. | 🤖 | ⬜ | Weeks 2–4 (needs inbound traffic + Vida configured) | Atlas's one operating principle that upgrades our funnel. Vida + FIGSY both already built — this is the wiring between them. |
+| **#81** | **Milestone/outcome share-to-LinkedIn cards** (Monday growth-loop steal) | Celebratory shareable card on real client milestones ("FIGSY booked your 10th meeting 🎉", "1,000 leads sourced this month") with a **Share on LinkedIn** button. Reuses existing **shareable dashboards**. Adapt Monday's loop: trigger on OUTCOMES, not a vanity "creator" badge (wrong audience for SMB owners). Premium dark card, warm Pixar-family styling. Free distribution that fits the invisible-founder model (brand spreads via clients, not founder). Feeds #62c real outcome numbers. | 🤖 | ⬜ | Weeks 2–4 (needs real client results) | V2-7 growth-loop family. Monday validated the mechanic. |
+| **#82** | **"Certified K.I.N.D Partner" badge + LinkedIn share** (Monday steal, partner-adapted) | The cert mechanic done for the audience it actually works on: agencies/resellers in the **Partner Programme** get a shareable "Certified K.I.N.D Partner" badge → Share on LinkedIn. Partners genuinely want credentials to sell with. Premium dark card, Pixar-family styling. | 🤖 | ⬜ | Weeks 2–4 / Month 2 (needs Partner Programme active) | Right audience for a cert (vs end-clients). Distribution via partner networks. |
 
-**WEEKS 2–4 TOTAL:** 15 items.
+**WEEKS 2–4 TOTAL:** 17 items.
 
 ---
 
@@ -1015,13 +1027,13 @@ Collaborative docs · whiteboards · self-hosted · custom emoji · internal tea
 |-------|-------|----------|--------|
 | **Phase 0** (pre-launch) | 28 | Mon 8 – Fri 19 Jun | 🔄 In progress |
 | **Phase 1** (Week 1) | 10 | Jun 19–28 | ⬜ Pending |
-| **Phase 2** (Weeks 2–4) | 15 | Jun 29 – Jul 19 | ⬜ Pending |
+| **Phase 2** (Weeks 2–4) | 17 | Jun 29 – Jul 19 | ⬜ Pending |
 | **Phase 3** (Month 2) | 36 | Late Jul – Aug | ⏸ Gated on 10+ clients |
 | **Phase 4** (Month 3) | 17 | Late Aug – Sep | ⏸ Gated on margin data |
 | **Phase 5** (Year 2) | 9 | 2027 | ⏸ Enterprise only |
 | **Ongoing** | 5 | Parallel | 🔄 Continuous |
 | **Won't build** | — | — | 🚫 Out of scope |
-| **TOTAL** | **97** | — | — |
+| **TOTAL** | **99** | — | — |
 
 ---
 

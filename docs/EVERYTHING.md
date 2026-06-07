@@ -1,7 +1,97 @@
 # K.I.N.D — EVERYTHING
 
 > ✅ **THIS IS THE WORKING SOURCE OF TRUTH (updated 7 Jun 2026).** Read this first, update this first. `MASTER.md` is now a historical archive only. Where the two disagree, THIS document wins.
+> 🚀 **LAUNCH DATE REBASED: Mon 8 Jun → FRIDAY 19 JUNE 2026** (founder's call, 7 Jun). See "🚀 LAUNCH ROADMAP" immediately below — it supersedes the old "THIS WEEK / Mon launch" plan.
 > **Protocol:** at the start of a session read this file; at the end of a session update it and commit.
+
+---
+
+# 🚀 LAUNCH ROADMAP — REBASED TO **FRIDAY 19 JUNE 2026** (rewritten 7 Jun)
+
+> **Why moved (Mon 8 Jun → Fri 19 Jun):** founder's call — no half-baked launch; every pre-launch item done **in full** first. Two triggers: (1) a newly-diagnosed **deliverability failure** (cold *and* transactional mail going to spam) that is architecture-level and needs domain **warmup** (a multi-day clock that can't be shortcut); (2) the entire **paid path / client journey is still unverified** (only T2 + T3-send proven). Everything *below* this section (Week 1 → Year 2, V2, cosmetic, legal, funding, ops) remains the canonical backlog — unchanged, just re-sequenced to start AFTER 19 Jun.
+
+## ⛳ THE 5 PRE-LAUNCH WORKSTREAMS (priority order)
+0. 🔴 **Deliverability** — NEW, #1, the long pole (warmup clock).
+1. **Paid path + full client-journey verification** — Smoke Test 1 + 2 (T1–T7).
+2. **Founder infra / security** — credential rotation, DNS, migration 010, Denise Stripe, legal.
+3. **Polish** — "sign emails as" setting, strip BUILD MARKER debug, cosmetic batch.
+4. **Dress rehearsal → Go/No-Go → launch (ramped).**
+
+---
+
+## 0. 🔴 DELIVERABILITY — #1 PRIORITY (diagnosed 7 Jun, verified in code)
+
+**Rule:** no client email and no founder outreach may land in spam. This blocks launch.
+**Why #1 and why it moves the date:** *all* mail — cold outreach AND transactional — currently sends from the single primary domain `get-kind.com`, with none of the Gmail/Yahoo 2024 bulk-sender requirements. Cold-send reputation damage on a shared domain poisons transactional + corporate mail too. The proper fix needs domain **warmup (~2–3 weeks)** — the reason the launch date moves.
+
+### Root causes (all verified in code)
+1. **Cold outreach sends from the PRIMARY domain.** `apps/api/src/lib/figsy.ts:9` → `K.I.N.D <hello@get-kind.com>` — same domain as transactional/receipts/corporate. Cold complaints + bounces tank the whole domain's reputation.
+2. **Missing Gmail/Yahoo one-click unsubscribe (mandatory since Feb 2024).** `figsy.ts:378` send has only `from/reply_to/to/subject/html` — **no `List-Unsubscribe`, no `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.** Bulk senders without these are auto-spam-foldered. Also a legal gap (CAN-SPAM / UK PECR / GDPR need a real unsubscribe).
+3. **Open-tracking pixel can point at a raw Railway URL.** `figsy.ts:363-365` — if `API_URL` unset, pixel `src` → `kindapi-production-e64c.up.railway.app`. Unknown `*.up.railway.app` image src = textbook phishing/spam signal.
+4. **HTML-only, no plain-text part.** Every send is `html` only, no `text:` alternative — scores worse on filters.
+- Plus From/Reply-To domain split (`hello@get-kind.com` vs `figsy@reply.get-kind.com`) needs DMARC alignment care. **Live SPF/DKIM/DMARC status UNCONFIRMED** — must check Resend + GoDaddy.
+
+### Fix — architecture (separate domains by job)
+- **`get-kind.com` (primary):** transactional only (welcome/receipts/resets) + corporate + website. **Never cold.** Protect reputation.
+- **Dedicated cold-outreach domain(s):** buy 1–3 lookalikes (e.g. `getkind.io`, `try-kind.com`, `kind-mail.com`). Cold sends from these only.
+- **Per-client sending identity (target state):** each client sends cold from their own domain/subdomain so one client's complaints never poison another's. Minimum for launch: cold off `get-kind.com`.
+
+### Fix — DNS/auth (every sending domain)
+- **SPF:** `v=spf1 include:_spf.resend.com ~all`
+- **DKIM:** publish Resend's `resend._domainkey` record → "Verified" in Resend.
+- **DMARC:** `v=DMARC1; p=none; rua=mailto:dmarc@get-kind.com` → raise to `quarantine` → `reject`.
+- **Custom return-path (MAIL FROM)** + **custom tracking/link domain** in Resend, aligned to the sending domain.
+
+### Fix — warmup (long pole — START DAY 1)
+Fresh domain sending cold = spam regardless of config. Warmup ~2–3 wks: ramp from ~5–10/day, keep per-mailbox cold ≤30–50/day. Use a warmup tool (Instantly/Smartlead/Mailreach) or ramp manually. (This is backlog item **#53** inbox rotation/multi-domain — pulled forward.) **At launch (19 Jun) domains will be ~11 days warmed → launch on a RAMP (low volume), not a blast; scale to full volume over the following 1–2 weeks. Transactional mail on `get-kind.com` is fully live day 1.**
+
+### Code fixes (🤖 Claude — Phase 0)
+- **D1** `List-Unsubscribe` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click` headers + a real unsubscribe endpoint/link. *(highest-leverage; mandatory)*
+- **D2** plain-text `text:` part on every send (figsy + transactional).
+- **D3** fix tracking pixel — never fall back to the Railway URL; use the aligned tracking domain; make open-tracking optional/off for cold.
+- **D4** configurable cold-outreach FROM (`FIGSY_OUTREACH_FROM` / per-client identity) separate from transactional FROM.
+- **D5** verify List-Unsubscribe + plaintext on transactional sends too (`email.ts`).
+
+### Founder actions (🧍 Phase 0)
+- Buy cold domain(s); set SPF/DKIM/DMARC; verify in Resend; **start warmup tool (clock starts).**
+- Verify `get-kind.com` SPF/DKIM/DMARC for transactional.
+- Confirm `API_URL` set on Railway (kills the Railway-URL pixel fallback).
+- Inbox-placement test (mail-tester.com / GlockApps) before launch — target 10/10.
+
+---
+
+## 📅 PRE-LAUNCH DAY-BY-DAY (Sun 7 Jun → Fri 19 Jun 2026)
+> Owner: 🧍 Founder · 🤖 Claude · 🤝 Both. Buffer baked in (Mon 15). Nothing started yet (founder's call 7 Jun).
+
+| Day | Focus | 🧍 Founder | 🤖 Claude |
+|-----|-------|-----------|-----------|
+| **Sun 7 Jun** (today) | Plan | Approve rebased roadmap | Roadmap rewritten + this doc updated. **No implementation started.** |
+| **Mon 8 Jun** | 🔴 Deliverability D1 (CRITICAL PATH) | Buy cold domain(s); SPF/DKIM/DMARC; verify Resend; **START warmup**; verify get-kind.com auth; start TIER-0 cred rotation | D1–D5 code (List-Unsub/one-click, plaintext, pixel, cold-FROM, unsubscribe endpoint) |
+| **Tue 9 Jun** | Infra / security | Finish cred rotation; run migration `010_crm_dedup.sql`; Denise Stripe price → `STRIPE_PRICE_DENISE_MONTHLY` + redeploy; DNS app/api/admin/status → update `NEXT_PUBLIC_API_URL` + Resend webhook | Fix deploy pipeline (KIND System Audit non-blocking; confirm Railway auto-deploy); strip `BUILD MARKER`; add "sign emails as" setting (kills AI-invented signature) |
+| **Wed 10 Jun** | Smoke Test 1 — Part A | Run **T1** (fresh signup→onboard→gate, NEW email) · **T2 8–9** · **T3 10–13** → log `T#-Step#` | Fix failures same-day |
+| **Thu 11 Jun** | Smoke Test 1 — Part B | Run **T4** booking/KPI · **T5** billing (single-charge, webhook idempotency, Milla 403) · **T6** Vida widget · **T7** Milla cron leak → log | Fix failures same-day |
+| **Fri 12 Jun** | Fix + cosmetic | Re-test any fixed track | Clear all smoke failures; cosmetic batch (7 items); deliverability mid-warmup check |
+| **Sat 13 Jun** | **Smoke Test 2** (full clean re-run T1–T7) | Run all 7 green | Fix any straggler same-day |
+| **Sun 14 Jun** | Legal + hardening | ICO £40 · SR01 suppression · registered office/service address · WHOIS privacy · LinkedIn lockdown · confirm Calendly live · confirm `version.txt` | Inbox-placement test (mail-tester/GlockApps) → fix auth gaps |
+| **Mon 15 Jun** | **Buffer** | Absorb slip; re-run any failed track | Re-fix; deliverability placement check |
+| **Tue 16 Jun** | Dress rehearsal | One fresh-signup end-to-end as a brand-new client (not dogfood); review warmup status | Final deploy verification |
+| **Wed 17 Jun** | Final fixes + launch prep | Prep launch campaigns (low-volume ramp); confirm `AUTO_OUTREACH_ENABLED` plan | Last fixes |
+| **Thu 18 Jun** | **Go / No-Go** | Full checklist sign-off; set day-1 send volume (ramped) | Confirm every workstream green |
+| **Fri 19 Jun** | 🚀 **LAUNCH** | Go live both markets, **ramped** outreach | On standby for same-day fixes |
+
+---
+
+## 1. PAID PATH + CLIENT JOURNEY — UNVERIFIED (full detail in §SMOKE-TEST STATE)
+Only **T2** (ICP→leads→charge) + **T3 send→reply→hot** are proven. Untested before launch: **T1** fresh signup→onboarding→gate (the first screen a real client hits — never run end-to-end) · **T3 step 13** pause→no further sends · **T4** booking + `meetings_booked` KPI · **T5** billing (Stripe charges once, webhook replay no double-charge, Milla 403 for non-subscribers — *money path, unproven*) · **T6** Vida widget (renders, purple, captures a lead) · **T7** non-Milla clients get NO Milla cron emails · **Smoke Test 2** full clean re-run (not started). Suite = `docs/SMOKE_TEST.md`.
+
+## 2. FOUNDER INFRA / SECURITY — all open (detail in §PRE-LAUNCH SPLIT / PART 2)
+TIER-0 credential rotation (Stripe, Supabase service-role, DATABASE_URL, anon key, Anthropic, Resend ×2, HubSpot, Admin secret, Stripe webhook — Apollo ✅) · migration `010_crm_dedup.sql` · Denise Stripe price → `STRIPE_PRICE_DENISE_MONTHLY` · DNS app/api/admin/status → `NEXT_PUBLIC_API_URL` + Resend webhook · Legal (ICO £40, SR01, registered office/service address, WHOIS privacy, LinkedIn lockdown) · confirm Calendly + `version.txt` · fix deploy pipeline.
+
+## 3. POLISH (fast, low-risk)
+"Sign emails as" sender-name setting (kills AI-invented "Thandeka"/"Thabo" signature — `figsy.ts:445`) · strip `BUILD MARKER` (`apps/api/src/index.ts:165`) · cosmetic batch (§COSMETIC BACKLOG — 7 items). *Note: `previewCount` is a real feature, NOT debug — do not strip.*
+
+## 4. POST-LAUNCH (unchanged backlog — starts AFTER 19 Jun)
+All preserved below, just re-sequenced: **Week 1** (§WEEK 1 POST-LAUNCH) · **Weeks 2–4** (§WEEKS 2–4 + the 61/62 steals) · **Month 2** intelligence layer #37–53 + memory moat + **V2 portal redesign** (13 concepts, §V2 BUILDS) · **Month 3** #54 Denise deep build (#1) + Lena/Otto + MCP + outcome pricing + CRM + mobile · **Year 2** certs (ISO 27001/42001, SOC 2) + advanced memory/forecasting · **Ongoing** legal/funding/ops/tech-debt + MASTER.md cleanup · **Blocked-on-creds** list. See the ranked "FUTURE UPDATES" list and PART 1 timeframe sections below for every item.
 
 ---
 
@@ -306,6 +396,8 @@ Everything else of mine is done.
 Owner key: 🧍 Founder · 🤖 Claude · 🤝 Both. Status: ⬜ TODO · ⏸ DEFERRED (trigger noted) · ✅ DONE.
 
 ## 🚨 THIS WEEK — launch
+> ⚠️ **SUPERSEDED by the "🚀 LAUNCH ROADMAP" at the top (rebased to Fri 19 Jun 2026).** This table is kept for its per-item detail/owners; for sequence + dates use the day-by-day plan above. The "MON — LAUNCH" row no longer applies.
+
 | # | Item | Owner | Status |
 |---|------|-------|--------|
 | 1 | Rotate exposed credentials — TIER 0 (full list in Part 2 / Ring 3) | 🧍 | ⏳ Apollo key rotated 6 Jun (was leaked in chat); rest pending |

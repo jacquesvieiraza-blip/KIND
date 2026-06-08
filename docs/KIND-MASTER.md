@@ -21,6 +21,8 @@
 
 - **Today / baseline:** Sprint **active — Mon 8 Jun 2026**. 11-day countdown to **Fri 19 Jun** launch.
 - **⚠️ CANONICAL BRANCH = `claude/kind-carson-MYhSl`.** Code + this master now live together here (consolidated 8 Jun). The older copy on `claude/ai-business-roadmap-U3OWJ` is stale — read/update HERE, merge that branch in if needed.
+- **🌍 STRATEGY DECISION (8 Jun) — AFRICA-FIRST, US DEFERRED.** Launch and operate **Africa-only** to start. Rationale: (1) steer clear of the US/global competitor cluster (Atlas/Revio/Monday/ClickUp) and play where our POPIA/African-data moat is strongest; (2) reduce exposure to the founder's employer (Smartsheet) conflict-of-interest surface. **US (and other non-African markets) are GATED — only revisit once we have steady recurring African income.** Every "SA + US" / "US equiv" / "US Month 2" item in this doc is hereby **deferred to the US-gate**, not pre-launch scope.
+- **🛡️ SAFETY DECISION (8 Jun) — SCRUB SMARTSHEET REFERENCES.** Steer all product/repo references away from the founder's current employer (Smartsheet). **Keep the suppression *protection*, remove the *literal name* from committed source.** Tracked as a workstream — see Chapter 4 "Smartsheet scrub" (status ⬜, needs founder sign-off on approach; do NOT weaken the do-not-contact guard).
 - **What's already shipped (verified on `main`, deployed to Railway):**
   - Apollo email enrichment (bulk_match by id) — real emails delivered
   - FIGSY inbound reply pipeline — end-to-end, 🔥 Hot classification verified live
@@ -38,6 +40,7 @@
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🌍🛡️ **Two strategy decisions logged.** (1) **Africa-first, US deferred** — launch Africa-only, US/global gated on steady African income (de-risks competitor overlap + employer exposure); flipped launch-scope lines + targets + deferred all "SA+US"/"US Month 2" items. (2) **Smartsheet scrub** — new Chapter 4 workstream to remove employer references without weakening the do-not-contact guard (3 buckets, awaiting founder sign-off on the safety-code + archive calls). No code/safety/legal files touched yet.
 - **8 Jun:** 🚀 **Shipped Deliverability D1–D5** — new `apps/api/src/lib/deliverability.ts` (cold-FROM, signed unsubscribe tokens, tracking-pixel guard, htmlToText); wired into both cold-send sites in `lib/figsy.ts`; added public `GET/POST /figsy/unsubscribe/:token` in `routes/figsy.ts`; `email.ts` `sendTx()` adds plain-text to all transactional mail; manual Unibox reply now sends from cold domain. App typechecks clean (had to `npm install` + build `@kind/db`/`@kind/shared`; fixed 2 own TS7030 errors). Committed `96456ac`, pushed. **Founder owes env vars (see NEXT ACTIONS).** Consolidated master + code onto `claude/kind-carson-MYhSl` (canonical).
 - **7 Jun:** ClickUp "More" grid review → logged **#83** (lead-capture Forms) + **#84** (Integrations Hub), folded Goals into V2-12, bumped V2-3 to High, added Ch.1 Read #6 **DESIGN PRINCIPLE: portal stays narrow (≤5 revenue tiles), reject the generalist app-grid.** Total 99→101.
 - **7 Jun:** Logged Ch.1 WATCH note on **monday Vibe** (AI vibe-coding app builder, verified via web search) → reinforces specialisation lane; prompt-to-build UX validates V2-3 conversational setup (bump priority).
@@ -220,7 +223,7 @@ Owner: 🧍 Founder · 🤖 Claude · 🤝 Both
 | **Tue 16** | **Dress rehearsal** | Fresh signup (not dogfood) → ICP → leads → campaign → reply → verify · check warmup status | 🤝 | Live test. |
 | **Wed 17** | **Final fixes** | Any remaining issues · prep launch campaigns (ramp strategy) | 🤝 | Spillover. |
 | **Thu 18** | **Go/No-Go** | Deliverability 10/10 ✅, Smoke Test 2 green ✅, all founder items ✅ → sign off | 🤝 | Release gate. |
-| **Fri 19** | 🚀 **LAUNCH** | Both markets — transactional live from `get-kind.com`; cold ramped from warmup domain | 🚀 | **THE DAY.** |
+| **Fri 19** | 🚀 **LAUNCH** | **Africa-only** (US deferred, see Strategy Decision) — transactional live from `get-kind.com`; cold ramped from warmup domain | 🚀 | **THE DAY.** |
 
 ### **PHASE 2: WEEK 1 POST-LAUNCH (Jun 19–28)**
 
@@ -445,7 +448,7 @@ Collaborative docs · whiteboards · self-hosted · custom emoji · internal tea
 | **#61b** | "$20" as the one number you own | Entry price everyone remembers. Landing pages, pricing, deck, everywhere. | True entry price (pay-per-result). Atlas is $5,000. Ours is 250x cheaper. |
 | **#61c** | "Clone yourself" narrative | FIGSY learns your voice → writes emails like you. | Original copy. Atlas positioning. We've had it since day 1. Use it more. |
 | **#61d** | Cold CRM re-engagement angle | "The list you gave up on is still worth money. FIGSY warms them." | Revio's list freshness insight. We own it better (autonomous, not co-pilot). |
-| **#61e** | Influencer distribution (find our Dan-Martell) | Atlas + Revio both grew on 1 person (Dan Martell: SaaS Academy, Buy Back Your Time). | Find the SA equiv (5–10 person network who know SMB leaders) + US equiv. Worth more than seed round. |
+| **#61e** | Influencer distribution (find our Dan-Martell) | Atlas + Revio both grew on 1 person (Dan Martell: SaaS Academy, Buy Back Your Time). | Find the **SA/African equiv** (5–10 person network who know SMB leaders). US equiv deferred to US-gate. Worth more than seed round. |
 | **#61f** | ROI calculator | User enters own leads + deal value → calculator shows revenue lost to slow follow-up + upside if FIGSY closes 8%. | Atlas tool. We have it (`pipeline-calculator.html`). Use it on landing pages. Lead magnet. |
 | **#61g** | Guarantee sharpened from 30d to 90d | "90 days gives enough campaign data to show results. Stronger signal than 30 days." | Revio insight (outcomes take time to measure). |
 
@@ -456,7 +459,7 @@ Collaborative docs · whiteboards · self-hosted · custom emoji · internal tea
 | **#62b** | Coaching layer bundled into onboarding | "Revenue Playbook Session" (30-min call): founder or Casey guides client through campaign setup, ICP, first sequence. Reduces churn (Revio's insight). | Revio = human coaching ($500/mo). Ours = AI (Casey) + optional founder call. Scales better. |
 | **#62c** | Homepage outcome numbers | 2–3 concrete stats: "30,065 leads last month" specificity. Do NOT fabricate — hold the slot, populate when real. | Revio case study detail. We're honest (no fakes). Population with real data Month 2+. |
 | **#62d** | "Revenue Blueprint Session" demo framing | Renamed all 29 demo CTAs: "Book a Demo" → "Book a Revenue Blueprint Session." | ✅ Already done. Messaging shift. |
-| **#62e** | Vertical landing pages + case studies | Estate agents, insurance brokers, financial advisers (Africa-specific + US equivalents). Each with pain + FIGSY solution + compliance note. | ✅ Already done (Africa: 3 verticals). US Month 2. Revio strategy (own the niche). |
+| **#62e** | Vertical landing pages + case studies | Estate agents, insurance brokers, financial advisers (**Africa only for now** — US equivalents deferred to US-gate). Each with pain + FIGSY solution + compliance note. | ✅ Already done (Africa: 3 verticals). ~~US Month 2~~ → US deferred. Revio strategy (own the niche). |
 
 ---
 
@@ -907,7 +910,7 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 | **#16** | Smoke Test 2 (full re-run) | Clean T1–T7 with fresh email | 🧍 | ⬜ | Sat 13 | #15 green |
 | **#17** | Fix smoke failures same-day | Any red from #15 or #16 → fix immediately | 🤖 | ⬜ | Wed 10 (if needed) | #15 results |
 | **#17b** | Outcome-event data floor | ✅ DONE — append-only log (send/reply/opt_out/meeting_booked), fire-and-forget | ✅ | ✅ | ✅ | — |
-| **#18** | LAUNCH both markets | Transactional live from `get-kind.com`, cold ramped from warmup domain | 🤝 | ⬜ | **Fri 19 Jun** | All above green |
+| **#18** | LAUNCH **Africa-only** (US deferred) | Transactional live from `get-kind.com`, cold ramped from warmup domain | 🤝 | ⬜ | **Fri 19 Jun** | All above green |
 | **CAL-min** | `booking_url` paste field | Non-Google calendar clients (pre-launch min) | 🤖 | ⬜ | Tue 9 | None |
 | **P-a** | "Sign emails as {name}" setting | Stop AI-invented signers (Thandeka/Thabo) | 🤖 | ⬜ | Tue 9 | None |
 | **P-b** | Strip `BUILD MARKER` debug | API startup log cleanup | 🤖 | ⬜ | Tue 9 | None |
@@ -1547,7 +1550,7 @@ pages (estate-agents, insurance-brokers, financial-advisers) · pipeline-calcula
 ## Growth Targets
 | When | Clients | MRR | Milestone |
 |------|---------|-----|-----------|
-| **Launch (Fri 19 Jun)** | 0 | £0 | Both markets live |
+| **Launch (Fri 19 Jun)** | 0 | £0 | **Africa-only** live (US gated on steady African income) |
 | **Week 2–3** | 2–3 design partners | ~£2,500 | Case studies + logos |
 | **Month 1** | 5 (break-even all-in) | ~£4,000 | Sustainable |
 | **Month 2** | 20 + Product Hunt | ~£12,000 | Intelligence layer + MCP + V2 |
@@ -1601,6 +1604,27 @@ activates Week 1. Remove the contradictory "never" lines from MASTER.md.
 
 ---
 
+# 🛡️ SMARTSHEET SCRUB (safety — decided 8 Jun, ⬜ awaiting founder sign-off)
+
+**Goal:** remove all references to the founder's current employer (Smartsheet) from
+product + committed repo, **without weakening the do-not-contact protection.** Three
+buckets, very different risk:
+
+| Bucket | Files | Risk | Plan | Status |
+|--------|-------|------|------|--------|
+| **1. Safety guard** | `apps/api/src/lib/suppression.ts` (hard-codes `smartsheet.com` + 3 sister domains in `SUPPRESSED_FLOOR`) | 🔴 Removing the name naively could disable the guard that stops FIGSY emailing colleagues. | **Keep the mechanism, move the names out of source.** Load the floor from a non-committed env (e.g. `SUPPRESSED_FLOOR_DOMAINS`) set on Railway; keep a generic safety check + fail-loud if empty in prod. Net: protection intact, no employer name in git. | ⬜ needs founder OK (touches safety) |
+| **2. Active internal docs** | `docs/KIND-MASTER.md` (this file), `docs/legal/legal-pack.md`, `docs/art-of-possible.md`, root `MASTER.md` (archive), `docs/EVERYTHING.md` (superseded) | 🟠 `legal-pack.md` is your **legal record** (clause 17.2 review) — genericising it could destroy useful protection. | Genericise to "the founder's employer" in product-facing/strategy docs; **KEEP legal-pack.md intact** (it's your evidence, internal only). This file references it only as "(Smartsheet)" in the safety note — fine to keep or genericise. | ⬜ decision per-file |
+| **3. Chat archive** | ~90 files in `docs/chat-archive/*.md` | 🟢 Historical personal logs, not shipped, not public. | **Recommend: leave as-is** (rewriting 90 history files is noisy and pointless) OR git-rm the archive folder entirely if you'd rather it not exist in the repo. Your call. | ⬜ decision |
+
+**Already done previously (verified in EVERYTHING.md):** pitch deck scrubbed of founder
+name + Smartsheet testimonial; legal pages name only the company. **Still open:**
+Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
+
+**⚠️ Do NOT execute bucket 1 or delete bucket 3 without founder sign-off** — one
+touches a safety mechanism, the other rewrites history.
+
+---
+
 # 📅 TIMELINE REVIEW — WHEN EACH OPERATIONAL ITEM LANDS
 
 | Item | Phase | Date | Owner |
@@ -1624,10 +1648,12 @@ activates Week 1. Remove the contradictory "never" lines from MASTER.md.
 | VAT registration (Ring 4) | At £90k | Gated | 🧍 |
 | ISO 27001 / 42001 / SOC 2 (Ring 3) | Year 2 | 2027 | 🧍 |
 | MASTER.md cleanup (Part H) | Post-launch | After Fri 19 | 🤖 |
+| **Smartsheet scrub (safety)** | **Decided 8 Jun** | Buckets 1–2 before launch, bucket 3 = founder's call | 🤝 |
+| **US market launch** | **GATED** | Only after steady recurring African income | 🧍 |
 
 ---
 
-**Document Version:** 7 Jun 2026
+**Document Version:** 8 Jun 2026 (Africa-first + Smartsheet-scrub decisions; D1–D5 logged)
 **Companion docs:** STRATEGIC-ROADMAP-19JUN-2026.md · DAILY-ACTION-PLAN-TO-LAUNCH.md · ALL-BUILDS-TIMELINE-96-ITEMS.md
 **Source:** EVERYTHING.md Parts 2, 3, 4, 4B, 7 + NUMBERS
 **Next Update:** After Smoke Test 2 (Sat 13 Jun)

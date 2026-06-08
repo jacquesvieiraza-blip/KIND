@@ -1,5 +1,8 @@
 # 📋 K.I.N.D — SESSION HANDOFF + FULL ROADMAP (7 Jun 2026)
 
+> ⛔ **SUPERSEDED (8 Jun 2026) — DO NOT USE.** Single source of truth is now
+> **`docs/KIND-MASTER.md`** (branch `claude/kind-carson-MYhSl`). Historical snapshot only.
+
 > Self-contained transfer doc. Everything decided/diagnosed this session + the complete dated roadmap.
 > **Source of truth remains `docs/EVERYTHING.md`** — this mirrors its top sections for transfer.
 

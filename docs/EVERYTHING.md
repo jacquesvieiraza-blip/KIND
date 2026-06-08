@@ -1,6 +1,10 @@
 # K.I.N.D — EVERYTHING
 
-> ✅ **THIS IS THE WORKING SOURCE OF TRUTH (updated 7 Jun 2026).** Read this first, update this first. `MASTER.md` is now a historical archive only. Where the two disagree, THIS document wins.
+> ⛔ **SUPERSEDED (8 Jun 2026) — DO NOT USE.** The single source of truth is now
+> **`docs/KIND-MASTER.md`** on branch `claude/kind-carson-MYhSl`. This file is a
+> historical snapshot only; it is no longer updated. Read + update KIND-MASTER.md.
+
+> ~~✅ THIS IS THE WORKING SOURCE OF TRUTH (updated 7 Jun 2026).~~ (Historical — see banner above.)
 > 🚀 **LAUNCH DATE REBASED: Mon 8 Jun → FRIDAY 19 JUNE 2026** (founder's call, 7 Jun). See "🚀 LAUNCH ROADMAP" immediately below — it supersedes the old "THIS WEEK / Mon launch" plan.
 > **Protocol:** at the start of a session read this file; at the end of a session update it and commit.
 

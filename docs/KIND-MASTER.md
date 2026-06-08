@@ -1826,7 +1826,7 @@ Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
 **Decision:** confirm 28%-margin gate for outcome pricing; PH timing (needs real proof first).
 
 ### 💵 #85 — DENISE PER-PROPOSAL PRICING ($99 flat → $20/proposal usage-based)
-**Status (8 Jun): Step-1 DISCOVERY DONE · Step-2 plan + Step-3 build AWAIT FOUNDER APPROVAL. NO billing code written.** Discovery-first, approval-before-billing discipline (founder brief).
+**Status (8 Jun): ⏸ PARKED — "get to it when we're there" (pairs with #54 Denise deep build, ~Month 3).** Step-1 DISCOVERY DONE (preserved below) · Step-2 plan + Step-3 build await founder go + the 3 decisions. NO billing code written. Discovery-first, approval-before-billing discipline (founder brief).
 **Billable event:** each *unique* proposal Denise generates (NOT leads, NOT closed-won — closed-won out of scope; add a stubbed `marked_won` flag only). **Price = $20/proposal**, stored as ONE config constant.
 **Discovery findings (verified in repo):**
 - ✅ **Meterable:** proposals are generated **server-side** — `lib/denise.ts:draftProposal()` ← `POST /denise/draft-proposal`, stored in `denise_drafts` (kind='proposal'). We can meter the generation.

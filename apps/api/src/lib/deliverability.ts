@@ -120,6 +120,20 @@ export function unsubscribeFooterText(email: string): string {
   return `\n\n—\nUnsubscribe: ${unsubscribeUrl(email)}`
 }
 
+// Warmup ramp schedule — given a YYYY-MM-DD start date, returns the cold-send cap
+// for "today" (day 1 = the start date): ≤10 days 1–3 · 20 day 4 · 30 days 5–6 ·
+// 40 days 7–8 · 50 day 9+. Pure, with an injectable clock so it's testable.
+export function warmupRampCap(startStr: string, now: number = Date.now()): number | null {
+  const start = Date.parse(`${startStr}T00:00:00Z`)
+  if (!Number.isFinite(start)) return null
+  const day = Math.floor((now - start) / 86_400_000) + 1 // day 1 = start date
+  if (day <= 3) return 10   // includes pre-start days
+  if (day === 4) return 20
+  if (day <= 6) return 30
+  if (day <= 8) return 40
+  return 50                  // warmup complete → steady 50/day ceiling
+}
+
 // D2 — derive a reasonable text/plain alternative from rich HTML (for transactional
 // mail whose source is HTML). Cold mail passes its raw text directly instead.
 export function htmlToText(html: string): string {

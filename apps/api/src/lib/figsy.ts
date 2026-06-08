@@ -10,6 +10,7 @@ import {
   unsubscribeHeaders,
   unsubscribeFooterHtml,
   unsubscribeFooterText,
+  warmupRampCap,
 } from './deliverability'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -37,22 +38,11 @@ if (!process.env.ANTHROPIC_API_KEY) {
 //        day ≤3 → 10 · day 4 → 20 · day 5–6 → 30 · day 7–8 → 40 · day 9+ → 50.
 //        (Mirrors the gettingkind.com warmup plan; day 1 = the start date.)
 // If neither is set → no cap (unchanged default behaviour).
-function autoRampCap(startStr: string): number | null {
-  const start = Date.parse(`${startStr}T00:00:00Z`)
-  if (!Number.isFinite(start)) return null
-  const day = Math.floor((Date.now() - start) / 86_400_000) + 1 // day 1 = start date
-  if (day <= 3) return 10   // includes pre-start days
-  if (day === 4) return 20
-  if (day <= 6) return 30
-  if (day <= 8) return 40
-  return 50                  // warmup complete → steady 50/day ceiling
-}
-
 function coldDailyCap(): number | null {
   const explicit = parseInt(process.env.FIGSY_COLD_DAILY_CAP ?? '', 10)
   if (Number.isFinite(explicit) && explicit > 0) return explicit
   const start = process.env.FIGSY_WARMUP_START
-  return start ? autoRampCap(start) : null
+  return start ? warmupRampCap(start) : null
 }
 
 async function coldCapReached(): Promise<boolean> {

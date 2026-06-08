@@ -26,6 +26,27 @@ if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('[figsy] ⚠️  ANTHROPIC_API_KEY not set — email generation will fail.')
 }
 
+// ── WARMUP: daily cold-send cap ──────────────────────────────────────────────
+// Enforces the domain warmup ramp so cold volume can't accidentally spike.
+// FIGSY_COLD_DAILY_CAP = max cold emails per UTC day. Unset or 0 = no cap (default,
+// unchanged behaviour). When the cap is hit, sends are DEFERRED (enrollment stays
+// due and retries next cron run), never dropped.
+function coldDailyCap(): number | null {
+  const v = parseInt(process.env.FIGSY_COLD_DAILY_CAP ?? '', 10)
+  return Number.isFinite(v) && v > 0 ? v : null
+}
+
+async function coldCapReached(): Promise<boolean> {
+  const cap = coldDailyCap()
+  if (cap === null) return false
+  const start = new Date()
+  start.setUTCHours(0, 0, 0, 0)
+  const { count } = await db.from('figsy_sent_emails')
+    .select('id', { count: 'exact', head: true })
+    .gte('sent_at', start.toISOString())
+  return (count ?? 0) >= cap
+}
+
 // Strip markdown code fences that Claude sometimes wraps JSON in
 function stripJson(text: string): string {
   return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
@@ -350,6 +371,13 @@ export async function sendSequenceEmail(
     return
   }
 
+  // WARMUP cap — if today's cold quota is used up, DEFER (don't advance state, no
+  // record inserted → enrollment stays due and retries on the next cron run).
+  if (await coldCapReached()) {
+    console.warn(`[figsy] sendSequenceEmail: daily cold-send cap reached — step ${step} to ${lead.email} deferred to next run.`)
+    return
+  }
+
   let messageId: string | undefined
 
   // Insert the DB record first so we have the emailId for the tracking pixel
@@ -518,6 +546,13 @@ export async function sendDay1OutreachBatch(
 
   for (const lead of (leads ?? []) as Lead[]) {
     if (!lead.email) continue
+
+    // WARMUP cap — stop the batch once today's cold quota is used up (remaining
+    // leads stay 'scored' and get picked up on a later run).
+    if (await coldCapReached()) {
+      console.warn('[day1-outreach] daily cold-send cap reached — stopping batch early; remaining leads deferred.')
+      break
+    }
 
     // DO-NOT-CONTACT: never day-1 email anyone connected to the founder's employer.
     if (isSuppressed({ email: lead.email, company: lead.company })) continue

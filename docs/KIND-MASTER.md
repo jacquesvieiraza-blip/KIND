@@ -1953,6 +1953,15 @@ Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
 **Order:** Slices 1+2 = core "each rep autonomous" MVP (target ~26 Jun) · 3 (seats + request/approve) alongside · 4 right after.
 **⚠️ Prereq:** build on **staging**, not prod-with-a-live-client (set up staging first — the V2 staging prereq now applies here). Firm day-by-day + risk after the Fri 19 deploy gives a stable base.
 
+### 🪜 #89 — CONFIGURABLE CAMPAIGN SEQUENCES (client maps their own steps — founder 8 Jun, Alta steal)
+**Gap:** FIGSY runs a **hardcoded 3-step sequence** (Day 0 / 4 / 9, fixed `STEP_FOLLOWUP_DELAYS`). Not every campaign should be 3 touches — clients must define their own.
+**Define — a per-campaign sequence builder:**
+- **Step count:** 1 → N (single touch · 3-touch · 5-touch · break-up, etc.)
+- **Per step:** delay (days) · angle/intent (instruction to FIGSY) · channel (email now; LinkedIn/WhatsApp/voice later) · optional condition ("if no reply")
+- **Presets + custom:** pick a template or build from scratch — Alta does this well (configurable multi-channel sequences)
+**Current code:** `generateSequence` returns fixed step1/2/3 · delays in `STEP_FOLLOWUP_DELAYS` · `sendSequenceEmail(step 1|2|3)`. **Build = store a sequence definition per campaign (steps array) + generation + sending respect it.**
+**Ties to:** V2-4 (config panel) · #41 (conditional branching) · #51 (configurable triggers). **Status:** defined 8 Jun · ⬜ to build · slot with the campaign-UX / V2 work (not pre-launch). Define the detail before building.
+
 ## §5.5 — PLATFORM & DATA MOAT (#46, #64–70) · Month 3 → Year 2
 | Item | Size | Needs 🧍 |
 |------|------|---------|

@@ -40,6 +40,7 @@
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🔐🤖 **Admin audit + autonomous quick-wins (cracking on).** Hard-checked admin portal → fixed 3 🔴 critical issues (browser-exposed `NEXT_PUBLIC_ADMIN_KEY`, hardcoded demo backdoor, non-timing-safe key compare); logged remaining 🟠/🟢 in new "Admin Portal Hardening" section (founder owes one Railway env check). Also: stripped stale BUILD MARKER → dynamic commit-SHA (P-b), relabelled "Pipeline Value"→"Est. pipeline value" (C7). Confirmed deploy-pipeline task **already done** (daily-audit.yml no longer push-triggered — master item stale). Confirmed onboarding video content **is captured** (#29 + #21/#23). API typecheck clean, pushed.
 - **8 Jun:** 🗺️ **Implementation maps added.** V2 build-map (staging prereq, 5 phases A–E, effort sizes, deps, 4 open decisions) inserted into the V2 section (Ch.3). New **Chapter 5 — Implementation Maps** added with the same how/what-it-takes format for all other future workstreams: §5.1 Intelligence Layer · §5.2 Steals · §5.3 Agent Family (Denise deep) · §5.4 Pricing/Growth · §5.5 Platform/Data moat · §5.6 Year-2 enterprise. Each = when/gate · items · effort · founder inputs · deps · decisions. TOC updated.
 - **8 Jun:** 🔐 **TIER-0 rotation de-prioritised → Week 2.** Scanned repo + full git history (incl. 410 deleted chat logs): no `.env` committed, no real secret patterns — keys never exposed via repo. Flagged: master claimed "some pasted in chat" (unverifiable outside repo); recommended rotating the 2 crown-jewels (`STRIPE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) sooner — awaiting founder call. Today's founder list otherwise CLEAR (env vars set, warmup ready). Next pivot: V2 upgrade planning.
 - **8 Jun:** 📈 **Cap now auto-ramps by date.** Added `FIGSY_WARMUP_START` (YYYY-MM-DD) to `lib/figsy.ts` — cold cap auto-steps ≤10 (days 1–3) → 20 (day 4) → 30 → 40 → 50 (day 9+), no daily Railway edits. `FIGSY_COLD_DAILY_CAP` still works as a manual override. Founder sets `FIGSY_WARMUP_START=2026-06-09`. Schedule runtime-verified. Typecheck clean.
@@ -253,7 +254,7 @@ Owner: 🧍 Founder · 🤖 Claude · 🤝 Both
 |--------|------|-------|-----|
 | **#27** | Open 2 design-partner slots (case study + logo) | 🧍 | Social proof + revenue. |
 | **#28** | Cut social content from demo footage (9:16) | 🤖 | TikTok/Reels asset. |
-| **#29** | Record 3 onboarding Loom videos | 🧍 | Customer education. |
+| **#29** | **Onboarding VIDEO content** — 3 Looms (product walkthrough · per-agent setup · first campaign) | 🧍 | Customer education + anti-churn. Pairs with #21/#23 real demo, V2-10 Casey, #30 onboarding v2. |
 | **#30** | Onboarding v2 + day-0/3/7 email sequence | 🤖 | Reduce churn (Revio insight). |
 | **#31** | Populate proof block + homepage outcome numbers with REAL data (#62c) | 🤖 | No fabrication. Wait for first results. |
 | **#32** | Activate Flutterwave (needs key — ZAR/NGN/KES/GHS) | 🧍 | Africa-first revenue. |
@@ -1640,6 +1641,28 @@ activates Week 1. Remove the contradictory "never" lines from MASTER.md.
 13. **eu-west-1 stale note** → af-south-1
 14. **Admin cohort analytics "Built" vs "route doesn't exist"** → not built
 15. **15-step smoke test vs 57-step** → 57-step `docs/SMOKE_TEST.md`
+
+---
+
+# 🔐 ADMIN PORTAL HARDENING (security audit 8 Jun)
+Full hard-check of `apps/admin` + admin/internal API routes done 8 Jun.
+
+**✅ FIXED 8 Jun (committed):**
+- 🔴 **Browser-exposed admin secret** — removed `NEXT_PUBLIC_ADMIN_KEY` fallback from the admin proxy + the dead client-side key in `BriefSection` (the proxy injects the secret server-side). Was a full auth-bypass risk.
+- 🔴 **Hardcoded demo backdoor** — `/admin/setup-demo` no longer defaults to `demo@get-kind.com` / `KindDemo2025!`; now 400s without explicit creds.
+- 🔴 **Timing-safe admin-key compare** — `crypto.timingSafeEqual` in `admin.ts` + `internal.ts` (was plain `!==`).
+
+**🧍 FOUNDER (one-time, Railway):** on the **admin** service ensure `ADMIN_SECRET_KEY` is set, and **DELETE any `NEXT_PUBLIC_ADMIN_KEY`** variable if it exists (that var shipped the secret to browsers).
+
+**⬜ REMAINING (tracked, NOT launch-blocking):**
+| Sev | Finding | Fix | When |
+|-----|---------|-----|------|
+| 🟠 | Admin frontend uses `SUPABASE_SERVICE_ROLE_KEY` (bypasses RLS) across ~13 pages | Route admin DB through the API gateway, or a minimal-perms role | Wk 1–2 (refactor) |
+| 🟠 | No Zod validation on admin POST/PATCH (demos, credits, extend) | Add schemas (uuid, datetime, length caps) | Week 1 |
+| 🟠 | Credit grants (≤500) have no audit trail | Log granting admin + reason + recipient | Week 1 |
+| 🟢 | Proxy accepts all HTTP methods · hardcoded API base URL · demo-extend date unvalidated | method allowlist · env URL · future-date check | Week 2 |
+
+**✅ Solid:** every `/admin` + `/internal` route is behind the admin key · demo creation is isolated/transactional · credit grant hard-capped at 500 · "cohort analytics route missing" was a **false alarm** (route is fine).
 
 ---
 

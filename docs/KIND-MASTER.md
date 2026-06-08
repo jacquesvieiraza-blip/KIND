@@ -40,6 +40,7 @@
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🗺️ **Implementation maps added.** V2 build-map (staging prereq, 5 phases A–E, effort sizes, deps, 4 open decisions) inserted into the V2 section (Ch.3). New **Chapter 5 — Implementation Maps** added with the same how/what-it-takes format for all other future workstreams: §5.1 Intelligence Layer · §5.2 Steals · §5.3 Agent Family (Denise deep) · §5.4 Pricing/Growth · §5.5 Platform/Data moat · §5.6 Year-2 enterprise. Each = when/gate · items · effort · founder inputs · deps · decisions. TOC updated.
 - **8 Jun:** 🔐 **TIER-0 rotation de-prioritised → Week 2.** Scanned repo + full git history (incl. 410 deleted chat logs): no `.env` committed, no real secret patterns — keys never exposed via repo. Flagged: master claimed "some pasted in chat" (unverifiable outside repo); recommended rotating the 2 crown-jewels (`STRIPE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) sooner — awaiting founder call. Today's founder list otherwise CLEAR (env vars set, warmup ready). Next pivot: V2 upgrade planning.
 - **8 Jun:** 📈 **Cap now auto-ramps by date.** Added `FIGSY_WARMUP_START` (YYYY-MM-DD) to `lib/figsy.ts` — cold cap auto-steps ≤10 (days 1–3) → 20 (day 4) → 30 → 40 → 50 (day 9+), no daily Railway edits. `FIGSY_COLD_DAILY_CAP` still works as a manual override. Founder sets `FIGSY_WARMUP_START=2026-06-09`. Schedule runtime-verified. Typecheck clean.
 - **8 Jun:** 🚦 **Warmup cap wired + cold-domain = API-only.** Added env-controlled `FIGSY_COLD_DAILY_CAP` to `lib/figsy.ts` — caps cold sends per UTC day at both chokepoints (`sendSequenceEmail` + day-1 batch); over-cap sends are deferred (enrollment stays due, retries next cron), never dropped. Unset/0 = no cap (unchanged default). Founder chose **API-only** for `gettingkind.com` (no Google Workspace/Zoho mailbox — replies arrive in portal Unibox via inbound webhook). Typecheck clean.
@@ -62,6 +63,7 @@
 - **CHAPTER 2 — DAILY ACTION PLAN** (Mon 8 → Fri 19, day-by-day, owner-by-owner)
 - **CHAPTER 3 — ALL 96 BUILDS** (every item #1–96, timeline, owner, status, gates)
 - **CHAPTER 4 — OPERATIONS, LEGAL, INFRA & BUILT INVENTORY** (4 legal rings, staging, recurring ops, blocked-on-creds, full inventory, financials)
+- **CHAPTER 5 — IMPLEMENTATION MAPS** (how/what-it-takes for every future workstream: Intelligence, Steals, Agent Family, Pricing/Growth, Platform/Data, Year-2 — V2's map lives in Ch.3)
 
 ---
 
@@ -1022,6 +1024,29 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 
 **MONTH 2 TOTAL:** 38 items (Intelligence 18 + MCP 1 + V2 17 + Forms/Integrations 2).
 
+#### 🏗️ V2 IMPLEMENTATION MAP — how we actually build it
+> Not starting from zero: a V2 design doc (`docs/portal-v2-layout.md`), a `(v2)/v2`
+> route scaffold, and a `FEATURE_PORTAL_V2` flag already exist. Effort: S≈1d, M≈2–3d, L≈4–5d.
+> 🤖 = Claude builds the code · 🧍 = founder input/asset. **Same map format used for every
+> other future workstream in Chapter 5.**
+
+**⚠️ Hard prerequisite — STAGING ENV (before any V2 touches prod):** Supabase staging
+project + Railway staging services + a `staging` branch auto-deploying there. You can't
+rebuild the cockpit under live clients. ~1 day (🧍 provisions Supabase/Railway, 🤖 wires branch+deploy).
+
+| Phase | Items | Size | Needs from 🧍 |
+|-------|-------|------|--------------|
+| **A — Shell (unblocks all)** | V2-6 slim sidebar+header · V2-1 agent card grid · V2-12 strong dashboards | M·M·L | — |
+| **B — Wow/engagement** 🔴 | V2-2 thinking states · **V2-8 Milla notetaker→actions** · **V2-11 Vida bubble (deep)** | S·L·M | — |
+| **C — Onboarding (anti-churn)** | V2-10 Casey agent · V2-3 conversational setup · V2-4 config panel | M·M·M | **`casey.png` avatar** |
+| **D — Team & growth** 🔴 | V2-7 invite teammate · **V2-9 Teams Hub** | S·M | — |
+| **E — Integrations** 🔴 | **V2-13 multi-provider calendar (Outlook/Zoho OAuth)** · #83 Forms · #84 Integrations Hub | L·M·M | **OAuth app creds (MS/Zoho)** |
+| **(Month 3)** | V2-5 agent marketplace | M | — |
+
+**Build order:** A → B → C → D → E (Phase A unblocks everything). **~5–6 wks** at one focused agent = fits the Month-2 window.
+**Dependencies:** V2-3 needs V2-10 (Casey) · V2-9 needs V2-7 · everything needs the shell (A).
+**Open decisions (founder):** (1) dormant `/dashboard/v2` build — delete + rebuild fresh *(lean)* vs assess & build on it? (2) staging — provision now vs at the 10-client gate? (3) pull any V2 item forward to sharpen the launch demo (V2-1/V2-12 are high-visibility)? (4) sequencing — is A→E right, or Teams Hub first if chasing agencies?
+
 ---
 
 ## 📍 PHASE 4 — MONTH 3 (Late Aug – Sep, GATED: family build + margin data)
@@ -1662,6 +1687,89 @@ Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
 | MASTER.md cleanup (Part H) | Post-launch | After Fri 19 | 🤖 |
 | **the founder's employer scrub (safety)** | **Decided 8 Jun** | Buckets 1–2 before launch, bucket 3 = founder's call | 🤝 |
 | **US market launch** | **GATED** | Only after steady recurring African income | 🧍 |
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# CHAPTER 5 — IMPLEMENTATION MAPS (HOW WE BUILD THE FUTURE ROADMAP)
+# ═══════════════════════════════════════════════════════════════
+
+> The "what" is in Chapters 1–3. This is the **"how / what it takes."** Same format
+> for every workstream: **when/gate · items · phasing + effort (S≈1d · M≈2–3d · L≈4–5d) ·
+> what it takes (🧍 founder input/creds) · dependencies · decisions.** 🤖 = Claude builds.
+> **V2's own map lives in its section (Ch.3, Phase 3 → "V2 IMPLEMENTATION MAP").**
+>
+> **Cross-cutting prerequisites** (gate most of the below): ① **Staging env** (Month 2) ·
+> ② **#46 pgvector memory** (foundation for all learning/intelligence) · ③ **outcome-data
+> volume** (10+ clients for L2, 50+ for L4) · ④ **founder creds** (enrichment, Vapi,
+> Flutterwave, Clearbit, transcription). Build foundations before the features that need them.
+
+## §5.1 — INTELLIGENCE LAYER (#37–53, #59) · Month 2, gated 10+ clients
+*Makes FIGSY self-optimising. Prereq: staging + #46 pgvector.*
+
+| Sub-group | Items | Size | Needs 🧍 |
+|-----------|-------|------|---------|
+| Sending intelligence | #38 A/B subjects · #44 pre-send spam score · #45 adaptive volume *(partly built)* · #53 inbox rotation · #43 deliverability dashboard | M each | — |
+| Targeting intelligence | #37 intent signals · #40 ICP auto-refine (L2) · #42 waterfall enrichment | L·L·M | enrichment keys (PDL/Hunter/Clearbit); 10+ clients of data for L2 |
+| Workflow | #41 conditional branching · #51 configurable triggers · #52 multi-model toggle | M·M·S | — |
+| Context/memory | **#46 Memory v2 (pgvector)** *(foundational)* · #47 Milla CRM pull | L·M | HubSpot/Pipedrive read scope |
+| Voice (optional) | #48 Vapi calling | L | Vapi keys |
+| **Distribution** | **#59 MCP server** *(pulled fwd — free distribution)* | M | — |
+
+**Order:** #46 memory + #59 MCP + sending-intelligence first (foundation + ROI); #37/#40 need data → late-month.
+**Decision:** confirm #59 MCP as the first Month-2 build (distribution leverage).
+
+## §5.2 — COMPETITOR STEALS (#61, #62, #80–84) · Weeks 2–4 → Month 2
+*Tactical lifts from Atlas/Revio/Monday/ClickUp.*
+
+| Group | Items | Size | Needs 🧍 |
+|-------|-------|------|---------|
+| Messaging/ToS (Wk 2–4) | #61a/g guarantee clause · #61b "$20" anchor · #61c clone-yourself · #61d cold re-engagement · #62a "trained on closed-won" hook | S each | founder sign-off on guarantee/ToS |
+| Proof (GATED on real data) | #62c homepage outcome numbers | S | **real outcomes only — no fabrication** |
+| Coaching | #62b Revenue Playbook Session (onboarding) | M | ties to Casey (V2-10) |
+| Distribution | #61e influencer (Africa equiv only now) · #81 share-to-LinkedIn outcome loop · #82 partner-cert badge | 🧍·M·M | founder outreach |
+| Product surfaces (Month 2) | #80 speed-to-lead (Vida→FIGSY/Denise) · #83 Forms · #84 Integrations Hub | M each | — |
+
+**Decision:** legal sign-off on guarantee wording; which steals are Wk-2 quick wins vs Month-2.
+
+## §5.3 — AGENT FAMILY DEEP BUILDS (#54–58) · Month 3, gated (family + margin data)
+*The next agents after FIGSY. Build deep or don't ship.*
+
+| Item | Sub-builds / notes | Size | Needs 🧍 |
+|------|--------------------|------|---------|
+| **#54 DENISE (the #1)** | Calendly auto-book · call-join notetaker · live objection extraction · proposal-from-transcript · pipeline follow-up · persona · admin card | **L+ (~3–4 wks)** | **transcription provider (Recall.ai/Vapi)** · Calendly creds |
+| #55 LENA / #56 OTTO | broaden family, only once prior is solid | M–L each | — |
+| #57 orchestration | shared memory FIGSY→DENISE→Milla | L | depends on #46 memory |
+| #58 skill library | 500+ prompt skills, incremental | M | — |
+
+**Decision:** Denise scope (deep vs MVP — master says **deep or don't ship**); transcription vendor choice.
+
+## §5.4 — PRICING & GROWTH (#27, #33–36, #49–50, #60, #63) · Month 2–3
+| Item | Size | Needs 🧍 |
+|------|------|---------|
+| #60 outcome pricing (per meeting) — **GATED ≥28% gross margin** | L (billing+attribution rework) | margin data |
+| #49 Product Hunt (with proof) · #50 G2 (5 reviews) | M·S | 2–3 case studies · reviews |
+| #27 design partners · #63 pan-African partners | 🧍 | founder sales motion |
+| #33 Flutterwave (Africa payments) · #34 YouTube · #35 playbook email form | M·🧍·S | Flutterwave key · content |
+
+**Decision:** confirm 28%-margin gate for outcome pricing; PH timing (needs real proof first).
+
+## §5.5 — PLATFORM & DATA MOAT (#46, #64–70) · Month 3 → Year 2
+| Item | Size | Needs 🧍 |
+|------|------|---------|
+| **#64 cross-client intelligence (L4 benchmarks)** — the real long-term moat | L | 50+ clients data · **ethics/consent + legal review** |
+| #65 data licensing marketplace | L | Year 2 · ethics/legal gate |
+| #66 ICP refine L3 · #67 pipeline forecasting · #68 in-portal messaging · #69 proposal+e-sign · #70 meeting notetaker | M·M·M·M·L | #69/#70 tie to Denise |
+
+**Decision:** cross-client data ethics/consent model (legal) before any L4/licensing build.
+
+## §5.6 — YEAR 2: ENTERPRISE & COMPLIANCE (#71–79) · 2027
+| Item | Size | Needs 🧍 |
+|------|------|---------|
+| #71–74 ISO 27001 + ISO 42001 + SOC 2 Type II via Vanta | L (mostly process, not code) | **~£70k budget + auditor** |
+| #75 3-type memory · #76 visitor de-anon · #77 churn-risk · #78 revenue forecasting · #79 call intelligence | M·M·M·M·L | Clearbit key (#76); #79 after Denise notetaker |
+
+**Decision:** trigger to start certs (enterprise pipeline demand); budget timing.
 
 ---
 

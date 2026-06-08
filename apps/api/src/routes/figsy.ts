@@ -857,6 +857,9 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
 
     const { data: client } = await db.from('clients')
       .select('company_name, industry, booking_url').eq('id', clientId).maybeSingle()
+    // P-a: configurable sign-off name (guarded — null if column missing pre-migration).
+    const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
+    const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
     const { data: leads } = await db.from('leads')
       .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
@@ -885,7 +888,7 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
       if (existing) { skipped++; continue }
 
       try {
-        const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null)
+        const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
 
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,
@@ -937,9 +940,11 @@ figsyRouter.post('/campaigns/:id/preview-sequence', async (req: AuthRequest, res
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).maybeSingle()
+      .select('company_name, industry, booking_url').eq('id', clientId).maybeSingle()
+    const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
+    const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
-    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null)
+    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
     res.json({ success: true, data: draft })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

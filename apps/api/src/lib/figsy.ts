@@ -104,6 +104,7 @@ export async function generateSequence(
   senderIndustry: string | null,
   campaignIntent?: string,
   bookingUrl?: string | null,
+  senderName?: string | null,
 ): Promise<SequenceDraft> {
   // ── Signal detection — pick the best personalization hook ─────────────────
   const signals: string[] = []
@@ -158,7 +159,7 @@ Hard rules (violating any of these makes the email useless):
 - Don't make up facts about their company you don't know
 - Subject lines: 4–6 words, lowercase, no punctuation, no questions
 - End every email with: "Reply STOP to opt out."
-- Sign off with a real first name (pick a South African-sounding name that fits the sender's industry)
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent, shorten, or use any other name.` : '- Sign off with a real first name (pick a South African-sounding name that fits the sender\'s industry)'}
 ${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
 Use this to personalise the angle, pain point references, and geography signals in your emails.` : ''}
@@ -501,6 +502,7 @@ async function generateDay1Email(
   lead: Lead,
   senderCompany: string,
   senderIndustry: string | null,
+  senderName?: string | null,
 ): Promise<Day1Draft> {
   const prompt = `You are writing a cold email on behalf of ${senderCompany}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — someone who noticed this prospect and decided to reach out. Not templated. Not AI-sounding. Like someone who typed this in 90 seconds.
 
@@ -523,7 +525,7 @@ Rules:
 - No buzzwords: no "synergy", "leverage", "touch base", "game-changer", "revolutionary", "Hope this finds you well", "I wanted to reach out"
 - Don't mention AI or automation
 - Subject: 4–6 words, lowercase, no punctuation
-- Sign off with a real first name (South African-sounding, fits the industry)
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign off with a real first name (South African-sounding, fits the industry)'}
 - End with: "Reply STOP to opt out."
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`
@@ -558,6 +560,9 @@ export async function sendDay1OutreachBatch(
 ): Promise<void> {
   const { data: client } = await db.from('clients')
     .select('company_name, industry').eq('id', clientId).single()
+  // P-a: configurable sign-off name (guarded — null if column missing pre-migration).
+  const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
+  const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
   const { data: leads } = await db.from('leads')
     .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
@@ -581,7 +586,7 @@ export async function sendDay1OutreachBatch(
     if (blocked) continue
 
     try {
-      const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null)
+      const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null, senderName)
 
       if (resend) {
         await resend.emails.send({
@@ -653,9 +658,13 @@ export async function generateSequenceWithMemory(
   // Client booking link to offer leads (FIGSY's whole job is booking meetings).
   const { data: clientBooking } = await db.from('clients').select('booking_url').eq('id', clientId).maybeSingle()
   const bookingUrl: string | null = (clientBooking?.booking_url as string | null) ?? null
+  // P-a: configurable sign-off name. Separate guarded select so a missing column
+  // (pre-migration) returns null rather than breaking the booking_url read above.
+  const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
+  const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
   if (!memory || (memory.total_sent_all_time ?? 0) < 20) {
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName)
   }
 
   // P2-1: 3-type memory model
@@ -736,7 +745,7 @@ Hard rules:
 - Don't mention AI or automation
 - Subject: 4–6 words, lowercase, no punctuation
 - End every email: "Reply STOP to opt out."
-- Sign with a South African-sounding first name
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a South African-sounding first name'}
 
 Return ONLY valid JSON:
 {"step1":{"subject":"...","body":"..."},"step2":{"subject":"...","body":"..."},"step3":{"subject":"...","body":"..."}}`
@@ -754,7 +763,7 @@ Return ONLY valid JSON:
     return JSON.parse(stripJson(raw)) as SequenceDraft
   } catch {
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName)
   }
 }
 

@@ -34,12 +34,13 @@
 - **NEXT ACTIONS:**
   - ✅ 🤖 Claude: Deliverability code **D1–D5** DONE (new `lib/deliverability.ts` + `lib/figsy.ts` + `routes/figsy.ts` + `email.ts`). Detail: Chapter 2, Mon 8 (status rows updated).
   - ✅ 🧍 **Founder — Railway env vars SET (8 Jun): `FIGSY_COLD_FROM`, `FIGSY_COLD_REPLY_TO`, `FIGSY_WARMUP_START=2026-06-09`.** They activate on the Tue 9 deploy. (`TRACKING_URL` deferred until `api.get-kind.com` live.) Original list: **Cold domain = `gettingkind.com`** (Cloudflare DNS, Resend EU-west, verified 8 Jun — **API-only, no mailbox**; replies land in portal Unibox): set `FIGSY_COLD_FROM` = `K.I.N.D <hello@gettingkind.com>` · `FIGSY_COLD_REPLY_TO` = `hello@gettingkind.com` · `FIGSY_WARMUP_START` = `2026-06-09` (auto-ramps the cold cap by date: ≤10 days 1–3, 20 Fri 12, →50 by launch — no daily editing; optional `FIGSY_COLD_DAILY_CAP` overrides) · `TRACKING_URL` (branded tracking/api domain — **open-tracking stays OFF until set**) · optional `FIGSY_UNSUB_MAILTO`, `UNSUBSCRIBE_SECRET`. (Step 5 of the live walkthrough.)
-  - 🟡 🧍 Founder: **D6–D8 in progress** — ✅ cold domain bought (`gettingkind.com`, API-only) · ✅ SPF/DKIM/DMARC in Cloudflare + Resend **verified** · 🔄 **warmup clock STARTED 8 Jun** (ramp 5–10→30–50/day over 11 days, now **enforced** by `FIGSY_COLD_DAILY_CAP`) · ⬜ verify `API_URL` + get-kind.com auth. Then **#1 TIER-0 credential rotation**.
+  - 🟡 🧍 Founder: **D6–D8 in progress** — ✅ cold domain bought (`gettingkind.com`, API-only) · ✅ SPF/DKIM/DMARC in Cloudflare + Resend **verified** · 🔄 **warmup clock STARTED 8 Jun** (ramp 5–10→30–50/day over 11 days, now **enforced** by `FIGSY_COLD_DAILY_CAP`) · ⬜ verify `API_URL` + get-kind.com auth. **#1 credential rotation → DE-PRIORITISED to Week 2** (repo scan clean 8 Jun; 2 crown-jewels maybe sooner — see Ch.4, awaiting call).
   - 🤖 Claude: next code = Tue 9 batch (deploy D1–D5, strip BUILD MARKER P-b, CAL-min `booking_url`, P-a sign-as, delete dormant Portal-V2 #2, fix deploy pipeline).
 - **Smoke Test 1:** T2 ✅, T3 mostly ✅ (send + reply→🔥Hot verified). **Left:** T3-13 (pause→no send), T4, T5, T6, T7, and **T1 fresh signup (never run end-to-end)**. Full detail: Chapter 2 (Tue 9 / Wed 10) + Chapter 3 (#15).
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🔐 **TIER-0 rotation de-prioritised → Week 2.** Scanned repo + full git history (incl. 410 deleted chat logs): no `.env` committed, no real secret patterns — keys never exposed via repo. Flagged: master claimed "some pasted in chat" (unverifiable outside repo); recommended rotating the 2 crown-jewels (`STRIPE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) sooner — awaiting founder call. Today's founder list otherwise CLEAR (env vars set, warmup ready). Next pivot: V2 upgrade planning.
 - **8 Jun:** 📈 **Cap now auto-ramps by date.** Added `FIGSY_WARMUP_START` (YYYY-MM-DD) to `lib/figsy.ts` — cold cap auto-steps ≤10 (days 1–3) → 20 (day 4) → 30 → 40 → 50 (day 9+), no daily Railway edits. `FIGSY_COLD_DAILY_CAP` still works as a manual override. Founder sets `FIGSY_WARMUP_START=2026-06-09`. Schedule runtime-verified. Typecheck clean.
 - **8 Jun:** 🚦 **Warmup cap wired + cold-domain = API-only.** Added env-controlled `FIGSY_COLD_DAILY_CAP` to `lib/figsy.ts` — caps cold sends per UTC day at both chokepoints (`sendSequenceEmail` + day-1 batch); over-cap sends are deferred (enrollment stays due, retries next cron), never dropped. Unset/0 = no cap (unchanged default). Founder chose **API-only** for `gettingkind.com` (no Google Workspace/Zoho mailbox — replies arrive in portal Unibox via inbound webhook). Typecheck clean.
 - **8 Jun:** 📨 **Cold-domain deliverability infra LIVE.** Bought `gettingkind.com` (Cloudflare DNS). Added to Resend (EU-west): DKIM + SPF (send subdomain MX/TXT) + DMARC (`p=none`) all **Verified**; inbound MX (`@`) added (webhook wiring later). Planned env: `FIGSY_COLD_FROM`=`FIGSY <hello@gettingkind.com>`, `FIGSY_COLD_REPLY_TO`=`hello@gettingkind.com`. **Warmup clock started** (11-day ramp 5–10→30–50/day to Fri 19). Decision pending: API-only (recommended, replies → portal Unibox) vs real mailbox. Next: wiring an env-controlled daily cold-send cap to enforce the ramp.
@@ -1241,8 +1242,17 @@ This is a genuine moat — generalist competitors can't match the multi-jurisdic
 - **BCP (Business Continuity Plan)** — RTO 4h / RPO 24h / daily backups 30-day retention
 - **`docs/legal/it-security-pack.md`** exists
 
-### ⬜ OPEN — 🔴 TIER-0 CREDENTIAL ROTATION (Mon 8 → Tue 9 in daily plan)
-> These keys were exposed (some pasted in chat). Rotate ALL. Apollo ✅ already rotated 6 Jun.
+### 🟡 DE-PRIORITISED → WEEK 2 POST-LAUNCH — TIER-0 CREDENTIAL ROTATION
+> **Decision (8 Jun, founder):** de-prioritised to **Week 2 post-launch**.
+> **Repo scan (8 Jun):** no `.env` ever committed; **no real secret-key patterns** in the
+> current tree OR full git history (incl. the 410 now-deleted chat logs) — only `xxxxx`
+> placeholders. Keys are **not** exposed via the repo.
+> ⚠️ **Flag:** the original note below claimed "some pasted in chat." A repo scan can't see
+> chats *outside* the repo (live Claude.ai sessions, screenshots, shares). IF that happened,
+> the two crown-jewels warrant rotating sooner: **`STRIPE_SECRET_KEY`** (live payments) +
+> **`SUPABASE_SERVICE_ROLE_KEY`** (full DB access). Recommendation: rotate those two this week,
+> defer the rest to Week 2. **Awaiting founder call (rotate-2 vs all-Week-2).**
+> Apollo ✅ already rotated 6 Jun. Original "rotate ALL now" plan retained below for reference.
 
 | Key | Where | Priority |
 |-----|-------|----------|

@@ -100,6 +100,9 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       daily_drip_rate:   z.number().int().min(1).optional(),
       // Booking link (Calendly / Cal.com / Google) that FIGSY emails offer leads.
       booking_url:       z.string().url().optional().or(z.literal('')),
+      // P-a: exact name FIGSY signs outreach as. Activates after migration 012
+      // (clients.signer_name); the portal form must not send this until then.
+      signer_name:       z.string().max(120).optional().or(z.literal('')),
     }).parse(req.body)
     // Upsert: creates the row if none exists (partner accounts have no client row by default)
     const { data, error } = await db.from('clients')

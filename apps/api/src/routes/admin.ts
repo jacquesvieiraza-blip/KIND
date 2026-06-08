@@ -123,15 +123,23 @@ adminRouter.get('/demos', async (_req: Request, res: Response) => {
 // POST /admin/demos — create a new demo environment
 adminRouter.post('/demos', async (req: Request, res: Response) => {
   try {
-    const { prospect_name, company_name, industry, country, website_url, expires_at, created_by } = req.body as {
-      prospect_name: string; company_name: string; industry: string; country: string
-      website_url?: string; expires_at: string; created_by: string
-    }
-
-    if (!prospect_name || !company_name || !expires_at || !created_by) {
-      res.status(400).json({ success: false, error: 'prospect_name, company_name, expires_at, and created_by are required' })
+    const parsed = z.object({
+      prospect_name: z.string().min(1).max(200),
+      company_name:  z.string().min(1).max(200),
+      industry:      z.string().max(100).optional(),
+      country:       z.string().max(100).optional(),
+      website_url:   z.string().max(300).optional(),
+      expires_at:    z.string().refine(
+        s => !Number.isNaN(Date.parse(s)) && new Date(s) > new Date(),
+        'expires_at must be a valid future date',
+      ),
+      created_by:    z.string().min(1).max(200),
+    }).safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
       return
     }
+    const { prospect_name, company_name, industry, country, website_url, expires_at, created_by } = parsed.data
 
     // 1. Create auth user with random credentials (internal only — never shared with prospect)
     const randomSuffix = Math.random().toString(36).slice(2, 10)
@@ -236,8 +244,19 @@ adminRouter.post('/demos/:id/login', async (req: Request, res: Response) => {
 // PATCH /admin/demos/:id/extend — update expiry date
 adminRouter.patch('/demos/:id/extend', async (req: Request, res: Response) => {
   try {
-    const { expires_at } = req.body as { expires_at: string }
-    if (!expires_at) { res.status(400).json({ success: false, error: 'expires_at required' }); return }
+    if (!z.string().uuid().safeParse(req.params.id).success) {
+      res.status(400).json({ success: false, error: 'Invalid demo id' }); return
+    }
+    const parsed = z.object({
+      expires_at: z.string().refine(
+        s => !Number.isNaN(Date.parse(s)) && new Date(s) > new Date(),
+        'expires_at must be a valid future date',
+      ),
+    }).safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid expires_at' }); return
+    }
+    const { expires_at } = parsed.data
 
     await db.from('clients').update({ demo_expires_at: expires_at }).eq('id', req.params.id).eq('is_demo', true)
     await db.from('subscriptions').update({ current_period_end: expires_at, status: 'active' }).eq('client_id', req.params.id)
@@ -298,23 +317,37 @@ adminRouter.get('/clients/:id/credits', async (req: Request, res: Response) => {
 // POST /admin/clients/:id/credits — grant or deduct credits
 adminRouter.post('/clients/:id/credits', async (req: Request, res: Response) => {
   try {
-    const { amount, type, note } = req.body as { amount: number; type: 'manual_grant' | 'refund'; note?: string }
-    if (!amount || !type) { res.status(400).json({ success: false, error: 'amount and type are required' }); return }
-    if (!['manual_grant', 'refund'].includes(type)) {
-      res.status(400).json({ success: false, error: 'type must be manual_grant or refund' }); return
+    if (!z.string().uuid().safeParse(req.params.id).success) {
+      res.status(400).json({ success: false, error: 'Invalid client id' }); return
     }
-    // Hard cap on manual grants — prevents accidental 10,000-credit grants
-    if (amount > 500) { res.status(400).json({ success: false, error: 'Maximum manual grant is 500 credits. Use multiple grants if needed.' }); return }
+    const parsed = z.object({
+      amount: z.number().int().refine(n => n !== 0, 'amount must be a non-zero integer'),
+      type:   z.enum(['manual_grant', 'refund']),
+      note:   z.string().max(500).optional(),
+    }).safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' }); return
+    }
+    const { amount, type, note } = parsed.data
+    // Cap magnitude BOTH ways — a large negative could silently drain a balance.
+    if (Math.abs(amount) > 500) {
+      res.status(400).json({ success: false, error: 'Manual adjustments are capped at ±500 credits. Use multiple if needed.' }); return
+    }
 
     const { data: client, error: clientErr } = await db
       .from('clients').select('id, credit_balance').eq('id', req.params.id).single()
     if (clientErr || !client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const newBalance = (client.credit_balance ?? 0) + amount
+    // Audit trail — no per-admin identity behind the shared key, so stamp the
+    // action, time and source IP into the transaction note for traceability.
+    const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip || 'unknown'
+    const auditNote = `${note ? note + ' · ' : ''}[admin ${type} ${amount > 0 ? '+' : ''}${amount} @ ${new Date().toISOString()} from ${ip}]`
+
     const [, txRes] = await Promise.all([
       db.from('clients').update({ credit_balance: newBalance }).eq('id', req.params.id),
       db.from('credit_transactions').insert({
-        client_id: req.params.id, type, amount, note: note || null,
+        client_id: req.params.id, type, amount, note: auditNote,
       }).select('id').single(),
     ])
     if (txRes.error) throw txRes.error

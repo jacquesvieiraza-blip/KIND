@@ -613,6 +613,18 @@ export async function sendDay1OutreachBatch(
         body:          draft.body,
       })
 
+      // THE DATA FLOOR (#17b) — record the day-1 send in the canonical log too, so
+      // it's never invisible (the figsy_sent_emails insert above can fail pre-013).
+      void logOutcomeEvent({
+        client_id:     lead.client_id ?? clientId,
+        campaign_id:   null,
+        lead_id:       lead.id,
+        enrollment_id: null,
+        event_type:    'send',
+        channel:       'email',
+        payload:       { step: 1, subject: draft.subject, sent: !!resend, day1: true },
+      })
+
       // 'contacted' added via migration 20260525_fix_leads_status_and_figsy_memory.sql
       // If constraint not yet updated, fall back to 'scored' (non-destructive)
       const { error: statusErr } = await db.from('leads').update({ status: 'contacted' }).eq('id', lead.id)

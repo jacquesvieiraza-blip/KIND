@@ -83,6 +83,7 @@
 - ⬜ **OWED before any ✅:** Tue 9 deploy (merge + migrations 010/012/013 + env) → Smoke Tests T1–T7 → inbox test.
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 👥 **#86 multi-seat billing gap surfaced.** Founder: first client's 10 members should each pay ("multiple of 10"). Verified: `credit_balance` is **per-workspace (one shared wallet)** — no per-seat/per-member billing exists. Usage still scales (10 active members ≈ 10× credit burn ≈ 10× spend) but it's a shared pot, not guaranteed per-seat recurring. Logged as open commercial decision (#86): per-seat vs usage-only vs hybrid — resolve before quoting the client; NOT a deploy blocker (client starts on shared workspace).
 - **8 Jun:** 🔥 **First client + first partner (Nigeria) same day → day-and-night push to Fri 19.** Discovery: team-of-10 (`client_members` + `/team/invite`/accept) and partner onboarding (`routes/partners.ts`: apply→approve→auto-sandbox→`/dashboard/partner`→commissions) are **already built, just undeployed/untested**. Added smoke **T9 (team invites) + T10 (partner)**. Reframe: the bottleneck is purely the DEPLOY, not features — that's the night's #1 move. Updated bookmark to "kick off the deploy tonight."
 - **8 Jun:** 🔒 **LOCKED Design Principle #7 — deliverability is K.I.N.D's job, NEVER the client's.** Clients never warm a domain / touch DNS / see "spam filters" — it's invisible by design (founder felt the warmup confusion firsthand; SMB clients would churn on it). Today = Model A (all clients ride K.I.N.D's shared `gettingkind.com`, warm nothing). At scale = Model B (K.I.N.D auto-provisions + warms a dedicated per-client domain — better deliverability + their brand + isolated reputation = a moat). Per-client domain logic NOT built yet; logged as the deliverability architecture path. Added as Ch.1 Design Principle #7.
 - **8 Jun:** 📭 **Warmup decision = Option B (passive).** Founder (busy + stealth from employer — can't use personal network for seed inboxes, and `gettingkind.com` is API-only/no mailbox) chose **no manual warmup**. FIGSY's capped auto-ramp (10→50/day) + warm Resend shared IPs + perfect SPF/DKIM/DMARC warm the domain organically through real low-volume sends post-launch. Content is FIGSY-generated (personalised 3-email sequences from lead data + outreach angle), founder approves via the gated approval queue before send. Watch bounce/spam post-launch; add active warmup only if needed. (The earlier "daily Broadcast to friendly inboxes" plan is dropped.)
@@ -1859,6 +1860,13 @@ Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
 - Config home for the $20 constant: `apps/api/src/lib/stripe.ts`.
 - Ties to **#54 Denise deep build** (she's currently a thin add-on) and **#60 outcome pricing**.
 **Awaiting founder:** (1) approve Step-2 plan before any billing code; (2) **flat $20/proposal vs base (~$29) + $15/proposal** (revenue floor) — founder chose flat $20, can swap.
+
+### 👥 #86 — MULTI-SEAT / PER-MEMBER BILLING (open decision — surfaced 8 Jun by first 10-person client)
+**The gap:** `client_members` lets a workspace have N users (team-of-10 works), but **`credit_balance` is per-WORKSPACE (one shared wallet) — there is NO per-member/per-seat billing.** So a 10-person team is **not** billed 10× by default.
+- **Usage still scales:** 10 active members burn ~10× credits from the shared pool → client buys ~10× → ~10× revenue **via usage** (not seats).
+- **Founder intent:** "each member pays for leads → multiple of 10" = true per-seat/per-member billing → **NOT built** (model + code change).
+**Decision needed (commercial — before quoting the first client a price):** per-seat pricing (clean, guaranteed 10× recurring) **vs** usage-only (shared pot, scales with activity) **vs** hybrid (per-seat base + usage). Ties to #85 Denise pricing + overall pricing model.
+**Not a deploy blocker** — first client can start on the shared-workspace model tonight; resolve the model this week before pricing is locked. Claude to prep options (discovery-first, like #85).
 
 ## §5.5 — PLATFORM & DATA MOAT (#46, #64–70) · Month 3 → Year 2
 | Item | Size | Needs 🧍 |

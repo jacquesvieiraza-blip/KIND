@@ -24,6 +24,11 @@
 > **This block is the cold-start handoff.** Any new chat/session must read this to know exactly
 > where we are. **Keep it current** — update it at the end of every working session before commit.
 
+- **🔖 BOOKMARK — RESUME 9 JUN (kick-off point):** End of an 8 Jun build session. Everything is committed + pushed to `claude/kind-carson-MYhSl` (latest doc commit logs the deploy runbooks). **Nothing deployed yet (all 🔨).** **TOMORROW WE KICK OFF THE DEPLOY.** Start here →
+>   1. Founder runs **`docs/DEPLOY-CHECKLIST.md`** §0 (migrations 010/012/013 + env vars — most env already set; main gaps: `ADMIN_SECRET_KEY` on admin service + delete `NEXT_PUBLIC_ADMIN_KEY`).
+>   2. Tell Claude "go" → 🤖 merges `claude/kind-carson-MYhSl` → `main` (clean fast-forward) → Railway deploys.
+>   3. Run **`docs/SMOKE_TEST.md`** T1–T8 → log fails as `T#-Step#` → Claude fixes → re-run → green = ✅.
+>   - Open decisions parked: dormant `/dashboard/v2` (delete vs build-on) · 2 crown-jewel key rotation (rotate-now vs Week-2). Daily warmup Broadcast continues (Day 2).
 - **Today / baseline:** Sprint **active — Mon 8 Jun 2026**. 11-day countdown to **Fri 19 Jun** launch.
 - **⚠️ CANONICAL BRANCH = `claude/kind-carson-MYhSl`.** Code + this master now live together here (consolidated 8 Jun). The older copy on `claude/ai-business-roadmap-U3OWJ` is stale — read/update HERE, merge that branch in if needed.
 - **🌍 STRATEGY DECISION (8 Jun) — AFRICA-FIRST, US DEFERRED.** Launch and operate **Africa-only** to start. Rationale: (1) steer clear of the US/global competitor cluster (Atlas/Revio/Monday/ClickUp) and play where our POPIA/African-data moat is strongest; (2) reduce exposure to the founder's employer (the founder's employer) conflict-of-interest surface. **US (and other non-African markets) are GATED — only revisit once we have steady recurring African income.** Every "SA + US" / "US equiv" / "US Month 2" item in this doc is hereby **deferred to the US-gate**, not pre-launch scope.

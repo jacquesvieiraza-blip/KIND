@@ -1825,6 +1825,20 @@ Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
 
 **Decision:** confirm 28%-margin gate for outcome pricing; PH timing (needs real proof first).
 
+### 💵 #85 — DENISE PER-PROPOSAL PRICING ($99 flat → $20/proposal usage-based)
+**Status (8 Jun): Step-1 DISCOVERY DONE · Step-2 plan + Step-3 build AWAIT FOUNDER APPROVAL. NO billing code written.** Discovery-first, approval-before-billing discipline (founder brief).
+**Billable event:** each *unique* proposal Denise generates (NOT leads, NOT closed-won — closed-won out of scope; add a stubbed `marked_won` flag only). **Price = $20/proposal**, stored as ONE config constant.
+**Discovery findings (verified in repo):**
+- ✅ **Meterable:** proposals are generated **server-side** — `lib/denise.ts:draftProposal()` ← `POST /denise/draft-proposal`, stored in `denise_drafts` (kind='proposal'). We can meter the generation.
+- 🔴 **Dedup gap:** `denise_drafts` has **no stable proposal/opportunity id** — every generation inserts a NEW row, so regenerations of the SAME proposal are indistinguishable from new ones. The brief requires dedup on a stable `proposal_id` → **needs a schema change** (introduce an opportunity/proposal ref, or link drafts to the separate `proposals` table which *does* have stable ids + e-sign).
+- **Two proposal concepts** exist: `denise_drafts` (AI outlines — the billable thing) vs `proposals` (manual formal docs for e-sign, `routes/proposals.ts`). Must not conflate.
+- **No metered billing exists yet** — Milla/Vida/Denise are flat subs (`lib/stripe.ts STRIPE_SUBSCRIPTIONS`, denise `priceUsd: 99`). Stripe metered would be net-new.
+- 💡 **K.I.N.D already has a usage mechanism:** the credits wallet (`credit_transactions`, debit-on-delivery, idempotent, audit trail). **Plan should weigh Stripe-metered (per brief) vs reusing the existing credit-debit infra** (simpler, already idempotent).
+- ⚠️ Trial: a 14-day trial exists (welcome flow) but not found in billing — confirm where it's tracked for the "trial proposals free/capped" rule.
+- Config home for the $20 constant: `apps/api/src/lib/stripe.ts`.
+- Ties to **#54 Denise deep build** (she's currently a thin add-on) and **#60 outcome pricing**.
+**Awaiting founder:** (1) approve Step-2 plan before any billing code; (2) **flat $20/proposal vs base (~$29) + $15/proposal** (revenue floor) — founder chose flat $20, can swap.
+
 ## §5.5 — PLATFORM & DATA MOAT (#46, #64–70) · Month 3 → Year 2
 | Item | Size | Needs 🧍 |
 |------|------|---------|

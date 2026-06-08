@@ -380,6 +380,7 @@ export default function ICPPage() {
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState<ICPFormData>(emptyForm())
   const [saved, setSaved] = useState(false)
   const [showSavedBanner, setShowSavedBanner] = useState(false)
@@ -532,6 +533,14 @@ export default function ICPPage() {
     setPrefillNotice(false)
     setShowForm(true)
   }
+
+  // The form renders below the ICP card list, so opening it (New or Edit) needs to
+  // scroll it into view — otherwise an Edit click looks like nothing happened.
+  useEffect(() => {
+    if (showForm) {
+      requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    }
+  }, [showForm, editingId])
 
   async function runIcp(icpId: string) {
     if (!token) return
@@ -900,7 +909,7 @@ export default function ICPPage() {
 
         {/* Form */}
         {showForm && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6 space-y-6">
+          <div ref={formRef} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">{editingId ? 'Edit ICP' : 'New ICP'}</h3>
               <button type="button" onClick={handleAiSuggest} disabled={aiSuggesting}

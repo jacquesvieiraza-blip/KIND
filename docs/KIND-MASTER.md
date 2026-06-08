@@ -1889,9 +1889,10 @@ Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
 |-------|------|---------|------|
 | **1. Per-rep identity** | move calendar OAuth + `booking_url` + `signer_name`/sending identity from `clients` → `client_members`; each rep connects own calendar | 007 calendar cols, `routes/calendar.ts`, `figsy.ts` signer/booking reads | M–L |
 | **2. Per-rep ownership** | add `owner_member_id` to `leads` + `figsy_campaigns`; each rep's FIGSY works their own leads/campaigns; route each reply/booking to the owning rep | `leads`, `figsy_campaigns`, `figsy.ts`, `routes/figsy.ts`, reply webhook | L |
-| **3. Seat-quantity billing** | company buys N FIGSY seats = N× on ONE company invoice (Stripe quantity) | `lib/stripe.ts`, subscriptions | M |
-| **4. Owner rollup dashboard** | company admin sees all reps · their leads · performance | portal dashboard, new aggregate endpoints | M (Phase 2) |
-**Order:** Slices 1+2 are the core "each rep autonomous" MVP (target ~26 Jun) · 3 alongside · 4 right after.
+| **3. Seat billing + budget control (the "Smartsheet/Claude" model — LOCKED 8 Jun)** | Company = one account + one payment, **owns the budget pool**. Each seat = its own FIGSY + its own **per-seat credit allocation**. Rep runs low → **requests more credits** → owner **approves/denies** (allocates from company pool). Company tops up pool with one payment. | `lib/stripe.ts`, per-member credit balances, NEW request/approval table + endpoints + admin UI | M–L |
+| **4. Owner command centre** | company admin sees all reps · their usage · leads · performance · **pending credit requests** to approve/deny | portal dashboard, new aggregate endpoints | M (Phase 2) |
+**Usage & budget model (locked):** mirrors how an enterprise uses Claude — company license, per-seat, **request-more-on-approval**. Admin controls the purse; reps run autonomously within their allocation; centralised visibility + approval.
+**Order:** Slices 1+2 = core "each rep autonomous" MVP (target ~26 Jun) · 3 (seats + request/approve) alongside · 4 right after.
 **⚠️ Prereq:** build on **staging**, not prod-with-a-live-client (set up staging first — the V2 staging prereq now applies here). Firm day-by-day + risk after the Fri 19 deploy gives a stable base.
 
 ## §5.5 — PLATFORM & DATA MOAT (#46, #64–70) · Month 3 → Year 2

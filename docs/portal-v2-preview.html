@@ -813,8 +813,111 @@
   <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">Per the research verdict: pure flat per-seat is declining — <b>hybrid (seat + usage you control)</b> is the durable model, and avoids the per-seat churn trap. This request/approve loop is that model, made visible.</p>
 </div>
 
+<!-- ─────────────────────────────────────── -->
+<!-- 14. SEQUENCE BUILDER (#89) -->
+<!-- ─────────────────────────────────────── -->
+<div class="preview-section">
+  <div class="section-label">Campaign · #89</div>
+  <div class="section-title">Sequence Builder — templates → a visual tree</div>
+  <div class="section-sub">Today FIGSY runs a fixed 3-step (Day 0/4/9). #89 = two layers, modelled on Alta's Touch Points: <b>(1) start from a template</b> by use-case, <b>(2) edit a visual branching tree</b> — multi-channel, conditions, wait steps, and assignable per rep.</div>
+
+  <!-- A. TEMPLATE GALLERY -->
+  <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#9B8EC4;margin-bottom:10px;">1 · Choose a template</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px;">
+    <div style="background:#fff;border:2px solid #7C3AED;border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(124,58,237,.10);">
+      <div style="width:30px;height:30px;border-radius:8px;background:#f3eeff;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;">✨</div>
+      <div style="font-size:12.5px;font-weight:800;color:#1a1a2e;">AI Magic <span style="font-size:9px;font-weight:700;color:#16a34a;background:#ecfdf5;padding:1px 6px;border-radius:100px;">Beta</span></div>
+      <div style="font-size:10.5px;color:#9B8EC4;margin-top:1px;">AI-powered, adapts as it goes</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:12px;">
+      <div style="width:30px;height:30px;border-radius:8px;background:#f3eeff;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;">📧</div>
+      <div style="font-size:12.5px;font-weight:800;color:#1a1a2e;">Email only</div>
+      <div style="font-size:10.5px;color:#9B8EC4;margin-top:1px;">Outbound</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:12px;">
+      <div style="width:30px;height:30px;border-radius:8px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;">🔗</div>
+      <div style="font-size:12.5px;font-weight:800;color:#1a1a2e;">LinkedIn only</div>
+      <div style="font-size:10.5px;color:#9B8EC4;margin-top:1px;">Outbound</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:12px;">
+      <div style="width:30px;height:30px;border-radius:8px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;">🔀</div>
+      <div style="font-size:12.5px;font-weight:800;color:#1a1a2e;">Omni-channel</div>
+      <div style="font-size:10.5px;color:#9B8EC4;margin-top:1px;">Email + LinkedIn + more</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:12px;">
+      <div style="width:30px;height:30px;border-radius:8px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;">📥</div>
+      <div style="font-size:12.5px;font-weight:800;color:#1a1a2e;">Inbound form</div>
+      <div style="font-size:10.5px;color:#9B8EC4;margin-top:1px;">They filled a form</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:12px;">
+      <div style="width:30px;height:30px;border-radius:8px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;">📅</div>
+      <div style="font-size:12.5px;font-weight:800;color:#1a1a2e;">Event-driven</div>
+      <div style="font-size:10.5px;color:#9B8EC4;margin-top:1px;">Before / after an event</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:12px;">
+      <div style="width:30px;height:30px;border-radius:8px;background:#eff8ff;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;">📊</div>
+      <div style="font-size:12.5px;font-weight:800;color:#1a1a2e;">Social signals</div>
+      <div style="font-size:10.5px;color:#9B8EC4;margin-top:1px;">Engaged on LinkedIn</div>
+    </div>
+    <div style="background:#faf9ff;border:1.5px dashed #c4b5fd;border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#7C3AED;">
+      <div style="font-size:20px;font-weight:800;line-height:1;">+</div>
+      <div style="font-size:12px;font-weight:700;margin-top:4px;">Start from scratch</div>
+    </div>
+  </div>
+
+  <!-- B. BUILDER: tree + action library -->
+  <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#9B8EC4;margin-bottom:10px;">2 · Edit the visual tree</div>
+  <div style="display:grid;grid-template-columns:1.55fr .85fr;gap:16px;align-items:start;">
+    <!-- TREE -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:12px 14px;box-shadow:0 6px 22px rgba(124,58,237,.05);">
+        <div style="font-size:12px;font-weight:700;color:#7C3AED;background:#f3eeff;padding:5px 10px;border-radius:8px;">📧 Send email</div>
+        <div style="flex:1;font-size:13px;color:#1a1a2e;">Intro + specific observation</div>
+        <div style="color:#c4b5fd;font-size:16px;cursor:grab;">⋮⋮</div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:#9B8EC4;">⏱ wait 1 day ↓</div>
+      <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:12px 14px;box-shadow:0 6px 22px rgba(124,58,237,.05);">
+        <div style="font-size:12px;font-weight:700;color:#4f46e5;background:#eef2ff;padding:5px 10px;border-radius:8px;">🔗 LinkedIn · connect</div>
+        <div style="flex:1;font-size:13px;color:#1a1a2e;">Connection request</div>
+        <div style="color:#c4b5fd;font-size:16px;cursor:grab;">⋮⋮</div>
+      </div>
+      <!-- branch -->
+      <div style="display:flex;gap:10px;margin-top:2px;">
+        <div style="flex:1;">
+          <div style="text-align:center;font-size:10px;font-weight:800;color:#16a34a;background:#ecfdf5;border-radius:100px;padding:3px;margin-bottom:6px;">✓ CONNECTED</div>
+          <div style="background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#1a1a2e;">🔗 LinkedIn message</div>
+        </div>
+        <div style="flex:1;">
+          <div style="text-align:center;font-size:10px;font-weight:800;color:#ea6a3a;background:#fff1ea;border-radius:100px;padding:3px;margin-bottom:6px;">✗ NOT CONNECTED</div>
+          <div style="background:#fff;border:1px solid #ede9fe;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#1a1a2e;">📧 Follow-up email</div>
+        </div>
+      </div>
+      <button style="margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;background:#faf9ff;border:1.5px dashed #c4b5fd;border-radius:12px;padding:11px;color:#7C3AED;font-size:13px;font-weight:700;cursor:pointer;">+ Add step / branch</button>
+    </div>
+    <!-- ACTION LIBRARY -->
+    <div style="background:#fff;border:1px solid #ede9fe;border-radius:14px;padding:14px 16px;box-shadow:0 6px 22px rgba(124,58,237,.05);">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9B8EC4;margin-bottom:8px;">Actions</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:#1a1a2e;font-weight:600;">
+        <div>📧 Email</div>
+        <div>🔗 LinkedIn <span style="color:#9B8EC4;font-size:10px;">connect · message · like · view · voice</span></div>
+        <div>📞 Call</div>
+        <div>💬 SMS <span style="font-size:9px;color:#16a34a;background:#ecfdf5;padding:1px 5px;border-radius:100px;">Beta</span></div>
+        <div>🟢 WhatsApp</div>
+        <div>✅ Manual task</div>
+        <div>🔌 API Connect</div>
+      </div>
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#9B8EC4;margin:14px 0 8px;">Conditions</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:#1a1a2e;font-weight:600;">
+        <div>🔗 Is connected</div>
+        <div>🔀 Branch / condition</div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#9B8EC4;margin-top:14px;">FIGSY writes &amp; runs every step in the rep's voice, waits each delay, branches on the condition, and stops the instant they reply. Replaces the hardcoded 3-step (#89). <b>Email is live; other channels light up as they ship.</b></p>
+</div>
+
 <div style="padding:32px 40px;text-align:center;color:#9B8EC4;font-size:12px;border-top:1px solid #ede9fe;background:#fff;">
-  K.I.N.D Portal V2 — concepts · §11–13 = the per-rep / company model (#88, expansion-critical) · Not live code
+  K.I.N.D Portal V2 — concepts · §11–13 = per-rep / company model (#88) · §14 = sequence builder (#89) · Not live code
 </div>
 
 </body>

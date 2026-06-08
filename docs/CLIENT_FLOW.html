@@ -142,6 +142,32 @@ flowchart LR
     </div>
     <div class="keys"><span><b>Green</b> = live today</span><span><b>Dashed grey</b> = coming soon (WhatsApp = Meta approval · Voice = Vapi keys · LinkedIn = queued)</span></div>
 
+    <div class="sec-h"><h2>The sequence builder — your steps, not ours</h2><span>#89 · a visual tree, like Alta's Touch Points</span></div>
+    <div class="panel">
+      <pre class="mermaid">
+flowchart TD
+    T(["New campaign · pick reps + template"]):::start --> S1["📧 Send email"]:::figsy
+    S1 --> W["⏱ Wait 1 day"]:::seat
+    W --> LI["in LinkedIn · connection request"]:::figsy
+    LI --> C{"Connected?"}:::seat
+    C -->|"Connected"| MSG["in LinkedIn · message"]:::figsy
+    C -->|"Not connected"| E2["📧 Follow-up email"]:::figsy
+    MSG --> R{"Replied?"}:::seat
+    E2 --> R
+    R -->|"Yes"| BOOK["💰 Meeting booked → Denise"]:::win
+    R -->|"No"| BYE["📧 Break-up note · then stop"]:::figsy
+
+    LIB["🧰 Drop in any action / condition:<br/>Email · LinkedIn (connect · message · like · voice) ·<br/>Call · SMS · WhatsApp · Manual task · API Connect<br/>· <b>branches &amp; conditions</b>"]:::lib -. drag onto the tree .-> T
+
+    classDef start fill:#ede9fe,stroke:#7C3AED,color:#1E1152,font-weight:bold;
+    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
+    classDef seat fill:#eef2ff,stroke:#4f46e5,color:#312e81;
+    classDef lib fill:#fffaf0,stroke:#d97706,color:#92400e;
+    classDef win fill:#1E1152,stroke:#7C3AED,color:#fff,font-weight:bold;
+      </pre>
+    </div>
+    <div class="keys"><span><b>Today:</b> fixed 3-step email (Day 0·4·9)</span><span><b>#89:</b> a <b>visual branching tree</b> — multi-channel, conditions, wait steps, presets (Alta-style), assignable per rep</span></div>
+
     <div class="sec-h"><h2>Denise — the power curve</h2><span>does more · gets sharper · gets paid on results</span></div>
     <div class="panel">
       <pre class="mermaid">

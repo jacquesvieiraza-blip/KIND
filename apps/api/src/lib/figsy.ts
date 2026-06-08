@@ -27,13 +27,32 @@ if (!process.env.ANTHROPIC_API_KEY) {
 }
 
 // ── WARMUP: daily cold-send cap ──────────────────────────────────────────────
-// Enforces the domain warmup ramp so cold volume can't accidentally spike.
-// FIGSY_COLD_DAILY_CAP = max cold emails per UTC day. Unset or 0 = no cap (default,
-// unchanged behaviour). When the cap is hit, sends are DEFERRED (enrollment stays
-// due and retries next cron run), never dropped.
+// Enforces the domain warmup ramp so cold volume can't accidentally spike. When
+// the cap is hit, sends are DEFERRED (enrollment stays due and retries next cron
+// run), never dropped.
+//
+// Two ways to configure (explicit override wins):
+//   • FIGSY_COLD_DAILY_CAP — a fixed max cold emails per UTC day. Unset/0 = ignore.
+//   • FIGSY_WARMUP_START   — a YYYY-MM-DD date; the cap then AUTO-RAMPS by day:
+//        day ≤3 → 10 · day 4 → 20 · day 5–6 → 30 · day 7–8 → 40 · day 9+ → 50.
+//        (Mirrors the gettingkind.com warmup plan; day 1 = the start date.)
+// If neither is set → no cap (unchanged default behaviour).
+function autoRampCap(startStr: string): number | null {
+  const start = Date.parse(`${startStr}T00:00:00Z`)
+  if (!Number.isFinite(start)) return null
+  const day = Math.floor((Date.now() - start) / 86_400_000) + 1 // day 1 = start date
+  if (day <= 3) return 10   // includes pre-start days
+  if (day === 4) return 20
+  if (day <= 6) return 30
+  if (day <= 8) return 40
+  return 50                  // warmup complete → steady 50/day ceiling
+}
+
 function coldDailyCap(): number | null {
-  const v = parseInt(process.env.FIGSY_COLD_DAILY_CAP ?? '', 10)
-  return Number.isFinite(v) && v > 0 ? v : null
+  const explicit = parseInt(process.env.FIGSY_COLD_DAILY_CAP ?? '', 10)
+  if (Number.isFinite(explicit) && explicit > 0) return explicit
+  const start = process.env.FIGSY_WARMUP_START
+  return start ? autoRampCap(start) : null
 }
 
 async function coldCapReached(): Promise<boolean> {

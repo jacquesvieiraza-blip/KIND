@@ -97,7 +97,7 @@
 
 **⑤ MONTH 2+ (gated 10+ clients) — INTELLIGENCE + GROWTH.** Intelligence layer #37–53 · **MCP #59** (distribution) · Product Hunt/G2. (Ch.5 §5.1, §5.4.)
 
-**⑥ MONTH 3+ — AGENT FAMILY + PRICING.** Denise deep build #54 + **per-proposal pricing #85** · Lena/Otto · outcome pricing #60. (Ch.5 §5.3–5.4.)
+**⑥ MONTH 3+ — AGENT FAMILY + PRICING.** Denise deep build #54 + **per-proposal pricing #85** · Lena/Tony · outcome pricing #60. (Ch.5 §5.3–5.4.)
 
 **↔ PARALLEL / ONGOING:** Week-1 GTM (#19–28) · admin RLS refactor (Wk 1–2) · legal rings · deliverability monitoring · the 2 crown-jewel key rotation.
 
@@ -143,6 +143,7 @@
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun (late):** 👔 **🔒 RENAMED the operations agent OTTO → TONY, after the founder's father.** #56 (was OTTO) = **TONY — The Operations agent**: closes the operations loop behind the revenue agents (pipeline hygiene, handoffs, CRM cleanliness, follow-through, back-office). Beautiful family symmetry now locked: **DENISE** = founder's *mother* (the closer, warm relationship-seller) · **TONY** = founder's *father* (the steady operator who makes sure everything gets done). Renamed across master (#56 rows, roadmap ⑥, decisions, Ch.5). Still Month 3, builds after LENA. **LENA (#55) function still UNDEFINED** — reserved name/slot only ("broadens family"); the open lane is post-sale Customer Success / retention / expansion (Alta's CS column) — founder to decide.
 - **8 Jun (late):** 📞 **🔒 DECIDED — DENISE owns VOICE (Vapi) + WhatsApp closing; she's "the goer". Corrected my error: we DO have a calling agent.** I'd wrongly said we have no calling capability — we do, it's just not switched on. **Built but inactive:** Vapi voice (`lib/vapi.ts` + `routes/voice.ts` + `figsy_calls` table — create/webhook/transcript/outcomes) and WhatsApp send (`lib/whatsapp.ts` text+template via Meta Cloud API + Vida inbound). Both gated on unset env (`VAPI_API_KEY`, `WHATSAPP_TOKEN`). The Vapi voice was labelled **FIGSY's** (post-email follow-up caller); **Denise is text-only today** (`draftFollowUp`/`draftProposal`). **Founder's call: Denise = the closer = she owns the phone.** Clean split locked → **FIGSY** = SDR (finds/qualifies/books, email+LinkedIn+WhatsApp outreach); **DENISE** = closer (Vapi calls + WhatsApp to confirm/handle objections/close). Consequence: **we do NOT need a separate "Alex" agent** — our family already maps cleaner than Alta's: Katie→FIGSY · Alex(calling)→**DENISE** · Luna→Milla · lead-magnet→Vida. Action: re-attribute Vapi voice FIGSY→Denise inside the #54 Denise deep build (Month 3); WhatsApp = shared channel. Updated #48 rows accordingly.
 - **8 Jun (late):** 🕵️ **FULL ALTA DECK + DEMO TRANSCRIPT mined (29-pg deck + 26-min call).** Biggest competitive intel drop yet. **① The augment-vs-replace VERDICT got hard real-world proof (#8):** Alta's *deck* claims 4X meetings / 15% win / 150% pipeline, but the rep's *live* numbers told the truth — UK LinkedIn 6,538→87 replies(~2.2%)→**12 meetings**; "Deal" event 3,387→50 replies(~1.5%); Netherlands 29 replies→7 meetings; 158 mtgs/90d total. The #1 "AI Revenue Workforce" on full autopilot books **~0.18% of contacted** on cold LinkedIn. And they run themselves as *"12 AEs, NO BDRs/SDRs, the tool does everything"* — the literal REPLACE model we rejected. Cold autonomous volume converts thin → per-rep human-augmented relationship is where meetings come from. **② Architecture map:** Katie (AI SDR)=our FIGSY ✅ · Alex (AI Calling, "flows not campaigns / lists not prospects", inbound+outbound calls, demos, routing, renewal reminders)=GAP we don't have, possible future agent · Luna (AI RevOps brain, Salesforce sync + ICP recs + strategy→execution→measure→learn loop)=our owner Command Centre/Milla. **③ New steals (beyond the 7 screenshots):** (a) ENRICHMENT WATERFALL — 50+ sources fallback cascade (Apollo·ZoomInfo·PeopleDataLabs·FullEnrich·EXA); we're Apollo-only → data-depth gap to note. (b) TRAIN-AGENT fields sharpen §18: pitch·pain points·value props·**proof points**·signals·do-not-contact(CRM+unsub)·**context**(one-pagers/white-papers/use-cases)·global messaging rules·**per-rep example emails** for tone. (c) COPILOT vs AUTOPILOT + Reply Assistant — copilot="waiting for review" approve/reject each step → maps to our #88 usage approve/deny. (d) ENTERPRISE SECURITY checklist (their upmarket moat / our future roadmap): SOC2 Type 2·ISO 27001·GDPR·SSO Okta/Azure/SAML·single-tenant warehouse. (e) Positioning line: "#1 Data-Driven AI Revenue Workforce", ex-monday.com team (BigBrain), "first Sales-focused LLM". Smartsheet refs in the transcript = founder's cover story on the call, ignored. **TODO (not tonight):** fold proof-points + context-upload + example-emails into §18 visual; note 50-source waterfall + SOC2 as upmarket roadmap items; decide if an Alex-style calling agent joins the family.
 - **8 Jun (late):** 🎯 **Founder set the target: V2 LIVE BY MONTH END (30 Jun) + chose scope = "Per-rep + company OS."** Completed the V2 mockup deck — added **§17 Performance funnel** (Contacted→Opened→Replied→Positive→Booked + per-rep leaderboard, rolls each rep up to the company #88) and **§18 Train FIGSY** (Alta's "Train Katie" → per-rep persona/knowledge/guardrails/approvals/test tabs). V2 visual deck now end-to-end complete (§1–18). **Locked the dated 22-day critical path in EXECUTION ROADMAP → "V2 MONTH-END PLAN":** Wk0 verify+staging · Wk1 per-rep foundation · Wk2 company OS (seats/budget/command-centre/funnel) · Wk3 harden+ship 30 Jun. Sequence builder/multi-channel/Train-FIGSY/Integrations slip to July (layer on the per-rep base). **Gate before any build = the 9am smoke tests (Step 5 + T8 first); we don't build V2 on an unverified base.**
@@ -472,7 +473,7 @@ Owner: 🧍 Founder · 🤖 Claude · 🤝 Both
 |--------|------|-----|-------------------|
 | **#54** | **DENISE deep build (#1 next agent)** — Calendly auto-book · call-join transcription/notetaker · live objection extraction · proposal-from-transcript · pipeline follow-up · persona/system prompt · admin card. Build deep or don't ship. | Closes FIGSY → booked seam. Max leverage (no new front opened). Extends existing pipeline. | Monday/ClickUp "meet booked" → close. Atlas/Revio booked → revenue. DENISE = our answer. #1. |
 | **#55** | **LENA** (Month 3, not Month 1) | Once DENISE is solid. | Broadens agent family. |
-| **#56** | **OTTO** (Month 3, not Month 1) | Once LENA is solid. | Closes the operations loop. |
+| **#56** | **TONY — The Operations agent** (Month 3, not Month 1) | Closes the operations loop behind the revenue agents: keeps the pipeline clean, handles handoffs, CRM hygiene, follow-through and the back-office so nothing falls through. **Named after the founder's father** (as DENISE is named after his mother) — the steady operator who makes sure everything actually gets done. Build once LENA is solid. | The dependable backbone of the agent family. |
 | **#57** | Multi-agent orchestration (shared memory) | FIGSY → DENISE → Milla (handoff + context). | Monday/ClickUp multi-agent orchestration. Platform moat. |
 | **#58** | 500+ FIGSY skill library | Prompt library. "Open doors with competitive intel." "Negotiate discounts." Etc. | ClickUp 500+ work skills. Depth. |
 | **#60** | **Outcome pricing** (per meeting booked) — GATED on ≥28% gross margin | Build only after margin data proves it works. Pure outcome model ($40/meeting, K.I.N.D eats failed outreach). | Salesforce + Intercom proved the model. We're ready to move toward it. Gated on data. |
@@ -1214,8 +1215,8 @@ rebuild the cockpit under live clients. ~1 day (🧍 provisions Supabase/Railway
 |---|------|------|-------|--------|----------|----------|-----|
 | **#54** | **DENISE deep build (#1 agent)** | Calendly auto-book · call-join transcription/notetaker · live objection extraction · proposal-from-transcript · pipeline follow-up · persona/system prompt · admin card. **Build deep or don't ship.** | 🤖 | ⏸ | Month 3 | 10+ clients + margin data | Closes FIGSY → booked seam. Max leverage (extends existing pipeline, no new front). |
 | **#55** | **LENA** | Once DENISE solid | 🤖 | ⏸ | Month 3 | DENISE complete | Broadens agent family |
-| **#56** | **OTTO** | Once LENA solid | 🤖 | ⏸ | Month 3 | LENA complete | Operations loop |
-| **#57** | Multi-agent orchestration (shared memory) | FIGSY → DENISE → Milla handoff + context | 🤖 | ⏸ | Month 3 | DENISE + LENA + OTTO | Platform moat |
+| **#56** | **TONY** | Once LENA solid | 🤖 | ⏸ | Month 3 | LENA complete | Operations loop |
+| **#57** | Multi-agent orchestration (shared memory) | FIGSY → DENISE → Milla handoff + context | 🤖 | ⏸ | Month 3 | DENISE + LENA + TONY | Platform moat |
 | **#58** | 500+ FIGSY skill library | Prompt library: "Open doors with competitive intel" "Negotiate discounts" etc. | 🤖 | ⏸ | Month 3 | FIGSY stable | ClickUp 500+ work skills depth |
 | **#60** | **Outcome pricing** (per meeting booked) — GATED | Build only after margin data proves ≥28% gross. Pure outcome model ($40/meeting, K.I.N.D eats failed outreach). | 🤖 | ⏸ | Month 3+ | ≥28% gross margin data | Salesforce + Intercom proved the model. (Was blocked, now gated on margin.) |
 | **#61** | Mobile app (iOS + Android) | Nice-to-have if MRR >£8K | 🤖 | ⏸ | Month 3+ | Volume | Competitive hygiene |
@@ -1789,7 +1790,7 @@ activates Week 1. Remove the contradictory "never" lines from MASTER.md.
 3. **Vida price $39 vs $29** → $29
 4. **Pricing tables disagree** ($20/$38/$88 vs $1/credit flat) → $1/credit canonical
 5. **Cron count 16 vs 19** → 16 (3 status crons never built)
-6. **DENISE/LENA/OTTO Month 3 vs Year 2** → DENISE #1 next build; LENA/OTTO Month 3
+6. **DENISE/LENA/TONY Month 3 vs Year 2** → DENISE #1 next build; LENA/TONY Month 3
 7. **LinkedIn "never build" vs built** → built, activating Week 1
 8. **Duplicate sections** (24–28 twice; 5-day plan twice) → delete duplicates
 9. **Calendly personal link** (`jacques-vieiraza/30min`) → neutral `kind-ai-demo/new-meeting` (name-exposure risk)
@@ -1919,7 +1920,7 @@ Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
 | Item | Sub-builds / notes | Size | Needs 🧍 |
 |------|--------------------|------|---------|
 | **#54 DENISE (the #1)** | Calendly auto-book · call-join notetaker · live objection extraction · proposal-from-transcript · pipeline follow-up · persona · admin card | **L+ (~3–4 wks)** | **transcription provider (Recall.ai/Vapi)** · Calendly creds |
-| #55 LENA / #56 OTTO | broaden family, only once prior is solid | M–L each | — |
+| #55 LENA / #56 TONY | broaden family, only once prior is solid | M–L each | — |
 | #57 orchestration | shared memory FIGSY→DENISE→Milla | L | depends on #46 memory |
 | #58 skill library | 500+ prompt skills, incremental | M | — |
 

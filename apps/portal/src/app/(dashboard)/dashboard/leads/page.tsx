@@ -665,7 +665,7 @@ export default function LeadsPage() {
     { label: 'Total Leads',      value: stats?.total ?? 0,              icon: <Users className="w-5 h-5" />,       color: 'bg-[#F5F0FF] text-[#7C3AED]' },
     { label: 'Avg Score',        value: `${stats?.avg_score ?? 0}/100`, icon: <TrendingUp className="w-5 h-5" />,  color: 'bg-indigo-50 text-indigo-600' },
     { label: 'POPIA Consented',  value: stats?.consented ?? 0,          icon: <ShieldCheck className="w-5 h-5" />, color: 'bg-green-50 text-green-600' },
-    { label: 'Pipeline Value',   value: `$${(stats?.pipeline_value_usd ?? 0).toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, color: 'bg-purple-50 text-purple-600' },
+    { label: 'Est. pipeline value',   value: `$${(stats?.pipeline_value_usd ?? 0).toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, color: 'bg-purple-50 text-purple-600' },
   ]
 
   // Leads to show in table (for pending_review tab, further filter by score)

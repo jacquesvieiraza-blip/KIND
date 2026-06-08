@@ -407,7 +407,7 @@ export default function KPIsPage() {
     <div class="stat"><div class="stat-value">${replyRatePct}%</div><div class="stat-label">Reply rate</div></div>
     <div class="stat"><div class="stat-value">${interestedRatePct}%</div><div class="stat-label">Positive reply rate</div></div>
     <div class="stat"><div class="stat-value">${f.meetingsBooked ?? 0}</div><div class="stat-label">Meetings booked</div></div>
-    <div class="stat"><div class="stat-value">${pipeVal}</div><div class="stat-label">Pipeline value</div></div>
+    <div class="stat"><div class="stat-value">${pipeVal}</div><div class="stat-label">Est. pipeline value</div></div>
   </div>
 
   <div class="section">
@@ -629,7 +629,7 @@ export default function KPIsPage() {
             accent={l.consented > 0}
           />
           <MetricCard
-            label="Pipeline value"
+            label="Est. pipeline value"
             value={pipelineValue}
             sub="estimated deal value"
             icon={<DollarSign className="w-4 h-4" />}

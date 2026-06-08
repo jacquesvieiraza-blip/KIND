@@ -155,7 +155,7 @@ export default function LeadGenOverviewPage() {
                 { label: 'Total leads',     value: s.total.toLocaleString() },
                 { label: 'AI scored',       value: s.scored.toLocaleString() },
                 { label: 'Consented',       value: s.consented.toLocaleString() },
-                { label: 'Pipeline value',  value: pipelineValue },
+                { label: 'Est. pipeline value',  value: pipelineValue },
               ].map(({ label, value }) => (
                 <div key={label} className="bg-white/6 rounded-xl px-4 py-3">
                   <p className="text-white font-bold text-lg">{value}</p>

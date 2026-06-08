@@ -218,7 +218,7 @@ export default function UsagePage() {
               { label: 'Total leads', value: stats.total, icon: <Users className="w-4 h-4" />, color: 'text-[#7C3AED]', bg: 'bg-[#F5F0FF]' },
               { label: 'Scored', value: stats.scored, icon: <TrendingUp className="w-4 h-4" />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
               { label: 'POPIA consented', value: stats.consented, icon: <ShieldCheck className="w-4 h-4" />, color: 'text-green-600', bg: 'bg-green-50' },
-              { label: 'Pipeline value', value: `$${stats.pipeline_value_usd.toLocaleString()}`, icon: <Coins className="w-4 h-4" />, color: 'text-purple-600', bg: 'bg-purple-50' },
+              { label: 'Est. pipeline value', value: `$${stats.pipeline_value_usd.toLocaleString()}`, icon: <Coins className="w-4 h-4" />, color: 'text-purple-600', bg: 'bg-purple-50' },
             ].map(({ label, value, icon, color, bg }) => (
               <div key={label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4 flex items-center gap-4">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${bg} ${color}`}>{icon}</div>

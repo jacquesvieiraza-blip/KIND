@@ -103,6 +103,29 @@
 
 **🔧 RECONCILIATION (resolves the overlap the audit found):** **#88 pulls V2-7 / V2-9 / V2-13 forward from Month 2 → next week** — they ARE the per-rep team/calendar features, so they ship as part of the per-rep MVP, not later. All *other* V2 items stay as the Month-2 portal-redesign layer that sits **on top of** the per-rep foundation. (V2-9/V2-13 rows in Ch.3/Ch.5 tagged accordingly.)
 
+---
+
+### 🎯 V2 MONTH-END PLAN — LIVE BY 30 JUN (locked 8 Jun by founder)
+> Founder set the target + chose the scope: **"Per-rep + company OS."** This is THE core that must be in production by 30 Jun. It is a *scoped* V2, not all 18 sections — forcing everything would build the half-baked system we refuse to ship.
+>
+> **🚦 GATE (day 1, non-negotiable):** V1 in prod is NOT verified yet — warmup/T8 deliverability never tested. We do **not** build per-rep on an unverified base. **9am: Step 5 (first FIGSY warmup campaign) + T8 (deliverability), then T1–T10.** Foundation must be green before staging build starts.
+>
+> **IN by 30 Jun (the durable money engine):**
+> - **#88 per-rep** — each rep their own autonomous FIGSY (identity · calendar · booking · leads scoped to the member, not the workspace).
+> - **Owner Command Centre** (V2-9) — one company dashboard over all reps.
+> - **Seats** + **Usage & Budget** (request → approve/deny, hybrid seat+usage) — one company payment, N FIGSYs. *(Founder: "vital.")*
+> - **Performance funnel** (§17) — per-rep + company rollup (per-rep is meaningless without the rollup).
+>
+> **SLIPS to July (designed, not month-end — layer ON the per-rep foundation):** full branching sequence builder (#89) · multi-channel LinkedIn/WhatsApp/SMS · Train-FIGSY (§18) · Integrations Hub (#84) · §16 Smart Inbox rich taxonomy · the V2 cosmetic redesign items (V2-1/2/3/4/6/8/10/11/12).
+>
+> **DATED CRITICAL PATH (22 days):**
+> - **Wk0 · Mon 8 – Fri 12 — VERIFY + STABILISE.** 9am smoke gate (Step 5 + T8 → T1–T10). Warmup ramping. First client onboarded on shared model as pilot. Partner solid. **Finalise #88 schema design + stand up staging (hard prereq).**
+> - **Wk1 · Mon 15 – Fri 19 — PER-REP FOUNDATION (staging).** Slice 1 per-rep identity (calendar/booking/signer/leads → `client_members`). Slice 2 per-rep ownership (campaigns/sent-emails owned + meeting routing to the right rep's calendar). Migrations written + dry-run.
+> - **Wk2 · Mon 22 – Fri 26 — COMPANY OS (staging).** Slice 3 seat billing (per-seat wallets + company budget + request/approve usage). Slice 4 Owner Command Centre + Performance funnel rollup. End-to-end integrate on staging.
+> - **Wk3 · Mon 29 – Tue 30 — HARDEN + SHIP.** Migration dry-run on a staging clone, full per-rep smoke (new T11 per-rep flow), deploy to prod **30 Jun**. Mon 29 is the buffer for slippage.
+>
+> **Risks:** (1) the smoke gate finds real deliverability/prod breakage → eats Wk0, pushes everything right; (2) the workspace→member migration on a live client's data is the single riskiest step — staging dry-run is mandatory; (3) scope creep back toward "everything" — hold the line, July layers the rest.
+
 ## 📎 COMPANION DOCS (live reference — always link new artifacts here)
 > The separate visuals + runbooks that sit alongside this master. Links target the canonical branch `claude/kind-carson-MYhSl`. **Process rule (8 Jun): any new doc/visual created outside this master MUST be added to this index — one always-current reference.**
 
@@ -120,7 +143,7 @@
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
-- **8 Jun (late):** 🎯 **Founder set the target: V2 LIVE BY MONTH END (30 Jun).** Completed the V2 mockup deck — added **§17 Performance funnel** (Contacted→Opened→Replied→Positive→Booked + per-rep leaderboard, rolls each rep up to the company #88) and **§18 Train FIGSY** (Alta's "Train Katie" → per-rep persona/knowledge/guardrails/approvals/test tabs). V2 visual deck now end-to-end complete (§1–18). Next step is the build plan to hit 30 Jun — but the gate before any of it is the 9am smoke tests (Step 5 + T8 first); we don't build V2 on an unverified base.
+- **8 Jun (late):** 🎯 **Founder set the target: V2 LIVE BY MONTH END (30 Jun) + chose scope = "Per-rep + company OS."** Completed the V2 mockup deck — added **§17 Performance funnel** (Contacted→Opened→Replied→Positive→Booked + per-rep leaderboard, rolls each rep up to the company #88) and **§18 Train FIGSY** (Alta's "Train Katie" → per-rep persona/knowledge/guardrails/approvals/test tabs). V2 visual deck now end-to-end complete (§1–18). **Locked the dated 22-day critical path in EXECUTION ROADMAP → "V2 MONTH-END PLAN":** Wk0 verify+staging · Wk1 per-rep foundation · Wk2 company OS (seats/budget/command-centre/funnel) · Wk3 harden+ship 30 Jun. Sequence builder/multi-channel/Train-FIGSY/Integrations slip to July (layer on the per-rep base). **Gate before any build = the 9am smoke tests (Step 5 + T8 first); we don't build V2 on an unverified base.**
 - **8 Jun (late):** 🎨 **Added §15 Integrations Hub (#84) + §16 Smart Inbox to V2 preview, + flow chart section** — from Alta Connectors + Inbox frames. Integrations adapted to OUR stack (HubSpot/Pipedrive · Google/Outlook/Zoho calendar per-rep · WhatsApp/LinkedIn · Apollo · Stripe — no ERP/ticketing sprawl). Smart Inbox = channel filters + rich auto-tags + conversation + 'Help me reply'. Noted: I can't read video; founder to paste Fathom transcript for full demo mining.
 - **8 Jun (late):** 🔭 **Alta UI/UX steals logged + #89 visuals upgraded.** Founder fed 7 Alta demo screens — captured all as steals (Touch Points tree+action-library, template gallery, 'Train [agent]' training tabs, Performance dashboard + Prospect-Status funnel, Unibox rich reply-tags + 'Help me reply', Campaigns saved-views + Reps column + Suggest Campaigns), each mapped to V2-3/4/12 · #88 · #89 · Unibox. Upgraded the #89 sequence-builder visuals (CLIENT_FLOW + V2 preview) to the Alta tree + multi-channel library + template gallery model. Steal layouts/taxonomies, keep augment positioning.
 - **8 Jun:** 🚀 **DEPLOYED TO PRODUCTION (a day early).** Founder ran migrations 010/011/012/013 + the Demmy referral SQL · confirmed env (cold-FROM/reply/warmup-start present, admin key clean, **deleted `FIGSY_COLD_DAILY_CAP=10`** so the warmup auto-ramps 10→50) · said "go". Merged `claude/kind-carson-MYhSl` → `main` via FF push (`b35351f..f0eb02b`; local main was unrelated-history, so pushed the ref directly). Railway auto-deploying. **All sprint code now 🧪 deployed-verifying** (not ✅ until smoke). Next: Step 4 post-deploy smoke → Step 5 first FIGSY campaign (warmup starts) → T1–T10.

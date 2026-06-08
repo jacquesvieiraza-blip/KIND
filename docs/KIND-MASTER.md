@@ -6,11 +6,16 @@
 >
 > **Protocol (LIVING DOC — keep current):**
 > 1. **Start of session:** read the **RESUME HERE** block below, then the relevant chapter.
-> 2. **During work:** flip item status as it changes (⬜→🔄→✅) in Chapters 2 & 3.
+> 2. **During work:** flip item status as it changes (⬜→🔨→🧪→✅) in Chapters 2 & 3.
 > 3. **End of session:** update the **RESUME HERE** block + add one line to the **SESSION LOG**, then commit + push. This is what lets a brand-new chat pick up with full context.
 >
+> **🟢 STATUS KEY — be honest. `✅` is EARNED, not claimed:**
+> `⬜` todo · `🔨` **BUILT** (code-complete + typecheck-clean, but **NOT deployed, NOT run, NOT verified**) · `🧪` in test (deployed, being verified) · `✅` **DONE & VERIFIED LIVE** (deployed + actually works) · `⏸` gated/blocked · `🚫` won't build.
+> **THE RULE: nothing is `✅` until it has run in a real environment and been checked.** Typecheck ≠ verified.
+> **As of 8 Jun, EVERYTHING built this sprint is `🔨` only** — it all lives on branch `claude/kind-carson-MYhSl`, **not merged, not deployed, not tested.** First real verification = the Tue 9 deploy + Smoke Tests. (Repo-only changes — doc edits, the employer scrub — are genuinely done; runtime features are not.)
+>
 > **Launch date:** 🚀 **FRIDAY 19 JUNE 2026** (firm — deferred from Mon 8 Jun until deliverability + Smoke Test 2 pass).
-> **Last updated:** 7 Jun 2026.
+> **Last updated:** 8 Jun 2026.
 
 ---
 
@@ -56,7 +61,22 @@
 
 **Most valuable next moves (in order):** (1) do a **dry-run deploy to a staging/throwaway** to de-risk Tue 9; (2) **run Smoke Test T1 fresh-signup** ASAP — it's never been tested; (3) fix the day-1 cap blind spot; (4) build the P-a/CAL-min portal fields *with* migration 012 so they're actually usable.
 
+### 🔨 BUILT THIS SPRINT (8 Jun) — at-a-glance progress
+> `🔨` = code-complete on branch, **NOT live/verified** (proven only at Tue 9 deploy + smoke tests). `✅` = genuinely done (real-world / repo state).
+- 🔨 D1–D5 deliverability (List-Unsubscribe + one-click · plain-text · tracking-pixel guard · cold-FROM)
+- 🔨 Warmup cold-send cap + date **auto-ramp** (`FIGSY_WARMUP_START`)
+- 🔨 Day-1 cap **blind-spot fix** + migration 013
+- 🔨 **P-a** configurable email signer (backend) + migration 012
+- 🔨 **Admin security:** 3 criticals (key exposure · demo backdoor · timing compare) + zod/credit-audit mediums
+- 🔨 Dynamic build marker · "Est. pipeline value" relabel (C7)
+- ✅ **Employer scrub** (repo): suppression hardened · docs genericised · 410 chat logs removed
+- ✅ **Cold domain `gettingkind.com`** bought + DNS **verified in Resend** (real)
+- ✅ **Railway cold-send env vars set** (real)
+- ✅ Strategy logged: Africa-first · rotation deferred · implementation maps · this honesty fix
+- ⬜ **OWED before any ✅:** Tue 9 deploy (merge + migrations 010/012/013 + env) → Smoke Tests T1–T7 → inbox test.
+
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🩹 **Honesty pass on status (founder caught it).** `nothing was verified` yet many rows read `✅ DONE/verified`. Added a STATUS KEY (`🔨` BUILT = code-done-not-live vs `✅` = verified live) + the rule "nothing is ✅ until run in a real env". Demoted all today's runtime code (D1–D5, cap, P-a, admin fixes) from ✅→🔨 across timeline, Ch.3 table, burndown, deliverability + admin sections. Added "BUILT THIS SPRINT" at-a-glance scan. Also shipped **#3 cap blind-spot fix** (migration 013 + day-1 data-floor logging).
 - **8 Jun:** 🔍 **Self-review + honest status added** (see "HONEST STATUS" block above). Re-ran full API typecheck (clean) + tree clean. Surfaced 3 real issues I'd glossed: (a) **no automated tests** — all work is typecheck-only, unverified in a real env; (b) **warmup cap blind spot** — day-1 batch inserts NULL into NOT-NULL figsy_sent_emails cols → fail → uncounted; (c) **P-a/CAL-min inert** without portal UI; plus the signer_name pre-migration landmine + admin RLS bypass still open. Honest launch read: code's fine, verification/deploy choreography is the risk; Mon 22 is the real fallback.
 - **8 Jun:** 🤖 **Autonomous batch 2 (cracking on).** (1) **Admin hardening mediums:** zod validation + magnitude cap (±500) + audit-note (action/time/IP) on credit grants; zod + future-date checks on demo create/extend. (2) **P-a — configurable email signer DONE (backend):** threaded `senderName` through all 3 FIGSY generators so it signs as the client's set name instead of inventing one; guarded reads = safe pre-migration; added **migration 012** (`clients.signer_name` + `booking_url`). (3) Confirmed **CAL-min booking_url** is already fully wired in FIGSY — only the portal settings field remains. **🧍 Tue 9 deploy:** run migration 012 (alongside 010). Remaining autonomous (needs visual review / migration): portal settings fields for signer_name + booking_url, cosmetics C1–C6, Vida bubble, admin service-role refactor. API typecheck clean throughout.
 - **8 Jun:** 🔐🤖 **Admin audit + autonomous quick-wins (cracking on).** Hard-checked admin portal → fixed 3 🔴 critical issues (browser-exposed `NEXT_PUBLIC_ADMIN_KEY`, hardcoded demo backdoor, non-timing-safe key compare); logged remaining 🟠/🟢 in new "Admin Portal Hardening" section (founder owes one Railway env check). Also: stripped stale BUILD MARKER → dynamic commit-SHA (P-b), relabelled "Pipeline Value"→"Est. pipeline value" (C7). Confirmed deploy-pipeline task **already done** (daily-audit.yml no longer push-triggered — master item stale). Confirmed onboarding video content **is captured** (#29 + #21/#23). API typecheck clean, pushed.
@@ -227,7 +247,7 @@ Owner: 🧍 Founder · 🤖 Claude · 🤝 Both
 
 | Date | Item # | What | Owner | Why |
 |------|--------|------|-------|-----|
-| **Mon 8** | **D1–D5** ✅ | **Deliverability code fixes (DONE):** List-Unsubscribe + one-click unsubscribe · plain-text MIME · fix tracking pixel · configurable cold-FROM · transactional plain-text. Shipped in `lib/deliverability.ts` + `lib/figsy.ts` + `routes/figsy.ts` + `email.ts` (commit `96456ac`). Needs founder env vars + deploy to go live. | 🤖 | Mail going to spam (verified). Long pole. |
+| **Mon 8** | **D1–D5** 🔨 | **Deliverability code fixes (BUILT — not deployed/verified):** List-Unsubscribe + one-click unsubscribe · plain-text MIME · fix tracking pixel · configurable cold-FROM · transactional plain-text. In `lib/deliverability.ts` + `lib/figsy.ts` + `routes/figsy.ts` + `email.ts` (commit `96456ac`, branch only). **Never sent a real email through it.** Needs founder env vars + deploy + inbox test. | 🤖 | Mail→spam *problem* verified in audit; the *fix* is not. Long pole. |
 | **Mon 8** | **Mon–Sun** | **Buy 1–2 cold domains** (lookalikes) · SPF/DKIM/DMARC · verify Resend · **START warmup** (5–10 → 30–50/day over 2–3 wks) · verify `API_URL` · verify get-kind.com auth | 🧍 | `get-kind.com` = transactional only. Cold = separate domain(s). |
 | **Mon 8** | **#1** | **TIER-0 credential rotation** (Stripe secret, Supabase service-role, DATABASE_URL, anon, Anthropic, Resend×2, HubSpot, Admin secret, Stripe webhook; Apollo ✅ done) | 🧍 | Security. Finish by Tue 9. |
 | **Tue 9** | **#6** | Migration `010_crm_dedup.sql` | 🧍 | CRM deduping before real clients. |
@@ -584,7 +604,8 @@ In a market where:
 | **D6–D8** | **START warmup** | Configure email service to ramp cold domain: Day 1 = 5/day, Day 2 = 7/day, Day 3 = 10/day, ... Day 21 = 50/day. Monitor bounce rate + spam complaints. | **Start 8 Jun — run for 11 days** (until Fri 19) | **CRITICAL — determines launch deliverability** |
 | **D6–D8** | **Log all actions** | Create a checklist file: `deliverability-checklist-mon8.txt` (which domains, which DNS records added, warmup volume by day) | EOD | No |
 
-#### Owner: 🤖 CLAUDE (me) — ✅ DONE 8 Jun (commit `96456ac`, branch `claude/kind-carson-MYhSl`)
+#### Owner: 🤖 CLAUDE (me) — 🔨 BUILT 8 Jun, NOT verified (commit `96456ac`, branch `claude/kind-carson-MYhSl`)
+> ⚠️ The `✅` in the per-task rows below mean "code written for this sub-item", NOT "verified working". The whole block is `🔨` — never deployed or run against real Resend/Gmail.
 > Implementation differs from the original guesses below in three ways (the doc's
 > guesses were wrong; this is what actually shipped): unsubscribe lives under
 > `/figsy/unsubscribe/:token` (signed HMAC token, **not** a raw `?email=` URL — no
@@ -602,12 +623,12 @@ In a market where:
 | **D3** Fix tracking pixel | ✅ | Pixel no longer embeds a bare platform host (railway/render/vercel/heroku) — suppressed unless `TRACKING_URL`/`API_URL` is a branded domain. **Open-tracking is OFF until founder sets that.** | `lib/deliverability.ts` (`trackingPixelHtml`/`trackingBaseUrl`), `lib/figsy.ts` |
 | **D4** Configurable cold-FROM | ✅ | `FIGSY_COLD_FROM` + `FIGSY_COLD_REPLY_TO` env (warns in prod if unset). Both cold sites + the manual Unibox reply now use it (reply threading stays on the cold domain, transactional domain never leaks). | `lib/deliverability.ts`, `lib/figsy.ts`, `routes/figsy.ts` |
 | **D5** Transactional plain-text | ✅ | Every transactional send carries a `text/plain` part; intentionally **no** List-Unsubscribe (that's cold-bulk only). | `lib/email.ts` (`sendTx`) |
-| **Verify** | ✅ | Full app `tsc --noEmit` clean (after building `@kind/db`/`@kind/shared`). Fixed 2 own TS7030 errors. Lockfile churn reverted. | — |
+| **Typecheck only** | 🔨 | Full app `tsc --noEmit` clean — **this is the ONLY verification done. No runtime test, no real send.** | — |
 | **🔴 Founder env (blocks go-live)** | ⬜ | Set on Railway: `FIGSY_COLD_FROM`, `FIGSY_COLD_REPLY_TO`, `TRACKING_URL` (branded), optional `FIGSY_UNSUB_MAILTO`, `UNSUBSCRIBE_SECRET`. Until set: cold still sends from `get-kind.com` + open-tracking off. | 🧍 |
 | **Deploy + live test** | ⬜ | Tue 9: deploy to Railway, then send to a Gmail/Outlook test box → confirm `List-Unsubscribe` header, plain-text rendering, one-click works. (Original `/figsy/send-test` curl idea.) | Tue 9 |
 
 #### **Status: Mon 8**
-- Deliverability D1–D5: ✅ **code done + typecheck-clean** (commit `96456ac`). Awaiting founder env vars + Tue 9 deploy/live-test.
+- Deliverability D1–D5: 🔨 **BUILT + typecheck-clean** (commit `96456ac`) — NOT deployed/verified. Awaiting founder env vars + Tue 9 deploy/live-test.
 - Founder infra D6–D8: ⬜ Domains registered, DNS started (propagation pending), warmup ramp starting
 - Founder env vars (cold-FROM / tracking domain): ⬜ **blocks D1–D5 going live**
 - TIER-0 rotation: ⬜ 9 keys
@@ -871,7 +892,7 @@ If ANY red: **DELAY TO MON 22** (no half-baked launch)
 ## 📊 TRACKING (tick off daily)
 
 ```
-MON 8 JUN:   D1–D5 ✅(code) D6–D8 ⬜ TIER-0×9 ⬜ FounderEnv ⬜
+MON 8 JUN:   D1–D5 🔨(built,unverified) D6–D8 ⬜ TIER-0 deferred FounderEnv ✅set
 TUE 9 JUN:   #1✅ #6✅ #7✅ #7/8✅ CAL-min✅ P-a⬜ P-b⬜ #2⬜ Deploy⬜ T1-3⬜
 WED 10 JUN:  T4⬜ T5⬜ T6⬜ T7⬜ #17⬜
 FRI 12 JUN:  C1-C7⬜ VIDA-11⬜ Deploy✅
@@ -909,7 +930,7 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 > **Master reference for every build, item, owner, timeline, and status.**
 > Review this to see the full 18-month roadmap at a glance.
 > Owner: 🧍 Founder · 🤖 Claude · 🤝 Both.
-> Status: ⬜ TODO · ✅ DONE · 🔄 IN PROGRESS · ⏸ GATED · 🚫 WON'T BUILD
+> Status: ⬜ TODO · 🔨 BUILT (code-done, NOT deployed/verified) · 🧪 IN TEST · ✅ DONE & VERIFIED LIVE · ⏸ GATED · 🚫 WON'T BUILD
 
 ---
 
@@ -917,7 +938,7 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 
 | # | Item | What | Owner | Status | Timeline | Blocked By |
 |---|------|------|-------|--------|----------|-----------|
-| **D1–D5** | Deliverability code fixes | List-Unsubscribe + one-click · plain-text MIME · tracking pixel fix · cold-FROM config · transactional plain-text | 🤖 | ✅ (code, commit `96456ac`; deploy + founder env pending) | Mon 8 | None |
+| **D1–D5** | Deliverability code fixes | List-Unsubscribe + one-click · plain-text MIME · tracking pixel fix · cold-FROM config · transactional plain-text | 🤖 | 🔨 BUILT (commit `96456ac`; NOT deployed/verified) | Mon 8 | None |
 | **D6–D8** | Deliverability founder infra | Buy cold domain(s) · SPF/DKIM/DMARC · verify Resend · start warmup (5→50/day) · verify `API_URL` + get-kind.com auth | 🧍 | 🔄 | Mon 8–Sun 14 | None |
 | **D9** | Inbox-placement test | mail-tester.com / GlockApps → verify 10/10 score | 🤖 | ⬜ | Sun 14 | D1–D5 + D6–D8 |
 | **#1** | TIER-0 credential rotation | Stripe secret · Supabase service-role · DATABASE_URL · anon · Anthropic · Resend×2 · HubSpot · Admin secret · Stripe webhook (Apollo ✅) | 🧍 | 🔄 | Mon 8 – Tue 9 | None |
@@ -1666,7 +1687,7 @@ activates Week 1. Remove the contradictory "never" lines from MASTER.md.
 # 🔐 ADMIN PORTAL HARDENING (security audit 8 Jun)
 Full hard-check of `apps/admin` + admin/internal API routes done 8 Jun.
 
-**✅ FIXED 8 Jun (committed):**
+**🔨 FIXED IN CODE 8 Jun (committed, branch only — NOT deployed/verified):**
 - 🔴 **Browser-exposed admin secret** — removed `NEXT_PUBLIC_ADMIN_KEY` fallback from the admin proxy + the dead client-side key in `BriefSection` (the proxy injects the secret server-side). Was a full auth-bypass risk.
 - 🔴 **Hardcoded demo backdoor** — `/admin/setup-demo` no longer defaults to `demo@get-kind.com` / `KindDemo2025!`; now 400s without explicit creds.
 - 🔴 **Timing-safe admin-key compare** — `crypto.timingSafeEqual` in `admin.ts` + `internal.ts` (was plain `!==`).

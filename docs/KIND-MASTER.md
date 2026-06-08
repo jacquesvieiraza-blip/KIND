@@ -83,6 +83,7 @@
 - ⬜ **OWED before any ✅:** Tue 9 deploy (merge + migrations 010/012/013 + env) → Smoke Tests T1–T7 → inbox test.
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🏛️ **🔒 LOCKED Design Principle #8 — AUGMENT, never REPLACE (gut + deep research).** Ran multi-source research: "replace the sales org" is premature/dangerous (11x scandal + fake customers + 75–90% churn; AI outbound underperforms humans + craters deliverability; 50–70% AI-SDR churn; consensus = augment/human-led). Pricing: pure per-seat declining (21%→15%) → HYBRID (seat+usage) wins — which our model already is. Verdict + sources logged. Built two visuals: merged per-rep model into `CLIENT_FLOW.html` + rebuilt `portal-v2-preview.html` around it (V2 = expansion-critical).
 - **8 Jun:** 🔭 **Competitive read — Alta (AI BDR) works OPPOSITE to our #88.** Researched (web): Alta = centralised "AI Revenue Workforce" — 3 shared agents for the whole co (Katie SDR · Alex caller/books-to-rep-calendar · Luna centralised RevOps dashboard); **platform license, NOT per-seat** ("reduce headcount" pitch). So Alta = "AI replaces the team"; **K.I.N.D #88 = "AI per human rep, per-seat" — a differentiated bet** (augment + scale revenue with the customer's headcount). **Validated 2 of our slices:** Luna ⇒ our owner command centre (slice 4); Alex's route-meeting-to-the-right-rep's-calendar ⇒ slice 2. **Decision surfaced:** per-seat (our instinct) vs platform-license (market norm) — recommend per-seat (augment-not-replace, Africa-first teams, revenue scales with seats). Logged to Ch.1 competitive.
 - **8 Jun:** 🏢 **🔒 LOCKED #88 — PER-REP AUTONOMOUS MODEL is the product direction.** Owner with N reps → each rep gets own autonomous FIGSY (own calendar/booking/leads/identity) → then centralised owner rollup dashboard. Monetisation engine (N× revenue). Discovery confirmed everything is workspace-scoped today (no per-member ownership) → real re-architecture. **Agreed: ship Fri 19 on current shared model; per-rep MVP target end of next week (~Fri 26).** Scoped 4 slices (per-rep identity · per-rep ownership · seat billing · owner rollup); build on staging. Supersedes #86/#87 framing.
 - **8 Jun:** 👥 **#86 multi-seat billing gap surfaced.** Founder: first client's 10 members should each pay ("multiple of 10"). Verified: `credit_balance` is **per-workspace (one shared wallet)** — no per-seat/per-member billing exists. Usage still scales (10 active members ≈ 10× credit burn ≈ 10× spend) but it's a shared pot, not guaranteed per-seat recurring. Logged as open commercial decision (#86): per-seat vs usage-only vs hybrid — resolve before quoting the client; NOT a deploy blocker (client starts on shared workspace).
@@ -268,6 +269,23 @@ by design. **The client NEVER warms a domain, configures DNS, or thinks about sp
 
 **Action:** Any feature that would make a client touch warmup/DNS/deliverability is wrong by
 default. If a client ever sees the word "warmup", we've failed. Make it invisible.
+
+### **8. DESIGN PRINCIPLE — AUGMENT every rep, never REPLACE the team (locked 8 Jun, gut + data).**
+K.I.N.D **enhances each salesperson's capability** and makes them more efficient. We do NOT
+position as "fire your sales org." (Long run, a company may reach the same output with fewer
+reps — but that's their outcome, never our pitch.) **Verdict backed by research (logged below):**
+the flagship "replace the SDR" player (11x) imploded publicly (fake-customer claims, ZoomInfo
+said it "performed significantly worse than our SDR employees," ~75–90% 3-month churn, "AI's
+Theranos moment"); autonomous AI outbound underperforms humans (reply ~4.1% vs 5.2%, spam-flag
+8% vs 3%, ~38-pt domain-reputation drop in 90 days) and AI-SDR tools churn 50–70%; market
+consensus = **human-led, AI-powered (augment)**. No African company (or Smartsheet) is firing
+its sales org. **Pricing corollary:** pure per-seat is *declining* (21%→15%) — go **HYBRID
+(seat + usage)**, which K.I.N.D's seats + credit-allocation + request/approve model already is.
+
+**Action:** Positioning line = *"We don't replace your sales team — we give every rep their own
+AI, and you control the budget. You pay for the seats you use and the work they do."* Sell
+augment + hybrid (seat + usage), never "replace" and never "flat per-seat." "Replace" not viable
+until ~2027+ (deliverability/trust/regulation must mature) — watch, don't bet on it.
 
 ---
 

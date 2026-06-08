@@ -174,7 +174,96 @@ flowchart LR
     </div>
     <p class="note"><strong>The one-liner for a pitch:</strong> "Most tools just send emails. K.I.N.D runs the whole journey — finds the right people, opens the conversation in your voice, books the meeting onto your calendar, and a closer who gets sharper with every deal takes it to signed. You stay human where it counts."</p>
 
-    <footer>K.I.N.D — built from the live product. Dashed = coming soon. Open / present in any browser.</footer>
+    <div class="sec-h" style="margin-top:60px;border-top:2px dashed #e0d9fb;padding-top:36px;"><h2>PART 2 · For a company — every rep their own FIGSY</h2><span>augment the team, never replace it</span></div>
+    <p class="note" style="margin-bottom:18px;"><strong>The model (locked):</strong> we don't replace a sales org — we give <b>every rep their own AI</b>. An owner buys a FIGSY per rep, each rep runs autonomously (own leads, own voice, own calendar), and the owner controls the budget centrally. <b>Augment first; efficiency follows.</b></p>
+
+    <div class="sec-h"><h2>2a · How a company sets up</h2><span>owner buys seats → reps go autonomous</span></div>
+    <div class="panel">
+      <pre class="mermaid">
+flowchart TD
+    O(["🏢 Company owner signs up"]):::start --> BUY["Buys N FIGSY seats<br/><b>ONE company payment</b>"]:::seat
+    BUY --> INV["Invites N reps to the company workspace"]:::seat
+    INV --> R1["👤 Rep 1<br/>connects <b>own</b> calendar"]:::rep
+    INV --> R2["👤 Rep 2<br/>connects <b>own</b> calendar"]:::rep
+    INV --> R3["👤 Rep N<br/>connects <b>own</b> calendar"]:::rep
+    R1 --> F1["🟣 Rep 1's own FIGSY"]:::figsy
+    R2 --> F2["🟣 Rep 2's own FIGSY"]:::figsy
+    R3 --> F3["🟣 Rep N's own FIGSY"]:::figsy
+    F1 -. rolls up .-> DASH
+    F2 -. rolls up .-> DASH
+    F3 -. rolls up .-> DASH[("📊 Owner command centre<br/>every rep · every lead · every meeting")]:::data
+    classDef start fill:#ede9fe,stroke:#7C3AED,color:#1E1152,font-weight:bold;
+    classDef seat fill:#eef2ff,stroke:#4f46e5,color:#312e81,font-weight:bold;
+    classDef rep fill:#eef2ff,stroke:#4f46e5,color:#312e81;
+    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
+    classDef data fill:#fff7ed,stroke:#d97706,color:#92400e;
+      </pre>
+    </div>
+    <div class="keys"><span><b>One payment</b>, N seats</span><span>Each rep connects <b>their own</b> calendar</span><span>Each seat = one autonomous FIGSY</span></div>
+
+    <div class="sec-h"><h2>2b · Each rep gets their own autonomous FIGSY</h2><span>their leads · their voice · their calendar</span></div>
+    <div class="panel">
+      <pre class="mermaid">
+flowchart LR
+    REP(["👤 One rep"]):::start --> ICP["<b>Their</b> ICP<br/>FIGSY finds <b>their</b> ideal leads"]:::figsy
+    ICP --> OUT["FIGSY opens in the <b>rep's voice</b><br/>signed as the rep · auto follow-up"]:::figsy
+    OUT --> BK["Reply → meeting booked<br/><b>onto the REP'S own calendar</b>"]:::figsy
+    BK --> CL["Denise closes · proposal"]:::denise
+    CL --> WIN(["💰 The rep's signed deal"]):::win
+    WIN -. feeds .-> PIPE["The rep's <b>own</b> pipeline"]:::rep
+    classDef start fill:#eef2ff,stroke:#4f46e5,color:#312e81,font-weight:bold;
+    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
+    classDef denise fill:#fffaf0,stroke:#d97706,color:#92400e;
+    classDef rep fill:#eef2ff,stroke:#4f46e5,color:#312e81;
+    classDef win fill:#1E1152,stroke:#7C3AED,color:#fff,font-weight:bold;
+      </pre>
+    </div>
+    <div class="note"><strong>Key difference:</strong> Rep 1's FIGSY never touches Rep 2's leads, and a prospect that books with Rep 3 lands on <b>Rep 3's</b> calendar. Ten reps = ten independent AI SDRs running in parallel — not one shared system.</div>
+
+    <div class="sec-h"><h2>2c · The owner's command centre</h2><span>autonomy below · oversight on top</span></div>
+    <div class="panel">
+      <pre class="mermaid">
+flowchart TD
+    subgraph REPS[" Each rep runs autonomously "]
+      direction LR
+      P1["Rep 1<br/>leads · meetings · pipeline"]:::rep
+      P2["Rep 2<br/>leads · meetings · pipeline"]:::rep
+      P3["Rep N<br/>leads · meetings · pipeline"]:::rep
+    end
+    REPS ==> OWN[("📊 OWNER COMMAND CENTRE<br/><b>company totals · leaderboard</b><br/>every rep's leads + bookings · spend per seat")]:::win
+    M["🧠 Milla<br/>reads every rep's signals →<br/>'who's hot, what's working, where to coach'"]:::milla -. insight .-> OWN
+    classDef rep fill:#eef2ff,stroke:#4f46e5,color:#312e81;
+    classDef milla fill:#eff8ff,stroke:#0ea5e9,color:#0c4a6e;
+    classDef win fill:#1E1152,stroke:#7C3AED,color:#fff,font-weight:bold;
+    style REPS fill:#f5f6ff,stroke:#e0e3ff;
+      </pre>
+    </div>
+
+    <div class="sec-h"><h2>2d · Usage &amp; budget — the company controls the purse</h2><span>exactly like an enterprise using Claude</span></div>
+    <div class="panel">
+      <pre class="mermaid">
+flowchart LR
+    CO["🏢 Company<br/><b>owns the budget pool</b><br/>one payment · tops up"]:::seat
+    CO --> AL["Owner allocates<br/>credits to each seat"]:::seat
+    AL --> S1["👤 Rep 1 seat<br/>own FIGSY + own credits"]:::rep
+    AL --> S2["👤 Rep N seat<br/>own FIGSY + own credits"]:::rep
+    S1 --> USE["Rep works<br/>(leads · outreach)"]:::figsy
+    S2 --> USE
+    USE --> LOW{"Runs low?"}
+    LOW -->|"keep going"| USE
+    LOW -->|"needs more"| REQ["Rep <b>requests</b> more credits"]:::rep
+    REQ --> DEC{"Owner reviews"}:::seat
+    DEC -->|"✅ approve"| AL
+    DEC -->|"❌ deny"| STOP["Stays within<br/>current allocation"]:::neutral
+    classDef seat fill:#eef2ff,stroke:#4f46e5,color:#312e81,font-weight:bold;
+    classDef rep fill:#eef2ff,stroke:#4f46e5,color:#312e81;
+    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
+    classDef neutral fill:#f8fafc,stroke:#cbd5e1,color:#475569;
+      </pre>
+    </div>
+    <div class="note"><strong>Why this wins (gut + data):</strong> no company is firing its sales org. We make every rep more effective and the owner controls spend centrally — hybrid pricing (a seat per rep <b>+ the usage they consume</b>), which is the durable model. <b>"We don't replace your sales team — we give every rep their own AI, and you control the budget."</b></div>
+
+    <footer>K.I.N.D — built from the live product. Part 1 = the journey (live today) · Part 2 = the company / per-rep model (#88, building → ~Fri 26 Jun). Open / present in any browser.</footer>
   </div>
 
 <script>

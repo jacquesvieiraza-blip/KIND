@@ -83,6 +83,7 @@
 - ⬜ **OWED before any ✅:** Tue 9 deploy (merge + migrations 010/012/013 + env) → Smoke Tests T1–T7 → inbox test.
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🏢 **🔒 LOCKED #88 — PER-REP AUTONOMOUS MODEL is the product direction.** Owner with N reps → each rep gets own autonomous FIGSY (own calendar/booking/leads/identity) → then centralised owner rollup dashboard. Monetisation engine (N× revenue). Discovery confirmed everything is workspace-scoped today (no per-member ownership) → real re-architecture. **Agreed: ship Fri 19 on current shared model; per-rep MVP target end of next week (~Fri 26).** Scoped 4 slices (per-rep identity · per-rep ownership · seat billing · owner rollup); build on staging. Supersedes #86/#87 framing.
 - **8 Jun:** 👥 **#86 multi-seat billing gap surfaced.** Founder: first client's 10 members should each pay ("multiple of 10"). Verified: `credit_balance` is **per-workspace (one shared wallet)** — no per-seat/per-member billing exists. Usage still scales (10 active members ≈ 10× credit burn ≈ 10× spend) but it's a shared pot, not guaranteed per-seat recurring. Logged as open commercial decision (#86): per-seat vs usage-only vs hybrid — resolve before quoting the client; NOT a deploy blocker (client starts on shared workspace).
 - **8 Jun:** 🔥 **First client + first partner (Nigeria) same day → day-and-night push to Fri 19.** Discovery: team-of-10 (`client_members` + `/team/invite`/accept) and partner onboarding (`routes/partners.ts`: apply→approve→auto-sandbox→`/dashboard/partner`→commissions) are **already built, just undeployed/untested**. Added smoke **T9 (team invites) + T10 (partner)**. Reframe: the bottleneck is purely the DEPLOY, not features — that's the night's #1 move. Updated bookmark to "kick off the deploy tonight."
 - **8 Jun:** 🔒 **LOCKED Design Principle #7 — deliverability is K.I.N.D's job, NEVER the client's.** Clients never warm a domain / touch DNS / see "spam filters" — it's invisible by design (founder felt the warmup confusion firsthand; SMB clients would churn on it). Today = Model A (all clients ride K.I.N.D's shared `gettingkind.com`, warm nothing). At scale = Model B (K.I.N.D auto-provisions + warms a dedicated per-client domain — better deliverability + their brand + isolated reputation = a moat). Per-client domain logic NOT built yet; logged as the deliverability architecture path. Added as Ch.1 Design Principle #7.
@@ -1867,6 +1868,30 @@ Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
 - **Founder intent:** "each member pays for leads → multiple of 10" = true per-seat/per-member billing → **NOT built** (model + code change).
 **Decision needed (commercial — before quoting the first client a price):** per-seat pricing (clean, guaranteed 10× recurring) **vs** usage-only (shared pot, scales with activity) **vs** hybrid (per-seat base + usage). Ties to #85 Denise pricing + overall pricing model.
 **Not a deploy blocker** — first client can start on the shared-workspace model tonight; resolve the model this week before pricing is locked. Claude to prep options (discovery-first, like #85).
+
+### 🗓️ #87 — PER-MEMBER IDENTITY / CALENDAR (foundational — surfaced 8 Jun, same root as #86)
+**The gap:** calendar, booking link, AND signer/sending identity are ALL on the `clients` (workspace) row — verified workspace-level, never tied to `client_members`. So **one calendar + one booking link + one sending persona per workspace.** FIGSY **cannot** book into each member's own calendar today; per-member calendars/identities are **not built**.
+**The foundational decision (rolls up #86 + #87): is K.I.N.D a "shared team workspace" or a "team of individual reps"?**
+- **Shared workspace (built today):** one company identity/calendar/booking link/wallet; 10 members run ONE outreach op. Fits centralised outreach (founder + VAs, one pipeline).
+- **Per-rep (NOT built):** each member = own calendar + booking link + signature + sending identity + billing; FIGSY runs N personalised ops, routes each booking/reply to the right rep. Fits a real sales team. **Big architecture change** (move calendar/booking/identity/billing workspace→member + routing).
+**Blocking question for the first client:** are they 10 reps each booking their own meetings (→ per-rep, real gap, can't fully satisfy this week) or a centralised outreach team (→ shared model fine, onboard tonight)? Resolve BEFORE over-promising. Deploy still proceeds regardless.
+
+### 🏢 #88 — PER-REP AUTONOMOUS MODEL (🔒 LOCKED PRODUCT DECISION, 8 Jun — supersedes #86/#87 framing)
+**Founder decision (not client-specific — THE model):** an owner with N sales reps → **each rep gets their own FIGSY working autonomously for them** (own calendar, own bookings, own leads, own identity), then the **owner gets a centralised dashboard** rolling up all reps/people/leads/performance. NOT a centralised booking system. **Rationale: this is the monetisation engine — N autonomous FIGSYs = N× value = N× revenue.**
+- ✅ **Already built:** company account + members (`client_members`), one company wallet/billing, one company dashboard.
+- 🔨 **The re-architecture (weeks, NOT Fri):** move calendar + booking_url + signer/sending identity + leads + campaigns from `clients` (workspace) → `client_members` (per-rep); route every reply/booking to the right rep; seat-quantity billing ("buy 10 FIGSYs" = 10× on one company invoice); owner rollup dashboard. The whole product is workspace-level today — this is foundational.
+- **Phasing (as founder framed):** Phase 1 = per-rep autonomy (each rep's own FIGSY/calendar/leads) → Phase 2 = centralised owner rollup dashboard → seat-quantity billing alongside.
+- **Timeline reality (honest):** ~weeks, not 4 days. **Friday 19 launch proceeds on the CURRENT shared model** (serves solo founders, small centralised teams, the partner pipeline). **Per-rep MVP target = end of NEXT week (~Fri 26 Jun)** — agreed 8 Jun. Do NOT promise the 10-rep client per-rep by Fri 19 — position as early-access / pilot on current model until ~26 Jun.
+
+**BUILD PLAN (scoped from discovery — all data is workspace-level today; no per-member ownership exists):**
+| Slice | What | Touches | Size |
+|-------|------|---------|------|
+| **1. Per-rep identity** | move calendar OAuth + `booking_url` + `signer_name`/sending identity from `clients` → `client_members`; each rep connects own calendar | 007 calendar cols, `routes/calendar.ts`, `figsy.ts` signer/booking reads | M–L |
+| **2. Per-rep ownership** | add `owner_member_id` to `leads` + `figsy_campaigns`; each rep's FIGSY works their own leads/campaigns; route each reply/booking to the owning rep | `leads`, `figsy_campaigns`, `figsy.ts`, `routes/figsy.ts`, reply webhook | L |
+| **3. Seat-quantity billing** | company buys N FIGSY seats = N× on ONE company invoice (Stripe quantity) | `lib/stripe.ts`, subscriptions | M |
+| **4. Owner rollup dashboard** | company admin sees all reps · their leads · performance | portal dashboard, new aggregate endpoints | M (Phase 2) |
+**Order:** Slices 1+2 are the core "each rep autonomous" MVP (target ~26 Jun) · 3 alongside · 4 right after.
+**⚠️ Prereq:** build on **staging**, not prod-with-a-live-client (set up staging first — the V2 staging prereq now applies here). Firm day-by-day + risk after the Fri 19 deploy gives a stable base.
 
 ## §5.5 — PLATFORM & DATA MOAT (#46, #64–70) · Month 3 → Year 2
 | Item | Size | Needs 🧍 |

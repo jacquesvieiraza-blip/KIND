@@ -57,6 +57,16 @@ Use the cold email received in T3 step 11. In Gmail, open it → "Show original"
 25. **P-a signer:** if `clients.signer_name` is set, the email signs off as **exactly that name** (not an invented one). *(set it via DB/API until the portal field ships)*
 26. **Inbox placement:** the email landed in **Primary/Inbox**, not Spam/Promotions. (Formal check: mail-tester.com → aim 10/10.)
 
+## TEST 9 — Team invites (first client needs ~10 people on one workspace)
+27. Settings → Team → invite a teammate (`POST /team/invite`). → **Expect:** invite email arrives with an `/invite/accept?token=…` link.
+28. Open the link in a fresh browser, sign up/log in as that teammate, accept. → **Expect:** they land in the **same client workspace** (shared leads/campaigns), `client_members` row marked accepted, role applied.
+29. Repeat once more (2–3 total) → **Expect:** no seat cap blocks them, all see the same data. *(verifies multi-user works before loading a 10-person client)*
+
+## TEST 10 — Partner onboarding (first partner — Nigeria)
+30. Submit a partner application (`POST /partners/apply`) OR admin-create the partner. → **Expect:** record created with a **referral code**.
+31. Admin approve (`PATCH /partners/admin/:id/approve`). → **Expect:** an **auto-provisioned demo sandbox** is created + a "sandbox ready" email sent; partner can log into `/dashboard/partner`.
+32. Sign up a test client via the partner's **referral code** (`/partners/ref/:code`). → **Expect:** the signup is attributed to the partner; a commission can be recorded and shows on the partner dashboard. *(verifies the channel path before the real Nigeria partner relies on it)*
+
 ---
 
 ## PASS CRITERIA FOR LAUNCH

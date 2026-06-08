@@ -1,8 +1,31 @@
 import { Resend } from 'resend'
+import { htmlToText } from './deliverability'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'K.I.N.D <hello@get-kind.com>'
 const DASH = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard`
+
+// D5: every transactional send carries a text/plain alternative — HTML-only mail
+// hurts inbox placement. Derives the text part from the HTML when not supplied.
+// These are 1:1 transactional mails (welcome, billing, digests) from the primary
+// domain, so they intentionally carry NO List-Unsubscribe header (that's for cold
+// bulk outreach only — see lib/deliverability.ts).
+async function sendTx(opts: {
+  from?: string
+  to: string | string[]
+  subject: string
+  html: string
+  text?: string
+}) {
+  if (!resend) return
+  return resend.emails.send({
+    from:    opts.from ?? FROM,
+    to:      opts.to,
+    subject: opts.subject,
+    html:    opts.html,
+    text:    opts.text ?? htmlToText(opts.html),
+  } as Parameters<typeof resend.emails.send>[0])
+}
 
 function scoreBar(score: number): string {
   const filled  = Math.round(score / 20)
@@ -76,7 +99,7 @@ function digestHeader(companyName: string, totalLeads: number, avgScore: number,
 
 export async function sendWelcomeEmail(to: string, companyName: string) {
   if (!resend) return
-  await resend.emails.send({
+  await sendTx({
     from: FROM,
     to,
     subject: 'Welcome to K.I.N.D — your 14-day trial has started',
@@ -110,7 +133,7 @@ export async function sendConsentEmail(
   if (!resend) return
   const consentUrl = `${optOutUrl}?consent=true`
   const declineUrl = `${optOutUrl}?consent=false`
-  await resend.emails.send({
+  await sendTx({
     from: FROM,
     to,
     subject: `[Action required] ${senderCompanyName} would like to connect`,
@@ -162,7 +185,7 @@ export async function sendFirstLeadsReadyEmail(
       </table>`
     : ''
 
-  await resend.emails.send({
+  await sendTx({
     from: FROM,
     to,
     subject: `Your first ${leadCount} leads are ready — K.I.N.D`,
@@ -352,7 +375,7 @@ export async function sendNurtureEmail(
   }
 
   const { subject, html } = emails[stage]
-  await resend.emails.send({ from: FROM, to, subject, html })
+  await sendTx({ from: FROM, to, subject, html })
 }
 
 export async function sendZeroCreditsWarning(
@@ -372,7 +395,7 @@ export async function sendZeroCreditsWarning(
     daysAtZero <= 4 ? `Your credits have been at zero for ${daysAtZero} days.` :
                       `It's been ${daysAtZero} days with zero credits.`
 
-  await resend.emails.send({
+  await sendTx({
     from: FROM,
     to,
     subject,
@@ -412,7 +435,7 @@ export async function sendCampaignPausedEmail(
 
   const replyPct = (replyRate * 100).toFixed(1)
 
-  await resend.emails.send({
+  await sendTx({
     from: FROM,
     to,
     subject: `Your campaign "${campaignName}" was paused — let's fix it`,
@@ -496,7 +519,7 @@ export async function sendWeeklyLeadsDigest(
             </tr>
           </table>` : ''
 
-  await resend.emails.send({
+  await sendTx({
     from: FROM,
     to,
     subject: `Your K.I.N.D weekly leads report — ${weekOf}`,

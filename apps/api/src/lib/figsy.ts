@@ -3,11 +3,21 @@ import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
+import {
+  COLD_FROM,
+  COLD_REPLY_TO,
+  trackingPixelHtml,
+  unsubscribeHeaders,
+  unsubscribeFooterHtml,
+  unsubscribeFooterText,
+} from './deliverability'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const FROM     = 'K.I.N.D <hello@get-kind.com>'
-const REPLY_TO = process.env.FIGSY_REPLY_TO || 'hello@get-kind.com'
+// D4: cold outreach sends from a dedicated, separately-warmed domain — NEVER the
+// transactional domain. See lib/deliverability.ts.
+const FROM     = COLD_FROM
+const REPLY_TO = COLD_REPLY_TO
 
 if (!process.env.RESEND_API_KEY) {
   console.warn('[figsy] ⚠️  RESEND_API_KEY not set — ALL outreach emails will be silently skipped. Set this in Railway env vars.')
@@ -359,11 +369,9 @@ export async function sendSequenceEmail(
     console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} email to ${lead.email} NOT sent (enrollment still recorded)`)
   }
   if (resend) {
-    // P0-4: tracking pixel injection
-    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-    const trackingPixel = emailId
-      ? `<img src="${apiUrl}/figsy/track/open/${emailId}" width="1" height="1" style="display:none;width:1px;height:1px" alt="" />`
-      : ''
+    // D3: tracking pixel — only injected when a branded tracking domain is configured
+    // (never a bare platform host, which reads as phishing). See deliverability.ts.
+    const trackingPixel = trackingPixelHtml(emailId)
 
     // P2-13: personalised image injection if enabled for campaign
     let personalizedImageHtml = ''
@@ -380,9 +388,14 @@ export async function sendSequenceEmail(
       reply_to: REPLY_TO,
       to:       lead.email,
       subject,
+      // D1: one-click unsubscribe (RFC 8058) — required by Gmail/Yahoo bulk rules.
+      headers:  unsubscribeHeaders(lead.email),
+      // D2: plain-text alternative — HTML-only mail reads as spam.
+      text:     `${body}${unsubscribeFooterText(lead.email)}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
         ${body.split('\n').map(line => `<p style="margin:0 0 12px">${line}</p>`).join('')}
         ${personalizedImageHtml}
+        ${unsubscribeFooterHtml(lead.email)}
         ${trackingPixel}
       </div>`,
     })
@@ -522,8 +535,12 @@ export async function sendDay1OutreachBatch(
           reply_to: REPLY_TO,
           to: lead.email,
           subject: draft.subject,
+          // D1: one-click unsubscribe · D2: plain-text alternative
+          headers: unsubscribeHeaders(lead.email),
+          text: `${draft.body}${unsubscribeFooterText(lead.email)}`,
           html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
             ${draft.body.split('\n').map((line: string) => `<p style="margin:0 0 12px">${line}</p>`).join('')}
+            ${unsubscribeFooterHtml(lead.email)}
           </div>`,
         })
       }

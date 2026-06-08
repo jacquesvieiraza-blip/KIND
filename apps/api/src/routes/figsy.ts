@@ -6,6 +6,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
+import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO } from '../lib/deliverability'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
@@ -33,6 +34,52 @@ figsyRouter.get('/track/open/:emailId', async (req, res) => {
       .eq('id', emailId)
       .is('opened_at', null) // only record first open
   }
+})
+
+// ── UNSUBSCRIBE (D1) — no auth, must be before requireAuth ────────────────────
+// Recipients of cold outreach reach this via the List-Unsubscribe header (one-click
+// POST per RFC 8058) or the visible footer link (GET). Both add the address to the
+// opt-out blocklist — the same chokepoint every send funnels through.
+async function recordUnsubscribe(email: string): Promise<void> {
+  const addr = email.trim().toLowerCase()
+  await db.from('opt_out_blocklist').upsert(
+    { email: addr, reason: 'list_unsubscribe' },
+    { onConflict: 'email', ignoreDuplicates: false },
+  )
+  await db.from('leads')
+    .update({ status: 'opted_out', opted_out_at: new Date().toISOString() })
+    .eq('email', addr)
+  await db.from('figsy_enrollments')
+    .update({ status: 'opted_out' })
+    .in('lead_id',
+      (await db.from('leads').select('id').eq('email', addr)).data?.map((l: any) => l.id) ?? [])
+  void logOutcomeEvent({
+    client_id: null, campaign_id: null, lead_id: null, enrollment_id: null,
+    event_type: 'opt_out', channel: 'email',
+    payload: { via: 'list_unsubscribe', email: addr },
+  })
+}
+
+// One-click unsubscribe (Gmail/Yahoo POST to the List-Unsubscribe URL).
+figsyRouter.post('/unsubscribe/:token', async (req, res) => {
+  const email = verifyUnsubscribeToken(req.params.token)
+  if (!email) return res.status(400).send('Invalid unsubscribe link.')
+  try { await recordUnsubscribe(email) } catch (err) { console.error('[figsy/unsubscribe] POST failed:', err) }
+  return res.status(200).send('You have been unsubscribed.')
+})
+
+// Footer link click — confirm in the browser.
+figsyRouter.get('/unsubscribe/:token', async (req, res) => {
+  const email = verifyUnsubscribeToken(req.params.token)
+  if (!email) {
+    return res.status(400).type('html').send(
+      '<div style="font-family:sans-serif;max-width:480px;margin:64px auto;text-align:center;color:#111">' +
+      '<h2>Invalid unsubscribe link</h2><p style="color:#666">This link is no longer valid.</p></div>')
+  }
+  try { await recordUnsubscribe(email) } catch (err) { console.error('[figsy/unsubscribe] GET failed:', err) }
+  return res.status(200).type('html').send(
+    '<div style="font-family:sans-serif;max-width:480px;margin:64px auto;text-align:center;color:#111">' +
+    `<h2>You're unsubscribed</h2><p style="color:#666">${email} will no longer receive these emails.</p></div>`)
 })
 
 // Verify a Resend (Svix) webhook signature over the raw body. Resend signs each
@@ -1155,13 +1202,16 @@ figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
     }
 
     const reSubject = reply.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply.subject ?? 'Your enquiry'}`
-    const fromAddr  = 'K.I.N.D <hello@get-kind.com>'
+    // D4: reply from the cold domain the prospect's thread is on — keep threading
+    // intact and never leak the transactional domain into a cold conversation.
+    const fromAddr  = COLD_FROM
 
     const { data: sendResult, error: sendError } = await resendInst.emails.send({
-      from:    fromAddr,
-      to:      reply.from_email,
-      subject: reSubject,
-      text:    replyBody,
+      from:     fromAddr,
+      reply_to: COLD_REPLY_TO,
+      to:       reply.from_email,
+      subject:  reSubject,
+      text:     replyBody,
     })
 
     if (sendError) throw sendError

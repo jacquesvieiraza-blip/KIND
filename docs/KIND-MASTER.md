@@ -82,6 +82,7 @@
 - ⬜ **OWED before any ✅:** Tue 9 deploy (merge + migrations 010/012/013 + env) → Smoke Tests T1–T7 → inbox test.
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🔒 **LOCKED Design Principle #7 — deliverability is K.I.N.D's job, NEVER the client's.** Clients never warm a domain / touch DNS / see "spam filters" — it's invisible by design (founder felt the warmup confusion firsthand; SMB clients would churn on it). Today = Model A (all clients ride K.I.N.D's shared `gettingkind.com`, warm nothing). At scale = Model B (K.I.N.D auto-provisions + warms a dedicated per-client domain — better deliverability + their brand + isolated reputation = a moat). Per-client domain logic NOT built yet; logged as the deliverability architecture path. Added as Ch.1 Design Principle #7.
 - **8 Jun:** 📭 **Warmup decision = Option B (passive).** Founder (busy + stealth from employer — can't use personal network for seed inboxes, and `gettingkind.com` is API-only/no mailbox) chose **no manual warmup**. FIGSY's capped auto-ramp (10→50/day) + warm Resend shared IPs + perfect SPF/DKIM/DMARC warm the domain organically through real low-volume sends post-launch. Content is FIGSY-generated (personalised 3-email sequences from lead data + outreach angle), founder approves via the gated approval queue before send. Watch bounce/spam post-launch; add active warmup only if needed. (The earlier "daily Broadcast to friendly inboxes" plan is dropped.)
 - **8 Jun:** 📋 **Deploy + smoke runbooks (de-risking the verification day).** New `docs/DEPLOY-CHECKLIST.md` — exact Tue-9 order (migrations 010/012/013 before merge · env vars · merge · 5-min post-deploy smoke · full verify · rollback plan). Updated `docs/SMOKE_TEST.md` — fixed cold-FROM→`gettingkind.com`, added **TEST 8 Deliverability (D1–D5)** so the never-tested deliverability path gets verified end-to-end (SPF/DKIM align · List-Unsubscribe one-click · plain-text part · tracking guard · P-a signer · inbox placement). When you're free, the work waiting is *verification*, not unproven code.
 - **8 Jun:** 🧪 **First automated test suite (vitest).** Recommended attacking verification debt over building more unverified UI. Set up vitest + wrote **16 passing tests** for the security-critical pure logic (unsubscribe token round-trip/tamper, htmlToText, D3 tracking guard, suppression matcher incl. env additions, warmup ramp schedule — extracted `warmupRampCap` to a pure clock-injectable fn). vitest = devDep (no prod bloat); tests excluded from build; full typecheck clean. Turns those pieces from 🔨→🧪 unit-verified. Next recommended: smoke-test runbook + deploy checklist (held the visual UI work until a verified baseline).
@@ -245,6 +246,23 @@ into dashboards V2-12); skip Docs/Whiteboards/Clips/Timesheets/Chat/Spaces.
 
 **Action:** Reject the app-grid. Every new portal surface must answer "does this directly help
 the client get a meeting/close?" If not, it doesn't belong in the portal.
+
+### **7. DESIGN PRINCIPLE — deliverability is K.I.N.D's job, NEVER the client's (locked 8 Jun).**
+Cold-email deliverability (sending domains, SPF/DKIM/DMARC, **warmup**, reputation, spam
+avoidance) is hard and confusing — the founder hit the full confusion firsthand setting up
+`gettingkind.com`. **Our SMB clients will be even more lost.** So this is invisible to them,
+by design. **The client NEVER warms a domain, configures DNS, or thinks about spam filters.**
+- **Client's job:** describe who to reach → approve emails → take meetings.
+- **K.I.N.D's job (hidden under the hood):** sending domains, warmup, reputation, deliverability.
+- **Today:** all clients send from K.I.N.D's shared cold domain (`gettingkind.com`, `FIGSY_COLD_FROM`)
+  → **clients warm nothing** (Model A — simplest, ships now; shared reputation is the trade-off).
+- **At scale (build later, not now):** K.I.N.D **provisions + auto-warms a dedicated domain per
+  client** (Model B) → better deliverability + their own brand + isolated reputation. This is a
+  **moat** — competitors dump warmup on the user; we never do. *(Not built — per-client domain
+  logic doesn't exist yet. Logged as the deliverability architecture path.)*
+
+**Action:** Any feature that would make a client touch warmup/DNS/deliverability is wrong by
+default. If a client ever sees the word "warmup", we've failed. Make it invisible.
 
 ---
 

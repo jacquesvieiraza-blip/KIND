@@ -428,6 +428,17 @@ partnersRouter.patch('/admin/:partnerId/approve', requireAdminKey, async (req: R
     if (error) throw error
     if (!partner) { res.status(404).json({ success: false, error: 'Partner not found' }); return }
 
+    // Guarantee a referral code — without it the partner has no referral link and
+    // literally can't refer anyone. Don't rely on the DB default (it can silently
+    // not fire under schema drift, as seen on the first live partner).
+    if (!partner.referral_code) {
+      const base = (partner.name || 'partner').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'partner'
+      const code = `${base}${Math.random().toString(36).slice(2, 6)}`
+      const { data: withCode } = await db.from('partners')
+        .update({ referral_code: code }).eq('id', partnerId).select().single()
+      if (withCode?.referral_code) partner.referral_code = withCode.referral_code
+    }
+
     // Return immediately — email + sandbox are fire-and-forget
     res.json({ success: true, data: partner })
 

@@ -102,7 +102,24 @@
 
 **🔧 RECONCILIATION (resolves the overlap the audit found):** **#88 pulls V2-7 / V2-9 / V2-13 forward from Month 2 → next week** — they ARE the per-rep team/calendar features, so they ship as part of the per-rep MVP, not later. All *other* V2 items stay as the Month-2 portal-redesign layer that sits **on top of** the per-rep foundation. (V2-9/V2-13 rows in Ch.3/Ch.5 tagged accordingly.)
 
+## 📎 COMPANION DOCS (live reference — always link new artifacts here)
+> The separate visuals + runbooks that sit alongside this master. Links target the canonical branch `claude/kind-carson-MYhSl`. **Process rule (8 Jun): any new doc/visual created outside this master MUST be added to this index — one always-current reference.**
+
+**Visuals — open in a browser:**
+- [CLIENT_FLOW.html](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/CLIENT_FLOW.html) — full client journey (Part 1) **+ the company / per-rep model (Part 2)**
+- [CLIENT_FLOW_PER_REP.html](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/CLIENT_FLOW_PER_REP.html) — the per-rep model, standalone
+- [portal-v2-preview.html](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/portal-v2-preview.html) — V2 portal concepts **+ per-rep §11–13** (Command Centre · Seats · Usage&Budget)
+- [setup-dashboard-preview.html](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/setup-dashboard-preview.html) — onboarding/setup **+ per-rep company setup**
+- [portal-v2-layout.md](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/portal-v2-layout.md) — V2 design spec (text)
+
+**Runbooks — read:**
+- [DEPLOY-CHECKLIST.md](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/DEPLOY-CHECKLIST.md) — the launch deploy sequence (migrations → env → merge → smoke)
+- [SMOKE_TEST.md](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/SMOKE_TEST.md) — T1–T10 verification (incl. deliverability, team, partner)
+
+*(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
+
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🤝 **First partner referral-link bug found + fixed.** First live partner (Demmy Oshodi / MaceyLuxe, Nigeria, white-label 30%, active+signed) showed **empty referral link** — diagnosed: the DB `referral_code` not-null default didn't fire in prod (schema drift), so the partner couldn't refer anyone. Fixed: approve handler now **guarantees a referral code** (generates one if missing) rather than trusting the DB default. Immediate fix for Demmy = set their `referral_code` via Supabase, or re-approve after deploy. Also: added per-rep company setup to `setup-dashboard-preview.html` + a linked **COMPANION DOCS index** (process rule: always link new artifacts).
 - **8 Jun:** 🗺️ **Added the integrated EXECUTION ROADMAP** (one spine: launch → staging → #88 per-rep MVP → rest of V2 → intelligence → agent family). Audit found the pieces existed but were scattered + #88 overlapped V2-7/9/13 with no reconciliation. Fixed: roadmap sequences it all and explicitly **pulls V2-7/9/13 into the #88 sprint** (~Fri 26); other V2 = Month-2 layer on the per-rep foundation.
 - **8 Jun:** 🏛️ **🔒 LOCKED Design Principle #8 — AUGMENT, never REPLACE (gut + deep research).** Ran multi-source research: "replace the sales org" is premature/dangerous (11x scandal + fake customers + 75–90% churn; AI outbound underperforms humans + craters deliverability; 50–70% AI-SDR churn; consensus = augment/human-led). Pricing: pure per-seat declining (21%→15%) → HYBRID (seat+usage) wins — which our model already is. Verdict + sources logged. Built two visuals: merged per-rep model into `CLIENT_FLOW.html` + rebuilt `portal-v2-preview.html` around it (V2 = expansion-critical).
 - **8 Jun:** 🔭 **Competitive read — Alta (AI BDR) works OPPOSITE to our #88.** Researched (web): Alta = centralised "AI Revenue Workforce" — 3 shared agents for the whole co (Katie SDR · Alex caller/books-to-rep-calendar · Luna centralised RevOps dashboard); **platform license, NOT per-seat** ("reduce headcount" pitch). So Alta = "AI replaces the team"; **K.I.N.D #88 = "AI per human rep, per-seat" — a differentiated bet** (augment + scale revenue with the customer's headcount). **Validated 2 of our slices:** Luna ⇒ our owner command centre (slice 4); Alex's route-meeting-to-the-right-rep's-calendar ⇒ slice 2. **Decision surfaced:** per-seat (our instinct) vs platform-license (market norm) — recommend per-seat (augment-not-replace, Africa-first teams, revenue scales with seats). Logged to Ch.1 competitive.

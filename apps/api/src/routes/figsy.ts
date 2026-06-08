@@ -263,6 +263,64 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
   }
 })
 
+// ── ONE-CLICK UNSUBSCRIBE (D1 / RFC 8058) — public, no auth ──────────────────
+// GET  /figsy/unsubscribe?email=x   — browser link in email footer
+// POST /figsy/unsubscribe?email=x   — RFC 8058 one-click POST from mail clients
+figsyRouter.get('/unsubscribe', async (req, res) => {
+  const email = ((req.query.email as string) ?? '').toLowerCase().trim()
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).send('Invalid unsubscribe link.'); return
+  }
+  try {
+    await Promise.all([
+      db.from('opt_out_blocklist').upsert(
+        { email, reason: 'list_unsubscribe' },
+        { onConflict: 'email', ignoreDuplicates: false },
+      ),
+      db.from('leads')
+        .update({ status: 'opted_out', opted_out_at: new Date().toISOString() })
+        .eq('email', email)
+        .neq('status', 'opted_out'),
+    ])
+    res.status(200).send(
+      `<!doctype html><html><head><meta charset="utf-8"><title>Unsubscribed</title></head>` +
+      `<body style="font-family:sans-serif;max-width:480px;margin:60px auto;text-align:center">` +
+      `<h2>You're unsubscribed</h2>` +
+      `<p>${email} has been removed from all K.I.N.D outreach. No further emails will be sent.</p>` +
+      `</body></html>`,
+    )
+  } catch (err) {
+    console.error('[figsy/unsubscribe]', err)
+    res.status(500).send('Something went wrong. Please try again or email unsubscribe@get-kind.com')
+  }
+})
+
+figsyRouter.post('/unsubscribe', async (req, res) => {
+  // RFC 8058: mail clients POST with body field List-Unsubscribe=One-Click
+  const rawEmail =
+    ((req.body as Record<string, unknown>)?.['List-Unsubscribe'] as string) ??
+    (req.query.email as string) ?? ''
+  const email = rawEmail.replace(/^<|>$/g, '').toLowerCase().trim()
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(200).json({ unsubscribed: false }); return
+  }
+  try {
+    await Promise.all([
+      db.from('opt_out_blocklist').upsert(
+        { email, reason: 'list_unsubscribe_one_click' },
+        { onConflict: 'email', ignoreDuplicates: false },
+      ),
+      db.from('leads')
+        .update({ status: 'opted_out', opted_out_at: new Date().toISOString() })
+        .eq('email', email),
+    ])
+    res.status(200).json({ unsubscribed: true })
+  } catch (err) {
+    console.error('[figsy/unsubscribe/post]', err)
+    res.status(200).json({ unsubscribed: false })
+  }
+})
+
 figsyRouter.use(requireAuth)
 
 async function getClientId(userId: string): Promise<string | null> {

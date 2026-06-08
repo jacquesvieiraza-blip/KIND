@@ -5,8 +5,13 @@ import { logOutcomeEvent } from './outcomes'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const FROM     = 'K.I.N.D <hello@get-kind.com>'
-const REPLY_TO = process.env.FIGSY_REPLY_TO || 'hello@get-kind.com'
+// D4/D5: cold sends use a dedicated cold-outreach domain; transactional (onboarding,
+// support, manual replies) continue to use hello@get-kind.com. Set FIGSY_COLD_FROM_NAME
+// and FIGSY_COLD_FROM_DOMAIN in Railway env vars before launch.
+const COLD_FROM_NAME   = process.env.FIGSY_COLD_FROM_NAME   || 'FIGSY'
+const COLD_FROM_DOMAIN = process.env.FIGSY_COLD_FROM_DOMAIN || 'get-kind.com'
+const FROM     = `${COLD_FROM_NAME} <hello@${COLD_FROM_DOMAIN}>`
+const REPLY_TO = process.env.FIGSY_REPLY_TO || `hello@${COLD_FROM_DOMAIN}`
 
 if (!process.env.RESEND_API_KEY) {
   console.warn('[figsy] ⚠️  RESEND_API_KEY not set — ALL outreach emails will be silently skipped. Set this in Railway env vars.')
@@ -351,8 +356,8 @@ export async function sendSequenceEmail(
     console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} email to ${lead.email} NOT sent (enrollment still recorded)`)
   }
   if (resend) {
-    // P0-4: tracking pixel injection
-    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+    // D3/P0-4: FIGSY_TRACKING_DOMAIN prevents the raw Railway URL appearing in sent email
+    const apiUrl = process.env.FIGSY_TRACKING_DOMAIN || process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.get-kind.com'
     const trackingPixel = emailId
       ? `<img src="${apiUrl}/figsy/track/open/${emailId}" width="1" height="1" style="display:none;width:1px;height:1px" alt="" />`
       : ''
@@ -367,11 +372,19 @@ export async function sendSequenceEmail(
       }
     }
 
+    // D1: RFC 8058 one-click List-Unsubscribe — required for Gmail/Yahoo bulk-sender compliance
+    const unsubUrl = `${apiUrl}/figsy/unsubscribe?email=${encodeURIComponent(lead.email)}`
     const result = await resend.emails.send({
       from:     FROM,
       reply_to: REPLY_TO,
       to:       lead.email,
       subject,
+      headers: {
+        'List-Unsubscribe':      `<${unsubUrl}>, <mailto:unsubscribe@${COLD_FROM_DOMAIN}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+      // D2: multipart/alternative — plain-text part prevents HTML-only spam scoring
+      text: body,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
         ${body.split('\n').map(line => `<p style="margin:0 0 12px">${line}</p>`).join('')}
         ${personalizedImageHtml}

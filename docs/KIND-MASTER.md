@@ -19,21 +19,30 @@
 > **This block is the cold-start handoff.** Any new chat/session must read this to know exactly
 > where we are. **Keep it current** — update it at the end of every working session before commit.
 
-- **Today / baseline:** Sprint **starts Mon 8 Jun 2026**. 12-day countdown to **Fri 19 Jun** launch.
+- **Today / baseline:** Sprint **Mon 8 Jun 2026 — D1–D5 DONE**. 11 days to **Fri 19 Jun** launch.
 - **What's already shipped (verified on `main`, deployed to Railway):**
   - Apollo email enrichment (bulk_match by id) — real emails delivered
   - FIGSY inbound reply pipeline — end-to-end, 🔥 Hot classification verified live
   - Compliance suppression guard — hard-coded at all 6 outreach paths
   - ICP run async · schema drift (lead_status ENUM) reconciled · auto-outreach gated (`AUTO_OUTREACH_ENABLED` default OFF)
   - Outcome-event data floor (#17b) — append-only log live
-- **THE #1 BLOCKER:** Deliverability (mail → spam). Long pole = email warmup clock. Must start Mon 8.
-- **NEXT ACTIONS (Mon 8):**
-  - 🤖 Claude: Deliverability code **D1–D5** (List-Unsubscribe + one-click · plain-text MIME · tracking-pixel fix · cold-FROM config · transactional headers) — see Chapter 2, Mon 8.
-  - 🧍 Founder: **D6–D8** (buy cold domain(s) · SPF/DKIM/DMARC · verify Resend · **START warmup** · verify `API_URL` + get-kind.com auth) + start **#1 TIER-0 credential rotation**.
+- **D1–D5 COMPLETED (Mon 8 Jun — this session):**
+  - **D1:** `List-Unsubscribe` + `List-Unsubscribe-Post: One-Click` headers on all cold sends · public `GET/POST /figsy/unsubscribe?email=X` endpoint (RFC 8058, writes to `opt_out_blocklist` + marks lead)
+  - **D2:** Plain-text `text:` MIME part added alongside HTML in `resend.emails.send` — multipart/alternative
+  - **D3:** Tracking pixel URL now reads `FIGSY_TRACKING_DOMAIN` env var first (no more raw Railway URL fallback) — set to `t.get-kind-outreach.com` or `api.get-kind.com`
+  - **D4:** `FROM` reads `FIGSY_COLD_FROM_NAME` + `FIGSY_COLD_FROM_DOMAIN` env vars (default: FIGSY / get-kind.com) · `REPLY_TO` follows same domain
+  - **D5:** Cold `FROM` constant decoupled from transactional; manual replies in routes still use `hello@get-kind.com` (primary domain)
+  - Files: `apps/api/src/lib/figsy.ts` · `apps/api/src/routes/figsy.ts`
+- **THE #1 BLOCKER (still founder-side):** Buy cold domain(s) + SPF/DKIM/DMARC + Resend verify + **start warmup**. Email clock = longest pole.
+- **NEXT ACTIONS (Tue 9):**
+  - 🤖 Claude: CAL-min booking_url field · P-a "sign as" setting · P-b strip BUILD MARKER `index.ts:165` · #2 delete Portal-V2 flag · fix deploy pipeline GitHub Action
+  - 🧍 Founder: **D6–D8** (buy cold domain(s) · SPF/DKIM/DMARC · verify Resend · **START warmup** · verify `API_URL` + get-kind.com auth) + **TIER-0 credential rotation** (9 creds, Apollo done)
+  - 🤖 + 🧍: Set Railway env vars: `FIGSY_COLD_FROM_NAME`, `FIGSY_COLD_FROM_DOMAIN`, `FIGSY_TRACKING_DOMAIN`
 - **Smoke Test 1:** T2 ✅, T3 mostly ✅ (send + reply→🔥Hot verified). **Left:** T3-13 (pause→no send), T4, T5, T6, T7, and **T1 fresh signup (never run end-to-end)**. Full detail: Chapter 2 (Tue 9 / Wed 10) + Chapter 3 (#15).
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** **D1–D5 DONE** — deliverability code fixes: List-Unsubscribe RFC 8058 header + one-click endpoint (GET+POST /figsy/unsubscribe) · plain-text MIME · tracking pixel URL env-var (`FIGSY_TRACKING_DOMAIN`) · cold-FROM config (`FIGSY_COLD_FROM_NAME`/`FIGSY_COLD_FROM_DOMAIN`) · cold/transactional separation. TypeScript clean. Pushed to `claude/ai-business-roadmap-U3OWJ`. Founder still needs D6–D8 (buy cold domain + warmup).
 - **7 Jun:** ClickUp "More" grid review → logged **#83** (lead-capture Forms) + **#84** (Integrations Hub), folded Goals into V2-12, bumped V2-3 to High, added Ch.1 Read #6 **DESIGN PRINCIPLE: portal stays narrow (≤5 revenue tiles), reject the generalist app-grid.** Total 99→101.
 - **7 Jun:** Logged Ch.1 WATCH note on **monday Vibe** (AI vibe-coding app builder, verified via web search) → reinforces specialisation lane; prompt-to-build UX validates V2-3 conversational setup (bump priority).
 - **7 Jun:** Added Ch.1 strategic takeaway: Monday converging on our look + tactics → defend depth + velocity (specialisation + speed), not the design lane.

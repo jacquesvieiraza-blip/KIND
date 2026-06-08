@@ -133,7 +133,7 @@
 - **Legal entity swapped** to K.I.N.D Technologies Ltd in terms.html / dpa.html / portal terms
 - **Company number: 17260532** — K.I.N.D Technologies Ltd, registered England & Wales ✅
 - **Companies House submitted** — K.I.N.D Technologies Ltd, ltd by shares, SIC 62012/62020/63110, ref 116-471065. Number pending ≤2 wd
-- **Smartsheet employment legal review DONE (3 Jun)** — lawyer consulted, risk assessed, proceeding ✅. Key: built after hours, personal equipment. Clause 17.2 risk acknowledged and accepted.
+- **the founder's employer employment legal review DONE (3 Jun)** — lawyer consulted, risk assessed, proceeding ✅. Key: built after hours, personal equipment. Clause 17.2 risk acknowledged and accepted.
 
 ### Financials
 - **Costs + cashflow rebuilt** on actual numbers — `docs/run-costs-and-cashflow.md` §5b
@@ -1287,7 +1287,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 #### 22–24 May 2026
 | Built | Detail |
 |-------|--------|
-| Partners page rewrite | ClickUp/Smartsheet model — fixed pricing, commission-based |
+| Partners page rewrite | ClickUp/the founder's employer model — fixed pricing, commission-based |
 | Campaign intent prompt | Feature flagged — `FEATURE_CAMPAIGN_INTENT=true` |
 | Conversational ICP builder | Feature flagged — `FEATURE_ICP_BUILDER=true` |
 | Web Speech API voice input | Mic button on both above — Chrome/Safari/Edge |
@@ -1885,7 +1885,7 @@ These errors exist elsewhere in MASTER.md (Sections 1–36) and have NOT been co
 | Campaign intent prompt | ✅ Built | Feature flagged — FEATURE_CAMPAIGN_INTENT=true to activate |
 | Conversational ICP builder | ✅ Built | Feature flagged — FEATURE_ICP_BUILDER=true to activate |
 | Web Speech API voice input | ✅ Built | On both above — mic button, Chrome/Safari/Edge |
-| Partners page rewrite | ✅ Live | ClickUp/Smartsheet model — standard pricing, commission-based |
+| Partners page rewrite | ✅ Live | ClickUp/the founder's employer model — standard pricing, commission-based |
 | Pricing page rewrite | ✅ Live | Start/Scale/Dominate + partner callout |
 | Founder name removed from public pages | ✅ Done | "Founder" only — terms.html unchanged |
 | Admin cohort analytics | ⏳ Not built | Route `/admin/cohorts` does not exist — code was planned but never created. Build at 10+ clients. |
@@ -2614,7 +2614,7 @@ In priority order. Working through these in parallel with your smoke test and ou
 | Pricing page — Start/Scale/Dominate | 20 May |
 | About page — Founder Belief, Dogfooding, AI Revenue Team sections | 20 May |
 | Demo page — AI Revenue Team framing | 20 May |
-| Partners page — ClickUp/Smartsheet model, pricing policy fixed | 20–24 May |
+| Partners page — ClickUp/the founder's employer model, pricing policy fixed | 20–24 May |
 | generateSequenceWithMemory — FIGSY self-improvement | 20 May |
 | Milla morning brief + anomaly detection crons | 20 May |
 | FIGSY auto-replenish cron | 20 May |
@@ -3542,7 +3542,7 @@ Alta is not an "SDR tool" — they've deliberately repositioned as an **"AI GTM 
 
 She asked: What brought you here / what AI tools do you use / does your manager know / how many on your team / CRM / timeline / region?
 
-By the time she opened her screen she knew: **0.8x pipeline coverage vs 3-4x goal** (Smartsheet EMEA), Salesforce, telecom vertical is hot, manager is Tyron, global implementation constraint, 4-day week. She built the entire demo around that context. **Not a generic walkthrough — a mirror of the prospect's exact problem.**
+By the time she opened her screen she knew: **0.8x pipeline coverage vs 3-4x goal** (the founder's employer), Salesforce, telecom vertical is hot, manager is Tyron, global implementation constraint, 4-day week. She built the entire demo around that context. **Not a generic walkthrough — a mirror of the prospect's exact problem.**
 
 **This is Jacques. He is K.I.N.D's exact target user.** Working AE. Uses Claude and ZoomInfo/Sales Nav but finds them too manual. Needs automated lead generation. He could start K.I.N.D today for $20 — no call, no demo, no approval from Tyron.
 

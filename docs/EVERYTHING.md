@@ -206,7 +206,7 @@ Collaborative docs · whiteboards · self-hosted · custom emoji · internal tea
   - Endpoint now **verifies the Svix signature** (was checking a plain `x-webhook-secret` Resend never sends → would 401 everything). `RESEND_WEBHOOK_SECRET` = the webhook's `whsec_…` signing secret.
   - Webhook is **metadata-only** → endpoint fetches the body from `/emails/receiving/{id}` (NOT `/emails/{id}` = sent).
   - **Verified live:** real reply → routed → signed → body fetched (321 chars) → classified **🔥 Hot** → surfaced in portal Inbox. The core money path works.
-- **Compliance:** Smartsheet **do-not-contact guard** (`lib/suppression.ts`, hard floor `smartsheet.com,brandfolder.com,outfit.io,slopeapp.com` + `SUPPRESSED_DOMAINS` env) enforced at sourcing/day-1/sequence/enroll/consent/LinkedIn. **Pitch deck scrubbed** of founder name + Smartsheet link. **Cloudflare rule** `(ip.geoip.asnum eq 46582)` to block Smartsheet network (when site's on Cloudflare).
+- **Compliance:** the founder's employer **do-not-contact guard** (`lib/suppression.ts`, hard floor `the employer + sister domains (base64-encoded in source)` + `SUPPRESSED_DOMAINS` env) enforced at sourcing/day-1/sequence/enroll/consent/LinkedIn. **Pitch deck scrubbed** of founder name + the founder's employer link. **Cloudflare rule** `(ip.geoip.asnum eq 46582)` to block the founder's employer network (when site's on Cloudflare).
 
 ### 🧾 SMOKE TEST 1 — state after today
 - **T1** (signup→onboard gate) — ⬜ parked for last (founder's call).
@@ -701,11 +701,11 @@ Reason it waits is not the code — it's that outcome pricing moves result-risk 
 # PART 2 — ⚖️ LEGAL & COMPLIANCE RING-FENCE (4 rings)
 
 ### 🔵 RING 1 — Corporate & Personal Shield
-✅ Ltd formed (17260532, England & Wales) · ✅ Limited-liability shield · ✅ Employment ring-fence (after-hours/personal-kit; Smartsheet clause 17.2 reviewed+accepted) · ✅ `docs/legal/legal-pack.md`
-✅ **Smartsheet DO-NOT-CONTACT guard (`lib/suppression.ts`)** — hard-coded floor `smartsheet.com, brandfolder.com, outfit.io, slopeapp.com` (+ editable `SUPPRESSED_DOMAINS` env). Enforced at every outreach path: sourcing, day-1 email, FIGSY sequence, campaign enroll, consent email, LinkedIn dispatch. Cannot be turned off.
-✅ **Pitch deck scrubbed** (`docs/kind-pitch-deck.html`) — removed fabricated "Jacques V., AE at Smartsheet EMEA" testimonial + `jacques@` → `hello@`, "Contact Jacques" → "Contact us". (Legal pages already name only the company — no personal name there.)
+✅ Ltd formed (17260532, England & Wales) · ✅ Limited-liability shield · ✅ Employment ring-fence (after-hours/personal-kit; the founder's employer clause 17.2 reviewed+accepted) · ✅ `docs/legal/legal-pack.md`
+✅ **the founder's employer DO-NOT-CONTACT guard (`lib/suppression.ts`)** — hard-coded floor `the employer + sister domains (base64-encoded in source)` (+ editable `SUPPRESSED_DOMAINS` env). Enforced at every outreach path: sourcing, day-1 email, FIGSY sequence, campaign enroll, consent email, LinkedIn dispatch. Cannot be turned off.
+✅ **Pitch deck scrubbed** (`docs/kind-pitch-deck.html`) — removed fabricated "Jacques V., AE at the founder's employer" testimonial + `jacques@` → `hello@`, "Contact Jacques" → "Contact us". (Legal pages already name only the company — no personal name there.)
 ⚠️ **PRIORITY — registered office in `terms.html` is the founder's HOME address (33 Townsend Road, Stratford-upon-Avon).** Publicly exposed. Fix = service/registered-office address at Companies House before launch. (Ties to SR01 below.)
-⬜ **Cloudflare WAF: block Smartsheet network** — rule `(ip.geoip.asnum eq 46582)` → Block, on get-kind.com (speed bump for office-network discovery; needs site proxied through Cloudflare).
+⬜ **Cloudflare WAF: block the founder's employer network** — rule `(ip.geoip.asnum eq 46582)` → Block, on get-kind.com (speed bump for office-network discovery; needs site proxied through Cloudflare).
 ⬜ SR01 home-address suppression · ⬜ Registered office + director service address · ⬜ WHOIS privacy · ⬜ LinkedIn lockdown / anonymous brand-only coverage · ⬜ All public contact = business email · ⬜ Press attributed to "K.I.N.D team" · ⬜ **D&O insurance** (~£500–1,000/yr, Month 2)
 ⬜ Internal mockups still contain the founder name/personal email (`setup-dashboard-preview.html`, `pwa-mockup.html`, `portal-v2-preview.html`, `roadmap-flowchart.html`) — internal-only, scrub before any are shared externally.
 📌 Hard floor: PSC director name is permanently public — cannot be removed.

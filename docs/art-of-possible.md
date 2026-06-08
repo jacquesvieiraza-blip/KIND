@@ -408,7 +408,7 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 - Standard published pricing (no custom deals)
 - Commission-based referral programme
 - Partners positioned as trusted resellers, not order-takers
-→ **Built:** Partners page rebuilt on ClickUp/Smartsheet model (apps/website/partners.html)
+→ **Built:** Partners page rebuilt on ClickUp/the founder's employer model (apps/website/partners.html)
 
 **UI Patterns (to build in portal — see Pieces 1-5 above)**
 - Command palette (Cmd+K)

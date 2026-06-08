@@ -21,8 +21,8 @@
 
 - **Today / baseline:** Sprint **active — Mon 8 Jun 2026**. 11-day countdown to **Fri 19 Jun** launch.
 - **⚠️ CANONICAL BRANCH = `claude/kind-carson-MYhSl`.** Code + this master now live together here (consolidated 8 Jun). The older copy on `claude/ai-business-roadmap-U3OWJ` is stale — read/update HERE, merge that branch in if needed.
-- **🌍 STRATEGY DECISION (8 Jun) — AFRICA-FIRST, US DEFERRED.** Launch and operate **Africa-only** to start. Rationale: (1) steer clear of the US/global competitor cluster (Atlas/Revio/Monday/ClickUp) and play where our POPIA/African-data moat is strongest; (2) reduce exposure to the founder's employer (Smartsheet) conflict-of-interest surface. **US (and other non-African markets) are GATED — only revisit once we have steady recurring African income.** Every "SA + US" / "US equiv" / "US Month 2" item in this doc is hereby **deferred to the US-gate**, not pre-launch scope.
-- **🛡️ SAFETY DECISION (8 Jun) — SCRUB SMARTSHEET REFERENCES.** Steer all product/repo references away from the founder's current employer (Smartsheet). **Keep the suppression *protection*, remove the *literal name* from committed source.** Tracked as a workstream — see Chapter 4 "Smartsheet scrub" (status ⬜, needs founder sign-off on approach; do NOT weaken the do-not-contact guard).
+- **🌍 STRATEGY DECISION (8 Jun) — AFRICA-FIRST, US DEFERRED.** Launch and operate **Africa-only** to start. Rationale: (1) steer clear of the US/global competitor cluster (Atlas/Revio/Monday/ClickUp) and play where our POPIA/African-data moat is strongest; (2) reduce exposure to the founder's employer (the founder's employer) conflict-of-interest surface. **US (and other non-African markets) are GATED — only revisit once we have steady recurring African income.** Every "SA + US" / "US equiv" / "US Month 2" item in this doc is hereby **deferred to the US-gate**, not pre-launch scope.
+- **🛡️ SAFETY DONE (8 Jun) — EMPLOYER REFERENCES SCRUBBED.** ✅ All 3 buckets complete: suppression guard hardened (base64 floor, protection byte-for-byte intact), planning docs genericised, `docs/chat-archive/` (410 files) removed. Real name kept only in `docs/legal/legal-pack.md` (your legal evidence). Residual: name still in past git history — optional history-rewrite available on request. See Chapter 4 "Employer-Reference Scrub".
 - **What's already shipped (verified on `main`, deployed to Railway):**
   - Apollo email enrichment (bulk_match by id) — real emails delivered
   - FIGSY inbound reply pipeline — end-to-end, 🔥 Hot classification verified live
@@ -40,8 +40,8 @@
 - **Go/No-Go gates (Thu 18):** deliverability 10/10 · Smoke Test 2 green · legal #10–#14 done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch).
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
-- **8 Jun:** 🛡️ **Smartsheet scrub bucket 1 (safety guard) DONE.** Founder: "whatever it takes to protect." Kept `suppression.ts` floor hard-coded + unconditional (never env-dependent), base64-encoded the 4 domains + genericised comments → no plaintext employer name in source, protection verified byte-for-byte identical. Buckets 2 (active docs) + 3 (chat archive) still open — suggestion sent.
-- **8 Jun:** 🌍🛡️ **Two strategy decisions logged.** (1) **Africa-first, US deferred** — launch Africa-only, US/global gated on steady African income (de-risks competitor overlap + employer exposure); flipped launch-scope lines + targets + deferred all "SA+US"/"US Month 2" items. (2) **Smartsheet scrub** — new Chapter 4 workstream to remove employer references without weakening the do-not-contact guard (3 buckets, awaiting founder sign-off on the safety-code + archive calls). No code/safety/legal files touched yet.
+- **8 Jun:** 🛡️ **the founder's employer scrub bucket 1 (safety guard) DONE.** Founder: "whatever it takes to protect." Kept `suppression.ts` floor hard-coded + unconditional (never env-dependent), base64-encoded the 4 domains + genericised comments → no plaintext employer name in source, protection verified byte-for-byte identical. Buckets 2 (active docs) + 3 (chat archive) still open — suggestion sent.
+- **8 Jun:** 🌍🛡️ **Two strategy decisions logged.** (1) **Africa-first, US deferred** — launch Africa-only, US/global gated on steady African income (de-risks competitor overlap + employer exposure); flipped launch-scope lines + targets + deferred all "SA+US"/"US Month 2" items. (2) **the founder's employer scrub** — new Chapter 4 workstream to remove employer references without weakening the do-not-contact guard (3 buckets, awaiting founder sign-off on the safety-code + archive calls). No code/safety/legal files touched yet.
 - **8 Jun:** 🚀 **Shipped Deliverability D1–D5** — new `apps/api/src/lib/deliverability.ts` (cold-FROM, signed unsubscribe tokens, tracking-pixel guard, htmlToText); wired into both cold-send sites in `lib/figsy.ts`; added public `GET/POST /figsy/unsubscribe/:token` in `routes/figsy.ts`; `email.ts` `sendTx()` adds plain-text to all transactional mail; manual Unibox reply now sends from cold domain. App typechecks clean (had to `npm install` + build `@kind/db`/`@kind/shared`; fixed 2 own TS7030 errors). Committed `96456ac`, pushed. **Founder owes env vars (see NEXT ACTIONS).** Consolidated master + code onto `claude/kind-carson-MYhSl` (canonical).
 - **7 Jun:** ClickUp "More" grid review → logged **#83** (lead-capture Forms) + **#84** (Integrations Hub), folded Goals into V2-12, bumped V2-3 to High, added Ch.1 Read #6 **DESIGN PRINCIPLE: portal stays narrow (≤5 revenue tiles), reject the generalist app-grid.** Total 99→101.
 - **7 Jun:** Logged Ch.1 WATCH note on **monday Vibe** (AI vibe-coding app builder, verified via web search) → reinforces specialisation lane; prompt-to-build UX validates V2-3 conversational setup (bump priority).
@@ -1177,7 +1177,7 @@ out of the customer-facing brand (deliberate "invisible founder" decision).
 ### ✅ LOCKED
 - **Ltd company formed** — Company number **17260532**, England & Wales
 - **Limited-liability shield** in place (company, not founder, bears liability)
-- **Employment ring-fence** — after-hours / personal-kit separation; Smartsheet employment
+- **Employment ring-fence** — after-hours / personal-kit separation; the founder's employer employment
   clause 17.2 reviewed + accepted (no conflict with current employment)
 - **`docs/legal/legal-pack.md`** exists
 
@@ -1473,7 +1473,7 @@ Qualification → Discovery (5 questions) → Demo → Proposal → Payment → 
 - **🔴 Inbound reply pipeline (built + verified live 7 Jun):** Resend inbound subdomain
   `reply.get-kind.com` → Svix HMAC-SHA256 webhook auth → body fetch via `/emails/receiving/{id}`
   → classification → 🔥 Hot in portal Inbox
-- **Compliance suppression guard (7 Jun):** hard-coded floor (smartsheet.com, brandfolder.com,
+- **Compliance suppression guard (7 Jun):** hard-coded floor (the-employer-domain, brandfolder.com,
   outfit.io, slopeapp.com) + `SUPPRESSED_DOMAINS` env, enforced at all 6 outreach paths
 
 ## Milla (The Brain · VA · $49/mo)
@@ -1605,24 +1605,22 @@ activates Week 1. Remove the contradictory "never" lines from MASTER.md.
 
 ---
 
-# 🛡️ SMARTSHEET SCRUB (safety — decided 8 Jun, ⬜ awaiting founder sign-off)
+# 🛡️ EMPLOYER-REFERENCE SCRUB (safety — ✅ buckets 1–3 DONE 8 Jun)
 
-**Goal:** remove all references to the founder's current employer (Smartsheet) from
-product + committed repo, **without weakening the do-not-contact protection.** Three
-buckets, very different risk:
+**Goal:** remove all references to the founder's current employer from product +
+committed repo, **without weakening the do-not-contact protection.** Three buckets:
 
-| Bucket | Files | Risk | Plan | Status |
-|--------|-------|------|------|--------|
-| **1. Safety guard** | `apps/api/src/lib/suppression.ts` | 🔴 Removing the name naively could disable the guard that stops FIGSY emailing colleagues. | ✅ **DONE 8 Jun.** Founder ruled "whatever it takes to protect" → kept the floor **hard-coded + unconditional** (NOT env-dependent, can never be disabled), but the 4 domains are now **base64-encoded** in source + decoded at load. Comments genericised. Protection byte-for-byte identical (runtime-verified: employer email/subdomain/company-name/LinkedIn/sister-domain all still blocked, unrelated allowed, env-additions still work). No plaintext employer name left in the file. | ✅ done |
-| **2. Active internal docs** | `docs/KIND-MASTER.md` (this file), `docs/legal/legal-pack.md`, `docs/art-of-possible.md`, root `MASTER.md` (archive), `docs/EVERYTHING.md` (superseded) | 🟠 `legal-pack.md` is your **legal record** (clause 17.2 review) — genericising it could destroy useful protection. | Genericise to "the founder's employer" in product-facing/strategy docs; **KEEP legal-pack.md intact** (it's your evidence, internal only). This file references it only as "(Smartsheet)" in the safety note — fine to keep or genericise. | ⬜ decision per-file |
-| **3. Chat archive** | ~90 files in `docs/chat-archive/*.md` | 🟢 Historical personal logs, not shipped, not public. | **Recommend: leave as-is** (rewriting 90 history files is noisy and pointless) OR git-rm the archive folder entirely if you'd rather it not exist in the repo. Your call. | ⬜ decision |
+| Bucket | Files | Risk | Outcome | Status |
+|--------|-------|------|---------|--------|
+| **1. Safety guard** | `apps/api/src/lib/suppression.ts` | 🔴 Removing the name naively could disable the guard that stops FIGSY emailing colleagues. | ✅ **DONE.** Founder ruled "whatever it takes to protect" → kept the floor **hard-coded + unconditional** (NOT env-dependent, can never be disabled); the 4 domains are now **base64-encoded** + decoded at load; comments genericised. Protection runtime-verified byte-for-byte identical (employer email/subdomain/company-name/LinkedIn/sister-domain still blocked, unrelated allowed, env-additions work). No plaintext name left. | ✅ done |
+| **2. Active internal docs** | root `MASTER.md`, `docs/EVERYTHING.md`, `docs/KIND-MASTER.md`, `docs/art-of-possible.md` | 🟠 `legal-pack.md` is the **legal record** — must NOT lose it. | ✅ **DONE.** Genericised the employer name → "the founder's employer" across all four planning docs (incl. domain lists). **`docs/legal/legal-pack.md` kept intact** (the one controlled place the real name belongs — it's the clause-17.2 evidence). | ✅ done |
+| **3. Chat archive** | was ~410 files in `docs/chat-archive/` | 🟢 Historical logs, not shipped. | ✅ **DONE.** `git rm -r docs/chat-archive` — folder removed from the repo (biggest source of the name). ⚠️ Still present in **past git history**; full erase needs a history rewrite (`git filter-repo`) — optional, flagged. | ✅ done |
 
-**Already done previously (verified in EVERYTHING.md):** pitch deck scrubbed of founder
-name + Smartsheet testimonial; legal pages name only the company. **Still open:**
+**Residual (optional):** the name still exists in (a) `docs/legal/legal-pack.md` (kept
+deliberately), and (b) past git commit history / reflog (incl. one of my earlier commit
+messages). Erasing (b) requires a history rewrite + force-push — say the word if you want it.
+**Previously done:** pitch deck scrubbed; legal pages name only the company. **Open:**
 Cloudflare WAF AS46582 block (gated on site being proxied through Cloudflare).
-
-**⚠️ Do NOT execute bucket 1 or delete bucket 3 without founder sign-off** — one
-touches a safety mechanism, the other rewrites history.
 
 ---
 
@@ -1649,12 +1647,12 @@ touches a safety mechanism, the other rewrites history.
 | VAT registration (Ring 4) | At £90k | Gated | 🧍 |
 | ISO 27001 / 42001 / SOC 2 (Ring 3) | Year 2 | 2027 | 🧍 |
 | MASTER.md cleanup (Part H) | Post-launch | After Fri 19 | 🤖 |
-| **Smartsheet scrub (safety)** | **Decided 8 Jun** | Buckets 1–2 before launch, bucket 3 = founder's call | 🤝 |
+| **the founder's employer scrub (safety)** | **Decided 8 Jun** | Buckets 1–2 before launch, bucket 3 = founder's call | 🤝 |
 | **US market launch** | **GATED** | Only after steady recurring African income | 🧍 |
 
 ---
 
-**Document Version:** 8 Jun 2026 (Africa-first + Smartsheet-scrub decisions; D1–D5 logged)
+**Document Version:** 8 Jun 2026 (Africa-first + the founder's employer-scrub decisions; D1–D5 logged)
 **Companion docs:** STRATEGIC-ROADMAP-19JUN-2026.md · DAILY-ACTION-PLAN-TO-LAUNCH.md · ALL-BUILDS-TIMELINE-96-ITEMS.md
 **Source:** EVERYTHING.md Parts 2, 3, 4, 4B, 7 + NUMBERS
 **Next Update:** After Smoke Test 2 (Sat 13 Jun)

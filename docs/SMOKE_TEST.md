@@ -5,6 +5,7 @@
 ---
 
 ## PRE-FLIGHT (do these first — fixes depend on them)
+- [ ] **Complete the full `docs/DEPLOY-CHECKLIST.md` first** (migrations 010/012/013, env vars, merge, post-deploy smoke). This smoke test assumes the deploy is live.
 - [ ] **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase SQL editor (idempotent, safe). This is the keystone — the reply/send/credit pipeline depends on it.
 - [ ] Railway API env: `ADMIN_SECRET_KEY` set · `RESEND_API_KEY` set · `RESEND_WEBHOOK_SECRET` set (inbound replies now fail-closed without it) · `ANTHROPIC_API_KEY` set · `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` set.
 - [ ] Railway Portal env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, the 6 `NEXT_PUBLIC_STRIPE_PRICE_*` IDs.
@@ -28,7 +29,7 @@
 
 ## TEST 3 — FIGSY outreach → reply → hot lead
 10. Unlock FIGSY (admin: grant the account FIGSY access + credits if needed). Create a campaign, enrol a couple of **your own** test email addresses as leads (so you can reply).
-11. Trigger send (or wait for the 2-hourly cron / use admin send-due). → **Expect:** the test addresses receive a real email **from `hello@get-kind.com`**, with your **booking link** in it (if `booking_url` set in Settings). *(verifies booking-link injection)*
+11. Trigger send (or wait for the 2-hourly cron / use admin send-due). → **Expect:** the test addresses receive a real email **from the cold domain `hello@gettingkind.com`** (NOT get-kind.com — verifies D4 cold-FROM), with your **booking link** in it (if `booking_url` set). *(booking-link injection + cold-FROM)*
 12. Reply "Yes, let's talk" from a test address. → **Expect:** within a minute or two it appears in the portal inbox / admin Unibox, classified **🔥 hot**, sequence paused. *(verifies the classification/reply pipeline — the schema reconcile must have run)*
 13. Pause the campaign. Trigger send again. → **Expect:** NO further emails go out for it. *(verifies paused-campaign send stop)*
 
@@ -46,7 +47,17 @@
 ## TEST 7 — Milla & crons hygiene
 19. Confirm a NON-Milla client does NOT receive Milla morning-brief / anomaly emails. *(verifies cron sub-gate)*
 
+## TEST 8 — Deliverability (D1–D5, the #1 blocker) — NEVER tested end-to-end
+Use the cold email received in T3 step 11. In Gmail, open it → "Show original".
+20. **D4 cold-FROM:** `From:` is `…@gettingkind.com`, NOT `get-kind.com`. SPF + DKIM = **PASS**, and DKIM domain aligns to `gettingkind.com`.
+21. **D1 List-Unsubscribe:** the raw headers include `List-Unsubscribe:` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`. Gmail shows an **"Unsubscribe"** link by the sender name.
+22. **D1 footer + endpoint:** the email body has a visible **"Unsubscribe"** link → click it → page says unsubscribed. Then trigger send again → **NO further email** to that address (added to opt-out blocklist).
+23. **D2 plain-text:** "Show original" shows BOTH a `text/plain` and `text/html` part (not HTML-only).
+24. **D3 tracking pixel:** in the HTML, the open-tracking `<img>` is **absent** unless `TRACKING_URL` is a branded domain (never a `*.railway.app` URL).
+25. **P-a signer:** if `clients.signer_name` is set, the email signs off as **exactly that name** (not an invented one). *(set it via DB/API until the portal field ships)*
+26. **Inbox placement:** the email landed in **Primary/Inbox**, not Spam/Promotions. (Formal check: mail-tester.com → aim 10/10.)
+
 ---
 
 ## PASS CRITERIA FOR LAUNCH
-All of: signup gate works · leads appear + charge correctly · FIGSY sends + reply becomes hot · booking records · Stripe single-charge · Vida widget live + purple · no Milla email leak. Any fail → log it, Claude fixes, re-run that test.
+All of: signup gate works · leads appear + charge correctly · FIGSY sends from **gettingkind.com** + reply becomes hot · booking records · Stripe single-charge · Vida widget live + purple · no Milla email leak · **deliverability T8: SPF/DKIM pass, List-Unsubscribe present + one-click works, plain-text part present, inbox not spam.** Any fail → log as `T#-Step# — what I saw`, Claude fixes, re-run that test.

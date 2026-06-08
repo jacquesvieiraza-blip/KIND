@@ -168,6 +168,29 @@ flowchart TD
     </div>
     <div class="keys"><span><b>Today:</b> fixed 3-step email (Day 0·4·9)</span><span><b>#89:</b> a <b>visual branching tree</b> — multi-channel, conditions, wait steps, presets (Alta-style), assignable per rep</span></div>
 
+    <div class="sec-h"><h2>Plugs into your stack · one smart inbox</h2><span>#84 Integrations + Unibox · Alta-style</span></div>
+    <div class="panel">
+      <pre class="mermaid">
+flowchart LR
+    subgraph TOOLS[" Integrations Hub (#84) "]
+      direction TB
+      H["🟠 HubSpot / Pipedrive"]:::seat
+      CAL["📅 Calendar — per rep"]:::seat
+      CH["🟢 WhatsApp · 🔗 LinkedIn"]:::seat
+    end
+    TOOLS ==> K["K.I.N.D"]:::figsy
+    K --> F["FIGSY runs the sequence<br/>across channels"]:::figsy
+    F --> REP["Replies · email · LinkedIn · WhatsApp · SMS"]:::figsy
+    REP --> INBOX[("📥 Smart Inbox · auto-tagged<br/>🔥 Hot · Positive · Meeting Booked ·<br/>Nurturing · Reply Needed · OOO…")]:::win
+    INBOX --> YOU["You: approve · ✨ 'Help me reply' · book"]:::seat
+
+    classDef seat fill:#eef2ff,stroke:#4f46e5,color:#312e81;
+    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
+    classDef win fill:#1E1152,stroke:#7C3AED,color:#fff,font-weight:bold;
+      </pre>
+    </div>
+    <div class="keys"><span><b>#84:</b> one Integrations Hub (CRM · calendar · channels)</span><span><b>Smart Inbox:</b> every reply, every channel, auto-tagged + AI-drafted</span></div>
+
     <div class="sec-h"><h2>Denise — the power curve</h2><span>does more · gets sharper · gets paid on results</span></div>
     <div class="panel">
       <pre class="mermaid">

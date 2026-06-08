@@ -5,7 +5,9 @@ import { NextRequest, NextResponse } from 'next/server'
 const API = 'https://kindapi-production-e64c.up.railway.app'
 
 async function proxy(req: NextRequest, path: string[]) {
-  const key = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET || process.env.NEXT_PUBLIC_ADMIN_KEY || ''
+  // Admin key is read SERVER-SIDE only. Never fall back to NEXT_PUBLIC_* — that would
+  // ship the admin secret into the browser bundle (full auth bypass).
+  const key = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET || ''
   if (!key) return NextResponse.json({ success: false, error: 'Admin key not configured — check ADMIN_SECRET_KEY env var' }, { status: 401 })
 
   const url = `${API}/${path.join('/')}`

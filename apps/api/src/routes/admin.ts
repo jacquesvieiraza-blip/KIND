@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express'
+import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { runIcpJob } from './icps'
@@ -6,8 +7,18 @@ import { computeChurnRisk } from './internal'
 
 export const adminRouter = Router()
 
+// Constant-time admin-key check — avoids the char-by-char timing side-channel of `!==`.
+export function adminKeyValid(provided: unknown): boolean {
+  const secret = process.env.ADMIN_SECRET_KEY
+  if (!secret) return false
+  const a = Buffer.from(String(provided ?? ''))
+  const b = Buffer.from(secret)
+  if (a.length !== b.length) return false
+  return crypto.timingSafeEqual(a, b)
+}
+
 function requireAdminKey(req: Request, res: Response, next: () => void) {
-  if (!process.env.ADMIN_SECRET_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_SECRET_KEY) {
+  if (!adminKeyValid(req.headers['x-admin-key'])) {
     res.status(401).json({ success: false, error: 'Unauthorized' })
     return
   }
@@ -318,8 +329,13 @@ adminRouter.post('/clients/:id/credits', async (req: Request, res: Response) => 
 // POST /admin/setup-demo — legacy single demo account (kept for backwards compat)
 adminRouter.post('/setup-demo', async (req: Request, res: Response) => {
   try {
-    const email    = (req.body as { email?: string }).email    || 'demo@get-kind.com'
-    const password = (req.body as { password?: string }).password || 'KindDemo2025!'
+    // No hardcoded fallback creds — a known default account is a backdoor.
+    const email    = (req.body as { email?: string }).email
+    const password = (req.body as { password?: string }).password
+    if (!email || !password) {
+      res.status(400).json({ success: false, error: 'email and password are required' })
+      return
+    }
 
     const { data: createData, error: createErr } = await db.auth.admin.createUser({
       email, password, email_confirm: true,

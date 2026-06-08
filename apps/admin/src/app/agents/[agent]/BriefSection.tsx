@@ -23,9 +23,8 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
     setLoading(true)
     setError(null)
     try {
-      const adminKey = process.env.NEXT_PUBLIC_ADMIN_KEY || ''
+      // No key here — the /api/proxy route injects the admin secret server-side.
       const res = await fetch(`/api/proxy/internal/briefs/${agentId}`, {
-        headers: adminKey ? { 'x-admin-key': adminKey } : {},
         cache: 'no-store',
       })
       const json = await res.json()
@@ -34,7 +33,7 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
       } else {
         const msg = json.error || 'Failed to generate brief'
         if (msg.includes('Unauthorized') || msg.includes('ADMIN')) {
-          setError('Brief unavailable — set ADMIN_API_KEY in Railway')
+          setError('Brief unavailable — set ADMIN_SECRET_KEY in Railway')
         } else {
           setError(msg)
         }

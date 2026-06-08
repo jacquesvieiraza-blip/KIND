@@ -13,6 +13,7 @@
  */
 
 import { Router, Request, Response } from 'express'
+import crypto from 'crypto'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
@@ -36,8 +37,18 @@ async function clientCampaignFilter(clientId: string): Promise<string[]> {
   return ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']
 }
 
+// Constant-time admin-key check — avoids the char-by-char timing side-channel of `!==`.
+function adminKeyValid(provided: unknown): boolean {
+  const secret = process.env.ADMIN_SECRET_KEY
+  if (!secret) return false
+  const a = Buffer.from(String(provided ?? ''))
+  const b = Buffer.from(secret)
+  if (a.length !== b.length) return false
+  return crypto.timingSafeEqual(a, b)
+}
+
 function requireAdminKey(req: Request, res: Response, next: () => void) {
-  if (!process.env.ADMIN_SECRET_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_SECRET_KEY) {
+  if (!adminKeyValid(req.headers['x-admin-key'])) {
     res.status(401).json({ success: false, error: 'Unauthorized' })
     return
   }

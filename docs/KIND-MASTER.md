@@ -82,7 +82,28 @@
 - 🧪 **16 automated tests PASSING** (vitest, `npm test` in apps/api) — unit-verifies the pure logic: unsubscribe tokens · htmlToText · D3 tracking guard · suppression matcher · warmup ramp. *First tests in the repo — attacks the "zero tests" gap. (Unit-verified ≠ live-verified.)*
 - ⬜ **OWED before any ✅:** Tue 9 deploy (merge + migrations 010/012/013 + env) → Smoke Tests T1–T7 → inbox test.
 
+## ▶️ EXECUTION ROADMAP — HOW IT ALL SEQUENCES (the one integrated view, updated 8 Jun)
+> The single place that shows how **launch + per-rep (#88) + the rest of V2 + everything** stack up.
+> Each block has a gate — don't start a block before its prereq. Detail lives in the chapters; this is the spine.
+
+**① THIS WEEK (now → Fri 19) — LAUNCH THE CURRENT BUILD.** Deploy (`DEPLOY-CHECKLIST.md`) → Smoke `T1–T10` → go live on the **shared-workspace model**. Serves solo founders, small centralised teams, the **partner's pipeline**. First client onboards here as a **pilot**. No per-rep yet.
+
+**② THIS WEEK / WEEKEND — STAGING (HARD PREREQ for ③ and ④).** Supabase staging + Railway staging + `staging` branch auto-deploy. Per-rep and V2 are a re-architecture — never build them on prod with a live client.
+
+**③ NEXT WEEK (~Jun 22–26) — #88 PER-REP MVP (the expansion engine).** 4 slices: per-rep identity (calendar/booking/signer → member) · per-rep ownership (leads/campaigns owner + routing) · **seat + budget (request/approve, hybrid)** · owner command centre. **⚠️ This ABSORBS / pulls forward 3 V2 items** → **V2-7** (invite, ~built), **V2-9** (Teams Hub = the owner command centre), **V2-13** (per-rep multi-provider calendars). 10-rep client = **early-access** here. Target ~Fri 26.
+
+**④ LATE JUN – JUL — REST OF V2 (portal redesign, ON the per-rep foundation).** The V2 items NOT absorbed by #88: V2-1 card grid · V2-2 thinking state · V2-3 conversational setup · V2-4 config panel · V2-6 slim sidebar · V2-8 Milla notetaker · V2-10 Casey · V2-11 Vida bubble · V2-12 dashboards · #83 Forms · #84 Integrations Hub. (Map: Ch.3 V2 section + Ch.5 V2 map.)
+
+**⑤ MONTH 2+ (gated 10+ clients) — INTELLIGENCE + GROWTH.** Intelligence layer #37–53 · **MCP #59** (distribution) · Product Hunt/G2. (Ch.5 §5.1, §5.4.)
+
+**⑥ MONTH 3+ — AGENT FAMILY + PRICING.** Denise deep build #54 + **per-proposal pricing #85** · Lena/Otto · outcome pricing #60. (Ch.5 §5.3–5.4.)
+
+**↔ PARALLEL / ONGOING:** Week-1 GTM (#19–28) · admin RLS refactor (Wk 1–2) · legal rings · deliverability monitoring · the 2 crown-jewel key rotation.
+
+**🔧 RECONCILIATION (resolves the overlap the audit found):** **#88 pulls V2-7 / V2-9 / V2-13 forward from Month 2 → next week** — they ARE the per-rep team/calendar features, so they ship as part of the per-rep MVP, not later. All *other* V2 items stay as the Month-2 portal-redesign layer that sits **on top of** the per-rep foundation. (V2-9/V2-13 rows in Ch.3/Ch.5 tagged accordingly.)
+
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **8 Jun:** 🗺️ **Added the integrated EXECUTION ROADMAP** (one spine: launch → staging → #88 per-rep MVP → rest of V2 → intelligence → agent family). Audit found the pieces existed but were scattered + #88 overlapped V2-7/9/13 with no reconciliation. Fixed: roadmap sequences it all and explicitly **pulls V2-7/9/13 into the #88 sprint** (~Fri 26); other V2 = Month-2 layer on the per-rep foundation.
 - **8 Jun:** 🏛️ **🔒 LOCKED Design Principle #8 — AUGMENT, never REPLACE (gut + deep research).** Ran multi-source research: "replace the sales org" is premature/dangerous (11x scandal + fake customers + 75–90% churn; AI outbound underperforms humans + craters deliverability; 50–70% AI-SDR churn; consensus = augment/human-led). Pricing: pure per-seat declining (21%→15%) → HYBRID (seat+usage) wins — which our model already is. Verdict + sources logged. Built two visuals: merged per-rep model into `CLIENT_FLOW.html` + rebuilt `portal-v2-preview.html` around it (V2 = expansion-critical).
 - **8 Jun:** 🔭 **Competitive read — Alta (AI BDR) works OPPOSITE to our #88.** Researched (web): Alta = centralised "AI Revenue Workforce" — 3 shared agents for the whole co (Katie SDR · Alex caller/books-to-rep-calendar · Luna centralised RevOps dashboard); **platform license, NOT per-seat** ("reduce headcount" pitch). So Alta = "AI replaces the team"; **K.I.N.D #88 = "AI per human rep, per-seat" — a differentiated bet** (augment + scale revenue with the customer's headcount). **Validated 2 of our slices:** Luna ⇒ our owner command centre (slice 4); Alex's route-meeting-to-the-right-rep's-calendar ⇒ slice 2. **Decision surfaced:** per-seat (our instinct) vs platform-license (market norm) — recommend per-seat (augment-not-replace, Africa-first teams, revenue scales with seats). Logged to Ch.1 competitive.
 - **8 Jun:** 🏢 **🔒 LOCKED #88 — PER-REP AUTONOMOUS MODEL is the product direction.** Owner with N reps → each rep gets own autonomous FIGSY (own calendar/booking/leads/identity) → then centralised owner rollup dashboard. Monetisation engine (N× revenue). Discovery confirmed everything is workspace-scoped today (no per-member ownership) → real re-architecture. **Agreed: ship Fri 19 on current shared model; per-rep MVP target end of next week (~Fri 26).** Scoped 4 slices (per-rep identity · per-rep ownership · seat billing · owner rollup); build on staging. Supersedes #86/#87 framing.
@@ -1103,13 +1124,13 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 | **V2-4** | Structured agent config panel | Clean cards: Role/ICP/Tone/Schedule/Knowledge (replace dense text) | 🤖 | ⬜ | Month 2 | Medium |
 | **V2-5** | Agent marketplace | "Meet your AI Revenue Team" (Month 3+, gated on volume) | 🤖 | ⏸ | Month 3 | Medium |
 | **V2-6** | Slim sidebar + top-right header | Profile/Billing/Settings/Team in dropdown (Notion/Linear style) | 🤖 | ⬜ | Month 2 | High |
-| **V2-7** | Invite teammate / growth loop | "Invite your co-founder" modal in header (referral structure) | 🤖 | ⬜ | Month 2 | High |
+| **V2-7** | Invite teammate / growth loop | "Invite your co-founder" modal in header (referral structure) | 🤖 | ⬜ | **PULLED → #88 sprint (~Fri 26)** | High |
 | **V2-8** | **AI Notetaker → action items (Milla)** | Milla reads all portal activity → nightly: "Here's what happened, 3 actions" (Glean moment) | 🤖 | ⬜ | Month 2 | **Critical** |
-| **V2-9** | **Teams Hub** | Members, activity, per-person usage (admin oversight) | 🤖 | ⬜ | Month 2 | **Critical** |
+| **V2-9** | **Teams Hub** = the #88 **owner command centre** | Members, activity, per-person usage (admin oversight) | 🤖 | ⬜ | **PULLED → #88 sprint (~Fri 26)** | **Critical** |
 | **V2-10** | **Casey — Onboarding agent** | Non-family support bot (ClickUp-style + Revio coaching model). Portal only. Warm Pixar 3D. | 🤖 | ⬜ | Month 2 | High |
 | **V2-11** | **Vida in-portal help bubble** | Bottom-right, context-aware, pulls live data (basic pre-launch Fri 12, deep Month 2) | 🤖 | ⬜ | Month 2 | **Critical** |
 | **V2-12** | **Strong client dashboards** | Monday-style: ICP cards · campaign perf · pipeline value · credit usage · trends. **+ Goals (ClickUp steal):** client KPI targets with progress ("book 10 meetings this month") folded in — NOT a standalone module. | 🤖 | ⬜ | Month 2 | Critical |
-| **V2-13** | **Multi-provider calendar** | **(a)** Outlook/Zoho/Calendly OAuth · **(b)** agent-led onboarding (Casey asks "Google or Outlook?") | 🤖 | ⬜ | Month 2 | Critical |
+| **V2-13** | **Multi-provider calendar** (→ #88 **per-rep calendars**) | **(a)** Outlook/Zoho/Calendly OAuth · **(b)** agent-led onboarding (Casey asks "Google or Outlook?") · **(c)** each rep connects their OWN calendar | 🤖 | ⬜ | **PULLED → #88 sprint (~Fri 26)** | Critical |
 | **#83** | **Embeddable lead-capture Forms** (ClickUp steal, revenue-adapted) | A simple embeddable lead-capture form (NOT a survey tool). A submission is another inbound trigger that hands straight to FIGSY/Denise — pairs with Vida + **#80 speed-to-lead**. Stays on-strategy (revenue surface, not generic forms). | 🤖 | ⬜ | Month 2 | Feeds funnel |
 | **#84** | **Integrations Hub** (ClickUp "Apps" steal) | One clean screen for all connections: HubSpot · Pipedrive · Calendar (Google/Outlook/Zoho) · WhatsApp · LinkedIn. Today they're scattered. This is where V2-13 calendar OAuth naturally lives. | 🤖 | ⬜ | Month 2 | UX consolidation |
 

@@ -3,7 +3,20 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { v2Enabled } from '@/lib/flags'
 import { Zap, Eye, EyeOff } from 'lucide-react'
+
+// Brand glyphs (lucide has no brand logos).
+function GoogleG() {
+  return (
+    <svg viewBox="0 0 48 48" className="w-4 h-4">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.3-.1-3.5z" />
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.8l-6.5 5C9.6 39.6 16.2 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4-4 5.3l6.3 5.2C41.5 35.9 44 30.5 44 24c0-1.3-.1-2.3-.4-3.5z" />
+    </svg>
+  )
+}
 
 function LoginForm() {
   const router = useRouter()
@@ -20,6 +33,33 @@ function LoginForm() {
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [agreed, setAgreed] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'azure' | null>(null)
+
+  const signupV2 = v2Enabled('signup')
+
+  async function handleOAuth(provider: 'google' | 'azure') {
+    setError('')
+    setOauthLoading(provider)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboard` },
+      })
+      // On success the browser redirects to the provider; we only land here on error.
+      if (error) {
+        setError(
+          /provider is not enabled/i.test(error.message)
+            ? 'Social sign-in isn’t enabled yet — use email for now.'
+            : error.message,
+        )
+        setOauthLoading(null)
+      }
+    } catch {
+      setError('Could not start social sign-in — please try email.')
+      setOauthLoading(null)
+    }
+  }
 
   useEffect(() => {
     if (searchParams.get('error') === 'confirmation_failed') {
@@ -35,6 +75,12 @@ function LoginForm() {
     setError('')
     setMessage('')
     if (mode === 'signup') {
+      // Legal hard-requirement: T&C must be ticked before an account can be created.
+      if (signupV2 && !agreed) {
+        setError('Please accept the Terms & Conditions and Privacy Policy to continue.')
+        setLoading(false)
+        return
+      }
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/auth/signup`, {
           method: 'POST',
@@ -204,6 +250,29 @@ function LoginForm() {
               <h2 className="text-lg font-bold text-[#1E0A5C] mb-5">
                 {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
               </h2>
+
+              {/* Social login (V2, gated by FEATURE_V2_SCREENS=signup) — works once
+                  Google/Microsoft providers are enabled in Supabase; until then a
+                  click shows a friendly "not enabled yet" hint. */}
+              {signupV2 && mode === 'signup' && (
+                <>
+                  <div className="space-y-2.5 mb-4">
+                    <button type="button" onClick={() => handleOAuth('google')} disabled={!!oauthLoading}
+                      className="w-full flex items-center justify-center gap-2.5 border border-gray-200 rounded-xl py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60">
+                      <GoogleG /> {oauthLoading === 'google' ? 'Connecting…' : 'Continue with Google'}
+                    </button>
+                    <button type="button" onClick={() => handleOAuth('azure')} disabled={!!oauthLoading}
+                      className="w-full flex items-center justify-center gap-2.5 border border-gray-200 rounded-xl py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60">
+                      <span className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5"><span className="bg-[#F25022]" /><span className="bg-[#7FBA00]" /><span className="bg-[#00A4EF]" /><span className="bg-[#FFB900]" /></span>
+                      {oauthLoading === 'azure' ? 'Connecting…' : 'Continue with Microsoft'}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-px bg-gray-100" /><span className="text-[11px] text-gray-400 font-medium">or</span><div className="flex-1 h-px bg-gray-100" />
+                  </div>
+                </>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -233,9 +302,19 @@ function LoginForm() {
                     </button>
                   </div>
                 </div>
+                {/* Required T&C consent (V2, gated) — legal: no account without it */}
+                {signupV2 && mode === 'signup' && (
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded accent-[#7C3AED] shrink-0" />
+                    <span className="text-[12.5px] text-gray-600 leading-relaxed">
+                      I agree to the <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#7C3AED] hover:underline">Terms &amp; Conditions</a> and <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#7C3AED] hover:underline">Privacy Policy</a>.
+                    </span>
+                  </label>
+                )}
                 {error && <p className="text-red-600 text-sm bg-red-50 rounded-xl px-3 py-2">{error}</p>}
                 {message && <p className="text-green-600 text-sm bg-green-50 rounded-xl px-3 py-2">{message}</p>}
-                <button type="submit" disabled={loading}
+                <button type="submit" disabled={loading || (signupV2 && mode === 'signup' && !agreed)}
                   className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-4 py-2.5 text-sm transition-colors disabled:opacity-60">
                   {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
                 </button>

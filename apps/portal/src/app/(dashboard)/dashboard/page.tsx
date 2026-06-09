@@ -9,6 +9,8 @@ import { Target, Inbox, ArrowRight, Zap, ChevronRight, Flame, ThermometerSun } f
 import Link from 'next/link'
 import { FigsyConversation } from './FigsyConversation'
 import { CopyShareLink } from '@/components/ui/CopyShareLink'
+import { v2Enabled } from '@/lib/flags'
+import { DashboardHomeV2 } from './DashboardHomeV2'
 import { DashboardLive } from './DashboardLive'
 
 type BannerState = 'awaiting_payment' | 'trial' | 'none'
@@ -127,6 +129,27 @@ export default async function DashboardPage() {
     : leadCount > 0
     ? 'Your first leads are ready — FIGSY is standing by. Start outreach and let it run 24/7.'
     : 'Your AI Revenue OS is ready. Build your ICP and FIGSY handles outreach — no SDR required.'
+
+  // ── V2 HOME (Agent Grid) — gated by FEATURE_V2_SCREENS=home. OFF by default. ──
+  const isLive = (p: string) => subs.some((s) => {
+    const sub = s as { product?: string; status?: string }
+    return sub.product === p && (sub.status === 'active' || sub.status === 'trialing')
+  })
+  if (v2Enabled('home')) {
+    return (
+      <DashboardHomeV2
+        firstName={firstName}
+        timeOfDay={timeOfDay}
+        sent={totalSent}
+        replied={totalReplies}
+        hot={totalInterested}
+        hasFigsy={isLive('lead_gen_figsy') || isLive('figsy_addon')}
+        hasMilla={isLive('virtual_assistant')}
+        hasVida={isLive('chatbot')}
+        hasDenise={isLive('denise') || isLive('denise_addon')}
+      />
+    )
+  }
 
   return (
     <div className="space-y-4">

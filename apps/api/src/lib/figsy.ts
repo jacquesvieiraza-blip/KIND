@@ -796,12 +796,16 @@ function generatePersonalizedImageHtml(lead: { first_name?: string|null, company
  * per-lead inside autoEnrollLead, and suppression + opt-out are re-checked at send time.
  */
 export async function campaignReadyLeadIds(clientId: string): Promise<string[]> {
+  // Filter in JS — PostgREST boolean + or/not combinations are error-prone and
+  // were silently returning 0. Lead volumes per client are small enough for this.
   const { data } = await db.from('leads')
-    .select('id')
+    .select('id, apollo_consented, status')
     .eq('client_id', clientId)
-    .or('apollo_consented.eq.true,status.eq.consent_given')
-    .not('status', 'in', '("opted_out","rejected")')
-  return (data ?? []).map((l: { id: string }) => l.id)
+  return (data ?? [])
+    .filter((l: { apollo_consented?: boolean | null; status?: string | null }) =>
+      (l.apollo_consented === true || l.status === 'consent_given') &&
+      l.status !== 'opted_out' && l.status !== 'rejected')
+    .map((l: { id: string }) => l.id)
 }
 
 export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {

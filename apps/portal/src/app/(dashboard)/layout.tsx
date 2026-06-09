@@ -8,6 +8,7 @@ import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 import { CommandPalette } from '@/components/ui/CommandPalette'
 import { AgentColumn } from './AgentColumn'
+import { ProfileMenu } from '@/components/layout/ProfileMenu'
 import { v2Enabled } from '@/lib/flags'
 import { Coins, Bell } from 'lucide-react'
 
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let hasVida           = false
   let hasDenise         = false
   let leadCount         = 0
+  let companyName       = ''
   let isPartner         = false
   let partnerStatus     = ''
   let partnerDealCount  = 0
@@ -52,13 +54,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   try {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('id, credit_balance, subscriptions(*)')
+      .select('id, credit_balance, company_name, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
 
     if (clientRow) {
       clientRowExists = true
       creditBalance = clientRow.credit_balance ?? 0
+      companyName = (clientRow as { company_name?: string }).company_name ?? ''
       const subs = (clientRow.subscriptions as { status: string; product?: string; trial_ends_at?: string }[]) ?? []
 
       const isLive = (p: string) => subs.some(s => s.product === p && (s.status === 'active' || s.status === 'trialing'))
@@ -138,7 +141,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
               <Bell className="w-4 h-4" />
             </button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#a78bfa] shrink-0" title={user.email || ''} />
+            <ProfileMenu name={companyName} email={user.email || ''} />
           </header>
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{mainContent}</main>
         </div>

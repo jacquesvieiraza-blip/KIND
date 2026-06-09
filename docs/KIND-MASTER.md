@@ -15,7 +15,11 @@
 > **As of 8 Jun, EVERYTHING built this sprint is `🔨` only** — it all lives on branch `claude/kind-carson-MYhSl`, **not merged, not deployed, not tested.** First real verification = the Tue 9 deploy + Smoke Tests. (Repo-only changes — doc edits, the employer scrub — are genuinely done; runtime features are not.)
 >
 > **Launch date:** 🚀 **FRIDAY 19 JUNE 2026** (firm — deferred from Mon 8 Jun until deliverability + Smoke Test 2 pass).
-> **Last updated:** 8 Jun 2026.
+> **Last updated:** 9 Jun 2026.
+>
+> ### 📍 LIVE TRACKERS (single source of truth — read these to know what's done vs open)
+> - **[`docs/V2-TRACKER.md`](./V2-TRACKER.md)** — THE master tracker: V2 cosmetics · the company system (#88) · full 101-item roadmap by horizon · doc index. **Nothing lives only in chat.**
+> - **[`docs/DOC-MAP.md`](./DOC-MAP.md)** — full audit/cross-reference of every doc in the repo (what's authoritative vs reference vs archive).
 
 ---
 

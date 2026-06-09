@@ -8,6 +8,7 @@ import {
   Play, Inbox, BarChart2, Settings, LogOut,
   Zap, Users, TrendingUp, MessageSquare, FileText,
   CreditCard, LayoutDashboard, Webhook,
+  GitBranch, Plug, GraduationCap, Building2,
 } from 'lucide-react'
 
 type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
@@ -137,8 +138,12 @@ export function SidebarV2Preview({ userEmail }: { userEmail: string }) {
       <div className="px-3 pt-3">
         <p className="px-3 mb-1 text-[9px] font-bold uppercase tracking-widest text-purple-300/30">Company OS · V2</p>
         <div className="space-y-0.5">
-          <NavItem href="/v2/company" label="Command Centre" icon={LayoutDashboard} />
-          <NavItem href="/v2/gallery" label="All V2 screens" icon={Zap} />
+          <NavItem href="/v2/company"      label="Command Centre"  icon={Building2} />
+          <NavItem href="/v2/sequences"    label="Sequence Builder" icon={GitBranch} />
+          <NavItem href="/v2/inbox"        label="Smart Inbox"     icon={Inbox} />
+          <NavItem href="/v2/integrations" label="Integrations"    icon={Plug} />
+          <NavItem href="/v2/train"        label="Train FIGSY"     icon={GraduationCap} />
+          <NavItem href="/v2/gallery"      label="All screens"     icon={Zap} />
         </div>
       </div>
 

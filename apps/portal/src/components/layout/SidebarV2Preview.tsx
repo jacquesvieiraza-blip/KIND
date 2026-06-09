@@ -1,12 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   LogOut, Settings, Inbox, Zap, MessageSquare, FileText,
   LayoutDashboard, GitBranch, Plug, GraduationCap, Building2,
   LayoutGrid, Activity, UserPlus, Store, Sliders, PanelLeft, Rocket,
+  Pin,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType }
@@ -33,55 +35,64 @@ const ITEMS: (Item | null)[] = [
   { href: '/v2/gallery',      label: 'All screens',      icon: Zap },
 ]
 
-function RailLink({ href, label, icon: Icon }: Item) {
-  const pathname = usePathname()
-  const active = href === '/v2' ? pathname === '/v2' : pathname.startsWith(href)
-  return (
-    <Link href={href} className="group relative flex items-center justify-center">
-      <span className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-        active ? 'bg-white/15 text-white' : 'text-purple-200/55 hover:text-white hover:bg-white/[0.08]'
-      }`}>
-        <Icon className="w-[18px] h-[18px]" />
-      </span>
-      {/* hover tooltip */}
-      <span className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-md bg-gray-900 text-white text-xs font-medium px-2.5 py-1.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-lg">
-        {label}
-      </span>
-    </Link>
-  )
-}
-
 export function SidebarV2Preview({ userEmail }: { userEmail: string }) {
+  const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const [pinned, setPinned] = useState(false)
 
   async function signOut() {
     await supabase.auth.signOut()
     router.push('/login')
   }
 
-  return (
-    <aside className="w-16 shrink-0 h-screen bg-[#0F0929] flex flex-col items-center py-3 border-r border-white/[0.06]">
-      {/* Logo */}
-      <Link href="/v2" className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center mb-3 shrink-0">
-        <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
+  // Collapsed by default (icons only) → widens on hover; pin locks it open.
+  const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'
+  const labelCls = pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+
+  function Row({ href, label, icon: Icon }: Item) {
+    const active = href === '/v2' ? pathname === '/v2' : pathname.startsWith(href)
+    return (
+      <Link href={href}
+        className={`mx-2 flex items-center gap-3 h-10 px-3 rounded-xl transition-colors ${
+          active ? 'bg-white/15 text-white' : 'text-purple-200/55 hover:text-white hover:bg-white/[0.08]'
+        }`}>
+        <Icon className="w-[18px] h-[18px] shrink-0" />
+        <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-150 ${labelCls}`}>{label}</span>
       </Link>
+    )
+  }
+
+  return (
+    <aside className={`group ${widthCls} shrink-0 h-screen bg-[#0F0929] flex flex-col py-3 border-r border-white/[0.06] transition-[width] duration-200 overflow-hidden`}>
+      {/* Logo + pin */}
+      <div className="flex items-center h-10 mx-2 px-3 mb-1">
+        <Link href="/v2" className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shrink-0 -ml-1.5">
+          <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
+        </Link>
+        <span className={`ml-1.5 text-white font-bold text-sm tracking-tight whitespace-nowrap transition-opacity ${labelCls}`}>K·I·N·D</span>
+        <button onClick={() => setPinned(p => !p)}
+          className={`ml-auto w-7 h-7 rounded-lg flex items-center justify-center transition-all ${labelCls} ${pinned ? 'text-[#a78bfa] bg-white/10' : 'text-purple-200/50 hover:text-white hover:bg-white/[0.08]'}`}
+          title={pinned ? 'Unpin sidebar' : 'Pin sidebar open'}>
+          <Pin className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       {/* Rail */}
-      <nav className="flex-1 w-full flex flex-col items-center gap-1 overflow-y-auto no-scrollbar px-2">
+      <nav className="flex-1 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden no-scrollbar">
         {ITEMS.map((it, i) => it === null
-          ? <div key={`d${i}`} className="w-7 h-px bg-white/[0.08] my-1.5" />
-          : <RailLink key={it.href} {...it} />
+          ? <div key={`d${i}`} className="h-px bg-white/[0.08] my-1.5 mx-4" />
+          : <Row key={it.href} {...it} />
         )}
       </nav>
 
       {/* Bottom */}
-      <div className="w-full flex flex-col items-center gap-1 pt-2 border-t border-white/[0.06]">
-        <RailLink href="/dashboard/settings" label="Settings" icon={Settings} />
-        <button onClick={signOut} title={userEmail || 'Sign out'}
-          className="group relative w-10 h-10 rounded-xl flex items-center justify-center text-purple-200/55 hover:text-white hover:bg-white/[0.08] transition-colors">
-          <LogOut className="w-[18px] h-[18px]" />
-          <span className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-md bg-gray-900 text-white text-xs font-medium px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">Sign out</span>
+      <div className="flex flex-col gap-0.5 pt-2 border-t border-white/[0.06]">
+        <Row href="/dashboard/settings" label="Settings" icon={Settings} />
+        <button onClick={signOut}
+          className="mx-2 flex items-center gap-3 h-10 px-3 rounded-xl text-purple-200/55 hover:text-white hover:bg-white/[0.08] transition-colors">
+          <LogOut className="w-[18px] h-[18px] shrink-0" />
+          <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity ${labelCls}`}>Sign out</span>
         </button>
       </div>
     </aside>

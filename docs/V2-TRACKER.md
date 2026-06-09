@@ -177,6 +177,47 @@ Legal (D&O, ODPC/NDPR, AI Risk Register, pen test, trademarks, VAT) · Funding (
 
 ---
 
+# ░ PART 2C — FUTURE RELEASES (the 15 Pieces) + STEALS CATALOG + MCP ░
+**Source: `docs/art-of-possible.md` (future-vision/inspiration log).** Gate: most are post-20-clients. ⚠️ that doc's old agent roster (REEVE/OTTO) is superseded → now Denise/Tony/Lena.
+
+## The 15 Pieces (post-loop-proven build list)
+| # | Piece | Effort | Trigger |
+|---|-------|--------|---------|
+| 1 | Multiple pipeline views — **Kanban** · score heatmap · timeline | 2–3d · 1d · 2d | post-20 clients |
+| 2 | **Command palette (Cmd+K)** — "New ICP / Pause FIGSY / Hot leads" | 1–3d | any |
+| 3 | Real-time activity feed (Supabase LISTEN/NOTIFY) | 3d | 10+ clients |
+| 4 | Notification centre (bell + badge) | 3d | any |
+| 5 | **Status bar** (sidebar bottom, live pulse) — "build first, near-zero effort" | 4h | now |
+| 6 | Custom fields on leads (jsonb) | 4–5d | on request |
+| 7 | **Visual automation builder** (React Flow, triggers/actions/conditions) | 2–3wk | 50+ clients |
+| 8 | The ICP that learns itself (replies → "narrow your ICP?") | 2d | 3mo data |
+| 9 | Personalised images in emails *(Lemlist)* | 2d | Phase 3 |
+| 10 | Sequence template library by ICP *(Lemlist)* | 3d | Phase 2 |
+| 11 | Voice-first morning brief (TTS) | 1d | after text brief |
+| 12 | Network-effect benchmarks ("you're top 15%") | 2d | 20+ clients |
+| 13 | White-label / agency channel | 1wk | first agency asks |
+| 14 | **MCP server** — K.I.N.D as AI infra (search_leads/run_icp/enroll_lead/get_figsy_stats… map to existing API). Anthropic directory listing = distribution. New developer pricing tier. | 3–5d | 20+ clients |
+| 15 | Mobile app (PWA first, then native) | 2d | w/ notifications |
+| + | **Revenue Mission Control** (V2 vision: 3-col live ops centre — FIGSY · Pipeline · Intelligence) | — | V2 |
+
+## 🥷 THE STEALS CATALOG (who we learn from → what we take)
+| Source | What we steal |
+|--------|---------------|
+| **Alta** | Touch-Points tree + action library · template gallery · per-agent "Train" tabs · Performance dashboard + Prospect-Status funnel · Unibox reply-tags + "Help me reply" · saved-views + Reps column + "Suggest Campaigns" |
+| **ClickUp** | Command palette · multiple views (Kanban/timeline/heatmap) · activity feed · status bar · 500+ skill library (#58) · Goals (KPI targets) · Forms (#83) · Integrations Hub (#84) |
+| **Lemlist** | Personalised images · visual sequence builder (#89) · template library by ICP · **community play** (own "B2B outreach in Africa" content — start now, free) |
+| **Monday** | Share-to-LinkedIn growth loop (#81/#82) · dense dashboards (V2-12) · Pixar-3D agent warmth (window closing — ship demo fast) |
+| **Atlas** | Speed-to-lead 5-min handoff (#80) · 90-day performance guarantee (#61a/g) · influencer distribution (#61e) |
+| **Instantly** | Domain warming · auto-pause low performers · adaptive send volume (#45) · inbox rotation (#53) |
+| **Clay** | Waterfall enrichment (#42) · ICP-as-filter-layers |
+| **Apollo** | Job-change alerts · sequence analytics · AI transparency ("why FIGSY wrote this") · intent signals |
+| **Apex** | "Acts, doesn't just respond" framing · approval-mode→autonomy onboarding · digital-twin angle (Milla = AI Chief of Staff) · founder-as-demo on LinkedIn |
+| **Glean** | Context/memory moat (#46 pgvector · #47 CRM pull · V2-8 notetaker) · cross-client benchmarks (#64) |
+| **Revio** | Bundled coaching onboarding (#62b) · case-study specificity (#62c–e) |
+| **Amplemarket / MailerLite / Salesforce / Notion-Linear** | Intent signals (#37) · spam-score pre-send (#44) · AgentExchange marketplace (V2-5) + outcome pricing (#60) · MCP-native (#59) + slim sidebar (V2-6) |
+
+---
+
 # ░ PART 3 — DOC INDEX (stop the sprawl) ░
 **This file = the live tracker.** Other docs are reference:
 - `KIND-MASTER.md` — strategy bible / session log (links here)

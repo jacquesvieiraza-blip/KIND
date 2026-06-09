@@ -88,10 +88,11 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
     router.refresh()
   }
 
+  // Flow order: build the ICP FIRST → then the People it finds appear.
   const workspace: Item[] = [
     { href: '/dashboard',                label: 'Home',            icon: Home, exact: true },
-    { href: '/dashboard/leads',          label: 'People',          icon: Users, exact: true },
     { href: '/dashboard/leads/icp',      label: 'ICP Builder',     icon: TrendingUp },
+    { href: '/dashboard/leads',          label: 'People',          icon: Users, exact: true },
     { href: '/dashboard/leads/linkedin', label: 'LinkedIn Import', icon: Search },
   ]
   const account: Item[] = [

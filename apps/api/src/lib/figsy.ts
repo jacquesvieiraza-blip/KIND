@@ -468,11 +468,11 @@ export async function sendSequenceEmail(
     payload:       { step, subject, sent: !!resend, resend_id: messageId ?? null },
   })
 
-  // Bump campaign email count
-  try {
-    await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
-  } catch {
-    // RPC may not exist yet — do direct update fallback
+  // Bump campaign email count. NOTE: supabase-js RPCs/queries RETURN errors, they
+  // don't THROW — so a try/catch never sees an RPC failure. Check the returned
+  // error and run the direct-update fallback when the RPC isn't available.
+  const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
+  if (rpcErr) {
     const { data } = await db.from('figsy_campaigns')
       .select('emails_sent').eq('id', campaignId).single()
     if (data) {

@@ -505,7 +505,24 @@ figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {
     const { data, error } = await db.from('figsy_campaigns')
       .select('*').eq('client_id', clientId).order('created_at', { ascending: false })
     if (error) throw error
-    res.json({ success: true, data })
+    const campaigns = (data ?? []) as { id: string; emails_sent?: number }[]
+
+    // Reconcile emails_sent against the real send log. figsy_sent_emails has one
+    // row per actual send (keyed by campaign_id); the denormalised emails_sent
+    // counter can drift to 0, so we correct the displayed count up to reality.
+    const ids = campaigns.map(c => c.id)
+    if (ids.length) {
+      const { data: sent } = await db.from('figsy_sent_emails')
+        .select('campaign_id').in('campaign_id', ids)
+      const counts: Record<string, number> = {}
+      for (const r of (sent ?? []) as { campaign_id: string }[]) {
+        counts[r.campaign_id] = (counts[r.campaign_id] ?? 0) + 1
+      }
+      for (const c of campaigns) {
+        c.emails_sent = Math.max(counts[c.id] ?? 0, c.emails_sent ?? 0)
+      }
+    }
+    res.json({ success: true, data: campaigns })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch campaigns' }) }
 })
 

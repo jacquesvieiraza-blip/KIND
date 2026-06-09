@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { v2Enabled } from '@/lib/flags'
 import { Send, Loader2 } from 'lucide-react'
 
 interface ChatMessage {
@@ -182,6 +183,77 @@ function OnboardChat() {
   }
 
   const currentPlaceholder = scanning || submitting ? '' : (STEPS[step]?.placeholder ?? 'Type your answer…')
+
+  // ── Concept B · "The Spotlight" — centered, calm, premium first interaction ──
+  // Same chat logic, presented as a single focused question card. Gated behind
+  // FEATURE_V2_SCREENS=welcome; off by default → existing layout below.
+  if (v2Enabled('welcome')) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-6 py-12"
+        style={{ background: 'radial-gradient(1200px 600px at 50% -10%, #f1ebff, #ffffff 60%)' }}
+      >
+        <div className="w-full max-w-lg text-center">
+          {/* Glowing avatar */}
+          <div className="relative w-28 h-28 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full blur-2xl opacity-40" style={{ background: '#7C3AED' }} />
+            <div className="relative w-28 h-28 rounded-full overflow-hidden ring-4 ring-white shadow-xl">
+              <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
+            </div>
+            <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-emerald-400 ring-4 ring-white" />
+          </div>
+
+          <p className="text-sm font-semibold tracking-wide" style={{ color: '#7C3AED' }}>FIGSY · The Opener</p>
+          <h1 className="text-3xl font-bold text-gray-900 mt-2 leading-tight">Hey — let's find your<br />first leads together.</h1>
+          <p className="text-gray-500 mt-3 mb-8 max-w-md mx-auto">I'm your AI SDR. Answer a few quick questions and I'll start building your pipeline today.</p>
+
+          {/* Focused question card */}
+          <div className="bg-white border border-purple-100/70 rounded-2xl shadow-sm p-6 text-left max-w-md mx-auto">
+            <p className="text-[15px] font-semibold text-gray-900 leading-relaxed whitespace-pre-line min-h-[1.5rem]">
+              {displayed}
+              {!typingDone && <span className="inline-block w-0.5 h-4 bg-[#7C3AED]/60 animate-pulse ml-0.5 align-middle" />}
+              {(scanning || submitting) && typingDone && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#7C3AED] inline ml-1.5 align-middle" />}
+            </p>
+            <form onSubmit={handleSubmit} className="flex items-center gap-2 mt-4">
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder={currentPlaceholder}
+                disabled={!typingDone || scanning || submitting}
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-3.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 focus:border-[#7C3AED] disabled:opacity-40"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || !typingDone || scanning || submitting}
+                className="px-5 h-12 rounded-xl flex items-center gap-2 text-white text-sm font-bold shrink-0 disabled:opacity-40"
+                style={{ background: '#7C3AED' }}
+              >
+                Next <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex items-center justify-center gap-2 mt-7">
+            {STEPS.map((_, i) => (
+              <span key={i} className="rounded-full transition-all" style={{
+                width: i === step ? 22 : 7, height: 7,
+                background: i < step ? '#34d399' : i === step ? '#7C3AED' : '#d8cffa',
+              }} />
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-3">Step {step + 1} of {STEPS.length} · No credit card to start</p>
+
+          {error && <p className="mt-4 text-center text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 max-w-md mx-auto">{error}</p>}
+
+          <p className="text-center text-[11px] text-gray-400 mt-6">
+            Already have an account? <a href="/login" className="text-[#7C3AED] font-medium hover:underline">Sign in</a>
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

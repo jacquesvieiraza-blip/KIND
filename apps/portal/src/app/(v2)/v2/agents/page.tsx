@@ -2,16 +2,17 @@
 
 /** V2 — AGENT CARD GRID (dashboard home). Full-screen preview, sample data. Gated /v2. */
 
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { Sparkles, ArrowRight, BadgeCheck } from 'lucide-react'
 
 const BRAND = '#7C3AED'
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
 
+// Persona roles (consistent everywhere). Order = funnel; Denise (the closer) last.
 const AGENTS = [
-  { name: 'FIGSY', role: 'AI Sales Development Rep', img: '/agents/figsy.png', g: 'from-[#7C3AED] to-[#6025c0]', live: true, metrics: [['Sent', '2,840'], ['Replied', '348'], ['Hot leads', '141']], cta: 'Open FIGSY' },
-  { name: 'Denise', role: 'The Closer · AI Account Exec', img: '/agents/denise.png', g: 'from-[#D97706] to-[#b45309]', live: false, feats: ['Confirms booked meetings', 'Joins calls as notetaker', 'Drafts proposals', 'Chases warm leads'] },
-  { name: 'Milla', role: 'Virtual Executive Assistant', img: '/agents/milla.png', g: 'from-[#0ea5e9] to-[#0284c7]', live: false, feats: ['Calendar & meetings', 'Email drafting', 'Research & briefings', 'Task tracking'] },
-  { name: 'Vida', role: 'Website Chatbot Agent', img: '/agents/vida.png', g: 'from-[#10b981] to-[#059669]', live: false, feats: ['24/7 visitor engagement', 'Lead capture & qualify', 'Demo booking', 'Handoff to reps'] },
+  { name: 'FIGSY',  role: 'The Opener',    img: '/agents/figsy.png',  g: 'from-[#7C3AED] to-[#6025c0]', metrics: [['Sent', '2,840'], ['Replied', '348'], ['Hot leads', '141']] },
+  { name: 'Milla',  role: 'The Brain',     img: '/agents/milla.png',  g: 'from-[#0ea5e9] to-[#0284c7]', feats: ['Calendar & meetings', 'Email drafting', 'Research & briefings', 'Task tracking'] },
+  { name: 'Vida',   role: 'The Connector', img: '/agents/vida.png',   g: 'from-[#10b981] to-[#059669]', feats: ['24/7 visitor engagement', 'Lead capture & qualify', 'Demo booking', 'Handoff to reps'] },
+  { name: 'Denise', role: 'The Closer',    img: '/agents/denise.png', g: 'from-[#D97706] to-[#b45309]', feats: ['Confirms booked meetings', 'Joins calls as notetaker', 'Drafts proposals', 'Chases warm leads'] },
 ]
 
 export default function AgentGrid() {
@@ -28,14 +29,17 @@ export default function AgentGrid() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           {AGENTS.map(a => (
             <div key={a.name} className={`${card} overflow-hidden flex flex-col`}>
-              <div className={`bg-gradient-to-br ${a.g} px-5 py-5`}>
+              <div className={`relative bg-gradient-to-br ${a.g} px-5 py-5`}>
+                <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-bold text-white bg-white/20 px-2 py-0.5 rounded-full">
+                  <BadgeCheck className="w-3 h-3" /> Certified
+                </span>
                 <div className="w-12 h-12 rounded-xl overflow-hidden mb-3 bg-white/20 ring-2 ring-white/30"><img src={a.img} alt={a.name} className="w-full h-full object-cover" /></div>
                 <p className="text-white font-bold text-lg leading-tight">{a.name}</p>
-                <p className="text-white/60 text-xs mt-0.5">{a.role}</p>
+                <p className="text-white/70 text-xs mt-0.5">{a.role}</p>
               </div>
               <div className="px-5 py-4 flex-1 flex flex-col">
-                <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full self-start mb-3 ${a.live ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${a.live ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />{a.live ? 'Active' : 'Coming soon'}
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full self-start mb-3 bg-emerald-50 text-emerald-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active
                 </span>
                 {a.metrics ? (
                   <div className="grid grid-cols-3 gap-2 py-3 border-y border-gray-100 mb-4 text-center">
@@ -43,11 +47,11 @@ export default function AgentGrid() {
                   </div>
                 ) : (
                   <div className="flex-1 space-y-2 mb-4">
-                    {a.feats!.map(f => (<div key={f} className="flex items-start gap-2 text-[13px] text-gray-400"><span className="mt-1.5 w-1 h-1 rounded-full bg-gray-300 shrink-0" />{f}</div>))}
+                    {a.feats!.map(f => (<div key={f} className="flex items-start gap-2 text-[13px] text-gray-600"><span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: BRAND }} />{f}</div>))}
                   </div>
                 )}
-                <button className={`mt-auto w-full flex items-center justify-center gap-2 text-sm font-bold py-2.5 rounded-xl ${a.live ? 'text-white' : 'bg-gray-100 text-gray-400'}`} style={a.live ? { background: BRAND } : undefined}>
-                  {a.live ? <>{a.cta} <ArrowRight className="w-4 h-4" /></> : 'Coming soon'}
+                <button className="mt-auto w-full flex items-center justify-center gap-2 text-sm font-bold py-2.5 rounded-xl text-white" style={{ background: BRAND }}>
+                  Open {a.name} <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>

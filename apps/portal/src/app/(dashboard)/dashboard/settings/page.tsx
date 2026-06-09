@@ -288,6 +288,10 @@ export default function SettingsPage() {
   const [signerSaving, setSignerSaving]             = useState(false)
   const [signerSaved, setSignerSaved]               = useState(false)
   const [signerError, setSignerError]               = useState<string | null>(null)
+  const [bookingUrl, setBookingUrl]                 = useState('')
+  const [bookingSaving, setBookingSaving]           = useState(false)
+  const [bookingSaved, setBookingSaved]             = useState(false)
+  const [bookingError, setBookingError]             = useState<string | null>(null)
   const [showCrmKey, setShowCrmKey]                 = useState(false)
   const [unsavedProfile, setUnsavedProfile]         = useState(false)
   const [unsavedCrm, setUnsavedCrm]                 = useState(false)
@@ -304,6 +308,7 @@ export default function SettingsPage() {
         setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '', leads_per_run: c.leads_per_run ?? 20, daily_drip_rate: c.daily_drip_rate ?? 5 })
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
         setSignerName((c as { signer_name?: string | null }).signer_name || '')
+        setBookingUrl((c as { booking_url?: string | null }).booking_url || '')
         if (c.id) {
           setClientId(c.id)
           // Fetch the user's role in this team
@@ -393,6 +398,21 @@ export default function SettingsPage() {
       setSignerError(err instanceof Error ? err.message : 'Failed to save — please try again.')
     }
     setSignerSaving(false)
+  }
+
+  async function handleSaveBooking() {
+    setBookingSaving(true)
+    setBookingError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setBookingSaving(false); return }
+      await api.patch('/clients/me', { booking_url: bookingUrl.trim() }, session.access_token)
+      setBookingSaved(true)
+      setTimeout(() => setBookingSaved(false), 3000)
+    } catch (err) {
+      setBookingError(err instanceof Error ? err.message : 'Failed to save — check it\'s a valid URL.')
+    }
+    setBookingSaving(false)
   }
 
   async function handleCrmSave(e: React.FormEvent) {
@@ -734,6 +754,32 @@ export default function SettingsPage() {
             <Calendar className="w-4 h-4" /> Connect Google Calendar
           </a>
         )}
+
+        {/* Booking link — for clients who don't use Google Calendar (Calendly, etc.) */}
+        <div className="mt-5 pt-5 border-t border-gray-100">
+          <label className="block text-sm font-medium text-gray-900 mb-1">Or paste a booking link</label>
+          <p className="text-xs text-[#9B8EC4] mb-2.5">Using Calendly, Cal.com, or another scheduler? Paste it here and FIGSY will share this link instead.</p>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={bookingUrl}
+              onChange={e => setBookingUrl(e.target.value)}
+              placeholder="https://calendly.com/your-name/30min"
+              className="flex-1 border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
+            />
+            <button
+              type="button"
+              disabled={bookingSaving}
+              onClick={handleSaveBooking}
+              className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-4 py-2 text-sm transition-colors disabled:opacity-60 shrink-0"
+            >
+              {bookingSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Save
+            </button>
+          </div>
+          {bookingSaved && <p className="text-green-600 text-xs font-medium mt-2">✓ Booking link saved</p>}
+          {bookingError && <p className="text-red-600 text-xs mt-2">{bookingError}</p>}
+        </div>
       </div>
 
       {/* WhatsApp — only show when active */}

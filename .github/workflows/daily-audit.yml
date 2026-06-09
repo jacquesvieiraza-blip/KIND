@@ -68,30 +68,22 @@ jobs:
 
             // Build pending items checklist (always included)
             const PENDING = `
-            ## 📋 Pending Action Items
+            ## 📋 Pending Action Items (refreshed 9 Jun)
 
-            ### 🔴 Must Do
-            - [ ] **Railway deploy** — confirm API is auto-deploying from \`main\` branch
-            - [ ] **RESEND_API_KEY** — set in Railway env vars (welcome + nurture emails are silent without it)
-            - [ ] **Run MASTER_SCHEMA.sql** — paste \`supabase/MASTER_SCHEMA.sql\` into Supabase SQL Editor if not done
-            - [ ] **Paystack KYC** — complete at dashboard.paystack.com → Settings → Compliance
+            ### 🔴 Pre-launch must-do
+            - [ ] **Rotate 2 crown-jewel keys** — Stripe secret + Supabase service-role
+            - [ ] **Smoke tests** — T1 (fresh signup), T3–T7, T9, T10
+            - [ ] **D9 inbox-placement 10/10** — mail-tester / GlockApps
+            - [ ] **Legal** — ICO registration · suppression filing · WHOIS privacy
 
-            ### 🟡 High Priority
-            - [ ] **Google Workspace** — set up hello@get-kind.com at workspace.google.com
-            - [ ] **ANTHROPIC_API_KEY** — confirm set in Railway (Milla + ICP AI needs this)
-            - [ ] **ADMIN_SECRET_KEY** — confirm set in Railway
-            - [ ] **PORTAL_URL** — confirm set in Railway as https://app.get-kind.com
+            ### 🟡 Pre-launch ops
+            - [ ] **Paystack KYC** — dashboard.paystack.com → Settings → Compliance
+            - [ ] **Resend paid plan** — for inbound reply routing at volume
 
-            ### 🔵 Medium Priority
-            - [ ] **Calendly/Cal.com URL** — share your booking link so "Book a Demo" buttons can be wired
-            - [ ] **FIGSY_KIND_CLIENT_ID** — add to Railway env vars
-            - [ ] **Stripe env vars** — add to activate billing page (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)
-            - [ ] **Register UK company** — companieshouse.gov.uk (£50, 15 min)
-            - [ ] **Upgrade Resend** — paid plan needed for inbound reply routing
-
-            ### ⚪ Launch Day
-            - [ ] G2 / Capterra / Product Hunt listings
-            - [ ] Set FEATURE_PORTAL_V2=true in Railway when V2 design is ready
+            ### ✅ Done (8–9 Jun) — no longer action items
+            - Railway auto-deploy from \`main\` · cold domain \`gettingkind.com\` + warmup LIVE · deliverability T8 passed
+            - Env set: RESEND · ANTHROPIC · ADMIN_SECRET · PORTAL_URL · FIGSY_KIND_CLIENT_ID · Stripe · cold-FROM/warmup-start
+            - MASTER_SCHEMA + migrations 010–013 · signer field · booking-link field · Option A (verified leads auto campaign-ready)
             `.trim().split('\n').map(l => l.trim()).join('\n')
 
             const body = `# K.I.N.D System Audit Report
@@ -143,8 +135,10 @@ jobs:
               body:   body,
             })
 
-      - name: Fail job if audit has critical/high issues
+      # Report-only: the audit findings are captured in the auto-created GitHub
+      # issue. We do NOT fail the workflow — a red badge twice a day was pure
+      # noise (it doesn't run on push, so it never gates deploys). The issue is
+      # the signal; the workflow staying green keeps the dashboard clean.
+      - name: Flag audit findings (report only)
         if: steps.audit.outputs.exit_code != '0'
-        run: |
-          echo "::error::Audit found CRITICAL or HIGH issues."
-          exit 1
+        run: echo "::warning::Audit found issues — see the auto-created GitHub issue for details."

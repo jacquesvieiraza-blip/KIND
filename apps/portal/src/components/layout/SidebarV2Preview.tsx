@@ -133,6 +133,15 @@ export function SidebarV2Preview({ userEmail }: { userEmail: string }) {
         </Link>
       </div>
 
+      {/* Company OS (V2) — the per-rep money engine + the full design gallery */}
+      <div className="px-3 pt-3">
+        <p className="px-3 mb-1 text-[9px] font-bold uppercase tracking-widest text-purple-300/30">Company OS · V2</p>
+        <div className="space-y-0.5">
+          <NavItem href="/v2/company" label="Command Centre" icon={LayoutDashboard} />
+          <NavItem href="/v2/gallery" label="All V2 screens" icon={Zap} />
+        </div>
+      </div>
+
       {/* Agent sections */}
       <div className="flex-1 px-3 py-2 space-y-1">
         {AGENTS.map(agent => {

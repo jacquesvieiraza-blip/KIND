@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { v2Enabled } from '@/lib/flags'
 import type { Lead, LeadStats, ICP, LeadStatus } from '@kind/shared'
 import { SCORE_THRESHOLDS } from '@kind/shared'
 import {
   Users, TrendingUp, ShieldCheck, Download, Search,
   Mail, Ban, Sparkles, Loader2, ExternalLink,
   CheckCircle, Clock, XCircle, Plus, Settings2,
-  DollarSign, Send, X, ChevronDown, AlertTriangle, Copy, Layers, Trash2,
+  DollarSign, Send, X, ChevronDown, AlertTriangle, Copy, Layers, Trash2, Target,
 } from 'lucide-react'
 
 // ── Enrichment types ──────────────────────────────────────────────────────────
@@ -334,6 +335,51 @@ function EmptyState({ tab, hasIcps }: { tab: TabId; hasIcps: boolean }) {
       <p className="text-sm font-medium text-gray-700">{m.title}</p>
       <p className="text-xs mt-1">{m.body}</p>
       {m.cta}
+    </div>
+  )
+}
+
+// ── C1 + C3 (V2) — Active ICP surfaced above People, plain-language copy ───────
+// Additive, gated behind FEATURE_V2_SCREENS=leads. Built from the real active ICP.
+function ActiveIcpBanner({ icp, total }: { icp: ICP; total: number }) {
+  const titles = (icp.job_titles ?? []).slice(0, 3).join(', ')
+  const inds   = (icp.industries ?? []).slice(0, 2).join(' & ')
+  const geos   = (icp.geographies ?? []).slice(0, 3).join(', ')
+  const size   = (icp.company_sizes ?? [])[0]
+  const desc = [
+    titles || 'Decision-makers',
+    inds && `at ${inds} companies`,
+    geos && `in ${geos}`,
+    size && `· ${size} staff`,
+  ].filter(Boolean).join(' ')
+  const tags = [...(icp.industries ?? []), ...(icp.geographies ?? []), ...(icp.company_sizes ?? [])].slice(0, 6)
+
+  return (
+    <div className="rounded-2xl border border-[#e0d4fb] p-5" style={{ background: 'linear-gradient(135deg,#faf7ff,#f3eeff)' }}>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: '#7C3AED' }}>
+            <Target className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-bold text-gray-900">{icp.name}</p>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Active ICP</span>
+            </div>
+            <p className="text-[13px] text-gray-600 mt-1 max-w-xl">{desc}. FIGSY finds, scores and verifies these people for you.</p>
+            {tags.length > 0 && (
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                {tags.map(t => (
+                  <span key={t} className="text-[11px] font-semibold text-[#7C3AED] bg-white border border-[#e0d4fb] px-2 py-0.5 rounded-full">{t}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <span className="text-xs font-bold text-[#7C3AED] bg-white border border-[#e0d4fb] px-3 py-1.5 rounded-lg whitespace-nowrap">
+          {total.toLocaleString()} sourced
+        </span>
+      </div>
     </div>
   )
 }
@@ -729,6 +775,11 @@ export default function LeadsPage() {
           </button>
         </div>
       </div>
+
+      {/* C1 + C3 — Active ICP surfaced above People (V2, gated) */}
+      {v2Enabled('leads') && (icps.find(i => i.is_active) ?? icps[0]) && (
+        <ActiveIcpBanner icp={(icps.find(i => i.is_active) ?? icps[0])!} total={stats?.total ?? total} />
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

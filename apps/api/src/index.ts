@@ -1,3 +1,4 @@
+// Option A (verified leads campaign-ready) + Railway build fix — deploy trigger.
 import 'dotenv/config'
 import { runStartupCheck } from './lib/startup-check'
 runStartupCheck()

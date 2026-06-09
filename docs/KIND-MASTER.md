@@ -18,8 +18,8 @@
 > **Last updated:** 9 Jun 2026.
 >
 > ### 📍 LIVE TRACKERS (single source of truth — read these to know what's done vs open)
-> - **[`docs/V2-TRACKER.md`](./V2-TRACKER.md)** — THE master tracker: V2 cosmetics · the company system (#88) · full 101-item roadmap by horizon · doc index. **Nothing lives only in chat.**
-> - **[`docs/DOC-MAP.md`](./DOC-MAP.md)** — full audit/cross-reference of every doc in the repo (what's authoritative vs reference vs archive).
+> - **[`docs/V2-TRACKER.md`](./V2-TRACKER.md)** — THE forward roadmap. **RULE (locked 9 Jun): ALL future releases · competitor steals · V2 builds · future enhancements are captured HERE going forward** (V2 cosmetics · company system #88 · 101-item roadmap by horizon · the 15 Pieces · steals catalog · MCP). **Nothing lives only in chat.**
+> - **[`docs/DOC-MAP.md`](./DOC-MAP.md)** — full audit/cross-reference of every doc in the repo (authoritative vs reference vs archive).
 
 ---
 

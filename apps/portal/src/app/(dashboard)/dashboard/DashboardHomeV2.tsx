@@ -44,7 +44,7 @@ export function DashboardHomeV2({ firstName, timeOfDay, sent, replied, hot, hasF
               <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-bold text-white bg-white/20 px-2 py-0.5 rounded-full">
                 <BadgeCheck className="w-3 h-3" /> Certified
               </span>
-              <div className="w-12 h-12 rounded-xl overflow-hidden mb-3 bg-white/20 ring-2 ring-white/30"><img src={a.img} alt={a.name} className="w-full h-full object-cover" /></div>
+              <div className="w-14 h-14 rounded-xl overflow-hidden mb-3 bg-white/20 ring-2 ring-white/30"><img src={a.img} alt={a.name} className="w-full h-full object-cover object-top" /></div>
               <p className="text-white font-bold text-lg leading-tight">{a.name}</p>
               <p className="text-white/70 text-xs mt-0.5">{a.role}</p>
             </div>

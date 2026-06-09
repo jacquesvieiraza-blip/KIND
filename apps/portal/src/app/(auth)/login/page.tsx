@@ -37,6 +37,10 @@ function LoginForm() {
   const [oauthLoading, setOauthLoading] = useState<'google' | 'azure' | null>(null)
 
   const signupV2 = v2Enabled('signup')
+  // Social buttons are decoupled from the V2 flag: they only appear once OAuth is
+  // actually configured (set NEXT_PUBLIC_SOCIAL_LOGIN=true after enabling the
+  // providers in Supabase). Keeps the live signup clean until then — no dead buttons.
+  const socialEnabled = process.env.NEXT_PUBLIC_SOCIAL_LOGIN === 'true'
 
   async function handleOAuth(provider: 'google' | 'azure') {
     setError('')
@@ -254,7 +258,7 @@ function LoginForm() {
               {/* Social login (V2, gated by FEATURE_V2_SCREENS=signup) — works once
                   Google/Microsoft providers are enabled in Supabase; until then a
                   click shows a friendly "not enabled yet" hint. */}
-              {signupV2 && mode === 'signup' && (
+              {signupV2 && socialEnabled && mode === 'signup' && (
                 <>
                   <div className="space-y-2.5 mb-4">
                     <button type="button" onClick={() => handleOAuth('google')} disabled={!!oauthLoading}

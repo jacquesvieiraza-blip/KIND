@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { v2Enabled } from '@/lib/flags'
+import { FigsyThinking } from '@/components/ui/FigsyThinking'
 import type { Lead, LeadStats, ICP, LeadStatus } from '@kind/shared'
 import { SCORE_THRESHOLDS } from '@kind/shared'
 import {
@@ -775,6 +776,9 @@ export default function LeadsPage() {
           </button>
         </div>
       </div>
+
+      {/* Thinking panel — shows what FIGSY is doing while sourcing (V2, gated) */}
+      {v2Enabled('thinking') && runningIcp && <FigsyThinking />}
 
       {/* C1 + C3 — Active ICP surfaced above People (V2, gated) */}
       {v2Enabled('leads') && (icps.find(i => i.is_active) ?? icps[0]) && (

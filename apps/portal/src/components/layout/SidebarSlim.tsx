@@ -4,10 +4,11 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
   Brain, Bot, Handshake, BarChart2, CreditCard, Settings, LogOut, Pin,
-  ChevronDown, Lock,
+  ChevronDown, Lock, Sliders, Store,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -95,6 +96,8 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
   ]
   const account: Item[] = [
     { href: '/dashboard/usage',   label: 'Usage',   icon: BarChart2 },
+    ...(v2Enabled('config')      ? [{ href: '/dashboard/config',      label: 'Configure FIGSY', icon: Sliders }] : []),
+    ...(v2Enabled('marketplace') ? [{ href: '/dashboard/marketplace', label: 'Marketplace',      icon: Store }]   : []),
     ...(isPartner ? [{ href: '/dashboard/partner', label: 'Partner Hub', icon: Handshake }] : []),
     { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
   ]
@@ -190,9 +193,9 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
                 </button>
               )
             })}
-            <Link href="/dashboard/billing" onClick={() => setOpen(false)}
+            <Link href={v2Enabled('marketplace') ? '/dashboard/marketplace' : '/dashboard/billing'} onClick={() => setOpen(false)}
               className="block text-[10px] text-purple-300/50 hover:text-purple-200 px-3 py-2 border-t border-white/10 transition-colors">
-              Unlock agents from Billing →
+              {v2Enabled('marketplace') ? 'Browse all agents →' : 'Unlock agents from Billing →'}
             </Link>
           </div>
         )}

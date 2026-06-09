@@ -55,8 +55,7 @@ export default async function MarketplacePage() {
           <div key={a.key} className={`${card} p-5 text-center`}>
             <div className="relative w-16 h-16 mx-auto mb-3">
               <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-gray-100">
-                <img src={a.img} alt={a.name} className="w-full h-full object-cover object-top"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                <img src={a.img} alt={a.name} className="w-full h-full object-cover object-top" />
               </div>
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 inline-flex items-center gap-0.5 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: BRAND }}>
                 <BadgeCheck className="w-2.5 h-2.5" /> Certified

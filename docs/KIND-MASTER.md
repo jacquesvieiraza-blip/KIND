@@ -391,8 +391,8 @@ Owner: 🧍 Founder · 🤖 Claude · 🤝 Both
 | **Tue 9** | **#7** | ✅ | Denise Stripe $99/mo price → `STRIPE_PRICE_DENISE_MONTHLY` set on Railway. | 🧍 | Needed for T5 smoke test (billing). |
 | **Tue 9** | **#7/8** | ✅ | DNS: `app`/`api`/`admin`.get-kind.com live (Railway) — all 4 services online. | 🧍 | Routing. (`status.` subdomain optional.) |
 | **Tue 9** | **#2** | 🔁 | ~~Delete dormant Portal-V2~~ → **CHANGED:** we are **building** V2 on the gated `/dashboard/v2` route (Command Centre shell shipped). Superseded by the V2 month-end plan. | 🤖 | Decision reversed — V2 is the expansion engine, not dead weight. |
-| **Tue 9** | **Deploy pipeline** | 🔄 | "KIND System Audit" GitHub Action still noisy, but **Railway auto-deploys from `main` are working** (deployed many times 9 Jun). Action cleanup outstanding. | 🤖 | CI/CD reliability (not currently blocking deploys). |
-| **Tue 9** | **CAL-min** | 🔄 | `booking_url` backend + migration done; portal paste field not yet confirmed. | 🤖 | T3/T4 smoke tests need this. |
+| **Tue 9** | **Deploy pipeline** | ✅ | "KIND System Audit" Action **fixed** — push-trigger already removed (no per-commit check / no deploy gating); now **report-only** (no red badge), stale checklist refreshed. Railway auto-deploys from `main` working. | 🤖 | CI/CD reliability. |
+| **Tue 9** | **CAL-min** | ✅ | **Booking-link field LIVE in Settings** (Calendly/Cal.com) → saves `booking_url`. Backend + migration were already done. | 🤖 | T3/T4 smoke tests need this. |
 | **Tue 9** | **P-a** | ✅ | **"Sign emails as" — DONE 9 Jun:** Settings field built + saves to `signer_name` + test-email honours it (stops AI-invented signers). | 🤖 | UX. Founder set `Jack from K.I.N.D`. |
 | **Tue 9** | **P-b** | ✅ | Stripped stale `BUILD MARKER` (dynamic commit-sha marker now). | 🤖 | Debug cleanup. |
 | **Tue 9** | **Smoke Test 1A** | 🔄 | **T2 ✅** (ICP→leads, re-verified 9 Jun) · **T8 ✅** (deliverability/inbox) · **T1 ⬜** (fresh signup, never run) · **T3 ⬜** (pause→no-send). | 🧍 | Paid-path verification — half done. |

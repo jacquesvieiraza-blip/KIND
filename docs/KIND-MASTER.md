@@ -33,6 +33,24 @@
 >   - 🔧 Fixed along the way: Railway build (vite/Node engine via `.yarnrc`), and a `campaignReadyLeadIds` PostgREST-boolean bug (now JS-filtered).
 >   - **🟡 Small loose ends (non-blocking):** no Settings UI for the signer (set via SQL; test-email ignores it) · FIGSY-chat "enrol" button still *navigates* instead of enrolling (the campaign **Enroll Leads** button is the reliable path) · **no Delete-leads button** (cleared via SQL today).
 >   - **▶️ NEXT:** watch the **Sent** count climb · then the remaining smoke tests (**T1 fresh signup, T3–T7, T9, T10**) + **D9 inbox-placement 10/10** before Fri 19.
+>
+> ### ✅ STATUS TO FRI 19 (updated 9 Jun late — ACCURATE tick)
+> **Position is STRONG — foundation built, deployed live, and most smoke checks already green. Only T1 (fresh signup) has genuinely never been run.**
+>
+> **GREEN ✅ (verified):** **T2** ICP→leads · **T3 core** send→reply→🔥Hot · **T8** deliverability/inbox · portal load+login · admin OS + security · **T10 partial** (partner approve + Demmy referral live) · warmup live + auto-ramp · Option A · **all Bucket-A V2 cosmetics LIVE on `main`** (agent-switcher sidebar · profile chip · Config · Marketplace · Thinking · Leads card · Welcome Spotlight · Signup T&C) · **dashboard "0 Sent" bug FIXED** · signup-bug fix (T1 PKCE) · SPF/DKIM/DMARC verified · `staging` branch created.
+>
+> **🗓️ TOMORROW (10 Jun) — mostly verification passes, not building:**
+> **A. Verify go-live (10 min):** ⬜ fresh Railway deploy Active (`a26a4e4` > old `6344635a`) · ⬜ sidebar/profile/grid render · ⬜ FIGSY card shows real Sent count.
+> **B. Smoke Test 1 (new-client path — the one never run):** ⬜ **T1** fresh signup (email+T&C)→Welcome Spotlight→onboarding · ⬜ T2 re-confirm in the new account · ⬜ campaign+enroll+drip · ⬜ Thinking panel.
+> **C. Smoke Test 2 (`hello@get-kind.com`):** ⬜ **T3 pause→no-send** (variant) · ⬜ **T4** booking+KPI · ⬜ **T5** billing/Stripe · ⬜ **T6** Vida widget · ⬜ **T7** Milla cron · ⬜ **T9** team invite · ⬜ **T10 full** partner path.
+> **D. Founder:** ⬜ record the 60-sec onboarding demo videos.
+>
+> **📋 REST BEFORE 19:** ⬜ **D9** deliverability 10/10 (🧍) · 🟢 warmup auto-ramp→~50/day (running, no action) · ⬜ **2 crown-jewel key rotations** Stripe-secret + Supabase-service-role (🧍) · ⬜ **legal pack #10–#14** (🧍) · ⬜ **Go/No-Go gate Thu 18** · 🅿️ Batch 2 (social login + staging-isolation — parallel, NOT a blocker).
+>
+> ### 🌿 STAGING WORKFLOW (OFFICIAL — all future builds go through here; never test on the client-facing site again)
+> **Branches:** `main` = production (client-facing, prod Railway) · **`staging`** = testing (created 9 Jun, = `main`) · `claude/kind-carson-MYhSl` = dev. **Flow:** Claude pushes cosmetic/V2/enhancement work → **`staging`** → staging Railway site auto-deploys → **founder tests on staging** → approves → **Claude merges `staging` → `main`** (prod deploys). Nothing untested touches prod.
+> **🧍 Founder one-time setup (Railway):** new portal **service** in the same project → Source **Branch = `staging`** · Build **Root Directory = `apps/portal`** (copy prod portal's build/start cmds) · **Variables** = copy prod portal's Raw Editor (keep `FEATURE_V2_SCREENS=all`, `NEXT_PUBLIC_API_URL` → prod API for now) · **Networking** → Generate Domain *or* custom `staging.get-kind.com` (Railway gives CNAME → add in Cloudflare).
+> **Caveat (now):** staging shares **prod API + Supabase** → test signups write to live DB (fine pre-launch, no clients). **Batch 2:** separate staging API + Supabase project for full isolation.
 - **🔥 TRACTION (8 Jun) — REAL DEMAND IS HERE.** Potential **first client** (wants ~10 people on the system) + **first partner signed** (covers **Nigeria**). Validates Africa-first. **Both need the system LIVE — nothing is deployed yet.** Founder is committed to a day-and-night push to hit **Fri 19**. Good news: the paths they need are **already built** (team invites via `client_members`/`/team/invite`; partner onboarding via `routes/partners.ts` — apply→approve→auto-sandbox→partner portal→commissions) — they just need deploy + verify (new smoke tests **T9 team invites, T10 partner** added).
 - **🚀 DEPLOYED 8 Jun — LIVE on `main` (now verifying).** Merged `claude/kind-carson-MYhSl` → `main` (commit `f0eb02b`); Railway deploying api/admin/portal. We hit it a day early.
 >   - **✅ DONE TODAY (real, verified actions):** migrations **010/011/012/013** run in Supabase · env vars set (cold-FROM/reply-to/warmup-start · admin key clean, no `NEXT_PUBLIC_ADMIN_KEY` · `FIGSY_COLD_DAILY_CAP` deleted so warmup auto-ramps) · **partner referral fix** (Demmy) · **merged to production**.

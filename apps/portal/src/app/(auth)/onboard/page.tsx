@@ -232,23 +232,25 @@ function OnboardChat() {
       <div className="w-full max-w-sm relative z-10">
 
         {/* ── FIGSY card ──────────────────────────────────────────── */}
-        <div className="rounded-2xl overflow-hidden shadow-xl border border-purple-100/40">
+        <div className="rounded-3xl overflow-hidden shadow-2xl border border-purple-100/50 bg-white">
 
-          {/* Photo */}
-          <div className="relative h-52 bg-[#0F0929]">
+          {/* Photo — full head, clean (matches the canonical agent panel) */}
+          <div className="relative h-64 bg-purple-50">
             <img
               src="/agents/figsy.png"
               alt="FIGSY"
-              className="w-full h-full object-cover object-center agent-img-float"
+              className="w-full h-full object-cover object-top"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0F0929] via-[#0F0929]/10 to-transparent" />
           </div>
 
           {/* Identity bar */}
-          <div className="bg-[#0F0929] px-4 py-3 flex items-center justify-between border-b border-white/[0.06]">
+          <div className="bg-[#0F0929] px-4 py-3 flex items-center justify-between">
             <div>
-              <p className="text-white font-bold text-sm leading-tight">FIGSY</p>
-              <p className="text-[#9B8EC4] text-[11px]">AI SDR · K.I.N.D</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-white font-bold text-sm leading-tight">FIGSY</p>
+                <span className="text-[#7C3AED] text-[11px] font-semibold">The Opener</span>
+              </div>
+              <p className="text-[#9B8EC4] text-[11px] mt-0.5">AI SDR · K.I.N.D</p>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

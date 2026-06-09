@@ -85,7 +85,7 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'consent_given'),
           db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campFilter).gte('sent_at', weekStart),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', weekStart),
-          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', weekStart),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).in('classification', ['hot', 'interested']).gte('received_at', weekStart),
           db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
         ])
 
@@ -1105,7 +1105,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
           db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
           db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', briefCampFilter).gte('sent_at', weekStart),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', weekStart),
-          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', weekStart),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).in('classification', ['hot', 'interested']).gte('received_at', weekStart),
           db.from('leads').select('first_name, last_name, job_title, company, score').eq('client_id', client.id).not('score', 'is', null).order('score', { ascending: false }).limit(3),
         ])
 
@@ -1224,7 +1224,7 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
         ] = await Promise.all([
           db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', anomCampFilter).gte('sent_at', prev7d),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', prev7d),
-          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('classification', 'interested').gte('received_at', prev7d),
+          db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).in('classification', ['hot', 'interested']).gte('received_at', prev7d),
           db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', anomCampFilter).gte('sent_at', prev14d).lt('sent_at', prev7d),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', prev14d).lt('received_at', prev7d),
           db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
@@ -1527,7 +1527,7 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', ago24h),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).gte('received_at', ago24h),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('classification', 'interested').gte('received_at', ago24h),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).in('classification', ['hot', 'interested']).gte('received_at', ago24h),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('classification', 'opt_out').gte('received_at', ago24h),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       db.from('credit_transactions').select('amount').eq('type', 'purchase').gte('created_at', ago24h),

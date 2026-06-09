@@ -178,6 +178,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
   let chips: { label: string; onClick: () => void }[]
 
   const isCampaignDetail = /^\/dashboard\/figsy\/[^/]+$/.test(pathname)
+    && !/^\/dashboard\/figsy\/(replies|kanban|linkedin|webhooks)$/.test(pathname)
   const isWebhooks = pathname.startsWith('/dashboard/figsy/webhooks')
 
   if (isWebhooks) {

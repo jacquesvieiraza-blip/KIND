@@ -31,7 +31,7 @@ router.post('/founder-brief', async (_req, res) => {
       db.from('leads').select('client_id, score').gte('created_at', ago24),
       db.from('figsy_sent_emails').select('id').gte('sent_at', ago7),
       db.from('figsy_replies').select('client_id, classification').gte('received_at', ago7),
-      db.from('figsy_replies').select('client_id').eq('classification', 'interested').gte('received_at', ago7),
+      db.from('figsy_replies').select('client_id').in('classification', ['hot', 'interested']).gte('received_at', ago7),
       db.from('credit_transactions').select('client_id, amount').gte('created_at', monthStart).gt('amount', 0),
       db.from('leads').select('client_id').gte('created_at', ago7),
     ])

@@ -627,19 +627,26 @@ figsyRouter.post('/campaigns/:id/enroll-consented', async (req: AuthRequest, res
     // Option A — campaign-ready = verified or consented (minus opted-out/rejected).
     const leadIds = await campaignReadyLeadIds(clientId)
 
-    let enrolled = 0, skipped = 0
-    res.json({ success: true, data: { enrolled: leadIds.length, skipped: 0, message: 'Enrolling in background…' } })
+    // Compute the ACCURATE count up front: only leads not already enrolled in this
+    // campaign. Avoids over-reporting the same number on a repeat click.
+    const { data: already } = leadIds.length
+      ? await db.from('figsy_enrollments').select('lead_id').eq('campaign_id', campaign.id).in('lead_id', leadIds)
+      : { data: [] as { lead_id: string }[] }
+    const alreadySet = new Set((already ?? []).map((e: { lead_id: string }) => e.lead_id))
+    const toEnroll = leadIds.filter(id => !alreadySet.has(id))
+
+    res.json({ success: true, data: {
+      enrolled: toEnroll.length,
+      skipped: leadIds.length - toEnroll.length,
+      message: toEnroll.length ? 'Enrolling in background…' : 'All eligible leads are already enrolled.',
+    } })
 
     // Fire-and-forget — respond immediately, enroll async
     ;(async () => {
-      for (const leadId of leadIds) {
-        const { data: existing } = await db.from('figsy_enrollments')
-          .select('id').eq('campaign_id', campaign.id).eq('lead_id', leadId).maybeSingle()
-        if (existing) { skipped++; continue }
-        await autoEnrollLead(leadId, clientId)
-        enrolled++
+      for (const leadId of toEnroll) {
+        try { await autoEnrollLead(leadId, clientId) } catch (e) { console.error('[figsy] enroll-consented', leadId, e) }
       }
-      console.log(`[figsy] enroll-consented: enrolled=${enrolled} skipped=${skipped} campaign=${campaign.id}`)
+      console.log(`[figsy] enroll-consented: enrolled=${toEnroll.length} already=${alreadySet.size} campaign=${campaign.id}`)
     })()
   } catch (err) {
     console.error(err); res.status(500).json({ success: false, error: 'Failed to start enrollment' })

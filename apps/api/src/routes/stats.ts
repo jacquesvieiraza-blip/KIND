@@ -22,7 +22,7 @@ statsRouter.get('/platform', async (_req: Request, res: Response) => {
       db.from('leads').select('id', { count: 'exact', head: true }),
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('classification', 'interested'),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).in('classification', ['hot', 'interested']),
       db.from('clients').select('id', { count: 'exact', head: true }),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }),
     ])

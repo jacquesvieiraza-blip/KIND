@@ -204,7 +204,7 @@ clientRouter.get('/me/notifications', async (req: AuthRequest, res) => {
     const { data: interestedReplies } = await db.from('figsy_replies')
       .select('id, from_email, received_at')
       .eq('client_id', client.id)
-      .eq('classification', 'interested')
+      .in('classification', ['hot', 'interested'])
       .gte('received_at', sevenDaysAgo)
       .order('received_at', { ascending: false })
       .limit(5)

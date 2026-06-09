@@ -16,7 +16,7 @@ function AcceptInviteInner() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { setStatus('login-required'); return }
       setStatus('accepting')
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kindai.co.za'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
       const res = await fetch(`${apiUrl}/team/accept?token=${token}&user_id=${data.user.id}`)
       if (res.ok) {
         setStatus('done')

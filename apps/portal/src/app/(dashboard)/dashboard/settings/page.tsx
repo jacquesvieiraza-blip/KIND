@@ -157,7 +157,7 @@ function TeamSection({ clientId, userRole }: { clientId: string; userRole: strin
   const [role, setRole] = useState('member')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.kindai.co.za'
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
 
   useEffect(() => {
     fetch(`${apiUrl}/team/members?client_id=${clientId}`)
@@ -748,7 +748,7 @@ export default function SettingsPage() {
           </div>
         ) : (
           <a
-            href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://kindapi-production-e64c.up.railway.app'}/calendar/connect`}
+            href={`${process.env.NEXT_PUBLIC_API_URL ?? 'https://kindapi-production-e64c.up.railway.app'}/calendar/connect`}
             className="inline-flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors"
           >
             <Calendar className="w-4 h-4" /> Connect Google Calendar

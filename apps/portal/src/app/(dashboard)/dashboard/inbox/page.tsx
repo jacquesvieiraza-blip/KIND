@@ -97,13 +97,13 @@ function timeAgo(dateStr: string | null | undefined): string {
 }
 
 function getInitials(reply: Reply): string {
-  if (reply.from_name) {
-    const parts = reply.from_name.trim().split(' ')
-    return parts.length >= 2
-      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      : parts[0][0].toUpperCase()
+  const name = reply.from_name?.trim()
+  if (name) {
+    const parts = name.split(' ').filter(Boolean)
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    if (parts[0]) return parts[0][0].toUpperCase()
   }
-  return reply.from_email[0].toUpperCase()
+  return ((reply.from_email || '')[0] || '?').toUpperCase()
 }
 
 function getDisplayName(reply: Reply): string {

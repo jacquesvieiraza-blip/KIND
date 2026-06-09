@@ -285,8 +285,8 @@ export default function FigsyPage() {
       // Build suggestions client-side based on real data
       const built: CampaignSuggestion[] = []
 
-      // Suggestion 1: scored leads with no active campaign
-      const scoredCount = (leadStats as any).scored ?? (leadStats.total > 0 ? Math.floor(leadStats.total * 0.4) : 0)
+      // Suggestion 1: scored leads with no active campaign (real count from /leads/stats)
+      const scoredCount = leadStats.scored ?? 0
       if (scoredCount > 0 && activeCampaigns.length === 0) {
         built.push({
           id: 'cold-outbound',
@@ -300,22 +300,22 @@ export default function FigsyPage() {
         })
       }
 
-      // Suggestion 2: replied leads that went cold (60+ days)
-      const coldCount = (leadStats as any).cold ?? (totalReplied > 0 ? Math.floor(totalReplied * 0.3) : 0)
-      if (coldCount > 0 || (totalReplied > 2 && existingCampaigns.some(c => {
+      // Suggestion 2: campaigns that got replies but went quiet 60+ days ago.
+      // Real signal only — no fabricated counts (the API has no "cold" count).
+      const hasColdCampaign = totalReplied > 2 && existingCampaigns.some(c => {
         const daysSince = (Date.now() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)
-        return daysSince > 60 && c.replies_total > 0
-      }))) {
-        const displayCount = coldCount || Math.max(1, Math.floor(totalReplied * 0.3))
+        return daysSince > 60 && (c.replies_total ?? 0) > 0
+      })
+      if (hasColdCampaign) {
         built.push({
           id: 'revival',
           title: 'Revival Campaign',
-          description: `${displayCount} lead${displayCount !== 1 ? 's' : ''} replied but went cold over 60 days ago. A fresh angle often re-opens the door.`,
+          description: 'Some leads replied but went quiet over 60 days ago. A fresh angle often re-opens the door.',
           template: 'revival',
           intent: 'Re-engage leads who replied but went silent. Acknowledge time passed, lead with something new — case study, feature, or simply ask if priorities changed.',
           icon: TrendingUp,
-          count: displayCount,
-          highlight: `${displayCount} unresponsive leads from 60+ days ago`,
+          count: 0,
+          highlight: 'Re-engage leads from 60+ days ago',
         })
       }
 

@@ -379,7 +379,7 @@ export default function FigsyRepliesPage() {
                     {/* Avatar */}
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center shrink-0 mt-0.5">
                       <span className="text-xs font-bold text-gray-600">
-                        {l ? l.first_name[0] : reply.from_email[0].toUpperCase()}
+                        {((l?.first_name || reply.from_email || '?')[0] || '?').toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">

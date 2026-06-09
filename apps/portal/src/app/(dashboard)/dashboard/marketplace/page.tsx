@@ -36,12 +36,13 @@ export default async function MarketplacePage() {
 
   // Persona roles + funnel order; all certified.
   const AGENTS = [
-    { key: 'figsy',  name: 'FIGSY',  role: 'The Opener',    stage: 'Finds & books',    img: '/agents/figsy.png',  price: 'Included', owned: owned.figsy },
-    { key: 'milla',  name: 'Milla',  role: 'The Brain',     stage: 'The intelligence', img: '/agents/milla.png',  price: '$49/mo',   owned: owned.milla },
-    { key: 'vida',   name: 'Vida',   role: 'The Connector', stage: 'Inbound capture',  img: '/agents/vida.png',   price: '$29/mo',   owned: owned.vida },
-    { key: 'denise', name: 'Denise', role: 'The Closer',    stage: 'Closes the deal',  img: '/agents/denise.png', price: '$99/mo',   owned: owned.denise },
-    { key: 'lena',   name: 'Lena',   role: 'The Keeper',    stage: 'Retains & grows',  img: '/agents/lena.png',   price: '$79/mo',   owned: false },
-    { key: 'tony',   name: 'Tony',   role: 'The Operator',  stage: 'Keeps it clean',   img: '/agents/tony.png',   price: '$59/mo',   owned: false },
+    { key: 'figsy',  name: 'FIGSY',  role: 'The Opener',    stage: 'Finds & books',    img: '/agents/figsy.png',  price: 'Pay per result', owned: owned.figsy, comingSoon: false },
+    { key: 'milla',  name: 'Milla',  role: 'The Brain',     stage: 'The intelligence', img: '/agents/milla.png',  price: '$49/mo',   owned: owned.milla,  comingSoon: false },
+    { key: 'vida',   name: 'Vida',   role: 'The Connector', stage: 'Inbound capture',  img: '/agents/vida.png',   price: '$29/mo',   owned: owned.vida,   comingSoon: false },
+    { key: 'denise', name: 'Denise', role: 'The Closer',    stage: 'Closes the deal',  img: '/agents/denise.png', price: '$99/mo',   owned: owned.denise, comingSoon: false },
+    // Lena & Tony are the next family members — shown as Coming soon (not yet sellable).
+    { key: 'lena',   name: 'Lena',   role: 'The Keeper',    stage: 'Retains & grows',  img: '/agents/lena.png',   price: 'Coming soon', owned: false, comingSoon: true },
+    { key: 'tony',   name: 'Tony',   role: 'The Operator',  stage: 'Keeps it clean',   img: '/agents/tony.png',   price: 'Coming soon', owned: false, comingSoon: true },
   ]
 
   return (
@@ -66,7 +67,9 @@ export default async function MarketplacePage() {
             <p className="text-[13px] text-gray-600 mt-2 mb-4">{a.stage}</p>
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-gray-900">{a.price}</span>
-              {a.owned ? (
+              {a.comingSoon ? (
+                <span className="inline-flex items-center text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">Coming soon</span>
+              ) : a.owned ? (
                 <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg"><Check className="w-3.5 h-3.5" /> Active</span>
               ) : (
                 <Link href="/dashboard/billing" className="text-xs font-bold text-white px-4 py-1.5 rounded-lg" style={{ background: BRAND }}>Add</Link>

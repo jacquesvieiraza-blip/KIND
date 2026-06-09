@@ -498,6 +498,52 @@ figsyRouter.get('/sends-daily', async (req: AuthRequest, res) => {
 
 // ── CAMPAIGNS ────────────────────────────────────────────────────────────────
 
+// Reconcile the denormalised campaign counters against the real source tables.
+// Those counters (emails_sent, replies_total, replies_interested, opted_out,
+// meetings_booked, leads_enrolled) drift — usually DOWN to 0 — because their
+// increments are unchecked read-modify-writes and several paths never bump them
+// (e.g. warm/cold replies, one-click unsubscribes). We correct each displayed
+// number UP to the real row count, so the portal never shows less than reality.
+async function reconcileCampaignCounters(
+  campaigns: Array<Record<string, unknown> & { id: string }>,
+): Promise<void> {
+  const ids = campaigns.map(c => c.id)
+  if (!ids.length) return
+  const [sentRes, repliesRes, enrollRes] = await Promise.all([
+    db.from('figsy_sent_emails').select('campaign_id').in('campaign_id', ids),
+    db.from('figsy_replies').select('campaign_id, classification, meeting_booked_at').in('campaign_id', ids),
+    db.from('figsy_enrollments').select('campaign_id').in('campaign_id', ids),
+  ])
+  const sent: Record<string, number> = {}
+  for (const r of (sentRes.data ?? []) as { campaign_id: string | null }[]) {
+    if (r.campaign_id) sent[r.campaign_id] = (sent[r.campaign_id] ?? 0) + 1
+  }
+  const repliesTotal: Record<string, number> = {}
+  const repliesInterested: Record<string, number> = {}
+  const optedOut: Record<string, number> = {}
+  const meetings: Record<string, number> = {}
+  for (const r of (repliesRes.data ?? []) as { campaign_id: string | null; classification: string | null; meeting_booked_at: string | null }[]) {
+    if (!r.campaign_id) continue
+    repliesTotal[r.campaign_id] = (repliesTotal[r.campaign_id] ?? 0) + 1
+    if (r.classification === 'hot' || r.classification === 'interested') repliesInterested[r.campaign_id] = (repliesInterested[r.campaign_id] ?? 0) + 1
+    if (r.classification === 'opt_out' || r.classification === 'unsubscribe') optedOut[r.campaign_id] = (optedOut[r.campaign_id] ?? 0) + 1
+    if (r.meeting_booked_at) meetings[r.campaign_id] = (meetings[r.campaign_id] ?? 0) + 1
+  }
+  const enrolled: Record<string, number> = {}
+  for (const r of (enrollRes.data ?? []) as { campaign_id: string | null }[]) {
+    if (r.campaign_id) enrolled[r.campaign_id] = (enrolled[r.campaign_id] ?? 0) + 1
+  }
+  const n = (v: unknown) => (typeof v === 'number' ? v : 0)
+  for (const c of campaigns) {
+    c.emails_sent        = Math.max(sent[c.id] ?? 0,              n(c.emails_sent))
+    c.replies_total      = Math.max(repliesTotal[c.id] ?? 0,      n(c.replies_total))
+    c.replies_interested = Math.max(repliesInterested[c.id] ?? 0, n(c.replies_interested))
+    c.opted_out          = Math.max(optedOut[c.id] ?? 0,          n(c.opted_out))
+    c.meetings_booked    = Math.max(meetings[c.id] ?? 0,          n(c.meetings_booked))
+    c.leads_enrolled     = Math.max(enrolled[c.id] ?? 0,          n(c.leads_enrolled))
+  }
+}
+
 figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
@@ -505,23 +551,8 @@ figsyRouter.get('/campaigns', async (req: AuthRequest, res) => {
     const { data, error } = await db.from('figsy_campaigns')
       .select('*').eq('client_id', clientId).order('created_at', { ascending: false })
     if (error) throw error
-    const campaigns = (data ?? []) as { id: string; emails_sent?: number }[]
-
-    // Reconcile emails_sent against the real send log. figsy_sent_emails has one
-    // row per actual send (keyed by campaign_id); the denormalised emails_sent
-    // counter can drift to 0, so we correct the displayed count up to reality.
-    const ids = campaigns.map(c => c.id)
-    if (ids.length) {
-      const { data: sent } = await db.from('figsy_sent_emails')
-        .select('campaign_id').in('campaign_id', ids)
-      const counts: Record<string, number> = {}
-      for (const r of (sent ?? []) as { campaign_id: string }[]) {
-        counts[r.campaign_id] = (counts[r.campaign_id] ?? 0) + 1
-      }
-      for (const c of campaigns) {
-        c.emails_sent = Math.max(counts[c.id] ?? 0, c.emails_sent ?? 0)
-      }
-    }
+    const campaigns = (data ?? []) as Array<Record<string, unknown> & { id: string }>
+    await reconcileCampaignCounters(campaigns)
     res.json({ success: true, data: campaigns })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch campaigns' }) }
 })
@@ -533,6 +564,7 @@ figsyRouter.get('/campaigns/:id', async (req: AuthRequest, res) => {
     const { data, error } = await db.from('figsy_campaigns')
       .select('*').eq('id', req.params.id).eq('client_id', clientId).single()
     if (error || !data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    await reconcileCampaignCounters([data as Record<string, unknown> & { id: string }])
     res.json({ success: true, data })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch campaign' }) }
 })

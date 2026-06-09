@@ -3,10 +3,13 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { SidebarSlim } from '@/components/layout/SidebarSlim'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 import { CommandPalette } from '@/components/ui/CommandPalette'
 import { AgentColumn } from './AgentColumn'
+import { v2Enabled } from '@/lib/flags'
+import { Coins, Bell } from 'lucide-react'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -90,6 +93,61 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const isNewUser = leadCount === 0
 
+  // Shared content (same for both layouts) — avoids duplication.
+  const mainContent = (
+    <>
+      <TrialExpiredOverlay expired={trialExpired} />
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start max-w-7xl mx-auto w-full">
+        <div className="flex-1 min-w-0 space-y-4">
+          <LowCreditsNotice balance={creditBalance} />
+          {children}
+        </div>
+        <AgentColumn
+          hasFigsy={hasFigsy}
+          hasMilla={hasMilla}
+          hasVida={hasVida}
+          hasDenise={hasDenise}
+          leadCount={leadCount}
+          creditBalance={creditBalance}
+          isNewUser={isNewUser}
+          partnerStatus={partnerStatus}
+          partnerDealCount={partnerDealCount}
+        />
+      </div>
+    </>
+  )
+
+  // ── SLIM LAYOUT (V2) — gated by FEATURE_V2_SCREENS=layout. OFF by default,
+  //    so the live product is unchanged until the flag is flipped. ──────────────
+  if (v2Enabled('layout')) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-[#FAFAFE]">
+        <SidebarSlim
+          userEmail={user.email || ''}
+          hasFigsy={hasFigsy}
+          hasMilla={hasMilla}
+          hasVida={hasVida}
+          hasDenise={hasDenise}
+          isPartner={isPartner}
+        />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-end gap-3 px-6 shrink-0">
+            <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-amber-700 bg-amber-50">
+              <Coins className="w-3.5 h-3.5" /> {creditBalance.toLocaleString()}
+            </span>
+            <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
+              <Bell className="w-4 h-4" />
+            </button>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#a78bfa] shrink-0" title={user.email || ''} />
+          </header>
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{mainContent}</main>
+        </div>
+        <CommandPalette />
+      </div>
+    )
+  }
+
+  // ── CURRENT LAYOUT (default, live today) ─────────────────────────────────────
   return (
     <div className="flex h-screen overflow-hidden bg-[#FAFAFE]">
       <Sidebar
@@ -103,24 +161,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         isPartner={isPartner}
       />
       <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] sm:p-6 sm:pt-[4.75rem] lg:p-8 lg:pt-8">
-        <TrialExpiredOverlay expired={trialExpired} />
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start max-w-7xl mx-auto w-full">
-          <div className="flex-1 min-w-0 space-y-4">
-            <LowCreditsNotice balance={creditBalance} />
-            {children}
-          </div>
-          <AgentColumn
-            hasFigsy={hasFigsy}
-            hasMilla={hasMilla}
-            hasVida={hasVida}
-            hasDenise={hasDenise}
-            leadCount={leadCount}
-            creditBalance={creditBalance}
-            isNewUser={isNewUser}
-            partnerStatus={partnerStatus}
-            partnerDealCount={partnerDealCount}
-          />
-        </div>
+        {mainContent}
       </main>
       <CommandPalette />
     </div>

@@ -28,17 +28,12 @@ authRouter.post('/signup', async (req, res) => {
       }
     }
 
-    // Generate a magic link so the browser auto-signs them in
-    const { data: linkData, error: linkErr } = await db.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-      options: { redirectTo: `${PORTAL}/auth/callback?next=/onboard` },
-    })
-    if (linkErr || !linkData?.properties?.action_link) {
-      res.status(500).json({ success: false, error: linkErr?.message || 'Failed to generate sign-in link' }); return
-    }
-
-    res.json({ success: true, data: { redirect_url: linkData.properties.action_link } })
+    // Email is auto-confirmed above (email_confirm: true) → no email sent. The
+    // portal signs the user in directly with the password. We deliberately do NOT
+    // generate an admin magic link: server-generated links can't be PKCE-exchanged
+    // by /auth/callback (exchangeCodeForSession needs a client-side code_verifier
+    // that doesn't exist) → every signup hit "confirmation_failed" (the T1 bug).
+    res.json({ success: true, data: { redirect_url: `${PORTAL}/onboard` } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors[0].message }); return }
     console.error('[auth/signup]', err)

@@ -45,7 +45,16 @@ function LoginForm() {
         if (!data.success) {
           setError(data.error || 'Signup failed — please try again')
         } else {
-          window.location.href = data.data.redirect_url
+          // Account is created + email-confirmed server-side. Sign in directly
+          // with the password to establish the session, then go to onboarding.
+          // (No magic-link/callback round-trip — that's what failed before.)
+          const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+          if (signInErr) {
+            setError(signInErr.message)
+          } else {
+            router.push('/onboard')
+            router.refresh()
+          }
         }
       } catch {
         setError('Could not connect — please try again.')

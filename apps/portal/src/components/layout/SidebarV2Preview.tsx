@@ -9,7 +9,7 @@ import {
   Zap, Users, TrendingUp, MessageSquare, FileText,
   CreditCard, LayoutDashboard, Webhook,
   GitBranch, Plug, GraduationCap, Building2,
-  LayoutGrid, Activity, UserPlus, Store, Sliders, PanelLeft,
+  LayoutGrid, Activity, UserPlus, Store, Sliders, PanelLeft, Rocket,
 } from 'lucide-react'
 
 type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
@@ -151,6 +151,7 @@ export function SidebarV2Preview({ userEmail }: { userEmail: string }) {
       <div className="px-3 pt-3">
         <p className="px-3 mb-1 text-[9px] font-bold uppercase tracking-widest text-purple-300/30">Portal Redesign · V2</p>
         <div className="space-y-0.5">
+          <NavItem href="/v2/onboarding"  label="Setup / Onboarding" icon={Rocket} />
           <NavItem href="/v2/agents"      label="Agent Grid"        icon={LayoutGrid} />
           <NavItem href="/v2/thinking"    label="Thinking State"    icon={Activity} />
           <NavItem href="/v2/setup"       label="Conversational"    icon={MessageSquare} />

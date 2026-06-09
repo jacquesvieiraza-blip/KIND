@@ -380,130 +380,136 @@ Owner: 🧍 Founder · 🤖 Claude · 🤝 Both
 
 ### **PHASE 1: PRE-LAUNCH (Mon 8 → Fri 19 Jun)**
 
-| Date | Item # | What | Owner | Why |
-|------|--------|------|-------|-----|
-| **Mon 8** | **D1–D5** 🔨 | **Deliverability code fixes (BUILT — not deployed/verified):** List-Unsubscribe + one-click unsubscribe · plain-text MIME · fix tracking pixel · configurable cold-FROM · transactional plain-text. In `lib/deliverability.ts` + `lib/figsy.ts` + `routes/figsy.ts` + `email.ts` (commit `96456ac`, branch only). **Never sent a real email through it.** Needs founder env vars + deploy + inbox test. | 🤖 | Mail→spam *problem* verified in audit; the *fix* is not. Long pole. |
-| **Mon 8** | **Mon–Sun** | **Buy 1–2 cold domains** (lookalikes) · SPF/DKIM/DMARC · verify Resend · **START warmup** (5–10 → 30–50/day over 2–3 wks) · verify `API_URL` · verify get-kind.com auth | 🧍 | `get-kind.com` = transactional only. Cold = separate domain(s). |
-| **Mon 8** | **#1** | **TIER-0 credential rotation** (Stripe secret, Supabase service-role, DATABASE_URL, anon, Anthropic, Resend×2, HubSpot, Admin secret, Stripe webhook; Apollo ✅ done) | 🧍 | Security. Finish by Tue 9. |
-| **Tue 9** | **#6** | Migration `010_crm_dedup.sql` | 🧍 | CRM deduping before real clients. |
-| **Tue 9** | **#7** | Denise Stripe $99/mo price → `STRIPE_PRICE_DENISE_MONTHLY` on Railway + redeploy | 🧍 | Needed for T5 smoke test (billing). |
-| **Tue 9** | **#7/8** | DNS: `app`/`api`/`admin`/`status`.get-kind.com (Railway CNAME) → update `NEXT_PUBLIC_API_URL` + Resend webhook | 🧍 | Routing. |
-| **Tue 9** | **#2** | Delete dormant Portal-V2 build + `FEATURE_PORTAL_V2` flag (currently breaks if flipped) | 🤖 | Risk mitigation. |
-| **Tue 9** | **Deploy pipeline** | Fix "KIND System Audit" GitHub Action (fails every push, blocks Railway auto-deploy) | 🤖 | CI/CD reliability. |
-| **Tue 9** | **CAL-min** | `booking_url` paste field (non-Google calendar clients) | 🤖 | T3/T4 smoke tests need this. |
-| **Tue 9** | **P-a** | "Sign emails as {name}" setting (stop AI-invented signers) | 🤖 | UX. |
-| **Tue 9** | **P-b** | Strip `BUILD MARKER` line (`index.ts:165`) | 🤖 | Debug cleanup. |
-| **Tue 9** | **Smoke Test 1A** | T1 (fresh email) · T2 (steps 8–9) · T3 (steps 10–13, incl. pause→no send) | 🧍 | Paid path verification begins. |
-| **Wed 10** | **Smoke Test 1B** | T4 (booking+KPI) · T5 (billing: single-charge, idempotency, Milla 403) · T6 (Vida widget) · T7 (Milla cron leak) | 🧍 | Finish Smoke Test 1. |
-| **Wed 10** | **#17** | Fix any Smoke Test 1 failures same-day | 🤖 | Speed. |
-| **Fri 12** | **C1–C7** | **Cosmetics:** ICP-above-People · agent-card consistency · ICP banner copy · agent panels→FIGSY layout · ClickUp signup · New-ICP scroll fix · "Est. Pipeline Value" relabel | 🤖 | Polish before launch. |
-| **Fri 12** | **VIDA-11** | Vida in-portal help bubble (basic: bottom-right, reuse embed) | 🤖 | Day-1 self-serve support. |
-| **Sat 13** | **Smoke Test 2** | Full re-run T1–T7, green | 🤝 | Verification. |
-| **Sun 14** | **Legal** | ICO £40 · SR01 suppression · registered office + service address · WHOIS privacy · LinkedIn lockdown · Calendly verify · `version.txt` deploy marker | 🧍 | Compliance + safety. |
-| **Sun 14** | **D9** | Inbox-placement test (mail-tester / GlockApps) → verify 10/10 → fix gaps | 🤖 | Deliverability gate. |
-| **Mon 15** | **Buffer** | Slip absorption, re-runs, spillover | 🤝 | Risk mitigation. |
-| **Tue 16** | **Dress rehearsal** | Fresh signup (not dogfood) → ICP → leads → campaign → reply → verify · check warmup status | 🤝 | Live test. |
-| **Wed 17** | **Final fixes** | Any remaining issues · prep launch campaigns (ramp strategy) | 🤝 | Spillover. |
-| **Thu 18** | **Go/No-Go** | Deliverability 10/10 ✅, Smoke Test 2 green ✅, all founder items ✅ → sign off | 🤝 | Release gate. |
-| **Fri 19** | 🚀 **LAUNCH** | **Africa-only** (US deferred, see Strategy Decision) — transactional live from `get-kind.com`; cold ramped from warmup domain | 🚀 | **THE DAY.** |
+**Status legend:** ✅ done/verified · 🔄 in progress · ⬜ to do · 🔁 changed/superseded — *(updated 9 Jun)*
+
+| Date | Item # | Status | What | Owner | Why |
+|------|--------|--------|------|-------|-----|
+| **Mon 8** | **D1–D5** | ✅ | **Deliverability fixes — DEPLOYED + VERIFIED (T8 passed 9 Jun: real cold email from `gettingkind.com` → inbox).** List-Unsubscribe + one-click unsubscribe · plain-text MIME · tracking-pixel guard · configurable cold-FROM · transactional plain-text. In `lib/deliverability.ts` + `lib/figsy.ts` + `routes/figsy.ts` + `email.ts`. | 🤖 | Mail→spam was the #1 launch risk. **Now proven dead.** |
+| **Mon 8** | **Cold domain + warmup** | ✅ | Cold domain `gettingkind.com` bought · SPF/DKIM/DMARC verified green in Resend · **warmup LIVE** (`FIGSY_WARMUP_START=2026-06-09`, ramps 10→50/day, FIGSY auto-sends). | 🧍 | `get-kind.com` = transactional only; cold = separate domain. **Done + sending.** |
+| **Mon 8** | **#1** | 🔄 | **TIER-0 credential rotation** (Stripe secret, Supabase service-role, DATABASE_URL, anon, Anthropic, Resend×2, HubSpot, Admin secret, Stripe webhook). Apollo ✅ done; repo scan clean; **2 crown-jewels still to rotate.** | 🧍 | Security. De-prioritised to Wk2; 2 keys sooner. |
+| **Tue 9** | **#6** | ✅ | Migration `010_crm_dedup.sql` (CRM dedup fields live in `clients` + enforced in `autoEnrollLead`). | 🧍 | CRM deduping before real clients. |
+| **Tue 9** | **#7** | ✅ | Denise Stripe $99/mo price → `STRIPE_PRICE_DENISE_MONTHLY` set on Railway. | 🧍 | Needed for T5 smoke test (billing). |
+| **Tue 9** | **#7/8** | ✅ | DNS: `app`/`api`/`admin`.get-kind.com live (Railway) — all 4 services online. | 🧍 | Routing. (`status.` subdomain optional.) |
+| **Tue 9** | **#2** | 🔁 | ~~Delete dormant Portal-V2~~ → **CHANGED:** we are **building** V2 on the gated `/dashboard/v2` route (Command Centre shell shipped). Superseded by the V2 month-end plan. | 🤖 | Decision reversed — V2 is the expansion engine, not dead weight. |
+| **Tue 9** | **Deploy pipeline** | 🔄 | "KIND System Audit" GitHub Action still noisy, but **Railway auto-deploys from `main` are working** (deployed many times 9 Jun). Action cleanup outstanding. | 🤖 | CI/CD reliability (not currently blocking deploys). |
+| **Tue 9** | **CAL-min** | 🔄 | `booking_url` backend + migration done; portal paste field not yet confirmed. | 🤖 | T3/T4 smoke tests need this. |
+| **Tue 9** | **P-a** | ✅ | **"Sign emails as" — DONE 9 Jun:** Settings field built + saves to `signer_name` + test-email honours it (stops AI-invented signers). | 🤖 | UX. Founder set `Jack from K.I.N.D`. |
+| **Tue 9** | **P-b** | ✅ | Stripped stale `BUILD MARKER` (dynamic commit-sha marker now). | 🤖 | Debug cleanup. |
+| **Tue 9** | **Smoke Test 1A** | 🔄 | **T2 ✅** (ICP→leads, re-verified 9 Jun) · **T8 ✅** (deliverability/inbox) · **T1 ⬜** (fresh signup, never run) · **T3 ⬜** (pause→no-send). | 🧍 | Paid-path verification — half done. |
+| **Wed 10** | **Smoke Test 1B** | ⬜ | T4 (booking+KPI) · T5 (billing) · T6 (Vida widget) · T7 (Milla cron leak). | 🧍 | Finish Smoke Test 1. |
+| **Wed 10** | **#17** | 🔄 | Fixing bugs same-day as found (Option A enrol bug, Railway build, `campaignReadyLeadIds`, etc. all fixed 9 Jun). | 🤖 | Speed. |
+| **Fri 12** | **C1–C7** | 🔄 | ICP scroll fix ✅ · "Est. pipeline value" relabel ✅ · rest (agent-card consistency, banner copy, layout) outstanding. | 🤖 | Polish before launch. |
+| **Fri 12** | **VIDA-11** | ⬜ | Vida in-portal help bubble (bottom-right, reuse embed) — not yet confirmed live. | 🤖 | Day-1 self-serve support. |
+| **Sat 13** | **Smoke Test 2** | ⬜ | Full re-run T1–T7, green. | 🤝 | Verification. |
+| **Sun 14** | **Legal** | ⬜ | ICO £40 · SR01 suppression · registered office + service address · WHOIS privacy · LinkedIn lockdown · Calendly verify. | 🧍 | Compliance + safety. |
+| **Sun 14** | **D9** | ⬜ | Inbox-placement test (mail-tester / GlockApps) → verify **10/10** → fix gaps. *(Basic inbox check passed 9 Jun; formal 10/10 still owed.)* | 🤖 | Deliverability gate. |
+| **Mon 15** | **Buffer** | ⬜ | Slip absorption, re-runs, spillover. | 🤝 | Risk mitigation. |
+| **Tue 16** | **Dress rehearsal** | ⬜ | Fresh signup (not dogfood) → ICP → leads → campaign → reply → verify · check warmup status. | 🤝 | Live test. |
+| **Wed 17** | **Final fixes** | ⬜ | Any remaining issues · prep launch campaigns (ramp strategy). | 🤝 | Spillover. |
+| **Thu 18** | **Go/No-Go** | ⬜ | Deliverability 10/10 · Smoke Test 2 green · all founder items done → sign off. | 🤝 | Release gate. |
+| **Fri 19** | 🚀 **LAUNCH** | ⬜ | **Africa-only** (US deferred) — transactional live from `get-kind.com`; cold ramped from warmup domain. | 🚀 | **THE DAY.** |
 
 ### **PHASE 2: WEEK 1 POST-LAUNCH (Jun 19–28)**
 
-| Item # | What | Owner | Why |
-|--------|------|-------|-----|
-| **#17** | 10 warm outreach messages (network) | 🧍 | Seed launches, accelerate launches. |
-| **#18** | LinkedIn content 1/day via anonymous brand handle | 🧍 | Thought leadership. |
-| **#19** | Activate LinkedIn outreach — run `20260602_linkedin_queue.sql` + PhantomBuster keys | 🧍 | Distribution unlock (LinkedIn cold outreach backend is built). |
-| **#20** | Start Meta/WhatsApp Business API application (3–7 day window) | 🧍 | Pipeline for Month 2. |
-| **#21** | Record real product demo ("shoot once, cut many", 16:9 + 9:16) | 🧍 | Asset for social + website. Use Pixar family prominently (warmth moat). |
-| **#22** | #44 Replace homepage hero animation with real product loop | 🤖 (blocked on #21) | Authenticity > animation. |
-| **#23** | Instrument GTM funnel (channel→reply→demo→close, CAC, trial→paid) | 🤝 | Data for Month 2 strategy. |
-| **#24** | Activate dogfood self-outreach engine + point FIGSY at competitor-switcher ICP | 🧍 | Eat our own dogfood. Prove the product. |
-| **#25** | Daily client briefing email (Apex steal) | 🤖 | Quick win. Apex insight. |
-| **#26** | One pre-launch fresh-signup check (smoke test used dogfood) | 🧍 | Verify real onboarding path. |
+*(Status: ✅ done · 🔄 in progress · ⬜ to do — all post-launch, not started yet)*
+
+| Item # | Status | What | Owner | Why |
+|--------|--------|------|-------|-----|
+| **#17** | ⬜ | 10 warm outreach messages (network) | 🧍 | Seed launches, accelerate launches. |
+| **#18** | ⬜ | LinkedIn content 1/day via anonymous brand handle | 🧍 | Thought leadership. |
+| **#19** | ⬜ | Activate LinkedIn outreach — run `20260602_linkedin_queue.sql` + PhantomBuster keys (backend built) | 🧍 | Distribution unlock. |
+| **#20** | ⬜ | Start Meta/WhatsApp Business API application (3–7 day window) | 🧍 | Pipeline for Month 2. |
+| **#21** | ⬜ | Record real product demo ("shoot once, cut many", 16:9 + 9:16) | 🧍 | Asset for social + website. Use Pixar family prominently (warmth moat). |
+| **#22** | ⬜ | #44 Replace homepage hero animation with real product loop | 🤖 (blocked on #21) | Authenticity > animation. |
+| **#23** | ⬜ | Instrument GTM funnel (channel→reply→demo→close, CAC, trial→paid) | 🤝 | Data for Month 2 strategy. |
+| **#24** | ⬜ | Activate dogfood self-outreach engine + point FIGSY at competitor-switcher ICP | 🧍 | Eat our own dogfood. Prove the product. |
+| **#25** | ⬜ | Daily client briefing email (Apex steal) | 🤖 | Quick win. Apex insight. |
+| **#26** | ⬜ | One pre-launch fresh-signup check (smoke test used dogfood) | 🧍 | Verify real onboarding path. |
 
 ### **PHASE 3: WEEKS 2–4 (Jun 29 – Jul 19)**
 
-| Item # | What | Owner | Why |
-|--------|------|-------|-----|
-| **#27** | Open 2 design-partner slots (case study + logo) | 🧍 | Social proof + revenue. |
-| **#28** | Cut social content from demo footage (9:16) | 🤖 | TikTok/Reels asset. |
-| **#29** | **Onboarding VIDEO content** — 3 Looms (product walkthrough · per-agent setup · first campaign) | 🧍 | Customer education + anti-churn. Pairs with #21/#23 real demo, V2-10 Casey, #30 onboarding v2. |
-| **#30** | Onboarding v2 + day-0/3/7 email sequence | 🤖 | Reduce churn (Revio insight). |
-| **#31** | Populate proof block + homepage outcome numbers with REAL data (#62c) | 🤖 | No fabrication. Wait for first results. |
-| **#32** | Activate Flutterwave (needs key — ZAR/NGN/KES/GHS) | 🧍 | Africa-first revenue. |
-| **#33** | Launch YouTube channel (10-video plan exists) | 🧍 | Long-tail SEO. |
-| **#34** | Wire playbook email form (ConvertKit/Mailchimp) | 🤖 | Lead magnet. |
-| **#35** | #61a/g Performance-guarantee clause in terms.html + ToS update | 🤖 | Atlas steal. "90-day results or you don't pay" framing. |
-| **#36** | #61e Atlas steal — influencer/community distribution (find our Dan-Martell) | 🧍 | Distribution moat. SA + US equiv. Worth more than seed round. |
-| **#37** | #61g Atlas steal — sharpen guarantee language | 🤖 | Messaging. |
-| **#38** | #62b Revio steal — bundle "Revenue Playbook Session" (30-min) into onboarding | 🤖 | Coaching layer. Reduces churn. Revio moat. |
-| **#39** | Scheduled report emails (S4 steal) | 🤖 | Weekly digest. Engagement. |
+| Item # | Status | What | Owner | Why |
+|--------|--------|------|-------|-----|
+| **#27** | ⬜ | Open 2 design-partner slots (case study + logo) | 🧍 | Social proof + revenue. |
+| **#28** | ⬜ | Cut social content from demo footage (9:16) | 🤖 | TikTok/Reels asset. |
+| **#29** | ⬜ | **Onboarding VIDEO content** — 3 Looms (product walkthrough · per-agent setup · first campaign) | 🧍 | Customer education + anti-churn. |
+| **#30** | ⬜ | Onboarding v2 + day-0/3/7 email sequence | 🤖 | Reduce churn (Revio insight). **Claude can build solo.** |
+| **#31** | ⬜ | Populate proof block + homepage outcome numbers with REAL data (#62c) | 🤖 | No fabrication. Wait for first results. |
+| **#32** | ⬜ | Activate Flutterwave (needs key — ZAR/NGN/KES/GHS) | 🧍 | Africa-first revenue. |
+| **#33** | ⬜ | Launch YouTube channel (10-video plan exists) | 🧍 | Long-tail SEO. |
+| **#34** | ⬜ | Wire playbook email form (ConvertKit/Mailchimp) | 🤖 | Lead magnet. |
+| **#35** | ⬜ | #61a/g Performance-guarantee clause in terms.html + ToS update | 🤖 | Atlas steal. "90-day results or you don't pay". |
+| **#36** | ⬜ | #61e Atlas steal — influencer/community distribution | 🧍 | Distribution moat. |
+| **#37** | ⬜ | #61g Atlas steal — sharpen guarantee language | 🤖 | Messaging. |
+| **#38** | ⬜ | #62b Revio steal — bundle "Revenue Playbook Session" (30-min) into onboarding | 🤖 | Coaching layer. Reduces churn. |
+| **#39** | ⬜ | Scheduled report emails (S4 steal) | 🤖 | Weekly digest. Engagement. |
 
 ### **PHASE 4: MONTH 2 (Late Jul – Aug, GATED: 10+ clients)**
 
 **PREREQUISITE:** Set up staging environment before any V2 touches main (Part 4B — Supabase `kind-staging`, Railway staging services, `staging` branch, auto-deploy on push).
 
-#### **Intelligence Layer (#37–53 + #59)**
-| Item # | What | Why | Competitive Signal |
-|--------|------|-----|-------------------|
-| **#37** | Intent signal detection | Signal which leads are *ready to buy* (not just interested). | Amplemarket moat. Reduce wasted outreach. |
-| **#38** | A/B subject testing | Test subject lines (FIGSY picks the winner automatically). | Monday/ClickUp testing. Personalisation = conversion. |
-| **#39** | Client morning-brief email | Daily summary: lead activity, reply rates, anomalies (Apex/S4 steal). | Engagement hook. Brings clients back to portal. |
-| **#40** | ICP auto-refinement (L2 learning layer) | Monthly AI review: "your replies came from these verticals / these company sizes." Refine ICP without user touching builder. | Glean's "context wins" + our outcome data moat. |
-| **#41** | Conditional sequence branching | "If no reply in 5 days, branch to escalation." | Monday/ClickUp automation. Reduces manual work. |
-| **#42** | Waterfall enrichment (Apollo → PDL → Hunter → Clearbit) | Fallback pipeline when Apollo returns <200 leads. | Clay insight. Enterprise richness for SMB price. |
-| **#43** | Deliverability dashboard (SPF/DKIM/DMARC + bounce + blacklist) | Real-time deliverability monitoring. | Monday insight. Transparency = trust. |
-| **#44** | Email score pre-send | AI scores subject + body for spam signal before send. | MailerLite moat. Reduce complaints. |
-| **#45** | Adaptive send volume | Ramp sends based on reply rate (not fixed 20/day). | Instantly moat. Responsive to feedback. |
-| **#46** | **FIGSY Memory v2 (pgvector)** | Semantic embeddings (episodic / long-term / preference). | Our moat. L2 learning needs pgvector. Build at 10+ clients. |
-| **#47** | Milla full-context CRM pull | Milla reads client's Pipedrive/HubSpot history when writing. | Glean moment. Context always wins. |
-| **#48** | Vapi voice calling → **DENISE owns it** (decided 8 Jun) | **DENISE** (the closer) dials prospects to confirm/close — voice is her channel, not FIGSY's. Code built (`lib/vapi.ts`), currently labelled FIGSY → re-attribute to Denise in the #54 deep build. | Atlas/Revio moat. Voice = higher conversion. Denise = our "Alex" calling agent. |
-| **#49** | Product Hunt launch (with proof) | Launch with 2–3 design-partner case studies. | Proof moat. Network effect. |
-| **#50** | G2 listing (5 reviews) | Build social proof. | SMB buying signal. |
-| **#51** | Configurable agent triggers | "Send after X days without reply." "Escalate if human reply." | Monday/ClickUp. Power users unlock value. |
-| **#52** | Multi-model toggle per campaign | "Use Opus for this ICP, Sonnet for this one." | Experimentation. Cost optimisation. |
-| **#53** | Inbox rotation / multiple sending domains (Instantly steal) | Auto-rotate which domain sends next message (evades spam filters). | Instantly moat. Deliverability on steroids. |
-| **#59 (pulled fwd)** | **MCP server** (distribution unlock) | Expose one endpoint: "Start a FIGSY campaign." Notion/Linear/Slack agents call it — no K.I.N.D UI. | **MCP is distribution.** Glean/Notion/Linear all wired it. We need it. Month 2, not Month 3. |
+#### **Intelligence Layer (#37–53 + #59)** — *Status: ⬜ to do · 🔄 partial (Month 2, gated on 10+ clients)*
+| Item # | Status | What | Why | Competitive Signal |
+|--------|--------|------|-----|-------------------|
+| **#37** | ⬜ | Intent signal detection | Signal which leads are *ready to buy* (not just interested). | Amplemarket moat. Reduce wasted outreach. |
+| **#38** | ⬜ | A/B subject testing | Test subject lines (FIGSY picks the winner automatically). | Monday/ClickUp testing. Personalisation = conversion. |
+| **#39** | ⬜ | Client morning-brief email | Daily summary: lead activity, reply rates, anomalies. | Engagement hook. Brings clients back to portal. |
+| **#40** | ⬜ | ICP auto-refinement (L2 learning layer) | Monthly AI review of which verticals/sizes replied → refine ICP automatically. | Glean's "context wins" + our outcome data moat. |
+| **#41** | ⬜ | Conditional sequence branching | "If no reply in 5 days, branch to escalation." | Monday/ClickUp automation. (Note: basic on_reply branching already live.) |
+| **#42** | ⬜ | Waterfall enrichment (Apollo → PDL → Hunter → Clearbit + **Manus**) | Fallback pipeline when Apollo returns <200 / unverified (esp. Africa). | Clay insight. Enterprise richness for SMB price. |
+| **#43** | ⬜ | Deliverability dashboard (SPF/DKIM/DMARC + bounce + blacklist) | Real-time deliverability monitoring. | Monday insight. Transparency = trust. |
+| **#44** | ⬜ | Email score pre-send | AI scores subject + body for spam signal before send. | MailerLite moat. Reduce complaints. |
+| **#45** | ⬜ | Adaptive send volume | Ramp sends based on reply rate (not fixed). | Instantly moat. Responsive to feedback. |
+| **#46** | ⬜ | **FIGSY Memory v2 (pgvector)** | Semantic embeddings (episodic / long-term / preference). | Our moat. L2 learning needs pgvector. |
+| **#47** | ⬜ | Milla full-context CRM pull | Milla reads client's Pipedrive/HubSpot history when writing. | Glean moment. Context always wins. |
+| **#48** | 🔄 | Vapi voice calling → **DENISE owns it** — **code built** (`lib/vapi.ts`), not live; re-attribute FIGSY→Denise in #54. | Denise (closer) dials to confirm/close. | Atlas/Revio moat. Denise = our "Alex". |
+| **#49** | ⬜ | Product Hunt launch (with proof) | Launch with 2–3 design-partner case studies. | Proof moat. Network effect. |
+| **#50** | ⬜ | G2 listing (5 reviews) | Build social proof. | SMB buying signal. |
+| **#51** | ⬜ | Configurable agent triggers | "Send after X days." "Escalate if human reply." | Monday/ClickUp. Power users unlock value. |
+| **#52** | ⬜ | Multi-model toggle per campaign | "Use Opus for this ICP, Sonnet for this one." | Experimentation. Cost optimisation. (Note: model_preference field exists.) |
+| **#53** | ⬜ | Inbox rotation / multiple sending domains (Instantly steal) | Auto-rotate sending domain (evades spam filters). | Instantly moat. Deliverability on steroids. |
+| **#59 (pulled fwd)** | ⬜ | **MCP server** (distribution unlock) | One endpoint: "Start a FIGSY campaign." Notion/Linear/Slack agents call it. | **MCP is distribution.** Month 2. |
 
-#### **V2 Portal Redesign (#V2-1 through #V2-13)**
-| Item | What | Why | Competitive Signal |
-|------|------|-----|-------------------|
-| **V2-1** | Agent card grid (dashboard home) | Replace dashboard left-nav + empty space. Show all 4 agents in a card grid. | Monday/ClickUp clean layout. High. |
-| **V2-2** | Agent thinking/working state | Show when FIGSY/Milla is working ("Writing 17 emails…", "Parsing reply…"). | ClickUp "Super Agents" insight. Transparency. High. |
-| **V2-3** | Conversational agent setup | Instead of forms, chat with Casey (onboarding agent): "Tell me your ICP" → agent asks clarifying questions. | ClickUp/Notion + Revio coaching. Medium. |
-| **V2-4** | Structured agent config panel (Role/ICP/Tone/Schedule/Knowledge) | Clean cards for each agent setting. Replace dense text inputs. | Monday/ClickUp. Medium. |
-| **V2-5** | Agent marketplace ("Meet your AI Revenue Team") | Month 3+. Show all agents, what each does, cross-sell. | Salesforce AgentExchange. Month 3 (gated on volume). |
-| **V2-6** | Slim sidebar + top-right header | Move Profile/Billing/Settings/Team to top-right dropdown. Sidebar shows nav only. | Notion/Linear slim layout. High. |
-| **V2-7** | Invite teammate (growth loop) | "Invite your co-founder" modal in header. Referral structure. | Monday growth. High. |
-| **V2-8** | **AI Notetaker → action items (Milla)** | Milla reads all portal activity (leads, replies, activity) → nightly email: "Here's what your team did, here are 3 actions." | Glean moment. AI reads your activity, tells you what to do. Critical. |
-| **V2-9** | **Teams Hub (members, activity, per-person usage)** | See who on your team is using FIGSY/Milla/Vida, how many leads/campaigns each. Admin oversight. | Linear/Notion team features. Critical. |
-| **V2-10** | **Casey — Onboarding agent** (non-family, portal-only) | Dedicated warm bot (not FIGSY/Milla/Vida — separate identity, ClickUp-style). Guides setup: biz profile → ICP → first leads → first campaign. Portal only (never on website). Warm Pixar 3D style. Has `casey.png`. | ClickUp's approach (specialist per role). Revio's coaching model. High. |
-| **V2-11** | **Vida in-portal help bubble** (pulled forward, basic pre-launch Fri 12) | Bottom-right corner, always visible. Reuses existing Vida embed. Month 2 = deep integration (context-aware, pulls live data). | Support moat. Reduces TTSR. Critical. |
-| **V2-12** | **Strong client dashboards (Monday-style)** | Replace current sparse leads page. Show: ICP cards (active, paused, archived) · campaign performance (sent, replied, booked) · pipeline value (with "Est." label) · credit usage · month-over-month trends. | Monday's dashboard density. V2 priority. |
-| **V2-13** | **Multi-provider calendar** (Outlook/Zoho OAuth + agent-led onboarding) | **(a)** Full OAuth for Outlook, Zoho, Calendly native, Microsoft Exchange. **(b)** During onboarding, Casey asks "Do you use Google, Outlook, Zoho?" and guides OAuth. | Non-Google clients unlocked. Month 2 feature gap. Critical. |
+#### **V2 Portal Redesign (#V2-1 through #V2-13)** — *visual deck §1–18 complete; gated build on `/dashboard/v2` (Command Centre shell shipped 8–9 Jun). Target: per-rep core live 30 Jun.*
+| Item | Status | What | Why | Competitive Signal |
+|------|--------|------|-----|-------------------|
+| **V2-1** | 🔄 | Agent card grid (dashboard home) — scaffolded in `/dashboard/v2/page.tsx`. | Show all agents in a card grid. | Monday/ClickUp clean layout. |
+| **V2-2** | ⬜ | Agent thinking/working state ("Writing 17 emails…"). | Transparency. | ClickUp "Super Agents". |
+| **V2-3** | ⬜ | Conversational agent setup (chat with Casey instead of forms). | Prompt-to-build direction. | ClickUp/Notion + Revio. |
+| **V2-4** | ⬜ | Structured agent config panel (Role/ICP/Tone/Schedule/Knowledge). | Clean cards per setting. | Monday/ClickUp. |
+| **V2-5** | ⬜ | Agent marketplace ("Meet your AI Revenue Team"). | Cross-sell. | Salesforce AgentExchange. Month 3. |
+| **V2-6** | ⬜ | Slim sidebar + top-right header. | Cleaner nav. | Notion/Linear. |
+| **V2-7** | 🔄 | Invite teammate (growth loop) — team invite backend built (`client_members`/`/team/invite`). | Referral growth. | Monday growth. → folds into #88. |
+| **V2-8** | ⬜ | **AI Notetaker → action items (Milla)** — nightly "here's what your team did + 3 actions". | AI reads activity, tells you what to do. | Glean moment. |
+| **V2-9** | ⬜ | **Teams Hub** (members, activity, per-person usage). | Admin oversight. | Linear/Notion. → folds into #88 owner command centre. |
+| **V2-10** | ⬜ | **Casey — Onboarding agent** (portal-only). Guides setup. Avatar `casey.png` ✅. | Specialist-per-role onboarding. | ClickUp + Revio. |
+| **V2-11** | 🔄 | **Vida in-portal help bubble** (basic pre-launch; deep Month 2). | Support moat, reduces TTSR. | Support moat. |
+| **V2-12** | 🔄 | **Strong client dashboards (Monday-style)** — Command Centre/funnel shell built in `/dashboard/v2/company`. | Dense, useful dashboards. | Monday density. V2 priority. |
+| **V2-13** | ⬜ | **Multi-provider calendar** (Outlook/Zoho/Calendly OAuth + Casey-guided). | Non-Google clients unlocked. | → folds into #88 per-rep calendars. |
 
 ### **PHASE 5: MONTH 3 (Late Aug – Sep, GATED: family build + margin data)**
 
-| Item # | What | Why | Competitive Signal |
-|--------|------|-----|-------------------|
-| **#54** | **DENISE deep build (#1 next agent)** — Calendly auto-book · call-join transcription/notetaker · live objection extraction · proposal-from-transcript · pipeline follow-up · persona/system prompt · admin card. Build deep or don't ship. | Closes FIGSY → booked seam. Max leverage (no new front opened). Extends existing pipeline. | Monday/ClickUp "meet booked" → close. Atlas/Revio booked → revenue. DENISE = our answer. #1. |
-| **#55** | **LENA — The Customer Success agent** (a "back agent" like Casey — non-family, support-tier) (Month 3, not Month 1) | Owns the post-sale lifecycle: takes the won deal from DENISE and keeps it alive — onboarding-to-adoption nudges, health/usage monitoring, renewals, upsell/expansion, churn prevention. Completes the full revenue loop (FIGSY books → DENISE closes → **LENA retains & grows** → TONY keeps ops clean). Build once DENISE is solid. | Closes the lifecycle (Alta's CS column). Retention/expansion = the cheapest revenue. |
-| **#56** | **TONY — The Operations agent** (Month 3, not Month 1) | Closes the operations loop behind the revenue agents: keeps the pipeline clean, handles handoffs, CRM hygiene, follow-through and the back-office so nothing falls through. **Named after the founder's father** (as DENISE is named after his mother) — the steady operator who makes sure everything actually gets done. Build once LENA is solid. | The dependable backbone of the agent family. |
-| **#57** | Multi-agent orchestration (shared memory) | FIGSY → DENISE → Milla (handoff + context). | Monday/ClickUp multi-agent orchestration. Platform moat. |
-| **#58** | 500+ FIGSY skill library | Prompt library. "Open doors with competitive intel." "Negotiate discounts." Etc. | ClickUp 500+ work skills. Depth. |
-| **#60** | **Outcome pricing** (per meeting booked) — GATED on ≥28% gross margin | Build only after margin data proves it works. Pure outcome model ($40/meeting, K.I.N.D eats failed outreach). | Salesforce + Intercom proved the model. We're ready to move toward it. Gated on data. |
-| **#61** | Mobile app (iOS + Android) | Nice-to-have. Build if MRR >£8K. | Competitive hygiene. Month 3+. |
-| **#62** | Built-in CRM (persistent prospect DB / Kanban deal view) | FIGSY stores every prospect she touches. Clients see Kanban (leads → replied → booked → closed). | Monday/ClickUp/Linear integrated CRM. Nice-to-have. |
-| **V2-5** | Agent marketplace ("Meet your AI Revenue Team") | Show all agents, what each does, why you'd use them together. | Salesforce AgentExchange. Month 3+. |
-| **#63** | Pan-African design partners (NG/KE/GH/EG/RW) | Deepen regional presence. | Our specialisation lane. Month 3. |
-| **#64** | Platform-level cross-client intelligence (L4 moat) | Benchmarks: "You're in the 80th percentile for reply rate in your vertical." Predictive ICP. | Glean's enterprise moat, adapted to SMB. Our real long-term differentiation. Year 2+. |
-| **#65** | Data licensing marketplace | Sell anonymised outcome data (reply rates, angles, verticals, regions). | New revenue stream. Year 2+. Gated on data volume + ethics review. |
-| **#66** | ICP auto-refinement advanced (L3) | Real-time: as replies come in, refine ICP automatically. | Data moat. Year 2+. |
-| **#67** | Pipeline forecasting | "Given reply rate + deal size, you'll close X by Q4." | Linear insight (product intelligence). Year 2+. |
-| **#68** | In-portal messaging | Slack-style chat for team (FIGSY, Milla, humans, clients can chat). | Monday/Notion. Year 2+. |
-| **#69** | Proposal + e-sign | DENISE drafts proposal from call; client signs in portal. | Salesforce moat. Year 2+. |
-| **#70** | Meeting notetaker | Auto-transcribe Zoom (client + prospect). Extract objections live. | Glean/Linear moat. Year 2+. |
+*(All ⬜ — gated on family build + margin data. Agent avatars ready: denise/lena/tony ✅.)*
+
+| Item # | Status | What | Why | Competitive Signal |
+|--------|--------|------|-----|-------------------|
+| **#54** | ⬜ | **DENISE deep build (#1 next agent)** — Calendly auto-book · call-join notetaker · objection extraction · proposal-from-transcript · pipeline follow-up · **Vapi voice** (#48). | Closes FIGSY → booked seam. Max leverage. | DENISE = our answer to "booked → revenue". #1. |
+| **#55** | ⬜ | **LENA — Customer Success** (back agent) — retention · renewals · upsell · churn prevention. After DENISE. | Closes the lifecycle. | Alta's CS column. Cheapest revenue. |
+| **#56** | ⬜ | **TONY — Operations** (named after founder's father) — pipeline hygiene · handoffs · CRM cleanliness. After LENA. | The dependable backbone. | Ops loop. |
+| **#57** | ⬜ | Multi-agent orchestration (shared memory) — FIGSY → DENISE → Milla handoff. | Platform moat. | Monday/ClickUp orchestration. |
+| **#58** | ⬜ | 500+ FIGSY skill library. | Depth. | ClickUp 500+ skills. |
+| **#60** | ⬜ | **Outcome pricing** (per meeting) — GATED on ≥28% gross margin. | Pure outcome model. | Salesforce + Intercom proved it. |
+| **#61** | ⬜ | Mobile app (iOS + Android) — if MRR >£8K. | Competitive hygiene. | Month 3+. |
+| **#62** | ⬜ | Built-in CRM (Kanban deal view). | FIGSY stores every prospect. | Monday/ClickUp/Linear. |
+| **V2-5** | ⬜ | Agent marketplace ("Meet your AI Revenue Team"). | Cross-sell. | Salesforce AgentExchange. |
+| **#63** | ⬜ | Pan-African design partners (NG/KE/GH/EG/RW). | Regional presence. | Our specialisation lane. |
+| **#64** | ⬜ | Platform-level cross-client intelligence (L4 moat) — vertical benchmarks. | Long-term differentiation. | Glean's enterprise moat. Year 2+. |
+| **#65** | ⬜ | Data licensing marketplace (anonymised outcome data). | New revenue stream. | Year 2+. Gated on volume + ethics. |
+| **#66** | ⬜ | ICP auto-refinement advanced (L3, real-time). | Data moat. | Year 2+. |
+| **#67** | ⬜ | Pipeline forecasting. | Product intelligence. | Linear insight. Year 2+. |
+| **#68** | ⬜ | In-portal messaging (Slack-style). | Team chat. | Monday/Notion. Year 2+. |
+| **#69** | ⬜ | Proposal + e-sign (DENISE drafts, client signs). | Close in-portal. | Salesforce moat. Year 2+. |
+| **#70** | ⬜ | Meeting notetaker (auto-transcribe, live objections). | Capture every call. | Glean/Linear. Year 2+. |
 
 ### **PHASE 6: YEAR 2 (Enterprise)**
 

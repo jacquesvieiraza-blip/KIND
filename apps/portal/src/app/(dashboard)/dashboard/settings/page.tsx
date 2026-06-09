@@ -284,6 +284,10 @@ export default function SettingsPage() {
   const [writingStyleSaving, setWritingStyleSaving] = useState(false)
   const [writingStyleSaved, setWritingStyleSaved]   = useState(false)
   const [writingStyleError, setWritingStyleError]   = useState<string | null>(null)
+  const [signerName, setSignerName]                 = useState('')
+  const [signerSaving, setSignerSaving]             = useState(false)
+  const [signerSaved, setSignerSaved]               = useState(false)
+  const [signerError, setSignerError]               = useState<string | null>(null)
   const [showCrmKey, setShowCrmKey]                 = useState(false)
   const [unsavedProfile, setUnsavedProfile]         = useState(false)
   const [unsavedCrm, setUnsavedCrm]                 = useState(false)
@@ -299,6 +303,7 @@ export default function SettingsPage() {
         const c = res.data
         setForm({ company_name: c.company_name || '', industry: c.industry || '', country: c.country || 'South Africa', website: c.website || '', phone: c.phone || '', company_registration: c.company_registration || '', vat_number: c.vat_number || '', leads_per_run: c.leads_per_run ?? 20, daily_drip_rate: c.daily_drip_rate ?? 5 })
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
+        setSignerName((c as { signer_name?: string | null }).signer_name || '')
         if (c.id) {
           setClientId(c.id)
           // Fetch the user's role in this team
@@ -373,6 +378,21 @@ export default function SettingsPage() {
       setWritingStyleError('Failed to save — please try again.')
     }
     setWritingStyleSaving(false)
+  }
+
+  async function handleSaveSigner() {
+    setSignerSaving(true)
+    setSignerError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setSignerSaving(false); return }
+      await api.patch('/clients/me', { signer_name: signerName.trim() }, session.access_token)
+      setSignerSaved(true)
+      setTimeout(() => setSignerSaved(false), 3000)
+    } catch (err) {
+      setSignerError(err instanceof Error ? err.message : 'Failed to save — please try again.')
+    }
+    setSignerSaving(false)
   }
 
   async function handleCrmSave(e: React.FormEvent) {
@@ -529,6 +549,34 @@ export default function SettingsPage() {
         <p className="text-sm text-[#9B8EC4] mb-4">
           Paste 2–3 of your best-performing cold emails below. FIGSY will match your tone and style when generating sequences.
         </p>
+
+        {/* Sign emails as — the name every cold email signs off with */}
+        <div className="mb-5 p-4 bg-[#faf9ff] border border-purple-100/80 rounded-lg">
+          <label className="block text-sm font-medium text-gray-900 mb-1">Sign emails as</label>
+          <p className="text-xs text-[#9B8EC4] mb-2.5">The name every prospect sees at the bottom of your emails. Leave blank and FIGSY picks one.</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={signerName}
+              onChange={e => setSignerName(e.target.value)}
+              maxLength={120}
+              placeholder="e.g. Jack from K.I.N.D"
+              className="flex-1 border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
+            />
+            <button
+              type="button"
+              disabled={signerSaving}
+              onClick={handleSaveSigner}
+              className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-4 py-2 text-sm transition-colors disabled:opacity-60 shrink-0"
+            >
+              {signerSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Save
+            </button>
+          </div>
+          {signerSaved && <p className="text-green-600 text-xs font-medium mt-2">✓ Saved — every email now signs off as “{signerName.trim() || 'FIGSY'}”</p>}
+          {signerError && <p className="text-red-600 text-xs mt-2">{signerError}</p>}
+        </div>
+
         <div className="space-y-3">
           <textarea
             value={writingStyle}

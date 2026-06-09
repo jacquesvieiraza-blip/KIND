@@ -231,6 +231,39 @@ leadRouter.post('/bulk-status', async (req: AuthRequest, res) => {
   }
 })
 
+// ── BULK DELETE ───────────────────────────────────────────────────────────────
+// Permanently removes leads (and their dependent rows). Scoped to the caller's
+// client: only leads they own are touched, even if foreign ids are passed.
+leadRouter.post('/bulk-delete', async (req: AuthRequest, res) => {
+  try {
+    const { leadIds } = z.object({
+      leadIds: z.array(z.string().uuid()).min(1).max(1000),
+    }).parse(req.body)
+
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Verify ownership first — only delete leads that belong to this client.
+    const { data: owned } = await db.from('leads')
+      .select('id').in('id', leadIds).eq('client_id', clientId)
+    const ids = (owned ?? []).map((l: { id: string }) => l.id)
+    if (ids.length === 0) { res.json({ success: true, deleted: 0 }); return }
+
+    // Clear dependent rows first (FK), fail-soft if a table/column isn't present.
+    for (const t of ['figsy_replies', 'figsy_sent_emails', 'figsy_enrollments', 'figsy_calls']) {
+      await db.from(t).delete().in('lead_id', ids).then(() => {}, () => {})
+    }
+
+    const { data: deleted, error } = await db.from('leads')
+      .delete().in('id', ids).select('id')
+    if (error) throw error
+    res.json({ success: true, deleted: deleted?.length ?? 0 })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to delete leads' })
+  }
+})
+
 // ── UPDATE STATUS ─────────────────────────────────────────────────────────────
 leadRouter.patch('/:id/status', async (req: AuthRequest, res) => {
   try {

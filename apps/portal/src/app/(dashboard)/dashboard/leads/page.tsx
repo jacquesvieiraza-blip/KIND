@@ -9,7 +9,7 @@ import {
   Users, TrendingUp, ShieldCheck, Download, Search,
   Mail, Ban, Sparkles, Loader2, ExternalLink,
   CheckCircle, Clock, XCircle, Plus, Settings2,
-  DollarSign, Send, X, ChevronDown, AlertTriangle, Copy, Layers,
+  DollarSign, Send, X, ChevronDown, AlertTriangle, Copy, Layers, Trash2,
 } from 'lucide-react'
 
 // ── Enrichment types ──────────────────────────────────────────────────────────
@@ -359,6 +359,7 @@ export default function LeadsPage() {
   const [bulkExporting, setBulkExporting] = useState(false)
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false)
   const [showMarkAs, setShowMarkAs] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   // Enrichment state
   const [enrichedLeads, setEnrichedLeads] = useState<Record<string, EnrichmentData>>({})
@@ -648,6 +649,21 @@ export default function LeadsPage() {
       showToast(err instanceof Error ? err.message : 'Failed to update statuses', 'error')
     }
     setBulkStatusLoading(false)
+  }
+
+  async function bulkDelete() {
+    if (!token || selectedIds.size === 0) return
+    if (!confirm(`Permanently delete ${selectedIds.size} lead${selectedIds.size !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    setBulkDeleting(true)
+    try {
+      const res = await api.post<{ success: boolean; deleted: number }>('/leads/bulk-delete', { leadIds: Array.from(selectedIds) }, token)
+      setLeads(prev => prev.filter(l => !selectedIds.has(l.id)))
+      showToast(`Deleted ${res.deleted} lead${res.deleted !== 1 ? 's' : ''}`)
+      setSelectedIds(new Set())
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to delete leads', 'error')
+    }
+    setBulkDeleting(false)
   }
 
   const filteredLeads = leads.filter(l => {
@@ -1139,6 +1155,13 @@ export default function LeadsPage() {
                 </div>
               )}
             </div>
+            <button
+              onClick={bulkDelete}
+              disabled={bulkDeleting}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/90 hover:bg-red-500 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />{bulkDeleting ? 'Deleting…' : 'Delete'}
+            </button>
           </div>
           <button
             onClick={() => { setSelectedIds(new Set()); setShowMarkAs(false) }}

@@ -963,7 +963,7 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry').eq('id', clientId).maybeSingle()
+      .select('company_name, industry, signer_name').eq('id', clientId).maybeSingle()
 
     // Get sender's own email from auth
     const { data: { user } } = await db.auth.admin.getUserById(req.userId!)
@@ -977,7 +977,8 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
       industry: client?.industry ?? null, seniority: 'senior',
       country: 'ZA', tech_stack: [], score: 85, score_reasoning: 'Test preview',
     }
-    const sequence = await generateSequence(fakeLead as any, client?.company_name ?? '', client?.industry ?? null)
+    // Pass the configured signer so the test reflects the real campaign sign-off.
+    const sequence = await generateSequence(fakeLead as any, client?.company_name ?? '', client?.industry ?? null, undefined, undefined, (client as { signer_name?: string | null })?.signer_name ?? null)
     const step1 = sequence?.step1
     if (!step1?.subject || !step1?.body) {
       res.status(500).json({ success: false, error: 'Failed to generate email preview' }); return

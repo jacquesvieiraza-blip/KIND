@@ -25,7 +25,7 @@ export default function Marketplace() {
       </div>
       <div className="max-w-5xl mx-auto px-6 py-7 space-y-6">
         <div className="rounded-2xl p-7 text-white" style={{ background: `linear-gradient(135deg, ${BRAND}, #a78bfa)` }}>
-          <h1 className="text-2xl font-bold mb-1">Meet your AI Revenue Team</h1>
+          <h1 className="text-2xl font-bold mb-1">Meet your AI Family</h1>
           <p className="text-sm text-white/85 max-w-lg">Each agent owns one stage of the funnel. Add the ones you need — one company bill, every rep covered.</p>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">

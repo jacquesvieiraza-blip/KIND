@@ -42,7 +42,7 @@ export default function Onboarding() {
         <div className="space-y-5">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome to K.I.N.D, Northwind Labs 👋</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Let's get your AI revenue team working. ~10 minutes.</p>
+            <p className="text-sm text-gray-500 mt-0.5">Let's get your AI Family working. ~10 minutes.</p>
           </div>
 
           {/* Casey */}
@@ -54,7 +54,7 @@ export default function Onboarding() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span className="text-[10px] font-bold text-[#ea6a3a] bg-[#fff1ea] px-2 py-0.5 rounded-full">Your onboarding guide</span>
               </div>
-              <p className="text-[13px] text-gray-500 mt-1 leading-relaxed">Hi, I'm Casey — I'll walk you through every step below. Stuck? Just ask. Once you're set up, I hand you to your revenue team.</p>
+              <p className="text-[13px] text-gray-500 mt-1 leading-relaxed">Hi, I'm Casey — I'll walk you through every step below. Stuck? Just ask. Once you're set up, I hand you to your AI Family.</p>
             </div>
             <button className="text-white text-[13px] font-bold px-4 py-2.5 rounded-xl shrink-0" style={{ background: '#ea6a3a' }}>Ask Casey</button>
           </div>
@@ -87,7 +87,7 @@ export default function Onboarding() {
 
           {/* Meet the team */}
           <div className="pt-2">
-            <h2 className="text-lg font-bold text-gray-900">Meet your AI revenue team</h2>
+            <h2 className="text-lg font-bold text-gray-900">Meet your AI Family</h2>
             <p className="text-sm text-gray-500 mb-4">Four specialists working your pipeline around the clock.</p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {AGENTS.map(a => (

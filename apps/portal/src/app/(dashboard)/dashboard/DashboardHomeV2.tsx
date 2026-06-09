@@ -35,7 +35,7 @@ export function DashboardHomeV2({ firstName, timeOfDay, sent, replied, hot, hasF
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Good {timeOfDay}, {firstName} 👋</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Your AI revenue team — at a glance.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Your AI Family — at a glance.</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {agents.map(a => (

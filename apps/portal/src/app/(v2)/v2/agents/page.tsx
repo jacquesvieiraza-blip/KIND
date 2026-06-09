@@ -24,7 +24,7 @@ export default function AgentGrid() {
       <div className="max-w-6xl mx-auto px-6 py-7 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Good morning, MaceyLuxe 👋</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Your AI revenue team — at a glance.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Your AI Family — at a glance.</p>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           {AGENTS.map(a => (

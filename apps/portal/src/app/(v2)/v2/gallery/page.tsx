@@ -151,9 +151,9 @@ export default function V2Gallery() {
           </Sec>
 
           {/* 5 — Marketplace */}
-          <Sec id="s5" n={5} label="Cross-sell" title="Agent Marketplace — Meet your AI Revenue Team">
+          <Sec id="s5" n={5} label="Cross-sell" title="Agent Marketplace — Meet your AI Family">
             <div className="rounded-2xl p-6 text-white mb-4 max-w-3xl" style={{ background: `linear-gradient(135deg, ${BRAND}, #a78bfa)` }}>
-              <h3 className="text-xl font-bold mb-1">Your AI Revenue Team</h3>
+              <h3 className="text-xl font-bold mb-1">Your AI Family</h3>
               <p className="text-sm text-white/80">Each agent owns a stage. Add the ones you need — one company bill.</p>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl">

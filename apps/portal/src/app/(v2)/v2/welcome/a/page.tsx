@@ -39,7 +39,7 @@ export default function WelcomeA() {
               {[0, 1, 2, 3].map(i => <div key={i} className="h-1 rounded-full flex-1" style={{ background: i === 0 ? BRAND : '#e9e3fb' }} />)}
             </div>
 
-            <p className="text-2xl font-bold text-gray-900 leading-tight">Let's hire your AI revenue team.</p>
+            <p className="text-2xl font-bold text-gray-900 leading-tight">Let's hire your AI Family.</p>
             <p className="text-gray-500 mt-2 mb-7">I just need a few things first — takes 2 minutes.</p>
 
             <div className="bg-white border border-purple-100/70 shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 text-[15px] text-gray-800 leading-relaxed mb-5">

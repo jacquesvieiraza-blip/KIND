@@ -33,7 +33,7 @@ export default function SignupPolish() {
 
         <div className="rounded-3xl bg-white shadow-xl border border-purple-100/60 p-7">
           <h1 className="text-xl font-bold text-gray-900 text-center">Create your account</h1>
-          <p className="text-sm text-gray-500 text-center mt-1 mb-6">Your AI revenue team, ready in 2 minutes.</p>
+          <p className="text-sm text-gray-500 text-center mt-1 mb-6">Your AI Family, ready in 2 minutes.</p>
 
           {/* Social login */}
           <div className="space-y-2.5">

@@ -66,12 +66,18 @@ interface UsageData {
   overage_cost_usd: number
 }
 
+// Keys must match the transaction `type` values the API actually writes:
+// 'usage' (lead/FIGSY spend), 'referral_bonus', 'trial_bonus', 'purchase'.
 const TYPE_LABEL: Record<string, string> = {
-  purchase:     'Top-up',
-  referral:     'Referral reward',
-  consumed:     'Credit used',
-  manual_grant: 'Manual grant',
-  refund:       'Refund',
+  purchase:       'Top-up',
+  usage:          'Credit used',
+  referral_bonus: 'Referral reward',
+  trial_bonus:    'Trial bonus',
+  // legacy / fallback labels
+  referral:       'Referral reward',
+  consumed:       'Credit used',
+  manual_grant:   'Manual grant',
+  refund:         'Refund',
 }
 
 const INCLUDED_LEADS = 100
@@ -268,7 +274,7 @@ export default function UsagePage() {
             {transactions.map((tx, i) => (
               <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 text-sm ${i < transactions.length - 1 ? 'border-b border-gray-50' : ''}`}>
                 <div>
-                  <p className="font-medium text-gray-800">{TYPE_LABEL[tx.type] ?? tx.type}{tx.plan ? ` · ${tx.plan === 'kind_ai' ? 'K.I.N.D AI' : 'FIGSY'}` : ''}</p>
+                  <p className="font-medium text-gray-800">{TYPE_LABEL[tx.type] ?? tx.type.replace(/_/g, ' ')}{tx.plan ? ` · ${tx.plan === 'kind_ai' ? 'K.I.N.D AI' : 'FIGSY'}` : ''}</p>
                   <p className="text-xs text-[#9B8EC4] mt-0.5">{new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
                 </div>
                 <span className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>

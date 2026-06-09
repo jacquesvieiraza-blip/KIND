@@ -427,7 +427,7 @@ export default function FigsyRepliesPage() {
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center shrink-0">
                   <span className="text-base font-bold text-gray-600">
-                    {lead ? lead.first_name[0] : selected.from_email[0].toUpperCase()}
+                    {((lead?.first_name || selected.from_email || '?')[0] || '?').toUpperCase()}
                   </span>
                 </div>
                 <div>
@@ -453,6 +453,15 @@ export default function FigsyRepliesPage() {
                       >
                         <Linkedin className="w-3.5 h-3.5" />
                         LinkedIn
+                        <ArrowUpRight className="w-3 h-3" />
+                      </a>
+                    )}
+                    {selected.campaign_id && (
+                      <a
+                        href={`/dashboard/figsy/${selected.campaign_id}`}
+                        className="flex items-center gap-1 text-xs text-[#7C3AED] hover:underline"
+                      >
+                        View campaign
                         <ArrowUpRight className="w-3 h-3" />
                       </a>
                     )}

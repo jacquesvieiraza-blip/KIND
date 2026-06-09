@@ -1355,8 +1355,10 @@ figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // Include lead id + linkedin_url so the inbox can link reply→lead and show
+    // the LinkedIn chip (both were impossible because these weren't selected).
     const { data, error } = await db.from('figsy_replies')
-      .select('*, leads(first_name,last_name,job_title,company)')
+      .select('*, leads(id,first_name,last_name,job_title,company,linkedin_url)')
       .eq('client_id', clientId)
       .order('processed_at', { ascending: false })
       .limit(200)

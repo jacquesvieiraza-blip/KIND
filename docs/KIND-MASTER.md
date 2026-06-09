@@ -44,6 +44,7 @@
 > **B. Smoke Test 1 (new-client path — the one never run):** ⬜ **T1** fresh signup (email+T&C)→Welcome Spotlight→onboarding · ⬜ T2 re-confirm in the new account · ⬜ campaign+enroll+drip · ⬜ Thinking panel.
 > **C. Smoke Test 2 (`hello@get-kind.com`):** ⬜ **T3 pause→no-send** (variant) · ⬜ **T4** booking+KPI · ⬜ **T5** billing/Stripe · ⬜ **T6** Vida widget · ⬜ **T7** Milla cron · ⬜ **T9** team invite · ⬜ **T10 full** partner path.
 > **D. Founder:** ⬜ record the 60-sec onboarding demo videos.
+> **E. Staging setup (🧍 one-time, ASAP):** ⬜ create the staging Railway portal service (Branch=`staging`, Root=`apps/portal`, copy prod vars, own domain) → see STAGING WORKFLOW below · ⬜ send Claude the staging URL → do the first `staging` push together as a flow test.
 >
 > **📋 REST BEFORE 19:** ⬜ **D9** deliverability 10/10 (🧍) · 🟢 warmup auto-ramp→~50/day (running, no action) · ⬜ **2 crown-jewel key rotations** Stripe-secret + Supabase-service-role (🧍) · ⬜ **legal pack #10–#14** (🧍) · ⬜ **Go/No-Go gate Thu 18** · 🅿️ Batch 2 (social login + staging-isolation — parallel, NOT a blocker).
 >

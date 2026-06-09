@@ -2,7 +2,7 @@
 
 /** V2 — SETUP / ONBOARDING DASHBOARD (Casey-guided + per-rep #88). Preview, sample data. Gated /v2. */
 
-import { Sparkles, Play, Crown } from 'lucide-react'
+import { Sparkles, Play, Crown, Send } from 'lucide-react'
 
 const BRAND = '#7C3AED'
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
@@ -118,8 +118,47 @@ export default function Onboarding() {
           </div>
         </div>
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR — Casey agent panel (canonical hero style) + compact team */}
         <div className="space-y-4">
+
+          {/* Casey — same panel style as the live agent side panel */}
+          <div className="rounded-2xl overflow-hidden shadow-lg border border-purple-100/40 bg-white">
+            <div className="relative h-60 overflow-hidden bg-purple-50">
+              <img src="/agents/casey.png" alt="Casey" className="w-full h-full object-cover object-top" />
+            </div>
+            <div className="bg-[#0F0929] px-4 py-3 flex items-center justify-between">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-white font-bold text-base leading-tight">Casey</p>
+                  <span className="text-[#7C3AED] text-xs font-semibold">The Guide</span>
+                </div>
+                <p className="text-[#9B8EC4] text-xs mt-0.5">Onboarding · I get you set up</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[11px] font-medium text-emerald-400">Online</span>
+              </div>
+            </div>
+            <div className="bg-white px-4 pt-3 pb-4">
+              <div className="flex flex-col gap-1.5 mb-3">
+                {['Confirm my ICP', 'Connect my email', "What's next?"].map(c => (
+                  <button key={c} className="w-full text-left text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-100 rounded-full px-3 py-1.5 transition-colors">{c}</button>
+                ))}
+              </div>
+              <div className="flex flex-col gap-2 mb-3 bg-[#FAFAFA] rounded-xl border border-purple-100/40 p-2">
+                <div className="flex gap-1.5">
+                  <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 mt-0.5 border border-purple-100"><img src="/agents/casey.png" alt="" className="w-full h-full object-cover object-top" /></div>
+                  <div className="max-w-[85%] rounded-xl rounded-bl-sm px-2.5 py-1.5 text-xs leading-relaxed bg-white text-gray-800 border border-purple-100/60 shadow-sm">Hi! Confirm your ICP next and I'll line up your first leads. Stuck on anything? Just ask me here.</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input placeholder="Ask Casey…" className="flex-1 text-xs bg-gray-50 border border-purple-100/60 rounded-lg px-3 py-2 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
+                <button className="w-8 h-8 bg-[#7C3AED] hover:bg-[#6D28D9] rounded-lg flex items-center justify-center shrink-0"><Send className="w-3.5 h-3.5 text-white" /></button>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact team */}
           <div className={`${card} p-5`}>
             <h3 className="font-bold text-gray-900">Your team</h3>
             <p className="text-xs text-gray-400 mb-4">Everyone here shares one pipeline.</p>
@@ -136,12 +175,6 @@ export default function Onboarding() {
               </div>
             </div>
             <button className="mt-4 w-full text-sm font-bold py-2 rounded-xl border-2 border-dashed" style={{ color: BRAND, borderColor: '#c4b5fd' }}>+ Invite teammate</button>
-          </div>
-
-          <div className={`${card} p-5`}>
-            <h3 className="font-bold text-gray-900">Need a hand?</h3>
-            <p className="text-xs text-gray-400 mb-3">Setup usually takes about 10 minutes.</p>
-            <div className="bg-[#faf9ff] border border-gray-100 rounded-xl p-3 text-[13px] text-gray-600">Watch the <span className="font-semibold" style={{ color: BRAND }}>full walkthrough</span> or <span className="font-semibold" style={{ color: BRAND }}>message support</span> — we'll get you live fast.</div>
           </div>
         </div>
       </div>

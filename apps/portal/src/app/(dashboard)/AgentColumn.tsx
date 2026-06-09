@@ -4,6 +4,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { AgentSidePanel } from '@/components/ui/AgentSidePanel'
+import { createClient } from '@/lib/supabase/client'
+import { api } from '@/lib/api'
 
 const COLLAPSE_KEY = 'kind_agent_col_v1'
 
@@ -31,6 +33,21 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
     const next = !collapsed
     setCollapsed(next)
     try { localStorage.setItem(COLLAPSE_KEY, String(next)) } catch {}
+  }
+
+  // Actually enrol the current campaign's verified leads (instead of just navigating).
+  async function enrollCurrentCampaign() {
+    const match = pathname.match(/^\/dashboard\/figsy\/([^/]+)$/)
+    if (!match) { router.push('/dashboard/figsy'); return }
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      if (!session) { router.push('/login'); return }
+      const res = await api.post<{ data: { enrolled: number } }>(`/figsy/campaigns/${match[1]}/enroll-consented`, {}, session.access_token)
+      window.alert(`Enrolling ${res.data?.enrolled ?? 0} verified leads — outreach starts shortly. Refresh to see the count.`)
+      router.refresh()
+    } catch {
+      window.alert('Could not enrol. Make sure the campaign is active and you have verified leads.')
+    }
   }
 
   // ICP builder manages its own integrated agent panel
@@ -173,7 +190,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
   } else if (isCampaignDetail) {
     contextMessage = "This is your live campaign. Click Enroll Leads to add your consented contacts, then Send Test Email to preview what they'll receive."
     chips = [
-      { label: 'Enroll my leads',    onClick: () => router.push('/dashboard/figsy') },
+      { label: 'Enroll my leads',    onClick: enrollCurrentCampaign },
       { label: 'Check replies',      onClick: () => router.push('/dashboard/inbox') },
       { label: 'View all campaigns', onClick: () => router.push('/dashboard/figsy') },
     ]

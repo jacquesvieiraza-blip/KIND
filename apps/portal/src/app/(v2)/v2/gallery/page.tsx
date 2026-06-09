@@ -50,10 +50,10 @@ function Sec({ id, n, label, title, children }: { id: string; n: number; label: 
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
 
 const AGENTS = [
-  { name: 'FIGSY', role: 'AI SDR', emoji: '🤖', g: 'from-[#7C3AED] to-[#6025c0]', live: true,  metrics: [['Sent', '2,840'], ['Replied', '348'], ['Hot', '141']] },
-  { name: 'Denise', role: 'The Closer', emoji: '🤝', g: 'from-[#D97706] to-[#b45309]', live: false, metrics: [['Booked', '62'], ['Closed', '11'], ['Calls', '38']] },
-  { name: 'Milla', role: 'Assistant', emoji: '💼', g: 'from-[#0ea5e9] to-[#0284c7]', live: false, metrics: [] },
-  { name: 'Vida', role: 'Chatbot', emoji: '💬', g: 'from-[#10b981] to-[#059669]', live: false, metrics: [] },
+  { name: 'FIGSY', role: 'AI SDR', img: '/agents/figsy.png', g: 'from-[#7C3AED] to-[#6025c0]', live: true,  metrics: [['Sent', '2,840'], ['Replied', '348'], ['Hot', '141']] },
+  { name: 'Denise', role: 'The Closer', img: '/agents/denise.png', g: 'from-[#D97706] to-[#b45309]', live: false, metrics: [['Booked', '62'], ['Closed', '11'], ['Calls', '38']] },
+  { name: 'Milla', role: 'Assistant', img: '/agents/milla.png', g: 'from-[#0ea5e9] to-[#0284c7]', live: false, metrics: [] },
+  { name: 'Vida', role: 'Chatbot', img: '/agents/vida.png', g: 'from-[#10b981] to-[#059669]', live: false, metrics: [] },
 ]
 
 export default function V2Gallery() {
@@ -90,7 +90,7 @@ export default function V2Gallery() {
               {AGENTS.map(a => (
                 <div key={a.name} className={`${card} overflow-hidden flex flex-col`}>
                   <div className={`bg-gradient-to-br ${a.g} px-4 py-4`}>
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl mb-2">{a.emoji}</div>
+                    <div className="w-10 h-10 rounded-xl overflow-hidden mb-2 bg-white/20 ring-2 ring-white/30"><img src={a.img} alt={a.name} className="w-full h-full object-cover" /></div>
                     <p className="text-white font-bold">{a.name}</p>
                     <p className="text-white/60 text-xs">{a.role}</p>
                   </div>
@@ -157,8 +157,8 @@ export default function V2Gallery() {
               <p className="text-sm text-white/80">Each agent owns a stage. Add the ones you need — one company bill.</p>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl">
-              {[['FIGSY', 'Finds & books', '🤖'], ['Denise', 'Closes', '🤝'], ['Lena', 'Retains', '🌱'], ['Tony', 'Operations', '👔']].map(([n, r, e]) => (
-                <div key={n} className={`${card} p-4 text-center`}><div className="text-3xl mb-2">{e}</div><p className="font-bold text-gray-900">{n}</p><p className="text-xs text-gray-400 mb-3">{r}</p><button className="text-xs font-semibold w-full py-1.5 rounded-lg text-white" style={{ background: BRAND }}>Add</button></div>
+              {[['FIGSY', 'Finds & books', '/agents/figsy.png'], ['Denise', 'Closes', '/agents/denise.png'], ['Lena', 'Retains', '/agents/lena.png'], ['Tony', 'Operations', '/agents/tony.png']].map(([n, r, img]) => (
+                <div key={n} className={`${card} p-4 text-center`}><div className="w-12 h-12 mx-auto rounded-full overflow-hidden mb-2 ring-2 ring-gray-100"><img src={img} alt={n} className="w-full h-full object-cover" /></div><p className="font-bold text-gray-900">{n}</p><p className="text-xs text-gray-400 mb-3">{r}</p><button className="text-xs font-semibold w-full py-1.5 rounded-lg text-white" style={{ background: BRAND }}>Add</button></div>
               ))}
             </div>
           </Sec>

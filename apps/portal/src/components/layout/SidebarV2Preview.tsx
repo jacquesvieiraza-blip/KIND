@@ -1,107 +1,59 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Play, Inbox, BarChart2, Settings, LogOut,
-  Zap, Users, TrendingUp, MessageSquare, FileText,
-  CreditCard, LayoutDashboard, Webhook,
-  GitBranch, Plug, GraduationCap, Building2,
+  LogOut, Settings, Inbox, Zap, MessageSquare, FileText,
+  LayoutDashboard, GitBranch, Plug, GraduationCap, Building2,
   LayoutGrid, Activity, UserPlus, Store, Sliders, PanelLeft, Rocket,
 } from 'lucide-react'
 
-type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
+type Item = { href: string; label: string; icon: React.ElementType }
 
-const AGENTS: {
-  id: AgentId
-  name: string
-  role: string
-  emoji: string
-  color: string
-  gradient: string
-  nav: { href: string; label: string; icon: React.ElementType }[]
-}[] = [
-  {
-    id: 'figsy',
-    name: 'FIGSY',
-    role: 'AI SDR',
-    emoji: '🤖',
-    color: '#7C3AED',
-    gradient: 'from-[#7C3AED] to-[#6025c0]',
-    nav: [
-      { href: '/v2/figsy',                 label: 'Campaigns',  icon: Play },
-      { href: '/dashboard/inbox',          label: 'Inbox',      icon: Inbox },
-      { href: '/dashboard/prospects',      label: 'Prospects',  icon: Users },
-      { href: '/dashboard/analytics',      label: 'Analytics',  icon: BarChart2 },
-      { href: '/dashboard/figsy/webhooks', label: 'Webhooks',   icon: Webhook },
-    ],
-  },
-  {
-    id: 'milla',
-    name: 'Milla',
-    role: 'Virtual Assistant',
-    emoji: '💼',
-    color: '#0ea5e9',
-    gradient: 'from-[#0ea5e9] to-[#0284c7]',
-    nav: [
-      { href: '/v2/milla',                 label: 'Assistant',  icon: MessageSquare },
-      { href: '/dashboard/documents',      label: 'Documents',  icon: FileText },
-    ],
-  },
-  {
-    id: 'vida',
-    name: 'Vida',
-    role: 'Chatbot Agent',
-    emoji: '💬',
-    color: '#10b981',
-    gradient: 'from-[#10b981] to-[#059669]',
-    nav: [
-      { href: '/v2/vida',                  label: 'Chatbot',    icon: MessageSquare },
-    ],
-  },
-  {
-    id: 'denise',
-    name: 'Denise',
-    role: 'AI Account Executive',
-    emoji: '🤝',
-    color: '#D97706',
-    gradient: 'from-[#D97706] to-[#b45309]',
-    nav: [],
-  },
+// Slim rail — grouped; a `null` entry renders a divider.
+const ITEMS: (Item | null)[] = [
+  { href: '/v2',              label: 'Home',             icon: LayoutDashboard },
+  null,
+  { href: '/v2/company',      label: 'Command Centre',   icon: Building2 },
+  { href: '/v2/sequences',    label: 'Sequence Builder', icon: GitBranch },
+  { href: '/v2/inbox',        label: 'Smart Inbox',      icon: Inbox },
+  { href: '/v2/integrations', label: 'Integrations',     icon: Plug },
+  { href: '/v2/train',        label: 'Train FIGSY',      icon: GraduationCap },
+  null,
+  { href: '/v2/onboarding',   label: 'Setup / Onboarding', icon: Rocket },
+  { href: '/v2/agents',       label: 'Agent Grid',       icon: LayoutGrid },
+  { href: '/v2/thinking',     label: 'Thinking State',   icon: Activity },
+  { href: '/v2/setup',        label: 'Conversational',   icon: MessageSquare },
+  { href: '/v2/config',       label: 'Config Panel',     icon: Sliders },
+  { href: '/v2/marketplace',  label: 'Marketplace',      icon: Store },
+  { href: '/v2/shell',        label: 'Slim Layout',      icon: PanelLeft },
+  { href: '/v2/invite',       label: 'Invite Team',      icon: UserPlus },
+  { href: '/v2/notetaker',    label: 'AI Notetaker',     icon: FileText },
+  { href: '/v2/gallery',      label: 'All screens',      icon: Zap },
 ]
 
-const BOTTOM_NAV = [
-  { href: '/dashboard/leads',    label: 'Leads',    icon: Users },
-  { href: '/dashboard/billing',  label: 'Billing',  icon: CreditCard },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
-]
-
-function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType }) {
+function RailLink({ href, label, icon: Icon }: Item) {
   const pathname = usePathname()
-  const active = pathname === href || (href !== '/v2' && pathname.startsWith(href))
+  const active = href === '/v2' ? pathname === '/v2' : pathname.startsWith(href)
   return (
-    <Link href={href}
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-        active
-          ? 'bg-white/[0.12] text-white'
-          : 'text-purple-200/50 hover:text-white hover:bg-white/[0.06]'
+    <Link href={href} className="group relative flex items-center justify-center">
+      <span className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+        active ? 'bg-white/15 text-white' : 'text-purple-200/55 hover:text-white hover:bg-white/[0.08]'
       }`}>
-      <Icon className="w-3.5 h-3.5 shrink-0" />
-      {label}
+        <Icon className="w-[18px] h-[18px]" />
+      </span>
+      {/* hover tooltip */}
+      <span className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-md bg-gray-900 text-white text-xs font-medium px-2.5 py-1.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-lg">
+        {label}
+      </span>
     </Link>
   )
 }
 
 export function SidebarV2Preview({ userEmail }: { userEmail: string }) {
-  const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-
-  const activeAgent = AGENTS.find(a =>
-    a.nav.some(n => pathname === n.href || pathname.startsWith(n.href + '/'))
-  ) ?? (pathname === '/v2' ? null : null)
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -109,103 +61,28 @@ export function SidebarV2Preview({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <aside className="w-56 shrink-0 h-screen bg-[#0F0929] flex flex-col border-r border-white/[0.06] overflow-y-auto">
-
+    <aside className="w-16 shrink-0 h-screen bg-[#0F0929] flex flex-col items-center py-3 border-r border-white/[0.06]">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-white/[0.06]">
-        <Link href="/v2" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
-            <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
-          </div>
-          <span className="text-white font-bold text-sm tracking-tight">K·I·N·D</span>
-          <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#7C3AED]/40 text-[#a78bfa] tracking-wide">v2</span>
-        </Link>
-      </div>
+      <Link href="/v2" className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center mb-3 shrink-0">
+        <img src="/logo-k.png" alt="K.I.N.D" className="w-full h-full object-contain" />
+      </Link>
 
-      {/* Home */}
-      <div className="px-3 pt-3">
-        <Link href="/v2"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-            pathname === '/v2'
-              ? 'bg-white/[0.10] text-white'
-              : 'text-purple-200/50 hover:text-white hover:bg-white/[0.06]'
-          }`}>
-          <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
-          Home
-        </Link>
-      </div>
+      {/* Rail */}
+      <nav className="flex-1 w-full flex flex-col items-center gap-1 overflow-y-auto no-scrollbar px-2">
+        {ITEMS.map((it, i) => it === null
+          ? <div key={`d${i}`} className="w-7 h-px bg-white/[0.08] my-1.5" />
+          : <RailLink key={it.href} {...it} />
+        )}
+      </nav>
 
-      {/* Company OS (V2) — the per-rep money engine + the full design gallery */}
-      <div className="px-3 pt-3">
-        <p className="px-3 mb-1 text-[9px] font-bold uppercase tracking-widest text-purple-300/30">Company OS · V2</p>
-        <div className="space-y-0.5">
-          <NavItem href="/v2/company"      label="Command Centre"  icon={Building2} />
-          <NavItem href="/v2/sequences"    label="Sequence Builder" icon={GitBranch} />
-          <NavItem href="/v2/inbox"        label="Smart Inbox"     icon={Inbox} />
-          <NavItem href="/v2/integrations" label="Integrations"    icon={Plug} />
-          <NavItem href="/v2/train"        label="Train FIGSY"     icon={GraduationCap} />
-        </div>
-      </div>
-
-      {/* Portal Redesign (V2) */}
-      <div className="px-3 pt-3">
-        <p className="px-3 mb-1 text-[9px] font-bold uppercase tracking-widest text-purple-300/30">Portal Redesign · V2</p>
-        <div className="space-y-0.5">
-          <NavItem href="/v2/onboarding"  label="Setup / Onboarding" icon={Rocket} />
-          <NavItem href="/v2/agents"      label="Agent Grid"        icon={LayoutGrid} />
-          <NavItem href="/v2/thinking"    label="Thinking State"    icon={Activity} />
-          <NavItem href="/v2/setup"       label="Conversational"    icon={MessageSquare} />
-          <NavItem href="/v2/config"      label="Config Panel"      icon={Sliders} />
-          <NavItem href="/v2/marketplace" label="Marketplace"       icon={Store} />
-          <NavItem href="/v2/shell"       label="Slim Layout"       icon={PanelLeft} />
-          <NavItem href="/v2/invite"      label="Invite Team"       icon={UserPlus} />
-          <NavItem href="/v2/notetaker"   label="AI Notetaker"      icon={FileText} />
-          <NavItem href="/v2/gallery"     label="All screens"       icon={Zap} />
-        </div>
-      </div>
-
-      {/* Agent sections */}
-      <div className="flex-1 px-3 py-2 space-y-1">
-        {AGENTS.map(agent => {
-          const isActive = activeAgent?.id === agent.id
-          return (
-            <div key={agent.id}>
-              {/* Agent header */}
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg mt-2 ${
-                isActive ? 'bg-white/[0.06]' : ''
-              }`}>
-                <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${agent.gradient} flex items-center justify-center text-xs shrink-0`}>
-                  {agent.emoji}
-                </div>
-                <div className="min-w-0">
-                  <p className={`text-[12px] font-semibold leading-tight ${isActive ? 'text-white' : 'text-purple-200/60'}`}>
-                    {agent.name}
-                  </p>
-                  <p className="text-[10px] text-purple-300/30">{agent.role}</p>
-                </div>
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-              </div>
-
-              {/* Agent nav items */}
-              <div className="ml-3 pl-3 border-l border-white/[0.05] space-y-0.5 mt-0.5">
-                {agent.nav.map(n => (
-                  <NavItem key={n.href} {...n} />
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Bottom nav */}
-      <div className="px-3 pb-2 border-t border-white/[0.06] pt-3 space-y-0.5">
-        {BOTTOM_NAV.map(n => <NavItem key={n.href} {...n} />)}
-        <button onClick={signOut}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-purple-300/30 hover:text-white hover:bg-white/[0.06] transition-colors mt-1">
-          <LogOut className="w-3.5 h-3.5" />
-          Sign out
+      {/* Bottom */}
+      <div className="w-full flex flex-col items-center gap-1 pt-2 border-t border-white/[0.06]">
+        <RailLink href="/dashboard/settings" label="Settings" icon={Settings} />
+        <button onClick={signOut} title={userEmail || 'Sign out'}
+          className="group relative w-10 h-10 rounded-xl flex items-center justify-center text-purple-200/55 hover:text-white hover:bg-white/[0.08] transition-colors">
+          <LogOut className="w-[18px] h-[18px]" />
+          <span className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-md bg-gray-900 text-white text-xs font-medium px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">Sign out</span>
         </button>
-        <p className="text-[10px] text-purple-300/25 px-3 pt-1 truncate">{userEmail}</p>
       </div>
     </aside>
   )

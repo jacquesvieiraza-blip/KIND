@@ -28,7 +28,7 @@ export default function ThinkingState() {
         </div>
         <div className={`${card} p-6`}>
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#a78bfa] flex items-center justify-center text-xl">🤖</div>
+            <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-[#c4b5fd]"><img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover" /></div>
             <div><p className="font-bold text-gray-900">FIGSY is working…</p><p className="text-xs text-gray-400">Campaign: Q3 African fintech</p></div>
             <span className="ml-auto text-xs font-bold px-3 py-1 rounded-full" style={{ color: BRAND, background: '#f3eeff' }}>Running</span>
           </div>

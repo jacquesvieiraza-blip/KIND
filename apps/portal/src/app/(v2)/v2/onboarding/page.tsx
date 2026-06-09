@@ -17,10 +17,10 @@ const STEPS = [
 ]
 
 const AGENTS = [
-  { i: 'F', name: 'FIGSY', role: 'The Opener', c: '#7C3AED', d: 'AI SDR — finds and contacts your best-fit leads.' },
-  { i: 'M', name: 'Milla', role: 'The Brain', c: '#0ea5e9', d: 'Insights — turns your pipeline data into decisions.' },
-  { i: 'V', name: 'Vida', role: 'The Connector', c: '#10b981', d: 'Site + WhatsApp chatbot — engages inbound visitors.' },
-  { i: 'D', name: 'Denise', role: 'The Closer', c: '#D97706', d: 'AI account exec — nurtures and closes the deal.' },
+  { img: '/agents/figsy.png', name: 'FIGSY', role: 'The Opener', c: '#7C3AED', d: 'AI SDR — finds and contacts your best-fit leads.' },
+  { img: '/agents/milla.png', name: 'Milla', role: 'The Brain', c: '#0ea5e9', d: 'Insights — turns your pipeline data into decisions.' },
+  { img: '/agents/vida.png', name: 'Vida', role: 'The Connector', c: '#10b981', d: 'Site + WhatsApp chatbot — engages inbound visitors.' },
+  { img: '/agents/denise.png', name: 'Denise', role: 'The Closer', c: '#D97706', d: 'AI account exec — nurtures and closes the deal.' },
 ]
 
 const PERREP = [
@@ -47,7 +47,7 @@ export default function Onboarding() {
 
           {/* Casey */}
           <div className="flex gap-3.5 items-center rounded-2xl p-4" style={{ background: 'linear-gradient(135deg,#fff4ee,#ffece2)', border: '1.5px solid #fbd9c9' }}>
-            <div className="w-13 h-13 rounded-full bg-[#fbd9c9] flex items-center justify-center text-2xl shrink-0" style={{ width: 52, height: 52 }}>👋</div>
+            <div className="rounded-full overflow-hidden shrink-0 border-2 border-[#fbd9c9]" style={{ width: 52, height: 52 }}><img src="/agents/casey.png" alt="Casey" className="w-full h-full object-cover" /></div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-[15px] text-gray-900">Casey</span>
@@ -93,7 +93,7 @@ export default function Onboarding() {
               {AGENTS.map(a => (
                 <div key={a.name} className={`${card} p-4`}>
                   <div className="flex items-center gap-2.5 mb-2">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold" style={{ background: a.c }}>{a.i}</div>
+                    <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border-2" style={{ borderColor: a.c }}><img src={a.img} alt={a.name} className="w-full h-full object-cover" /></div>
                     <div><p className="font-bold text-gray-900 text-sm leading-tight">{a.name}</p><p className="text-[11px] font-semibold" style={{ color: a.c }}>{a.role}</p></div>
                   </div>
                   <p className="text-[12.5px] text-gray-500">{a.d}</p>

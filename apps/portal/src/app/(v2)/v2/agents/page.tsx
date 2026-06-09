@@ -8,10 +8,10 @@ const BRAND = '#7C3AED'
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
 
 const AGENTS = [
-  { name: 'FIGSY', role: 'AI Sales Development Rep', emoji: '🤖', g: 'from-[#7C3AED] to-[#6025c0]', live: true, metrics: [['Sent', '2,840'], ['Replied', '348'], ['Hot leads', '141']], cta: 'Open FIGSY' },
-  { name: 'Denise', role: 'The Closer · AI Account Exec', emoji: '🤝', g: 'from-[#D97706] to-[#b45309]', live: false, feats: ['Confirms booked meetings', 'Joins calls as notetaker', 'Drafts proposals', 'Chases warm leads'] },
-  { name: 'Milla', role: 'Virtual Executive Assistant', emoji: '💼', g: 'from-[#0ea5e9] to-[#0284c7]', live: false, feats: ['Calendar & meetings', 'Email drafting', 'Research & briefings', 'Task tracking'] },
-  { name: 'Vida', role: 'Website Chatbot Agent', emoji: '💬', g: 'from-[#10b981] to-[#059669]', live: false, feats: ['24/7 visitor engagement', 'Lead capture & qualify', 'Demo booking', 'Handoff to reps'] },
+  { name: 'FIGSY', role: 'AI Sales Development Rep', img: '/agents/figsy.png', g: 'from-[#7C3AED] to-[#6025c0]', live: true, metrics: [['Sent', '2,840'], ['Replied', '348'], ['Hot leads', '141']], cta: 'Open FIGSY' },
+  { name: 'Denise', role: 'The Closer · AI Account Exec', img: '/agents/denise.png', g: 'from-[#D97706] to-[#b45309]', live: false, feats: ['Confirms booked meetings', 'Joins calls as notetaker', 'Drafts proposals', 'Chases warm leads'] },
+  { name: 'Milla', role: 'Virtual Executive Assistant', img: '/agents/milla.png', g: 'from-[#0ea5e9] to-[#0284c7]', live: false, feats: ['Calendar & meetings', 'Email drafting', 'Research & briefings', 'Task tracking'] },
+  { name: 'Vida', role: 'Website Chatbot Agent', img: '/agents/vida.png', g: 'from-[#10b981] to-[#059669]', live: false, feats: ['24/7 visitor engagement', 'Lead capture & qualify', 'Demo booking', 'Handoff to reps'] },
 ]
 
 export default function AgentGrid() {
@@ -29,7 +29,7 @@ export default function AgentGrid() {
           {AGENTS.map(a => (
             <div key={a.name} className={`${card} overflow-hidden flex flex-col`}>
               <div className={`bg-gradient-to-br ${a.g} px-5 py-5`}>
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl mb-3">{a.emoji}</div>
+                <div className="w-12 h-12 rounded-xl overflow-hidden mb-3 bg-white/20 ring-2 ring-white/30"><img src={a.img} alt={a.name} className="w-full h-full object-cover" /></div>
                 <p className="text-white font-bold text-lg leading-tight">{a.name}</p>
                 <p className="text-white/60 text-xs mt-0.5">{a.role}</p>
               </div>

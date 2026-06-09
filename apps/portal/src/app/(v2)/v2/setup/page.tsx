@@ -20,7 +20,7 @@ export default function ConversationalSetup() {
         </div>
         <div className={`${card} overflow-hidden`}>
           <div className="px-5 py-4 text-white flex items-center gap-3" style={{ background: BRAND }}>
-            <span className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-lg">🧭</span>
+            <span className="w-9 h-9 rounded-full overflow-hidden bg-white/20 ring-2 ring-white/40"><img src="/agents/casey.png" alt="Casey" className="w-full h-full object-cover" /></span>
             <div><p className="font-bold">Casey</p><p className="text-[11px] text-white/70">Onboarding agent · Online</p></div>
           </div>
           <div className="p-5 space-y-3.5">

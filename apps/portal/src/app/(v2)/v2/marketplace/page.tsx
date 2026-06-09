@@ -8,12 +8,12 @@ const BRAND = '#7C3AED'
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
 
 const AGENTS = [
-  { name: 'FIGSY', role: 'AI SDR', stage: 'Finds & books', emoji: '🤖', price: 'Included', owned: true },
-  { name: 'Denise', role: 'The Closer', stage: 'Closes the deal', emoji: '🤝', price: '$99/mo', owned: false },
-  { name: 'Lena', role: 'Customer Success', stage: 'Retains & grows', emoji: '🌱', price: 'Soon', owned: false },
-  { name: 'Tony', role: 'Operations', stage: 'Keeps it clean', emoji: '👔', price: 'Soon', owned: false },
-  { name: 'Milla', role: 'Assistant', stage: 'The brain', emoji: '💼', price: '$49/mo', owned: false },
-  { name: 'Vida', role: 'Chatbot', stage: 'Inbound capture', emoji: '💬', price: '$29/mo', owned: false },
+  { name: 'FIGSY', role: 'AI SDR', stage: 'Finds & books', img: '/agents/figsy.png', price: 'Included', owned: true },
+  { name: 'Denise', role: 'The Closer', stage: 'Closes the deal', img: '/agents/denise.png', price: '$99/mo', owned: false },
+  { name: 'Lena', role: 'Customer Success', stage: 'Retains & grows', img: '/agents/lena.png', price: 'Soon', owned: false },
+  { name: 'Tony', role: 'Operations', stage: 'Keeps it clean', img: '/agents/tony.png', price: 'Soon', owned: false },
+  { name: 'Milla', role: 'Assistant', stage: 'The brain', img: '/agents/milla.png', price: '$49/mo', owned: false },
+  { name: 'Vida', role: 'Chatbot', stage: 'Inbound capture', img: '/agents/vida.png', price: '$29/mo', owned: false },
 ]
 
 export default function Marketplace() {
@@ -30,7 +30,7 @@ export default function Marketplace() {
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
           {AGENTS.map(a => (
             <div key={a.name} className={`${card} p-5 text-center`}>
-              <div className="text-4xl mb-3">{a.emoji}</div>
+              <div className="w-16 h-16 mx-auto rounded-full overflow-hidden mb-3 ring-2 ring-gray-100"><img src={a.img} alt={a.name} className="w-full h-full object-cover" /></div>
               <p className="font-bold text-gray-900 text-lg">{a.name}</p>
               <p className="text-xs text-gray-400">{a.role}</p>
               <p className="text-[13px] text-gray-600 mt-2 mb-4">{a.stage}</p>

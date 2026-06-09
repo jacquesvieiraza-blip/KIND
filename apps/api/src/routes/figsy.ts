@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching } from '../lib/figsy'
+import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO } from '../lib/deliverability'
@@ -596,14 +596,14 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
     if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
     res.json({ success: true, data })
 
-    // Auto-enroll all consent_given leads when campaign is activated (fire-and-forget)
+    // Auto-enroll all campaign-ready (verified or consented) leads on activation
+    // (fire-and-forget). Option A — see campaignReadyLeadIds.
     if (body.status === 'active') {
       ;(async () => {
         try {
-          const { data: leads } = await db.from('leads')
-            .select('id').eq('client_id', clientId).eq('status', 'consent_given')
-          for (const lead of leads ?? []) {
-            await autoEnrollLead(lead.id, clientId)
+          const leadIds = await campaignReadyLeadIds(clientId)
+          for (const leadId of leadIds) {
+            await autoEnrollLead(leadId, clientId)
           }
         } catch (e) { console.error('[figsy] auto-enroll on activation failed', e) }
       })()
@@ -624,19 +624,19 @@ figsyRouter.post('/campaigns/:id/enroll-consented', async (req: AuthRequest, res
       .select('id, status').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
-    const { data: leads } = await db.from('leads')
-      .select('id').eq('client_id', clientId).eq('status', 'consent_given')
+    // Option A — campaign-ready = verified or consented (minus opted-out/rejected).
+    const leadIds = await campaignReadyLeadIds(clientId)
 
     let enrolled = 0, skipped = 0
-    res.json({ success: true, data: { enrolled: leads?.length ?? 0, skipped: 0, message: 'Enrolling in background…' } })
+    res.json({ success: true, data: { enrolled: leadIds.length, skipped: 0, message: 'Enrolling in background…' } })
 
     // Fire-and-forget — respond immediately, enroll async
     ;(async () => {
-      for (const lead of leads ?? []) {
+      for (const leadId of leadIds) {
         const { data: existing } = await db.from('figsy_enrollments')
-          .select('id').eq('campaign_id', campaign.id).eq('lead_id', lead.id).maybeSingle()
+          .select('id').eq('campaign_id', campaign.id).eq('lead_id', leadId).maybeSingle()
         if (existing) { skipped++; continue }
-        await autoEnrollLead(lead.id, clientId)
+        await autoEnrollLead(leadId, clientId)
         enrolled++
       }
       console.log(`[figsy] enroll-consented: enrolled=${enrolled} skipped=${skipped} campaign=${campaign.id}`)
@@ -1533,6 +1533,34 @@ figsyRouter.delete('/emails/:id/draft', async (req: AuthRequest, res) => {
 })
 
 // ── FIGSY CHAT — conversational AI assistant for lead gen and pipeline advice ──
+// FIGSY chat agent — real action: enrol the client's campaign-ready leads into
+// their active campaign (Option A). Enrolment generates a sequence per lead (slow),
+// so it runs in the background and we return the count immediately for a fast reply.
+async function runEnrollLeadsTool(clientId: string | null): Promise<string> {
+  if (!clientId) return 'No client account found, so I could not enrol anyone.'
+  const { data: campaign } = await db.from('figsy_campaigns')
+    .select('id, name').eq('client_id', clientId).eq('status', 'active')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (!campaign) {
+    return 'There is no ACTIVE campaign yet. Tell the user to create a campaign and click Activate first — then their verified leads enrol into it.'
+  }
+  const leadIds = await campaignReadyLeadIds(clientId)
+  if (leadIds.length === 0) {
+    return 'There are no campaign-ready (Apollo-verified) leads to enrol right now — the user may need to source verified leads first.'
+  }
+  ;(async () => {
+    for (const leadId of leadIds) {
+      try {
+        const { data: existing } = await db.from('figsy_enrollments')
+          .select('id').eq('campaign_id', campaign.id).eq('lead_id', leadId).maybeSingle()
+        if (existing) continue
+        await autoEnrollLead(leadId, clientId)
+      } catch (e) { console.error('[figsy/chat] enrol', leadId, e) }
+    }
+  })()
+  return `Started enrolling ${leadIds.length} verified leads into "${campaign.name}". Outreach begins under the warmup cap (10/day to start, ramping up). Opted-out and do-not-contact leads were excluded automatically.`
+}
+
 figsyRouter.post('/chat', async (req: AuthRequest, res) => {
   try {
     const { messages, mode } = z.object({
@@ -1569,14 +1597,32 @@ You help the user understand their ICP, lead scoring, and who to target first. Y
 For campaign management features (sequences, email sends, inbox), mention they can upgrade to full FIGSY.
 Keep replies concise (2-4 sentences max). Be direct and helpful.`
 
-    const response = await ai.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      system,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
-    })
+    const model = 'claude-haiku-4-5-20251001'
+    const tools = [{
+      name: 'enroll_leads',
+      description: 'Enrol the user\'s campaign-ready (Apollo-verified) leads into their active FIGSY campaign and begin outreach. Call this when the user asks to enrol, launch, start, send, or activate outreach to their leads. Only verified leads are enrolled; opted-out and do-not-contact leads are always excluded automatically.',
+      input_schema: { type: 'object' as const, properties: {}, required: [] as string[] },
+    }]
+    const systemWithAction = `${system}
 
-    const reply = (response.content[0] as { type: string; text: string }).text.trim()
+You can ACT, not just advise: when the user asks to enrol, launch, start, or activate outreach to their leads, call the enroll_leads tool to actually do it (do not just describe it). Verified-only; opted-out / DNC leads are always excluded.`
+
+    const aiMessages: any[] = messages.map(m => ({ role: m.role, content: m.content }))
+    let response = await ai.messages.create({ model, max_tokens: 400, system: systemWithAction, tools, messages: aiMessages })
+
+    // One tool round is enough for enroll_leads.
+    if (response.stop_reason === 'tool_use') {
+      const toolUse = response.content.find((b: any) => b.type === 'tool_use') as any
+      const result = toolUse?.name === 'enroll_leads'
+        ? await runEnrollLeadsTool(clientId)
+        : 'Unknown tool.'
+      aiMessages.push({ role: 'assistant', content: response.content })
+      aiMessages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUse?.id, content: result }] })
+      response = await ai.messages.create({ model, max_tokens: 400, system: systemWithAction, tools, messages: aiMessages })
+    }
+
+    const textBlock = response.content.find((b: any) => b.type === 'text') as { text?: string } | undefined
+    const reply = (textBlock?.text ?? 'Done.').trim()
 
     // Persist the latest user turn + this reply so the thread survives reloads,
     // cache-clears, and device switches. Degrades silently if the table is absent.

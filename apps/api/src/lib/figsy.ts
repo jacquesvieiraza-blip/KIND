@@ -785,6 +785,25 @@ function generatePersonalizedImageHtml(lead: { first_name?: string|null, company
 }
 
 // Auto-enroll a single consented lead into the active campaign (S5 — FIGSY auto-start)
+/**
+ * OPTION A — campaign-ready eligibility (the one rule, used everywhere we enroll).
+ *
+ * A lead can be enrolled into outreach when it is Apollo-VERIFIED (apollo_consented)
+ * OR has explicitly consented — and is NOT opted out / rejected. No separate consent
+ * click is required: verified B2B leads are treated as legitimate-interest contacts,
+ * protected by the opt-out + unsubscribe in every email. Verified-only keeps bounce
+ * risk low (unverified guesses are excluded). DNC + CRM-dedup are still enforced
+ * per-lead inside autoEnrollLead, and suppression + opt-out are re-checked at send time.
+ */
+export async function campaignReadyLeadIds(clientId: string): Promise<string[]> {
+  const { data } = await db.from('leads')
+    .select('id')
+    .eq('client_id', clientId)
+    .or('apollo_consented.eq.true,status.eq.consent_given')
+    .not('status', 'in', '("opted_out","rejected")')
+  return (data ?? []).map((l: { id: string }) => l.id)
+}
+
 export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {
   try {
     const { data: campaign } = await db.from('figsy_campaigns')

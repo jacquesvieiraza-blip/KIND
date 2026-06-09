@@ -9,6 +9,7 @@ import {
   Zap, Users, TrendingUp, MessageSquare, FileText,
   CreditCard, LayoutDashboard, Webhook,
   GitBranch, Plug, GraduationCap, Building2,
+  LayoutGrid, Activity, UserPlus, Store, Sliders, PanelLeft,
 } from 'lucide-react'
 
 type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
@@ -143,7 +144,22 @@ export function SidebarV2Preview({ userEmail }: { userEmail: string }) {
           <NavItem href="/v2/inbox"        label="Smart Inbox"     icon={Inbox} />
           <NavItem href="/v2/integrations" label="Integrations"    icon={Plug} />
           <NavItem href="/v2/train"        label="Train FIGSY"     icon={GraduationCap} />
-          <NavItem href="/v2/gallery"      label="All screens"     icon={Zap} />
+        </div>
+      </div>
+
+      {/* Portal Redesign (V2) */}
+      <div className="px-3 pt-3">
+        <p className="px-3 mb-1 text-[9px] font-bold uppercase tracking-widest text-purple-300/30">Portal Redesign · V2</p>
+        <div className="space-y-0.5">
+          <NavItem href="/v2/agents"      label="Agent Grid"        icon={LayoutGrid} />
+          <NavItem href="/v2/thinking"    label="Thinking State"    icon={Activity} />
+          <NavItem href="/v2/setup"       label="Conversational"    icon={MessageSquare} />
+          <NavItem href="/v2/config"      label="Config Panel"      icon={Sliders} />
+          <NavItem href="/v2/marketplace" label="Marketplace"       icon={Store} />
+          <NavItem href="/v2/shell"       label="Slim Layout"       icon={PanelLeft} />
+          <NavItem href="/v2/invite"      label="Invite Team"       icon={UserPlus} />
+          <NavItem href="/v2/notetaker"   label="AI Notetaker"      icon={FileText} />
+          <NavItem href="/v2/gallery"     label="All screens"       icon={Zap} />
         </div>
       </div>
 

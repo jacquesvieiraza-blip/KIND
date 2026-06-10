@@ -14,7 +14,6 @@ import {
   CreditCard,
   Settings,
   BarChart2,
-  Map,
   Command,
   ArrowRight,
 } from 'lucide-react'
@@ -38,7 +37,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Billing',         href: '/dashboard/billing',        icon: CreditCard,  group: 'Account' },
   { label: 'Settings',        href: '/dashboard/settings',       icon: Settings,    group: 'Account' },
   { label: 'Usage',           href: '/dashboard/usage',          icon: BarChart2,   group: 'Account' },
-  { label: 'Roadmap',         href: '/dashboard/roadmap',        icon: Map,         group: 'Account' },
 ]
 
 export function CommandPalette() {

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Bot, MessageSquare, CreditCard, Settings,
-  LogOut, Zap, Map, FileText, Coins, BarChart2, TrendingUp, LineChart,
+  LogOut, Zap, FileText, Coins, BarChart2, TrendingUp, LineChart,
   Inbox, Play, GitBranch, Target, ChevronRight,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
@@ -37,7 +37,7 @@ const PRODUCT_TABS: { id: Product; label: string; icon: React.ReactNode; match: 
     id: 'more',
     label: 'Products',
     icon: <Zap className="w-4 h-4" />,
-    match: ['/dashboard/assistant', '/dashboard/chatbot', '/dashboard/documents', '/dashboard/roadmap'],
+    match: ['/dashboard/assistant', '/dashboard/chatbot', '/dashboard/documents'],
   },
 ]
 
@@ -61,7 +61,6 @@ const SUB_NAV: Record<Product, { href: string; label: string; icon: React.ReactN
     { href: '/dashboard/assistant', label: 'Milla — VA', icon: <Bot className="w-4 h-4" /> },
     { href: '/dashboard/chatbot',   label: 'Vida — Chatbot',     icon: <MessageSquare className="w-4 h-4" /> },
     { href: '/dashboard/documents', label: 'Documents',          icon: <FileText className="w-4 h-4" /> },
-    { href: '/dashboard/roadmap',   label: 'Roadmap',            icon: <Map className="w-4 h-4" /> },
   ],
 }
 

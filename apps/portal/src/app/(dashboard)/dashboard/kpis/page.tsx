@@ -7,7 +7,7 @@ import {
   Loader2, Send, MessageSquare, ThumbsUp, MinusCircle,
   Users, Star, DollarSign, ShieldCheck, TrendingUp,
   Target, Zap, ArrowRight, Calendar, Clock, Mail,
-  Linkedin, BarChart2, Activity, RefreshCw, Map,
+  Linkedin, BarChart2, Activity, RefreshCw,
   Download, Globe, AlertCircle, CheckCircle2,
 } from 'lucide-react'
 
@@ -696,7 +696,6 @@ export default function KPIsPage() {
                   { icon: <Zap className="w-5 h-5 text-[#7C3AED]" />, title: 'Launch your first campaign', desc: 'FIGSY writes and sends personalised outreach sequences.', href: '/dashboard/figsy-chat', cta: 'Chat with FIGSY →' },
                   { icon: <Target className="w-5 h-5 text-[#7C3AED]" />, title: 'Define your ICP', desc: 'Tell FIGSY who to target and she\'ll find matching leads.', href: '/dashboard/leads/icp', cta: 'Build ICP →' },
                   { icon: <BarChart2 className="w-5 h-5 text-[#7C3AED]" />, title: 'Import leads from LinkedIn', desc: 'Upload a LinkedIn CSV and score your network instantly.', href: '/dashboard/leads/linkedin', cta: 'Import →' },
-                  { icon: <Map className="w-5 h-5 text-[#7C3AED]" />, title: 'See how FIGSY works', desc: 'Explore the product roadmap and upcoming features.', href: '/dashboard/roadmap', cta: 'View roadmap →' },
                 ].map(card => (
                   <a key={card.title} href={card.href}
                     className="flex items-start gap-3 p-4 bg-white border border-purple-100 rounded-xl hover:border-[#7C3AED]/40 hover:shadow-sm transition-all group">

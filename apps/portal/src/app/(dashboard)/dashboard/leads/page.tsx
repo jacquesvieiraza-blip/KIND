@@ -241,7 +241,9 @@ const TABS: TabDef[] = [
   {
     id: 'pending_review',
     label: 'Pending Review',
-    getCount: (leads) => leads.filter(l => l.score !== null && l.score >= 70 && (l.status === 'pending' || l.status === 'scored')).length,
+    // Prefer the server-side total (counts all leads, not just the loaded page);
+    // fall back to the page-local count only if stats haven't loaded yet.
+    getCount: (leads, stats) => stats?.pending_review ?? leads.filter(l => l.score !== null && l.score >= 70 && (l.status === 'pending' || l.status === 'scored')).length,
     pillCls: 'text-amber-700 hover:bg-amber-50',
     activePillCls: 'bg-amber-500 text-white',
   },
@@ -255,7 +257,7 @@ const TABS: TabDef[] = [
   {
     id: 'in_figsy',
     label: 'In FIGSY',
-    getCount: (leads) => leads.filter(l => l.apollo_consented && (l.status === 'consent_given' || l.status === 'consent_sent')).length,
+    getCount: (leads, stats) => stats?.in_figsy ?? leads.filter(l => l.apollo_consented && (l.status === 'consent_given' || l.status === 'consent_sent')).length,
     pillCls: 'text-indigo-700 hover:bg-indigo-50',
     activePillCls: 'bg-indigo-600 text-white',
   },
@@ -434,6 +436,13 @@ export default function LeadsPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [revivalFilter, setRevivalFilter] = useState(false)
+  // Campaign cross-link: when arriving from a campaign ("View enrolled leads"),
+  // the URL carries ?campaign_id= and we constrain the list to that campaign.
+  const [campaignId, setCampaignId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setCampaignId(new URLSearchParams(window.location.search).get('campaign_id'))
+  }, [])
 
   const fetchData = useCallback(async (tok: string) => {
     setLoading(true)
@@ -444,6 +453,7 @@ export default function LeadsPage() {
       if (minScore)     params.set('min_score', minScore)
       if (icpFilter)    params.set('icp_id', icpFilter)
       if (apolloOnly)   params.set('apollo_consented', 'true')
+      if (campaignId)   params.set('campaign_id', campaignId)
 
       const [statsRes, leadsRes, icpsRes] = await Promise.all([
         api.get<{ data: LeadStats }>('/leads/stats', tok),
@@ -458,7 +468,7 @@ export default function LeadsPage() {
       setFetchError(err instanceof Error ? err.message : 'Failed to load leads — please refresh.')
     }
     setLoading(false)
-  }, [page, statusFilter, minScore, icpFilter, apolloOnly])
+  }, [page, statusFilter, minScore, icpFilter, apolloOnly, campaignId])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -776,6 +786,18 @@ export default function LeadsPage() {
           </button>
         </div>
       </div>
+
+      {/* Campaign cross-link banner — arrived from a campaign's "View enrolled leads" */}
+      {campaignId && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+          <p className="text-sm text-indigo-900">
+            Showing the <span className="font-semibold">{total}</span> lead{total === 1 ? '' : 's'} enrolled in this campaign.
+          </p>
+          <a href="/dashboard/leads" className="text-sm font-semibold text-indigo-700 hover:text-indigo-900 underline">
+            Show all leads
+          </a>
+        </div>
+      )}
 
       {/* Thinking panel — shows what FIGSY is doing while sourcing (V2, gated) */}
       {v2Enabled('thinking') && runningIcp && <FigsyThinking />}

@@ -847,7 +847,6 @@ export default function FigsyPage() {
               { title: 'Chat with FIGSY', desc: 'Ask FIGSY what campaign to run next based on your leads.', href: '/dashboard/figsy-chat' },
               { title: 'Define your ICP', desc: 'Tell FIGSY who to target first — she\'ll find matching leads.', href: '/dashboard/leads/icp' },
               { title: 'Import from LinkedIn', desc: 'Upload a LinkedIn CSV and start outreach today.', href: '/dashboard/leads/linkedin' },
-              { title: 'See how FIGSY works', desc: 'Explore the roadmap and what\'s coming next.', href: '/dashboard/roadmap' },
             ].map(card => (
               <a key={card.title} href={card.href}
                 className="flex flex-col gap-1 p-4 bg-white border border-purple-100 rounded-xl hover:border-[#7C3AED]/40 hover:shadow-sm transition-all group">
@@ -977,6 +976,14 @@ export default function FigsyPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Cross-link: campaign → its enrolled leads */}
+              {campaign.leads_enrolled > 0 && (
+                <a href={`/dashboard/leads?campaign_id=${campaign.id}`}
+                  className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-[#7C3AED] hover:text-[#6D28D9] transition-colors">
+                  View enrolled leads →
+                </a>
+              )}
 
               {/* Multi-metric progress bar */}
               {(campaign.leads_enrolled > 0 || campaign.emails_sent > 0) && (

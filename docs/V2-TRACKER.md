@@ -1,7 +1,9 @@
-# 🎯 K.I.N.D — MASTER TRACKER (V2 + Full Roadmap)
+# 🎯 K.I.N.D — FORWARD ROADMAP + RISK REGISTER
 
-**THE single working tracker. Every item, every horizon — so nothing lives only in chat or gets lost across docs.**
-Linked from `KIND-MASTER.md` (top). Work top→bottom. _Last updated: 10 Jun 2026 (audit cross-reference pass — branch `claude/kind-carson-MYhSl`)._
+> 🧭 **WHICH DOC AM I IN?** This is the **FUTURE roadmap + itemised risk/fix register** (post-launch: company engine #88, V2 experience, the 101-item roadmap, steals catalog).
+> **For launch tracking (now → Fri 19), work off [`KIND-MASTER.md`](./KIND-MASTER.md) — its dated MASTER TIMELINE is the single launch source.** Only two docs: master = launch, this = future.
+
+_Last updated: 10 Jun 2026 (audit cross-reference pass — branch `claude/kind-carson-MYhSl`)._
 
 **Legend:** ✅ done/live · 🟡 partial · 🎨 mockup only (designed, NOT built) · 🔄 in progress · ⏸ gated/paused · ⬜ not started · 🔴 open issue
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both

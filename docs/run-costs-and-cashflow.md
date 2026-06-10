@@ -1,6 +1,6 @@
 # K.I.N.D — Run Costs & Cashflow Model
 *Last updated: **10 June 2026** — added §5c Cost Per Product · §5d Future Costs & Scaling Map. Corrected for: the 4-agent line-up, the per-rep company engine (#88), multi-source data (PDL), the verified Apollo-ToS picture.*
-*🔍 **AUDIT FIXES (10 Jun, founder-flagged):** email = **Zoho Mail** (was wrongly "Google Workspace"); **2 domains** now listed (`get-kind.com` + `gettingkind.com`, was 1); **3 agent subscriptions added to §3** (Vida $29 · Milla $49 · Denise $99 + Milla+Vida $69 bundle — previously only the 2 credit products were listed). Also fixed in code: `routes/mcp.ts` was pointing developers at the wrong domain `api.kindai.co.za` → corrected to `api.get-kind.com`. **Still to chase:** the admin "Launch" checklist page still says Google Workspace — update to Zoho.*
+*🔍 **AUDIT FIXES (10 Jun, founder-flagged):** email = **Zoho Mail** (was wrongly "Google Workspace"); **2 domains** now listed (`get-kind.com` + `gettingkind.com`, was 1); **3 agent subscriptions added to §3** (Vida $29 · Milla $49 · Denise $99 + Milla+Vida $69 bundle — previously only the 2 credit products were listed). Also fixed in code/docs (10 Jun sweep): `routes/mcp.ts` + `routes/team.ts` wrong domain `*.kindai.co.za` → `*.get-kind.com`; the admin **"Launch" checklist** rewritten (Google Workspace → **Zoho**, Paystack → **Stripe + Flutterwave**, `privacy@kind.ai` → `privacy@get-kind.com`); `DEPLOYMENT_GUIDE.md` Step 7 → Zoho. **All stale email/domain/processor references now corrected across code + docs.***
 
 > ### 🧭 READ FIRST — the lay of the land (10 Jun)
 > **The model is ~95% gross margin and stays there.** Costs are almost entirely *fixed* (infra ~$140/mo) + a *tiny* variable (data + AI per lead). Revenue scales ~linearly with clients/seats while costs stay near-flat → margin climbs toward 95%+ after a handful of clients. **The whole game is revenue growth, not cost control.**
@@ -359,7 +359,7 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 | Apollo API rate limits | Medium | Queue ICP runs — a small code change at 20+ clients |
 | Churn — client cancels after 1 month | Medium | Focus on quality of leads. At-risk alerts built in. Onboarding call on day 2. |
 | Lead yield below 60% | Low | Apollo strong email verification. Adjust ICP filters if yield drops. |
-| Paystack processing fees at scale | Low | At $15,000 MRR = $435/mo to Paystack. Negotiate custom rate above $10k MRR. |
+| Payment processing fees at scale | Low | ~2.9% Stripe / ~3.8% Flutterwave (Africa). At $15,000 MRR ≈ $440–570/mo. Negotiate a custom rate above $10k MRR. |
 | ARPU stays at $20 (starter only) | Medium | Actively upsell FIGSY after first leads delivered. Upgrade prompt built into portal. |
 
 ---
@@ -383,7 +383,7 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 The model scales almost entirely as pure margin after the first 3 clients. The biggest lever is not cost reduction — it's ARPU. A client on FIGSY ($300/mo) generates 3.75× the margin of a starter client ($20/mo).
 
-The biggest single cost threat at scale is not technology — it's Paystack (2.9% of revenue). At $15,000 MRR that's $435/mo. Negotiate a custom rate above $10k MRR.
+The biggest single cost threat at scale is not technology — it's **payment processing** (~2.9% Stripe / ~3.8% Flutterwave of revenue). At $15,000 MRR that's ~$440–570/mo. Negotiate a custom rate above $10k MRR.
 
 ---
 

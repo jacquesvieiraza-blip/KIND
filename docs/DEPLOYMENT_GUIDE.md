@@ -253,24 +253,23 @@ Use Stripe test card `4242 4242 4242 4242`, any future expiry, any CVV. Make a t
 
 ---
 
-## Step 7: Google Workspace — Professional Email
+## Step 7: Zoho Mail — Professional Email
 
 **Time: ~30 minutes**
 
-This is required to send and receive email from hello@get-kind.com.
+This is required to send and receive email from hello@get-kind.com. **(We use Zoho Mail, not Google Workspace.)**
 
-1. Go to [workspace.google.com](https://workspace.google.com) → **Get started** → Business Starter plan (~$12/mo)
-2. Enter domain: `get-kind.com`
-3. Google provides **MX records** → add them to your domain DNS (at GoDaddy/Cloudflare/Namecheap)
-4. Google provides a **TXT verification record** → add to DNS → click Verify in Google
-5. Create mailbox: **hello@get-kind.com** (primary inbox — sales, support, billing)
-6. In Google Admin → Gmail → Authenticate email → **Enable DKIM** → add the DKIM TXT record to DNS
-7. Add **SPF record**: `v=spf1 include:_spf.google.com ~all` (merge with any existing Resend SPF)
-8. Add **DMARC record** on `_dmarc.get-kind.com`: `v=DMARC1; p=none; rua=mailto:hello@get-kind.com`
+1. Go to [zoho.com/mail](https://www.zoho.com/mail/) → **Sign up** → add `get-kind.com` (Mail Lite / free tier is fine)
+2. Zoho provides a **TXT (or CNAME) verification record** → add to DNS → click Verify in Zoho
+3. Zoho provides **MX records** (`mx.zoho.com` / `mx2.zoho.com` / `mx3.zoho.com`) → add them to your domain DNS (GoDaddy/Cloudflare/Namecheap)
+4. Create mailbox: **hello@get-kind.com** (primary inbox — sales, support, billing) + **privacy@get-kind.com** (POPIA requests)
+5. In Zoho Admin → Email Configuration → **DKIM** → generate → add the CNAME/TXT to DNS
+6. Add **SPF record**: `v=spf1 include:zoho.com ~all` (merge with any existing SPF into one record)
+7. Add **DMARC record** on `_dmarc.get-kind.com`: `v=DMARC1; p=none; rua=mailto:hello@get-kind.com`
 
-**After Workspace is live:** Update `FOUNDER_EMAIL` in Railway to `hello@get-kind.com`.
+**After Zoho is live:** Update `FOUNDER_EMAIL` in Railway to `hello@get-kind.com`.
 
-> **Note:** FIGSY outreach emails go through Resend (replies@get-kind.com), NOT Google Workspace. Keep them separate to protect your domain reputation.
+> **Note:** FIGSY cold outreach goes through Resend (from the `gettingkind.com` cold domain), NOT Zoho. Keep them separate to protect the `get-kind.com` reputation.
 
 ---
 

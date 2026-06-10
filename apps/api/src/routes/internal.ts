@@ -21,6 +21,7 @@ import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCa
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
+import { recomputeCampaignCounters } from '../lib/figsy'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -839,8 +840,13 @@ internalRouter.post('/figsy/check-performance', async (_req: Request, res: Respo
     const paused: { id: string; name: string; client_id: string; reply_rate: number }[] = []
 
     for (const campaign of campaigns ?? []) {
-      const replyRate = campaign.replies_total / campaign.emails_sent
-      if (replyRate < 0.01) {
+      // Reconcile from source before deciding — a drifted replies_total (the known
+      // failure mode is drift DOWN to 0) would otherwise auto-pause a healthy campaign.
+      const fresh = await recomputeCampaignCounters(campaign.id)
+      const repliesTotal = fresh?.replies_total ?? campaign.replies_total
+      const emailsSent   = fresh?.emails_sent   ?? campaign.emails_sent
+      const replyRate = emailsSent > 0 ? repliesTotal / emailsSent : 0
+      if (emailsSent >= 20 && replyRate < 0.01) {
         await db.from('figsy_campaigns')
           .update({ status: 'paused_low_performance' })
           .eq('id', campaign.id)
@@ -1793,9 +1799,12 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
     let adjusted = 0
 
     for (const campaign of campaigns ?? []) {
-      const emailsSent   = campaign.emails_sent   ?? 0
-      const optedOut     = campaign.opted_out     ?? 0
-      const repliesTotal = campaign.replies_total ?? 0
+      // Reconcile from source first — these counters drive send-volume throttling,
+      // so a drifted opted_out/replies_total would mis-adjust the daily limit.
+      const fresh = await recomputeCampaignCounters(campaign.id)
+      const emailsSent   = fresh?.emails_sent   ?? campaign.emails_sent   ?? 0
+      const optedOut     = fresh?.opted_out     ?? campaign.opted_out     ?? 0
+      const repliesTotal = fresh?.replies_total ?? campaign.replies_total ?? 0
       const existing     = (campaign.settings ?? {}) as Record<string, unknown>
       const currentLimit = typeof existing.daily_send_limit === 'number' ? existing.daily_send_limit : 50
 

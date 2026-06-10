@@ -491,8 +491,17 @@ export async function sendSequenceEmail(
 // rather than throwing. Persists Math.max(source, stored) so a counter can never
 // regress below a value another path set (e.g. a calendar booking with no reply
 // row to attribute it to).
-export async function recomputeCampaignCounters(campaignId: string): Promise<void> {
-  if (!campaignId) return
+export interface CampaignCounters {
+  emails_sent: number
+  replies_total: number
+  replies_interested: number
+  opted_out: number
+  meetings_booked: number
+  leads_enrolled: number
+}
+
+export async function recomputeCampaignCounters(campaignId: string): Promise<CampaignCounters | null> {
+  if (!campaignId) return null
   try {
     const [sentRes, repliesRes, enrollRes, campRes] = await Promise.all([
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
@@ -511,17 +520,23 @@ export async function recomputeCampaignCounters(campaignId: string): Promise<voi
     }
     const cur = (campRes.data ?? {}) as Record<string, number | null>
     const mx = (a: number, b: number | null | undefined) => Math.max(a, typeof b === 'number' ? b : 0)
-    const { error } = await db.from('figsy_campaigns').update({
-      emails_sent:        mx(sentRes.count ?? 0,  cur.emails_sent),
-      replies_total:      mx(repliesTotal,        cur.replies_total),
-      replies_interested: mx(repliesInterested,   cur.replies_interested),
-      opted_out:          mx(optedOut,            cur.opted_out),
-      meetings_booked:    mx(meetings,            cur.meetings_booked),
+    const next: CampaignCounters = {
+      emails_sent:        mx(sentRes.count ?? 0,   cur.emails_sent),
+      replies_total:      mx(repliesTotal,         cur.replies_total),
+      replies_interested: mx(repliesInterested,    cur.replies_interested),
+      opted_out:          mx(optedOut,             cur.opted_out),
+      meetings_booked:    mx(meetings,             cur.meetings_booked),
       leads_enrolled:     mx(enrollRes.count ?? 0, cur.leads_enrolled),
-    }).eq('id', campaignId)
-    if (error) console.error('[figsy] recomputeCampaignCounters update failed:', error.message, 'campaign', campaignId)
+    }
+    const { error } = await db.from('figsy_campaigns').update(next).eq('id', campaignId)
+    if (error) {
+      console.error('[figsy] recomputeCampaignCounters update failed:', error.message, 'campaign', campaignId)
+      return null
+    }
+    return next
   } catch (err) {
     console.error('[figsy] recomputeCampaignCounters failed:', err, 'campaign', campaignId)
+    return null
   }
 }
 

@@ -483,6 +483,48 @@ export async function sendSequenceEmail(
   }
 }
 
+// Recompute a single campaign's denormalised counters from the authoritative
+// source tables and persist them. Call this AFTER a reply/opt-out/meeting event
+// has written its source row (figsy_replies / figsy_enrollments). It replaces the
+// old read-modify-write "+1" increments, which (a) lost concurrent updates under
+// load and (b) silently swallowed write errors because supabase RETURNS errors
+// rather than throwing. Persists Math.max(source, stored) so a counter can never
+// regress below a value another path set (e.g. a calendar booking with no reply
+// row to attribute it to).
+export async function recomputeCampaignCounters(campaignId: string): Promise<void> {
+  if (!campaignId) return
+  try {
+    const [sentRes, repliesRes, enrollRes, campRes] = await Promise.all([
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
+      db.from('figsy_replies').select('classification, meeting_booked_at').eq('campaign_id', campaignId),
+      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
+      db.from('figsy_campaigns')
+        .select('emails_sent, replies_total, replies_interested, opted_out, meetings_booked, leads_enrolled')
+        .eq('id', campaignId).maybeSingle(),
+    ])
+    let repliesTotal = 0, repliesInterested = 0, optedOut = 0, meetings = 0
+    for (const r of (repliesRes.data ?? []) as { classification: string | null; meeting_booked_at: string | null }[]) {
+      repliesTotal++
+      if (r.classification === 'hot' || r.classification === 'interested') repliesInterested++
+      if (r.classification === 'opt_out' || r.classification === 'unsubscribe') optedOut++
+      if (r.meeting_booked_at) meetings++
+    }
+    const cur = (campRes.data ?? {}) as Record<string, number | null>
+    const mx = (a: number, b: number | null | undefined) => Math.max(a, typeof b === 'number' ? b : 0)
+    const { error } = await db.from('figsy_campaigns').update({
+      emails_sent:        mx(sentRes.count ?? 0,  cur.emails_sent),
+      replies_total:      mx(repliesTotal,        cur.replies_total),
+      replies_interested: mx(repliesInterested,   cur.replies_interested),
+      opted_out:          mx(optedOut,            cur.opted_out),
+      meetings_booked:    mx(meetings,            cur.meetings_booked),
+      leads_enrolled:     mx(enrollRes.count ?? 0, cur.leads_enrolled),
+    }).eq('id', campaignId)
+    if (error) console.error('[figsy] recomputeCampaignCounters update failed:', error.message, 'campaign', campaignId)
+  } catch (err) {
+    console.error('[figsy] recomputeCampaignCounters failed:', err, 'campaign', campaignId)
+  }
+}
+
 interface Day1Draft {
   subject: string
   body: string

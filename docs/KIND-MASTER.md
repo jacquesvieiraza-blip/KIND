@@ -445,6 +445,36 @@ Owner: 🧍 Founder · 🤖 Claude · 🤝 Both
 | **Thu 18** | **Go/No-Go + MERGE** | ⬜ | Gates: D9 10/10 · Smoke Test 2 green · 2 keys rotated · legal #10–14 done · warmup ~50/day → **founder says "go live" + merges the audit-fix PR (GitHub UI).** | 🤝 | Release gate. |
 | **Fri 19** | 🚀 **LAUNCH** | ⬜ | **Africa-only** (US deferred) — transactional live from `get-kind.com`; cold ramped from warmup domain · final recorded smoke pass · monitor. | 🚀 | **THE DAY.** |
 
+---
+
+## 🌐 DATA SOURCES — MULTI-SOURCE PLAN (the #1 strategic risk: "eggs in one basket")
+
+> **Tracked here so it can't get lost.** This is a live workstream, not a someday item. Detail/roadmap also in `V2-TRACKER.md` (§ DATA-SOURCE STRATEGY) — but THIS is the authoritative status.
+
+**THE REALITY (verified in code 10 Jun):** there are TWO different things, and only one has a backup today:
+- **Lead DISCOVERY (finding net-new prospects)** = **🔴 Apollo ONLY.** Both the search (`lib/apollo.ts` → `searchPeopleWithFallback`) AND the email reveal (`bulkMatchEmails`) go to Apollo. **If Apollo cuts the key, lead-gen stops for EVERY client at once.** This is the basket.
+- **Lead ENRICHMENT (filling missing fields on a lead already found)** = a waterfall **exists** in `lib/enrichment.ts` (Apollo→**PDL→Hunter→Clearbit**→Claude) — **but it's DORMANT** (no `PDL_API_KEY`/`HUNTER_API_KEY`/`CLEARBIT_API_KEY` set, so it does nothing today). And enrichment ≠ discovery — it can't *find* new people.
+
+**So multi-source is NOT done.** The enrichment hedge is off, and discovery has zero backup.
+
+**THE APOLLO CAP — clients, not leads:** the limit that matters is **reselling to ~50+ distinct CLIENTS** from one Apollo account (likely review ~50, key-termination risk ~100+). "More leads produced" is a separate **credit/quota** line — you just buy more credits, no ToS risk. **The 50/100 are K.I.N.D's own estimate in `legal.md`, NOT Apollo's published rule.** _(Demo note: seeded Showcase Demo does NOT hit Apollo; live-ICP demos DO count toward the pattern — keep demos seeded.)_
+
+### The plan (status-tracked)
+| Step | Trigger | Action | Owner | Status |
+|------|---------|--------|-------|--------|
+| 0 | Now | Decide structure: **(a)** Apollo partner/reseller agreement OR **(b)** clients bring their own Apollo key (sidesteps reselling entirely) | 🧍 | ⬜ decide |
+| 1 | Now (~$0) | Founder adds a **free-tier PDL key** → 🤖 (i) lights the enrichment waterfall, (ii) **wires PDL Person-Search as a 2nd DISCOVERY source** behind `searchPeopleWithFallback` (Apollo-first → PDL fallback). Dormant/key-gated until the key lands. | 🧍 key · 🤖 code | ⬜ **blocked on PDL key** |
+| 2 | First paying clients (~5–10) | Monitor Apollo credit burn; turn on real PDL/Hunter usage only if needed | 🤝 | ⬜ |
+| 3 | ~20–30 clients | Proactively email partnerships@apollo.io; lock structure (a)/(b); budget paid 2nd source | 🧍 | ⬜ |
+| 4 | **~50 clients** | **HARD LINE — structure resolved before crossing** | 🧍 | ⬜ |
+| 5 | 100+ clients | Fully diversified / partnered (Cognism reseller ~$15–25k/yr post-revenue; Manus async deep-research for African SMBs = potential moat, #42) | 🤝 | ⬜ |
+
+**Posture goal: "Apollo-first, multi-source" BEFORE the 50-client line.** Not a launch blocker, but the founder's #1 flagged risk — kept visible here.
+**Pending:** Apollo-ToS deep-research to replace the 50/100 estimate with their real terms (🤖, no key needed).
+**Next concrete move (≈$0):** founder drops a **free PDL key** → 🤖 wires the 2nd discovery source on the branch.
+
+---
+
 ### **PHASE 2: WEEK 1 POST-LAUNCH (Jun 19–28)**
 
 *(Status: ✅ done · 🔄 in progress · ⬜ to do — all post-launch, not started yet)*

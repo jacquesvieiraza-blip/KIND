@@ -8,6 +8,21 @@ Linked from `KIND-MASTER.md` (top). Work top→bottom. _Last updated: 9 Jun 2026
 
 ---
 
+# ░ BUILD & LAUNCH PLAN (official — locked 10 Jun) ░
+**Ship rule for every item:** build on branch → `next build` verify → founder reviews → **founder says "go live"** → merge to `main` → smoke test. **Nothing reaches the live client site until the founder says go live.**
+
+**▶️ PHASE 0 — LAUNCH (now → Fri 19):** ship the proven live core loop (signup→ICP→leads→FIGSY→reply→meeting). No new builds — verify (ST1, ST2, deliverability) + launch Africa-only.
+
+**🏢 PHASE 1 — COMPANY ENGINE (#88) · ~1 wk post-launch (target ~30 Jun):** the per-rep model (1 owner→N seats). 4 flows: 2a company setup · 2b per-rep autonomy · 2c owner command centre · 2d usage & budget. Foundation: workspace→member DB re-arch + per-rep ownership/routing + CRM dedup. (Also delivers Invite / Teams Hub / per-rep calendars.)
+
+**🎨 PHASE 2 — V2 EXPERIENCE (July, on the engine), in order:** 1 Vida bubble · 2 Casey onboarding→Conversational setup · 3 Milla Notetaker · 4 Strong dashboards · 5 Integrations Hub · 6 Sequence Builder · 7 Smart Inbox (fixes "inbox isn't right") · 8 Lead-capture Forms.
+
+**🧠 PHASE 3 — INTELLIGENCE/MOAT (Month 2+):** MCP server · Memory v2 · ICP-that-learns · benchmarks · the 15 Pieces.
+
+**Order logic:** launch the proven loop first → company engine (biggest money + per-rep foundation) → experience layer on it → intelligence.
+
+---
+
 # ░ PART 1 — ACTIVE NOW (cosmetic / V2 build via staging) ░
 
 ## A. Cosmetic issues you raised (this session)

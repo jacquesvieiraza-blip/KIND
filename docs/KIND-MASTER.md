@@ -549,7 +549,7 @@ _(Demo note: seeded Showcase Demo does NOT hit Apollo; live-ICP demos DO. Source
 | **#43** | ⬜ | Deliverability dashboard (SPF/DKIM/DMARC + bounce + blacklist) | Real-time deliverability monitoring. | Monday insight. Transparency = trust. |
 | **#44** | ⬜ | Email score pre-send | AI scores subject + body for spam signal before send. | MailerLite moat. Reduce complaints. |
 | **#45** | ⬜ | Adaptive send volume | Ramp sends based on reply rate (not fixed). | Instantly moat. Responsive to feedback. |
-| **#46** | ⬜ | **FIGSY Memory v2 (pgvector)** | Semantic embeddings (episodic / long-term / preference). | Our moat. L2 learning needs pgvector. |
+| **#46** | ⬜ | **FIGSY Memory v2 (pgvector)** | Semantic embeddings (episodic / long-term / preference). | Our moat. L2 learning needs pgvector. **→ full architecture: "AGENT TRAINING & INTELLIGENCE — THE LEARNING ENGINE" in `V2-TRACKER.md` (reward schema · contextual bandits · recall · 2a→2c path).** |
 | **#47** | ⬜ | Milla full-context CRM pull | Milla reads client's Pipedrive/HubSpot history when writing. | Glean moment. Context always wins. |
 | **#48** | 🔄 | Vapi voice calling → **DENISE owns it** — **code built** (`lib/vapi.ts`), not live; re-attribute FIGSY→Denise in #54. | Denise (closer) dials to confirm/close. | Atlas/Revio moat. Denise = our "Alex". |
 | **#49** | ⬜ | Product Hunt launch (with proof) | Launch with 2–3 design-partner case studies. | Proof moat. Network effect. |

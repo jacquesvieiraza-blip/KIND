@@ -172,6 +172,74 @@ Agent Grid (V2-1) · Thinking (V2-2) · Config (V2-4, partial) · Marketplace (V
 | #81 | Milestone share-to-LinkedIn cards | 🤖 |
 | #82 | "Certified K.I.N.D Partner" badge + LinkedIn share | 🤖 |
 
+## 🧠 AGENT TRAINING & INTELLIGENCE — THE LEARNING ENGINE (strategy · logged 10 Jun)
+*The blueprint for turning the outcome data into a compounding advantage. Post-launch (P3 Intelligence/Moat). Upgrades #38/#40/#46 below into one system. **Launching IS step zero — you can't train on data you don't have yet.***
+
+### Two honest truths (read first)
+1. **"Training" ≠ fine-tuning.** For an LLM-agent product, outcomes come from the layers *around* the model — context, feedback loops, memory, measurement — not retraining weights. Fine-tuning is the LAST lever, not the first.
+2. **For cold outreach, the model is ~¼ of the result.** The outcome stack is **targeting (right person) > deliverability (inbox) > timing > copy.** Don't pour all "AI training" energy into copy while targeting/list quality lag — keep the proportion honest.
+
+### PHASE 1 — Foundations (the ROI ladder, cheapest + biggest first)
+| Rung | What | Effort | ROI |
+|---|------|--------|-----|
+| ① **Context / RAG** ← start here | The **Train-FIGSY knowledge base** (UI exists, backend doesn't — built honest this session). Per client: value props · **proof points** (real numbers) · pain points · ICP language · do-not-say rules · **2–3 of the client's own best emails as few-shot** (the single biggest copy lever; Alta's "train-agent" field set). | Med | **Highest near-term** |
+| ② **Outcome feedback loop** | Mine `outcome_events` (data floor #17b, built) for which subjects/angles/segments produce replies+meetings → feed winners back into the prompt, down-weight losers. "Training" by selection, not gradient descent — it compounds. | Med | Very high (the moat) |
+| ③ **Evals / measurement** | No eval harness today (same gap as "no tests"). Build: reply-rate per variant · classification accuracy on real labelled replies · meeting-conversion by ICP. **Unlocks ①②** — without it every "improvement" is a guess. | Low–Med | Foundational |
+| ④ **Memory** | #46 Memory v2 (pgvector) — FIGSY recalls *this client's* winning patterns across campaigns. Builds on ①②. | Med–High | High |
+| ⑤ **Model routing** | Haiku for bulk drafting (correct); route the *reasoning-heavy* tasks (reply classification · ICP suggest · Denise proposals) to Sonnet/Opus. + prompt caching for cost. | Low | Real quality bump |
+| ⑥ **Fine-tuning / distillation** | LAST. Only with a narrow repeatable task + **thousands of labelled examples** + a cost/latency reason. Not now — would be premature scaling of the AI stack. **Parked.** | — | Later |
+
+### PHASE 2 — The Learning Engine (reinforcement learning, in practice)
+**The unlock: the reward signal already exists** — every `outcome_events` row is a reward. You don't build the reward function, you already collect it:
+
+| Event | Reward | Logged? |
+|---|---|---|
+| Opened | +0.1 *(weak — Goodhart risk)* | ✅ |
+| Reply | +1 | ✅ |
+| Hot/positive reply | +3 | ✅ |
+| Meeting booked | +10 | ✅ |
+| Deal closed | +50 | ✅ |
+| Opt-out / spam / bounce | −2 / −5 / −1 | ✅ |
+
+**2a — practical RL, no model training (ship first): contextual bandits.** It IS reinforcement learning, just without backprop.
+- **Arms:** subject style · opening angle · send time/day · cadence · CTA type · ICP segment. (#38 A/B → upgrade to a bandit.)
+- **Explore/exploit:** keep trying variants but shift volume toward winners automatically (**Thompson sampling** — handles small samples, vital early).
+- **"Contextual" = the moat:** context = the lead's features (industry · seniority · **country** · size) → FIGSY learns *"fintech founders in Nigeria → angle X + short lowercase subject + Tue 9am wins."* A learned **policy** on **African data no competitor has.**
+
+**Recall — the memory layer (two tiers):**
+- **Per-client:** retrieve this client's past winning emails at generation time (in-context) → #46 pgvector.
+- **Cross-segment (the moat — handle carefully):** anonymized, **aggregated** winning patterns across all clients per ICP segment → new clients inherit collective learning day one. **POPIA / data-isolation: aggregate patterns ONLY, never raw cross-client leakage.**
+
+**Usage patterns — the *other* reward stream (about the product, not the emails):** which agents/features clients actually use (deepen vs cut) · which ICPs/queries they build (data-source + market priorities) · **activation + retention curves (the >85% 6-mo retention that killed 11x — the business's reward function).**
+
+**2b → 2c — where real model training finally earns it:** 2b = reward model + offline policy evaluation (learn the policy properly). 2c = **10k+ labelled outcomes → DPO/RLHF to distill the winning-email policy into the generator** + distill Opus-grade classification into a cheap fast model. Reached by *running campaigns first.*
+
+### The moat: the African outcome-data flywheel
+More campaigns → more **African** B2B outcome data (Apollo/11x/Alta all optimise on US data) → better targeting+copy+timing *for African markets* → better outcomes → more clients. No US competitor can build it — they're not in the market. **The advantage isn't a smarter model; it's proprietary outcome data in markets the giants ignore.**
+
+### Caveats that break naïve RL systems
+1. **Goodhart** — optimize the deepest reliable signal (**replies/meetings, not opens**), or the bandit learns clickbait that craters replies.
+2. **Sample size** — sparse cold-email data; lean on Bayesian/Thompson priors so 1 lucky reply doesn't "win."
+3. **Deliverability confound** — a "winner" may just be a warmer domain that hour; control for it or you learn noise.
+4. **Feedback delay** — meetings land days later; attribute rewards back to the earlier choices.
+
+### Shape of the engine
+```
+outcome_events (rewards) ──► reward attribution ──► contextual bandit (policy)
+        ▲                                                      │
+        │                                              memory/recall (pgvector)
+   every campaign                                              │
+        │                                          FIGSY generation (few-shot winners)
+        └──────────────── better outcomes ◄────────────────────┘
+                     (compounds, African-specific)
+```
+
+### Build order (post-launch) & roadmap integration
+**① Train-FIGSY knowledge backend → ③ evals → ② feedback loop → 2a bandit → ④ recall/Memory → ⑤ routing → (2c fine-tuning, much later).**
+Upgrades existing items: **#38** A/B → contextual bandit · **#40** ICP auto-refine → reward-driven · **#46** Memory v2 → recall · **#37** intent · **#45** adaptive volume. None blocks the 19th.
+
+---
+
 ## 📍 MONTH 2 (Late Jul–Aug · GATED 10+ clients) — 38 items
 **Prereq: staging env. — already starting (this session).**
 

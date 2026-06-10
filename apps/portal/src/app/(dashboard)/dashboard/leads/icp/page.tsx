@@ -69,7 +69,7 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
       <div className="bg-white border-b border-purple-100/60 px-4 py-3 flex items-center justify-between">
         <div>
           <p className="text-gray-900 font-bold text-sm leading-tight">FIGSY</p>
-          <p className="text-[#7C3AED]/60 text-[11px]">AI SDR · ICP Builder</p>
+          <p className="text-[#7C3AED]/60 text-[11px]">The Opener · ICP Builder</p>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

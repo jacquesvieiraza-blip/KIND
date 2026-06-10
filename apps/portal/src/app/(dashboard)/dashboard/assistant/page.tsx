@@ -458,9 +458,9 @@ export default function AssistantPage() {
                   <p className="text-xs text-[#9B8EC4] mt-0.5">{integration.description}</p>
                 </div>
                 {!integration.connected && (
-                  <button className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] border border-[#7C3AED]/30 rounded-lg hover:bg-[#F5F0FF] transition-colors shrink-0">
-                    Connect
-                  </button>
+                  <span className="px-3 py-1.5 text-xs font-medium text-[#9B8EC4] bg-gray-100 rounded-lg shrink-0">
+                    Coming soon
+                  </span>
                 )}
               </div>
             )

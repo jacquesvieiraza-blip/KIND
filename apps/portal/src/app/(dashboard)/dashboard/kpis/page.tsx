@@ -531,9 +531,11 @@ export default function KPIsPage() {
                 <p className="text-xs font-semibold text-[#7C3AED] uppercase tracking-wider mb-1">Meetings Booked</p>
                 <p className="text-4xl font-bold text-[#1E0A5C]">{figsy?.meetingsBooked ?? 0}</p>
                 <p className="text-sm text-[#7C3AED]/70 mt-1">
-                  {figsy?.meetingBookedRate !== undefined
-                    ? `${(figsy.meetingBookedRate).toFixed(1)}% booking rate`
-                    : 'No data yet'
+                  {(figsy?.meetingsBooked ?? 0) === 0
+                    ? 'No data yet'
+                    : figsy?.meetingBookedRate !== undefined
+                      ? `${(figsy.meetingBookedRate).toFixed(1)}% booking rate`
+                      : 'Meetings on the board'
                   }
                   {' '}
                   <span className="text-[#9B8EC4]">· Alta target: 3–5%</span>

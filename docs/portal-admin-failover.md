@@ -80,10 +80,14 @@ Both services are already defined in `render.yaml` at the repo root
    | `NEXT_PUBLIC_API_URL` | **`https://api.get-kind.com`** (already set in render.yaml) |
    | `NEXT_PUBLIC_SUPABASE_URL` | Railway → admin → Variables |
    | `SUPABASE_SERVICE_ROLE_KEY` | Railway → admin → Variables (server-side only) |
-   | `NEXT_PUBLIC_ADMIN_KEY` | Railway → admin → Variables |
-   | `ADMIN_SECRET` | same |
-   | `ADMIN_SECRET_KEY` | same |
+   | `ADMIN_SECRET_KEY` | Railway → admin → Variables (server-side only) |
    | `RESEND_API_KEY` | same (admin sends email via Resend) |
+
+   > ⚠️ **Do NOT set `NEXT_PUBLIC_ADMIN_KEY` on the standby — or anywhere.** It was
+   > removed in the 8-Jun security fix: the `NEXT_PUBLIC_` prefix baked the admin secret
+   > into the browser bundle (a full auth-bypass). The admin proxy authenticates
+   > server-side with `ADMIN_SECRET_KEY` only. (`ADMIN_SECRET` is legacy — copy it to the
+   > standby only if it is still set on the live admin service.)
 
 4. **Deploy** → wait for the first build (~5–7 min each — Next.js builds are slower
    than the API). Confirm each responds:

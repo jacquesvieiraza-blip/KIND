@@ -340,7 +340,7 @@ What questions do you have before I put together your proposal?"`,
         <div key={s.step} className="border border-gray-100 rounded-xl overflow-hidden">
           <div className="bg-[#001f4d] px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-white/20 text-gray-900 text-xs font-bold flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full bg-gray-200 text-gray-900 text-xs font-bold flex items-center justify-center">
                 {s.step}
               </span>
               <div>
@@ -831,7 +831,7 @@ export default function PlaybookPage() {
               {/* Section header */}
               <div className={`${section.color} px-6 py-4 text-gray-900`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
                     <Icon className="w-4 h-4" />
                   </div>
                   <div>

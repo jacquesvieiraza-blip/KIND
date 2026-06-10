@@ -50,10 +50,10 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
     : []
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+    <div className="bg-white border border-gray-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${briefData ? 'bg-emerald-400' : 'bg-white/20'}`} />
+          <div className={`w-2 h-2 rounded-full ${briefData ? 'bg-emerald-400' : 'bg-gray-200'}`} />
           <h2 className="font-semibold text-gray-900">Today&apos;s Brief</h2>
         </div>
         <div className="flex items-center gap-3">
@@ -84,7 +84,7 @@ export default function AgentBriefSection({ agentId, agentName }: Props) {
           {bullets.map((line, i) => (
             <p
               key={i}
-              className="text-sm text-gray-700 pl-4 border-l-2 border-white/10 py-1 leading-relaxed"
+              className="text-sm text-gray-700 pl-4 border-l-2 border-gray-200 py-1 leading-relaxed"
             >
               {line.replace(/^[•\-]\s*/, '')}
             </p>

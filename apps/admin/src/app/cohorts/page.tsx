@@ -126,7 +126,7 @@ function pct(n: number, color: string) {
 function Bar({ value, max, color }: { value: number; max: number; color: string }) {
   const w = max > 0 ? Math.round((value / max) * 100) : 0
   return (
-    <div className="h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
+    <div className="h-1.5 w-24 bg-gray-100 rounded-full overflow-hidden">
       <div className={`h-full ${color} rounded-full`} style={{ width: `${w}%` }} />
     </div>
   )
@@ -151,7 +151,7 @@ export default async function CohortsPage() {
           { label: 'Avg Conversion %', value: `${summary.avgConversion}%`, color: 'text-blue-400',    icon: <TrendingUp className="w-5 h-5 text-blue-400" /> },
           { label: 'Avg Churn %',      value: `${summary.avgChurn}%`,      color: 'text-red-400',     icon: <UserX className="w-5 h-5 text-red-400" /> },
         ].map(({ label, value, color, icon }) => (
-          <div key={label} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5 flex items-center gap-4">
+          <div key={label} className="bg-gray-50 border border-gray-100 rounded-xl p-5 flex items-center gap-4">
             {icon}
             <div>
               <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -163,14 +163,14 @@ export default async function CohortsPage() {
 
       {/* Cohort table */}
       {cohorts.length === 0 ? (
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-16 text-center text-gray-400">
+        <div className="bg-gray-50 border border-gray-100 rounded-xl p-16 text-center text-gray-400">
           No clients yet.
         </div>
       ) : (
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
+        <div className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] text-left">
+              <tr className="border-b border-gray-100 text-left">
                 <th className="px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Cohort</th>
                 <th className="px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Clients</th>
                 <th className="px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Activated</th>
@@ -181,7 +181,7 @@ export default async function CohortsPage() {
             </thead>
             <tbody>
               {cohorts.map((c, i) => (
-                <tr key={c.month} className={`border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${i === 0 ? 'bg-blue-400/[0.04]' : ''}`}>
+                <tr key={c.month} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${i === 0 ? 'bg-blue-400/[0.04]' : ''}`}>
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{c.label}</div>
                     {i === 0 && <div className="text-xs text-blue-400 mt-0.5">Current cohort</div>}
@@ -189,7 +189,7 @@ export default async function CohortsPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-gray-900 w-6 text-right">{c.total}</span>
-                      <Bar value={c.total} max={maxClients} color="bg-white/30" />
+                      <Bar value={c.total} max={maxClients} color="bg-gray-200" />
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -227,8 +227,8 @@ export default async function CohortsPage() {
       <div className="space-y-4">
         <h3 className="text-base font-semibold text-gray-900">Client Breakdown by Cohort</h3>
         {cohorts.map(c => (
-          <details key={c.month} className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden group">
-            <summary className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors list-none">
+          <details key={c.month} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden group">
+            <summary className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors list-none">
               <div className="flex items-center gap-3">
                 <span className="font-medium text-gray-900">{c.label}</span>
                 <span className="text-xs text-gray-400">{c.total} client{c.total !== 1 ? 's' : ''}</span>
@@ -240,10 +240,10 @@ export default async function CohortsPage() {
                 <span className="text-gray-400 ml-1">▸</span>
               </div>
             </summary>
-            <div className="border-t border-white/[0.06]">
+            <div className="border-t border-gray-100">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-white/[0.02] border-b border-white/[0.04]">
+                  <tr className="bg-gray-50 border-b border-gray-100">
                     <th className="px-6 py-2 text-left text-xs font-semibold text-gray-400">Company</th>
                     <th className="px-6 py-2 text-left text-xs font-semibold text-gray-400">Activated ICP</th>
                     <th className="px-6 py-2 text-left text-xs font-semibold text-gray-400">Converted</th>
@@ -252,7 +252,7 @@ export default async function CohortsPage() {
                 </thead>
                 <tbody>
                   {c.clients.map(cl => (
-                    <tr key={cl.id} className="border-b border-white/[0.04] last:border-0">
+                    <tr key={cl.id} className="border-b border-gray-100 last:border-0">
                       <td className="px-6 py-3 font-medium text-gray-800">{cl.name}</td>
                       <td className="px-6 py-3">
                         {cl.activated
@@ -267,7 +267,7 @@ export default async function CohortsPage() {
                       <td className="px-6 py-3">
                         {cl.churned   && <span className="text-xs px-2 py-0.5 rounded-full bg-red-400/10 border border-red-400/20 text-red-400">Churned</span>}
                         {cl.converted && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">Active</span>}
-                        {!cl.churned && !cl.converted && <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-400">Trial / Free</span>}
+                        {!cl.churned && !cl.converted && <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-400">Trial / Free</span>}
                       </td>
                     </tr>
                   ))}
@@ -279,7 +279,7 @@ export default async function CohortsPage() {
       </div>
 
       {/* Metric notes */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6 text-xs text-gray-400 space-y-1">
+      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-xs text-gray-400 space-y-1">
         <p><strong className="text-gray-500">Activated</strong> — client ran their first ICP search (<code>first_icp_run_at</code> is set)</p>
         <p><strong className="text-gray-500">Converted</strong> — client has at least one <code>active</code> subscription</p>
         <p><strong className="text-gray-500">Churned</strong> — client has a <code>cancelled</code> or <code>past_due</code> subscription with no active one</p>

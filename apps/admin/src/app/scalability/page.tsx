@@ -145,7 +145,7 @@ export default async function ScalabilityPage() {
               <p className="text-gray-500 text-xs mt-0.5">clients onboarded</p>
             </div>
           </div>
-          <div className="mt-5 w-full bg-white/10 rounded-full h-2.5">
+          <div className="mt-5 w-full bg-gray-100 rounded-full h-2.5">
             <div
               className="bg-blue-400 h-2.5 rounded-full transition-all"
               style={{ width: `${stagePct}%` }}
@@ -178,7 +178,7 @@ export default async function ScalabilityPage() {
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-xs font-medium uppercase tracking-wider text-gray-700">Stage {stage.number}</span>
                       {stage.current && (
-                        <span className="text-xs bg-white/20 text-gray-900 px-2 py-0.5 rounded-full font-medium">Current</span>
+                        <span className="text-xs bg-gray-200 text-gray-900 px-2 py-0.5 rounded-full font-medium">Current</span>
                       )}
                     </div>
                     <p className="font-bold text-base">{stage.label}</p>

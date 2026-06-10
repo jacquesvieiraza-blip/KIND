@@ -133,10 +133,10 @@ export default async function DocPage({ params }: { params: { doc: string } }) {
             <p className="text-sm text-gray-400 mt-0.5">GitHub Issues — filtered by label:audit</p>
           </div>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
           <BookOpen className="w-10 h-10 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 text-sm leading-relaxed">
-            Audit reports are stored as GitHub Issues — filter by <code className="text-gray-400 bg-white/5 px-1.5 py-0.5 rounded text-xs">label:audit</code> at{' '}
+            Audit reports are stored as GitHub Issues — filter by <code className="text-gray-400 bg-white px-1.5 py-0.5 rounded text-xs">label:audit</code> at{' '}
             <a
               href="https://github.com/jacquesvieiraza-blip/KIND/issues?q=label%3Aaudit"
               target="_blank"
@@ -150,7 +150,7 @@ export default async function DocPage({ params }: { params: { doc: string } }) {
             href="https://github.com/jacquesvieiraza-blip/KIND/issues?q=label%3Aaudit"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-700 hover:text-gray-900 hover:bg-white/10 transition-colors"
+            className="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             Open GitHub Issues
@@ -196,7 +196,7 @@ export default async function DocPage({ params }: { params: { doc: string } }) {
 
       {/* Rendered markdown */}
       <div
-        className="bg-white/5 border border-white/10 rounded-xl p-8 doc-content"
+        className="bg-white border border-gray-200 rounded-xl p-8 doc-content"
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
 

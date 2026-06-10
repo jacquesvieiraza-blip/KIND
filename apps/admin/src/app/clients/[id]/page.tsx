@@ -140,7 +140,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             {client.country}{client.industry ? ` · ${client.industry}` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.06] px-4 py-2 rounded-xl">
+        <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-xl">
           <Coins className="w-4 h-4 text-amber-400" />
           <span className="text-gray-900 font-semibold">{balance}</span>
           <span className="text-gray-400 text-sm">credits</span>
@@ -149,7 +149,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
 
       {/* Subscriptions */}
       {subs.length > 0 && (
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
+        <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
           <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-gray-400" />Active Subscriptions
           </h3>
@@ -164,7 +164,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                       ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400'
                       : s.status === 'trialing'
                       ? 'bg-blue-400/10 border-blue-400/20 text-blue-400'
-                      : 'bg-white/5 border-white/10 text-gray-400'
+                      : 'bg-white border-gray-200 text-gray-400'
                   }`}>{s.status}</span>
                 </div>
               </div>
@@ -175,15 +175,15 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
 
       {/* Leads summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Leads</p>
           <p className="text-2xl font-bold text-gray-900">{leads.length}</p>
         </div>
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">This Month</p>
           <p className="text-2xl font-bold text-gray-900">{leadsThisMonth}</p>
         </div>
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Top Lead</p>
           {topLead ? (
             <div>
@@ -198,7 +198,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       </div>
 
       {/* Credit management */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6 space-y-5">
+      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
             <Coins className="w-4 h-4 text-amber-400" />Credits
@@ -207,19 +207,19 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
         </div>
 
         {/* Grant form */}
-        <form onSubmit={handleGrant} className="border border-white/[0.06] rounded-lg p-4 space-y-3 bg-white/[0.02]">
+        <form onSubmit={handleGrant} className="border border-gray-100 rounded-lg p-4 space-y-3 bg-gray-50">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Grant or Adjust Credits</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Amount</label>
               <input type="number" min="1" value={grantAmt} onChange={e => setGrantAmt(e.target.value)}
                 placeholder="e.g. 100"
-                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300" />
+                className="w-full bg-white border border-gray-200 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300" />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Type</label>
               <select value={grantType} onChange={e => setGrantType(e.target.value as 'manual_grant' | 'refund')}
-                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED]">
+                className="w-full bg-white border border-gray-200 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED]">
                 <option value="manual_grant">Manual Grant (add)</option>
                 <option value="refund">Refund (add back)</option>
               </select>
@@ -228,7 +228,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
               <label className="block text-xs text-gray-400 mb-1">Note (optional)</label>
               <input type="text" value={grantNote} onChange={e => setGrantNote(e.target.value)}
                 placeholder="Reason / reference"
-                className="w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300" />
+                className="w-full bg-white border border-gray-200 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300" />
             </div>
           </div>
           {grantMsg && (
@@ -247,7 +247,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Recent Transactions</p>
             <div className="space-y-1.5 max-h-64 overflow-y-auto">
               {txs.map(tx => (
-                <div key={tx.id} className="flex items-center justify-between text-sm py-1.5 border-b border-white/[0.04] last:border-0">
+                <div key={tx.id} className="flex items-center justify-between text-sm py-1.5 border-b border-gray-100 last:border-0">
                   <div>
                     <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium mr-2 ${
                       tx.amount > 0 ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'
@@ -267,14 +267,14 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       </div>
 
       {/* FIGSY Campaigns */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
+      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
         <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
           <Zap className="w-4 h-4 text-gray-400" />FIGSY Campaigns
         </h3>
         {activeCampaigns.length > 0 ? (
           <div className="space-y-2">
             {activeCampaigns.map(c => (
-              <div key={c.id} className="flex items-center justify-between bg-white/[0.02] border border-white/[0.04] rounded-lg px-4 py-3">
+              <div key={c.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-4 py-3">
                 <div>
                   <p className="text-gray-900 text-sm font-medium">{c.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -303,14 +303,14 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       </div>
 
       {/* ICPs */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
+      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
         <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
           <Target className="w-4 h-4 text-gray-400" />Ideal Customer Profiles
         </h3>
         {icps.length > 0 ? (
           <div className="space-y-2">
             {icps.map(icp => (
-              <div key={icp.id} className="flex items-center justify-between bg-white/[0.02] border border-white/[0.04] rounded-lg px-4 py-3">
+              <div key={icp.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-4 py-3">
                 <div>
                   <p className="text-gray-900 text-sm font-medium">{icp.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -331,7 +331,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       <div className={`rounded-xl p-5 flex items-start gap-3 ${
         client.terms_accepted_at
           ? 'bg-emerald-400/[0.06] border border-emerald-400/20'
-          : 'bg-white/[0.03] border border-white/[0.06]'
+          : 'bg-gray-50 border border-gray-100'
       }`}>
         {client.terms_accepted_at ? (
           <>
@@ -353,7 +353,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       </div>
 
       {/* Client details */}
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
+      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
         <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
           <Building2 className="w-4 h-4 text-gray-400" />Client Details
         </h3>

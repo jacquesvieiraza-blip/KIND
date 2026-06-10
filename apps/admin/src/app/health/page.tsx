@@ -22,7 +22,7 @@ const SERVICES: Service[] = [
 
 function StatusDot({ status }: { status: ServiceStatus }) {
   const colors: Record<ServiceStatus, string> = {
-    checking:    'bg-white/20 animate-pulse',
+    checking:    'bg-gray-200 animate-pulse',
     operational: 'bg-emerald-400',
     degraded:    'bg-amber-400',
     unreachable: 'bg-red-400',
@@ -98,7 +98,7 @@ export default function HealthPage() {
         <button
           onClick={checkStatuses}
           disabled={checking}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-500 hover:text-gray-900 hover:bg-white/10 transition-colors disabled:opacity-40"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors disabled:opacity-40"
         >
           <RefreshCw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} />
           Refresh
@@ -106,13 +106,13 @@ export default function HealthPage() {
       </div>
 
       {/* Service status cards */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">Service Status</h2>
         <div className="space-y-3">
           {SERVICES.map((svc) => {
             const status: ServiceStatus = statuses[svc.name] ?? 'checking'
             return (
-              <div key={svc.name} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+              <div key={svc.name} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                 <div className="flex items-center gap-3">
                   <StatusDot status={status} />
                   <span className="text-sm text-gray-900 font-medium">{svc.name}</span>
@@ -141,7 +141,7 @@ export default function HealthPage() {
       </div>
 
       {/* FIGSY cron */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">FIGSY Cron</h2>
         <div className="flex items-center justify-between py-3">
           <div>
@@ -150,21 +150,21 @@ export default function HealthPage() {
           </div>
           <span className="text-sm text-gray-400">Last run: checking...</span>
         </div>
-        <div className="mt-3 bg-white/[0.03] border border-white/[0.06] rounded-lg p-4">
+        <div className="mt-3 bg-gray-50 border border-gray-100 rounded-lg p-4">
           <p className="text-xs text-gray-400">FIGSY cron run history will appear here once the reporting endpoint is connected.</p>
         </div>
       </div>
 
       {/* Last audit result */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">Last Audit Result</h2>
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-5 text-center">
+        <div className="bg-gray-50 border border-gray-100 rounded-lg p-5 text-center">
           <p className="text-gray-400 text-sm">Audit results are tracked as GitHub Issues.</p>
           <a
             href="https://github.com/jacquesvieiraza-blip/KIND/issues?q=label%3Aaudit"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-500 hover:text-gray-900 hover:bg-white/10 transition-colors"
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             View Audit Issues on GitHub
@@ -173,7 +173,7 @@ export default function HealthPage() {
       </div>
 
       {/* External status links */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">External Status Pages</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
@@ -187,7 +187,7 @@ export default function HealthPage() {
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between p-4 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
+              className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors group"
             >
               <div>
                 <p className="text-sm font-medium text-gray-900 group-hover:text-gray-900">{link.name}</p>

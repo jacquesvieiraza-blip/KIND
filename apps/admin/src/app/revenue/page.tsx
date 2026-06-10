@@ -148,7 +148,7 @@ export default async function RevenuePage() {
           { label: 'Active Paying',      value: stats.activeCount,                      sub: 'subscriptions',      color: 'bg-blue-500/10 text-blue-600' },
           { label: 'Blended ARPU',       value: stats.blendedArpu ? `$${stats.blendedArpu}` : '—', sub: 'per active client', color: 'bg-purple-400/10 text-purple-400' },
         ].map(({ label, value, sub, color }) => (
-          <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-5">
+          <div key={label} className="bg-white border border-gray-200 rounded-xl p-5">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${color}`}>
               <DollarSign className="w-4 h-4" />
             </div>
@@ -160,7 +160,7 @@ export default async function RevenuePage() {
       </div>
 
       {/* Current month progress */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-5">
           <Target className="w-5 h-5 text-[#7C3AED]" />
           <h2 className="font-semibold text-gray-900">KPI Progress — {current.month}</h2>
@@ -171,7 +171,7 @@ export default async function RevenuePage() {
               <span className="text-gray-500">MRR</span>
               <span className="font-semibold text-gray-900">${stats.mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
             </div>
-            <div className="w-full bg-white/10 rounded-full h-2">
+            <div className="w-full bg-gray-100 rounded-full h-2">
               <div className={`h-2 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-emerald-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
                    style={{ width: `${mrrPct}%` }} />
             </div>
@@ -182,7 +182,7 @@ export default async function RevenuePage() {
               <span className="text-gray-500">Clients</span>
               <span className="font-semibold text-gray-900">{stats.totalClients} / {current.clientTarget}</span>
             </div>
-            <div className="w-full bg-white/10 rounded-full h-2">
+            <div className="w-full bg-gray-100 rounded-full h-2">
               <div className={`h-2 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-emerald-500' : ragStatus(clientPct) === 'amber' ? 'bg-amber-500' : 'bg-indigo-400'}`}
                    style={{ width: `${clientPct}%` }} />
             </div>
@@ -192,7 +192,7 @@ export default async function RevenuePage() {
       </div>
 
       {/* Scenario Tracker */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp className="w-5 h-5 text-gray-400" />
           <h2 className="font-semibold text-gray-900">Scenario Tracker — {current.month}</h2>
@@ -204,9 +204,9 @@ export default async function RevenuePage() {
             const monthTarget = Math.round(current.mrrTarget * s.mrrMultiplier)
             const isActive = s.name === scenarioLabel
             return (
-              <div key={s.name} className={`rounded-xl border p-5 relative ${s.bg} ${s.border} ${isActive ? 'ring-1 ring-white/20' : ''}`}>
+              <div key={s.name} className={`rounded-xl border p-5 relative ${s.bg} ${s.border} ${isActive ? 'ring-1 ring-gray-200' : ''}`}>
                 {isActive && (
-                  <div className="absolute top-3 right-3 text-xs bg-white/10 text-gray-900 px-2 py-0.5 rounded-full font-medium">
+                  <div className="absolute top-3 right-3 text-xs bg-gray-100 text-gray-900 px-2 py-0.5 rounded-full font-medium">
                     You are here
                   </div>
                 )}
@@ -217,7 +217,7 @@ export default async function RevenuePage() {
                 <p className="text-2xl font-bold text-gray-900">${monthTarget.toLocaleString()}</p>
                 <p className="text-xs text-gray-400 mt-0.5">MRR target</p>
                 <p className="text-xs text-gray-400 mt-3 leading-relaxed">{s.description}</p>
-                <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                <div className="mt-3 pt-3 border-t border-gray-100">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Dec 2026 target</span>
                     <span className="text-gray-500 font-medium">${s.decTarget.toLocaleString()}</span>
@@ -230,19 +230,19 @@ export default async function RevenuePage() {
       </div>
 
       {/* Monthly revenue targets table */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Monthly Revenue Targets</h2>
         <p className="text-xs text-gray-400 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-gray-200">
                 {['Month', 'MRR Target', 'Client Target', 'Current vs Target', ''].map(h => (
                   <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-gray-100">
               {MONTHLY_TARGETS.map(t => {
                 const isCurrentMonth = t.month === current.month
                 const pct = Math.min((stats.mrrUsd / t.mrrTarget) * 100, 100)
@@ -260,7 +260,7 @@ export default async function RevenuePage() {
                         <span className="text-xs text-gray-400">upcoming</span>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <div className="w-24 bg-white/10 rounded-full h-1.5">
+                          <div className="w-24 bg-gray-100 rounded-full h-1.5">
                             <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-emerald-500' : ragStatus(pct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
                                  style={{ width: `${pct}%` }} />
                           </div>
@@ -280,7 +280,7 @@ export default async function RevenuePage() {
       </div>
 
       {/* ARPU Breakdown */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-1">ARPU Breakdown</h2>
         <p className="text-xs text-gray-400 mb-4">Average Revenue Per User across product tiers</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
@@ -305,7 +305,7 @@ export default async function RevenuePage() {
       </div>
 
       {/* Core KPI Targets */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Core KPI Targets</h2>
         <p className="text-xs text-gray-400 mb-4">Track these weekly — they&apos;re the leading indicators of growth</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -390,7 +390,7 @@ export default async function RevenuePage() {
       </div>
 
       {/* Credit sales placeholder */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Credit Sales — This Month</h2>
         <p className="text-xs text-gray-400 mb-4">Apollo credit purchases attributed to client accounts</p>
         <div className="bg-white border border-purple-100 rounded-lg p-5 text-center">

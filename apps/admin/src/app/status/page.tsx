@@ -55,7 +55,7 @@ function Stat({ icon: Icon, label, value, sub, alert }: {
   alert?: boolean
 }) {
   return (
-    <div className={`rounded-xl p-4 border ${alert ? 'border-red-500/30 bg-red-500/5' : 'border-white/[0.08] bg-white/[0.03]'}`}>
+    <div className={`rounded-xl p-4 border ${alert ? 'border-red-500/30 bg-red-500/5' : 'border-gray-100 bg-gray-50'}`}>
       <div className="flex items-center gap-2 mb-2">
         <Icon className={`w-4 h-4 ${alert ? 'text-red-400' : 'text-gray-400'}`} />
         <span className="text-gray-400 text-xs">{label}</span>
@@ -108,19 +108,19 @@ export default async function StatusPage() {
       </div>
 
       {!latest ? (
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-12 text-center">
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-12 text-center">
           <RefreshCw className="w-8 h-8 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-400">No status snapshot yet.</p>
           <p className="text-gray-300 text-sm mt-1">First snapshot runs at 07:10 SAST tomorrow morning.</p>
           <p className="text-gray-300 text-sm mt-3">Or trigger manually via Railway console:</p>
-          <code className="text-gray-400 text-xs bg-white/[0.05] px-3 py-1 rounded mt-2 inline-block">
+          <code className="text-gray-400 text-xs bg-white px-3 py-1 rounded mt-2 inline-block">
             POST /internal/status/snapshot
           </code>
         </div>
       ) : (
         <>
           {/* Summary banner */}
-          <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
             <p className="text-gray-700 text-sm leading-relaxed">{latest.summary}</p>
           </div>
 
@@ -159,7 +159,7 @@ export default async function StatusPage() {
               <h2 className="text-gray-500 text-xs uppercase tracking-widest font-semibold mb-3">Previous Snapshots</h2>
               <div className="space-y-2">
                 {history.slice(1).map((row) => (
-                  <div key={row.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+                  <div key={row.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-gray-400 text-xs">{SESSION_LABELS[row.session]}</span>
                       <span className="text-gray-300 text-xs">·</span>

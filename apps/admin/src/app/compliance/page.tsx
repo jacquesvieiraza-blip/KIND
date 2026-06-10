@@ -148,7 +148,7 @@ function StatusBadge({ status }: { status: Cert['status'] }) {
     </span>
   )
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/5 text-gray-400 border border-white/10">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white text-gray-400 border border-gray-200">
       <AlertCircle className="w-3 h-3" /> Planned
     </span>
   )
@@ -163,9 +163,9 @@ function ReadinessBar({ items }: { items: { item: string; done: boolean }[] }) {
         <span className="text-gray-400">Readiness</span>
         <span className="text-gray-500 font-medium">{done}/{items.length} controls</span>
       </div>
-      <div className="w-full bg-white/5 rounded-full h-1.5">
+      <div className="w-full bg-white rounded-full h-1.5">
         <div
-          className={`h-1.5 rounded-full transition-all ${pct === 100 ? 'bg-emerald-400' : pct >= 50 ? 'bg-amber-400' : 'bg-white/20'}`}
+          className={`h-1.5 rounded-full transition-all ${pct === 100 ? 'bg-emerald-400' : pct >= 50 ? 'bg-amber-400' : 'bg-gray-200'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -227,7 +227,7 @@ export default function CompliancePage() {
             </div>
           ))}
         </div>
-        <div className="mt-4 pt-4 border-t border-white/[0.06]">
+        <div className="mt-4 pt-4 border-t border-gray-100">
           <p className="text-gray-400 text-xs">
             💡 Efficiency play: do SOC 2 + ISO 27001 + ISO 42001 simultaneously in Year 2 using Vanta (~$80–100k total vs ~$120k separately). Shared controls = one programme, three badges.
           </p>
@@ -272,7 +272,7 @@ export default function CompliancePage() {
                     <div key={item.item} className="flex items-start gap-2">
                       {item.done
                         ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        : <div className="w-3.5 h-3.5 rounded-full border border-white/15 flex-shrink-0 mt-0.5" />}
+                        : <div className="w-3.5 h-3.5 rounded-full border border-gray-200 flex-shrink-0 mt-0.5" />}
                       <span className={`text-xs ${item.done ? 'text-gray-500' : 'text-gray-300'}`}>{item.item}</span>
                     </div>
                   ))}

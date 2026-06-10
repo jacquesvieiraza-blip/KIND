@@ -215,7 +215,7 @@ export default function LaunchPage() {
         </div>
       </div>
 
-      <div className="w-full bg-white/10 rounded-full h-2">
+      <div className="w-full bg-gray-100 rounded-full h-2">
         <div className="bg-indigo-400 h-2 rounded-full transition-all" style={{ width: `${(doneCount / allItems.length) * 100}%` }} />
       </div>
 
@@ -237,7 +237,7 @@ export default function LaunchPage() {
           <div className="divide-y divide-purple-50">
             {section.items.map(item => (
               <div key={item.id} onClick={() => toggle(item.id)}
-                className="flex items-start gap-4 px-6 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors">
+                className="flex items-start gap-4 px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors">
                 <div className="mt-0.5 shrink-0">
                   {checked[item.id] ? <CheckCircle className="w-5 h-5 text-emerald-400" /> : <Circle className="w-5 h-5 text-gray-300" />}
                 </div>

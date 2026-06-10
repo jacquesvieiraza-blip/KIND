@@ -230,7 +230,7 @@ const RISKS = [
 const STATUS_CONFIG = {
   active: { label: 'In Progress', bg: 'bg-blue-400/10', text: 'text-blue-400', ring: 'ring-blue-400/20' },
   upcoming: { label: 'Upcoming', bg: 'bg-indigo-400/10', text: 'text-indigo-400', ring: 'ring-indigo-400/20' },
-  planned: { label: 'Planned', bg: 'bg-white/5', text: 'text-gray-400', ring: 'ring-white/10' },
+  planned: { label: 'Planned', bg: 'bg-white', text: 'text-gray-400', ring: 'ring-gray-200' },
 }
 
 const COLOR_MAP: Record<string, { header: string; accent: string; progress: string }> = {

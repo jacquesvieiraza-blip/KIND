@@ -77,7 +77,7 @@ export default function FounderPage() {
     ae:      'bg-purple-400/10 border border-purple-400/20 text-purple-400',
   }
 
-  const inputClass = 'w-full bg-white/5 border border-white/10 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300'
+  const inputClass = 'w-full bg-white border border-gray-200 text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7C3AED] placeholder:text-gray-300'
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
@@ -116,7 +116,7 @@ export default function FounderPage() {
                 <p className="px-5 py-8 text-sm text-gray-400 text-center">No actions yet.</p>
               ) : digest.recent_logs.map(log => (
                 <div key={log.id} className="px-5 py-3 flex items-start gap-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${AGENT_COLORS[log.agent] ?? 'bg-white/5 border border-white/10 text-gray-500'}`}>{log.agent}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${AGENT_COLORS[log.agent] ?? 'bg-white border border-gray-200 text-gray-500'}`}>{log.agent}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-700">{log.action}</p>
                     <p className="text-xs text-gray-400 truncate">{JSON.stringify(log.payload).slice(0, 80)}</p>

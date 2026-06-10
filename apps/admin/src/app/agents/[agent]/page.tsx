@@ -67,7 +67,7 @@ export default async function AgentPage({ params }: { params: { agent: string } 
   return (
     <main className="px-8 py-6 max-w-5xl space-y-6">
       {/* Agent identity card */}
-      <div className={`bg-white/5 border rounded-xl p-6 ${agent.accentBg}`}>
+      <div className={`bg-white border rounded-xl p-6 ${agent.accentBg}`}>
         <div className="flex items-start gap-4">
           <div className={`w-14 h-14 rounded-xl border flex items-center justify-center flex-shrink-0 ${agent.accentBg}`}>
             <span className={`text-2xl font-bold ${agent.accent}`}>{agent.name[0]}</span>
@@ -77,7 +77,7 @@ export default async function AgentPage({ params }: { params: { agent: string } 
             <p className="text-gray-500 font-medium mt-0.5">{agent.title}</p>
             <p className="text-sm text-gray-400 mt-2 max-w-2xl">{agent.mandate}</p>
             {agent.story && (
-              <p className="text-sm text-gray-400 mt-3 max-w-2xl italic border-l-2 border-white/10 pl-3">{agent.story}</p>
+              <p className="text-sm text-gray-400 mt-3 max-w-2xl italic border-l-2 border-gray-200 pl-3">{agent.story}</p>
             )}
           </div>
         </div>
@@ -87,12 +87,12 @@ export default async function AgentPage({ params }: { params: { agent: string } 
       <AgentBriefSection agentId={agentId} agentName={agent.name} />
 
       {/* Recent Actions */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">Recent Actions</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-gray-200">
                 {['Time', 'Action', 'Details'].map(h => (
                   <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
@@ -110,7 +110,7 @@ export default async function AgentPage({ params }: { params: { agent: string } 
       </div>
 
       {/* Configure */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-2">Configure</h2>
         <p className="text-sm text-gray-400">Agent configuration settings will be available here in a future release. This section will allow you to adjust thresholds, notification preferences, and scheduling for {agent.name}.</p>
         <div className="mt-4 bg-white border border-purple-100 rounded-lg p-4">

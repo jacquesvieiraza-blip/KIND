@@ -48,14 +48,14 @@ async function insertBatched(table: string, rows: Record<string, unknown>[], chu
 }
 
 export async function seedShowcaseData(clientId: string, icpId: string | null): Promise<{ leads: number; sent: number; replies: number; meetings: number; pipeline: number }> {
-  const N_LEADS = 240
+  const N_LEADS = 600
 
   // 1) Leads — all delivered + scored, pipeline ≈ $420k
   let pipeline = 0
   const leadRows = Array.from({ length: N_LEADS }, (_, i) => {
     const first = rand(FIRST), last = rand(LAST), co = rand(COMPANIES)
     const ind = rand(INDUSTRIES), country = rand(COUNTRIES)
-    const deal = ri(800, 4200); pipeline += deal
+    const deal = ri(1200, 4800); pipeline += deal
     const status = i % 5 < 3 ? 'consent_given' : i % 5 === 3 ? 'scored' : 'exported'
     return {
       client_id: clientId, icp_id: icpId,
@@ -105,7 +105,7 @@ export async function seedShowcaseData(clientId: string, icpId: string | null): 
 
   // 5) Replies — ~12.5% of sends; ~18 booked meetings, several 🔥 hot waiting
   const N_REPLIES = Math.round(sentRows.length * 0.125)
-  const N_MEETINGS = 18
+  const N_MEETINGS = 45
   const replyRows: Record<string, unknown>[] = []
   for (let i = 0; i < N_REPLIES; i++) {
     const lead = leadRows[i]; const e = enrollments[i]
@@ -133,8 +133,22 @@ export async function seedShowcaseData(clientId: string, icpId: string | null): 
   }))
   await insertBatched('credit_transactions', txRows, 500)
 
+  // 6b) Set the campaign's denormalised counters to match the seeded rows, so any
+  //     counter-reading surface shows the right numbers too (the reconcile already
+  //     handles /campaigns, but this keeps everything consistent).
+  const interestedN = replyRows.filter(r => r.classification === 'hot' || r.classification === 'interested').length
+  const optedOutN   = replyRows.filter(r => r.classification === 'opt_out' || r.classification === 'unsubscribe').length
+  await db.from('figsy_campaigns').update({
+    emails_sent: sentRows.length,
+    replies_total: replyRows.length,
+    replies_interested: interestedN,
+    opted_out: optedOutN,
+    meetings_booked: N_MEETINGS,
+    leads_enrolled: enrollments.length,
+  }).eq('id', campaignId)
+
   // 7) Healthy balance
-  await db.from('clients').update({ credit_balance: 1240 }).eq('id', clientId)
+  await db.from('clients').update({ credit_balance: 8600 }).eq('id', clientId)
 
   return { leads: leads.length, sent: sentRows.length, replies: replyRows.length, meetings: N_MEETINGS, pipeline }
 }

@@ -244,7 +244,7 @@ export default function DemoPage() {
                   className="w-4 h-4 rounded accent-[#7C3AED] shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-[#7C3AED]">Showcase mode — seed impressive demo data</p>
-                  <p className="text-xs text-gray-500">~240 leads · ~620 emails sent · ~78 replies · 18 meetings · ~$420k pipeline · 🔥 hot replies waiting</p>
+                  <p className="text-xs text-gray-500">~600 leads · ~1,750 emails sent · ~220 replies · 45 meetings · ~$1.8M pipeline · 🔥 hot replies waiting</p>
                 </div>
               </label>
 

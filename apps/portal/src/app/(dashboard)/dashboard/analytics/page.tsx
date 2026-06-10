@@ -196,18 +196,19 @@ export default function AnalyticsPage() {
   }))
 
   // ── Prospect status breakdown from stats + replies ────────────────────────
-  const hotReplies     = replies.filter(r => r.classification === 'hot').length
-  const optOutReplies  = replies.filter(r => r.classification === 'opt_out').length
-  const interestedReplies = replies.filter(r => r.classification === 'interested').length
+  const hotReplies     = replies.filter(r => r.classification === 'hot' || r.classification === 'interested').length
+  const optOutReplies  = replies.filter(r => r.classification === 'opt_out' || r.classification === 'unsubscribe').length
+  // Real booked meetings = replies with a meeting_booked_at stamp (NOT hot replies).
+  const meetingsBooked = replies.filter(r => !!(r as { meeting_booked_at?: string | null }).meeting_booked_at).length
   const totalContacted = leadStats?.consented ?? 0
   const pending        = Math.max(0, totalContacted - (leadStats?.exported ?? 0))
 
   const prospectStatuses: ProspectStatus[] = [
     { name: 'New',             value: Math.max(0, (leadStats?.total ?? 0) - totalContacted), color: '#7C3AED' },
     { name: 'Pending',         value: pending,           color: '#2563EB' },
-    { name: 'Interested',      value: interestedReplies, color: '#059669' },
+    { name: 'Interested',      value: Math.max(0, hotReplies - meetingsBooked), color: '#059669' },
     { name: 'Not Interested',  value: Math.max(0, (replies.filter(r => r.classification === 'not_interested').length)), color: '#DC2626' },
-    { name: 'Meeting Booked',  value: hotReplies,        color: '#D97706' },
+    { name: 'Meeting Booked',  value: meetingsBooked,    color: '#D97706' },
     { name: 'Unsubscribed',    value: optOutReplies,     color: '#6B7280' },
   ].filter(s => s.value > 0)
 
@@ -237,7 +238,7 @@ export default function AnalyticsPage() {
           { label: 'Total Leads',   value: totalLeads.toLocaleString(),     icon: <Users className="w-5 h-5" />,       bg: 'bg-purple-100 text-purple-500',  text: 'text-gray-900' },
           { label: 'Emails Sent',   value: totalEmails.toLocaleString(),    icon: <Send className="w-5 h-5" />,        bg: 'bg-blue-100 text-blue-500',       text: 'text-blue-700' },
           { label: 'Reply Rate',    value: `${replyRate}%`,                 icon: <MessageSquare className="w-5 h-5" />, bg: replyRate >= 3 ? 'bg-green-100 text-green-500' : 'bg-amber-100 text-amber-500', text: replyRate >= 3 ? 'text-green-700' : 'text-amber-700' },
-          { label: 'Meetings Booked', value: hotReplies.toLocaleString(),   icon: <Calendar className="w-5 h-5" />,    bg: 'bg-amber-100 text-amber-500',     text: 'text-amber-700' },
+          { label: 'Meetings Booked', value: meetingsBooked.toLocaleString(), icon: <Calendar className="w-5 h-5" />,    bg: 'bg-amber-100 text-amber-500',     text: 'text-amber-700' },
         ].map(({ label, value, icon, bg, text }) => (
           <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-5 flex items-center gap-4">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>{icon}</div>

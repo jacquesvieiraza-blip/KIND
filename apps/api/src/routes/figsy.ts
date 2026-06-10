@@ -414,9 +414,13 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
       optOutQuery,
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'consent_sent'),
+      // "Contacted" = leads actually put into outreach (enrolled), scoped via campaigns —
+      // NOT status='consent_sent' (which over-counted, e.g. 19 contacted while 0 sent).
+      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds),
       db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null),
-      db.from('figsy_campaigns').select('meetings_booked').eq('client_id', clientId),
+      // Meetings = real booked replies (meeting_booked_at set), NOT the driftable
+      // figsy_campaigns.meetings_booked counter.
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('meeting_booked_at', 'is', null),
       opensQuery,
     ])
 
@@ -433,7 +437,7 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
       ? Math.round(scores.reduce((sum, l) => sum + (l.score || 0), 0) / scores.length)
       : 0
 
-    const meetingsBooked = (meetingsRes.data ?? []).reduce((s, c) => s + (c.meetings_booked ?? 0), 0)
+    const meetingsBooked = meetingsRes.count ?? 0
     const totalOpened   = opensRes.count ?? 0
 
     const replyRate     = totalSent > 0 ? totalReplied / totalSent : 0

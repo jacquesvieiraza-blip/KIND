@@ -251,12 +251,13 @@ adminRouter.post('/demos/:id/login', async (req: Request, res: Response) => {
     })
 
     // The action_link uses PKCE and can't be exchanged from a fresh tab (it falls
-    // back to any existing session, or bounces to /login). Instead pass the token
-    // hash to a portal route that signs out + verifyOtp's into the DEMO session.
-    const props = linkData?.properties as { hashed_token?: string; verification_type?: string; action_link?: string } | undefined
+    // back to any existing session, or bounces to /login). Instead pass the demo
+    // user's email + one-time code to a portal route that signs out + verifyOtp's
+    // into the DEMO session (canonical email-OTP flow, no PKCE).
+    const props = linkData?.properties as { email_otp?: string; action_link?: string } | undefined
     const portal = process.env.PORTAL_URL || 'https://app.get-kind.com'
-    const openUrl = props?.hashed_token
-      ? `${portal}/demo-login?t=${encodeURIComponent(props.hashed_token)}&ty=${encodeURIComponent(props.verification_type || 'magiclink')}`
+    const openUrl = props?.email_otp
+      ? `${portal}/demo-login?e=${encodeURIComponent(user.email)}&o=${encodeURIComponent(props.email_otp)}`
       : null
 
     res.json({ success: true, data: { open_url: openUrl, magic_link: props?.action_link ?? null } })

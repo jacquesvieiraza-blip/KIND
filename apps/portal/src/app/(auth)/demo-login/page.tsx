@@ -1,7 +1,7 @@
 'use client'
 
-/** Demo auto-login. The admin "Open Demo" sends here with the demo user's token
- *  hash. We sign OUT any existing session (so it doesn't fall back to the
+/** Demo auto-login. The admin "Open Demo" sends here with the demo user's email +
+ *  one-time code. We sign OUT any existing session (so it doesn't fall back to the
  *  founder's own account) then verifyOtp INTO the demo session — no PKCE, no
  *  sign-in screen — and land on the dashboard. */
 
@@ -10,8 +10,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 
-type OtpType = 'magiclink' | 'email' | 'signup' | 'invite' | 'recovery' | 'email_change'
-
 function DemoLogin() {
   const router = useRouter()
   const params = useSearchParams()
@@ -19,23 +17,17 @@ function DemoLogin() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const tokenHash = params.get('t')
-    const ty = (params.get('ty') || 'magiclink') as OtpType
-    if (!tokenHash) { setError('Missing demo token — generate the link again.'); return }
+    const email = params.get('e')
+    const otp = params.get('o')
+    if (!email || !otp) { setError('Missing demo credentials — generate the link again.'); return }
 
     ;(async () => {
       // Drop any current session so we don't land on the wrong (e.g. founder's) account.
       await supabase.auth.signOut()
-      const { error: vErr } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: ty })
-      if (vErr) {
-        // Fall back to 'email' type if the magiclink type isn't accepted.
-        if (ty !== 'email') {
-          const { error: e2 } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' })
-          if (!e2) { router.replace('/dashboard'); router.refresh(); return }
-        }
-        setError(vErr.message)
-        return
-      }
+      // Try 'email' OTP type, fall back to 'magiclink' (varies by Supabase version).
+      let vErr = (await supabase.auth.verifyOtp({ email, token: otp, type: 'email' })).error
+      if (vErr) vErr = (await supabase.auth.verifyOtp({ email, token: otp, type: 'magiclink' })).error
+      if (vErr) { setError(vErr.message); return }
       router.replace('/dashboard')
       router.refresh()
     })()

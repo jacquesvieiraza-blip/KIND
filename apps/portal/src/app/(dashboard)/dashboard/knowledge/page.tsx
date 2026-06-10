@@ -463,16 +463,10 @@ function DNCTab() {
           })
           setEntries(loaded)
         } else {
-          setEntries([
-            { id: '1', value: 'competitor.com', type: 'domain' },
-            { id: '2', value: 'partner@example.com', type: 'email' },
-          ])
+          setEntries([]) // real empty state — no fake placeholder rows
         }
       } catch {
-        setEntries([
-          { id: '1', value: 'competitor.com', type: 'domain' },
-          { id: '2', value: 'partner@example.com', type: 'email' },
-        ])
+        setEntries([]) // load failed → empty, not fake placeholders
       }
     }
     load()

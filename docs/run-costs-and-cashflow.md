@@ -1,5 +1,6 @@
 # K.I.N.D — Run Costs & Cashflow Model
-*Last updated: **10 June 2026** — added §5c Cost Per Product · §5d Future Costs & Scaling Map. Corrected for: the 4-agent line-up (FIGSY/Milla/Vida/Denise), the per-rep company engine (#88, the ARPU multiplier), multi-source data (PDL wired), and the verified Apollo-ToS picture (the structural data decision = the single biggest cost lever at scale).*
+*Last updated: **10 June 2026** — added §5c Cost Per Product · §5d Future Costs & Scaling Map. Corrected for: the 4-agent line-up, the per-rep company engine (#88), multi-source data (PDL), the verified Apollo-ToS picture.*
+*🔍 **AUDIT FIXES (10 Jun, founder-flagged):** email = **Zoho Mail** (was wrongly "Google Workspace"); **2 domains** now listed (`get-kind.com` + `gettingkind.com`, was 1); **3 agent subscriptions added to §3** (Vida $29 · Milla $49 · Denise $99 + Milla+Vida $69 bundle — previously only the 2 credit products were listed). Also fixed in code: `routes/mcp.ts` was pointing developers at the wrong domain `api.kindai.co.za` → corrected to `api.get-kind.com`. **Still to chase:** the admin "Launch" checklist page still says Google Workspace — update to Zoho.*
 
 > ### 🧭 READ FIRST — the lay of the land (10 Jun)
 > **The model is ~95% gross margin and stays there.** Costs are almost entirely *fixed* (infra ~$140/mo) + a *tiny* variable (data + AI per lead). Revenue scales ~linearly with clients/seats while costs stay near-flat → margin climbs toward 95%+ after a handful of clients. **The whole game is revenue growth, not cost control.**
@@ -24,11 +25,11 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 ### Group B — Soon (first weeks / before real volume)
 | Service | What it does | Plan | Cost/mo |
 |---|---|---|---|
-| Google Workspace | Pro email `@get-kind.com` | Business Starter | $12–18 |
+| **Zoho Mail** | Business email on `@get-kind.com` (**we use Zoho, NOT Google Workspace** — corrected 10 Jun) | Mail Lite / free tier | **~$0–4** |
 | Render | API warm standby (crash failover) | Starter | $7 |
 | Cloudflare | Load balancer → routes to standby on outage | LB Basic | $5 |
-| get-kind.com domain | Domain registration | Annual ~$15 | $1.25 |
-| **Group B subtotal** | | | **~$25–31/mo** |
+| **2 domains** | **`get-kind.com`** (transactional) + **`gettingkind.com`** (cold sending) | ~$15/yr each | **~$2.50** |
+| **Group B subtotal** | | | **~$14–19/mo** |
 
 ### Group C — Development
 | Service | What it does | Plan | Cost/mo |
@@ -84,6 +85,18 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | FIGSY Advanced | 20 | $60 | R1,140 |
 | FIGSY Advanced | 40 | $120 | R2,280 |
 | FIGSY Advanced | 100 | $300 | R5,700 |
+
+→ Lead Gen = **$1/lead** · FIGSY Advanced = **$3/lead**.
+
+### Agent Subscriptions — monthly (added to doc 10 Jun · live in Stripe)
+*The doc previously listed only the two credit products. These three monthly agents are also live (`STRIPE_PRICE_VIDA/MILLA/DENISE_MONTHLY`).*
+
+| Product | Price USD/mo | What it is |
+|---|---|---|
+| **Vida** (The Connector) | **$29** | Website + WhatsApp chatbot — converts inbound 24/7 |
+| **Milla** (The Brain) | **$49** | Intelligence, document drafting, knowledge Q&A |
+| **Milla + Vida bundle** | **$69** | (save $9/mo) |
+| **Denise** (The Closer) | **$99** | Warm follow-ups, proposals, confirms meetings |
 
 **Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once value is proven.
 
@@ -184,7 +197,7 @@ At **$160 ARPU** (Growth profile): net ~$154/client/mo.
 | Product | What drives the cost | Est. variable cost to serve | What you charge | Gross margin |
 |---|---|---|---|---|
 | **FIGSY** (AI SDR) | Apollo data (~$0.008/lead) + Claude Haiku 3-email generation (~$0.012) + scoring (~$0.0004) + Resend send (~negligible) | **~$0.02–0.10 per lead** fully processed | ~$3.00 / lead (FIGSY Advanced credits) | **~97%** |
-| **Milla** (Brain/VA) | Claude tokens per question/draft (Haiku/Sonnet) | **~$0.01–0.03 per query** | Subscription (bundled) | **~95%+** |
+| **Milla** (Brain/VA) | Claude tokens per question/draft (Haiku/Sonnet) | **~$0.01–0.03 per query** | $49/mo | **~95%+** |
 | **Vida** (Chatbot) | Claude tokens per conversation turn | **~$0.01–0.03 per conversation** | $29/mo | **~90%+** (a 100-chat/mo client ≈ $1–3 cost) |
 | **Denise** (Closer) | Claude tokens per follow-up/proposal draft (longer outputs) | **~$0.02–0.05 per draft** | $99/mo | **~95%** *(until voice — see §5d)* |
 

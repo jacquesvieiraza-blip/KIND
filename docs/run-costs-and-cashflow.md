@@ -1,5 +1,10 @@
 # K.I.N.D — Run Costs & Cashflow Model
-*Last updated: 3 June 2026 — corrected to actual stack (Railway-only hosting, Stripe billing; removed stale Vercel + Paystack entries). Added resilience costs (Render standby + Cloudflare LB).*
+*Last updated: **10 June 2026** — added §5c Cost Per Product · §5d Future Costs & Scaling Map. Corrected for: the 4-agent line-up (FIGSY/Milla/Vida/Denise), the per-rep company engine (#88, the ARPU multiplier), multi-source data (PDL wired), and the verified Apollo-ToS picture (the structural data decision = the single biggest cost lever at scale).*
+
+> ### 🧭 READ FIRST — the lay of the land (10 Jun)
+> **The model is ~95% gross margin and stays there.** Costs are almost entirely *fixed* (infra ~$140/mo) + a *tiny* variable (data + AI per lead). Revenue scales ~linearly with clients/seats while costs stay near-flat → margin climbs toward 95%+ after a handful of clients. **The whole game is revenue growth, not cost control.**
+> **Two things can dent margin at scale, both manageable:** ① **Apollo data** (the only real variable cost — and the structural fix, "clients bring their own key", drives it toward **$0** while solving the ToS — see §5d); ② **payment processing** (~2.9% Stripe / ~3.8% Flutterwave — the largest %-of-revenue cost at scale).
+> **The biggest GROWTH lever is the per-rep company engine (#88):** a 10-seat company is ~10× a single-seat client at almost the same cost-to-serve. **Stale-figure note:** older sections (§7/§10/§11) still say "Paystack" — actual processors are **Stripe (global) + Flutterwave (Africa)**; and the "$80 ARPU" is *single-seat* — the per-rep model multiplies it.
 
 ---
 
@@ -170,6 +175,48 @@ At **$160 ARPU** (Growth profile): net ~$154/client/mo.
 \* Apollo → Organization ($149) at ~50 clients · \** + Resend higher tier at scale
 
 **Break-even: 2 clients (infra) · 5 clients (incl. Claude Code dev).** After ~10 clients it's 78%+ margin — the model is almost pure margin once the fixed stack is covered. **The lever that matters is ARPU: a FIGSY client ($160+) is worth ~2× a starter ($80).** Push FIGSY upsell after first leads land.
+
+---
+
+## 5c. COST PER PRODUCT — what each agent costs to serve (10 Jun)
+*The founder's question: "cost per product." Here's the variable cost to actually run each agent for a client. Headline: **only FIGSY's data is a meaningful cost. The other three agents are near-free to serve** on Claude Haiku.*
+
+| Product | What drives the cost | Est. variable cost to serve | What you charge | Gross margin |
+|---|---|---|---|---|
+| **FIGSY** (AI SDR) | Apollo data (~$0.008/lead) + Claude Haiku 3-email generation (~$0.012) + scoring (~$0.0004) + Resend send (~negligible) | **~$0.02–0.10 per lead** fully processed | ~$3.00 / lead (FIGSY Advanced credits) | **~97%** |
+| **Milla** (Brain/VA) | Claude tokens per question/draft (Haiku/Sonnet) | **~$0.01–0.03 per query** | Subscription (bundled) | **~95%+** |
+| **Vida** (Chatbot) | Claude tokens per conversation turn | **~$0.01–0.03 per conversation** | $29/mo | **~90%+** (a 100-chat/mo client ≈ $1–3 cost) |
+| **Denise** (Closer) | Claude tokens per follow-up/proposal draft (longer outputs) | **~$0.02–0.05 per draft** | $99/mo | **~95%** *(until voice — see §5d)* |
+
+**The one cost that matters is Apollo (FIGSY's data).** Everything else is sub-cent Claude inference. So: protect FIGSY's data economics (§5d), keep generation on Haiku (cheap) with prompt caching, and the whole platform sits at ~95% gross margin.
+*Numbers are estimates on current Haiku pricing — confirm against real Anthropic + Apollo invoices once volume is live; the structure won't change.*
+
+---
+
+## 5d. FUTURE COSTS & THE SCALING MAP (10 Jun)
+*"How we actually start scaling." The cost structure barely moves as you grow — here's what comes online, when, and the one structural decision that decides everything.*
+
+### 🔑 The single biggest cost lever at scale: the Apollo data decision
+Verified 10 Jun: reselling Apollo data off one account violates ToS **from client #1** (not at "50 clients" — that figure was wrong). Two compliant structures, with **opposite cost profiles**:
+- **(a) Apollo API Reseller / Data-Licensing agreement** (`partners@apollo.io`): a contract (likely higher Apollo spend or a revenue share) — but it legitimises one-account-many-clients and Apollo cost stays on K.I.N.D's books, growing with usage.
+- **(b) Client-brings-own-Apollo-key** (Agency sub-accounts): **K.I.N.D's Apollo cost → ~$0** — each client pays Apollo directly. **This is the margin-maximising AND compliance-solving choice** — it removes the only meaningful variable cost *and* fixes the ToS. Trade-off: a little signup friction. **For the per-rep company model (a company getting one Apollo account for its seats) this is very natural.** → Strongly favour (b) as the default; (a) for clients who won't manage a key.
+- **(c) Multi-source (PDL wired, dormant):** PDL free tier → paid (pay-as-you-go), Hunter ~$49/mo. Cuts single-vendor risk + fills African coverage gaps; not the compliance fix on its own.
+
+### Costs that come online as you grow
+| Stage | Clients | New cost online | Monthly impact |
+|---|---|---|---|
+| **0 · Launch** | 1–10 | Current floor (Supabase/Railway/Resend/Apollo) | **~$138/mo** + Apollo. Break-even 2–5 clients. |
+| **1 · Per-rep companies (#88)** | 10–50 | Apollo grows with usage **(or → ~$0 if client-keys)** · slightly more Railway/Supabase compute | Marginal — ARPU jumps far faster (a 10-seat company ≈ 10× a single seat) |
+| **2 · Scaling** | 50–100 | Apollo **Organization tier** (or reseller/client-keys resolved) · PDL/Hunter if multi-source on · possibly 1st support hire | Infra still <$300/mo; biggest line becomes **payment fees** (~3% of revenue) |
+| **3 · Intelligence + voice** | 100+ | **Vapi** (Denise voice ~$0.05–0.15/min — the next real variable cost) · Memory v2 (pgvector = Supabase compute) · Learning-engine inference (Haiku, cheap) | Still <5% of revenue; voice is the one to meter as it scales |
+
+### How we actually start scaling (the levers, in order)
+1. **Partner channel** — 1 good agency partner ≈ 10 clients/month. The single fastest lever; nearly free. (Demmy/Nigeria live.)
+2. **Per-rep company engine (#88)** — the ARPU multiplier. Move from selling single seats to selling *teams*. This is the revenue inflection.
+3. **Dogfood (FIGSY sells K.I.N.D)** — the warmup campaign already does this; scale it. Near-zero CAC.
+4. **ARPU uplift** — push FIGSY + Denise onto Lead-Gen starters after first leads land.
+
+**The scaling truth:** revenue can 10× while monthly costs go from ~$140 to maybe ~$400. **You are not cost-constrained — you are growth-constrained.** Pour energy into partners + the per-rep engine, resolve the Apollo structure (favour client-keys), and the margin takes care of itself.
 
 ---
 

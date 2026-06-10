@@ -9,6 +9,12 @@ import {
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
+// FIGSY training backend (figsy_knowledge table + /figsy/knowledge/* endpoints +
+// wiring into email generation) is NOT built yet — see V2-TRACKER "Train FIGSY".
+// Until then this page is a PREVIEW: saves are disabled and a coming-soon banner
+// shows, so it's honest instead of failing to save. Flip to true on launch.
+const TRAINING_LIVE = false
+
 type Tab = 'pitch' | 'keywords' | 'signals' | 'dnc' | 'messaging' | 'context' | 'prompts'
 type Section = 'brief' | 'targeting' | 'guardrails'
 
@@ -218,7 +224,7 @@ function PitchTab() {
         {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
           onClick={save}
-          disabled={saving}
+          disabled={saving || !TRAINING_LIVE}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -337,7 +343,7 @@ function KeywordsTab() {
         {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !TRAINING_LIVE}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -429,7 +435,7 @@ function SignalsTab() {
         {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !TRAINING_LIVE}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -558,7 +564,7 @@ function DNCTab() {
         {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !TRAINING_LIVE}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -669,7 +675,7 @@ function MessagingTab() {
         {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !TRAINING_LIVE}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -703,10 +709,10 @@ function ContextTab() {
         } else if (res.url) {
           setUrls([{ id: '1', url: res.url, label: res.context || res.url, status: 'trained' }])
         } else {
-          setUrls([{ id: '1', url: 'https://get-kind.com', label: 'Main website', status: 'trained' }])
+          setUrls([])
         }
       } catch {
-        setUrls([{ id: '1', url: 'https://get-kind.com', label: 'Main website', status: 'trained' }])
+        setUrls([])
       }
     }
     load()
@@ -805,7 +811,7 @@ function ContextTab() {
         {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !TRAINING_LIVE}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -910,7 +916,7 @@ function PromptsTab() {
         {saved ? <SavedBadge /> : saveError ? <ErrorBadge /> : <span />}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !TRAINING_LIVE}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -961,6 +967,15 @@ export default function KnowledgePage() {
           </p>
         </div>
       </div>
+
+      {!TRAINING_LIVE && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+          <span className="text-base leading-none mt-0.5">🔧</span>
+          <p className="text-sm text-amber-800">
+            <strong>FIGSY training is coming soon.</strong> This is a preview of the controls — you can look around, but saving isn&apos;t active yet. We&apos;ll switch it on shortly.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Section sidebar */}

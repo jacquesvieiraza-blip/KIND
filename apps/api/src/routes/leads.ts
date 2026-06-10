@@ -174,7 +174,25 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
 
     const { data, count, error } = await query
     if (error) throw error
-    res.json({ success: true, data, total: count, page: Number(page), limit: Number(limit) })
+
+    // lead → its campaign back-link: attach the campaign each lead is enrolled in
+    // (most-recent enrollment wins) so the list can link a lead back to its campaign.
+    const rows = (data ?? []) as Array<Record<string, any>>
+    const leadIds = rows.map(l => l.id).filter(Boolean)
+    if (leadIds.length > 0) {
+      const { data: enr } = await db.from('figsy_enrollments')
+        .select('lead_id, enrolled_at, figsy_campaigns(id, name)')
+        .in('lead_id', leadIds)
+        .order('enrolled_at', { ascending: false })
+      const byLead = new Map<string, { id: string; name: string }>()
+      for (const e of (enr ?? []) as Array<Record<string, any>>) {
+        const camp = Array.isArray(e.figsy_campaigns) ? e.figsy_campaigns[0] : e.figsy_campaigns
+        if (camp?.id && !byLead.has(e.lead_id)) byLead.set(e.lead_id, { id: camp.id, name: camp.name })
+      }
+      for (const l of rows) l.campaign = byLead.get(l.id) ?? null
+    }
+
+    res.json({ success: true, data: rows, total: count, page: Number(page), limit: Number(limit) })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch leads' }) }
 })
 

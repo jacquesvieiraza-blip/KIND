@@ -1021,6 +1021,17 @@ export default function LeadsPage() {
                       <td className="px-4 py-3">
                         <PipelineStageChip status={lead.status} />
                         <CampaignMicroBar lead={lead} />
+                        {(() => {
+                          // lead → its campaign back-link (campaign attached server-side)
+                          const camp = (lead as Lead & { campaign?: { id: string; name: string } | null }).campaign
+                          return camp ? (
+                            <a href={`/dashboard/figsy/${camp.id}`}
+                              className="block mt-1 text-[11px] font-medium text-[#7C3AED] hover:text-[#6D28D9] truncate max-w-[160px]"
+                              title={camp.name}>
+                              In: {camp.name} →
+                            </a>
+                          ) : null
+                        })()}
                         {lead.consent_auto_fired && (
                           <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
                             ✓ Auto-sent

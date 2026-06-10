@@ -62,6 +62,7 @@ export default function DemoPage() {
     website_url:   '',
     expires_at:    defaultExpiry,
     created_by:    SALES_TEAM[0],
+    showcase:      true, // default: seed impressive demo data for sales walkthroughs
   })
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 4000) }
@@ -91,7 +92,7 @@ export default function DemoPage() {
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Failed to create demo')
       setShowForm(false)
-      setForm({ prospect_name: '', company_name: '', industry: 'Fintech', country: 'South Africa', website_url: '', expires_at: defaultExpiry, created_by: SALES_TEAM[0] })
+      setForm({ prospect_name: '', company_name: '', industry: 'Fintech', country: 'South Africa', website_url: '', expires_at: defaultExpiry, created_by: SALES_TEAM[0], showcase: true })
       showToast(`Demo created for ${data.data.company_name} — ICP running in background`)
       loadDemos()
     } catch (err) {
@@ -235,8 +236,20 @@ export default function DemoPage() {
                 </div>
               </div>
 
+              <label className="flex items-center gap-3 px-4 py-3 rounded-lg border border-purple-200 bg-purple-50 cursor-pointer">
+                <input type="checkbox" checked={form.showcase}
+                  onChange={e => setForm(f => ({ ...f, showcase: e.target.checked }))}
+                  className="w-4 h-4 rounded accent-[#7C3AED] shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-[#7C3AED]">Showcase mode — seed impressive demo data</p>
+                  <p className="text-xs text-gray-500">~240 leads · ~620 emails sent · ~78 replies · 18 meetings · ~$420k pipeline · 🔥 hot replies waiting</p>
+                </div>
+              </label>
+
               <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-xs text-blue-700">
-                <strong>What happens:</strong> A real client account is created with all 4 products active. An ICP is auto-built from the industry + country and run against Apollo — real leads with real scores will appear within minutes. Click "Open Demo" to launch the portal as this client in a new tab.
+                <strong>What happens:</strong> {form.showcase
+                  ? 'A demo client is created with all 4 products active and pre-loaded with impressive, internally-consistent data — every screen (Dashboard, Leads, Campaigns, Inbox, Usage) shows a thriving account. Click "Open Demo" to walk a prospect through it.'
+                  : 'A real client account is created with all 4 products active. An ICP is auto-built from industry + country and run against Apollo — real leads with real scores appear within minutes.'}
               </div>
 
               {createError && (
@@ -245,9 +258,9 @@ export default function DemoPage() {
 
               <div className="flex items-center gap-3 pt-1">
                 <button type="submit" disabled={creating}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] text-gray-900 text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors">
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] text-white text-sm font-medium rounded-lg hover:bg-[#6D28D9] disabled:opacity-60 transition-colors">
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  {creating ? 'Creating…' : 'Create Demo Environment'}
+                  {creating ? 'Creating…' : form.showcase ? 'Create Showcase Demo' : 'Create Demo Environment'}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}
                   className="px-5 py-2.5 border border-gray-200 text-sm font-medium rounded-lg hover:border-gray-400 transition-colors">

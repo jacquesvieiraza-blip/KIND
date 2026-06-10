@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { runIcpJob } from './icps'
 import { computeChurnRisk } from './internal'
+import { seedShowcaseData } from '../lib/seed-showcase'
 
 export const adminRouter = Router()
 
@@ -134,12 +135,13 @@ adminRouter.post('/demos', async (req: Request, res: Response) => {
         'expires_at must be a valid future date',
       ),
       created_by:    z.string().min(1).max(200),
+      showcase:      z.boolean().optional(), // true = seed impressive fake data instead of a real Apollo run
     }).safeParse(req.body)
     if (!parsed.success) {
       res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
       return
     }
-    const { prospect_name, company_name, industry, country, website_url, expires_at, created_by } = parsed.data
+    const { prospect_name, company_name, industry, country, website_url, expires_at, created_by, showcase } = parsed.data
 
     // 1. Create auth user with random credentials (internal only — never shared with prospect)
     const randomSuffix = Math.random().toString(36).slice(2, 10)
@@ -198,14 +200,28 @@ adminRouter.post('/demos', async (req: Request, res: Response) => {
 
     if (icpErr) throw new Error(`ICP insert failed: ${icpErr.message}`)
 
-    // 5. Run ICP job in background — real Apollo leads, real scores
-    runIcpJob(icp.id, clientId, userId).catch(err =>
-      console.error('[demo] ICP job failed:', err)
-    )
+    // 5. Populate the demo.
+    //   showcase=true → seed impressive, internally-consistent fake data (for sales demos).
+    //   otherwise     → run a real Apollo ICP job in the background (real, modest leads).
+    let message = 'Demo environment created — ICP is running in the background'
+    if (showcase) {
+      try {
+        const r = await seedShowcaseData(clientId, icp.id)
+        message = `Showcase demo ready — ${r.leads} leads · ${r.sent} emails sent · ${r.replies} replies · ${r.meetings} meetings · $${r.pipeline.toLocaleString()} pipeline`
+      } catch (seedErr) {
+        console.error('[demo] showcase seed failed:', seedErr)
+        // Non-fatal: the demo client still exists; surface the issue.
+        message = `Demo created but showcase seeding failed: ${seedErr instanceof Error ? seedErr.message : String(seedErr)}`
+      }
+    } else {
+      runIcpJob(icp.id, clientId, userId).catch(err =>
+        console.error('[demo] ICP job failed:', err)
+      )
+    }
 
     res.status(201).json({
       success: true,
-      data: { client_id: clientId, user_id: userId, company_name, message: 'Demo environment created — ICP is running in the background' },
+      data: { client_id: clientId, user_id: userId, company_name, showcase: !!showcase, message },
     })
   } catch (err) {
     console.error('[admin/demos/create]', err)

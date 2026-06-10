@@ -106,8 +106,9 @@ export default function DemoPage() {
     try {
       const res = await fetch(`/api/proxy/admin/demos/${id}/login`, { method: 'POST' })
       const data = await res.json()
-      if (!data.success || !data.data?.magic_link) throw new Error('No magic link returned')
-      window.open(data.data.magic_link, '_blank')
+      const url = data?.data?.open_url || data?.data?.magic_link
+      if (!data.success || !url) throw new Error('No login link returned')
+      window.open(url, '_blank')
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to open demo')
     }

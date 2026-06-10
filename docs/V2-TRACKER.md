@@ -23,6 +23,48 @@ Linked from `KIND-MASTER.md` (top). Work top→bottom. _Last updated: 9 Jun 2026
 
 ---
 
+# ░ 🚨 RISK & FIX REGISTER (full-system audit · 10 Jun) ░
+**From the all-systems audit (client portal · admin · website · API · docs). Red = act this week · Yellow = scheduled. Owner: 🧍 = founder must do · 🤖 = Claude fixes (branch → founder "go live").**
+
+## 🔴 RED — this week (launch-critical)
+| # | Item | Owner |
+|---|------|-------|
+| R1 | **Rotate the 2 crown-jewel keys** (Stripe secret · Supabase service-role) — from the 4-Jun credential-exposure incident, still "pending rotation" | 🧍 |
+| R2 | **ICO registration** — ico.org.uk, £40/yr (~10 min; penalty £400–4k) | 🧍 |
+| R3 | **D9 deliverability 10/10** (mail-tester before launch) | 🧍 |
+| R4 | **DNC tab: "Failed to save" + hardcoded placeholder rows incl. the employer name** (ST1 find #1 — scrub + fix save) | 🤖 |
+| R5 | **Website fabricated stats** — "8.2% reply · 2.7× industry", "156 emails · 12.8%", "5.2% · 4×", blog "3–4% from campaign one" presented as real → label illustrative or remove (credibility/legal; violates our own no-invented-numbers rule) | 🤖 |
+| R6 | **Apollo ToS / single-source dependence** — 50-client trigger: email partnerships@apollo.io before client 51; 200+ = key-termination kills product. Mitigation = multi-source (below) | 🧍 (watch) |
+
+## 🟡 YELLOW — scheduled (post-launch / quick wins)
+| # | Item | Owner |
+|---|------|-------|
+| Y1 | Rate-limit public endpoints (signup · OTP/demo-login · demo-request · subscribe · unsubscribe) — only Vida widget is limited today | 🤖 |
+| Y2 | FIGSY per-enrollment credit deduction non-atomic (balance vs ledger drift) → switch to checked `increment_client_credits` RPC | 🤖 |
+| Y3 | Counter-write sweep — remaining unchecked supabase increments (replies/opted_out/insights/memory/autopilot crons read raw counters) | 🤖 |
+| Y4 | Leads page tab pills count the 50-row page, not totals → per-status counts from `/leads/stats` | 🤖 |
+| Y5 | Missing cross-links: campaign→its leads (needs `campaign_id` filter on `/leads`) · lead→campaign · ICP→its leads | 🤖 |
+| Y6 | Settings prefs are localStorage-only (say "Saved", don't persist) → server-side | 🤖 |
+| Y7 | Denise page ungated (every sibling agent gates on subscription) | 🤖 |
+| Y8 | developer vs mcp pages: two conflicting MCP tool catalogs | 🤖 |
+| Y9 | `roadmap` page hardcodes ~80 features as "Live" → honest statuses or gate it | 🤖 (🧍 decides what's truly live) |
+| Y10 | Milla integrations panel = dead "Connect" buttons (looks fake) → hide until built | 🤖 |
+| Y11 | "Meetings Booked" card shows "No data yet" subtitle even with data | 🤖 |
+| Y12 | Failover standby drift — Render standby env parity unverified + `NEXT_PUBLIC_ADMIN_KEY` delete-vs-keep doc contradiction | 🧍🤖 |
+| Y13 | D&O insurance (~£500–1k) · trademarks (UK IPO → ARIPO) — Month-2 legal ring | 🧍 |
+| Y14 | Demo seeds write to prod DB (fine pre-launch) → separate staging/demo DB in Batch 2 | 🤖 |
+
+## 🌐 DATA-SOURCE STRATEGY (logged 10 Jun — the Apollo-risk mitigation)
+**Finding:** Alta has **no public Apollo agreement** — their sub-processors (AWS/Twilio/Postmark/Slack) list no data vendor; they blend **50+ smaller/signal sources** (BuiltWith, SimilarWeb, StoreLeads, Crunchbase). Their answer to single-provider risk = diversification.
+**Our path (in order):**
+1. **Light up the already-built waterfall (#42)** — add **PDL** key (built-for-resale, solves the ToS problem) + **Hunter** key (~$49/mo): days of work, makes us 2–3-source. → post-launch quick win 🤖+🧍(keys)
+2. **Second discovery source** beside Apollo behind `searchPeopleWithFallback` (Apollo-first → PDL Search; later Cognism w/ explicit reseller programme, ~$15–25k/yr, post-revenue).
+3. **Signal sources** (website scans · LinkedIn CSV import · Crunchbase-style signals) — widen coverage with zero ToS exposure.
+4. **Manus** — African-SMB deep-research fallback (the potential moat; async, needs dedup+verification). Post-launch.
+**Posture goal: "Apollo-first, multi-source" BEFORE the 50-client trigger.**
+
+---
+
 # ░ PART 1 — ACTIVE NOW (cosmetic / V2 build via staging) ░
 
 ## A. Cosmetic issues you raised (this session)

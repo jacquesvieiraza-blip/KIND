@@ -1,7 +1,7 @@
 # 🎯 K.I.N.D — MASTER TRACKER (V2 + Full Roadmap)
 
 **THE single working tracker. Every item, every horizon — so nothing lives only in chat or gets lost across docs.**
-Linked from `KIND-MASTER.md` (top). Work top→bottom. _Last updated: 9 Jun 2026 (late)._
+Linked from `KIND-MASTER.md` (top). Work top→bottom. _Last updated: 10 Jun 2026 (audit cross-reference pass — branch `claude/kind-carson-MYhSl`)._
 
 **Legend:** ✅ done/live · 🟡 partial · 🎨 mockup only (designed, NOT built) · 🔄 in progress · ⏸ gated/paused · ⬜ not started · 🔴 open issue
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both
@@ -32,24 +32,25 @@ Linked from `KIND-MASTER.md` (top). Work top→bottom. _Last updated: 9 Jun 2026
 | R1 | **Rotate the 2 crown-jewel keys** (Stripe secret · Supabase service-role) — from the 4-Jun credential-exposure incident, still "pending rotation" | 🧍 |
 | R2 | **ICO registration** — ico.org.uk, £40/yr (~10 min; penalty £400–4k) | 🧍 |
 | R3 | **D9 deliverability 10/10** (mail-tester before launch) | 🧍 |
-| R4 | **DNC tab: "Failed to save" + hardcoded placeholder rows incl. the employer name** (ST1 find #1 — scrub + fix save) | 🤖 |
-| R5 | **Website fabricated stats** — "8.2% reply · 2.7× industry", "156 emails · 12.8%", "5.2% · 4×", blog "3–4% from campaign one" presented as real → label illustrative or remove (credibility/legal; violates our own no-invented-numbers rule) | 🤖 |
+| R4 | ✅ **DONE** — DNC/Knowledge honest preview: coming-soon banner, all 7 broken saves disabled, employer-name placeholder rows cleared. _(no Smartsheet refs remain in app code)_ | 🤖 |
+| R5 | ✅ **DONE** — website demo stats now labelled "Illustrative example" + every comparative claim dropped (2.7×/4×/vs-3%/+34%); blog claim fixed earlier. Branch-only (Cloudflare deploy gated on "go live"). | 🤖 |
 | R6 | **Apollo ToS / single-source dependence** — 50-client trigger: email partnerships@apollo.io before client 51; 200+ = key-termination kills product. Mitigation = multi-source (below) | 🧍 (watch) |
 
 ## 🟡 YELLOW — scheduled (post-launch / quick wins)
 | # | Item | Owner |
 |---|------|-------|
-| Y1 | Rate-limit public endpoints (signup · OTP/demo-login · demo-request · subscribe · unsubscribe) — only Vida widget is limited today | 🤖 |
-| Y2 | FIGSY per-enrollment credit deduction non-atomic (balance vs ledger drift) → switch to checked `increment_client_credits` RPC | 🤖 |
-| Y3 | Counter-write sweep — remaining unchecked supabase increments (replies/opted_out/insights/memory/autopilot crons read raw counters) | 🤖 |
-| Y4 | Leads page tab pills count the 50-row page, not totals → per-status counts from `/leads/stats` | 🤖 |
-| Y5 | Missing cross-links: campaign→its leads (needs `campaign_id` filter on `/leads`) · lead→campaign · ICP→its leads | 🤖 |
-| Y6 | Settings prefs are localStorage-only (say "Saved", don't persist) → server-side | 🤖 |
-| Y7 | Denise page ungated (every sibling agent gates on subscription) | 🤖 |
-| Y8 | developer vs mcp pages: two conflicting MCP tool catalogs | 🤖 |
-| Y9 | `roadmap` page hardcodes ~80 features as "Live" → honest statuses or gate it | 🤖 (🧍 decides what's truly live) |
-| Y10 | Milla integrations panel = dead "Connect" buttons (looks fake) → hide until built | 🤖 |
-| Y11 | "Meetings Booked" card shows "No data yet" subtitle even with data | 🤖 |
+| Y1 | ✅ **DONE** — rate-limited signup(10/min)·demo-request·subscribe(5/min)·unsubscribe(100/min, generous for compliance). _(OTP/demo-login has no K.I.N.D API endpoint — verified browser-side vs Supabase Auth.)_ | 🤖 |
+| Y2 | ✅ **DONE** — FIGSY per-enrollment credit deduction now checked + sequential (balance then ledger; can't desync). | 🤖 |
+| Y3 | ✅ **DONE** — counter increments replaced by `recomputeCampaignCounters()` (recompute-from-source, persist Math.max, error-checked) across all reply/opt-out/meeting + calendar paths. **+ data-integrity pass:** both autopilot crons (auto-pause `check-performance`, send-throttle `adaptive-send-check`) now recompute-then-decide → fixes the latent "drift to 0 wrongly pauses a healthy campaign" bug; persisting also heals reporting readers (admin aggregates, lookalike, figsy-tasks). | 🤖 |
+| Y4 | ✅ **DONE** — Pending Review + In FIGSY pills now count real totals from `/leads/stats`. | 🤖 |
+| Y5 | ✅ **DONE** — both directions: campaign→leads (`campaign_id` filter + banner + "View enrolled leads"), lead→campaign back-link, ICP→leads (already worked). | 🤖 |
+| Y6 | ⏸ **DEFERRED post-launch** (founder call) — needs a DB table + migration; same bucket as the Knowledge backend. Settings prefs stay localStorage-only until then. | 🤖 |
+| Y7 | ✅ **DONE** — Denise page gates on `denise`/`denise_addon` subscription (locked "Add to plan" screen). | 🤖 |
+| Y8 | ✅ **DONE** — developer page MCP catalog now matches real `/mcp` tools (figsy_find_leads · figsy_get_campaign_stats · figsy_suggest_campaign · milla_ask). | 🤖 |
+| Y9 | ✅ **DONE** — roadmap is now **admin-only**: client `/dashboard/roadmap` redirects to dashboard; all client nav/command-palette/CTA links removed. (Founder: clients must not see the roadmap.) | 🤖 |
+| Y10 | ✅ **DONE** — Milla dead "Connect" buttons → disabled "Coming soon". | 🤖 |
+| Y11 | ✅ **DONE** — Meetings card "No data yet" subtitle only shows when value is 0. | 🤖 |
+| Y15 | ⏸ **POST-LAUNCH** (founder call, 10 Jun) — integration tests on the money/credit paths (credit deduction · ledger · KPIs); week-1 post-launch. Launch stays on `next build` + manual smoke tests. | 🤖 |
 | Y12 | Failover standby drift — Render standby env parity unverified + `NEXT_PUBLIC_ADMIN_KEY` delete-vs-keep doc contradiction | 🧍🤖 |
 | Y13 | D&O insurance (~£500–1k) · trademarks (UK IPO → ARIPO) — Month-2 legal ring | 🧍 |
 | Y14 | Demo seeds write to prod DB (fine pre-launch) → separate staging/demo DB in Batch 2 | 🤖 |

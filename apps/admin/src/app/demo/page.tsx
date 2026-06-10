@@ -102,6 +102,7 @@ export default function DemoPage() {
   }
 
   async function openDemo(id: string) {
+    // Open via the portal /demo-login route (email-OTP), NOT the PKCE magic link.
     setOpeningId(id)
     try {
       const res = await fetch(`/api/proxy/admin/demos/${id}/login`, { method: 'POST' })

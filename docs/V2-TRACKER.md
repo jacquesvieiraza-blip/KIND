@@ -260,7 +260,7 @@ Upgrades existing items: **#38** A/B → contextual bandit · **#40** ICP auto-r
 | #51 | Configurable agent triggers |
 | #52 | Multi-model toggle per campaign |
 | #53 | Inbox rotation / multiple sending domains |
-| #59 | **MCP server** (distribution unlock) |
+| #59 | **MCP server** (distribution unlock) — **[Glean MCP Gateway demo 10 Jun] KEY INSIGHT: a context-backed MCP server beat bare off-the-shelf MCP 2.5× on quality + 30% fewer tokens → build #59 backed by CLIENT CONTEXT (Train-FIGSY knowledge · #46 Memory · outcome data), NOT thin API wrappers (those are commodity anyone clones; context = the moat). Per-tool entitlements + per-user/per-tool usage dashboard = our #88 owner controls (2b which-rep-gets-which-agent · 2c/2d usage dashboard = the "usage patterns" reward stream). Auth: API-key (Bearer) fine for SMB now; OAuth 2.1+PKCE is the enterprise upgrade. SKIP: MDM/SSO/50k-user rollout (Year-2 enterprise only).** |
 | #49 | Product Hunt launch · #50 G2 listing |
 
 **V2 portal redesign (the rest, on the per-rep foundation):**

@@ -905,23 +905,25 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }
 
     // ── Deduct 1 FIGSY credit per lead enrolled ────────────────────────────────
-    try {
-      const { data: clientBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
-      const newBal = Math.max(0, (clientBal?.figsy_credits_remaining ?? 0) - 1)
-      await Promise.all([
-        db.from('clients').update({ figsy_credits_remaining: newBal }).eq('id', clientId),
-        db.from('credit_transactions').insert({
-          client_id: clientId,
-          amount: -1,
-          type: 'usage',
-          plan: 'figsy',
-          note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
-          created_at: new Date().toISOString(),
-        }),
-      ])
-    } catch (creditErr) {
-      console.error('[figsy] autoEnrollLead: credit deduction failed', creditErr)
-      // Non-fatal — enrollment already happened, log and continue
+    // CHECKED + sequential: supabase RETURNS errors (doesn't throw), so the old
+    // try/catch never saw a failure and the Promise.all could write the ledger row
+    // without the balance changing (or vice-versa). Now we deduct first, verify it
+    // succeeded, and only THEN record the ledger row — so the two can't desync.
+    const { data: clientBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
+    const newBal = Math.max(0, (clientBal?.figsy_credits_remaining ?? 0) - 1)
+    const { error: balErr } = await db.from('clients')
+      .update({ figsy_credits_remaining: newBal }).eq('id', clientId)
+    if (balErr) {
+      console.error('[figsy] autoEnrollLead: FIGSY credit deduction failed', balErr.message)
+    } else {
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount: -1,
+        type: 'usage',
+        plan: 'figsy',
+        note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
+        created_at: new Date().toISOString(),
+      }).then(() => {}, () => {})
     }
 
     // Increment campaign enrolled count

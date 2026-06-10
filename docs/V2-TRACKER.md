@@ -36,7 +36,7 @@ _Last updated: 10 Jun 2026 (audit cross-reference pass — branch `claude/kind-c
 | R3 | **D9 deliverability 10/10** (mail-tester before launch) | 🧍 |
 | R4 | ✅ **DONE** — DNC/Knowledge honest preview: coming-soon banner, all 7 broken saves disabled, employer-name placeholder rows cleared. _(no Smartsheet refs remain in app code)_ | 🤖 |
 | R5 | ✅ **DONE** — website demo stats now labelled "Illustrative example" + every comparative claim dropped (2.7×/4×/vs-3%/+34%); blog claim fixed earlier. Branch-only (Cloudflare deploy gated on "go live"). | 🤖 |
-| R6 | **Apollo ToS / single-source dependence** — 50-client trigger: email partnerships@apollo.io before client 51; 200+ = key-termination kills product. Mitigation = multi-source (below) | 🧍 (watch) |
+| R6 | **Apollo ToS / single-source dependence** — ⚠️ **CORRECTED 10 Jun: no "50-client" rule (that was invented). Reselling off one account violates ToS from client #1; enforcement discretionary.** Fix = structural: **(a) API Reseller agreement (`partners@apollo.io`) [primary]** or **(b) client-brings-own-key**. Multi-source (PDL ✅ wired, dormant) cuts vendor risk but isn't the compliance fix. Full detail in `KIND-MASTER.md` → MULTI-SOURCE DATA PLAN. | 🧍 |
 
 ## 🟡 YELLOW — scheduled (post-launch / quick wins)
 | # | Item | Owner |

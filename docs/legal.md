@@ -14,10 +14,14 @@
 | **3. Lawyer review — client agreements** | Lawyer | Confirm client agreement language is sufficient. Update managed service clause if required. |
 | **4. Decision: Apollo partner OR client API keys** | Founder | Lock in one of the two clean structures before scale makes the decision urgent. |
 
-**Why 50 clients?**
-- Below 50: Apollo is unlikely to flag the usage pattern. Risk is theoretical.
-- Above 50: A single account running 50+ simultaneous ICP searches across different company profiles triggers commercial review. Apollo will reach out. Better to be ahead of it.
-- Above 100: If unresolved, Apollo terminating K.I.N.D's API key shuts down the core product for every client simultaneously. Non-negotiable to have resolved by this point.
+**⚠️ CORRECTION (10 Jun, verified ToS research — the "50 clients" framing below was WRONG):**
+The 50/100-client thresholds were an internal estimate, **NOT Apollo policy.** Apollo's ToS forbids "resell, distribute, disclose, sublicense… or make available the Contributor Database to any third party"; the API license is "internal business purposes" only and "not sublicensable." **Sourcing on one K.I.N.D account and delivering to even ONE external client is the violation — from client #1, not #50.** Enforcement is **discretionary** (no published number; a small operation may go unnoticed, but there is no safe count).
+**Compliant structures (pick one before scaling intake):** (a) **Apollo API Reseller / Data-Licensing agreement** — `partners@apollo.io`, trial key → contract (~1 wk), the model that fits one-account-many-clients [primary]; (b) **client-brings-own-Apollo-key / Agency sub-accounts** [clean fallback]; (c) multi-source reduces vendor risk but doesn't make Apollo redistribution compliant. Sources: `apollo.io/terms`, `apollo.io/terms/api`, `apollo.io/partners/api-reseller` (verify verbatim clause text at the live URLs before any legal/investor use).
+
+**~~Why 50 clients?~~ (superseded — kept for the record):**
+- ~~Below 50: Apollo is unlikely to flag the usage pattern. Risk is theoretical.~~
+- ~~Above 50: A single account running 50+ simultaneous ICP searches triggers commercial review.~~
+- ~~Above 100: Apollo terminating the API key shuts down the product for every client.~~
 
 ---
 

@@ -435,6 +435,31 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1)
   const [revivalFilter, setRevivalFilter] = useState(false)
 
+  // R8 (Alta) — Saved views: capture the full filter combo as a named, reusable
+  // view (localStorage). Lets clients flip between "Hot SaaS leads", "Score 80+
+  // unworked", etc. in one click.
+  type SavedView = { name: string; activeTab: TabId; statusFilter: string; minScore: string; icpFilter: string; search: string; apolloOnly: boolean }
+  const SAVED_VIEWS_KEY = 'kind_leads_saved_views_v1'
+  const [savedViews, setSavedViews] = useState<SavedView[]>([])
+  useEffect(() => {
+    try { const raw = localStorage.getItem(SAVED_VIEWS_KEY); if (raw) setSavedViews(JSON.parse(raw)) } catch { /* ignore */ }
+  }, [])
+  function persistViews(next: SavedView[]) {
+    setSavedViews(next)
+    try { localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+  }
+  function saveCurrentView() {
+    const name = window.prompt('Name this view (e.g. "Hot SaaS leads"):')?.trim()
+    if (!name) return
+    const view: SavedView = { name, activeTab, statusFilter, minScore, icpFilter, search, apolloOnly }
+    persistViews([...savedViews.filter(v => v.name !== name), view])
+  }
+  function applyView(v: SavedView) {
+    setActiveTab(v.activeTab); setStatusFilter(v.statusFilter); setMinScore(v.minScore)
+    setIcpFilter(v.icpFilter); setSearch(v.search); setApolloOnly(v.apolloOnly); setPage(1)
+  }
+  function deleteView(name: string) { persistViews(savedViews.filter(v => v.name !== name)) }
+
   const fetchData = useCallback(async (tok: string) => {
     setLoading(true)
     setFetchError(null)
@@ -851,6 +876,20 @@ export default function LeadsPage() {
           )}
         </div>
       )}
+
+      {/* Saved views (R8) */}
+      <div className="flex flex-wrap items-center gap-2">
+        {savedViews.map(v => (
+          <span key={v.name} className="group inline-flex items-center gap-1 pl-3 pr-1.5 py-1 rounded-full bg-purple-50 border border-purple-100 text-xs font-medium text-[#7C3AED]">
+            <button onClick={() => applyView(v)} className="hover:underline">{v.name}</button>
+            <button onClick={() => deleteView(v.name)} aria-label={`Delete view ${v.name}`} className="text-[#9B8EC4] hover:text-rose-500 transition-colors">×</button>
+          </span>
+        ))}
+        <button onClick={saveCurrentView}
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-dashed border-purple-200 text-xs font-medium text-[#9B8EC4] hover:text-[#7C3AED] hover:border-[#7C3AED] transition-colors">
+          + Save current view
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4">

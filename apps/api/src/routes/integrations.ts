@@ -53,14 +53,14 @@ integrationsRouter.get('/status', requireAuth, async (req: AuthRequest, res) => 
     // Apollo: connected if the platform has an APOLLO_API_KEY env set (system-wide)
     const apolloConnected = !!process.env.APOLLO_API_KEY
 
-    // HubSpot: connected if the client's CRM type is hubspot and sync is enabled
+    // HubSpot: connected if the client\'s CRM type is hubspot and sync is enabled
     const hubspotConnected =
       client.crm_type === 'hubspot' && !!client.crm_sync_enabled
 
     // Google Calendar: connected if calendar_booking_enabled is true
     const googleCalendarConnected = !!client.calendar_booking_enabled
 
-    // Stripe: connected if there's an active/trialing subscription with a Stripe ID
+    // Stripe: connected if there\'s an active/trialing subscription with a Stripe ID
     const stripeConnected =
       !!stripeSub && !!stripeSub.stripe_subscription_id
 
@@ -111,7 +111,7 @@ integrationsRouter.get('/status', requireAuth, async (req: AuthRequest, res) => 
         id: 'apollo',
         name: 'Apollo',
         category: 'Data',
-        description: "Enrich leads and find new prospects from Apollo's 275M+ contact database.",
+        description: "Enrich leads and find new prospects from Apollo\'s 275M+ contact database.",
         connected: apolloConnected,
       },
       {

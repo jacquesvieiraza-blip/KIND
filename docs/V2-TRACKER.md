@@ -56,6 +56,7 @@ _Last updated: 10 Jun 2026 (audit cross-reference pass — branch `claude/kind-c
 | Y12 | Failover standby drift — Render standby env parity unverified + `NEXT_PUBLIC_ADMIN_KEY` delete-vs-keep doc contradiction | 🧍🤖 |
 | Y13 | D&O insurance (~£500–1k) · trademarks (UK IPO → ARIPO) — Month-2 legal ring | 🧍 |
 | Y14 | Demo seeds write to prod DB (fine pre-launch) → separate staging/demo DB in Batch 2 | 🤖 |
+| Y16 | ⏸ **NEXT WEEK (founder call 11 Jun) — kill the dead Vercel↔GitHub integration.** Vercel stopped being used ~1mo ago but `kind-portal` + `kind-admin` Vercel projects are STILL linked to the repo + building on every PR (not in repo code — dashboard-side). **Risk: stale secrets** possibly in the projects' env vars (esp. admin's `SUPABASE_SERVICE_ROLE_KEY`) — **today's key rotation neutralizes that.** Live site unaffected (domains → Railway). Steps: Vercel → delete/disconnect both projects · GitHub → repo Settings → GitHub Apps → Vercel → remove repo · confirm DNS → Railway. | 🧍 |
 
 ## 🌐 DATA-SOURCE STRATEGY (logged 10 Jun — the Apollo-risk mitigation)
 > 📍 **Live status + step tracker lives in `KIND-MASTER.md` → "DATA SOURCES — MULTI-SOURCE PLAN".** This section is the background research/rationale.

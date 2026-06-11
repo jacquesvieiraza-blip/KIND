@@ -385,6 +385,49 @@ function ActiveIcpBanner({ icp, total }: { icp: ICP; total: number }) {
   )
 }
 
+// R17 (#43/#44) — pre-send spam-score badge shown under a generated draft.
+function SpamCheck({ draft, token }: { draft: string; token: string }) {
+  const [result, setResult] = useState<{ score: number; grade: string; issues: { severity: string; message: string }[] } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    api.post<{ data: { score: number; grade: string; issues: { severity: string; message: string }[] } }>(
+      '/figsy/spam-check', { subject: '', body: draft }, token,
+    ).then(r => { if (!cancelled) setResult(r.data) })
+      .catch(() => { if (!cancelled) setResult(null) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [draft, token])
+
+  if (loading) return <p className="text-xs text-[#9B8EC4] mb-4">Checking deliverability…</p>
+  if (!result) return null
+
+  const color = result.grade === 'great' ? 'text-green-600 bg-green-50 border-green-200'
+    : result.grade === 'good' ? 'text-amber-600 bg-amber-50 border-amber-200'
+    : 'text-rose-600 bg-rose-50 border-rose-200'
+
+  return (
+    <div className={`mb-4 rounded-xl border px-4 py-3 ${color}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider">Deliverability check</span>
+        <span className="text-sm font-bold">{result.score}/100 · {result.grade}</span>
+      </div>
+      {result.issues.length > 0 ? (
+        <ul className="mt-2 space-y-1">
+          {result.issues.map((iss, i) => (
+            <li key={i} className="text-xs flex items-start gap-1.5">
+              <span>{iss.severity === 'high' ? '🔴' : iss.severity === 'medium' ? '🟡' : '⚪'}</span>
+              <span className="text-gray-600">{iss.message}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="text-xs text-gray-600 mt-1">Clean — no spam triggers found.</p>}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LeadsPage() {
   const supabase = createClient()
@@ -1239,6 +1282,7 @@ export default function LeadsPage() {
             <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-72 overflow-y-auto">
               {emailDraft.draft}
             </div>
+            {token && <SpamCheck draft={emailDraft.draft} token={token} />}
             <div className="flex items-center gap-3">
               <button onClick={() => { navigator.clipboard.writeText(emailDraft.draft) }}
                 className="flex-1 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">

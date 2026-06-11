@@ -347,6 +347,7 @@ export default function CampaignDetailPage() {
   // Settings controlled state
   const [campaignName, setCampaignName] = useState('')
   const [copilotMode, setCopilotMode] = useState(false)
+  const [modelPref, setModelPref] = useState<'haiku' | 'sonnet'>('haiku')   // R18 multi-model
   const [savingSettings, setSavingSettings] = useState(false)
   const [archiving, setArchiving]           = useState(false)
 
@@ -365,11 +366,12 @@ export default function CampaignDetailPage() {
         setCampaign(res.data)
         setCampaignName(res.data.name)
         // Initialize audience sliders from campaign if fields exist
-        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number; settings?: { review_required?: boolean } }
+        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number; model_preference?: 'haiku' | 'sonnet' | null; settings?: { review_required?: boolean } }
         setMinScore(c.min_score ?? 50)
         setMaxScore(c.max_score ?? 100)
         setDailyLimit(c.daily_limit ?? 5)
         setCopilotMode(c.settings?.review_required ?? false)
+        setModelPref(c.model_preference ?? 'haiku')
       } catch {
         // campaign not found — go back
       }
@@ -437,7 +439,7 @@ export default function CampaignDetailPage() {
     if (!token) return
     setSavingSettings(true)
     try {
-      const res = await api.patch<{ data: Campaign }>(`/figsy/campaigns/${id}`, { name: campaignName, review_required: copilotMode }, token)
+      const res = await api.patch<{ data: Campaign }>(`/figsy/campaigns/${id}`, { name: campaignName, review_required: copilotMode, model_preference: modelPref }, token)
       setCampaign(res.data)
       showToast('Settings saved')
     } catch (err) {
@@ -886,6 +888,29 @@ export default function CampaignDetailPage() {
               ) : (
                 <p className="text-xs text-[#9B8EC4] mt-2">FIGSY sends emails automatically on schedule without approval.</p>
               )}
+            </div>
+
+            {/* R18 — Writing model (multi-model toggle) */}
+            <div>
+              <label className="block text-xs font-semibold text-[#7B6FA0] mb-1.5">Writing model</label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: 'haiku',  name: 'Fast',  desc: 'Quick & efficient. Great for high volume.' },
+                  { id: 'sonnet', name: 'Smart', desc: 'Most capable. Sharper, more nuanced copy.' },
+                ] as const).map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setModelPref(m.id)}
+                    className={`text-left rounded-xl border px-3 py-2.5 transition-colors ${
+                      modelPref === m.id ? 'border-[#7C3AED] bg-[#7C3AED]/[0.06]' : 'border-purple-100/80 hover:border-purple-200'
+                    }`}
+                  >
+                    <p className={`text-sm font-semibold ${modelPref === m.id ? 'text-[#7C3AED]' : 'text-gray-800'}`}>{m.name}</p>
+                    <p className="text-[11px] text-[#9B8EC4] mt-0.5">{m.desc}</p>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>

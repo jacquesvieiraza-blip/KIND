@@ -149,6 +149,80 @@ export async function sendWelcomeEmail(to: string, companyName: string) {
   })
 }
 
+// R6 (#32) — Onboarding activation sequence for ACTIVATED (paid) clients.
+// Distinct from sendNurtureEmail, which is a trial-conversion sequence the
+// onboarding cron deliberately skips for paid clients. These three emails drive
+// product activation: get set up → set your ICP / launch → first-week recap.
+export async function sendOnboardingEmail(
+  to: string,
+  companyName: string,
+  stage: 0 | 3 | 7,
+  context: { has_icp: boolean; lead_count: number; has_campaign: boolean },
+) {
+  if (!resend) return
+  const cta = (href: string, label: string) =>
+    `<a href="${DASH}${href}" style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">${label}</a>`
+  const wrap = (inner: string) =>
+    `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">${inner}
+       <p style="color:#999;font-size:0.8rem;margin-top:32px">Questions? Just reply — <a href="mailto:hello@get-kind.com">hello@get-kind.com</a></p>
+     </div>`
+
+  const emails: Record<number, { subject: string; html: string }> = {
+    0: {
+      subject: `You're in 🎉 Let's get K.I.N.D working for ${companyName || 'you'}`,
+      html: wrap(`
+        <h1 style="font-size:1.5rem;margin-bottom:8px">Welcome aboard, ${companyName} 👋</h1>
+        <p style="color:#555;line-height:1.6">You're all set up. Three quick steps and your AI sales team is live:</p>
+        <ol style="color:#555;line-height:2.2;padding-left:20px">
+          <li><strong>Sign your Service Agreement</strong> — in Documents (2 minutes)</li>
+          <li><strong>Build your ICP</strong> — tell FIGSY who to find (our AI pre-fills it from your website)</li>
+          <li><strong>Launch your first campaign</strong> — FIGSY starts finding and contacting leads</li>
+        </ol>
+        ${cta('/leads/icp', 'Start with my ICP →')}`),
+    },
+    3: {
+      subject: context.has_icp
+        ? (context.has_campaign ? `Your first leads are flowing — what's next` : `Your ICP is set — time to launch FIGSY`)
+        : `Quick nudge: set up who FIGSY should target`,
+      html: !context.has_icp
+        ? wrap(`
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">You're set up, but FIGSY doesn't know who to look for yet. Building your ICP takes about 60 seconds — our AI pre-fills it from your website, you just confirm.</p>
+          ${cta('/leads/icp', 'Build my ICP (60 seconds) →')}`)
+        : !context.has_campaign
+        ? wrap(`
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">Your ICP is ready and you have <strong>${context.lead_count} scored lead${context.lead_count === 1 ? '' : 's'}</strong>. The next step is to launch a FIGSY campaign so it starts reaching out for you.</p>
+          ${cta('/figsy', 'Launch my first campaign →')}`)
+        : wrap(`
+          <p>Hi ${companyName},</p>
+          <p style="color:#555;line-height:1.6">FIGSY is live and working — <strong>${context.lead_count} lead${context.lead_count === 1 ? '' : 's'}</strong> in your pipeline so far. Keep an eye on your Inbox for replies; that's where the conversations start.</p>
+          ${cta('/inbox', 'Open my inbox →')}`),
+    },
+    7: {
+      subject: `Your first week with K.I.N.D — ${companyName}`,
+      html: wrap(`
+        <p>Hi ${companyName},</p>
+        <p style="color:#555;line-height:1.6">One week in. Here's where you stand:</p>
+        <ul style="color:#555;line-height:2;padding-left:20px">
+          <li><strong>${context.lead_count}</strong> lead${context.lead_count === 1 ? '' : 's'} sourced</li>
+          <li>ICP ${context.has_icp ? 'set ✅' : 'not set yet — worth doing today'}</li>
+          <li>Outreach ${context.has_campaign ? 'running ✅' : 'not launched yet'}</li>
+        </ul>
+        <p style="color:#555;line-height:1.6">${
+          context.has_campaign
+            ? 'Want to get more out of FIGSY? Try refining your ICP or adding a second campaign for a different segment.'
+            : 'The biggest win this week: launch your first FIGSY campaign so the pipeline starts filling itself.'
+        }</p>
+        ${cta(context.has_campaign ? '/leads' : '/figsy', context.has_campaign ? 'Review my pipeline →' : 'Launch FIGSY →')}`),
+    },
+  }
+
+  const email = emails[stage]
+  if (!email) return
+  await sendTx({ from: FROM, to, subject: email.subject, html: email.html })
+}
+
 export async function sendConsentEmail(
   to: string,
   firstName: string,

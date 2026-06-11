@@ -17,7 +17,7 @@ import crypto from 'crypto'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail, isRealRecipient } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
@@ -614,6 +614,62 @@ internalRouter.post('/ae/nurture', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('[ae/nurture]', err)
     res.status(500).json({ success: false, error: 'Nurture run failed' })
+  }
+})
+
+// R6 (#32) — Onboarding activation sequence (days 0/3/7) for ACTIVATED (paid)
+// clients. The trial nurture above deliberately skips paid clients, so they
+// previously received no lifecycle onboarding at all. Mutually exclusive with
+// the nurture (gated on an ACTIVE subscription) so a client never gets both on
+// the same day. Same exact-day-match pattern as the nurture cron.
+internalRouter.post('/onboarding/activation-sequence', async (_req: Request, res: Response) => {
+  try {
+    const now = new Date()
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id, created_at, first_icp_run_at')
+      .not('user_id', 'is', null)
+      .neq('is_demo', true)
+      .gte('created_at', new Date(now.getTime() - 14 * 86400000).toISOString())
+
+    const STAGES = [0, 3, 7] as const
+    let sent = 0
+
+    for (const client of clients ?? []) {
+      const daysOld = Math.floor((now.getTime() - new Date(client.created_at).getTime()) / 86400000)
+      if (!(STAGES as readonly number[]).includes(daysOld)) continue
+
+      // Activation sequence is for PAID clients only — trial clients get the
+      // conversion nurture instead (no overlap).
+      const { data: activeSub } = await db.from('subscriptions')
+        .select('id').eq('client_id', client.id).eq('status', 'active').maybeSingle()
+      if (!activeSub) continue
+
+      try {
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
+        const email = user?.email
+        if (!email) continue
+
+        const { count: leadCount } = await db.from('leads')
+          .select('id', { count: 'exact', head: true }).eq('client_id', client.id)
+        const { count: campaignCount } = await db.from('figsy_campaigns')
+          .select('id', { count: 'exact', head: true }).eq('client_id', client.id)
+
+        await sendOnboardingEmail(email, client.company_name ?? '', daysOld as 0|3|7, {
+          has_icp:      !!client.first_icp_run_at,
+          lead_count:   leadCount ?? 0,
+          has_campaign: (campaignCount ?? 0) > 0,
+        })
+        sent++
+      } catch (err) {
+        console.error(`[onboarding/activation] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { sent } })
+  } catch (err) {
+    console.error('[onboarding/activation]', err)
+    res.status(500).json({ success: false, error: 'Onboarding activation run failed' })
   }
 })
 

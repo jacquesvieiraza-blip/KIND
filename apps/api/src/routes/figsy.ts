@@ -6,7 +6,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, personalizationSignals } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
-import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO } from '../lib/deliverability'
+import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO, spamScore } from '../lib/deliverability'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
@@ -1613,6 +1613,22 @@ figsyRouter.post('/knowledge/:kind', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error('[figsy/knowledge POST]', err)
     res.status(500).json({ success: false, error: 'Failed to save knowledge' })
+  }
+})
+
+// R17 (#43/#44) — pre-send spam check. Scores a subject + body for the things
+// that hurt cold deliverability, so the client can fix it before it sends.
+figsyRouter.post('/spam-check', async (req: AuthRequest, res) => {
+  try {
+    const { subject, body } = z.object({
+      subject: z.string().max(500).optional().default(''),
+      body:    z.string().max(20000),
+    }).parse(req.body)
+    res.json({ success: true, data: spamScore(subject, body) })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }
+    console.error('[figsy/spam-check]', err)
+    res.status(500).json({ success: false, error: 'Spam check failed' })
   }
 })
 

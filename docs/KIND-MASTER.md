@@ -71,6 +71,29 @@
 > **🟢 TRACK 3 — VIDEO / CONTENT (infra is BUILT; the content is the gap):**
 > 🧍 Record the 60-sec **Drop 01 walkthrough** (slot ready in `the-drop.html`) + onboarding demo videos · pages `product-videos.html` ("Watch") + `the-drop.html` exist on `claude/marketing-drops`, YouTube-embed-ready, **founder records → pastes YouTube ID → done**. See V2-TRACKER → GTM & CONTENT ENGINE for the full action plan.
 >
+> **🔵 TRACK 4 — NEXT STAGING QUEUE (review list, then start building — full detail in `PRODUCT-INVENTORY.md` → Part B0b):**
+> Founder reviews the list, confirms priority order, then 🤖 Claude starts building in that order — each item goes on its own branch → staging → founder preview before anything merges.
+>
+> Quick wins (start here):
+> - ⬜ **Q1 Status bar** — live pulse in sidebar bottom (FIGSY active · warmup count · credits left). "Near-zero effort" per inventory.
+> - ⬜ **Q2 Profile dropdown** — full build (Usage · Billing · Team · Settings · Developer API · Sign out). Currently partial.
+> - ⬜ **Q3 Mobile PWA** — manifest.json + service worker. Installable on mobile, Africa-first.
+> - ⬜ **Q4 Subscribe-to-the-drop** — email capture → Resend list. Ties the content engine together.
+> - ⬜ **Q5 Site nav/footer rewire** — ~40 landing pages: Demo→Watch, add The Drop. Was held post-launch.
+>
+> Medium builds (after quick wins reviewed):
+> - ⬜ **M1 Deliverability dashboard** — warmup progress, bounce rate, spam complaints. All data exists, needs UI.
+> - ⬜ **M2 Kanban pipeline view** — drag-card alternative view on leads.
+> - ⬜ **M3 Real-time activity feed** — Supabase realtime: "FIGSY sent to Kamau · 2 min ago".
+> - ⬜ **M4 A/B subject testing UI** — two variants per step, evals harness already collects data.
+> - ⬜ **M5 Configurable agent triggers** — time window, weekends off, reply delay settings.
+> - ⬜ **M6 Notification centre** — bell icon + slide-out panel, hooks into existing events.
+>
+> Bigger builds (confirm direction first):
+> - ⬜ **B1 Revenue Mission Control** — 3-col live ops centre (most impressive staging item, ~3–4 days).
+> - ⬜ **B2 FIGSY Memory v2 / pgvector** — 🧍 enable pgvector in Supabase (2 min), then 🤖 builds the moat.
+> - ⬜ **B3 Casey conversational onboarding** — needs founder voice/tone input before building.
+>
 > **📋 REST BEFORE 19:** ⬜ **D9** deliverability 10/10 (🧍, due Sun 14) · 🟢 warmup auto-ramp→~50/day (running, no action) · ✅ **2 crown-jewel key rotations DONE 11 Jun** (Stripe-secret + Supabase-service-role, both api+admin confirmed working) · ⬜ **legal pack #10–#14** (🧍, due Sun 14: ICO £40 · SR01 · registered office · WHOIS · LinkedIn lockdown) · ⬜ **Go/No-Go gate Thu 18** · ⏸ **Y16** kill dead Vercel↔GitHub integration (🧍, next week) · 🅿️ Batch 2 (social login — parallel, NOT a blocker; staging-isolation moved UP into Track 2).
 >
 > ### 🌿 STAGING WORKFLOW (OFFICIAL — all future builds go through here; never test on the client-facing site again)

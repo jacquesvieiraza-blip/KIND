@@ -26,6 +26,7 @@ import { calendarRouter } from './routes/calendar'
 import { millaRouter } from './routes/milla'
 import { vidaRouter } from './routes/vida'
 import { formsRouter } from './routes/forms'
+import { companyRouter } from './routes/company'
 import { deniseRouter } from './routes/denise'
 import { stripeRouter } from './routes/stripe'
 import { flutterwaveRouter } from './routes/flutterwave'
@@ -117,6 +118,7 @@ app.use('/calendar',      calendarRouter)
 app.use('/milla',         millaRouter)
 app.use('/vida',          vidaRouter)
 app.use('/forms',         formsRouter)
+app.use('/company',       companyRouter)
 app.use('/denise',        deniseRouter)
 app.use('/stripe',        stripeRouter)
 app.use('/flutterwave',   flutterwaveRouter)

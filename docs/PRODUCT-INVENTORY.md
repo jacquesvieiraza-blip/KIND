@@ -86,15 +86,17 @@
 | **#503** | The Drop + Product Videos pages (+ video slot per drop) | preview → merge post-launch |
 | **#505** | Warmup auto-pause hotfix | ✅ MERGED 11 Jun (live) |
 
-## 🌊 WAVE 1 — pre-building NOW (needed within ~4 weeks of launch)
-| R# | Release | Source / roadmap # |
-|---|---|---|
-| **R1** | Demo-bounce guard — stop cron emails to fake `@kind-demo.internal` inboxes (+ explicit `is_demo` send-path guard; verified demo campaigns can't fire real sends — `next_send_at` stays NULL) | warmup hygiene · 🔨 building |
-| **R2** | Daily client briefing email | #27 · Week 1 |
-| **R3** | Vida in-portal help bubble | V2-11 |
-| **R4** | Speed-to-lead: Vida→FIGSY/Denise instant handoff | #80 · Atlas steal |
-| **R5** | Milestone share-to-LinkedIn cards + Certified-Partner badge | #81/#82 · Monday steal |
-| **R6** | Onboarding v2 + day-0/3/7 email sequence | #32 |
+## 🌊 WAVE 1 — ✅ ALL BUILT — 6 PRs open & build-verified, waiting for your merge (11 Jun)
+| R# | Release | Source / roadmap # | Status |
+|---|---|---|---|
+| **R1** | Demo-bounce guard — `isRealRecipient()` + `is_demo` exclusion on the Milla brief/signal crons | warmup hygiene | ✅ **PR #506** |
+| **R2** | Daily client briefing — made the opt-in real (server-backed `daily_brief_enabled`, cron honours it) | #27 · Week 1 | ✅ **PR #507** |
+| **R3** | Vida in-portal help bubble — floating product-help assistant (`POST /vida/help`, claude-haiku) | V2-11 | ✅ **PR #508** |
+| **R4** | Speed-to-lead — Vida hot lead → real pipeline lead + instant Denise draft in the alert | #80 · Atlas steal | ✅ **PR #509** |
+| **R5** | Milestone share-to-LinkedIn cards + Certified-Partner badge (free growth loops) | #81/#82 · Monday steal | ✅ **PR #510** |
+| **R6** | Onboarding activation sequence — day-0/3/7 emails for PAID clients (gap: nurture skips them) | #32 | ✅ **PR #511** |
+
+> Each PR is its own branch off `main`, type-checked + build-verified, **nothing deploys until you merge.** Merge in any order — they don't depend on each other. Merge → it ships → it gets added to The Drop.
 
 ## 🌊 WAVE 2 — pre-buildable next (self-contained; no gates, no keys, no founder input)
 | R# | Release | Source |

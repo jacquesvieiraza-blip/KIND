@@ -43,14 +43,26 @@
 >
 > **GREEN ✅ (verified):** **T2** ICP→leads · **T3 core** send→reply→🔥Hot · **T8** deliverability/inbox · portal load+login · admin OS + security · **T10 partial** (partner approve + Demmy referral live) · warmup live + auto-ramp · Option A · **all Bucket-A V2 cosmetics LIVE on `main`** (agent-switcher sidebar · profile chip · Config · Marketplace · Thinking · Leads card · Welcome Spotlight · Signup T&C) · **dashboard "0 Sent" bug FIXED** · signup-bug fix (T1 PKCE) · SPF/DKIM/DMARC verified · `staging` branch created.
 >
-> **🗓️ TOMORROW (10 Jun) — mostly verification passes, not building:**
-> **A. Verify go-live (10 min):** ⬜ fresh Railway deploy Active (`a26a4e4` > old `6344635a`) · ⬜ sidebar/profile/grid render · ⬜ FIGSY card shows real Sent count.
-> **B. Smoke Test 1 (new-client path — the one never run):** ⬜ **T1** fresh signup (email+T&C)→Welcome Spotlight→onboarding · ⬜ T2 re-confirm in the new account · ⬜ campaign+enroll+drip · ⬜ Thinking panel.
-> **C. Smoke Test 2 (`hello@get-kind.com`):** ⬜ **T3 pause→no-send** (variant) · ⬜ **T4** booking+KPI · ⬜ **T5** billing/Stripe · ⬜ **T6** Vida widget · ⬜ **T7** Milla cron · ⬜ **T9** team invite · ⬜ **T10 full** partner path.
-> **D. Founder:** ⬜ record the 60-sec onboarding demo videos.
-> **E. Staging setup (🧍 one-time, ASAP):** ⬜ create the staging Railway portal service (Branch=`staging`, Root=`apps/portal`, copy prod vars, own domain) → see STAGING WORKFLOW below · ⬜ send Claude the staging URL → do the first `staging` push together as a flow test.
+> **🗓️ 11 JUN UPDATE — STAGING BUILD SPRINT COMPLETE:**
+> **29 branches merged to `staging` (R1–R25 + company-preview + company-engine + hotfix).** All code-complete, TypeScript-clean, `next build` passed. Deployed to Railway staging (`heartfelt-essence-production-1434.up.railway.app`). Commit `0c4ffd8`, 57 ahead of `main`.
 >
-> **📋 REST BEFORE 19:** ⬜ **D9** deliverability 10/10 (🧍) · 🟢 warmup auto-ramp→~50/day (running, no action) · ⬜ **2 crown-jewel key rotations** Stripe-secret + Supabase-service-role (🧍) · ⬜ **legal pack #10–#14** (🧍) · ⬜ **Go/No-Go gate Thu 18** · 🅿️ Batch 2 (social login + staging-isolation — parallel, NOT a blocker).
+> **What's on staging now (ALL 🔨 — not merged to main, not founder-approved yet):**
+> - R1–R6 Wave 1: Demo Bounce, Daily Brief, Vida Bubble, Speed to Lead, Share Cards, Onboarding Email
+> - R7–R20 Wave 2: Unibox, Saved Views, Why FIGSY Wrote, Goals, Templates, Forms, UX, Meeting Prep, Train FIGSY, Evals, Deliverability/Spam-Check, Sequence Power, What's New, Job Change
+> - R21–R25 Tier 3: Teams Hub, AI Notetaker, Sequence Builder, Integrations Hub, SSO Signup
+> - Company Engine (#88): Command Centre + rep leaderboard + credit approve/deny + Stripe top-up bundles + Winning Plays
+>
+> **🚨 Staging access issue resolved:** pages are directly accessible by URL (the flag only controls sidebar links). Visit `/dashboard/company` on staging now to see the Command Centre without enabling any flag.
+>
+> **⚠️ Known staging limitation:** staging DB = production Supabase. New tables (seat_credit_requests, winning_plays, figsy_knowledge, lead job-change cols) NOT migrated → Company Engine UI renders but data calls return empty. Full data testing requires staging DB isolation (scheduled for tomorrow 12 Jun).
+>
+> **🗓️ TOMORROW (12 Jun) — staging isolation + founder review:**
+> **A. 🧍 Staging DB isolation** — create separate Supabase project (free tier, staging only). 🤖 Claude will provide consolidated schema SQL + fake 50-rep seed in one paste.
+> **B. 🧍 Set Railway staging env vars** — new staging DB URL/key + `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` (makes all V2 features visible in sidebar on staging only, never touches production).
+> **C. 🧍 Founder reviews staging** — visit each new screen, approve or flag issues.
+> **D. Website video content drops** — plan exists in `docs/content/website-video-plan.md` (see below). 🤖 Claude builds the video hub page on `apps/landing`.
+>
+> **📋 REST BEFORE 19 (unchanged):** ⬜ **D9** deliverability 10/10 (🧍) · 🟢 warmup running auto (no action) · ⬜ **2 crown-jewel key rotations** (🧍) · ⬜ **legal pack #10–#14** (🧍) · ⬜ **Go/No-Go gate Thu 18**.
 >
 > ### 🌿 STAGING WORKFLOW (OFFICIAL — all future builds go through here; never test on the client-facing site again)
 > **Branches:** `main` = production (client-facing, prod Railway) · **`staging`** = testing (created 9 Jun, = `main`) · `claude/kind-carson-MYhSl` = dev. **Flow:** Claude pushes cosmetic/V2/enhancement work → **`staging`** → staging Railway site auto-deploys → **founder tests on staging** → approves → **Claude merges `staging` → `main`** (prod deploys). Nothing untested touches prod.

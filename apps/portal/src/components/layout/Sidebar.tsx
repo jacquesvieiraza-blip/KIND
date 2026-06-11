@@ -9,7 +9,7 @@ import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
-  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, LayoutTemplate, Sparkles,
+  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, LayoutTemplate, Sparkles, Mic,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
@@ -53,8 +53,9 @@ const AGENTS: AgentDef[] = [
     ring: 'ring-pink-300/30',
     price: '$49/mo',
     nav: [
-      { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
-      { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+      { href: '/dashboard/assistant',  label: 'Assistant',  icon: Bot },
+      { href: '/dashboard/documents',  label: 'Documents',  icon: FileText },
+      { href: '/dashboard/notetaker',  label: 'Notetaker',  icon: Mic },
     ],
   },
   {
@@ -101,8 +102,9 @@ const ACCOUNT_NAV = [
   { href: '/dashboard/whats-new',  label: "What's New",   icon: Sparkles },
   { href: '/dashboard/usage',      label: 'Usage',        icon: BarChart2 },
   { href: '/dashboard/roadmap',    label: 'Roadmap',      icon: Map },
-  { href: '/dashboard/partner',    label: 'Partner Hub',  icon: Handshake },
-  { href: '/dashboard/mcp',        label: 'MCP Connect',  icon: Plug },
+  { href: '/dashboard/partner',       label: 'Partner Hub',   icon: Handshake },
+  { href: '/dashboard/integrations',  label: 'Integrations',  icon: Plug },
+  { href: '/dashboard/mcp',           label: 'MCP Connect',   icon: Plug },
   { href: '/dashboard/proposals',  label: 'Proposals',    icon: FileText },
   { href: '/dashboard/developer',  label: 'Developer API', icon: Code2 },
   { href: '/dashboard/billing',    label: 'Billing',      icon: CreditCard },

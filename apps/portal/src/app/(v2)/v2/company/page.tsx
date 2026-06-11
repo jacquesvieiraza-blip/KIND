@@ -41,13 +41,24 @@ const REQUESTS = [
   { rep: 'Tunde A.', emoji: '👨🏾', amount: 1500, reason: 'New ICP: fintech founders, SA',           when: 'Yesterday' },
 ]
 
-type Tab = 'command' | 'seats' | 'usage' | 'performance'
+// ★ Shared winning-play library (owner perfects → every seat inherits)
+const PLAYS = [
+  { name: 'Fintech founder opener', replyPct: 17, usedBy: 3, note: 'Leads with their funding round + a peer reference.' },
+  { name: 'Telco ops breakup',      replyPct: 14, usedBy: 2, note: 'Short, time-and-cost angle. Best closer for cold telco.' },
+  { name: 'Agency results intro',   replyPct: 13, usedBy: 3, note: '"Idea for {{company}}" — show-don\'t-tell.' },
+]
+
+// Per-rep autonomy (2b) — how independently each seat's FIGSY runs.
+const AUTONOMY: Record<string, 'auto' | 'copilot'> = { 'Amara N.': 'auto', 'Tunde A.': 'auto', 'Zola M.': 'copilot' }
+
+type Tab = 'command' | 'seats' | 'usage' | 'performance' | 'plays'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'command',     label: 'Command Centre', icon: <Building2 className="w-4 h-4" /> },
   { id: 'seats',       label: 'Seats',          icon: <Users className="w-4 h-4" /> },
   { id: 'usage',       label: 'Usage & Budget', icon: <Coins className="w-4 h-4" /> },
   { id: 'performance', label: 'Performance',    icon: <TrendingUp className="w-4 h-4" /> },
+  { id: 'plays',       label: 'Winning Plays',  icon: <Sparkles className="w-4 h-4" /> },
 ]
 
 // ── Small building blocks ────────────────────────────────────────────────────
@@ -212,7 +223,13 @@ export default function CompanyCommandCentre() {
                     <RepFlag flag={r.flag} />
                   </div>
                   <h3 className="font-bold text-gray-900">{r.name}</h3>
-                  <p className="text-xs text-gray-400 mb-4">FIGSY · active</p>
+                  <p className="text-xs text-gray-400 mb-2">FIGSY · active</p>
+                  {/* Per-rep autonomy (2b) */}
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mb-3 ${
+                    AUTONOMY[r.name] === 'auto' ? 'bg-purple-50 text-[#7C3AED]' : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    {AUTONOMY[r.name] === 'auto' ? '⚡ Auto-pilot' : '👁 Co-pilot (owner approves)'}
+                  </span>
                   <div className="grid grid-cols-2 gap-2 text-center py-3 border-y border-gray-100 mb-4">
                     <div><p className="text-lg font-bold text-gray-900">{r.booked}</p><p className="text-[11px] text-gray-400">Booked</p></div>
                     <div><p className="text-lg font-bold" style={{ color: BRAND }}>{r.replyPct}%</p><p className="text-[11px] text-gray-400">Reply rate</p></div>
@@ -306,6 +323,42 @@ export default function CompanyCommandCentre() {
                 <span className="text-sm font-bold text-gray-900">{REPS.reduce((s, r) => s + r.positive, 0)}</span>
                 <span className="text-sm font-bold text-gray-900">{totalBooked}</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── WINNING PLAYS (★ shared library) ───────────────────────────── */}
+        {tab === 'plays' && (
+          <div className="space-y-5">
+            <div className="flex items-start gap-3 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: BRAND }}>
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Your shared winning-play library</h3>
+                <p className="text-sm text-gray-500 mt-0.5">The owner perfects a play once — every seat&apos;s FIGSY inherits it. This is how a whole team writes like your best rep.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-5">
+              {PLAYS.map(p => (
+                <div key={p.name} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full"><Crown className="w-3 h-3" /> {p.replyPct}% reply</span>
+                    <span className="text-[11px] text-gray-400">used by {p.usedBy} seats</span>
+                  </div>
+                  <h4 className="font-bold text-gray-900">{p.name}</h4>
+                  <p className="text-xs text-gray-500 mt-1 flex-1">{p.note}</p>
+                  <button className="mt-4 w-full text-xs font-semibold text-white py-2 rounded-lg" style={{ background: BRAND }}>
+                    Push to all seats
+                  </button>
+                </div>
+              ))}
+              <button className="rounded-2xl border-2 border-dashed border-gray-200 p-5 flex flex-col items-center justify-center text-gray-400 hover:border-gray-300 min-h-[180px]">
+                <Sparkles className="w-7 h-7 mb-2" />
+                <span className="text-sm font-semibold">Save a winning play</span>
+                <span className="text-xs">Promote any rep&apos;s best sequence</span>
+              </button>
             </div>
           </div>
         )}

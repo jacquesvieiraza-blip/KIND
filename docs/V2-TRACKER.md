@@ -3,10 +3,13 @@
 > 🧭 **WHICH DOC AM I IN?** This is the **FUTURE roadmap + itemised risk/fix register** (post-launch: company engine #88, V2 experience, the 101-item roadmap, steals catalog).
 > **For launch tracking (now → Fri 19), work off [`KIND-MASTER.md`](./KIND-MASTER.md) — its dated MASTER TIMELINE is the single launch source.** Only two docs: master = launch, this = future.
 
-_Last updated: 11 Jun 2026 evening (release-train audit pass — branch `claude/kind-carson-MYhSl`)._
+_Last updated: 11 Jun 2026 late (staging deployment + video action plan — branch `claude/kind-carson-MYhSl`)._
 
 > ## ⚡ 11-Jun STATUS — much of this roadmap is now PRE-BUILT, verified, awaiting founder merge
 > **The 20-PR release train (Waves 1–2, PRs #506–#525) is built + independently verified** (35/35 diff-marker checks; every branch 1 commit, scoped to its claimed files, build-verified). **The #88 company engine started early** on branch `claude/company-engine` (flag-gated: seat autonomy/budget · request/approve credits · winning-play library · real Command Centre at `/dashboard/company`) — **no PR yet**, founder reviews first. Engine gaps still open: per-rep lead ownership/routing+CRM dedup (38) and per-rep calendars (41). **Full green-tick table: [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) → AUDIT block.** Phase-2 items now real (not just designs): Vida bubble (#508) · Lead-capture Forms (#517) · Goals (#515) · Templates (#516) · "Help me reply" (#512) · Train-FIGSY backend (#520). Nothing merged · nothing live.
+>
+> ## 🌿 11-Jun LATE — and now it's all PREVIEWABLE: staging is live
+> All 29 branches (R1–R25 + company-preview + company-engine + hotfix) **merged into `staging` + deployed to the staging Railway service**: `heartfelt-essence-production-1434.up.railway.app` (test account `test@get-kind.com`). Conflicts resolved keeping all features; TypeScript + full `next build` green. **Pages are reachable by direct URL — the `v2Enabled()` flags only hide sidebar links** — so the founder can preview `/dashboard/company`, `/dashboard/team`, `/dashboard/notetaker`, `/dashboard/integrations`, `/dashboard/figsy/sequence-builder` etc. immediately. ⚠️ Staging still shares the prod DB → company-engine tables not migrated (UI renders, data empty). **12 Jun: staging DB isolation** (separate Supabase project + one-paste schema + 50-rep fake seed + `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` on staging only) → then full end-to-end Command Centre testing. Detail: `KIND-MASTER.md` resume block.
 
 **Legend:** ✅ done/live · 🟡 partial · 🎨 mockup only (designed, NOT built) · 🔄 in progress · ⏸ gated/paused · ⬜ not started · 🔴 open issue
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both
@@ -337,6 +340,20 @@ That + outbound + partners = the motion.
 **Product Drops = the flywheel** (velocity-as-marketing): ship fast → drop (page + video + post + email) → clients re-engage + prospects see momentum → "they ship fast AND show it" = the moat made visible. Cadence: **monthly**, never empty/stale. The in-product "What's New" feed (clients see momentum inside the portal = anti-churn) is a logged future enhancement.
 
 **Positioning to carry through all content:** Africa-first · **augment-not-replace** (give every rep their own AI, not "fire the team") · POPIA/compliance moat · velocity moat · low per-seat price vs $500+/mo US tools · **"level up your whole team to your top performer."**
+
+### 🎬 VIDEO ACTION PLAN (sharpened 11 Jun late — content based on the inventory)
+**Principle: the pages are BUILT and embed-ready (`the-drop.html` video slot · `product-videos.html` "Watch") — the bottleneck is RECORDING, all 🧍. Record → upload to YouTube → paste the video ID → live. The PRODUCT-INVENTORY (Part A 53 live features + Part B0 release train) is the shot list: every shipped feature is video material; every merged release feeds a Drop with its own video.**
+
+| # | Video | Source material (inventory) | Where it lands | When |
+|---|-------|------------------------------|----------------|------|
+| 1 | **Drop 01 walkthrough (60s)** — the launch drop | The live core loop: signup→ICP→leads→FIGSY→reply→meeting | `the-drop.html` Drop 01 slot + LinkedIn + email | record this week → live with launch 19 Jun |
+| 2 | Onboarding demos (3 × ~60s Looms) | T1 signup flow · ICP builder · first campaign | `product-videos.html` + onboarding emails (#31) | this week |
+| 3 | **Homepage hero loop (90s, silent)** | Same footage as #1, cut for autoplay | `index.html` hero (#24, currently ⏸ on this) | week 1 post-launch |
+| 4 | FIGSY full demo (12–15 min) | FIGSY pages + campaign flow + Unibox | YouTube video 4 (plan in `youtube-plan.md`) + "Watch" page | week 1–2 |
+| 5 | Per-drop walkthroughs (60s each, ongoing) | Each merged release wave = one Drop = one video — e.g. "Drop 02: Teams Hub + Notetaker + Sequence Builder" once founder approves/merges the staged releases | The Drop + LinkedIn + email | monthly cadence, never empty |
+| 6 | Founder story + masterclasses | YouTube plan videos 7/9/10 | YouTube + "Watch" | weeks 2–4 |
+
+**The flywheel restated:** staged releases (now previewable) → founder approves → merge wave = **Drop N** → 60-sec video + LinkedIn post + email = 3 content pieces per shipping moment. The release train IS the content calendar.
 
 ## ✨ MARKETING SITE — "THE DROP" + SITE IA (approved 10 Jun · PR #503 · post-launch)
 - **"The Drop"** (`apps/website/the-drop.html`, built + founder-approved · **+ video slot per drop added 11 Jun** — Drop 01 = a 60-sec walkthrough, embed-ready) — a product-drop archive (Glean-style stacked cards) = **the honest replacement for the client-facing roadmap we hid (Y9)**: it celebrates what *shipped* (past-tense, real, live), not what's promised. **Each drop pairs a short video + feature cards** (video = the trust multiplier). **Cadence rule: never publish empty or stale** — launch it WITH the 19th as **"Drop 01"**, then a new drop ~monthly (it's a forcing function for the post-19th velocity). It's the public proof of the "velocity = moat" call + a recurring re-engagement touchpoint.

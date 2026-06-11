@@ -89,6 +89,8 @@
 
 **Honest gaps (not done, by design or dependency):** #88 items **38** (per-rep lead ownership/routing + CRM dedup — the deep data re-architecture) and **41** (multi-provider calendars) — the Command Centre's per-rep outreach stats stay seat-level until 38 lands. The `/v2` previews for sequence-builder/smart-inbox/integrations/notetaker are **clickable designs, not wired backends** (Wave 5 — founder-design gated). SSO buttons need Google/Microsoft OAuth app registration (🧍). **"Verified" = code + build verified — NOT click-tested in a running app and mostly untested by automated tests.**
 
+> **🌿 11 Jun LATE — everything above is now PREVIEWABLE ON STAGING.** All 29 branches merged into `staging` (conflicts hand-resolved, build green) + deployed: **`heartfelt-essence-production-1434.up.railway.app`** (account `test@get-kind.com`). Pages reachable by direct URL (flags only hide sidebar links). ⚠️ Staging shares prod DB → company-engine tables not migrated → its data calls return empty until the 12-Jun staging-DB-isolation step (separate Supabase project + 50-rep fake seed). Detail: `KIND-MASTER.md` resume block.
+
 # ░ PART B0 — 🚂 THE RELEASE TRAIN (the map of ALL releases · logged 11 Jun) ░
 *Every future release from the master + tracker + this inventory, mapped into merge-ready bundles. **Model: 🤖 pre-builds each release on its own branch → its own PR → 🧍 founder merges ("push go") whenever ready → that release ships → it gets added to The Drop (weekly).** Nothing deploys until the founder's merge. Waves = build order; gates = why something can't be pre-built yet.*
 

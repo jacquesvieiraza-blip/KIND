@@ -385,6 +385,54 @@ function ActiveIcpBanner({ icp, total }: { icp: ICP; total: number }) {
   )
 }
 
+// R9 (Apollo) — "Why FIGSY wrote this": AI transparency disclosure shown under
+// a generated draft. Fetches the personalization signals FIGSY actually used.
+function WhyFigsyWrote({ leadId, token }: { leadId: string; token: string }) {
+  const [open, setOpen] = useState(false)
+  const [data, setData] = useState<{ explanation: string; signals: string[] } | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function toggle() {
+    const next = !open
+    setOpen(next)
+    if (next && !data && !loading) {
+      setLoading(true)
+      try {
+        const res = await api.get<{ data: { explanation: string; signals: string[] } }>(
+          `/figsy/leads/${leadId}/why-email`, token,
+        )
+        setData(res.data)
+      } catch { setData({ explanation: 'Personalization details are unavailable right now.', signals: [] }) }
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="mb-4 border border-purple-100 rounded-xl overflow-hidden">
+      <button onClick={toggle} className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-[#7C3AED] bg-purple-50/60 hover:bg-purple-50 transition-colors">
+        <span className="flex items-center gap-1.5">✨ Why FIGSY wrote this</span>
+        <span>{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="px-4 py-3 text-xs text-gray-600 leading-relaxed">
+          {loading ? 'Looking at what we know about this lead…' : (
+            <>
+              <p>{data?.explanation}</p>
+              {(data?.signals?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {data!.signals.map((s, i) => (
+                    <span key={i} className="px-2 py-0.5 rounded-full bg-purple-50 border border-purple-100 text-[#7C3AED]">{s}</span>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LeadsPage() {
   const supabase = createClient()
@@ -1278,6 +1326,7 @@ export default function LeadsPage() {
             <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-72 overflow-y-auto">
               {emailDraft.draft}
             </div>
+            {token && <WhyFigsyWrote leadId={emailDraft.leadId} token={token} />}
             <div className="flex items-center gap-3">
               <button onClick={() => { navigator.clipboard.writeText(emailDraft.draft) }}
                 className="flex-1 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">

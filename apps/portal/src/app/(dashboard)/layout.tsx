@@ -7,6 +7,7 @@ import { SidebarSlim } from '@/components/layout/SidebarSlim'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 import { CommandPalette } from '@/components/ui/CommandPalette'
+import { VidaHelpBubble } from '@/components/ui/VidaHelpBubble'
 import { AgentColumn } from './AgentColumn'
 import { ProfileMenu } from '@/components/layout/ProfileMenu'
 import { v2Enabled } from '@/lib/flags'
@@ -146,6 +147,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{mainContent}</main>
         </div>
         <CommandPalette />
+        <VidaHelpBubble />
       </div>
     )
   }
@@ -167,6 +169,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {mainContent}
       </main>
       <CommandPalette />
+      <VidaHelpBubble />
     </div>
   )
 }

@@ -2,9 +2,25 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
+import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateVidaReply, scoreSession, notifyHotLead } from '../lib/vida'
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// R3 (V2-11): Vida in-portal help bubble. Vida answers the CLIENT's own
+// "how do I…" questions about using K.I.N.D — distinct from the Vida widget,
+// which talks to the client's website visitors. Stateless Q&A, no DB writes.
+const VIDA_HELP_SYSTEM = [
+  "You are Vida, the friendly in-app help assistant inside the K.I.N.D client portal.",
+  "K.I.N.D is an AI sales platform. Its agents: FIGSY (the AI SDR — finds leads, writes & sends cold email sequences), Milla (business-intelligence assistant — daily briefs, pipeline signals), Vida (website chatbot that qualifies visitors), and Denise (the AI closer — warm follow-ups & proposals).",
+  "Key areas of the portal: Leads (scored prospects), FIGSY campaigns & sequences, Inbox (replies), ICP setup (who to target), Settings (business profile, CRM integration, writing style, notifications, booking link), Billing & credits, Documents, Team invites.",
+  "How outreach works: the client defines an ICP → FIGSY finds & scores leads → drafts personalised cold emails → sends them on a warmed schedule (respecting POPIA consent in South Africa) → replies land in the Inbox where the client (or Denise) follows up.",
+  "Credits are spent when leads are delivered. Campaigns can auto-pause on low performance and be resumed from the FIGSY page.",
+  "Answer concisely — 2-4 sentences. Be warm, practical, and specific to where in the portal the client should click. If you genuinely don't know or it needs a human, point them to hello@get-kind.com.",
+  "Never invent metrics, prices, or features you're unsure about. If unsure, say so.",
+].join(' ')
 
 export const vidaRouter = Router()
 
@@ -116,6 +132,49 @@ portalRouter.put('/config', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ success: false, error: 'Failed to update config' })
+  }
+})
+
+// POST /vida/help — R3 (V2-11): in-portal product help. Stateless: the client
+// sends the recent turns and the latest question; Vida replies with how-to help.
+portalRouter.post('/help', async (req: AuthRequest, res) => {
+  try {
+    const { message, history } = z.object({
+      message: z.string().min(1).max(2000),
+      history: z.array(z.object({
+        role:    z.enum(['user', 'assistant']),
+        content: z.string().max(4000),
+      })).max(12).optional(),
+    }).parse(req.body)
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.json({ success: true, data: { reply: "I can't reach my brain right now — please email hello@get-kind.com and the team will help." } })
+      return
+    }
+
+    const messages: Anthropic.MessageParam[] = [
+      ...(history ?? []).map(m => ({ role: m.role, content: m.content })),
+      { role: 'user' as const, content: message },
+    ]
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      system: VIDA_HELP_SYSTEM,
+      messages,
+    })
+
+    const reply = response.content
+      .filter(b => b.type === 'text')
+      .map(b => (b as Anthropic.TextBlock).text)
+      .join('')
+      .trim() || "Sorry, I didn't catch that — could you rephrase?"
+
+    res.json({ success: true, data: { reply } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors[0]?.message ?? 'Invalid input' }); return }
+    console.error('[vida/help]', err)
+    res.status(500).json({ success: false, error: 'Help is temporarily unavailable' })
   }
 })
 

@@ -831,22 +831,34 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
 // Pause active campaigns whose reply rate has dropped below 1%.
 internalRouter.post('/figsy/check-performance', async (_req: Request, res: Response) => {
   try {
+    // Don't judge a campaign's reply rate until BOTH: (a) the full 3-step sequence
+    // has had time to fire (step 3 = day 9) and replies a chance to land (~day 10+),
+    // and (b) there's enough volume for <1% to be a real signal, not noise. A young
+    // or warming campaign with 0 replies is EXPECTED — auto-pausing it (e.g. the
+    // warmup campaign at day 3) wrongly halts domain warming. Raised from 20 → 50
+    // emails + a 10-day age gate after that exact false-pause hit the live warmup.
+    const MIN_EMAILS = 50
+    const MIN_AGE_DAYS = 10
     const { data: campaigns } = await db.from('figsy_campaigns')
       .select('id, client_id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, opted_out, created_at')
       .eq('status', 'active')
       .gt('leads_enrolled', 0)
-      .gte('emails_sent', 20)
+      .gte('emails_sent', MIN_EMAILS)
 
     const paused: { id: string; name: string; client_id: string; reply_rate: number }[] = []
 
     for (const campaign of campaigns ?? []) {
+      // Age gate — skip campaigns younger than the full sequence + reply window.
+      const ageDays = (Date.now() - new Date(campaign.created_at as string).getTime()) / 86_400_000
+      if (ageDays < MIN_AGE_DAYS) continue
+
       // Reconcile from source before deciding — a drifted replies_total (the known
       // failure mode is drift DOWN to 0) would otherwise auto-pause a healthy campaign.
       const fresh = await recomputeCampaignCounters(campaign.id)
       const repliesTotal = fresh?.replies_total ?? campaign.replies_total
       const emailsSent   = fresh?.emails_sent   ?? campaign.emails_sent
       const replyRate = emailsSent > 0 ? repliesTotal / emailsSent : 0
-      if (emailsSent >= 20 && replyRate < 0.01) {
+      if (emailsSent >= MIN_EMAILS && replyRate < 0.01) {
         await db.from('figsy_campaigns')
           .update({ status: 'paused_low_performance' })
           .eq('id', campaign.id)

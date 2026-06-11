@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds } from '../lib/figsy'
+import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, personalizationSignals } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO } from '../lib/deliverability'
@@ -1518,6 +1518,36 @@ figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) =
   } catch (err) {
     console.error(err)
     res.status(500).json({ success: false, error: 'Failed to get signal preview' })
+  }
+})
+
+// R9 (Apollo) — "Why FIGSY wrote this": AI transparency. Returns the exact
+// personalization hooks FIGSY uses for a lead, via the same helper the generator
+// uses, plus a plain-English explanation. Lets clients see — and trust — that the
+// outreach is genuinely tailored, not spray-and-pray.
+figsyRouter.get('/leads/:leadId/why-email', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead } = await db.from('leads')
+      .select('first_name, job_title, company, tech_stack, industry, score, score_reasoning')
+      .eq('id', req.params.leadId)
+      .eq('client_id', clientId)
+      .maybeSingle()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const signals = personalizationSignals(lead as any)
+    const bestSignal = signals[0] ?? null
+    const who = [lead.job_title, lead.company].filter(Boolean).join(' at ') || 'this prospect'
+    const explanation = bestSignal
+      ? `FIGSY opens the email with a specific observation about ${lead.first_name || 'them'} — "${bestSignal}" — then connects it to what you do. ${signals.length > 1 ? `It also factored in: ${signals.slice(1).join('; ')}.` : ''}`
+      : `FIGSY didn't find a strong personalization hook for ${who}, so it leads with your value proposition and keeps the email short. Enriching this lead (tech stack / industry) would let FIGSY personalize harder.`
+
+    res.json({ success: true, data: { signals, bestSignal, score: lead.score ?? null, explanation } })
+  } catch (err) {
+    console.error('[figsy/why-email]', err)
+    res.status(500).json({ success: false, error: 'Failed to explain personalization' })
   }
 })
 

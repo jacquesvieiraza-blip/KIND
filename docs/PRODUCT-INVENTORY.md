@@ -159,6 +159,47 @@ Cross-client intelligence/L4 (#64) · data-licensing marketplace (#65) · L3 ICP
 
 ---
 
+# ░ PART B0b — 🔜 NEXT STAGING QUEUE (ungated · buildable now · no external deps) ░
+*Everything here can go on a branch → staging → founder preview with no keys, no data, no design calls needed. Sorted by effort. Status: ⬜ not started · 🔨 built on staging · ✅ live on main.*
+*Cross-ref: items 🟢 in the B list below are already on staging from the 11-Jun sprint. These are what's left.*
+
+## 🟢 Quick wins — ½ day or less each
+| # | What | Why it matters | Effort |
+|---|------|---------------|--------|
+| Q1 | **Status bar** (sidebar bottom — live pulse: FIGSY active · warmup count · credits left) | Inventory says "build first, near-zero effort." Makes platform feel alive instantly. Data already exists. | ~4 hrs · ⬜ |
+| Q2 | **Profile dropdown — full build** (Usage · Billing · Team · Settings · Developer API · Sign out) | Currently partial. All target pages exist — just navigation wiring. | ~2 hrs · ⬜ |
+| Q3 | **Mobile PWA** (manifest.json + service worker on portal) | Makes portal installable on mobile. Zero new features, big perception win for Africa's mobile-first market. | ~4 hrs · ⬜ |
+| Q4 | **Subscribe-to-the-drop** (#122) | Email capture form on website → Resend list. Ties The Drop content engine together. | ~3 hrs · ⬜ |
+| Q5 | **Site nav/footer rewire** (#123) | Update ~40 landing pages: Demo→Watch, add The Drop to nav + footer. Was held post-launch deliberately. | ~4 hrs · ⬜ |
+
+## 🟡 Medium builds — 1–2 days each
+| # | What | Why it matters | Effort |
+|---|------|---------------|--------|
+| M1 | **Deliverability dashboard** (#48) | Warmup cap, daily sent, bounce rate, spam complaints — all data exists, just needs a UI. Critical for ongoing health post-launch. | ~1 day · ⬜ |
+| M2 | **Kanban pipeline view** (#100) | Alternative view on leads — drag cards between New → Contacted → Hot → Meeting → Closed. Data exists; view layer only. | ~1 day · ⬜ |
+| M3 | **Real-time activity feed** (#102) | Supabase realtime LISTEN/NOTIFY → sidebar panel: "FIGSY sent to Kamau · 2 min ago", "Hot reply from Zainab". Makes platform feel live. | ~1.5 days · ⬜ |
+| M4 | **A/B subject testing UI** (#43) | Two subject variants per sequence step, 50/50 split, winner surfaced. Evals harness (R16) already collects the data — this adds the UI. | ~1.5 days · ⬜ |
+| M5 | **Configurable agent triggers** (#53) | Settings panel: time-of-day send window, pause on weekends, reply delay. Some already in backend — needs a settings surface. | ~1 day · ⬜ |
+| M6 | **Notification centre** (#103) | Bell icon top-right + slide-out panel. Hook into existing hot-reply and meeting-booked events in the DB. | ~1 day · ⬜ |
+
+## 🔴 Bigger builds — possible, but confirm direction first
+| # | What | Condition |
+|---|------|-----------|
+| B1 | **Revenue Mission Control** (#115) — 3-col live ops: FIGSY pipeline · active conversations · intelligence | Most impressive thing on staging. ~3–4 days. Confirm layout before starting. |
+| B2 | **FIGSY Memory v2 / pgvector** (#51) — FIGSY remembers what worked on past leads | 🧍 enable pgvector in Supabase dashboard (2 min), then Claude builds the memory layer. The moat item. |
+| B3 | **Casey — conversational onboarding** (V2-3/10) — chat-based setup instead of a form | Highest-value V2 build. Needs founder's voice/tone input first — it's what every new client sees. |
+
+## ❌ Cannot build yet — gated (honest)
+| Gate | What's blocked |
+|------|---------------|
+| 🔒 Wave 3 — needs live data | A/B bandit · ICP auto-refine · adaptive send volume · network benchmarks ("top 15%") · contextual bandits · churn scoring |
+| 🔑 Wave 4 — needs keys/approvals | WhatsApp (Meta approval) · Vapi voice (key) · PDL/Hunter (keys, code already wired) · inbox rotation (warmed domains) · Flutterwave (🧍 activate) |
+| 🎨 Wave 5 — needs founder design input | Casey (founder voice) · Company 2a setup + 2b per-rep routing (wait for first real 10-seat client) · per-rep calendars |
+| 📹 Wave 6 — needs real content | Homepage hero (you record V1) · proof block (real numbers) · outcome stats (real data) |
+| 🤖 Wave 7–8 — gated on margin/scale | Denise deep build · Lena/Tony agents · visual automation builder · ISO/SOC2 · enterprise features |
+
+---
+
 # ░ PART B — COMING, IN ORDER ░
 
 ## B-LAUNCH · by Fri 19 Jun

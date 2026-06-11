@@ -187,6 +187,53 @@ export async function draftProposal(input: {
 }
 
 /**
+ * R14 (#54 slice) — Meeting-Prep. When a prospect books a call, DENISE preps the
+ * human who'll take it: who they are, what they've said, the angle that's
+ * working, smart questions, likely objections, and a suggested agenda. Returns
+ * markdown the portal renders as a briefing card.
+ */
+export async function draftMeetingPrep(input: {
+  first_name?: string | null
+  job_title?: string | null
+  company?: string | null
+  industry?: string | null
+  conversation?: string | null
+  sender_company?: string | null
+}): Promise<string> {
+  const who = [input.first_name, input.job_title && `(${input.job_title}`, input.company && `at ${input.company})`]
+    .filter(Boolean).join(' ')
+  const userPrompt = [
+    `Prepare a tight pre-meeting brief for whoever is about to take a sales call with this prospect.`,
+    `Prospect: ${who || 'unknown'}.`,
+    input.industry ? `Industry: ${input.industry}.` : '',
+    input.sender_company ? `We are ${input.sender_company}.` : '',
+    input.conversation ? `What's been said so far:\n${input.conversation}` : 'No prior conversation on record.',
+    ``,
+    `Return short markdown with these sections (skip any you genuinely can't ground in the facts):`,
+    `**Who you're meeting** — one line.`,
+    `**Where we left off** — what they actually said / why they're interested.`,
+    `**Your angle** — the one thing to lead with.`,
+    `**3 questions to ask** — sharp, open, specific to them.`,
+    `**Likely objections** — and a one-line response to each.`,
+    `**Suggested 15-min agenda** — 3-4 bullets.`,
+    `Be concrete and brief. Never invent facts about their company. This preps a human; it is not a script to read.`,
+  ].filter(Boolean).join('\n')
+
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 900,
+    system: deniseSystemPrompt(),
+    messages: [{ role: 'user', content: userPrompt }],
+  })
+
+  return message.content
+    .filter(b => b.type === 'text')
+    .map(b => (b as { type: 'text'; text: string }).text)
+    .join('\n')
+    .trim()
+}
+
+/**
  * DENISE's internal data snapshot for the founder brief (the pipeline she owns).
  * Mirrors the fetcher pattern in routes/internal-briefs.ts.
  */

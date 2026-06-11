@@ -174,7 +174,7 @@ interface PendingDraft {
 interface Campaign {
   id: string
   name: string
-  status: 'draft' | 'active' | 'paused' | 'completed' | 'archived'
+  status: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived'
   leads_enrolled: number
   emails_sent: number
   replies_total: number
@@ -903,7 +903,7 @@ export default function FigsyPage() {
                       {updatingId === campaign.id ? '…' : 'Pause'}
                     </button>
                   )}
-                  {campaign.status === 'paused' && (
+                  {(campaign.status === 'paused' || campaign.status === 'paused_low_performance') && (
                     <button
                       onClick={() => handleStatusChange(campaign, 'active')}
                       disabled={updatingId === campaign.id}

@@ -31,7 +31,7 @@ _Last updated: 10 Jun 2026 (audit cross-reference pass — branch `claude/kind-c
 ## 🔴 RED — this week (launch-critical)
 | # | Item | Owner |
 |---|------|-------|
-| R1 | **Rotate the 2 crown-jewel keys** (Stripe secret · Supabase service-role) — from the 4-Jun credential-exposure incident, still "pending rotation" | 🧍 |
+| R1 | ✅ **DONE 11 Jun** — rotated the 2 crown-jewel keys (Stripe secret · Supabase service-role, both api+admin confirmed working). 4-Jun exposure neutralised; also kills any stale secret in the dead Vercel projects (Y16). | 🧍 |
 | R2 | **ICO registration** — ico.org.uk, £40/yr (~10 min; penalty £400–4k) | 🧍 |
 | R3 | **D9 deliverability 10/10** (mail-tester before launch) | 🧍 |
 | R4 | ✅ **DONE** — DNC/Knowledge honest preview: coming-soon banner, all 7 broken saves disabled, employer-name placeholder rows cleared. _(no Smartsheet refs remain in app code)_ | 🤖 |
@@ -135,7 +135,7 @@ Agent Grid (V2-1) · Thinking (V2-2) · Config (V2-4, partial) · Marketplace (V
 | **T1** | **Fresh signup → onboarding (never run)** | 🤝 | ⬜ |
 | T3 (pause) · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invite · T10 partner | Smoke Test 2 | 🤝 | ⬜ |
 | **D9** | Deliverability 10/10 inbox | 🧍 | ⬜ |
-| **#1** | 2 crown-jewel key rotations (Stripe-secret, Supabase-service-role) | 🧍 | 🔄 |
+| **#1** | 2 crown-jewel key rotations (Stripe-secret, Supabase-service-role) | 🧍 | ✅ done 11 Jun |
 | **#10–#14** | Legal pack (ICO, SR01, registered office, WHOIS, LinkedIn) | 🧍 | ⬜ |
 | Go/No-Go | Thu 18 gate: deliverability · ST2 · legal · warmup | 🤝 | ⬜ |
 | **#18** | **LAUNCH Africa-only — Fri 19 Jun** | 🤝 | ⬜ |

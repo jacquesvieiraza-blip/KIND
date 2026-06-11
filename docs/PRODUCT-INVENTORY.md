@@ -76,6 +76,66 @@
 
 ---
 
+# ░ PART B0 — 🚂 THE RELEASE TRAIN (the map of ALL releases · logged 11 Jun) ░
+*Every future release from the master + tracker + this inventory, mapped into merge-ready bundles. **Model: 🤖 pre-builds each release on its own branch → its own PR → 🧍 founder merges ("push go") whenever ready → that release ships → it gets added to The Drop (weekly).** Nothing deploys until the founder's merge. Waves = build order; gates = why something can't be pre-built yet.*
+
+## 🟢 IN FLIGHT — already built, waiting on founder
+| PR | Contents | State |
+|---|---|---|
+| **#502** | The 10-Jun audit batch (Y1–Y11 · R4/R5 · data-integrity · PDL dormant · docs) | merge at Thu-18 Go/No-Go |
+| **#503** | The Drop + Product Videos pages (+ video slot per drop) | preview → merge post-launch |
+| **#505** | Warmup auto-pause hotfix | ✅ MERGED 11 Jun (live) |
+
+## 🌊 WAVE 1 — pre-building NOW (needed within ~4 weeks of launch)
+| R# | Release | Source / roadmap # |
+|---|---|---|
+| **R1** | Demo-bounce guard — stop cron emails to fake `@kind-demo.internal` inboxes (+ explicit `is_demo` send-path guard; verified demo campaigns can't fire real sends — `next_send_at` stays NULL) | warmup hygiene · 🔨 building |
+| **R2** | Daily client briefing email | #27 · Week 1 |
+| **R3** | Vida in-portal help bubble | V2-11 |
+| **R4** | Speed-to-lead: Vida→FIGSY/Denise instant handoff | #80 · Atlas steal |
+| **R5** | Milestone share-to-LinkedIn cards + Certified-Partner badge | #81/#82 · Monday steal |
+| **R6** | Onboarding v2 + day-0/3/7 email sequence | #32 |
+
+## 🌊 WAVE 2 — pre-buildable next (self-contained; no gates, no keys, no founder input)
+| R# | Release | Source |
+|---|---|---|
+| **R7** | Unibox upgrade: reply auto-tags + "✨ Help me reply" AI draft | Alta |
+| **R8** | Saved views + Reps column + better "Suggest Campaigns" | Alta |
+| **R9** | "Why FIGSY wrote this" (AI transparency) + sequence analytics | Apollo |
+| **R10** | Goals — KPI targets on the dashboard (completes V2-12) | ClickUp |
+| **R11** | Sequence-template library by ICP (gallery) | Lemlist/Alta |
+| **R12** | Lead-capture Forms (embeddable → leads) | #83 · ClickUp |
+| **R13** | UX batch: notification centre · activity feed · status bar · Cmd+K upgrades | ClickUp / 15 Pieces |
+| **R14** | Meeting-Prep agent — Denise preps the human for the booked meeting | Glean → #54 slice |
+| **R15** | Train-FIGSY knowledge backend (makes the "coming soon" page real; additive migration run at merge) | Learning Engine ① / Alta |
+| **R16** | Evals harness (reply-rate per variant · classification accuracy) — internal | Learning Engine ③ |
+| **R17** | Deliverability dashboard + spam-score pre-send | #43/#44 · Instantly |
+| **R18** | Sequence power batch: conditional branching · configurable triggers · multi-model toggle | #41/#51/#52 |
+| **R19** | In-product "What's New" feed (drops inside the portal — anti-churn) | Glean |
+| **R20** | Job-change alerts on leads | Apollo |
+
+## 🔒 WAVE 3 — GATED ON DATA (needs live campaigns/clients to learn from — building early = waste)
+A/B→contextual bandit (#38) · ICP auto-refinement (#40) · Memory v2 tuning (#46) · adaptive-volume tuning (#45) · outcome feedback loop · cross-segment recall · network benchmarks ("top 15%") · outcome pricing (#60) · self-learning ICP · churn scoring (#77) · revenue forecasting (#78) · DPO/RLHF fine-tuning (last).
+
+## 🔑 WAVE 4 — GATED ON KEYS / EXTERNAL APPROVALS (🧍 unblocks)
+WhatsApp outreach (Meta approval #22) · Vapi voice (#48) · PDL/Hunter activation (keys — code already wired) · inbox rotation/multi-domain #53 (needs extra warmed domains) · Flutterwave activation (#34) · Apollo reseller agreement (`partners@apollo.io`).
+
+## 🎨 WAVE 5 — GATED ON FOUNDER DESIGN INPUT / EVIDENCE (big builds — approve direction before weeks of UI)
+**#88 Company/Per-Rep Engine** (2a setup · 2b autonomy · 2c Command Centre · 2d payments/budget · routing · ★ winning-play library · V2-7 invite · V2-13 calendars) — **held until the first client's 10 seats teach us real usage** (demo screens can be cut earlier as sales assets) · **Casey conversational setup** (V2-3/10 — highest-value V2 build, wants founder's voice in the design) · **Sequence Builder** (#89 🎨) · **Multi-channel Smart Inbox** (🎨 — "inbox isn't right") · **Integrations Hub** (#84 🎨 — also needs OAuth app registrations) · Milla Notetaker (V2-8 🎨).
+
+## 📹 WAVE 6 — GATED ON REAL CONTENT/DATA (the honesty rule — no invented numbers)
+Homepage hero = real product loop (#24) · proof block real data (#33) · homepage outcome numbers (#62c) · founder videos (#23/#29/#31/#35) · 9:16 social cuts (#30).
+
+## 🤖 WAVE 7 — MONTH 3+ (agent family · gated on margin data + real client patterns)
+Denise deep build (#54) · **Lena** CS agent (#55) · **Tony** Ops agent (#56) · multi-agent orchestration (#57) · 500+ skill library (#58) · mobile app (#61/PWA) · built-in CRM Kanban (#62) · proposal e-sign (#69) · Zoom notetaker (#70) · visual automation builder (React Flow) · white-label/agency.
+
+## 🏛️ WAVE 8 — YEAR 2 (enterprise + moat)
+Cross-client intelligence/L4 (#64) · data-licensing marketplace (#65) · L3 ICP (#66) · pipeline forecasting (#67) · in-portal messaging (#68) · ISO 27001/42001 · SOC 2 · Vanta (#71–74) · 3-type memory (#75) · visitor de-anon (#76) · call intelligence (#79) · Revenue Mission Control.
+
+**≈20 merge-ready releases (Waves 1–2) before any gate is hit — months of weekly "push go" drops. The Drop page is the icing: each merged release gets added there weekly.**
+
+---
+
 # ░ PART B — COMING, IN ORDER ░
 
 ## B-LAUNCH · by Fri 19 Jun

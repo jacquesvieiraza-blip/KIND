@@ -151,6 +151,59 @@ function FigsyOutreachSettings() {
   )
 }
 
+// R12 (#83) — Embeddable lead-capture form. Shows a copy-paste snippet that
+// posts to the public /forms/:clientId/submit endpoint → a scored pipeline lead.
+function LeadCaptureFormSection({ clientId }: { clientId: string }) {
+  const [copied, setCopied] = useState(false)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+
+  const snippet = `<!-- K.I.N.D lead-capture form -->
+<form id="kind-lead-form" style="max-width:380px;font-family:sans-serif;display:flex;flex-direction:column;gap:10px">
+  <input name="name" placeholder="Your name" style="padding:10px;border:1px solid #ddd;border-radius:8px" />
+  <input name="email" type="email" required placeholder="Email" style="padding:10px;border:1px solid #ddd;border-radius:8px" />
+  <input name="company" placeholder="Company" style="padding:10px;border:1px solid #ddd;border-radius:8px" />
+  <textarea name="message" placeholder="How can we help?" style="padding:10px;border:1px solid #ddd;border-radius:8px"></textarea>
+  <input name="_hp" style="display:none" tabindex="-1" autocomplete="off" />
+  <button type="submit" style="padding:11px;background:#7C3AED;color:#fff;border:0;border-radius:8px;font-weight:600;cursor:pointer">Send</button>
+  <p id="kind-form-msg" style="font-size:13px;margin:0"></p>
+</form>
+<script>
+(function(){
+  var f=document.getElementById('kind-lead-form'),m=document.getElementById('kind-form-msg');
+  f.addEventListener('submit',function(e){
+    e.preventDefault();
+    var d={};new FormData(f).forEach(function(v,k){d[k]=v;});
+    m.textContent='Sending…';
+    fetch('${apiUrl}/forms/${clientId}/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+      .then(function(r){return r.json();})
+      .then(function(r){m.style.color=r.success?'#16a34a':'#dc2626';m.textContent=r.success?'Thanks — we\\'ll be in touch!':(r.error||'Something went wrong.');if(r.success)f.reset();})
+      .catch(function(){m.style.color='#dc2626';m.textContent='Network error — please try again.';});
+  });
+})();
+</script>`
+
+  return (
+    <div className="border-t border-gray-100 pt-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Link2 className="w-4 h-4 text-[#9B8EC4]" />
+        <h2 className="font-semibold">Lead-Capture Form</h2>
+      </div>
+      <p className="text-sm text-[#9B8EC4] mb-4">
+        Paste this into your website. Every submission becomes a scored lead in your pipeline (source: web form) — deduped by email, spam-protected with a honeypot.
+      </p>
+      <div className="relative">
+        <pre className="text-xs bg-[#1E1B2E] text-gray-200 rounded-lg p-4 overflow-x-auto max-h-64 leading-relaxed"><code>{snippet}</code></pre>
+        <button
+          onClick={() => { navigator.clipboard.writeText(snippet).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500) }) }}
+          className="absolute top-2 right-2 flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white rounded-lg px-2.5 py-1.5 transition-colors"
+        >
+          {copied ? <><CheckCircle className="w-3.5 h-3.5" /> Copied</> : 'Copy'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function TeamSection({ clientId, userRole }: { clientId: string; userRole: string }) {
   const [members, setMembers] = useState<{id:string;email:string;role:string;accepted_at:string|null}[]>([])
   const [email, setEmail] = useState('')
@@ -559,6 +612,9 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold text-gray-900">Integrations</h2>
         <p className="text-[#7B6FA0] text-sm mt-0.5">Connect external tools to supercharge FIGSY.</p>
       </div>
+
+      {/* Lead-Capture Form — R12 */}
+      {clientId && <LeadCaptureFormSection clientId={clientId} />}
 
       {/* Writing Style — W14 */}
       <div className="border-t border-gray-100 pt-6">

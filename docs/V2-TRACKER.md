@@ -3,7 +3,10 @@
 > 🧭 **WHICH DOC AM I IN?** This is the **FUTURE roadmap + itemised risk/fix register** (post-launch: company engine #88, V2 experience, the 101-item roadmap, steals catalog).
 > **For launch tracking (now → Fri 19), work off [`KIND-MASTER.md`](./KIND-MASTER.md) — its dated MASTER TIMELINE is the single launch source.** Only two docs: master = launch, this = future.
 
-_Last updated: 10 Jun 2026 (audit cross-reference pass — branch `claude/kind-carson-MYhSl`)._
+_Last updated: 11 Jun 2026 evening (release-train audit pass — branch `claude/kind-carson-MYhSl`)._
+
+> ## ⚡ 11-Jun STATUS — much of this roadmap is now PRE-BUILT, verified, awaiting founder merge
+> **The 20-PR release train (Waves 1–2, PRs #506–#525) is built + independently verified** (35/35 diff-marker checks; every branch 1 commit, scoped to its claimed files, build-verified). **The #88 company engine started early** on branch `claude/company-engine` (flag-gated: seat autonomy/budget · request/approve credits · winning-play library · real Command Centre at `/dashboard/company`) — **no PR yet**, founder reviews first. Engine gaps still open: per-rep lead ownership/routing+CRM dedup (38) and per-rep calendars (41). **Full green-tick table: [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) → AUDIT block.** Phase-2 items now real (not just designs): Vida bubble (#508) · Lead-capture Forms (#517) · Goals (#515) · Templates (#516) · "Help me reply" (#512) · Train-FIGSY backend (#520). Nothing merged · nothing live.
 
 **Legend:** ✅ done/live · 🟡 partial · 🎨 mockup only (designed, NOT built) · 🔄 in progress · ⏸ gated/paused · ⬜ not started · 🔴 open issue
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both

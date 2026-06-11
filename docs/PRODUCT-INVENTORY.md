@@ -76,15 +76,30 @@
 
 ---
 
+# ░ AUDIT — 11 Jun evening · EVERYTHING BUILT, INDEPENDENTLY VERIFIED ✅ ░
+*🤖 re-verified every branch against GitHub (not from memory): each release branch is exactly **1 commit**, touches **only its claimed files**, and **contains its key code** (35/35 marker checks passed). Every branch type-checked (`tsc`) and/or `next build` verified at build time. **Nothing merged · nothing live · founder reviews each PR.***
+
+| ✔ | What | Where | Verified how |
+|---|---|---|---|
+| ✅ | **Wave 1 — R1–R6** (6 releases) | PRs **#506–#511** | diff markers + scope + build |
+| ✅ | **Wave 2 — R7–R20** (14 releases) | PRs **#512–#525** | diff markers + scope + build |
+| ✅ | **#88 sales/video preview** — Winning-Plays tab + autonomy badges added to `/v2/company` | branch `claude/company-preview` (**no PR yet** — founder said stop) | diff marker + build |
+| ✅ | **#88 COMPANY ENGINE (real, flag-gated)** — migration (seat autonomy/budget · `seat_credit_requests` · `winning_plays`) + `/company` API (overview · seat PATCH · request/approve credits · plays CRUD/push) + real Command-Centre page `/dashboard/company` | branch `claude/company-engine` (**no PR yet**) | diff markers + tsc + build |
+| ✅ | **portalv2preview.html — all 10 concepts** exist as gated `/v2` previews: agents grid (§1) · thinking (§2) · conversational setup (§3) · config (§4) · marketplace (§5) · slim shell (§6) · invite (§7) · notetaker (§8) · Teams Hub/company (§9) · sequence builder (§12) · integrations hub (§13) · smart inbox (§14) · train (§16) · SSO signup | `apps/portal/src/app/(v2)/v2/*` + `/v2/gallery` index | route-by-route check |
+
+**Honest gaps (not done, by design or dependency):** #88 items **38** (per-rep lead ownership/routing + CRM dedup — the deep data re-architecture) and **41** (multi-provider calendars) — the Command Centre's per-rep outreach stats stay seat-level until 38 lands. The `/v2` previews for sequence-builder/smart-inbox/integrations/notetaker are **clickable designs, not wired backends** (Wave 5 — founder-design gated). SSO buttons need Google/Microsoft OAuth app registration (🧍). **"Verified" = code + build verified — NOT click-tested in a running app and mostly untested by automated tests.**
+
 # ░ PART B0 — 🚂 THE RELEASE TRAIN (the map of ALL releases · logged 11 Jun) ░
 *Every future release from the master + tracker + this inventory, mapped into merge-ready bundles. **Model: 🤖 pre-builds each release on its own branch → its own PR → 🧍 founder merges ("push go") whenever ready → that release ships → it gets added to The Drop (weekly).** Nothing deploys until the founder's merge. Waves = build order; gates = why something can't be pre-built yet.*
 
 ## 🟢 IN FLIGHT — already built, waiting on founder
 | PR | Contents | State |
 |---|---|---|
-| **#502** | The 10-Jun audit batch (Y1–Y11 · R4/R5 · data-integrity · PDL dormant · docs) | merge at Thu-18 Go/No-Go |
+| **#502** | The 10-Jun audit batch (Y1–Y11 · R4/R5 · data-integrity · PDL dormant · docs) | merge at Thu-18 Go/No-Go ⚠️ based on older main — rebase before merge |
 | **#503** | The Drop + Product Videos pages (+ video slot per drop) | preview → merge post-launch |
 | **#505** | Warmup auto-pause hotfix | ✅ MERGED 11 Jun (live) |
+| *(branch)* | #88 sales/video preview — `claude/company-preview` | pushed · **no PR** — founder review first |
+| *(branch)* | #88 company engine (flag-gated) — `claude/company-engine` | pushed · **no PR** — founder review first |
 
 ## 🌊 WAVE 1 — ✅ ALL BUILT — 6 PRs open & build-verified, waiting for your merge (11 Jun)
 | R# | Release | Source / roadmap # | Status |

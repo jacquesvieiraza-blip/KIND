@@ -29,6 +29,12 @@
 > **This block is the cold-start handoff.** Any new chat/session must read this to know exactly
 > where we are. **Keep it current** — update it at the end of every working session before commit.
 
+- **🚂 11 JUN EVENING — THE RELEASE TRAIN IS BUILT + AUDITED. 20 PRs await the founder.**
+>   - ✅ **Waves 1–2 pre-built: PRs #506–#525** (R1 demo-bounce guard → R20 job-change alerts). Every branch **independently re-verified against GitHub**: 1 commit each, only its claimed files, key code present (35/35 marker checks), type-check/build green. **Founder merges = "push go"; merged releases get added to The Drop.**
+>   - ✅ **#88 company engine started early** (founder instruction) on branch **`claude/company-engine`** — flag-gated (`v2Enabled('company')`): seat autonomy + per-seat budgets · request/approve credit loop · ★ winning-play library · real Command Centre at `/dashboard/company`. Plus **`claude/company-preview`** = the filmable sales demo (all 8 sub-items visualised). **No PRs opened for these two — founder reviews first.** Still open in the engine: per-rep lead ownership/routing+CRM dedup (38) · per-rep calendars (41).
+>   - ✅ All 10 `portalv2preview.html` concepts confirmed present as gated `/v2` previews (gallery at `/v2/gallery`).
+>   - ⚠️ Honesty: "verified" = code+build verified, **not click-tested in a running app**; #502 is based on an older `main` (rebase before merging). **Nothing merged, nothing live — founder reviews each.** Full green-tick audit table: `PRODUCT-INVENTORY.md` → AUDIT block.
+
 - **🟢 9 JUN — WARMUP IS LIVE. THE #1 BLOCKER IS DEAD.** The hardest, scariest part of the whole launch — deliverability — is **proven in the real world today**:
 >   - ✅ **T8 PASSED** — a real cold email from `gettingkind.com` landed in the **inbox (not spam)**, well-formed, opt-out present. Deliverability works end-to-end.
 >   - ✅ **Warmup running** — `FIGSY_WARMUP_START=2026-06-09` (Day 1 = 10/day → ramps to 50). FIGSY's 2-hourly cron sends automatically; **founder does nothing daily.**

@@ -9,7 +9,7 @@ import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
-  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake,
+  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, Mic,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
@@ -52,8 +52,9 @@ const AGENTS: AgentDef[] = [
     ring: 'ring-pink-300/30',
     price: '$49/mo',
     nav: [
-      { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
-      { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+      { href: '/dashboard/assistant',  label: 'Assistant',  icon: Bot },
+      { href: '/dashboard/documents',  label: 'Documents',  icon: FileText },
+      { href: '/dashboard/notetaker',  label: 'Notetaker',  icon: Mic },
     ],
   },
   {

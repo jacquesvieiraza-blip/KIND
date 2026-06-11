@@ -9,7 +9,7 @@ import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
-  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake,
+  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, LayoutTemplate,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 
@@ -37,6 +37,7 @@ const AGENTS: AgentDef[] = [
     nav: [
       { href: '/dashboard/figsy-chat',     label: 'Chat with FIGSY', icon: MessageSquare },
       { href: '/dashboard/figsy',          label: 'Campaigns',   icon: Target },
+      { href: '/dashboard/templates',      label: 'Templates',   icon: LayoutTemplate },
       { href: '/dashboard/inbox',          label: 'Inbox',       icon: Inbox, badge: 'unread' },
       { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
       { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },

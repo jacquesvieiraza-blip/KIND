@@ -99,8 +99,9 @@ const LEAD_GEN_NAV = [
 const ACCOUNT_NAV = [
   { href: '/dashboard/usage',      label: 'Usage',        icon: BarChart2 },
   { href: '/dashboard/roadmap',    label: 'Roadmap',      icon: Map },
-  { href: '/dashboard/partner',    label: 'Partner Hub',  icon: Handshake },
-  { href: '/dashboard/mcp',        label: 'MCP Connect',  icon: Plug },
+  { href: '/dashboard/partner',       label: 'Partner Hub',   icon: Handshake },
+  { href: '/dashboard/integrations',  label: 'Integrations',  icon: Plug },
+  { href: '/dashboard/mcp',           label: 'MCP Connect',   icon: Plug },
   { href: '/dashboard/proposals',  label: 'Proposals',    icon: FileText },
   { href: '/dashboard/developer',  label: 'Developer API', icon: Code2 },
   { href: '/dashboard/billing',    label: 'Billing',      icon: CreditCard },

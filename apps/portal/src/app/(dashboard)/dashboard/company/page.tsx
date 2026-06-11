@@ -10,9 +10,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
-  Building2, Users, Coins, TrendingUp, Crown, AlertTriangle,
-  CheckCircle2, XCircle, Loader2, Sparkles, Zap, Eye,
+  Building2, Users, Coins, Crown,
+  CheckCircle2, XCircle, Loader2, Sparkles, Zap, Eye, CreditCard,
 } from 'lucide-react'
+
+// Lead-gen credit bundles — mirrors billing page. $1/credit, three sizes.
+// priceId pulled from env so the company page never hardcodes Stripe IDs.
+const TOPUP_BUNDLES = [
+  { credits: 20,  priceUsd: 20,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '' },
+  { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '' },
+  { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '' },
+]
 
 const BRAND = '#7C3AED'
 
@@ -47,6 +55,9 @@ export default function CompanyPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('command')
   const [busy, setBusy] = useState<string | null>(null)
+  const [topupBundle, setTopupBundle] = useState<number>(100)
+  const [topupBusy, setTopupBusy] = useState(false)
+  const [topupError, setTopupError] = useState<string | null>(null)
 
   const load = useCallback(async (tok: string) => {
     try {
@@ -85,6 +96,29 @@ export default function CompanyPage() {
     setBusy(id)
     try { await api.post(`/company/winning-plays/${id}/push`, {}, token); await load(token) } catch { /* ignore */ }
     setBusy(null)
+  }
+
+  async function handleTopUp() {
+    if (!token) return
+    const bundle = TOPUP_BUNDLES.find(b => b.credits === topupBundle)
+    if (!bundle || !bundle.priceId) {
+      setTopupError('Payment not configured — contact support.')
+      return
+    }
+    setTopupBusy(true)
+    setTopupError(null)
+    try {
+      const res = await api.post<{ url?: string; error?: string }>(
+        '/stripe/checkout',
+        { priceId: bundle.priceId, credits: bundle.credits, creditType: 'lead_gen' },
+        token,
+      )
+      if (res.url) { window.location.href = res.url; return }
+      setTopupError(res.error || 'Could not start checkout. Try again.')
+    } catch {
+      setTopupError('Could not start checkout. Try again.')
+    }
+    setTopupBusy(false)
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" /></div>
@@ -129,24 +163,76 @@ export default function CompanyPage() {
 
       {tab === 'command' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Kpi label="Active seats" value={String(totals.active_seats)} sub={`${totals.seats} total`} accent />
-            <Kpi label="Company pool" value={totals.company_pool.toLocaleString()} sub="credits left" />
-            <Kpi label="Allocated" value={totals.allocated.toLocaleString()} sub="across seats" />
-            <Kpi label="Pending requests" value={String(totals.pending_requests)} sub="awaiting you" />
+          {/* Rep leaderboard — every rep, their spend, credits left */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="text-white px-6 py-5" style={{ background: BRAND }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Company</p>
+                  <p className="text-xl font-bold">{data.company.name} · {totals.seats} seats</p>
+                </div>
+                <div className="flex gap-8 text-right">
+                  <div><p className="text-2xl font-bold">{totals.company_pool.toLocaleString()}</p><p className="text-xs text-white/60">Pool credits</p></div>
+                  <div><p className="text-2xl font-bold">{totals.active_seats}</p><p className="text-xs text-white/60">Active</p></div>
+                  <div><p className="text-2xl font-bold">{totals.pending_requests}</p><p className="text-xs text-white/60">Requests</p></div>
+                </div>
+              </div>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  <th className="text-left px-6 py-3">Rep</th>
+                  <th className="text-right px-4 py-3">Credits used</th>
+                  <th className="text-right px-4 py-3">Budget</th>
+                  <th className="text-right px-6 py-3">Credits left</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seats.filter(s => s.seat_active).map((s, i) => {
+                  const left = Math.max(0, s.credit_budget - s.credits_used)
+                  const pct  = s.credit_budget > 0 ? (s.credits_used / s.credit_budget) : 0
+                  const INITIALS = ['bg-violet-600','bg-indigo-500','bg-emerald-500','bg-amber-500','bg-rose-500']
+                  return (
+                    <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${INITIALS[i % INITIALS.length]}`}>
+                            {emailName(s.email).slice(0,2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{emailName(s.email)}</p>
+                            <p className="text-xs text-gray-400">{s.role}</p>
+                          </div>
+                          {s.role === 'owner' && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Owner</span>}
+                          {pct > 0.9 && left < 20 && <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">low credits</span>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right font-medium text-gray-700">{s.credits_used.toLocaleString()}</td>
+                      <td className="px-4 py-4 text-right text-gray-400">{s.credit_budget.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="font-bold" style={{ color: pct > 0.9 ? '#ea580c' : BRAND }}>{left.toLocaleString()}</span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
 
           {/* Pending credit requests */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-            <h3 className="font-semibold text-gray-900 px-5 py-4 border-b border-gray-100">Pending credit requests</h3>
+            <h3 className="font-semibold text-gray-900 px-5 py-4 border-b border-gray-100">
+              Pending credit requests
+              {requests.length > 0 && <span className="ml-2 text-xs font-bold text-white px-2 py-0.5 rounded-full" style={{ background: BRAND }}>{requests.length}</span>}
+            </h3>
             {requests.length === 0 && <p className="px-5 py-6 text-sm text-gray-400">No requests right now.</p>}
             {requests.map(r => {
               const seat = seatById(r.member_id)
               return (
                 <div key={r.id} className="flex items-center justify-between px-5 py-4 border-b border-gray-50 last:border-0">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{seat ? emailName(seat.email) : 'A rep'} · <span style={{ color: BRAND }}>+{r.amount.toLocaleString()} credits</span></p>
-                    {r.reason && <p className="text-xs text-gray-400">{r.reason}</p>}
+                    <p className="text-sm font-medium text-gray-900">{seat ? emailName(seat.email) : 'A rep'} requests <span style={{ color: BRAND }}>+{r.amount.toLocaleString()} credits</span></p>
+                    {r.reason && <p className="text-xs text-gray-400 mt-0.5">{r.reason}</p>}
                   </div>
                   {can_manage ? (
                     <div className="flex gap-2">
@@ -198,15 +284,58 @@ export default function CompanyPage() {
 
       {tab === 'usage' && (
         <div className="space-y-6">
+          {/* Company pool balance + top-up */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-gray-900">Company budget</h3>
-              <span className="text-sm text-gray-500">{totals.used.toLocaleString()} used · {totals.allocated.toLocaleString()} allocated</span>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Company budget pool</p>
+            <p className="text-3xl font-bold text-gray-900 mb-1">{totals.company_pool.toLocaleString()} <span className="text-lg font-normal text-gray-400">credits left</span></p>
+            <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-4">
+              <div className="h-full rounded-full transition-all" style={{ width: `${totals.allocated > 0 ? Math.min(100, (totals.used / totals.allocated) * 100) : 0}%`, background: BRAND }} />
             </div>
-            <div className="h-4 bg-gray-100 rounded-full overflow-hidden mb-2">
-              <div className="h-full rounded-full" style={{ width: `${totals.allocated > 0 ? Math.min(100, (totals.used / totals.allocated) * 100) : 0}%`, background: BRAND }} />
-            </div>
-            <p className="text-xs text-gray-400">Reps request more when they run low. You approve or deny — exactly how an enterprise runs Claude. Hybrid = seat + usage you control.</p>
+            <p className="text-xs text-gray-400 mb-5">Reps request more when they run low. You approve or deny — exactly how an enterprise runs Claude. Hybrid = seat + usage you control.</p>
+
+            {/* Bundle picker */}
+            {can_manage && (
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-2">Top up company pool</p>
+                <div className="flex gap-2 mb-3">
+                  {TOPUP_BUNDLES.map(b => (
+                    <button key={b.credits} onClick={() => setTopupBundle(b.credits)}
+                      className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors ${topupBundle === b.credits ? 'text-white border-transparent' : 'border-gray-200 text-gray-600 hover:border-violet-300'}`}
+                      style={topupBundle === b.credits ? { background: BRAND } : undefined}>
+                      <span className="block text-lg font-bold">{b.credits}</span>
+                      <span className="block text-xs opacity-70">credits · ${b.priceUsd}</span>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={handleTopUp} disabled={topupBusy}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                  style={{ background: BRAND }}>
+                  {topupBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                  {topupBusy ? 'Opening checkout…' : `+ Top up company budget`}
+                </button>
+                <p className="text-xs text-gray-400 text-center mt-2">One company payment · owner controls the purse</p>
+                {topupError && <p className="text-xs text-red-500 text-center mt-1">{topupError}</p>}
+              </div>
+            )}
+          </div>
+
+          {/* Per-seat breakdown */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <h3 className="font-semibold text-gray-900 px-5 py-4 border-b border-gray-100">Per-seat breakdown</h3>
+            {seats.map(s => (
+              <div key={s.id} className="px-5 py-4 border-b border-gray-50 last:border-0">
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium text-gray-800">{emailName(s.email)}</span>
+                  <span className="text-gray-500">{s.credits_used.toLocaleString()} / {s.credit_budget.toLocaleString()}</span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{
+                    width: `${s.credit_budget > 0 ? Math.min(100, (s.credits_used / s.credit_budget) * 100) : 0}%`,
+                    background: s.credit_budget > 0 && s.credits_used / s.credit_budget > 0.9 ? '#ea580c' : BRAND,
+                  }} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

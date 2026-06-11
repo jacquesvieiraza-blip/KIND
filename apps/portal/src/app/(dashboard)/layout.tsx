@@ -7,6 +7,7 @@ import { SidebarSlim } from '@/components/layout/SidebarSlim'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 import { CommandPalette } from '@/components/ui/CommandPalette'
+import { MilestoneCelebration } from '@/components/ui/MilestoneCelebration'
 import { AgentColumn } from './AgentColumn'
 import { ProfileMenu } from '@/components/layout/ProfileMenu'
 import { v2Enabled } from '@/lib/flags'
@@ -103,6 +104,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start max-w-7xl mx-auto w-full">
         <div className="flex-1 min-w-0 space-y-4">
           <LowCreditsNotice balance={creditBalance} />
+          {!isPartner && <MilestoneCelebration leadCount={leadCount} companyName={companyName} />}
           {children}
         </div>
         <AgentColumn

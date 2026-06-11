@@ -989,6 +989,12 @@ export default function LeadsPage() {
                         <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
                         <p className="text-xs text-[#9B8EC4]">{lead.job_title || '—'}</p>
                         {lead.email && <p className="text-xs text-[#9B8EC4]">{lead.email}</p>}
+                        {/* R20 — job-change alert badge */}
+                        {(lead as { job_changed_at?: string | null }).job_changed_at && (
+                          <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                            🔄 Changed jobs — reconnect
+                          </span>
+                        )}
                         <BuyingSignals lead={lead} />
                       </td>
                       <td className="px-4 py-3">

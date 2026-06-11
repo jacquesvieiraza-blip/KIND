@@ -1493,6 +1493,70 @@ figsyRouter.get('/memory', async (req: AuthRequest, res) => {
   }
 })
 
+// R20 (Apollo) — Job-change alerts. A lead changing jobs is a strong
+// re-engagement signal. This records a detected change, emits a signal, and
+// re-opens the lead so it can be contacted fresh. (Automated detection runs off
+// enrichment keys; this endpoint is also callable when a reply reveals a move.)
+figsyRouter.post('/leads/:leadId/mark-job-change', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { new_company, new_title } = z.object({
+      new_company: z.string().max(200).optional(),
+      new_title:   z.string().max(200).optional(),
+    }).parse(req.body)
+
+    const { data: lead } = await db.from('leads')
+      .select('id, first_name, last_name, company, job_title')
+      .eq('id', req.params.leadId).eq('client_id', clientId).maybeSingle()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const update: Record<string, unknown> = {
+      job_changed_at:   new Date().toISOString(),
+      previous_company: lead.company ?? null,
+      // Re-open for re-engagement — a moved contact is a fresh opportunity.
+      status:           'scored',
+    }
+    if (new_company) update.company = new_company
+    if (new_title)   update.job_title = new_title
+
+    const { error } = await db.from('leads').update(update).eq('id', lead.id)
+    if (error) throw error
+
+    void emitSignal(clientId, 'figsy', 'job_change', {
+      lead_id: lead.id,
+      name: `${lead.first_name} ${lead.last_name}`.trim(),
+      from_company: lead.company ?? null,
+      to_company: new_company ?? lead.company ?? null,
+    })
+
+    res.json({ success: true })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }
+    console.error('[figsy/mark-job-change]', err)
+    res.status(500).json({ success: false, error: 'Failed to record job change' })
+  }
+})
+
+// GET /figsy/job-changes — leads with a recent detected job change (alerts feed).
+figsyRouter.get('/job-changes', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data } = await db.from('leads')
+      .select('id, first_name, last_name, job_title, company, previous_company, job_changed_at')
+      .eq('client_id', clientId)
+      .not('job_changed_at', 'is', null)
+      .order('job_changed_at', { ascending: false })
+      .limit(50)
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) {
+    console.error('[figsy/job-changes]', err)
+    res.status(500).json({ success: false, error: 'Failed to load job changes' })
+  }
+})
+
 // Preview the signal that FIGSY would use for a lead (for display in leads table)
 figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) => {
   try {

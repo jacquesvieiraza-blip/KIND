@@ -5,6 +5,27 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const FROM = 'K.I.N.D <hello@get-kind.com>'
 const DASH = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard`
 
+// Demo/seed clients carry synthetic addresses (e.g. demo-xxxx@kind-demo.internal).
+// These are NOT real mailboxes — sending to them generates hard bounces that erode
+// the sending domain's reputation. This guard is the last line of defence: any
+// transactional send to a non-deliverable address is dropped before it hits Resend.
+// (Recipient queries should already exclude is_demo clients — this backstops them.)
+export function isRealRecipient(to: string | string[]): boolean {
+  const list = Array.isArray(to) ? to : [to]
+  if (list.length === 0) return false
+  return list.every((addr) => {
+    const a = (addr || '').trim().toLowerCase()
+    if (!a || !a.includes('@')) return false
+    const domain = a.split('@')[1] || ''
+    if (domain.endsWith('.internal')) return false        // *.internal — non-routable
+    if (domain.startsWith('kind-demo.')) return false      // demo client domain
+    if (a.includes('@example.')) return false              // RFC-2606 reserved
+    if (domain === 'test' || domain.endsWith('.test')) return false
+    if (domain === 'localhost') return false
+    return true
+  })
+}
+
 // D5: every transactional send carries a text/plain alternative — HTML-only mail
 // hurts inbox placement. Derives the text part from the HTML when not supplied.
 // These are 1:1 transactional mails (welcome, billing, digests) from the primary
@@ -18,6 +39,10 @@ async function sendTx(opts: {
   text?: string
 }) {
   if (!resend) return
+  if (!isRealRecipient(opts.to)) {
+    console.log(`[email] skipped non-deliverable recipient: ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to}`)
+    return
+  }
   return resend.emails.send({
     from:    opts.from ?? FROM,
     to:      opts.to,

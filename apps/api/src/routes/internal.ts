@@ -17,7 +17,7 @@ import crypto from 'crypto'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail, isRealRecipient } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
@@ -1089,6 +1089,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
     const { data: clients } = await db.from('clients')
       .select('id, company_name, user_id')
       .not('user_id', 'is', null)
+      .neq('is_demo', true)   // R1: never email synthetic demo mailboxes — they hard-bounce
 
     let sent = 0
 
@@ -1132,7 +1133,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
             ).join('')
           : ''
 
-        if (resend) {
+        if (resend && isRealRecipient(email)) {
           const dayStr = now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })
           await resend.emails.send({
             from: FROM,
@@ -1214,6 +1215,7 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
     const { data: clients } = await db.from('clients')
       .select('id, company_name, user_id')
       .not('user_id', 'is', null)
+      .neq('is_demo', true)   // R1: never email synthetic demo mailboxes — they hard-bounce
 
     let alertsSent = 0
 
@@ -1262,7 +1264,7 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
           anomalies.push(`FIGSY has active campaigns but no emails sent in 48 hours. Check your campaign status and credit balance.`)
         }
 
-        if (anomalies.length === 0 || !resend) continue
+        if (anomalies.length === 0 || !resend || !isRealRecipient(email)) continue
 
         await resend.emails.send({
           from: FROM,

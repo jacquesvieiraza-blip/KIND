@@ -5,7 +5,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateVidaReply, scoreSession, notifyHotLead } from '../lib/vida'
+import { generateVidaReply, scoreSession, notifyHotLead, speedToLeadHandoff } from '../lib/vida'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -471,7 +471,12 @@ widgetRouter.post('/:clientId/session/:sessionId/message', widgetRateLimit, asyn
       const name  = (sessionData as any)?.visitor_name  ?? visitorName ?? 'Anonymous'
       const email = (sessionData as any)?.visitor_email ?? visitorEmail ?? null
 
-      notifyHotLead(clientId, sessionId, name, email).catch(console.error)
+      // R4 (#80): speed-to-lead — create the pipeline lead + Denise draft, then
+      // notify with the draft inline. Sequential so the email carries the draft;
+      // fully best-effort so it never blocks the widget response.
+      speedToLeadHandoff({ clientId, sessionId, visitorName: name, visitorEmail: email })
+        .then(({ draft }) => notifyHotLead(clientId, sessionId, name, email, draft))
+        .catch(console.error)
     }
 
     res.json({ success: true, data: { reply, shouldCollectEmail, shouldCollectPhone } })

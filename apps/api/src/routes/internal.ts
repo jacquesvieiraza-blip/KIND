@@ -1087,13 +1087,15 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
     const millaClientIds = new Set((millaSubs ?? []).map((s: { client_id: string }) => s.client_id))
 
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, user_id')
+      .select('id, company_name, user_id, daily_brief_enabled')
       .not('user_id', 'is', null)
 
     let sent = 0
 
     for (const client of clients ?? []) {
       if (!millaClientIds.has(client.id)) continue
+      // R2 (#27): respect the client's opt-out from Settings → Notifications.
+      if ((client as { daily_brief_enabled?: boolean | null }).daily_brief_enabled === false) continue
       try {
         const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
         const email = user?.email

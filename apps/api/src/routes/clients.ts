@@ -112,6 +112,9 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       // P-a: exact name FIGSY signs outreach as. Activates after migration 012
       // (clients.signer_name); the portal form must not send this until then.
       signer_name:       z.string().max(120).optional().or(z.literal('')),
+      // R2 (#27): opt in/out of Milla's daily morning brief. Honoured by the
+      // morning-brief cron (apps/api/src/routes/internal.ts).
+      daily_brief_enabled: z.boolean().optional(),
     }).parse(req.body)
     // Upsert: creates the row if none exists (partner accounts have no client row by default)
     const { data, error } = await db.from('clients')

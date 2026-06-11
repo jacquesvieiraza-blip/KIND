@@ -57,6 +57,94 @@ function requireAdminKey(req: Request, res: Response, next: () => void) {
 
 internalRouter.use(requireAdminKey)
 
+// ── R16 (Learning Engine ③) — EVALS HARNESS ───────────────────────────────────
+// Internal-only. Measures what's actually working across all outreach so we can
+// learn and tune: reply rate per sequence step, the best/worst subject-line
+// variants, and the reply-classification distribution (intent quality + opt-out
+// rate). GET /internal/evals?days=30
+internalRouter.get('/evals', async (req: Request, res: Response) => {
+  try {
+    const days = Math.min(180, Math.max(1, parseInt(String(req.query.days ?? '30'), 10) || 30))
+    const since = new Date(Date.now() - days * 86400000).toISOString()
+
+    // Pull sent emails + replies in the window (capped to keep it bounded).
+    const [{ data: sent }, { data: replies }] = await Promise.all([
+      db.from('figsy_sent_emails').select('lead_id, step, subject, sent_at').gte('sent_at', since).limit(20000),
+      db.from('figsy_replies').select('lead_id, classification, received_at').gte('received_at', since).limit(20000),
+    ])
+
+    const sentRows = (sent ?? []) as { lead_id: string | null; step: number | null; subject: string | null }[]
+    const replyRows = (replies ?? []) as { lead_id: string | null; classification: string | null }[]
+
+    // Leads that replied (any reply) — used as the "got a reply" signal.
+    const repliedLeads = new Set(replyRows.map(r => r.lead_id).filter(Boolean) as string[])
+    const positiveLeads = new Set(replyRows.filter(r => r.classification === 'hot' || r.classification === 'interested').map(r => r.lead_id).filter(Boolean) as string[])
+
+    // Per-step reply rate.
+    const byStep: Record<number, { sent: number; leads: Set<string> }> = {}
+    for (const s of sentRows) {
+      const step = s.step ?? 1
+      byStep[step] ??= { sent: 0, leads: new Set() }
+      byStep[step].sent++
+      if (s.lead_id) byStep[step].leads.add(s.lead_id)
+    }
+    const stepStats = Object.entries(byStep).map(([step, v]) => {
+      const repliedCount = [...v.leads].filter(l => repliedLeads.has(l)).length
+      return { step: Number(step), sent: v.sent, leads: v.leads.size, replied: repliedCount,
+        reply_rate_pct: v.leads.size ? +(repliedCount / v.leads.size * 100).toFixed(1) : 0 }
+    }).sort((a, b) => a.step - b.step)
+
+    // Subject-variant performance (step-1 subjects = the A/B variants).
+    const bySubject: Record<string, Set<string>> = {}
+    for (const s of sentRows) {
+      if ((s.step ?? 1) !== 1 || !s.subject || !s.lead_id) continue
+      const key = s.subject.trim().toLowerCase()
+      ;(bySubject[key] ??= new Set()).add(s.lead_id)
+    }
+    const subjectStats = Object.entries(bySubject)
+      .map(([subject, leads]) => {
+        const repliedCount = [...leads].filter(l => repliedLeads.has(l)).length
+        return { subject, sent: leads.size, replied: repliedCount,
+          reply_rate_pct: leads.size ? +(repliedCount / leads.size * 100).toFixed(1) : 0 }
+      })
+      .filter(s => s.sent >= 5)                                   // ignore tiny samples
+      .sort((a, b) => b.reply_rate_pct - a.reply_rate_pct)
+    const topSubjects = subjectStats.slice(0, 10)
+    const bottomSubjects = subjectStats.slice(-10).reverse()
+
+    // Reply-classification distribution.
+    const classDist: Record<string, number> = {}
+    for (const r of replyRows) {
+      const c = r.classification ?? 'unknown'
+      classDist[c] = (classDist[c] ?? 0) + 1
+    }
+
+    const totalSentLeads = new Set(sentRows.map(s => s.lead_id).filter(Boolean) as string[]).size
+
+    res.json({
+      success: true,
+      data: {
+        window_days: days,
+        totals: {
+          emails_sent:      sentRows.length,
+          leads_contacted:  totalSentLeads,
+          replies:          replyRows.length,
+          leads_replied:    repliedLeads.size,
+          reply_rate_pct:   totalSentLeads ? +(repliedLeads.size / totalSentLeads * 100).toFixed(1) : 0,
+          positive_rate_pct: totalSentLeads ? +(positiveLeads.size / totalSentLeads * 100).toFixed(1) : 0,
+        },
+        per_step:          stepStats,
+        top_subjects:      topSubjects,
+        bottom_subjects:   bottomSubjects,
+        classification:    classDist,
+      },
+    })
+  } catch (err) {
+    console.error('[internal/evals]', err)
+    res.status(500).json({ success: false, error: 'Evals computation failed' })
+  }
+})
+
 // ── D5 — WEEKLY LEADS DIGEST ──────────────────────────────────────────────────
 // Send every Monday morning to all active clients.
 internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {

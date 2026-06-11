@@ -16,7 +16,10 @@ const DEFAULT_NOTIF_PREFS = {
 }
 type NotifPrefs = typeof DEFAULT_NOTIF_PREFS
 
-function NotificationPreferences() {
+function NotificationPreferences({ serverDailyBrief, onDailyBriefToggle }: {
+  serverDailyBrief: boolean | null
+  onDailyBriefToggle: (next: boolean) => void
+}) {
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS)
   const [saved, setSaved] = useState(false)
 
@@ -31,6 +34,14 @@ function NotificationPreferences() {
   }, [])
 
   function toggle(key: keyof NotifPrefs) {
+    // R2 (#27): the daily brief drives a real server-side email cron, so it's
+    // persisted to the client record rather than localStorage.
+    if (key === 'daily_brief') {
+      onDailyBriefToggle(!(serverDailyBrief ?? false))
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+      return
+    }
     setPrefs(prev => {
       const next = { ...prev, [key]: !prev[key] }
       try { localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
@@ -39,6 +50,9 @@ function NotificationPreferences() {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
+
+  // The daily-brief toggle reflects the server value; the rest are local.
+  const effective: NotifPrefs = { ...prefs, daily_brief: serverDailyBrief ?? false }
 
   const items: { key: keyof NotifPrefs; label: string; desc: string }[] = [
     { key: 'reply_received',  label: 'Reply received',      desc: 'When a lead replies to a FIGSY sequence.' },
@@ -73,12 +87,12 @@ function NotificationPreferences() {
               onClick={() => toggle(key)}
               aria-label={`Toggle ${label}`}
               className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:ring-offset-2 ${
-                prefs[key] ? 'bg-[#7C3AED]' : 'bg-gray-200'
+                effective[key] ? 'bg-[#7C3AED]' : 'bg-gray-200'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${
-                  prefs[key] ? 'translate-x-4' : 'translate-x-0.5'
+                  effective[key] ? 'translate-x-4' : 'translate-x-0.5'
                 }`}
               />
             </button>
@@ -297,6 +311,7 @@ export default function SettingsPage() {
   const [unsavedCrm, setUnsavedCrm]                 = useState(false)
   const [clientId, setClientId]                     = useState<string | null>(null)
   const [userRole, setUserRole]                     = useState<string>('owner')
+  const [dailyBriefEnabled, setDailyBriefEnabled]   = useState<boolean | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -309,6 +324,8 @@ export default function SettingsPage() {
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
         setSignerName((c as { signer_name?: string | null }).signer_name || '')
         setBookingUrl((c as { booking_url?: string | null }).booking_url || '')
+        // R2 (#27): daily-brief opt-in is server-backed (defaults TRUE).
+        setDailyBriefEnabled((c as { daily_brief_enabled?: boolean | null }).daily_brief_enabled ?? true)
         if (c.id) {
           setClientId(c.id)
           // Fetch the user's role in this team
@@ -413,6 +430,18 @@ export default function SettingsPage() {
       setBookingError(err instanceof Error ? err.message : 'Failed to save — check it\'s a valid URL.')
     }
     setBookingSaving(false)
+  }
+
+  async function handleDailyBriefToggle(next: boolean) {
+    const prev = dailyBriefEnabled
+    setDailyBriefEnabled(next)   // optimistic
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setDailyBriefEnabled(prev); return }
+      await api.patch('/clients/me', { daily_brief_enabled: next }, session.access_token)
+    } catch {
+      setDailyBriefEnabled(prev)  // revert on failure
+    }
   }
 
   async function handleCrmSave(e: React.FormEvent) {
@@ -820,7 +849,7 @@ export default function SettingsPage() {
       <FigsyOutreachSettings />
 
       {/* Notification Preferences */}
-      <NotificationPreferences />
+      <NotificationPreferences serverDailyBrief={dailyBriefEnabled} onDailyBriefToggle={handleDailyBriefToggle} />
 
       {/* P2-12 — White-label / Agency Mode */}
       <div className="border-t border-gray-100 pt-6">

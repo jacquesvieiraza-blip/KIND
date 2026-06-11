@@ -1241,6 +1241,82 @@ Output ONLY the email body. No subject line. No preamble.`,
   }
 })
 
+// R7 (Alta) — "✨ Help me reply": a real, context-aware AI draft for the inbox.
+// Reads the prospect's actual inbound message + lead context and drafts a
+// tailored response, instead of the portal's keyword-template fallback.
+figsyRouter.post('/replies/:id/ai-draft', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, from_email, from_name, subject, body, body_text, classification, client_id, lead_id')
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.status(503).json({ success: false, error: 'AI drafting not configured' }); return
+    }
+
+    // Lead + sender context for a tailored reply.
+    let leadCtx = ''
+    if (reply.lead_id) {
+      const { data: lead } = await db.from('leads')
+        .select('first_name, last_name, job_title, company, industry')
+        .eq('id', reply.lead_id).maybeSingle()
+      if (lead) leadCtx = [lead.first_name && `Name: ${lead.first_name} ${lead.last_name ?? ''}`.trim(),
+        lead.job_title && `Role: ${lead.job_title}`, lead.company && `Company: ${lead.company}`,
+        lead.industry && `Industry: ${lead.industry}`].filter(Boolean).join('; ')
+    }
+
+    // Client's own signer name, if set.
+    const { data: client } = await db.from('clients')
+      .select('company_name, signer_name').eq('id', clientId).maybeSingle()
+    const signer = (client as { signer_name?: string } | null)?.signer_name
+      || (client as { company_name?: string } | null)?.company_name || ''
+
+    const inbound = (reply.body_text || reply.body || '').slice(0, 2000)
+    const senderName = reply.from_name || reply.from_email?.split('@')[0] || 'there'
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const system = [
+      'You draft short, warm, professional replies to inbound sales replies on behalf of the user.',
+      'Reference what the prospect actually said. One clear, easy next step (usually a quick call).',
+      'No pressure, no fluff, no fabricated facts or figures. 3-6 short sentences.',
+      signer ? `Sign off as: ${signer}.` : 'End with a simple sign-off (no placeholder brackets).',
+      'Return ONLY the email body — no subject line, no preamble.',
+    ].join(' ')
+
+    const userPrompt = [
+      `The prospect (${senderName}) replied:`,
+      `"""${inbound}"""`,
+      leadCtx ? `Prospect context: ${leadCtx}.` : '',
+      reply.classification ? `Their reply was classified as: ${reply.classification}.` : '',
+      'Write the best reply to move this forward.',
+    ].filter(Boolean).join('\n')
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      system,
+      messages: [{ role: 'user', content: userPrompt }],
+    })
+
+    const draft = response.content
+      .filter((b: any) => b.type === 'text')
+      .map((b: any) => b.text).join('').trim()
+
+    res.json({ success: true, data: { draft } })
+  } catch (err) {
+    console.error('[figsy/ai-draft]', err)
+    res.status(500).json({ success: false, error: 'Failed to draft reply' })
+  }
+})
+
 // ── SEND MANUAL REPLY FROM UNIBOX ─────────────────────────────────────────────
 figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
   try {

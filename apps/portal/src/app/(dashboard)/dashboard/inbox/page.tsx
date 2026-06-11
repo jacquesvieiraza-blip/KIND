@@ -162,27 +162,19 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
   async function handleAIDraft() {
     setDrafting(true)
     try {
-      // Try to get signal context from the lead, fall back to client-side draft
-      if (reply.lead_id) {
-        try {
-          const res = await api.post<{ data?: { preview?: string; signal?: string; suggestion?: string } }>(
-            `/figsy/leads/${reply.lead_id}/signal-preview`, {}, token
-          )
-          const context = res.data?.preview ?? res.data?.signal ?? ''
-          if (context) {
-            const name = reply.from_name ?? reply.from_email.split('@')[0]
-            setDraft(
-              `Hi ${name},\n\nThanks for getting back to me!\n\n${context.slice(0, 200)}\n\nWould you be open to a quick call this week?\n\nBest,`
-            )
-            setDrafting(false)
-            return
-          }
-        } catch { /* fall through to client-side draft */ }
+      // R7: real context-aware AI draft from the prospect's actual message.
+      const res = await api.post<{ data?: { draft?: string } }>(
+        `/figsy/replies/${reply.id}/ai-draft`, {}, token
+      )
+      if (res.data?.draft) {
+        setDraft(res.data.draft)
+        setDrafting(false)
+        return
       }
-      // Client-side fallback
-      await new Promise(r => setTimeout(r, 600))
+      // Fallback to the keyword template if the API returns nothing.
       setDraft(generateClientDraft(reply))
     } catch {
+      // Network/AI failure — never leave the user empty-handed.
       setDraft(generateClientDraft(reply))
     }
     setDrafting(false)

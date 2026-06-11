@@ -98,23 +98,27 @@
 
 > Each PR is its own branch off `main`, type-checked + build-verified, **nothing deploys until you merge.** Merge in any order — they don't depend on each other. Merge → it ships → it gets added to The Drop.
 
-## 🌊 WAVE 2 — pre-buildable next (self-contained; no gates, no keys, no founder input)
-| R# | Release | Source |
-|---|---|---|
-| **R7** | Unibox upgrade: reply auto-tags + "✨ Help me reply" AI draft | Alta |
-| **R8** | Saved views + Reps column + better "Suggest Campaigns" | Alta |
-| **R9** | "Why FIGSY wrote this" (AI transparency) + sequence analytics | Apollo |
-| **R10** | Goals — KPI targets on the dashboard (completes V2-12) | ClickUp |
-| **R11** | Sequence-template library by ICP (gallery) | Lemlist/Alta |
-| **R12** | Lead-capture Forms (embeddable → leads) | #83 · ClickUp |
-| **R13** | UX batch: notification centre · activity feed · status bar · Cmd+K upgrades | ClickUp / 15 Pieces |
-| **R14** | Meeting-Prep agent — Denise preps the human for the booked meeting | Glean → #54 slice |
-| **R15** | Train-FIGSY knowledge backend (makes the "coming soon" page real; additive migration run at merge) | Learning Engine ① / Alta |
-| **R16** | Evals harness (reply-rate per variant · classification accuracy) — internal | Learning Engine ③ |
-| **R17** | Deliverability dashboard + spam-score pre-send | #43/#44 · Instantly |
-| **R18** | Sequence power batch: conditional branching · configurable triggers · multi-model toggle | #41/#51/#52 |
-| **R19** | In-product "What's New" feed (drops inside the portal — anti-churn) | Glean |
-| **R20** | Job-change alerts on leads | Apollo |
+## 🌊 WAVE 2 — ✅ ALL BUILT — 14 PRs open & build-verified, waiting for your merge (11 Jun)
+| R# | Release (as shipped) | Source | Status |
+|---|---|---|---|
+| **R7** | Unibox "Help me reply" — real Claude draft off the prospect's actual message | Alta | ✅ **PR #512** |
+| **R8** | Saved views for the leads table (full filter combo, named, 1-click) | Alta | ✅ **PR #513** |
+| **R9** | "Why FIGSY wrote this" — personalization signals shown under each draft | Apollo | ✅ **PR #514** |
+| **R10** | Goals — KPI targets + live progress bars (V2-12) | ClickUp | ✅ **PR #515** |
+| **R11** | Sequence-template library by use-case (copy → campaign) | Lemlist/Alta | ✅ **PR #516** |
+| **R12** | Embeddable lead-capture forms → scored pipeline leads (honeypot + rate limit) | #83 · ClickUp | ✅ **PR #517** |
+| **R13** | Cmd+K upgrade — quick actions + more destinations | ClickUp / 15 Pieces | ✅ **PR #518** |
+| **R14** | Meeting-Prep — Denise briefs the human for a booked call | Glean → #54 | ✅ **PR #519** |
+| **R15** | Train-FIGSY knowledge backend — lights up the page (additive migration) | Learning Engine ① | ✅ **PR #520** |
+| **R16** | Internal evals harness — per-step + per-variant reply rates, class distribution | Learning Engine ③ | ✅ **PR #521** |
+| **R17** | Spam-score pre-send check under every draft | #43/#44 · Instantly | ✅ **PR #522** |
+| **R18** | Multi-model toggle (Fast/Smart) per campaign — exposes existing backend | #52 | ✅ **PR #523** |
+| **R19** | In-product "What's New" feed (anti-churn) | Glean | ✅ **PR #524** |
+| **R20** | Job-change alerts on leads (migration + signal + badge) | Apollo | ✅ **PR #525** |
+
+> **Reps column (R8)** and **conditional branching / configurable triggers (R18)** deferred: Reps belongs to the gated #88 engine; branching already ships via `applyReplyBranching` + per-step `on_reply`. The **deliverability *dashboard*** (R17) is a heavier surface; the pre-send scorer shipped, the warmup/bounce dashboard is a later slice.
+
+**Waves 1–2 are now fully pre-built: 20 merge-ready PRs (#506–#525).** That's the entire ungated backlog. Waves 3–8 below cannot be honestly pre-built — they're gated on live data, external keys, founder design input, or real content (see each wave's gate).
 
 ## 🔒 WAVE 3 — GATED ON DATA (needs live campaigns/clients to learn from — building early = waste)
 A/B→contextual bandit (#38) · ICP auto-refinement (#40) · Memory v2 tuning (#46) · adaptive-volume tuning (#45) · outcome feedback loop · cross-segment recall · network benchmarks ("top 15%") · outcome pricing (#60) · self-learning ICP · churn scoring (#77) · revenue forecasting (#78) · DPO/RLHF fine-tuning (last).

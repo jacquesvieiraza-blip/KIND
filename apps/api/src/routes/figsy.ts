@@ -1493,6 +1493,53 @@ figsyRouter.get('/memory', async (req: AuthRequest, res) => {
   }
 })
 
+// R15 (Learning Engine ①) — Train-FIGSY knowledge store. The Knowledge page
+// persists seven kinds of training data here. One row per (client, kind); the
+// payload is stored verbatim as JSONB and returned spread at the top level so
+// the frontend reads e.g. res.pitch directly.
+const KNOWLEDGE_KINDS = new Set(['pitch', 'keywords', 'signals', 'dnc', 'messaging', 'context', 'prompts'])
+
+figsyRouter.get('/knowledge/:kind', async (req: AuthRequest, res) => {
+  try {
+    const { kind } = req.params
+    if (!KNOWLEDGE_KINDS.has(kind)) { res.status(404).json({ success: false, error: 'Unknown knowledge kind' }); return }
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data } = await db.from('figsy_knowledge')
+      .select('data').eq('client_id', clientId).eq('kind', kind).maybeSingle()
+    // Spread the stored payload at the top level (or {} when nothing saved yet).
+    res.json({ ...((data as { data?: Record<string, unknown> } | null)?.data ?? {}) })
+  } catch (err) {
+    console.error('[figsy/knowledge GET]', err)
+    res.status(500).json({ success: false, error: 'Failed to load knowledge' })
+  }
+})
+
+figsyRouter.post('/knowledge/:kind', async (req: AuthRequest, res) => {
+  try {
+    const { kind } = req.params
+    if (!KNOWLEDGE_KINDS.has(kind)) { res.status(404).json({ success: false, error: 'Unknown knowledge kind' }); return }
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Store the posted body verbatim. Cap the serialized size so one client
+    // can't stuff the row (256KB is generous for text knowledge).
+    const payload = (req.body && typeof req.body === 'object') ? req.body : {}
+    if (JSON.stringify(payload).length > 256_000) {
+      res.status(413).json({ success: false, error: 'Knowledge payload too large' }); return
+    }
+
+    const { error } = await db.from('figsy_knowledge')
+      .upsert({ client_id: clientId, kind, data: payload, updated_at: new Date().toISOString() }, { onConflict: 'client_id,kind' })
+    if (error) throw error
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[figsy/knowledge POST]', err)
+    res.status(500).json({ success: false, error: 'Failed to save knowledge' })
+  }
+})
+
 // Preview the signal that FIGSY would use for a lead (for display in leads table)
 figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) => {
   try {

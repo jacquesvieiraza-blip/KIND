@@ -2,6 +2,7 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
+import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { processDocument, chat } from '../lib/milla'
@@ -285,5 +286,67 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[milla/chat POST]', err)
     res.status(500).json({ success: false, error: 'Failed to send message' })
+  }
+})
+
+// ── NOTETAKER ─────────────────────────────────────────────────────────────────
+
+/**
+ * POST /milla/notetaker
+ * Accepts a meeting transcript and uses Claude to extract action items.
+ * Returns { success: true, items: [{task, owner, due}] }
+ */
+millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
+  try {
+    const { transcript } = z.object({
+      transcript: z.string().min(1).max(20000),
+    }).parse(req.body)
+
+    const access = await requireMillaAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.status(503).json({
+        success: false,
+        error: 'AI service is not configured. Please set ANTHROPIC_API_KEY to enable the Notetaker feature.',
+      })
+      return
+    }
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const systemPrompt =
+      'You are Milla, an AI assistant. Extract all action items from this meeting transcript. ' +
+      'Return a JSON array: [{task: string, owner: string, due: string}]. ' +
+      'Owner should be a first name from the transcript. ' +
+      "Due should be a natural date like 'Mon 8 Jun'. " +
+      'Return ONLY the JSON array, no other text.'
+
+    const response = await anthropic.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system:     systemPrompt,
+      messages:   [{ role: 'user', content: transcript }],
+    })
+
+    const textBlock = response.content.find(
+      (block): block is Anthropic.Messages.TextBlock => block.type === 'text',
+    )
+    const rawText = textBlock?.text.trim() ?? '[]'
+
+    try {
+      const items = JSON.parse(rawText) as Array<{ task: string; owner: string; due: string }>
+      res.json({ success: true, items })
+    } catch {
+      // Fallback: return the raw text as a single item so the UI still shows something
+      res.json({
+        success: true,
+        items: [{ task: rawText, owner: 'Unknown', due: '' }],
+      })
+    }
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[milla/notetaker POST]', err)
+    res.status(500).json({ success: false, error: 'Failed to extract action items' })
   }
 })

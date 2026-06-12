@@ -102,12 +102,12 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 
 | # | Element | Status | 👍 Like | 👎 Don't like | Action |
 |---|---------|--------|---------|--------------|--------|
-| S1 | Sidebar — slim dark rail (V2) | 📝 | Dark colour OK | **Overloaded = a mess** (all 30 links crammed in); lost the agent switcher + photos; account items dumped in a flat clunky list | **Re-architect into 3 zones** (top bar + trimmed rail + profile dropdown). See proposal 12 Jun. |
+| S1 | Sidebar — slim dark rail (V2) | 🔨 | Dark colour OK; chose (a) fixed expand-on-hover | Was overloaded (30 links) | **Rebuilt:** rail = work only (Home · Workspace · AI Team+photos · Company). Account moved out. Awaiting re-review. |
 | S2 | Sidebar — full/default (light) | 📝 | Lists everything | Colour; not fixed; "hate this look" | Reject this look |
 | S3 | Status bar (bottom of sidebar) | ⬜ | | | |
-| S4 | Profile dropdown (top-right) | 📝 | Wants this as the home for account/settings items (Settings, Billing, Usage, Developer, etc.) | Currently only in V2 header; not used as the account hub | Make it the account hub; move account items here |
-| S8 | Agent switcher + photos | 📝 | Wants the FIGSY/Milla/Vida/Denise switcher **with pictures** back, prominent | Missing/weak in slim rail | Restore as a first-class element in the rail |
-| S9 | Top bar (thin, top-right user details) | 📝 | **Wants this** — slim top bar w/ credits · bell · profile dropdown | Not the primary chrome yet | Make top bar primary chrome |
+| S4 | Profile dropdown (top-right) → ACCOUNT HUB | 🔨 | Wanted account items here | — | **Rebuilt:** grouped hub (Account · Connect · Grow · Product · Settings/Sign out). Awaiting re-review. |
+| S8 | Agent switcher + photos | 🔨 | Wants it prominent | Was buried in clutter | Now stands out — clutter removed around it. Awaiting re-review. |
+| S9 | Top bar (thin, top-right user details) | 🔨 | Wants this | — | Profile chip now shows name+avatar; dropdown is the account hub. Awaiting re-review. |
 | S5 | STAGING banner | ⬜ | | | |
 | S6 | Agent column (right rail — FIGSY card) | ⬜ | | | |
 | S7 | Mobile PWA / install prompt | ⬜ | | | |

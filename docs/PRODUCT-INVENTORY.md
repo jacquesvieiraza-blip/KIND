@@ -144,7 +144,7 @@
 | 78 | 🟡 | R19 in-product "What's New" feed | PR #524 | 🧍 |
 | 79 | 🟡 | R20 job-change alerts on leads | PR #525 | 🧍 |
 | 80 | 🟡 | **Tier 3 — R21 Teams Hub** (`/dashboard/team`) | staging | 🧍 |
-| 81 | 🟡 | R22 AI Notetaker (`/dashboard/notetaker`) | staging | 🧍 |
+| 81 | 🟡 | R22 AI Notetaker (`/dashboard/notetaker`) — *design ✅ approved as-is 12 Jun* | staging | 🧍 |
 | 82 | 🟡 | R23 visual Sequence Builder (`/dashboard/figsy/sequence-builder`) | staging | 🧍 |
 | 83 | 🟡 | R24 Integrations Hub (`/dashboard/integrations`) | staging | 🧍 |
 | 84 | 🟡 | R25 SSO signup buttons (needs OAuth app registration to go live) | staging | 🧍 |

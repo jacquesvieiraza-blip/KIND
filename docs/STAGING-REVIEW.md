@@ -113,7 +113,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 |---|--------|-----|--------|---------|--------------|--------|
 | A1 | Milla — Assistant | `/dashboard/assistant` | ⬜ | | | |
 | A2 | Documents | `/dashboard/documents` | ⬜ | | | |
-| A3 | AI Notetaker (R22) | `/dashboard/notetaker` | ⬜ | | | |
+| A3 | AI Notetaker (R22) | `/dashboard/notetaker` | ✅ | Clean 2-col input/results, owner+due extraction, export buttons | — | **Approved as-is 12 Jun** (preview: `previews/notetaker-current.html`) |
 | A4 | Vida — Chatbot | `/dashboard/chatbot` | ⬜ | | | |
 | A5 | Denise — Closer | `/dashboard/denise` | ⬜ | | | |
 | A6 | Your AI Family (agents) | `/dashboard/agents` | ✅🎨 | Redesign approved | "AI Team"→**"AI Family"** | **LOCKED** → `previews/agents-v2.html` (inv 125); rename in 3 files when pushed |

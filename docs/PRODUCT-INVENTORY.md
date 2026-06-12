@@ -105,16 +105,22 @@
 
 # ░ SECTION 2 — 🟡 BUILT, NOT VERIFIED (needs founder action to earn its 🟢) ░
 
-## 2A — 🚀 SHIPS MONDAY 15 JUN (the Company Command Centre + payments — the only early ship)
+> **🔒 SET RULE (locked): the ONLY thing that goes to production Monday 15 is the Company Payment
+> Command Centre (§2A — items 55–59, all ONE product). EVERY other yellow (§2B, items 60–99) ships
+> AFTER the 19th — no exceptions.** The Monday prod flag exposes `company` only; nothing else in §2B
+> is enabled until per-feature sign-off post-launch.
+
+## 2A — 🚀 THE COMPANY PAYMENT COMMAND CENTRE — the ONE product shipping to production Monday 15 Jun
+*(All five rows below are the same single ship: the Command Centre + its per-rep seats/agent-unlock + its payment system. This is the only early production ship.)*
 | # | 🟡 | Item | What's left to verify | Owner |
 |---|----|------|----------------------|-------|
-| 55 | 🟡 | **Company Engine #88 foundation** — per-rep private workspaces · owner-funded pools · per-seat budgets · request→approve/deny loop · invite→accept→own workspace · per-seat autonomy · winning-plays library · real per-rep stats | Command Centre already verified on staging 12 Jun ✅ — Monday: merge 7 newer commits → re-test → prod migration + merge + `company` flag | 🧍 test · 🤝 ship |
-| 56 | 🟡 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up company bill) | On feature branch, **not yet on staging** — Monday merge + schema re-paste + redeploy, then Test 7 | 🧍 |
-| 57 | 🟡 | **Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool right after; then 🧍 creates pool-topup products | 🤖 then 🧍 |
-| 58 | 🟡 | **Denise $99 → $39 repricing** (code done everywhere) | 🧍 create the $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
-| 59 | 🟡 | Admin "Company demo" provisioning | Create one in admin → open `/dashboard/company` populated | 🧍 |
+| 55 | 🟡 | **Command Centre** (#88 foundation) — per-rep private workspaces · owner-funded pools · per-seat budgets · request→approve/deny loop · invite→accept→own workspace · per-seat autonomy · winning-plays library · real per-rep stats | Command Centre already verified on staging 12 Jun ✅ — Monday: merge 7 newer commits → re-test → prod migration + merge + `company` flag | 🧍 test · 🤝 ship |
+| 56 | 🟡 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up company bill) — part of the Command Centre Seats tab | On feature branch, **not yet on staging** — Monday merge + schema re-paste + redeploy, then Test 7 | 🧍 |
+| 57 | 🟡 | **Payment system — Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool right after; then 🧍 creates pool-topup products | 🤖 then 🧍 |
+| 58 | 🟡 | **Denise $39 Stripe price** (billing prerequisite for the company bill — code already $39 everywhere) | 🧍 create the $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
+| 59 | 🟡 | Admin "Company demo" provisioning (to demo the Command Centre) | Create one in admin → open `/dashboard/company` populated | 🧍 |
 
-## 2B — 📦 POST-19 QUEUE (built + build-verified, parked until after launch; review via `STAGING-REVIEW.md`)
+## 2B — 📦 POST-19 QUEUE — built + build-verified, but does NOT ship Monday; all parked until AFTER the 19th (review via `STAGING-REVIEW.md`)
 | # | 🟡 | Item | Where it waits | Owner |
 |---|----|------|----------------|-------|
 | 60 | 🟡 | **Wave 1 — R1 demo-bounce guard** | PR #506 | 🧍 review+merge |

@@ -117,7 +117,7 @@ _Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `P
 | #32 | Onboarding v2 + day-0/3/7 email | 🤖 |
 | #33 | Populate proof block w/ real data | 🤖 |
 | #34 | Activate Flutterwave (ZAR/NGN/KES/GHS) | 🧍 ⏸ |
-| #34a | **Client invoicing — legitimate tax invoices.** Auto-issue a compliant VAT/tax invoice on every payment: sequential invoice number, client + K.I.N.D legal/VAT details, line items, amount, date; PDF emailed to the client + downloadable in-portal (Documents/Billing). Current flow charges but issues no compliant invoice — needed as soon as we bill real clients. *(inventory item 136a)* | 🤖 |
+| #34a | **Client invoicing — legitimate UK VAT invoices.** Auto-issue a compliant invoice on every Stripe (or 2nd-processor) payment: sequential invoice number, K.I.N.D Ltd company no + GB VAT no + UK registered office, client + their VAT no, dated line items, subtotal → VAT @ 20% → total; PDF emailed + downloadable under **Company → Documents**. Design **LOCKED** (`previews/invoice-v1.html`). Founder to confirm legal name/company no/VAT no/address, VAT-registered status, currency. *(inventory 136a)* | 🤖 |
 | #35 | Launch YouTube channel | 🧍 |
 | #36 | Wire playbook email form (ConvertKit) | 🤖 |
 | #61a | Performance-guarantee clause (90-day) | 🤖 |

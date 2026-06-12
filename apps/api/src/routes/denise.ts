@@ -12,7 +12,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { draftFollowUp, draftProposal } from '../lib/denise'
+import { draftFollowUp, draftProposal, draftMeetingPrep } from '../lib/denise'
 
 export const deniseRouter = Router()
 deniseRouter.use(requireAuth)
@@ -82,6 +82,51 @@ deniseRouter.post('/draft-followup', async (req: AuthRequest, res) => {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[denise] /draft-followup error:', err)
     res.status(500).json({ success: false, error: 'Failed to draft follow-up' })
+  }
+})
+
+// ── POST /denise/meeting-prep ──────────────────────────────────────────────────
+// R14 (#54 slice) — Denise preps the human for a booked meeting. Pass a reply_id
+// and she assembles the prospect + conversation context and returns a briefing.
+deniseRouter.post('/meeting-prep', async (req: AuthRequest, res) => {
+  try {
+    const access = await requireDeniseAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+
+    const { reply_id } = z.object({ reply_id: z.string().uuid() }).parse(req.body)
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, from_name, from_email, body, body_text, lead_id, client_id')
+      .eq('id', reply_id).eq('client_id', access.clientId).maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    let lead: any = null
+    if (reply.lead_id) {
+      const { data } = await db.from('leads')
+        .select('first_name, job_title, company, industry').eq('id', reply.lead_id).maybeSingle()
+      lead = data
+    }
+    const { data: client } = await db.from('clients')
+      .select('company_name').eq('id', access.clientId).maybeSingle()
+
+    const output = await draftMeetingPrep({
+      first_name:     lead?.first_name ?? reply.from_name ?? null,
+      job_title:      lead?.job_title ?? null,
+      company:        lead?.company ?? null,
+      industry:       lead?.industry ?? null,
+      conversation:   (reply.body_text || reply.body || '').slice(0, 3000) || null,
+      sender_company: (client as { company_name?: string } | null)?.company_name ?? null,
+    })
+
+    await db.from('denise_drafts').insert({
+      client_id: access.clientId, kind: 'meeting_prep', input: { reply_id }, output,
+    }).select('id').maybeSingle()
+
+    res.json({ success: true, brief: output })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[denise] /meeting-prep error:', err)
+    res.status(500).json({ success: false, error: 'Failed to prepare meeting brief' })
   }
 })
 

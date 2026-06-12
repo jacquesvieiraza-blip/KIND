@@ -16,6 +16,11 @@ import {
   BarChart2,
   Command,
   ArrowRight,
+  Zap,
+  LayoutTemplate,
+  Flame,
+  FileText,
+  Handshake,
 } from 'lucide-react'
 
 interface NavItem {
@@ -26,14 +31,24 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  // R13 — Quick actions surface the most common next steps at the top of Cmd+K.
+  { label: 'Build an ICP',        href: '/dashboard/leads/icp',      icon: Zap,            group: 'Quick actions' },
+  { label: 'New campaign',        href: '/dashboard/figsy',          icon: Target,         group: 'Quick actions' },
+  { label: 'Browse templates',    href: '/dashboard/templates',      icon: LayoutTemplate, group: 'Quick actions' },
+  { label: 'View hot replies',    href: '/dashboard/inbox',          icon: Flame,          group: 'Quick actions' },
+  { label: 'Set my goals',        href: '/dashboard/kpis',           icon: BarChart,       group: 'Quick actions' },
+
   { label: 'Home',            href: '/dashboard',                icon: Home,        group: 'Navigate' },
   { label: 'People',          href: '/dashboard/leads',          icon: Users,       group: 'Navigate' },
   { label: 'ICP Builder',     href: '/dashboard/leads/icp',      icon: TrendingUp,  group: 'Navigate' },
   { label: 'LinkedIn Import', href: '/dashboard/leads/linkedin', icon: Search,      group: 'Navigate' },
   { label: 'Campaigns',       href: '/dashboard/figsy',          icon: Target,      group: 'FIGSY' },
-  { label: 'Inbox',           href: '/dashboard/figsy/replies',  icon: Inbox,       group: 'FIGSY' },
+  { label: 'Templates',       href: '/dashboard/templates',      icon: LayoutTemplate, group: 'FIGSY' },
+  { label: 'Inbox',           href: '/dashboard/inbox',          icon: Inbox,       group: 'FIGSY' },
   { label: 'Performance',     href: '/dashboard/kpis',           icon: BarChart,    group: 'FIGSY' },
   { label: 'Knowledge',       href: '/dashboard/knowledge',      icon: Brain,       group: 'FIGSY' },
+  { label: 'Proposals',       href: '/dashboard/proposals',      icon: FileText,    group: 'Account' },
+  { label: 'Partner Hub',     href: '/dashboard/partner',        icon: Handshake,   group: 'Account' },
   { label: 'Billing',         href: '/dashboard/billing',        icon: CreditCard,  group: 'Account' },
   { label: 'Settings',        href: '/dashboard/settings',       icon: Settings,    group: 'Account' },
   { label: 'Usage',           href: '/dashboard/usage',          icon: BarChart2,   group: 'Account' },

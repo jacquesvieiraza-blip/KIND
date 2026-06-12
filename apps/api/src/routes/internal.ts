@@ -17,7 +17,7 @@ import crypto from 'crypto'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
@@ -57,6 +57,94 @@ function requireAdminKey(req: Request, res: Response, next: () => void) {
 }
 
 internalRouter.use(requireAdminKey)
+
+// ── R16 (Learning Engine ③) — EVALS HARNESS ───────────────────────────────────
+// Internal-only. Measures what's actually working across all outreach so we can
+// learn and tune: reply rate per sequence step, the best/worst subject-line
+// variants, and the reply-classification distribution (intent quality + opt-out
+// rate). GET /internal/evals?days=30
+internalRouter.get('/evals', async (req: Request, res: Response) => {
+  try {
+    const days = Math.min(180, Math.max(1, parseInt(String(req.query.days ?? '30'), 10) || 30))
+    const since = new Date(Date.now() - days * 86400000).toISOString()
+
+    // Pull sent emails + replies in the window (capped to keep it bounded).
+    const [{ data: sent }, { data: replies }] = await Promise.all([
+      db.from('figsy_sent_emails').select('lead_id, step, subject, sent_at').gte('sent_at', since).limit(20000),
+      db.from('figsy_replies').select('lead_id, classification, received_at').gte('received_at', since).limit(20000),
+    ])
+
+    const sentRows = (sent ?? []) as { lead_id: string | null; step: number | null; subject: string | null }[]
+    const replyRows = (replies ?? []) as { lead_id: string | null; classification: string | null }[]
+
+    // Leads that replied (any reply) — used as the "got a reply" signal.
+    const repliedLeads = new Set(replyRows.map(r => r.lead_id).filter(Boolean) as string[])
+    const positiveLeads = new Set(replyRows.filter(r => r.classification === 'hot' || r.classification === 'interested').map(r => r.lead_id).filter(Boolean) as string[])
+
+    // Per-step reply rate.
+    const byStep: Record<number, { sent: number; leads: Set<string> }> = {}
+    for (const s of sentRows) {
+      const step = s.step ?? 1
+      byStep[step] ??= { sent: 0, leads: new Set() }
+      byStep[step].sent++
+      if (s.lead_id) byStep[step].leads.add(s.lead_id)
+    }
+    const stepStats = Object.entries(byStep).map(([step, v]) => {
+      const repliedCount = [...v.leads].filter(l => repliedLeads.has(l)).length
+      return { step: Number(step), sent: v.sent, leads: v.leads.size, replied: repliedCount,
+        reply_rate_pct: v.leads.size ? +(repliedCount / v.leads.size * 100).toFixed(1) : 0 }
+    }).sort((a, b) => a.step - b.step)
+
+    // Subject-variant performance (step-1 subjects = the A/B variants).
+    const bySubject: Record<string, Set<string>> = {}
+    for (const s of sentRows) {
+      if ((s.step ?? 1) !== 1 || !s.subject || !s.lead_id) continue
+      const key = s.subject.trim().toLowerCase()
+      ;(bySubject[key] ??= new Set()).add(s.lead_id)
+    }
+    const subjectStats = Object.entries(bySubject)
+      .map(([subject, leads]) => {
+        const repliedCount = [...leads].filter(l => repliedLeads.has(l)).length
+        return { subject, sent: leads.size, replied: repliedCount,
+          reply_rate_pct: leads.size ? +(repliedCount / leads.size * 100).toFixed(1) : 0 }
+      })
+      .filter(s => s.sent >= 5)                                   // ignore tiny samples
+      .sort((a, b) => b.reply_rate_pct - a.reply_rate_pct)
+    const topSubjects = subjectStats.slice(0, 10)
+    const bottomSubjects = subjectStats.slice(-10).reverse()
+
+    // Reply-classification distribution.
+    const classDist: Record<string, number> = {}
+    for (const r of replyRows) {
+      const c = r.classification ?? 'unknown'
+      classDist[c] = (classDist[c] ?? 0) + 1
+    }
+
+    const totalSentLeads = new Set(sentRows.map(s => s.lead_id).filter(Boolean) as string[]).size
+
+    res.json({
+      success: true,
+      data: {
+        window_days: days,
+        totals: {
+          emails_sent:      sentRows.length,
+          leads_contacted:  totalSentLeads,
+          replies:          replyRows.length,
+          leads_replied:    repliedLeads.size,
+          reply_rate_pct:   totalSentLeads ? +(repliedLeads.size / totalSentLeads * 100).toFixed(1) : 0,
+          positive_rate_pct: totalSentLeads ? +(positiveLeads.size / totalSentLeads * 100).toFixed(1) : 0,
+        },
+        per_step:          stepStats,
+        top_subjects:      topSubjects,
+        bottom_subjects:   bottomSubjects,
+        classification:    classDist,
+      },
+    })
+  } catch (err) {
+    console.error('[internal/evals]', err)
+    res.status(500).json({ success: false, error: 'Evals computation failed' })
+  }
+})
 
 // ── D5 — WEEKLY LEADS DIGEST ──────────────────────────────────────────────────
 // Send every Monday morning to all active clients.
@@ -618,6 +706,62 @@ internalRouter.post('/ae/nurture', async (_req: Request, res: Response) => {
   }
 })
 
+// R6 (#32) — Onboarding activation sequence (days 0/3/7) for ACTIVATED (paid)
+// clients. The trial nurture above deliberately skips paid clients, so they
+// previously received no lifecycle onboarding at all. Mutually exclusive with
+// the nurture (gated on an ACTIVE subscription) so a client never gets both on
+// the same day. Same exact-day-match pattern as the nurture cron.
+internalRouter.post('/onboarding/activation-sequence', async (_req: Request, res: Response) => {
+  try {
+    const now = new Date()
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, user_id, created_at, first_icp_run_at')
+      .not('user_id', 'is', null)
+      .neq('is_demo', true)
+      .gte('created_at', new Date(now.getTime() - 14 * 86400000).toISOString())
+
+    const STAGES = [0, 3, 7] as const
+    let sent = 0
+
+    for (const client of clients ?? []) {
+      const daysOld = Math.floor((now.getTime() - new Date(client.created_at).getTime()) / 86400000)
+      if (!(STAGES as readonly number[]).includes(daysOld)) continue
+
+      // Activation sequence is for PAID clients only — trial clients get the
+      // conversion nurture instead (no overlap).
+      const { data: activeSub } = await db.from('subscriptions')
+        .select('id').eq('client_id', client.id).eq('status', 'active').maybeSingle()
+      if (!activeSub) continue
+
+      try {
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
+        const email = user?.email
+        if (!email) continue
+
+        const { count: leadCount } = await db.from('leads')
+          .select('id', { count: 'exact', head: true }).eq('client_id', client.id)
+        const { count: campaignCount } = await db.from('figsy_campaigns')
+          .select('id', { count: 'exact', head: true }).eq('client_id', client.id)
+
+        await sendOnboardingEmail(email, client.company_name ?? '', daysOld as 0|3|7, {
+          has_icp:      !!client.first_icp_run_at,
+          lead_count:   leadCount ?? 0,
+          has_campaign: (campaignCount ?? 0) > 0,
+        })
+        sent++
+      } catch (err) {
+        console.error(`[onboarding/activation] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { sent } })
+  } catch (err) {
+    console.error('[onboarding/activation]', err)
+    res.status(500).json({ success: false, error: 'Onboarding activation run failed' })
+  }
+})
+
 // ── INT-8 — CMO: BRAND VOICE CONFIG ──────────────────────────────────────────
 // In-memory brand voice — update lib/cmo.ts to change permanently.
 let brandVoiceOverride: Record<string, unknown> | null = null
@@ -1096,13 +1240,16 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
     const millaClientIds = new Set((millaSubs ?? []).map((s: { client_id: string }) => s.client_id))
 
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, user_id')
+      .select('id, company_name, user_id, daily_brief_enabled')
       .not('user_id', 'is', null)
+      .neq('is_demo', true)   // R1: never email synthetic demo mailboxes — they hard-bounce
 
     let sent = 0
 
     for (const client of clients ?? []) {
       if (!millaClientIds.has(client.id)) continue
+      // R2 (#27): respect the client's opt-out from Settings → Notifications.
+      if ((client as { daily_brief_enabled?: boolean | null }).daily_brief_enabled === false) continue
       try {
         const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
         const email = user?.email
@@ -1141,7 +1288,7 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
             ).join('')
           : ''
 
-        if (resend) {
+        if (resend && isRealRecipient(email)) {
           const dayStr = now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })
           await resend.emails.send({
             from: FROM,
@@ -1223,6 +1370,7 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
     const { data: clients } = await db.from('clients')
       .select('id, company_name, user_id')
       .not('user_id', 'is', null)
+      .neq('is_demo', true)   // R1: never email synthetic demo mailboxes — they hard-bounce
 
     let alertsSent = 0
 
@@ -1271,7 +1419,7 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
           anomalies.push(`FIGSY has active campaigns but no emails sent in 48 hours. Check your campaign status and credit balance.`)
         }
 
-        if (anomalies.length === 0 || !resend) continue
+        if (anomalies.length === 0 || !resend || !isRealRecipient(email)) continue
 
         await resend.emails.send({
           from: FROM,

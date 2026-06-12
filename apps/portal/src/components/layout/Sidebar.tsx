@@ -7,9 +7,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
-  LogOut, Zap, FileText, Coins, Bot, MessageSquare,
+  LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook, ShieldCheck,
-  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake,
+  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, LayoutTemplate, Sparkles, Mic, GitBranch,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 import { StatusBar } from '@/components/layout/StatusBar'
@@ -36,13 +36,15 @@ const AGENTS: AgentDef[] = [
     accent: '#7C3AED',
     ring: 'ring-[#7C3AED]/20',
     nav: [
-      { href: '/dashboard/figsy-chat',     label: 'Chat with FIGSY', icon: MessageSquare },
-      { href: '/dashboard/figsy',          label: 'Campaigns',   icon: Target },
-      { href: '/dashboard/inbox',          label: 'Inbox',       icon: Inbox, badge: 'unread' },
-      { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
-      { href: '/dashboard/deliverability', label: 'Deliverability', icon: ShieldCheck },
-      { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },
-      { href: '/dashboard/figsy/webhooks', label: 'Webhooks',    icon: Webhook },
+      { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
+      { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
+      { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
+      { href: '/dashboard/figsy/sequence-builder', label: 'Sequence Builder', icon: GitBranch },
+      { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox, badge: 'unread' },
+      { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
+      { href: '/dashboard/deliverability',         label: 'Deliverability',   icon: ShieldCheck },
+      { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
+      { href: '/dashboard/figsy/webhooks',         label: 'Webhooks',         icon: Webhook },
     ],
   },
   {
@@ -54,8 +56,9 @@ const AGENTS: AgentDef[] = [
     ring: 'ring-pink-300/30',
     price: '$49/mo',
     nav: [
-      { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
-      { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+      { href: '/dashboard/assistant',  label: 'Assistant',  icon: Bot },
+      { href: '/dashboard/documents',  label: 'Documents',  icon: FileText },
+      { href: '/dashboard/notetaker',  label: 'Notetaker',  icon: Mic },
     ],
   },
   {
@@ -99,9 +102,12 @@ const LEAD_GEN_NAV = [
 ]
 
 const ACCOUNT_NAV = [
+  { href: '/dashboard/whats-new',  label: "What's New",   icon: Sparkles },
   { href: '/dashboard/usage',      label: 'Usage',        icon: BarChart2 },
-  { href: '/dashboard/partner',    label: 'Partner Hub',  icon: Handshake },
-  { href: '/dashboard/mcp',        label: 'MCP Connect',  icon: Plug },
+  { href: '/dashboard/roadmap',    label: 'Roadmap',      icon: Map },
+  { href: '/dashboard/partner',       label: 'Partner Hub',   icon: Handshake },
+  { href: '/dashboard/integrations',  label: 'Integrations',  icon: Plug },
+  { href: '/dashboard/mcp',           label: 'MCP Connect',   icon: Plug },
   { href: '/dashboard/proposals',  label: 'Proposals',    icon: FileText },
   { href: '/dashboard/developer',  label: 'Developer API', icon: Code2 },
   { href: '/dashboard/billing',    label: 'Billing',      icon: CreditCard },

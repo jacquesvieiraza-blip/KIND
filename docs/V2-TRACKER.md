@@ -11,8 +11,72 @@ _Last updated: 11 Jun 2026 late (staging deployment + video action plan — bran
 > ## 🌿 11-Jun LATE — and now it's all PREVIEWABLE: staging is live
 > All 29 branches (R1–R25 + company-preview + company-engine + hotfix) **merged into `staging` + deployed to the staging Railway service**: `heartfelt-essence-production-1434.up.railway.app` (test account `test@get-kind.com`). Conflicts resolved keeping all features; TypeScript + full `next build` green. **Pages are reachable by direct URL — the `v2Enabled()` flags only hide sidebar links** — so the founder can preview `/dashboard/company`, `/dashboard/team`, `/dashboard/notetaker`, `/dashboard/integrations`, `/dashboard/figsy/sequence-builder` etc. immediately. ⚠️ Staging still shares the prod DB → company-engine tables not migrated (UI renders, data empty). **12 Jun: staging DB isolation** (separate Supabase project + one-paste schema + 50-rep fake seed + `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` on staging only) → then full end-to-end Command Centre testing. Detail: `KIND-MASTER.md` resume block.
 
-**Legend:** ✅ done/live · 🟡 partial · 🎨 mockup only (designed, NOT built) · 🔄 in progress · ⏸ gated/paused · ⬜ not started · 🔴 open issue
+**Legend:** ✅ done/live · 🟡 partial · 🎨 mockup only (designed, NOT built) · 🔨 built (code-complete, TypeScript-clean, on staging — NOT yet founder-approved or merged to main) · 🔄 in progress · ⏸ gated/paused · ⬜ not started · 🔴 open issue
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both
+
+---
+
+# ░ SPRINT LOG — 11 JUN 2026 ░
+
+## ✅ What was built this session (all on `staging` branch, commit `0c4ffd8`)
+> **Status: 🔨 BUILT on staging.** Code-complete + TypeScript-clean + `next build` passed. **NOT merged to `main`. NOT yet founder-approved. NOT verified with live data.** Founder must visit staging URL, review each screen, and explicitly approve before anything reaches production.
+>
+> **Staging domain:** `https://heartfelt-essence-production-1434.up.railway.app`
+> **Known limitation:** staging shares the production Supabase DB. New backend tables (seat_credit_requests, winning_plays, figsy_knowledge, job_changed_at) have NOT been migrated yet — UI renders but data calls return empty on the Company Engine and some Wave 2 features. Full end-to-end test requires the staging DB isolation work (see Tomorrow's tasks below).
+
+### Wave 1 (R1–R6) — all 🔨 on staging
+| Release | What | Key files |
+|---------|------|-----------|
+| R1 · Demo Bounce | Detects bounced leads, flags in UI | `routes/leads.ts`, `leads/page.tsx` |
+| R2 · Daily Brief | Per-client opt-in for morning brief email | `clients` table + `daily_brief_enabled` col migration |
+| R3 · Vida Bubble | Bottom-right help chat widget (Vida) | `layout.tsx` VidaHelpBubble |
+| R4 · Speed to Lead | Dashboard metric — time from lead to first contact | `dashboard/page.tsx` |
+| R5 · Share Cards | Milestone share-to-LinkedIn cards | `routes/share.ts`, `/dashboard/share` |
+| R6 · Onboarding Email | Auto send welcome/onboarding email on signup | `routes/internal.ts` + `sendOnboardingEmail` |
+
+### Wave 2 (R7–R20) — all 🔨 on staging
+| Release | What | Key files |
+|---------|------|-----------|
+| R7 · Unibox | Multi-channel smart inbox (email + LinkedIn + WhatsApp) | `routes/internal.ts`, `inbox/page.tsx` |
+| R8 · Saved Views | Save/recall lead filter views | `leads/page.tsx` saved-views panel |
+| R9 · Why FIGSY Wrote | Transparency card: why FIGSY chose this draft | `leads/page.tsx` WhyFigsyWrote component |
+| R10 · Goals | KPI goal-setting and tracking panel | `dashboard/page.tsx`, `routes/stats.ts` |
+| R11 · Templates | Message template library (sequence starters) | `dashboard/templates/page.tsx` |
+| R12 · Forms | Embeddable lead-capture forms | `routes/forms.ts`, `dashboard/forms` (via existing page) |
+| R13 · UX | UX polish pass (loading states, error states, empty states) | across portal |
+| R14 · Meeting Prep | Pre-meeting brief card (Milla pulls context) | `routes/milla.ts` |
+| R15 · Train FIGSY | Knowledge base — upload docs/FAQs for FIGSY to reference | `routes/figsy.ts` `/knowledge/:kind`, migration `20260611_figsy_knowledge.sql` |
+| R16 · Evals | Campaign evaluation scoring (reply rate, quality) | `routes/figsy.ts` eval endpoint |
+| R17 · Deliverability | Spam-check pre-send tool in FIGSY panel | `routes/figsy.ts` `/spam-check`, `leads/page.tsx` SpamCheck |
+| R18 · Sequence Power | Sequence analytics + pause/resume controls | `routes/figsy.ts` |
+| R19 · What's New | In-portal changelog / release notes page | `dashboard/whats-new/page.tsx` |
+| R20 · Job Change | Detects lead job changes, flags for re-outreach | `routes/figsy.ts` `/mark-job-change`, migration `20260611_lead_job_change.sql` |
+
+### Tier 3 (R21–R25) — all 🔨 on staging
+| Release | What | Staging URL |
+|---------|------|-------------|
+| R21 · Teams Hub | Member roster, agent badges, live analytics per rep | `/dashboard/team` |
+| R22 · AI Notetaker | Paste meeting transcript → Milla extracts action items | `/dashboard/notetaker` |
+| R23 · Sequence Builder | Visual multi-channel sequence builder (branching tree) | `/dashboard/figsy/sequence-builder` |
+| R24 · Integrations Hub | Connect HubSpot, Pipedrive, Google Cal, Apollo, Stripe + more | `/dashboard/integrations` |
+| R25 · SSO Signup | Google + Microsoft OAuth on signup page | `/login?mode=signup` |
+
+### Company Engine (#88) — 🔨 on staging, GATED behind flag
+| Flow | What | Status |
+|------|------|--------|
+| 2c · Command Centre | Owner dashboard: rep leaderboard, credit request approve/deny, top-up budget (Stripe bundles 20/40/100 credits) | 🔨 `/dashboard/company` |
+| 2d · Seats & Budget | Per-rep credit_budget, credits_used, autonomy mode, seat active toggle | 🔨 `routes/company.ts` |
+| Winning Plays | Company play library — save a play, push to all reps | 🔨 `routes/company.ts` |
+| DB migrations | `seat_credit_requests`, `winning_plays`, `client_members` new cols | 🔨 ready, NOT run on DB yet |
+
+### Tomorrow's required tasks (11 Jun → 12 Jun)
+| Task | Owner | Why |
+|------|-------|-----|
+| 🧍 Create staging Supabase project (free tier) | Founder | Full DB isolation so staging never touches real clients |
+| 🤖 Generate consolidated schema SQL + fake-data seed (50 reps, sample credit requests) | Claude | One-paste setup for the staging DB |
+| 🧍 Set Railway staging env vars → new staging DB credentials | Founder | Points staging at its own DB |
+| 🤖 Set `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` on staging | Claude (docs), Founder (Railway) | Makes all V2 features visible in sidebar on staging |
+| 🧍 Visit each staging URL and review | Founder | The actual approval gate |
 
 ---
 
@@ -88,8 +152,8 @@ _Last updated: 11 Jun 2026 late (staging deployment + video action plan — bran
 | 4 | ICP above People (nav flow) | ✅ fixed (ICP Builder→People) |
 | 5 | "This card is not right" (FIGSY agent image crop) | 🔴 open — review all agent-image cards |
 | 6 | "Inbox isn't right" | 🎨 = multi-channel Smart Inbox (Part 2, M2) |
-| 7 | Company payment system missing | 🎨 mockup only — see C |
-| 8 | Vida help bubble (bottom-right) | ⬜ V2-11 |
+| 7 | Company payment system missing | 🔨 built on staging — `/dashboard/company` (Command Centre + Stripe top-up bundles) |
+| 8 | Vida help bubble (bottom-right) | 🔨 built on staging — R3 |
 
 ## A2. Design-match gaps — shipped but NOT matching your design (honest)
 | Item | Built | Design wants | Status |
@@ -112,10 +176,10 @@ Source `CLIENT_FLOW.html` Part 2 + `CLIENT_FLOW_PER_REP.html`. Mockups only (`/d
 ### The four flows (each = a build slice)
 | Flow | What it is | Status |
 |------|-----------|--------|
-| **2a · Company setup** | Owner signs up → buys N FIGSY seats (**ONE company payment**) → invites N reps to the company workspace → each rep connects **their own** calendar → each seat = one autonomous FIGSY | 🎨 |
-| **2b · Per-rep autonomy** | Each rep's FIGSY finds **their** ICP/leads · opens in the **rep's voice** (signed as the rep) · reply → meeting booked onto **the REP's own calendar** · Denise closes → **the rep's own pipeline**. Rep 1's FIGSY never touches Rep 2's leads. 10 reps = 10 independent AI SDRs in parallel. | 🎨 |
-| **2c · Owner command centre** | Autonomy below, oversight on top: company totals · leaderboard · every rep's leads+bookings · spend per seat. Milla layers "who's hot / what's working / where to coach". | 🎨 |
-| **2d · Usage & budget** | Company owns the budget pool (one payment · tops up) → owner allocates credits per seat → rep works → runs low → **rep requests more → owner approves/denies**. "Exactly like an enterprise running Claude." | 🎨 |
+| **2a · Company setup** | Owner signs up → buys N FIGSY seats (**ONE company payment**) → invites N reps to the company workspace → each rep connects **their own** calendar → each seat = one autonomous FIGSY | 🎨 design only (DB re-arch needed) |
+| **2b · Per-rep autonomy** | Each rep's FIGSY finds **their** ICP/leads · opens in the **rep's voice** (signed as the rep) · reply → meeting booked onto **the REP's own calendar** · Denise closes → **the rep's own pipeline**. Rep 1's FIGSY never touches Rep 2's leads. 10 reps = 10 independent AI SDRs in parallel. | 🎨 design only (per-rep routing needed) |
+| **2c · Owner command centre** | Autonomy below, oversight on top: company totals · leaderboard · every rep's leads+bookings · spend per seat. Milla layers "who's hot / what's working / where to coach". | 🔨 UI + API built, on staging (`/dashboard/company`) — DB migration pending |
+| **2d · Usage & budget** | Company owns the budget pool (one payment · tops up) → owner allocates credits per seat → rep works → runs low → **rep requests more → owner approves/denies**. "Exactly like an enterprise running Claude." | 🔨 UI + API built, on staging — Stripe topup bundles wired — DB migration pending |
 | Per-rep lead **ownership/routing** (no two reps hit the same person) + **CRM dedup** | underpins 2b | ⬜ |
 | **★ SHARED TEMPLATE / WINNING-PLAY LIBRARY** [Glean prompt-library demo 10 Jun — the standout steal] — owner/power-rep perfects a winning play (ICP · subject style · sequence) → **every seat inherits it** → new reps onboard at top-performer level day 1. This is the **user-facing form of cross-segment recall** (Learning Engine) — ship it as a visible library, not a hidden algorithm (clients *feel* the collective intelligence). **K.I.N.D edge Glean can't match:** ship **K.I.N.D-curated best-practice templates learned from cross-CLIENT African outcome data** to every new client day 1 (their library is per-company; ours compounds across the network = the moat doing visible work). **Positioning line to steal verbatim: "level up your whole team to your top performer."** | new — ties #88 + Learning Engine | ⬜ |
 
@@ -275,16 +339,16 @@ Upgrades existing items: **#38** A/B → contextual bandit · **#40** ICP auto-r
 | # | What | Status |
 |---|------|--------|
 | V2-3 | Conversational setup (chat w/ Casey) — **SPEC'D by Glean Auto Mode demo (10 Jun): client describes goal in a couple sentences → AI assistant configures the whole agent (ICP+sequences+knowledge+triggers), no forms. The activation unlock for Africa-SMB. Highest-value V2 build.** | ⬜ |
-| V2-8 | **AI Notetaker → action items (Milla)** | 🎨 mockup · Critical |
+| V2-8 | **AI Notetaker → action items (Milla)** | 🔨 built on staging — `/dashboard/notetaker` |
 | V2-10 | **Casey** onboarding agent | ⬜ |
-| V2-11 | **Vida help bubble (bottom-right)** | ⬜ Critical |
-| V2-12 | Strong client dashboards + Goals | 🟡 shell |
-| #83 | Embeddable lead-capture Forms | ⬜ |
-| #84 | **Integrations Hub** (HubSpot/Pipedrive/Cal/WA/LinkedIn) | 🎨 mockup |
-| #89 | **Sequence Builder** (visual branching tree, multi-channel) | 🎨 mockup |
-| — | Multi-channel Smart Inbox (= "inbox isn't right") | 🎨 mockup |
+| V2-11 | **Vida help bubble (bottom-right)** | 🔨 built on staging — R3 `layout.tsx` |
+| V2-12 | Strong client dashboards + Goals | 🔨 Goals built on staging — R10 |
+| #83 | Embeddable lead-capture Forms | 🔨 built on staging — R12 |
+| #84 | **Integrations Hub** (HubSpot/Pipedrive/Cal/WA/LinkedIn) | 🔨 built on staging — `/dashboard/integrations` R24 |
+| #89 | **Sequence Builder** (visual branching tree, multi-channel) | 🔨 built on staging — `/dashboard/figsy/sequence-builder` R23 |
+| — | Multi-channel Smart Inbox (= "inbox isn't right") | 🔨 built on staging — R7 Unibox |
 
-**Pulled into the #88 per-rep sprint (~Fri 26):** V2-7 invite · V2-9 Teams Hub/Command Centre · V2-13 multi-provider calendar.
+**Pulled into the #88 per-rep sprint (~Fri 26):** V2-7 invite · V2-9 Teams Hub (`/dashboard/team` R21 🔨) · V2-13 multi-provider calendar.
 
 ## 📍 MONTH 3 (Aug–Sep · GATED margin data) — 17 items
 | # | What |

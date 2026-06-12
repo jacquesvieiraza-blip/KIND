@@ -147,9 +147,13 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
   const [sendError, setSendError] = useState('')
   const [booked, setBooked]       = useState(false)
   const [booking, setBooking]     = useState(false)
+  const [prep, setPrep]           = useState<string | null>(null)   // R14 meeting-prep brief
+  const [prepping, setPrepping]   = useState(false)
+  const [prepErr, setPrepErr]     = useState('')
 
   // Reset state whenever the selected reply changes
   useEffect(() => {
+    setPrep(null); setPrepping(false); setPrepErr('')
     setDraft(null)
     setDrafting(false)
     setSending(false)
@@ -162,27 +166,19 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
   async function handleAIDraft() {
     setDrafting(true)
     try {
-      // Try to get signal context from the lead, fall back to client-side draft
-      if (reply.lead_id) {
-        try {
-          const res = await api.post<{ data?: { preview?: string; signal?: string; suggestion?: string } }>(
-            `/figsy/leads/${reply.lead_id}/signal-preview`, {}, token
-          )
-          const context = res.data?.preview ?? res.data?.signal ?? ''
-          if (context) {
-            const name = reply.from_name ?? reply.from_email.split('@')[0]
-            setDraft(
-              `Hi ${name},\n\nThanks for getting back to me!\n\n${context.slice(0, 200)}\n\nWould you be open to a quick call this week?\n\nBest,`
-            )
-            setDrafting(false)
-            return
-          }
-        } catch { /* fall through to client-side draft */ }
+      // R7: real context-aware AI draft from the prospect's actual message.
+      const res = await api.post<{ data?: { draft?: string } }>(
+        `/figsy/replies/${reply.id}/ai-draft`, {}, token
+      )
+      if (res.data?.draft) {
+        setDraft(res.data.draft)
+        setDrafting(false)
+        return
       }
-      // Client-side fallback
-      await new Promise(r => setTimeout(r, 600))
+      // Fallback to the keyword template if the API returns nothing.
       setDraft(generateClientDraft(reply))
     } catch {
+      // Network/AI failure — never leave the user empty-handed.
       setDraft(generateClientDraft(reply))
     }
     setDrafting(false)
@@ -200,6 +196,19 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
       setSendError(err instanceof Error ? err.message : 'Failed to send reply — please try again.')
     }
     setSending(false)
+  }
+
+  // R14 (#54) — Denise preps the human for the booked meeting.
+  async function handleMeetingPrep() {
+    setPrepping(true)
+    setPrepErr('')
+    try {
+      const res = await api.post<{ brief: string }>(`/denise/meeting-prep`, { reply_id: reply.id }, token)
+      setPrep(res.brief)
+    } catch (err) {
+      setPrepErr(err instanceof Error ? err.message : 'Could not prepare the brief — Denise may not be active on your plan.')
+    }
+    setPrepping(false)
   }
 
   async function handleMarkBooked() {
@@ -259,8 +268,31 @@ function ReplyDetail({ reply, token }: { reply: Reply; token: string }) {
               </button>
             )
           )}
+          {/* R14 — Denise meeting-prep */}
+          {(reply.classification === 'hot' || reply.classification === 'interested') && !prep && (
+            <button
+              onClick={handleMeetingPrep}
+              disabled={prepping}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-50"
+            >
+              {prepping ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              Prep me for the meeting
+            </button>
+          )}
         </div>
       </div>
+
+      {/* R14 — Denise's meeting-prep brief */}
+      {prepErr && <p className="text-xs text-rose-500">{prepErr}</p>}
+      {prep && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-amber-600" />
+            <h3 className="text-sm font-bold text-amber-900">Denise prepped you for this meeting</h3>
+          </div>
+          <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{prep}</div>
+        </div>
+      )}
 
       {/* ── Email body card ──────────────────────────────────────────── */}
       <div className={`rounded-2xl border bg-white/80 backdrop-blur-sm border-white/60 shadow-sm overflow-hidden`}>

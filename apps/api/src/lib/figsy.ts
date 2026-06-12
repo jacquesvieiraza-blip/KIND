@@ -88,15 +88,10 @@ interface SequenceDraft {
   step3: EmailStep
 }
 
-export async function generateSequence(
-  lead: Lead,
-  senderCompanyName: string,
-  senderIndustry: string | null,
-  campaignIntent?: string,
-  bookingUrl?: string | null,
-  senderName?: string | null,
-): Promise<SequenceDraft> {
-  // ── Signal detection — pick the best personalization hook ─────────────────
+// R9 (Apollo) — "Why FIGSY wrote this": the exact personalization hooks FIGSY
+// uses to open a sequence. Extracted so both the generator and the transparency
+// endpoint share one source of truth (no drift between what we show and use).
+export function personalizationSignals(lead: Pick<Lead, 'tech_stack' | 'industry' | 'score_reasoning'>): string[] {
   const signals: string[] = []
   if (lead.tech_stack && lead.tech_stack.length > 0) {
     signals.push(`Uses ${lead.tech_stack.slice(0, 2).join(' and ')} in their tech stack`)
@@ -107,6 +102,19 @@ export async function generateSequence(
   if (lead.score_reasoning) {
     signals.push(lead.score_reasoning)
   }
+  return signals
+}
+
+export async function generateSequence(
+  lead: Lead,
+  senderCompanyName: string,
+  senderIndustry: string | null,
+  campaignIntent?: string,
+  bookingUrl?: string | null,
+  senderName?: string | null,
+): Promise<SequenceDraft> {
+  // ── Signal detection — pick the best personalization hook ─────────────────
+  const signals = personalizationSignals(lead)
   const bestSignal = signals[0] ?? null
 
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."

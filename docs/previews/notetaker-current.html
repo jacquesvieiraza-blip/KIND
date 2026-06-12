@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Notetaker — Meeting Transcript Extraction</title>
+<style>
+  :root{
+    --brand:#7C3AED; --ink:#1E1152; --muted:#7C3AED; --faint:#9CA3AF;
+    --line:#E9D5FF; --bg:#F5F3FF; --card:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1400px;margin:0 auto;padding:24px}
+
+  .header{margin-bottom:32px}
+  .header .row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .icon-box{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:#7C3AED18}
+  .icon-box svg{width:20px;height:20px;color:var(--brand)}
+  .header h1{font-size:24px;font-weight:600;color:var(--ink)}
+  .header p{font-size:13px;color:#7C3AED99;line-height:1.5}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:1024px){.grid{grid-template-columns:1fr}}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+  .panel-header{padding:16px 24px;border-bottom:1px solid #F3E8FF;background:#FAFAF8}
+  .panel-header h2{font-size:11px;font-weight:700;color:#7C3AED99;letter-spacing:.8px;text-transform:uppercase}
+  .panel-body{padding:24px;flex:1;display:flex;flex-direction:column;gap:20px}
+
+  /* Upload button */
+  .upload-zone{border:2px dashed #E9D5FF;border-radius:12px;padding:32px;text-align:center;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:12px;transition:.2s}
+  .upload-zone:hover{border-color:var(--brand);background:#F5F3FF}
+  .upload-icon{width:48px;height:48px;border-radius:50%;background:#7C3AED10;display:flex;align-items:center;justify-content:center}
+  .upload-icon svg{width:24px;height:24px;color:var(--brand)}
+  .upload-zone p{font-size:14px;font-weight:600;color:var(--ink)}
+  .upload-zone .hint{font-size:12px;color:var(--faint);margin-top:4px}
+
+  /* Textarea */
+  .textarea-section label{display:block;font-size:11px;font-weight:600;color:#7C3AED99;
+    text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  textarea{width:100%;height:180px;border:1px solid var(--line);border-radius:12px;
+    background:#F5F3FF60;padding:12px;font-family:inherit;font-size:13px;color:var(--ink);
+    resize:none;border:1px solid var(--line)}
+  textarea::placeholder{color:var(--faint)}
+  textarea:focus{outline:none;ring:2px solid #7C3AED30;border-color:#7C3AED66}
+
+  /* Extract button */
+  .btn{width:100%;padding:12px 16px;border-radius:12px;font-size:13px;font-weight:700;
+    color:#fff;background:var(--brand);cursor:pointer;border:none;display:flex;
+    align-items:center;justify-content:center;gap:8px;transition:.15s}
+  .btn:hover{opacity:.9}
+  .btn svg{width:16px;height:16px}
+
+  /* Results */
+  .results-header{display:flex;align-items:center;justify-content:space-between}
+  .results-count{font-size:11px;font-weight:700;color:#fff;background:var(--brand);
+    padding:4px 8px;border-radius:8px}
+
+  .action-item{display:flex;gap:12px;padding:16px;border:1px solid #F3E8FF;border-radius:12px;
+    background:#F5F3FF30;transition:.2s}
+  .action-item:hover{border-color:#E9D5FF}
+  .check{flex-shrink:0;margin-top:2px}
+  .check svg{width:20px;height:20px}
+  .item-content{flex:1}
+  .item-task{font-size:13px;font-weight:600;color:var(--ink);line-height:1.4}
+  .item-meta{font-size:11px;color:var(--faint);margin-top:6px}
+  .item-meta b{color:#10B981;font-weight:600}
+
+  .items-list{display:flex;flex-direction:column;gap:12px}
+
+  .action-buttons{display:flex;gap:12px;padding-top:8px}
+  .action-buttons button{flex:1;padding:10px;border-radius:12px;font-size:12px;font-weight:700;
+    cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+  .btn-add{background:var(--brand);color:#fff}
+  .btn-add:hover{opacity:.9}
+  .btn-export{background:#fff;color:var(--brand);border:1px solid var(--line)}
+  .btn-export:hover{background:#F5F3FF}
+
+  .empty-state{text-align:center;padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:16px}
+  .empty-icon{width:64px;height:64px;border-radius:50%;background:#7C3AED10;
+    display:flex;align-items:center;justify-content:center}
+  .empty-icon svg{width:32px;height:32px;color:#7C3AED50}
+  .empty-state p{font-size:13px;font-weight:600;color:#1E115240}
+  .empty-state .hint{font-size:12px;color:var(--faint)}
+
+  .footer{text-align:center;margin-top:24px;font-size:10px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="row">
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </div>
+      <div>
+        <h1>AI Notetaker</h1>
+      </div>
+    </div>
+    <p>Drop in a meeting transcript or recording. Milla extracts every action item, owner, and deadline — zero manual notes.</p>
+  </div>
+
+  <!-- Main grid -->
+  <div class="grid">
+
+    <!-- Left: Input -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Drop in your meeting</h2>
+      </div>
+      <div class="panel-body">
+        <!-- Upload zone -->
+        <div class="upload-zone">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </div>
+          <p>Paste transcript or upload recording</p>
+          <div class="hint">Zoom · Teams · Google Meet · .txt · .mp3</div>
+        </div>
+
+        <!-- Textarea -->
+        <div class="textarea-section">
+          <label>or paste below</label>
+          <textarea placeholder="[Jacques]: So the priority this week is finalising the pitch deck.
+[Sarah]: I'll own that. Can we have it done by Friday?
+[Jacques]: Yes, Friday works. Also, we need to set up the demo environment.
+[Marcus]: I can handle the demo setup — I'll target end of day Thursday."></textarea>
+        </div>
+
+        <!-- Extract button -->
+        <button class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+            <polyline points="13 2 13 9 20 9"/>
+          </svg>
+          Extract action items →
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Results -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="results-header">
+          <h2>Action Items — Extracted by Milla</h2>
+          <span class="results-count">4</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="items-list">
+          <div class="action-item">
+            <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+            </svg></div>
+            <div class="item-content">
+              <div class="item-task">Finalise the pitch deck</div>
+              <div class="item-meta"><b>Owner: Sarah</b> · Due: Friday</div>
+            </div>
+          </div>
+
+          <div class="action-item">
+            <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+            </svg></div>
+            <div class="item-content">
+              <div class="item-task">Set up the demo environment</div>
+              <div class="item-meta"><b>Owner: Marcus</b> · Due: Thursday EOD</div>
+            </div>
+          </div>
+
+          <div class="action-item">
+            <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+            </svg></div>
+            <div class="item-content">
+              <div class="item-task">Send follow-up emails to beta users</div>
+              <div class="item-meta"><b>Owner: Marcus</b> · Due: Wednesday</div>
+            </div>
+          </div>
+
+          <div class="action-item">
+            <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+            </svg></div>
+            <div class="item-content">
+              <div class="item-task">Review customer feedback from recent calls</div>
+              <div class="item-meta"><b>Owner: Jacques</b> · Due: Next week</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-buttons">
+          <button class="btn-add">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Add to Milla's tasks
+          </button>
+          <button class="btn-export">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Export to Slack
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="footer">Milla owns this feature. Input: transcript paste or upload. Output: structured action items with owner + deadline, pushable to tasks or Slack.</p>
+
+</div>
+</body>
+</html>

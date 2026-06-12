@@ -53,19 +53,19 @@
   </div>
 
   <div class="status"><div class="card">
-    <span class="pill"><span class="dot live"></span> Live today — single-workspace model</span>
-    <span class="pill"><span class="dot build"></span> Building now → target ~Fri 26 Jun — per-rep autonomy + owner command centre</span>
-    <span class="pill"><span class="dot next"></span> Next — seat billing polish &amp; deep dashboard</span>
+    <span class="pill"><span class="dot live"></span> BUILT — per-rep workspaces + owner command centre, live on staging</span>
+    <span class="pill"><span class="dot build"></span> Going live for the client demo — real billing → company pools</span>
+    <span class="pill"><span class="dot next"></span> Next — per-rep agent unlock · invite emails · owner drill-down</span>
   </div></div>
 
   <div class="wrap">
 
-    <div class="sec-h"><h2>1 · How a company sets up</h2><span>owner buys seats → reps go autonomous</span></div>
+    <div class="sec-h"><h2>1 · How a company sets up</h2><span>owner funds the pool → reps go autonomous</span></div>
     <div class="panel">
       <pre class="mermaid">
 flowchart TD
-    O(["🏢 Company owner signs up"]):::start --> BUY["Buys N FIGSY seats<br/><b>ONE company payment</b>"]:::seat
-    BUY --> INV["Invites N reps to the company workspace"]:::seat
+    O(["🏢 Company owner signs up"]):::start --> BUY["Funds the company pool<br/><b>Lead-gen $1 · FIGSY $3 / unit</b><br/>one bill · <b>seats are free</b>"]:::seat
+    BUY --> INV["Invites N reps · allocates a budget to each"]:::seat
     INV --> R1["👤 Rep 1<br/>connects <b>own</b> calendar"]:::rep
     INV --> R2["👤 Rep 2<br/>connects <b>own</b> calendar"]:::rep
     INV --> R3["👤 Rep N<br/>connects <b>own</b> calendar"]:::rep
@@ -84,7 +84,7 @@ flowchart TD
       </pre>
     </div>
     <div class="keys">
-      <span><b>One payment</b> for the whole company — N seats on one invoice</span>
+      <span><b>One bill</b> for the whole company — <b>free seats</b>, pay for usage</span>
       <span>Each rep connects <b>their own</b> calendar</span>
       <span>Each seat = one fully autonomous FIGSY</span>
     </div>
@@ -157,20 +157,20 @@ flowchart LR
       </pre>
     </div>
     <div class="bill">
-      <div class="bcard"><div class="big">1</div><div class="lbl">company account · one payment · owns the budget</div></div>
-      <div class="bcard"><div class="big">N</div><div class="lbl">seats — each rep, own FIGSY + own credit pool</div></div>
+      <div class="bcard"><div class="big">1</div><div class="lbl">company account · one bill · owns the pools (Lead-gen $1 · FIGSY $3)</div></div>
+      <div class="bcard"><div class="big">N</div><div class="lbl"><b>free</b> seats — each rep, own FIGSY + own budget</div></div>
       <div class="bcard"><div class="big">⇄</div><div class="lbl">reps request more · owner approves or denies</div></div>
     </div>
-    <div class="note"><strong>Just like your company uses Claude:</strong> the company holds the license and the budget; each person works within their allocation; when someone needs more, they <b>request</b> it and the admin <b>approves or denies</b>. Centralised control of spend, autonomous work per rep — and revenue scales with every seat.</div>
+    <div class="note"><strong>Just like your company uses Claude:</strong> the company holds the budget; each rep works within their allocation; when someone needs more, they <b>request</b> it and the owner <b>approves or denies</b>. <b>No per-seat fee</b> — you pay only for usage, plus any agents (Milla $49 · Vida $29 · Denise $39) the owner switches on per rep. Centralised spend control, autonomous work per rep — revenue scales with usage. Outcome-based pricing comes next.</div>
     </div>
 
     <div class="sec-h"><h2>What's live vs what we're building</h2><span>honest status</span></div>
     <div class="panel">
       <pre class="mermaid">
 flowchart LR
-    NOW["<b>LIVE TODAY</b><br/>company account · members · one shared<br/>workspace · one calendar · one pipeline"]:::live
-    ==> BUILD["<b>BUILDING → ~Fri 26 Jun</b><br/>per-rep calendars + identity ·<br/>each rep's own FIGSY + leads ·<br/>seat-quantity billing · owner command centre"]:::build
-    ==> NEXT["<b>NEXT</b><br/>deep owner analytics ·<br/>leaderboards · per-seat ROI"]:::next
+    NOW["<b>BUILT · ON STAGING</b><br/>each rep's own workspace + FIGSY + leads ·<br/>owner command centre + leaderboard ·<br/>budget allocate · request→approve loop"]:::live
+    ==> BUILD["<b>GOING LIVE for the demo</b><br/>real billing → company pools ·<br/>per-rep agent unlock (Milla·Vida·Denise) ·<br/>invite emails"]:::build
+    ==> NEXT["<b>NEXT</b><br/>owner drill-down per rep ·<br/>per-rep calendars · outcome pricing"]:::next
 
     classDef live fill:#ecfdf5,stroke:#10b981,color:#065f46,font-weight:bold;
     classDef build fill:#f3eeff,stroke:#7C3AED,color:#1E1152,font-weight:bold;
@@ -179,7 +179,7 @@ flowchart LR
     </div>
     <p class="note"><strong>The pitch one-liner:</strong> "K.I.N.D gives every one of your reps their own AI sales rep — finding their leads, opening in their voice, booking onto their calendar — while you watch the whole team from one command centre. You don't buy a tool. You buy a sales floor that runs itself."</p>
 
-    <footer>K.I.N.D — Per-Rep Model · maps the agreed direction (#88). Solid = live today · purple = building (~Fri 26 Jun). Open in any browser.</footer>
+    <footer>K.I.N.D — Per-Rep Model · the agreed direction (#88). <b>BUILT + on staging; going live for the client demo.</b> Open in any browser.</footer>
   </div>
 
 <script>

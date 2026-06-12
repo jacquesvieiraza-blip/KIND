@@ -24,14 +24,19 @@
 | Staging-mode API startup (boots on DB creds only) | ✅ built |
 | **Nav redesign** (rail = work only + agent switcher; account → top-right) | ✅ **founder approved** |
 
-### 🔨 Queued — Claude continues building (no founder input / no external keys needed)
-| Item | Notes |
-|------|-------|
-| **Activity feed #102** | Live "FIGSY sent to X · hot reply from Y · meeting booked" — reads real sends/replies. Founder flagged top-impact. **← building now** |
-| **Notification centre #103** | Enhance the bell → slide-out panel hooked to real events |
-| **A/B subject testing UI #43** | Two subject variants per step; data already collected |
-| **Configurable agent triggers #53** | Time-window, weekends-off, reply-delay settings surface |
-| Kanban pipeline #100 | Already exists at `/dashboard/figsy/kanban` — review + polish |
+### ✅ Built this round (real data — awaiting founder re-review)
+| Item | Status |
+|------|--------|
+| **Activity feed #102** | ✅ `/dashboard/activity` — live timeline of real sends/replies/meetings, polls 30s. In rail under Company. |
+| **Notification centre #103** | ✅ Wired the real `NotificationBell` into the V2 top bar (was a dead dummy button). Bell now opens the panel. |
+
+### 🔨 Still queued
+| Item | Status / blocker |
+|------|------------------|
+| **A/B subject testing UI #43** | Backend **is real** (winner-check cron + multi-variant selection). Buildable — but shows empty on staging until a campaign has variants. Build on founder go. |
+| **Configurable agent triggers #53** | ⏸ **No backend** (no send-window/weekend/reply-delay fields). Needs backend first — would be fake controls otherwise. |
+| Kanban pipeline #100 | Already exists at `/dashboard/figsy/kanban` — review + polish only. |
+| Activity feed → Home widget | Optional: surface the feed on the Home dashboard. Touches a core screen → hold for founder design review. |
 
 ### ⏸ Blocked — needs founder before building
 | Item | Needs |
@@ -79,6 +84,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | F9 | Unibox / smart inbox (R7) | `/dashboard/inbox` | ⬜ | | | |
 | F10 | Performance | `/dashboard/kpis` | ⬜ | | | |
 | F11 | Deliverability (#48) | `/dashboard/deliverability` | ⬜ | | | |
+| F13 | Activity feed (#102) | `/dashboard/activity` | 🔨 | _(new — awaiting review)_ | | |
 | F12 | Knowledge / Train FIGSY (R15) | `/dashboard/knowledge` | ⬜ | | | |
 
 ## 🟢 Other agents

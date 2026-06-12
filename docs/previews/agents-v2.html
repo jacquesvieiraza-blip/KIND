@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.N.D — Your AI Team (design preview)</title>
+<style>
+  :root{
+    --brand:#7C3AED; --ink:#202124; --muted:#5f6368; --faint:#80868b;
+    --line:#ece9f5; --bg:#f6f8fc; --dark:#0F0929;
+    --shadow:0 1px 2px rgba(60,64,67,.1),0 2px 8px rgba(60,64,67,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .preview-flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:6px}
+  .preview-flag b{color:#fff}
+  .wrap{max-width:1200px;margin:0 auto;padding:30px 26px 48px}
+  .head h1{font-size:24px;font-weight:600;letter-spacing:-.3px}
+  .head p{color:var(--muted);font-size:13.5px;margin-top:3px}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:24px}
+  @media(max-width:1080px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;
+    box-shadow:var(--shadow);cursor:pointer;transition:.2s;display:flex;flex-direction:column}
+  .card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(60,64,67,.14)}
+
+  /* portrait — breathes, no text overlay */
+  .photo{position:relative;aspect-ratio:1/1;overflow:hidden;display:grid;place-items:center}
+  .photo .mono{font-size:74px;font-weight:700;color:rgba(255,255,255,.92);text-shadow:0 4px 24px rgba(0,0,0,.2)}
+  .photo .ph-note{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:10px;
+    color:rgba(255,255,255,.7);letter-spacing:.3px}
+  .badge{position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:6px;
+    background:rgba(0,0,0,.32);backdrop-filter:blur(6px);border-radius:20px;padding:5px 10px}
+  .badge .dot{width:6px;height:6px;border-radius:50%}
+  .badge .dot.on{background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.25)}
+  .badge .dot.off{background:#94a3b8}
+  .badge span{font-size:10.5px;font-weight:600}
+  .badge.on span{color:#34d399}.badge.off span{color:#cbd5e1}
+
+  /* identity bar */
+  .idbar{background:var(--dark);padding:13px 16px}
+  .idbar .row1{display:flex;align-items:baseline;gap:8px}
+  .idbar .nm{color:#fff;font-weight:700;font-size:17px;letter-spacing:.2px}
+  .idbar .sub{font-weight:600;font-size:13px}
+  .idbar .role{color:#9B8EC4;font-size:11.5px;margin-top:2px}
+
+  /* body */
+  .body{padding:14px 16px 16px;display:flex;flex-direction:column;flex:1}
+  .desc{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:13px}
+  .feats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .feat{display:flex;gap:7px;align-items:flex-start}
+  .feat .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+  .feat .ic svg{width:15px;height:15px}
+  .feat .fl{font-size:11px;font-weight:700;color:var(--ink);line-height:1.25;letter-spacing:.1px}
+  .cta{margin-top:auto;text-align:center;font-size:12.5px;font-weight:600;color:#fff;padding:10px;
+    border-radius:12px;transition:.15s}
+  .card:hover .cta{filter:brightness(1.07)}
+</style>
+</head>
+<body>
+<div class="preview-flag">🎨 <b>DESIGN PREVIEW</b> — "Your AI Team" agent-card redesign (fixes 👎 #5: crop + text-over-photo clutter) · portraits shown as placeholders for the real Pixar renders · not wired</div>
+
+<div class="wrap">
+  <div class="head">
+    <h1>Your AI Team</h1>
+    <p>Four agents. One revenue machine. Click any agent to open their workspace.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- FIGSY -->
+    <div class="card">
+      <div class="photo" style="background:linear-gradient(150deg,#a78bfa,#7C3AED 60%,#5b21b6)">
+        <div class="mono">F</div>
+        <div class="badge on"><span class="dot on"></span><span>Online</span></div>
+        <div class="ph-note">▢ FIGSY portrait</div>
+      </div>
+      <div class="idbar">
+        <div class="row1"><span class="nm">FIGSY</span><span class="sub" style="color:#a78bfa">The Opener</span></div>
+        <div class="role">AI SDR · Outbound Sales Specialist</div>
+      </div>
+      <div class="body">
+        <div class="desc">Reaches out to your leads, writes personalised emails, handles replies, and books meetings. I open the door — Denise walks through it.</div>
+        <div class="feats">
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Outbound Expert</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Personalised Sequences</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Meetings Booked</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Results Driven</span></div>
+        </div>
+        <div class="cta" style="background:#7C3AED">Chat with FIGSY →</div>
+      </div>
+    </div>
+
+    <!-- Milla -->
+    <div class="card">
+      <div class="photo" style="background:linear-gradient(150deg,#f9a8d4,#F472B6 60%,#be185d)">
+        <div class="mono">M</div>
+        <div class="badge on"><span class="dot on"></span><span>Online</span></div>
+        <div class="ph-note">▢ Milla portrait</div>
+      </div>
+      <div class="idbar">
+        <div class="row1"><span class="nm">Milla</span><span class="sub" style="color:#f9a8d4">The Brain</span></div>
+        <div class="role">Virtual Assistant · Business Operations</div>
+      </div>
+      <div class="body">
+        <div class="desc">Knows your business inside and out. Drafts documents, answers questions instantly, and keeps everything organised.</div>
+        <div class="feats">
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#F472B6" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Business Intelligence</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#F472B6" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Drafts That Move Work</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#F472B6" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Answers That Save Time</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#F472B6" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Organised Everything</span></div>
+        </div>
+        <div class="cta" style="background:#F472B6">Chat with Milla →</div>
+      </div>
+    </div>
+
+    <!-- Vida -->
+    <div class="card">
+      <div class="photo" style="background:linear-gradient(150deg,#5eead4,#14B8A6 60%,#0f766e)">
+        <div class="mono">V</div>
+        <div class="badge on"><span class="dot on"></span><span>Online</span></div>
+        <div class="ph-note">▢ Vida portrait</div>
+      </div>
+      <div class="idbar">
+        <div class="row1"><span class="nm">Vida</span><span class="sub" style="color:#5eead4">The Connector</span></div>
+        <div class="role">Chatbot Agent · Inbound Specialist</div>
+      </div>
+      <div class="body">
+        <div class="desc">Always on — 24/7 conversations trained on your business. Spots good leads and routes them straight to your team.</div>
+        <div class="feats">
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#14B8A6" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">24/7 Conversations</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#14B8A6" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Smart Answers</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#14B8A6" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Qualifies Visitors</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#14B8A6" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Fast &amp; Friendly</span></div>
+        </div>
+        <div class="cta" style="background:#14B8A6">Chat with Vida →</div>
+      </div>
+    </div>
+
+    <!-- Denise (locked example) -->
+    <div class="card">
+      <div class="photo" style="background:linear-gradient(150deg,#fcd34d,#D97706 60%,#92400e)">
+        <div class="mono">D</div>
+        <div class="badge off"><span class="dot off"></span><span>Locked</span></div>
+        <div class="ph-note">▢ Denise portrait</div>
+      </div>
+      <div class="idbar">
+        <div class="row1"><span class="nm">DENISE</span><span class="sub" style="color:#fcd34d">The Closer</span></div>
+        <div class="role">AI Account Executive · Closing &amp; Proposals</div>
+      </div>
+      <div class="body">
+        <div class="desc">Closes what FIGSY opens. Confirms meetings, surfaces objections, drafts proposals, and follows up so no warm lead goes cold.</div>
+        <div class="feats">
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Meeting Confirmed</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Proposal Drafts</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Objection Handling</span></div>
+          <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span><span class="fl">Pipeline Follow-Up</span></div>
+        </div>
+        <div class="cta" style="background:#D97706">Add Denise — $39/mo →</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

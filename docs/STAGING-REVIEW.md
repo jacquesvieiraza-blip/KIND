@@ -29,6 +29,20 @@
 |------|--------|
 | **Activity feed #102** | ✅ `/dashboard/activity` — live timeline of real sends/replies/meetings, polls 30s. In rail under Company. |
 | **Notification centre #103** | ✅ Wired the real `NotificationBell` into the V2 top bar (was a dead dummy button). Bell now opens the panel. |
+| **🏢 COMPANY ENGINE #88 — foundation** | ✅ **Per-rep workspaces, owner-funded, REAL data.** Architecture confirmed by founder (private per-rep workspace · owner pays w/ per-seat budgets + request/approve · 10–50 reps). New `companies` table + clients seat columns + `seat_credit_requests` + `winning_plays`. Backend rewritten: `/company/overview` returns real per-rep contacted/reply%/booked; invite reps, allocate from pool, request→approve loop, pool top-up, plays. Seed: MaceyLuxe + 3 reps w/ own data + 2 requests + 2 plays. |
+
+> **⚠️ To see the Company Engine on staging you must re-apply schema + seed:**
+> 1. Paste the updated **`supabase/staging-schema.sql`** in the staging SQL editor → Run (adds `companies`, seat columns, etc. — idempotent, safe to re-run).
+> 2. Paste the updated **`supabase/staging-seed.sql`** → Run (adds the company + 3 reps). *(The first seed block will conflict on the existing client — that's fine; the new COMPANY ENGINE block at the bottom is what matters. If it errors on the duplicate, just run the part from the `-- COMPANY ENGINE SEED` comment down.)*
+> 3. Set `NEXT_PUBLIC_FEATURE_V2_SCREENS` to include `company` (or `all`) so it shows in the rail. It's already reachable at `/dashboard/company`.
+
+### 🏗️ Company Engine — still to build (next increments)
+| Piece | Notes |
+|-------|-------|
+| Rep **invite-accept** flow | Owner invites by email → rep signs up via token link → their user_id attaches to the pre-created seat. Backend stub exists (`POST /company/seats` creates the seat + token); needs the signup-accept wiring. |
+| Company **billing → pool** | Owner pays via Stripe → webhook tops up `companies.credit_pool`. Manual `POST /company/pool/topup` exists for now. |
+| **"Add a rep"** UI | Wire the page's invite button to `POST /company/seats`. |
+| Per-rep **onboarding** | Each rep builds their own ICP/campaigns, or owner pushes a winning play to all. |
 
 ### 🔨 Still queued
 | Item | Status / blocker |

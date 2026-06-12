@@ -148,7 +148,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | G6 | Settings | `/dashboard/settings` | ⬜ | | | |
 | G7 | MCP Connect | `/dashboard/mcp` | ⬜ | | | |
 | G8 | Developer API | `/dashboard/developer` | ⬜ | | | |
-| G9 | Proposals | `/dashboard/proposals` | ⬜ | | | |
+| G9 | Proposals | `/dashboard/proposals` | ✅ | Clean CRUD, status flow Draft→Sent→Viewed→Signed, create modal | — | **Approved as-is 12 Jun** (preview: `previews/proposals-current.html`). ⚠️ build-TODO: e-sign *capture* is #69 (not built) — subtitle "get e-signatures" over-promises until then. |
 | G10 | Messages | `/dashboard/messages` | ⬜ | | | |
 | G11 | Referral | `/dashboard/referral` | ✅ | 3-step how-it-works, dark link card + copy, clean referrals table | — | **Approved as-is 12 Jun** (preview: `previews/referral-current.html`) |
 | G12 | Marketplace | `/dashboard/marketplace` | ⬜ | | | |

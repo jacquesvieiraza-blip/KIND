@@ -17,6 +17,7 @@
 - [ ] **Merge to `main`** (you only) — the company-engine branch → production deploy.
 - [ ] **Enable `company`** in production `NEXT_PUBLIC_FEATURE_V2_SCREENS` (or just for the demo client).
 - [ ] **Fund the demo company's pool** (until Stripe→pool billing is wired, admin-fund it for the demo).
+- [ ] **🎬 Demo showcase** — Claude builds a presentable **demo company** (owner + reps, realistic data, agents unlocked) wired into the admin **Demo Envs**, so the **Company Command Centre is populated + impressive** when you demo. *(Founder requirement 12 Jun — Claude build; you just log in and present.)*
 
 ## 🔴 INTEGRATIONS / KEYS — critical, you flagged these
 - [ ] **Email `partners@apollo.io`** — Apollo **API reseller / partner agreement** (so reselling off one account is ToS-compliant from client #1; ~1 week turnaround). *Primary fix for the data moat.*

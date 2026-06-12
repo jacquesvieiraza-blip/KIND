@@ -90,6 +90,7 @@ reviews on staging → founder merges `staging` → `main` (production). Nothing
 
 ## 🤖 5. NEEDED FROM CLAUDE — BEFORE 19 JUN
 - **Build Stripe → company pool billing** (the go-live blocker) — *next up*
+- **🎬 DEMO COMPANY for the showcase** — build a presentable **demo company** (owner login + a few reps with realistic per-rep stats, budgets, pending credit requests, agents unlocked) so the founder logs in and the **Company Command Centre is already populated + impressive** for the client demo. Wire it into the admin **Demo Envs** tool (like the existing 600-lead showcase, but for the per-rep owner view). *Founder requirement 12 Jun.*
 - **Invite email delivery** + **owner drill-down** for the demo
 - Fix any smoke-test failures **same-day** as the founder runs them
 - Support the production migration + merge (provide exact SQL/steps)

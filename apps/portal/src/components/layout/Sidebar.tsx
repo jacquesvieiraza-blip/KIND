@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Bot, MessageSquare,
-  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
+  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook, ShieldCheck,
   Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
@@ -40,6 +40,7 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/figsy',          label: 'Campaigns',   icon: Target },
       { href: '/dashboard/inbox',          label: 'Inbox',       icon: Inbox, badge: 'unread' },
       { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
+      { href: '/dashboard/deliverability', label: 'Deliverability', icon: ShieldCheck },
       { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },
       { href: '/dashboard/figsy/webhooks', label: 'Webhooks',    icon: Webhook },
     ],

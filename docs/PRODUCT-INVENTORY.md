@@ -191,7 +191,7 @@
 ## 3C — Post-19 near-term build queue (ungated, buildable on founder go)
 | # | 🔴 | Item | Owner | 🎨 Preview |
 |---|----|------|-------|-----------|
-| 112 | 🔴 | **Alta-style inbox rebuild** (founder 👎 12 Jun: "inbox is not great" — multi-channel smart inbox, Alta §20 blueprint) | 🤖 | [inbox-v2.html](./previews/inbox-v2.html) ⏳ *awaiting sign-off* |
+| 112 | 🔴 | **Alta-style inbox rebuild** — Gmail-style multi-channel Unibox (founder 👎 12 Jun "inbox is not great" → redesign **locked** 12 Jun) | 🤖 | [inbox-v2.html](./previews/inbox-v2.html) ✅ **LOCKED** — build to this when pushed |
 | 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §2 #97) | 🤖  |  |
 | 114 | 🔴 | Kanban pipeline polish #100 | 🤖  |  |
 | 115 | 🔴 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖  |  |

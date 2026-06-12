@@ -101,7 +101,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | F6 | Replies | `/dashboard/figsy/replies` | ⬜ | | | |
 | F7 | LinkedIn queue | `/dashboard/figsy/linkedin` | ⬜ | | | |
 | F8 | Webhooks | `/dashboard/figsy/webhooks` | ⬜ | | | |
-| F9 | Unibox / smart inbox (R7) | `/dashboard/inbox` | 📝 | | 12 Jun: "the inbox is not great" — wants the **Alta** standard | Alta-style rebuild queued post-19 (inventory item 112; blueprint = `MASTER.md` §20 Alta audit) |
+| F9 | Unibox / smart inbox (R7) | `/dashboard/inbox` | ✅📝 | Gmail-style redesign **locked** 12 Jun | Old one "not great" | **Design LOCKED** → `docs/previews/inbox-v2.html` (inventory 112). Build to this preview when the batch is pushed. |
 | F10 | Performance | `/dashboard/kpis` | ⬜ | | | |
 | F11 | Deliverability (#48) | `/dashboard/deliverability` | ⬜ | | | |
 | F13 | Activity feed (#102) | `/dashboard/activity` | 🔨 | _(new — awaiting review)_ | | |

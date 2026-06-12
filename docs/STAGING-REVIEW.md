@@ -1,0 +1,143 @@
+# 🔍 K.I.N.D — STAGING REVIEW LOG
+
+> **Purpose:** the founder walks every new feature on the isolated staging environment and records
+> reactions — what works, what doesn't — one screen at a time, over multiple sessions. This is the
+> single capture doc so nothing is lost across days. Worked through at the founder's pace.
+>
+> **Judgment stance:** each screen judged **fresh** — no assumed design direction (slim V2 vs
+> default). We decide the target look *from* the review, not before it.
+>
+> **Started:** 12 Jun 2026 · **Last updated:** 12 Jun 2026
+
+---
+
+## 🌐 The environment being reviewed
+
+| Piece | Value |
+|-------|-------|
+| Staging portal | `https://heartfelt-essence-production-1434.up.railway.app` |
+| Test login | `test@get-kind.com` |
+| Staging API | `https://api-staging-production-2185.up.railway.app` |
+| Staging DB | Supabase `kind-staging` (`ddigrhimalmgymkwuusd`) — seeded: MaceyLuxe + 50 leads, 2 campaigns, 5 replies |
+| Isolation | ✅ Fully sealed — separate DB + API + portal. Cannot touch production. |
+| Banner | 🟡 STAGING banner on every page |
+
+**How to review:** open a screen → tell Claude what you like 👍 and don't like 👎 (rough is fine) →
+Claude logs it here → changes get batched, built on a branch, merged to staging for re-review.
+
+---
+
+## 📊 Status key
+`⬜` not reviewed yet · `🔄` reviewing · `📝` feedback captured · `🔨` changes being built · `✅` reviewed + signed off · `🗑️` cut
+
+---
+
+## 🟣 FIGSY — the AI SDR
+
+| # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
+|---|--------|-----|--------|---------|--------------|--------|
+| F1 | Campaigns | `/dashboard/figsy` | ⬜ | | | |
+| F2 | Chat with FIGSY | `/dashboard/figsy-chat` | ⬜ | | | |
+| F3 | Templates (R11) | `/dashboard/templates` | ⬜ | | | |
+| F4 | Sequence Builder (R23) | `/dashboard/figsy/sequence-builder` | ⬜ | | | |
+| F5 | Kanban pipeline | `/dashboard/figsy/kanban` | ⬜ | | | |
+| F6 | Replies | `/dashboard/figsy/replies` | ⬜ | | | |
+| F7 | LinkedIn queue | `/dashboard/figsy/linkedin` | ⬜ | | | |
+| F8 | Webhooks | `/dashboard/figsy/webhooks` | ⬜ | | | |
+| F9 | Unibox / smart inbox (R7) | `/dashboard/inbox` | ⬜ | | | |
+| F10 | Performance | `/dashboard/kpis` | ⬜ | | | |
+| F11 | Deliverability (#48) | `/dashboard/deliverability` | ⬜ | | | |
+| F12 | Knowledge / Train FIGSY (R15) | `/dashboard/knowledge` | ⬜ | | | |
+
+## 🟢 Other agents
+
+| # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
+|---|--------|-----|--------|---------|--------------|--------|
+| A1 | Milla — Assistant | `/dashboard/assistant` | ⬜ | | | |
+| A2 | Documents | `/dashboard/documents` | ⬜ | | | |
+| A3 | AI Notetaker (R22) | `/dashboard/notetaker` | ⬜ | | | |
+| A4 | Vida — Chatbot | `/dashboard/chatbot` | ⬜ | | | |
+| A5 | Denise — Closer | `/dashboard/denise` | ⬜ | | | |
+| A6 | All agents | `/dashboard/agents` | ⬜ | | | |
+
+## 🔵 Company Engine (#88)
+
+| # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
+|---|--------|-----|--------|---------|--------------|--------|
+| C1 | Command Centre (50-rep, credit approve) | `/dashboard/company` | ⬜ | | | _(note: sample data — real wiring = M1)_ |
+| C2 | Teams Hub (R21) | `/dashboard/team` | ⬜ | | | |
+
+## 🟠 Lead Gen
+
+| # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
+|---|--------|-----|--------|---------|--------------|--------|
+| L1 | Home / dashboard | `/dashboard` | ⬜ | | | |
+| L2 | People | `/dashboard/leads` | ⬜ | | | |
+| L3 | ICP Builder | `/dashboard/leads/icp` | ⬜ | | | |
+| L4 | Leads Overview | `/dashboard/leads/overview` | ⬜ | | | |
+| L5 | LinkedIn Import | `/dashboard/leads/linkedin` | ⬜ | | | |
+| L6 | Prospects | `/dashboard/prospects` | ⬜ | | | |
+
+## ⚙️ Account / Growth
+
+| # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
+|---|--------|-----|--------|---------|--------------|--------|
+| G1 | Integrations Hub (R24) | `/dashboard/integrations` | ⬜ | | | |
+| G2 | Roadmap | `/dashboard/roadmap` | ⬜ | | | |
+| G3 | What's New (R19) | `/dashboard/whats-new` | ⬜ | | | |
+| G4 | Usage | `/dashboard/usage` | ⬜ | | | |
+| G5 | Billing | `/dashboard/billing` | ⬜ | | | |
+| G6 | Settings | `/dashboard/settings` | ⬜ | | | |
+| G7 | MCP Connect | `/dashboard/mcp` | ⬜ | | | |
+| G8 | Developer API | `/dashboard/developer` | ⬜ | | | |
+| G9 | Proposals | `/dashboard/proposals` | ⬜ | | | |
+| G10 | Messages | `/dashboard/messages` | ⬜ | | | |
+| G11 | Referral | `/dashboard/referral` | ⬜ | | | |
+| G12 | Marketplace | `/dashboard/marketplace` | ⬜ | | | |
+| G13 | Configure FIGSY | `/dashboard/config` | ⬜ | | | |
+| G14 | Analytics | `/dashboard/analytics` | ⬜ | | | |
+| G15 | Partner Hub (+ deck/pricing/onboarding) | `/dashboard/partner` | ⬜ | | | |
+
+## 🧩 Shell / chrome (the frame around every page)
+
+| # | Element | Status | 👍 Like | 👎 Don't like | Action |
+|---|---------|--------|---------|--------------|--------|
+| S1 | Sidebar — slim dark rail (V2) | 📝 | Dark rail, fixed, icons, expand-on-hover | _(initial)_ | Decide slim-vs-default as house style |
+| S2 | Sidebar — full/default (light) | 📝 | Lists everything | Colour; not fixed; "hate this look" | Leaning away from this |
+| S3 | Status bar (bottom of sidebar) | ⬜ | | | |
+| S4 | Profile dropdown (top-right) | ⬜ | | | |
+| S5 | STAGING banner | ⬜ | | | |
+| S6 | Agent column (right rail — FIGSY card) | ⬜ | | | |
+| S7 | Mobile PWA / install prompt | ⬜ | | | |
+
+## 🎨 Full V2 redesign mockups (standalone — design exploration)
+
+| # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
+|---|--------|-----|--------|---------|--------------|--------|
+| V1 | Shell | `/v2/shell` | ⬜ | | | |
+| V2 | Onboarding | `/v2/onboarding` | ⬜ | | | |
+| V3 | Company | `/v2/company` | ⬜ | | | |
+| V4 | Leads | `/v2/leads` | ⬜ | | | |
+| V5 | Sequences | `/v2/sequences` | ⬜ | | | |
+| V6 | Gallery | `/v2/gallery` | ⬜ | | | |
+| V7 | Welcome A/B/C | `/v2/welcome/a` · `/b` · `/c` | ⬜ | | | |
+| V8 | Setup · Train · Thinking | `/v2/setup` · `/train` · `/thinking` | ⬜ | | | |
+| V9 | Agents · Inbox · Config · Marketplace | `/v2/agents` · `/inbox` · `/config` · `/marketplace` | ⬜ | | | |
+| V10 | Milla · Vida · Figsy (V2) | `/v2/milla` · `/vida` · `/figsy` | ⬜ | | | |
+
+---
+
+## 📌 Cross-cutting decisions (resolve once, applies everywhere)
+
+| Decision | Options | Verdict |
+|----------|---------|---------|
+| House sidebar style | slim dark rail · full light · hybrid | ⬜ open |
+| Brand colour usage | purple-heavy · toned down · — | ⬜ open |
+| Density | compact · roomy | ⬜ open |
+| Sample vs real data on previews | acceptable · must be real | ⬜ open |
+
+---
+
+## 🗒️ Running notes (free-form, newest first)
+
+- **12 Jun:** Staging environment went fully live + isolated. Founder began first look. Initial reaction to the **full/default light sidebar = dislike** ("hate this look", colour, not fixed). Likes the **slim dark rail** look but it was missing screens → fixed (slim now lists all features, commit `2054cbc`). Review to proceed feature-by-feature over multiple sessions, judged fresh.

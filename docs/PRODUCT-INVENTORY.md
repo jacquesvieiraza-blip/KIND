@@ -3,6 +3,8 @@
 *Companion to `KIND-MASTER.md` (launch) + `V2-TRACKER.md` (roadmap detail). This = the single "everything" list.*
 **Legend:** ✅ live & working · 🟡 live but preview/"coming soon" · 🎨 designed/mockup, NOT built · ⬜ planned · 🧍 founder · 🤖 Claude
 
+> **🔍 12 Jun — under founder review on staging.** Everything built (Part B0 / B0b) is now **previewable on the sealed staging environment** (`heartfelt-essence-production-1434.up.railway.app`, login `test@get-kind.com`) — separate DB + API, 50 fake leads, cannot touch prod. The founder is reviewing each screen **fresh** and logging 👍/👎 in **[`STAGING-REVIEW.md`](./STAGING-REVIEW.md)**. Statuses here stay `🔨 built`; they only move toward `✅` once the founder signs off per-feature in the review log and merges to `main`.
+
 ---
 
 # ░ PART A — LIVE NOW (shipped & working on `main`) ░

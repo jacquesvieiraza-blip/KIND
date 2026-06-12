@@ -225,7 +225,7 @@
 |---|----|------|-------|-----------|
 | 112 | 🔴 | **Alta-style inbox rebuild** — Gmail-style multi-channel Unibox (founder 👎 12 Jun "inbox is not great" → redesign **locked** 12 Jun) | 🤖 | [inbox-v2.html](./previews/inbox-v2.html) ✅ **LOCKED** — build to this when pushed |
 | 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §2 #97) | 🤖  |  |
-| 113a | 🔴 | **Agent side-panel consistency** — make every agent's right-rail panel a *live in-panel conversation* like FIGSY (`AgentSidePanel` line 125 gates live chat to FIGSY only; Milla/Vida/Denise just redirect). Wire Milla→`/milla` chat, Vida→`/support` chat; ⚠️ **Denise needs a general chat endpoint built** (only has draft-followup/proposal today). Each panel keeps a screen-specific purpose. *(Founder 12 Jun: "agents surface to the right with a conversational purpose based on that screen.")* | 🤖 |  |
+| 113a | 🔴 | 📅 **TUESDAY 16 Jun** — **Agent side-panel consistency** — make every agent's right-rail panel a *live in-panel conversation* like FIGSY (`AgentSidePanel` line 125 gates live chat to FIGSY only; Milla/Vida/Denise just redirect). Wire Milla→`/milla` chat, Vida→`/support` chat; ⚠️ **Denise needs a general chat endpoint built** (only has draft-followup/proposal today). Each panel keeps a screen-specific purpose. *(Founder 12 Jun: "agents surface to the right with a conversational purpose based on that screen." → scheduled Tue.)* | 🤖 |  |
 | 114 | 🔴 | Kanban pipeline polish #100 | 🤖  |  |
 | 115 | 🔴 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖  |  |
 | 116 | 🔴 | Activity feed → Home-dashboard widget (touches core screen — design review first) | 🤝  |  |

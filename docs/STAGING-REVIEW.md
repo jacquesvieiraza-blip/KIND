@@ -143,14 +143,14 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | G1 | Integrations Hub (R24) | `/dashboard/integrations` | ⬜ | | | |
 | G2 | Roadmap | `/dashboard/roadmap` | ⬜ | | | |
 | G3 | What's New (R19) | `/dashboard/whats-new` | ✅ | Tidy timeline, brand-correct | — | **Approved as-is 12 Jun** |
-| G4 | Usage | `/dashboard/usage` | ⬜ | | | |
+| G4 | Usage | `/dashboard/usage` | ✅ | Leads-period card + overage, credit summary, pipeline grid, 8-wk chart, history | — | **Approved as-is 12 Jun** (preview: `previews/usage-current.html`) |
 | G5 | Billing | `/dashboard/billing` | ⬜ | | | |
 | G6 | Settings | `/dashboard/settings` | ⬜ | | | |
 | G7 | MCP Connect | `/dashboard/mcp` | ⬜ | | | |
 | G8 | Developer API | `/dashboard/developer` | ⬜ | | | |
 | G9 | Proposals | `/dashboard/proposals` | ⬜ | | | |
 | G10 | Messages | `/dashboard/messages` | ⬜ | | | |
-| G11 | Referral | `/dashboard/referral` | ⬜ | | | |
+| G11 | Referral | `/dashboard/referral` | ✅ | 3-step how-it-works, dark link card + copy, clean referrals table | — | **Approved as-is 12 Jun** (preview: `previews/referral-current.html`) |
 | G12 | Marketplace | `/dashboard/marketplace` | ⬜ | | | |
 | G13 | Configure FIGSY | `/dashboard/config` | ⬜ | | | |
 | G14 | Analytics | `/dashboard/analytics` | ⬜ | | | |

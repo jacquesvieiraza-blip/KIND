@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.N.D — Tax Invoice (design preview)</title>
+<style>
+  :root{
+    --brand:#7C3AED; --dark:#0F0929; --ink:#1E1152; --muted:#6B7280;
+    --faint:#9CA3AF; --line:#ECE9F5; --bg:#F5F3FF; --pill:#F5F0FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);color:#111827;-webkit-font-smoothing:antialiased;padding:28px 20px}
+  .flag{max-width:780px;margin:0 auto 16px;background:#111827;color:#fbbf24;text-align:center;
+    font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;line-height:1.5}
+  .flag b{color:#fff}
+  .flag .note{display:block;color:#d1d5db;font-weight:400;margin-top:3px;font-size:11px}
+
+  /* the document — A4-ish sheet */
+  .sheet{max-width:780px;margin:0 auto;background:#fff;border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(15,9,41,.08)}
+
+  /* header band */
+  .top{background:var(--dark);color:#fff;padding:28px 36px;display:flex;justify-content:space-between;align-items:flex-start}
+  .brand .logo{font-size:22px;font-weight:800;letter-spacing:1px}
+  .brand .logo span{color:#a78bfa}
+  .brand .tag{font-size:11px;color:#9B8EC4;margin-top:3px;letter-spacing:.4px}
+  .doc-type{text-align:right}
+  .doc-type h1{font-size:22px;font-weight:700;letter-spacing:2px}
+  .doc-type .inv-no{font-size:12px;color:#9B8EC4;margin-top:4px}
+  .doc-type .paid{display:inline-block;margin-top:10px;background:#10B981;color:#fff;font-size:11px;
+    font-weight:700;letter-spacing:1px;padding:4px 12px;border-radius:999px}
+
+  /* meta row */
+  .meta{display:grid;grid-template-columns:1fr 1fr;gap:32px;padding:28px 36px;border-bottom:1px solid var(--line)}
+  .meta .col h3{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--brand);margin-bottom:8px}
+  .meta .col p{font-size:13px;line-height:1.6;color:#374151}
+  .meta .col p .nm{font-weight:700;color:var(--ink)}
+  .meta .col .ph{color:#C4B5FD;font-style:italic}
+
+  /* dates strip */
+  .dates{display:flex;gap:0;padding:0;border-bottom:1px solid var(--line);background:#FBFAFF}
+  .dates .d{flex:1;padding:16px 36px;border-right:1px solid var(--line)}
+  .dates .d:last-child{border-right:none}
+  .dates .d h4{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--faint)}
+  .dates .d p{font-size:14px;font-weight:600;color:var(--ink);margin-top:4px}
+
+  /* line items */
+  .items{padding:8px 36px 0}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);
+    text-align:left;padding:16px 0 10px;border-bottom:2px solid var(--line)}
+  thead th.r{text-align:right}
+  tbody td{padding:14px 0;border-bottom:1px solid var(--line);font-size:13px;color:#374151;vertical-align:top}
+  tbody td.r{text-align:right;font-variant-numeric:tabular-nums}
+  tbody .desc{font-weight:600;color:var(--ink)}
+  tbody .sub{font-size:11.5px;color:var(--faint);margin-top:2px}
+
+  /* totals */
+  .totals{display:flex;justify-content:flex-end;padding:20px 36px 28px}
+  .totals .box{width:300px}
+  .totals .row{display:flex;justify-content:space-between;font-size:13px;color:#374151;padding:7px 0}
+  .totals .row.vat{color:var(--muted)}
+  .totals .row.grand{border-top:2px solid var(--ink);margin-top:8px;padding-top:14px;font-size:18px;font-weight:800;color:var(--ink)}
+  .totals .row.grand .amt{color:var(--brand)}
+
+  /* payment + footer */
+  .pay{background:var(--pill);margin:0 36px 28px;border-radius:12px;padding:18px 20px;display:flex;gap:14px;align-items:flex-start}
+  .pay .ic{width:36px;height:36px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(124,58,237,.15)}
+  .pay .ic svg{width:18px;height:18px;color:var(--brand)}
+  .pay .t{font-size:13px;font-weight:700;color:var(--ink)}
+  .pay .d{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+
+  .foot{padding:0 36px 30px;font-size:11px;color:var(--faint);line-height:1.7;border-top:1px solid var(--line);padding-top:20px}
+  .foot strong{color:var(--muted)}
+  .foot .thanks{font-size:13px;color:var(--ink);font-weight:600;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div class="flag">
+  🎨 <b>DESIGN PREVIEW</b> — auto-issued tax invoice (sits under <b>Company → Documents</b>, emailed as PDF + downloadable in-portal on every payment)
+  <span class="note">Fields in <i>lilac italic</i> = placeholders for you to confirm (legal name, reg no, VAT no, address). Currency &amp; VAT rate shown as ZAR @ 15% — switch if billing in USD.</span>
+</div>
+
+<div class="sheet">
+
+  <!-- Header -->
+  <div class="top">
+    <div class="brand">
+      <div class="logo">K.I.<span>N.D</span></div>
+      <div class="tag">Your AI revenue family</div>
+    </div>
+    <div class="doc-type">
+      <h1>TAX INVOICE</h1>
+      <div class="inv-no">No. INV-2026-000142</div>
+      <span class="paid">✓ PAID</span>
+    </div>
+  </div>
+
+  <!-- From / To -->
+  <div class="meta">
+    <div class="col">
+      <h3>From</h3>
+      <p>
+        <span class="nm">K.I.N.D <span class="ph">(Pty) Ltd</span></span><br>
+        <span class="ph">Reg. 2026/XXXXXX/07</span><br>
+        <span class="ph">VAT No. 4XXXXXXXXX</span><br>
+        <span class="ph">[Registered address line 1]</span><br>
+        <span class="ph">[City, postal code, South Africa]</span><br>
+        billing@get-kind.com
+      </p>
+    </div>
+    <div class="col">
+      <h3>Billed to</h3>
+      <p>
+        <span class="nm">MaceyLuxe (Pty) Ltd</span><br>
+        VAT No. 4123456789<br>
+        14 Loop Street<br>
+        Cape Town, 8001<br>
+        accounts@maceyluxe.co.za
+      </p>
+    </div>
+  </div>
+
+  <!-- Dates -->
+  <div class="dates">
+    <div class="d"><h4>Invoice date</h4><p>10 June 2026</p></div>
+    <div class="d"><h4>Billing period</h4><p>10 Jun – 9 Jul 2026</p></div>
+    <div class="d"><h4>Payment status</h4><p style="color:#10B981">Paid in full</p></div>
+  </div>
+
+  <!-- Line items -->
+  <div class="items">
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th class="r">Qty</th>
+          <th class="r">Unit price</th>
+          <th class="r">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="desc">FIGSY — AI SDR (Pro plan)</div><div class="sub">Monthly subscription · 10 Jun – 9 Jul 2026</div></td>
+          <td class="r">1</td>
+          <td class="r">R 2,400.00</td>
+          <td class="r">R 2,400.00</td>
+        </tr>
+        <tr>
+          <td><div class="desc">DENISE — AI Account Executive (add-on)</div><div class="sub">Monthly subscription · 10 Jun – 9 Jul 2026</div></td>
+          <td class="r">1</td>
+          <td class="r">R 720.00</td>
+          <td class="r">R 720.00</td>
+        </tr>
+        <tr>
+          <td><div class="desc">Lead credits — top-up</div><div class="sub">500 credits · one-time</div></td>
+          <td class="r">500</td>
+          <td class="r">R 18.00</td>
+          <td class="r">R 9,000.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Totals -->
+  <div class="totals">
+    <div class="box">
+      <div class="row"><span>Subtotal (excl. VAT)</span><span>R 12,120.00</span></div>
+      <div class="row vat"><span>VAT @ 15%</span><span>R 1,818.00</span></div>
+      <div class="row grand"><span>Total</span><span class="amt">R 13,938.00</span></div>
+    </div>
+  </div>
+
+  <!-- Payment -->
+  <div class="pay">
+    <div class="ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    </div>
+    <div>
+      <div class="t">Paid by card · Visa •••• 4242</div>
+      <div class="d">Processed 10 June 2026 at 14:32 SAST · Transaction ref ch_3PqXYZ · Receipt no. INV-2026-000142</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="foot">
+    <div class="thanks">Thank you for building with K.I.N.D.</div>
+    This is a valid tax invoice issued in terms of the <strong>Value-Added Tax Act, No. 89 of 1991</strong>.
+    Electronic acceptance via payment is legally equivalent to a handwritten signature under <strong>ECTA No. 25 of 2002</strong>;
+    your IP address and payment timestamp are recorded as proof. Questions about this invoice? Email
+    billing@get-kind.com quoting invoice no. INV-2026-000142.
+  </div>
+
+</div>
+
+</body>
+</html>

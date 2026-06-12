@@ -47,7 +47,7 @@
 | Invite **email delivery** · owner **drill-down** | ⬜ next after billing |
 
 ### 💲 Also this session (12 Jun late)
-- **Denise repriced $99 → $39** across portal, website, API, deck, flow docs (⚠️ 🧍 Stripe price object still $99 — see `FOUNDER-ACTIONS.md`)
+- **Denise repriced $99 → $39** across portal, website, API, deck, flow docs (⚠️ 🧍 Stripe price object still $99 — see the FOUNDER CHECKLIST in `KIND-MASTER.md`)
 - **Flow docs rebuilt** as pure HTML/CSS (Mermaid broke on the founder's phone) — `CLIENT_FLOW.html` + `CLIENT_FLOW_PER_REP.html`, offline-safe
 
 ### 🔨 Still queued

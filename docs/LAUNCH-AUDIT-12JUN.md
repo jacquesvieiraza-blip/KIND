@@ -26,7 +26,7 @@
 - **A — Launch the whole batch** (V2 nav + status bar + activity + deliverability + company engine + Denise $39). It's all built & tested on staging. Bigger surface, but one merge. Contradicts the "one push before the 19th" plan.
 - **B — Isolated launch (recommended for your stated goal):** Claude builds a clean **`company-engine-prod`** branch *from `main`* containing only: the company-engine backend (`company.ts`, `admin.ts` company_demo, `seed-company.ts`, `index.ts` mount), the company **page**, the layout agent-gating, a minimal **Company** sidebar link (without the rest of the nav redesign), and **Denise $39**. You review + merge that one branch → only the Command Centre + Denise go live. Everything else stays on staging.
 
-➡️ ~~DECIDED 12 Jun: Option A — ONE combined launch by the 19th~~ **RE-DECIDED 12 Jun late: MON 15 = Company Command Centre + payments → production (`company` flag ONLY exposed) · FRI 19 = launch · post-19 = everything else** (the rest of the staging batch stays flag-hidden until per-feature sign-off). One to-do list: `FOUNDER-ACTIONS.md`.
+➡️ ~~DECIDED 12 Jun: Option A — ONE combined launch by the 19th~~ **RE-DECIDED 12 Jun late: MON 15 = Company Command Centre + payments → production (`company` flag ONLY exposed) · FRI 19 = launch · post-19 = everything else** (the rest of the staging batch stays flag-hidden until per-feature sign-off). One to-do list: the FOUNDER CHECKLIST in `KIND-MASTER.md`.
 
 ## 🔴 CRITICAL FINDING #2 — owners can't self-fund the pool on production
 - `POST /company/pool/topup` is **staging-only** (returns 403 in prod) and there is **no Stripe → pool** path yet.
@@ -37,7 +37,7 @@ Code says `$39`; the **Stripe price object** is unchanged. Until you create a `$
 
 ---
 
-## 🟡 FOUNDER — outstanding before the 19th (full list in FOUNDER-ACTIONS.md)
+## 🟡 FOUNDER — outstanding before the 19th (full list in the FOUNDER CHECKLIST → `KIND-MASTER.md`)
 **Company-engine launch:** run `20260612_company_engine.sql` on **prod** Supabase · merge the chosen branch → `main` · enable `company` flag · create $39 Denise Stripe price · (Stripe pool products when billing lands).
 **Keys (data moat — you flagged these):** ✉️ **`partners@apollo.io`** reseller agreement · 🔑 create **Hunter** key (~$49/mo) · 🔑 free **PDL** key. *(All code is wired + dormant — they switch on the moment the key is set.)*
 **Launch-critical:** D9 deliverability 10/10 · legal pack #10–14 (ICO/SR01/registered office/WHOIS/LinkedIn) · Go/No-Go Thu 18 · smoke tests T3–T7, T9, T10.

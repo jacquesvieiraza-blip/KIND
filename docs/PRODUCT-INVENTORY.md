@@ -17,7 +17,7 @@
 > 2. **Fri 19 Jun — LAUNCH** (the proven core already live on `main`; D9 + legal + smoke tests + Go/No-Go Thu 18)
 > 3. **Post-19 — everything else** (all 25 release PRs, shell redesign, Alta-style inbox, the whole staging review queue)
 >
-> *Last updated: 12 Jun 2026 · Companion docs: `KIND-MASTER.md` (launch map) · `V2-TRACKER.md` (future detail) · `FOUNDER-ACTIONS.md` (founder tick-list) · `STAGING-REVIEW.md` (per-screen review log) · `COMPANY-ENGINE-TEST.md` (Monday test script)*
+> *Last updated: 12 Jun 2026 · The 3 docs: `KIND-MASTER.md` (the map + founder checklist) · THIS (status of everything) · `V2-TRACKER.md` (future detail). Task tools: `COMPANY-ENGINE-TEST.md` (Monday test) · `STAGING-REVIEW.md` (review log).*
 
 ---
 

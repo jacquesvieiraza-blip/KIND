@@ -7,7 +7,7 @@
 > 2. **FRI 19 JUN — 🚀 LAUNCH** — the proven core already live on `main` (D9 · legal · smoke tests · Go/No-Go Thu 18).
 > 3. **POST-19 — everything else** — all 25 release PRs · shell redesign · Alta-style inbox · the staging review queue. Built and waiting; nothing else merges before the 19th.
 >
-> ### ⭐ YOUR NEXT STEPS (in order) — the full checklist is [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md)
+> ### ⭐ YOUR NEXT STEPS (in order) — full tickable checklist in **📋 FOUNDER CHECKLIST** just below
 > 1. **This weekend (phone, ~20 min):** ✉️ email `partners@apollo.io` · 🔑 hunter.io signup → key · 🔑 peopledatalabs.com signup → key.
 > 2. **Monday (desk, ~45 min):** merge dev → `staging` → re-paste `staging-schema.sql` → redeploy BOTH services (don't re-run the seed) → test via [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md) → $39 Denise Stripe price → then prod migration + merge + `company` flag.
 > 3. **Launch gate (by Fri 19):** D9 10/10 · legal #10–14 · smoke tests T3–T10 · Go/No-Go Thu 18.
@@ -15,13 +15,49 @@
 > ### 📍 THE ONLY THREE DOCS (locked 12 Jun — "one inventory, stop the sprawl")
 > | Doc | Use it for |
 > |-----|-----------|
-> | **THIS doc** (`KIND-MASTER.md`) | The map — plan, strategy, dated timeline, session log |
+> | **THIS doc** (`KIND-MASTER.md`) | The map — plan, **your FOUNDER CHECKLIST**, strategy, dated timeline, session log |
 > | 📋 [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) | **THE status list — every item (161) with one dot: 🟢 built+verified · 🟡 built-not-verified · 🔴 not built + who's responsible.** "What exists / what's left?" → here, nowhere else |
 > | [`V2-TRACKER.md`](./V2-TRACKER.md) | Future detail only — risk register · learning engine · GTM · steals. No build statuses |
 >
-> *Working checklists:* ⭐ [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md) (your tick-list) · [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md) (Monday test) · [`STAGING-REVIEW.md`](./STAGING-REVIEW.md) (👍/👎 review log). *Retired: `STATUS-12JUN.md` → folded into the inventory.* Demo collateral: `CLIENT_FLOW.html` · `CLIENT_FLOW_PER_REP.html` · `MCP-EXPLAINED.html`.
+> *That's it — 3 docs. The two task tools you only open while doing that one task: [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md) (the Monday test run) · [`STAGING-REVIEW.md`](./STAGING-REVIEW.md) (where 👍/👎 gets logged during the design tour). Demo collateral: `CLIENT_FLOW.html` · `CLIENT_FLOW_PER_REP.html` · `MCP-EXPLAINED.html`.*
 >
 > _Everything below this box is the detailed history/timeline — you don't need it for "what do I do next." Use the box above._
+
+---
+
+## 📋 FOUNDER CHECKLIST — every step you must do, in order (Mon 15 company ship · Fri 19 launch)
+**Owner key:** 🧍 founder · 🤖 Claude · 🤝 both · *(status of every product item: `PRODUCT-INVENTORY.md`)*
+
+**1 · THIS WEEKEND (~20 min, from your phone)**
+- [ ] 🧍 Email **`partners@apollo.io`** — API reseller / partner agreement (~1 wk lead time)
+- [ ] 🧍 Sign up **hunter.io** → save the API key somewhere safe
+- [ ] 🧍 Sign up **peopledatalabs.com** (free) → save the API key
+
+**2 · MONDAY 15 — THE COMPANY SHIP (~45 min at your desk)**
+- [ ] 🧍 **Merge** `claude/kind-carson-MYhSl` → `staging` (GitHub PR, base `staging`)
+- [ ] 🧍 **Re-paste `staging-schema.sql`** in `kind-staging` SQL editor → Run *(adds `enabled_agents`)*
+- [ ] 🧍 **Redeploy BOTH** `api-staging` + `heartfelt-essence` · do **NOT** re-run the company seed
+- [ ] 🧍 **Test the Command Centre** — `COMPANY-ENGINE-TEST.md` top to bottom (incl. Test 7 agent toggles)
+- [ ] 🧍 **Stripe:** create the **$39 Denise price** → `STRIPE_PRICE_DENISE_MONTHLY` on Railway *(else checkout charges $99)*
+- [ ] 🧍 **Stripe:** create the **pool-topup products** once Claude's billing lands (lead-gen $1 · FIGSY $3)
+- [ ] 🧍 **Ship to production:** run `20260612_company_engine.sql` on prod Supabase *(idempotent, additive)* → merge `staging` → `main` → set `NEXT_PUBLIC_FEATURE_V2_SCREENS` to **`company` ONLY** *(everything else stays flag-hidden until post-19 review)* → fund the demo pool → smoke-check `/dashboard/company` live
+
+**3 · CLAUDE BUILDS (🤖 — nothing needed from you)**
+- [ ] 🤖 **Stripe → company pool billing** (single pool first, two-pool right after) — *building now, needed for Monday*
+- [ ] 🤖 Fix any smoke-test failures same-day as you run them
+- *(Moved post-19: invite email delivery · owner drill-down — Monday's demo uses the copy-paste invite link, which works.)*
+
+**4 · LAUNCH-CRITICAL GATE (🧍, before Fri 19)**
+- [ ] 🧍 **D9 deliverability 10/10** — `DELIVERABILITY-D9-CHECKLIST.md`
+- [ ] 🧍 **Legal pack #10–14** — ICO (£40) · SR01 · registered office · WHOIS privacy · LinkedIn lockdown
+- [ ] 🧍 **Smoke tests** T3–T7, T9, T10 (you run, Claude fixes same-day)
+- [ ] 🤝 **Go/No-Go gate — Thu 18 Jun** → 🚀 **LAUNCH Fri 19**
+
+**5 · DEMO PREP (🧍, before the multi-rep client demo)**
+- [ ] 🧍 Admin → Demo Envs → tick "Company demo" → Open → `/dashboard/company` populated
+- [ ] 🧍 If demoing before Monday's prod ship, demo on **staging** (live + working)
+
+**▶️ After the 19th (parked, not launch-blocking):** the entire staging review queue (R1–R25 PRs · shell redesign · `STAGING-REVIEW.md` walkthrough) · **Alta-style inbox rebuild** · invite email delivery · owner drill-down · manager role/offboarding/routing/calendars · Wave-4 keys (WhatsApp/Vapi/Clearbit) · record videos · Y16 (kill Vercel↔GitHub) · outcome-based pricing.
 
 ---
 
@@ -54,7 +90,7 @@
 > **This block is the cold-start handoff.** Any new chat/session must read this to know exactly
 > where we are. **Keep it current** — update it at the end of every working session before commit.
 
-- **🏢 12 JUN LATE — COMPANY ENGINE (#88) = THE ONE PUSH TO PRODUCTION BEFORE THE 19th.** Founder has a high-volume multi-rep client; demo next week; founder tests Mon 15. **Built + verified on staging:** per-rep workspaces · owner pools (lead-gen $1 / FIGSY $3, confirmed two-pool model) · budgets/allocate · request→approve (verified live: Amara +2,000 / pool 40k→38k) · invite→accept · autonomy · winning plays · real per-rep stats. **Built on feature branch, NOT yet merged to staging:** per-rep agent unlock + **Denise $99→$39 everywhere** + offline flow docs. ⚠️ **Next merge sequencing:** re-paste `staging-schema.sql` (adds `enabled_agents`) BEFORE/with redeploying `api-staging`, and do **NOT** re-run the company seed (would duplicate the company). 🧍 Stripe price object `STRIPE_PRICE_DENISE_MONTHLY` is still $99 — founder must create the $39 price. Full breakdown: [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) §2A · founder tasks: [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md) · test script: [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md).
+- **🏢 12 JUN LATE — COMPANY ENGINE (#88) = THE ONE PUSH TO PRODUCTION BEFORE THE 19th.** Founder has a high-volume multi-rep client; demo next week; founder tests Mon 15. **Built + verified on staging:** per-rep workspaces · owner pools (lead-gen $1 / FIGSY $3, confirmed two-pool model) · budgets/allocate · request→approve (verified live: Amara +2,000 / pool 40k→38k) · invite→accept · autonomy · winning plays · real per-rep stats. **Built on feature branch, NOT yet merged to staging:** per-rep agent unlock + **Denise $99→$39 everywhere** + offline flow docs. ⚠️ **Next merge sequencing:** re-paste `staging-schema.sql` (adds `enabled_agents`) BEFORE/with redeploying `api-staging`, and do **NOT** re-run the company seed (would duplicate the company). 🧍 Stripe price object `STRIPE_PRICE_DENISE_MONTHLY` is still $99 — founder must create the $39 price. Full breakdown: [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) §2A · founder tasks: the FOUNDER CHECKLIST at the top of this doc · test script: [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md).
 
 - **✅ 12 JUN — STAGING ISOLATION COMPLETE. The sealed preview environment is LIVE.**
 >   - ✅ **Separate staging Supabase project** `kind-staging` (`ddigrhimalmgymkwuusd`) — full consolidated schema applied (one paste), seeded with MaceyLuxe Staging + **50 fake leads · 2 campaigns · 5 replies · 12.5k credits**. **Zero connection to prod data.**

@@ -1,4 +1,4 @@
-> ⚠️ **SUPERSEDED (12 Jun late, re-locked):** current plan = **MON 15: Company Command Centre + payments → production (only early ship) · FRI 19: launch · post-19: everything else.** Current truth: [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) + [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md). This plan kept for history.
+> ⚠️ **SUPERSEDED (12 Jun late, re-locked):** current plan = **MON 15: Company Command Centre + payments → production (only early ship) · FRI 19: launch · post-19: everything else.** Current truth: [`KIND-MASTER.md`](./KIND-MASTER.md) (the map + founder checklist) + [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md). This plan kept for history.
 
 # 📌 BOOKMARK — KIND Week Plan to Live
 

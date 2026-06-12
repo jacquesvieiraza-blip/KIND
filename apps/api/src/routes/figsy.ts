@@ -407,6 +407,66 @@ figsyRouter.get('/pulse', async (req: AuthRequest, res) => {
   } catch (err) { console.error('[figsy/pulse]', err); res.status(500).json({ success: false, error: 'Failed to fetch pulse' }) }
 })
 
+// ── ACTIVITY FEED (#102) ──────────────────────────────────────────────────────
+// A unified, real, client-scoped timeline of recent events — sends, replies,
+// meetings — merged and sorted newest-first. Powers the live activity panel.
+// All real reads (no fabricated events). Cheap: two capped queries, merged.
+figsyRouter.get('/activity', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const limit = Math.min(Math.max(parseInt((req.query.limit as string) ?? '30', 10) || 30, 1), 100)
+    const campaignIds = await getClientCampaignIds(clientId)
+
+    const [sentRes, repliesRes] = await Promise.all([
+      db.from('figsy_sent_emails')
+        .select('lead_id, subject, step, sent_at, leads(first_name, last_name, company)')
+        .in('campaign_id', campaignIds)
+        .order('sent_at', { ascending: false })
+        .limit(limit),
+      db.from('figsy_replies')
+        .select('from_name, from_email, classification, meeting_booked_at, received_at')
+        .eq('client_id', clientId)
+        .order('received_at', { ascending: false })
+        .limit(limit),
+    ])
+
+    type Event = { type: 'sent' | 'reply' | 'meeting'; title: string; subtitle: string; at: string; tone: 'neutral' | 'positive' | 'warn' }
+    const events: Event[] = []
+
+    for (const s of (sentRes.data ?? []) as any[]) {
+      const lead = Array.isArray(s.leads) ? s.leads[0] : s.leads
+      const who = lead ? `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || lead.company || 'a lead' : 'a lead'
+      events.push({
+        type: 'sent',
+        title: `FIGSY sent to ${who}`,
+        subtitle: `Step ${s.step}${s.subject ? ` · ${s.subject}` : ''}`,
+        at: s.sent_at,
+        tone: 'neutral',
+      })
+    }
+
+    for (const r of (repliesRes.data ?? []) as any[]) {
+      const who = r.from_name || (r.from_email ? r.from_email.split('@')[0] : 'a lead')
+      if (r.meeting_booked_at) {
+        events.push({ type: 'meeting', title: `Meeting booked with ${who}`, subtitle: 'FIGSY closed a booking', at: r.meeting_booked_at, tone: 'positive' })
+      }
+      const hot = r.classification === 'hot' || r.classification === 'interested'
+      events.push({
+        type: 'reply',
+        title: `${hot ? '🔥 ' : ''}Reply from ${who}`,
+        subtitle: r.classification ? `Classified: ${r.classification}` : 'New reply',
+        at: r.received_at,
+        tone: hot ? 'positive' : r.classification === 'opt_out' ? 'warn' : 'neutral',
+      })
+    }
+
+    events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    res.json({ success: true, data: events.slice(0, limit) })
+  } catch (err) { console.error('[figsy/activity]', err); res.status(500).json({ success: false, error: 'Failed to fetch activity' }) }
+})
+
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
   try {

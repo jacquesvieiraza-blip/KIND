@@ -27,14 +27,22 @@ const BRAND = '#7C3AED'
 interface Seat {
   id: string
   email: string
+  name?: string
   role: string
   autonomy: 'auto' | 'copilot' | 'off'
   credit_budget: number
   credits_used: number
+  credit_balance?: number
   seat_active: boolean
   accepted_at: string | null
+  // real per-rep outreach
+  contacted?: number
+  replies?: number
+  booked?: number
+  leads?: number
+  reply_pct?: number
 }
-interface CreditRequest { id: string; member_id: string; amount: number; reason: string | null; created_at: string }
+interface CreditRequest { id: string; rep_client_id: string; amount: number; reason: string | null; created_at: string }
 interface Play { id: string; name: string; note: string | null; reply_rate: number | null; pushed_to_all: boolean }
 interface Overview {
   company: { id: string; name: string }
@@ -96,6 +104,36 @@ export default function CompanyPage() {
     setBusy(id)
     try { await api.post(`/company/winning-plays/${id}/push`, {}, token); await load(token) } catch { /* ignore */ }
     setBusy(null)
+  }
+
+  // ── Invite a rep ─────────────────────────────────────────────────────────
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteBudget, setInviteBudget] = useState(5000)
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [inviteErr, setInviteErr] = useState<string | null>(null)
+  async function inviteRep() {
+    if (!token || !inviteEmail) return
+    setInviteBusy(true); setInviteErr(null); setInviteLink(null)
+    try {
+      const res = await api.post<{ token?: string; error?: string }>('/company/seats', { email: inviteEmail, budget: inviteBudget }, token)
+      if (res.token) {
+        setInviteLink(`${window.location.origin}/invite/accept?token=${res.token}`)
+        setInviteEmail('')
+        await load(token)
+      } else { setInviteErr(res.error || 'Could not add rep.') }
+    } catch (e: any) { setInviteErr(e?.message || 'Could not add rep.') }
+    setInviteBusy(false)
+  }
+
+  // ── STAGING: add test credits to the pool (gated server-side too) ─────────
+  const IS_STAGING = process.env.NEXT_PUBLIC_IS_STAGING === 'true'
+  const [poolBusy, setPoolBusy] = useState(false)
+  async function addTestPool() {
+    if (!token) return
+    setPoolBusy(true)
+    try { await api.post('/company/pool/topup', { amount: 10000 }, token); await load(token) } catch { /* ignore */ }
+    setPoolBusy(false)
   }
 
   async function handleTopUp() {
@@ -181,10 +219,11 @@ export default function CompanyPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  <th className="text-left px-6 py-3">Rep</th>
-                  <th className="text-right px-4 py-3">Credits used</th>
-                  <th className="text-right px-4 py-3">Budget</th>
-                  <th className="text-right px-6 py-3">Credits left</th>
+                  <th className="text-left px-6 py-3">Rep · their FIGSY</th>
+                  <th className="text-right px-3 py-3">Contacted</th>
+                  <th className="text-right px-3 py-3">Reply %</th>
+                  <th className="text-right px-3 py-3">Booked</th>
+                  <th className="text-right px-4 py-3">Credits left</th>
                 </tr>
               </thead>
               <tbody>
@@ -207,9 +246,14 @@ export default function CompanyPage() {
                           {pct > 0.9 && left < 20 && <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">low credits</span>}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right font-medium text-gray-700">{s.credits_used.toLocaleString()}</td>
-                      <td className="px-4 py-4 text-right text-gray-400">{s.credit_budget.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-4 text-right text-gray-700">{s.role === 'owner' ? '—' : (s.contacted ?? 0).toLocaleString()}</td>
+                      <td className="px-3 py-4 text-right">
+                        {s.role === 'owner' ? <span className="text-gray-300">—</span> : (
+                          <span className={`font-semibold ${(s.reply_pct ?? 0) >= 12 ? 'text-emerald-600' : (s.reply_pct ?? 0) < 8 ? 'text-orange-600' : 'text-gray-700'}`}>{s.reply_pct ?? 0}%</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-4 text-right font-bold text-gray-900">{s.role === 'owner' ? '—' : (s.booked ?? 0)}</td>
+                      <td className="px-4 py-4 text-right">
                         <span className="font-bold" style={{ color: pct > 0.9 ? '#ea580c' : BRAND }}>{left.toLocaleString()}</span>
                       </td>
                     </tr>
@@ -227,7 +271,7 @@ export default function CompanyPage() {
             </h3>
             {requests.length === 0 && <p className="px-5 py-6 text-sm text-gray-400">No requests right now.</p>}
             {requests.map(r => {
-              const seat = seatById(r.member_id)
+              const seat = seatById(r.rep_client_id)
               return (
                 <div key={r.id} className="flex items-center justify-between px-5 py-4 border-b border-gray-50 last:border-0">
                   <div>
@@ -250,6 +294,37 @@ export default function CompanyPage() {
       {tab === 'seats' && (
         <div className="space-y-4">
           <p className="text-sm text-gray-500">Each seat is one rep with their own autonomous FIGSY. One company payment. Adding a rep = one more line on the invoice.</p>
+
+          {/* Invite a rep */}
+          {can_manage && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Users className="w-4 h-4" style={{ color: BRAND }} /> Add a rep</h3>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="rep@company.com"
+                  className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-violet-400 focus:outline-none" />
+                <div className="flex items-center gap-1 rounded-xl border border-gray-200 px-3 py-2.5">
+                  <span className="text-xs text-gray-400">Budget</span>
+                  <input value={inviteBudget} onChange={e => setInviteBudget(parseInt(e.target.value) || 0)} type="number" min={0}
+                    className="w-20 text-sm text-right focus:outline-none" />
+                  <span className="text-xs text-gray-400">cr</span>
+                </div>
+                <button onClick={inviteRep} disabled={inviteBusy || !inviteEmail}
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 flex items-center gap-1.5" style={{ background: BRAND }}>
+                  {inviteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />} Invite
+                </button>
+              </div>
+              {inviteErr && <p className="text-xs text-red-500 mt-2">{inviteErr}</p>}
+              {inviteLink && (
+                <div className="mt-3 p-3 rounded-xl bg-violet-50 border border-violet-100">
+                  <p className="text-xs font-semibold text-violet-900 mb-1">Invite link — send this to the rep:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-[11px] text-violet-700 truncate">{inviteLink}</code>
+                    <button onClick={() => navigator.clipboard.writeText(inviteLink)} className="text-xs font-semibold px-2 py-1 rounded-lg bg-white border border-violet-200 text-violet-700">Copy</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {seats.map(s => (
               <div key={s.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
@@ -315,6 +390,14 @@ export default function CompanyPage() {
                 </button>
                 <p className="text-xs text-gray-400 text-center mt-2">One company payment · owner controls the purse</p>
                 {topupError && <p className="text-xs text-red-500 text-center mt-1">{topupError}</p>}
+
+                {IS_STAGING && (
+                  <button onClick={addTestPool} disabled={poolBusy}
+                    className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 disabled:opacity-60">
+                    {poolBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Coins className="w-3.5 h-3.5" />}
+                    🧪 Staging: add 10,000 test credits to pool
+                  </button>
+                )}
               </div>
             )}
           </div>

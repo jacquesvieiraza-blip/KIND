@@ -11,6 +11,57 @@
 
 ---
 
+## 🧱 BUILD LEDGER — what's built vs what's queued (12 Jun)
+
+### ✅ Built + on staging this session
+| Item | Status |
+|------|--------|
+| Staging isolation (DB + API + portal + banner) | ✅ live |
+| Status bar #104 (FIGSY active · sent today · health) | ✅ built |
+| Profile dropdown → **account hub** (grouped) | ✅ **founder approved ("much better")** |
+| Mobile PWA icons #114 | ✅ built |
+| Deliverability dashboard #48 | ✅ built |
+| Staging-mode API startup (boots on DB creds only) | ✅ built |
+| **Nav redesign** (rail = work only + agent switcher; account → top-right) | ✅ **founder approved** |
+
+### ✅ Built this round (real data — awaiting founder re-review)
+| Item | Status |
+|------|--------|
+| **Activity feed #102** | ✅ `/dashboard/activity` — live timeline of real sends/replies/meetings, polls 30s. In rail under Company. |
+| **Notification centre #103** | ✅ Wired the real `NotificationBell` into the V2 top bar (was a dead dummy button). Bell now opens the panel. |
+| **🏢 COMPANY ENGINE #88 — foundation** | ✅ **Per-rep workspaces, owner-funded, REAL data.** Architecture confirmed by founder (private per-rep workspace · owner pays w/ per-seat budgets + request/approve · 10–50 reps). New `companies` table + clients seat columns + `seat_credit_requests` + `winning_plays`. Backend rewritten: `/company/overview` returns real per-rep contacted/reply%/booked; invite reps, allocate from pool, request→approve loop, pool top-up, plays. Seed: MaceyLuxe + 3 reps w/ own data + 2 requests + 2 plays. |
+
+> **⚠️ To see the Company Engine on staging you must re-apply schema + seed:**
+> 1. Paste the updated **`supabase/staging-schema.sql`** in the staging SQL editor → Run (adds `companies`, seat columns, etc. — idempotent, safe to re-run).
+> 2. Paste the updated **`supabase/staging-seed.sql`** → Run (adds the company + 3 reps). *(The first seed block will conflict on the existing client — that's fine; the new COMPANY ENGINE block at the bottom is what matters. If it errors on the duplicate, just run the part from the `-- COMPANY ENGINE SEED` comment down.)*
+> 3. Set `NEXT_PUBLIC_FEATURE_V2_SCREENS` to include `company` (or `all`) so it shows in the rail. It's already reachable at `/dashboard/company`.
+
+### 🏗️ Company Engine — still to build (next increments)
+| Piece | Notes |
+|-------|-------|
+| Rep **invite-accept** flow | Owner invites by email → rep signs up via token link → their user_id attaches to the pre-created seat. Backend stub exists (`POST /company/seats` creates the seat + token); needs the signup-accept wiring. |
+| Company **billing → pool** | Owner pays via Stripe → webhook tops up `companies.credit_pool`. Manual `POST /company/pool/topup` exists for now. |
+| **"Add a rep"** UI | Wire the page's invite button to `POST /company/seats`. |
+| Per-rep **onboarding** | Each rep builds their own ICP/campaigns, or owner pushes a winning play to all. |
+
+### 🔨 Still queued
+| Item | Status / blocker |
+|------|------------------|
+| **A/B subject testing UI #43** | Backend **is real** (winner-check cron + multi-variant selection). Buildable — but shows empty on staging until a campaign has variants. Build on founder go. |
+| **Configurable agent triggers #53** | ⏸ **No backend** (no send-window/weekend/reply-delay fields). Needs backend first — would be fake controls otherwise. |
+| Kanban pipeline #100 | Already exists at `/dashboard/figsy/kanban` — review + polish only. |
+| Activity feed → Home widget | Optional: surface the feed on the Home dashboard. Touches a core screen → hold for founder design review. |
+
+### ⏸ Blocked — needs founder before building
+| Item | Needs |
+|------|-------|
+| Subscribe-to-the-drop #122 · Site nav rewire #123 | Website/Drop content + touches landing pages |
+| Revenue Mission Control B1 | Confirm direction (big, ~3-4 days) |
+| FIGSY Memory v2 / pgvector B2 | Founder flips pgvector switch in Supabase (2 min) |
+| Casey onboarding B3 | Founder's voice/tone input |
+
+---
+
 ## 🌐 The environment being reviewed
 
 | Piece | Value |
@@ -47,6 +98,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | F9 | Unibox / smart inbox (R7) | `/dashboard/inbox` | ⬜ | | | |
 | F10 | Performance | `/dashboard/kpis` | ⬜ | | | |
 | F11 | Deliverability (#48) | `/dashboard/deliverability` | ⬜ | | | |
+| F13 | Activity feed (#102) | `/dashboard/activity` | 🔨 | _(new — awaiting review)_ | | |
 | F12 | Knowledge / Train FIGSY (R15) | `/dashboard/knowledge` | ⬜ | | | |
 
 ## 🟢 Other agents

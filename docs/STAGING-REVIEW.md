@@ -112,7 +112,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
 |---|--------|-----|--------|---------|--------------|--------|
 | A1 | Milla — Assistant | `/dashboard/assistant` | ⬜ | | | |
-| A2 | Documents | `/dashboard/documents` | ⬜ | | | |
+| A2 | Documents | `/dashboard/documents` | ✅ | Clean legal page, acceptance-record banner, ECTA note, brand-correct | — | **Approved as-is 12 Jun** (preview: `previews/documents-current.html`) |
 | A3 | AI Notetaker (R22) | `/dashboard/notetaker` | ✅ | Clean 2-col input/results, owner+due extraction, export buttons | — | **Approved as-is 12 Jun** (preview: `previews/notetaker-current.html`) |
 | A4 | Vida — Chatbot | `/dashboard/chatbot` | ⬜ | | | |
 | A5 | Denise — Closer | `/dashboard/denise` | ⬜ | | | |

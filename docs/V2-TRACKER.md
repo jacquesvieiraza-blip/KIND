@@ -117,6 +117,7 @@ _Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `P
 | #32 | Onboarding v2 + day-0/3/7 email | 🤖 |
 | #33 | Populate proof block w/ real data | 🤖 |
 | #34 | Activate Flutterwave (ZAR/NGN/KES/GHS) | 🧍 ⏸ |
+| #34a | **Client invoicing — legitimate tax invoices.** Auto-issue a compliant VAT/tax invoice on every payment: sequential invoice number, client + K.I.N.D legal/VAT details, line items, amount, date; PDF emailed to the client + downloadable in-portal (Documents/Billing). Current flow charges but issues no compliant invoice — needed as soon as we bill real clients. *(inventory item 136a)* | 🤖 |
 | #35 | Launch YouTube channel | 🧍 |
 | #36 | Wire playbook email form (ConvertKit) | 🤖 |
 | #61a | Performance-guarantee clause (90-day) | 🤖 |

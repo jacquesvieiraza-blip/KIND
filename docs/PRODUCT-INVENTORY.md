@@ -224,6 +224,7 @@
 | 134 | 🔴 | 9:16 social cuts (#30) · YouTube channel (#35) | 🤝 |
 | 135 | 🔴 | Onboarding v2 emails (#32) · playbook email form (#36) | 🤖 |
 | 136 | 🔴 | Flutterwave activation (#34) | 🧍 |
+| 136a | 🔴 | **Client invoicing — legitimate tax invoices** (auto-issue a proper VAT/tax invoice on every payment: sequential invoice #, client + K.I.N.D legal/VAT details, line items, amount, date, PDF emailed + downloadable in-portal). Needed as soon as we have paying clients — current flow charges but issues no compliant invoice. | 🤖 |
 | 137 | 🔴 | 90-day performance guarantee (#61a/g) · Revenue Playbook call (#62b) · homepage outcome numbers (#62c) | 🤖 |
 | 138 | 🔴 | Influencer/community distribution (#61e) | 🧍 |
 

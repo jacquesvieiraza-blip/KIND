@@ -35,6 +35,7 @@ interface Seat {
   credit_balance?: number
   seat_active: boolean
   accepted_at: string | null
+  enabled_agents?: string[]
   // real per-rep outreach
   contacted?: number
   replies?: number
@@ -99,6 +100,17 @@ export default function CompanyPage() {
     try { await api.patch(`/company/seats/${seat.id}`, { autonomy }, token); await load(token) } catch { /* ignore */ }
     setBusy(null)
   }
+  // Per-rep agent unlock — owner toggles Milla/Vida/Denise for a rep (FIGSY always on).
+  async function toggleAgent(seat: Seat, key: 'milla' | 'vida' | 'denise') {
+    if (!token) return
+    const current = new Set(seat.enabled_agents ?? ['figsy'])
+    if (current.has(key)) current.delete(key); else current.add(key)
+    current.add('figsy')
+    setBusy(seat.id)
+    try { await api.patch(`/company/seats/${seat.id}`, { enabled_agents: Array.from(current) }, token); await load(token) } catch { /* ignore */ }
+    setBusy(null)
+  }
+  const AGENT_PRICE: Record<string, number> = { milla: 49, vida: 29, denise: 39 }
   async function pushPlay(id: string) {
     if (!token) return
     setBusy(id)
@@ -350,10 +362,35 @@ export default function CompanyPage() {
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${s.credit_budget > 0 ? Math.min(100, (s.credits_used / s.credit_budget) * 100) : 0}%`, background: s.credit_budget > 0 && s.credits_used / s.credit_budget > 0.9 ? '#ea580c' : BRAND }} />
                 </div>
+
+                {/* Per-rep agent unlock — owner switches agents on for this rep */}
+                {s.role === 'rep' && (
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <p className="text-[11px] font-semibold text-gray-500 mb-2">Agents for this rep</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-[11px] font-semibold px-2 py-1 rounded-lg text-white" style={{ background: BRAND }}>FIGSY · included</span>
+                      {(['milla', 'vida', 'denise'] as const).map(k => {
+                        const on = (s.enabled_agents ?? []).includes(k)
+                        const label = k.charAt(0).toUpperCase() + k.slice(1)
+                        return (
+                          <button key={k} disabled={!can_manage || busy === s.id} onClick={() => toggleAgent(s, k)}
+                            className={`text-[11px] font-semibold px-2 py-1 rounded-lg border transition-colors disabled:opacity-60 ${on ? 'text-white border-transparent' : 'text-gray-500 border-gray-200 hover:border-violet-300'}`}
+                            style={on ? { background: '#10b981' } : undefined}>
+                            {on ? '✓ ' : '+ '}{label} <span className="opacity-70">${AGENT_PRICE[k]}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {(() => {
+                      const extra = (s.enabled_agents ?? []).filter(a => a !== 'figsy').reduce((n, a) => n + (AGENT_PRICE[a] ?? 0), 0)
+                      return extra > 0 ? <p className="text-[10px] text-gray-400 mt-1.5">+${extra}/mo on the company bill</p> : null
+                    })()}
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-400">Invite teammates from Settings → Team. Per-rep lead ownership &amp; routing (item 38) and per-rep calendars (item 41) land next.</p>
+          <p className="text-xs text-gray-400">FIGSY is included on every seat. The owner switches on Milla · Vida · Denise per rep — billed to the company. Per-rep lead routing (item 38) and per-rep calendars (item 41) land next.</p>
         </div>
       )}
 

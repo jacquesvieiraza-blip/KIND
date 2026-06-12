@@ -59,7 +59,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   try {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('id, credit_balance, company_name, subscriptions(*)')
+      .select('id, credit_balance, company_name, company_id, seat_role, enabled_agents, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -70,10 +70,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       const subs = (clientRow.subscriptions as { status: string; product?: string; trial_ends_at?: string }[]) ?? []
 
       const isLive = (p: string) => subs.some(s => s.product === p && (s.status === 'active' || s.status === 'trialing'))
-      hasFigsy  = isLive('lead_gen_figsy') || isLive('figsy_addon')
-      hasMilla  = isLive('virtual_assistant')
-      hasVida   = isLive('chatbot')
-      hasDenise = isLive('denise') || isLive('denise_addon')
+      // Company reps get their agent access from the owner-controlled enabled_agents
+      // list (per-rep unlock). Solo accounts keep the subscription-based gating —
+      // so existing production clients are completely unaffected.
+      const isRep = !!(clientRow as { company_id?: string; seat_role?: string }).company_id && (clientRow as { seat_role?: string }).seat_role === 'rep'
+      const enabled = ((clientRow as { enabled_agents?: string[] }).enabled_agents) ?? []
+      hasFigsy  = isLive('lead_gen_figsy') || isLive('figsy_addon') || (isRep && enabled.includes('figsy'))
+      hasMilla  = isLive('virtual_assistant') || (isRep && enabled.includes('milla'))
+      hasVida   = isLive('chatbot') || (isRep && enabled.includes('vida'))
+      hasDenise = isLive('denise') || isLive('denise_addon') || (isRep && enabled.includes('denise'))
 
       const hasAny = subs.some((s) => s.status === 'active')
       if (!hasAny) {

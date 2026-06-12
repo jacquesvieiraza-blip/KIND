@@ -1288,6 +1288,7 @@ alter table public.clients add column if not exists autonomy          text defau
 alter table public.clients add column if not exists invited_email     text;
 alter table public.clients add column if not exists invite_token      text;
 alter table public.clients add column if not exists seat_accepted_at  timestamptz;
+alter table public.clients add column if not exists enabled_agents    text[] not null default array['figsy']::text[];
 create index if not exists clients_company_idx on public.clients(company_id);
 create unique index if not exists clients_invite_token_key on public.clients(invite_token) where invite_token is not null;
 

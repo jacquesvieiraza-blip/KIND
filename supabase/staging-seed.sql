@@ -376,6 +376,7 @@ declare
   rep_emails text[] := ARRAY['amara@maceyluxe.test','tunde@maceyluxe.test','zola@maceyluxe.test'];
   rep_budget int[]  := ARRAY[5000, 5000, 5000];
   rep_auto   text[] := ARRAY['auto','auto','copilot'];
+  rep_agents text[]  := ARRAY['figsy,milla,denise','figsy,vida','figsy'];  -- per-rep agent unlock demo
   -- per-rep volume so their performance differs in the leaderboard
   rep_leads  int[]  := ARRAY[18, 14, 9];
   rep_sent   int[]  := ARRAY[34, 26, 15];
@@ -400,11 +401,11 @@ begin
     insert into public.clients (
       company_id, company_name, invited_email, invite_token,
       seat_role, seat_active, seat_budget, credit_balance, autonomy,
-      seat_accepted_at, country, industry
+      enabled_agents, seat_accepted_at, country, industry
     ) values (
       v_company, rep_names[r], rep_emails[r], replace(gen_random_uuid()::text,'-',''),
       'rep', true, rep_budget[r], greatest(0, rep_budget[r] - (rep_sent[r] * 30)), rep_auto[r],
-      now() - ((4 - r) || ' days')::interval, 'South Africa', 'Technology'
+      string_to_array(rep_agents[r], ','), now() - ((4 - r) || ' days')::interval, 'South Africa', 'Technology'
     ) returning id into v_rep;
 
     -- Each rep gets a campaign.

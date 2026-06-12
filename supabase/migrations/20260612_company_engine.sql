@@ -32,6 +32,10 @@ alter table public.clients add column if not exists autonomy          text defau
 alter table public.clients add column if not exists invited_email     text;
 alter table public.clients add column if not exists invite_token      text;
 alter table public.clients add column if not exists seat_accepted_at  timestamptz;
+-- Per-rep agent unlock: which agents the owner has switched on for this rep.
+-- FIGSY is always available; the owner adds milla/vida/denise per rep (billed to
+-- the company). For solo (non-company) clients this column is ignored.
+alter table public.clients add column if not exists enabled_agents    text[] not null default array['figsy']::text[];
 create index if not exists clients_company_idx on public.clients(company_id);
 create unique index if not exists clients_invite_token_key on public.clients(invite_token) where invite_token is not null;
 

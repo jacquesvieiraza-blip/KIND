@@ -86,7 +86,7 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     const [{ data: company }, { data: seats }, { data: requests }] = await Promise.all([
       db.from('companies').select('id, name, credit_pool, seat_cap').eq('id', ctx.companyId).maybeSingle(),
       db.from('clients')
-        .select('id, company_name, invited_email, seat_role, autonomy, seat_budget, seat_active, seat_accepted_at, credit_balance')
+        .select('id, company_name, invited_email, seat_role, autonomy, seat_budget, seat_active, seat_accepted_at, credit_balance, enabled_agents')
         .eq('company_id', ctx.companyId).order('seat_role', { ascending: true }),
       db.from('seat_credit_requests')
         .select('id, rep_client_id, amount, reason, status, created_at')
@@ -112,6 +112,7 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
         credit_balance: s.credit_balance ?? 0,
         seat_active: s.seat_active ?? true,
         accepted_at: s.seat_accepted_at ?? null,
+        enabled_agents: s.enabled_agents ?? ['figsy'],
         // real per-rep outreach
         contacted: st.contacted, replies: st.replies, booked: st.booked, leads: st.leads,
         reply_pct: st.contacted > 0 ? Math.round((st.replies / st.contacted) * 1000) / 10 : 0,
@@ -205,13 +206,17 @@ companyRouter.patch('/seats/:id', async (req: AuthRequest, res) => {
     if (!canManage(ctx.role)) { res.status(403).json({ success: false, error: 'Only the owner or a manager can manage seats' }); return }
 
     const body = z.object({
-      autonomy:    z.enum(['auto', 'copilot', 'off']).optional(),
-      seat_active: z.boolean().optional(),
+      autonomy:       z.enum(['auto', 'copilot', 'off']).optional(),
+      seat_active:    z.boolean().optional(),
+      enabled_agents: z.array(z.enum(['figsy', 'milla', 'vida', 'denise'])).optional(),
     }).parse(req.body)
 
     const { data: seat } = await db.from('clients')
       .select('id').eq('id', req.params.id).eq('company_id', ctx.companyId).maybeSingle()
     if (!seat) { res.status(404).json({ success: false, error: 'Seat not found' }); return }
+
+    // FIGSY is always available on a seat — never let the owner remove it.
+    if (body.enabled_agents) body.enabled_agents = Array.from(new Set(['figsy', ...body.enabled_agents]))
 
     const { error } = await db.from('clients').update(body).eq('id', req.params.id)
     if (error) throw error

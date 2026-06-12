@@ -68,8 +68,8 @@
 > **🟡 TRACK 2 — STAGING ISOLATION + FOUNDER PREVIEW (the V2/company-engine pipeline — not launch-blocking):**
 > 🧍 Create staging Supabase project → 🤖 one-paste schema (54 migrations) + 50-rep fake seed + STAGING banner → 🧍 Railway staging vars (new DB + `NEXT_PUBLIC_FEATURE_V2_SCREENS=all`, staging ONLY) → 🧍 review all new screens on staging (can start tonight by direct URL — no flag needed).
 >
-> **🟢 TRACK 3 — VIDEO / CONTENT (infra is BUILT; the content is the gap):**
-> 🧍 Record the 60-sec **Drop 01 walkthrough** (slot ready in `the-drop.html`) + onboarding demo videos · pages `product-videos.html` ("Watch") + `the-drop.html` exist on `claude/marketing-drops`, YouTube-embed-ready, **founder records → pastes YouTube ID → done**. See V2-TRACKER → GTM & CONTENT ENGINE for the full action plan.
+> **🟢 TRACK 3 — VIDEO / CONTENT → MOVED TO MONDAY 15 JUN (founder call 11 Jun):**
+> 🧍 Record the 60-sec **Drop 01 walkthrough** (slot ready in `the-drop.html`) + onboarding demo videos · pages `product-videos.html` ("Watch") + `the-drop.html` exist on `claude/marketing-drops`, YouTube-embed-ready, **founder records → pastes YouTube ID → done**. See V2-TRACKER → GTM & CONTENT ENGINE for the full action plan. **Not tomorrow — Monday.**
 >
 > **🔵 TRACK 4 — NEXT STAGING QUEUE (review list, then start building — full detail in `PRODUCT-INVENTORY.md` → Part B0b):**
 > Founder reviews the list, confirms priority order, then 🤖 Claude starts building in that order — each item goes on its own branch → staging → founder preview before anything merges.

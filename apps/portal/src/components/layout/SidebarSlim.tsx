@@ -9,6 +9,8 @@ import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
   Brain, Bot, Handshake, BarChart2, CreditCard, Settings, LogOut, Pin,
   ChevronDown, Lock, Sliders, Store,
+  LayoutTemplate, GitBranch, ShieldCheck, Webhook, FileText, Mic,
+  Sparkles, Map, Plug, Code2, UserCheck, MessageCircle, Building2,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -27,16 +29,24 @@ const AGENTS: AgentDef[] = [
   {
     id: 'figsy', name: 'FIGSY', role: 'The Opener', accent: '#7C3AED',
     nav: [
-      { href: '/dashboard/figsy-chat', label: 'Chat with FIGSY', icon: MessageSquare },
-      { href: '/dashboard/figsy',      label: 'Campaigns',       icon: Target },
-      { href: '/dashboard/inbox',      label: 'Inbox',           icon: Inbox },
-      { href: '/dashboard/kpis',       label: 'Performance',     icon: BarChart },
-      { href: '/dashboard/knowledge',  label: 'Knowledge',       icon: Brain },
+      { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
+      { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
+      { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
+      { href: '/dashboard/figsy/sequence-builder', label: 'Sequence Builder', icon: GitBranch },
+      { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox },
+      { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
+      { href: '/dashboard/deliverability',         label: 'Deliverability',   icon: ShieldCheck },
+      { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
+      { href: '/dashboard/figsy/webhooks',         label: 'Webhooks',         icon: Webhook },
     ],
   },
   {
     id: 'milla', name: 'Milla', role: 'The Brain', accent: '#F472B6', price: '$49/mo',
-    nav: [{ href: '/dashboard/assistant', label: 'Assistant', icon: Bot }],
+    nav: [
+      { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
+      { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+      { href: '/dashboard/notetaker', label: 'Notetaker', icon: Mic },
+    ],
   },
   {
     id: 'vida', name: 'Vida', role: 'The Connector', accent: '#14B8A6', price: '$29/mo',
@@ -96,11 +106,20 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
     { href: '/dashboard/leads/linkedin', label: 'LinkedIn Import', icon: Search },
   ]
   const account: Item[] = [
-    { href: '/dashboard/usage',   label: 'Usage',   icon: BarChart2 },
+    { href: '/dashboard/company',      label: 'Company',       icon: Building2 },
+    { href: '/dashboard/team',         label: 'Team',          icon: UserCheck },
+    { href: '/dashboard/whats-new',    label: "What's New",    icon: Sparkles },
+    { href: '/dashboard/roadmap',      label: 'Roadmap',       icon: Map },
+    { href: '/dashboard/integrations', label: 'Integrations',  icon: Plug },
+    { href: '/dashboard/usage',        label: 'Usage',         icon: BarChart2 },
     ...(v2Enabled('config')      ? [{ href: '/dashboard/config',      label: 'Configure FIGSY', icon: Sliders }] : []),
     ...(v2Enabled('marketplace') ? [{ href: '/dashboard/marketplace', label: 'Marketplace',      icon: Store }]   : []),
     ...(isPartner ? [{ href: '/dashboard/partner', label: 'Partner Hub', icon: Handshake }] : []),
-    { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
+    { href: '/dashboard/mcp',          label: 'MCP Connect',   icon: Plug },
+    { href: '/dashboard/proposals',    label: 'Proposals',     icon: FileText },
+    { href: '/dashboard/developer',    label: 'Developer API', icon: Code2 },
+    { href: '/dashboard/messages',     label: 'Messages',      icon: MessageCircle },
+    { href: '/dashboard/billing',      label: 'Billing',       icon: CreditCard },
   ]
 
   const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'

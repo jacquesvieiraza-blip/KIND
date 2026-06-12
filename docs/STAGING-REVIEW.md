@@ -140,14 +140,14 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 
 | # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
 |---|--------|-----|--------|---------|--------------|--------|
-| G1 | Integrations Hub (R24) | `/dashboard/integrations` | ⬜ | | | |
+| G1 | Integrations Hub (R24) | `/dashboard/integrations` | ✅ | **Layout solid** (founder 12 Jun) | — | **Approved as-is 12 Jun.** Stays in top-right dropdown → "Connect" group. FIGSY column kept. |
 | G2 | Roadmap | ~~`/dashboard/roadmap`~~ | 🗑️ | — | We don't show clients a roadmap | **CUT 12 Jun** — route + nav links removed (Sidebar, ProfileMenu, AgentColumn). The Drop on the website is what we show instead. |
 | G3 | What's New (R19) | `/dashboard/whats-new` | ✅ | Tidy timeline, brand-correct | — | **Approved as-is 12 Jun** |
 | G4 | Usage | `/dashboard/usage` | ✅ | Leads-period card + overage, credit summary, pipeline grid, 8-wk chart, history | — | **Approved as-is 12 Jun** (preview: `previews/usage-current.html`) |
 | G5 | Billing | `/dashboard/billing` | ⬜ | | | |
 | G6 | Settings | `/dashboard/settings` | ⬜ | | | |
-| G7 | MCP Connect | `/dashboard/mcp` | ⬜ | | | |
-| G8 | Developer API | `/dashboard/developer` | ⬜ | | | |
+| G7 | MCP Connect | `/dashboard/mcp` | ✅ | **Layout solid** (founder 12 Jun) | — | **Approved as-is 12 Jun.** Stays in top-right dropdown → "Connect" group. FIGSY column kept. |
+| G8 | Developer API | `/dashboard/developer` | ✅ | **Layout solid** (founder 12 Jun) | — | **Approved as-is 12 Jun.** Stays in top-right dropdown → "Connect" group. FIGSY column kept. |
 | G9 | Proposals | `/dashboard/proposals` | ✅ | Clean CRUD, status flow Draft→Sent→Viewed→Signed, create modal | — | **Approved as-is 12 Jun** (preview: `previews/proposals-current.html`). ⚠️ build-TODO: e-sign *capture* is #69 (not built) — subtitle "get e-signatures" over-promises until then. |
 | G10 | Messages | `/dashboard/messages` | ⬜ | | | |
 | G11 | Referral | `/dashboard/referral` | ✅ | 3-step how-it-works, dark link card + copy, clean referrals table | — | **Approved as-is 12 Jun** (preview: `previews/referral-current.html`) |

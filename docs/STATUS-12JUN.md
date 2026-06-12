@@ -1,112 +1,12 @@
-# 📊 K.I.N.D — STATUS as of 12 Jun 2026
+# 📊 STATUS-12JUN — SUPERSEDED (folded into the inventory, 12 Jun late)
 
-> Single consolidated status: what's built · what's left · what's needed from the founder and
-> from Claude, before and after the 19 Jun launch. Referenced from `KIND-MASTER.md`,
-> `V2-TRACKER.md`, `PRODUCT-INVENTORY.md`. Companion checklists: `FOUNDER-ACTIONS.md`,
-> `COMPANY-ENGINE-TEST.md`, `STAGING-REVIEW.md`.
-
-**Branch model:** all new work on `claude/kind-carson-MYhSl` → merged to `staging` → founder
-reviews on staging → founder merges `staging` → `main` (production). Nothing live until the founder merges.
-
-> 🔍 **AUDITED 12 Jun late** (verified against git + code, not memory): `main` untouched at `93d2158` ·
-> working tree clean · API typecheck + 16/16 tests green at HEAD · schema/seed/code consistent.
-> **⚠️ Two live warnings:**
-> 1. **7 commits are on the feature branch but NOT on staging** (per-rep agent unlock · Denise $39 ·
->    flow docs · status/founder docs). Monday sequencing: merge → **re-paste `staging-schema.sql`**
->    (adds `enabled_agents`) → redeploy BOTH services → do NOT re-run the company seed.
-> 2. **The Stripe price object for Denise is still $99** — code says $39 but the founder must create
->    the new $39 price in Stripe and update `STRIPE_PRICE_DENISE_MONTHLY`, or checkout charges $99.
-
----
-
-## ✅ 1. EVERYTHING BUILT
-
-### Live on production (`main`) — pre-this-session
-- The 4 agents: **FIGSY** (AI SDR), **Milla** (VA), **Vida** (chatbot), **Denise** (closer)
-- Lead Gen + ICP builder + Apollo sourcing + AI scoring + consent/POPIA + warmup/deliverability
-- Billing (Stripe), credits, the client portal, admin OS
-
-### Built this session — on staging (`claude/kind-carson-MYhSl`), NOT yet on main
-**Platform / UX**
-- 🧪 **Staging isolation** — separate Supabase (`kind-staging`) + separate API (`api-staging`) + staging portal, STAGING banner, seeded 50 fake leads. Fully sealed from production.
-- **Status bar** (#104) — live FIGSY/sent/health pulse in the sidebar
-- **Profile dropdown → account hub** (grouped) — *founder approved*
-- **Nav redesign** — slim dark rail = work only + agent switcher; account moved to top-right — *founder approved*
-- **Mobile PWA icons** (#114) — installable
-- **Deliverability dashboard** (#48)
-- **Activity feed** (#102) — live timeline
-- **Notification centre** (#103) — wired the real bell into the top bar
-- **Staging-mode API startup** — boots on DB creds only, no prod secrets
-
-**🏢 Company Engine (#88) — the priority for the demo**
-- Per-rep **private workspaces** (each rep = own leads/campaigns/FIGSY)
-- **Company + owner-funded pools** (two credit types: lead-gen $1, FIGSY $3)
-- Per-seat **budgets** + allocate from pool
-- **Request → approve/deny** credit loop
-- **Invite a rep → accept → own workspace**
-- Per-seat **autonomy** (auto/co-pilot)
-- **Winning plays** library + push
-- **Real per-rep performance** (contacted · reply % · booked)
-- **Per-rep agent unlock** (owner switches Milla/Vida/Denise on per rep → company bill)
-
-**Pricing / collateral**
-- **Denise $99 → $39** across portal, website, API + repositioned copy
-- **Flow docs** rebuilt as pure HTML/CSS (offline-safe): `CLIENT_FLOW.html`, `CLIENT_FLOW_PER_REP.html`
-
----
-
-## 🔨 2. WHAT'S LEFT TO BUILD
-
-### Company Engine — to be fully production/demo ready
-| Priority | Item |
-|----------|------|
-| 🔴 Go-live blocker | **Stripe → company pool billing** (owner actually pays → pools funded) |
-| 🔴 | **Invite email delivery** (owner clicks invite → rep emailed; today the link is copy-paste) |
-| 🟡 | **Owner drill-down** into a rep's pipeline/inbox |
-| 🟡 | Edit a rep's budget directly · deactivate / remove a rep (offboarding) |
-| 🟡 | **Manager role** fully wired · notifications (owner on request, rep on decision) |
-| 🟢 | Per-rep lead routing (item 38) · per-rep calendars (item 41) · first-run empty state |
-
-### Other staging queue (post-launch)
-- A/B subject testing UI (#43 — backend ready) · Kanban polish (#100) · configurable triggers (#53, needs backend) · Revenue Mission Control (B1) · FIGSY Memory v2 / pgvector (B2) · Casey onboarding (B3)
-
----
-
-## 🧍 3. NEEDED FROM THE FOUNDER — BEFORE 19 JUN
-*(full detail in `FOUNDER-ACTIONS.md`)*
-- **Company Engine go-live:** test on staging Monday (`COMPANY-ENGINE-TEST.md`) · decide + create **Stripe pool products** · run `20260612_company_engine.sql` on **production** Supabase · **merge to main** · enable `company` flag · fund the demo pool
-- **Integration keys:** email **`partners@apollo.io`** (reseller) · create **Hunter** key · get free **PDL** key
-- **Launch-critical:** **D9** deliverability 10/10 · **legal pack #10–14** · **Go/No-Go** Thu 18 · smoke tests **T3–T7, T9, T10**
-- **Review** the staging builds and approve per-feature (`STAGING-REVIEW.md`)
-
-## 🧍 4. NEEDED FROM THE FOUNDER — AFTER 19 JUN
-- Wave-4 keys: WhatsApp (Meta approval) · Vapi voice · Clearbit
-- Record video content (Drop walkthroughs · onboarding demos)
-- **Y16** — kill the dead Vercel↔GitHub integration
-- Decide the **outcome-based pricing** rollout (the next pricing evolution)
-- Review per-rep agent-unlock billing once Stripe is wired
-
----
-
-## 🤖 5. NEEDED FROM CLAUDE — BEFORE 19 JUN
-- **Build Stripe → company pool billing** (the go-live blocker) — *next up*
-- **🎬 DEMO COMPANY for the showcase** — build a presentable **demo company** (owner login + a few reps with realistic per-rep stats, budgets, pending credit requests, agents unlocked) so the founder logs in and the **Company Command Centre is already populated + impressive** for the client demo. Wire it into the admin **Demo Envs** tool (like the existing 600-lead showcase, but for the per-rep owner view). *Founder requirement 12 Jun.*
-- **Invite email delivery** + **owner drill-down** for the demo
-- Fix any smoke-test failures **same-day** as the founder runs them
-- Support the production migration + merge (provide exact SQL/steps)
-
-## 🤖 6. NEEDED FROM CLAUDE — AFTER 19 JUN
-- Finish the Company Engine 🟡/🟢 items (manager role, offboarding, per-rep routing, calendars, notifications)
-- Work the staging queue (A/B UI, Kanban, etc.) on branches → staging for review
-- Wire Wave-4 channels once the founder provides keys
-- Build the video/content hub when content is ready
-
----
-
-## 🗓️ DECISION 12 Jun late — ONE combined launch
-> The Command Centre is **NOT** a separate pre-19 push anymore. **Everything (the full staging V2
-> batch + the Company Engine) launches together by Fri 19** via `staging → main`. Single founder
-> checklist: [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md). Demo runs on staging (live now) if before the launch.
-
-## 🗓️ Bottom line
-The **plan is ONE combined launch** — the full staging batch + the Company Engine ship together, `staging → main`, by **Fri 19 Jun**. Monday = test on staging + demo prep (demo runs off staging/admin demo until the launch). Everything is **built and working on staging**; remaining go-live work = **Stripe → pool billing (Claude, building now)** + the **founder launch steps** in `FOUNDER-ACTIONS.md`.
+> **This doc is retired.** Its built/left/founder/Claude breakdown now lives in
+> **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** — THE single status list
+> (every item 🟢 built+verified · 🟡 built-not-verified · 🔴 not built, with owner).
+>
+> - Founder tick-list: **[`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md)**
+> - Launch map + session log: **[`KIND-MASTER.md`](./KIND-MASTER.md)**
+> - Future roadmap detail: **[`V2-TRACKER.md`](./V2-TRACKER.md)**
+>
+> **📅 THE PLAN (locked 12 Jun):** ① Mon 15 — Company Command Centre + payments → production
+> (the only early ship) · ② Fri 19 — LAUNCH · ③ post-19 — everything else.

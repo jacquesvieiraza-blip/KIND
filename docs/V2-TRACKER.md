@@ -1,98 +1,33 @@
-# 🎯 K.I.N.D — FORWARD ROADMAP + RISK REGISTER
+# 🎯 K.I.N.D — FORWARD ROADMAP + RISK REGISTER (future detail ONLY)
 
-> 📊 **CURRENT STATUS (12 Jun):** full built/left/founder/Claude breakdown for before & after the 19th is in [`STATUS-12JUN.md`](./STATUS-12JUN.md).
-
-> 🧭 **WHICH DOC AM I IN?** This is the **FUTURE roadmap + itemised risk/fix register** (post-launch: company engine #88, V2 experience, the 101-item roadmap, steals catalog).
-> **For launch tracking (now → Fri 19), work off [`KIND-MASTER.md`](./KIND-MASTER.md) — its dated MASTER TIMELINE is the single launch source.** Only two docs: master = launch, this = future.
-
-_Last updated: 12 Jun 2026 (staging fully isolated + founder review mode opened — branch `claude/kind-carson-MYhSl`)._
-
-> ## ✅ 12-Jun — STAGING ISOLATION DONE → FOUNDER REVIEW MODE
-> The preview environment is now **fully sealed**: separate Supabase (`kind-staging`), separate API (`api-staging`, boots on DB creds only), staging portal re-pointed, STAGING banner live, seeded with 50 fake leads. `/stats/platform` returns 50/2/5 — isolation proven. **All 47 dashboard screens + 23 `/v2` mockups render on staging.** The founder is now walking each new feature, judged **fresh**, capturing 👍/👎 in **[`STAGING-REVIEW.md`](./STAGING-REVIEW.md)** — multi-session, at their pace. New this session: status bar (#104), profile dropdown, PWA icons (#114), deliverability dashboard (#48), staging-mode API, slim-sidebar feature parity. Early signal: founder dislikes the full/light sidebar, prefers the slim dark rail — house-style decision tracked in the review log. **Nothing merges to `main` until per-feature sign-off** — with ONE exception decided 12 Jun late: the **Company Engine (#88) ships to production before the 19th** for a multi-rep client demo (founder tests Mon 15). Also 12 Jun: **Denise repriced $99→$39** everywhere + per-rep agent unlock built. See `STATUS-12JUN.md`.
-
-> ## ⚡ 11-Jun STATUS — much of this roadmap is now PRE-BUILT, verified, awaiting founder merge
-> **The 20-PR release train (Waves 1–2, PRs #506–#525) is built + independently verified** (35/35 diff-marker checks; every branch 1 commit, scoped to its claimed files, build-verified). **The #88 company engine started early** on branch `claude/company-engine` (flag-gated: seat autonomy/budget · request/approve credits · winning-play library · real Command Centre at `/dashboard/company`) — **no PR yet**, founder reviews first. Engine gaps still open: per-rep lead ownership/routing+CRM dedup (38) and per-rep calendars (41). **Full green-tick table: [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) → AUDIT block.** Phase-2 items now real (not just designs): Vida bubble (#508) · Lead-capture Forms (#517) · Goals (#515) · Templates (#516) · "Help me reply" (#512) · Train-FIGSY backend (#520). Nothing merged · nothing live.
+> 🧭 **WHICH DOC AM I IN? Only THREE docs matter:**
+> 1. **[`KIND-MASTER.md`](./KIND-MASTER.md)** — launch tracking (now → Fri 19) + strategy + session log
+> 2. **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** — **THE status list: every item 🟢 built+verified · 🟡 built-not-verified · 🔴 not built, with owner.** If you want to know what exists and what's left — go there, not here.
+> 3. **This file** — the FUTURE detail behind the inventory's 🔴 items: risk register · learning-engine blueprint · GTM/content plan · steals catalog. **No build statuses live here anymore.**
 >
-> ## 🌿 11-Jun LATE — and now it's all PREVIEWABLE: staging is live
-> All 29 branches (R1–R25 + company-preview + company-engine + hotfix) **merged into `staging` + deployed to the staging Railway service**: `heartfelt-essence-production-1434.up.railway.app` (test account `test@get-kind.com`). Conflicts resolved keeping all features; TypeScript + full `next build` green. **Pages are reachable by direct URL — the `v2Enabled()` flags only hide sidebar links** — so the founder can preview `/dashboard/company`, `/dashboard/team`, `/dashboard/notetaker`, `/dashboard/integrations`, `/dashboard/figsy/sequence-builder` etc. immediately. ⚠️ Staging still shares the prod DB → company-engine tables not migrated (UI renders, data empty). **12 Jun: staging DB isolation** (separate Supabase project + one-paste schema + 50-rep fake seed + `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` on staging only) → then full end-to-end Command Centre testing. Detail: `KIND-MASTER.md` resume block.
+> **📅 THE PLAN (locked 12 Jun):** ① Mon 15 — Company Command Centre + payments → production (the only early ship) · ② Fri 19 — LAUNCH · ③ post-19 — everything else (the 25 release PRs, shell redesign, Alta inbox, the staging review queue).
 
-**Legend:** ✅ done/live · 🟡 partial · 🎨 mockup only (designed, NOT built) · 🔨 built (code-complete, TypeScript-clean, on staging — NOT yet founder-approved or merged to main) · 🔄 in progress · ⏸ gated/paused · ⬜ not started · 🔴 open issue
+_Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `PRODUCT-INVENTORY.md` (founder request: one inventory, no duplicate status tables)._
+
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both
 
 ---
 
-# ░ SPRINT LOG — 11 JUN 2026 ░
-
-## ✅ What was built this session (all on `staging` branch, commit `0c4ffd8`)
-> **Status: 🔨 BUILT on staging.** Code-complete + TypeScript-clean + `next build` passed. **NOT merged to `main`. NOT yet founder-approved. NOT verified with live data.** Founder must visit staging URL, review each screen, and explicitly approve before anything reaches production.
->
-> **Staging domain:** `https://heartfelt-essence-production-1434.up.railway.app`
-> **Known limitation:** staging shares the production Supabase DB. New backend tables (seat_credit_requests, winning_plays, figsy_knowledge, job_changed_at) have NOT been migrated yet — UI renders but data calls return empty on the Company Engine and some Wave 2 features. Full end-to-end test requires the staging DB isolation work (see Tomorrow's tasks below).
-
-### Wave 1 (R1–R6) — all 🔨 on staging
-| Release | What | Key files |
-|---------|------|-----------|
-| R1 · Demo Bounce | Detects bounced leads, flags in UI | `routes/leads.ts`, `leads/page.tsx` |
-| R2 · Daily Brief | Per-client opt-in for morning brief email | `clients` table + `daily_brief_enabled` col migration |
-| R3 · Vida Bubble | Bottom-right help chat widget (Vida) | `layout.tsx` VidaHelpBubble |
-| R4 · Speed to Lead | Dashboard metric — time from lead to first contact | `dashboard/page.tsx` |
-| R5 · Share Cards | Milestone share-to-LinkedIn cards | `routes/share.ts`, `/dashboard/share` |
-| R6 · Onboarding Email | Auto send welcome/onboarding email on signup | `routes/internal.ts` + `sendOnboardingEmail` |
-
-### Wave 2 (R7–R20) — all 🔨 on staging
-| Release | What | Key files |
-|---------|------|-----------|
-| R7 · Unibox | Multi-channel smart inbox (email + LinkedIn + WhatsApp) | `routes/internal.ts`, `inbox/page.tsx` |
-| R8 · Saved Views | Save/recall lead filter views | `leads/page.tsx` saved-views panel |
-| R9 · Why FIGSY Wrote | Transparency card: why FIGSY chose this draft | `leads/page.tsx` WhyFigsyWrote component |
-| R10 · Goals | KPI goal-setting and tracking panel | `dashboard/page.tsx`, `routes/stats.ts` |
-| R11 · Templates | Message template library (sequence starters) | `dashboard/templates/page.tsx` |
-| R12 · Forms | Embeddable lead-capture forms | `routes/forms.ts`, `dashboard/forms` (via existing page) |
-| R13 · UX | UX polish pass (loading states, error states, empty states) | across portal |
-| R14 · Meeting Prep | Pre-meeting brief card (Milla pulls context) | `routes/milla.ts` |
-| R15 · Train FIGSY | Knowledge base — upload docs/FAQs for FIGSY to reference | `routes/figsy.ts` `/knowledge/:kind`, migration `20260611_figsy_knowledge.sql` |
-| R16 · Evals | Campaign evaluation scoring (reply rate, quality) | `routes/figsy.ts` eval endpoint |
-| R17 · Deliverability | Spam-check pre-send tool in FIGSY panel | `routes/figsy.ts` `/spam-check`, `leads/page.tsx` SpamCheck |
-| R18 · Sequence Power | Sequence analytics + pause/resume controls | `routes/figsy.ts` |
-| R19 · What's New | In-portal changelog / release notes page | `dashboard/whats-new/page.tsx` |
-| R20 · Job Change | Detects lead job changes, flags for re-outreach | `routes/figsy.ts` `/mark-job-change`, migration `20260611_lead_job_change.sql` |
-
-### Tier 3 (R21–R25) — all 🔨 on staging
-| Release | What | Staging URL |
-|---------|------|-------------|
-| R21 · Teams Hub | Member roster, agent badges, live analytics per rep | `/dashboard/team` |
-| R22 · AI Notetaker | Paste meeting transcript → Milla extracts action items | `/dashboard/notetaker` |
-| R23 · Sequence Builder | Visual multi-channel sequence builder (branching tree) | `/dashboard/figsy/sequence-builder` |
-| R24 · Integrations Hub | Connect HubSpot, Pipedrive, Google Cal, Apollo, Stripe + more | `/dashboard/integrations` |
-| R25 · SSO Signup | Google + Microsoft OAuth on signup page | `/login?mode=signup` |
-
-### Company Engine (#88) — 🔨 on staging, GATED behind flag
-| Flow | What | Status |
-|------|------|--------|
-| 2c · Command Centre | Owner dashboard: rep leaderboard, credit request approve/deny, top-up budget (Stripe bundles 20/40/100 credits) | 🔨 `/dashboard/company` |
-| 2d · Seats & Budget | Per-rep credit_budget, credits_used, autonomy mode, seat active toggle | 🔨 `routes/company.ts` |
-| Winning Plays | Company play library — save a play, push to all reps | 🔨 `routes/company.ts` |
-| DB migrations | `seat_credit_requests`, `winning_plays`, `client_members` new cols | 🔨 ready, NOT run on DB yet |
-
-### Tomorrow's required tasks (11 Jun → 12 Jun)
-| Task | Owner | Why |
-|------|-------|-----|
-| 🧍 Create staging Supabase project (free tier) | Founder | Full DB isolation so staging never touches real clients |
-| 🤖 Generate consolidated schema SQL + fake-data seed (50 reps, sample credit requests) | Claude | One-paste setup for the staging DB |
-| 🧍 Set Railway staging env vars → new staging DB credentials | Founder | Points staging at its own DB |
-| 🤖 Set `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` on staging | Claude (docs), Founder (Railway) | Makes all V2 features visible in sidebar on staging |
-| 🧍 Visit each staging URL and review | Founder | The actual approval gate |
+# ░ WHAT'S BUILT — MOVED ░
+> The full Wave 1/2/Tier-3 release tables (R1–R25, PRs #506–#525), the Company Engine build status,
+> and the shell/staging items now live ONLY in **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** (Section 2 — 🟡 built, not verified).
+> Staging environment details (URLs, login, review protocol): **[`STAGING-REVIEW.md`](./STAGING-REVIEW.md)**.
 
 ---
 
-# ░ BUILD & LAUNCH PLAN (official — locked 10 Jun) ░
+# ░ BUILD & LAUNCH PLAN (official — re-locked 12 Jun) ░
 **Ship rule for every item:** build on branch → `next build` verify → founder reviews → **founder says "go live"** → merge to `main` → smoke test. **Nothing reaches the live client site until the founder says go live.**
 
-**▶️ PHASE 0 — LAUNCH (now → Fri 19):** ship the proven live core loop (signup→ICP→leads→FIGSY→reply→meeting). No new builds — verify (ST1, ST2, deliverability) + launch Africa-only.
+**🏢 PHASE 0a — COMPANY ENGINE + PAYMENTS → PRODUCTION, MON 15 JUN (re-ordered 12 Jun — the ONLY early ship):** Command Centre · seats/budgets · request→approve · invites · winning plays · Stripe pool billing. Prod flag exposes `company` only; remaining engine pieces (routing 38 · calendars 41 · manager role · offboarding) follow post-19.
 
-**🏢 PHASE 1 — COMPANY ENGINE (#88) · ~1 wk post-launch (target ~30 Jun):** the per-rep model (1 owner→N seats). 4 flows: 2a company setup · 2b per-rep autonomy · 2c owner command centre · 2d usage & budget. Foundation: workspace→member DB re-arch + per-rep ownership/routing + CRM dedup. (Also delivers Invite / Teams Hub / per-rep calendars.)
+**▶️ PHASE 0b — LAUNCH (Fri 19):** the proven live core loop (signup→ICP→leads→FIGSY→reply→meeting). No other new builds — D9 + legal + smoke tests + Go/No-Go Thu 18 → launch Africa-only.
 
-**🎨 PHASE 2 — V2 EXPERIENCE (July, on the engine), in order:** 1 Vida bubble · 2 Casey onboarding→Conversational setup · 3 Milla Notetaker · 4 Strong dashboards · 5 Integrations Hub · 6 Sequence Builder · 7 Smart Inbox (fixes "inbox isn't right") · 8 Lead-capture Forms.
+**🎨 PHASE 2 — V2 EXPERIENCE (post-19, on the engine — includes the entire built-and-waiting staging queue, inventory §2B), in order:** 1 Vida bubble · 2 Casey onboarding→Conversational setup · 3 Milla Notetaker · 4 Strong dashboards · 5 Integrations Hub · 6 Sequence Builder · 7 Smart Inbox (fixes "inbox isn't right") · 8 Lead-capture Forms.
 
 **🧠 PHASE 3 — INTELLIGENCE/MOAT (Month 2+):** MCP server · Memory v2 · ICP-that-learns · benchmarks · the 15 Pieces.
 
@@ -146,74 +81,18 @@ _Last updated: 12 Jun 2026 (staging fully isolated + founder review mode opened 
 
 ---
 
-# ░ PART 1 — ACTIVE NOW (cosmetic / V2 build via staging) ░
-
-## A. Cosmetic issues you raised (this session)
-| # | Issue | Status |
-|---|-------|--------|
-| 1 | Profile dot → initials + hover | ✅ done |
-| 2 | Sidebar agent lump → switcher (photos+dropdown) | ✅ done |
-| 3 | Dashboard not collating real sent emails | ✅ fixed |
-| 4 | ICP above People (nav flow) | ✅ fixed (ICP Builder→People) |
-| 5 | "This card is not right" (FIGSY agent image crop) | 🔴 open — review all agent-image cards |
-| 6 | "Inbox isn't right" | 🎨 = multi-channel Smart Inbox (Part 2, M2) |
-| 7 | Company payment system missing | 🔨 built on staging — `/dashboard/company` (Command Centre + Stripe top-up bundles) |
-| 8 | Vida help bubble (bottom-right) | 🔨 built on staging — R3 |
-
-## A2. Design-match gaps — shipped but NOT matching your design (honest)
-| Item | Built | Design wants | Status |
-|------|-------|-------------|--------|
-| Profile dropdown | initials · My profile/Settings/Sign out | **Usage · Billing · Team · Settings · Developer API · Sign out** | 🟡 partial |
-| Top-right header | Credits · Bell · Profile | + **Invite teammate** btn · **Roadmap** icon | 🟡 partial |
-| Config Panel | read-only + links | **editable form** + **Save** (Role/Objective/Problem/Tone/Schedule) | 🟡 partial |
-| Agent cards | small cropped avatar | full clean portrait (canonical panel) | 🔴 #5 |
-
-## B. Cosmetic QA — every screen × every state (empty · loading · populated · error)
-Welcome/Onboard · Signup · Dashboard Home · Sidebar · Leads/People · ICP Builder · Config · Marketplace · Thinking · Inbox · Campaigns/FIGSY · each agent page · agent side-panels/conversations. → full pass pending; matrix tracked.
-
-## C. 🏢 THE COMPANY / PER-REP SYSTEM (#88) — DESIGNED, **NOT BUILT** · target ~26–30 Jun
-Source `CLIENT_FLOW.html` Part 2 + `CLIENT_FLOW_PER_REP.html`. Mockups only (`/dashboard/v2/page.tsx`, sample data). Needs workspace→member DB re-arch.
-
-### 🔒 THE MODEL (LOCKED — this is how companies build out their teams on K.I.N.D)
-**We do NOT replace a sales org — we AUGMENT it. We give every rep their own AI.** An owner buys a FIGSY *per rep*; each rep runs **autonomously** (own leads, own voice, own calendar); the owner controls the budget **centrally**. *Augment first; efficiency follows.* Positioning line: **"We don't replace your sales team — we give every rep their own AI, and you control the budget. You pay for the seats you use and the work they do."**
-**Pricing = HYBRID (seat per rep + usage they consume)** — the durable model (pure flat per-seat is declining 21%→15%; "replace" not viable until ~2027+).
-
-### The four flows (each = a build slice)
-| Flow | What it is | Status |
-|------|-----------|--------|
-| **2a · Company setup** | Owner signs up → buys N FIGSY seats (**ONE company payment**) → invites N reps to the company workspace → each rep connects **their own** calendar → each seat = one autonomous FIGSY | 🎨 design only (DB re-arch needed) |
-| **2b · Per-rep autonomy** | Each rep's FIGSY finds **their** ICP/leads · opens in the **rep's voice** (signed as the rep) · reply → meeting booked onto **the REP's own calendar** · Denise closes → **the rep's own pipeline**. Rep 1's FIGSY never touches Rep 2's leads. 10 reps = 10 independent AI SDRs in parallel. | 🎨 design only (per-rep routing needed) |
-| **2c · Owner command centre** | Autonomy below, oversight on top: company totals · leaderboard · every rep's leads+bookings · spend per seat. Milla layers "who's hot / what's working / where to coach". | 🔨 UI + API built, on staging (`/dashboard/company`) — DB migration pending |
-| **2d · Usage & budget** | Company owns the budget pool (one payment · tops up) → owner allocates credits per seat → rep works → runs low → **rep requests more → owner approves/denies**. "Exactly like an enterprise running Claude." | 🔨 UI + API built, on staging — Stripe topup bundles wired — DB migration pending |
-| Per-rep lead **ownership/routing** (no two reps hit the same person) + **CRM dedup** | underpins 2b | ⬜ |
-| **★ SHARED TEMPLATE / WINNING-PLAY LIBRARY** [Glean prompt-library demo 10 Jun — the standout steal] — owner/power-rep perfects a winning play (ICP · subject style · sequence) → **every seat inherits it** → new reps onboard at top-performer level day 1. This is the **user-facing form of cross-segment recall** (Learning Engine) — ship it as a visible library, not a hidden algorithm (clients *feel* the collective intelligence). **K.I.N.D edge Glean can't match:** ship **K.I.N.D-curated best-practice templates learned from cross-CLIENT African outcome data** to every new client day 1 (their library is per-company; ours compounds across the network = the moat doing visible work). **Positioning line to steal verbatim: "level up your whole team to your top performer."** | new — ties #88 + Learning Engine | ⬜ |
-
-**Why it wins:** no company is firing its sales org — we make every rep more effective and the owner controls spend centrally. This *is* the expansion engine (1 owner → N seats → grows as the team grows).
-
-## D. ✅ Shipped & live today
-Agent Grid (V2-1) · Thinking (V2-2) · Config (V2-4, partial) · Marketplace (V2-5) · Slim sidebar+switcher+profile chip (V2-6, partial) · Leads C1/C3 · Welcome Spotlight · Signup T&C · Sent-count fix · ICP→People nav.
-
----
+# ░ PART 1 — CURRENT BUILD STATUS → MOVED TO THE INVENTORY ░
+> Cosmetic fixes, shipped V2 screens, the Company Engine build state, and design-match gaps are all
+> tracked in **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** with 🟢/🟡/🔴 + owner. Open feedback items
+> (e.g. agent-card crop #5, the Alta-style inbox rebuild) live there too (items 112, 125).
+> The #88 model/positioning rationale (augment-not-replace · hybrid pricing · the four flows · the
+> ★ winning-play library) remains below in Part 2 where it informs future slices.
 
 # ░ PART 2 — FULL ROADMAP (101 items, by horizon) ░
 
-## 🔴 NOW · PRE-LAUNCH (by Fri 19 Jun)
-| Item | What | Owner | Status |
-|------|------|-------|--------|
-| D1–D5 | Deliverability fixes (unsubscribe, plain-text, cold-FROM) | 🤖 | ✅ |
-| Cold domain + warmup | `gettingkind.com`, SPF/DKIM/DMARC, ramp 10→50/day | 🧍 | ✅ |
-| T8 | Deliverability/inbox placement | 🤝 | ✅ |
-| T2 | ICP→leads · T3 core send→reply→Hot | 🤝 | ✅ |
-| #6 | Migration 010 CRM-dedup | 🧍 | ✅ |
-| #7 | Denise Stripe price · DNS app/api/admin live | 🧍 | ✅ |
-| CAL-min | Booking-link field in Settings | 🤖 | ✅ |
-| **T1** | **Fresh signup → onboarding (never run)** | 🤝 | ⬜ |
-| T3 (pause) · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invite · T10 partner | Smoke Test 2 | 🤝 | ⬜ |
-| **D9** | Deliverability 10/10 inbox | 🧍 | ⬜ |
-| **#1** | 2 crown-jewel key rotations (Stripe-secret, Supabase-service-role) | 🧍 | ✅ done 11 Jun |
-| **#10–#14** | Legal pack (ICO, SR01, registered office, WHOIS, LinkedIn) | 🧍 | ⬜ |
-| Go/No-Go | Thu 18 gate: deliverability · ST2 · legal · warmup | 🤝 | ⬜ |
-| **#18** | **LAUNCH Africa-only — Fri 19 Jun** | 🤝 | ⬜ |
+## 🔴 NOW · PRE-LAUNCH (by Fri 19 Jun) → tracked in the inventory + master
+> Launch-week items (smoke tests · D9 · legal pack · Go/No-Go · the Mon-15 company-engine ship) are
+> tracked live in **`PRODUCT-INVENTORY.md` §2A + §3A** and `KIND-MASTER.md`. Not duplicated here.
 
 ## 📍 WEEK 1 (Jun 19–28) — 10 items
 | # | What | Owner |
@@ -344,14 +223,14 @@ Upgrades existing items: **#38** A/B → contextual bandit · **#40** ICP auto-r
 | # | What | Status |
 |---|------|--------|
 | V2-3 | Conversational setup (chat w/ Casey) — **SPEC'D by Glean Auto Mode demo (10 Jun): client describes goal in a couple sentences → AI assistant configures the whole agent (ICP+sequences+knowledge+triggers), no forms. The activation unlock for Africa-SMB. Highest-value V2 build.** | ⬜ |
-| V2-8 | **AI Notetaker → action items (Milla)** | 🔨 built on staging — `/dashboard/notetaker` |
+| V2-8 | **AI Notetaker → action items (Milla)** | 🟡 built → see PRODUCT-INVENTORY §2B — `/dashboard/notetaker` |
 | V2-10 | **Casey** onboarding agent | ⬜ |
-| V2-11 | **Vida help bubble (bottom-right)** | 🔨 built on staging — R3 `layout.tsx` |
+| V2-11 | **Vida help bubble (bottom-right)** | 🟡 built → see PRODUCT-INVENTORY §2B — R3 `layout.tsx` |
 | V2-12 | Strong client dashboards + Goals | 🔨 Goals built on staging — R10 |
-| #83 | Embeddable lead-capture Forms | 🔨 built on staging — R12 |
-| #84 | **Integrations Hub** (HubSpot/Pipedrive/Cal/WA/LinkedIn) | 🔨 built on staging — `/dashboard/integrations` R24 |
-| #89 | **Sequence Builder** (visual branching tree, multi-channel) | 🔨 built on staging — `/dashboard/figsy/sequence-builder` R23 |
-| — | Multi-channel Smart Inbox (= "inbox isn't right") | 🔨 built on staging — R7 Unibox |
+| #83 | Embeddable lead-capture Forms | 🟡 built → see PRODUCT-INVENTORY §2B — R12 |
+| #84 | **Integrations Hub** (HubSpot/Pipedrive/Cal/WA/LinkedIn) | 🟡 built → see PRODUCT-INVENTORY §2B — `/dashboard/integrations` R24 |
+| #89 | **Sequence Builder** (visual branching tree, multi-channel) | 🟡 built → see PRODUCT-INVENTORY §2B — `/dashboard/figsy/sequence-builder` R23 |
+| — | Multi-channel Smart Inbox (= "inbox isn't right") | 🟡 built → see PRODUCT-INVENTORY §2B — R7 Unibox |
 
 **Pulled into the #88 per-rep sprint (~Fri 26):** V2-7 invite · V2-9 Teams Hub (`/dashboard/team` R21 🔨) · V2-13 multi-provider calendar.
 

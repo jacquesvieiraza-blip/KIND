@@ -7,10 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
-  Brain, Bot, Handshake, BarChart2, CreditCard, Settings, LogOut, Pin,
-  ChevronDown, Lock, Sliders, Store,
-  LayoutTemplate, GitBranch, ShieldCheck, Webhook, FileText, Mic,
-  Sparkles, Map, Plug, Code2, UserCheck, MessageCircle, Building2,
+  Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
+  LayoutTemplate, GitBranch, ShieldCheck, Webhook, FileText, Mic, Building2,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -105,21 +103,10 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
     { href: '/dashboard/leads',          label: 'People',          icon: Users, exact: true },
     { href: '/dashboard/leads/linkedin', label: 'LinkedIn Import', icon: Search },
   ]
-  const account: Item[] = [
-    { href: '/dashboard/company',      label: 'Company',       icon: Building2 },
-    { href: '/dashboard/team',         label: 'Team',          icon: UserCheck },
-    { href: '/dashboard/whats-new',    label: "What's New",    icon: Sparkles },
-    { href: '/dashboard/roadmap',      label: 'Roadmap',       icon: Map },
-    { href: '/dashboard/integrations', label: 'Integrations',  icon: Plug },
-    { href: '/dashboard/usage',        label: 'Usage',         icon: BarChart2 },
-    ...(v2Enabled('config')      ? [{ href: '/dashboard/config',      label: 'Configure FIGSY', icon: Sliders }] : []),
-    ...(v2Enabled('marketplace') ? [{ href: '/dashboard/marketplace', label: 'Marketplace',      icon: Store }]   : []),
-    ...(isPartner ? [{ href: '/dashboard/partner', label: 'Partner Hub', icon: Handshake }] : []),
-    { href: '/dashboard/mcp',          label: 'MCP Connect',   icon: Plug },
-    { href: '/dashboard/proposals',    label: 'Proposals',     icon: FileText },
-    { href: '/dashboard/developer',    label: 'Developer API', icon: Code2 },
-    { href: '/dashboard/messages',     label: 'Messages',      icon: MessageCircle },
-    { href: '/dashboard/billing',      label: 'Billing',       icon: CreditCard },
+  // Rail holds WORK only. Account/settings/growth items live in the top-right
+  // profile dropdown (the account hub) — keeps the rail uncluttered.
+  const company: Item[] = [
+    { href: '/dashboard/company', label: 'Company', icon: Building2 },
   ]
 
   const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'
@@ -234,12 +221,14 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
         </div>
 
         <div className="h-px bg-white/[0.08] my-1.5 mx-4" />
-        {account.map(it => <Row key={it.href} {...it} />)}
+        <p className={`px-5 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-purple-300/35 transition-opacity ${labelCls}`}>
+          Company
+        </p>
+        {company.map(it => <Row key={it.href} {...it} />)}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom — quick sign-out only; everything else lives in the top-right profile menu */}
       <div className="flex flex-col gap-0.5 pt-2 border-t border-white/[0.06]">
-        <Row href="/dashboard/settings" label="Settings" icon={Settings} />
         <button onClick={signOut}
           className="mx-2 flex items-center gap-3 h-10 px-3 rounded-xl text-purple-200/55 hover:text-white hover:bg-white/[0.08] transition-colors">
           <LogOut className="w-[18px] h-[18px] shrink-0" />

@@ -15,7 +15,7 @@
 > **STATUS AS OF 10 JUN:** the sprint **deployed to production 8 Jun** and the system is **LIVE on `main`** — warmup sending, **T8 deliverability + T1 fresh signup PASSED**, core loop verified. **What is NOT yet live:** this session's audit-fix batch (on branch `claude/kind-carson-MYhSl`, build-verified, merges on founder "go live"). _(Earlier "nothing is deployed" notes below are 8-Jun history — superseded by this.)_
 >
 > **Launch date:** 🚀 **FRIDAY 19 JUNE 2026** (firm — deferred from Mon 8 Jun until deliverability + Smoke Test 2 pass).
-> **Last updated:** 10 Jun 2026 (audit cross-reference pass).
+> **Last updated:** 12 Jun 2026 (staging isolation complete + founder review mode — see `STAGING-REVIEW.md`).
 >
 > ### 📍 TWO DOCS ONLY — no more confusion (consolidated 10 Jun)
 > - **THIS doc (`KIND-MASTER.md`) = the ONE you work off for launch.** Everything current — status, the dated **MASTER TIMELINE** (Wed 10 → Fri 19, smoke tests + daily recordings + the audit-fix merge), risks, deliverability, legal. _(The separate `LAUNCH-MAP.md` was folded back in here and deleted — it was making it three docs.)_
@@ -28,6 +28,14 @@
 
 > **This block is the cold-start handoff.** Any new chat/session must read this to know exactly
 > where we are. **Keep it current** — update it at the end of every working session before commit.
+
+- **✅ 12 JUN — STAGING ISOLATION COMPLETE. The sealed preview environment is LIVE.**
+>   - ✅ **Separate staging Supabase project** `kind-staging` (`ddigrhimalmgymkwuusd`) — full consolidated schema applied (one paste), seeded with MaceyLuxe Staging + **50 fake leads · 2 campaigns · 5 replies · 12.5k credits**. **Zero connection to prod data.**
+>   - ✅ **Separate staging API service** `api-staging` (`api-staging-production-2185.up.railway.app`) — Nixpacks, branch `staging`, points at `kind-staging`. Boots on **DB creds only** via new staging-mode startup check (no prod secrets in staging). `/stats/platform` returns the seed numbers (50/2/5) — **isolation proven**.
+>   - ✅ **Staging portal** `heartfelt-essence` re-pointed at staging DB + staging API + `NEXT_PUBLIC_IS_STAGING=true` + `NEXT_PUBLIC_FEATURE_V2_SCREENS`. Amber STAGING banner on every page.
+>   - ✅ **Hard lesson logged:** Railway variable changes can *restart* the old image without *rebuilding* — server components read `NEXT_PUBLIC_*` at runtime so flags/banner "work", but new **routes/sidebar** need a real **Deployments → ⋮ → Redeploy**. New routes 404'd until forced rebuild.
+>   - ✅ **New builds this session (all on `claude/kind-carson-MYhSl` → merged to `staging`):** staging schema+seed+banner · live **status bar (#104)** · full **profile dropdown** · **mobile PWA icons (#114)** · **deliverability dashboard (#48)** · staging-mode API startup · **slim V2 sidebar parity** (now lists every screen).
+>   - **▶️ NOW: FOUNDER REVIEW MODE.** Founder walks every new screen on staging, judged **fresh** (no assumed design direction), recording 👍/👎 in **[`docs/STAGING-REVIEW.md`](./STAGING-REVIEW.md)** — the capture doc. Multi-session, at the founder's pace. Initial reaction: **dislikes the full/light sidebar; prefers the slim dark rail.** This is a review job, NOT a one-day job. Nothing merges to `main` until founder signs off per-feature.
 
 - **🌿 11 JUN LATE — STAGING IS LIVE. The whole release train is integrated + deployed for founder preview.**
 >   - ✅ **Staging Railway service WORKS** (founder + Claude fixed it together tonight: Root Directory cleared, full monorepo build command set — copied from the proven `render.yaml`). URL: **`heartfelt-essence-production-1434.up.railway.app`**, deploys branch `staging`.

@@ -1,24 +1,56 @@
 'use client'
 
-/** Top-right profile chip for the V2 header. Shows the user's initials; on hover
- *  (or click) reveals a profile card with name, email, and quick links.
- *  Replaces the bare purple dot. Rendered only inside the flagged V2 layout. */
+/** Top-right profile menu — the ACCOUNT HUB for the V2 layout.
+ *  The slim left rail holds work only; everything account/settings/growth lives
+ *  here under the user's name, grouped so it doesn't become a flat clunky list. */
 
 import Link from 'next/link'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Settings, LogOut, User, BarChart2, CreditCard, UserCheck, Code2 } from 'lucide-react'
+import {
+  Settings, LogOut, User, BarChart2, CreditCard, UserCheck, Code2,
+  Plug, Network, FileText, MessageCircle, Handshake, Gift, Store, Sparkles, Map,
+} from 'lucide-react'
 
-// Full profile menu (design §): Profile · Usage · Billing · Team · Settings ·
-// Developer API · Sign out. All routes already exist in the dashboard.
-const MENU_LINKS: { href: string; label: string; icon: React.ElementType }[] = [
-  { href: '/dashboard/settings',  label: 'My profile',    icon: User },
-  { href: '/dashboard/usage',     label: 'Usage',         icon: BarChart2 },
-  { href: '/dashboard/billing',   label: 'Billing',       icon: CreditCard },
-  { href: '/dashboard/team',      label: 'Team',          icon: UserCheck },
-  { href: '/dashboard/developer', label: 'Developer API', icon: Code2 },
-  { href: '/dashboard/settings',  label: 'Settings',      icon: Settings },
+type MenuLink = { href: string; label: string; icon: React.ElementType }
+type Group = { heading: string; links: MenuLink[] }
+
+const GROUPS: Group[] = [
+  {
+    heading: 'Account',
+    links: [
+      { href: '/dashboard/settings', label: 'My profile', icon: User },
+      { href: '/dashboard/billing',  label: 'Billing',    icon: CreditCard },
+      { href: '/dashboard/usage',    label: 'Usage',      icon: BarChart2 },
+      { href: '/dashboard/team',     label: 'Team',       icon: UserCheck },
+    ],
+  },
+  {
+    heading: 'Connect',
+    links: [
+      { href: '/dashboard/integrations', label: 'Integrations',  icon: Plug },
+      { href: '/dashboard/developer',    label: 'Developer API', icon: Code2 },
+      { href: '/dashboard/mcp',          label: 'MCP Connect',   icon: Network },
+    ],
+  },
+  {
+    heading: 'Grow',
+    links: [
+      { href: '/dashboard/proposals',  label: 'Proposals',   icon: FileText },
+      { href: '/dashboard/messages',   label: 'Messages',    icon: MessageCircle },
+      { href: '/dashboard/partner',    label: 'Partner Hub', icon: Handshake },
+      { href: '/dashboard/referral',   label: 'Referral',    icon: Gift },
+      { href: '/dashboard/marketplace',label: 'Marketplace', icon: Store },
+    ],
+  },
+  {
+    heading: 'Product',
+    links: [
+      { href: '/dashboard/whats-new', label: "What's New", icon: Sparkles },
+      { href: '/dashboard/roadmap',   label: 'Roadmap',    icon: Map },
+    ],
+  },
 ]
 
 function initialsFrom(name: string, email: string): string {
@@ -50,15 +82,19 @@ export function ProfileMenu({ name, email }: { name: string; email: string }) {
     <div className="relative" onMouseEnter={show} onMouseLeave={hide}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#a78bfa] shrink-0 flex items-center justify-center text-white text-[11px] font-bold ring-2 ring-white shadow-sm hover:shadow-md transition-shadow"
+        className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-50 transition-colors"
         title={display}
       >
-        {initials}
+        <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#a78bfa] shrink-0 flex items-center justify-center text-white text-[11px] font-bold ring-2 ring-white shadow-sm">
+          {initials}
+        </span>
+        <span className="hidden sm:block text-[13px] font-medium text-gray-700 max-w-[120px] truncate">{display}</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 w-60 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
-          <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-br from-[#7C3AED] to-[#a78bfa]">
+        <div className="absolute right-0 top-11 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 max-h-[78vh] overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-br from-[#7C3AED] to-[#a78bfa] sticky top-0">
             <div className="w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/40 flex items-center justify-center text-white text-sm font-bold shrink-0">
               {initials}
             </div>
@@ -67,17 +103,32 @@ export function ProfileMenu({ name, email }: { name: string; email: string }) {
               <p className="text-white/75 text-[11px] truncate">{email}</p>
             </div>
           </div>
-          <div className="py-1.5">
-            {MENU_LINKS.map(({ href, label, icon: Icon }) => (
-              <Link key={label} href={href} onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                <Icon className="w-4 h-4 text-gray-400" /> {label}
-              </Link>
+
+          {/* Grouped links */}
+          <div className="py-1">
+            {GROUPS.map(group => (
+              <div key={group.heading} className="py-1">
+                <p className="px-4 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{group.heading}</p>
+                {group.links.map(({ href, label, icon: Icon }) => (
+                  <Link key={label} href={href} onClick={() => setOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    <Icon className="w-4 h-4 text-gray-400 shrink-0" /> {label}
+                  </Link>
+                ))}
+              </div>
             ))}
-            <button onClick={signOut}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100 mt-1">
-              <LogOut className="w-4 h-4" /> Sign out
-            </button>
+
+            {/* Settings + Sign out */}
+            <div className="border-t border-gray-100 mt-1 pt-1">
+              <Link href="/dashboard/settings" onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                <Settings className="w-4 h-4 text-gray-400 shrink-0" /> Settings
+              </Link>
+              <button onClick={signOut}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                <LogOut className="w-4 h-4 shrink-0" /> Sign out
+              </button>
+            </div>
           </div>
         </div>
       )}

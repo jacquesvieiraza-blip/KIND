@@ -63,6 +63,7 @@ export default function DemoPage() {
     expires_at:    defaultExpiry,
     created_by:    SALES_TEAM[0],
     showcase:      true, // default: seed impressive demo data for sales walkthroughs
+    company_demo:  false, // opt-in: also seed the Company Engine (#88) owner Command Centre
   })
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 4000) }
@@ -92,7 +93,7 @@ export default function DemoPage() {
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Failed to create demo')
       setShowForm(false)
-      setForm({ prospect_name: '', company_name: '', industry: 'Fintech', country: 'South Africa', website_url: '', expires_at: defaultExpiry, created_by: SALES_TEAM[0], showcase: true })
+      setForm({ prospect_name: '', company_name: '', industry: 'Fintech', country: 'South Africa', website_url: '', expires_at: defaultExpiry, created_by: SALES_TEAM[0], showcase: true, company_demo: false })
       showToast(`Demo created for ${data.data.company_name} — ICP running in background`)
       loadDemos()
     } catch (err) {
@@ -245,6 +246,16 @@ export default function DemoPage() {
                 <div>
                   <p className="text-sm font-semibold text-[#7C3AED]">Showcase mode — seed impressive demo data</p>
                   <p className="text-xs text-gray-500">~600 leads · ~1,750 emails sent · ~220 replies · 45 meetings · ~$1.8M pipeline · 🔥 hot replies waiting</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 px-4 py-3 rounded-lg border border-indigo-200 bg-indigo-50 cursor-pointer">
+                <input type="checkbox" checked={form.company_demo}
+                  onChange={e => setForm(f => ({ ...f, company_demo: e.target.checked }))}
+                  className="w-4 h-4 rounded accent-[#4f46e5] shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-[#4f46e5]">🏢 Company demo — seed the owner Command Centre (#88)</p>
+                  <p className="text-xs text-gray-500">Owner + 3 reps, each their own FIGSY · real per-rep stats (contacted · reply % · booked) · 40k pool · 2 pending credit requests · agents unlocked per rep · winning plays. Open the demo → <strong>/dashboard/company</strong>.</p>
                 </div>
               </label>
 

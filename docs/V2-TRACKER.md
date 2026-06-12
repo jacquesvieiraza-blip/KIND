@@ -29,6 +29,8 @@ _Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `P
 
 **🎨 PHASE 2 — V2 EXPERIENCE (post-19, on the engine — includes the entire built-and-waiting staging queue, inventory §2B), in order:** 1 Vida bubble · 2 Casey onboarding→Conversational setup · 3 Milla Notetaker · 4 Strong dashboards · 5 Integrations Hub · 6 Sequence Builder · 7 Smart Inbox (fixes "inbox isn't right") · 8 Lead-capture Forms.
 
+> **🎨 Design-review locks (12 Jun night) — build to these previews:** Sequence Builder → `previews/sequence-builder-v2.html` (brand recolor) · Inbox → `previews/inbox-v2.html` (Gmail-style) · Agent cards → `previews/agents-v2.html` ("AI Family") · Client invoicing → `previews/invoice-v1.html` + `invoices-list.html` (#34a, Stripe-issued). **📅 Tue 16:** agent side-panel consistency (inventory 113a — make Milla/Vida/Denise panels conversational like FIGSY; Denise needs a new chat endpoint). Full verdict ledger: `PRODUCT-INVENTORY.md` → DESIGN-REVIEW LEDGER.
+
 **🧠 PHASE 3 — INTELLIGENCE/MOAT (Month 2+):** MCP server · Memory v2 · ICP-that-learns · benchmarks · the 15 Pieces.
 
 **Order logic:** launch the proven loop first → company engine (biggest money + per-rep foundation) → experience layer on it → intelligence.

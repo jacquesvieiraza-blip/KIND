@@ -61,6 +61,48 @@
 
 ---
 
+## 🛫 LAUNCH RUNWAY — FRI 12 → FRI 19 (the day-by-day to launch)
+> Clear steps between now and the 19th. 🧍 founder · 🤖 Claude · 🤝 both. Detail lives in the FOUNDER CHECKLIST above + `PRODUCT-INVENTORY.md`.
+
+| Day | Focus | Key steps |
+|-----|-------|-----------|
+| **Fri 12 (tonight)** ✅ | Design-review tour | ✅ ~17 screens reviewed/locked · Roadmap cut · Teams Hub co-located · invoicing (136a) + agent-panel (113a) logged · docs synced. All on branch. |
+| **Sat 13–Sun 14** 🧍 | Phone + legal + mail | ✉️ email `partners@apollo.io` · 🔑 hunter.io + peopledatalabs keys · ⚖️ legal pack #10–14 (ICO £40 · SR01 · registered office · WHOIS · LinkedIn lockdown) · 📡 **D9 deliverability 10/10** |
+| **Mon 15** 🤝 | 🏢 **COMPANY SHIP → PROD** (only early ship) | merge branch→`staging` · re-paste `staging-schema.sql` · redeploy both services (no re-seed) · run `COMPANY-ENGINE-TEST.md` · create **$39 Denise Stripe price** · prod migration → merge `staging`→`main` → `company` flag ONLY · fund demo pool. 🤖 Stripe→pool billing lands. |
+| **Tue 16** 🤖 | Post-19 builds begin | 📅 **113a agent side-panel consistency** (Milla/Vida wire to chat endpoints; build Denise chat endpoint) · start building the locked redesigns (inbox-v2 · agents "AI Family" · sequence-builder recolor). |
+| **Wed 17** 🤝 | Smoke + builds | 🧍 smoke tests **T3–T7, T9, T10** (Claude fixes same-day) · 🤖 continue locked-design builds + invoicing (136a) scaffold. |
+| **Thu 18** 🤝 | 🚦 **GO / NO-GO GATE** | D9 10/10 · smoke green · legal done · warmup ~50/day. Any red → slip to Mon 22 (no half-baked launch). |
+| **Fri 19** 🚀 | **LAUNCH** | Proven core already live on `main`. Go. Then week-1 GTM begins. |
+
+---
+
+## 🗓️ THE 3-MONTH PLAN (Jun → Sep) — where we're headed after launch
+> The founder's-eye view of the next quarter. Item-level detail: `PRODUCT-INVENTORY.md` §3 + `V2-TRACKER.md`. Each phase is **gated** — don't start the next before its trigger.
+
+### 📅 MONTH 1 — LAUNCH + CLEAR THE QUEUE (Fri 19 Jun → ~19 Jul)
+**Goal: launch clean, onboard the first pilots, and ship the whole post-19 queue fast (velocity = the moat).**
+- **Launch & GTM:** go live 19th · 10 warm outreach + LinkedIn 1/day · record real product demo + Drop 01 video + onboarding Looms · homepage proof block with real data · GTM funnel instrumentation.
+- **Ship the locked design queue:** Alta-style **inbox rebuild** (112) · **agent "AI Family"** cards (125) · **sequence-builder** recolor (82) · **agent side-panel consistency** (113a) · the 25 R-release PRs · shell redesign.
+- **Money & admin cleanup:** ⭐ **client invoicing** (136a, Stripe VAT invoices surfaced in-portal) · **currency USD/ZAR → GBP** (invoice + Partner Hub) · Flutterwave/2nd-processor decision.
+- **Company engine hardening:** invite-email delivery · owner drill-down · manager role · per-rep routing/offboarding/calendars.
+- **First clients:** the multi-rep client + partner pipeline onboard; pilot feedback drives the next sprint.
+
+### 📅 MONTH 2 — INTELLIGENCE LAYER (late Jul → Aug · GATED 10+ paying clients)
+**Goal: turn the outcome data into a compounding advantage. Trigger: ~10+ paying clients producing real outcomes.**
+- **The Learning Engine** (build order: Train-FIGSY RAG → evals → outcome feedback loop → contextual bandit → recall/memory → model routing). The African cross-client outcome data is the input no competitor can replicate.
+- Intent signals · A/B → contextual bandit · morning-brief · ICP auto-refinement · conditional branching · waterfall enrichment live · adaptive send volume · Milla CRM pull.
+- **Context-backed MCP server (#59)** · Product Hunt + G2 listings · ★ shared winning-play library (network-compounding).
+
+### 📅 MONTH 3 — THE AGENT FAMILY + PRICING (Aug → Sep · GATED on margin data)
+**Goal: expand the family and move toward outcome pricing. Trigger: proven unit margin ≥ ~28%.**
+- **DENISE deep build (#54)** — auto-book · notetaker · objection handling · proposal-from-transcript · Vapi voice (she owns the phone).
+- **LENA** (Customer Success agent) · **TONY** (Operations agent) · multi-agent orchestration.
+- **Outcome pricing per meeting (#60)** (gated ≥28% margin) · built-in CRM Kanban · mobile app (PWA) · pan-African design partners.
+
+**↔ Parallel/ongoing all quarter:** admin RLS refactor · deliverability monitoring · legal rings · key rotation · GTM content engine · per-country partner replication (Kenya + Ghana via partners).
+
+---
+
 > ✅ **THIS IS THE ONE SOURCE. Read this first, update this first, work off this only.**
 > Supersedes `EVERYTHING.md`, `SESSION-HANDOFF-7JUN.md`, and all earlier roadmap fragments.
 > Where any other doc disagrees, **THIS document wins.**
@@ -76,7 +118,7 @@
 > **STATUS AS OF 10 JUN:** the sprint **deployed to production 8 Jun** and the system is **LIVE on `main`** — warmup sending, **T8 deliverability + T1 fresh signup PASSED**, core loop verified. **What is NOT yet live:** this session's audit-fix batch (on branch `claude/kind-carson-MYhSl`, build-verified, merges on founder "go live"). _(Earlier "nothing is deployed" notes below are 8-Jun history — superseded by this.)_
 >
 > **Launch date:** 🚀 **FRIDAY 19 JUNE 2026** (firm — deferred from Mon 8 Jun until deliverability + Smoke Test 2 pass).
-> **Last updated:** 12 Jun 2026 (staging isolation complete + founder review mode — see `STAGING-REVIEW.md`).
+> **Last updated:** 12 Jun 2026 (night) — founder design-review tour: ~17 screens locked, Roadmap cut, Teams Hub co-located, invoicing (136a) + agent-panel (113a) logged, launch runway + 3-month plan added. See `STAGING-REVIEW.md` + the DESIGN-REVIEW LEDGER in `PRODUCT-INVENTORY.md`.
 >
 > ### 📍 TWO DOCS ONLY — no more confusion (consolidated 10 Jun)
 > - **THIS doc (`KIND-MASTER.md`) = the ONE you work off for launch.** Everything current — status, the dated **MASTER TIMELINE** (Wed 10 → Fri 19, smoke tests + daily recordings + the audit-fix merge), risks, deliverability, legal. _(The separate `LAUNCH-MAP.md` was folded back in here and deleted — it was making it three docs.)_
@@ -321,6 +363,7 @@
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)
+- **12 Jun (night) — 🎨 FOUNDER DESIGN-REVIEW TOUR (one screen at a time, preview-HTML workflow).** Worked the staging review safely: founder reviews → Claude builds a standalone **preview HTML** (no staging touches) → founder approves/changes → locked + referenced in the inventory. **New: a DESIGN-REVIEW LEDGER at the top of `PRODUCT-INVENTORY.md`** mapping every screen → verdict → preview HTML → item. **Approved as-is:** Notetaker · Documents · Referral · Usage · Proposals *(e-sign capture = #69 caveat)* · Integrations · Developer API · MCP Connect · What's New · Templates · Partner Hub *(⚠️ earnings in ZAR → GBP)* · Messages · Marketplace · Settings · Milla chat · Command Centre + Teams Hub. **🎨 Redesigns locked (build to the preview):** Sequence Builder → brand recolor (`sequence-builder-v2.html`) · Agent cards → "AI Family" (`agents-v2.html`) · Inbox → Gmail-style (`inbox-v2.html`). **Nav changes (on branch):** ① **Roadmap CUT** from the portal (route + both nav links + AgentColumn branch removed) — the Drop on the website is the public "what's coming." ② **Teams Hub moved** out of the top-right dropdown → into the rail's **Company** section next to Command Centre (founder: keep both, co-located). **New build items:** ⭐ **136a — client invoicing** (decision: **Stripe issues the UK VAT invoices**, we surface them in-portal under Company → Documents; previews `invoice-v1.html` + `invoices-list.html`; founder TODO: VAT-registered status + currency) · 📅 **113a — agent side-panel consistency** (only FIGSY has live in-panel chat; make Milla/Vida/Denise conversational too — **scheduled TUESDAY 16 Jun**; Denise needs a new chat endpoint). **Currency flag raised:** code bills **USD** but we're a **UK** company → ZAR/USD→GBP cleanup is a build-time TODO (invoice + Partner Hub). Branding pass on every approved screen (off-purple = semantic only). All on `claude/kind-carson-MYhSl`.
 - **12 Jun (late):** 🧹 **DOCS CONSOLIDATED → ONE INVENTORY + PLAN RE-LOCKED (founder: "I am confused, clean up this mess").** ① **`PRODUCT-INVENTORY.md` rebuilt as THE single status list** — all 161 items, one dot each (🟢 built+verified · 🟡 built-not-verified · 🔴 not built) + owner column; nothing built lives anywhere else now. ② `V2-TRACKER.md` stripped to future-detail only (duplicate Wave/R-tables + status blocks removed → pointers to the inventory). ③ `STATUS-12JUN.md` retired → folded into the inventory. ④ START-HERE box + FOUNDER-ACTIONS rewritten to the **re-locked plan: MON 15 = Company Command Centre + payments → production (the ONLY early ship, `company` flag only) · FRI 19 = launch · post-19 = everything else** (supersedes "one combined launch"; invite-emails + drill-down slide post-19 — Monday demo uses the working copy-paste invite link). ⑤ Founder 👎 logged: **"inbox is not great" → Alta-style rebuild queued post-19** (inventory 112, STAGING-REVIEW F9). Claude's pre-19 build queue = Stripe pool billing only.
 - **11 Jun:** 🔐 **Deliverability-evidence morning + a live bug caught & fixed.** ✅ Postmaster Tools registered (`gettingkind.com`) · ✅ Resend confirmed real cold mail **Delivered** to real prospects (~0% real bounce; the only bounces are demo `@kind-demo.internal` fake addresses — hygiene fix offered). 🐞 **Caught the autopilot wrongly auto-pausing the live warmup campaign** (day 3, 0 replies = expected) → shipped **hotfix PR #505** (age+volume guard on check-performance + a Resume button for auto-paused campaigns) — **founder merged it; warmup resumed.** ✅ **2 crown-jewel keys ROTATED** (Stripe-secret + Supabase-service-role, both api+admin working) → **launch RED cleared** + neutralises any stale secret in the dead Vercel projects. Vercel↔GitHub dead integration logged Y16 (next week). Seed-list inbox test deferred to 12 Jun (today's warmup cap already spent — system protecting the ramp, working as designed).
 - **10 Jun:** 🚀 **Post-19th velocity principle locked + all 4 Glean-demo steals consolidated into the master** (founder: market moves fast → weekly fast-follow updates are a competitive necessity; velocity = the moat for a small team). Steals span FIGSY research-personalization · Call-Coaching agent (#88) · CRM-from-transcript (V2-8) · Casey AI-setup (V2-3/10) · context-backed MCP (#59) · the ★ shared winning-play library (#88 + cross-segment recall, network-compounding) · "level up your whole team" positioning · two-audience (rep=time/owner=visibility) · time-saved-per-seat KPI · Meeting-Prep gap (Denise #54). Item-level detail in V2-TRACKER; strategic set kept visible in master.

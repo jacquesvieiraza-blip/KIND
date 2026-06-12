@@ -43,7 +43,7 @@
 23. **Stripe (global)** ✅ — checkout, webhooks (idempotent), 8 price IDs live.
 24. **Flutterwave (Africa)** ✅ — ZAR/NGN/KES/GHS card + transfer.
 25. **Credit bundles** ✅ — Lead Gen ($1/lead) + FIGSY Advanced ($3/lead), 20/40/100.
-26. **Agent subscriptions** ✅ — Vida $29 · Milla $49 · Denise $99 · Milla+Vida $69/mo.
+26. **Agent subscriptions** ✅ — Vida $29 · Milla $49 · Denise $39 · Milla+Vida $69/mo.
 27. **Credit system + ledger** ✅ — balance, transactions, atomic deduction (can't desync).
 28. **Usage tracking** ✅ — per-client usage + billing visibility.
 

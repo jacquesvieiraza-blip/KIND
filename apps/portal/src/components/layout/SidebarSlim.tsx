@@ -51,7 +51,7 @@ const AGENTS: AgentDef[] = [
     nav: [{ href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare }],
   },
   {
-    id: 'denise', name: 'Denise', role: 'The Closer', accent: '#D97706', price: '$99/mo',
+    id: 'denise', name: 'Denise', role: 'The Closer', accent: '#D97706', price: '$39/mo',
     nav: [{ href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake }],
   },
 ]

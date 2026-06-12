@@ -39,7 +39,7 @@ export default async function MarketplacePage() {
     { key: 'figsy',  name: 'FIGSY',  role: 'The Opener',    stage: 'Finds & books',    img: '/agents/figsy.png',  price: 'Pay per result', owned: owned.figsy, comingSoon: false },
     { key: 'milla',  name: 'Milla',  role: 'The Brain',     stage: 'The intelligence', img: '/agents/milla.png',  price: '$49/mo',   owned: owned.milla,  comingSoon: false },
     { key: 'vida',   name: 'Vida',   role: 'The Connector', stage: 'Inbound capture',  img: '/agents/vida.png',   price: '$29/mo',   owned: owned.vida,   comingSoon: false },
-    { key: 'denise', name: 'Denise', role: 'The Closer',    stage: 'Closes the deal',  img: '/agents/denise.png', price: '$99/mo',   owned: owned.denise, comingSoon: false },
+    { key: 'denise', name: 'Denise', role: 'The Closer',    stage: 'Closes the deal',  img: '/agents/denise.png', price: '$39/mo',   owned: owned.denise, comingSoon: false },
     // Lena & Tony are the next family members — shown as Coming soon (not yet sellable).
     { key: 'lena',   name: 'Lena',   role: 'The Keeper',    stage: 'Retains & grows',  img: '/agents/lena.png',   price: 'Coming soon', owned: false, comingSoon: true },
     { key: 'tony',   name: 'Tony',   role: 'The Operator',  stage: 'Keeps it clean',   img: '/agents/tony.png',   price: 'Coming soon', owned: false, comingSoon: true },

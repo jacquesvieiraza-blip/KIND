@@ -80,7 +80,7 @@ const AGENTS: AgentDef[] = [
     role: 'AI Account Executive · Closing',
     accent: '#D97706',
     ring: 'ring-amber-300/30',
-    price: '$99/mo',
+    price: '$39/mo',
     nav: [
       { href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake },
     ],

@@ -12,7 +12,7 @@ const AGENTS = [
   { name: 'FIGSY',  role: 'The Opener',    stage: 'Finds & books',    img: '/agents/figsy.png',  price: 'Included', owned: true },
   { name: 'Milla',  role: 'The Brain',     stage: 'The intelligence', img: '/agents/milla.png',  price: '$49/mo',  owned: false },
   { name: 'Vida',   role: 'The Connector', stage: 'Inbound capture',  img: '/agents/vida.png',   price: '$29/mo',  owned: false },
-  { name: 'Denise', role: 'The Closer',    stage: 'Closes the deal',  img: '/agents/denise.png', price: '$99/mo',  owned: false },
+  { name: 'Denise', role: 'The Closer',    stage: 'Closes the deal',  img: '/agents/denise.png', price: '$39/mo',  owned: false },
   { name: 'Lena',   role: 'The Keeper',    stage: 'Retains & grows',  img: '/agents/lena.png',   price: '$79/mo',  owned: false },
   { name: 'Tony',   role: 'The Operator',  stage: 'Keeps it clean',   img: '/agents/tony.png',   price: '$59/mo',  owned: false },
 ]

@@ -15,7 +15,7 @@ const stripe = process.env.STRIPE_SECRET_KEY
 // ── Subscription price IDs (recurring monthly) ───────────────────────────────
 // STRIPE_PRICE_MILLA_MONTHLY  — Milla VA $49/month
 // STRIPE_PRICE_VIDA_MONTHLY   — Vida Chatbot $29/month
-// STRIPE_PRICE_DENISE_MONTHLY — Denise AI Account Executive $99/month
+// STRIPE_PRICE_DENISE_MONTHLY — Denise AI Account Executive $39/month
 
 export const STRIPE_BUNDLES = {
   lead_gen: [
@@ -33,7 +33,7 @@ export const STRIPE_BUNDLES = {
 export const STRIPE_SUBSCRIPTIONS = {
   milla:  { priceEnvVar: 'STRIPE_PRICE_MILLA_MONTHLY',  product: 'virtual_assistant', label: 'Milla — Virtual Assistant',     priceUsd: 49 },
   vida:   { priceEnvVar: 'STRIPE_PRICE_VIDA_MONTHLY',   product: 'chatbot',           label: 'Vida — Chatbot Agent',          priceUsd: 29 },
-  denise: { priceEnvVar: 'STRIPE_PRICE_DENISE_MONTHLY', product: 'denise',            label: 'Denise — AI Account Executive', priceUsd: 99 },
+  denise: { priceEnvVar: 'STRIPE_PRICE_DENISE_MONTHLY', product: 'denise',            label: 'Denise — AI Account Executive', priceUsd: 39 },
 } as const
 
 export type SubscriptionProduct = keyof typeof STRIPE_SUBSCRIPTIONS

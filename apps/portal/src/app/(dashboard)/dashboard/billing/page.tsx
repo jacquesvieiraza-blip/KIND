@@ -97,7 +97,7 @@ const AGENT_PRODUCTS = [
     key:      'denise' as const,
     label:    'Denise',
     subtitle: 'AI Account Executive',
-    price:    99,
+    price:    39,
     icon:     Handshake,
     color:    'bg-amber-600',
     features: ['Drafts warm follow-ups to quiet prospects', 'Turns call notes into a proposal in minutes', 'Surfaces objections before they kill the deal', 'Closes what FIGSY opens — in your voice'],

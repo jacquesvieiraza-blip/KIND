@@ -26,7 +26,7 @@ router.post('/demo-request', rateLimit({ limit: 5, windowMs: 60_000, key: 'demo-
   const productNames: Record<string, string> = {
     milla: 'Milla — Virtual Assistant ($49/month)',
     vida: 'Vida — Chatbot Agent ($29/month)',
-    denise: 'Denise — AI Account Executive ($99/month)',
+    denise: 'Denise — AI Account Executive ($39/month)',
     figsy: 'FIGSY — AI SDR',
     general: 'K.I.N.D Platform',
   }

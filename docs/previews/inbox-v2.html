@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.N.D — Unibox (design preview)</title>
+<style>
+  :root{
+    --brand:#7C3AED; --brand-d:#6D28D9; --brand-l:#F5F3FF; --brand-l2:#EDE9FE;
+    --ink:#202124; --ink2:#3c4043; --muted:#5f6368; --faint:#80868b;
+    --line:#e8eaed; --line2:#f1f3f4; --bg:#fff; --hover:#f5f6f7;
+    --grn:#1e8e3e; --grn-l:#e6f4ea; --amb:#b06000; --amb-l:#fef7e0;
+    --red:#d93025; --red-l:#fce8e6; --blu:#1a73e8; --blu-l:#e8f0fe;
+    --in:#0a66c2; --wa:#25d366;
+    --shadow:0 1px 2px rgba(60,64,67,.1),0 1px 3px rgba(60,64,67,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--ink);background:#f6f8fc;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  .preview-flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;
+    padding:6px;letter-spacing:.3px}
+  .preview-flag b{color:#fff}
+  .app{display:flex;height:calc(100vh - 31px);overflow:hidden}
+
+  /* ---------- col 1: app rail ---------- */
+  .rail{width:68px;background:#1f1147;display:flex;flex-direction:column;align-items:center;
+    padding:14px 0;gap:4px;flex-shrink:0}
+  .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);
+    display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px;margin-bottom:14px;
+    box-shadow:0 4px 12px rgba(124,58,237,.5)}
+  .rnav{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;color:#b8a9e0;
+    cursor:pointer;position:relative;transition:.15s}
+  .rnav:hover{background:rgba(255,255,255,.09);color:#fff}
+  .rnav.on{background:rgba(255,255,255,.16);color:#fff}
+  .rnav.on::before{content:"";position:absolute;left:-11px;top:11px;height:24px;width:4px;
+    border-radius:0 4px 4px 0;background:#c4b5fd}
+  .rnav svg{width:21px;height:21px}
+  .rail .sp{flex:1}
+  .ravatar{width:38px;height:38px;border-radius:50%;background:#fb923c;color:#fff;font-weight:600;
+    display:grid;place-items:center;font-size:13px;border:2px solid rgba(255,255,255,.25)}
+
+  /* ---------- col 2: labels ---------- */
+  .labels{width:236px;background:#fff;border-right:1px solid var(--line);display:flex;
+    flex-direction:column;flex-shrink:0;padding:16px 0}
+  .lb-title{font-size:21px;font-weight:500;color:var(--ink);padding:2px 20px 14px;letter-spacing:-.2px}
+  .lb-title small{display:block;font-size:11px;color:var(--faint);font-weight:400;margin-top:2px}
+  .compose{margin:0 16px 16px;background:var(--brand);color:#fff;border:none;border-radius:24px;
+    padding:11px 18px;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;
+    align-items:center;gap:9px;box-shadow:0 1px 3px rgba(124,58,237,.4);transition:.15s}
+  .compose:hover{background:var(--brand-d);box-shadow:0 2px 8px rgba(124,58,237,.5)}
+  .compose svg{width:16px;height:16px}
+  .chips{display:flex;gap:6px;padding:0 16px 14px;flex-wrap:wrap}
+  .chip{display:flex;align-items:center;gap:5px;font-size:11.5px;border:1px solid var(--line);
+    border-radius:14px;padding:4px 9px;color:var(--muted);cursor:pointer;background:#fff;transition:.12s}
+  .chip:hover{background:var(--hover)}
+  .chip.on{background:var(--brand-l2);border-color:var(--brand-l2);color:var(--brand-d);font-weight:600}
+  .chip i{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--faint);
+    padding:10px 20px 6px}
+  .fold{display:flex;align-items:center;gap:13px;padding:8px 20px;color:var(--ink2);cursor:pointer;
+    font-size:13.5px;border-radius:0 16px 16px 0;margin-right:10px;transition:.12s}
+  .fold:hover{background:var(--hover)}
+  .fold.on{background:var(--brand-l);color:var(--brand-d);font-weight:600}
+  .fold svg{width:17px;height:17px;opacity:.85}
+  .fold .ct{margin-left:auto;font-size:12px;color:var(--faint);font-weight:500}
+  .fold.on .ct{color:var(--brand)}
+  .tag{display:flex;align-items:center;gap:11px;padding:6px 20px;color:var(--ink2);cursor:pointer;
+    font-size:13px;transition:.12s}
+  .tag:hover{background:var(--hover)}
+  .tag i{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+  .tag .ct{margin-left:auto;font-size:11.5px;color:var(--faint)}
+
+  /* ---------- col 3: list ---------- */
+  .list{width:392px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;
+    flex-shrink:0}
+  .search{padding:14px 16px 10px}
+  .search-box{display:flex;align-items:center;gap:11px;background:#f1f3f4;border-radius:9px;padding:9px 14px;
+    transition:.15s}
+  .search-box:focus-within{background:#fff;box-shadow:var(--shadow)}
+  .search-box svg{width:18px;height:18px;color:var(--muted)}
+  .search-box input{border:none;background:none;outline:none;font-family:inherit;font-size:13.5px;
+    flex:1;color:var(--ink)}
+  .list-bar{display:flex;align-items:center;gap:14px;padding:2px 18px 10px;color:var(--muted);font-size:12.5px}
+  .list-bar .pill{display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 8px;border-radius:8px}
+  .list-bar .pill:hover{background:var(--hover)}
+  .list-bar .res{margin-left:auto;color:var(--faint);font-weight:500}
+  .rows{overflow-y:auto;flex:1}
+  .row{display:flex;gap:12px;padding:12px 16px 12px 14px;border-bottom:1px solid var(--line2);cursor:pointer;
+    position:relative;transition:.1s}
+  .row:hover{background:var(--hover);box-shadow:inset 0 0 0 1px var(--line)}
+  .row.on{background:var(--brand-l)}
+  .row.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brand)}
+  .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:600;
+    font-size:14px;flex-shrink:0}
+  .row-main{flex:1;min-width:0}
+  .row-top{display:flex;align-items:center;gap:7px;margin-bottom:2px}
+  .row-name{font-weight:600;font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  .row.read .row-name{font-weight:500;color:var(--ink2)}
+  .ch{width:15px;height:15px;border-radius:4px;display:grid;place-items:center;flex-shrink:0;font-size:9px;
+    color:#fff;font-weight:700}
+  .ch.mail{background:#ea4335}.ch.in{background:var(--in)}.ch.wa{background:var(--wa)}
+  .row-time{margin-left:auto;font-size:11.5px;color:var(--faint);white-space:nowrap;flex-shrink:0}
+  .row-snip{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    margin-bottom:6px}
+  .row.read .row-snip{color:var(--faint)}
+  .row-tags{display:flex;gap:5px;flex-wrap:wrap}
+  .t{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:6px;display:flex;align-items:center;gap:4px}
+  .t.book{background:var(--grn-l);color:var(--grn)}.t.pos{background:var(--blu-l);color:var(--blu)}
+  .t.hot{background:var(--red-l);color:var(--red)}.t.nur{background:#f3e8fd;color:#9333ea}
+  .t.need{background:var(--amb-l);color:var(--amb)}.t.draft{background:#e8eaed;color:var(--muted)}
+  .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--brand);position:absolute;left:4px;
+    top:50%;transform:translateY(-50%)}
+
+  /* ---------- col 4: thread ---------- */
+  .thread{flex:1;display:flex;flex-direction:column;background:#fff;min-width:0}
+  .th-head{display:flex;align-items:center;gap:13px;padding:15px 22px;border-bottom:1px solid var(--line)}
+  .th-head .av{width:42px;height:42px}
+  .th-id .nm{font-weight:600;font-size:16px}
+  .th-id .sub{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-top:1px}
+  .crm{background:var(--amb-l);color:var(--amb);font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;
+    display:flex;align-items:center;gap:4px}
+  .th-actions{margin-left:auto;display:flex;gap:4px}
+  .iconbtn{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;color:var(--muted);
+    cursor:pointer;transition:.12s}
+  .iconbtn:hover{background:var(--hover);color:var(--ink)}
+  .iconbtn svg{width:19px;height:19px}
+  .th-body{flex:1;overflow-y:auto;padding:20px 26px;background:#fafbfc}
+  .daysep{text-align:center;font-size:11.5px;color:var(--faint);margin:14px 0;position:relative}
+  .daysep::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line)}
+  .daysep span{background:#fafbfc;padding:0 12px;position:relative}
+  .evt{text-align:center;font-size:12px;color:var(--muted);margin:12px 0;display:flex;align-items:center;
+    justify-content:center;gap:7px}
+  .evt .ch{width:16px;height:16px}
+  .msg{display:flex;gap:11px;margin:14px 0;max-width:78%}
+  .msg .mav{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;
+    font-weight:600;font-size:11px;flex-shrink:0}
+  .bubble{background:#fff;border:1px solid var(--line);border-radius:4px 16px 16px 16px;padding:12px 16px;
+    font-size:13.5px;color:var(--ink2);box-shadow:var(--shadow)}
+  .msg.out{margin-left:auto;flex-direction:row-reverse}
+  .msg.out .bubble{background:var(--brand-l);border-color:var(--brand-l2);border-radius:16px 4px 16px 16px;
+    color:#3b2566}
+  .mmeta{font-size:11px;color:var(--faint);margin-top:6px;display:flex;align-items:center;gap:6px}
+  .msg.out .mmeta{justify-content:flex-end}
+
+  /* composer */
+  .composer{border-top:1px solid var(--line);padding:12px 22px 16px;background:#fff}
+  .ai-row{display:flex;gap:9px;margin-bottom:11px;align-items:center}
+  .ai-btn{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);
+    color:#fff;border:none;border-radius:20px;padding:9px 16px;font-size:13px;font-weight:600;
+    font-family:inherit;cursor:pointer;box-shadow:0 1px 4px rgba(124,58,237,.4);transition:.15s}
+  .ai-btn:hover{filter:brightness(1.08);box-shadow:0 2px 8px rgba(124,58,237,.5)}
+  .ai-btn svg{width:15px;height:15px}
+  .ghost{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);
+    border-radius:20px;padding:9px 14px;font-size:12.5px;font-weight:500;color:var(--ink2);cursor:pointer;
+    font-family:inherit;transition:.12s}
+  .ghost:hover{background:var(--hover)}
+  .ghost svg{width:15px;height:15px;color:var(--muted)}
+  .ai-hint{margin-left:auto;font-size:11.5px;color:var(--faint);display:flex;align-items:center;gap:6px}
+  .kbd{background:#f1f3f4;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px;
+    font-family:inherit;color:var(--muted)}
+  .input-wrap{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;
+    flex-direction:column;gap:10px;transition:.15s}
+  .input-wrap:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-l)}
+  .draft-tag{font-size:11px;color:var(--brand-d);background:var(--brand-l);align-self:flex-start;
+    padding:2px 9px;border-radius:6px;font-weight:600;display:flex;align-items:center;gap:5px}
+  .input-wrap textarea{border:none;outline:none;resize:none;font-family:inherit;font-size:13.5px;
+    color:var(--ink2);min-height:46px;line-height:1.5}
+  .send-row{display:flex;align-items:center;gap:8px}
+  .send{background:var(--brand);color:#fff;border:none;border-radius:9px;padding:9px 22px;font-weight:600;
+    font-size:13.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.12s}
+  .send:hover{background:var(--brand-d)}
+  .send svg{width:15px;height:15px}
+  .send-row .iconbtn{width:34px;height:34px}
+
+  /* ---------- col 5: context card (beats Alta) ---------- */
+  .ctx{width:280px;border-left:1px solid var(--line);background:#fff;flex-shrink:0;overflow-y:auto;
+    padding:20px 18px}
+  .ctx-h{text-align:center;padding-bottom:16px;border-bottom:1px solid var(--line2)}
+  .ctx-h .av{width:60px;height:60px;font-size:21px;margin:0 auto 10px}
+  .ctx-h .nm{font-weight:600;font-size:15px}
+  .ctx-h .ttl{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .ctx-h .co{font-size:12.5px;color:var(--brand-d);font-weight:600;margin-top:3px}
+  .score{display:flex;gap:8px;margin:16px 0;text-align:center}
+  .score .b{flex:1;background:#fafbfc;border:1px solid var(--line2);border-radius:11px;padding:11px 6px}
+  .score .v{font-size:19px;font-weight:700;color:var(--ink)}
+  .score .v.g{color:var(--grn)}.score .v.r{color:var(--red)}
+  .score .l{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+  .ctx-sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--faint);
+    margin:18px 0 9px}
+  .kv{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line2)}
+  .kv .k{color:var(--muted)}.kv .v{color:var(--ink2);font-weight:500;text-align:right}
+  .figsy-card{background:linear-gradient(135deg,#faf5ff,#f5f3ff);border:1px solid var(--brand-l2);
+    border-radius:13px;padding:13px;margin-top:8px}
+  .figsy-card .fh{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--brand-d);
+    margin-bottom:7px}
+  .figsy-card .fh .fav{width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;
+    display:grid;place-items:center;font-size:10px;font-weight:700}
+  .figsy-card p{font-size:12.5px;color:var(--ink2);line-height:1.5}
+  @media(max-width:1300px){.ctx{display:none}}
+  @media(max-width:1050px){.labels{display:none}}
+</style>
+</head>
+<body>
+
+<div class="preview-flag">🎨 <b>DESIGN PREVIEW</b> — K.I.N.D Unibox redesign (inventory item&nbsp;112) · Gmail-style multi-channel inbox · sample data · not wired to the app</div>
+
+<div class="app">
+
+  <!-- col 1: rail -->
+  <nav class="rail">
+    <div class="logo">K</div>
+    <div class="rnav" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></div>
+    <div class="rnav" title="Leads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+    <div class="rnav" title="Campaigns"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></div>
+    <div class="rnav on" title="Unibox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div>
+    <div class="rnav" title="Agents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></div>
+    <div class="rnav" title="Company"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg></div>
+    <div class="sp"></div>
+    <div class="ravatar">JV</div>
+  </nav>
+
+  <!-- col 2: labels -->
+  <aside class="labels">
+    <div class="lb-title">Unibox<small>All conversations, one place</small></div>
+    <button class="compose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Compose</button>
+    <div class="chips">
+      <span class="chip on">All</span>
+      <span class="chip"><i style="background:#ea4335"></i>Email</span>
+      <span class="chip"><i style="background:var(--in)"></i>LinkedIn</span>
+      <span class="chip"><i style="background:var(--wa)"></i>WhatsApp</span>
+    </div>
+    <div class="fold on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>All<span class="ct">62</span></div>
+    <div class="fold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5"/></svg>Unread<span class="ct">17</span></div>
+    <div class="fold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>Replied<span class="ct">31</span></div>
+    <div class="fold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Drafts<span class="ct">4</span></div>
+    <div class="fold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></svg>Archived</div>
+
+    <div class="sec">Tags</div>
+    <div class="tag"><i style="background:var(--grn)"></i>Meeting Booked<span class="ct">12</span></div>
+    <div class="tag"><i style="background:var(--blu)"></i>Positive<span class="ct">19</span></div>
+    <div class="tag"><i style="background:var(--red)"></i>🔥 Hot<span class="ct">5</span></div>
+    <div class="tag"><i style="background:#9333ea"></i>Nurturing<span class="ct">8</span></div>
+    <div class="tag"><i style="background:var(--amb)"></i>Reply Needed<span class="ct">6</span></div>
+    <div class="tag"><i style="background:#80868b"></i>Out of Office<span class="ct">3</span></div>
+  </aside>
+
+  <!-- col 3: list -->
+  <section class="list">
+    <div class="search">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input placeholder="Search conversations">
+      </div>
+    </div>
+    <div class="list-bar">
+      <span class="pill">All time <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+      <span class="pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M7 12h10M11 18h2"/></svg> Filter</span>
+      <span class="res">62 results</span>
+    </div>
+    <div class="rows">
+
+      <div class="row on">
+        <div class="av" style="background:#1a73e8">TN</div>
+        <div class="row-main">
+          <div class="row-top"><span class="ch in">in</span><span class="row-name">Thabo Nkosi</span><span class="row-time">10:24</span></div>
+          <div class="row-snip">I scheduled for next Wednesday at 10am</div>
+          <div class="row-tags"><span class="t pos">Positive</span><span class="t book">✓ Meeting Booked</span></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="unread-dot"></span>
+        <div class="av" style="background:#d93025">ZB</div>
+        <div class="row-main">
+          <div class="row-top"><span class="ch mail">@</span><span class="row-name">Zainab Bello</span><span class="row-time">09:51</span></div>
+          <div class="row-snip">This looks interesting — what would pricing look like for a team of 8?</div>
+          <div class="row-tags"><span class="t hot">🔥 Hot</span><span class="t need">Reply Needed</span></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="unread-dot"></span>
+        <div class="av" style="background:#1e8e3e">KM</div>
+        <div class="row-main">
+          <div class="row-top"><span class="ch wa">✆</span><span class="row-name">Kwame Mensah</span><span class="row-time">08:30</span></div>
+          <div class="row-snip">Thanks for the follow up. Let's set something up next week.</div>
+          <div class="row-tags"><span class="t pos">Positive</span><span class="t draft">✎ Draft</span></div>
+        </div>
+      </div>
+
+      <div class="row read">
+        <div class="av" style="background:#9333ea">NA</div>
+        <div class="row-main">
+          <div class="row-top"><span class="ch in">in</span><span class="row-name">Naledi Adeyemi</span><span class="row-time">Yest</span></div>
+          <div class="row-snip">Appreciate the note — circle back to me in Q3 when budgets reset.</div>
+          <div class="row-tags"><span class="t nur">Nurturing</span></div>
+        </div>
+      </div>
+
+      <div class="row read">
+        <div class="av" style="background:#b06000">TA</div>
+        <div class="row-main">
+          <div class="row-top"><span class="ch mail">@</span><span class="row-name">Tunde Achebe</span><span class="row-time">Yest</span></div>
+          <div class="row-snip">Ronnie: thank you Tunde, I've scheduled the demo for Thursday.</div>
+          <div class="row-tags"><span class="t book">✓ Meeting Booked</span></div>
+        </div>
+      </div>
+
+      <div class="row read">
+        <div class="av" style="background:#0a66c2">JM</div>
+        <div class="row-main">
+          <div class="row-top"><span class="ch in">in</span><span class="row-name">Jesum Mejias</span><span class="row-time">Mon</span></div>
+          <div class="row-snip">I already booked a call for next month, thanks.</div>
+          <div class="row-tags"><span class="t pos">Positive</span><span class="t book">✓ Meeting Booked</span></div>
+        </div>
+      </div>
+
+      <div class="row read">
+        <div class="av" style="background:#5f6368">RS</div>
+        <div class="row-main">
+          <div class="row-top"><span class="ch wa">✆</span><span class="row-name">Rajib Sharma</span><span class="row-time">Mon</span></div>
+          <div class="row-snip">Thanks for your openness, Rajib. I'll be in touch.</div>
+          <div class="row-tags"><span class="t nur">Nurturing</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- col 4: thread -->
+  <section class="thread">
+    <div class="th-head">
+      <div class="av" style="background:#1a73e8">TN</div>
+      <div class="th-id">
+        <div class="nm">Thabo Nkosi</div>
+        <div class="sub">Head of Revenue Ops · Sasol Digital <span class="crm">⬡ MQL · no meeting (CRM)</span></div>
+      </div>
+      <div class="th-actions">
+        <div class="iconbtn" title="Add tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg></div>
+        <div class="iconbtn" title="Snooze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6m20 0-3-3"/></svg></div>
+        <div class="iconbtn" title="Archive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></svg></div>
+      </div>
+    </div>
+
+    <div class="th-body">
+      <div class="daysep"><span>Wed, 20 May 2026</span></div>
+      <div class="evt"><span class="ch in">in</span> You sent a connection request · 09:40</div>
+      <div class="evt"><span class="ch in">in</span> Thabo Nkosi accepted your invitation · 23:05</div>
+
+      <div class="msg out">
+        <div class="mav" style="background:var(--brand)">F</div>
+        <div>
+          <div class="bubble">Hi Thabo, I noticed you lead RevOps at Sasol Digital — we help African sales teams put a dedicated AI SDR behind every rep. Worth a quick chat?</div>
+          <div class="mmeta">FIGSY · via LinkedIn · 22:51 · ✓ delivered</div>
+        </div>
+      </div>
+
+      <div class="daysep"><span>Thu, 21 May 2026</span></div>
+      <div class="msg out">
+        <div class="mav" style="background:var(--brand)">F</div>
+        <div>
+          <div class="bubble">Great to connect, Thabo! Happy to share more on a quick call. You can grab a slot directly here: kind.app/book/thabo — or just tell me what works.</div>
+          <div class="mmeta">FIGSY · via LinkedIn · 14:18 · ✓ delivered</div>
+        </div>
+      </div>
+
+      <div class="msg">
+        <div class="mav" style="background:#1a73e8">TN</div>
+        <div>
+          <div class="bubble">I scheduled for next Wednesday at 10am 👍</div>
+          <div class="mmeta">10:24 · LinkedIn</div>
+        </div>
+      </div>
+
+      <div class="msg out">
+        <div class="mav" style="background:var(--brand)">F</div>
+        <div>
+          <div class="bubble">Perfect — locked in for Wednesday 10am. Looking forward to showing you how K.I.N.D gives every rep their own AI SDR. Calendar invite on its way.</div>
+          <div class="mmeta">FIGSY · via LinkedIn · 10:25 · ✓ delivered</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- composer -->
+    <div class="composer">
+      <div class="ai-row">
+        <button class="ai-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/></svg>Help me reply</button>
+        <button class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>Use next sequence step</button>
+        <span class="ai-hint">FIGSY drafts in your voice <span class="kbd">⌘↵</span> to send</span>
+      </div>
+      <div class="input-wrap">
+        <span class="draft-tag">✨ FIGSY draft — review &amp; send</span>
+        <textarea>Thanks for scheduling, Thabo! Looking forward to Wednesday — I'll walk you through how Sasol's reps each get their own AI SDR, and how you keep central control of the budget. Talk soon.</textarea>
+        <div class="send-row">
+          <button class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Send</button>
+          <div class="iconbtn" title="Attach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></div>
+          <div class="iconbtn" title="Insert template"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- col 5: context (the "even better than Alta") -->
+  <aside class="ctx">
+    <div class="ctx-h">
+      <div class="av" style="background:#1a73e8">TN</div>
+      <div class="nm">Thabo Nkosi</div>
+      <div class="ttl">Head of Revenue Operations</div>
+      <div class="co">Sasol Digital</div>
+    </div>
+    <div class="score">
+      <div class="b"><div class="v g">92</div><div class="l">ICP fit</div></div>
+      <div class="b"><div class="v r">🔥</div><div class="l">Hot</div></div>
+      <div class="b"><div class="v">3</div><div class="l">Touches</div></div>
+    </div>
+    <div class="ctx-sec">Lead details</div>
+    <div class="kv"><span class="k">Location</span><span class="v">Johannesburg, ZA</span></div>
+    <div class="kv"><span class="k">Company size</span><span class="v">200–500</span></div>
+    <div class="kv"><span class="k">Source</span><span class="v">Apollo · verified</span></div>
+    <div class="kv"><span class="k">Campaign</span><span class="v">RevOps SA Q2</span></div>
+    <div class="kv"><span class="k">Status</span><span class="v" style="color:var(--grn)">Meeting booked</span></div>
+    <div class="ctx-sec">FIGSY says</div>
+    <div class="figsy-card">
+      <div class="fh"><span class="fav">F</span>FIGSY · The Opener</div>
+      <p>Thabo replied positively and self-booked within 18 hours — a strong buying signal. I've drafted a warm confirmation. Suggested next step: hand to <b>Denise</b> for meeting prep the morning of the call.</p>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>

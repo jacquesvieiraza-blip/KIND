@@ -189,23 +189,23 @@
 | 111 | 🔴 | Per-rep / multi-provider calendars (#88-41, V2-13) | 🤖 |
 
 ## 3C — Post-19 near-term build queue (ungated, buildable on founder go)
-| # | 🔴 | Item | Owner |
-|---|----|------|-------|
-| 112 | 🔴 | **Alta-style inbox rebuild** (founder 👎 12 Jun: "inbox is not great" — multi-channel smart inbox, Alta §20 blueprint) | 🤖 |
-| 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §2 #97) | 🤖 |
-| 114 | 🔴 | Kanban pipeline polish #100 | 🤖 |
-| 115 | 🔴 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖 |
-| 116 | 🔴 | Activity feed → Home-dashboard widget (touches core screen — design review first) | 🤝 |
-| 117 | ⏸ | Subscribe-to-the-drop #122 (⏸ Drop content) | 🤖 |
-| 118 | 🔴 | Site nav/footer rewire #123 (~40 pages, Demo→Watch + The Drop) | 🤖 |
-| 119 | ⏸ | Revenue Mission Control #115 (3-col live ops — ⏸ confirm direction, ~3–4 days) | 🤝 |
-| 120 | ⏸ | FIGSY Memory v2 / pgvector #46 (⏸ 🧍 flips pgvector switch, 2 min) | 🤝 |
-| 121 | ⏸ | Casey conversational onboarding V2-3/10 (⏸ founder voice/tone input — highest-value V2 build) | 🤝 |
-| 122 | 🔴 | Y16 — kill dead Vercel↔GitHub integration | 🧍 |
-| 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝 |
-| 124 | 🔴 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖 |
-| 125 | 🔴 | Agent-image card crop fix (cosmetic #5, open) | 🤖 |
-| 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍 |
+| # | 🔴 | Item | Owner | 🎨 Preview |
+|---|----|------|-------|-----------|
+| 112 | 🔴 | **Alta-style inbox rebuild** (founder 👎 12 Jun: "inbox is not great" — multi-channel smart inbox, Alta §20 blueprint) | 🤖 | [inbox-v2.html](./previews/inbox-v2.html) ⏳ *awaiting sign-off* |
+| 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §2 #97) | 🤖  |  |
+| 114 | 🔴 | Kanban pipeline polish #100 | 🤖  |  |
+| 115 | 🔴 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖  |  |
+| 116 | 🔴 | Activity feed → Home-dashboard widget (touches core screen — design review first) | 🤝  |  |
+| 117 | ⏸ | Subscribe-to-the-drop #122 (⏸ Drop content) | 🤖  |  |
+| 118 | 🔴 | Site nav/footer rewire #123 (~40 pages, Demo→Watch + The Drop) | 🤖  |  |
+| 119 | ⏸ | Revenue Mission Control #115 (3-col live ops — ⏸ confirm direction, ~3–4 days) | 🤝  |  |
+| 120 | ⏸ | FIGSY Memory v2 / pgvector #46 (⏸ 🧍 flips pgvector switch, 2 min) | 🤝  |  |
+| 121 | ⏸ | Casey conversational onboarding V2-3/10 (⏸ founder voice/tone input — highest-value V2 build) | 🤝  |  |
+| 122 | 🔴 | Y16 — kill dead Vercel↔GitHub integration | 🧍  |  |
+| 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝  |  |
+| 124 | 🔴 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖  |  |
+| 125 | 🔴 | Agent-image card crop fix (cosmetic #5, open) | 🤖  |  |
+| 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
 
 ## 3D — Week 1 post-launch (Jun 19–28) — GTM
 | # | 🔴 | Item | Owner |

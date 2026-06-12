@@ -26,7 +26,7 @@
 - **A — Launch the whole batch** (V2 nav + status bar + activity + deliverability + company engine + Denise $39). It's all built & tested on staging. Bigger surface, but one merge. Contradicts the "one push before the 19th" plan.
 - **B — Isolated launch (recommended for your stated goal):** Claude builds a clean **`company-engine-prod`** branch *from `main`* containing only: the company-engine backend (`company.ts`, `admin.ts` company_demo, `seed-company.ts`, `index.ts` mount), the company **page**, the layout agent-gating, a minimal **Company** sidebar link (without the rest of the nav redesign), and **Denise $39**. You review + merge that one branch → only the Command Centre + Denise go live. Everything else stays on staging.
 
-➡️ **Decision needed: A or B.** (Your repeated direction = B — only the Command Centre before the 19th.)
+➡️ **DECIDED 12 Jun: Option A — ONE combined launch by the 19th** (whole staging batch + Company Engine together, `staging → main`). One to-do list: `FOUNDER-ACTIONS.md`. No isolated branch.
 
 ## 🔴 CRITICAL FINDING #2 — owners can't self-fund the pool on production
 - `POST /company/pool/topup` is **staging-only** (returns 403 in prod) and there is **no Stripe → pool** path yet.

@@ -1,42 +1,55 @@
-# 🧍 FOUNDER ACTIONS — the things only you can do
+# 🚀 K.I.N.D — ONE LAUNCH CHECKLIST (target: Fri 19 Jun)
 
-> Single consolidated checklist of founder-only tasks (API keys, partnerships, legal,
-> production deploys). Claude can't do these — they need your credentials/accounts/signature.
-> Grouped by urgency. **Last updated: 12 Jun 2026.**
+> **Decision (12 Jun):** ONE combined launch — the full staging batch **+** the Company Engine ship
+> together by the 19th. No separate Command-Centre track. Path = `staging → main` (one merge).
+> This is the single source for founder actions. Companion detail: `LAUNCH-AUDIT-12JUN.md`,
+> `COMPANY-ENGINE-TEST.md`, `STATUS-12JUN.md`. Tick items here as you go.
 
----
-
-## 🔴 COMPANY ENGINE — go live for the client demo (NEW, before 19 Jun)
-*The one build going to production before launch. Tested Monday, demoed next week.*
-
-- [ ] **Monday prep (5 min, in this order):** merge `claude/kind-carson-MYhSl` → `staging` → **re-paste `staging-schema.sql`** in kind-staging (adds `enabled_agents`) → **redeploy BOTH** `api-staging` + `heartfelt-essence` → do **NOT** re-run the company seed. *(Detail: `COMPANY-ENGINE-TEST.md` → REFRESH block.)*
-- [ ] **Test the engine on staging** (Mon) — follow `docs/COMPANY-ENGINE-TEST.md` end-to-end (invite → accept → allocate → request → approve → per-rep agent unlock).
-- [ ] ⚠️ **Stripe: create the NEW $39 Denise price** — the existing `STRIPE_PRICE_DENISE_MONTHLY` price object is still **$99** (changing code does not change Stripe). Create a $39/mo recurring price → update the env var on api/portal → redeploy. Until then, Denise checkout would charge $99.
-- [ ] **Decide company billing in Stripe** — confirmed model: free seats · two credit pools (lead-gen $1/unit, FIGSY $3/unit) · agents per rep (Milla $49 · Vida $29 · Denise $39). Create/confirm the Stripe products + price IDs for **pool top-ups** so the owner can actually pay.
-- [ ] **Run the company-engine migration on the PRODUCTION Supabase** — `supabase/migrations/20260612_company_engine.sql` (idempotent, additive: companies table, seat columns, nullable user_id, seat_credit_requests, winning_plays, enabled_agents). Safe for existing clients.
-- [ ] **Merge to `main`** (you only) — the company-engine branch → production deploy.
-- [ ] **Enable `company`** in production `NEXT_PUBLIC_FEATURE_V2_SCREENS` (or just for the demo client).
-- [ ] **Fund the demo company's pool** (until Stripe→pool billing is wired, admin-fund it for the demo).
-- [ ] **🎬 Demo showcase** — Claude builds a presentable **demo company** (owner + reps, realistic data, agents unlocked) wired into the admin **Demo Envs**, so the **Company Command Centre is populated + impressive** when you demo. *(Founder requirement 12 Jun — Claude build; you just log in and present.)*
-
-## 🔴 INTEGRATIONS / KEYS — critical, you flagged these
-- [ ] **Email `partners@apollo.io`** — Apollo **API reseller / partner agreement** (so reselling off one account is ToS-compliant from client #1; ~1 week turnaround). *Primary fix for the data moat.*
-- [ ] **Create Hunter.io account → `HUNTER_API_KEY`** (~$49/mo) — lights the enrichment waterfall (Apollo → PDL → Hunter → Clearbit). Code is ready + dormant until the key is set.
-- [ ] **Get a free `PDL_API_KEY`** (People Data Labs) — activates the **2nd lead-discovery source** (`searchPeopleWithFallback`). Code wired + dormant until the key is set.
-- [ ] *(later, post-revenue)* Clearbit key · Vapi voice key · WhatsApp Meta approval.
-
-## 🔴 LAUNCH-CRITICAL — before Fri 19 Jun
-- [ ] **D9 deliverability 10/10** — `docs/DELIVERABILITY-D9-CHECKLIST.md` (inbox-placement test to 10/10).
-- [ ] **Legal pack #10–#14** — ICO registration (£40) · SR01 · registered office · WHOIS privacy · LinkedIn lockdown.
-- [ ] **Go/No-Go gate** — Thu 18 Jun.
-- [ ] **Remaining smoke tests** — T3–T7, T9, T10 (founder runs, Claude fixes same-day).
-- [x] ~~Rotate 2 crown-jewel keys~~ — ✅ DONE 11 Jun (Stripe secret + Supabase service-role).
-
-## 🟡 SOON / POST-LAUNCH
-- [ ] **Y16** — kill the dead Vercel ↔ GitHub integration.
-- [ ] Social login (Batch 2) — parallel, not a blocker.
+**Owner key:** 🧍 founder · 🤖 Claude · 🤝 both
 
 ---
 
-### How this stays current
-When you complete one, tell Claude and it'll tick it here. New founder-only tasks get added here as they come up — so this is the one place "stuff I need to do" lives.
+## 1 · GET STAGING CURRENT + TESTED (this weekend / Mon)
+- [ ] 🧍 **Merge** `claude/kind-carson-MYhSl` → `staging` (PR, base `staging`)
+- [ ] 🧍 **Re-paste `staging-schema.sql`** in `kind-staging` SQL editor *(adds `enabled_agents`)*
+- [ ] 🧍 **Redeploy BOTH** `api-staging` + `heartfelt-essence` (watch a real build) · do **NOT** re-run the company seed
+- [ ] 🧍 **Test the Company Engine** end-to-end on staging — `COMPANY-ENGINE-TEST.md` (Command Centre · approve a request · seat agent toggles · admin "Company demo")
+- [ ] 🧍 **Review the V2 batch** on staging — walk the screens, log 👍/👎 in `STAGING-REVIEW.md`. *(Launching everything means these go live too — flag anything that must change before the 19th.)*
+
+## 2 · CLAUDE BUILDS BEFORE LAUNCH (🤖 — in progress)
+- [ ] 🤖 **Stripe → company pool billing** — owner pays → funds the two pools (so the Command Centre is a *real paying* launch, not admin-funded only). *Next build.*
+- [ ] 🤖 **Invite email delivery** (owner clicks invite → rep emailed) + **owner drill-down** into a rep
+- [ ] 🤖 Fix any **smoke-test failures** same-day as you run them
+
+## 3 · INTEGRATION KEYS — data moat (🧍, do soon, ~1 wk lead time on Apollo)
+- [ ] 🧍 **Email `partners@apollo.io`** — Apollo API reseller / partner agreement *(ToS-compliant reselling; ~1 week)*
+- [ ] 🧍 **Create Hunter.io account → `HUNTER_API_KEY`** (~$49/mo) — lights the enrichment waterfall (code dormant, ready)
+- [ ] 🧍 **Get a free `PDL_API_KEY`** — activates the 2nd lead-discovery source (code dormant, ready)
+
+## 4 · PRICING (🧍)
+- [ ] 🧍 **Create the $39 Denise Stripe price** → update `STRIPE_PRICE_DENISE_MONTHLY` on api + portal → redeploy. *(Code is $39; Stripe object still $99 until you do this — else checkout charges $99.)*
+- [ ] 🧍 **Create Stripe pool-topup products** (lead-gen $1/unit · FIGSY $3/unit) once Claude's billing lands.
+
+## 5 · LAUNCH-CRITICAL GATE (🧍, before Fri 19)
+- [ ] 🧍 **D9 deliverability 10/10** — `DELIVERABILITY-D9-CHECKLIST.md`
+- [ ] 🧍 **Legal pack #10–14** — ICO (£40) · SR01 · registered office · WHOIS privacy · LinkedIn lockdown
+- [ ] 🧍 **Smoke tests** T3–T7, T9, T10 (you run, Claude fixes same-day)
+- [ ] 🤝 **Go/No-Go gate — Thu 18 Jun**
+
+## 6 · THE PRODUCTION LAUNCH (🧍, on go — the 19th)
+- [ ] 🧍 **Run `20260612_company_engine.sql` on PRODUCTION Supabase** *(idempotent, additive, safe for existing clients)*
+- [ ] 🧍 **Merge `staging` → `main`** *(you only — after review + Go/No-Go)*
+- [ ] 🧍 **Set production flags** — `NEXT_PUBLIC_FEATURE_V2_SCREENS` to the approved set (include `company`; add `layout` etc. for whatever V2 screens you approved)
+- [ ] 🧍 **Smoke-check production** — login, a real send, the Command Centre, billing
+
+## 7 · DEMO PREP (🧍, before the client demo)
+- [ ] 🧍 Create a **Company demo** in the admin portal (Demo Envs → tick "Company demo") → Open → `/dashboard/company` is populated
+- [ ] 🧍 If demoing before the prod launch, demo on **staging** (already live + working)
+
+---
+
+## ✅ Already done (12 Jun)
+Staging isolation · status bar · account-hub dropdown · nav redesign · PWA icons · deliverability dashboard · activity feed · notification centre · **Company Engine** (per-rep workspaces · pools · budgets · request→approve · invite→accept · autonomy · winning plays · per-rep agent unlock · opt-in provision · admin Company-demo) · **Denise $99→$39** · offline flow docs · MCP explainer · key rotations (11 Jun).
+
+## ▶️ After the 19th (separate, not launch-blocking)
+Wave-4 keys (WhatsApp/Vapi/Clearbit) · record videos · Y16 (kill Vercel↔GitHub) · outcome-based pricing · finish company-engine 🟡 items (manager role, offboarding, calendars, routing) · the staging review queue (A/B, Kanban…).

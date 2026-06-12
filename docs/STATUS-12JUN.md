@@ -103,5 +103,10 @@ reviews on staging → founder merges `staging` → `main` (production). Nothing
 
 ---
 
+## 🗓️ DECISION 12 Jun late — ONE combined launch
+> The Command Centre is **NOT** a separate pre-19 push anymore. **Everything (the full staging V2
+> batch + the Company Engine) launches together by Fri 19** via `staging → main`. Single founder
+> checklist: [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md). Demo runs on staging (live now) if before the launch.
+
 ## 🗓️ Bottom line
 The **Company Engine is the one push going to production before the 19th** — tested Monday, demoed to the client next week. It's **built and working on staging**; the remaining go-live work is **Stripe → pool billing (Claude)** + the **production deploy steps (founder only)**. Everything else stays on staging for review and ships after launch.

@@ -38,7 +38,7 @@ router.post('/invite', async (req, res): Promise<void> => {
   // Send invite email if Resend available
   if (process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY)
-    const portalUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.kindai.co.za'
+    const portalUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.get-kind.com'
     await resend.emails.send({
       from: 'K.I.N.D <hello@get-kind.com>',
       to: email,

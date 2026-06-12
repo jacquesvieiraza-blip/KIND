@@ -8,10 +8,11 @@ import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
-  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
+  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook, ShieldCheck,
   Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, LayoutTemplate, Sparkles, Mic, GitBranch,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
+import { StatusBar } from '@/components/layout/StatusBar'
 
 type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
 
@@ -41,6 +42,7 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/figsy/sequence-builder', label: 'Sequence Builder', icon: GitBranch },
       { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox, badge: 'unread' },
       { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
+      { href: '/dashboard/deliverability',         label: 'Deliverability',   icon: ShieldCheck },
       { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
       { href: '/dashboard/figsy/webhooks',         label: 'Webhooks',         icon: Webhook },
     ],
@@ -113,24 +115,6 @@ const ACCOUNT_NAV = [
   { href: '/dashboard/messages',   label: 'Messages',     icon: MessageCircle },
   { href: '/dashboard/settings',   label: 'Settings',     icon: Settings },
 ]
-
-function SystemStatus() {
-  const [status, setStatus] = React.useState<'checking' | 'ok' | 'degraded'>('checking')
-  React.useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-    fetch(`${url}/health`, { signal: AbortSignal.timeout(5000) })
-      .then(r => r.ok ? setStatus('ok') : setStatus('degraded'))
-      .catch(() => setStatus('degraded'))
-  }, [])
-  const dot   = status === 'ok' ? 'bg-emerald-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-[#7C3AED]/30'
-  const label = status === 'ok' ? 'All systems operational' : status === 'degraded' ? 'Service disruption' : 'Checking…'
-  return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50">
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot} ${status === 'ok' ? 'animate-pulse' : ''}`} />
-      <span className="text-[11px] text-[#7C3AED]/50">{label}</span>
-    </div>
-  )
-}
 
 export function Sidebar({
   userEmail,
@@ -443,7 +427,7 @@ export function Sidebar({
               </div>
             </div>
           </div>
-          <SystemStatus />
+          <StatusBar />
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-[#7C3AED]/40 hover:text-[#7C3AED] hover:bg-purple-50 transition-colors"

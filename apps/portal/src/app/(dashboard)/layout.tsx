@@ -12,7 +12,9 @@ import { MilestoneCelebration } from '@/components/ui/MilestoneCelebration'
 import { AgentColumn } from './AgentColumn'
 import { ProfileMenu } from '@/components/layout/ProfileMenu'
 import { v2Enabled } from '@/lib/flags'
-import { Coins, Bell } from 'lucide-react'
+import { Coins, Bell, FlaskConical } from 'lucide-react'
+
+const IS_STAGING = process.env.NEXT_PUBLIC_IS_STAGING === 'true'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -123,6 +125,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     </>
   )
 
+  const stagingBanner = IS_STAGING ? (
+    <div className="flex items-center justify-center gap-2 bg-amber-400 text-amber-900 text-xs font-bold py-1.5 px-4 shrink-0">
+      <FlaskConical className="w-3.5 h-3.5" />
+      STAGING — test data only — changes here never affect production
+    </div>
+  ) : null
+
   // ── SLIM LAYOUT (V2) — gated by FEATURE_V2_SCREENS=layout. OFF by default,
   //    so the live product is unchanged until the flag is flipped. ──────────────
   if (v2Enabled('layout')) {
@@ -137,6 +146,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           isPartner={isPartner}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
+          {stagingBanner}
           <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-end gap-3 px-6 shrink-0">
             <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-amber-700 bg-amber-50">
               <Coins className="w-3.5 h-3.5" /> {creditBalance.toLocaleString()}
@@ -156,20 +166,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   // ── CURRENT LAYOUT (default, live today) ─────────────────────────────────────
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FAFAFE]">
-      <Sidebar
-        userEmail={user.email || ''}
-        creditBalance={creditBalance}
-        hasFigsy={hasFigsy}
-        hasMilla={hasMilla}
-        hasVida={hasVida}
-        hasDenise={hasDenise}
-        isNewUser={isNewUser}
-        isPartner={isPartner}
-      />
-      <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] sm:p-6 sm:pt-[4.75rem] lg:p-8 lg:pt-8">
-        {mainContent}
-      </main>
+    <div className="flex h-screen overflow-hidden bg-[#FAFAFE] flex-col">
+      {stagingBanner}
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
+          userEmail={user.email || ''}
+          creditBalance={creditBalance}
+          hasFigsy={hasFigsy}
+          hasMilla={hasMilla}
+          hasVida={hasVida}
+          hasDenise={hasDenise}
+          isNewUser={isNewUser}
+          isPartner={isPartner}
+        />
+        <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] sm:p-6 sm:pt-[4.75rem] lg:p-8 lg:pt-8">
+          {mainContent}
+        </main>
+      </div>
       <CommandPalette />
       <VidaHelpBubble />
     </div>

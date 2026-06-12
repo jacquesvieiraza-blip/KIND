@@ -131,6 +131,8 @@ export interface LeadStats {
   consented: number
   exported: number
   opted_out: number
+  pending_review?: number
+  in_figsy?: number
   avg_score: number
   pipeline_value_usd: number
 }

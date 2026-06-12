@@ -21,6 +21,7 @@ import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCa
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
+import { recomputeCampaignCounters } from '../lib/figsy'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -974,10 +975,12 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
 // Pause active campaigns whose reply rate has dropped below 1%.
 internalRouter.post('/figsy/check-performance', async (_req: Request, res: Response) => {
   try {
-    // Only judge a campaign once the full 3-step sequence (step 3 = day 9) and the
-    // reply window have had time to play out, AND there's enough volume for <1% to be
-    // a real signal. A young/warming campaign with 0 replies is EXPECTED — auto-pausing
-    // it (e.g. the warmup campaign at day 3) wrongly halts domain warming.
+    // Don't judge a campaign's reply rate until BOTH: (a) the full 3-step sequence
+    // has had time to fire (step 3 = day 9) and replies a chance to land (~day 10+),
+    // and (b) there's enough volume for <1% to be a real signal, not noise. A young
+    // or warming campaign with 0 replies is EXPECTED — auto-pausing it (e.g. the
+    // warmup campaign at day 3) wrongly halts domain warming. Raised from 20 → 50
+    // emails + a 10-day age gate after that exact false-pause hit the live warmup.
     const MIN_EMAILS = 50
     const MIN_AGE_DAYS = 10
     const { data: campaigns } = await db.from('figsy_campaigns')
@@ -989,10 +992,16 @@ internalRouter.post('/figsy/check-performance', async (_req: Request, res: Respo
     const paused: { id: string; name: string; client_id: string; reply_rate: number }[] = []
 
     for (const campaign of campaigns ?? []) {
+      // Age gate — skip campaigns younger than the full sequence + reply window.
       const ageDays = (Date.now() - new Date(campaign.created_at as string).getTime()) / 86_400_000
       if (ageDays < MIN_AGE_DAYS) continue
-      const emailsSent = campaign.emails_sent ?? 0
-      const replyRate = emailsSent > 0 ? campaign.replies_total / emailsSent : 0
+
+      // Reconcile from source before deciding — a drifted replies_total (the known
+      // failure mode is drift DOWN to 0) would otherwise auto-pause a healthy campaign.
+      const fresh = await recomputeCampaignCounters(campaign.id)
+      const repliesTotal = fresh?.replies_total ?? campaign.replies_total
+      const emailsSent   = fresh?.emails_sent   ?? campaign.emails_sent
+      const replyRate = emailsSent > 0 ? repliesTotal / emailsSent : 0
       if (emailsSent >= MIN_EMAILS && replyRate < 0.01) {
         await db.from('figsy_campaigns')
           .update({ status: 'paused_low_performance' })
@@ -1950,9 +1959,12 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
     let adjusted = 0
 
     for (const campaign of campaigns ?? []) {
-      const emailsSent   = campaign.emails_sent   ?? 0
-      const optedOut     = campaign.opted_out     ?? 0
-      const repliesTotal = campaign.replies_total ?? 0
+      // Reconcile from source first — these counters drive send-volume throttling,
+      // so a drifted opted_out/replies_total would mis-adjust the daily limit.
+      const fresh = await recomputeCampaignCounters(campaign.id)
+      const emailsSent   = fresh?.emails_sent   ?? campaign.emails_sent   ?? 0
+      const optedOut     = fresh?.opted_out     ?? campaign.opted_out     ?? 0
+      const repliesTotal = fresh?.replies_total ?? campaign.replies_total ?? 0
       const existing     = (campaign.settings ?? {}) as Record<string, unknown>
       const currentLimit = typeof existing.daily_send_limit === 'number' ? existing.daily_send_limit : 50
 

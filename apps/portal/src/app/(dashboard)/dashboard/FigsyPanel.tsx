@@ -19,7 +19,6 @@ export function FigsyPanel({ leadCount }: { leadCount: number }) {
     : [
         { label: 'Who should I target?',  onClick: () => router.push('/dashboard/leads/icp') },
         { label: 'Build my ICP',          onClick: () => router.push('/dashboard/leads/icp') },
-        { label: 'How does KIND work?',   onClick: () => router.push('/dashboard/roadmap') },
       ]
 
   return (

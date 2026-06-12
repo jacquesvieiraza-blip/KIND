@@ -8,7 +8,18 @@ import Link from 'next/link'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Settings, LogOut, User } from 'lucide-react'
+import { Settings, LogOut, User, BarChart2, CreditCard, UserCheck, Code2 } from 'lucide-react'
+
+// Full profile menu (design §): Profile · Usage · Billing · Team · Settings ·
+// Developer API · Sign out. All routes already exist in the dashboard.
+const MENU_LINKS: { href: string; label: string; icon: React.ElementType }[] = [
+  { href: '/dashboard/settings',  label: 'My profile',    icon: User },
+  { href: '/dashboard/usage',     label: 'Usage',         icon: BarChart2 },
+  { href: '/dashboard/billing',   label: 'Billing',       icon: CreditCard },
+  { href: '/dashboard/team',      label: 'Team',          icon: UserCheck },
+  { href: '/dashboard/developer', label: 'Developer API', icon: Code2 },
+  { href: '/dashboard/settings',  label: 'Settings',      icon: Settings },
+]
 
 function initialsFrom(name: string, email: string): string {
   const src = (name || email.split('@')[0] || '').trim()
@@ -57,14 +68,12 @@ export function ProfileMenu({ name, email }: { name: string; email: string }) {
             </div>
           </div>
           <div className="py-1.5">
-            <Link href="/dashboard/settings" onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-              <User className="w-4 h-4 text-gray-400" /> My profile
-            </Link>
-            <Link href="/dashboard/settings" onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-              <Settings className="w-4 h-4 text-gray-400" /> Settings
-            </Link>
+            {MENU_LINKS.map(({ href, label, icon: Icon }) => (
+              <Link key={label} href={href} onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                <Icon className="w-4 h-4 text-gray-400" /> {label}
+              </Link>
+            ))}
             <button onClick={signOut}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100 mt-1">
               <LogOut className="w-4 h-4" /> Sign out

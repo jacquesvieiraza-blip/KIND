@@ -3,13 +3,20 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, personalizationSignals } from '../lib/figsy'
+import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
-import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO, spamScore } from '../lib/deliverability'
+import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO, warmupRampCap, spamScore } from '../lib/deliverability'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
+import { rateLimit } from '../lib/rate-limit'
+
+// Generous DoS backstop for the public, token-gated unsubscribe routes. The limit
+// is high on purpose: an unsubscribe must NEVER be blocked for a legitimate
+// recipient (that would breach opt-out obligations), and Gmail/Yahoo one-click
+// proxies can batch many POSTs from a shared IP. This only trips on clear abuse.
+const unsubscribeLimiter = rateLimit({ limit: 100, windowMs: 60_000, key: 'unsubscribe' })
 
 export const figsyRouter = Router()
 
@@ -61,7 +68,7 @@ async function recordUnsubscribe(email: string): Promise<void> {
 }
 
 // One-click unsubscribe (Gmail/Yahoo POST to the List-Unsubscribe URL).
-figsyRouter.post('/unsubscribe/:token', async (req, res) => {
+figsyRouter.post('/unsubscribe/:token', unsubscribeLimiter, async (req, res) => {
   const email = verifyUnsubscribeToken(req.params.token)
   if (!email) return res.status(400).send('Invalid unsubscribe link.')
   try { await recordUnsubscribe(email) } catch (err) { console.error('[figsy/unsubscribe] POST failed:', err) }
@@ -69,7 +76,7 @@ figsyRouter.post('/unsubscribe/:token', async (req, res) => {
 })
 
 // Footer link click — confirm in the browser.
-figsyRouter.get('/unsubscribe/:token', async (req, res) => {
+figsyRouter.get('/unsubscribe/:token', unsubscribeLimiter, async (req, res) => {
   const email = verifyUnsubscribeToken(req.params.token)
   if (!email) {
     return res.status(400).type('html').send(
@@ -224,16 +231,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         status: 'opted_out', opted_out_at: new Date().toISOString(),
       }).eq('email', fromEmail)
 
-      if (enrollment?.campaign_id) {
-        const { data: camp } = await db.from('figsy_campaigns')
-          .select('opted_out, replies_total').eq('id', enrollment.campaign_id).maybeSingle()
-        if (camp) {
-          await db.from('figsy_campaigns').update({
-            opted_out:    (camp.opted_out    ?? 0) + 1,
-            replies_total:(camp.replies_total?? 0) + 1,
-          }).eq('id', enrollment.campaign_id)
-        }
-      }
+      if (enrollment?.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
     }
 
     // Handle hot — pause sequence, bump stats, push deal to CRM
@@ -249,14 +247,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         tag: 'hot-reply',
       }).catch(() => {})
 
-      const { data: camp } = await db.from('figsy_campaigns')
-        .select('replies_interested, replies_total').eq('id', enrollment.campaign_id).maybeSingle()
-      if (camp) {
-        await db.from('figsy_campaigns').update({
-          replies_interested: (camp.replies_interested ?? 0) + 1,
-          replies_total:      (camp.replies_total       ?? 0) + 1,
-        }).eq('id', enrollment.campaign_id)
-      }
+      if (enrollment.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
 
       // F2-2 — push deal/opportunity to client's CRM
       const { data: leadFull } = await db.from('leads')
@@ -372,6 +363,49 @@ async function getClientCampaignIds(clientId: string): Promise<string[]> {
   const ids = (data ?? []).map((c: { id: string }) => c.id)
   return ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']
 }
+
+// ── PULSE (#104 status bar) ───────────────────────────────────────────────────
+// Lightweight, real, client-scoped signals for the sidebar status bar:
+//   • active_campaigns — campaigns currently running
+//   • sent_today       — emails sent so far this UTC day
+//   • warmup_cap       — today's cold-send ceiling (null = no cap configured)
+//   • credit_balance   — current credit balance
+// All numbers are real reads — no fabricated values. Cheap (HEAD counts).
+figsyRouter.get('/pulse', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const campaignIds = await getClientCampaignIds(clientId)
+    const todayUTC = new Date()
+    todayUTC.setUTCHours(0, 0, 0, 0)
+
+    // Warmup cap mirrors lib/figsy coldDailyCap(): explicit override wins, else
+    // auto-ramp from FIGSY_WARMUP_START, else no cap.
+    const explicit = parseInt(process.env.FIGSY_COLD_DAILY_CAP ?? '', 10)
+    const warmupStart = process.env.FIGSY_WARMUP_START
+    const warmupCap = Number.isFinite(explicit) && explicit > 0
+      ? explicit
+      : warmupStart ? warmupRampCap(warmupStart) : null
+
+    const [activeCampaignsRes, sentTodayRes, clientRes] = await Promise.all([
+      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds).gte('sent_at', todayUTC.toISOString()),
+      db.from('clients').select('credit_balance').eq('id', clientId).maybeSingle(),
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        active_campaigns: activeCampaignsRes.count ?? 0,
+        sent_today:       sentTodayRes.count ?? 0,
+        warmup_cap:       warmupCap,
+        credit_balance:   (clientRes.data as { credit_balance?: number } | null)?.credit_balance ?? 0,
+        as_of:            new Date().toISOString(),
+      },
+    })
+  } catch (err) { console.error('[figsy/pulse]', err); res.status(500).json({ success: false, error: 'Failed to fetch pulse' }) }
+})
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
@@ -1407,15 +1441,7 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
       payload:     { reply_id: reply.id },
     })
 
-    if (reply.campaign_id) {
-      const { data: camp } = await db.from('figsy_campaigns')
-        .select('meetings_booked').eq('id', reply.campaign_id).maybeSingle()
-      if (camp !== null) {
-        await db.from('figsy_campaigns').update({
-          meetings_booked: (camp.meetings_booked ?? 0) + 1,
-        }).eq('id', reply.campaign_id)
-      }
-    }
+    if (reply.campaign_id) await recomputeCampaignCounters(reply.campaign_id)
 
     // Emit cross-agent signal: meeting booked
     void emitSignal(clientId, 'figsy', 'meeting_booked', {
@@ -1487,17 +1513,8 @@ figsyRouter.post('/replies/seed-demo', async (req: AuthRequest, res) => {
 
     if (error) throw error
 
-    // Bump campaign stats
-    if (campaign?.id) {
-      const { data: camp } = await db.from('figsy_campaigns')
-        .select('replies_total, replies_interested').eq('id', campaign.id).maybeSingle()
-      if (camp) {
-        await db.from('figsy_campaigns').update({
-          replies_total:       (camp.replies_total       ?? 0) + 1,
-          replies_interested:  (camp.replies_interested  ?? 0) + 1,
-        }).eq('id', campaign.id)
-      }
-    }
+    // Bump campaign stats from source (race-free, error-checked)
+    if (campaign?.id) await recomputeCampaignCounters(campaign.id)
 
     res.json({ success: true, data: { reply_id: reply?.id, from: fromName } })
   } catch (err) {

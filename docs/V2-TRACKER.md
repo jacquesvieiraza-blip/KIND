@@ -1,7 +1,15 @@
-# 🎯 K.I.N.D — MASTER TRACKER (V2 + Full Roadmap)
+# 🎯 K.I.N.D — FORWARD ROADMAP + RISK REGISTER
 
-**THE single working tracker. Every item, every horizon — so nothing lives only in chat or gets lost across docs.**
-Linked from `KIND-MASTER.md` (top). Work top→bottom. _Last updated: 11 Jun 2026._
+> 🧭 **WHICH DOC AM I IN?** This is the **FUTURE roadmap + itemised risk/fix register** (post-launch: company engine #88, V2 experience, the 101-item roadmap, steals catalog).
+> **For launch tracking (now → Fri 19), work off [`KIND-MASTER.md`](./KIND-MASTER.md) — its dated MASTER TIMELINE is the single launch source.** Only two docs: master = launch, this = future.
+
+_Last updated: 11 Jun 2026 late (staging deployment + video action plan — branch `claude/kind-carson-MYhSl`)._
+
+> ## ⚡ 11-Jun STATUS — much of this roadmap is now PRE-BUILT, verified, awaiting founder merge
+> **The 20-PR release train (Waves 1–2, PRs #506–#525) is built + independently verified** (35/35 diff-marker checks; every branch 1 commit, scoped to its claimed files, build-verified). **The #88 company engine started early** on branch `claude/company-engine` (flag-gated: seat autonomy/budget · request/approve credits · winning-play library · real Command Centre at `/dashboard/company`) — **no PR yet**, founder reviews first. Engine gaps still open: per-rep lead ownership/routing+CRM dedup (38) and per-rep calendars (41). **Full green-tick table: [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) → AUDIT block.** Phase-2 items now real (not just designs): Vida bubble (#508) · Lead-capture Forms (#517) · Goals (#515) · Templates (#516) · "Help me reply" (#512) · Train-FIGSY backend (#520). Nothing merged · nothing live.
+>
+> ## 🌿 11-Jun LATE — and now it's all PREVIEWABLE: staging is live
+> All 29 branches (R1–R25 + company-preview + company-engine + hotfix) **merged into `staging` + deployed to the staging Railway service**: `heartfelt-essence-production-1434.up.railway.app` (test account `test@get-kind.com`). Conflicts resolved keeping all features; TypeScript + full `next build` green. **Pages are reachable by direct URL — the `v2Enabled()` flags only hide sidebar links** — so the founder can preview `/dashboard/company`, `/dashboard/team`, `/dashboard/notetaker`, `/dashboard/integrations`, `/dashboard/figsy/sequence-builder` etc. immediately. ⚠️ Staging still shares the prod DB → company-engine tables not migrated (UI renders, data empty). **12 Jun: staging DB isolation** (separate Supabase project + one-paste schema + 50-rep fake seed + `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` on staging only) → then full end-to-end Command Centre testing. Detail: `KIND-MASTER.md` resume block.
 
 **Legend:** ✅ done/live · 🟡 partial · 🎨 mockup only (designed, NOT built) · 🔨 built (code-complete, TypeScript-clean, on staging — NOT yet founder-approved or merged to main) · 🔄 in progress · ⏸ gated/paused · ⬜ not started · 🔴 open issue
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both
@@ -87,6 +95,52 @@ Linked from `KIND-MASTER.md` (top). Work top→bottom. _Last updated: 11 Jun 202
 
 ---
 
+# ░ 🚨 RISK & FIX REGISTER (full-system audit · 10 Jun) ░
+**From the all-systems audit (client portal · admin · website · API · docs). Red = act this week · Yellow = scheduled. Owner: 🧍 = founder must do · 🤖 = Claude fixes (branch → founder "go live").**
+
+## 🔴 RED — this week (launch-critical)
+| # | Item | Owner |
+|---|------|-------|
+| R1 | ✅ **DONE 11 Jun** — rotated the 2 crown-jewel keys (Stripe secret · Supabase service-role, both api+admin confirmed working). 4-Jun exposure neutralised; also kills any stale secret in the dead Vercel projects (Y16). | 🧍 |
+| R2 | **ICO registration** — ico.org.uk, £40/yr (~10 min; penalty £400–4k) | 🧍 |
+| R3 | **D9 deliverability 10/10** (mail-tester before launch) | 🧍 |
+| R4 | ✅ **DONE** — DNC/Knowledge honest preview: coming-soon banner, all 7 broken saves disabled, employer-name placeholder rows cleared. _(no Smartsheet refs remain in app code)_ | 🤖 |
+| R5 | ✅ **DONE** — website demo stats now labelled "Illustrative example" + every comparative claim dropped (2.7×/4×/vs-3%/+34%); blog claim fixed earlier. Branch-only (Cloudflare deploy gated on "go live"). | 🤖 |
+| R6 | **Apollo ToS / single-source dependence** — ⚠️ **CORRECTED 10 Jun: no "50-client" rule (that was invented). Reselling off one account violates ToS from client #1; enforcement discretionary.** Fix = structural: **(a) API Reseller agreement (`partners@apollo.io`) [primary]** or **(b) client-brings-own-key**. Multi-source (PDL ✅ wired, dormant) cuts vendor risk but isn't the compliance fix. Full detail in `KIND-MASTER.md` → MULTI-SOURCE DATA PLAN. | 🧍 |
+
+## 🟡 YELLOW — scheduled (post-launch / quick wins)
+| # | Item | Owner |
+|---|------|-------|
+| Y1 | ✅ **DONE** — rate-limited signup(10/min)·demo-request·subscribe(5/min)·unsubscribe(100/min, generous for compliance). _(OTP/demo-login has no K.I.N.D API endpoint — verified browser-side vs Supabase Auth.)_ | 🤖 |
+| Y2 | ✅ **DONE** — FIGSY per-enrollment credit deduction now checked + sequential (balance then ledger; can't desync). | 🤖 |
+| Y3 | ✅ **DONE** — counter increments replaced by `recomputeCampaignCounters()` (recompute-from-source, persist Math.max, error-checked) across all reply/opt-out/meeting + calendar paths. **+ data-integrity pass:** both autopilot crons (auto-pause `check-performance`, send-throttle `adaptive-send-check`) now recompute-then-decide → fixes the latent "drift to 0 wrongly pauses a healthy campaign" bug; persisting also heals reporting readers (admin aggregates, lookalike, figsy-tasks). | 🤖 |
+| Y4 | ✅ **DONE** — Pending Review + In FIGSY pills now count real totals from `/leads/stats`. | 🤖 |
+| Y5 | ✅ **DONE** — both directions: campaign→leads (`campaign_id` filter + banner + "View enrolled leads"), lead→campaign back-link, ICP→leads (already worked). | 🤖 |
+| Y6 | ⏸ **DEFERRED post-launch** (founder call) — needs a DB table + migration; same bucket as the Knowledge backend. Settings prefs stay localStorage-only until then. | 🤖 |
+| Y7 | ✅ **DONE** — Denise page gates on `denise`/`denise_addon` subscription (locked "Add to plan" screen). | 🤖 |
+| Y8 | ✅ **DONE** — developer page MCP catalog now matches real `/mcp` tools (figsy_find_leads · figsy_get_campaign_stats · figsy_suggest_campaign · milla_ask). | 🤖 |
+| Y9 | ✅ **DONE** — roadmap is now **admin-only**: client `/dashboard/roadmap` redirects to dashboard; all client nav/command-palette/CTA links removed. (Founder: clients must not see the roadmap.) | 🤖 |
+| Y10 | ✅ **DONE** — Milla dead "Connect" buttons → disabled "Coming soon". | 🤖 |
+| Y11 | ✅ **DONE** — Meetings card "No data yet" subtitle only shows when value is 0. | 🤖 |
+| Y15 | ⏸ **POST-LAUNCH** (founder call, 10 Jun) — integration tests on the money/credit paths (credit deduction · ledger · KPIs); week-1 post-launch. Launch stays on `next build` + manual smoke tests. | 🤖 |
+| Y12 | Failover standby drift — Render standby env parity unverified + `NEXT_PUBLIC_ADMIN_KEY` delete-vs-keep doc contradiction | 🧍🤖 |
+| Y13 | D&O insurance (~£500–1k) · trademarks (UK IPO → ARIPO) — Month-2 legal ring | 🧍 |
+| Y14 | Demo seeds write to prod DB (fine pre-launch) → separate staging/demo DB in Batch 2 | 🤖 |
+| Y16 | ⏸ **NEXT WEEK (founder call 11 Jun) — kill the dead Vercel↔GitHub integration.** Vercel stopped being used ~1mo ago but `kind-portal` + `kind-admin` Vercel projects are STILL linked to the repo + building on every PR (not in repo code — dashboard-side). **Risk: stale secrets** possibly in the projects' env vars (esp. admin's `SUPABASE_SERVICE_ROLE_KEY`) — **today's key rotation neutralizes that.** Live site unaffected (domains → Railway). Steps: Vercel → delete/disconnect both projects · GitHub → repo Settings → GitHub Apps → Vercel → remove repo · confirm DNS → Railway. | 🧍 |
+
+## 🌐 DATA-SOURCE STRATEGY (logged 10 Jun — the Apollo-risk mitigation)
+> 📍 **Live status + step tracker lives in `KIND-MASTER.md` → "DATA SOURCES — MULTI-SOURCE PLAN".** This section is the background research/rationale.
+
+**Finding:** Alta has **no public Apollo agreement** — their sub-processors (AWS/Twilio/Postmark/Slack) list no data vendor; they blend **50+ smaller/signal sources** (BuiltWith, SimilarWeb, StoreLeads, Crunchbase). Their answer to single-provider risk = diversification.
+**Our path (in order):**
+1. **Light up the already-built waterfall (#42)** — add **PDL** key (built-for-resale, solves the ToS problem) + **Hunter** key (~$49/mo): days of work, makes us 2–3-source. → post-launch quick win 🤖+🧍(keys)
+2. **Second discovery source** beside Apollo behind `searchPeopleWithFallback` (Apollo-first → PDL Search; later Cognism w/ explicit reseller programme, ~$15–25k/yr, post-revenue).
+3. **Signal sources** (website scans · LinkedIn CSV import · Crunchbase-style signals) — widen coverage with zero ToS exposure.
+4. **Manus** — African-SMB deep-research fallback (the potential moat; async, needs dedup+verification). Post-launch.
+**Posture goal: "Apollo-first, multi-source" BEFORE the 50-client trigger.**
+
+---
+
 # ░ PART 1 — ACTIVE NOW (cosmetic / V2 build via staging) ░
 
 ## A. Cosmetic issues you raised (this session)
@@ -127,6 +181,7 @@ Source `CLIENT_FLOW.html` Part 2 + `CLIENT_FLOW_PER_REP.html`. Mockups only (`/d
 | **2c · Owner command centre** | Autonomy below, oversight on top: company totals · leaderboard · every rep's leads+bookings · spend per seat. Milla layers "who's hot / what's working / where to coach". | 🔨 UI + API built, on staging (`/dashboard/company`) — DB migration pending |
 | **2d · Usage & budget** | Company owns the budget pool (one payment · tops up) → owner allocates credits per seat → rep works → runs low → **rep requests more → owner approves/denies**. "Exactly like an enterprise running Claude." | 🔨 UI + API built, on staging — Stripe topup bundles wired — DB migration pending |
 | Per-rep lead **ownership/routing** (no two reps hit the same person) + **CRM dedup** | underpins 2b | ⬜ |
+| **★ SHARED TEMPLATE / WINNING-PLAY LIBRARY** [Glean prompt-library demo 10 Jun — the standout steal] — owner/power-rep perfects a winning play (ICP · subject style · sequence) → **every seat inherits it** → new reps onboard at top-performer level day 1. This is the **user-facing form of cross-segment recall** (Learning Engine) — ship it as a visible library, not a hidden algorithm (clients *feel* the collective intelligence). **K.I.N.D edge Glean can't match:** ship **K.I.N.D-curated best-practice templates learned from cross-CLIENT African outcome data** to every new client day 1 (their library is per-company; ours compounds across the network = the moat doing visible work). **Positioning line to steal verbatim: "level up your whole team to your top performer."** | new — ties #88 + Learning Engine | ⬜ |
 
 **Why it wins:** no company is firing its sales org — we make every rep more effective and the owner controls spend centrally. This *is* the expansion engine (1 owner → N seats → grows as the team grows).
 
@@ -150,7 +205,7 @@ Agent Grid (V2-1) · Thinking (V2-2) · Config (V2-4, partial) · Marketplace (V
 | **T1** | **Fresh signup → onboarding (never run)** | 🤝 | ⬜ |
 | T3 (pause) · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invite · T10 partner | Smoke Test 2 | 🤝 | ⬜ |
 | **D9** | Deliverability 10/10 inbox | 🧍 | ⬜ |
-| **#1** | 2 crown-jewel key rotations (Stripe-secret, Supabase-service-role) | 🧍 | 🔄 |
+| **#1** | 2 crown-jewel key rotations (Stripe-secret, Supabase-service-role) | 🧍 | ✅ done 11 Jun |
 | **#10–#14** | Legal pack (ICO, SR01, registered office, WHOIS, LinkedIn) | 🧍 | ⬜ |
 | Go/No-Go | Thu 18 gate: deliverability · ST2 · legal · warmup | 🤝 | ⬜ |
 | **#18** | **LAUNCH Africa-only — Fri 19 Jun** | 🤝 | ⬜ |
@@ -189,6 +244,74 @@ Agent Grid (V2-1) · Thinking (V2-2) · Config (V2-4, partial) · Marketplace (V
 | #81 | Milestone share-to-LinkedIn cards | 🤖 |
 | #82 | "Certified K.I.N.D Partner" badge + LinkedIn share | 🤖 |
 
+## 🧠 AGENT TRAINING & INTELLIGENCE — THE LEARNING ENGINE (strategy · logged 10 Jun)
+*The blueprint for turning the outcome data into a compounding advantage. Post-launch (P3 Intelligence/Moat). Upgrades #38/#40/#46 below into one system. **Launching IS step zero — you can't train on data you don't have yet.***
+
+### Two honest truths (read first)
+1. **"Training" ≠ fine-tuning.** For an LLM-agent product, outcomes come from the layers *around* the model — context, feedback loops, memory, measurement — not retraining weights. Fine-tuning is the LAST lever, not the first.
+2. **For cold outreach, the model is ~¼ of the result.** The outcome stack is **targeting (right person) > deliverability (inbox) > timing > copy.** Don't pour all "AI training" energy into copy while targeting/list quality lag — keep the proportion honest.
+
+### PHASE 1 — Foundations (the ROI ladder, cheapest + biggest first)
+| Rung | What | Effort | ROI |
+|---|------|--------|-----|
+| ① **Context / RAG** ← start here | The **Train-FIGSY knowledge base** (UI exists, backend doesn't — built honest this session). Per client: value props · **proof points** (real numbers) · pain points · ICP language · do-not-say rules · **2–3 of the client's own best emails as few-shot** (the single biggest copy lever; Alta's "train-agent" field set). | Med | **Highest near-term** |
+| ② **Outcome feedback loop** | Mine `outcome_events` (data floor #17b, built) for which subjects/angles/segments produce replies+meetings → feed winners back into the prompt, down-weight losers. "Training" by selection, not gradient descent — it compounds. | Med | Very high (the moat) |
+| ③ **Evals / measurement** | No eval harness today (same gap as "no tests"). Build: reply-rate per variant · classification accuracy on real labelled replies · meeting-conversion by ICP. **Unlocks ①②** — without it every "improvement" is a guess. | Low–Med | Foundational |
+| ④ **Memory** | #46 Memory v2 (pgvector) — FIGSY recalls *this client's* winning patterns across campaigns. Builds on ①②. | Med–High | High |
+| ⑤ **Model routing** | Haiku for bulk drafting (correct); route the *reasoning-heavy* tasks (reply classification · ICP suggest · Denise proposals) to Sonnet/Opus. + prompt caching for cost. | Low | Real quality bump |
+| ⑥ **Fine-tuning / distillation** | LAST. Only with a narrow repeatable task + **thousands of labelled examples** + a cost/latency reason. Not now — would be premature scaling of the AI stack. **Parked.** | — | Later |
+
+### PHASE 2 — The Learning Engine (reinforcement learning, in practice)
+**The unlock: the reward signal already exists** — every `outcome_events` row is a reward. You don't build the reward function, you already collect it:
+
+| Event | Reward | Logged? |
+|---|---|---|
+| Opened | +0.1 *(weak — Goodhart risk)* | ✅ |
+| Reply | +1 | ✅ |
+| Hot/positive reply | +3 | ✅ |
+| Meeting booked | +10 | ✅ |
+| Deal closed | +50 | ✅ |
+| Opt-out / spam / bounce | −2 / −5 / −1 | ✅ |
+
+**2a — practical RL, no model training (ship first): contextual bandits.** It IS reinforcement learning, just without backprop.
+- **Arms:** subject style · opening angle · send time/day · cadence · CTA type · ICP segment. (#38 A/B → upgrade to a bandit.)
+- **Explore/exploit:** keep trying variants but shift volume toward winners automatically (**Thompson sampling** — handles small samples, vital early).
+- **"Contextual" = the moat:** context = the lead's features (industry · seniority · **country** · size) → FIGSY learns *"fintech founders in Nigeria → angle X + short lowercase subject + Tue 9am wins."* A learned **policy** on **African data no competitor has.**
+
+**Recall — the memory layer (two tiers):**
+- **Per-client:** retrieve this client's past winning emails at generation time (in-context) → #46 pgvector.
+- **Cross-segment (the moat — handle carefully):** anonymized, **aggregated** winning patterns across all clients per ICP segment → new clients inherit collective learning day one. **POPIA / data-isolation: aggregate patterns ONLY, never raw cross-client leakage.**
+
+**Usage patterns — the *other* reward stream (about the product, not the emails):** which agents/features clients actually use (deepen vs cut) · which ICPs/queries they build (data-source + market priorities) · **activation + retention curves (the >85% 6-mo retention that killed 11x — the business's reward function).**
+
+**2b → 2c — where real model training finally earns it:** 2b = reward model + offline policy evaluation (learn the policy properly). 2c = **10k+ labelled outcomes → DPO/RLHF to distill the winning-email policy into the generator** + distill Opus-grade classification into a cheap fast model. Reached by *running campaigns first.*
+
+### The moat: the African outcome-data flywheel
+More campaigns → more **African** B2B outcome data (Apollo/11x/Alta all optimise on US data) → better targeting+copy+timing *for African markets* → better outcomes → more clients. No US competitor can build it — they're not in the market. **The advantage isn't a smarter model; it's proprietary outcome data in markets the giants ignore.**
+
+### Caveats that break naïve RL systems
+1. **Goodhart** — optimize the deepest reliable signal (**replies/meetings, not opens**), or the bandit learns clickbait that craters replies.
+2. **Sample size** — sparse cold-email data; lean on Bayesian/Thompson priors so 1 lucky reply doesn't "win."
+3. **Deliverability confound** — a "winner" may just be a warmer domain that hour; control for it or you learn noise.
+4. **Feedback delay** — meetings land days later; attribute rewards back to the earlier choices.
+
+### Shape of the engine
+```
+outcome_events (rewards) ──► reward attribution ──► contextual bandit (policy)
+        ▲                                                      │
+        │                                              memory/recall (pgvector)
+   every campaign                                              │
+        │                                          FIGSY generation (few-shot winners)
+        └──────────────── better outcomes ◄────────────────────┘
+                     (compounds, African-specific)
+```
+
+### Build order (post-launch) & roadmap integration
+**① Train-FIGSY knowledge backend → ③ evals → ② feedback loop → 2a bandit → ④ recall/Memory → ⑤ routing → (2c fine-tuning, much later).**
+Upgrades existing items: **#38** A/B → contextual bandit · **#40** ICP auto-refine → reward-driven · **#46** Memory v2 → recall · **#37** intent · **#45** adaptive volume. None blocks the 19th.
+
+---
+
 ## 📍 MONTH 2 (Late Jul–Aug · GATED 10+ clients) — 38 items
 **Prereq: staging env. — already starting (this session).**
 
@@ -209,13 +332,13 @@ Agent Grid (V2-1) · Thinking (V2-2) · Config (V2-4, partial) · Marketplace (V
 | #51 | Configurable agent triggers |
 | #52 | Multi-model toggle per campaign |
 | #53 | Inbox rotation / multiple sending domains |
-| #59 | **MCP server** (distribution unlock) |
+| #59 | **MCP server** (distribution unlock) — **[Glean MCP Gateway demo 10 Jun] KEY INSIGHT: a context-backed MCP server beat bare off-the-shelf MCP 2.5× on quality + 30% fewer tokens → build #59 backed by CLIENT CONTEXT (Train-FIGSY knowledge · #46 Memory · outcome data), NOT thin API wrappers (those are commodity anyone clones; context = the moat). Per-tool entitlements + per-user/per-tool usage dashboard = our #88 owner controls (2b which-rep-gets-which-agent · 2c/2d usage dashboard = the "usage patterns" reward stream). Auth: API-key (Bearer) fine for SMB now; OAuth 2.1+PKCE is the enterprise upgrade. SKIP: MDM/SSO/50k-user rollout (Year-2 enterprise only).** |
 | #49 | Product Hunt launch · #50 G2 listing |
 
 **V2 portal redesign (the rest, on the per-rep foundation):**
 | # | What | Status |
 |---|------|--------|
-| V2-3 | Conversational setup (chat w/ Casey) | ⬜ |
+| V2-3 | Conversational setup (chat w/ Casey) — **SPEC'D by Glean Auto Mode demo (10 Jun): client describes goal in a couple sentences → AI assistant configures the whole agent (ICP+sequences+knowledge+triggers), no forms. The activation unlock for Africa-SMB. Highest-value V2 build.** | ⬜ |
 | V2-8 | **AI Notetaker → action items (Milla)** | 🔨 built on staging — `/dashboard/notetaker` |
 | V2-10 | **Casey** onboarding agent | ⬜ |
 | V2-11 | **Vida help bubble (bottom-right)** | 🔨 built on staging — R3 `layout.tsx` |
@@ -254,6 +377,54 @@ Agent Grid (V2-1) · Thinking (V2-2) · Config (V2-4, partial) · Marketplace (V
 ## 🔒 ONGOING / PARALLEL
 Legal (D&O, ODPC/NDPR, AI Risk Register, pen test, trademarks, VAT) · Funding (cloud credits→YC→revenue financing) · Tech-debt (delete Portal-V2, admin RLS refactor) · Master.md cleanup (15 contradictions) · Competitive watch (Revio).
 
+## 🚀 GTM & CONTENT ENGINE — MARKETING INTENTIONS (logged 11 Jun — founder: "outreach alone won't cut it")
+**The North-Star truth (founder, 11 Jun): cold outreach is necessary but NOT sufficient. Win = a 3-legged GTM.** This section = the clear intentions for the marketing conversation.
+
+**The 3 legs:**
+| Leg | What | Status |
+|---|---|---|
+| **1 · Outbound** | FIGSY dogfood (cold email sells K.I.N.D) | ✅ running (warmup) |
+| **2 · Content / Inbound** | **video · product drops · founder LinkedIn · blog** | 🔴 **the missing leg — the focus** |
+| **3 · Partners** | the Demmy model (1 good partner ≈ 10 clients/mo) | ✅ started · research = highest-leverage for Africa |
+
+**Why content isn't optional:** when FIGSY's cold email lands, the prospect **googles K.I.N.D** — if they find videos + drops + a posting founder + a credible brand → trust → reply; if nothing → ignored. **Content de-risks every cold email.** African B2B is **trust-driven** (research-verified) → content builds trust at scale + generates **inbound** so we're not hostage to cold volume (which the warmup cap limits anyway). Cold email resets each send; **content compounds.**
+
+**The content engine — built vs the work:**
+- ✅ **Infra built (🤖):** The Drop page (**now with a video slot per drop** — Drop 01 = 60-sec walkthrough) · Product Videos / "Watch" page (YouTube-embed-ready) · blog pages · the drops-cadence system.
+- 🔴 **The content itself (mostly 🧍 founder-led):**
+  - **VIDEO** — founder walkthroughs + **one short video per drop** + demo clips. Highest-trust format; **Africa is video/mobile-first.**
+  - **Founder LinkedIn / build-in-public** — cheapest, highest-trust channel for early-stage (Apex/Atlas steal). Post the drops, the African-first journey, the wins.
+  - **Blog/SEO** (pages exist — keep publishing) · **YouTube channel #35** (10-video plan exists).
+
+**The realistic minimum (don't over-scope — solo founder):** a weekly rhythm —
+1. **Per product drop →** 60-sec walkthrough VIDEO + "we shipped X" LinkedIn post + email to list (one shipping moment = 3 content pieces).
+2. **Founder building-in-public** on LinkedIn (story · wins · journey).
+That + outbound + partners = the motion.
+
+**Product Drops = the flywheel** (velocity-as-marketing): ship fast → drop (page + video + post + email) → clients re-engage + prospects see momentum → "they ship fast AND show it" = the moat made visible. Cadence: **monthly**, never empty/stale. The in-product "What's New" feed (clients see momentum inside the portal = anti-churn) is a logged future enhancement.
+
+**Positioning to carry through all content:** Africa-first · **augment-not-replace** (give every rep their own AI, not "fire the team") · POPIA/compliance moat · velocity moat · low per-seat price vs $500+/mo US tools · **"level up your whole team to your top performer."**
+
+### 🎬 VIDEO ACTION PLAN (sharpened 11 Jun late — content based on the inventory)
+**Principle: the pages are BUILT and embed-ready (`the-drop.html` video slot · `product-videos.html` "Watch") — the bottleneck is RECORDING, all 🧍. Record → upload to YouTube → paste the video ID → live. The PRODUCT-INVENTORY (Part A 53 live features + Part B0 release train) is the shot list: every shipped feature is video material; every merged release feeds a Drop with its own video.**
+
+| # | Video | Source material (inventory) | Where it lands | When |
+|---|-------|------------------------------|----------------|------|
+| 1 | **Drop 01 walkthrough (60s)** — the launch drop | The live core loop: signup→ICP→leads→FIGSY→reply→meeting | `the-drop.html` Drop 01 slot + LinkedIn + email | record this week → live with launch 19 Jun |
+| 2 | Onboarding demos (3 × ~60s Looms) | T1 signup flow · ICP builder · first campaign | `product-videos.html` + onboarding emails (#31) | this week |
+| 3 | **Homepage hero loop (90s, silent)** | Same footage as #1, cut for autoplay | `index.html` hero (#24, currently ⏸ on this) | week 1 post-launch |
+| 4 | FIGSY full demo (12–15 min) | FIGSY pages + campaign flow + Unibox | YouTube video 4 (plan in `youtube-plan.md`) + "Watch" page | week 1–2 |
+| 5 | Per-drop walkthroughs (60s each, ongoing) | Each merged release wave = one Drop = one video — e.g. "Drop 02: Teams Hub + Notetaker + Sequence Builder" once founder approves/merges the staged releases | The Drop + LinkedIn + email | monthly cadence, never empty |
+| 6 | Founder story + masterclasses | YouTube plan videos 7/9/10 | YouTube + "Watch" | weeks 2–4 |
+
+**The flywheel restated:** staged releases (now previewable) → founder approves → merge wave = **Drop N** → 60-sec video + LinkedIn post + email = 3 content pieces per shipping moment. The release train IS the content calendar.
+
+## ✨ MARKETING SITE — "THE DROP" + SITE IA (approved 10 Jun · PR #503 · post-launch)
+- **"The Drop"** (`apps/website/the-drop.html`, built + founder-approved · **+ video slot per drop added 11 Jun** — Drop 01 = a 60-sec walkthrough, embed-ready) — a product-drop archive (Glean-style stacked cards) = **the honest replacement for the client-facing roadmap we hid (Y9)**: it celebrates what *shipped* (past-tense, real, live), not what's promised. **Each drop pairs a short video + feature cards** (video = the trust multiplier). **Cadence rule: never publish empty or stale** — launch it WITH the 19th as **"Drop 01"**, then a new drop ~monthly (it's a forcing function for the post-19th velocity). It's the public proof of the "velocity = moat" call + a recurring re-engagement touchpoint.
+- **"Watch" / Product Videos** (`apps/website/product-videos.html`, built + approved) — replaces the plain Demo link; built for the **founder's personal YouTube walkthroughs** (authentic "real run-throughs", YouTube-embed-ready). Authenticity > polish for the Africa-SMB trust market.
+- **Lean footer** — keep it tight (4 honest columns + legal strip); every link = a real page. Do NOT copy Glean's enterprise sprawl. Existing site footer is already lean — grow it as we grow.
+- **HELD (post-launch wiring step):** site-wide nav/footer rewire across ~40 pages — Demo→"Watch", add "The Drop". On PR #503, applied when founder says wire-it-in. Pages are orphan/unlinked until then (safe — can't surface).
+
 ---
 
 # ░ PART 2C — FUTURE RELEASES (the 15 Pieces) + STEALS CATALOG + MCP ░
@@ -291,7 +462,7 @@ Legal (D&O, ODPC/NDPR, AI Risk Register, pen test, trademarks, VAT) · Funding (
 | **Clay** | Waterfall enrichment (#42) · ICP-as-filter-layers |
 | **Apollo** | Job-change alerts · sequence analytics · AI transparency ("why FIGSY wrote this") · intent signals |
 | **Apex** | "Acts, doesn't just respond" framing · approval-mode→autonomy onboarding · digital-twin angle (Milla = AI Chief of Staff) · founder-as-demo on LinkedIn |
-| **Glean** | Context/memory moat (#46 pgvector · #47 CRM pull · V2-8 notetaker) · cross-client benchmarks (#64) |
+| **Glean** | Context/memory moat (#46 pgvector · #47 CRM pull · V2-8 notetaker) · cross-client benchmarks (#64) · **[demo 10 Jun — `youtu.be/ybyAZUJZsmM`] agent-per-workflow-step, dogfooded across the whole sales lifecycle** → (1) **research-driven personalization**: per-prospect research (web+internal mashup) BEFORE FIGSY drafts — copy upgrade, plugs into Train-FIGSY RAG + Manus; (2) **Call-Coaching agent** (score a rep's call recording vs criteria → next-call guidance) = the augment thesis as a feature → **new agent candidate for the per-rep engine #88**; (3) **CRM-auto-update-from-transcript** (tool-calling fills fields) → extends Milla Notetaker V2-8 + #47. **Skip:** legal-redline agent (enterprise, SMBs don't redline). Steal the workflow-decomposition logic, NOT the enterprise surface (Pipedrive≠Salesforce, Zoom≠Gong). · **[Auto Mode demo 10 Jun] → (4) AI-ASSISTED AGENT SETUP — describe goal in plain language → AI builds the agent (→ Casey V2-3/V2-10, the highest-value V2 build); (5) "Workflow vs Auto" = control-vs-flexibility product principle for our autonomy modes (autopilot vs gated copilot); (6) PERMISSION-SAFETY checked at create AND run, per-user data scoping → the guardrail to bake into #88 per-rep + the cross-segment recall moat (aggregate only, no raw leakage). VALIDATES (already built, don't rebuild): "watch it think" = our Thinking panel · approval-before-acting = our gated send queue · conversation starters = our agent-panel chips.** |
 | **Revio** | Bundled coaching onboarding (#62b) · case-study specificity (#62c–e) |
 | **Amplemarket / MailerLite / Salesforce / Notion-Linear** | Intent signals (#37) · spam-score pre-send (#44) · AgentExchange marketplace (V2-5) + outcome pricing (#60) · MCP-native (#59) + slim sidebar (V2-6) |
 

@@ -37,7 +37,7 @@ const res = await fetch('${API_URL}/mcp/call', {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer YOUR_API_KEY'
   },
-  body: JSON.stringify({ tool: 'search_leads', params: { query: 'SaaS founders Cape Town' } })
+  body: JSON.stringify({ tool: 'figsy_find_leads', params: { industry: 'SaaS', title: 'Founder', country: 'South Africa' } })
 })`
 
 export default function DeveloperPage() {
@@ -305,10 +305,10 @@ export default function DeveloperPage() {
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Available Tools</p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { name: 'search_leads', desc: 'Search and filter leads by ICP criteria' },
-                { name: 'enroll_lead', desc: 'Add a lead to a FIGSY campaign' },
-                { name: 'get_campaign_stats', desc: 'Retrieve campaign performance metrics' },
-                { name: 'send_message', desc: 'Send a message or notification' },
+                { name: 'figsy_find_leads', desc: 'Search B2B leads matching your ICP (Apollo, 250M+ contacts)' },
+                { name: 'figsy_get_campaign_stats', desc: 'Emails sent, open rate, reply rate, meetings booked' },
+                { name: 'figsy_suggest_campaign', desc: 'Suggest a campaign strategy from your ICP & pipeline' },
+                { name: 'milla_ask', desc: 'Ask Milla a question or query your knowledge base' },
               ].map(tool => (
                 <div key={tool.name} className="bg-purple-50 rounded-xl p-3">
                   <code className="text-[#7C3AED] font-mono font-semibold text-xs">{tool.name}</code>

@@ -254,13 +254,6 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
       { label: 'See my campaigns', onClick: () => router.push('/dashboard/figsy') },
       { label: 'Top up credits',   onClick: () => router.push('/dashboard/billing') },
     ]
-  } else if (pathname.startsWith('/dashboard/roadmap')) {
-    contextMessage = "This is my evolution — what's live, what I'm building next. I get smarter every week. Voice and WhatsApp are coming."
-    chips = [
-      { label: "What's coming next?", onClick: () => {} },
-      { label: 'Request a feature',   onClick: () => {} },
-      { label: 'Start outreach now',  onClick: () => router.push('/dashboard/figsy') },
-    ]
   } else if (pathname.startsWith('/dashboard/team')) {
     contextMessage = "Your team members share the same pipeline. Invite colleagues to review leads, approve campaigns, or manage replies — everyone sees the same data, I keep running in the background."
     chips = [

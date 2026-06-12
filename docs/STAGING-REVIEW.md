@@ -141,7 +141,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
 |---|--------|-----|--------|---------|--------------|--------|
 | G1 | Integrations Hub (R24) | `/dashboard/integrations` | ⬜ | | | |
-| G2 | Roadmap | `/dashboard/roadmap` | ⬜ | | | |
+| G2 | Roadmap | ~~`/dashboard/roadmap`~~ | 🗑️ | — | We don't show clients a roadmap | **CUT 12 Jun** — route + nav links removed (Sidebar, ProfileMenu, AgentColumn). The Drop on the website is what we show instead. |
 | G3 | What's New (R19) | `/dashboard/whats-new` | ✅ | Tidy timeline, brand-correct | — | **Approved as-is 12 Jun** |
 | G4 | Usage | `/dashboard/usage` | ✅ | Leads-period card + overage, credit summary, pipeline grid, 8-wk chart, history | — | **Approved as-is 12 Jun** (preview: `previews/usage-current.html`) |
 | G5 | Billing | `/dashboard/billing` | ⬜ | | | |

@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   Settings, LogOut, User, BarChart2, CreditCard, UserCheck, Code2,
-  Plug, Network, FileText, MessageCircle, Handshake, Gift, Store, Sparkles, Map,
+  Plug, Network, FileText, MessageCircle, Handshake, Gift, Store, Sparkles,
 } from 'lucide-react'
 
 type MenuLink = { href: string; label: string; icon: React.ElementType }
@@ -48,7 +48,6 @@ const GROUPS: Group[] = [
     heading: 'Product',
     links: [
       { href: '/dashboard/whats-new', label: "What's New", icon: Sparkles },
-      { href: '/dashboard/roadmap',   label: 'Roadmap',    icon: Map },
     ],
   },
 ]

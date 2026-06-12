@@ -3,200 +3,141 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>K.I.N.D — Per-Rep Model · How a company works</title>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<title>K.I.N.D — Per-Rep Company Model</title>
 <style>
-  :root{
-    --purple:#7C3AED; --purple-d:#5b21b6; --ink:#1E1152; --paper:#ffffff;
-    --bg:#f7f5fc; --line:#ece6fb; --muted:#6b6494;
-    --figsy:#7C3AED; --milla:#0ea5e9; --vida:#10b981; --denise:#d97706; --rep:#4f46e5;
-  }
-  *{ box-sizing:border-box; }
+  :root{ --purple:#7C3AED; --ink:#1E1152; --paper:#fff; --bg:#f7f5fc; --line:#ece6fb; --muted:#6b6494;
+    --figsy:#7C3AED; --milla:#0ea5e9; --vida:#10b981; --denise:#d97706; --seat:#4f46e5; }
+  *{ box-sizing:border-box; -webkit-text-size-adjust:100%; }
   body{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink); margin:0; line-height:1.5; -webkit-font-smoothing:antialiased; }
-  .wrap{ max-width:1120px; margin:0 auto; padding:0 28px 64px; }
-
-  .hero{ background:linear-gradient(135deg,#2a1066 0%,#7C3AED 70%,#a855f7 100%); color:#fff; padding:52px 28px 60px; text-align:center; position:relative; overflow:hidden; }
-  .hero::after{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 80% -10%,rgba(255,255,255,.18),transparent 45%); pointer-events:none; }
-  .hero .badge{ display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25); padding:6px 14px; border-radius:100px; margin-bottom:18px; }
-  .hero h1{ font-size:clamp(1.9rem,4vw,3rem); font-weight:900; letter-spacing:-.03em; margin:0 0 12px; }
-  .hero p{ font-size:clamp(1rem,1.6vw,1.2rem); color:rgba(255,255,255,.82); max-width:720px; margin:0 auto; }
-
-  .status{ max-width:1120px; margin:-30px auto 8px; padding:0 28px; position:relative; z-index:2; }
-  .status .card{ background:var(--paper); border-radius:16px; padding:16px 20px; box-shadow:0 12px 36px rgba(30,17,82,.10); display:flex; gap:22px; flex-wrap:wrap; align-items:center; justify-content:center; font-size:.84rem; }
-  .pill{ display:inline-flex; align-items:center; gap:7px; font-weight:700; }
-  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
-  .dot.live{ background:#10b981; } .dot.build{ background:#7C3AED; } .dot.next{ background:#94a3b8; }
-
-  .sec-h{ display:flex; align-items:baseline; gap:12px; margin:46px 0 6px; flex-wrap:wrap; }
-  .sec-h h2{ font-size:1.4rem; font-weight:900; letter-spacing:-.02em; margin:0; }
-  .sec-h span{ font-size:.85rem; color:var(--purple); font-weight:600; }
-  .panel{ background:var(--paper); border:1px solid var(--line); border-radius:22px; padding:26px; box-shadow:0 10px 40px rgba(124,58,237,.07); overflow:auto; }
-  .mermaid{ display:flex; justify-content:center; }
-  .note{ font-size:.86rem; color:#475569; max-width:860px; margin:14px 2px 0; }
-  .note strong{ color:var(--ink); }
-  .keys{ display:flex; gap:16px; flex-wrap:wrap; font-size:.76rem; color:var(--muted); margin:10px 2px 0; }
+  .wrap{ max-width:780px; margin:0 auto; padding:0 18px 56px; }
+  .hero{ background:linear-gradient(135deg,#2a1066 0%,#4f46e5 60%,#7C3AED 100%); color:#fff; padding:38px 20px 42px; text-align:center; }
+  .hero .badge{ display:inline-block; font-size:.66rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.28); padding:5px 13px; border-radius:100px; margin-bottom:14px; }
+  .hero h1{ font-size:clamp(1.4rem,5vw,2.2rem); font-weight:900; letter-spacing:-.03em; margin:0 0 10px; }
+  .hero p{ font-size:clamp(.92rem,2.4vw,1.05rem); color:rgba(255,255,255,.86); max-width:560px; margin:0 auto; }
+  .status{ display:flex; flex-direction:column; gap:8px; max-width:780px; margin:-26px auto 6px; padding:0 18px; }
+  .schip{ background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 13px; font-size:.8rem; font-weight:600; box-shadow:0 8px 22px rgba(30,17,82,.08); display:flex; align-items:center; gap:9px; }
+  .dot{ width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  .d-live{ background:#10b981;} .d-build{ background:#7C3AED;} .d-next{ background:#94a3b8;}
+  .sec-h{ margin:38px 0 12px; }
+  .sec-h h2{ font-size:1.2rem; font-weight:900; letter-spacing:-.02em; margin:0; }
+  .sec-h span{ font-size:.8rem; color:var(--purple); font-weight:600; }
+  .flow{ display:flex; flex-direction:column; gap:0; }
+  .step{ background:var(--paper); border:1px solid var(--line); border-left:5px solid var(--c,#7C3AED); border-radius:14px; padding:13px 15px; box-shadow:0 4px 16px rgba(124,58,237,.06); }
+  .step .lab{ font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--c,#7C3AED); margin-bottom:3px; }
+  .step .ttl{ font-weight:800; font-size:.96rem; }
+  .step .sub{ font-size:.81rem; color:var(--muted); margin-top:2px; }
+  .arr{ align-self:center; color:#b9a8e8; font-size:1.1rem; padding:5px 0; }
+  .start{ text-align:center; border-radius:100px; padding:11px 16px; font-weight:800; background:#ede9fe; color:var(--ink); border:1px solid #d6cdfb; }
+  .win{ text-align:center; border-radius:14px; padding:12px 16px; font-weight:800; background:var(--ink); color:#fff; }
+  .branch{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .branch3{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+  .note{ background:#faf8ff; border:1px solid var(--line); border-radius:14px; padding:13px 15px; font-size:.86rem; color:#475569; margin-top:14px; }
+  .note b,.note strong{ color:var(--ink); }
+  .bill{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+  .bcard{ background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:14px 12px; text-align:center; box-shadow:0 4px 16px rgba(124,58,237,.06); }
+  .bcard .big{ font-size:1.6rem; font-weight:900; color:var(--seat); }
+  .bcard .lbl{ font-size:.72rem; color:var(--muted); margin-top:4px; line-height:1.35; }
+  .keys{ display:flex; gap:8px 16px; flex-wrap:wrap; font-size:.74rem; color:var(--muted); margin:11px 2px 0; }
   .keys b{ color:var(--ink); }
-  .bill{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:4px; }
-  .bcard{ background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:18px; text-align:center; box-shadow:0 8px 28px rgba(124,58,237,.06); }
-  .bcard .big{ font-size:1.6rem; font-weight:900; color:var(--purple); }
-  .bcard .lbl{ font-size:.78rem; color:var(--muted); margin-top:4px; }
-  footer{ color:#9b8ec4; font-size:.74rem; margin-top:30px; text-align:center; }
-  @media(max-width:820px){ .bill{ grid-template-columns:1fr; } }
+  .c-figsy{ --c:var(--figsy);} .c-milla{ --c:var(--milla);} .c-denise{ --c:var(--denise);} .c-seat{ --c:var(--seat);} .c-neutral{ --c:#94a3b8;}
+  .dash{ border-style:dashed!important; }
+  footer{ color:#9b8ec4; font-size:.72rem; margin-top:30px; text-align:center; }
+  @media(max-width:520px){ .bill,.branch3{ grid-template-columns:1fr;} .branch{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
-
   <div class="hero">
-    <div class="badge">K.I.N.D · Per-Rep Model</div>
-    <h1>One company. Every rep their own AI SDR.</h1>
-    <p>An owner buys a FIGSY for each rep. Each rep gets their <b>own autonomous sales rep</b> — own leads, own voice, meetings booked onto <b>their own calendar</b>. The owner runs it all from one command centre.</p>
+    <div class="badge">K.I.N.D · Per-Rep Company Model · #88</div>
+    <h1>Every rep their own FIGSY. You control the budget.</h1>
+    <p>We don't replace your sales team — we give every rep their own AI, and the owner runs the whole floor from one command centre.</p>
   </div>
 
-  <div class="status"><div class="card">
-    <span class="pill"><span class="dot live"></span> BUILT — per-rep workspaces + owner command centre, live on staging</span>
-    <span class="pill"><span class="dot build"></span> Going live for the client demo — real billing → company pools</span>
-    <span class="pill"><span class="dot next"></span> Next — per-rep agent unlock · invite emails · owner drill-down</span>
-  </div></div>
+  <div class="status">
+    <div class="schip"><span class="dot d-live"></span> BUILT — per-rep workspaces + owner command centre, live on staging</div>
+    <div class="schip"><span class="dot d-build"></span> Going live for the client demo — real billing → company pools</div>
+    <div class="schip"><span class="dot d-next"></span> Next — invite emails · owner drill-down · per-rep calendars</div>
+  </div>
 
   <div class="wrap">
-
     <div class="sec-h"><h2>1 · How a company sets up</h2><span>owner funds the pool → reps go autonomous</span></div>
-    <div class="panel">
-      <pre class="mermaid">
-flowchart TD
-    O(["🏢 Company owner signs up"]):::start --> BUY["Funds the company pool<br/><b>Lead-gen $1 · FIGSY $3 / unit</b><br/>one bill · <b>seats are free</b>"]:::seat
-    BUY --> INV["Invites N reps · allocates a budget to each"]:::seat
-    INV --> R1["👤 Rep 1<br/>connects <b>own</b> calendar"]:::rep
-    INV --> R2["👤 Rep 2<br/>connects <b>own</b> calendar"]:::rep
-    INV --> R3["👤 Rep N<br/>connects <b>own</b> calendar"]:::rep
-    R1 --> F1["🟣 Rep 1's own FIGSY"]:::figsy
-    R2 --> F2["🟣 Rep 2's own FIGSY"]:::figsy
-    R3 --> F3["🟣 Rep N's own FIGSY"]:::figsy
-    F1 -. rolls up .-> DASH
-    F2 -. rolls up .-> DASH
-    F3 -. rolls up .-> DASH[("📊 Owner command centre<br/>every rep · every lead · every meeting")]:::data
-
-    classDef start fill:#ede9fe,stroke:#7C3AED,color:#1E1152,font-weight:bold;
-    classDef seat fill:#eef2ff,stroke:#4f46e5,color:#312e81,font-weight:bold;
-    classDef rep fill:#eef2ff,stroke:#4f46e5,color:#312e81;
-    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
-    classDef data fill:#fff7ed,stroke:#d97706,color:#92400e;
-      </pre>
+    <div class="flow">
+      <div class="start">🏢 Company owner signs up</div>
+      <div class="arr">▼</div>
+      <div class="step c-seat"><div class="ttl">Funds the company pool</div><div class="sub">Lead-gen $1 · FIGSY $3 per unit · one bill · <b>seats are free</b></div></div>
+      <div class="arr">▼</div>
+      <div class="step c-seat"><div class="ttl">Invites N reps · allocates a budget to each</div></div>
+      <div class="arr">▼</div>
+      <div class="branch3">
+        <div class="step c-figsy"><div class="ttl">👤 Rep 1</div><div class="sub">own FIGSY + calendar</div></div>
+        <div class="step c-figsy"><div class="ttl">👤 Rep 2</div><div class="sub">own FIGSY + calendar</div></div>
+        <div class="step c-figsy"><div class="ttl">👤 Rep N</div><div class="sub">own FIGSY + calendar</div></div>
+      </div>
+      <div class="arr">▼</div>
+      <div class="win">📊 Owner command centre — every rep · every lead · every meeting</div>
     </div>
-    <div class="keys">
-      <span><b>One bill</b> for the whole company — <b>free seats</b>, pay for usage</span>
-      <span>Each rep connects <b>their own</b> calendar</span>
-      <span>Each seat = one fully autonomous FIGSY</span>
+    <div class="keys"><span><b>One bill</b> · free seats, pay for usage</span><span>Each rep connects <b>their own</b> calendar</span><span>Each seat = one fully autonomous FIGSY</span></div>
+
+    <div class="sec-h"><h2>2 · Each rep is fully independent</h2><span>their leads · their voice · their calendar</span></div>
+    <div class="flow">
+      <div class="start">👤 One rep</div>
+      <div class="arr">▼</div>
+      <div class="step c-figsy"><div class="ttl">Their ICP → FIGSY finds their ideal leads</div></div>
+      <div class="arr">▼</div>
+      <div class="step c-figsy"><div class="ttl">FIGSY opens in the rep's voice, signed as the rep</div></div>
+      <div class="arr">▼</div>
+      <div class="step c-figsy"><div class="ttl">Reply → meeting booked onto the REP'S own calendar</div></div>
+      <div class="arr">▼</div>
+      <div class="step c-denise"><div class="ttl">Denise closes · proposal</div></div>
+      <div class="arr">▼</div>
+      <div class="win" style="background:#1E1152">💰 The rep's signed deal → the rep's own pipeline</div>
     </div>
+    <div class="note"><strong>The key difference:</strong> Rep 1's FIGSY never touches Rep 2's leads, and a prospect that books with Rep 3 lands on <b>Rep 3's</b> calendar. Ten reps = ten independent AI SDRs running in parallel — not one shared system.</div>
 
-    <div class="sec-h"><h2>2 · Each rep gets their own autonomous FIGSY</h2><span>their leads · their voice · their calendar</span></div>
-    <div class="panel">
-      <pre class="mermaid">
-flowchart LR
-    REP(["👤 One rep"]):::start --> ICP["<b>Their</b> ICP<br/>FIGSY finds <b>their</b> ideal leads"]:::figsy
-    ICP --> OUT["FIGSY opens in the <b>rep's voice</b><br/>signed as the rep · auto follow-up"]:::figsy
-    OUT --> Q{"Interested?"}
-    Q -->|"No / opt-out"| X["Stops · respects opt-out"]:::neutral
-    Q -->|"Yes"| BK["Meeting booked<br/><b>onto the REP'S own calendar</b>"]:::figsy
-    BK --> CL["Denise closes · drafts proposal"]:::denise
-    CL --> WIN(["💰 The rep's signed deal"]):::win
-    WIN -. feeds .-> PIPE["The rep's <b>own</b> pipeline"]:::rep
-
-    classDef start fill:#eef2ff,stroke:#4f46e5,color:#312e81,font-weight:bold;
-    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
-    classDef denise fill:#fffaf0,stroke:#d97706,color:#92400e;
-    classDef rep fill:#eef2ff,stroke:#4f46e5,color:#312e81;
-    classDef neutral fill:#f8fafc,stroke:#cbd5e1,color:#475569;
-    classDef win fill:#1E1152,stroke:#7C3AED,color:#fff,font-weight:bold;
-      </pre>
-    </div>
-    <div class="note"><strong>The key difference from the old model:</strong> nothing is shared or centralised at the working level. Rep 1's FIGSY never touches Rep 2's leads, and a prospect that books with Rep 3 lands on <b>Rep 3's</b> calendar — not a shared company one. Ten reps = ten independent sales reps running in parallel.</div>
-
-    <div class="sec-h"><h2>3 · The owner's command centre</h2><span>autonomy below · oversight on top</span></div>
-    <div class="panel">
-      <pre class="mermaid">
-flowchart TD
-    subgraph REPS[" Each rep runs autonomously "]
-      direction LR
-      P1["Rep 1<br/>leads · meetings · pipeline"]:::rep
-      P2["Rep 2<br/>leads · meetings · pipeline"]:::rep
-      P3["Rep N<br/>leads · meetings · pipeline"]:::rep
-    end
-    REPS ==> OWN[("📊 OWNER COMMAND CENTRE<br/><b>company totals · leaderboard</b><br/>every rep's leads + bookings · spend per seat")]:::win
-    M["🧠 Milla<br/>reads every rep's signals →<br/>'who's hot, what's working, where to coach'"]:::milla -. insight .-> OWN
-
-    classDef rep fill:#eef2ff,stroke:#4f46e5,color:#312e81;
-    classDef milla fill:#eff8ff,stroke:#0ea5e9,color:#0c4a6e;
-    classDef win fill:#1E1152,stroke:#7C3AED,color:#fff,font-weight:bold;
-    style REPS fill:#f5f6ff,stroke:#e0e3ff;
-      </pre>
-    </div>
-    <div class="keys"><span>The owner sees <b>everything</b> — every rep, lead, meeting, and what each seat costs vs returns</span></div>
-
-    <div class="sec-h"><h2>4 · Usage &amp; budget — the company controls the purse</h2><span>exactly like an enterprise using Claude</span></div>
-    <div class="panel">
-      <pre class="mermaid">
-flowchart LR
-    CO["🏢 Company<br/><b>owns the budget pool</b><br/>one payment · tops up"]:::seat
-    CO --> AL["Owner allocates<br/>credits to each seat"]:::seat
-    AL --> S1["👤 Rep 1 seat<br/>own FIGSY + own credits"]:::rep
-    AL --> S2["👤 Rep N seat<br/>own FIGSY + own credits"]:::rep
-    S1 --> USE["Rep works<br/>(leads · outreach)"]:::figsy
-    S2 --> USE
-    USE --> LOW{"Runs low?"}
-    LOW -->|"keep going"| USE
-    LOW -->|"needs more"| REQ["Rep <b>requests</b> more credits"]:::rep
-    REQ --> DEC{"Owner reviews"}:::seat
-    DEC -->|"✅ approve"| AL
-    DEC -->|"❌ deny"| STOP["Stays within<br/>current allocation"]:::neutral
-
-    classDef seat fill:#eef2ff,stroke:#4f46e5,color:#312e81,font-weight:bold;
-    classDef rep fill:#eef2ff,stroke:#4f46e5,color:#312e81;
-    classDef figsy fill:#f3eeff,stroke:#7C3AED,color:#1E1152;
-    classDef neutral fill:#f8fafc,stroke:#cbd5e1,color:#475569;
-      </pre>
+    <div class="sec-h"><h2>3 · Usage &amp; budget — the company controls the purse</h2><span>exactly like an enterprise using Claude</span></div>
+    <div class="flow">
+      <div class="step c-seat"><div class="ttl">🏢 Company owns the pools</div><div class="sub">Lead-gen $1 · FIGSY $3 · one bill · tops up</div></div>
+      <div class="arr">▼</div>
+      <div class="step c-seat"><div class="ttl">Owner allocates a budget to each rep</div></div>
+      <div class="arr">▼</div>
+      <div class="step c-figsy"><div class="ttl">Rep works — draws down their budget</div></div>
+      <div class="arr">▼</div>
+      <div class="step c-seat"><div class="ttl">Runs low → rep requests more</div><div class="sub">🔔 owner notified</div></div>
+      <div class="arr">▼</div>
+      <div class="branch">
+        <div class="step c-figsy" style="--c:#10b981"><div class="lab">✅ Approve</div><div class="ttl">credits reinstated</div><div class="sub">🔔 rep notified</div></div>
+        <div class="step c-neutral"><div class="lab">❌ Deny</div><div class="ttl">stays within allocation</div></div>
+      </div>
     </div>
     <div class="bill">
       <div class="bcard"><div class="big">1</div><div class="lbl">company account · one bill · owns the pools (Lead-gen $1 · FIGSY $3)</div></div>
       <div class="bcard"><div class="big">N</div><div class="lbl"><b>free</b> seats — each rep, own FIGSY + own budget</div></div>
       <div class="bcard"><div class="big">⇄</div><div class="lbl">reps request more · owner approves or denies</div></div>
     </div>
-    <div class="note"><strong>Just like your company uses Claude:</strong> the company holds the budget; each rep works within their allocation; when someone needs more, they <b>request</b> it and the owner <b>approves or denies</b>. <b>No per-seat fee</b> — you pay only for usage, plus any agents (Milla $49 · Vida $29 · Denise $39) the owner switches on per rep. Centralised spend control, autonomous work per rep — revenue scales with usage. Outcome-based pricing comes next.</div>
+    <div class="note"><strong>Just like your company uses Claude:</strong> the company holds the budget; each rep works within their allocation; when someone needs more, they <b>request</b> it and the owner <b>approves or denies</b>. <b>No per-seat fee</b> — pay only for usage, plus any agents (Milla $49 · Vida $29 · Denise $39) the owner switches on per rep. Centralised spend control, autonomous work per rep. Outcome-based pricing comes next.</div>
+
+    <div class="sec-h"><h2>4 · Per-rep agent unlock</h2><span>owner switches agents on, per rep</span></div>
+    <div class="flow">
+      <div class="step c-seat"><div class="ttl">Owner opens the Seats tab</div></div>
+      <div class="arr">▼</div>
+      <div class="branch">
+        <div class="step c-figsy"><div class="ttl">👤 Rep A</div><div class="sub">FIGSY (included) + Milla + Denise</div></div>
+        <div class="step c-figsy"><div class="ttl">👤 Rep B</div><div class="sub">FIGSY (included) + Vida</div></div>
+      </div>
+      <div class="arr">▼</div>
+      <div class="win" style="background:var(--seat)">Each unlock rolls into the one company bill</div>
     </div>
 
-    <div class="sec-h"><h2>What's live vs what we're building</h2><span>honest status</span></div>
-    <div class="panel">
-      <pre class="mermaid">
-flowchart LR
-    NOW["<b>BUILT · ON STAGING</b><br/>each rep's own workspace + FIGSY + leads ·<br/>owner command centre + leaderboard ·<br/>budget allocate · request→approve loop"]:::live
-    ==> BUILD["<b>GOING LIVE for the demo</b><br/>real billing → company pools ·<br/>per-rep agent unlock (Milla·Vida·Denise) ·<br/>invite emails"]:::build
-    ==> NEXT["<b>NEXT</b><br/>owner drill-down per rep ·<br/>per-rep calendars · outcome pricing"]:::next
-
-    classDef live fill:#ecfdf5,stroke:#10b981,color:#065f46,font-weight:bold;
-    classDef build fill:#f3eeff,stroke:#7C3AED,color:#1E1152,font-weight:bold;
-    classDef next fill:#f1f5f9,stroke:#94a3b8,color:#475569;
-      </pre>
+    <div class="sec-h"><h2>What's live vs what's next</h2><span>honest status</span></div>
+    <div class="flow">
+      <div class="step" style="--c:#10b981"><div class="lab">Built · on staging</div><div class="ttl">Each rep's own workspace + FIGSY + leads · owner command centre + leaderboard · budget allocate · request→approve loop · per-rep agent unlock</div></div>
+      <div class="arr">▼</div>
+      <div class="step c-figsy"><div class="lab">Going live for the demo</div><div class="ttl">Real billing → company pools · invite emails</div></div>
+      <div class="arr">▼</div>
+      <div class="step c-neutral dash"><div class="lab">Next</div><div class="ttl">Owner drill-down per rep · per-rep calendars · outcome pricing</div></div>
     </div>
-    <p class="note"><strong>The pitch one-liner:</strong> "K.I.N.D gives every one of your reps their own AI sales rep — finding their leads, opening in their voice, booking onto their calendar — while you watch the whole team from one command centre. You don't buy a tool. You buy a sales floor that runs itself."</p>
+    <div class="note"><strong>The pitch one-liner:</strong> "K.I.N.D gives every one of your reps their own AI sales rep — finding their leads, opening in their voice, booking onto their calendar — while you watch the whole team from one command centre. You don't buy a tool. You buy a sales floor that runs itself."</div>
 
-    <footer>K.I.N.D — Per-Rep Model · the agreed direction (#88). <b>BUILT + on staging; going live for the client demo.</b> Open in any browser.</footer>
+    <footer>K.I.N.D — Per-Rep Model (#88). <b>BUILT + on staging; going live for the client demo.</b> Pure HTML — opens in any browser, online or offline.</footer>
   </div>
-
-<script>
-  mermaid.initialize({
-    startOnLoad:true,
-    securityLevel:'loose',
-    theme:'base',
-    themeVariables:{
-      fontFamily:"-apple-system,Segoe UI,system-ui,sans-serif",
-      fontSize:'15px',
-      lineColor:'#b9a8e8',
-      primaryColor:'#f3eeff',
-      primaryBorderColor:'#7C3AED',
-      primaryTextColor:'#1E1152'
-    },
-    flowchart:{ curve:'basis', nodeSpacing:42, rankSpacing:54, padding:14 }
-  });
-</script>
 </body>
 </html>

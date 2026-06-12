@@ -8,6 +8,15 @@
 **Branch model:** all new work on `claude/kind-carson-MYhSl` → merged to `staging` → founder
 reviews on staging → founder merges `staging` → `main` (production). Nothing live until the founder merges.
 
+> 🔍 **AUDITED 12 Jun late** (verified against git + code, not memory): `main` untouched at `93d2158` ·
+> working tree clean · API typecheck + 16/16 tests green at HEAD · schema/seed/code consistent.
+> **⚠️ Two live warnings:**
+> 1. **7 commits are on the feature branch but NOT on staging** (per-rep agent unlock · Denise $39 ·
+>    flow docs · status/founder docs). Monday sequencing: merge → **re-paste `staging-schema.sql`**
+>    (adds `enabled_agents`) → redeploy BOTH services → do NOT re-run the company seed.
+> 2. **The Stripe price object for Denise is still $99** — code says $39 but the founder must create
+>    the new $39 price in Stripe and update `STRIPE_PRICE_DENISE_MONTHLY`, or checkout charges $99.
+
 ---
 
 ## ✅ 1. EVERYTHING BUILT

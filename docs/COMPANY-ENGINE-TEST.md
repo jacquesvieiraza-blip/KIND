@@ -6,7 +6,25 @@
 
 ---
 
-## STEP 0 — Get the new code + tables onto staging (one-time)
+> ## 🔄 REFRESH — 12 Jun late (read this first, supersedes Step 0)
+> You already did the first merge + schema + seed earlier today (Command Centre verified working:
+> 3 reps, 40k pool, approve moved credits). Since then, **7 newer commits** (per-rep agent unlock ·
+> Denise $39 · flow docs) are on `claude/kind-carson-MYhSl` but **not on staging**. Before Monday's test:
+> 1. **Merge** `claude/kind-carson-MYhSl` → `staging` (PR, base `staging`)
+> 2. **Re-paste `supabase/staging-schema.sql`** in the kind-staging SQL editor → Run
+>    *(adds the new `enabled_agents` column — must be in place before the API redeploys, idempotent)*
+> 3. **Redeploy BOTH** `api-staging` and `heartfelt-essence` (watch a real build run)
+> 4. ⚠️ **Do NOT re-run the company seed** — it would create a duplicate company.
+> 5. *(Optional, prettier demo)* give the reps a mix of unlocked agents:
+>    ```sql
+>    update clients set enabled_agents='{figsy,milla,denise}' where invited_email='amara@maceyluxe.test';
+>    update clients set enabled_agents='{figsy,vida}'         where invited_email='tunde@maceyluxe.test';
+>    ```
+> 6. **New Test 7 — per-rep agent unlock:** Seats tab → each rep card now has agent toggles
+>    (FIGSY included · +Milla $49 · +Vida $29 · +Denise $39). Toggle one on/off → saves, shows
+>    the rolled-up +$/mo on the company bill.
+
+## STEP 0 — Get the new code + tables onto staging (one-time — ✅ DONE 12 Jun, see REFRESH above)
 
 **A. Merge + redeploy** (same 3 steps as always)
 1. GitHub → PR **base `staging`** ← **compare `claude/kind-carson-MYhSl`** → Merge

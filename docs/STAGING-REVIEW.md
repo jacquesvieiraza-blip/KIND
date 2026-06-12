@@ -36,13 +36,19 @@
 > 2. Paste the updated **`supabase/staging-seed.sql`** → Run (adds the company + 3 reps). *(The first seed block will conflict on the existing client — that's fine; the new COMPANY ENGINE block at the bottom is what matters. If it errors on the duplicate, just run the part from the `-- COMPANY ENGINE SEED` comment down.)*
 > 3. Set `NEXT_PUBLIC_FEATURE_V2_SCREENS` to include `company` (or `all`) so it shows in the rail. It's already reachable at `/dashboard/company`.
 
-### 🏗️ Company Engine — still to build (next increments)
-| Piece | Notes |
-|-------|-------|
-| Rep **invite-accept** flow | Owner invites by email → rep signs up via token link → their user_id attaches to the pre-created seat. Backend stub exists (`POST /company/seats` creates the seat + token); needs the signup-accept wiring. |
-| Company **billing → pool** | Owner pays via Stripe → webhook tops up `companies.credit_pool`. Manual `POST /company/pool/topup` exists for now. |
-| **"Add a rep"** UI | Wire the page's invite button to `POST /company/seats`. |
-| Per-rep **onboarding** | Each rep builds their own ICP/campaigns, or owner pushes a winning play to all. |
+### 🏗️ Company Engine — increments (updated 12 Jun late)
+| Piece | Status |
+|-------|--------|
+| Rep **invite-accept** flow | ✅ **BUILT** — `/invite/accept` tries company seat first; binds user_id to the pre-created workspace |
+| **"Add a rep"** UI | ✅ **BUILT** — Seats tab form → `POST /company/seats` → copyable invite link |
+| Staging **pool top-up** | ✅ **BUILT** — staging-only test button (+10k); endpoint refuses on prod |
+| **Per-rep agent unlock** | ✅ **BUILT** (commit `7f1e02c`, ⚠️ not yet merged to staging) — owner toggles Milla/Vida/Denise per rep; rep's sidebar gates off `enabled_agents`; solo accounts untouched |
+| Company **billing → pool** (Stripe) | 🔴 **THE go-live blocker** — owner pays → webhook funds the two pools. Next build. |
+| Invite **email delivery** · owner **drill-down** | ⬜ next after billing |
+
+### 💲 Also this session (12 Jun late)
+- **Denise repriced $99 → $39** across portal, website, API, deck, flow docs (⚠️ 🧍 Stripe price object still $99 — see `FOUNDER-ACTIONS.md`)
+- **Flow docs rebuilt** as pure HTML/CSS (Mermaid broke on the founder's phone) — `CLIENT_FLOW.html` + `CLIENT_FLOW_PER_REP.html`, offline-safe
 
 ### 🔨 Still queued
 | Item | Status / blocker |

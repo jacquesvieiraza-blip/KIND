@@ -31,6 +31,8 @@
 > **This block is the cold-start handoff.** Any new chat/session must read this to know exactly
 > where we are. **Keep it current** — update it at the end of every working session before commit.
 
+- **🏢 12 JUN LATE — COMPANY ENGINE (#88) = THE ONE PUSH TO PRODUCTION BEFORE THE 19th.** Founder has a high-volume multi-rep client; demo next week; founder tests Mon 15. **Built + verified on staging:** per-rep workspaces · owner pools (lead-gen $1 / FIGSY $3, confirmed two-pool model) · budgets/allocate · request→approve (verified live: Amara +2,000 / pool 40k→38k) · invite→accept · autonomy · winning plays · real per-rep stats. **Built on feature branch, NOT yet merged to staging:** per-rep agent unlock + **Denise $99→$39 everywhere** + offline flow docs. ⚠️ **Next merge sequencing:** re-paste `staging-schema.sql` (adds `enabled_agents`) BEFORE/with redeploying `api-staging`, and do **NOT** re-run the company seed (would duplicate the company). 🧍 Stripe price object `STRIPE_PRICE_DENISE_MONTHLY` is still $99 — founder must create the $39 price. Full breakdown: [`STATUS-12JUN.md`](./STATUS-12JUN.md) · founder tasks: [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md) · test script: [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md).
+
 - **✅ 12 JUN — STAGING ISOLATION COMPLETE. The sealed preview environment is LIVE.**
 >   - ✅ **Separate staging Supabase project** `kind-staging` (`ddigrhimalmgymkwuusd`) — full consolidated schema applied (one paste), seeded with MaceyLuxe Staging + **50 fake leads · 2 campaigns · 5 replies · 12.5k credits**. **Zero connection to prod data.**
 >   - ✅ **Separate staging API service** `api-staging` (`api-staging-production-2185.up.railway.app`) — Nixpacks, branch `staging`, points at `kind-staging`. Boots on **DB creds only** via new staging-mode startup check (no prod secrets in staging). `/stats/platform` returns the seed numbers (50/2/5) — **isolation proven**.
@@ -1861,7 +1863,7 @@ Qualification → Discovery (5 questions) → Demo → Proposal → Payment → 
 - Config / embed / WhatsApp
 - Subscription wired
 
-## Denise (The Closer · AI AE · $99/mo) — LIVE & transactional as of 5 Jun
+## Denise (The Closer · AI AE · **$39/mo** — repriced 12 Jun, was $99) — LIVE & transactional as of 5 Jun
 - Own dedicated page (denise.html)
 - Billing ($99/mo)
 - Workspace
@@ -1915,7 +1917,7 @@ pages (estate-agents, insurance-brokers, financial-advisers) · pipeline-calcula
 | **FIGSY** | $3/credit (20/40/100 = $60/$120/$300) |
 | **Milla** | $49/mo |
 | **Vida** | **$29/mo** (NOT $39 — common stale value) |
-| **Denise** | **$99/mo** (premium closer, decided 5 Jun) |
+| **Denise** | **$39/mo** (repriced 12 Jun from $99 — most-affordable, easy-add closer; 🧍 must create new $39 Stripe price + update `STRIPE_PRICE_DENISE_MONTHLY`) |
 | **Bundle** | $69/mo |
 | **The "one number"** | **"$20"** — true entry price (pay-per-result) on homepage hero |
 

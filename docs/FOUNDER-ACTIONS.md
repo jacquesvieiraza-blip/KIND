@@ -9,7 +9,9 @@
 ## 🔴 COMPANY ENGINE — go live for the client demo (NEW, before 19 Jun)
 *The one build going to production before launch. Tested Monday, demoed next week.*
 
+- [ ] **Monday prep (5 min, in this order):** merge `claude/kind-carson-MYhSl` → `staging` → **re-paste `staging-schema.sql`** in kind-staging (adds `enabled_agents`) → **redeploy BOTH** `api-staging` + `heartfelt-essence` → do **NOT** re-run the company seed. *(Detail: `COMPANY-ENGINE-TEST.md` → REFRESH block.)*
 - [ ] **Test the engine on staging** (Mon) — follow `docs/COMPANY-ENGINE-TEST.md` end-to-end (invite → accept → allocate → request → approve → per-rep agent unlock).
+- [ ] ⚠️ **Stripe: create the NEW $39 Denise price** — the existing `STRIPE_PRICE_DENISE_MONTHLY` price object is still **$99** (changing code does not change Stripe). Create a $39/mo recurring price → update the env var on api/portal → redeploy. Until then, Denise checkout would charge $99.
 - [ ] **Decide company billing in Stripe** — confirmed model: free seats · two credit pools (lead-gen $1/unit, FIGSY $3/unit) · agents per rep (Milla $49 · Vida $29 · Denise $39). Create/confirm the Stripe products + price IDs for **pool top-ups** so the owner can actually pay.
 - [ ] **Run the company-engine migration on the PRODUCTION Supabase** — `supabase/migrations/20260612_company_engine.sql` (idempotent, additive: companies table, seat columns, nullable user_id, seat_credit_requests, winning_plays, enabled_agents). Safe for existing clients.
 - [ ] **Merge to `main`** (you only) — the company-engine branch → production deploy.

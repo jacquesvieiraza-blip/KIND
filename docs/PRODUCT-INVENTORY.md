@@ -224,7 +224,7 @@
 | 134 | 🔴 | 9:16 social cuts (#30) · YouTube channel (#35) | 🤝 |
 | 135 | 🔴 | Onboarding v2 emails (#32) · playbook email form (#36) | 🤖 |
 | 136 | 🔴 | Flutterwave activation (#34) | 🧍 |
-| 136a | 🔴 | **Client invoicing — legitimate UK VAT invoices** (auto-issue on every Stripe/2nd-processor payment: sequential invoice #, K.I.N.D Ltd company no + GB VAT no + UK address, client + their VAT no, dated line items, subtotal/VAT@20%/total, PDF emailed + downloadable under **Company → Documents**). Design ✅ **LOCKED** → `previews/invoice-v1.html`. ⚠️ Needs founder to confirm legal name/company no/VAT no/address + VAT-registered status (no VAT line until registered) + currency (GBP vs USD). Current flow charges but issues no compliant invoice. | 🤖 |
+| 136a | 🔴 | **Client invoicing — surface Stripe VAT invoices in-portal.** Decision (12 Jun): **Stripe issues the official UK VAT invoices** (enable Stripe Tax + Invoicing, add K.I.N.D Ltd details + GB VAT no + branding in Stripe dashboard — founder config). **We build:** an *Invoices* surface under **Company → Documents** that pulls the client's Stripe invoices via API (`invoices.list`) and lists date / number / amount / status with a **Download PDF** link to Stripe's hosted PDF (`invoice_pdf` / `hosted_invoice_url`). `previews/invoice-v1.html` = the document/branding target for the Stripe PDF; in-portal **list** design → `previews/invoices-list.html`. ⚠️ Founder: confirm VAT-registered status + currency (code bills USD; UK co). | 🤖 |
 | 137 | 🔴 | 90-day performance guarantee (#61a/g) · Revenue Playbook call (#62b) · homepage outcome numbers (#62c) | 🤖 |
 | 138 | 🔴 | Influencer/community distribution (#61e) | 🧍 |
 

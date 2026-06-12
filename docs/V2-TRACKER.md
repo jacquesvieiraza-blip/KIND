@@ -117,7 +117,7 @@ _Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `P
 | #32 | Onboarding v2 + day-0/3/7 email | 🤖 |
 | #33 | Populate proof block w/ real data | 🤖 |
 | #34 | Activate Flutterwave (ZAR/NGN/KES/GHS) | 🧍 ⏸ |
-| #34a | **Client invoicing — legitimate UK VAT invoices.** Auto-issue a compliant invoice on every Stripe (or 2nd-processor) payment: sequential invoice number, K.I.N.D Ltd company no + GB VAT no + UK registered office, client + their VAT no, dated line items, subtotal → VAT @ 20% → total; PDF emailed + downloadable under **Company → Documents**. Design **LOCKED** (`previews/invoice-v1.html`). Founder to confirm legal name/company no/VAT no/address, VAT-registered status, currency. *(inventory 136a)* | 🤖 |
+| #34a | **Client invoicing — surface Stripe VAT invoices in-portal.** Decision (12 Jun): **Stripe issues the official UK VAT invoices** (Stripe Tax + Invoicing, K.I.N.D Ltd + GB VAT no + branding configured in Stripe — founder). **We build** an *Invoices* surface under **Company → Documents** pulling the client's Stripe invoices via API and listing date/number/amount/status + Download-PDF (Stripe hosted PDF). `previews/invoice-v1.html` = PDF/branding target; `previews/invoices-list.html` = in-portal list. Founder to confirm VAT-registered status + currency (code bills USD). *(inventory 136a)* | 🤖 |
 | #35 | Launch YouTube channel | 🧍 |
 | #36 | Wire playbook email form (ConvertKit) | 🤖 |
 | #61a | Performance-guarantee clause (90-day) | 🤖 |

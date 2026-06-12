@@ -13,11 +13,27 @@ function AcceptInviteInner() {
   useEffect(() => {
     if (!token) { setStatus('no-token'); return }
     const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { setStatus('login-required'); return }
+    supabase.auth.getSession().then(async ({ data }) => {
+      const user = data.session?.user
+      if (!user) { setStatus('login-required'); return }
       setStatus('accepting')
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-      const res = await fetch(`${apiUrl}/team/accept?token=${token}&user_id=${data.user.id}`)
+      // Try a company-seat invite first (rep joining a company), then fall back
+      // to a team-member invite (teammate on one account).
+      try {
+        const companyRes = await fetch(`${apiUrl}/company/accept-invite`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session!.access_token}` },
+          body: JSON.stringify({ token }),
+        })
+        if (companyRes.ok) {
+          setStatus('done')
+          setTimeout(() => router.push('/dashboard'), 1500)
+          return
+        }
+      } catch { /* fall through to team accept */ }
+
+      const res = await fetch(`${apiUrl}/team/accept?token=${token}&user_id=${user.id}`)
       if (res.ok) {
         setStatus('done')
         setTimeout(() => router.push('/dashboard'), 1500)

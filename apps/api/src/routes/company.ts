@@ -309,11 +309,13 @@ companyRouter.post('/credit-requests/:id/decide', async (req: AuthRequest, res) 
   }
 })
 
-// ── POST /company/pool/topup — owner adds credits to the company pool ────────
-// (Stub: in production this is fed by the Stripe purchase webhook. Here it lets
-//  the owner record/add pool credits; real money flows through billing.)
+// ── POST /company/pool/topup — add credits to the company pool ───────────────
+// STAGING-ONLY test tool. In production the pool is funded exclusively by the
+// Stripe purchase webhook — this endpoint refuses to grant free credits on prod.
 companyRouter.post('/pool/topup', async (req: AuthRequest, res) => {
   try {
+    const isStaging = process.env.IS_STAGING === 'true' || process.env.NEXT_PUBLIC_IS_STAGING === 'true'
+    if (!isStaging) { res.status(403).json({ success: false, error: 'Pool is funded via billing in production' }); return }
     const ctx = await resolveContext(req.userId!)
     if (!ctx) { res.status(404).json({ success: false, error: 'No company found' }); return }
     if (!canManage(ctx.role)) { res.status(403).json({ success: false, error: 'Only the owner can top up the pool' }); return }
@@ -325,6 +327,37 @@ companyRouter.post('/pool/topup', async (req: AuthRequest, res) => {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }
     console.error('[company/pool/topup]', err)
     res.status(500).json({ success: false, error: 'Failed to top up pool' })
+  }
+})
+
+// ── POST /company/accept-invite — rep attaches their login to their seat ─────
+// Called after the invited rep signs up / logs in. Finds the seat by token and
+// binds the caller's auth user to it. The rep then owns that workspace.
+companyRouter.post('/accept-invite', async (req: AuthRequest, res) => {
+  try {
+    const { token } = z.object({ token: z.string().min(10) }).parse(req.body)
+
+    const { data: seat } = await db.from('clients')
+      .select('id, user_id, company_id, invited_email')
+      .eq('invite_token', token).maybeSingle()
+    if (!seat) { res.status(404).json({ success: false, error: 'Invite not found or already used' }); return }
+    if ((seat as any).user_id) { res.status(409).json({ success: false, error: 'This seat has already been claimed' }); return }
+
+    // The caller must not already own another workspace (unique user_id).
+    const { data: existing } = await db.from('clients').select('id').eq('user_id', req.userId!).maybeSingle()
+    if (existing) {
+      res.status(409).json({ success: false, error: 'This account already has a workspace. Use a fresh email for the rep seat.' }); return
+    }
+
+    const { error } = await db.from('clients')
+      .update({ user_id: req.userId!, seat_accepted_at: new Date().toISOString(), invite_token: null })
+      .eq('id', (seat as any).id)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }
+    console.error('[company/accept-invite]', err)
+    res.status(500).json({ success: false, error: 'Failed to accept invite' })
   }
 })
 

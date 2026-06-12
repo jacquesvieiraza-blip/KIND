@@ -11,6 +11,38 @@
 
 ---
 
+## 🧱 BUILD LEDGER — what's built vs what's queued (12 Jun)
+
+### ✅ Built + on staging this session
+| Item | Status |
+|------|--------|
+| Staging isolation (DB + API + portal + banner) | ✅ live |
+| Status bar #104 (FIGSY active · sent today · health) | ✅ built |
+| Profile dropdown → **account hub** (grouped) | ✅ **founder approved ("much better")** |
+| Mobile PWA icons #114 | ✅ built |
+| Deliverability dashboard #48 | ✅ built |
+| Staging-mode API startup (boots on DB creds only) | ✅ built |
+| **Nav redesign** (rail = work only + agent switcher; account → top-right) | ✅ **founder approved** |
+
+### 🔨 Queued — Claude continues building (no founder input / no external keys needed)
+| Item | Notes |
+|------|-------|
+| **Activity feed #102** | Live "FIGSY sent to X · hot reply from Y · meeting booked" — reads real sends/replies. Founder flagged top-impact. **← building now** |
+| **Notification centre #103** | Enhance the bell → slide-out panel hooked to real events |
+| **A/B subject testing UI #43** | Two subject variants per step; data already collected |
+| **Configurable agent triggers #53** | Time-window, weekends-off, reply-delay settings surface |
+| Kanban pipeline #100 | Already exists at `/dashboard/figsy/kanban` — review + polish |
+
+### ⏸ Blocked — needs founder before building
+| Item | Needs |
+|------|-------|
+| Subscribe-to-the-drop #122 · Site nav rewire #123 | Website/Drop content + touches landing pages |
+| Revenue Mission Control B1 | Confirm direction (big, ~3-4 days) |
+| FIGSY Memory v2 / pgvector B2 | Founder flips pgvector switch in Supabase (2 min) |
+| Casey onboarding B3 | Founder's voice/tone input |
+
+---
+
 ## 🌐 The environment being reviewed
 
 | Piece | Value |

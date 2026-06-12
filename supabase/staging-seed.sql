@@ -357,3 +357,106 @@ begin
   raise notice 'Seed complete. Company: MaceyLuxe Staging (%), 50 leads, 2 campaigns.', v_client_id;
 end;
 $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- COMPANY ENGINE SEED (#88) — owner + 3 reps, each with their OWN workspace
+-- Run AFTER the main seed above. Makes the Command Centre show real per-rep data.
+-- ════════════════════════════════════════════════════════════════════════════
+do $$
+declare
+  v_owner_user   uuid;
+  v_owner_client uuid;
+  v_company      uuid;
+  v_rep          uuid;
+  v_camp         uuid;
+  v_lead         uuid;
+  r              integer;
+  j              integer;
+  rep_names  text[] := ARRAY['Amara Nwosu','Tunde Adeyemi','Zola Mthembu'];
+  rep_emails text[] := ARRAY['amara@maceyluxe.test','tunde@maceyluxe.test','zola@maceyluxe.test'];
+  rep_budget int[]  := ARRAY[5000, 5000, 5000];
+  rep_auto   text[] := ARRAY['auto','auto','copilot'];
+  -- per-rep volume so their performance differs in the leaderboard
+  rep_leads  int[]  := ARRAY[18, 14, 9];
+  rep_sent   int[]  := ARRAY[34, 26, 15];
+  rep_reps   int[]  := ARRAY[5, 3, 2];     -- replies
+  rep_book   int[]  := ARRAY[3, 2, 1];     -- meetings booked
+begin
+  select user_id into v_owner_user from public.clients where company_name = 'MaceyLuxe Staging' limit 1;
+  select id      into v_owner_client from public.clients where company_name = 'MaceyLuxe Staging' limit 1;
+  if v_owner_user is null then raise exception 'Run the main seed first.'; end if;
+
+  -- Company + make MaceyLuxe the owner seat.
+  insert into public.companies (owner_user_id, name, credit_pool, seat_cap)
+  values (v_owner_user, 'MaceyLuxe', 40000, 25)
+  returning id into v_company;
+
+  update public.clients
+    set company_id = v_company, seat_role = 'owner', seat_active = true, seat_accepted_at = now()
+    where id = v_owner_client;
+
+  -- 3 reps, each their OWN client workspace (user_id null until they accept).
+  for r in 1..3 loop
+    insert into public.clients (
+      company_id, company_name, invited_email, invite_token,
+      seat_role, seat_active, seat_budget, credit_balance, autonomy,
+      seat_accepted_at, country, industry
+    ) values (
+      v_company, rep_names[r], rep_emails[r], replace(gen_random_uuid()::text,'-',''),
+      'rep', true, rep_budget[r], greatest(0, rep_budget[r] - (rep_sent[r] * 30)), rep_auto[r],
+      now() - ((4 - r) || ' days')::interval, 'South Africa', 'Technology'
+    ) returning id into v_rep;
+
+    -- Each rep gets a campaign.
+    insert into public.figsy_campaigns (client_id, name, status, leads_enrolled, emails_sent, replies_total, meetings_booked, steps_count, settings)
+    values (v_rep, split_part(rep_names[r],' ',1) || '''s Outreach', 'active', rep_leads[r], rep_sent[r], rep_reps[r], rep_book[r], 3, '{}'::jsonb)
+    returning id into v_camp;
+
+    -- Each rep gets their own leads.
+    for j in 1..rep_leads[r] loop
+      insert into public.leads (client_id, first_name, last_name, email, job_title, company, country, status, score, delivered_at)
+      values (
+        v_rep,
+        'Lead' || j, split_part(rep_names[r],' ',1),
+        'lead' || j || '.' || lower(split_part(rep_names[r],' ',1)) || '@prospect.test',
+        'Head of Sales', 'Prospect Co ' || j, 'South Africa',
+        case when j <= rep_book[r] then 'consent_given' when j <= rep_sent[r] then 'contacted' else 'scored' end,
+        55 + (random()*40)::int, now()
+      ) returning id into v_lead;
+
+      -- Sent emails (up to rep_sent, capped by leads).
+      if j <= least(rep_sent[r], rep_leads[r]) then
+        insert into public.figsy_sent_emails (campaign_id, lead_id, step, subject, body, status, sent_at)
+        values (v_camp, v_lead, 1, 'Quick question', 'Hi — worth a chat?', 'sent', now() - (random()*7 || ' days')::interval);
+      end if;
+
+      -- Replies + bookings for the first few.
+      if j <= rep_reps[r] then
+        insert into public.figsy_replies (campaign_id, lead_id, client_id, from_email, from_name, subject, body, classification, meeting_booked_at, received_at)
+        values (
+          v_camp, v_lead, v_rep,
+          'lead' || j || '@prospect.test', 'Lead' || j,
+          'Re: Quick question', case when j <= rep_book[r] then 'Yes, let''s meet.' else 'Interested, tell me more.' end,
+          case when j <= rep_book[r] then 'hot' else 'interested' end,
+          case when j <= rep_book[r] then now() - (random()*3 || ' days')::interval else null end,
+          now() - (random()*3 || ' days')::interval
+        );
+      end if;
+    end loop;
+
+    -- A pending credit request from the first two reps.
+    if r <= 2 then
+      insert into public.seat_credit_requests (company_id, rep_client_id, amount, reason)
+      values (v_company, v_rep, case when r = 1 then 2000 else 1500 end,
+        case when r = 1 then 'Q3 telco push — running low mid-campaign' else 'New ICP: fintech founders, SA' end);
+    end if;
+  end loop;
+
+  -- A couple of winning plays for the company library.
+  insert into public.winning_plays (company_id, name, note, reply_rate, pushed_to_all, created_by) values
+    (v_company, 'Fintech founder opener', 'Name a peer + a metric in line 1. 2x reply rate.', 14.5, true,  v_owner_user),
+    (v_company, 'Telco enterprise angle',  'Lead with a compliance hook for SA telcos.',        11.2, false, v_owner_user);
+
+  raise notice 'Company engine seeded: MaceyLuxe (%), 3 reps with own workspaces, 2 requests, 2 plays.', v_company;
+end;
+$$;

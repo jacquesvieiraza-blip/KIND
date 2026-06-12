@@ -27,14 +27,22 @@ const BRAND = '#7C3AED'
 interface Seat {
   id: string
   email: string
+  name?: string
   role: string
   autonomy: 'auto' | 'copilot' | 'off'
   credit_budget: number
   credits_used: number
+  credit_balance?: number
   seat_active: boolean
   accepted_at: string | null
+  // real per-rep outreach
+  contacted?: number
+  replies?: number
+  booked?: number
+  leads?: number
+  reply_pct?: number
 }
-interface CreditRequest { id: string; member_id: string; amount: number; reason: string | null; created_at: string }
+interface CreditRequest { id: string; rep_client_id: string; amount: number; reason: string | null; created_at: string }
 interface Play { id: string; name: string; note: string | null; reply_rate: number | null; pushed_to_all: boolean }
 interface Overview {
   company: { id: string; name: string }
@@ -181,10 +189,11 @@ export default function CompanyPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  <th className="text-left px-6 py-3">Rep</th>
-                  <th className="text-right px-4 py-3">Credits used</th>
-                  <th className="text-right px-4 py-3">Budget</th>
-                  <th className="text-right px-6 py-3">Credits left</th>
+                  <th className="text-left px-6 py-3">Rep · their FIGSY</th>
+                  <th className="text-right px-3 py-3">Contacted</th>
+                  <th className="text-right px-3 py-3">Reply %</th>
+                  <th className="text-right px-3 py-3">Booked</th>
+                  <th className="text-right px-4 py-3">Credits left</th>
                 </tr>
               </thead>
               <tbody>
@@ -207,9 +216,14 @@ export default function CompanyPage() {
                           {pct > 0.9 && left < 20 && <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">low credits</span>}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right font-medium text-gray-700">{s.credits_used.toLocaleString()}</td>
-                      <td className="px-4 py-4 text-right text-gray-400">{s.credit_budget.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-4 text-right text-gray-700">{s.role === 'owner' ? '—' : (s.contacted ?? 0).toLocaleString()}</td>
+                      <td className="px-3 py-4 text-right">
+                        {s.role === 'owner' ? <span className="text-gray-300">—</span> : (
+                          <span className={`font-semibold ${(s.reply_pct ?? 0) >= 12 ? 'text-emerald-600' : (s.reply_pct ?? 0) < 8 ? 'text-orange-600' : 'text-gray-700'}`}>{s.reply_pct ?? 0}%</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-4 text-right font-bold text-gray-900">{s.role === 'owner' ? '—' : (s.booked ?? 0)}</td>
+                      <td className="px-4 py-4 text-right">
                         <span className="font-bold" style={{ color: pct > 0.9 ? '#ea580c' : BRAND }}>{left.toLocaleString()}</span>
                       </td>
                     </tr>
@@ -227,7 +241,7 @@ export default function CompanyPage() {
             </h3>
             {requests.length === 0 && <p className="px-5 py-6 text-sm text-gray-400">No requests right now.</p>}
             {requests.map(r => {
-              const seat = seatById(r.member_id)
+              const seat = seatById(r.rep_client_id)
               return (
                 <div key={r.id} className="flex items-center justify-between px-5 py-4 border-b border-gray-50 last:border-0">
                   <div>

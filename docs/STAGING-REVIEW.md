@@ -96,7 +96,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | F1 | Campaigns | `/dashboard/figsy` | ⬜ | | | |
 | F2 | Chat with FIGSY | `/dashboard/figsy-chat` | ⬜ | | | |
 | F3 | Templates (R11) | `/dashboard/templates` | ✅ | Clean card grid, good copy, category filters | — | **Approved as-is 12 Jun** |
-| F4 | Sequence Builder (R23) | `/dashboard/figsy/sequence-builder` | ⬜ | | | |
+| F4 | Sequence Builder (R23) | `/dashboard/figsy/sequence-builder` | ✅🎨 | Visual tree + branching, template grid | Gray canvas felt off-brand | **Recolor LOCKED 12 Jun** → `previews/sequence-builder-v2.html` (brand purple). Build to this when #89 wires it. |
 | F5 | Kanban pipeline | `/dashboard/figsy/kanban` | ⬜ | | | |
 | F6 | Replies | `/dashboard/figsy/replies` | ⬜ | | | |
 | F7 | LinkedIn queue | `/dashboard/figsy/linkedin` | ⬜ | | | |

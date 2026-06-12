@@ -25,23 +25,22 @@ interface Ctx { companyId: string; clientId: string | null; role: string; isOwne
 // Resolve the caller → their company + role. Auto-provisions a company for a
 // solo owner the first time they open the Command Centre, so onboarding is
 // seamless (their existing client becomes the company's owner seat).
+// Resolve the caller → their company + role. Does NOT auto-create a company —
+// a solo client must explicitly opt in via POST /company/provision. This keeps
+// existing production accounts untouched when they merely open the page.
 async function resolveContext(userId: string): Promise<Ctx | null> {
   const { data: client } = await db.from('clients')
-    .select('id, company_id, seat_role, company_name')
+    .select('id, company_id, seat_role')
     .eq('user_id', userId).maybeSingle()
-  if (!client) return null
+  if (!client?.company_id) return null
+  return { companyId: client.company_id, clientId: client.id, role: client.seat_role ?? 'rep', isOwner: client.seat_role === 'owner' }
+}
 
-  if (client.company_id) {
-    return { companyId: client.company_id, clientId: client.id, role: client.seat_role ?? 'rep', isOwner: client.seat_role === 'owner' }
-  }
-
-  // No company yet → this client becomes the owner of a new company.
-  const { data: company, error } = await db.from('companies')
-    .insert({ owner_user_id: userId, name: client.company_name || 'My Company' })
-    .select('id').single()
-  if (error || !company) return null
-  await db.from('clients').update({ company_id: company.id, seat_role: 'owner', seat_active: true }).eq('id', client.id)
-  return { companyId: company.id, clientId: client.id, role: 'owner', isOwner: true }
+// Does this user have a client account at all (eligible to start a company)?
+async function getClientForUser(userId: string): Promise<{ id: string; company_id: string | null; company_name: string | null } | null> {
+  const { data } = await db.from('clients')
+    .select('id, company_id, company_name').eq('user_id', userId).maybeSingle()
+  return (data as any) ?? null
 }
 
 // Batch per-rep outreach stats (one query per source, aggregated in JS).
@@ -81,7 +80,13 @@ async function repStats(repIds: string[]): Promise<Record<string, { contacted: n
 companyRouter.get('/overview', async (req: AuthRequest, res) => {
   try {
     const ctx = await resolveContext(req.userId!)
-    if (!ctx) { res.status(404).json({ success: false, error: 'No company found' }); return }
+    if (!ctx) {
+      // No company yet — tell the page whether this user *could* start one,
+      // so it can show a "Set up your team" intro instead of an error.
+      const client = await getClientForUser(req.userId!)
+      res.json({ success: true, data: { has_company: false, can_create: !!client } })
+      return
+    }
 
     const [{ data: company }, { data: seats }, { data: requests }] = await Promise.all([
       db.from('companies').select('id, name, credit_pool, seat_cap').eq('id', ctx.companyId).maybeSingle(),
@@ -146,6 +151,29 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error('[company/overview]', err)
     res.status(500).json({ success: false, error: 'Failed to load company' })
+  }
+})
+
+// ── POST /company/provision — explicitly turn this account into a company ────
+// Opt-in only. The caller's existing client becomes the owner seat. No-op if
+// they already belong to a company.
+companyRouter.post('/provision', async (req: AuthRequest, res) => {
+  try {
+    const client = await getClientForUser(req.userId!)
+    if (!client) { res.status(404).json({ success: false, error: 'No client account found' }); return }
+    if (client.company_id) { res.json({ success: true, data: { company_id: client.company_id, already: true } }); return }
+
+    const name = z.object({ name: z.string().min(1).max(200).optional() }).parse(req.body ?? {}).name
+    const { data: company, error } = await db.from('companies')
+      .insert({ owner_user_id: req.userId!, name: name || client.company_name || 'My Company' })
+      .select('id').single()
+    if (error || !company) throw error ?? new Error('insert failed')
+    await db.from('clients').update({ company_id: company.id, seat_role: 'owner', seat_active: true, seat_accepted_at: new Date().toISOString() }).eq('id', client.id)
+    res.json({ success: true, data: { company_id: company.id } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }
+    console.error('[company/provision]', err)
+    res.status(500).json({ success: false, error: 'Failed to create company workspace' })
   }
 })
 

@@ -68,17 +68,29 @@ export default function CompanyPage() {
   const [topupBusy, setTopupBusy] = useState(false)
   const [topupError, setTopupError] = useState<string | null>(null)
 
+  const [needsSetup, setNeedsSetup] = useState(false)
+  const [provisioning, setProvisioning] = useState(false)
+
   const load = useCallback(async (tok: string) => {
     try {
-      const [ov, pl] = await Promise.all([
-        api.get<{ data: Overview }>('/company/overview', tok),
-        api.get<{ data: Play[] }>('/company/winning-plays', tok).catch(() => ({ data: [] as Play[] })),
-      ])
+      const ov = await api.get<{ data: Overview & { has_company?: boolean } }>('/company/overview', tok)
+      if ((ov.data as { has_company?: boolean }).has_company === false) {
+        setNeedsSetup(true); setData(null); setLoading(false); return
+      }
+      const pl = await api.get<{ data: Play[] }>('/company/winning-plays', tok).catch(() => ({ data: [] as Play[] }))
+      setNeedsSetup(false)
       setData(ov.data)
       setPlays(pl.data)
     } catch { setData(null) }
     setLoading(false)
   }, [])
+
+  async function provision() {
+    if (!token) return
+    setProvisioning(true)
+    try { await api.post('/company/provision', {}, token); await load(token) } catch { /* ignore */ }
+    setProvisioning(false)
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -172,7 +184,22 @@ export default function CompanyPage() {
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" /></div>
-  if (!data) return <div className="max-w-md mx-auto text-center py-20 text-gray-500">No company workspace found for your account.</div>
+  if (needsSetup) return (
+    <div className="max-w-lg mx-auto text-center py-16 px-6">
+      <div className="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center text-white" style={{ background: BRAND }}>
+        <Building2 className="w-7 h-7" />
+      </div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">Run your whole team from one place</h1>
+      <p className="text-gray-500 mb-6">Turn your account into a company workspace: give every rep their own FIGSY, fund one budget pool, and approve their credit requests — all from an owner command centre.</p>
+      <button onClick={provision} disabled={provisioning}
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-60" style={{ background: BRAND }}>
+        {provisioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+        Set up my company workspace
+      </button>
+      <p className="text-xs text-gray-400 mt-3">You stay the owner · seats are free · you only pay for the usage each rep consumes.</p>
+    </div>
+  )
+  if (!data) return <div className="max-w-md mx-auto text-center py-20 text-gray-500">Couldn't load your company workspace. Refresh to try again.</div>
 
   const { totals, seats, pending_requests: requests, can_manage } = data
   const emailName = (e: string) => e.split('@')[0]

@@ -6,7 +6,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
-import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO } from '../lib/deliverability'
+import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO, warmupRampCap } from '../lib/deliverability'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
@@ -363,6 +363,49 @@ async function getClientCampaignIds(clientId: string): Promise<string[]> {
   const ids = (data ?? []).map((c: { id: string }) => c.id)
   return ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']
 }
+
+// ── PULSE (#104 status bar) ───────────────────────────────────────────────────
+// Lightweight, real, client-scoped signals for the sidebar status bar:
+//   • active_campaigns — campaigns currently running
+//   • sent_today       — emails sent so far this UTC day
+//   • warmup_cap       — today's cold-send ceiling (null = no cap configured)
+//   • credit_balance   — current credit balance
+// All numbers are real reads — no fabricated values. Cheap (HEAD counts).
+figsyRouter.get('/pulse', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const campaignIds = await getClientCampaignIds(clientId)
+    const todayUTC = new Date()
+    todayUTC.setUTCHours(0, 0, 0, 0)
+
+    // Warmup cap mirrors lib/figsy coldDailyCap(): explicit override wins, else
+    // auto-ramp from FIGSY_WARMUP_START, else no cap.
+    const explicit = parseInt(process.env.FIGSY_COLD_DAILY_CAP ?? '', 10)
+    const warmupStart = process.env.FIGSY_WARMUP_START
+    const warmupCap = Number.isFinite(explicit) && explicit > 0
+      ? explicit
+      : warmupStart ? warmupRampCap(warmupStart) : null
+
+    const [activeCampaignsRes, sentTodayRes, clientRes] = await Promise.all([
+      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds).gte('sent_at', todayUTC.toISOString()),
+      db.from('clients').select('credit_balance').eq('id', clientId).maybeSingle(),
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        active_campaigns: activeCampaignsRes.count ?? 0,
+        sent_today:       sentTodayRes.count ?? 0,
+        warmup_cap:       warmupCap,
+        credit_balance:   (clientRes.data as { credit_balance?: number } | null)?.credit_balance ?? 0,
+        as_of:            new Date().toISOString(),
+      },
+    })
+  } catch (err) { console.error('[figsy/pulse]', err); res.status(500).json({ success: false, error: 'Failed to fetch pulse' }) }
+})
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 figsyRouter.get('/kpis', async (req: AuthRequest, res) => {

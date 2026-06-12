@@ -21,6 +21,38 @@
 
 ---
 
+# ░ DESIGN-REVIEW LEDGER — locked screens + preview HTML (live since 12 Jun) ░
+
+> One-glance record of the founder design walk. **Verdict:** ✅ approved as-is · 🎨 redesign locked (build to the preview) · 🗑️ cut.
+> Per-screen detail + 👍/👎 in `STAGING-REVIEW.md`. Preview files in `docs/previews/`.
+
+| Screen | Route | Verdict | Preview HTML | Inv. item |
+|--------|-------|---------|--------------|-----------|
+| AI Notetaker | `/dashboard/notetaker` | ✅ as-is | [notetaker-current](./previews/notetaker-current.html) | 81 |
+| Documents & Agreements | `/dashboard/documents` | ✅ as-is | [documents-current](./previews/documents-current.html) | §1 (live) |
+| Referral | `/dashboard/referral` | ✅ as-is | [referral-current](./previews/referral-current.html) | §1 (live) |
+| Usage | `/dashboard/usage` | ✅ as-is | [usage-current](./previews/usage-current.html) | 28 |
+| Proposals | `/dashboard/proposals` | ✅ as-is *(e-sign capture = #69)* | [proposals-current](./previews/proposals-current.html) | 39 |
+| Sequence Builder | `/dashboard/figsy/sequence-builder` | 🎨 recolor locked | [sequence-builder-v2](./previews/sequence-builder-v2.html) | 82 |
+| Command Centre | `/dashboard/company` | ✅ layout solid · co-located | — | C1 / §2A |
+| Teams Hub | `/dashboard/team` | ✅ layout solid · moved to rail | — | 80 |
+| Integrations | `/dashboard/integrations` | ✅ as-is (Connect group) | — | 83 |
+| Developer API | `/dashboard/developer` | ✅ as-is (Connect group) | — | 46 |
+| MCP Connect | `/dashboard/mcp` | ✅ as-is (Connect group) | — | 45 |
+| What's New | `/dashboard/whats-new` | ✅ as-is | — | 78 |
+| Templates | `/dashboard/templates` | ✅ as-is | — | 70 |
+| Partner Hub | `/dashboard/partner` | ✅ as-is *(⚠️ earnings in ZAR → GBP)* | — | 37/42 |
+| Messages | `/dashboard/messages` | ✅ as-is | — | 38 |
+| Marketplace | `/dashboard/marketplace` | ✅ as-is | — | §1 (live) |
+| Settings | `/dashboard/settings` | ✅ as-is | — | §1 (live) |
+| Milla — chat | `/dashboard/assistant` | 🔄 in review | [milla-chat-current](./previews/milla-chat-current.html) | 2 |
+| Agent cards | `/dashboard/agents` | 🎨 locked ("AI Family") | [agents-v2](./previews/agents-v2.html) | 125 |
+| Inbox / Unibox | `/dashboard/inbox` | 🎨 redesign locked | [inbox-v2](./previews/inbox-v2.html) | 112 |
+| Client invoicing | Company → Documents | 🎨 locked (Stripe-issued) | [invoice-v1](./previews/invoice-v1.html) · [invoices-list](./previews/invoices-list.html) | 136a ⭐ |
+| Roadmap | ~~`/dashboard/roadmap`~~ | 🗑️ cut (we show the Drop) | — | — |
+
+---
+
 # ░ SECTION 1 — 🟢 BUILT + VERIFIED (live in production) ░
 
 ## The agents

@@ -1,5 +1,32 @@
 # 🟣 K.I.N.D — MASTER SOURCE OF TRUTH
 
+> # 🧭 START HERE — you are not lost (updated 12 Jun)
+>
+> **WHERE WE ARE:** Everything for launch is **BUILT and tested on staging**. We do **ONE combined launch**
+> (the V2 batch + the Company Engine, together) → **production by Fri 19 Jun**. Production is still untouched.
+>
+> ### ⭐ YOUR NEXT STEPS (in order) — the full checklist is [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md)
+> 1. **Get staging current:** merge `claude/kind-carson-MYhSl` → `staging` → re-paste `staging-schema.sql` in kind-staging → **redeploy BOTH** `api-staging` + `heartfelt-essence` → **don't** re-run the company seed.
+> 2. **Test the Command Centre** on staging → [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md).
+> 3. **Answer Claude's one open question:** company billing — single pool now (faster) or both pools now? (see `FOUNDER-ACTIONS.md` §2).
+> 4. **Founder jobs that take lead time — start now:** ✉️ email `partners@apollo.io` · 🔑 Hunter key · 🔑 PDL key · 💳 create the **$39 Denise Stripe price**.
+> 5. **Launch gate (by Fri 19):** D9 10/10 · legal #10–14 · smoke tests · Go/No-Go Thu 18 → then run the prod migration + merge `staging → main` + set flags.
+>
+> ### 📍 THE DOC MAP — what each doc is for (so you know where to look)
+> | Doc | Use it for |
+> |-----|-----------|
+> | ⭐ [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md) | **YOUR one checklist** — every step you must do, in order |
+> | [`STATUS-12JUN.md`](./STATUS-12JUN.md) | Where we are — everything built / left / who-does-what |
+> | [`LAUNCH-AUDIT-12JUN.md`](./LAUNCH-AUDIT-12JUN.md) | The verified pre-launch audit + the 3 risks |
+> | [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md) | Step-by-step to **test** the Command Centre on staging |
+> | [`STAGING-REVIEW.md`](./STAGING-REVIEW.md) | Your **design review** log (👍/👎 per screen) |
+> | `CLIENT_FLOW.html` · `CLIENT_FLOW_PER_REP.html` · `MCP-EXPLAINED.html` | **Demo collateral** (open in a browser, offline-safe) |
+> | **THIS doc** (`KIND-MASTER.md`) | The hub + the dated launch timeline + history below |
+>
+> _Everything below this box is the detailed history/timeline — you don't need it for "what do I do next." Use the box above._
+
+---
+
 > 📊 **CURRENT STATUS (12 Jun):** full built/left/founder/Claude breakdown for before & after the 19th is in [`STATUS-12JUN.md`](./STATUS-12JUN.md).
 
 > ✅ **THIS IS THE ONE SOURCE. Read this first, update this first, work off this only.**

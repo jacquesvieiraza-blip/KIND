@@ -106,159 +106,159 @@
 # ░ SECTION 2 — 🟡 BUILT, NOT VERIFIED (needs founder action to earn its 🟢) ░
 
 ## 2A — 🚀 SHIPS MONDAY 15 JUN (the Company Command Centre + payments — the only early ship)
-| # | Item | What's left to verify | Owner |
-|---|------|----------------------|-------|
-| 55 | **Company Engine #88 foundation** — per-rep private workspaces · owner-funded pools · per-seat budgets · request→approve/deny loop · invite→accept→own workspace · per-seat autonomy · winning-plays library · real per-rep stats | Command Centre already verified on staging 12 Jun ✅ — Monday: merge 7 newer commits → re-test → prod migration + merge + `company` flag | 🧍 test · 🤝 ship |
-| 56 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up company bill) | On feature branch, **not yet on staging** — Monday merge + schema re-paste + redeploy, then Test 7 | 🧍 |
-| 57 | **Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool right after; then 🧍 creates pool-topup products | 🤖 then 🧍 |
-| 58 | **Denise $99 → $39 repricing** (code done everywhere) | 🧍 create the $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
-| 59 | Admin "Company demo" provisioning | Create one in admin → open `/dashboard/company` populated | 🧍 |
+| # | 🟡 | Item | What's left to verify | Owner |
+|---|----|------|----------------------|-------|
+| 55 | 🟡 | **Company Engine #88 foundation** — per-rep private workspaces · owner-funded pools · per-seat budgets · request→approve/deny loop · invite→accept→own workspace · per-seat autonomy · winning-plays library · real per-rep stats | Command Centre already verified on staging 12 Jun ✅ — Monday: merge 7 newer commits → re-test → prod migration + merge + `company` flag | 🧍 test · 🤝 ship |
+| 56 | 🟡 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up company bill) | On feature branch, **not yet on staging** — Monday merge + schema re-paste + redeploy, then Test 7 | 🧍 |
+| 57 | 🟡 | **Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool right after; then 🧍 creates pool-topup products | 🤖 then 🧍 |
+| 58 | 🟡 | **Denise $99 → $39 repricing** (code done everywhere) | 🧍 create the $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
+| 59 | 🟡 | Admin "Company demo" provisioning | Create one in admin → open `/dashboard/company` populated | 🧍 |
 
 ## 2B — 📦 POST-19 QUEUE (built + build-verified, parked until after launch; review via `STAGING-REVIEW.md`)
-| # | Item | Where it waits | Owner |
-|---|------|----------------|-------|
-| 60 | **Wave 1 — R1 demo-bounce guard** | PR #506 | 🧍 review+merge |
-| 61 | R2 daily client brief (server-backed opt-in) | PR #507 | 🧍 |
-| 62 | R3 Vida in-portal help bubble | PR #508 | 🧍 |
-| 63 | R4 speed-to-lead (Vida hot lead → pipeline + Denise draft) | PR #509 | 🧍 |
-| 64 | R5 milestone share-to-LinkedIn cards + partner badge | PR #510 | 🧍 |
-| 65 | R6 onboarding day-0/3/7 emails for paid clients | PR #511 | 🧍 |
-| 66 | **Wave 2 — R7 Unibox "Help me reply"** (real Claude draft) | PR #512 | 🧍 |
-| 67 | R8 saved views for leads table | PR #513 | 🧍 |
-| 68 | R9 "Why FIGSY wrote this" transparency card | PR #514 | 🧍 |
-| 69 | R10 Goals — KPI targets + progress bars | PR #515 | 🧍 |
-| 70 | R11 sequence-template library by use-case | PR #516 | 🧍 |
-| 71 | R12 embeddable lead-capture forms | PR #517 | 🧍 |
-| 72 | R13 Cmd+K upgrade (quick actions) | PR #518 | 🧍 |
-| 73 | R14 Meeting-Prep (Denise pre-call brief) | PR #519 | 🧍 |
-| 74 | R15 Train-FIGSY knowledge backend | PR #520 | 🧍 |
-| 75 | R16 internal evals harness (per-variant reply rates) | PR #521 | 🧍 |
-| 76 | R17 spam-score pre-send check | PR #522 | 🧍 |
-| 77 | R18 multi-model toggle (Fast/Smart) per campaign | PR #523 | 🧍 |
-| 78 | R19 in-product "What's New" feed | PR #524 | 🧍 |
-| 79 | R20 job-change alerts on leads | PR #525 | 🧍 |
-| 80 | **Tier 3 — R21 Teams Hub** (`/dashboard/team`) | staging | 🧍 |
-| 81 | R22 AI Notetaker (`/dashboard/notetaker`) | staging | 🧍 |
-| 82 | R23 visual Sequence Builder (`/dashboard/figsy/sequence-builder`) | staging | 🧍 |
-| 83 | R24 Integrations Hub (`/dashboard/integrations`) | staging | 🧍 |
-| 84 | R25 SSO signup buttons (needs OAuth app registration to go live) | staging | 🧍 |
-| 85 | **Shell — nav redesign** (slim work-only rail + agent switcher) — *founder approved 12 Jun* | staging → merges post-19 | 🤝 |
-| 86 | Shell — profile dropdown → grouped account hub — *founder approved* | staging | 🤝 |
-| 87 | Shell — status bar #104 (FIGSY active · sent · health) | staging review | 🧍 |
-| 88 | Activity feed #102 (`/dashboard/activity`, live timeline) | staging review | 🧍 |
-| 89 | Notification centre #103 (real bell wired) | staging review | 🧍 |
-| 90 | Deliverability dashboard #48 | staging review | 🧍 |
-| 91 | Mobile PWA icons #114 | staging review | 🧍 |
-| 92 | PR #502 — 10-Jun audit batch (Y1–Y11 etc.) ⚠️ needs rebase before merge | open PR | 🧍 |
-| 93 | PR #503 — The Drop + Product Videos pages (+ site nav rewire held on it) | open PR | 🧍 |
-| 94 | PDL 2nd lead-discovery source (code wired, dormant) | needs `PDL_API_KEY` | 🧍 |
-| 95 | Hunter waterfall enrichment (code wired, dormant) | needs `HUNTER_API_KEY` | 🧍 |
-| 96 | Voice (Vapi) + WhatsApp (code wired) | keys + Meta approval | 🧍 |
-| 97 | A/B subject-testing backend #43 (winner-check cron + variants — UI = 🔴) | works, invisible until UI | 🤖 |
-| 98 | Offline flow docs `CLIENT_FLOW.html` + `CLIENT_FLOW_PER_REP.html` | reference, done | — |
-| 99 | `/v2/*` design mockups (23 screens — sequences, inbox, gallery…) — clickable designs, NOT wired | design exploration | 🧍 review |
+| # | 🟡 | Item | Where it waits | Owner |
+|---|----|------|----------------|-------|
+| 60 | 🟡 | **Wave 1 — R1 demo-bounce guard** | PR #506 | 🧍 review+merge |
+| 61 | 🟡 | R2 daily client brief (server-backed opt-in) | PR #507 | 🧍 |
+| 62 | 🟡 | R3 Vida in-portal help bubble | PR #508 | 🧍 |
+| 63 | 🟡 | R4 speed-to-lead (Vida hot lead → pipeline + Denise draft) | PR #509 | 🧍 |
+| 64 | 🟡 | R5 milestone share-to-LinkedIn cards + partner badge | PR #510 | 🧍 |
+| 65 | 🟡 | R6 onboarding day-0/3/7 emails for paid clients | PR #511 | 🧍 |
+| 66 | 🟡 | **Wave 2 — R7 Unibox "Help me reply"** (real Claude draft) | PR #512 | 🧍 |
+| 67 | 🟡 | R8 saved views for leads table | PR #513 | 🧍 |
+| 68 | 🟡 | R9 "Why FIGSY wrote this" transparency card | PR #514 | 🧍 |
+| 69 | 🟡 | R10 Goals — KPI targets + progress bars | PR #515 | 🧍 |
+| 70 | 🟡 | R11 sequence-template library by use-case | PR #516 | 🧍 |
+| 71 | 🟡 | R12 embeddable lead-capture forms | PR #517 | 🧍 |
+| 72 | 🟡 | R13 Cmd+K upgrade (quick actions) | PR #518 | 🧍 |
+| 73 | 🟡 | R14 Meeting-Prep (Denise pre-call brief) | PR #519 | 🧍 |
+| 74 | 🟡 | R15 Train-FIGSY knowledge backend | PR #520 | 🧍 |
+| 75 | 🟡 | R16 internal evals harness (per-variant reply rates) | PR #521 | 🧍 |
+| 76 | 🟡 | R17 spam-score pre-send check | PR #522 | 🧍 |
+| 77 | 🟡 | R18 multi-model toggle (Fast/Smart) per campaign | PR #523 | 🧍 |
+| 78 | 🟡 | R19 in-product "What's New" feed | PR #524 | 🧍 |
+| 79 | 🟡 | R20 job-change alerts on leads | PR #525 | 🧍 |
+| 80 | 🟡 | **Tier 3 — R21 Teams Hub** (`/dashboard/team`) | staging | 🧍 |
+| 81 | 🟡 | R22 AI Notetaker (`/dashboard/notetaker`) | staging | 🧍 |
+| 82 | 🟡 | R23 visual Sequence Builder (`/dashboard/figsy/sequence-builder`) | staging | 🧍 |
+| 83 | 🟡 | R24 Integrations Hub (`/dashboard/integrations`) | staging | 🧍 |
+| 84 | 🟡 | R25 SSO signup buttons (needs OAuth app registration to go live) | staging | 🧍 |
+| 85 | 🟡 | **Shell — nav redesign** (slim work-only rail + agent switcher) — *founder approved 12 Jun* | staging → merges post-19 | 🤝 |
+| 86 | 🟡 | Shell — profile dropdown → grouped account hub — *founder approved* | staging | 🤝 |
+| 87 | 🟡 | Shell — status bar #104 (FIGSY active · sent · health) | staging review | 🧍 |
+| 88 | 🟡 | Activity feed #102 (`/dashboard/activity`, live timeline) | staging review | 🧍 |
+| 89 | 🟡 | Notification centre #103 (real bell wired) | staging review | 🧍 |
+| 90 | 🟡 | Deliverability dashboard #48 | staging review | 🧍 |
+| 91 | 🟡 | Mobile PWA icons #114 | staging review | 🧍 |
+| 92 | 🟡 | PR #502 — 10-Jun audit batch (Y1–Y11 etc.) ⚠️ needs rebase before merge | open PR | 🧍 |
+| 93 | 🟡 | PR #503 — The Drop + Product Videos pages (+ site nav rewire held on it) | open PR | 🧍 |
+| 94 | 🟡 | PDL 2nd lead-discovery source (code wired, dormant) | needs `PDL_API_KEY` | 🧍 |
+| 95 | 🟡 | Hunter waterfall enrichment (code wired, dormant) | needs `HUNTER_API_KEY` | 🧍 |
+| 96 | 🟡 | Voice (Vapi) + WhatsApp (code wired) | keys + Meta approval | 🧍 |
+| 97 | 🟡 | A/B subject-testing backend #43 (winner-check cron + variants — UI = 🔴) | works, invisible until UI | 🤖 |
+| 98 | 🟡 | Offline flow docs `CLIENT_FLOW.html` + `CLIENT_FLOW_PER_REP.html` | reference, done | — |
+| 99 | 🟡 | `/v2/*` design mockups (23 screens — sequences, inbox, gallery…) — clickable designs, NOT wired | design exploration | 🧍 review |
 
 ---
 
 # ░ SECTION 3 — 🔴 NOT BUILT (future, in build order) ░
 
 ## 3A — Launch week (now → Fri 19, NOT code — founder runway)
-| # | Item | Owner |
-|---|------|-------|
-| 100 | Smoke Test 2 — T3 pause · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invites · T10 partner | 🤝 |
-| 101 | **D9 deliverability 10/10** (mail-tester) | 🧍 |
-| 102 | Legal pack #10–14 (ICO £40 · SR01 · registered office · WHOIS · LinkedIn lockdown) | 🧍 |
-| 103 | Email `partners@apollo.io` — API reseller agreement (~1 wk lead) | 🧍 |
-| 104 | Hunter.io signup → key · PDL free signup → key | 🧍 |
-| 105 | Go/No-Go gate Thu 18 → **🚀 LAUNCH Africa-only Fri 19 (#18)** | 🤝 |
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 100 | 🔴 | Smoke Test 2 — T3 pause · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invites · T10 partner | 🤝 |
+| 101 | 🔴 | **D9 deliverability 10/10** (mail-tester) | 🧍 |
+| 102 | 🔴 | Legal pack #10–14 (ICO £40 · SR01 · registered office · WHOIS · LinkedIn lockdown) | 🧍 |
+| 103 | 🔴 | Email `partners@apollo.io` — API reseller agreement (~1 wk lead) | 🧍 |
+| 104 | 🔴 | Hunter.io signup → key · PDL free signup → key | 🧍 |
+| 105 | 🔴 | Go/No-Go gate Thu 18 → **🚀 LAUNCH Africa-only Fri 19 (#18)** | 🤝 |
 
 ## 3B — Company Engine completion (post-19 unless the demo needs it)
-| # | Item | Owner |
-|---|------|-------|
-| 106 | Invite **email delivery** (today the link is copy-paste — works for Monday) | 🤖 |
-| 107 | Owner **drill-down** into a rep's pipeline/inbox | 🤖 |
-| 108 | Edit rep budget directly · deactivate/remove a rep (offboarding) | 🤖 |
-| 109 | Manager role fully wired · notifications (owner↔rep) | 🤖 |
-| 110 | Per-rep lead ownership/routing + CRM dedup (#88-38) | 🤖 |
-| 111 | Per-rep / multi-provider calendars (#88-41, V2-13) | 🤖 |
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 106 | 🔴 | Invite **email delivery** (today the link is copy-paste — works for Monday) | 🤖 |
+| 107 | 🔴 | Owner **drill-down** into a rep's pipeline/inbox | 🤖 |
+| 108 | 🔴 | Edit rep budget directly · deactivate/remove a rep (offboarding) | 🤖 |
+| 109 | 🔴 | Manager role fully wired · notifications (owner↔rep) | 🤖 |
+| 110 | 🔴 | Per-rep lead ownership/routing + CRM dedup (#88-38) | 🤖 |
+| 111 | 🔴 | Per-rep / multi-provider calendars (#88-41, V2-13) | 🤖 |
 
 ## 3C — Post-19 near-term build queue (ungated, buildable on founder go)
-| # | Item | Owner |
-|---|------|-------|
-| 112 | **Alta-style inbox rebuild** (founder 👎 12 Jun: "inbox is not great" — multi-channel smart inbox, Alta §20 blueprint) | 🤖 |
-| 113 | A/B subject testing **UI** #43 (backend ready, §2 #97) | 🤖 |
-| 114 | Kanban pipeline polish #100 | 🤖 |
-| 115 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖 |
-| 116 | Activity feed → Home-dashboard widget (touches core screen — design review first) | 🤝 |
-| 117 | Subscribe-to-the-drop #122 (⏸ Drop content) | 🤖 |
-| 118 | Site nav/footer rewire #123 (~40 pages, Demo→Watch + The Drop) | 🤖 |
-| 119 | Revenue Mission Control #115 (3-col live ops — ⏸ confirm direction, ~3–4 days) | 🤝 |
-| 120 | FIGSY Memory v2 / pgvector #46 (⏸ 🧍 flips pgvector switch, 2 min) | 🤝 |
-| 121 | Casey conversational onboarding V2-3/10 (⏸ founder voice/tone input — highest-value V2 build) | 🤝 |
-| 122 | Y16 — kill dead Vercel↔GitHub integration | 🧍 |
-| 123 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝 |
-| 124 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖 |
-| 125 | Agent-image card crop fix (cosmetic #5, open) | 🤖 |
-| 126 | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍 |
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 112 | 🔴 | **Alta-style inbox rebuild** (founder 👎 12 Jun: "inbox is not great" — multi-channel smart inbox, Alta §20 blueprint) | 🤖 |
+| 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §2 #97) | 🤖 |
+| 114 | 🔴 | Kanban pipeline polish #100 | 🤖 |
+| 115 | 🔴 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖 |
+| 116 | 🔴 | Activity feed → Home-dashboard widget (touches core screen — design review first) | 🤝 |
+| 117 | ⏸ | Subscribe-to-the-drop #122 (⏸ Drop content) | 🤖 |
+| 118 | 🔴 | Site nav/footer rewire #123 (~40 pages, Demo→Watch + The Drop) | 🤖 |
+| 119 | ⏸ | Revenue Mission Control #115 (3-col live ops — ⏸ confirm direction, ~3–4 days) | 🤝 |
+| 120 | ⏸ | FIGSY Memory v2 / pgvector #46 (⏸ 🧍 flips pgvector switch, 2 min) | 🤝 |
+| 121 | ⏸ | Casey conversational onboarding V2-3/10 (⏸ founder voice/tone input — highest-value V2 build) | 🤝 |
+| 122 | 🔴 | Y16 — kill dead Vercel↔GitHub integration | 🧍 |
+| 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝 |
+| 124 | 🔴 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖 |
+| 125 | 🔴 | Agent-image card crop fix (cosmetic #5, open) | 🤖 |
+| 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍 |
 
 ## 3D — Week 1 post-launch (Jun 19–28) — GTM
-| # | Item | Owner |
-|---|------|-------|
-| 127 | 10 warm outreach (#19) · LinkedIn 1/day (#20) · PhantomBuster activation (#21) | 🧍 |
-| 128 | Meta/WhatsApp API application (#22) | 🧍 |
-| 129 | Record real product demo 16:9+9:16 (#23) + Drop 01 video + 3 onboarding Looms (#31) | 🧍 |
-| 130 | Homepage hero = real product loop (#24, ⏸ on #23) · proof block real data (#33) | 🤖 |
-| 131 | GTM funnel instrumentation (#25) | 🤝 |
-| 132 | Dogfood self-outreach (#26) · fresh-signup check (#28) | 🧍 |
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 127 | 🔴 | 10 warm outreach (#19) · LinkedIn 1/day (#20) · PhantomBuster activation (#21) | 🧍 |
+| 128 | 🔴 | Meta/WhatsApp API application (#22) | 🧍 |
+| 129 | 🔴 | Record real product demo 16:9+9:16 (#23) + Drop 01 video + 3 onboarding Looms (#31) | 🧍 |
+| 130 | ⏸ | Homepage hero = real product loop (#24, ⏸ on #23) · proof block real data (#33) | 🤖 |
+| 131 | 🔴 | GTM funnel instrumentation (#25) | 🤝 |
+| 132 | 🔴 | Dogfood self-outreach (#26) · fresh-signup check (#28) | 🧍 |
 
 ## 3E — Weeks 2–4 (Jun 29 – Jul 19)
-| # | Item | Owner |
-|---|------|-------|
-| 133 | 2 design-partner slots → case study + logo (#29) | 🧍 |
-| 134 | 9:16 social cuts (#30) · YouTube channel (#35) | 🤝 |
-| 135 | Onboarding v2 emails (#32) · playbook email form (#36) | 🤖 |
-| 136 | Flutterwave activation (#34) | 🧍 |
-| 137 | 90-day performance guarantee (#61a/g) · Revenue Playbook call (#62b) · homepage outcome numbers (#62c) | 🤖 |
-| 138 | Influencer/community distribution (#61e) | 🧍 |
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 133 | 🔴 | 2 design-partner slots → case study + logo (#29) | 🧍 |
+| 134 | 🔴 | 9:16 social cuts (#30) · YouTube channel (#35) | 🤝 |
+| 135 | 🔴 | Onboarding v2 emails (#32) · playbook email form (#36) | 🤖 |
+| 136 | 🔴 | Flutterwave activation (#34) | 🧍 |
+| 137 | 🔴 | 90-day performance guarantee (#61a/g) · Revenue Playbook call (#62b) · homepage outcome numbers (#62c) | 🤖 |
+| 138 | 🔴 | Influencer/community distribution (#61e) | 🧍 |
 
 ## 3F — Month 2 (gated 10+ clients) — Intelligence layer
-| # | Item | Owner |
-|---|------|-------|
-| 139 | Intent signals #37 · A/B→contextual bandit #38 · morning-brief #39 · ICP auto-refinement L2 #40 · conditional branching #41 | 🤖 |
-| 140 | Waterfall enrichment live #42 · adaptive send volume #45 · Milla CRM pull #47 · inbox rotation/multi-domain #53 (needs warmed domains) | 🤝 |
-| 141 | **Context-backed MCP server #59** (client-context-backed, not thin wrappers) | 🤖 |
-| 142 | Product Hunt #49 · G2 listing #50 | 🧍 |
-| 143 | **The Learning Engine** (build order: ①Train-FIGSY RAG → ③evals → ②outcome feedback loop → bandit → ④recall/memory → ⑤model routing → fine-tuning LAST) — full blueprint in `V2-TRACKER.md` | 🤖 |
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 139 | 🔴 | Intent signals #37 · A/B→contextual bandit #38 · morning-brief #39 · ICP auto-refinement L2 #40 · conditional branching #41 | 🤖 |
+| 140 | 🔴 | Waterfall enrichment live #42 · adaptive send volume #45 · Milla CRM pull #47 · inbox rotation/multi-domain #53 (needs warmed domains) | 🤝 |
+| 141 | 🔴 | **Context-backed MCP server #59** (client-context-backed, not thin wrappers) | 🤖 |
+| 142 | 🔴 | Product Hunt #49 · G2 listing #50 | 🧍 |
+| 143 | 🔴 | **The Learning Engine** (build order: ①Train-FIGSY RAG → ③evals → ②outcome feedback loop → bandit → ④recall/memory → ⑤model routing → fine-tuning LAST) — full blueprint in `V2-TRACKER.md` | 🤖 |
 
 ## 3G — Month 3 (gated margin data) — the agent family
-| # | Item | Owner |
-|---|------|-------|
-| 144 | **DENISE deep build #54** (auto-book · notetaker · objections · proposal-from-transcript · Vapi voice) | 🤖 |
-| 145 | **LENA — CS agent #55** · **TONY — Ops agent #56** | 🤖 |
-| 146 | Multi-agent orchestration #57 · 500+ skill library #58 | 🤖 |
-| 147 | Outcome pricing per meeting #60 (gated ≥28% margin) | 🤝 |
-| 148 | Mobile app #61 · built-in CRM Kanban #62 · pan-African design partners #63 | 🤝 |
-| 149 | Proposal e-sign #69 · Zoom notetaker #70 | 🤖 |
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 144 | 🔴 | **DENISE deep build #54** (auto-book · notetaker · objections · proposal-from-transcript · Vapi voice) | 🤖 |
+| 145 | 🔴 | **LENA — CS agent #55** · **TONY — Ops agent #56** | 🤖 |
+| 146 | 🔴 | Multi-agent orchestration #57 · 500+ skill library #58 | 🤖 |
+| 147 | 🔴 | Outcome pricing per meeting #60 (gated ≥28% margin) | 🤝 |
+| 148 | 🔴 | Mobile app #61 · built-in CRM Kanban #62 · pan-African design partners #63 | 🤝 |
+| 149 | 🔴 | Proposal e-sign #69 · Zoom notetaker #70 | 🤖 |
 
 ## 3H — Year 2 — enterprise + moat
-| # | Item | Owner |
-|---|------|-------|
-| 150 | Cross-client intelligence L4 #64 · data-licensing marketplace #65 · ICP L3 #66 · pipeline forecasting #67 · in-portal messaging #68 | 🤖 |
-| 151 | ISO 27001/42001 · SOC 2 · Vanta (#71–74) | 🤝 |
-| 152 | 3-type memory #75 · visitor de-anon #76 · churn scoring #77 · revenue forecasting #78 · call intelligence #79 | 🤖 |
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 150 | 🔴 | Cross-client intelligence L4 #64 · data-licensing marketplace #65 · ICP L3 #66 · pipeline forecasting #67 · in-portal messaging #68 | 🤖 |
+| 151 | 🔴 | ISO 27001/42001 · SOC 2 · Vanta (#71–74) | 🤝 |
+| 152 | 🔴 | 3-type memory #75 · visitor de-anon #76 · churn scoring #77 · revenue forecasting #78 · call intelligence #79 | 🤖 |
 
 ## 3I — The 15 Pieces (UX/platform, post-20-clients — remaining unbuilt)
-| # | Item | Trigger |
-|---|------|---------|
-| 153 | Score heatmap + timeline views (Kanban exists) | post-20 clients |
-| 154 | Custom lead fields (jsonb) | on request |
-| 155 | Visual automation builder (React Flow) | 50+ clients |
-| 156 | Self-learning ICP ("narrow your ICP?") | 3 mo data |
-| 157 | Personalised email images (Lemlist) | Phase 3 |
-| 158 | Voice-first morning brief (TTS) | after text brief |
-| 159 | Network benchmarks ("top 15%") | 20+ clients |
-| 160 | White-label / agency channel | first agency asks |
-| 161 | MCP dev tier + directory listing | 20+ clients |
+| # | 🔴 | Item | Trigger |
+|---|----|------|---------|
+| 153 | 🔴 | Score heatmap + timeline views (Kanban exists) | post-20 clients |
+| 154 | 🔴 | Custom lead fields (jsonb) | on request |
+| 155 | 🔴 | Visual automation builder (React Flow) | 50+ clients |
+| 156 | 🔴 | Self-learning ICP ("narrow your ICP?") | 3 mo data |
+| 157 | 🔴 | Personalised email images (Lemlist) | Phase 3 |
+| 158 | 🔴 | Voice-first morning brief (TTS) | after text brief |
+| 159 | 🔴 | Network benchmarks ("top 15%") | 20+ clients |
+| 160 | 🔴 | White-label / agency channel | first agency asks |
+| 161 | 🔴 | MCP dev tier + directory listing | 20+ clients |
 
 ---
 

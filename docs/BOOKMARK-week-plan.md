@@ -1,4 +1,4 @@
-> ⚠️ **SUPERSEDED 12 Jun late:** the staging environment is BUILT and the priority changed — the **Company Engine (#88) is the one push to production before the 19th** (client demo). Current truth: [`STATUS-12JUN.md`](./STATUS-12JUN.md) + [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md). This plan kept for history.
+> ⚠️ **SUPERSEDED 12 Jun late:** the staging environment is BUILT and the priority changed — the plan is **ONE combined launch by Fri 19** (full staging batch + Company Engine together). Current truth: [`STATUS-12JUN.md`](./STATUS-12JUN.md) + [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md). This plan kept for history.
 
 # 📌 BOOKMARK — KIND Week Plan to Live
 

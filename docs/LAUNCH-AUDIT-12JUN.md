@@ -54,4 +54,4 @@ Wave-4 keys (WhatsApp/Vapi/Clearbit) · videos · Y16 · outcome pricing · fini
 ---
 
 ### Bottom line
-The Command Centre is **built, safe, and tested on staging**. The only things between it and a **production launch Monday** are: **(1)** your A-vs-B call on *how* it merges (entanglement), **(2)** Stripe → pool billing for real payment (Claude), **(3)** the prod migration + merge + flag + $39 Stripe price (founder). Keys (Apollo/Hunter/PDL) are **launch-by-19th**, not Command-Centre blockers.
+Everything is **built, safe, and tested on staging**. The **plan is ONE combined launch** — the full staging batch + the Company Engine ship together, `staging → main`, by **Fri 19 Jun**. Monday = test on staging + demo prep (demo runs off staging/admin demo until the launch). Between here and live: **(1)** Stripe → pool billing (Claude, building now — single pool first, two-pool split immediately after), **(2)** the founder launch steps (prod migration · merge `staging → main` · flags · $39 Denise Stripe price), **(3)** the launch gate (D9 · legal · smoke tests · Go/No-Go Thu 18). Keys (Apollo/Hunter/PDL) run in parallel.

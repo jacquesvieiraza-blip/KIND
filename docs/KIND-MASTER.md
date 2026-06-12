@@ -8,7 +8,7 @@
 > ### ⭐ YOUR NEXT STEPS (in order) — the full checklist is [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md)
 > 1. **Get staging current:** merge `claude/kind-carson-MYhSl` → `staging` → re-paste `staging-schema.sql` in kind-staging → **redeploy BOTH** `api-staging` + `heartfelt-essence` → **don't** re-run the company seed.
 > 2. **Test the Command Centre** on staging → [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md).
-> 3. **Answer Claude's one open question:** company billing — single pool now (faster) or both pools now? (see `FOUNDER-ACTIONS.md` §2).
+> 3. ~~Answer billing question~~ **Decided by Claude:** billing ships **single pool first**, two-pool split right behind it — both targeted before the 19th. Nothing needed from you here.
 > 4. **Founder jobs that take lead time — start now:** ✉️ email `partners@apollo.io` · 🔑 Hunter key · 🔑 PDL key · 💳 create the **$39 Denise Stripe price**.
 > 5. **Launch gate (by Fri 19):** D9 10/10 · legal #10–14 · smoke tests · Go/No-Go Thu 18 → then run the prod migration + merge `staging → main` + set flags.
 >

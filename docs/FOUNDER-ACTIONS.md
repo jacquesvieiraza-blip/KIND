@@ -17,7 +17,7 @@
 - [ ] 🧍 **Review the V2 batch** on staging — walk the screens, log 👍/👎 in `STAGING-REVIEW.md`. *(Launching everything means these go live too — flag anything that must change before the 19th.)*
 
 ## 2 · CLAUDE BUILDS BEFORE LAUNCH (🤖 — in progress)
-- [ ] 🤖 **Stripe → company pool billing** — owner pays → funds the two pools (so the Command Centre is a *real paying* launch, not admin-funded only). *Next build.*
+- [ ] 🤖 **Stripe → company pool billing** — owner pays → pool funded. **Build order (Claude's call): single pool first, two-pool split right after — both before the 19th.** *Building now.*
 - [ ] 🤖 **Invite email delivery** (owner clicks invite → rep emailed) + **owner drill-down** into a rep
 - [ ] 🤖 Fix any **smoke-test failures** same-day as you run them
 

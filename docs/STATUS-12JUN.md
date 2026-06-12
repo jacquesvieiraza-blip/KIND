@@ -109,4 +109,4 @@ reviews on staging → founder merges `staging` → `main` (production). Nothing
 > checklist: [`FOUNDER-ACTIONS.md`](./FOUNDER-ACTIONS.md). Demo runs on staging (live now) if before the launch.
 
 ## 🗓️ Bottom line
-The **Company Engine is the one push going to production before the 19th** — tested Monday, demoed to the client next week. It's **built and working on staging**; the remaining go-live work is **Stripe → pool billing (Claude)** + the **production deploy steps (founder only)**. Everything else stays on staging for review and ships after launch.
+The **plan is ONE combined launch** — the full staging batch + the Company Engine ship together, `staging → main`, by **Fri 19 Jun**. Monday = test on staging + demo prep (demo runs off staging/admin demo until the launch). Everything is **built and working on staging**; remaining go-live work = **Stripe → pool billing (Claude, building now)** + the **founder launch steps** in `FOUNDER-ACTIONS.md`.

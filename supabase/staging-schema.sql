@@ -797,7 +797,7 @@ create policy "service role only" on public.platform_status using (false) with c
 -- ════════════════════════════════════════════════════════════════════════════
 
 create table if not exists public.lead_enrichment (
-  lead_id          text primary key references public.leads(id) on delete cascade,
+  lead_id          uuid primary key references public.leads(id) on delete cascade,
   recent_signal    text,
   company_context  text,
   opening_line     text,

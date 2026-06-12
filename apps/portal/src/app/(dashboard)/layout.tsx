@@ -12,7 +12,8 @@ import { MilestoneCelebration } from '@/components/ui/MilestoneCelebration'
 import { AgentColumn } from './AgentColumn'
 import { ProfileMenu } from '@/components/layout/ProfileMenu'
 import { v2Enabled } from '@/lib/flags'
-import { Coins, Bell, FlaskConical } from 'lucide-react'
+import { NotificationBell } from '@/components/ui/NotificationBell'
+import { Coins, FlaskConical } from 'lucide-react'
 
 const IS_STAGING = process.env.NEXT_PUBLIC_IS_STAGING === 'true'
 
@@ -151,9 +152,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-amber-700 bg-amber-50">
               <Coins className="w-3.5 h-3.5" /> {creditBalance.toLocaleString()}
             </span>
-            <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
-              <Bell className="w-4 h-4" />
-            </button>
+            <NotificationBell />
             <ProfileMenu name={companyName} email={user.email || ''} />
           </header>
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{mainContent}</main>

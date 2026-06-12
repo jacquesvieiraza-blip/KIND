@@ -204,7 +204,7 @@
 | 122 | 🔴 | Y16 — kill dead Vercel↔GitHub integration | 🧍  |  |
 | 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝  |  |
 | 124 | 🔴 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖  |  |
-| 125 | 🔴 | Agent-image card crop fix (cosmetic #5, open) | 🤖  |  |
+| 125 | 🔴 | **"Your AI Family" card redesign** (was #5 crop) — feature text off the photo, crop fixed + **rename "AI Team"→"AI Family"** (3 files: `agents/page.tsx`, `Sidebar.tsx`, `cmo.ts`) | 🤖 | [agents-v2.html](./previews/agents-v2.html) ✅ **LOCKED** |
 | 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
 
 ## 3D — Week 1 post-launch (Jun 19–28) — GTM

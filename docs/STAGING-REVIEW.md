@@ -95,7 +95,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 |---|--------|-----|--------|---------|--------------|--------|
 | F1 | Campaigns | `/dashboard/figsy` | ⬜ | | | |
 | F2 | Chat with FIGSY | `/dashboard/figsy-chat` | ⬜ | | | |
-| F3 | Templates (R11) | `/dashboard/templates` | ⬜ | | | |
+| F3 | Templates (R11) | `/dashboard/templates` | ✅ | Clean card grid, good copy, category filters | — | **Approved as-is 12 Jun** |
 | F4 | Sequence Builder (R23) | `/dashboard/figsy/sequence-builder` | ⬜ | | | |
 | F5 | Kanban pipeline | `/dashboard/figsy/kanban` | ⬜ | | | |
 | F6 | Replies | `/dashboard/figsy/replies` | ⬜ | | | |
@@ -116,7 +116,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 | A3 | AI Notetaker (R22) | `/dashboard/notetaker` | ⬜ | | | |
 | A4 | Vida — Chatbot | `/dashboard/chatbot` | ⬜ | | | |
 | A5 | Denise — Closer | `/dashboard/denise` | ⬜ | | | |
-| A6 | All agents | `/dashboard/agents` | ⬜ | | | |
+| A6 | Your AI Family (agents) | `/dashboard/agents` | ✅🎨 | Redesign approved | "AI Team"→**"AI Family"** | **LOCKED** → `previews/agents-v2.html` (inv 125); rename in 3 files when pushed |
 
 ## 🔵 Company Engine (#88)
 
@@ -142,7 +142,7 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 |---|--------|-----|--------|---------|--------------|--------|
 | G1 | Integrations Hub (R24) | `/dashboard/integrations` | ⬜ | | | |
 | G2 | Roadmap | `/dashboard/roadmap` | ⬜ | | | |
-| G3 | What's New (R19) | `/dashboard/whats-new` | ⬜ | | | |
+| G3 | What's New (R19) | `/dashboard/whats-new` | ✅ | Tidy timeline, brand-correct | — | **Approved as-is 12 Jun** |
 | G4 | Usage | `/dashboard/usage` | ⬜ | | | |
 | G5 | Billing | `/dashboard/billing` | ⬜ | | | |
 | G6 | Settings | `/dashboard/settings` | ⬜ | | | |

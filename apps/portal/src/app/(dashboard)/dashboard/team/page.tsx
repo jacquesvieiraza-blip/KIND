@@ -378,9 +378,8 @@ export default function TeamsHubPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Teams Hub</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Create teams, add members, see who&apos;s active, track per-person agent usage.
-          Replaces the basic /team page.
+        <p className="text-sm text-[#7B6FA0] mt-0.5">
+          Create teams, add members, see who&apos;s active, and track per-person agent usage.
         </p>
       </div>
 

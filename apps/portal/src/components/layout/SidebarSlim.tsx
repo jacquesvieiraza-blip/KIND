@@ -8,7 +8,7 @@ import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
   Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
-  LayoutTemplate, GitBranch, ShieldCheck, Webhook, FileText, Mic, Building2, Activity,
+  LayoutTemplate, GitBranch, ShieldCheck, Webhook, FileText, Mic, Building2, Activity, UserCheck,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -106,8 +106,9 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
   // Rail holds WORK only. Account/settings/growth items live in the top-right
   // profile dropdown (the account hub) — keeps the rail uncluttered.
   const company: Item[] = [
-    { href: '/dashboard/company',  label: 'Company',  icon: Building2 },
-    { href: '/dashboard/activity', label: 'Activity', icon: Activity },
+    { href: '/dashboard/company',  label: 'Command Centre', icon: Building2 },
+    { href: '/dashboard/team',     label: 'Teams Hub',      icon: UserCheck },
+    { href: '/dashboard/activity', label: 'Activity',       icon: Activity },
   ]
 
   const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'

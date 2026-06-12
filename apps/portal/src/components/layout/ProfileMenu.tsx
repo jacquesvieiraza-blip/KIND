@@ -9,7 +9,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Settings, LogOut, User, BarChart2, CreditCard, UserCheck, Code2,
+  Settings, LogOut, User, BarChart2, CreditCard, Code2,
   Plug, Network, FileText, MessageCircle, Handshake, Gift, Store, Sparkles,
 } from 'lucide-react'
 
@@ -23,7 +23,6 @@ const GROUPS: Group[] = [
       { href: '/dashboard/settings', label: 'My profile', icon: User },
       { href: '/dashboard/billing',  label: 'Billing',    icon: CreditCard },
       { href: '/dashboard/usage',    label: 'Usage',      icon: BarChart2 },
-      { href: '/dashboard/team',     label: 'Team',       icon: UserCheck },
     ],
   },
   {

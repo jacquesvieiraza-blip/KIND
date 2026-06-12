@@ -122,8 +122,8 @@ Claude logs it here → changes get batched, built on a branch, merged to stagin
 
 | # | Screen | URL | Status | 👍 Like | 👎 Don't like | Action |
 |---|--------|-----|--------|---------|--------------|--------|
-| C1 | Command Centre (50-rep, credit approve) | `/dashboard/company` | ⬜ | | | _(note: sample data — real wiring = M1)_ |
-| C2 | Teams Hub (R21) | `/dashboard/team` | ⬜ | | | |
+| C1 | Command Centre (50-rep, credit approve) | `/dashboard/company` | ✅ | **Layout solid** (founder 12 Jun) | — | **Co-located 12 Jun** under rail "Company" as **Command Centre**. Layout approved; branding pass done. _(sample data — real wiring = M1)_ |
+| C2 | Teams Hub (R21) | `/dashboard/team` | ✅ | **Layout solid** (founder 12 Jun) | — | **Moved 12 Jun** out of dropdown → rail "Company", next to Command Centre. Layout approved; branding pass done. |
 
 ## 🟠 Lead Gen
 

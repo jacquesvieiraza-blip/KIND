@@ -1,5 +1,7 @@
 # 🎯 K.I.N.D — FORWARD ROADMAP + RISK REGISTER
 
+> 📊 **CURRENT STATUS (12 Jun):** full built/left/founder/Claude breakdown for before & after the 19th is in [`STATUS-12JUN.md`](./STATUS-12JUN.md).
+
 > 🧭 **WHICH DOC AM I IN?** This is the **FUTURE roadmap + itemised risk/fix register** (post-launch: company engine #88, V2 experience, the 101-item roadmap, steals catalog).
 > **For launch tracking (now → Fri 19), work off [`KIND-MASTER.md`](./KIND-MASTER.md) — its dated MASTER TIMELINE is the single launch source.** Only two docs: master = launch, this = future.
 

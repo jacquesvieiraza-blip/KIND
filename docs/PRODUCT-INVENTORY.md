@@ -1,4 +1,6 @@
 # 📋 K.I.N.D — COMPLETE PRODUCT INVENTORY
+
+> 📊 **CURRENT STATUS (12 Jun):** full built/left/founder/Claude breakdown for before & after the 19th is in [`STATUS-12JUN.md`](./STATUS-12JUN.md).
 *Everything. Live now → coming after (in order) → every steal. Logged 11 Jun 2026.*
 *Companion to `KIND-MASTER.md` (launch) + `V2-TRACKER.md` (roadmap detail). This = the single "everything" list.*
 **Legend:** ✅ live & working · 🟡 live but preview/"coming soon" · 🎨 designed/mockup, NOT built · ⬜ planned · 🧍 founder · 🤖 Claude

@@ -1,5 +1,7 @@
 # 🟣 K.I.N.D — MASTER SOURCE OF TRUTH
 
+> 📊 **CURRENT STATUS (12 Jun):** full built/left/founder/Claude breakdown for before & after the 19th is in [`STATUS-12JUN.md`](./STATUS-12JUN.md).
+
 > ✅ **THIS IS THE ONE SOURCE. Read this first, update this first, work off this only.**
 > Supersedes `EVERYTHING.md`, `SESSION-HANDOFF-7JUN.md`, and all earlier roadmap fragments.
 > Where any other doc disagrees, **THIS document wins.**

@@ -1113,6 +1113,59 @@
     .human-strip-sub { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.6; max-width: 520px; }
     .human-strip-btn { display: inline-block; background: var(--dark); color: #fff; font-size: 0.88rem; font-weight: 700; padding: 13px 26px; border-radius: 100px; text-decoration: none; white-space: nowrap; transition: opacity .2s, transform .2s; flex-shrink: 0; }
     .human-strip-btn:hover { opacity: 0.8; transform: translateY(-1px); }
+
+    /* ── AI FAMILY SCROLL SHOWCASE ── */
+    .af-section { background:#0a0a0a; }
+    .af-intro { text-align:center; padding:76px 24px 4px; background:#0a0a0a; }
+    .af-intro .s-label { color:#a78bfa; }
+    .af-intro .s-title { color:#fff; margin-bottom:10px; }
+    .af-intro p { font-size:0.95rem; color:rgba(255,255,255,0.5); max-width:480px; margin:0 auto; line-height:1.7; }
+    .af-scrolly { position:relative; height:560vh; }
+    .af-stage { position:sticky; top:0; height:100vh; overflow:hidden; }
+    .af-scene { position:absolute; inset:0; opacity:0; transition:opacity .7s ease; pointer-events:none; display:grid; place-items:center; }
+    .af-scene.on { opacity:1; }
+    .af-bg { position:absolute; inset:0; z-index:0; }
+    .af-bg::after { content:''; position:absolute; inset:0; background-image:radial-gradient(rgba(255,255,255,.12) 1px,transparent 1px); background-size:22px 22px; }
+    .af-figsy .af-bg{background:radial-gradient(120% 120% at 50% 120%,#be185d,#ec4899 45%,#f9a8d4)}
+    .af-milla .af-bg{background:radial-gradient(120% 120% at 50% 120%,#6d28d9,#8b5cf6 45%,#c4b5fd)}
+    .af-vida  .af-bg{background:radial-gradient(120% 120% at 50% 120%,#1d4ed8,#3b82f6 45%,#93c5fd)}
+    .af-denise .af-bg{background:radial-gradient(120% 120% at 50% 120%,#b45309,#f59e0b 45%,#fcd34d)}
+    .af-tony  .af-bg{background:radial-gradient(120% 120% at 50% 120%,#0f766e,#14b8a6 45%,#5eead4)}
+    .af-frame { position:relative; z-index:1; width:min(1100px,92vw); height:78vh; display:grid; place-items:end center; }
+    .af-cut { position:relative; z-index:2; height:84%; width:auto; max-width:none; object-fit:contain; filter:drop-shadow(0 30px 60px rgba(0,0,0,.4)); transform:translateY(40px) scale(.96); opacity:0; transition:transform .9s cubic-bezier(.2,.7,.2,1) .05s,opacity .8s ease .05s; }
+    .af-scene.on .af-cut { transform:translateY(0) scale(1); opacity:1; }
+    .af-portrait { position:relative; z-index:2; height:62%; width:auto; border-radius:24px; object-fit:cover; box-shadow:0 30px 70px rgba(0,0,0,.45); transform:translateY(40px) scale(.96); opacity:0; transition:transform .9s cubic-bezier(.2,.7,.2,1) .05s,opacity .8s ease .05s; align-self:center; }
+    .af-scene.on .af-portrait { transform:translateY(0) scale(1); opacity:1; }
+    .af-plate { position:absolute; left:6%; bottom:9%; z-index:4; text-align:left; color:#fff; transform:translateY(24px); opacity:0; transition:transform .7s ease .25s,opacity .7s ease .25s; }
+    .af-scene.on .af-plate { transform:translateY(0); opacity:1; }
+    .af-plate .af-nm { font-size:clamp(2.2rem,5vw,3.6rem); font-weight:900; letter-spacing:-.04em; line-height:1; }
+    .af-plate .af-rl { font-size:.95rem; font-weight:700; opacity:.85; margin-top:4px; }
+    .af-plate .af-soon { display:inline-block; margin-top:10px; font-size:.62rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.35); padding:5px 12px; border-radius:100px; }
+    .af-anno { position:absolute; z-index:5; font-size:.66rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#fff; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.32); padding:8px 14px; border-radius:100px; backdrop-filter:blur(8px); white-space:nowrap; box-shadow:0 10px 30px rgba(0,0,0,.22); opacity:0; transform:translateY(14px) scale(.9); transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1); }
+    .af-scene.on .af-anno { opacity:1; transform:translateY(0) scale(1); }
+    .af-scene.on .af-anno.x1{transition-delay:.30s}.af-scene.on .af-anno.x2{transition-delay:.42s}
+    .af-scene.on .af-anno.x3{transition-delay:.54s}.af-scene.on .af-anno.x4{transition-delay:.66s}
+    .af-tl{top:16%;left:7%}.af-tr{top:23%;right:8%}.af-ml{top:46%;left:4%}.af-mr{top:40%;right:5%}
+    .af-card { position:absolute; z-index:6; display:flex; align-items:center; gap:11px; background:#fff; border-radius:14px; padding:12px 15px; box-shadow:0 22px 50px rgba(0,0,0,.28); min-width:190px; opacity:0; transform:translateY(20px); transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1); }
+    .af-scene.on .af-card { opacity:1; transform:translateY(0); }
+    .af-scene.on .af-card.x1{transition-delay:.5s}.af-scene.on .af-card.x2{transition-delay:.66s}
+    .af-ico { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; font-size:1rem; flex-shrink:0; }
+    .af-card b { display:block; font-size:.8rem; font-weight:800; color:#0a0a0a; letter-spacing:-.01em; }
+    .af-card i { display:block; font-size:.68rem; font-style:normal; color:rgba(0,0,0,.4); margin-top:1px; }
+    .af-cbr{bottom:30%;right:7%}.af-cbl{bottom:20%;left:8%}
+    .af-dots { position:fixed; right:22px; top:50%; transform:translateY(-50%); z-index:50; display:flex; flex-direction:column; gap:12px; opacity:0; transition:opacity .4s; pointer-events:none; }
+    .af-dots.show { opacity:1; pointer-events:auto; }
+    .af-dot { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.35); transition:all .3s; cursor:pointer; }
+    .af-dot.on { background:#fff; transform:scale(1.5); }
+    @media (prefers-reduced-motion: reduce),(max-width:760px){
+      .af-scrolly{height:auto}
+      .af-stage{position:static;height:auto}
+      .af-scene{position:relative;opacity:1;min-height:88vh;pointer-events:auto}
+      .af-cut,.af-portrait,.af-plate,.af-anno,.af-card{opacity:1;transform:none;transition:none}
+      .af-dots{display:none}
+      .af-anno{position:relative;display:inline-block;margin:4px}
+      .af-card{position:relative;margin:8px auto}
+    }
   </style>
   <!-- Shared K.I.N.D design system (loaded last so it wins) -->
   <link rel="stylesheet" href="kind.css" />
@@ -1392,43 +1445,89 @@
   </div>
 </div>
 
-<!-- THREE-AGENT SHOWCASE -->
-<div class="agents-showcase" id="products">
-  <div class="agents-intro reveal">
+<!-- AI FAMILY — scroll showcase -->
+<section class="af-section" id="products">
+  <div class="af-intro reveal">
     <div class="s-label">YOUR FAMILY</div>
     <div class="s-title">Meet your AI family.</div>
-    <p>Four agents, one family. FIGSY opens and books, Milla reads the intelligence, Vida converts your site, and Denise closes.</p>
+    <p>Five agents, one family &mdash; scroll to meet each specialist that runs your revenue motion end to end.</p>
   </div>
-  <div class="agents-grid">
-    <a href="figsy.html" class="agent-card reveal">
-      <img src="figsy.png" class="agent-avatar" alt="FIGSY" />
-      <span class="agent-role-tag tag-figsy">FIGSY &mdash; The Opener</span>
-      <h3>Autonomous AI SDR</h3>
-      <p class="agent-benefit">Finds your ideal clients, writes emails that sound like you, follows up automatically, and books the meeting. You just show up to the call.</p>
-      <span class="agent-meet">Meet FIGSY &rarr;</span>
-    </a>
-    <a href="virtual-assistant.html" class="agent-card reveal reveal-delay-1">
-      <img src="milla.png" class="agent-avatar" alt="Milla" />
-      <span class="agent-role-tag tag-milla">Milla &mdash; The Brain</span>
-      <h3>Business Intelligence</h3>
-      <p class="agent-benefit">Reads campaign signals, tracks what&rsquo;s working, and surfaces actionable intelligence &mdash; so you make better decisions faster, without building dashboards.</p>
-      <span class="agent-meet">Meet Milla &rarr;</span>
-    </a>
-    <a href="chatbot-agent.html" class="agent-card reveal reveal-delay-2">
-      <img src="vida.png" class="agent-avatar" alt="Vida" />
-      <span class="agent-role-tag tag-vida">Vida &mdash; The Connector</span>
-      <h3>Web &amp; WhatsApp AI</h3>
-      <p class="agent-benefit">Qualifies every website and WhatsApp visitor 24/7, captures leads, and alerts you the moment someone is ready to buy. No live chat staff required.</p>
-      <span class="agent-meet">Meet Vida &rarr;</span>
-    </a>
-    <a href="denise.html" class="agent-card reveal reveal-delay-3">
-      <img src="denise.png" class="agent-avatar" alt="Denise" />
-      <span class="agent-role-tag" style="background:rgba(217,119,6,0.1);color:#b45309">Denise &mdash; The Closer</span>
-      <h3>AI Account Executive</h3>
-      <p class="agent-benefit">Confirms the meeting, handles objections, drafts the proposal, and turns the warm leads FIGSY books into signed deals.</p>
-      <span class="agent-meet">Meet Denise &rarr;</span>
-    </a>
+  <div class="af-scrolly">
+    <div class="af-stage">
+
+      <div class="af-scene af-figsy on">
+        <div class="af-bg"></div>
+        <div class="af-frame">
+          <img class="af-cut" src="figsy-cut.png" alt="FIGSY" />
+          <span class="af-anno af-tl x1">Works 24/7</span>
+          <span class="af-anno af-tr x2">Finds leads</span>
+          <span class="af-anno af-ml x3">Books meetings</span>
+          <span class="af-anno af-mr x4">The Opener</span>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#fce7f3">&#x1F4C5;</div><div><b>Meeting booked</b><i>FIGSY &middot; just now</i></div></div>
+          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#fce7f3">&#x2709;&#xFE0F;</div><div><b>Sequence sent</b><i>42 prospects</i></div></div>
+        </div>
+        <div class="af-plate"><div class="af-nm">FIGSY</div><div class="af-rl">The Opener &middot; Autonomous AI SDR</div></div>
+      </div>
+
+      <div class="af-scene af-milla">
+        <div class="af-bg"></div>
+        <div class="af-frame">
+          <img class="af-cut" src="milla-cut.png" alt="Milla" />
+          <span class="af-anno af-tl x1">Infinite memory</span>
+          <span class="af-anno af-tr x2">Qualifies intent</span>
+          <span class="af-anno af-ml x3">Never forgets</span>
+          <span class="af-anno af-mr x4">The Brain</span>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#ede9fe">&#x1F4CA;</div><div><b>Pipeline insight</b><i>Milla &middot; this week</i></div></div>
+          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#ede9fe">&#x1F9E0;</div><div><b>What&rsquo;s working</b><i>Reply rate +18%</i></div></div>
+        </div>
+        <div class="af-plate"><div class="af-nm">Milla</div><div class="af-rl">The Brain &middot; AI Business Assistant</div></div>
+      </div>
+
+      <div class="af-scene af-vida">
+        <div class="af-bg"></div>
+        <div class="af-frame">
+          <img class="af-cut" src="vida-cut.png" alt="Vida" />
+          <span class="af-anno af-tl x1">Converts visitors</span>
+          <span class="af-anno af-tr x2">Answers 24/7</span>
+          <span class="af-anno af-ml x3">250M+ contacts</span>
+          <span class="af-anno af-mr x4">The Connector</span>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#dbeafe">&#x1F4AC;</div><div><b>Visitor &rarr; lead</b><i>Vida &middot; live now</i></div></div>
+          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#dbeafe">&#x26A1;</div><div><b>Reply sent</b><i>Avg 4s response</i></div></div>
+        </div>
+        <div class="af-plate"><div class="af-nm">Vida</div><div class="af-rl">The Connector &middot; AI Website Chatbot</div></div>
+      </div>
+
+      <div class="af-scene af-denise">
+        <div class="af-bg"></div>
+        <div class="af-frame">
+          <img class="af-cut" src="denise-cut.png" alt="Denise" />
+          <span class="af-anno af-tl x1">Closes the loop</span>
+          <span class="af-anno af-tr x2">Nurtures pipeline</span>
+          <span class="af-anno af-ml x3">Drafts proposals</span>
+          <span class="af-anno af-mr x4">The Closer</span>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#fef3c7">&#x1F4C4;</div><div><b>Proposal drafted</b><i>Denise &middot; just now</i></div></div>
+          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#fef3c7">&#x2705;</div><div><b>Meeting confirmed</b><i>Warm lead</i></div></div>
+        </div>
+        <div class="af-plate"><div class="af-nm">Denise</div><div class="af-rl">The Closer &middot; AI Account Executive</div></div>
+      </div>
+
+      <div class="af-scene af-tony">
+        <div class="af-bg"></div>
+        <div class="af-frame">
+          <img class="af-portrait" src="tony.png" alt="Tony" />
+          <span class="af-anno af-tl x1">The Order Maker</span>
+          <span class="af-anno af-tr x2">Brings order</span>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#ccfbf1">&#x1F4E6;</div><div><b>Order created</b><i>Tony &middot; coming soon</i></div></div>
+        </div>
+        <div class="af-plate"><div class="af-nm">Tony</div><div class="af-rl">The Order Maker &middot; Operations Agent</div><span class="af-soon">Coming Soon</span></div>
+      </div>
+
+    </div>
   </div>
+</section>
+<div class="af-dots" id="afDots">
+  <span class="af-dot on" data-i="0"></span><span class="af-dot" data-i="1"></span>
+  <span class="af-dot" data-i="2"></span><span class="af-dot" data-i="3"></span><span class="af-dot" data-i="4"></span>
 </div>
 
 <!-- HONEST PROOF — first-party dogfooding (no fake logos / testimonials / invented stats) -->
@@ -2183,6 +2282,34 @@
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({page_url:location.href, referrer:document.referrer, user_agent:navigator.userAgent})
   }).catch(function(){})
+})()
+</script>
+<script>
+(function(){
+  var section=document.querySelector('.af-scrolly');
+  if(!section) return;
+  var scenes=[].slice.call(document.querySelectorAll('.af-scene'));
+  var dots=[].slice.call(document.querySelectorAll('.af-dot'));
+  var dotWrap=document.getElementById('afDots');
+  function onScroll(){
+    var rect=section.getBoundingClientRect();
+    var vh=window.innerHeight;
+    var total=section.offsetHeight-vh;
+    var scrolled=Math.min(Math.max(-rect.top,0),total);
+    var p=total>0?scrolled/total:0;
+    var idx=Math.min(scenes.length-1,Math.floor(p*scenes.length));
+    scenes.forEach(function(s,i){s.classList.toggle('on',i===idx)});
+    dots.forEach(function(d,i){d.classList.toggle('on',i===idx)});
+    if(dotWrap){ dotWrap.classList.toggle('show', rect.top<vh*0.5 && rect.bottom>vh*0.5); }
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  dots.forEach(function(d){d.addEventListener('click',function(){
+    var i=+d.getAttribute('data-i');
+    var top=section.offsetTop+(section.offsetHeight-window.innerHeight)*(i/scenes.length)+10;
+    window.scrollTo({top:top,behavior:'smooth'});
+  })});
+  onScroll();
 })()
 </script>
 </body>

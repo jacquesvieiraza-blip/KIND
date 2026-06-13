@@ -50,6 +50,9 @@
 | Inbox / Unibox | `/dashboard/inbox` | 🎨 redesign locked | [inbox-v2](./previews/inbox-v2.html) | 112 |
 | Client invoicing | Company → Documents | 🎨 locked (Stripe-issued) | [invoice-v1](./previews/invoice-v1.html) · [invoices-list](./previews/invoices-list.html) | 136a ⭐ |
 | Roadmap | ~~`/dashboard/roadmap`~~ | 🗑️ cut (we show the Drop) | — | — |
+| **Agent right-panel** | all screens | 🔒 **pattern locked** — right agent / right screen / right panel, conversational, acts-in-place (FIGSY screenshot 13 Jun) | — | 113a ⭐ |
+
+> **🔒 AGENT-PANEL RULE (locked 13 Jun):** On every screen, the *right* agent sits in the *right rail*. It is **conversational like FIGSY**, and when the client enters an input it **renders in that screen's right area and takes action** — never navigates away. Placement = built; conversational + acts-in-place = the 113a build (Tue 16 / post-19).
 
 ---
 
@@ -225,7 +228,7 @@
 |---|----|------|-------|-----------|
 | 112 | 🔴 | **Alta-style inbox rebuild** — Gmail-style multi-channel Unibox (founder 👎 12 Jun "inbox is not great" → redesign **locked** 12 Jun) | 🤖 | [inbox-v2.html](./previews/inbox-v2.html) ✅ **LOCKED** — build to this when pushed |
 | 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §2 #97) | 🤖  |  |
-| 113a | 🔴 | 📅 **TUESDAY 16 Jun** — **Agent side-panel consistency** — make every agent's right-rail panel a *live in-panel conversation* like FIGSY (`AgentSidePanel` line 125 gates live chat to FIGSY only; Milla/Vida/Denise just redirect). Wire Milla→`/milla` chat, Vida→`/support` chat; ⚠️ **Denise needs a general chat endpoint built** (only has draft-followup/proposal today). Each panel keeps a screen-specific purpose. *(Founder 12 Jun: "agents surface to the right with a conversational purpose based on that screen." → scheduled Tue.)* | 🤖 |  |
+| 113a | 🔴 | 📅 **TUESDAY 16 Jun** — **Agent side-panel = conversational, acts-in-place** 🔒 **SPEC LOCKED 13 Jun**. Founder rule: *"Milla, Vida and Denise should all do exactly what FIGSY does — conversational agents. In the exact screen the client is in, the right agent is there on the right panel. It is conversational, and if an input is done it renders in the right area on that screen and takes action."* Three parts: **(1) right agent / right panel / right screen** = ✅ ALREADY BUILT (`AgentColumn.tsx:65-68` picks agent by route; sticky right rail). **(2) conversational in-panel** = 🔴 BUILD — today `onSend` redirects (`router.push`, lines 119/143/168/355); make it a live thread like FIGSY for all four. **(3) input renders in the screen's right area & takes action** = 🔴 BUILD — reply + action render in place, no navigate-away. Endpoints: Milla→`/milla`, Vida→`/support`/`/vida`; ⚠️ **Denise needs a general chat endpoint** (only draft-followup/proposal today). Each panel keeps its screen-specific purpose/chips. | 🤖 |  |
 | 114 | 🔴 | Kanban pipeline polish #100 | 🤖  |  |
 | 115 | 🔴 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖  |  |
 | 116 | 🔴 | Activity feed → Home-dashboard widget (touches core screen — design review first) | 🤝  |  |

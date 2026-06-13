@@ -91,8 +91,11 @@
 
 ---
 
+## 🏆 CREDIBILITY RULE — nothing public goes live half-full (locked 13 Jun)
+> **Founder principle, applies to EVERYTHING public-facing:** we never ship a surface that looks empty or half-built — an empty Watch page, a Drop with no video, social icons linking to bare profiles, a thin Prompt Library. **Half-full = "not a real company" = lost credibility.** So: **build it fully on the branch now, but flip it LIVE only when it's genuinely populated.** Build ≠ go-live. Every website item below is gated this way (orphan/unlinked until full). Same for socials (164): icons built, hidden until the profiles have real content.
+
 ## 🎬 WEBSITE RESOURCES — CONTENT-FIRST PLAN (locked 13 Jun)
-> **The principle:** Claude builds every page, all the copy, and the *video slots* **now**. The founder records video **after** and pastes it in — adding a video is a **one-line paste of a YouTube ID**, never a code change. Get the content shells live; fill the videos as they're shot.
+> **The principle:** Claude builds every page, all the copy, and the *video slots* **now**. The founder records video **after** and pastes it in — adding a video is a **one-line paste of a YouTube ID**, never a code change. Get the content shells **built**; flip them **live only when full** (per the Credibility Rule above).
 
 **🔑 CONSOLIDATION RULE (founder, 13 Jun): we have a LOT of product → DON'T fragment it.** Bundle everything shipped into **ONE Drop (Drop 01)** and **ONE comprehensive product video** that walk the whole platform. The video is **recorded once and reused in both places** (the Watch hero *and* embedded inside Drop 01). The **Prompt Library is the one big multi-item gallery** — that's where "lots" lives.
 

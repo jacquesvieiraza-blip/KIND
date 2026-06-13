@@ -181,6 +181,33 @@
 
 > Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
 
+## 2C — 📦 POST-19 — Release-wave PRs (R1–R20) · ✅ founder-approved 13 Jun · merge after the 19th
+*(All coded + build-verified; founder reviewed the plain-English summary of each and approved the wave. Each merges post-19.)*
+| # | State | Item | Where it waits | Owner |
+|---|-------|------|----------------|-------|
+| 60 | 🟣 | **R1 demo-bounce guard** — stops emailing fake demo addresses that hard-bounce (protects sender reputation) | PR #506 | 🧍 merge |
+| 61 | 🟣 | **R2 daily client brief** — Settings "Daily brief" toggle now server-backed (opt-outs respected) | PR #507 | 🧍 merge |
+| 62 | 🟣 | **R3 Vida in-portal help bubble** — floating "ask Vida" for how-to questions | PR #508 | 🧍 merge |
+| 63 | 🟣 | **R4 speed-to-lead** — hot Vida visitor → scored pipeline lead + Denise draft | PR #509 | 🧍 merge |
+| 64 | 🟣 | **R5 milestone LinkedIn cards + partner badge** — free share-to-grow loops | PR #510 | 🧍 merge |
+| 65 | 🟣 | **R6 onboarding day-0/3/7 emails** for paid clients (cron currently skips them) | PR #511 | 🧍 merge |
+| 66 | 🟣 | **R7 Unibox "Help me reply"** — real Claude draft from the actual message | PR #512 | 🧍 merge |
+| 67 | 🟣 | **R8 saved views** for the leads table (named filter combos) | PR #513 | 🧍 merge |
+| 68 | 🟣 | **R9 "Why FIGSY wrote this"** transparency card | PR #514 | 🧍 merge |
+| 69 | 🟣 | **R10 Goals** — KPI targets + live progress bars | PR #515 | 🧍 merge |
+| 70 | 🟣 | **R11 sequence-template library** by use-case (one-click copy) | PR #516 | 🧍 merge |
+| 71 | 🟣 | **R12 embeddable lead-capture forms** → scored pipeline (spam-protected) | PR #517 | 🧍 merge |
+| 72 | 🟣 | **R13 Cmd+K upgrade** — quick actions + fixed Inbox link | PR #518 | 🧍 merge |
+| 73 | 🟣 | **R14 Meeting-Prep** — Denise pre-call brief on hot replies | PR #519 | 🧍 merge |
+| 74 | 🟣 | **R15 Train-FIGSY knowledge backend** — lights up the Knowledge page (was silently 404ing) | PR #520 | 🧍 merge |
+| 75 | 🟣 | **R16 internal evals harness** — per-step reply rates + subject-variant performance | PR #521 | 🧍 merge |
+| 76 | 🟣 | **R17 spam-score pre-send check** — colour-coded deliverability flag on each draft | PR #522 | 🧍 merge |
+| 77 | 🟣 | **R18 multi-model toggle** — Fast (Haiku) / Smart (Sonnet) per campaign | PR #523 | 🧍 merge |
+| 78 | 🟣 | **R19 in-product "What's New" feed** — anti-churn changelog | PR #524 | 🧍 merge |
+| 79 | 🟣 | **R20 job-change alerts** on leads — "reconnect" badge | PR #525 | 🧍 merge |
+
+> **⚠️ Merge order note:** several R-wave PRs touch the same files as later work; merge in R-number order post-19 and re-run type-check after each (a few may need a trivial rebase — they were branched off `main` on 11 Jun).
+
 ---
 
 # ░ SECTION 3 — 🟡 BUILT, PENDING REVIEW (code-complete · NOT yet approved · needs founder sign-off) ░
@@ -192,29 +219,8 @@
 > yellows that remain are **parked by choice, not pending review**: §3A = the 20 R-wave PRs (founder: "skip for now",
 > revisit as a batch); §3C = 4 key-gated features (dormant until a key/Meta approval). Nothing here needs a design call.
 
-## 3A — Release-wave PRs (R1–R20) — open, awaiting founder review + merge
-| # | 🟡 | Item | Where it waits | Owner |
-|---|----|------|----------------|-------|
-| 60 | 🟡 | **Wave 1 — R1 demo-bounce guard** | PR #506 | 🧍 review+merge |
-| 61 | 🟡 | R2 daily client brief (server-backed opt-in) | PR #507 | 🧍 |
-| 62 | 🟡 | R3 Vida in-portal help bubble | PR #508 | 🧍 |
-| 63 | 🟡 | R4 speed-to-lead (Vida hot lead → pipeline + Denise draft) | PR #509 | 🧍 |
-| 64 | 🟡 | R5 milestone share-to-LinkedIn cards + partner badge | PR #510 | 🧍 |
-| 65 | 🟡 | R6 onboarding day-0/3/7 emails for paid clients | PR #511 | 🧍 |
-| 66 | 🟡 | **Wave 2 — R7 Unibox "Help me reply"** (real Claude draft) | PR #512 | 🧍 |
-| 67 | 🟡 | R8 saved views for leads table | PR #513 | 🧍 |
-| 68 | 🟡 | R9 "Why FIGSY wrote this" transparency card | PR #514 | 🧍 |
-| 69 | 🟡 | R10 Goals — KPI targets + progress bars | PR #515 | 🧍 |
-| 70 | 🟡 | R11 sequence-template library by use-case | PR #516 | 🧍 |
-| 71 | 🟡 | R12 embeddable lead-capture forms | PR #517 | 🧍 |
-| 72 | 🟡 | R13 Cmd+K upgrade (quick actions) | PR #518 | 🧍 |
-| 73 | 🟡 | R14 Meeting-Prep (Denise pre-call brief) | PR #519 | 🧍 |
-| 74 | 🟡 | R15 Train-FIGSY knowledge backend | PR #520 | 🧍 |
-| 75 | 🟡 | R16 internal evals harness (per-variant reply rates) | PR #521 | 🧍 |
-| 76 | 🟡 | R17 spam-score pre-send check | PR #522 | 🧍 |
-| 77 | 🟡 | R18 multi-model toggle (Fast/Smart) per campaign | PR #523 | 🧍 |
-| 78 | 🟡 | R19 in-product "What's New" feed | PR #524 | 🧍 |
-| 79 | 🟡 | R20 job-change alerts on leads | PR #525 | 🧍 |
+## 3A — Release-wave PRs (R1–R20)
+> ✅ **ALL 20 APPROVED 13 Jun → 🟣 (now in §2C).** Founder reviewed the plain-English summary of each and approved the whole wave to merge post-19. Nothing left pending here.
 
 ## 3B — Staging screens + shell awaiting review
 > ✅ **ALL CLEARED 13 Jun → 🟣 (now in §2B).** Walked this session: 82 Sequence Builder (recolor built) · 84 Signup+SSO · 87 Status bar · 88 Activity feed · 89 Notification centre · 90 Deliverability · 91 PWA icons · 92 audit batch · 93 marketing pages · 99 v2 mockups. Nothing left pending here.

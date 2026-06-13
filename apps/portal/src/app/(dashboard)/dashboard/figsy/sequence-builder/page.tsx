@@ -248,25 +248,25 @@ function stepIcon(type: StepType) {
 
 function WaitLabel({ days }: { days: number }) {
   return (
-    <div className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-500">
-      <Clock className="w-3.5 h-3.5 text-amber-400" />
+    <div className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-[#7B6FA0]">
+      <Clock className="w-3.5 h-3.5 text-[#A78BFA]" />
       <span>wait {days} {days === 1 ? 'day' : 'days'}</span>
-      <span className="text-gray-300">↓</span>
+      <span className="text-[#C4B5FD]">↓</span>
     </div>
   )
 }
 
 function StepCard({ step }: { step: SequenceStep }) {
   return (
-    <div className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group">
-      <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 group-hover:bg-purple-50 group-hover:border-purple-100 transition-colors">
+    <div className="w-full bg-white border border-[#EDE9FE] rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm hover:border-[#C4B5FD] hover:shadow-md transition-all cursor-pointer group">
+      <div className="w-8 h-8 rounded-lg bg-[#F5F0FF] border border-[#EDE9FE] flex items-center justify-center shrink-0 group-hover:bg-purple-50 group-hover:border-purple-100 transition-colors">
         {stepIcon(step.type)}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 truncate">{step.label}</p>
-        {step.sublabel && <p className="text-xs text-gray-400 truncate mt-0.5">{step.sublabel}</p>}
+        <p className="text-sm font-semibold text-[#1E1152] truncate">{step.label}</p>
+        {step.sublabel && <p className="text-xs text-[#9B8EC4] truncate mt-0.5">{step.sublabel}</p>}
       </div>
-      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-purple-400 transition-colors shrink-0" />
+      <ChevronRight className="w-4 h-4 text-[#C4B5FD] group-hover:text-purple-400 transition-colors shrink-0" />
     </div>
   )
 }
@@ -328,10 +328,10 @@ function SequenceTree({
   if (steps.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-12">
-        <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center">
-          <Plus className="w-7 h-7 text-gray-300" />
+        <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-[#E4DCFB] flex items-center justify-center">
+          <Plus className="w-7 h-7 text-[#C4B5FD]" />
         </div>
-        <p className="text-sm text-gray-400">No steps yet — click an action in the sidebar to add one</p>
+        <p className="text-sm text-[#9B8EC4]">No steps yet — click an action in the sidebar to add one</p>
         <button
           onClick={onAddStep}
           className="flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-purple-300 text-purple-600 text-sm font-medium hover:bg-purple-50 transition-colors"
@@ -357,7 +357,7 @@ function SequenceTree({
           )}
           {idx < steps.length - 1 && !step.branches && (
             <div className="flex justify-center py-1">
-              <div className="w-px h-5 bg-gray-200" />
+              <div className="w-px h-5 bg-[#E4DCFB]" />
             </div>
           )}
         </div>
@@ -365,7 +365,7 @@ function SequenceTree({
 
       {/* Connector to Add button */}
       <div className="flex justify-center py-1">
-        <div className="w-px h-5 bg-gray-200" />
+        <div className="w-px h-5 bg-[#E4DCFB]" />
       </div>
 
       <button
@@ -403,13 +403,13 @@ export default function SequenceBuilderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F5F3FF]">
       {/* ── Preview banner ───────────────────────────────────────── */}
-      <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-start gap-3">
-        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-        <p className="text-sm text-amber-800">
+      <div className="bg-[#F3E8FF] border-b border-[#E4DCFB] px-6 py-3 flex items-start gap-3">
+        <AlertTriangle className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5" />
+        <p className="text-sm text-[#6D28D9]">
           <span className="font-semibold">Visual sequence builder</span> — coming live in{' '}
-          <span className="font-mono text-xs bg-amber-100 px-1.5 py-0.5 rounded">#89</span>.
+          <span className="font-mono text-xs bg-[#E9D5FF] px-1.5 py-0.5 rounded">#89</span>.
           {' '}Email is live; other channels light up as they ship.
         </p>
       </div>
@@ -419,17 +419,17 @@ export default function SequenceBuilderPage() {
         <div className="mb-6">
           <div className="flex items-center gap-2.5 mb-1">
             <GitBranch className="w-5 h-5 text-[#7C3AED]" />
-            <h1 className="text-2xl font-bold text-gray-900">Sequence Builder</h1>
+            <h1 className="text-2xl font-bold text-[#1E1152]">Sequence Builder</h1>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">Preview</span>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[#7B6FA0]">
             Choose a template then customise your multi-channel outreach flow.
           </p>
         </div>
 
         {/* ── Step 1: Template grid ────────────────────────────────── */}
         <section className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#9B8EC4] mb-3">
             Step 1 — Choose a template
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
@@ -446,17 +446,17 @@ export default function SequenceBuilderPage() {
                       ? 'border-[#7C3AED] bg-purple-50 shadow-md shadow-purple-100'
                       : t.outlined
                       ? 'border-[#7C3AED]/40 bg-white hover:border-[#7C3AED] hover:bg-purple-50/50'
-                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50/50',
+                      : 'border-[#EDE9FE] bg-white hover:border-purple-300 hover:bg-purple-50/50',
                   ].join(' ')}
                 >
                   {active && (
                     <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#7C3AED]" />
                   )}
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[#F5F0FF] border border-[#EDE9FE] flex items-center justify-center">
                     {t.icon}
                   </div>
                   <div>
-                    <p className={`text-xs font-semibold leading-tight ${active ? 'text-[#7C3AED]' : 'text-gray-800'}`}>
+                    <p className={`text-xs font-semibold leading-tight ${active ? 'text-[#7C3AED]' : 'text-[#1E1152]'}`}>
                       {t.name}
                     </p>
                     {t.description && (
@@ -476,13 +476,19 @@ export default function SequenceBuilderPage() {
 
         {/* ── Step 2: Visual tree + sidebar ────────────────────────── */}
         <section>
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#9B8EC4] mb-3">
             Step 2 — Edit the visual tree
           </p>
 
           <div className="flex gap-5">
             {/* ── Tree canvas ──────────────────────────────────────── */}
-            <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 min-h-[500px] overflow-auto">
+            <div
+              className="flex-1 bg-white rounded-2xl border border-[#E4DCFB] shadow-sm p-6 min-h-[500px] overflow-auto"
+              style={{
+                backgroundImage: 'radial-gradient(#EDE9FE 1px, transparent 1px)',
+                backgroundSize: '22px 22px',
+              }}
+            >
               <SequenceTree
                 steps={nodes}
                 onAddStep={() => addStep('email', 'Send email')}
@@ -492,9 +498,9 @@ export default function SequenceBuilderPage() {
             {/* ── Sidebar panels ───────────────────────────────────── */}
             <div className="w-64 shrink-0 flex flex-col gap-4">
               {/* Actions panel */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Actions</p>
+              <div className="bg-white rounded-2xl border border-[#EDE9FE] shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#F3EFFE]">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#7B6FA0]">Actions</p>
                 </div>
                 <div className="p-2 space-y-0.5">
                   {ACTIONS.map(a => (
@@ -517,9 +523,9 @@ export default function SequenceBuilderPage() {
               </div>
 
               {/* Conditions panel */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Conditions</p>
+              <div className="bg-white rounded-2xl border border-[#EDE9FE] shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#F3EFFE]">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#7B6FA0]">Conditions</p>
                 </div>
                 <div className="p-2 space-y-0.5">
                   {CONDITIONS.map(c => (

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v2 utility mockups — config · thinking · train (item 99)</title>
+<style>
+  :root{ --brand:#7C3AED; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#ECEAF3;color:#111827;-webkit-font-smoothing:antialiased}
+  .flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:8px}
+  .flag b{color:#fff}
+  .section{max-width:1000px;margin:0 auto 34px;padding:0 24px}
+  .clabel{display:flex;align-items:center;gap:10px;margin:0 0 12px 4px;flex-wrap:wrap}
+  .clabel .pill{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--brand);padding:4px 12px;border-radius:100px}
+  .clabel .name{font-size:15px;font-weight:800;color:#1E1152}
+  .clabel .desc{font-size:13px;color:#6B7280}
+  .frame{border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(30,17,82,.14);border:1px solid rgba(0,0,0,.06);background:#F9FAFB}
+  .vbar{display:flex;align-items:center;gap:8px;padding:8px 18px;font-size:12px;font-weight:600;color:#fff;background:var(--brand)}
+  .vbar svg{width:14px;height:14px}
+  .inner{padding:24px}
+  .h1{font-size:22px;font-weight:800;color:#111827}
+  .sub{font-size:13px;color:#6B7280;margin-top:2px}
+
+  .card{background:#fff;border:1px solid #E5E7EB;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .tabwrap{display:grid;grid-template-columns:190px 1fr;overflow:hidden;margin-top:18px}
+  .tabs{background:#faf9ff;border-right:1px solid #F0EEF6;padding:12px 0}
+  .tab{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;color:#6B7280;cursor:default}
+  .tab svg{width:15px;height:15px}
+  .tab.on{font-weight:800;color:var(--brand);background:#f3f0ff;border-right:2px solid var(--brand)}
+  .panel{padding:24px}
+  .panel h2{font-size:15px;font-weight:800;color:#111827;margin-bottom:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .fld{background:#faf9ff;border:1px solid #F0EEF6;border-radius:12px;padding:14px}
+  .fld .l{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#9CA3AF;margin-bottom:4px}
+  .fld .v{font-size:13px;font-weight:500;color:#374151}
+  .chip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;display:inline-block}
+  .chip.on{background:var(--brand);color:#fff}
+  .chip.off{background:#f3eeff;color:var(--brand);border:1px solid #e0d4fb}
+  .rowbox{background:#faf9ff;border:1px solid #F0EEF6;border-radius:10px;padding:10px 12px;font-size:13px;color:#374151;margin-bottom:8px}
+  .savebtn{margin-top:18px;padding:10px 20px;border-radius:12px;background:var(--brand);color:#fff;border:none;font-weight:700;font-size:13px}
+  .live{background:#faf9ff;border:1px dashed #c4b5fd;border-radius:12px;padding:12px;font-size:13px;color:#4B5563;margin-top:14px;line-height:1.5}
+  .live b{color:var(--brand)}
+  .note{font-size:12px;color:#9CA3AF;margin-top:12px}
+
+  /* thinking */
+  .agentrow{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .agentph{width:40px;height:40px;border-radius:50%;background:linear-gradient(150deg,#7C3AED,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;border:2px solid #c4b5fd}
+  .agentrow .nm{font-weight:800;color:#111827;font-size:14px}
+  .agentrow .ca{font-size:12px;color:#9CA3AF}
+  .runtag{margin-left:auto;font-size:12px;font-weight:800;padding:5px 12px;border-radius:100px;color:var(--brand);background:#f3eeff}
+  .step{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #F5F5F7}
+  .step:last-child{border-bottom:none}
+  .step .ic{width:20px;height:20px;flex-shrink:0}
+  .step.done .ic{color:#10B981}
+  .step.active .ic{color:var(--brand)}
+  .step.pending .ic{color:#D1D5DB}
+  .step .t{font-size:13px;color:#374151}
+  .step.active .t{font-weight:700;color:#111827}
+  .step.pending .t{color:#9CA3AF}
+  .prog{margin-top:18px}
+  .prog .lab{display:flex;justify-content:space-between;font-size:12px;color:#9CA3AF;margin-bottom:6px}
+  .prog .bar{height:8px;background:#F3F4F6;border-radius:100px;overflow:hidden}
+  .prog .bar > div{height:100%;background:var(--brand);border-radius:100px}
+</style>
+</head>
+<body>
+<div class="flag">PREVIEW · 3 v2 utility mockups (item 99) · <b>config · thinking · train</b> · sample data · approve / change each</div>
+
+<!-- CONFIG -->
+<div class="section">
+  <div class="clabel"><span class="pill">config</span><span class="name">Configure FIGSY</span><span class="desc">· clean tabbed settings cards — no dense forms (Role · ICP · Tone · Schedule · Knowledge)</span></div>
+  <div class="frame">
+    <div class="vbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.8-4.9-3.6-4.9 3.6 1.9-5.8L1 8.8h6.1z"/></svg> V2 PREVIEW · Agent Config Panel · sample data</div>
+    <div class="inner">
+      <div class="h1">Configure FIGSY</div><div class="sub">Clean cards for every setting — no dense forms.</div>
+      <div class="card tabwrap">
+        <div class="tabs">
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Role</div>
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>ICP</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2a10 10 0 100 20 2 2 0 002-2v-1a2 2 0 012-2h1a2 2 0 002-2 10 10 0 00-9-11z"/></svg>Tone</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Schedule</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Knowledge</div>
+        </div>
+        <div class="panel">
+          <h2>Ideal Customer Profile</h2>
+          <div class="grid2">
+            <div class="fld"><div class="l">Industries</div><div class="v">Fintech · SaaS · D2C retail</div></div>
+            <div class="fld"><div class="l">Job titles</div><div class="v">Head of Sales · Growth · Founder</div></div>
+            <div class="fld"><div class="l">Company size</div><div class="v">10–200 employees</div></div>
+            <div class="fld"><div class="l">Geographies</div><div class="v">Nigeria · South Africa · Kenya</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THINKING -->
+<div class="section">
+  <div class="clabel"><span class="pill">thinking</span><span class="name">Agent Thinking State</span><span class="desc">· when FIGSY works, you see each step — no black box</span></div>
+  <div class="frame">
+    <div class="vbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.8-4.9-3.6-4.9 3.6 1.9-5.8L1 8.8h6.1z"/></svg> V2 PREVIEW · Agent Thinking State · sample data</div>
+    <div class="inner">
+      <div class="h1">Agent Thinking State</div><div class="sub">When FIGSY is working, you see exactly what it's doing — no black box.</div>
+      <div class="card" style="padding:22px;margin-top:18px">
+        <div class="agentrow"><div class="agentph">F</div><div><div class="nm">FIGSY is working…</div><div class="ca">Campaign: Q3 African fintech</div></div><span class="runtag">Running</span></div>
+        <div class="step done"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span class="t">Sourced 200 leads from Apollo</span></div>
+        <div class="step done"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span class="t">Scored every lead against your ICP</span></div>
+        <div class="step done"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span class="t">Deduped against your CRM</span></div>
+        <div class="step active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg><span class="t">Writing 17 personalised first emails</span></div>
+        <div class="step pending"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg><span class="t">Scheduling the send under the warmup cap</span></div>
+        <div class="prog"><div class="lab"><span>Progress</span><span>3 of 5</span></div><div class="bar"><div style="width:60%"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRAIN -->
+<div class="section">
+  <div class="clabel"><span class="pill">train</span><span class="name">Train FIGSY</span><span class="desc">· each rep trains THEIR OWN FIGSY (per-rep #88) — persona · knowledge · guardrails · approvals · test</span></div>
+  <div class="frame">
+    <div class="vbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.8-4.9-3.6-4.9 3.6 1.9-5.8L1 8.8h6.1z"/></svg> V2 PREVIEW · Train FIGSY · sample data</div>
+    <div class="inner">
+      <div class="h1">Train FIGSY</div><div class="sub">Each rep trains <b>their own</b> FIGSY (#88): persona, knowledge, guardrails, and approve/auto rules — so it sounds like them and never goes off-message.</div>
+      <div class="card tabwrap">
+        <div class="tabs">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7a5 5 0 0110 0"/></svg>Persona</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Knowledge</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Guardrails</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Approvals</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31"/><path d="M14 9.3V2"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 11-4 0"/></svg>Test &amp; preview</div>
+        </div>
+        <div class="panel">
+          <h2>Persona — how Amara's FIGSY shows up</h2>
+          <div class="fld" style="margin-bottom:14px;background:#fff;border:none;padding:0">
+            <div class="l" style="color:#6B7280">Tone</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><span class="chip on">Warm</span><span class="chip off">Direct</span><span class="chip off">Playful</span><span class="chip off">Formal</span></div>
+          </div>
+          <div class="fld" style="margin-bottom:10px"><div class="l">Sign-off name</div><div class="v">Amara from MaceyLuxe</div></div>
+          <div class="fld"><div class="l">Value prop (1 line)</div><div class="v">We help African D2C brands turn WhatsApp traffic into repeat buyers — no agency retainer.</div></div>
+          <div class="live"><b>Live sample →</b> "Hi {first}, Amara here from MaceyLuxe. Noticed you're scaling on WhatsApp — we turn that traffic into repeat buyers without an agency retainer. Worth 15 min?"</div>
+          <button class="savebtn">Save &amp; retrain</button>
+        </div>
+      </div>
+      <p class="note">Alta makes you "train Katie." We make every rep train their <b>own</b> FIGSY — that's the per-rep difference.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

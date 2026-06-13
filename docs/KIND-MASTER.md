@@ -94,26 +94,28 @@
 ## 🎬 WEBSITE RESOURCES — CONTENT-FIRST PLAN (locked 13 Jun)
 > **The principle:** Claude builds every page, all the copy, and the *video slots* **now**. The founder records video **after** and pastes it in — adding a video is a **one-line paste of a YouTube ID**, never a code change. Get the content shells live; fill the videos as they're shot.
 
+**🔑 CONSOLIDATION RULE (founder, 13 Jun): we have a LOT of product → DON'T fragment it.** Bundle everything shipped into **ONE Drop (Drop 01)** and **ONE comprehensive product video** that walk the whole platform. The video is **recorded once and reused in both places** (the Watch hero *and* embedded inside Drop 01). The **Prompt Library is the one big multi-item gallery** — that's where "lots" lives.
+
 **The 4 resources (all live under a new "Resources" nav):**
 | # | Resource | What it is | Inventory |
 |---|----------|------------|-----------|
-| 1 | **The Drop** | Release archive — "what we just shipped." Drop 01 = the 19 Jun launch; one new drop card per release thereafter (1-line "what shipped" + optional 60s video). | 93 |
-| 2 | **Watch (Product Videos)** | Demo + feature deep-dive gallery — the founder's real walkthroughs. Hero refinement (dotted-grid + pastel wash + pill). | 93 + 163 |
-| 3 | **Prompt Library** | Searchable/filterable gallery of ready-made prompts that unlock more from the agents (Dept + Category filters, "Request a prompt", Copy). | 162 |
+| 1 | **The Drop** | **One bundled Drop 01** = everything live at the 19 Jun launch (all agents + engine), framed as *what shipped, live now*, with the single product video embedded. Further drops added later **only as genuinely new things ship** — not one-per-feature. | 93 |
+| 2 | **Watch (Product Video)** | **One comprehensive product walkthrough** as the hero (the whole platform, start to finish) — not a gallery of feature clips. Gallery can grow later if needed. Hero refinement (dotted-grid + pastel wash + pill). | 93 + 163 |
+| 3 | **Prompt Library** ⭐ | **The big gallery** — searchable/filterable, ready-made prompts that unlock more from the agents (Dept + Category filters, "Request a prompt", Copy). This is the multi-item resource; seed it richly. | 162 |
 | 4 | **Resources nav** | Dropdown wiring (Watch · The Drop · Prompt Library · Blog) across the ~40 site pages so all of the above are reachable. | 118 |
 
 **Division of labour:**
-- 🤖 **Claude builds (now, content-first):** all four pages + copy + brand polish + **video embed slots** (a clearly-commented placeholder showing a branded gradient + play button until a YouTube ID is pasted) + the Resources nav links. Seeds The Drop with Drop 01 (the launch, framed as *live*) and the Prompt Library with ~12–16 starter prompts.
-- 🧍 **Founder does after (no code):** record the **product walkthrough(s)** + the **Drop 01 video** → paste each YouTube ID into the marked slot. Going forward: a 1-line drop post + optional video per release.
+- 🤖 **Claude builds (now, content-first):** all four pages + copy + brand polish + **one video embed slot** (a clearly-commented placeholder showing a branded gradient + play button until a YouTube ID is pasted) reused on Watch + in Drop 01 + the Resources nav links. Seeds The Drop with the single bundled Drop 01 (the launch, framed as *live*) and the Prompt Library with ~12–16 starter prompts.
+- 🧍 **Founder does after (no code):** record **ONE comprehensive product walkthrough** → paste that one YouTube ID into the marked slot (it auto-appears on Watch *and* in Drop 01). That's the only must-record item to go live.
 
 **The video-slot mechanism (so the founder never touches code):**
-`<!-- PASTE YOUTUBE ID HERE -->` blocks on every video card. Empty = a branded gradient placeholder with a play button + label. Filled = swap the ID, done. No layout work, ever.
+`<!-- PASTE YOUTUBE ID HERE -->` block on the video card. Empty = a branded gradient placeholder with a play button + label. Filled = swap the ID, done. No layout work, ever. **One ID powers both Watch and Drop 01.**
 
 **Sequence:**
-1. **Consolidate the two built pages** — The Drop + Watch live in **PR #503** (`claude/marketing-drops`). Either merge #503 or rebuild on the working branch, then **apply the 163 hero refinement** to Watch.
-2. **Build the Prompt Library** (162) — `apps/website/prompt-library.html`, seeded prompts, filters + search + Copy + "Request a prompt".
+1. **Consolidate the two built pages** — The Drop + Watch live in **PR #503** (`claude/marketing-drops`). Merge #503 (or rebuild on the working branch); **collapse Watch to the single hero walkthrough** (drop the multi-video grid), **bundle The Drop into one Drop 01**, and **apply the 163 hero refinement**.
+2. **Build the Prompt Library** (162) ⭐ — `apps/website/prompt-library.html`, seeded richly, filters + search + Copy + "Request a prompt".
 3. **Wire the Resources nav** (118 slice) — add the dropdown across the site (Demo→Watch, add The Drop + Prompt Library).
-4. **Founder records → pastes** the product + Drop 01 videos into the ready slots.
+4. **Founder records → pastes** the one product walkthrough into the ready slot.
 
 **Go-live timing:** content is **built now**, pages stay **orphan/unlinked until the 19 Jun launch** (Drop 01 = the launch itself), then go live with the Resources nav — exactly the orphan-until-wired model PR #503 already uses. Nothing of the portal launch gate changes.
 

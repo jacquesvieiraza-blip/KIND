@@ -222,7 +222,7 @@
 | 95 | 🟡 | Hunter waterfall enrichment (code wired, dormant) | needs `HUNTER_API_KEY` | 🧍 |
 | 96 | 🟡 | Voice (Vapi) + WhatsApp (code wired) | keys + Meta approval | 🧍 |
 | 97 | 🟡 | A/B subject-testing backend #43 (winner-check cron + variants — UI = 🔴 §4) | works, invisible until UI | 🤖 |
-| 99 | 🟡 | `/v2/*` design mockups (23 screens — sequences, inbox, gallery…) — clickable designs, NOT wired | design exploration | 🧍 review |
+| 99 | 🟡 | `/v2/*` design mockups (23 screens) — clickable designs, NOT wired; being walked one-by-one (most already feed locked designs). **🔒 Decisions logged:** onboarding **welcome = Concept B "The Spotlight"** locked 13 Jun (`previews/welcome-concepts.html`; A + C cut). Still to walk: config · thinking · train · leads-polish · invite · gallery | design exploration | 🤝 walking |
 
 ---
 

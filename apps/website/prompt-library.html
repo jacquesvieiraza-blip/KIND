@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt Library &mdash; Get more from your AI Family &middot; K.I.N.D</title>
+  <meta name="description" content="Create and discover prompts that unlock more powerful ways to use your K.I.N.D AI Family — FIGSY, Milla, Vida and Denise." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --ink2:#1E1152; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg,#7c3aed,#a78bfa); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; }
+
+    /* HERO */
+    .hero { background: linear-gradient(180deg, #eef2ff 0%, #f5f3ff 50%, #ffffff 100%); padding: 72px 48px 40px; }
+    .hero-inner { max-width: 1180px; margin: 0 auto; }
+    .hero h1 { font-size: clamp(2.6rem, 5.5vw, 4rem); font-weight: 900; letter-spacing: -0.045em; color: var(--ink2); line-height: 1.0; }
+    .hero p { font-size: 1.1rem; color: rgba(0,0,0,0.5); line-height: 1.6; max-width: 480px; margin: 16px 0 24px; }
+    .req-btn { display: inline-block; border: 1.5px solid var(--blue); color: var(--blue); font-size: 0.9rem; font-weight: 700; text-decoration: none; padding: 10px 22px; border-radius: 100px; background: #fff; transition: all .15s; }
+    .req-btn:hover { background: var(--blue); color: #fff; }
+
+    /* CONTROLS */
+    .controls { max-width: 1180px; margin: 0 auto; padding: 28px 48px 8px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .selectwrap { position: relative; }
+    select { appearance: none; border: 1px solid var(--border); background: #fff; border-radius: 100px; padding: 10px 36px 10px 16px; font-size: 0.875rem; font-family: inherit; color: var(--ink2); font-weight: 600; cursor: pointer; }
+    .selectwrap::after { content: '\25BE'; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: rgba(0,0,0,0.4); pointer-events: none; font-size: 0.7rem; }
+    .searchwrap { flex: 1; min-width: 240px; display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border); border-radius: 100px; padding: 10px 18px; }
+    .searchwrap svg { width: 16px; height: 16px; color: rgba(0,0,0,0.4); flex-shrink: 0; }
+    .searchwrap input { border: none; outline: none; flex: 1; font-family: inherit; font-size: 0.9rem; background: none; }
+    .count { max-width: 1180px; margin: 0 auto; padding: 14px 48px 0; font-size: 0.8rem; color: rgba(0,0,0,0.4); }
+
+    /* GRID */
+    .grid { max-width: 1180px; margin: 0 auto; padding: 18px 48px 90px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .card { border: 1px solid var(--border); border-radius: 18px; padding: 22px 22px 18px; display: flex; flex-direction: column; background: #fff; transition: box-shadow .18s, transform .18s; min-height: 200px; }
+    .card:hover { box-shadow: 0 12px 36px rgba(30,17,82,0.10); transform: translateY(-2px); }
+    .card h3 { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.015em; color: var(--ink2); line-height: 1.2; margin-bottom: 8px; }
+    .card .desc { font-size: 0.85rem; color: rgba(0,0,0,0.52); line-height: 1.6; flex: 1; }
+    .card .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; gap: 8px; }
+    .tag { font-size: 0.68rem; font-weight: 700; padding: 4px 11px; border-radius: 100px; letter-spacing: 0.02em; }
+    .tag.sales { background: #ecfdf3; color: #047857; }
+    .tag.marketing { background: #fef3f2; color: #b42318; }
+    .tag.legal { background: #fff6ed; color: #b54708; }
+    .tag.ops { background: #eff8ff; color: #175cd3; }
+    .tag.success { background: #f4f3ff; color: #5925dc; }
+    .tag.research { background: #fdf2fa; color: #c11574; }
+    .tag.general { background: #f2f4f7; color: #475467; }
+    .copy { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; color: var(--blue); background: #f5f3ff; border: 1px solid #e0d4fb; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-family: inherit; transition: all .12s; }
+    .copy:hover { background: var(--blue); color: #fff; }
+    .copy svg { width: 13px; height: 13px; }
+    .agent { font-size: 0.7rem; color: rgba(0,0,0,0.35); margin-top: 6px; }
+    .empty { grid-column: 1/-1; text-align: center; color: rgba(0,0,0,0.4); padding: 60px 0; font-size: 0.95rem; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; } .nav-links { display: none; }
+      .hero { padding: 56px 24px 32px; } .controls, .count, .grid { padding-left: 24px; padding-right: 24px; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo"><span class="logo-mark">K</span><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <a href="figsy.html" class="nav-link">Products</a>
+    <a href="use-cases.html" class="nav-link">Use Cases</a>
+    <a href="the-drop.html" class="nav-link">The Drop</a>
+    <a href="prompt-library.html" class="nav-link" style="color:var(--blue);font-weight:600;">Prompt Library</a>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-inner">
+    <h1>Prompt Library</h1>
+    <p>Create and discover prompts that unlock more powerful ways to use your AI Family &mdash; FIGSY, Milla, Vida &amp; Denise.</p>
+    <a href="support.html" class="req-btn">Request a prompt</a>
+  </div>
+</section>
+
+<div class="controls">
+  <div class="selectwrap">
+    <select id="dept">
+      <option value="all">Department</option>
+      <option value="sales">Sales</option>
+      <option value="marketing">Marketing</option>
+      <option value="legal">Legal</option>
+      <option value="ops">Ops</option>
+      <option value="success">Customer Success</option>
+      <option value="research">Research</option>
+      <option value="general">All teams</option>
+    </select>
+  </div>
+  <div class="searchwrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="search" placeholder="Search prompts" />
+  </div>
+</div>
+<div class="count" id="count"></div>
+
+<div class="grid" id="grid"></div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="the-drop.html">The Drop</a>
+      <a href="prompt-library.html">Prompt Library</a>
+      <a href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const PROMPTS = [
+    { t:"Draft a LinkedIn connection request", d:"A warm, specific connection note for a prospect — references something real, no pitch.", dept:"sales", agent:"FIGSY", p:"Write a short LinkedIn connection request to {{name}}, {{title}} at {{company}}. Reference something specific and real about their work. Warm, no pitch, under 300 characters." },
+    { t:"Cold email opener for a persona", d:"A first cold-email line tailored to a specific buyer that earns the next sentence.", dept:"sales", agent:"FIGSY", p:"Write 3 cold-email opening lines for a {{persona}} at a {{industry}} company. Each must reference a real, likely pain. Specific, human, no fluff." },
+    { t:"Handle a pricing objection", d:"A calm, value-first reply when a prospect pushes back on price.", dept:"sales", agent:"Denise", p:"A prospect said: \"{{objection}}\". Write a calm, consultative reply that reframes around value and outcomes, never discounts first, and ends with one clear next step." },
+    { t:"Write a meeting follow-up", d:"A crisp recap + next step after a discovery call.", dept:"sales", agent:"Denise", p:"Write a follow-up email after a discovery call with {{name}}. Recap what we heard, restate the outcome they want, and propose one clear next step. Warm and brief." },
+    { t:"Build an ICP from a description", d:"Turn a plain-English description of your customer into a precise targeting profile.", dept:"sales", agent:"FIGSY", p:"From this description — \"{{description}}\" — extract a structured ICP: industries, job titles, seniority, company size, geographies, and 3 buying signals." },
+    { t:"Turn a case study into a LinkedIn post", d:"A scroll-stopping post from a customer result, honest and specific.", dept:"marketing", agent:"Milla", p:"Turn this case study into a LinkedIn post: \"{{case_study}}\". Lead with the result, keep it honest (no invented numbers), 120-180 words, one clear takeaway." },
+    { t:"Write 5 subject-line variants", d:"Five distinct cold-email subject lines to A/B test.", dept:"marketing", agent:"FIGSY", p:"Write 5 distinct cold-email subject lines for an email about {{topic}} to a {{persona}}. Vary the angle (curiosity, outcome, question, specificity, brevity). Under 6 words each." },
+    { t:"Draft a product-drop announcement", d:"Announce what just shipped in the voice of The Drop — live, not promised.", dept:"marketing", agent:"Milla", p:"Write a short product-drop announcement for these features: {{features}}. Frame as what's live now (not a roadmap). Confident, plain, 80-120 words." },
+    { t:"Identify contract deviations", d:"Spot where a contract differs from your standard terms.", dept:"legal", agent:"Milla", p:"Compare this contract against standard terms and list every deviation, why it matters, and a suggested position. Contract: \"{{contract}}\"." },
+    { t:"Summarise an NDA in plain English", d:"A clear, jargon-free summary of what an NDA actually commits you to.", dept:"legal", agent:"Milla", p:"Summarise this NDA in plain English: who's bound, what's confidential, for how long, and any unusual clauses to flag. NDA: \"{{nda}}\"." },
+    { t:"Draft a check-in to a quiet client", d:"A genuine, non-needy nudge to re-engage a client who's gone quiet.", dept:"success", agent:"Lena", p:"Write a short, genuine check-in to {{name}}, a client we haven't heard from in {{weeks}} weeks. Lead with value, offer one concrete next step, never guilt-trip." },
+    { t:"Turn a support thread into a help doc", d:"Convert a resolved support conversation into a reusable help article.", dept:"success", agent:"Milla", p:"Turn this resolved support thread into a clear help-doc: problem, cause, step-by-step fix, and a prevention tip. Thread: \"{{thread}}\"." },
+    { t:"Summarise this week's pipeline", d:"A founder-ready snapshot of movement, risks, and the next best action.", dept:"ops", agent:"Milla", p:"From this pipeline data, write a 5-bullet weekly summary: what moved, what's at risk, top 3 deals to push, and the single highest-leverage action this week. Data: \"{{data}}\"." },
+    { t:"Draft a team standup summary", d:"A tight async standup recap from raw notes.", dept:"ops", agent:"Milla", p:"Turn these standup notes into a tight async summary grouped by person: done / doing / blocked. Notes: \"{{notes}}\"." },
+    { t:"Research a buyer persona", d:"A grounded persona brief: goals, pains, objections, and where they hang out.", dept:"research", agent:"Milla", p:"Build a buyer-persona brief for a {{role}} at a {{industry}} company: top goals, daily pains, likely objections to an AI SDR, and the channels they trust. Grounded, no invented stats." },
+    { t:"Build an A/B test plan", d:"A simple, rigorous plan to test one change and read the result.", dept:"research", agent:"FIGSY", p:"Design an A/B test for {{change}}: the hypothesis, the single variable, the metric, the minimum sample to trust it, and how we'll decide. Keep it practical." },
+    { t:"Rewrite this in our brand voice", d:"Make any draft sound like you — warm, specific, never pushy.", dept:"general", agent:"Milla", p:"Rewrite the following in a warm, specific, never-pushy brand voice. Keep it concise and human. Text: \"{{text}}\"." },
+  ];
+
+  const grid = document.getElementById('grid');
+  const countEl = document.getElementById('count');
+  const deptSel = document.getElementById('dept');
+  const searchEl = document.getElementById('search');
+  const LABELS = { sales:'Sales', marketing:'Marketing', legal:'Legal', ops:'Ops', success:'Customer Success', research:'Research', general:'All teams' };
+
+  function render() {
+    const dept = deptSel.value;
+    const q = searchEl.value.trim().toLowerCase();
+    const items = PROMPTS.filter(p =>
+      (dept === 'all' || p.dept === dept) &&
+      (!q || (p.t + ' ' + p.d + ' ' + p.agent).toLowerCase().includes(q))
+    );
+    countEl.textContent = `${items.length} prompt${items.length === 1 ? '' : 's'}`;
+    grid.innerHTML = items.length ? items.map(p => `
+      <div class="card">
+        <h3>${p.t}</h3>
+        <p class="desc">${p.d}</p>
+        <p class="agent">Best with: ${p.agent}</p>
+        <div class="foot">
+          <span class="tag ${p.dept}">${LABELS[p.dept]}</span>
+          <button class="copy" data-p="${encodeURIComponent(p.p)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
+        </div>
+      </div>`).join('') : `<div class="empty">No prompts match — try another department or search.</div>`;
+
+    grid.querySelectorAll('.copy').forEach(btn => btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(decodeURIComponent(btn.dataset.p)).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '✓ Copied';
+        setTimeout(() => { btn.innerHTML = orig; }, 1400);
+      }).catch(() => {});
+    }));
+  }
+  deptSel.addEventListener('change', render);
+  searchEl.addEventListener('input', render);
+  render();
+</script>
+</body>
+</html>

@@ -173,6 +173,7 @@
 | 90 | 🟣 | **Deliverability dashboard** (`/dashboard/deliverability`, #48) — *✅ approved 13 Jun (as-is) → `previews/deliverability-current.html`*; health band (opt-out–derived) · warmup pacing (cap 10→50/day) · engagement metrics (open/reply/opt-outs) · 14-day volume chart · honest (no invented bounce/spam until D9) | staging → ship post-19 | 🧍 ship post-19 |
 | 87 | 🟣 | **Shell — status bar** (sidebar footer, #104) — *✅ approved 13 Jun (as-is) → `previews/status-bar-current.html`*; live pulse: FIGSY state (active/idle) · today's sends vs cap (progress bar) · system health (operational/degraded); real endpoints + 60s poll, degrades silently | staging → ship post-19 | 🧍 ship post-19 |
 | 84 | 🟣 | **Signup + SSO buttons** (`/v2/signup`, #R25) — *✅ approved 13 Jun (design) → `previews/signup-sso-current.html`*; Google + Microsoft OAuth buttons + email + T&C. Design locked; **go-live still needs 🧍 OAuth app registration (Google Cloud + Azure)** | staging | 🧍 register OAuth apps |
+| 91 | 🟣 | **Mobile PWA icons** (#114) — *✅ approved as-is 13 Jun (gradient K + cream splash kept)*; manifest (name · shortcuts to Dashboard/Leads/FIGSY · standalone/portrait · theme #7C3AED) + icon-192/512 + maskable-512 | staging → ship post-19 | 🧍 ship post-19 |
 
 > Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
 
@@ -210,7 +211,6 @@
 ## 3B — Staging screens + shell awaiting review
 | # | 🟡 | Item | Where it waits | Owner |
 |---|----|------|----------------|-------|
-| 91 | 🟡 | Mobile PWA icons #114 | staging review | 🧍 |
 | 92 | 🟡 | PR #502 — 10-Jun audit batch (Y1–Y11 etc.) ⚠️ needs rebase before merge | open PR | 🧍 |
 | 93 | 🟡 | PR #503 — The Drop + Product Videos pages (+ site nav rewire held on it) | open PR | 🧍 |
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Drop 09 — Meet your AI Family · The Drop · K.I.N.D</title>
-  <meta name="description" content="Drop 09 — your AI Family goes live. FIGSY opens and books, Milla reads the intelligence, Vida converts your site, and Denise closes." />
+  <title>Drop 02 — The Connected Platform · The Drop · K.I.N.D</title>
+  <meta name="description" content="Drop 02 — The Connected Platform. K.I.N.D plugs into the tools you already run  and the ones your developers want." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --blue: #7c3aed; --dark: #0a0a0a; --ink2:#1E1152; --border: rgba(0,0,0,0.08); --light:#f5f5f7; }
@@ -31,12 +31,14 @@
     .hero-copy p { font-size: 1.05rem; color: rgba(0,0,0,0.55); line-height: 1.7; margin: 20px 0 24px; max-width: 460px; }
     .hero-copy .readblog { display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 700; color: var(--dark); text-decoration: none; }
     .hero-copy .readblog:hover { color: var(--blue); gap: 12px; }
-    /* hero visual — the drop's hero image (the AI Family) */
-    .hero-card { border-radius: 24px; aspect-ratio: 16/10; background: linear-gradient(150deg,#a78bfa,#7c3aed 60%,#5b21b6); position: relative; overflow: hidden; display: grid; place-items: center; box-shadow: 0 24px 60px rgba(124,58,237,0.22); }
-    .hero-card::after { content:''; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1px); background-size: 16px 16px; }
-    .hero-family { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 0 22px; width: 100%; }
-    .hero-family img { width: 100%; aspect-ratio: 1; border-radius: 50%; object-fit: cover; object-position: top center; border: 3px solid rgba(255,255,255,0.9); box-shadow: 0 8px 22px rgba(0,0,0,0.28); }
+    /* hero visual — gradient + drop icon */
+    .hero-card { border-radius: 24px; aspect-ratio: 16/10; position: relative; overflow: hidden; display: grid; place-items: center; box-shadow: 0 24px 60px rgba(30,17,82,0.18); }
+    .hero-card::after { content:''; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px); background-size: 16px 16px; }
+    .hero-icon { position: relative; z-index: 1; font-size: 6rem; filter: drop-shadow(0 14px 28px rgba(0,0,0,0.22)); }
     .hero-label { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 1; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; background: rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 100px; backdrop-filter: blur(6px); }
+    .f-visual.gico { display:grid; place-items:center; }
+    .f-visual.gico::after { content:''; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1px); background-size: 14px 14px; }
+    .f-visual .gemoji { position:relative; z-index:1; font-size: 3.4rem; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2)); }
 
     /* FEATURE BLOCKS (Glean image-3 style) */
     .blocks { max-width: 1180px; margin: 0 auto; padding: 20px 48px 30px; }
@@ -91,76 +93,66 @@
 
 <section class="hero">
   <div class="hero-copy">
-    <span class="pill">Drop 09 · The AI Family</span>
-    <h1>Meet your<br>AI Family<span class="yr">Live</span></h1>
-    <p>Your AI sales team goes live. Four agents that prospect, reply, follow up and book &mdash; in your voice, on your calendar, while you get on with the work that pays.</p>
-    <a href="blog-drop-09.html" class="readblog">Read the blog &rarr;</a>
+    <span class="pill">Drop 02 · Integrations</span>
+    <h1>The Connected Platform<span class="yr">Live</span></h1>
+    <p>K.I.N.D plugs into the tools you already run &mdash; and the ones your developers want.</p>
+    <a href="blog-drop-02.html" class="readblog">Read the blog &rarr;</a>
   </div>
-  <!-- hero image of the drop — the AI Family -->
-  <div class="hero-card">
-    <div class="hero-family">
-      <img src="figsy.png" alt="FIGSY" />
-      <img src="milla.png" alt="Milla" />
-      <img src="vida.png" alt="Vida" />
-      <img src="denise.png" alt="Denise" />
-    </div>
-    <span class="hero-label">Your AI Family</span>
+  <div class="hero-card" style="background:linear-gradient(150deg,#67e8f9,#06b6d4 60%,#0e7490)">
+    <span class="hero-icon">&#x1F50C;</span>
+    <span class="hero-label">Drop 02 · Integrations</span>
   </div>
 </section>
 
 <section class="blocks">
-  <div class="blocks-label">Everything in Drop 09 — live today</div>
-
-  <!-- FIGSY -->
+  <div class="blocks-label">Everything in Drop 02 — live today</div>
   <div class="feature">
-    <div class="f-visual"><img src="figsy.png" alt="FIGSY — The Opener"><span class="tag" style="background:rgba(124,58,237,0.85)">FIGSY · The Opener</span></div>
+    <div class="f-visual gico" style="background:linear-gradient(150deg,#67e8f9,#06b6d4 60%,#0e7490)"><span class="gemoji">&#x1F504;</span></div>
     <div class="f-copy">
-      <div class="eyebrow">The AI SDR</div>
-      <h2>FIGSY opens the doors others don&rsquo;t see.</h2>
-      <p>Finds your ideal clients, writes a unique email for each, follows up automatically, and books the meeting straight to your calendar. You just show up to the call.</p>
-      <a href="figsy.html">Meet FIGSY &rarr;</a>
+      <div class="eyebrow">Two-way</div>
+      <h2>CRM Sync</h2>
+      <p>HubSpot &amp; Pipedrive dedup and deal push &mdash; leads flow both ways, no doubles.</p>
     </div>
   </div>
-
-  <!-- Milla -->
   <div class="feature">
-    <div class="f-visual"><img src="milla.png" alt="Milla — The Brain"><span class="tag" style="background:rgba(124,58,237,0.85)">Milla · The Brain</span></div>
+    <div class="f-visual gico" style="background:linear-gradient(150deg,#67e8f9,#06b6d4 60%,#0e7490)"><span class="gemoji">&#x1F4C5;</span></div>
     <div class="f-copy">
-      <div class="eyebrow">Business Intelligence</div>
-      <h2>Milla reads the intelligence so you decide faster.</h2>
-      <p>Drafts documents, answers business questions instantly, tracks what&rsquo;s working, and sends a daily brief &mdash; so you make better calls without building a single dashboard.</p>
-      <a href="virtual-assistant.html">Meet Milla &rarr;</a>
+      <div class="eyebrow">Tracked</div>
+      <h2>Calendar Booking</h2>
+      <p>Google Calendar booking with meetings tracked straight into your KPIs.</p>
     </div>
   </div>
-
-  <!-- Vida -->
   <div class="feature">
-    <div class="f-visual"><img src="vida.png" alt="Vida — The Connector"><span class="tag" style="background:rgba(20,184,166,0.9)">Vida · The Connector</span></div>
+    <div class="f-visual gico" style="background:linear-gradient(150deg,#67e8f9,#06b6d4 60%,#0e7490)"><span class="gemoji">&#x1F50C;</span></div>
     <div class="f-copy">
-      <div class="eyebrow">Web &amp; WhatsApp AI</div>
-      <h2>Vida converts every visitor, 24/7.</h2>
-      <p>A website and WhatsApp chatbot trained on your business &mdash; qualifies every visitor around the clock, captures the good leads, and routes them straight to your team.</p>
-      <a href="chatbot-agent.html">Meet Vida &rarr;</a>
+      <div class="eyebrow">AI-native</div>
+      <h2>MCP Server</h2>
+      <p>Run lead searches and launch outreach from Claude.ai or Cursor &mdash; no portal login.</p>
     </div>
   </div>
-
-  <!-- Denise -->
   <div class="feature">
-    <div class="f-visual"><img src="denise.png" alt="Denise — The Closer"><span class="tag" style="background:rgba(217,119,6,0.9)">Denise · The Closer</span></div>
+    <div class="f-visual gico" style="background:linear-gradient(150deg,#67e8f9,#06b6d4 60%,#0e7490)"><span class="gemoji">&#x2699;&#xFE0F;</span></div>
     <div class="f-copy">
-      <div class="eyebrow">AI Account Executive</div>
-      <h2>Denise turns warm leads into signed deals.</h2>
-      <p>Picks up where FIGSY leaves off &mdash; confirms the meeting, surfaces objections, drafts the proposal, and follows up so no warm lead ever goes cold.</p>
-      <a href="denise.html">Meet Denise &rarr;</a>
+      <div class="eyebrow">Build on it</div>
+      <h2>Developer API</h2>
+      <p>Your own API keys and a guide to drive K.I.N.D from anything.</p>
+    </div>
+  </div>
+  <div class="feature">
+    <div class="f-visual gico" style="background:linear-gradient(150deg,#67e8f9,#06b6d4 60%,#0e7490)"><span class="gemoji">&#x1F517;</span></div>
+    <div class="f-copy">
+      <div class="eyebrow">Signed</div>
+      <h2>Verified Webhooks</h2>
+      <p>Stripe, Flutterwave, inbound email and voice &mdash; all signature-verified.</p>
     </div>
   </div>
 </section>
 
 <div class="blog-cta">
   <div class="blog-inner">
-    <h2>The story behind Drop 09.</h2>
-    <p>Why we built an AI Family &mdash; not a single tool &mdash; and what it means for your pipeline.</p>
-    <a href="blog-drop-09.html">Read the blog &rarr;</a>
+    <h2>The story behind Drop 02.</h2>
+    <p>Read how it works and why it matters for your pipeline.</p>
+    <a href="blog-drop-02.html">Read the blog &rarr;</a>
   </div>
 </div>
 

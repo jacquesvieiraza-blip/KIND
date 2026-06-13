@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Drop &mdash; What we just shipped &middot; K.I.N.D</title>
-  <meta name="description" content="The Drop is what we just shipped — real, live, in your hands. No roadmap promises. Each drop showcases the products now working for you." />
+  <title>The Drop &mdash; Product Drop Archive &middot; K.I.N.D</title>
+  <meta name="description" content="The Drop is what we just shipped — real, live, in your hands. Click into any drop to see the detail behind it." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --blue: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); --ink2:#1E1152; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --ink2:#1E1152; --border: rgba(0,0,0,0.08); }
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
     nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
@@ -19,30 +19,26 @@
     .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
     .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; }
 
-    .drop-header { max-width: 1180px; margin: 0 auto; padding: 80px 48px 36px; }
-    .page-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 5px 14px; border-radius: 100px; background: var(--blue); color: #fff; margin-bottom: 22px; }
-    .drop-header h1 { font-size: clamp(2.6rem, 5.5vw, 4.2rem); font-weight: 900; letter-spacing: -0.045em; color: var(--dark); line-height: 1.0; margin-bottom: 18px; }
-    .drop-header p { font-size: 1.1rem; color: rgba(0,0,0,0.5); line-height: 1.7; max-width: 600px; }
+    .drop-header { max-width: 1180px; margin: 0 auto; padding: 80px 48px 28px; }
+    .drop-header h1 { font-size: clamp(2.6rem, 5.5vw, 4.2rem); font-weight: 900; letter-spacing: -0.045em; color: var(--ink2); line-height: 1.0; }
+    .drop-header p { font-size: 1.05rem; color: rgba(0,0,0,0.5); line-height: 1.7; max-width: 600px; margin-top: 16px; }
 
-    .archive { max-width: 1180px; margin: 0 auto; padding: 16px 48px 30px; }
-    .drop { border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 28px; }
-    .drop-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap;
-      padding: 32px 36px 24px; background: linear-gradient(120deg, #faf7ff, #f3eefc 60%, #efe9fb); position: relative; }
-    .drop-top::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(124,58,237,0.10) 1px, transparent 1px); background-size: 18px 18px; opacity: 0.5; pointer-events: none; }
-    .drop-meta { position: relative; z-index: 1; max-width: 560px; }
-    .dc-live { display: inline-flex; align-items: center; gap: 6px; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #059669; background: rgba(5,150,105,0.1); padding: 4px 10px; border-radius: 100px; margin-bottom: 14px; }
-    .dc-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #059669; }
-    .drop-meta h2 { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.03em; color: var(--ink2); margin-bottom: 8px; line-height: 1.1; }
-    .drop-meta h2 .num { color: var(--blue); }
-    .drop-meta p { font-size: 0.98rem; color: rgba(0,0,0,0.55); line-height: 1.7; }
-    .drop-count { position: relative; z-index: 1; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--blue); background: #fff; border: 1px solid #e0d4fb; padding: 8px 14px; border-radius: 100px; white-space: nowrap; }
+    /* ARCHIVE — clickable teaser cards (click → drop detail page) */
+    .archive { max-width: 1180px; margin: 0 auto; padding: 24px 48px 30px; }
+    .drop-card { display: grid; grid-template-columns: 1.1fr 1fr; border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 24px; text-decoration: none; color: inherit; transition: box-shadow .2s, transform .2s; min-height: 260px; }
+    .drop-card:hover { box-shadow: 0 18px 50px rgba(30,17,82,0.12); transform: translateY(-2px); }
+    .dc-copy { padding: 40px 44px; display: flex; flex-direction: column; justify-content: center; }
+    .dc-num { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 12px; }
+    .dc-title { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.03em; color: var(--ink2); line-height: 1.1; margin-bottom: 12px; }
+    .dc-copy p { font-size: 0.98rem; color: rgba(0,0,0,0.55); line-height: 1.7; max-width: 420px; margin-bottom: 22px; }
+    .dc-link { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 700; color: var(--blue); }
+    .drop-card:hover .dc-link { gap: 12px; }
 
-    .prod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--border); }
-    .prod { background: #fff; padding: 22px 24px; display: flex; flex-direction: column; gap: 8px; transition: background .15s; }
-    .prod:hover { background: #faf8ff; }
-    .prod .ic { font-size: 1.5rem; }
-    .prod h3 { font-size: 0.98rem; font-weight: 800; letter-spacing: -0.01em; color: var(--dark); }
-    .prod p { font-size: 0.83rem; color: rgba(0,0,0,0.52); line-height: 1.6; }
+    .dc-visual { position: relative; overflow: hidden; display: grid; place-items: center; }
+    .dc-visual::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(0,0,0,0.10) 1px, transparent 1px); background-size: 16px 16px; opacity: 0.5; }
+    .dc-icon { position: relative; z-index: 1; font-size: 4.5rem; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.18)); }
+    .dc-tag { position: absolute; bottom: 16px; right: 18px; z-index: 1; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #059669; background: rgba(255,255,255,0.85); padding: 4px 10px; border-radius: 100px; display: inline-flex; align-items: center; gap: 6px; }
+    .dc-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #059669; }
 
     .sub-band { max-width: 1180px; margin: 40px auto 90px; padding: 0 48px; }
     .sub-inner { background: var(--dark); border-radius: 24px; padding: 52px 40px; text-align: center; }
@@ -59,9 +55,11 @@
 
     @media (max-width: 820px) {
       nav { padding: 0 20px; } .nav-links { display: none; }
-      .drop-header { padding: 64px 24px 24px; }
-      .archive { padding: 8px 24px 20px; }
-      .drop-top { padding: 26px 24px 20px; }
+      .drop-header { padding: 64px 24px 20px; }
+      .archive { padding: 16px 24px; }
+      .drop-card { grid-template-columns: 1fr; }
+      .dc-visual { min-height: 180px; order: 2; }
+      .dc-copy { padding: 32px 28px; }
       .sub-band { padding: 0 24px; } footer { padding: 32px 24px; }
     }
   </style>
@@ -80,177 +78,101 @@
 </nav>
 
 <header class="drop-header">
-  <span class="page-tag">The Drop</span>
-  <h1>What we just shipped.</h1>
-  <p>Not a roadmap of promises &mdash; a record of what&rsquo;s real, live, and in your hands. Every drop showcases the products now working for you. We ship constantly &mdash; this is where you&rsquo;ll see it.</p>
+  <h1>Product Drop Archive</h1>
+  <p>What we just shipped &mdash; real, live, and in your hands. Click into any drop to see the detail behind it, and read the story on the blog.</p>
 </header>
 
 <section class="archive">
 
-  <!-- DROP 09 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 09</span> &middot; Meet your AI Family</h2>
-        <p>Four agents that run your revenue motion end to end &mdash; the team you&rsquo;d hire, working from day one.</p>
-      </div>
-      <span class="drop-count">4 products</span>
+  <a class="drop-card" href="drop-09.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 09 &middot; The AI Family</span>
+      <span class="dc-title">Meet your AI Family</span>
+      <p>Four agents that run your revenue motion end to end &mdash; the team you&rsquo;d hire, working from day one.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x1F916;</span><h3>FIGSY &middot; The Opener</h3><p>Your AI SDR. Finds the right people, writes a unique email for each, follows up, and books the meeting.</p></div>
-      <div class="prod"><span class="ic">&#x1F9E0;</span><h3>Milla &middot; The Brain</h3><p>Your AI VA. Drafts documents, answers business questions instantly, and sends a daily brief.</p></div>
-      <div class="prod"><span class="ic">&#x1F4AC;</span><h3>Vida &middot; The Connector</h3><p>Website &amp; WhatsApp chatbot, trained on your business. Captures and qualifies visitors 24/7.</p></div>
-      <div class="prod"><span class="ic">&#x1F49B;</span><h3>Denise &middot; The Closer</h3><p>Warm follow-ups and proposal drafts so no booked meeting or warm lead ever goes cold.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#a78bfa,#7c3aed 60%,#5b21b6)"><span class="dc-icon">&#x1F465;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
-  <!-- DROP 08 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 08</span> &middot; The Lead Engine</h2>
-        <p>From &ldquo;who do you sell to?&rdquo; to a scored, verified list &mdash; the pipeline that feeds everything.</p>
-      </div>
-      <span class="drop-count">5 products</span>
+  <a class="drop-card" href="drop-08.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 08 &middot; Lead Generation</span>
+      <span class="dc-title">The Lead Engine</span>
+      <p>From &ldquo;who do you sell to?&rdquo; to a scored, verified list &mdash; the pipeline that feeds everything.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x1F3AF;</span><h3>Conversational ICP Builder</h3><p>Describe your ideal customer in a sentence &mdash; we turn it into a precise targeting profile.</p></div>
-      <div class="prod"><span class="ic">&#x1F50E;</span><h3>Apollo Sourcing</h3><p>250M+ verified contacts, three-pass search, with a live preview count before you spend.</p></div>
-      <div class="prod"><span class="ic">&#x1F4CA;</span><h3>AI Lead Scoring</h3><p>Every lead scored 0&ndash;100 against your ICP by Claude, so you work the warmest first.</p></div>
-      <div class="prod"><span class="ic">&#x1F4E6;</span><h3>Charge-on-Delivery</h3><p>Leads drip in and you&rsquo;re only charged for what&rsquo;s delivered &mdash; no wasted spend.</p></div>
-      <div class="prod"><span class="ic">&#x1F46F;</span><h3>Lookalike Leads</h3><p>Point at your best customers and we find more companies that match the pattern.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#93c5fd,#3b82f6 60%,#1d4ed8)"><span class="dc-icon">&#x1F3AF;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
-  <!-- DROP 07 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 07</span> &middot; Enrichment &amp; Data</h2>
-        <p>Clean, complete, compliant contact data &mdash; the difference between a bounce and a booked call.</p>
-      </div>
-      <span class="drop-count">4 products</span>
+  <a class="drop-card" href="drop-07.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 07 &middot; Data Quality</span>
+      <span class="dc-title">Enrichment &amp; Data</span>
+      <p>Clean, complete, compliant contact data &mdash; the difference between a bounce and a booked call.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x1F4A7;</span><h3>Waterfall Enrichment</h3><p>Fills in emails and direct numbers across multiple sources &mdash; single or in bulk.</p></div>
-      <div class="prod"><span class="ic">&#x1F517;</span><h3>LinkedIn Import</h3><p>Drop a CSV &mdash; we map the columns, score everyone, and flag your top picks instantly.</p></div>
-      <div class="prod"><span class="ic">&#x1F4D1;</span><h3>Cross-Links &amp; Stats</h3><p>Every lead links to its campaign and replies, with real per-status numbers &mdash; no guesswork.</p></div>
-      <div class="prod"><span class="ic">&#x2705;</span><h3>POPIA Consent</h3><p>Consent-aware sourcing with an opt-out blocklist enforced at every single send path.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#5eead4,#14b8a6 60%,#0f766e)"><span class="dc-icon">&#x1F4A7;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
-  <!-- DROP 06 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 06</span> &middot; The Outreach Engine</h2>
-        <p>Personalised, multi-step outreach that runs itself &mdash; and reads every reply for you.</p>
-      </div>
-      <span class="drop-count">4 products</span>
+  <a class="drop-card" href="drop-06.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 06 &middot; Outreach</span>
+      <span class="dc-title">The Outreach Engine</span>
+      <p>Personalised, multi-step outreach that runs itself &mdash; and reads every reply for you.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x270D;&#xFE0F;</span><h3>3-Step AI Sequences</h3><p>Personalised, threaded emails (Day 0 / 4 / 9) written uniquely for each prospect.</p></div>
-      <div class="prod"><span class="ic">&#x1F680;</span><h3>Auto-Pilot &amp; Co-Pilot</h3><p>Fully autonomous, or you-approve-every-send. Your call, per campaign.</p></div>
-      <div class="prod"><span class="ic">&#x1F3F7;&#xFE0F;</span><h3>Reply Classification</h3><p>Every reply tagged hot / warm / cold / opt-out &mdash; campaigns auto-pause on a hot one.</p></div>
-      <div class="prod"><span class="ic">&#x1F4A1;</span><h3>Suggest Campaigns &amp; Chat</h3><p>FIGSY proposes campaigns and answers your questions right inside the workspace.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#f9a8d4,#ec4899 60%,#be185d)"><span class="dc-icon">&#x270D;&#xFE0F;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
-  <!-- DROP 05 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 05</span> &middot; Pipeline &amp; Replies</h2>
-        <p>Every conversation and every stage in one place &mdash; so nothing warm slips through.</p>
-      </div>
-      <span class="drop-count">4 products</span>
+  <a class="drop-card" href="drop-05.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 05 &middot; Pipeline</span>
+      <span class="dc-title">Pipeline &amp; Replies</span>
+      <p>Every conversation and every stage in one place &mdash; so nothing warm slips through.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x1F4CB;</span><h3>Kanban Pipeline</h3><p>Every lead&rsquo;s stage at a glance, from sourced to meeting booked.</p></div>
-      <div class="prod"><span class="ic">&#x1F4E5;</span><h3>The Unibox</h3><p>Every reply across channels lands in one place, tagged and ready to action.</p></div>
-      <div class="prod"><span class="ic">&#x1F4C5;</span><h3>Mark-as-Booked &amp; KPIs</h3><p>Booked meetings flow straight into unified KPIs &mdash; real numbers, not vanity stats.</p></div>
-      <div class="prod"><span class="ic">&#x1F39B;&#xFE0F;</span><h3>Campaign Controls</h3><p>Create, activate, pause, resume, clone or delete &mdash; full control, one click each.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#a5b4fc,#6366f1 60%,#4338ca)"><span class="dc-icon">&#x1F4CB;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
-  <!-- DROP 04 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 04</span> &middot; Deliverability, Handled</h2>
-        <p>The inbox-placement work most teams never get right &mdash; run for you, behind the scenes.</p>
-      </div>
-      <span class="drop-count">3 products</span>
+  <a class="drop-card" href="drop-04.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 04 &middot; Deliverability</span>
+      <span class="dc-title">Deliverability, Handled</span>
+      <p>The inbox-placement work most teams never get right &mdash; run for you, behind the scenes.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x1F4EC;</span><h3>Inbox-Placement Suite</h3><p>List-Unsubscribe, plain-text alternative, and a dedicated cold-sending domain &mdash; all standard.</p></div>
-      <div class="prod"><span class="ic">&#x1F525;</span><h3>Warmup Auto-Ramp</h3><p>Sending volume ramps automatically (10&rarr;50/day) so your domain builds reputation safely.</p></div>
-      <div class="prod"><span class="ic">&#x1F6E1;&#xFE0F;</span><h3>Guarded Auto-Pause</h3><p>If a campaign drifts, it pauses itself before it can hurt your sender reputation.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#fdba74,#f97316 60%,#c2410c)"><span class="dc-icon">&#x1F4EC;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
-  <!-- DROP 03 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 03</span> &middot; Payments &amp; Billing</h2>
-        <p>Transparent, usage-based billing &mdash; pay for outcomes, never a black-box subscription.</p>
-      </div>
-      <span class="drop-count">5 products</span>
+  <a class="drop-card" href="drop-03.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 03 &middot; Billing</span>
+      <span class="dc-title">Payments &amp; Billing</span>
+      <p>Transparent, usage-based billing &mdash; pay for outcomes, never a black-box subscription.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x1F4B3;</span><h3>Stripe Checkout</h3><p>Secure checkout with idempotent webhooks &mdash; payments that never double-charge.</p></div>
-      <div class="prod"><span class="ic">&#x1FA99;</span><h3>Credit Bundles</h3><p>Buy lead-gen and FIGSY credits in bundles &mdash; top up only when you need to.</p></div>
-      <div class="prod"><span class="ic">&#x1F501;</span><h3>Agent Subscriptions</h3><p>Add Vida, Milla or Denise as monthly agents &mdash; scale the family to fit.</p></div>
-      <div class="prod"><span class="ic">&#x1F9FE;</span><h3>Atomic Credit Ledger</h3><p>Every credit tracked in a tamper-proof ledger &mdash; balance and history always reconcile.</p></div>
-      <div class="prod"><span class="ic">&#x1F4C8;</span><h3>Usage Tracking</h3><p>See exactly what each credit bought &mdash; every send, every reply, per client.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#86efac,#22c55e 60%,#15803d)"><span class="dc-icon">&#x1F4B3;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
-  <!-- DROP 02 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 02</span> &middot; The Connected Platform</h2>
-        <p>K.I.N.D plugs into the tools you already run &mdash; and the ones your developers want.</p>
-      </div>
-      <span class="drop-count">5 products</span>
+  <a class="drop-card" href="drop-02.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 02 &middot; Integrations</span>
+      <span class="dc-title">The Connected Platform</span>
+      <p>K.I.N.D plugs into the tools you already run &mdash; and the ones your developers want.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x1F504;</span><h3>CRM Sync</h3><p>HubSpot &amp; Pipedrive dedup and deal push &mdash; leads flow both ways, no doubles.</p></div>
-      <div class="prod"><span class="ic">&#x1F4C5;</span><h3>Calendar Booking</h3><p>Google Calendar booking with meetings tracked straight into your KPIs.</p></div>
-      <div class="prod"><span class="ic">&#x1F50C;</span><h3>MCP Server</h3><p>Run lead searches and launch outreach from Claude.ai or Cursor &mdash; no portal login.</p></div>
-      <div class="prod"><span class="ic">&#x2699;&#xFE0F;</span><h3>Developer API</h3><p>Your own API keys and a guide to drive K.I.N.D from anything.</p></div>
-      <div class="prod"><span class="ic">&#x1F517;</span><h3>Verified Webhooks</h3><p>Stripe, Flutterwave, inbound email and voice &mdash; all signature-verified.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#67e8f9,#06b6d4 60%,#0e7490)"><span class="dc-icon">&#x1F50C;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
-  <!-- DROP 01 -->
-  <article class="drop">
-    <div class="drop-top">
-      <div class="drop-meta">
-        <span class="dc-live">Live now</span>
-        <h2><span class="num">Drop 01</span> &middot; Built for Scale &amp; Trust</h2>
-        <p>The foundations &mdash; team scale, local payments, and the reliability you don&rsquo;t think about until you need it.</p>
-      </div>
-      <span class="drop-count">5 products</span>
+  <a class="drop-card" href="drop-01.html">
+    <div class="dc-copy">
+      <span class="dc-num">Drop 01 &middot; Foundations</span>
+      <span class="dc-title">Built for Scale &amp; Trust</span>
+      <p>The foundations &mdash; team scale, local payments, and the reliability you don&rsquo;t think about until you need it.</p>
+      <span class="dc-link">View all updates &rarr;</span>
     </div>
-    <div class="prod-grid">
-      <div class="prod"><span class="ic">&#x1F3E2;</span><h3>Company Command Centre</h3><p>Per-rep workspaces, owner-funded pools, and per-seat budgets &mdash; scale a whole team.</p></div>
-      <div class="prod"><span class="ic">&#x1F91D;</span><h3>Partner Programme</h3><p>20% recurring commission with your own dashboard and an auto-provisioned demo.</p></div>
-      <div class="prod"><span class="ic">&#x1F30D;</span><h3>Local Payments</h3><p>Flutterwave for ZAR / NGN / KES / GHS &mdash; pay the way your market pays.</p></div>
-      <div class="prod"><span class="ic">&#x1F514;</span><h3>Push Notifications</h3><p>Hot-reply web push &mdash; know the moment a prospect raises their hand.</p></div>
-      <div class="prod"><span class="ic">&#x1F6DF;</span><h3>Failover &amp; Uptime</h3><p>Standby infrastructure and load balancing so the brand stays up, always.</p></div>
-    </div>
-  </article>
+    <div class="dc-visual" style="background:linear-gradient(150deg,#fcd34d,#f59e0b 60%,#b45309)"><span class="dc-icon">&#x1F3E2;</span><span class="dc-tag">Live now</span></div>
+  </a>
 
 </section>
 
@@ -269,8 +191,8 @@
       <a href="/">Home</a>
       <a href="the-drop.html">The Drop</a>
       <a href="prompt-library.html">Prompt Library</a>
+      <a href="blog.html">Blog</a>
       <a href="pricing.html">Pricing</a>
-      <a href="trust.html">Trust</a>
     </div>
   </div>
 </footer>

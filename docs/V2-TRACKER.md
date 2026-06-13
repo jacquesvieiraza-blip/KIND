@@ -7,7 +7,7 @@
 >
 > **📅 THE PLAN (locked 12 Jun):** ① Mon 15 — Company Command Centre + payments → production (the only early ship) · ② Fri 19 — LAUNCH · ③ post-19 — everything else (the 25 release PRs, shell redesign, Alta inbox, the staging review queue).
 
-_Last updated: 13 Jun 2026 — aligned to the inventory's 4-state colour system; invoicing decision locked (USD · no VAT until benchmark · Stripe-issued); agent-panel rule approved (all 5 agents incl. Casey)._
+_Last updated: 13 Jun 2026 — aligned to the inventory's 4-state colour system; invoicing decision locked (USD · no VAT until benchmark · Stripe-issued). **113a agent-panel rule BUILT** (FIGSY/Milla/Vida/Denise conversational + acts-in-place via `liveChatEndpoint`; endpoints `/milla/chat` `/denise/chat` `/casey/chat` + existing `/vida/help`). **Casey wired live on `/v2/setup`.** **"AI Family" cards BUILT** (#125). New planned website items: 162 Prompt Library · 163 Product Videos hero. All on `claude/kind-carson-MYhSl`, post-19._
 
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both
 
@@ -225,9 +225,9 @@ Upgrades existing items: **#38** A/B → contextual bandit · **#40** ICP auto-r
 **V2 portal redesign (the rest, on the per-rep foundation):**
 | # | What | Status |
 |---|------|--------|
-| V2-3 | Conversational setup (chat w/ Casey) — **SPEC'D by Glean Auto Mode demo (10 Jun): client describes goal in a couple sentences → AI assistant configures the whole agent (ICP+sequences+knowledge+triggers), no forms. The activation unlock for Africa-SMB. Highest-value V2 build.** | ⬜ |
+| V2-3 | Conversational setup (chat w/ Casey) — **SPEC'D by Glean Auto Mode demo (10 Jun): client describes goal in a couple sentences → AI assistant configures the whole agent (ICP+sequences+knowledge+triggers), no forms. The activation unlock for Africa-SMB. Highest-value V2 build.** | 🟡 started — `/v2/setup` runs a **live Casey chat** (`/casey/chat`, 13 Jun); the auto-config (ICP+sequences+knowledge from the conversation) is the remaining build, gated on founder voice/tone (item 121) |
 | V2-8 | **AI Notetaker → action items (Milla)** | 🟡 built → see PRODUCT-INVENTORY §2B — `/dashboard/notetaker` |
-| V2-10 | **Casey** onboarding agent | ⬜ |
+| V2-10 | **Casey** onboarding agent | 🟡 backend ready — `/casey/chat` endpoint (`casey.ts`) + live panel on `/v2/setup` (13 Jun); persona/voice + full onboarding flow gated on founder input |
 | V2-11 | **Vida help bubble (bottom-right)** | 🟡 built → see PRODUCT-INVENTORY §2B — R3 `layout.tsx` |
 | V2-12 | Strong client dashboards + Goals | 🔨 Goals built on staging — R10 |
 | #83 | Embeddable lead-capture Forms | 🟡 built → see PRODUCT-INVENTORY §2B — R12 |

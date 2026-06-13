@@ -318,7 +318,7 @@ export function Sidebar({
             {open && (
               <div className="mt-1.5 rounded-xl bg-white border border-purple-100 overflow-hidden shadow-lg shadow-purple-100/50 z-50">
                 <p className="text-[10px] text-[#7C3AED]/40 px-3 pt-3 pb-1.5 font-semibold uppercase tracking-wider">
-                  Your AI Team
+                  Your AI Family
                 </p>
                 {AGENTS.map(a => {
                   const locked = !isUnlocked(a.id)

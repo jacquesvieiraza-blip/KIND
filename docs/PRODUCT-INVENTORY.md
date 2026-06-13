@@ -176,6 +176,7 @@
 | 91 | 🟣 | **Mobile PWA icons** (#114) — *✅ approved as-is 13 Jun (gradient K + cream splash kept)*; manifest (name · shortcuts to Dashboard/Leads/FIGSY · standalone/portrait · theme #7C3AED) + icon-192/512 + maskable-512 | staging → ship post-19 | 🧍 ship post-19 |
 | 92 | 🟣 | **PR #502 — 10-Jun audit batch** (Y1–Y11) — *✅ founder cleared to merge 13 Jun (housekeeping, no UI)* · ⚠️ **needs rebase before merge** | open PR | 🧍 rebase + merge post-19 |
 | 98 | 🟣 | **Offline flow docs** (`CLIENT_FLOW.html` + `CLIENT_FLOW_PER_REP.html`) — *✅ reference, done & cleared 13 Jun* | reference | — |
+| 93 | 🟣 | **Marketing: The Drop + Watch** (PR #503, `apps/website/the-drop.html` + `product-videos.html`) — *✅ approved 13 Jun → `previews/marketing-the-drop.html` + `marketing-product-videos.html`*; orphan pages until nav rewire (#123, item 118). Site marketing style (darker than portal) intentional | open PR #503 | 🧍 merge + 🤖 nav rewire post-19 |
 
 > Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
 
@@ -213,7 +214,6 @@
 ## 3B — Staging screens + shell awaiting review
 | # | 🟡 | Item | Where it waits | Owner |
 |---|----|------|----------------|-------|
-| 93 | 🟡 | PR #503 — The Drop + Product Videos pages (+ site nav rewire held on it) | open PR | 🧍 |
 
 ## 3C — Wired but dormant (need a key / approval to switch on)
 | # | 🟡 | Item | Where it waits | Owner |

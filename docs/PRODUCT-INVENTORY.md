@@ -170,6 +170,7 @@
 | 82 | 🟣 | **Visual Sequence Builder** (`/dashboard/figsy/sequence-builder`) — *🎨 design locked 12 Jun · **recolor BUILT 13 Jun** to `previews/sequence-builder-v2.html` (lilac page · dotted canvas · purple-tinted tiles · ink headings · lilac connectors · purple banner)* | branch `claude/kind-carson-MYhSl` → ship post-19 | 🧍 ship post-19 |
 | 88 | 🟣 | **Activity feed** (`/dashboard/activity`, #102) — *✅ approved 13 Jun (as-is) → `previews/activity-feed-current.html`*; live workspace timeline (sends/replies/meetings), real client-scoped events, 30s poll | staging → ship post-19 | 🧍 ship post-19 |
 | 89 | 🟣 | **Notification centre** (bell · #103) — *✅ approved 13 Jun (as-is) → `previews/notification-centre-current.html`*; 4 types (interested reply · consented lead · low credits · trial expiring) each with a one-tap action, red count badge, 2-min poll | staging → ship post-19 | 🧍 ship post-19 |
+| 90 | 🟣 | **Deliverability dashboard** (`/dashboard/deliverability`, #48) — *✅ approved 13 Jun (as-is) → `previews/deliverability-current.html`*; health band (opt-out–derived) · warmup pacing (cap 10→50/day) · engagement metrics (open/reply/opt-outs) · 14-day volume chart · honest (no invented bounce/spam until D9) | staging → ship post-19 | 🧍 ship post-19 |
 
 > Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
 
@@ -209,7 +210,6 @@
 |---|----|------|----------------|-------|
 | 84 | 🟡 | R25 SSO signup buttons (needs OAuth app registration to go live) | staging | 🧍 |
 | 87 | 🟡 | Shell — status bar #104 (FIGSY active · sent · health) | staging review | 🧍 |
-| 90 | 🟡 | Deliverability dashboard #48 | staging review | 🧍 |
 | 91 | 🟡 | Mobile PWA icons #114 | staging review | 🧍 |
 | 92 | 🟡 | PR #502 — 10-Jun audit batch (Y1–Y11 etc.) ⚠️ needs rebase before merge | open PR | 🧍 |
 | 93 | 🟡 | PR #503 — The Drop + Product Videos pages (+ site nav rewire held on it) | open PR | 🧍 |

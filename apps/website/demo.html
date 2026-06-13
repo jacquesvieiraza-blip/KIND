@@ -147,12 +147,33 @@
     footer a { color: rgba(255,255,255,0.3); text-decoration: none; }
     footer a:hover { color: rgba(255,255,255,0.6); }
 
+    /* ── DEMO REQUEST FORM ── */
+    .demo-form-section { padding: 56px 24px 72px; background:#fff; border-bottom:1px solid var(--border); }
+    .dfs-inner { max-width: 980px; margin:0 auto; display:grid; grid-template-columns: 1fr 1fr; gap:48px; align-items:start; }
+    .dfs-copy h2 { font-size: clamp(1.6rem,3.5vw,2.4rem); font-weight:900; letter-spacing:-0.03em; margin-bottom:14px; }
+    .dfs-copy p { color: rgba(0,0,0,0.5); font-size:0.95rem; line-height:1.7; margin-bottom:24px; }
+    .dfs-points { list-style:none; display:flex; flex-direction:column; gap:12px; }
+    .dfs-points li { display:flex; gap:10px; align-items:flex-start; font-size:0.9rem; color:rgba(0,0,0,0.65); }
+    .dfs-points li::before { content:'\2713'; color:#16a34a; font-weight:900; flex-shrink:0; }
+    .dfs-form { background:#fafafa; border:1px solid var(--border); border-radius:18px; padding:28px; }
+    .field { margin-bottom:16px; }
+    .field label { display:block; font-size:0.78rem; font-weight:700; color:rgba(0,0,0,0.6); margin-bottom:6px; }
+    .field input, .field textarea { width:100%; border:1px solid rgba(0,0,0,0.14); border-radius:10px; padding:11px 13px; font-size:0.9rem; font-family:inherit; background:#fff; transition:border-color .2s; }
+    .field input:focus, .field textarea:focus { outline:none; border-color:var(--blue); }
+    .field textarea { min-height:84px; resize:vertical; }
+    .dfs-btn { width:100%; background:var(--dark); color:#fff; border:none; border-radius:12px; padding:14px; font-size:0.95rem; font-weight:800; cursor:pointer; transition:opacity .2s; }
+    .dfs-btn:hover { opacity:0.88; }
+    .dfs-alt { text-align:center; font-size:0.82rem; color:rgba(0,0,0,0.45); margin-top:14px; }
+    .dfs-alt a { color:var(--blue); font-weight:700; text-decoration:none; }
+    .dfs-success { display:none; margin-top:16px; padding:13px 15px; background:#f0fdf4; border:1px solid rgba(22,163,74,0.25); border-radius:10px; color:#15803d; font-size:0.85rem; font-weight:600; }
+
     @media (max-width: 640px) {
       nav { padding: 0 20px; }
       .nav-links { display: none; }
       .hero { padding: 48px 20px 36px; }
       .hero-stats { gap: 24px; }
       .video-section, .features, .cta-section { padding-left: 16px; padding-right: 16px; }
+      .dfs-inner { grid-template-columns:1fr; gap:28px; }
     }
   </style>
 </head>
@@ -249,6 +270,30 @@
     </div>
   </div>
 
+  <!-- DEMO REQUEST FORM -->
+  <section id="request" class="demo-form-section">
+    <div class="dfs-inner">
+      <div class="dfs-copy">
+        <h2>Get a demo</h2>
+        <p>Tell us about your team and what you'd like to see. We'll be in touch within one business day to set up a personalised walkthrough of your AI Family &mdash; no slides, just the product working on your use case.</p>
+        <ul class="dfs-points">
+          <li>See FIGSY, Milla, Vida &amp; Denise running live</li>
+          <li>Mapped to your market, ICP and outreach</li>
+          <li>No commitment &mdash; POPIA compliant by default</li>
+        </ul>
+      </div>
+      <form class="dfs-form" id="demoForm" onsubmit="return submitDemo(event)">
+        <div class="field"><label for="d_name">Full name</label><input id="d_name" name="name" required placeholder="Jane Doe" /></div>
+        <div class="field"><label for="d_email">Work email</label><input id="d_email" name="email" type="email" required placeholder="jane@company.com" /></div>
+        <div class="field"><label for="d_company">Company</label><input id="d_company" name="company" required placeholder="Company name" /></div>
+        <div class="field"><label for="d_msg">What would you like to see? (optional)</label><textarea id="d_msg" name="message" placeholder="e.g. outbound for our SaaS in South Africa"></textarea></div>
+        <button type="submit" class="dfs-btn">Request my demo &rarr;</button>
+        <p class="dfs-alt">Prefer to pick a time now? <a href="https://calendly.com/kind-ai-demo/new-meeting" target="_blank" rel="noopener">Book directly &rarr;</a></p>
+        <p class="dfs-success" id="d_ok">&#x2713; Thanks! Your email app should open with your request &mdash; just hit send and we'll be in touch within one business day.</p>
+      </form>
+    </div>
+  </section>
+
   <!-- VIDEO -->
   <div class="video-section">
     <div class="video-inner">
@@ -333,6 +378,20 @@
     <p>© 2026 K.I.N.D &nbsp;·&nbsp; <a href="trust.html">Privacy &amp; Trust</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a> &nbsp;·&nbsp; <a href="mailto:hello@get-kind.com">hello@get-kind.com</a></p>
   </footer>
 
+  <script>
+    function submitDemo(e){
+      e.preventDefault();
+      var n=document.getElementById('d_name').value.trim();
+      var em=document.getElementById('d_email').value.trim();
+      var co=document.getElementById('d_company').value.trim();
+      var ms=document.getElementById('d_msg').value.trim();
+      var body=encodeURIComponent('Name: '+n+'\nWork email: '+em+'\nCompany: '+co+'\n\nWhat they want to see:\n'+(ms||'(not specified)'));
+      var subj=encodeURIComponent('Demo request — '+(co||n));
+      document.getElementById('d_ok').style.display='block';
+      window.location.href='mailto:hello@get-kind.com?subject='+subj+'&body='+body;
+      return false;
+    }
+  </script>
   <script>
     document.querySelectorAll('.nav-item').forEach(function(item) {
       var timer;

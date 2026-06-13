@@ -74,6 +74,29 @@
       .blocks { padding: 12px 24px; } .feature:nth-child(even) .f-visual { order: 0; }
       .blog-cta { padding: 0 24px; } footer { padding: 32px 24px; }
     }
+  
+    /* ── real hero visuals (added) ── */
+    .hero-card.hero-agent { display:block; padding:0; }
+    .hero-agent .hero-cut { position:absolute; bottom:0; left:50%; transform:translateX(-50%); height:106%; width:auto; max-width:none; object-fit:contain; filter:drop-shadow(0 18px 40px rgba(0,0,0,0.30)); z-index:1; }
+    .hero-agent .anno { position:absolute; z-index:2; font-size:0.6rem; font-weight:800; letter-spacing:0.07em; text-transform:uppercase; color:#fff; background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.30); padding:7px 13px; border-radius:100px; backdrop-filter:blur(8px); white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,0.18); }
+    .hero-agent .a1 { top:13%; left:5%; }
+    .hero-agent .a2 { top:27%; right:4%; }
+    .hero-agent .a3 { bottom:22%; left:3%; }
+    .hero-agent .a4 { bottom:13%; right:6%; }
+    .hero-card.hero-mock { display:grid; place-items:center; }
+    .mock { position:relative; z-index:1; width:74%; max-width:340px; }
+    .mock-bar { height:13px; border-radius:7px; background:rgba(255,255,255,0.9); margin:0 0 12px; width:58%; box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+    .mock-card { background:rgba(255,255,255,0.97); border-radius:16px; padding:18px 20px; box-shadow:0 22px 50px rgba(0,0,0,0.22); }
+    .mock-row { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+    .mock-row:last-child { margin-bottom:0; }
+    .mock-dot { width:34px; height:34px; border-radius:10px; flex-shrink:0; }
+    .mock-lines { flex:1; }
+    .mock-l { height:9px; border-radius:5px; background:rgba(0,0,0,0.12); margin-bottom:7px; }
+    .mock-l.short { width:55%; background:rgba(0,0,0,0.07); margin-bottom:0; }
+    /* feature-tile polish: emoji sits on a glass tile, not bare placeholder */
+    .f-visual.gico .gemoji { font-size:2.6rem; }
+    .f-visual.gico::before { content:''; position:absolute; width:98px; height:98px; border-radius:24px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.32); z-index:0; }
+
   </style>
 </head>
 <body>
@@ -98,9 +121,12 @@
     <p>Personalised, multi-step outreach that runs itself &mdash; and reads every reply for you.</p>
     <a href="blog-drop-06.html" class="readblog">Read the blog &rarr;</a>
   </div>
-  <div class="hero-card" style="background:linear-gradient(150deg,#f9a8d4,#ec4899 60%,#be185d)">
-    <span class="hero-icon">&#x270D;&#xFE0F;</span>
-    <span class="hero-label">Drop 06 · Outreach</span>
+  <div class="hero-card hero-agent" style="background:linear-gradient(150deg,#f9a8d4,#ec4899 60%,#be185d)">
+    <img src="figsy-cut.png" class="hero-cut" alt="FIGSY" />
+    <span class="anno a1">WORKS 24/7</span>
+    <span class="anno a2">THE OPENER</span>
+    <span class="anno a3">WRITES & SENDS</span>
+    <span class="anno a4">FOLLOWS UP</span>
   </div>
 </section>
 

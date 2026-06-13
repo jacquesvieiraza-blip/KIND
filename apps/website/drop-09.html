@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drop 09 — Meet your AI Family · The Drop · K.I.N.D</title>
+  <meta name="description" content="Drop 09 — your AI Family goes live. FIGSY opens and books, Milla reads the intelligence, Vida converts your site, and Denise closes." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --ink2:#1E1152; --border: rgba(0,0,0,0.08); --light:#f5f5f7; }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg,#7c3aed,#a78bfa); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; }
+
+    .back { max-width: 1180px; margin: 0 auto; padding: 24px 48px 0; }
+    .back a { font-size: 0.85rem; color: rgba(0,0,0,0.45); text-decoration: none; font-weight: 600; }
+    .back a:hover { color: var(--blue); }
+
+    /* HERO (Glean image-2 style) */
+    .hero { max-width: 1180px; margin: 0 auto; padding: 28px 48px 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .hero-copy .pill { display: inline-block; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); background: rgba(124,58,237,0.1); padding: 5px 14px; border-radius: 100px; margin-bottom: 18px; }
+    .hero-copy h1 { font-size: clamp(2.6rem, 5.5vw, 4.4rem); font-weight: 900; letter-spacing: -0.05em; line-height: 0.98; color: var(--ink2); }
+    .hero-copy h1 .yr { display:inline-block; font-size: 0.45em; vertical-align: middle; font-weight: 800; color:#fff; background: linear-gradient(120deg,#f59e0b,#ec4899,#a78bfa); padding: 6px 16px; border-radius: 100px; margin-left: 12px; letter-spacing: 0; }
+    .hero-copy p { font-size: 1.05rem; color: rgba(0,0,0,0.55); line-height: 1.7; margin: 20px 0 24px; max-width: 460px; }
+    .hero-copy .readblog { display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 700; color: var(--dark); text-decoration: none; }
+    .hero-copy .readblog:hover { color: var(--blue); gap: 12px; }
+    /* hero visual — the drop's hero image (the AI Family) */
+    .hero-card { border-radius: 24px; aspect-ratio: 16/10; background: linear-gradient(150deg,#a78bfa,#7c3aed 60%,#5b21b6); position: relative; overflow: hidden; display: grid; place-items: center; box-shadow: 0 24px 60px rgba(124,58,237,0.22); }
+    .hero-card::after { content:''; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1px); background-size: 16px 16px; }
+    .hero-family { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 0 22px; width: 100%; }
+    .hero-family img { width: 100%; aspect-ratio: 1; border-radius: 50%; object-fit: cover; object-position: top center; border: 3px solid rgba(255,255,255,0.9); box-shadow: 0 8px 22px rgba(0,0,0,0.28); }
+    .hero-label { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 1; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; background: rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 100px; backdrop-filter: blur(6px); }
+
+    /* FEATURE BLOCKS (Glean image-3 style) */
+    .blocks { max-width: 1180px; margin: 0 auto; padding: 20px 48px 30px; }
+    .blocks-label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0,0,0,0.35); margin-bottom: 28px; }
+    .feature { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; margin-bottom: 56px; }
+    .feature:nth-child(even) .f-visual { order: 2; }
+    .f-visual { border-radius: 20px; aspect-ratio: 4/3; overflow: hidden; position: relative; background: var(--light); }
+    .f-visual img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+    .f-visual .tag { position: absolute; bottom: 16px; left: 16px; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #fff; padding: 6px 14px; border-radius: 100px; backdrop-filter: blur(6px); }
+    .f-copy .eyebrow { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 12px; }
+    .f-copy h2 { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1.12; color: var(--ink2); margin-bottom: 14px; }
+    .f-copy p { font-size: 0.95rem; color: rgba(0,0,0,0.55); line-height: 1.75; margin-bottom: 18px; }
+    .f-copy a { display: inline-flex; align-items: center; gap: 7px; font-size: 0.9rem; font-weight: 700; color: var(--dark); text-decoration: none; }
+    .f-copy a:hover { color: var(--blue); gap: 11px; }
+
+    /* BLOG CTA */
+    .blog-cta { max-width: 1180px; margin: 0 auto 90px; padding: 0 48px; }
+    .blog-inner { background: var(--dark); border-radius: 24px; padding: 48px 40px; text-align: center; }
+    .blog-inner h2 { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 10px; }
+    .blog-inner p { font-size: 0.95rem; color: rgba(255,255,255,0.55); max-width: 440px; margin: 0 auto 22px; }
+    .blog-inner a { display: inline-block; background: var(--blue); color: #fff; font-size: 0.9rem; font-weight: 700; text-decoration: none; padding: 13px 28px; border-radius: 100px; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+
+    @media (max-width: 860px) {
+      nav { padding: 0 20px; } .nav-links { display: none; }
+      .hero, .feature { grid-template-columns: 1fr; gap: 28px; }
+      .hero { padding: 20px 24px 36px; } .back { padding: 20px 24px 0; }
+      .blocks { padding: 12px 24px; } .feature:nth-child(even) .f-visual { order: 0; }
+      .blog-cta { padding: 0 24px; } footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo"><span class="logo-mark">K</span><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <a href="figsy.html" class="nav-link">Products</a>
+    <a href="use-cases.html" class="nav-link">Use Cases</a>
+    <a href="the-drop.html" class="nav-link" style="color:var(--blue);font-weight:600;">The Drop</a>
+    <a href="prompt-library.html" class="nav-link">Prompt Library</a>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a>
+</nav>
+
+<div class="back"><a href="the-drop.html">&larr; Back to all drops</a></div>
+
+<section class="hero">
+  <div class="hero-copy">
+    <span class="pill">Drop 09 · The AI Family</span>
+    <h1>Meet your<br>AI Family<span class="yr">Live</span></h1>
+    <p>Your AI sales team goes live. Four agents that prospect, reply, follow up and book &mdash; in your voice, on your calendar, while you get on with the work that pays.</p>
+    <a href="blog.html" class="readblog">Read the blog &rarr;</a>
+  </div>
+  <!-- hero image of the drop — the AI Family -->
+  <div class="hero-card">
+    <div class="hero-family">
+      <img src="figsy.png" alt="FIGSY" />
+      <img src="milla.png" alt="Milla" />
+      <img src="vida.png" alt="Vida" />
+      <img src="denise.png" alt="Denise" />
+    </div>
+    <span class="hero-label">Your AI Family</span>
+  </div>
+</section>
+
+<section class="blocks">
+  <div class="blocks-label">Everything in Drop 09 — live today</div>
+
+  <!-- FIGSY -->
+  <div class="feature">
+    <div class="f-visual"><img src="figsy.png" alt="FIGSY — The Opener"><span class="tag" style="background:rgba(124,58,237,0.85)">FIGSY · The Opener</span></div>
+    <div class="f-copy">
+      <div class="eyebrow">The AI SDR</div>
+      <h2>FIGSY opens the doors others don&rsquo;t see.</h2>
+      <p>Finds your ideal clients, writes a unique email for each, follows up automatically, and books the meeting straight to your calendar. You just show up to the call.</p>
+      <a href="figsy.html">Meet FIGSY &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Milla -->
+  <div class="feature">
+    <div class="f-visual"><img src="milla.png" alt="Milla — The Brain"><span class="tag" style="background:rgba(124,58,237,0.85)">Milla · The Brain</span></div>
+    <div class="f-copy">
+      <div class="eyebrow">Business Intelligence</div>
+      <h2>Milla reads the intelligence so you decide faster.</h2>
+      <p>Drafts documents, answers business questions instantly, tracks what&rsquo;s working, and sends a daily brief &mdash; so you make better calls without building a single dashboard.</p>
+      <a href="virtual-assistant.html">Meet Milla &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Vida -->
+  <div class="feature">
+    <div class="f-visual"><img src="vida.png" alt="Vida — The Connector"><span class="tag" style="background:rgba(20,184,166,0.9)">Vida · The Connector</span></div>
+    <div class="f-copy">
+      <div class="eyebrow">Web &amp; WhatsApp AI</div>
+      <h2>Vida converts every visitor, 24/7.</h2>
+      <p>A website and WhatsApp chatbot trained on your business &mdash; qualifies every visitor around the clock, captures the good leads, and routes them straight to your team.</p>
+      <a href="chatbot-agent.html">Meet Vida &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Denise -->
+  <div class="feature">
+    <div class="f-visual"><img src="denise.png" alt="Denise — The Closer"><span class="tag" style="background:rgba(217,119,6,0.9)">Denise · The Closer</span></div>
+    <div class="f-copy">
+      <div class="eyebrow">AI Account Executive</div>
+      <h2>Denise turns warm leads into signed deals.</h2>
+      <p>Picks up where FIGSY leaves off &mdash; confirms the meeting, surfaces objections, drafts the proposal, and follows up so no warm lead ever goes cold.</p>
+      <a href="denise.html">Meet Denise &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="blog-cta">
+  <div class="blog-inner">
+    <h2>The story behind Drop 09.</h2>
+    <p>Why we built an AI Family &mdash; not a single tool &mdash; and what it means for your pipeline.</p>
+    <a href="blog.html">Read the blog &rarr;</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="the-drop.html">The Drop</a>
+      <a href="blog.html">Blog</a>
+      <a href="prompt-library.html">Prompt Library</a>
+      <a href="pricing.html">Pricing</a>
+    </div>
+  </div>
+</footer>
+<script>
+(function(){
+  fetch('https://kindapi-production-e64c.up.railway.app/track/visit', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({page_url:location.href, referrer:document.referrer, user_agent:navigator.userAgent})
+  }).catch(function(){})
+})()
+</script>
+</body>
+</html>

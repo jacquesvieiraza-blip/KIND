@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v2 leftovers — leads · invite (item 99)</title>
+<style>
+  :root{ --brand:#7C3AED; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#ECEAF3;color:#111827;-webkit-font-smoothing:antialiased}
+  .flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:8px}
+  .flag b{color:#fff}
+  .section{max-width:1040px;margin:0 auto 34px;padding:0 24px}
+  .clabel{display:flex;align-items:center;gap:10px;margin:0 0 12px 4px;flex-wrap:wrap}
+  .clabel .pill{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--brand);padding:4px 12px;border-radius:100px}
+  .clabel .name{font-size:15px;font-weight:800;color:#1E1152}
+  .clabel .desc{font-size:13px;color:#6B7280}
+  .frame{border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(30,17,82,.14);border:1px solid rgba(0,0,0,.06);background:#F9FAFB}
+  .vbar{display:flex;align-items:center;gap:8px;padding:8px 18px;font-size:12px;font-weight:600;color:#fff;background:var(--brand)}
+  .vbar svg{width:14px;height:14px}
+  .inner{padding:24px}
+  .h1{font-size:22px;font-weight:800;color:#111827}
+  .sub{font-size:13px;color:#6B7280;margin-top:2px}
+  .card{background:#fff;border:1px solid #E5E7EB;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .btn{background:var(--brand);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;padding:9px 18px;cursor:pointer}
+  .ghost{border:1px solid #E5E7EB;background:#fff;color:#6B7280;border-radius:10px;font-size:13px;padding:9px 16px;display:inline-flex;align-items:center;gap:6px}
+  .ghost svg,.btn svg{width:15px;height:15px}
+
+  /* leads */
+  .lhead{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:18px 0}
+  .icp{border:1px solid #e0d4fb;border-radius:16px;padding:18px;background:linear-gradient(135deg,#faf7ff,#f3eeff);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .icp .l{display:flex;gap:12px}
+  .icp .ico{width:40px;height:40px;border-radius:12px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .icp .ico svg{width:20px;height:20px}
+  .icp .nm{display:flex;align-items:center;gap:8px}
+  .icp .nm b{font-size:15px;color:#111827}
+  .badge-on{font-size:10px;font-weight:800;color:#047857;background:#ecfdf5;padding:2px 8px;border-radius:100px}
+  .icp p{font-size:13px;color:#4B5563;margin-top:4px;max-width:560px}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .tags span{font-size:11px;font-weight:700;color:var(--brand);background:#fff;border:1px solid #e0d4fb;padding:2px 9px;border-radius:100px}
+  .matches{font-size:12px;font-weight:800;color:var(--brand);background:#fff;border:1px solid #e0d4fb;padding:7px 12px;border-radius:10px;height:fit-content}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:16px 0}
+  @media(max-width:680px){.stats{grid-template-columns:1fr 1fr}}
+  .stat{display:flex;align-items:center;gap:12px;padding:14px}
+  .stat .si{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+  .stat .si svg{width:18px;height:18px}
+  .stat .v{font-size:18px;font-weight:800;color:#111827}
+  .stat .l{font-size:11px;color:#9CA3AF}
+  .si.a{background:#F5F0FF;color:#7C3AED}.si.b{background:#EEF2FF;color:#4F46E5}.si.c{background:#F0FDF4;color:#16A34A}.si.d{background:#FAF5FF;color:#9333EA}
+  .ppl-h,.ppl-r{display:grid;grid-template-columns:1.6fr 1fr .6fr .8fr;gap:8px;align-items:center}
+  .ppl-h{padding:12px 18px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#9CA3AF;border-bottom:1px solid #F0F0F4}
+  .ppl-r{padding:13px 18px;border-bottom:1px solid #F7F7F9}
+  .ppl-r:last-child{border-bottom:none}
+  .ppl-r .pn{font-size:13px;font-weight:700;color:#111827}
+  .ppl-r .pt{font-size:12px;color:#9CA3AF}
+  .ppl-r .co{font-size:13px;color:#374151}
+  .ppl-r .sc{font-size:13px;font-weight:800;color:var(--brand)}
+  .pill-st{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:3px 9px;border-radius:100px}
+
+  /* invite */
+  .invbar{display:flex;gap:8px;margin-top:6px}
+  .invbar input{flex:1;border:1px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit}
+  .invbar select{border:1px solid #E5E7EB;border-radius:10px;padding:0 10px;font-size:13px;color:#6B7280}
+  .tm{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid #F7F7F9}
+  .tm:last-child{border-bottom:none}
+  .tm .em{font-size:22px}
+  .tm .nm{flex:1;min-width:0}
+  .tm .nm b{font-size:13px;font-weight:700;color:#111827;display:block}
+  .tm .nm span{font-size:12px;color:#9CA3AF}
+  .role{font-size:11px;font-weight:800;padding:3px 10px;border-radius:100px;display:inline-flex;align-items:center;gap:4px}
+  .role.owner{color:#B45309;background:#FFFBEB}.role.rep{color:#4B5563;background:#F3F4F6}
+  .role svg{width:12px;height:12px}
+  .active{font-size:11px;font-weight:800;color:#047857;background:#ecfdf5;padding:3px 10px;border-radius:100px}
+</style>
+</head>
+<body>
+<div class="flag">PREVIEW · final v2 leftovers (item 99) · <b>leads polish · invite</b> · sample data · approve / change</div>
+
+<!-- LEADS -->
+<div class="section">
+  <div class="clabel"><span class="pill">leads</span><span class="name">People (polish)</span><span class="desc">· C1 active-ICP surfaced ABOVE the list · C3 plain-language banner</span></div>
+  <div class="frame">
+    <div class="vbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.8-4.9-3.6-4.9 3.6 1.9-5.8L1 8.8h6.1z"/></svg> V2 PREVIEW · Leads / People polish (C1 + C3) · sample data</div>
+    <div class="inner">
+      <div class="lhead">
+        <div class="h1">People</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run ICP</button>
+          <span class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> ICP Settings</span>
+        </div>
+      </div>
+
+      <div class="icp">
+        <div class="l">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+          <div>
+            <div class="nm"><b>African fintech founders</b><span class="badge-on">ACTIVE ICP</span></div>
+            <p>Heads of sales &amp; founders at fintech companies in Nigeria, South Africa &amp; Kenya, 11–200 staff. FIGSY finds, scores and verifies these people for you.</p>
+            <div class="tags"><span>Fintech</span><span>SaaS</span><span>Nigeria</span><span>South Africa</span><span>Kenya</span><span>11–200</span></div>
+          </div>
+        </div>
+        <span class="matches">1,083 matches found</span>
+      </div>
+
+      <div class="stats">
+        <div class="card stat"><div class="si a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div><div class="v">243</div><div class="l">Total people</div></div></div>
+        <div class="card stat"><div class="si b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="v">78/100</div><div class="l">Avg score</div></div></div>
+        <div class="card stat"><div class="si c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div><div><div class="v">60</div><div class="l">Consented</div></div></div>
+        <div class="card stat"><div class="si d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div><div class="v">$486,000</div><div class="l">Est. pipeline value</div></div></div>
+      </div>
+
+      <div class="card" style="overflow:hidden">
+        <div class="ppl-h"><span>Person</span><span>Company</span><span>Score</span><span>Status</span></div>
+        <div class="ppl-r"><div><div class="pn">Amara Okafor</div><div class="pt">Head of Sales</div></div><span class="co">Paystack</span><span class="sc">95</span><span class="pill-st" style="color:#16a34a;background:#ecfdf5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 9"/></svg>Consented</span></div>
+        <div class="ppl-r"><div><div class="pn">Tunde Adeyemi</div><div class="pt">Growth Lead</div></div><span class="co">Flutterwave</span><span class="sc">90</span><span class="pill-st" style="color:#6b7280;background:#f3f4f6">Contacted</span></div>
+        <div class="ppl-r"><div><div class="pn">Zola Mbeki</div><div class="pt">VP Sales</div></div><span class="co">Yoco</span><span class="sc">88</span><span class="pill-st" style="color:#6b7280;background:#f3f4f6">Contacted</span></div>
+        <div class="ppl-r"><div><div class="pn">Ngozi Eze</div><div class="pt">Founder</div></div><span class="co">OnePipe</span><span class="sc">85</span><span class="pill-st" style="color:#16a34a;background:#ecfdf5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 9"/></svg>Consented</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INVITE -->
+<div class="section">
+  <div class="clabel"><span class="pill">invite</span><span class="name">Invite teammate</span><span class="desc">· seats + per-rep FIGSY · one company bill (maps to Teams Hub / #88)</span></div>
+  <div class="frame">
+    <div class="vbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.8-4.9-3.6-4.9 3.6 1.9-5.8L1 8.8h6.1z"/></svg> V2 PREVIEW · Invite Teammate · sample data</div>
+    <div class="inner" style="max-width:640px">
+      <div class="h1">Your team</div><div class="sub">Every rep gets their own autonomous FIGSY. One company bill — 4 of 10 seats used.</div>
+      <div class="card" style="padding:18px;margin-top:18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg><b style="font-size:14px;color:#111827">Invite a rep</b></div>
+        <div class="invbar"><input placeholder="teammate@company.com"><select><option>Rep</option><option>Admin</option></select><button class="btn">Send invite</button></div>
+      </div>
+      <div class="card" style="overflow:hidden;margin-top:16px">
+        <div class="tm"><span class="em">👩🏽</span><div class="nm"><b>Amara N.</b><span>amara@maceyluxe.com</span></div><span class="role rep">Rep</span><span class="active">Active</span></div>
+        <div class="tm"><span class="em">👨🏾</span><div class="nm"><b>Tunde A.</b><span>tunde@maceyluxe.com</span></div><span class="role rep">Rep</span><span class="active">Active</span></div>
+        <div class="tm"><span class="em">👩🏾</span><div class="nm"><b>Zola M.</b><span>zola@maceyluxe.com</span></div><span class="role rep">Rep</span><span class="active">Active</span></div>
+        <div class="tm"><span class="em">👑</span><div class="nm"><b>Jack (you)</b><span>hello@maceyluxe.com</span></div><span class="role owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M5 20l-2-12 5.5 4L12 4l3.5 8L21 8l-2 12"/></svg>Owner</span><span class="active">Active</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -168,6 +168,7 @@
 | 85 | 🟣 | **Shell — nav redesign** (slim work-only rail + agent switcher) — *✅ founder approved 12 Jun* | staging → merges post-19 | 🤝 |
 | 86 | 🟣 | **Shell — profile dropdown → grouped account hub** — *✅ founder approved* | staging | 🤝 |
 | 82 | 🟣 | **Visual Sequence Builder** (`/dashboard/figsy/sequence-builder`) — *🎨 design locked 12 Jun · **recolor BUILT 13 Jun** to `previews/sequence-builder-v2.html` (lilac page · dotted canvas · purple-tinted tiles · ink headings · lilac connectors · purple banner)* | branch `claude/kind-carson-MYhSl` → ship post-19 | 🧍 ship post-19 |
+| 88 | 🟣 | **Activity feed** (`/dashboard/activity`, #102) — *✅ approved 13 Jun (as-is) → `previews/activity-feed-current.html`*; live workspace timeline (sends/replies/meetings), real client-scoped events, 30s poll | staging → ship post-19 | 🧍 ship post-19 |
 
 > Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
 
@@ -207,7 +208,6 @@
 |---|----|------|----------------|-------|
 | 84 | 🟡 | R25 SSO signup buttons (needs OAuth app registration to go live) | staging | 🧍 |
 | 87 | 🟡 | Shell — status bar #104 (FIGSY active · sent · health) | staging review | 🧍 |
-| 88 | 🟡 | Activity feed #102 (`/dashboard/activity`, live timeline) | staging review | 🧍 |
 | 89 | 🟡 | Notification centre #103 (real bell wired) | staging review | 🧍 |
 | 90 | 🟡 | Deliverability dashboard #48 | staging review | 🧍 |
 | 91 | 🟡 | Mobile PWA icons #114 | staging review | 🧍 |

@@ -177,6 +177,7 @@
 | 92 | 🟣 | **PR #502 — 10-Jun audit batch** (Y1–Y11) — *✅ founder cleared to merge 13 Jun (housekeeping, no UI)* · ⚠️ **needs rebase before merge** | open PR | 🧍 rebase + merge post-19 |
 | 98 | 🟣 | **Offline flow docs** (`CLIENT_FLOW.html` + `CLIENT_FLOW_PER_REP.html`) — *✅ reference, done & cleared 13 Jun* | reference | — |
 | 93 | 🟣 | **Marketing: The Drop + Watch** (PR #503, `apps/website/the-drop.html` + `product-videos.html`) — *✅ approved 13 Jun → `previews/marketing-the-drop.html` + `marketing-product-videos.html`*; orphan pages until nav rewire (#123, item 118). Site marketing style (darker than portal) intentional | open PR #503 | 🧍 merge + 🤖 nav rewire post-19 |
+| 99 | 🟣 | **`/v2/*` design mockups — WALKED + design-source locked 13 Jun.** 🔒 Decisions: welcome=**Concept B "The Spotlight"** (A/C cut) · **config·thinking·train·leads-polish·invite** approved as design-source (`previews/welcome-concepts.html` · `v2-utility-screens.html` · `v2-leads-invite.html`). Covered elsewhere: agents/inbox/sequences/signup/shell/milla/notetaker/integrations/company/marketplace (already locked). `gallery`=index (no review). `onboarding`/`setup`=Casey, parked on founder voice (item 121). Mockups stay unwired until each feature is built | design source | 🤝 build per-feature |
 
 > Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
 
@@ -186,6 +187,10 @@
 
 > Built and build-verified, but **not yet walked/approved one-by-one**. Each earns 🟣 when reviewed + approved
 > (log in `STAGING-REVIEW.md`), then 🟢 when live. **None ship Monday; all are post-19.**
+>
+> **📍 Status 13 Jun — the screen walk is DONE.** Every reviewable *screen* (§3B) has been walked → 🟣 (see §2B). The
+> yellows that remain are **parked by choice, not pending review**: §3A = the 20 R-wave PRs (founder: "skip for now",
+> revisit as a batch); §3C = 4 key-gated features (dormant until a key/Meta approval). Nothing here needs a design call.
 
 ## 3A — Release-wave PRs (R1–R20) — open, awaiting founder review + merge
 | # | 🟡 | Item | Where it waits | Owner |
@@ -212,8 +217,7 @@
 | 79 | 🟡 | R20 job-change alerts on leads | PR #525 | 🧍 |
 
 ## 3B — Staging screens + shell awaiting review
-| # | 🟡 | Item | Where it waits | Owner |
-|---|----|------|----------------|-------|
+> ✅ **ALL CLEARED 13 Jun → 🟣 (now in §2B).** Walked this session: 82 Sequence Builder (recolor built) · 84 Signup+SSO · 87 Status bar · 88 Activity feed · 89 Notification centre · 90 Deliverability · 91 PWA icons · 92 audit batch · 93 marketing pages · 99 v2 mockups. Nothing left pending here.
 
 ## 3C — Wired but dormant (need a key / approval to switch on)
 | # | 🟡 | Item | Where it waits | Owner |
@@ -222,7 +226,6 @@
 | 95 | 🟡 | Hunter waterfall enrichment (code wired, dormant) | needs `HUNTER_API_KEY` | 🧍 |
 | 96 | 🟡 | Voice (Vapi) + WhatsApp (code wired) | keys + Meta approval | 🧍 |
 | 97 | 🟡 | A/B subject-testing backend #43 (winner-check cron + variants — UI = 🔴 §4) | works, invisible until UI | 🤖 |
-| 99 | 🟡 | `/v2/*` design mockups (23 screens) — clickable designs, NOT wired; being walked one-by-one (most already feed locked designs). **🔒 Decisions logged:** (1) onboarding **welcome = Concept B "The Spotlight"** locked 13 Jun (`previews/welcome-concepts.html`; A + C cut). (2) **config · thinking · train** approved as design-source 13 Jun (`previews/v2-utility-screens.html`). Still to walk: leads-polish · invite · gallery | design exploration | 🤝 walking |
 
 ---
 

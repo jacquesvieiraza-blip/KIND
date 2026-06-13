@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signup + SSO — current (item 84 / #R25)</title>
+<style>
+  :root{ --brand:#7C3AED; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:linear-gradient(135deg,#f5f0ff,#ffffff 55%,#f0f7ff);min-height:100vh;
+    -webkit-font-smoothing:antialiased;padding:0}
+  .flag{background:var(--brand);color:#fff;text-align:center;font-size:12px;font-weight:600;padding:6px}
+
+  .wrap{max-width:448px;margin:0 auto;padding:48px 24px}
+  .head{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:28px}
+  .head img{width:32px;height:32px}
+  .head .logo{font-weight:700;font-size:18px;letter-spacing:0.5px;color:#111827}
+
+  .card{border-radius:24px;background:#fff;box-shadow:0 20px 50px rgba(0,0,0,.1);border:1px solid rgba(196,181,253,.6);padding:28px}
+
+  .heading{font-size:20px;font-weight:700;text-align:center;color:#111827;margin-bottom:4px}
+  .subhead{font-size:14px;color:#6B7280;text-align:center;margin-bottom:24px}
+
+  .sso{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:1px solid #E5E7EB;
+    border-radius:12px;background:#fff;font-size:14px;font-weight:600;color:#374151;cursor:pointer;transition:.15s}
+  .btn:hover{background:#F9FAFB;border-color:#D1D5DB}
+  .btn svg{width:16px;height:16px}
+
+  .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#D1D5DB}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:#E5E7EB}
+  .divider span{font-size:11px;color:#9CA3AF;font-weight:500}
+
+  .form{display:flex;flex-direction:column;gap:16px;margin-bottom:20px}
+  .form label{display:block;font-size:12px;font-weight:700;color:#6B4A3A;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+  .form input{width:100%;border:1px solid #E5E7EB;border-radius:12px;padding:10px 12px;font-size:14px;
+    background:#fff;font-family:inherit}
+  .form input:focus{outline:none;ring:2px solid rgba(124,58,237,.3);border-color:var(--brand)}
+  .form .icon{position:relative}
+  .form .icon svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#9CA3AF}
+  .form .icon input{padding-left:36px}
+
+  .checkbox{display:flex;align-items:flex-start;gap:10px;margin-bottom:20px}
+  .checkbox input[type="checkbox"]{width:16px;height:16px;border-radius:4px;margin-top:2px;accent-color:var(--brand);flex-shrink:0;cursor:pointer}
+  .checkbox label{font-size:13px;color:#374151;line-height:1.5;margin:0;cursor:pointer}
+  .checkbox a{color:var(--brand);font-weight:600;text-decoration:none}
+  .checkbox a:hover{text-decoration:underline}
+
+  .submit{width:100%;padding:12px;background:var(--brand);color:#fff;border:none;border-radius:12px;
+    font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+  .submit:hover{opacity:.95}
+  .submit svg{width:16px;height:16px}
+
+  .foot{font-size:11px;color:#6B7280;text-align:center;margin-top:16px}
+  .foot a{color:var(--brand);text-decoration:none;font-weight:600}
+
+  .login{text-align:center;font-size:13px;color:#6B7280;margin-top:24px}
+  .login a{color:var(--brand);font-weight:600;text-decoration:none;cursor:pointer}
+  .login a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="flag">PREVIEW · standalone — does NOT touch staging · <b>Signup + SSO</b> (item 84 · #R25) · Google + Microsoft OAuth buttons · built, awaiting app registrations</div>
+
+<div class="wrap">
+  <div class="head">
+    <span style="width:32px;height:32px;background:linear-gradient(135deg,#7C3AED,#A78BFA);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">K</span>
+    <span class="logo">K·I·N·D</span>
+  </div>
+
+  <div class="card">
+    <h1 class="heading">Create your account</h1>
+    <p class="subhead">Your AI Family, ready in 2 minutes.</p>
+
+    <div class="sso">
+      <button class="btn">
+        <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.3-.1-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.8l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4-4 5.3l6.3 5.2C41.5 35.9 44 30.5 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+        Continue with Google
+      </button>
+      <button class="btn">
+        <svg viewBox="0 0 24 24" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;width:16px;height:16px"><span style="background:#F25022;grid-column:1;grid-row:1"/><span style="background:#7FBA00;grid-column:2;grid-row:1"/><span style="background:#00A4EF;grid-column:1;grid-row:2"/><span style="background:#FFB900;grid-column:2;grid-row:2"/></svg>
+        Continue with Microsoft
+      </button>
+    </div>
+
+    <div class="divider"><span>or</span></div>
+
+    <div class="form">
+      <label>Work email</label>
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m10 9 5 3.5-5 3.5"/></svg>
+        <input type="email" placeholder="you@company.com">
+      </div>
+    </div>
+
+    <div class="checkbox">
+      <input type="checkbox" id="tc">
+      <label for="tc">I agree to the <a href="#">Terms &amp; Conditions</a> and <a href="#">Privacy Policy</a>.</label>
+    </div>
+
+    <button class="submit">
+      Create account
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+
+    <p class="foot">No credit card to start · Cancel anytime</p>
+
+    <div class="login">Already have an account? <a>Log in</a></div>
+  </div>
+</div>
+</body>
+</html>

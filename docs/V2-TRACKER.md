@@ -2,12 +2,12 @@
 
 > 🧭 **WHICH DOC AM I IN? Only THREE docs matter:**
 > 1. **[`KIND-MASTER.md`](./KIND-MASTER.md)** — launch tracking (now → Fri 19) + strategy + session log
-> 2. **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** — **THE status list: every item 🟢 built+verified · 🟡 built-not-verified · 🔴 not built, with owner.** If you want to know what exists and what's left — go there, not here.
+> 2. **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** — **THE status list: every item on the 4-state colour system (locked 13 Jun) — 🟢 built+live · 🟣 approved+locked · 🟡 built, pending review · 🔴 not built, with owner.** If you want to know what exists and what's left — go there, not here.
 > 3. **This file** — the FUTURE detail behind the inventory's 🔴 items: risk register · learning-engine blueprint · GTM/content plan · steals catalog. **No build statuses live here anymore.**
 >
 > **📅 THE PLAN (locked 12 Jun):** ① Mon 15 — Company Command Centre + payments → production (the only early ship) · ② Fri 19 — LAUNCH · ③ post-19 — everything else (the 25 release PRs, shell redesign, Alta inbox, the staging review queue).
 
-_Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `PRODUCT-INVENTORY.md` (founder request: one inventory, no duplicate status tables)._
+_Last updated: 13 Jun 2026 — aligned to the inventory's 4-state colour system; invoicing decision locked (USD · no VAT until benchmark · Stripe-issued); agent-panel rule approved (all 5 agents incl. Casey)._
 
 **Owner:** 🧍 founder · 🤖 Claude · 🤝 both
 
@@ -15,7 +15,7 @@ _Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `P
 
 # ░ WHAT'S BUILT — MOVED ░
 > The full Wave 1/2/Tier-3 release tables (R1–R25, PRs #506–#525), the Company Engine build status,
-> and the shell/staging items now live ONLY in **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** (Section 2 — 🟡 built, not verified).
+> and the shell/staging items now live ONLY in **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** (§2 🟣 approved+locked · §3 🟡 pending review).
 > Staging environment details (URLs, login, review protocol): **[`STAGING-REVIEW.md`](./STAGING-REVIEW.md)**.
 
 ---
@@ -29,7 +29,7 @@ _Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `P
 
 **🎨 PHASE 2 — V2 EXPERIENCE (post-19, on the engine — includes the entire built-and-waiting staging queue, inventory §2B), in order:** 1 Vida bubble · 2 Casey onboarding→Conversational setup · 3 Milla Notetaker · 4 Strong dashboards · 5 Integrations Hub · 6 Sequence Builder · 7 Smart Inbox (fixes "inbox isn't right") · 8 Lead-capture Forms.
 
-> **🎨 Design-review locks (12 Jun night) — build to these previews:** Sequence Builder → `previews/sequence-builder-v2.html` (brand recolor) · Inbox → `previews/inbox-v2.html` (Gmail-style) · Agent cards → `previews/agents-v2.html` ("AI Family") · Client invoicing → `previews/invoice-v1.html` + `invoices-list.html` (#34a, Stripe-issued). **📅 Tue 16:** agent side-panel consistency (inventory 113a — make Milla/Vida/Denise panels conversational like FIGSY; Denise needs a new chat endpoint). Full verdict ledger: `PRODUCT-INVENTORY.md` → DESIGN-REVIEW LEDGER.
+> **🎨 Design-review locks (12–13 Jun) — build to these previews:** Sequence Builder → `previews/sequence-builder-v2.html` (brand recolor) · Inbox → `previews/inbox-v2.html` (Gmail-style) · Agent cards → `previews/agents-v2.html` ("AI Family") · Client invoicing → `previews/invoice-v1.html` + `invoices-list.html` (#34a — 🔒 **USD · no VAT until benchmark · Stripe-issued, we only display**). **📅 Tue 16 — agent side-panel (113a): PROTOTYPE APPROVED 13 Jun** (`previews/agent-panel-conversational.html`) — every screen shows the right agent in the right rail, **conversational like FIGSY**, input **renders in-place + takes action** (no navigate-away). Scope = **all 5 agents: FIGSY, Milla, Vida, Denise, Casey**; Denise + Casey each need a chat endpoint, Casey needs wiring into the panel picker. Full verdict ledger: `PRODUCT-INVENTORY.md` → DESIGN-REVIEW LEDGER.
 
 **🧠 PHASE 3 — INTELLIGENCE/MOAT (Month 2+):** MCP server · Memory v2 · ICP-that-learns · benchmarks · the 15 Pieces.
 
@@ -119,7 +119,7 @@ _Last updated: 12 Jun 2026 — consolidated: all built-item tracking moved to `P
 | #32 | Onboarding v2 + day-0/3/7 email | 🤖 |
 | #33 | Populate proof block w/ real data | 🤖 |
 | #34 | Activate Flutterwave (ZAR/NGN/KES/GHS) | 🧍 ⏸ |
-| #34a | **Client invoicing — surface Stripe VAT invoices in-portal.** Decision (12 Jun): **Stripe issues the official UK VAT invoices** (Stripe Tax + Invoicing, K.I.N.D Ltd + GB VAT no + branding configured in Stripe — founder). **We build** an *Invoices* surface under **Company → Documents** pulling the client's Stripe invoices via API and listing date/number/amount/status + Download-PDF (Stripe hosted PDF). `previews/invoice-v1.html` = PDF/branding target; `previews/invoices-list.html` = in-portal list. Founder to confirm VAT-registered status + currency (code bills USD). *(inventory 136a)* | 🤖 |
+| #34a | **Client invoicing — surface Stripe receipts in-portal.** 🔒 **DECISION LOCKED 13 Jun: USD billing · NO VAT until a financial benchmark · Stripe issues the receipt, we only pull & display it** (until the benchmark Stripe shows no VAT line; when we register, Stripe adds VAT automatically — no code change our side). **We build** an *Invoices* surface under **Company → Documents** pulling the client's Stripe invoices via API and listing date/number/amount (USD)/status + Download-PDF (Stripe hosted PDF). `previews/invoice-v1.html` = PDF/branding target; `previews/invoices-list.html` = in-portal list. *(inventory 136a)* | 🤖 |
 | #35 | Launch YouTube channel | 🧍 |
 | #36 | Wire playbook email form (ConvertKit) | 🤖 |
 | #61a | Performance-guarantee clause (90-day) | 🤖 |

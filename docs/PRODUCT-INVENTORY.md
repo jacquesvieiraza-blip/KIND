@@ -4,11 +4,14 @@
 > If something is built anywhere (main, staging, a branch), it is in this doc. `V2-TRACKER.md` holds
 > only FUTURE detail (roadmap rationale, learning engine, steals); anything it mentions as built points back here.
 >
-> **Status dots — only three:**
-> - 🟢 **BUILT + VERIFIED** — live in production, actually checked working
-> - 🟡 **BUILT, NOT VERIFIED** — code-complete on staging/branch; needs founder review/sign-off (or a key/migration) before it earns 🟢
-> - 🔴 **NOT BUILT** — future work
-> - *(⏸ marks a 🔴 item that is blocked on something/someone)*
+> **Status dots — FOUR states (locked 13 Jun):**
+> - 🟢 **BUILT + LIVE** — in production, verified working. The terminal "done" state.
+> - 🟣 **APPROVED + LOCKED** — built, founder has design-signed-off, pushed. The design is FINAL; it's just waiting to ship (Monday for the Command Centre; post-19 for the rest). A 🟡 becomes 🟣 the moment it's approved + pushed.
+> - 🟡 **BUILT, PENDING REVIEW** — code-complete on staging/branch/PR, but NOT yet approved. Needs founder review/sign-off (or a key/migration) before it can go 🟣 then 🟢.
+> - 🔴 **NOT BUILT** — future work. *(Some carry a 🔒 **design approved** preview to build to — the design is locked even though the code isn't written.)*
+> - *(⏸ marks a 🔴 item that is blocked on something/someone.)*
+>
+> **Numbers are STABLE IDs, not sequence** — an item keeps its number wherever it moves between sections (so links from `KIND-MASTER.md` / `V2-TRACKER.md` never break).
 >
 > **Owner = who is responsible for the NEXT step:** 🧍 founder · 🤖 Claude · 🤝 both · — done, no action
 >
@@ -17,7 +20,7 @@
 > 2. **Fri 19 Jun — LAUNCH** (the proven core already live on `main`; D9 + legal + smoke tests + Go/No-Go Thu 18)
 > 3. **Post-19 — everything else** (all 25 release PRs, shell redesign, Alta-style inbox, the whole staging review queue)
 >
-> *Last updated: 12 Jun 2026 · The 3 docs: `KIND-MASTER.md` (the map + founder checklist) · THIS (status of everything) · `V2-TRACKER.md` (future detail). Task tools: `COMPANY-ENGINE-TEST.md` (Monday test) · `STAGING-REVIEW.md` (review log).*
+> *Last updated: 13 Jun 2026 · The 3 docs: `KIND-MASTER.md` (the map + founder checklist) · THIS (status of everything) · `V2-TRACKER.md` (future detail). Task tools: `COMPANY-ENGINE-TEST.md` (Monday test) · `STAGING-REVIEW.md` (review log).*
 
 ---
 
@@ -41,11 +44,11 @@
 | MCP Connect | `/dashboard/mcp` | ✅ as-is (Connect group) | — | 45 |
 | What's New | `/dashboard/whats-new` | ✅ as-is | — | 78 |
 | Templates | `/dashboard/templates` | ✅ as-is | — | 70 |
-| Partner Hub | `/dashboard/partner` | ✅ as-is *(⚠️ earnings in ZAR → GBP)* | — | 37/42 |
+| Partner Hub | `/dashboard/partner` | ✅ as-is *(⚠️ earnings ZAR → USD)* | — | 37/42 |
 | Messages | `/dashboard/messages` | ✅ as-is | — | 38 |
 | Marketplace | `/dashboard/marketplace` | ✅ as-is | — | §1 (live) |
 | Settings | `/dashboard/settings` | ✅ as-is | — | §1 (live) |
-| Milla — chat | `/dashboard/assistant` | 🔄 in review | [milla-chat-current](./previews/milla-chat-current.html) | 2 |
+| Milla — chat | `/dashboard/assistant` | ✅ **approved 13 Jun** ("locked") | [milla-chat-current](./previews/milla-chat-current.html) | 2 |
 | Agent cards | `/dashboard/agents` | 🎨 locked ("AI Family") | [agents-v2](./previews/agents-v2.html) | 125 |
 | Inbox / Unibox | `/dashboard/inbox` | 🎨 redesign locked | [inbox-v2](./previews/inbox-v2.html) | 112 |
 | Client invoicing | Company → Documents | 🎨 locked (Stripe-issued) | [invoice-v1](./previews/invoice-v1.html) · [invoices-list](./previews/invoices-list.html) | 136a ⭐ |
@@ -56,13 +59,13 @@
 
 ---
 
-# ░ SECTION 1 — 🟢 BUILT + VERIFIED (live in production) ░
+# ░ SECTION 1 — 🟢 BUILT + LIVE (in production, verified working) ░
 
 ## The agents
 | # | Item | Status | Owner |
 |---|------|--------|-------|
 | 1 | **FIGSY — The Opener (AI SDR)** — finds leads, unique email per lead, 3-step follow-up (Day 0/4/9), books meetings | 🟢 | — |
-| 2 | **Milla — The Brain (AI VA)** — drafting, business Q&A, weekly brief *(Knowledge upload = 🟡, see §2)* | 🟢 | — |
+| 2 | **Milla — The Brain (AI VA)** — drafting, business Q&A, weekly brief *(Knowledge upload backend = 🟡, see §3A item 74)* | 🟢 | — |
 | 3 | **Vida — The Connector** — website + WhatsApp chatbot, captures + routes leads | 🟢 | — |
 | 4 | **Denise — The Closer** — warm follow-up + proposal drafts, subscription-gated | 🟢 | — |
 
@@ -86,7 +89,7 @@
 | 15 | Auto-Pilot / Co-Pilot modes | 🟢 | — |
 | 16 | 3-step AI sequences (personalised, threaded) | 🟢 | — |
 | 17 | Reply classification hot/warm/cold/opt-out (auto-pause on hot) | 🟢 | — |
-| 18 | Inbox / replies view + Unibox (current version — Alta rebuild = 🔴 §3) | 🟢 | — |
+| 18 | Inbox / replies view + Unibox (current version — Alta rebuild = 🔴 §4C item 112) | 🟢 | — |
 | 19 | Mark-as-booked + KPI unify (meetings from real bookings) | 🟢 | — |
 | 20 | Deliverability suite D1–D5 (List-Unsubscribe, plain-text, cold-FROM `gettingkind.com`, warmup auto-ramp 10→50/day, guarded auto-pause) — **T8 inbox placement PASSED** | 🟢 | — |
 | 21 | Warmup live + auto-pause hotfix (PR #505 merged) | 🟢 | — |
@@ -96,9 +99,9 @@
 | # | Item | Status | Owner |
 |---|------|--------|-------|
 | 23 | Stripe — checkout, idempotent webhooks, 8 price IDs | 🟢 | — |
-| 24 | Flutterwave (ZAR/NGN/KES/GHS) — wired; activation ⏸ §3 | 🟢 | — |
+| 24 | Flutterwave (ZAR/NGN/KES/GHS) — wired; activation ⏸ §4E item 136 | 🟢 | — |
 | 25 | Credit bundles (Lead Gen $1 · FIGSY $3 · 20/40/100) | 🟢 | — |
-| 26 | Agent subscriptions (Vida $29 · Milla $49 · Denise — $39 repricing = 🟡 §2) | 🟢 | — |
+| 26 | Agent subscriptions (Vida $29 · Milla $49 · Denise — $39 repricing = 🟡 §2A item 58) | 🟢 | — |
 | 27 | Credit system + atomic ledger | 🟢 | — |
 | 28 | Usage tracking per client | 🟢 | — |
 
@@ -138,24 +141,43 @@
 
 ---
 
-# ░ SECTION 2 — 🟡 BUILT, NOT VERIFIED (needs founder action to earn its 🟢) ░
+# ░ SECTION 2 — 🟣 APPROVED + LOCKED (built · founder-signed-off · pushed · design FINAL) ░
 
-> **🔒 SET RULE (locked): the ONLY thing that goes to production Monday 15 is the Company Payment
-> Command Centre (§2A — items 55–59, all ONE product). EVERY other yellow (§2B, items 60–99) ships
-> AFTER the 19th — no exceptions.** The Monday prod flag exposes `company` only; nothing else in §2B
-> is enabled until per-feature sign-off post-launch.
+> The founder has walked and approved these. Design will NOT change. They're not live yet **only** because of the
+> launch plan: the **Command Centre ships Monday 15**; everything else ships **after the 19th**. Where a row shows a
+> 🟡 execution note, that's build/config left to ship — not the design (the design is locked).
 
-## 2A — 🚀 THE COMPANY PAYMENT COMMAND CENTRE — the ONE product shipping to production Monday 15 Jun
-*(All five rows below are the same single ship: the Command Centre + its per-rep seats/agent-unlock + its payment system. This is the only early production ship.)*
-| # | 🟡 | Item | What's left to verify | Owner |
-|---|----|------|----------------------|-------|
-| 55 | 🟡 | **Command Centre** (#88 foundation) — per-rep private workspaces · owner-funded pools · per-seat budgets · request→approve/deny loop · invite→accept→own workspace · per-seat autonomy · winning-plays library · real per-rep stats | Command Centre already verified on staging 12 Jun ✅ — Monday: merge 7 newer commits → re-test → prod migration + merge + `company` flag | 🧍 test · 🤝 ship |
-| 56 | 🟡 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up company bill) — part of the Command Centre Seats tab | On feature branch, **not yet on staging** — Monday merge + schema re-paste + redeploy, then Test 7 | 🧍 |
-| 57 | 🟡 | **Payment system — Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool right after; then 🧍 creates pool-topup products | 🤖 then 🧍 |
-| 58 | 🟡 | **Denise $39 Stripe price** (billing prerequisite for the company bill — code already $39 everywhere) | 🧍 create the $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
-| 59 | 🟡 | Admin "Company demo" provisioning (to demo the Command Centre) | Create one in admin → open `/dashboard/company` populated | 🧍 |
+## 2A — 🚀 MONDAY 15 SHIP — Company Payment Command Centre (the ONLY early production ship)
+*(One product: Command Centre + per-rep seats/agent-unlock + its payment system. Layout approved 12 Jun.)*
+| # | State | Item | Execution left before Monday | Owner |
+|---|-------|------|------------------------------|-------|
+| 55 | 🟣 | **Command Centre** (#88) — per-rep workspaces · owner-funded pools · per-seat budgets · request→approve/deny · invite→accept→own workspace · winning-plays library · real per-rep stats | Verified on staging 12 Jun ✅ — Monday: merge 7 newer commits → re-test → prod migration + `company` flag | 🧍 test · 🤝 ship |
+| 56 | 🟣 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up bill) — Seats tab | On feature branch — Monday merge + schema re-paste + redeploy, then Test 7 | 🧍 |
+| 57 | 🟡 | **Payment system — Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool next; then 🧍 creates pool-topup products | 🤖 then 🧍 |
+| 58 | 🟡 | **Denise $39 Stripe price** (billing prerequisite) | 🧍 create $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
+| 59 | 🟡 | Admin "Company demo" provisioning | Create one in admin → open `/dashboard/company` populated | 🧍 |
 
-## 2B — 📦 POST-19 QUEUE — built + build-verified, but does NOT ship Monday; all parked until AFTER the 19th (review via `STAGING-REVIEW.md`)
+> **🔒 Monday rule:** the ONLY thing exposed to production Monday is `company`. Rows 57–59 are finishing build/config on the approved product — nothing in §3/§4 is enabled.
+
+## 2B — 📦 POST-19 — design APPROVED in the founder walk · built on staging · parked until after the 19th
+| # | State | Item | Where it waits | Owner |
+|---|-------|------|----------------|-------|
+| 80 | 🟣 | **Teams Hub** (`/dashboard/team`) — *✅ approved 12 Jun · co-located in rail* | staging | 🧍 ship post-19 |
+| 81 | 🟣 | **AI Notetaker** (`/dashboard/notetaker`) — *✅ approved as-is 12 Jun* | staging | 🧍 ship post-19 |
+| 83 | 🟣 | **Integrations Hub** (`/dashboard/integrations`) — *✅ approved as-is (Connect group)* | staging | 🧍 ship post-19 |
+| 85 | 🟣 | **Shell — nav redesign** (slim work-only rail + agent switcher) — *✅ founder approved 12 Jun* | staging → merges post-19 | 🤝 |
+| 86 | 🟣 | **Shell — profile dropdown → grouped account hub** — *✅ founder approved* | staging | 🤝 |
+
+> Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
+
+---
+
+# ░ SECTION 3 — 🟡 BUILT, PENDING REVIEW (code-complete · NOT yet approved · needs founder sign-off) ░
+
+> Built and build-verified, but **not yet walked/approved one-by-one**. Each earns 🟣 when reviewed + approved
+> (log in `STAGING-REVIEW.md`), then 🟢 when live. **None ship Monday; all are post-19.**
+
+## 3A — Release-wave PRs (R1–R20) — open, awaiting founder review + merge
 | # | 🟡 | Item | Where it waits | Owner |
 |---|----|------|----------------|-------|
 | 60 | 🟡 | **Wave 1 — R1 demo-bounce guard** | PR #506 | 🧍 review+merge |
@@ -178,13 +200,12 @@
 | 77 | 🟡 | R18 multi-model toggle (Fast/Smart) per campaign | PR #523 | 🧍 |
 | 78 | 🟡 | R19 in-product "What's New" feed | PR #524 | 🧍 |
 | 79 | 🟡 | R20 job-change alerts on leads | PR #525 | 🧍 |
-| 80 | 🟡 | **Tier 3 — R21 Teams Hub** (`/dashboard/team`) | staging | 🧍 |
-| 81 | 🟡 | R22 AI Notetaker (`/dashboard/notetaker`) — *design ✅ approved as-is 12 Jun* | staging | 🧍 |
-| 82 | 🟡 | R23 visual Sequence Builder (`/dashboard/figsy/sequence-builder`) — *design 🎨 **LOCKED** 12 Jun → `previews/sequence-builder-v2.html` (brand recolor); build to this when #89 wires it* | staging | 🧍 |
-| 83 | 🟡 | R24 Integrations Hub (`/dashboard/integrations`) | staging | 🧍 |
+
+## 3B — Staging screens + shell awaiting review
+| # | 🟡 | Item | Where it waits | Owner |
+|---|----|------|----------------|-------|
+| 82 | 🟡 | Visual Sequence Builder (`/dashboard/figsy/sequence-builder`) — *design 🎨 **LOCKED** 12 Jun → build to `previews/sequence-builder-v2.html` (brand recolor); current staging is the old gray — **recolor build still pending***  | staging | 🧍 then 🤖 build |
 | 84 | 🟡 | R25 SSO signup buttons (needs OAuth app registration to go live) | staging | 🧍 |
-| 85 | 🟡 | **Shell — nav redesign** (slim work-only rail + agent switcher) — *founder approved 12 Jun* | staging → merges post-19 | 🤝 |
-| 86 | 🟡 | Shell — profile dropdown → grouped account hub — *founder approved* | staging | 🤝 |
 | 87 | 🟡 | Shell — status bar #104 (FIGSY active · sent · health) | staging review | 🧍 |
 | 88 | 🟡 | Activity feed #102 (`/dashboard/activity`, live timeline) | staging review | 🧍 |
 | 89 | 🟡 | Notification centre #103 (real bell wired) | staging review | 🧍 |
@@ -192,18 +213,22 @@
 | 91 | 🟡 | Mobile PWA icons #114 | staging review | 🧍 |
 | 92 | 🟡 | PR #502 — 10-Jun audit batch (Y1–Y11 etc.) ⚠️ needs rebase before merge | open PR | 🧍 |
 | 93 | 🟡 | PR #503 — The Drop + Product Videos pages (+ site nav rewire held on it) | open PR | 🧍 |
+
+## 3C — Wired but dormant (need a key / approval to switch on)
+| # | 🟡 | Item | Where it waits | Owner |
+|---|----|------|----------------|-------|
 | 94 | 🟡 | PDL 2nd lead-discovery source (code wired, dormant) | needs `PDL_API_KEY` | 🧍 |
 | 95 | 🟡 | Hunter waterfall enrichment (code wired, dormant) | needs `HUNTER_API_KEY` | 🧍 |
 | 96 | 🟡 | Voice (Vapi) + WhatsApp (code wired) | keys + Meta approval | 🧍 |
-| 97 | 🟡 | A/B subject-testing backend #43 (winner-check cron + variants — UI = 🔴) | works, invisible until UI | 🤖 |
+| 97 | 🟡 | A/B subject-testing backend #43 (winner-check cron + variants — UI = 🔴 §4) | works, invisible until UI | 🤖 |
 | 98 | 🟡 | Offline flow docs `CLIENT_FLOW.html` + `CLIENT_FLOW_PER_REP.html` | reference, done | — |
 | 99 | 🟡 | `/v2/*` design mockups (23 screens — sequences, inbox, gallery…) — clickable designs, NOT wired | design exploration | 🧍 review |
 
 ---
 
-# ░ SECTION 3 — 🔴 NOT BUILT (future, in build order) ░
+# ░ SECTION 4 — 🔴 NOT BUILT (future, in build order) ░
 
-## 3A — Launch week (now → Fri 19, NOT code — founder runway)
+## 4A — Launch week (now → Fri 19, NOT code — founder runway)
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 100 | 🔴 | Smoke Test 2 — T3 pause · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invites · T10 partner | 🤝 |
@@ -213,7 +238,7 @@
 | 104 | 🔴 | Hunter.io signup → key · PDL free signup → key | 🧍 |
 | 105 | 🔴 | Go/No-Go gate Thu 18 → **🚀 LAUNCH Africa-only Fri 19 (#18)** | 🤝 |
 
-## 3B — Company Engine completion (post-19 unless the demo needs it)
+## 4B — Company Engine completion (post-19 unless the demo needs it)
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 106 | 🔴 | Invite **email delivery** (today the link is copy-paste — works for Monday) | 🤖 |
@@ -223,11 +248,11 @@
 | 110 | 🔴 | Per-rep lead ownership/routing + CRM dedup (#88-38) | 🤖 |
 | 111 | 🔴 | Per-rep / multi-provider calendars (#88-41, V2-13) | 🤖 |
 
-## 3C — Post-19 near-term build queue (ungated, buildable on founder go)
+## 4C — Post-19 near-term build queue (ungated, buildable on founder go)
 | # | 🔴 | Item | Owner | 🎨 Preview |
 |---|----|------|-------|-----------|
-| 112 | 🔴 | **Alta-style inbox rebuild** — Gmail-style multi-channel Unibox (founder 👎 12 Jun "inbox is not great" → redesign **locked** 12 Jun) | 🤖 | [inbox-v2.html](./previews/inbox-v2.html) ✅ **LOCKED** — build to this when pushed |
-| 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §2 #97) | 🤖  |  |
+| 112 | 🔴 | **Alta-style inbox rebuild** — Gmail-style multi-channel Unibox (founder 👎 12 Jun "inbox is not great" → redesign locked 12 Jun) | 🤖 | 🔒 design approved → [inbox-v2.html](./previews/inbox-v2.html) — build to this |
+| 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §3C item 97) | 🤖  |  |
 | 113a | 🔴 | 📅 **TUESDAY 16 Jun** — **Agent side-panel = conversational, acts-in-place** 🔒 **SPEC LOCKED + PROTOTYPE APPROVED 13 Jun** (build to [agent-panel-conversational.html](./previews/agent-panel-conversational.html)). Founder rule: *"Milla, Vida and Denise should all do exactly what FIGSY does — conversational agents. In the exact screen the client is in, the right agent is there on the right panel. It is conversational, and if an input is done it renders in the right area on that screen and takes action."* **Applies to ALL FIVE agents: FIGSY, Milla, Vida, Denise, Casey** (founder 13 Jun: "milla vida denise and casey all need this"). Three parts: **(1) right agent / right panel / right screen** = ✅ ALREADY BUILT for 4 (`AgentColumn.tsx:65-68` picks agent by route; sticky right rail) — ⚠️ **Casey not yet wired into AgentColumn (no route mapping or `casey.png` slot in the picker)**. **(2) conversational in-panel** = 🔴 BUILD — today `onSend` redirects (`router.push`, lines 119/143/168/355); make it a live thread like FIGSY for all five. **(3) input renders in the screen's right area & takes action** = 🔴 BUILD — reply + action render in place, no navigate-away. Endpoints: Milla→`/milla`, Vida→`/support`/`/vida`; ⚠️ **Denise + Casey each need a general chat endpoint** (Denise only has draft-followup/proposal today; Casey has none). **Casey = onboarding agent** (orange #ea6a3a; lives in v2 onboarding/setup, guides setup then hands to the AI Family) — wire Casey's panel on the onboarding/setup screens. Each panel keeps its screen-specific purpose/chips. | 🤖 |  |
 | 114 | 🔴 | Kanban pipeline polish #100 | 🤖  |  |
 | 115 | 🔴 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖  |  |
@@ -240,10 +265,10 @@
 | 122 | 🔴 | Y16 — kill dead Vercel↔GitHub integration | 🧍  |  |
 | 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝  |  |
 | 124 | 🔴 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖  |  |
-| 125 | 🔴 | **"Your AI Family" card redesign** (was #5 crop) — feature text off the photo, crop fixed + **rename "AI Team"→"AI Family"** (3 files: `agents/page.tsx`, `Sidebar.tsx`, `cmo.ts`) | 🤖 | [agents-v2.html](./previews/agents-v2.html) ✅ **LOCKED** |
+| 125 | 🔴 | **"Your AI Family" card redesign** (was #5 crop) — feature text off the photo, crop fixed + **rename "AI Team"→"AI Family"** (3 files: `agents/page.tsx`, `Sidebar.tsx`, `cmo.ts`) | 🤖 | 🔒 design approved → [agents-v2.html](./previews/agents-v2.html) |
 | 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
 
-## 3D — Week 1 post-launch (Jun 19–28) — GTM
+## 4D — Week 1 post-launch (Jun 19–28) — GTM
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 127 | 🔴 | 10 warm outreach (#19) · LinkedIn 1/day (#20) · PhantomBuster activation (#21) | 🧍 |
@@ -253,18 +278,18 @@
 | 131 | 🔴 | GTM funnel instrumentation (#25) | 🤝 |
 | 132 | 🔴 | Dogfood self-outreach (#26) · fresh-signup check (#28) | 🧍 |
 
-## 3E — Weeks 2–4 (Jun 29 – Jul 19)
+## 4E — Weeks 2–4 (Jun 29 – Jul 19)
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 133 | 🔴 | 2 design-partner slots → case study + logo (#29) | 🧍 |
 | 134 | 🔴 | 9:16 social cuts (#30) · YouTube channel (#35) | 🤝 |
 | 135 | 🔴 | Onboarding v2 emails (#32) · playbook email form (#36) | 🤖 |
 | 136 | 🔴 | Flutterwave activation (#34) | 🧍 |
-| 136a | 🔴 | ⭐ **IMPORTANT** — **Client invoicing — surface Stripe VAT invoices in-portal.** Decision (12 Jun): **Stripe issues the official UK VAT invoices** (enable Stripe Tax + Invoicing, add K.I.N.D Ltd details + GB VAT no + branding in Stripe dashboard — founder config). **We build:** an *Invoices* surface under **Company → Documents** that pulls the client's Stripe invoices via API (`invoices.list`) and lists date / number / amount / status with a **Download PDF** link to Stripe's hosted PDF (`invoice_pdf` / `hosted_invoice_url`). `previews/invoice-v1.html` = the document/branding target for the Stripe PDF; in-portal **list** design → `previews/invoices-list.html`. ⚠️ Founder: confirm VAT-registered status + currency (code bills USD; UK co). | 🤖 |
+| 136a | 🔴 | ⭐ **IMPORTANT** — **Client invoicing — surface Stripe receipts in-portal.** 🔒 **DECISION LOCKED 13 Jun: USD billing · NO VAT until we hit a financial benchmark · Stripe issues the receipt, we only pull & display it.** (Until the benchmark, Stripe shows no VAT line; when we register, Stripe adds VAT automatically — no code change our side.) **We build:** an *Invoices* surface under **Company → Documents** that pulls the client's Stripe invoices via API (`invoices.list`) and lists date / number / amount (USD) / status with a **Download PDF** link to Stripe's hosted PDF (`invoice_pdf` / `hosted_invoice_url`). 🔒 design approved → `previews/invoice-v1.html` (document target) + `previews/invoices-list.html` (in-portal list). | 🤖 |
 | 137 | 🔴 | 90-day performance guarantee (#61a/g) · Revenue Playbook call (#62b) · homepage outcome numbers (#62c) | 🤖 |
 | 138 | 🔴 | Influencer/community distribution (#61e) | 🧍 |
 
-## 3F — Month 2 (gated 10+ clients) — Intelligence layer
+## 4F — Month 2 (gated 10+ clients) — Intelligence layer
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 139 | 🔴 | Intent signals #37 · A/B→contextual bandit #38 · morning-brief #39 · ICP auto-refinement L2 #40 · conditional branching #41 | 🤖 |
@@ -273,7 +298,7 @@
 | 142 | 🔴 | Product Hunt #49 · G2 listing #50 | 🧍 |
 | 143 | 🔴 | **The Learning Engine** (build order: ①Train-FIGSY RAG → ③evals → ②outcome feedback loop → bandit → ④recall/memory → ⑤model routing → fine-tuning LAST) — full blueprint in `V2-TRACKER.md` | 🤖 |
 
-## 3G — Month 3 (gated margin data) — the agent family
+## 4G — Month 3 (gated margin data) — the agent family
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 144 | 🔴 | **DENISE deep build #54** (auto-book · notetaker · objections · proposal-from-transcript · Vapi voice) | 🤖 |
@@ -283,14 +308,14 @@
 | 148 | 🔴 | Mobile app #61 · built-in CRM Kanban #62 · pan-African design partners #63 | 🤝 |
 | 149 | 🔴 | Proposal e-sign #69 · Zoom notetaker #70 | 🤖 |
 
-## 3H — Year 2 — enterprise + moat
+## 4H — Year 2 — enterprise + moat
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 150 | 🔴 | Cross-client intelligence L4 #64 · data-licensing marketplace #65 · ICP L3 #66 · pipeline forecasting #67 · in-portal messaging #68 | 🤖 |
 | 151 | 🔴 | ISO 27001/42001 · SOC 2 · Vanta (#71–74) | 🤝 |
 | 152 | 🔴 | 3-type memory #75 · visitor de-anon #76 · churn scoring #77 · revenue forecasting #78 · call intelligence #79 | 🤖 |
 
-## 3I — The 15 Pieces (UX/platform, post-20-clients — remaining unbuilt)
+## 4I — The 15 Pieces (UX/platform, post-20-clients — remaining unbuilt)
 | # | 🔴 | Item | Trigger |
 |---|----|------|---------|
 | 153 | 🔴 | Score heatmap + timeline views (Kanban exists) | post-20 clients |
@@ -310,4 +335,4 @@
 **Alta** Touch-Points tree · template gallery · Train tabs · funnel dashboard · Unibox reply-tags/"Help me reply" · saved views · **the inbox blueprint (item 112)** · **ClickUp** Cmd+K · views · feed · status bar · Goals · Forms · Integrations Hub · **Lemlist** images · sequence builder · community play · **Monday** share-loop · dense dashboards · Pixar warmth · **Atlas** speed-to-lead · 90-day guarantee · influencers · **Instantly** warmup · auto-pause · adaptive volume · rotation · **Clay** waterfall enrichment · **Apollo** job-change · sequence analytics · transparency · intent · **Apex** acts-not-responds · autonomy onboarding · founder-as-demo · **Glean** context moat · benchmarks · winning-play library · Casey/auto-setup · permission-safety · context-backed MCP · **Revio** coaching onboarding · case-study specificity.
 
 ---
-*This inventory is the single complete list (161 numbered items). 🟢 = earned, live + checked. 🟡 = needs the named verification. 🔴 = future, in order. Nothing ships until the founder merges.*
+*This inventory is the single complete list (161 stable-ID items). 🟢 = live + checked · 🟣 = approved + locked, waiting to ship · 🟡 = built, needs founder review · 🔴 = future, in order. Numbers are stable IDs, not sequence. Nothing ships until the founder merges.*

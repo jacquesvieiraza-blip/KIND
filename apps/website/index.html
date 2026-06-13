@@ -1129,6 +1129,19 @@
       margin-bottom:20px; text-shadow:0 0 60px rgba(167,139,250,.6), 0 6px 34px rgba(0,0,0,.45); }
     .af-intro p { font-size:clamp(1.05rem,2vw,1.35rem); color:rgba(255,255,255,.72); max-width:560px; margin:0 auto;
       line-height:1.55; font-weight:500; }
+    /* rolling banner marquee */
+    .af-marquee { width:100%; overflow:hidden; margin:16px 0 26px; -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); }
+    .af-track { display:flex; align-items:center; gap:38px; width:max-content; animation:afroll 34s linear infinite; }
+    .af-marquee:hover .af-track { animation-play-state:paused; }
+    @keyframes afroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+    .afm-word { font-size:clamp(2.2rem,6vw,5rem); font-weight:900; letter-spacing:-.04em; color:#fff; white-space:nowrap; text-shadow:0 0 50px rgba(167,139,250,.5),0 4px 24px rgba(0,0,0,.4); }
+    .afm-tiles { display:flex; align-items:center; gap:14px; }
+    .afm-tile { width:clamp(60px,7.5vw,92px); height:clamp(60px,7.5vw,92px); border-radius:22px; overflow:hidden; flex-shrink:0; box-shadow:0 14px 34px rgba(0,0,0,.34); display:flex; align-items:flex-end; justify-content:center; }
+    .afm-tile img { width:110%; height:auto; display:block; }
+    .afm-tony img { width:100%; height:100%; object-fit:cover; }
+    .afm-dot { font-size:clamp(1.6rem,3vw,3rem); color:#a78bfa; text-shadow:0 0 24px rgba(167,139,250,.85); line-height:1; flex-shrink:0; }
+    .afm-word2 { font-weight:800; color:rgba(255,255,255,.78); }
+    @media (prefers-reduced-motion: reduce){ .af-track{animation:none} }
     .af-scrolly { position:relative; height:560vh; }
     .af-stage { position:sticky; top:0; height:100vh; overflow:hidden; }
     .af-scene { position:absolute; inset:0; opacity:0; transition:opacity .7s ease; pointer-events:none; display:grid; place-items:center; }
@@ -1153,7 +1166,10 @@
     .af-scene.on::after { opacity:.6; animation:afdrift2 19s ease-in-out infinite; }
     @keyframes afdrift1 { 0%,100%{transform:translate(0,0)} 33%{transform:translate(13vw,7vh)} 66%{transform:translate(-9vw,4vh)} }
     @keyframes afdrift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-15vw,-7vh)} }
-    .af-frame { position:relative; z-index:1; width:min(1100px,92vw); height:78vh; display:grid; place-items:end center; }
+    /* giant ghost agent name */
+    .af-ghost { position:absolute; z-index:1; top:46%; left:50%; transform:translate(-50%,-50%) scale(.92); font-size:25vw; font-weight:900; letter-spacing:-.05em; line-height:.8; white-space:nowrap; pointer-events:none; text-transform:uppercase; color:transparent; -webkit-text-stroke:2px rgba(255,255,255,.35); opacity:0; transition:opacity 1s ease,transform 1.1s cubic-bezier(.2,.7,.2,1); }
+    .af-scene.on .af-ghost { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    .af-frame { position:relative; z-index:2; width:min(1100px,92vw); height:78vh; display:grid; place-items:end center; }
     .af-cut { position:relative; z-index:2; height:84%; width:auto; max-width:none; object-fit:contain; filter:drop-shadow(0 30px 60px rgba(0,0,0,.4)); transform:translateY(40px) scale(.96); opacity:0; transition:transform .9s cubic-bezier(.2,.7,.2,1) .05s,opacity .8s ease .05s; }
     .af-scene.on .af-cut { transform:translateY(0) scale(1); opacity:1; }
     .af-portrait { position:relative; z-index:2; height:84%; width:auto; object-fit:contain; align-self:end; filter:drop-shadow(0 30px 60px rgba(0,0,0,.4)); transform:translateY(40px) scale(.96); opacity:0; transition:transform .9s cubic-bezier(.2,.7,.2,1) .05s,opacity .8s ease .05s;
@@ -1161,7 +1177,7 @@
     .af-scene.on .af-portrait { transform:translateY(0) scale(1); opacity:1; }
     .af-plate { position:absolute; left:6%; bottom:9%; z-index:4; text-align:left; color:#fff; transform:translateY(24px); opacity:0; transition:transform .7s ease .25s,opacity .7s ease .25s; }
     .af-scene.on .af-plate { transform:translateY(0); opacity:1; }
-    .af-plate .af-nm { font-size:clamp(2.2rem,5vw,3.6rem); font-weight:900; letter-spacing:-.04em; line-height:1; }
+    .af-plate .af-nm { font-size:clamp(3rem,7vw,5.6rem); font-weight:900; letter-spacing:-.05em; line-height:.92; text-shadow:0 6px 30px rgba(0,0,0,.4); }
     .af-plate .af-rl { font-size:.95rem; font-weight:700; opacity:.85; margin-top:4px; }
     .af-plate .af-soon { display:inline-block; margin-top:10px; font-size:.62rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.35); padding:5px 12px; border-radius:100px; }
     /* HUGE 3D chips — no connector lines */
@@ -1554,14 +1570,15 @@
 <section class="af-section" id="products">
   <div class="af-intro reveal">
     <div class="s-label">YOUR FAMILY</div>
-    <div class="s-title">Meet your AI family.</div>
-    <p>Five specialists. One family. Scroll to meet them.</p>
+    <div class="af-marquee" aria-label="Meet your AI Family — 5 specialists, one family"><div class="af-track"><span class="afm-word">Meet your AI&nbsp;Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word afm-word2">5 Specialists. One Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word">Meet your AI&nbsp;Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word afm-word2">5 Specialists. One Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word">Meet your AI&nbsp;Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word afm-word2">5 Specialists. One Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word">Meet your AI&nbsp;Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word afm-word2">5 Specialists. One Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span></div></div>
+    <p>Scroll to meet them &darr;</p>
   </div>
   <div class="af-scrolly">
     <div class="af-stage">
 
       <div class="af-scene af-figsy on">
         <div class="af-bg"></div>
+        <div class="af-ghost">FIGSY</div>
         <div class="af-frame">
           <img class="af-cut" src="figsy-cut.png" alt="FIGSY" />
           <span class="af-anno af-tl x1">Works 24/7</span>
@@ -1576,6 +1593,7 @@
 
       <div class="af-scene af-milla">
         <div class="af-bg"></div>
+        <div class="af-ghost">MILLA</div>
         <div class="af-frame">
           <img class="af-cut" src="milla-cut.png" alt="Milla" />
           <span class="af-anno af-tl x1">Infinite memory</span>
@@ -1590,6 +1608,7 @@
 
       <div class="af-scene af-vida">
         <div class="af-bg"></div>
+        <div class="af-ghost">VIDA</div>
         <div class="af-frame">
           <img class="af-cut" src="vida-cut.png" alt="Vida" />
           <span class="af-anno af-tl x1">Converts visitors</span>
@@ -1604,6 +1623,7 @@
 
       <div class="af-scene af-denise">
         <div class="af-bg"></div>
+        <div class="af-ghost">DENISE</div>
         <div class="af-frame">
           <img class="af-cut" src="denise-cut.png" alt="Denise" />
           <span class="af-anno af-tl x1">Closes the loop</span>
@@ -1618,6 +1638,7 @@
 
       <div class="af-scene af-tony">
         <div class="af-bg"></div>
+        <div class="af-ghost">TONY</div>
         <div class="af-frame">
           <img class="af-portrait" src="tony.png" alt="Tony" />
           <span class="af-anno af-tl x1">The Order Maker</span>

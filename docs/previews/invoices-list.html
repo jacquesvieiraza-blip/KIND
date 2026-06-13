@@ -63,7 +63,7 @@
 
 <div class="flag">
   🎨 <b>DESIGN PREVIEW</b> — in-portal Invoices list, lives under <b>Company → Documents</b>
-  <span class="note">Pulls the client's invoices from Stripe via API. Each <i>Download</i> opens Stripe's official VAT-invoice PDF (the <code>invoice-v1.html</code> design = Stripe branding target).</span>
+  <span class="note">Pulls the client's invoices from Stripe via API. Each <i>Download</i> opens Stripe's official invoice PDF (the <code>invoice-v1.html</code> design = Stripe branding target). USD billing; VAT handled by Stripe.</span>
 </div>
 
 <div class="wrap">
@@ -73,7 +73,7 @@
     <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
     <div>
       <h1>Invoices</h1>
-      <p>Every payment to K.I.N.D, with a downloadable VAT invoice.</p>
+      <p>Every payment to K.I.N.D, with a downloadable invoice (Stripe-issued).</p>
     </div>
   </div>
 
@@ -106,28 +106,28 @@
         <tr>
           <td><div class="inv-no">INV-2026-000142</div><div class="inv-desc">FIGSY Pro · Denise · 500 credits</div></td>
           <td>10 Jun 2026</td>
-          <td class="r amt">£660.00</td>
+          <td class="r amt">$748.00</td>
           <td class="r"><span class="pill paid"><span class="dot"></span>Paid</span></td>
           <td class="r"><a class="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a></td>
         </tr>
         <tr>
           <td><div class="inv-no">INV-2026-000118</div><div class="inv-desc">FIGSY Pro · Denise — monthly</div></td>
           <td>10 May 2026</td>
-          <td class="r amt">£180.00</td>
+          <td class="r amt">$228.00</td>
           <td class="r"><span class="pill paid"><span class="dot"></span>Paid</span></td>
           <td class="r"><a class="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a></td>
         </tr>
         <tr>
           <td><div class="inv-no">INV-2026-000094</div><div class="inv-desc">FIGSY Pro — monthly</div></td>
           <td>10 Apr 2026</td>
-          <td class="r amt">£144.00</td>
+          <td class="r amt">$180.00</td>
           <td class="r"><span class="pill paid"><span class="dot"></span>Paid</span></td>
           <td class="r"><a class="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a></td>
         </tr>
         <tr>
           <td><div class="inv-no">INV-2026-000071</div><div class="inv-desc">FIGSY Pro — first month</div></td>
           <td>10 Mar 2026</td>
-          <td class="r amt">£144.00</td>
+          <td class="r amt">$180.00</td>
           <td class="r"><span class="pill paid"><span class="dot"></span>Paid</span></td>
           <td class="r"><a class="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a></td>
         </tr>
@@ -137,7 +137,7 @@
 
   <div class="stripe-note">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <span>Invoices &amp; payments are securely processed by <b>Stripe</b>. Each PDF is an official VAT invoice from K.I.N.D Ltd.</span>
+    <span>Invoices &amp; payments are securely processed by <b>Stripe</b>. Each PDF is an official invoice from K.I.N.D, issued by Stripe.</span>
   </div>
 
 </div>

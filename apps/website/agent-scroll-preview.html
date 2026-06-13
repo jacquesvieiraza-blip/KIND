@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PREVIEW — Meet your AI Family (scroll)</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--ink:#1E1152;--dark:#0a0a0a}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--dark);background:#fff;line-height:1.6;overflow-x:hidden}
+
+  /* preview ribbon */
+  .ribbon{position:fixed;top:0;left:0;right:0;z-index:999;background:#0a0a0a;color:#fff;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-align:center;padding:7px;}
+  .ribbon b{color:#a78bfa}
+
+  /* intro */
+  .intro{min-height:78vh;display:grid;place-items:center;text-align:center;padding:120px 24px 40px;background:linear-gradient(180deg,#faf8ff,#fff)}
+  .intro .ey{font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin-bottom:14px}
+  .intro h1{font-size:clamp(2.4rem,6vw,4.6rem);font-weight:900;letter-spacing:-.05em;line-height:.98;color:var(--ink)}
+  .intro p{font-size:1.05rem;color:rgba(0,0,0,.5);max-width:520px;margin:18px auto 28px}
+  .scrollhint{font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(0,0,0,.35);display:inline-flex;align-items:center;gap:8px}
+  .scrollhint::after{content:'';width:18px;height:28px;border:2px solid rgba(0,0,0,.25);border-radius:12px;position:relative;display:inline-block}
+
+  /* ── SCROLLY ── */
+  .scrolly{position:relative;height:560vh;background:#0a0a0a}
+  .stage{position:sticky;top:0;height:100vh;overflow:hidden}
+  .scene{position:absolute;inset:0;opacity:0;transition:opacity .7s ease;pointer-events:none;display:grid;place-items:center}
+  .scene.active{opacity:1}
+  .stage-bg{position:absolute;inset:0;z-index:0}
+  .stage-bg::after{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.12) 1px,transparent 1px);background-size:22px 22px}
+
+  /* gradients per agent */
+  .g-figsy .stage-bg{background:radial-gradient(120% 120% at 50% 120%,#be185d,#ec4899 45%,#f9a8d4)}
+  .g-milla .stage-bg{background:radial-gradient(120% 120% at 50% 120%,#6d28d9,#8b5cf6 45%,#c4b5fd)}
+  .g-vida  .stage-bg{background:radial-gradient(120% 120% at 50% 120%,#1d4ed8,#3b82f6 45%,#93c5fd)}
+  .g-denise .stage-bg{background:radial-gradient(120% 120% at 50% 120%,#b45309,#f59e0b 45%,#fcd34d)}
+  .g-tony  .stage-bg{background:radial-gradient(120% 120% at 50% 120%,#0f766e,#14b8a6 45%,#5eead4)}
+
+  .frame{position:relative;z-index:1;width:min(1100px,92vw);height:78vh;display:grid;place-items:end center}
+  .agent-cut{position:relative;z-index:2;height:84%;width:auto;max-width:none;object-fit:contain;filter:drop-shadow(0 30px 60px rgba(0,0,0,.4));
+    transform:translateY(40px) scale(.96);opacity:0;transition:transform .9s cubic-bezier(.2,.7,.2,1) .05s,opacity .8s ease .05s}
+  .scene.active .agent-cut{transform:translateY(0) scale(1);opacity:1}
+  /* Tony portrait (no cutout) in a soft frame */
+  .agent-portrait{position:relative;z-index:2;height:62%;width:auto;border-radius:24px;object-fit:cover;box-shadow:0 30px 70px rgba(0,0,0,.45);
+    transform:translateY(40px) scale(.96);opacity:0;transition:transform .9s cubic-bezier(.2,.7,.2,1) .05s,opacity .8s ease .05s;align-self:center}
+  .scene.active .agent-portrait{transform:translateY(0) scale(1);opacity:1}
+
+  /* name plate */
+  .plate{position:absolute;left:6%;bottom:9%;z-index:4;text-align:left;color:#fff;
+    transform:translateY(24px);opacity:0;transition:transform .7s ease .25s,opacity .7s ease .25s}
+  .scene.active .plate{transform:translateY(0);opacity:1}
+  .plate .nm{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:900;letter-spacing:-.04em;line-height:1}
+  .plate .rl{font-size:.95rem;font-weight:700;opacity:.85;margin-top:4px}
+  .plate .soon{display:inline-block;margin-top:10px;font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);padding:5px 12px;border-radius:100px}
+
+  /* annotation chips */
+  .anno{position:absolute;z-index:5;font-size:.66rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#fff;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);padding:8px 14px;border-radius:100px;backdrop-filter:blur(8px);
+    white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.22);opacity:0;transform:translateY(14px) scale(.9);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .scene.active .anno{opacity:1;transform:translateY(0) scale(1)}
+  .scene.active .anno.d1{transition-delay:.30s}.scene.active .anno.d2{transition-delay:.42s}
+  .scene.active .anno.d3{transition-delay:.54s}.scene.active .anno.d4{transition-delay:.66s}
+  .an-tl{top:16%;left:7%}.an-tr{top:23%;right:8%}.an-ml{top:46%;left:4%}.an-mr{top:40%;right:5%}
+
+  /* floating UI cards (Monday style) */
+  .ucard{position:absolute;z-index:6;display:flex;align-items:center;gap:11px;background:#fff;border-radius:14px;padding:12px 15px;
+    box-shadow:0 22px 50px rgba(0,0,0,.28);min-width:190px;opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .scene.active .ucard{opacity:1;transform:translateY(0)}
+  .scene.active .ucard.d1{transition-delay:.5s}.scene.active .ucard.d2{transition-delay:.66s}
+  .uc-ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:1rem;flex-shrink:0}
+  .ucard b{display:block;font-size:.8rem;font-weight:800;color:#0a0a0a;letter-spacing:-.01em}
+  .ucard i{display:block;font-size:.68rem;font-style:normal;color:rgba(0,0,0,.4);margin-top:1px}
+  .uc-br{bottom:30%;right:7%}.uc-bl{bottom:20%;left:8%}
+
+  /* progress dots */
+  .dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35);transition:all .3s;cursor:pointer}
+  .dot.on{background:#fff;transform:scale(1.5)}
+  .dot-wrap{opacity:0;transition:opacity .4s}
+  .scrolly:hover ~ .dots,.dots.show{opacity:1}
+
+  footer{padding:60px 24px;text-align:center;color:rgba(0,0,0,.4);font-size:.85rem;background:#fff}
+
+  /* ── FALLBACK: reduced-motion / mobile → clean vertical stack ── */
+  @media (prefers-reduced-motion: reduce),(max-width:760px){
+    .scrolly{height:auto}
+    .stage{position:static;height:auto}
+    .scene{position:relative;opacity:1;min-height:88vh;pointer-events:auto}
+    .agent-cut,.agent-portrait,.plate,.anno,.ucard{opacity:1;transform:none;transition:none}
+    .dots{display:none}
+    .anno{position:relative;display:inline-block;margin:4px}
+    .ucard{position:relative;margin:8px auto}
+  }
+</style>
+</head>
+<body>
+<div class="ribbon">PREVIEW &mdash; <b>Meet your AI Family</b> &middot; scroll down to move through all 5 agents (not wired into the homepage)</div>
+
+<section class="intro">
+  <div>
+    <div class="ey">Your Family</div>
+    <h1>Meet your<br/>AI Family.</h1>
+    <p>Five agents, one family &mdash; each one a specialist that runs a part of your revenue motion end to end. Scroll to meet them.</p>
+    <span class="scrollhint">Scroll</span>
+  </div>
+</section>
+
+<div class="scrolly">
+  <div class="stage">
+
+    <!-- FIGSY -->
+    <div class="scene g-figsy active">
+      <div class="stage-bg"></div>
+      <div class="frame">
+        <img class="agent-cut" src="figsy-cut.png" alt="FIGSY" />
+        <span class="anno an-tl d1">Works 24/7</span>
+        <span class="anno an-tr d2">Finds leads</span>
+        <span class="anno an-ml d3">Books meetings</span>
+        <span class="anno an-mr d4">The Opener</span>
+        <div class="ucard uc-br d1"><div class="uc-ico" style="background:#fce7f3">&#x1F4C5;</div><div><b>Meeting booked</b><i>FIGSY &middot; just now</i></div></div>
+        <div class="ucard uc-bl d2"><div class="uc-ico" style="background:#fce7f3">&#x2709;&#xFE0F;</div><div><b>Sequence sent</b><i>42 prospects</i></div></div>
+      </div>
+      <div class="plate"><div class="nm">FIGSY</div><div class="rl">The Opener &middot; Autonomous AI SDR</div></div>
+    </div>
+
+    <!-- MILLA -->
+    <div class="scene g-milla">
+      <div class="stage-bg"></div>
+      <div class="frame">
+        <img class="agent-cut" src="milla-cut.png" alt="Milla" />
+        <span class="anno an-tl d1">Infinite memory</span>
+        <span class="anno an-tr d2">Qualifies intent</span>
+        <span class="anno an-ml d3">Never forgets</span>
+        <span class="anno an-mr d4">The Brain</span>
+        <div class="ucard uc-br d1"><div class="uc-ico" style="background:#ede9fe">&#x1F4CA;</div><div><b>Pipeline insight</b><i>Milla &middot; this week</i></div></div>
+        <div class="ucard uc-bl d2"><div class="uc-ico" style="background:#ede9fe">&#x1F9E0;</div><div><b>What&rsquo;s working</b><i>Reply rate +18%</i></div></div>
+      </div>
+      <div class="plate"><div class="nm">Milla</div><div class="rl">The Brain &middot; AI Business Assistant</div></div>
+    </div>
+
+    <!-- VIDA -->
+    <div class="scene g-vida">
+      <div class="stage-bg"></div>
+      <div class="frame">
+        <img class="agent-cut" src="vida-cut.png" alt="Vida" />
+        <span class="anno an-tl d1">Converts visitors</span>
+        <span class="anno an-tr d2">Answers 24/7</span>
+        <span class="anno an-ml d3">250M+ contacts</span>
+        <span class="anno an-mr d4">The Connector</span>
+        <div class="ucard uc-br d1"><div class="uc-ico" style="background:#dbeafe">&#x1F4AC;</div><div><b>Visitor &rarr; lead</b><i>Vida &middot; live now</i></div></div>
+        <div class="ucard uc-bl d2"><div class="uc-ico" style="background:#dbeafe">&#x26A1;</div><div><b>Reply sent</b><i>Avg 4s response</i></div></div>
+      </div>
+      <div class="plate"><div class="nm">Vida</div><div class="rl">The Connector &middot; AI Website Chatbot</div></div>
+    </div>
+
+    <!-- DENISE -->
+    <div class="scene g-denise">
+      <div class="stage-bg"></div>
+      <div class="frame">
+        <img class="agent-cut" src="denise-cut.png" alt="Denise" />
+        <span class="anno an-tl d1">Closes the loop</span>
+        <span class="anno an-tr d2">Nurtures pipeline</span>
+        <span class="anno an-ml d3">Drafts proposals</span>
+        <span class="anno an-mr d4">The Closer</span>
+        <div class="ucard uc-br d1"><div class="uc-ico" style="background:#fef3c7">&#x1F4C4;</div><div><b>Proposal drafted</b><i>Denise &middot; just now</i></div></div>
+        <div class="ucard uc-bl d2"><div class="uc-ico" style="background:#fef3c7">&#x2705;</div><div><b>Meeting confirmed</b><i>Warm lead</i></div></div>
+      </div>
+      <div class="plate"><div class="nm">Denise</div><div class="rl">The Closer &middot; AI Account Executive</div></div>
+    </div>
+
+    <!-- TONY -->
+    <div class="scene g-tony">
+      <div class="stage-bg"></div>
+      <div class="frame">
+        <img class="agent-portrait" src="tony.png" alt="Tony" />
+        <span class="anno an-tl d1">The Order Maker</span>
+        <span class="anno an-tr d2">Brings order</span>
+        <div class="ucard uc-br d1"><div class="uc-ico" style="background:#ccfbf1">&#x1F4E6;</div><div><b>Order created</b><i>Tony &middot; coming soon</i></div></div>
+      </div>
+      <div class="plate"><div class="nm">Tony</div><div class="rl">The Order Maker &middot; Operations Agent</div><span class="soon">Coming Soon</span></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="dots" id="dots">
+  <span class="dot on" data-i="0"></span><span class="dot" data-i="1"></span>
+  <span class="dot" data-i="2"></span><span class="dot" data-i="3"></span><span class="dot" data-i="4"></span>
+</div>
+
+<footer>This is a preview only &mdash; it is not wired into the homepage. Approve it and I&rsquo;ll drop it into <b>index.html</b> in place of the flat &ldquo;Meet your AI family&rdquo; section.</footer>
+
+<script>
+(function(){
+  var section=document.querySelector('.scrolly');
+  var scenes=[].slice.call(document.querySelectorAll('.scene'));
+  var dots=[].slice.call(document.querySelectorAll('.dot'));
+  var dotWrap=document.getElementById('dots');
+  function onScroll(){
+    var rect=section.getBoundingClientRect();
+    var vh=window.innerHeight;
+    var total=section.offsetHeight-vh;
+    var scrolled=Math.min(Math.max(-rect.top,0),total);
+    var p=total>0?scrolled/total:0;
+    var idx=Math.min(scenes.length-1,Math.floor(p*scenes.length));
+    scenes.forEach(function(s,i){s.classList.toggle('active',i===idx)});
+    dots.forEach(function(d,i){d.classList.toggle('on',i===idx)});
+    var inView=rect.top<vh*0.5 && rect.bottom>vh*0.5;
+    dotWrap.classList.toggle('show',inView);
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll);
+  dots.forEach(function(d){d.addEventListener('click',function(){
+    var i=+d.getAttribute('data-i');
+    var top=section.offsetTop+(section.offsetHeight-window.innerHeight)*(i/scenes.length)+10;
+    window.scrollTo({top:top,behavior:'smooth'});
+  })});
+  onScroll();
+})();
+</script>
+</body>
+</html>

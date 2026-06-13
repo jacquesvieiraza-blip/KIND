@@ -116,6 +116,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
             { label: 'Ask me anything',   onClick: () => router.push('/dashboard/assistant') },
             { label: 'Upload knowledge',  onClick: () => router.push('/dashboard/knowledge') },
           ]}
+          liveChatEndpoint="/milla/chat"
           onSend={msg => router.push(`/dashboard/assistant?q=${encodeURIComponent(msg)}`)}
           inputPlaceholder="Ask Milla anything…"
           online={hasMilla}
@@ -140,6 +141,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
             { label: 'Configure chatbot',  onClick: () => router.push('/dashboard/chatbot') },
             { label: 'View conversations', onClick: () => router.push('/dashboard/chatbot') },
           ]}
+          liveChatEndpoint="/vida/help"
           onSend={msg => router.push(`/dashboard/chatbot?q=${encodeURIComponent(msg)}`)}
           inputPlaceholder="Ask Vida anything…"
           online={hasVida}
@@ -165,6 +167,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
             { label: 'Proposal from a call',   onClick: () => router.push('/dashboard/denise') },
             { label: 'See my drafts',          onClick: () => router.push('/dashboard/denise') },
           ]}
+          liveChatEndpoint="/denise/chat"
           onSend={() => router.push('/dashboard/denise')}
           inputPlaceholder="Ask Denise to draft…"
           online={hasDenise}

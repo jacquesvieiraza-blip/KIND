@@ -10,9 +10,23 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
+import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { draftFollowUp, draftProposal, draftMeetingPrep } from '../lib/denise'
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// Stateless side-panel chat persona (113a) — the right-rail "ask Denise"
+// thread. Her draft generators stay as the dedicated POST endpoints below;
+// this is the conversational layer that talks the client through closing.
+const DENISE_CHAT_SYSTEM = [
+  "You are Denise, the AI Account Executive ('The Closer') inside the K.I.N.D client portal.",
+  "K.I.N.D agent family: FIGSY (AI SDR — opens: finds leads & sends cold sequences), Milla (business-intelligence VA), Vida (website chatbot), Denise (you — the closer: warm follow-ups, handling objections, and proposals once a prospect is engaged).",
+  "You help the client close: suggest how to reply to a warm/interested prospect, handle objections, structure a proposal, and prep for a call. When they want an actual drafted follow-up or proposal, tell them to use the 'Draft a warm follow-up' / 'Proposal from a call' actions (those generate a saved draft).",
+  "Answer concisely — 2-4 sentences. Consultative, calm, relationship-first, never pushy.",
+  "Never invent prospect facts, prices, or outcomes. Ground advice in what the client tells you; if unsure, ask one sharp question.",
+].join(' ')
 
 export const deniseRouter = Router()
 deniseRouter.use(requireAuth)
@@ -56,6 +70,56 @@ async function requireDeniseAccess(
     return { clientId }
   }
 }
+
+// ── POST /denise/chat — stateless side-panel chat (113a) ───────────────────────
+/**
+ * Conversational "ask Denise" for the right-rail agent panel. Gated on an active
+ * Denise subscription (fail-open on lookup error, per requireDeniseAccess).
+ * Body: { message, history?: [{role, content}] }  →  { success, data: { reply } }
+ */
+deniseRouter.post('/chat', async (req: AuthRequest, res) => {
+  try {
+    const { message, history } = z.object({
+      message: z.string().min(1).max(2000),
+      history: z.array(z.object({
+        role:    z.enum(['user', 'assistant']),
+        content: z.string().max(4000),
+      })).max(12).optional(),
+    }).parse(req.body)
+
+    const access = await requireDeniseAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.json({ success: true, data: { reply: "I can't reach my brain right now — please email hello@get-kind.com and the team will help." } })
+      return
+    }
+
+    const messages: Anthropic.MessageParam[] = [
+      ...(history ?? []).map(m => ({ role: m.role, content: m.content })),
+      { role: 'user' as const, content: message },
+    ]
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      system: DENISE_CHAT_SYSTEM,
+      messages,
+    })
+
+    const reply = response.content
+      .filter(b => b.type === 'text')
+      .map(b => (b as Anthropic.TextBlock).text)
+      .join('')
+      .trim() || "Sorry, I didn't catch that — could you rephrase?"
+
+    res.json({ success: true, data: { reply } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors[0]?.message ?? 'Invalid input' }); return }
+    console.error('[denise/chat]', err)
+    res.status(500).json({ success: false, error: 'Denise is temporarily unavailable' })
+  }
+})
 
 // ── POST /denise/draft-followup ────────────────────────────────────────────────
 deniseRouter.post('/draft-followup', async (req: AuthRequest, res) => {

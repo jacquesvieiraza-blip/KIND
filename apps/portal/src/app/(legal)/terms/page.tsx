@@ -19,7 +19,7 @@ export default function TermsPage() {
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Parties</h2>
-            <p>These Terms of Service govern your use of the K.I.N.D AI Platform, operated by K.I.N.D Technologies Ltd, a company registered in England and Wales (company number 17260532) trading as K.I.N.D ("K.I.N.D", "we", "us"), with registered office at 33 Townsend Road, Stratford-upon-Avon, CV37 7DE, United Kingdom. By signing an Order Form or accessing the Platform you agree to these Terms.</p>
+            <p>These Terms of Service govern your use of the K.I.N.D AI Platform, operated by K.I.N.D Technologies Ltd, a company registered in England and Wales (company number 17260532) trading as K.I.N.D ("K.I.N.D", "we", "us"). By signing an Order Form or accessing the Platform you agree to these Terms.</p>
           </section>
 
           <section>

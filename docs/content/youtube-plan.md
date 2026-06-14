@@ -42,10 +42,10 @@
 ---
 
 ## VIDEO 5 — Product
-**Title:** "Milla Walkthrough — How KIND Builds Your Lead List So You Don't Have To"
-**Description:** Strategic demo of Milla, KIND's lead generation agent. Shows how Milla takes an ICP definition and builds a qualified prospect list — including African-specific data sources and enrichment logic that generic tools miss.
+**Title:** "Lead Gen Walkthrough — How KIND Builds Your Lead List So You Don't Have To"
+**Description:** Strategic demo of KIND's Lead Gen engine (the ICP Builder — not Milla, who is the VA/assistant). Shows how KIND takes an ICP definition and builds a qualified prospect list — including African-specific data sources and enrichment logic that generic tools miss.
 **Length:** 10–12 minutes
-**CTA:** "Download the ICP template linked below. Book a demo at get-kind.com if you want Milla running for your business."
+**CTA:** "Download the ICP template linked below. Book a demo at get-kind.com if you want KIND's Lead Gen running for your business."
 
 ---
 
@@ -84,7 +84,7 @@
 
 ## VIDEO 10 — Education
 **Title:** "How to Build an ICP That Actually Converts — The African B2B Playbook"
-**Description:** ICP is the most misunderstood concept in African B2B sales. Full framework: how to define firmographic and behavioural signals, validate your ICP with real outreach data, and feed that into Milla for ongoing lead gen.
+**Description:** ICP is the most misunderstood concept in African B2B sales. Full framework: how to define firmographic and behavioural signals, validate your ICP with real outreach data, and feed that into KIND's Lead Gen engine for ongoing prospecting.
 **Length:** 15–18 minutes
 **CTA:** "Use the ICP Builder template linked below. Ready to automate the whole system? Get-kind.com."
 

@@ -54,6 +54,7 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. Claude must use th
 5.3 **Keep the PR body honest and current.** It must match what's actually in the branch (real filenames, real status, known gaps called out — e.g. "destination pages don't exist yet").
 5.4 **Branch discipline.** Develop on the assigned feature branch; push with `git push -u origin <branch>`; never push to a different branch without explicit permission.
 5.5 **Don't claim merged/unmerged from memory.** Check the PR state via GitHub before saying it.
+5.6 **After EVERY push, reconcile against `origin/main` before saying a word.** Run `git fetch origin main` then `git log origin/main..HEAD`. If commits are stranded (pushed to a branch whose PR is already merged/closed, so they're going nowhere), **say so immediately and open a fresh PR** — never tell the founder "merge #X" when #X is already merged, and never tell them work "is on `main` / is done" without grepping `origin/main` and seeing it. *(This rule exists because on 14 Jun Claude pushed the locked launch plan to a branch whose PR was already merged, then told the founder to merge it — the commits were stranded; cost the founder time and trust. Same stranded-commit failure as the 14 Jun admin session. Twice = a rule.)*
 
 ## 6. 💬 COMMUNICATION
 6.1 **Lead with the answer, then the proof.** Short, direct, no narrating options Claude won't take.
@@ -68,8 +69,16 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. Claude must use th
 - [ ] Is this **staging or live** — did I say which? (Rule 2.4)
 - [ ] Are any **inventory dots** I touched honest? (Rule 3)
 - [ ] If there's a merge, did I include the **PR link** and confirm **no duplicate**? (Rule 5)
+- [ ] After pushing, did I **reconcile against `origin/main`** and flag any stranded commits? (Rule 5.6)
 - [ ] Did I **log the session** if work landed? (Rule 4.3)
 - [ ] Am I stating only what I can **prove**? (Rule 1.4)
+
+## 8. 🔄 SESSION START — RECONCILE BEFORE ANYTHING (added 14 Jun, after repeated state discrepancies)
+> The founder is tired of opening every session by catching Claude out on what's actually merged. So Claude starts from verified truth, not memory — **every time.**
+8.1 **Read the history first.** Review the prior conversation/summary to recover what was decided and what was in flight.
+8.2 **Fetch and check the last merges.** `git fetch origin main`; list recent merges (`git log origin/main`), identify the last PR(s) merged and when.
+8.3 **Cross-reference history against `main` + the docs on GitHub.** Confirm that what the *previous* session claimed it shipped actually landed on `main` — grep the real files/docs. Hunt specifically for the gap between "what we said" and "what's actually on `main`."
+8.4 **Open with a one-line reconciled state.** Before doing new work, tell the founder: the last merge, what's confirmed on `main`, and any stranded/unmerged work — so the session starts from truth. If everything reconciles, say so plainly.
 
 ---
 _If a rule here is wrong or missing, the founder says so and we edit this doc. This is the contract._

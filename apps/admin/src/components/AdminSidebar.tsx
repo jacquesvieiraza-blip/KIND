@@ -11,7 +11,7 @@ import {
   Handshake, GitMerge, Pin,
 } from 'lucide-react'
 
-type Item = { href: string; label: string; icon: React.ElementType }
+type Item = { href: string; label: string; icon: React.ElementType; ref?: boolean }
 type Section = { label: string; items: Item[] }
 
 const SECTIONS: Section[] = [
@@ -39,34 +39,39 @@ const SECTIONS: Section[] = [
   {
     label: 'Product',
     items: [
-      { href: '/roadmap',    label: 'Roadmap',     icon: Map },
-      { href: '/health',     label: 'Health',      icon: Activity },
+      { href: '/health',     label: 'Health',      icon: Activity,  ref: true },
       { href: '/data-moat',  label: 'Data Moat',   icon: Database },
-      { href: '/smoketest',  label: 'Smoke Test',  icon: FlaskConical },
     ],
   },
   {
     label: 'Ops',
     items: [
       { href: '/cmo',           label: 'CMO Tools',   icon: Megaphone },
-      { href: '/playbook',      label: 'Playbook',    icon: BookOpen },
-      { href: '/compliance',    label: 'Compliance',  icon: ShieldCheck },
       { href: '/demo',          label: 'Demo Envs',   icon: MonitorPlay },
       { href: '/terms-library', label: 'Terms',       icon: FileText },
-      { href: '/launch',        label: 'Launch',      icon: Rocket },
       { href: '/founder',       label: 'Founder',     icon: UserSquare2 },
+    ],
+  },
+  {
+    label: 'Reference',
+    items: [
+      { href: '/roadmap',     label: 'Roadmap',     icon: Map,          ref: true },
+      { href: '/smoketest',   label: 'Smoke Test',  icon: FlaskConical, ref: true },
+      { href: '/playbook',    label: 'Playbook',    icon: BookOpen,     ref: true },
+      { href: '/compliance',  label: 'Compliance',  icon: ShieldCheck,  ref: true },
+      { href: '/launch',      label: 'Launch',      icon: Rocket,       ref: true },
     ],
   },
 ]
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const [pinned, setPinned] = useState(false)
+  const [pinned, setPinned] = useState(true)
 
   const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'
   const labelCls = pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
 
-  function Row({ href, label, icon: Icon }: Item) {
+  function Row({ href, label, icon: Icon, ref: isRef }: Item) {
     const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/')
     return (
       <Link href={href}
@@ -75,6 +80,13 @@ export function AdminSidebar() {
         }`}>
         <Icon className="w-[18px] h-[18px] shrink-0" />
         <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-150 ${labelCls}`}>{label}</span>
+        {isRef && (
+          <span
+            title="Static reference — not live data"
+            className={`ml-auto text-[9px] font-semibold uppercase tracking-wide text-purple-300/30 transition-opacity duration-150 ${labelCls}`}>
+            ref
+          </span>
+        )}
       </Link>
     )
   }

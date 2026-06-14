@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import { DollarSign, Target, TrendingUp, CheckCircle2, MinusCircle, XCircle } from 'lucide-react'
+import { getZarPerUsd, zarToUsd, fxLabel } from '../../lib/fx'
 
 const MONTHLY_TARGETS = [
   { month: 'May 2026',  mrrTarget: 500,    clientTarget: 8   },
@@ -109,12 +110,13 @@ async function getRevStats() {
   ])
 
   const mrrZar = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_zar || 0), 0)
-  const mrrUsd = Math.round(mrrZar / 19)
+  const fx = await getZarPerUsd()
+  const mrrUsd = zarToUsd(mrrZar, fx.zarPerUsd)
   const activeCount = activeSubs?.length ?? 0
   const trialCount = trialSubs?.length ?? 0
   const blendedArpu = activeCount > 0 ? Math.round(mrrUsd / activeCount) : 0
 
-  return { mrrUsd, mrrZar, activeCount, trialCount, totalClients: totalClients ?? 0, blendedArpu }
+  return { mrrUsd, mrrZar, activeCount, trialCount, totalClients: totalClients ?? 0, blendedArpu, fx }
 }
 
 export default async function RevenuePage() {
@@ -134,17 +136,21 @@ export default async function RevenuePage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <DollarSign className="w-6 h-6 text-gray-400" />
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">Revenue</h1>
           <p className="text-sm text-gray-400 mt-0.5">Deep-dive: MRR tracking, scenarios, ARPU breakdown</p>
         </div>
+        <span className="text-xs bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Live MRR · projections below
+        </span>
       </div>
 
       {/* Live MRR + context */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'MRR (USD)',          value: `$${stats.mrrUsd.toLocaleString()}`,   sub: 'live from Supabase', color: 'bg-emerald-500/10 text-emerald-600' },
-          { label: 'MRR (ZAR)',          value: `R${stats.mrrZar.toLocaleString()}`,   sub: '@ R19 / USD',        color: 'bg-emerald-500/10 text-emerald-600' },
+          { label: 'MRR (ZAR)',          value: `R${stats.mrrZar.toLocaleString()}`,   sub: fxLabel(stats.fx),    color: 'bg-emerald-500/10 text-emerald-600' },
           { label: 'Active Paying',      value: stats.activeCount,                      sub: 'subscriptions',      color: 'bg-blue-500/10 text-blue-600' },
           { label: 'Blended ARPU',       value: stats.blendedArpu ? `$${stats.blendedArpu}` : '—', sub: 'per active client', color: 'bg-purple-400/10 text-purple-400' },
         ].map(({ label, value, sub, color }) => (
@@ -158,6 +164,9 @@ export default async function RevenuePage() {
           </div>
         ))}
       </div>
+
+      {/* FX disclosure — USD figures are converted at this rate */}
+      <p className="text-xs text-gray-400 -mt-2">FX: {fxLabel(stats.fx)} · as of {stats.fx.asOf}</p>
 
       {/* Current month progress */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -196,6 +205,7 @@ export default async function RevenuePage() {
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp className="w-5 h-5 text-gray-400" />
           <h2 className="font-semibold text-gray-900">Scenario Tracker — {current.month}</h2>
+          <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Projection</span>
         </div>
         <p className="text-xs text-gray-400 mb-5">Which path are you on? Current MRR tracked against 3 scenarios.</p>
 
@@ -231,7 +241,10 @@ export default async function RevenuePage() {
 
       {/* Monthly revenue targets table */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">Monthly Revenue Targets</h2>
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="font-semibold text-gray-900">Monthly Revenue Targets</h2>
+          <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Reference · targets</span>
+        </div>
         <p className="text-xs text-gray-400 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -281,7 +294,10 @@ export default async function RevenuePage() {
 
       {/* ARPU Breakdown */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">ARPU Breakdown</h2>
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="font-semibold text-gray-900">ARPU Breakdown</h2>
+          <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Reference · targets</span>
+        </div>
         <p className="text-xs text-gray-400 mb-4">Average Revenue Per User across product tiers</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
           {ARPU_TIERS.map(tier => (
@@ -324,6 +340,7 @@ export default async function RevenuePage() {
         <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-5 h-5 text-purple-500" />
           <h2 className="font-semibold text-gray-900">90-Day Revenue Forecast</h2>
+          <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Projection</span>
         </div>
         <p className="text-xs text-gray-400 mb-5">Based on current MRR, growth trajectory, and churn assumptions</p>
 

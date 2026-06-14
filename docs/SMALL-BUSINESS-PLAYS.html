@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K.I.N.D Small Business Playbook</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f3f0;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 2px solid #7c3aed;
+            padding-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #2d1b4e;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 1rem;
+        }
+
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid transparent;
+            background: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .nav-tab:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .nav-tab.active {
+            border-color: #7c3aed;
+            background: #f3f0ff;
+            color: #7c3aed;
+        }
+
+        .play-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .play-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .play-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .play-card h2 {
+            color: #2d1b4e;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+
+        .problem {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .problem h3 {
+            color: #92400e;
+            margin-bottom: 0.5rem;
+        }
+
+        .problem p {
+            color: #78350f;
+        }
+
+        .funnel-steps {
+            margin: 2rem 0;
+        }
+
+        .step {
+            background: #f9f5ff;
+            border-left: 4px solid #7c3aed;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+        }
+
+        .step h4 {
+            color: #7c3aed;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .step-owner {
+            display: inline-block;
+            background: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+            border: 1px solid #ddd;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f5f3f0;
+            font-weight: 600;
+            color: #2d1b4e;
+        }
+
+        tr:hover {
+            background: #f9f5ff;
+        }
+
+        .pricing-highlight {
+            background: #ecfdf5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            border-left: 4px solid #10b981;
+        }
+
+        .pricing-highlight h4 {
+            color: #047857;
+            margin-bottom: 1rem;
+        }
+
+        .roi-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+
+        .roi-box h4 {
+            margin-bottom: 1rem;
+        }
+
+        .roi-calc {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .roi-item {
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+        .roi-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .roi-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+
+        .gap-warning {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .gap-warning h4 {
+            color: #991b1b;
+            margin-bottom: 0.5rem;
+        }
+
+        .gap-warning p {
+            color: #7f1d1d;
+        }
+
+        .owner-map {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .owner-card {
+            background: #f0f9ff;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #0284c7;
+        }
+
+        .owner-card strong {
+            color: #0c4a6e;
+        }
+
+        .icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-live {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-coming {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .highlight-trade {
+            background: #fef3c7;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .bottom-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .bottom-section h3 {
+            color: #2d1b4e;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 K.I.N.D Small Business Playbook</h1>
+            <p class="subtitle">How electricians, photographers, plumbers, HVAC techs, and other service pros find business through K.I.N.D while staying on-site</p>
+        </header>
+
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showPlay('overview')">📋 Overview</div>
+            <div class="nav-tab" onclick="showPlay('photographer')">📸 Photographer</div>
+            <div class="nav-tab" onclick="showPlay('electrician')">⚡ Electrician</div>
+            <div class="nav-tab" onclick="showPlay('plumber')">🚰 Plumber</div>
+            <div class="nav-tab" onclick="showPlay('hvac')">❄️ HVAC Tech</div>
+            <div class="nav-tab" onclick="showPlay('locksmith')">🔐 Locksmith</div>
+            <div class="nav-tab" onclick="showPlay('landscaper')">🌱 Landscaper</div>
+            <div class="nav-tab" onclick="showPlay('contractor')">🏗️ Contractor</div>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div id="overview" class="play-section active">
+            <div class="play-card">
+                <h2>The Opportunity: Service Pros on a Treadmill</h2>
+
+                <div class="problem">
+                    <h3>The Core Problem</h3>
+                    <p>Service professionals (electricians, plumbers, photographers, etc.) are <strong>busy working</strong> — on client sites, on shoots, in the field. They can't hunt for leads, answer the phone every time it rings, or follow up via email. Yet they NEED a constant pipeline to stay booked.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The K.I.N.D Solution: 5-Step Automation</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds Business</h4>
+                        <p>Automated lead discovery using Apollo. Query: "Commercial property managers in [city]" or "Wedding couples in [area]" or "Business owners with old electrical systems." Get 500+ qualified prospects, scored 0–100, delivered at $1/lead.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound</h4>
+                        <p>Website chatbot asks qualifying questions: budget, timeline, scope, pain points. Hot inbound leads are scored and routed. Outbound leads (FIGSY finds them) are merged with inbound into one unified pipeline.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Outreach</h4>
+                        <p>Personalized first email per lead (not a template). Milla reads the lead's business and writes something personal: <em>"[Company]'s [Address] looks like it could use [service]…"</em> Goal: get a reply, not a booking.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. FIGSY Sends + Denise Follows Up</h4>
+                        <p>FIGSY sends the sequence (Day 0, 4, 9). Hot reply detected → Denise drafts warm follow-up. Suggests a call. Auto-books a time slot. Includes photo/quote preview if applicable.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Close the Deal</h4>
+                        <p>Milla reminds you who called. You jump on the call, confirm the job, set the date. Denise has already done the hard work of proving you're responsive and worth their time.</p>
+                    </div>
+                </div>
+
+                <div class="pricing-highlight">
+                    <h4>📊 Baseline Economics (Monthly)</h4>
+                    <table>
+                        <tr>
+                            <th>Component</th>
+                            <th>Cost</th>
+                            <th>Why</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Base Subscriptions</strong></td>
+                            <td><strong>$117</strong></td>
+                            <td>Milla $49 + Vida $29 + Denise $39</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Leads</strong></td>
+                            <td><strong>$50</strong></td>
+                            <td>50 leads @ $1 each</td>
+                        </tr>
+                        <tr>
+                            <td><strong>FIGSY Sends</strong></td>
+                            <td><strong>$450</strong></td>
+                            <td>3-step sequence × 50 leads × $3/send</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>~$617/month</td>
+                            <td>Scales with volume</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 Baseline ROI (Month 1)</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Extra jobs/month</div>
+                            <div class="roi-value">4–5</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg job value</div>
+                            <div class="roi-value">$1,500–2,500</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Extra revenue</div>
+                            <div class="roi-value">$6,000–12,500</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">K.I.N.D cost</div>
+                            <div class="roi-value">$617</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 10:1 to 20:1</strong> — if you land even 4 jobs from K.I.N.D's leads, you're profitable day one.</p>
+                </div>
+
+                <div class="bottom-section">
+                    <h3>Why This Matters</h3>
+                    <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                        <li><strong>You stay on-site.</strong> K.I.N.D runs the lead machine while you're working.</li>
+                        <li><strong>You never lose a lead.</strong> Denise follows up automatically. Milla reminds you. No more "I forgot to call them back."</li>
+                        <li><strong>Consistency.</strong> Every lead gets the same professional, personalized first touch — no matter how busy you are.</li>
+                        <li><strong>Compounding.</strong> The more leads you work, the smarter K.I.N.D gets (Milla learns your patterns, FIGSY learns which types convert).</li>
+                        <li><strong>You own the pipeline.</strong> You control the ICP, the budget, the follow-up timing. K.I.N.D is your tool, not a replacement.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHOTOGRAPHER -->
+        <div id="photographer" class="play-section">
+            <div class="play-card">
+                <h2>📸 Photographer Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Wedding · Portrait · Commercial/Product · Real Estate
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>You're on shoots 3–5 days a week. You can't hunt Instagram DMs, cold email prospects, or follow up on "maybe" inquiries. Yet 40% of your pipeline comes from repeat clients and referrals you're too busy to nurture. You lose out-of-season booking (winter weddings, corporate headshots) because you're not top-of-mind when people need you.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The 5-Step Funnel</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds Ideal Clients</h4>
+                        <p><strong>Wedding photographer:</strong> Query = engaged couples in [city/region], age 25–45, recent engagement announcement on LinkedIn, honeymoon-bound. FIGSY pulls 300+ prospects/month @ $1/lead.</p>
+                        <p style="margin-top: 0.5rem;"><strong>Corporate photographer:</strong> Smaller companies (20–200 headcount) that just hired new execs or opened a new office (hiring spree = headshot time). 200+ leads @ $1/lead.</p>
+                        <p style="margin-top: 0.5rem;"><strong>Real estate photographer:</strong> Real estate agents listing 5+ properties/month in your market. 100+ agents @ $1/lead.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound (Website Inquiry Bot)</h4>
+                        <p>Wedding couple visits your site → Vida asks: <em>"Wedding date? Budget? Style preference (traditional, editorial, candid)? Venue locked?"</em> Hot inquiry (date within 3 months, decent budget) → auto-flag for Denise. Cold (6+ months out) → Milla adds to nurture sequence.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Personalized Outreach</h4>
+                        <p><strong>To engaged couples:</strong> <em>"Saw your engagement announcement on LinkedIn! [Bride name] + [Groom name] — love that you got engaged at [venue]. I specialize in candid wedding photography and would love to chat about your day…"</em></p>
+                        <p style="margin-top: 0.5rem;"><strong>To corporate recruiters:</strong> <em>"[Company] just hired 3 new VP-level execs. We've done headshots for [similar company]; would love to quote a team shoot for you…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. FIGSY Sends + Denise Follows Up</h4>
+                        <p>Sequence goes out (Day 0, 4, 9). Hot reply → Denise drafts warm follow-up with <strong>3–4 sample photos from a similar couple/session</strong> + proposal sketch: <em>"Based on your date + style, I'd budget X hours, Y photos, albums at $Z."</em></p>
+                        <p style="margin-top: 0.5rem;">Auto-books a 20-min call at times you're typically not on shoot (evenings, weekends).</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Close + Deliver</h4>
+                        <p>Jump on the call, confirm date, discuss vision, lock the booking. Denise sends a calendar invite + contract link. You show up, deliver amazing work. Milla reminds you to follow up with the album 2 weeks post-shoot + ask for referrals.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Economics: Wedding Photographer</h3>
+
+                <div class="pricing-highlight">
+                    <table>
+                        <tr>
+                            <th>Item</th>
+                            <th>Cost/Month</th>
+                            <th>Logic</th>
+                        </tr>
+                        <tr>
+                            <td>Subscriptions (Milla + Vida + Denise)</td>
+                            <td>$117</td>
+                            <td>$49 + $29 + $39</td>
+                        </tr>
+                        <tr>
+                            <td>Engaged couple leads</td>
+                            <td>$300</td>
+                            <td>300 leads @ $1 each (high conversion segment)</td>
+                        </tr>
+                        <tr>
+                            <td>FIGSY sends (3-step × 300)</td>
+                            <td>$900</td>
+                            <td>900 sends @ $3 each</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>$1,317/month</td>
+                            <td>Higher volume = more front-loaded leads</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Wedding Photographer</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Bookings/month from K.I.N.D</div>
+                            <div class="roi-value">2–3</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg booking value</div>
+                            <div class="roi-value">$3,500–5,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly revenue impact</div>
+                            <div class="roi-value">$7,000–15,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">K.I.N.D cost</div>
+                            <div class="roi-value">$1,317</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 5:1 to 11:1</strong> — two bookings cover the entire month's cost 5x over.</p>
+                </div>
+
+                <div class="gap-warning">
+                    <h4>⚠️ The Gap (Coming Post-Launch)</h4>
+                    <p><strong>You still pick up the phone.</strong> Denise can't (yet) handle voice calls. When a hot lead wants to talk, you do. After launch (Month 3), Denise voice agent will answer 24/7, take their details, and book your calendar automatically.</p>
+                </div>
+
+                <div class="owner-map">
+                    <div class="owner-card">
+                        <strong>Who runs the funnel?</strong>
+                        <p>FIGSY finds engaged couples. Milla drafts personalized pitches. Denise follows up. You set the ICP once, then K.I.N.D runs it 24/7.</p>
+                    </div>
+                    <div class="owner-card">
+                        <strong>Who closes the deal?</strong>
+                        <p>You. On a call, in an email, via proposal. Denise just makes sure they're warm + interested before they hear from you.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ELECTRICIAN -->
+        <div id="electrician" class="play-section">
+            <div class="play-card">
+                <h2>⚡ Electrician Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential · Commercial · Maintenance/Service · New Construction
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>You're in walls, ceilings, crawl spaces 8 hours a day. You can't answer the phone every time it rings. Your team books jobs based on referrals + word-of-mouth, but you're always under-booked in slow seasons. You lose 30% of inbound calls because you can't pick up, and follow-ups get lost in the chaos.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The 5-Step Funnel</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds Ideal Clients</h4>
+                        <p><strong>Commercial (high-value):</strong> Property managers, FM directors, building operations, facilities teams in buildings 10+ years old (aging electrical = reactive maintenance). 500+ leads @ $1/lead in your metro.</p>
+                        <p style="margin-top: 0.5rem;"><strong>Residential (volume):</strong> Homeowners in older neighborhoods (pre-1995 homes = outdated wiring, panel upgrades, inspections needed). 1000+ leads @ $1/lead.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound</h4>
+                        <p>Someone sees your site → Vida asks: <em>"What's the issue? (panel upgrade, repair, inspection, rewire) Where's the job? Timeline?"</em> Homeowner with an urgent problem (sparking outlet, breaker trips) gets flagged hot. Inspection inquiry (no urgency) gets nurtured.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Personalized Outreach</h4>
+                        <p><em>"[Company] manages [Address]. Your building was constructed 1998 — likely due for a panel safety audit. We found aging breakers in 3 nearby buildings; I'd love to schedule a free inspection…"</em></p>
+                        <p style="margin-top: 0.5rem;">Or to homeowners: <em>"[Address], [City] — homes built in your year typically show wear on the main panel. We offer free 20-min safety checks…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. FIGSY Sends + Denise Follows Up</h4>
+                        <p>Sequence (Day 0, 4, 9) goes out. Hot reply → Denise drafts warm follow-up: <em>"Thanks for getting back to me! Based on your building's age, here's what I'd typically find… Let's lock in a 30-min inspection: [3 time slots]."</em></p>
+                        <p style="margin-top: 0.5rem;">Auto-books inspection time + sends a quote for the inspection + confirmation email.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Show Up + Close on-Site</h4>
+                        <p>Do the inspection. Present findings on-site or via phone. Close the job. Milla reminds you of the follow-up: send the quote, ask for referrals, add them to your retainer maintenance list.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Economics: Electrician</h3>
+
+                <div class="pricing-highlight">
+                    <table>
+                        <tr>
+                            <th>Item</th>
+                            <th>Cost/Month</th>
+                            <th>Logic</th>
+                        </tr>
+                        <tr>
+                            <td>Subscriptions (Milla + Vida + Denise)</td>
+                            <td>$117</td>
+                            <td>$49 + $29 + $39</td>
+                        </tr>
+                        <tr>
+                            <td>Commercial leads (property managers)</td>
+                            <td>$100</td>
+                            <td>100 leads @ $1 (high-value, lower volume)</td>
+                        </tr>
+                        <tr>
+                            <td>Residential leads (homeowners)</td>
+                            <td>$200</td>
+                            <td>200 leads @ $1 (volume play)</td>
+                        </tr>
+                        <tr>
+                            <td>FIGSY sends (3-step × 300)</td>
+                            <td>$900</td>
+                            <td>900 sends @ $3 each</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>$1,317/month</td>
+                            <td>Balanced commercial + residential</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Electrician</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Jobs/month from K.I.N.D</div>
+                            <div class="roi-value">5–8</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg job value</div>
+                            <div class="roi-value">$1,500–3,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly revenue</div>
+                            <div class="roi-value">$7,500–24,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">K.I.N.D cost</div>
+                            <div class="roi-value">$1,317</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 6:1 to 18:1</strong> — even conservative estimates = massively profitable.</p>
+                </div>
+
+                <div class="gap-warning">
+                    <h4>⚠️ The Gap (Coming Post-Launch)</h4>
+                    <p><strong>Emergency calls still go to you.</strong> Denise voice (Month 3) will handle after-hours "my breaker won't reset" calls, schedule urgent inspections, and remind you Monday morning. Until then, Milla flags hot leads for you to call back same-day.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PLUMBER -->
+        <div id="plumber" class="play-section">
+            <div class="play-card">
+                <h2>🚰 Plumber Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential Repair · New Construction · Commercial Maintenance · Drain Cleaning
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>You're on emergency calls, in crawl spaces, and managing multi-day jobs. You can't hunt for work, and most calls come at 10 PM (burst pipes, backed-up drains). You lose jobs to bigger companies with call centers. You're reactive, not proactive — you wait for problems to happen instead of finding customers who need preventative work.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The 5-Step Funnel</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds Ideal Clients</h4>
+                        <p><strong>Residential:</strong> Homeowners with homes 30+ years old (aging pipes, galvanized plumbing = imminent failure risk). Property managers. 600+ leads @ $1/lead.</p>
+                        <p style="margin-top: 0.5rem;"><strong>Commercial:</strong> Restaurants, office buildings, hotels with aging plumbing or recent water damage. Facilities managers. 200+ leads @ $1/lead.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound (Emergency + Preventative)</h4>
+                        <p>Emergency inbound (burst pipe, drain backed up) → hot flag. Preventative (pipes inspected recently, interested in replacement) → nurture. Vida asks: <em>"What's the issue? Where? How soon do you need this fixed?"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Personalized Outreach</h4>
+                        <p><em>"[Address], [City] — built 1992. Homes from that era often have galvanized steel pipes that corrode from the inside out. We offer free video inspections to check your lines. Most customers find they need replacement within 2–5 years; knowing now saves emergency calls later…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. FIGSY Sends + Denise Follows Up</h4>
+                        <p>Sequence (Day 0, 4, 9). Hot reply → Denise drafts warm follow-up: <em>"I can book a free inspection next week. Took me 45 min on a similar home to diagnose the issue. No obligation to fix anything today — just good info to have."</em></p>
+                        <p style="margin-top: 0.5rem;">Auto-books inspection time.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Inspect + Sell the Replacement</h4>
+                        <p>Do the video inspection. Show them the corrosion. Explain the risk (sudden failure, water damage, mold). Sell a 3-phase replacement plan. Milla reminds you to follow up if they said "maybe next year" — they probably need it sooner.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Economics: Plumber</h3>
+
+                <div class="pricing-highlight">
+                    <table>
+                        <tr>
+                            <th>Item</th>
+                            <th>Cost/Month</th>
+                            <th>Logic</th>
+                        </tr>
+                        <tr>
+                            <td>Subscriptions (Milla + Vida + Denise)</td>
+                            <td>$117</td>
+                            <td>$49 + $29 + $39</td>
+                        </tr>
+                        <tr>
+                            <td>Residential leads</td>
+                            <td>$300</td>
+                            <td>300 leads @ $1 (high volume, lower individual value)</td>
+                        </tr>
+                        <tr>
+                            <td>Commercial leads</td>
+                            <td>$100</td>
+                            <td>100 leads @ $1 (high-value, facilities managers)</td>
+                        </tr>
+                        <tr>
+                            <td>FIGSY sends (3-step × 400)</td>
+                            <td>$1,200</td>
+                            <td>1,200 sends @ $3 each</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>$1,717/month</td>
+                            <td>Higher volume = more proactive revenue</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Plumber</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Inspections booked/month</div>
+                            <div class="roi-value">12–20</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Conversion to job</div>
+                            <div class="roi-value">30–40%</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Jobs/month</div>
+                            <div class="roi-value">4–8</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg job value</div>
+                            <div class="roi-value">$2,500–5,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 6:1 to 24:1</strong> — proactive "inspection sells the big job" model = highest LTV.</p>
+                </div>
+
+                <div class="gap-warning">
+                    <h4>⚠️ The Gap (Coming Post-Launch)</h4>
+                    <p><strong>Emergency calls (burst pipes, backed-up drains) still need you NOW.</strong> Denise voice (Month 3) will route emergency calls directly to your on-call tech, take details, and dispatch. Until then: set an emergency line + Milla flags hot inbound for same-day callback.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- HVAC -->
+        <div id="hvac" class="play-section">
+            <div class="play-card">
+                <h2>❄️ HVAC Technician Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential Service · Commercial Maintenance · New Installation · Emergency Repair
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>You're on service calls, in attics, managing seasonal demand (winter heat, summer AC breakdowns). You can't hunt for maintenance contracts or seasonal upsells. Most of your revenue is reactive (broken AC in July, heating failure in January), not proactive (preventative maintenance contracts that smooth revenue year-round).</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The 5-Step Funnel</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds Ideal Clients</h4>
+                        <p><strong>Residential:</strong> Homeowners with HVAC systems 8+ years old (nearing end of life, prime for replacement upsell). Recently moved (likely need inspection). 800+ leads @ $1/lead.</p>
+                        <p style="margin-top: 0.5rem;"><strong>Commercial:</strong> Facilities managers, commercial property owners with multi-unit HVAC (prime for maintenance contracts). 300+ leads @ $1/lead.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound</h4>
+                        <p>Homeowner with broken AC (emergency) → hot flag. Homeowner asking about maintenance plans → nurture. Vida asks: <em>"What's the issue? When did you last service it? Interested in a maintenance plan?"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Personalized Outreach</h4>
+                        <p><em>"[Address]'s AC was likely installed ~2010 — if true, you're at 8–10 years. Most units fail between 8–15 years. We offer a free efficiency check + maintenance plan that cuts your summer bills 15–20% and prevents emergency breakdowns. Could save you $200–500 over the next 3 years…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. FIGSY Sends + Denise Follows Up</h4>
+                        <p>Sequence (Day 0, 4, 9). Hot reply → Denise drafts warm follow-up: <em>"I can book a 30-min efficiency check next week. No pressure to upgrade today — just so you know where your system stands."</em></p>
+                        <p style="margin-top: 0.5rem;">Auto-books appointment.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Close the Maintenance Contract</h4>
+                        <p>Do the check. Show them the efficiency rating. Sell a monthly/annual maintenance plan: $25–50/month for filter changes, inspections, priority service. That's $300–600/year per customer in recurring revenue — the moat.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Economics: HVAC Tech</h3>
+
+                <div class="pricing-highlight">
+                    <table>
+                        <tr>
+                            <th>Item</th>
+                            <th>Cost/Month</th>
+                            <th>Logic</th>
+                        </tr>
+                        <tr>
+                            <td>Subscriptions (Milla + Vida + Denise)</td>
+                            <td>$117</td>
+                            <td>$49 + $29 + $39</td>
+                        </tr>
+                        <tr>
+                            <td>Residential leads (HVAC 8+ yrs)</td>
+                            <td>$400</td>
+                            <td>400 leads @ $1 (high-value, seasonal upsell)</td>
+                        </tr>
+                        <tr>
+                            <td>Commercial leads (facility managers)</td>
+                            <td>$150</td>
+                            <td>150 leads @ $1 (contract value)</td>
+                        </tr>
+                        <tr>
+                            <td>FIGSY sends (3-step × 550)</td>
+                            <td>$1,650</td>
+                            <td>1,650 sends @ $3 each</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>$2,317/month</td>
+                            <td>Higher spend for high-LTV segment</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: HVAC Tech (Maintenance Focus)</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Checks/month booked</div>
+                            <div class="roi-value">15–25</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Maintenance contracts signed</div>
+                            <div class="roi-value">6–10</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Contract value/year (each)</div>
+                            <div class="roi-value">$300–600</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">ARR from one month's leads</div>
+                            <div class="roi-value">$1,800–6,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 1:1 to 3:1 first month, then 10:1+ recurring.</strong> Maintenance contracts = lifetime value play.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOCKSMITH -->
+        <div id="locksmith" class="play-section">
+            <div class="play-card">
+                <h2>🔐 Locksmith Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential Lockouts · Commercial Access Control · New Construction · Property Management
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>Most of your business is emergency lockouts (midnight calls, weekend rescues). You can't prospect for preventative work (new builds, access control upgrades, key management for property managers). You're always reacting to crises instead of building a stable client base.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The 5-Step Funnel</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds Ideal Clients</h4>
+                        <p><strong>Property managers:</strong> Managing 10+ multi-unit buildings. Need key management, access control, rekeying after tenant turnover. 200+ prospects @ $1/lead.</p>
+                        <p style="margin-top: 0.5rem;"><strong>New construction:</strong> Builders, contractors doing new residential/commercial builds (need locksmith from framing stage). 150+ leads @ $1/lead.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound</h4>
+                        <p>Emergency lockout inbound → hot flag, route to Denise for immediate callback. Commercial inquiry (key control system, access control upgrade) → nurture for Denise to follow up.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Personalized Outreach</h4>
+                        <p><em>"[Property Manager Name] at [Property Name] — you manage [X] units. After each tenant turnover, you need rekeying, new master system alignment, access audit. We specialize in multi-unit key management + access control. Would save you 20+ calls/year to a locksmith…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. FIGSY Sends + Denise Follows Up</h4>
+                        <p>Sequence (Day 0, 4, 9). Hot reply → Denise drafts warm follow-up: <em>"I'd love to do a free access audit of [Property]. Takes 2 hours, gives you a complete picture of security gaps + recommendations. No cost, no obligation…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Close the Maintenance Contract</h4>
+                        <p>Do the audit. Present findings. Sell an annual maintenance plan: quarterly key audits, rekeying budget, emergency priority service. Recurring revenue (steady, reliable, predictable).</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Economics: Locksmith</h3>
+
+                <div class="pricing-highlight">
+                    <table>
+                        <tr>
+                            <th>Item</th>
+                            <th>Cost/Month</th>
+                            <th>Logic</th>
+                        </tr>
+                        <tr>
+                            <td>Subscriptions (Milla + Vida + Denise)</td>
+                            <td>$117</td>
+                            <td>$49 + $29 + $39</td>
+                        </tr>
+                        <tr>
+                            <td>Property manager leads</td>
+                            <td>$100</td>
+                            <td>100 leads @ $1 (high-value targets)</td>
+                        </tr>
+                        <tr>
+                            <td>Contractor/builder leads</td>
+                            <td>$75</td>
+                            <td>75 leads @ $1 (project-based)</td>
+                        </tr>
+                        <tr>
+                            <td>FIGSY sends (3-step × 175)</td>
+                            <td>$525</td>
+                            <td>525 sends @ $3 each</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>$817/month</td>
+                            <td>Lower volume, higher-value contracts</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Locksmith (B2B Focus)</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Audits booked/month</div>
+                            <div class="roi-value">5–8</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Contracts signed</div>
+                            <div class="roi-value">2–3</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Contract value/year (each)</div>
+                            <div class="roi-value">$2,000–5,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">ARR from one month</div>
+                            <div class="roi-value">$4,000–15,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 5:1 to 18:1 first month, then compounding.</strong> B2B lock contracts = high-margin recurring revenue.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- LANDSCAPER -->
+        <div id="landscaper" class="play-section">
+            <div class="play-card">
+                <h2>🌱 Landscaper / Yard Work Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential Lawn Care · Commercial Grounds Maintenance · Seasonal Projects · HOA Contracts
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>Your revenue is seasonal (spring/summer boom, winter ghost town). You can't reach new customers during off-season because there's no urgency. You lose business to bigger companies with office staff. You're always chasing the next referral instead of building a predictable client base with maintenance contracts.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The 5-Step Funnel</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds Ideal Clients</h4>
+                        <p><strong>Residential:</strong> Homeowners with large properties (0.5+ acres), recent home purchase, or high-income neighborhoods (quality-focused). 1000+ leads @ $1/lead.</p>
+                        <p style="margin-top: 0.5rem;"><strong>Commercial/HOA:</strong> HOA managers, commercial property companies, office parks needing grounds maintenance contracts. 300+ leads @ $1/lead.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound</h4>
+                        <p>Homeowner asking for seasonal project (spring cleanup, fall mulch) → nurture into maintenance contract. HOA manager looking for a new contractor → hot flag.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Personalized Outreach</h4>
+                        <p><em>"[Address], [Neighborhood] — your property has great bones. Spring's the time to refresh: lawn aeration, mulch refresh, landscape design. Instead of DIY, let's chat about a spring package + summer maintenance plan that keeps it perfect year-round…"</em></p>
+                        <p style="margin-top: 0.5rem;">To HOA: <em>"[HOA Name] — we specialize in multi-property maintenance contracts for neighborhoods like yours. We handle landscaping, mulch, tree care, seasonal projects. Would love to quote your portfolio…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. FIGSY Sends + Denise Follows Up</h4>
+                        <p>Sequence (Day 0, 4, 9). Hot reply → Denise drafts warm follow-up: <em>"I can schedule a free walk-through + estimate next week. Takes 30 min, no obligation. You'll know exactly what's possible and what it costs…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Close the Project + Contract</h4>
+                        <p>Do the estimate. Sell the spring project + monthly maintenance contract ($100–300/month for mowing, mulch, seasonal work). That's your off-season revenue stream.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Economics: Landscaper</h3>
+
+                <div class="pricing-highlight">
+                    <table>
+                        <tr>
+                            <th>Item</th>
+                            <th>Cost/Month</th>
+                            <th>Logic</th>
+                        </tr>
+                        <tr>
+                            <td>Subscriptions (Milla + Vida + Denise)</td>
+                            <td>$117</td>
+                            <td>$49 + $29 + $39</td>
+                        </tr>
+                        <tr>
+                            <td>Residential homeowner leads</td>
+                            <td>$500</td>
+                            <td>500 leads @ $1 (volume play)</td>
+                        </tr>
+                        <tr>
+                            <td>HOA/commercial leads</td>
+                            <td>$150</td>
+                            <td>150 leads @ $1 (high-value contracts)</td>
+                        </tr>
+                        <tr>
+                            <td>FIGSY sends (3-step × 650)</td>
+                            <td>$1,950</td>
+                            <td>1,950 sends @ $3 each</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>$2,717/month</td>
+                            <td>Volume play, seasonal arbitrage</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Landscaper (Seasonal Conversion)</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Estimates booked/month (spring)</div>
+                            <div class="roi-value">20–30</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Projects closed</div>
+                            <div class="roi-value">10–15</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg project value</div>
+                            <div class="roi-value">$1,500–3,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly contracts signed</div>
+                            <div class="roi-value">8–12</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 5:1 to 15:1 in project season, then recurring contracts smooth cash flow winter.</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTRACTOR -->
+        <div id="contractor" class="play-section">
+            <div class="play-card">
+                <h2>🏗️ General Contractor / Handyman Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Home Renovation · Remodeling · General Repairs · Property Flipping
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>You're constantly booked but always chasing the next job. You can't plan ahead because you don't have visibility into the pipeline. You lose jobs to competitors with better follow-up. You're known in your neighborhood but can't scale beyond referrals. Seasonal downturns kill cash flow.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The 5-Step Funnel</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds Ideal Clients</h4>
+                        <p><strong>Homeowners planning renovations:</strong> People who recently bought homes (10–20 years old), have higher income, or recently hired contractors on LinkedIn. 800+ leads @ $1/lead.</p>
+                        <p style="margin-top: 0.5rem;"><strong>Property flippers/investors:</strong> Real estate investors, house-flippers, property managers managing rental portfolios needing repairs. 200+ leads @ $1/lead.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound</h4>
+                        <p>Homeowner with urgent repair (roof leak, foundation issue) → hot flag for Denise. Investor looking for a contractor for a flip → nurture into relationship.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Personalized Outreach</h4>
+                        <p><em>"[Name], I noticed you just bought [Address]. Homes from that era typically benefit from a thorough home inspection + handyman audit before any big renovations. We do free evaluations; you get a detailed plan + honest cost estimates. Most of our renovation clients start here…"</em></p>
+                        <p style="margin-top: 0.5rem;">To investors: <em>"[Investor Name] — we specialize in renovation work for house flips. Fast turnaround, quality work, predictable budgets. We've done [X] flips in [Area]. Would love to quote your next project…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. FIGSY Sends + Denise Follows Up</h4>
+                        <p>Sequence (Day 0, 4, 9). Hot reply → Denise drafts warm follow-up: <em>"I can schedule a free home audit next week. Walk the property with you, identify priorities, give you a rough estimate. Takes an hour and saves you thousands in bad decisions later…"</em></p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Close the Project</h4>
+                        <p>Do the audit/estimate. Present a phased plan (foundation first, then structure, then finishes). Sell the first phase. Build the relationship for the next two. Recurring work from one customer = steady pipeline.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Economics: General Contractor</h3>
+
+                <div class="pricing-highlight">
+                    <table>
+                        <tr>
+                            <th>Item</th>
+                            <th>Cost/Month</th>
+                            <th>Logic</th>
+                        </tr>
+                        <tr>
+                            <td>Subscriptions (Milla + Vida + Denise)</td>
+                            <td>$117</td>
+                            <td>$49 + $29 + $39</td>
+                        </tr>
+                        <tr>
+                            <td>Homeowner renovation leads</td>
+                            <td>$400</td>
+                            <td>400 leads @ $1 (high-value projects)</td>
+                        </tr>
+                        <tr>
+                            <td>Investor/flipper leads</td>
+                            <td>$100</td>
+                            <td>100 leads @ $1 (recurring work)</td>
+                        </tr>
+                        <tr>
+                            <td>FIGSY sends (3-step × 500)</td>
+                            <td>$1,500</td>
+                            <td>1,500 sends @ $3 each</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>$2,117/month</td>
+                            <td>High-LTV pipeline building</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: General Contractor</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Audits booked/month</div>
+                            <div class="roi-value">12–18</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Projects closed</div>
+                            <div class="roi-value">4–6</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg project value</div>
+                            <div class="roi-value">$5,000–15,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly revenue</div>
+                            <div class="roi-value">$20,000–90,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 10:1 to 40:1+</strong> — renovation projects are your highest-LTV game.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showPlay(playId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.play-section');
+            sections.forEach(section => section.classList.remove('active'));
+
+            // Show selected section
+            document.getElementById(playId).classList.add('active');
+
+            // Update nav tabs
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>

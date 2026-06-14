@@ -410,43 +410,52 @@
       font-size: 0.75rem; font-weight: 700; color: #a78bfa;
     }
 
-    /* POPIA TRUST BAND */
+    /* POPIA TRUST BAND — soft mint trust seal */
     .popia-band {
-      background: linear-gradient(135deg, #e6f4f1 0%, #e8f0fe 100%);
-      border-top: 1px solid rgba(0,150,100,0.12);
-      border-bottom: 1px solid rgba(0,150,100,0.12);
-      padding: 48px 48px;
+      background:
+        radial-gradient(900px 420px at 12% 0%, rgba(110,231,183,0.20) 0%, transparent 62%),
+        linear-gradient(135deg, #eafaf4 0%, #eef4fe 100%);
+      border-top: 1px solid rgba(5,150,105,0.12);
+      border-bottom: 1px solid rgba(5,150,105,0.12);
+      padding: 64px 48px;
     }
     .popia-inner {
       max-width: 1080px; margin: 0 auto;
-      display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: center;
+      display: grid; grid-template-columns: auto 1fr; gap: 44px; align-items: center;
     }
     .popia-shield {
-      width: 72px; height: 72px;
-      background: #fff;
-      border-radius: 50%;
+      width: 88px; height: 88px;
+      background: linear-gradient(160deg, #ffffff, #ecfdf5);
+      border: 1px solid rgba(5,150,105,0.18);
+      border-radius: 24px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 2rem;
-      box-shadow: 0 4px 20px rgba(0,150,100,0.15);
+      color: #059669;
+      box-shadow: 0 12px 36px rgba(5,150,105,0.16), inset 0 1px 0 rgba(255,255,255,0.9);
       flex-shrink: 0;
     }
     .popia-label {
-      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-      color: #059669; margin-bottom: 8px;
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: #059669; margin-bottom: 12px;
     }
     .popia-headline {
-      font-size: 1.2rem; font-weight: 800; color: #0a3d2b; letter-spacing: -0.02em; margin-bottom: 10px;
+      font-size: clamp(1.3rem, 2.4vw, 1.7rem); font-weight: 800; color: #0a3d2b; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 12px;
     }
     .popia-copy {
-      font-size: 0.9rem; color: #2d5a48; line-height: 1.75; max-width: 680px;
+      font-size: 0.92rem; color: #3a6353; line-height: 1.75; max-width: 700px;
     }
     .popia-pills {
-      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;
+      display: flex; gap: 9px; flex-wrap: wrap; margin-top: 20px;
     }
     .popia-pill {
-      background: rgba(5,150,105,0.1); border: 1px solid rgba(5,150,105,0.2);
-      color: #059669; font-size: 0.72rem; font-weight: 600;
-      padding: 4px 12px; border-radius: 100px;
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.20);
+      color: #047857; font-size: 0.74rem; font-weight: 600;
+      padding: 7px 14px; border-radius: 100px;
+    }
+    .popia-pill::before {
+      content: ""; width: 5px; height: 5px; border-radius: 50%;
+      background: #10b981; box-shadow: 0 0 7px rgba(16,185,129,0.6); flex-shrink: 0;
     }
 
     /* STATS */
@@ -457,44 +466,61 @@
     .stat-num span { color: var(--blue); }
     .stat-label { font-size: 0.82rem; color: rgba(0,0,0,0.4); line-height: 1.5; }
 
-    /* PRICING */
-    .pricing-section { padding: 100px 48px; }
-    .pricing-inner { max-width: 1080px; margin: 0 auto; }
-    .pricing-header { text-align: center; margin-bottom: 56px; }
-    .p-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    /* PRICING — bold tiered cards */
+    .pricing-section { padding: 100px 48px; background: linear-gradient(180deg, #fff 0%, #faf7ff 100%); }
+    .pricing-inner { max-width: 1120px; margin: 0 auto; }
+    .pricing-header { text-align: center; margin-bottom: 60px; }
+    .p-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
     .p-card {
+      background: #fff;
       border: 1.5px solid var(--border);
-      border-radius: 24px;
-      padding: 36px 32px;
+      border-radius: 26px;
+      padding: 38px 32px;
       position: relative;
+      overflow: hidden;
       transition: transform 0.22s ease, box-shadow 0.22s ease;
     }
+    /* accent bar at top of each tier */
+    .p-card::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: var(--p-accent, #c4b5fd);
+    }
     .p-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 48px rgba(124,58,237,0.12);
+      transform: translateY(-6px);
+      box-shadow: 0 24px 56px rgba(124,58,237,0.14);
     }
-    .p-card.featured:hover {
-      box-shadow: 0 20px 48px rgba(0,0,0,0.28);
-    }
+    .p-card:nth-child(1) { --p-accent: linear-gradient(90deg,#a78bfa,#7c3aed); }
+    .p-card:nth-child(3) { --p-accent: linear-gradient(90deg,#fbbf24,#f59e0b); }
     .p-card.featured {
-      background: var(--dark);
-      border-color: var(--dark);
+      background: linear-gradient(165deg, #1a1330 0%, #0a0a0a 60%);
+      border-color: rgba(167,139,250,0.4);
       color: #fff;
+      transform: scale(1.04);
+      box-shadow: 0 28px 64px rgba(124,58,237,0.22);
     }
+    .p-card.featured::before { background: linear-gradient(90deg,#c4b5fd,#f7a8d8,#a78bfa); height: 5px; }
+    .p-card.featured::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(420px 260px at 50% -10%, rgba(167,139,250,0.26) 0%, transparent 70%);
+    }
+    .p-card.featured > * { position: relative; z-index: 1; }
+    .p-card.featured:hover { transform: scale(1.04) translateY(-6px); box-shadow: 0 34px 76px rgba(124,58,237,0.3); }
     .p-badge {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-      background: var(--blue); color: #fff; font-size: 0.65rem; font-weight: 700;
-      letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px;
+      position: absolute; top: 16px; right: 16px; left: auto; transform: none;
+      background: linear-gradient(90deg,#c4b5fd,#f7a8d8); color: #5b2a6b; font-size: 0.62rem; font-weight: 800;
+      letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 13px; border-radius: 100px;
+      box-shadow: 0 6px 16px rgba(196,181,253,0.5);
     }
-    .p-plan { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.3); margin-bottom: 8px; }
-    .p-card.featured .p-plan { color: rgba(255,255,255,0.3); }
-    .p-card h3 { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
-    .p-card p { font-size: 0.83rem; color: rgba(0,0,0,0.4); line-height: 1.6; margin-bottom: 24px; }
-    .p-card.featured p { color: rgba(255,255,255,0.4); }
-    .p-price { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.04em; color: var(--dark); line-height: 1; margin-bottom: 6px; }
+    .p-plan { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 10px; }
+    .p-card:nth-child(3) .p-plan { color: #d97706; }
+    .p-card.featured .p-plan { color: #c4b5fd; }
+    .p-card h3 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .p-card p { font-size: 0.83rem; color: rgba(0,0,0,0.45); line-height: 1.6; margin-bottom: 26px; min-height: 76px; }
+    .p-card.featured p { color: rgba(255,255,255,0.5); }
+    .p-price { font-size: 3.2rem; font-weight: 900; letter-spacing: -0.05em; color: var(--dark); line-height: 1; margin-bottom: 6px; }
     .p-card.featured .p-price { color: #fff; }
-    .p-note { font-size: 0.75rem; color: rgba(0,0,0,0.3); margin-bottom: 28px; }
-    .p-card.featured .p-note { color: rgba(255,255,255,0.25); }
+    .p-note { font-size: 0.75rem; color: rgba(0,0,0,0.35); margin-bottom: 28px; }
+    .p-card.featured .p-note { color: rgba(255,255,255,0.3); }
     .p-divider { height: 1px; background: var(--border); margin-bottom: 24px; }
     .p-card.featured .p-divider { background: rgba(255,255,255,0.08); }
     .p-card ul { list-style: none; margin-bottom: 32px; }
@@ -1035,11 +1061,46 @@
     /* WHY KIND PILLARS */
     .why-kind { padding: 80px 48px; }
     .why-kind-inner { max-width: 1080px; margin: 0 auto; }
-    .wk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 48px; }
-    .wk-card { background: var(--light); border-radius: 20px; padding: 32px 28px; }
+    .wk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
+    .wk-card { background: var(--light); border: 1px solid rgba(0,0,0,0.05); border-radius: 20px; padding: 22px 22px 26px; overflow: hidden; }
     .wk-icon { font-size: 1.4rem; margin-bottom: 16px; }
     .wk-card h3 { font-size: 0.95rem; font-weight: 800; color: var(--dark); letter-spacing: -0.01em; margin-bottom: 6px; }
     .wk-card p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
+    /* floating product fragment (replaces emoji icon) */
+    .wk-frag { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 13px; padding: 12px; margin-bottom: 20px; box-shadow: 0 10px 26px rgba(30,17,82,0.08); min-height: 104px; }
+    .wf-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; padding: 6px 4px; }
+    .wf-av { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 9px; font-weight: 800; background: rgba(124,58,237,0.12); color: #7c3aed; }
+    .wf-bars { display: flex; flex-direction: column; gap: 4px; }
+    .wf-b { height: 5px; border-radius: 3px; background: rgba(0,0,0,0.12); }
+    .wf-b.s { width: 60%; background: rgba(0,0,0,0.07); }
+    .wf-sc { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 100px; }
+    .wf-sc.hi { background: rgba(22,163,74,0.12); color: #16a34a; }
+    .wf-sc.md { background: rgba(124,58,237,0.12); color: #7c3aed; }
+    .wf-sc.lo { background: rgba(0,0,0,0.06); color: #9ca3af; }
+    .wf-line { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 11.5px; font-weight: 600; color: #3a3f52; }
+    .wf-line .dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-size: 9px; color: #fff; }
+    .wf-line .dot.done { background: #16a34a; }
+    .wf-line .dot.now { background: #7c3aed; }
+    .wf-line .dot.wait { background: #d1d5db; }
+    .wf-line i { color: #aab0bd; font-style: normal; margin-left: auto; font-size: 10.5px; font-weight: 700; }
+    .wf-subj { font-size: 11.5px; font-weight: 800; color: #15182a; padding: 3px 4px 7px; }
+    .wf-send { display: inline-block; margin-top: 4px; font-size: 10.5px; font-weight: 800; color: #fff; background: #7c3aed; padding: 5px 12px; border-radius: 8px; }
+
+    /* AGENT PRODUCT SHOWCASE (Monday-style pill swap) */
+    .showcase { padding: 30px 48px 20px; }
+    .showcase-inner { max-width: 1080px; margin: 0 auto; text-align: center; }
+    .sc-pills { display: inline-flex; flex-wrap: wrap; gap: 8px; justify-content: center; background: rgba(124,58,237,0.05); border: 1px solid rgba(124,58,237,0.12); padding: 7px; border-radius: 100px; margin: 26px 0 28px; }
+    .sc-pill { display: inline-flex; align-items: center; gap: 9px; font-size: 0.85rem; font-weight: 700; color: rgba(0,0,0,0.55); background: transparent; border: none; padding: 9px 18px; border-radius: 100px; cursor: pointer; transition: all .2s; }
+    .sc-pill img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+    .sc-pill.on { background: #fff; color: var(--dark); box-shadow: 0 4px 14px rgba(30,17,82,0.12); }
+    .sc-stage { position: relative; max-width: 940px; margin: 0 auto; border-radius: 22px; overflow: hidden; box-shadow: 0 36px 80px rgba(30,17,82,0.18); }
+    .sc-shot { display: none; width: 100%; }
+    .sc-shot.on { display: block; animation: scfade .45s ease; }
+    @keyframes scfade { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: none; } }
+    .sc-shot img { width: 100%; display: block; }
+    .sc-caption { font-size: 0.9rem; color: rgba(0,0,0,0.45); margin-top: 22px; }
+    .sc-caption b { color: var(--dark); font-weight: 700; }
+    @media (max-width: 768px) { .sc-pill span { display: none; } .showcase { padding: 24px 20px; } }
 
     /* EVERY TEAM WINS */
     .team-wins { background: #f9fafb; padding: 80px 48px; }
@@ -1250,10 +1311,10 @@
     <div class="nav-item">
       <a href="#products" class="nav-link">Products <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown" style="min-width:320px">
-        <a href="figsy.html" class="dd-link"><span class="dd-icon">&#x1F916;</span><span><span class="dd-title">FIGSY &mdash; The Opener</span><span class="dd-sub">Finds, writes, follows up &amp; books &mdash; autonomously</span></span></a>
-        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon">&#x1F9E0;</span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Reads the intelligence so you make better decisions</span></span></a>
-        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon">&#x1F4AC;</span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Converts your website &amp; WhatsApp visitors 24/7</span></span></a>
-        <a href="denise.html" class="dd-link"><span class="dd-icon">&#x1F49B;</span><span><span class="dd-title">Denise &mdash; The Closer</span><span class="dd-sub">Confirms meetings, drafts proposals, closes warm leads</span></span></a>
+        <a href="figsy.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">FIGSY &mdash; The Opener</span><span class="dd-sub">Finds, writes, follows up &amp; books &mdash; autonomously</span></span></a>
+        <a href="virtual-assistant.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></span><span><span class="dd-title">Milla &mdash; The Brain</span><span class="dd-sub">Reads the intelligence so you make better decisions</span></span></a>
+        <a href="chatbot-agent.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1.1-4.5A8 8 0 1 1 21 12z"/></svg></span><span><span class="dd-title">Vida &mdash; The Connector</span><span class="dd-sub">Converts your website &amp; WhatsApp visitors 24/7</span></span></a>
+        <a href="denise.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20S3 14.5 3 8.8C3 6 5 4.5 7 4.5c1.7 0 3 1 5 3 2-2 3.3-3 5-3 2 0 4 1.5 4 4.3C21 14.5 12 20 12 20z"/></svg></span><span><span class="dd-title">Denise &mdash; The Closer</span><span class="dd-sub">Confirms meetings, drafts proposals, closes warm leads</span></span></a>
         <div class="dd-divider"></div>
         <div class="dd-promo">
           <div class="dd-promo-text"><strong>Your AI team works while you sleep.</strong>Unlimited pipeline. No SDR salary.</div>
@@ -1265,27 +1326,27 @@
     <div class="nav-item">
       <a href="use-cases.html" class="nav-link">Use Cases <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown" style="min-width:264px">
-        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon">&#x1F4CA;</span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
-        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon">&#x1F3E6;</span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
-        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon">&#x1F3E0;</span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
-        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon">&#x2696;&#xFE0F;</span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
-        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon">&#x1F4BB;</span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
-        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon">&#x1F465;</span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
+        <a href="use-cases.html#b2b-sales" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="2.5" y1="20" x2="20" y2="20"/></svg></span><span><span class="dd-title">B2B Sales Teams</span><span class="dd-sub">Pipeline built on precision, not volume</span></span></a>
+        <a href="use-cases.html#financial" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M4 21V10M9 21V10M15 21V10M20 21V10M12 3l9 5H3z"/></svg></span><span><span class="dd-title">Financial Services</span><span class="dd-sub">FICA &amp; POPIA-compliant lead sourcing</span></span></a>
+        <a href="use-cases.html#real-estate" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></svg></span><span><span class="dd-title">Real Estate &amp; Property</span><span class="dd-sub">Commercial &amp; residential pipeline automation</span></span></a>
+        <a href="use-cases.html#professional-services" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7 20h10M6 7h12M9 4h6"/><path d="M6 7l-3 6h6zM18 7l-3 6h6z"/></svg></span><span><span class="dd-title">Professional Services</span><span class="dd-sub">Qualified decision-maker targeting</span></span></a>
+        <a href="use-cases.html#saas" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><span><span class="dd-title">SaaS &amp; Technology</span><span class="dd-sub">Tech-led B2B pipeline at scale</span></span></a>
+        <a href="use-cases.html#recruitment" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 7.6M21 20c0-2.6-1.5-4.2-3.5-4.7"/></svg></span><span><span class="dd-title">Recruitment &amp; Staffing</span><span class="dd-sub">Find hiring managers &amp; decision-makers fast</span></span></a>
         <div class="dd-divider"></div>
-        <a href="pipeline-calculator.html" class="dd-link"><span class="dd-icon">🧮</span><span><span class="dd-title">Pipeline Calculator</span><span class="dd-sub">Estimate the meetings FIGSY could add</span></span></a>
+        <a href="pipeline-calculator.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/></svg></span><span><span class="dd-title">Pipeline Calculator</span><span class="dd-sub">Estimate the meetings FIGSY could add</span></span></a>
       </div>
     </div>
     <div class="nav-item">
       <a href="blog.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown" style="min-width:300px">
-        <a href="the-drop.html" class="dd-link"><span class="dd-icon">&#x1F4E6;</span><span><span class="dd-title">The Drop</span><span class="dd-sub">What we just shipped &mdash; live, in your hands</span></span></a>
-        <a href="prompt-library.html" class="dd-link"><span class="dd-icon">&#x2728;</span><span><span class="dd-title">Prompt Library</span><span class="dd-sub">Ready-made prompts for your AI Family</span></span></a>
-        <a href="blog.html" class="dd-link"><span class="dd-icon">&#x270F;&#xFE0F;</span><span><span class="dd-title">Blog</span><span class="dd-sub">Outbound strategy &amp; B2B growth insights</span></span></a>
-        <a href="support.html#faq" class="dd-link"><span class="dd-icon">&#x2753;</span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
-        <a href="support.html" class="dd-link"><span class="dd-icon">&#x1F6DF;</span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
+        <a href="the-drop.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg></span><span><span class="dd-title">The Drop</span><span class="dd-sub">What we just shipped &mdash; live, in your hands</span></span></a>
+        <a href="prompt-library.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z"/></svg></span><span><span class="dd-title">Prompt Library</span><span class="dd-sub">Ready-made prompts for your AI Family</span></span></a>
+        <a href="blog.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2 2 0 0 0-3-3L5 17v3z"/><path d="M14 7l3 3"/></svg></span><span><span class="dd-title">Blog</span><span class="dd-sub">Outbound strategy &amp; B2B growth insights</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.7M12 17h.01"/></svg></span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+        <a href="support.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M5 5l3.6 3.6M19 5l-3.6 3.6M5 19l3.6-3.6M19 19l-3.6-3.6"/></svg></span><span><span class="dd-title">Support</span><span class="dd-sub">Get help from the team</span></span></a>
         <div class="dd-divider"></div>
         <div class="dd-promo">
-          <div class="dd-promo-text"><strong>&#x1F4D6; Free: The B2B Outbound Playbook</strong>ICP frameworks, email templates, WhatsApp sequences &amp; POPIA checklist. 50+ pages.</div>
+          <div class="dd-promo-text"><strong><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M4 19V5a2 2 0 0 1 2-2h13v14H6a2 2 0 0 0-2 2zM4 19a2 2 0 0 0 2 2h13"/></svg>Free: The B2B Outbound Playbook</strong>ICP frameworks, email templates, WhatsApp sequences &amp; POPIA checklist. 50+ pages.</div>
           <a href="playbook.html" class="dd-promo-cta">Download free &rarr;</a>
         </div>
       </div>
@@ -1293,21 +1354,21 @@
     <div class="nav-item">
       <a href="about.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown">
-        <a href="story.html" class="dd-link"><span class="dd-icon">&#x1F4D8;</span><span><span class="dd-title">Our Story</span><span class="dd-sub">Why we built K.I.N.D and where we&rsquo;re going</span></span></a>
-        <a href="values.html" class="dd-link"><span class="dd-icon">&#x1F3AF;</span><span><span class="dd-title">Values</span><span class="dd-sub">Transparency, Precision, Global</span></span></a>
+        <a href="story.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v14H6a2 2 0 0 0-2 2zM4 19a2 2 0 0 0 2 2h13"/></svg></span><span><span class="dd-title">Our Story</span><span class="dd-sub">Why we built K.I.N.D and where we&rsquo;re going</span></span></a>
+        <a href="values.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">Values</span><span class="dd-sub">Transparency, Precision, Global</span></span></a>
         <div class="dd-divider"></div>
-        <a href="trust.html" class="dd-link"><span class="dd-icon">&#x1F512;</span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
-        <a href="partners.html" class="dd-link"><span class="dd-icon">&#x1F91D;</span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
+        <a href="trust.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">POPIA, data sovereignty &amp; compliance</span></span></a>
+        <a href="partners.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a4 4 0 0 0 5.7.4l3-3A4 4 0 0 0 13 5l-1.5 1.5M14 11a4 4 0 0 0-5.7-.4l-3 3A4 4 0 0 0 11 19l1.5-1.5"/></svg></span><span><span class="dd-title">Partner Programme</span><span class="dd-sub">Earn 20% recurring commission</span></span></a>
       </div>
     </div>
     <div class="nav-item">
       <a href="vs-apollo.html" class="nav-link">Compare <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown" style="min-width:264px">
-        <a href="vs-apollo.html" class="dd-link"><span class="dd-icon">&#x1F30D;</span><span><span class="dd-title">K.I.N.D vs Apollo</span><span class="dd-sub">Data + execution vs data-only</span></span></a>
-        <a href="vs-outreach.html" class="dd-link"><span class="dd-icon">&#x1F4E4;</span><span><span class="dd-title">K.I.N.D vs Outreach</span><span class="dd-sub">Autonomous vs manual sequencing</span></span></a>
-        <a href="vs-salesloft.html" class="dd-link"><span class="dd-icon">&#x1F4DE;</span><span><span class="dd-title">K.I.N.D vs Salesloft</span><span class="dd-sub">AI rep vs sales engagement tool</span></span></a>
-        <a href="vs-prospecting-manually.html" class="dd-link"><span class="dd-icon">&#x1F50D;</span><span><span class="dd-title">vs Manual Prospecting</span><span class="dd-sub">Automate the busywork</span></span></a>
-        <a href="vs-hiring-an-sdr.html" class="dd-link"><span class="dd-icon">&#x1F465;</span><span><span class="dd-title">vs Hiring an SDR</span><span class="dd-sub">A fraction of the cost</span></span></a>
+        <a href="vs-apollo.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15 0 18M12 3c-2.5 2.6-2.5 15 0 18"/></svg></span><span><span class="dd-title">K.I.N.D vs Apollo</span><span class="dd-sub">Data + execution vs data-only</span></span></a>
+        <a href="vs-outreach.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4 18-7z"/></svg></span><span><span class="dd-title">K.I.N.D vs Outreach</span><span class="dd-sub">Autonomous vs manual sequencing</span></span></a>
+        <a href="vs-salesloft.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h3l2 5-2 1a11 11 0 0 0 5 5l1-2 5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span><span class="dd-title">K.I.N.D vs Salesloft</span><span class="dd-sub">AI rep vs sales engagement tool</span></span></a>
+        <a href="vs-prospecting-manually.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg></span><span><span class="dd-title">vs Manual Prospecting</span><span class="dd-sub">Automate the busywork</span></span></a>
+        <a href="vs-hiring-an-sdr.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 5.2a3.2 3.2 0 0 1 0 7.6M21 20c0-2.6-1.5-4.2-3.5-4.7"/></svg></span><span><span class="dd-title">vs Hiring an SDR</span><span class="dd-sub">A fraction of the cost</span></span></a>
       </div>
     </div>
     <a href="pricing.html" class="nav-link">Pricing</a>
@@ -1458,34 +1519,44 @@
   <div class="trust-popia"><span class="live-dot"></span>POPIA Compliant &middot; Built for global teams — US, Africa &amp; beyond</div>
 </div>
 
+<!-- AGENT PRODUCT SHOWCASE — pill swap (Monday-style) -->
+<div class="showcase">
+  <div class="showcase-inner">
+    <div class="s-label">SEE THEM WORK</div>
+    <div class="s-title reveal">An agent for every job.</div>
+    <div class="sc-pills" id="sc-pills">
+      <button class="sc-pill on" data-shot="figsy"><img src="figsy.png" alt="" /><span>FIGSY</span></button>
+      <button class="sc-pill" data-shot="milla"><img src="milla.png" alt="" /><span>Milla</span></button>
+      <button class="sc-pill" data-shot="vida"><img src="vida.png" alt="" /><span>Vida</span></button>
+      <button class="sc-pill" data-shot="denise"><img src="denise.png" alt="" /><span>Denise</span></button>
+    </div>
+    <div class="sc-stage">
+      <div class="sc-shot on" data-shot="figsy"><img src="gen-home-figsy.png" alt="FIGSY — scored leads ready to work" /></div>
+      <div class="sc-shot" data-shot="milla"><img src="gen-home-milla.png" alt="Milla — your numbers, already read" /></div>
+      <div class="sc-shot" data-shot="vida"><img src="gen-home-vida.png" alt="Vida — every visitor, answered" /></div>
+      <div class="sc-shot" data-shot="denise"><img src="gen-home-denise.png" alt="Denise — follow-ups that close" /></div>
+    </div>
+    <p class="sc-caption">One family, one shared memory &mdash; <b>tap an agent to see the work it does for you.</b></p>
+  </div>
+</div>
+<script>
+(function(){
+  var pills = document.querySelectorAll('#sc-pills .sc-pill');
+  var shots = document.querySelectorAll('.sc-stage .sc-shot');
+  pills.forEach(function(p){
+    p.addEventListener('click', function(){
+      var key = p.getAttribute('data-shot');
+      pills.forEach(function(x){ x.classList.toggle('on', x===p); });
+      shots.forEach(function(s){ s.classList.toggle('on', s.getAttribute('data-shot')===key); });
+    });
+  });
+})();
+</script>
+
 <!-- HERO ATMOSPHERE BLEED -->
 <div class="hero-bleed"></div>
 
-<!-- PROMISE STRIP -->
-<div class="promise-strip">
-  <div class="promise-strip-inner">
-    <div class="promise-item">
-      <span class="promise-big">10</span>
-      <span class="promise-label">Minutes to your first campaign</span>
-      <span class="promise-sub">From signup to first send — no sales call, no setup fee</span>
-    </div>
-    <div class="promise-item">
-      <span class="promise-big">24h</span>
-      <span class="promise-label">First leads in your inbox</span>
-      <span class="promise-sub">Verified email, ICP-matched, POPIA-consented</span>
-    </div>
-    <div class="promise-item">
-      <span class="promise-big">$0</span>
-      <span class="promise-label">Until leads are delivered</span>
-      <span class="promise-sub">Pay per result, not per seat or per month</span>
-    </div>
-    <div class="promise-item">
-      <span class="promise-big">24/7</span>
-      <span class="promise-label">Your team never stops working</span>
-      <span class="promise-sub">No sick days, no timezone limits, no overtime</span>
-    </div>
-  </div>
-</div>
+<!-- Promise strip removed: stats consolidated into Trust Bar + Stats section -->
 
 <!-- HONEST PROOF — first-party dogfooding (no fake logos / testimonials / invented stats) -->
 <div class="proof-strip">
@@ -1511,22 +1582,38 @@
     <p class="s-sub reveal reveal-delay-1">Most tools address one lever. K.I.N.D runs all four &mdash; simultaneously, autonomously, 24/7.</p>
     <div class="wk-grid">
       <div class="wk-card reveal">
-        <div class="wk-icon">&#x1F3AF;</div>
+        <div class="wk-frag">
+          <div class="wf-row"><span class="wf-av">SM</span><span class="wf-bars"><span class="wf-b"></span><span class="wf-b s"></span></span><span class="wf-sc hi">94</span></div>
+          <div class="wf-row"><span class="wf-av">DO</span><span class="wf-bars"><span class="wf-b"></span><span class="wf-b s"></span></span><span class="wf-sc md">88</span></div>
+          <div class="wf-row"><span class="wf-av">TN</span><span class="wf-bars"><span class="wf-b"></span><span class="wf-b s"></span></span><span class="wf-sc lo">71</span></div>
+        </div>
         <h3>The right people, only</h3>
         <p>ICP-matched contacts scored 0&ndash;100 from 250M+ verified sources. Only decision-makers above your threshold get through.</p>
       </div>
       <div class="wk-card reveal reveal-delay-1">
-        <div class="wk-icon">&#x270D;&#xFE0F;</div>
+        <div class="wk-frag">
+          <div class="wf-subj">Re: Flutterwave&rsquo;s Q3 pipeline</div>
+          <div style="display:flex;flex-direction:column;gap:5px;padding:2px 4px 9px"><span class="wf-b"></span><span class="wf-b"></span><span class="wf-b s"></span></div>
+          <span class="wf-send">Personalised &middot; Send &rarr;</span>
+        </div>
         <h3>Every email, unique</h3>
         <p>Every email written by Claude &mdash; unique per lead, personalised per context. No templates. No spray-and-pray.</p>
       </div>
       <div class="wk-card reveal reveal-delay-2">
-        <div class="wk-icon">&#x23F1;&#xFE0F;</div>
+        <div class="wk-frag">
+          <div class="wf-line"><span class="dot done">&#10003;</span>Day 0 &middot; First email<i>Sent</i></div>
+          <div class="wf-line"><span class="dot done">&#10003;</span>Day 3 &middot; Follow-up<i>Sent</i></div>
+          <div class="wf-line"><span class="dot now">&bull;</span>Day 7 &middot; Nudge<i>Queued</i></div>
+        </div>
         <h3>Follow-up that never forgets</h3>
         <p>Follow-ups sent automatically on the right cadence. No lead falls through because someone forgot to reply.</p>
       </div>
       <div class="wk-card reveal reveal-delay-3">
-        <div class="wk-icon">&#x26A1;</div>
+        <div class="wk-frag">
+          <div class="wf-line"><span class="dot done">&#10003;</span>312 contacted<i>2:14 AM</i></div>
+          <div class="wf-line"><span class="dot done">&#10003;</span>24 replies read<i>3:40 AM</i></div>
+          <div class="wf-line"><span class="dot now">&bull;</span>6 meetings booked<i>5:02 AM</i></div>
+        </div>
         <h3>Runs while you sleep</h3>
         <p>All four levers run 24/7 without you. Pipeline grows whether you&rsquo;re in the office, on a call, or asleep.</p>
       </div>
@@ -1585,8 +1672,8 @@
           <span class="af-anno af-tr x2">Finds leads</span>
           <span class="af-anno af-ml x3">Books meetings</span>
           <span class="af-anno af-mr x4">The Opener</span>
-          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#fce7f3">&#x1F4C5;</div><div><b>Meeting booked</b><i>FIGSY &middot; just now</i></div></div>
-          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#fce7f3">&#x2709;&#xFE0F;</div><div><b>Sequence sent</b><i>42 prospects</i></div></div>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#fce7f3;color:#db2777"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v4M16 3v4"/></svg></div><div><b>Meeting booked</b><i>FIGSY &middot; just now</i></div></div>
+          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#fce7f3;color:#db2777"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg></div><div><b>Sequence sent</b><i>42 prospects</i></div></div>
         </div>
         <div class="af-plate"><div class="af-nm">FIGSY</div><div class="af-rl">The Opener &middot; Autonomous AI SDR</div></div>
       </div>
@@ -1600,8 +1687,8 @@
           <span class="af-anno af-tr x2">Qualifies intent</span>
           <span class="af-anno af-ml x3">Never forgets</span>
           <span class="af-anno af-mr x4">The Brain</span>
-          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#ede9fe">&#x1F4CA;</div><div><b>Pipeline insight</b><i>Milla &middot; this week</i></div></div>
-          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#ede9fe">&#x1F9E0;</div><div><b>What&rsquo;s working</b><i>Reply rate +18%</i></div></div>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#ede9fe;color:#7c3aed"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="2.5" y1="20" x2="20" y2="20"/></svg></div><div><b>Pipeline insight</b><i>Milla &middot; this week</i></div></div>
+          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#ede9fe;color:#7c3aed"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></div><div><b>What&rsquo;s working</b><i>Reply rate +18%</i></div></div>
         </div>
         <div class="af-plate"><div class="af-nm">Milla</div><div class="af-rl">The Brain &middot; AI Business Assistant</div></div>
       </div>
@@ -1615,8 +1702,8 @@
           <span class="af-anno af-tr x2">Answers 24/7</span>
           <span class="af-anno af-ml x3">250M+ contacts</span>
           <span class="af-anno af-mr x4">The Connector</span>
-          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#dbeafe">&#x1F4AC;</div><div><b>Visitor &rarr; lead</b><i>Vida &middot; live now</i></div></div>
-          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#dbeafe">&#x26A1;</div><div><b>Reply sent</b><i>Avg 4s response</i></div></div>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#dbeafe;color:#2563eb"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1.1-4.5A8 8 0 1 1 21 12z"/></svg></div><div><b>Visitor &rarr; lead</b><i>Vida &middot; live now</i></div></div>
+          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#dbeafe;color:#2563eb"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg></div><div><b>Reply sent</b><i>Avg 4s response</i></div></div>
         </div>
         <div class="af-plate"><div class="af-nm">Vida</div><div class="af-rl">The Connector &middot; AI Website Chatbot</div></div>
       </div>
@@ -1630,8 +1717,8 @@
           <span class="af-anno af-tr x2">Nurtures pipeline</span>
           <span class="af-anno af-ml x3">Drafts proposals</span>
           <span class="af-anno af-mr x4">The Closer</span>
-          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#fef3c7">&#x1F4C4;</div><div><b>Proposal drafted</b><i>Denise &middot; just now</i></div></div>
-          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#fef3c7">&#x2705;</div><div><b>Meeting confirmed</b><i>Warm lead</i></div></div>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#fef3c7;color:#b45309"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5zM14 3v5h5M9 13h6M9 17h6"/></svg></div><div><b>Proposal drafted</b><i>Denise &middot; just now</i></div></div>
+          <div class="af-card af-cbl x2"><div class="af-ico" style="background:#fef3c7;color:#b45309"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></div><div><b>Meeting confirmed</b><i>Warm lead</i></div></div>
         </div>
         <div class="af-plate"><div class="af-nm">Denise</div><div class="af-rl">The Closer &middot; AI Account Executive</div></div>
       </div>
@@ -1643,7 +1730,7 @@
           <img class="af-portrait" src="tony.png" alt="Tony" />
           <span class="af-anno af-tl x1">The Order Maker</span>
           <span class="af-anno af-tr x2">Brings order</span>
-          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#ccfbf1">&#x1F4E6;</div><div><b>Order created</b><i>Tony &middot; coming soon</i></div></div>
+          <div class="af-card af-cbr x1"><div class="af-ico" style="background:#ccfbf1;color:#0d9488"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg></div><div><b>Order created</b><i>Tony &middot; coming soon</i></div></div>
         </div>
         <div class="af-plate"><div class="af-nm">Tony</div><div class="af-rl">The Order Maker &middot; Operations Agent</div><span class="af-soon">Coming Soon</span></div>
       </div>
@@ -1815,7 +1902,7 @@
         <span class="level-badge lb-blue">Proactive</span>
         <h3>Your AI team does it for you.</h3>
         <p>FIGSY sources, scores, writes, sends, follows up, and books &mdash; autonomously. Milla reads the intelligence. Vida converts your website. Your pipeline grows whether you're in the office or not.</p>
-        <div class="level-kind-tag">&#x26A1; This is K.I.N.D.</div>
+        <div class="level-kind-tag"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg>This is K.I.N.D.</div>
       </div>
     </div>
   </div>
@@ -1824,40 +1911,7 @@
 <!-- GRADIENT TRANSITION: dark to grey -->
 <div class="grad-dark-grey"></div>
 
-<!-- EVERY TEAM WINS -->
-<div class="team-wins">
-  <div class="team-wins-inner">
-    <div class="s-label" style="color:rgba(0,0,0,0.38)">BUILT FOR EVERY ROLE</div>
-    <div class="s-title reveal">Pipeline built for every role.</div>
-    <p class="s-sub reveal reveal-delay-1">K.I.N.D isn&rsquo;t just for Sales. Every role gets value from day one.</p>
-    <div class="tw-grid">
-      <div class="tw-card reveal">
-        <img src="figsy.png" class="tw-avatar" alt="FIGSY" />
-        <div class="tw-for">For Sales</div>
-        <h3>Pipeline built while you sleep</h3>
-        <p>FIGSY sources, scores, writes, and books &mdash; so your team shows up to calls, not cold outreach.</p>
-      </div>
-      <div class="tw-card reveal reveal-delay-1">
-        <img src="milla.png" class="tw-avatar" alt="Milla" />
-        <div class="tw-for">For Leadership</div>
-        <h3>Intelligence without dashboards</h3>
-        <p>Milla connects to your CRM, email, and every agent on your team &mdash; then surfaces exactly what's working and what to change next. She gets smarter every campaign.</p>
-      </div>
-      <div class="tw-card reveal reveal-delay-2">
-        <img src="vida.png" class="tw-avatar" alt="Vida" />
-        <div class="tw-for">For Growth</div>
-        <h3>Every visitor converted, 24/7</h3>
-        <p>Vida qualifies every website and WhatsApp lead around the clock &mdash; so no opportunity slips through.</p>
-      </div>
-      <div class="tw-card reveal reveal-delay-3">
-        <img src="denise.png" class="tw-avatar" alt="Denise" />
-        <div class="tw-for">For Closing</div>
-        <h3>Booked meetings, signed deals</h3>
-        <p>Denise picks up where FIGSY leaves off &mdash; confirming meetings, surfacing objections, and drafting proposals so warm leads turn into clients.</p>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Every Team Wins removed: redundant 4th agent showcase -->
 
 <!-- VIDEO DEMO -->
 <div class="video-section">
@@ -1949,9 +2003,9 @@
 <!-- POPIA TRUST BAND -->
 <div class="popia-band">
   <div class="popia-inner">
-    <div class="popia-shield">&#x1F512;</div>
+    <div class="popia-shield"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
     <div>
-      <div class="popia-label">POPIA Compliance &mdash; Built In, Not Bolted On</div>
+      <div class="popia-label"><span class="live-dot" style="background:#34d399"></span>POPIA Compliance &mdash; Built In, Not Bolted On</div>
       <div class="popia-headline">Every campaign FIGSY runs is POPIA compliant by default.</div>
       <p class="popia-copy">Opt-outs suppressed permanently. Consent logged automatically. You are protected. K.I.N.D was built from day one around South African data law &mdash; POPIA isn&rsquo;t a checkbox for us, it&rsquo;s architecture. Every email, every reply, every unsubscribe is recorded with a full audit trail.</p>
       <div class="popia-pills">
@@ -2064,7 +2118,7 @@
     <div class="founder-quote">
       <p class="founder-quote-text">"I built K.I.N.D because I was tired of spending half my week hunting leads instead of closing them. FIGSY is the AI sales rep I wish I had from day one."</p>
       <div class="founder-byline">
-        <div class="founder-avatar">&#x26A1;</div>
+        <div class="founder-avatar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#fff;"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg></div>
         <div>
           <div class="founder-name">Founder</div>
           <div class="founder-title">K.I.N.D &mdash; Your AI Family</div>

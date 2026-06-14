@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K.I.N.D Small Business Playbook (Corrected Pricing)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f3f0;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 2px solid #10b981;
+            padding-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #065f46;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .correction-banner {
+            background: #ecfdf5;
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .correction-banner strong {
+            color: #065f46;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 1rem;
+        }
+
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid transparent;
+            background: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .nav-tab:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .nav-tab.active {
+            border-color: #10b981;
+            background: #ecfdf5;
+            color: #10b981;
+        }
+
+        .play-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .play-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .play-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .play-card h2 {
+            color: #065f46;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+
+        .problem {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .problem h3 {
+            color: #92400e;
+            margin-bottom: 0.5rem;
+        }
+
+        .problem p {
+            color: #78350f;
+        }
+
+        .funnel-steps {
+            margin: 2rem 0;
+        }
+
+        .step {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+        }
+
+        .step h4 {
+            color: #10b981;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .step-owner {
+            display: inline-block;
+            background: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+            border: 1px solid #ddd;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f0fdf4;
+            font-weight: 600;
+            color: #065f46;
+        }
+
+        tr:hover {
+            background: #f0fdf4;
+        }
+
+        .pricing-box {
+            background: #ecfdf5;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            border-left: 4px solid #10b981;
+        }
+
+        .pricing-box h4 {
+            color: #047857;
+            margin-bottom: 1rem;
+        }
+
+        .price-tiers {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .tier {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #10b981;
+            text-align: center;
+        }
+
+        .tier-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .tier-price {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #065f46;
+        }
+
+        .tier-includes {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .roi-box {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+
+        .roi-box h4 {
+            margin-bottom: 1rem;
+        }
+
+        .roi-calc {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .roi-item {
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+        .roi-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .roi-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+
+        .gap-warning {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .gap-warning h4 {
+            color: #991b1b;
+            margin-bottom: 0.5rem;
+        }
+
+        .gap-warning p {
+            color: #7f1d1d;
+        }
+
+        .owner-map {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .owner-card {
+            background: #ecfdf5;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
+        }
+
+        .owner-card strong {
+            color: #065f46;
+        }
+
+        .icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .highlight-trade {
+            background: #ecfdf5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #10b981;
+        }
+
+        .bottom-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .bottom-section h3 {
+            color: #065f46;
+            margin-bottom: 1rem;
+        }
+
+        .viable {
+            background: #ecfdf5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #10b981;
+        }
+
+        .viable strong {
+            color: #047857;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 K.I.N.D Small Business Playbook</h1>
+            <p class="subtitle">Corrected Pricing Model: FIGSY bundles include lead discovery + sends. Agents are separate MRR.</p>
+        </header>
+
+        <div class="correction-banner">
+            <strong>✅ CORRECTION APPLIED:</strong> FIGSY $60 bundle = 20 leads + 20 email sends (not separate charges). Agents (Milla, Vida, Denise) = $117/mo base. Real cost for small businesses: $177–417/month.
+        </div>
+
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showPlay('overview')">📋 Overview</div>
+            <div class="nav-tab" onclick="showPlay('photographer')">📸 Photographer</div>
+            <div class="nav-tab" onclick="showPlay('electrician')">⚡ Electrician</div>
+            <div class="nav-tab" onclick="showPlay('plumber')">🚰 Plumber</div>
+            <div class="nav-tab" onclick="showPlay('hvac')">❄️ HVAC</div>
+            <div class="nav-tab" onclick="showPlay('locksmith')">🔐 Locksmith</div>
+            <div class="nav-tab" onclick="showPlay('landscaper')">🌱 Landscaper</div>
+            <div class="nav-tab" onclick="showPlay('contractor')">🏗️ Contractor</div>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div id="overview" class="play-section active">
+            <div class="play-card">
+                <h2>The Opportunity: Service Pros + Bundled Lead Discovery</h2>
+
+                <div class="problem">
+                    <h3>The Core Problem</h3>
+                    <p>Service professionals are <strong>busy working</strong> — on client sites, on shoots, in the field. They can't hunt for leads, answer the phone every time it rings, or follow up via email. Yet they NEED a constant pipeline to stay booked and profitable.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">The K.I.N.D Solution: FIGSY (All-In-One) + Agents (MRR)</h3>
+
+                <div class="funnel-steps">
+                    <div class="step">
+                        <h4><span class="icon">🔍</span>1. FIGSY Finds + Sends (All One Price)</h4>
+                        <p>One bundled cost covers lead discovery, scoring, delivery, AND email sending. Buy 20 FIGSY tokens @ $60 = 20 leads found + 20 personalized emails sent. No double-charging for leads separately.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">💬</span>2. Vida Captures Inbound</h4>
+                        <p>Website chatbot qualifies hot leads 24/7. Merges inbound + outbound into one unified, scored pipeline.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">✉️</span>3. Milla Drafts Outreach</h4>
+                        <p>Personalizes the first email per lead (read by FIGSY, written by Milla). Goal: get a reply, not a booking.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📧</span>4. Denise Follows Up (Warm)</h4>
+                        <p>Hot reply detected → Denise drafts warm follow-up. Suggests a call. Auto-books a time slot. Includes photo/quote preview if applicable.</p>
+                    </div>
+
+                    <div class="step">
+                        <h4><span class="icon">📱</span>5. You Close the Deal</h4>
+                        <p>Milla reminds you who called. You jump on the call, confirm the job, set the date. Denise has already done the hard work of proving you're responsive.</p>
+                    </div>
+                </div>
+
+                <div class="pricing-box">
+                    <h4>💰 Pricing: The Real Model</h4>
+
+                    <strong style="display: block; margin-bottom: 1rem;">FIGSY (Lead discovery + sending — bundled, one price):</strong>
+                    <div class="price-tiers">
+                        <div class="tier">
+                            <div class="tier-label">Lean</div>
+                            <div class="tier-price">$60</div>
+                            <div class="tier-includes">20 leads + 20 sends</div>
+                        </div>
+                        <div class="tier">
+                            <div class="tier-label">Mid</div>
+                            <div class="tier-price">$120</div>
+                            <div class="tier-includes">40 leads + 40 sends</div>
+                        </div>
+                        <div class="tier">
+                            <div class="tier-label">Aggressive</div>
+                            <div class="tier-price">$300</div>
+                            <div class="tier-includes">100 leads + 100 sends</div>
+                        </div>
+                    </div>
+
+                    <strong style="display: block; margin-top: 2rem; margin-bottom: 1rem;">Agent Subscriptions (pick what you need, all MRR):</strong>
+                    <table>
+                        <tr>
+                            <th>Agent</th>
+                            <th>Price/Month</th>
+                            <th>What It Does</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Milla</strong> (optional but recommended)</td>
+                            <td>$49</td>
+                            <td>Drafts outreach, manages follow-ups, reminds you of hot leads</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vida</strong> (optional, great for websites)</td>
+                            <td>$29</td>
+                            <td>Captures inbound leads 24/7, qualifies them</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Denise</strong> (optional but recommended)</td>
+                            <td>$39</td>
+                            <td>Drafts warm follow-ups, auto-books calls</td>
+                        </tr>
+                        <tr style="background: #f0fdf4; font-weight: bold;">
+                            <td>All three (bundle)</td>
+                            <td>$117/month</td>
+                            <td>Full automation: inbound + outreach + follow-up</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="viable">
+                    <strong>✅ Total Monthly Cost (Fully Automated):</strong>
+                    <div style="margin-top: 1rem;">
+                        <div>Lean: $60 (FIGSY) + $117 (agents) = <strong>$177/month</strong></div>
+                        <div style="margin-top: 0.5rem;">Mid: $120 (FIGSY) + $117 (agents) = <strong>$237/month</strong></div>
+                        <div style="margin-top: 0.5rem;">Aggressive: $300 (FIGSY) + $117 (agents) = <strong>$417/month</strong></div>
+                    </div>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 Baseline ROI (Month 1)</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly cost (mid-tier)</div>
+                            <div class="roi-value">$237</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Jobs needed to break even</div>
+                            <div class="roi-value">1 job @ $2k+</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Expected jobs/month (realistic)</div>
+                            <div class="roi-value">2–4</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Revenue impact (mid estimate)</div>
+                            <div class="roi-value">$4,000–8,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 17:1 to 34:1</strong> — one extra job = 8–16x payback.</p>
+                </div>
+
+                <div class="bottom-section">
+                    <h3>Why This Is Viable for Small Businesses</h3>
+                    <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                        <li><strong>Low entry cost:</strong> $177/month is manageable. One extra job covers it 8+ times over.</li>
+                        <li><strong>No double-billing:</strong> FIGSY includes leads — you're not paying $1/lead + $3/send separately.</li>
+                        <li><strong>You control the spend:</strong> Start at $60/month (20 leads), scale to $300 once you see it working.</li>
+                        <li><strong>Full automation:</strong> FIGSY finds them, Milla drafts, Denise follows up, Vida captures inbound. You just show up and close.</li>
+                        <li><strong>Predictable outcome:</strong> If you close 2+ jobs/month (realistic for on-site work), you're 10:1+ profitable month one.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHOTOGRAPHER -->
+        <div id="photographer" class="play-section">
+            <div class="play-card">
+                <h2>📸 Photographer Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Wedding · Corporate headshots · Real estate · Product/e-commerce
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>You're on shoots 3–5 days/week. You lose wedding bookings to competitors because you can't nurture "interested but not ready" couples. Corporate headshot inquiries get buried. Real estate agents book competitors instead of you.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Cost + ROI: Photographer</h3>
+
+                <div class="pricing-box">
+                    <table>
+                        <tr>
+                            <th>Tier</th>
+                            <th>FIGSY</th>
+                            <th>Agents</th>
+                            <th>Total/Month</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Lean</strong> (10 leads/mo)</td>
+                            <td>$30 (restart monthly)</td>
+                            <td>$117 (full bundle)</td>
+                            <td>$147</td>
+                        </tr>
+                        <tr style="background: #f0fdf4;">
+                            <td><strong>Recommended</strong> (40 leads/mo)</td>
+                            <td>$120</td>
+                            <td>$117 (or just Milla $49)</td>
+                            <td>$237 (or $169)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aggressive</strong> (100 leads/mo)</td>
+                            <td>$300</td>
+                            <td>$117</td>
+                            <td>$417</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Wedding Photographer @ $237/month</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Bookings/month expected</div>
+                            <div class="roi-value">2–3</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg booking (wedding)</div>
+                            <div class="roi-value">$3,500–5,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly revenue</div>
+                            <div class="roi-value">$7,000–15,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">K.I.N.D cost</div>
+                            <div class="roi-value">$237</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 29:1 to 63:1</strong> — two bookings = 30x+ payback.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ELECTRICIAN -->
+        <div id="electrician" class="play-section">
+            <div class="play-card">
+                <h2>⚡ Electrician Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential service · Commercial maintenance · Property manager contracts
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>You're in walls 40+ hours/week. You lose jobs to bigger companies with office staff who can follow up. Property managers book repeat contractors instead of calling you.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Cost + ROI: Electrician</h3>
+
+                <div class="pricing-box">
+                    <table>
+                        <tr>
+                            <th>Tier</th>
+                            <th>FIGSY</th>
+                            <th>Agents</th>
+                            <th>Total/Month</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Lean</strong> (20 leads/mo)</td>
+                            <td>$60</td>
+                            <td>$117</td>
+                            <td>$177</td>
+                        </tr>
+                        <tr style="background: #f0fdf4;">
+                            <td><strong>Recommended</strong> (40 leads/mo)</td>
+                            <td>$120</td>
+                            <td>$117</td>
+                            <td>$237</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aggressive</strong> (100 leads/mo)</td>
+                            <td>$300</td>
+                            <td>$117</td>
+                            <td>$417</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Electrician @ $237/month</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Jobs/month expected</div>
+                            <div class="roi-value">3–5</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg job value</div>
+                            <div class="roi-value">$1,500–2,500</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly revenue</div>
+                            <div class="roi-value">$4,500–12,500</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">K.I.N.D cost</div>
+                            <div class="roi-value">$237</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 19:1 to 53:1</strong> — 3 extra jobs = 19–53x payback.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PLUMBER -->
+        <div id="plumber" class="play-section">
+            <div class="play-card">
+                <h2>🚰 Plumber Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential repair · Pipe replacement · Commercial maintenance · Preventative contracts
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>Most of your business is reactive (broken pipes = emergency calls). You can't prospect for preventative work or maintenance contracts that smooth cash flow year-round.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Cost + ROI: Plumber</h3>
+
+                <div class="pricing-box">
+                    <table>
+                        <tr>
+                            <th>Tier</th>
+                            <th>FIGSY</th>
+                            <th>Agents</th>
+                            <th>Total/Month</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Lean</strong> (20 leads/mo)</td>
+                            <td>$60</td>
+                            <td>$117</td>
+                            <td>$177</td>
+                        </tr>
+                        <tr style="background: #f0fdf4;">
+                            <td><strong>Recommended</strong> (50 leads/mo)</td>
+                            <td>$150</td>
+                            <td>$117</td>
+                            <td>$267</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aggressive</strong> (100 leads/mo)</td>
+                            <td>$300</td>
+                            <td>$117</td>
+                            <td>$417</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Plumber @ $267/month (Preventative Focus)</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Inspections booked/mo</div>
+                            <div class="roi-value">12–18</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Conversion to job (30%)</div>
+                            <div class="roi-value">4–5 jobs</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg job (pipe replacement)</div>
+                            <div class="roi-value">$2,500–4,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly revenue</div>
+                            <div class="roi-value">$10,000–20,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 37:1 to 75:1</strong> — inspection → replacement model = highest LTV.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- HVAC -->
+        <div id="hvac" class="play-section">
+            <div class="play-card">
+                <h2>❄️ HVAC Technician Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential service · Maintenance contracts · New installation · Commercial
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>Revenue is seasonal (summer AC, winter heat). You can't build maintenance contracts that smooth revenue year-round. You're reactive to emergencies instead of proactive with tune-ups.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Cost + ROI: HVAC Tech</h3>
+
+                <div class="pricing-box">
+                    <table>
+                        <tr>
+                            <th>Tier</th>
+                            <th>FIGSY</th>
+                            <th>Agents</th>
+                            <th>Total/Month</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Lean</strong> (20 leads/mo)</td>
+                            <td>$60</td>
+                            <td>$117</td>
+                            <td>$177</td>
+                        </tr>
+                        <tr style="background: #f0fdf4;">
+                            <td><strong>Recommended</strong> (50 leads/mo)</td>
+                            <td>$150</td>
+                            <td>$117</td>
+                            <td>$267</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aggressive</strong> (100 leads/mo)</td>
+                            <td>$300</td>
+                            <td>$117</td>
+                            <td>$417</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: HVAC Tech @ $267/month (Maintenance Model)</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Checks booked/mo</div>
+                            <div class="roi-value">15–20</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Maintenance contracts signed</div>
+                            <div class="roi-value">5–8</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Contract value (annual)</div>
+                            <div class="roi-value">$300–600 each</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">ARR from one month leads</div>
+                            <div class="roi-value">$1,500–4,800</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 6:1 month 1, then 10:1+ recurring.</strong> Maintenance contracts = lifetime value.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOCKSMITH -->
+        <div id="locksmith" class="play-section">
+            <div class="play-card">
+                <h2>🔐 Locksmith Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Property manager contracts · Access control · New construction · Residential lockouts
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>Most business is emergency lockouts (reactive). You can't reach property managers for maintenance contracts or new-build opportunities before competitors do.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Cost + ROI: Locksmith</h3>
+
+                <div class="pricing-box">
+                    <table>
+                        <tr>
+                            <th>Tier</th>
+                            <th>FIGSY</th>
+                            <th>Agents</th>
+                            <th>Total/Month</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Lean</strong> (15 leads/mo, B2B only)</td>
+                            <td>$45</td>
+                            <td>$49 (Milla + Denise)</td>
+                            <td>$94</td>
+                        </tr>
+                        <tr style="background: #f0fdf4;">
+                            <td><strong>Recommended</strong> (30 leads/mo)</td>
+                            <td>$90</td>
+                            <td>$117</td>
+                            <td>$207</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aggressive</strong> (60 leads/mo)</td>
+                            <td>$180</td>
+                            <td>$117</td>
+                            <td>$297</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Locksmith @ $207/month (B2B Focus)</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Audits booked/mo</div>
+                            <div class="roi-value">4–6</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">B2B contracts signed</div>
+                            <div class="roi-value">2–3</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Contract value (annual)</div>
+                            <div class="roi-value">$2,000–5,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">ARR from one month</div>
+                            <div class="roi-value">$4,000–15,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 19:1 to 72:1</strong> — B2B contracts = high margin recurring.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- LANDSCAPER -->
+        <div id="landscaper" class="play-section">
+            <div class="play-card">
+                <h2>🌱 Landscaper Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Residential lawn care · HOA contracts · Commercial grounds · Seasonal projects
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>Revenue is seasonal (spring boom, winter ghost town). You can't reach enough homeowners in off-season. You lose contracts to competitors with better follow-up.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Cost + ROI: Landscaper</h3>
+
+                <div class="pricing-box">
+                    <table>
+                        <tr>
+                            <th>Tier</th>
+                            <th>FIGSY</th>
+                            <th>Agents</th>
+                            <th>Total/Month</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Lean</strong> (30 leads/mo)</td>
+                            <td>$90</td>
+                            <td>$117</td>
+                            <td>$207</td>
+                        </tr>
+                        <tr style="background: #f0fdf4;">
+                            <td><strong>Recommended</strong> (60 leads/mo)</td>
+                            <td>$180</td>
+                            <td>$117</td>
+                            <td>$297</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aggressive</strong> (100 leads/mo)</td>
+                            <td>$300</td>
+                            <td>$117</td>
+                            <td>$417</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: Landscaper @ $297/month</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Estimates/month</div>
+                            <div class="roi-value">15–20</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Projects closed</div>
+                            <div class="roi-value">8–10</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg project (spring)</div>
+                            <div class="roi-value">$1,500–2,500</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly revenue</div>
+                            <div class="roi-value">$12,000–25,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 40:1 to 84:1</strong> — seasonal volume play = massive payback.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTRACTOR -->
+        <div id="contractor" class="play-section">
+            <div class="play-card">
+                <h2>🏗️ General Contractor Play</h2>
+
+                <div class="highlight-trade">
+                    <strong>Segments:</strong> Home renovation · Remodeling · Property flipping · Commercial builds
+                </div>
+
+                <div class="problem">
+                    <h3>The Problem</h3>
+                    <p>You're constantly booked but can't plan ahead. Pipeline is unpredictable. You lose jobs to competitors with better systems. Seasonal downturns kill cash flow.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Cost + ROI: General Contractor</h3>
+
+                <div class="pricing-box">
+                    <table>
+                        <tr>
+                            <th>Tier</th>
+                            <th>FIGSY</th>
+                            <th>Agents</th>
+                            <th>Total/Month</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Lean</strong> (20 leads/mo)</td>
+                            <td>$60</td>
+                            <td>$117</td>
+                            <td>$177</td>
+                        </tr>
+                        <tr style="background: #f0fdf4;">
+                            <td><strong>Recommended</strong> (50 leads/mo)</td>
+                            <td>$150</td>
+                            <td>$117</td>
+                            <td>$267</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Aggressive</strong> (100 leads/mo)</td>
+                            <td>$300</td>
+                            <td>$117</td>
+                            <td>$417</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="roi-box">
+                    <h4>💰 ROI: General Contractor @ $267/month</h4>
+                    <div class="roi-calc">
+                        <div class="roi-item">
+                            <div class="roi-label">Audits booked/mo</div>
+                            <div class="roi-value">10–12</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Projects closed</div>
+                            <div class="roi-value">3–4</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Avg project</div>
+                            <div class="roi-value">$5,000–10,000</div>
+                        </div>
+                        <div class="roi-item">
+                            <div class="roi-label">Monthly revenue</div>
+                            <div class="roi-value">$15,000–40,000</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; opacity: 0.95;"><strong>ROI: 56:1 to 150:1</strong> — renovation projects = highest-LTV game.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showPlay(playId) {
+            const sections = document.querySelectorAll('.play-section');
+            sections.forEach(section => section.classList.remove('active'));
+            document.getElementById(playId).classList.add('active');
+
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>

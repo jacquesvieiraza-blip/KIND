@@ -80,32 +80,27 @@ async function getAnalyticsData(statusFilter?: string) {
       clientMap[c.id] = c.company_name ?? c.id
     }
 
-    // Try to get enrolment and email counts from separate tables; fall back to 0
+    // Enrolment + email counts live in separate tables. supabase-js RETURNS an
+    // error (it does not throw) when a table is missing — so we must read the
+    // `error` field, not rely on try/catch. We track availability explicitly so
+    // the UI can show "not tracked" instead of a misleading 0.
     let enrolmentMap: Record<string, number> = {}
     let emailsSentMap: Record<string, number> = {}
 
-    try {
-      const { data: enrolments } = await supabase
-        .from('figsy_enrolments')
-        .select('campaign_id, client_id')
-      for (const row of (enrolments ?? []) as EnrolmentRow[]) {
-        const key = row.campaign_id
-        enrolmentMap[key] = (enrolmentMap[key] ?? 0) + 1
-      }
-    } catch {
-      // table may not exist yet
+    const enrolmentsRes = await supabase
+      .from('figsy_enrolments')
+      .select('campaign_id, client_id')
+    const enrolmentsAvailable = !enrolmentsRes.error
+    for (const row of (enrolmentsRes.data ?? []) as EnrolmentRow[]) {
+      enrolmentMap[row.campaign_id] = (enrolmentMap[row.campaign_id] ?? 0) + 1
     }
 
-    try {
-      const { data: emailsSent } = await supabase
-        .from('figsy_emails_sent')
-        .select('campaign_id, client_id')
-      for (const row of (emailsSent ?? []) as EmailSentRow[]) {
-        const key = row.campaign_id
-        emailsSentMap[key] = (emailsSentMap[key] ?? 0) + 1
-      }
-    } catch {
-      // table may not exist yet
+    const emailsSentRes = await supabase
+      .from('figsy_emails_sent')
+      .select('campaign_id, client_id')
+    const emailsSentAvailable = !emailsSentRes.error
+    for (const row of (emailsSentRes.data ?? []) as EmailSentRow[]) {
+      emailsSentMap[row.campaign_id] = (emailsSentMap[row.campaign_id] ?? 0) + 1
     }
 
     // Build reply maps
@@ -151,9 +146,18 @@ async function getAnalyticsData(statusFilter?: string) {
     }
     totals.reply_rate = totals.emails_sent > 0 ? (totals.replies / totals.emails_sent) * 100 : 0
 
-    return { stats, totals, tablesMissing: campaigns.length === 0 && campaignsResult.error != null }
+    return {
+      stats,
+      totals,
+      tablesMissing: campaigns.length === 0 && campaignsResult.error != null,
+      enrolmentsAvailable,
+      emailsSentAvailable,
+    }
   } catch {
-    return { stats: [], totals: { enrolled: 0, emails_sent: 0, replies: 0, hot_leads: 0, reply_rate: 0 }, tablesMissing: true }
+    return {
+      stats: [], totals: { enrolled: 0, emails_sent: 0, replies: 0, hot_leads: 0, reply_rate: 0 },
+      tablesMissing: true, enrolmentsAvailable: false, emailsSentAvailable: false,
+    }
   }
 }
 
@@ -173,7 +177,8 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function ReplyRateCell({ rate }: { rate: number }) {
+function ReplyRateCell({ rate, available = true }: { rate: number; available?: boolean }) {
+  if (!available) return <span className="font-semibold text-gray-300">—</span>
   const color = rate >= 3 ? 'text-emerald-600' : rate >= 1 ? 'text-amber-600' : 'text-gray-400'
   return <span className={`font-semibold ${color}`}>{rate.toFixed(1)}%</span>
 }
@@ -216,7 +221,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
     )
   }
 
-  const { stats, totals, tablesMissing } = data
+  const { stats, totals, tablesMissing, enrolmentsAvailable, emailsSentAvailable } = data
 
   const STATUS_OPTIONS = [
     { value: 'all',       label: 'All statuses' },
@@ -235,24 +240,38 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold text-gray-900">Campaign Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">FIGSY performance across all clients</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-white border border-purple-100 rounded-xl px-3 py-1.5 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-medium text-gray-500">Live data</span>
+        <div className="flex items-center gap-1.5 bg-white border border-purple-100 rounded-xl px-3 py-1.5 shadow-sm" title="Replies are live from figsy_replies. Enrolled/Emails sent depend on instrumentation tables.">
+          <span className={`w-1.5 h-1.5 rounded-full ${emailsSentAvailable ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+          <span className="text-xs font-medium text-gray-500">{emailsSentAvailable ? 'Live data' : 'Partial — send tracking off'}</span>
         </div>
       </div>
+
+      {/* Instrumentation warning — only when a tracking table is genuinely missing */}
+      {(!emailsSentAvailable || !enrolmentsAvailable) && (
+        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800 leading-relaxed">
+            <span className="font-semibold">Some metrics aren&apos;t being tracked yet.</span>{' '}
+            {!enrolmentsAvailable && <>The <code className="bg-amber-100 px-1 rounded">figsy_enrolments</code> table is unavailable, so <b>enrolled</b> shows as not tracked. </>}
+            {!emailsSentAvailable && <>The <code className="bg-amber-100 px-1 rounded">figsy_emails_sent</code> table is unavailable, so <b>emails sent</b> and <b>reply rate</b> can&apos;t be computed. </>}
+            These read as &ldquo;—&rdquo; rather than a misleading 0.
+          </p>
+        </div>
+      )}
 
       {/* Summary stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Contacts enrolled', value: totals.enrolled.toLocaleString(), icon: <TrendingUp className="w-5 h-5" />, color: 'bg-purple-50 text-[#7C3AED]' },
-          { label: 'Emails sent', value: totals.emails_sent.toLocaleString(), icon: <Mail className="w-5 h-5" />, color: 'bg-blue-50 text-blue-600' },
-          { label: 'Replies', value: totals.replies.toLocaleString(), icon: <MessageSquare className="w-5 h-5" />, color: 'bg-green-50 text-green-600' },
-          { label: 'Hot leads', value: totals.hot_leads.toLocaleString(), icon: <Flame className="w-5 h-5" />, color: 'bg-red-50 text-red-500' },
-        ].map(({ label, value, icon, color }) => (
+          { label: 'Contacts enrolled', value: enrolmentsAvailable ? totals.enrolled.toLocaleString() : '—', tracked: enrolmentsAvailable, icon: <TrendingUp className="w-5 h-5" />, color: 'bg-purple-50 text-[#7C3AED]' },
+          { label: 'Emails sent', value: emailsSentAvailable ? totals.emails_sent.toLocaleString() : '—', tracked: emailsSentAvailable, icon: <Mail className="w-5 h-5" />, color: 'bg-blue-50 text-blue-600' },
+          { label: 'Replies', value: totals.replies.toLocaleString(), tracked: true, icon: <MessageSquare className="w-5 h-5" />, color: 'bg-green-50 text-green-600' },
+          { label: 'Hot leads', value: totals.hot_leads.toLocaleString(), tracked: true, icon: <Flame className="w-5 h-5" />, color: 'bg-red-50 text-red-500' },
+        ].map(({ label, value, tracked, icon, color }) => (
           <div key={label} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>{icon}</div>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
             <p className="text-sm text-gray-500 mt-0.5">{label}</p>
+            {!tracked && <p className="text-[10px] text-amber-500 font-medium mt-0.5 uppercase tracking-wide">not tracked yet</p>}
           </div>
         ))}
       </div>
@@ -268,7 +287,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
               href={`?status=${opt.value}`}
               className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                 statusFilter === opt.value
-                  ? 'bg-[#7C3AED] text-gray-900 border-[#7C3AED]'
+                  ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-[#7C3AED]/50 hover:text-[#7C3AED]'
               }`}
             >
@@ -313,10 +332,10 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
                   <tr key={`${row.client_id}-${row.campaign_id}`} className="hover:bg-purple-50/30 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{row.client_name}</td>
                     <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate">{row.campaign_name}</td>
-                    <td className="px-4 py-3 text-gray-700">{row.enrolled.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-700">{row.emails_sent.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-700">{enrolmentsAvailable ? row.enrolled.toLocaleString() : <span className="text-gray-300">—</span>}</td>
+                    <td className="px-4 py-3 text-gray-700">{emailsSentAvailable ? row.emails_sent.toLocaleString() : <span className="text-gray-300">—</span>}</td>
                     <td className="px-4 py-3 text-gray-700">{row.replies.toLocaleString()}</td>
-                    <td className="px-4 py-3"><ReplyRateCell rate={row.reply_rate} /></td>
+                    <td className="px-4 py-3"><ReplyRateCell rate={row.reply_rate} available={emailsSentAvailable} /></td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-1">
                         {row.hot_leads > 0 && <Flame className="w-3.5 h-3.5 text-red-400" />}
@@ -330,10 +349,10 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
                 {/* Totals row */}
                 <tr className="bg-purple-50/40 border-t-2 border-purple-100 font-semibold">
                   <td className="px-4 py-3 text-gray-900" colSpan={2}>Totals</td>
-                  <td className="px-4 py-3 text-gray-900">{totals.enrolled.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-gray-900">{totals.emails_sent.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-gray-900">{enrolmentsAvailable ? totals.enrolled.toLocaleString() : <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3 text-gray-900">{emailsSentAvailable ? totals.emails_sent.toLocaleString() : <span className="text-gray-300">—</span>}</td>
                   <td className="px-4 py-3 text-gray-900">{totals.replies.toLocaleString()}</td>
-                  <td className="px-4 py-3"><ReplyRateCell rate={totals.reply_rate} /></td>
+                  <td className="px-4 py-3"><ReplyRateCell rate={totals.reply_rate} available={emailsSentAvailable} /></td>
                   <td className="px-4 py-3 text-gray-900">
                     <span className="flex items-center gap-1">
                       {totals.hot_leads > 0 && <Flame className="w-3.5 h-3.5 text-red-400" />}

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import { PRICING, PRODUCTS } from '@kind/shared'
 import { Users, DollarSign, TrendingUp, AlertCircle, Clock, Target, CheckCircle2, XCircle, MinusCircle } from 'lucide-react'
+import { getZarPerUsd, zarToUsd, fxLabel, type FxRate } from '../lib/fx'
 
 interface ClientRow {
   id: string
@@ -65,8 +66,9 @@ async function getAdminStats() {
     return { data: counts }
   })()
 
+  const fx = await getZarPerUsd()
   const mrrZar = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_zar || 0), 0)
-  const mrrUsd = Math.round(mrrZar / 19)
+  const mrrUsd = zarToUsd(mrrZar, fx.zarPerUsd)
 
   const firstLeadByClient: Record<string, string> = {}
   for (const row of allLeads ?? []) {
@@ -101,6 +103,7 @@ async function getAdminStats() {
     totalLeads: totalLeads || 0,
     mrrZar,
     mrrUsd,
+    fx,
     avgTtfl,
     clients: clientsWithTtfl as ClientRow[],
     leadCountMap,
@@ -340,9 +343,9 @@ export default async function AdminPage() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Platform health &amp; revenue at a glance</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-white border border-purple-100 rounded-xl px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-1.5 bg-white border border-purple-100 rounded-xl px-3 py-1.5 shadow-sm" title="Stat cards + client table are live from the database. Targets below are reference figures.">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-medium text-gray-500">Live data</span>
+          <span className="text-xs font-medium text-gray-500">Live stats · {fxLabel(stats.fx)}</span>
         </div>
       </div>
 
@@ -373,6 +376,11 @@ export default async function AdminPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 pt-2">
+        <Target className="w-4 h-4 text-gray-400" />
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Goals &amp; Targets</h2>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Reference — fixed planning figures</span>
+      </div>
       <KpiTargetsSection mrrUsd={stats.mrrUsd} totalClients={stats.totalClients} />
 
       {/* Client Pipeline Health */}

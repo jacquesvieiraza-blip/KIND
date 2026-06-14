@@ -118,22 +118,30 @@ reconciled to it, and the real Stripe Price objects get re-created to match.
 
 ---
 
-## 3. The core design decision (Point 1) — APPROVE BEFORE CODING
+## 3. The core design decision (Point 1) — ✅ SIGNED OFF (Jacques, 2026-06-14)
 
-Recommended model: **one charge per lead, at delivery, from the client's active pool.**
+Model: **one lead = one charge = one wallet, decided by an explicit plan flag.**
 
-- Determine the client's mode at delivery time: FIGSY mode = has active FIGSY campaign
-  **and** FIGSY credits; otherwise Lead-Gen mode. (Cleaner long-term: an explicit
-  `clients.billing_mode` column — decide Tuesday.)
-- `enrichAndDeliverLeads()` becomes **pool-aware**: it caps delivery by the *active*
-  pool's balance and deducts from *that* pool only (atomic RPC for both pools).
-- `autoEnrollLead()` **stops charging entirely.** The FIGSY credit was already spent at
-  delivery; enrollment is the bundled outreach the client already paid for. This is what
-  removes the double-charge *and* fixes the cap bug in one move.
+- **Add `clients.plan` (`'lead_gen' | 'figsy'`)** — the single field that decides billing.
+  Not inferred from wallet contents or campaign state (both are ambiguous). The client's
+  plan is set explicitly (at signup / plan change) and billing follows it.
+- **Lead-Gen plan** → charge **$1 from the lead-gen pool** per delivered lead. FIGSY pool
+  untouched.
+- **FIGSY plan** → charge **$3 from the FIGSY pool** per delivered lead. That single $3
+  covers *both* lead discovery *and* outreach. Lead-gen pool **never touched**.
+- `enrichAndDeliverLeads()` becomes **pool-aware**: it reads `clients.plan`, caps delivery
+  by *that* plan's pool balance, and deducts from *that* pool only (atomic RPC for both).
+- `autoEnrollLead()` **stops charging entirely.** The $3 was already spent at delivery;
+  enrollment is the bundled outreach the client already paid for. This removes the
+  double-charge *and* fixes the cap bug in one move.
 
-Why this shape: it makes "1 lead = 1 charge = 1 pool" true everywhere, matches the deck,
-and keeps the existing two-pool schema. **Do not start coding §4.B until you sign off on
-this paragraph.**
+Why this shape: "1 lead = 1 charge = 1 pool" becomes true everywhere, billing is driven by
+one explicit field you control, it matches the deck word-for-word, and it keeps the
+existing two-pool schema.
+
+**Migration note:** backfill `clients.plan` for existing clients — anyone with an active
+FIGSY campaign or FIGSY credits → `'figsy'`, everyone else → `'lead_gen'`. Confirm the
+backfill rule before running it.
 
 ---
 
@@ -154,9 +162,11 @@ Work on branch `claude/cool-carson-mfebyb`. Commit per step. Do **not** merge mi
 5. Single source of truth: make the portal import bundle prices from `@kind/shared`
    instead of hardcoding, so this can never drift again.
 
-### B. Kill the double-charge + fix the bundle (the big one — needs §3 sign-off)
-6. Make `enrichAndDeliverLeads()` pool-aware (param or detected mode): cap by active
-   pool, deduct from active pool via atomic RPC. (`lead-delivery.ts:17-78`,
+### B. Kill the double-charge + fix the bundle (the big one — §3 SIGNED OFF)
+5b. Add `clients.plan` (`'lead_gen' | 'figsy'`) via migration; backfill existing clients
+    (FIGSY campaign/credits → `figsy`, else `lead_gen`) per §3.
+6. Make `enrichAndDeliverLeads()` read `clients.plan` and become pool-aware: cap by that
+   plan's pool, deduct from that pool via atomic RPC. (`lead-delivery.ts:17-78`,
    `icps.ts:150-154`.)
 7. Remove the credit deduction from `autoEnrollLead()` (`figsy.ts:907-925`) — enrollment
    no longer charges; the delivery charge already covered it.
@@ -231,7 +241,8 @@ Keep `AUTO_OUTREACH_ENABLED=false` for the first pass (no real emails). Use a te
 
 ## 7. Merge checklist (all must be ✅)
 
-- [ ] §3 design signed off by Jacques
+- [x] §3 design signed off by Jacques (explicit `clients.plan` flag — 2026-06-14)
+- [ ] `clients.plan` migration + backfill done and verified
 - [ ] One canonical price table; constants == stripe.ts == portal == real Stripe Prices
 - [ ] Double-charge gone (smoke test 3 shows single pool, single row)
 - [ ] FIGSY-only client receives leads (bundle works)

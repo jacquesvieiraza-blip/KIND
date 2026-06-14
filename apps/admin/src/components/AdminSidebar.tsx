@@ -11,7 +11,10 @@ import {
   Handshake, GitMerge, Pin,
 } from 'lucide-react'
 
-type Item = { href: string; label: string; icon: React.ElementType; ref?: boolean }
+// NOTE: do not name this `ref` — React reserves `ref`, and since the items are
+// spread onto <Row> with {...it}, a `ref` field gets hijacked as a real ref and
+// crashes the whole app (strict-mode `true.current = …`). Use `isRef`.
+type Item = { href: string; label: string; icon: React.ElementType; isRef?: boolean }
 type Section = { label: string; items: Item[] }
 
 const SECTIONS: Section[] = [
@@ -39,7 +42,7 @@ const SECTIONS: Section[] = [
   {
     label: 'Product',
     items: [
-      { href: '/health',     label: 'Health',      icon: Activity,  ref: true },
+      { href: '/health',     label: 'Health',      icon: Activity,  isRef: true },
       { href: '/data-moat',  label: 'Data Moat',   icon: Database },
     ],
   },
@@ -55,11 +58,11 @@ const SECTIONS: Section[] = [
   {
     label: 'Reference',
     items: [
-      { href: '/roadmap',     label: 'Roadmap',     icon: Map,          ref: true },
-      { href: '/smoketest',   label: 'Smoke Test',  icon: FlaskConical, ref: true },
-      { href: '/playbook',    label: 'Playbook',    icon: BookOpen,     ref: true },
-      { href: '/compliance',  label: 'Compliance',  icon: ShieldCheck,  ref: true },
-      { href: '/launch',      label: 'Launch',      icon: Rocket,       ref: true },
+      { href: '/roadmap',     label: 'Roadmap',     icon: Map,          isRef: true },
+      { href: '/smoketest',   label: 'Smoke Test',  icon: FlaskConical, isRef: true },
+      { href: '/playbook',    label: 'Playbook',    icon: BookOpen,     isRef: true },
+      { href: '/compliance',  label: 'Compliance',  icon: ShieldCheck,  isRef: true },
+      { href: '/launch',      label: 'Launch',      icon: Rocket,       isRef: true },
     ],
   },
 ]
@@ -71,7 +74,7 @@ export function AdminSidebar() {
   const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'
   const labelCls = pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
 
-  function Row({ href, label, icon: Icon, ref: isRef }: Item) {
+  function Row({ href, label, icon: Icon, isRef }: Item) {
     const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/')
     return (
       <Link href={href}

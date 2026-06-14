@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agent Shots — Preview</title>
+<style>
+  :root {
+    --dark: #1e1152;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #eef0f4;
+    --bg: #f6f5fb;
+    /* agent accents */
+    --figsy: #ec4899;  --figsy-soft: #fdf2f8;  --figsy-deep: #be185d;
+    --milla: #7c3aed;  --milla-soft: #f5f3ff;  --milla-deep: #5b21b6;
+    --vida:  #0ea5e9;  --vida-soft:  #f0f9ff;  --vida-deep:  #0369a1;
+    --denise:#f59e0b;  --denise-soft:#fffbeb;  --denise-deep:#b45309;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif; background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; padding: 48px 20px 80px; }
+  .wrap { max-width: 1080px; margin: 0 auto; text-align: center; }
+  .s-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--milla); margin-bottom: 14px; }
+  .s-title { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 6px; color: var(--dark); }
+  .s-note { font-size: .85rem; color: var(--muted); margin-bottom: 26px; }
+
+  .sc-pills { display: inline-flex; flex-wrap: wrap; gap: 8px; justify-content: center; background: rgba(124,58,237,0.05); border: 1px solid rgba(124,58,237,0.12); padding: 7px; border-radius: 100px; margin: 8px 0 30px; }
+  .sc-pill { display: inline-flex; align-items: center; gap: 9px; font-size: 0.85rem; font-weight: 700; color: rgba(0,0,0,0.55); background: transparent; border: none; padding: 9px 18px; border-radius: 100px; cursor: pointer; transition: all .2s; }
+  .sc-pill .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .sc-pill.on { background: #fff; color: var(--dark); box-shadow: 0 4px 14px rgba(30,17,82,0.12); }
+
+  .sc-stage { position: relative; max-width: 940px; margin: 0 auto; border-radius: 22px; overflow: hidden; box-shadow: 0 36px 80px rgba(30,17,82,0.18); background: #fff; }
+  .sc-shot { display: none; }
+  .sc-shot.on { display: block; animation: scfade .45s ease; }
+  @keyframes scfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* ---- generic app frame ---- */
+  .app { background: #fff; text-align: left; height: 588px; display: flex; flex-direction: column; }
+  .app-bar { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--line); }
+  .ab-avatar { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: .9rem; flex-shrink: 0; }
+  .ab-name { font-weight: 800; font-size: .95rem; color: var(--dark); }
+  .ab-role { font-size: .72rem; color: var(--muted); font-weight: 600; }
+  .ab-status { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-size: .72rem; font-weight: 700; padding: 6px 12px; border-radius: 100px; }
+  .live { width: 7px; height: 7px; border-radius: 50%; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .ab-meta { margin-left: auto; font-size: .72rem; color: var(--muted); font-weight: 600; }
+  .app-body { flex: 1; padding: 18px 22px; overflow: hidden; }
+
+  /* chips */
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: .68rem; font-weight: 700; padding: 4px 9px; border-radius: 7px; }
+
+  /* ---- FIGSY: lead table ---- */
+  .fg-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .fg-tabs { display: inline-flex; gap: 4px; background: #f8f8fb; padding: 4px; border-radius: 9px; }
+  .fg-tab { font-size: .74rem; font-weight: 700; color: var(--muted); padding: 6px 12px; border-radius: 6px; }
+  .fg-tab.on { background: #fff; color: var(--figsy-deep); box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+  .fg-search { margin-left: auto; font-size: .74rem; color: #9ca3af; background: #f8f8fb; border: 1px solid var(--line); padding: 7px 14px; border-radius: 8px; }
+  .fg-sort { font-size: .74rem; font-weight: 700; color: var(--figsy-deep); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-size: .64rem; text-transform: uppercase; letter-spacing: .07em; color: #9ca3af; font-weight: 700; text-align: left; padding: 0 8px 10px; }
+  thead th.r { text-align: right; }
+  tbody tr { border-top: 1px solid var(--line); }
+  tbody td { padding: 11px 8px; vertical-align: middle; }
+  .lead { display: flex; align-items: center; gap: 11px; }
+  .lead-av { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: .72rem; flex-shrink: 0; }
+  .lead-name { font-weight: 700; font-size: .85rem; color: var(--ink); }
+  .lead-co { font-size: .72rem; color: var(--muted); }
+  .score-cell { text-align: right; }
+  .score-wrap { display: inline-flex; align-items: center; gap: 9px; }
+  .score-bar { width: 54px; height: 6px; border-radius: 100px; background: #f0eef5; overflow: hidden; }
+  .score-bar i { display: block; height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--figsy), var(--figsy-deep)); }
+  .score-num { font-weight: 800; font-size: .82rem; width: 26px; text-align: right; }
+  .fg-foot { display: flex; align-items: center; gap: 10px; padding: 13px 22px; border-top: 1px solid var(--line); background: var(--figsy-soft); font-size: .74rem; color: var(--figsy-deep); font-weight: 700; }
+
+  /* ---- MILLA: dashboard ---- */
+  .ml-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+  .ml-stat { border: 1px solid var(--line); border-radius: 13px; padding: 14px 16px; }
+  .ml-stat .k { font-size: .68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .ml-stat .v { font-size: 1.7rem; font-weight: 800; color: var(--dark); line-height: 1.2; }
+  .ml-stat .d { font-size: .7rem; font-weight: 700; }
+  .up { color: #16a34a; } .down { color: #dc2626; }
+  .ml-chart { border: 1px solid var(--line); border-radius: 13px; padding: 16px 18px; }
+  .ml-chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .ml-chart-title { font-size: .8rem; font-weight: 800; color: var(--dark); }
+  .ml-legend { font-size: .68rem; color: var(--muted); font-weight: 600; display: inline-flex; gap: 14px; }
+  .ml-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .lg-dot { width: 9px; height: 9px; border-radius: 3px; }
+  .bars { display: flex; align-items: flex-end; gap: 16px; height: 150px; padding-top: 6px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; max-width: 46px; border-radius: 8px 8px 4px 4px; background: linear-gradient(180deg, var(--milla), #c4b5fd); position: relative; }
+  .bar.peak { background: linear-gradient(180deg, var(--milla-deep), var(--milla)); }
+  .bar-val { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: .66rem; font-weight: 800; color: var(--milla-deep); }
+  .bar-day { font-size: .68rem; color: var(--muted); font-weight: 600; }
+
+  /* ---- VIDA: chat ---- */
+  .vd-body { display: flex; flex-direction: column; height: 100%; }
+  .vd-thread { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 6px 4px; overflow: hidden; }
+  .msg { max-width: 74%; font-size: .84rem; line-height: 1.45; padding: 11px 15px; border-radius: 15px; }
+  .msg.them { align-self: flex-start; background: #f4f5f8; color: var(--ink); border-bottom-left-radius: 5px; }
+  .msg.us { align-self: flex-end; background: linear-gradient(135deg, var(--vida), var(--vida-deep)); color: #fff; border-bottom-right-radius: 5px; }
+  .vd-sysnote { align-self: center; display: inline-flex; align-items: center; gap: 7px; font-size: .7rem; font-weight: 700; color: var(--vida-deep); background: var(--vida-soft); border: 1px solid #e0f2fe; padding: 6px 13px; border-radius: 100px; }
+  .vd-cta { align-self: flex-end; display: inline-flex; align-items: center; gap: 7px; background: #fff; color: var(--vida-deep); border: 1.5px solid var(--vida); font-weight: 800; font-size: .8rem; padding: 9px 16px; border-radius: 11px; }
+  .vd-input { display: flex; align-items: center; gap: 10px; margin-top: 14px; border: 1px solid var(--line); border-radius: 13px; padding: 11px 14px; }
+  .vd-input span { flex: 1; font-size: .82rem; color: #9ca3af; }
+  .vd-send { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--vida), var(--vida-deep)); display: grid; place-items: center; color: #fff; font-weight: 800; }
+
+  /* ---- DENISE: email ---- */
+  .dn-body { display: flex; gap: 18px; height: 100%; }
+  .dn-rail { width: 188px; flex-shrink: 0; border-right: 1px solid var(--line); padding-right: 16px; }
+  .dn-rail-title { font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; font-weight: 700; margin-bottom: 14px; }
+  .dn-step { display: flex; gap: 11px; padding-bottom: 18px; position: relative; }
+  .dn-step:not(:last-child)::before { content: ''; position: absolute; left: 9px; top: 22px; bottom: 0; width: 2px; background: var(--line); }
+  .dn-dot { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: .6rem; font-weight: 800; flex-shrink: 0; z-index: 1; }
+  .dn-dot.done { background: #dcfce7; color: #16a34a; }
+  .dn-dot.now { background: var(--denise); color: #fff; box-shadow: 0 0 0 4px var(--denise-soft); }
+  .dn-dot.queued { background: #f1f1f4; color: #9ca3af; }
+  .dn-step .t { font-size: .78rem; font-weight: 700; color: var(--ink); }
+  .dn-step .s { font-size: .68rem; color: var(--muted); }
+  .dn-mail { flex: 1; display: flex; flex-direction: column; }
+  .dn-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: .82rem; }
+  .dn-row .lbl { color: #9ca3af; font-weight: 700; width: 56px; }
+  .dn-row .val { font-weight: 600; color: var(--ink); }
+  .dn-text { flex: 1; padding: 16px 2px; font-size: .85rem; line-height: 1.6; color: var(--ink); }
+  .dn-foot { display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .dn-by { font-size: .72rem; color: var(--muted); font-weight: 600; }
+  .dn-send { margin-left: auto; background: linear-gradient(135deg, var(--denise), var(--denise-deep)); color: #fff; font-weight: 800; font-size: .8rem; padding: 10px 20px; border-radius: 10px; }
+
+  .sc-caption { font-size: 0.9rem; color: rgba(0,0,0,0.45); margin-top: 22px; }
+  .sc-caption b { color: var(--dark); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="s-label">SEE THEM WORK</div>
+  <div class="s-title">An agent for every job.</div>
+  <div class="s-note">Preview · live HTML/CSS rebuild of the four agent shots (no flat PNGs)</div>
+
+  <div class="sc-pills" id="sc-pills">
+    <button class="sc-pill on" data-shot="figsy"><span class="dot" style="background:var(--figsy)"></span><span>FIGSY</span></button>
+    <button class="sc-pill" data-shot="milla"><span class="dot" style="background:var(--milla)"></span><span>Milla</span></button>
+    <button class="sc-pill" data-shot="vida"><span class="dot" style="background:var(--vida)"></span><span>Vida</span></button>
+    <button class="sc-pill" data-shot="denise"><span class="dot" style="background:var(--denise)"></span><span>Denise</span></button>
+  </div>
+
+  <div class="sc-stage">
+
+    <!-- FIGSY -->
+    <div class="sc-shot on" data-shot="figsy">
+      <div class="app">
+        <div class="app-bar">
+          <div class="ab-avatar" style="background:linear-gradient(135deg,var(--figsy),var(--figsy-deep))">F</div>
+          <div><div class="ab-name">FIGSY</div><div class="ab-role">The Opener · AI SDR</div></div>
+          <div class="ab-status" style="background:var(--figsy-soft);color:var(--figsy-deep)"><span class="live" style="background:var(--figsy)"></span>Scoring live</div>
+        </div>
+        <div class="app-body">
+          <div class="fg-toolbar">
+            <div class="fg-tabs">
+              <span class="fg-tab on">All leads</span>
+              <span class="fg-tab">New</span>
+              <span class="fg-tab">Replied</span>
+            </div>
+            <span class="fg-search">Search 247 leads…</span>
+            <span class="fg-sort">Score ↓</span>
+          </div>
+          <table>
+            <thead><tr><th>Name</th><th>Stage</th><th>Last touch</th><th class="r">Score</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><div class="lead"><div class="lead-av" style="background:#fce7f3;color:#be185d">SM</div><div><div class="lead-name">Sarah Mensah</div><div class="lead-co">Paystack · Lagos</div></div></div></td>
+                <td><span class="chip" style="background:#dcfce7;color:#16a34a">● Booked</span></td>
+                <td style="font-size:.74rem;color:var(--muted)">2m ago</td>
+                <td class="score-cell"><div class="score-wrap"><div class="score-bar"><i style="width:94%"></i></div><span class="score-num">94</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="lead"><div class="lead-av" style="background:#ede9fe;color:#6d28d9">DO</div><div><div class="lead-name">David Okonkwo</div><div class="lead-co">Flutterwave · Lagos</div></div></div></td>
+                <td><span class="chip" style="background:#dbeafe;color:#2563eb">● Replied</span></td>
+                <td style="font-size:.74rem;color:var(--muted)">14m ago</td>
+                <td class="score-cell"><div class="score-wrap"><div class="score-bar"><i style="width:91%"></i></div><span class="score-num">91</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="lead"><div class="lead-av" style="background:#fef3c7;color:#b45309">TN</div><div><div class="lead-name">Thabo Nkosi</div><div class="lead-co">Takealot · Cape Town</div></div></div></td>
+                <td><span class="chip" style="background:#dbeafe;color:#2563eb">● Replied</span></td>
+                <td style="font-size:.74rem;color:var(--muted)">38m ago</td>
+                <td class="score-cell"><div class="score-wrap"><div class="score-bar"><i style="width:88%"></i></div><span class="score-num">88</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="lead"><div class="lead-av" style="background:#fce7f3;color:#be185d">AD</div><div><div class="lead-name">Amara Diallo</div><div class="lead-co">Andela · Nairobi</div></div></div></td>
+                <td><span class="chip" style="background:#f3f4f6;color:#6b7280">● Sequenced</span></td>
+                <td style="font-size:.74rem;color:var(--muted)">1h ago</td>
+                <td class="score-cell"><div class="score-wrap"><div class="score-bar"><i style="width:86%"></i></div><span class="score-num">86</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="lead"><div class="lead-av" style="background:#dbeafe;color:#1d4ed8">ZD</div><div><div class="lead-name">Zanele Dube</div><div class="lead-co">Jumia Group · Lagos</div></div></div></td>
+                <td><span class="chip" style="background:#f3f4f6;color:#6b7280">● Sequenced</span></td>
+                <td style="font-size:.74rem;color:var(--muted)">2h ago</td>
+                <td class="score-cell"><div class="score-wrap"><div class="score-bar"><i style="width:83%"></i></div><span class="score-num">83</span></div></td>
+              </tr>
+              <tr>
+                <td><div class="lead"><div class="lead-av" style="background:#fef3c7;color:#b45309">KO</div><div><div class="lead-name">Kwame Osei</div><div class="lead-co">M-KOPA · Accra</div></div></div></td>
+                <td><span class="chip" style="background:#f3f4f6;color:#6b7280">● Sequenced</span></td>
+                <td style="font-size:.74rem;color:var(--muted)">3h ago</td>
+                <td class="score-cell"><div class="score-wrap"><div class="score-bar"><i style="width:79%"></i></div><span class="score-num">79</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fg-foot"><span class="live" style="background:var(--figsy)"></span>FIGSY scored 247 leads overnight · 5 booked meetings while you slept</div>
+      </div>
+    </div>
+
+    <!-- MILLA -->
+    <div class="sc-shot" data-shot="milla">
+      <div class="app">
+        <div class="app-bar">
+          <div class="ab-avatar" style="background:linear-gradient(135deg,var(--milla),var(--milla-deep))">M</div>
+          <div><div class="ab-name">Milla</div><div class="ab-role">The Brain · Business Intelligence</div></div>
+          <div class="ab-status" style="background:var(--milla-soft);color:var(--milla-deep)">This week ▾</div>
+        </div>
+        <div class="app-body">
+          <div class="ml-stats">
+            <div class="ml-stat"><div class="k">Reply rate</div><div class="v">24%</div><div class="d up">▲ 6 pts vs last week</div></div>
+            <div class="ml-stat"><div class="k">Contacted</div><div class="v">312</div><div class="d up">▲ 48 this week</div></div>
+            <div class="ml-stat"><div class="k">Meetings booked</div><div class="v">18</div><div class="d up">▲ 5 vs last week</div></div>
+          </div>
+          <div class="ml-chart">
+            <div class="ml-chart-head">
+              <div class="ml-chart-title">Replies by day</div>
+              <div class="ml-legend"><span><span class="lg-dot" style="background:var(--milla)"></span>Replies</span><span><span class="lg-dot" style="background:#c4b5fd"></span>Contacted</span></div>
+            </div>
+            <div class="bars">
+              <div class="bar-col"><div class="bar" style="height:42%"><span class="bar-val">9</span></div><span class="bar-day">Mon</span></div>
+              <div class="bar-col"><div class="bar" style="height:58%"><span class="bar-val">13</span></div><span class="bar-day">Tue</span></div>
+              <div class="bar-col"><div class="bar" style="height:36%"><span class="bar-val">7</span></div><span class="bar-day">Wed</span></div>
+              <div class="bar-col"><div class="bar peak" style="height:88%"><span class="bar-val">21</span></div><span class="bar-day">Thu</span></div>
+              <div class="bar-col"><div class="bar" style="height:64%"><span class="bar-val">15</span></div><span class="bar-day">Fri</span></div>
+              <div class="bar-col"><div class="bar" style="height:50%"><span class="bar-val">11</span></div><span class="bar-day">Sat</span></div>
+              <div class="bar-col"><div class="bar" style="height:30%"><span class="bar-val">6</span></div><span class="bar-day">Sun</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDA -->
+    <div class="sc-shot" data-shot="vida">
+      <div class="app">
+        <div class="app-bar">
+          <div class="ab-avatar" style="background:linear-gradient(135deg,var(--vida),var(--vida-deep))">V</div>
+          <div><div class="ab-name">Vida</div><div class="ab-role">The Connector · Web &amp; WhatsApp</div></div>
+          <div class="ab-status" style="background:var(--vida-soft);color:var(--vida-deep)"><span class="live" style="background:#22c55e"></span>Online · get-kind.com</div>
+        </div>
+        <div class="app-body vd-body">
+          <div class="vd-thread">
+            <div class="msg them">Hi! Do you work with logistics teams in Lagos?</div>
+            <div class="msg us">Absolutely — we book qualified meetings for logistics teams automatically. Want me to set one up?</div>
+            <div class="msg them">Yes please 🙌</div>
+            <div class="vd-sysnote">✓ Lead qualified · pushed to CRM · Sarah notified</div>
+            <div class="vd-cta">📅 Book a 20-min intro →</div>
+          </div>
+          <div class="vd-input"><span>Type a message…</span><div class="vd-send">↑</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DENISE -->
+    <div class="sc-shot" data-shot="denise">
+      <div class="app">
+        <div class="app-bar">
+          <div class="ab-avatar" style="background:linear-gradient(135deg,var(--denise),var(--denise-deep))">D</div>
+          <div><div class="ab-name">Denise</div><div class="ab-role">The Closer · AI Account Executive</div></div>
+          <div class="ab-status" style="background:var(--denise-soft);color:var(--denise-deep)"><span class="live" style="background:var(--denise)"></span>Follow-up · Day 3</div>
+        </div>
+        <div class="app-body dn-body">
+          <div class="dn-rail">
+            <div class="dn-rail-title">Sequence</div>
+            <div class="dn-step"><div class="dn-dot done">✓</div><div><div class="t">Day 1 · Intro</div><div class="s">Opened twice</div></div></div>
+            <div class="dn-step"><div class="dn-dot done">✓</div><div><div class="t">Day 2 · Value</div><div class="s">Opened</div></div></div>
+            <div class="dn-step"><div class="dn-dot now">3</div><div><div class="t">Day 3 · Nudge</div><div class="s">Sending now</div></div></div>
+            <div class="dn-step"><div class="dn-dot queued">7</div><div><div class="t">Day 7 · Break-up</div><div class="s">Queued</div></div></div>
+          </div>
+          <div class="dn-mail">
+            <div class="dn-row"><span class="lbl">To</span><span class="val">amara@andela.com</span></div>
+            <div class="dn-row"><span class="lbl">Subject</span><span class="val">Re: Andela's Q3 pipeline</span></div>
+            <div class="dn-text">Hi Amara,<br><br>Circling back — most teams your size see the first booked call inside a week. Worth a quick look?<br><br>I can keep this short: 15 minutes, your numbers, no slides.</div>
+            <div class="dn-foot">
+              <span class="dn-by">✍️ Drafted &amp; closed by Denise</span>
+              <span class="dn-send">Send →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="sc-caption">One family, one shared memory — <b>tap an agent to see the work it does for you.</b></p>
+</div>
+
+<script>
+(function(){
+  var pills = document.querySelectorAll('#sc-pills .sc-pill');
+  var shots = document.querySelectorAll('.sc-stage .sc-shot');
+  pills.forEach(function(p){
+    p.addEventListener('click', function(){
+      var key = p.getAttribute('data-shot');
+      pills.forEach(function(x){ x.classList.toggle('on', x===p); });
+      shots.forEach(function(s){ s.classList.toggle('on', s.getAttribute('data-shot')===key); });
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -83,7 +83,7 @@
 
 | Window | 🧍 YOUR actions (founder) | 🤖 MY actions (Claude) |
 |--------|--------------------------|------------------------|
-| **This weekend (Sat 13–Sun 14)** | ✉️ Apollo email · 🔑 hunter + PDL keys · ⚖️ legal pack #10–14 · 📡 D9 10/10 | Finish the design-review walk with you (one preview at a time) · keep all 3 docs aligned · build the locked redesigns **only on branch** (no push to prod) |
+| **SUN 14 (today)** | ⏰ **DEADLINE-DRIVEN:** ✉️ email `partners@apollo.io` (reseller agreement, ~1 wk lead) · 🔑 hunter.io + peopledatalabs signup · 🏛️ ICO registration (£40, ico.org.uk, this week) · 🔍 trademark search (5–7 days before filing) · 📲 Meta/WhatsApp API application (3–7 day window) · ⚖️ legal pack #10–14 (SR01, registered office, WHOIS, LinkedIn lockdown) · 📡 **D9 deliverability 10/10** (DELIVERABILITY-D9-CHECKLIST to GlockApps) | — |
 | **Mon 15** | 🏢 Ship Command Centre → prod (merge · schema · redeploy · test · $39 Denise price · `company` flag) | 🤝 Stripe→pool billing lands · fix any smoke/test failures same-day |
 | **Tue 16** | (light) review Tue builds when ready | 📅 **113a agent side-panel** — make all 5 agents (FIGSY/Milla/Vida/Denise/**Casey**) conversational + acts-in-place; build Denise + Casey chat endpoints; wire Casey into the panel picker |
 | **Wed 17–Thu 18** | 🧪 smoke tests T3–T7, T9, T10 · 🚦 **Go/No-Go Thu 18** | build the locked redesigns (inbox-v2 · agents "AI Family" · sequence-builder recolor) + invoicing 136a scaffold · fix smoke failures |

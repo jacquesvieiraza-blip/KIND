@@ -1035,11 +1035,46 @@
     /* WHY KIND PILLARS */
     .why-kind { padding: 80px 48px; }
     .why-kind-inner { max-width: 1080px; margin: 0 auto; }
-    .wk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 48px; }
-    .wk-card { background: var(--light); border-radius: 20px; padding: 32px 28px; }
+    .wk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
+    .wk-card { background: var(--light); border: 1px solid rgba(0,0,0,0.05); border-radius: 20px; padding: 22px 22px 26px; overflow: hidden; }
     .wk-icon { font-size: 1.4rem; margin-bottom: 16px; }
     .wk-card h3 { font-size: 0.95rem; font-weight: 800; color: var(--dark); letter-spacing: -0.01em; margin-bottom: 6px; }
     .wk-card p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
+    /* floating product fragment (replaces emoji icon) */
+    .wk-frag { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 13px; padding: 12px; margin-bottom: 20px; box-shadow: 0 10px 26px rgba(30,17,82,0.08); min-height: 104px; }
+    .wf-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; padding: 6px 4px; }
+    .wf-av { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 9px; font-weight: 800; background: rgba(124,58,237,0.12); color: #7c3aed; }
+    .wf-bars { display: flex; flex-direction: column; gap: 4px; }
+    .wf-b { height: 5px; border-radius: 3px; background: rgba(0,0,0,0.12); }
+    .wf-b.s { width: 60%; background: rgba(0,0,0,0.07); }
+    .wf-sc { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 100px; }
+    .wf-sc.hi { background: rgba(22,163,74,0.12); color: #16a34a; }
+    .wf-sc.md { background: rgba(124,58,237,0.12); color: #7c3aed; }
+    .wf-sc.lo { background: rgba(0,0,0,0.06); color: #9ca3af; }
+    .wf-line { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 11.5px; font-weight: 600; color: #3a3f52; }
+    .wf-line .dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-size: 9px; color: #fff; }
+    .wf-line .dot.done { background: #16a34a; }
+    .wf-line .dot.now { background: #7c3aed; }
+    .wf-line .dot.wait { background: #d1d5db; }
+    .wf-line i { color: #aab0bd; font-style: normal; margin-left: auto; font-size: 10.5px; font-weight: 700; }
+    .wf-subj { font-size: 11.5px; font-weight: 800; color: #15182a; padding: 3px 4px 7px; }
+    .wf-send { display: inline-block; margin-top: 4px; font-size: 10.5px; font-weight: 800; color: #fff; background: #7c3aed; padding: 5px 12px; border-radius: 8px; }
+
+    /* AGENT PRODUCT SHOWCASE (Monday-style pill swap) */
+    .showcase { padding: 30px 48px 20px; }
+    .showcase-inner { max-width: 1080px; margin: 0 auto; text-align: center; }
+    .sc-pills { display: inline-flex; flex-wrap: wrap; gap: 8px; justify-content: center; background: rgba(124,58,237,0.05); border: 1px solid rgba(124,58,237,0.12); padding: 7px; border-radius: 100px; margin: 26px 0 28px; }
+    .sc-pill { display: inline-flex; align-items: center; gap: 9px; font-size: 0.85rem; font-weight: 700; color: rgba(0,0,0,0.55); background: transparent; border: none; padding: 9px 18px; border-radius: 100px; cursor: pointer; transition: all .2s; }
+    .sc-pill img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+    .sc-pill.on { background: #fff; color: var(--dark); box-shadow: 0 4px 14px rgba(30,17,82,0.12); }
+    .sc-stage { position: relative; max-width: 940px; margin: 0 auto; border-radius: 22px; overflow: hidden; box-shadow: 0 36px 80px rgba(30,17,82,0.18); }
+    .sc-shot { display: none; width: 100%; }
+    .sc-shot.on { display: block; animation: scfade .45s ease; }
+    @keyframes scfade { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: none; } }
+    .sc-shot img { width: 100%; display: block; }
+    .sc-caption { font-size: 0.9rem; color: rgba(0,0,0,0.45); margin-top: 22px; }
+    .sc-caption b { color: var(--dark); font-weight: 700; }
+    @media (max-width: 768px) { .sc-pill span { display: none; } .showcase { padding: 24px 20px; } }
 
     /* EVERY TEAM WINS */
     .team-wins { background: #f9fafb; padding: 80px 48px; }
@@ -1458,6 +1493,40 @@
   <div class="trust-popia"><span class="live-dot"></span>POPIA Compliant &middot; Built for global teams — US, Africa &amp; beyond</div>
 </div>
 
+<!-- AGENT PRODUCT SHOWCASE — pill swap (Monday-style) -->
+<div class="showcase">
+  <div class="showcase-inner">
+    <div class="s-label">SEE THEM WORK</div>
+    <div class="s-title reveal">An agent for every job.</div>
+    <div class="sc-pills" id="sc-pills">
+      <button class="sc-pill on" data-shot="figsy"><img src="figsy.png" alt="" /><span>FIGSY</span></button>
+      <button class="sc-pill" data-shot="milla"><img src="milla.png" alt="" /><span>Milla</span></button>
+      <button class="sc-pill" data-shot="vida"><img src="vida.png" alt="" /><span>Vida</span></button>
+      <button class="sc-pill" data-shot="denise"><img src="denise.png" alt="" /><span>Denise</span></button>
+    </div>
+    <div class="sc-stage">
+      <div class="sc-shot on" data-shot="figsy"><img src="gen-home-figsy.png" alt="FIGSY — scored leads ready to work" /></div>
+      <div class="sc-shot" data-shot="milla"><img src="gen-home-milla.png" alt="Milla — your numbers, already read" /></div>
+      <div class="sc-shot" data-shot="vida"><img src="gen-home-vida.png" alt="Vida — every visitor, answered" /></div>
+      <div class="sc-shot" data-shot="denise"><img src="gen-home-denise.png" alt="Denise — follow-ups that close" /></div>
+    </div>
+    <p class="sc-caption">One family, one shared memory &mdash; <b>tap an agent to see the work it does for you.</b></p>
+  </div>
+</div>
+<script>
+(function(){
+  var pills = document.querySelectorAll('#sc-pills .sc-pill');
+  var shots = document.querySelectorAll('.sc-stage .sc-shot');
+  pills.forEach(function(p){
+    p.addEventListener('click', function(){
+      var key = p.getAttribute('data-shot');
+      pills.forEach(function(x){ x.classList.toggle('on', x===p); });
+      shots.forEach(function(s){ s.classList.toggle('on', s.getAttribute('data-shot')===key); });
+    });
+  });
+})();
+</script>
+
 <!-- HERO ATMOSPHERE BLEED -->
 <div class="hero-bleed"></div>
 
@@ -1511,22 +1580,38 @@
     <p class="s-sub reveal reveal-delay-1">Most tools address one lever. K.I.N.D runs all four &mdash; simultaneously, autonomously, 24/7.</p>
     <div class="wk-grid">
       <div class="wk-card reveal">
-        <div class="wk-icon">&#x1F3AF;</div>
+        <div class="wk-frag">
+          <div class="wf-row"><span class="wf-av">SM</span><span class="wf-bars"><span class="wf-b"></span><span class="wf-b s"></span></span><span class="wf-sc hi">94</span></div>
+          <div class="wf-row"><span class="wf-av">DO</span><span class="wf-bars"><span class="wf-b"></span><span class="wf-b s"></span></span><span class="wf-sc md">88</span></div>
+          <div class="wf-row"><span class="wf-av">TN</span><span class="wf-bars"><span class="wf-b"></span><span class="wf-b s"></span></span><span class="wf-sc lo">71</span></div>
+        </div>
         <h3>The right people, only</h3>
         <p>ICP-matched contacts scored 0&ndash;100 from 250M+ verified sources. Only decision-makers above your threshold get through.</p>
       </div>
       <div class="wk-card reveal reveal-delay-1">
-        <div class="wk-icon">&#x270D;&#xFE0F;</div>
+        <div class="wk-frag">
+          <div class="wf-subj">Re: Flutterwave&rsquo;s Q3 pipeline</div>
+          <div style="display:flex;flex-direction:column;gap:5px;padding:2px 4px 9px"><span class="wf-b"></span><span class="wf-b"></span><span class="wf-b s"></span></div>
+          <span class="wf-send">Personalised &middot; Send &rarr;</span>
+        </div>
         <h3>Every email, unique</h3>
         <p>Every email written by Claude &mdash; unique per lead, personalised per context. No templates. No spray-and-pray.</p>
       </div>
       <div class="wk-card reveal reveal-delay-2">
-        <div class="wk-icon">&#x23F1;&#xFE0F;</div>
+        <div class="wk-frag">
+          <div class="wf-line"><span class="dot done">&#10003;</span>Day 0 &middot; First email<i>Sent</i></div>
+          <div class="wf-line"><span class="dot done">&#10003;</span>Day 3 &middot; Follow-up<i>Sent</i></div>
+          <div class="wf-line"><span class="dot now">&bull;</span>Day 7 &middot; Nudge<i>Queued</i></div>
+        </div>
         <h3>Follow-up that never forgets</h3>
         <p>Follow-ups sent automatically on the right cadence. No lead falls through because someone forgot to reply.</p>
       </div>
       <div class="wk-card reveal reveal-delay-3">
-        <div class="wk-icon">&#x26A1;</div>
+        <div class="wk-frag">
+          <div class="wf-line"><span class="dot done">&#10003;</span>312 contacted<i>2:14 AM</i></div>
+          <div class="wf-line"><span class="dot done">&#10003;</span>24 replies read<i>3:40 AM</i></div>
+          <div class="wf-line"><span class="dot now">&bull;</span>6 meetings booked<i>5:02 AM</i></div>
+        </div>
         <h3>Runs while you sleep</h3>
         <p>All four levers run 24/7 without you. Pipeline grows whether you&rsquo;re in the office, on a call, or asleep.</p>
       </div>

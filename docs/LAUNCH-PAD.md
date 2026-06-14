@@ -54,6 +54,7 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 **🤖 Claude:** Stripe → company pool billing lands · fix any smoke failures same-day.
 
 ### 📅 TUE 16 — 🤖 builds · 🧍 LEGAL CATCH-UP DAY (clear mind)
+- 💳 **🤝 BILLING CORRECTNESS — the pre-client blocker (the day's headline build).** Fix before any client touches the product; gates Fri 19. Full plan + every file:line in `MORNING-FIXLOG → 💳 BILLING CORRECTNESS`. §3 design **SIGNED OFF (Jacques 14 Jun): one lead = one charge = one wallet** via an explicit `clients.plan` (`lead_gen`|`figsy`). Order: (1) reconcile the **3 disagreeing price tables** → constants, recreate the real Stripe Prices · (2) add `clients.plan` + backfill · (3) pool-aware delivery kills the **$1+$3 double-charge** *and* the **structurally-broken FIGSY-only bundle** (FIGSY-only client currently gets 0 leads); outreach stops charging · (4) Denise $39 · (5) honest "How credits work" panel · (6) atomic FIGSY credit RPC · (7) multi-currency USD/GBP/ZAR (may be its own phase — reconcile w/ Flutterwave, don't let it block 1–5) · (8) admin FIGSY visibility. **No merge to `main` until the smoke test is green + screenshots.** 🧍 = recreate Stripe Prices + sign-off; 🤖 = all code.
 - ⚖️ **🧍 Legal pack #10–14 (moved from Sun 14, do with a clear head):** ICO (£40, ico.org.uk/registration, Tier 1) · SR01 home-address suppression (free) · registered office/service address (~£20–50/yr) · WHOIS privacy verify · **LinkedIn lockdown**. *(Inventory 102.)* ⚠️ Use the service address on the ICO form, not home. Plus the longer-lead items: 🔍 trademark search · 📲 Meta/WhatsApp API application.
 - 🤖 **113a agent side-panel** — make all 5 agents (FIGSY/Milla/Vida/Denise/**Casey**) conversational + acts-in-place; build Denise + Casey chat endpoints; wire Casey into the picker. *(Inventory 113a.)*
 - 🤖 Start the locked redesigns: inbox-v2 (112) · "AI Family" cards (125) · sequence-builder recolor (82).
@@ -64,7 +65,7 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 - 🤖 Continue locked redesigns + invoicing 136a scaffold · fix smoke failures same-day.
 
 ### 📅 THU 18 — 🚦 GO / NO-GO GATE 🤝
-**Green needed:** D9 10/10 · smoke T3–T10 green · legal #10–14 done · warmup ~50/day. **Any red → slip launch to Mon 22** (no half-baked launch).
+**Green needed:** D9 10/10 · smoke T3–T10 green · **💳 billing correctness green** (no double-charge · 3 price tables reconciled · FIGSY-only client actually gets leads · Denise $39) · legal #10–14 done · warmup ~50/day. **Any red → slip launch to Mon 22** (no half-baked launch).
 
 ### 📅 FRI 19 — 🚀 LAUNCH (Africa-only)
 - Proven core already on `main`. Go live.
@@ -173,7 +174,7 @@ Cross-client intelligence L4 (150) · data-licensing marketplace · ICP L3 · pi
 - **`denise` page is ungated** — non-subscribers can reach it (add the subscription check). *(MORNING-FIXLOG.)*
 - **Portal `roadmap` page hardcodes ~80 features as "Live" to clients** — needs your call on what it shows.
 - **`NEXT_PUBLIC_ADMIN_KEY` contradiction** — DEPLOY-CHECKLIST says DELETE; `portal-admin-failover` still lists it. Follow DELETE.
-- **ZAR vs USD pricing** drift in `DEPLOYMENT_GUIDE` (stale) vs canonical USD.
+- **💳 Pricing is mis-wired in 3 places** (verified 14 Jun, full plan in `MORNING-FIXLOG → 💳 BILLING CORRECTNESS`): FIGSY clients are **double-charged** ($1+$3/lead vs the deck's $3 all-in); the **FIGSY-only bundle can't deliver leads**; and the FIGSY price is **shown $20/$40/$100, charged $60/$110/$250, "locked" at $60/$120/$300** — three different tables. Plus no multi-currency (USD/GBP/ZAR). **Pre-client blocker — Tue 16.**
 - **4 Jun credential exposure** still "pending rotation" in the incident register — the 2 crown-jewels were rotated 11 Jun; confirm nothing else outstanding.
 - **Cron count** unestablished (6 vs 16 vs 19 across docs) — verify the true set at Railway setup.
 - **Settings prefs are localStorage-only** (writing-style/notifications don't persist).

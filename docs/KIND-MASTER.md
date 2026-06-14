@@ -83,9 +83,9 @@
 
 | Window | 🧍 YOUR actions (founder) | 🤖 MY actions (Claude) |
 |--------|--------------------------|------------------------|
-| **SUN 14 (today)** | ⏰ **DEADLINE-DRIVEN:** ✉️ email `partners@apollo.io` (reseller agreement, ~1 wk lead) · 🔑 hunter.io + peopledatalabs signup · 🏛️ ICO registration (£40, ico.org.uk, this week) · 🔍 trademark search (5–7 days before filing) · 📲 Meta/WhatsApp API application (3–7 day window) · ⚖️ legal pack #10–14 (SR01, registered office, WHOIS, LinkedIn lockdown) · 📡 **D9 deliverability 10/10** (DELIVERABILITY-D9-CHECKLIST to GlockApps) | — |
+| **SUN 14 (today)** | 🧘 **KEEP IT LIGHT — nothing here is hard-same-day** (clear-mind call): ✅ Apollo email DONE · 📡 **D9 deliverability 10/10** (the Thu-18 gate, worth nudging) · *(optional)* 🔑 hunter/PDL signups. **→ everything else moved to Tue 16.** | — |
 | **Mon 15** | 🏢 Ship Command Centre → prod (merge · schema · redeploy · test · $39 Denise price · `company` flag) | 🤝 Stripe→pool billing lands · fix any smoke/test failures same-day |
-| **Tue 16** | (light) review Tue builds when ready | 📅 **113a agent side-panel** — make all 5 agents (FIGSY/Milla/Vida/Denise/**Casey**) conversational + acts-in-place; build Denise + Casey chat endpoints; wire Casey into the panel picker |
+| **Tue 16** | ⚖️ **LEGAL CATCH-UP (clear head):** ICO (£40) · SR01 · registered office/service address · WHOIS · LinkedIn lockdown · 🔍 trademark search · 📲 Meta/WhatsApp API · 🔑 hunter/PDL if not done · (light) review Tue builds · **give me Casey's voice/tone** | 📅 **113a agent side-panel** — make all 5 agents (FIGSY/Milla/Vida/Denise/**Casey**) conversational + acts-in-place; build Denise + Casey chat endpoints; wire Casey into the panel picker |
 | **Wed 17–Thu 18** | 🧪 smoke tests T3–T7, T9, T10 · 🚦 **Go/No-Go Thu 18** | build the locked redesigns (inbox-v2 · agents "AI Family" · sequence-builder recolor) + invoicing 136a scaffold · fix smoke failures |
 | **Fri 19** | 🚀 **LAUNCH** + (if recorded) drop Drop 01 video. Then leave for the weekend. | stand up week-1 GTM support · monitor · hotfix |
 | **Sat 20–Sun 21** 🏖️ | **AWAY — no purple merges this weekend.** | 🤖 **monitor prod only** (escalation path to you, no changes) |

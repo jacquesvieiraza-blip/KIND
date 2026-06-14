@@ -30,7 +30,7 @@
 **Owner key:** 🧍 founder · 🤖 Claude · 🤝 both · *(status of every product item: `PRODUCT-INVENTORY.md`)*
 
 **1 · THIS WEEKEND (~20 min, from your phone)**
-- [ ] 🧍 Email **`partners@apollo.io`** — API reseller / partner agreement (~1 wk lead time)
+- [x] 🧍 Email **`partners@apollo.io`** — API reseller / partner agreement (~1 wk lead time) — **✅ SENT 14 Jun (awaiting reply)**
 - [ ] 🧍 Sign up **hunter.io** → save the API key somewhere safe
 - [ ] 🧍 Sign up **peopledatalabs.com** (free) → save the API key
 

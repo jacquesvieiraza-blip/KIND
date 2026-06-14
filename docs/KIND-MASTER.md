@@ -150,6 +150,8 @@
 > Supersedes `EVERYTHING.md`, `SESSION-HANDOFF-7JUN.md`, and all earlier roadmap fragments.
 > Where any other doc disagrees, **THIS document wins.**
 >
+> **📕 FIRST, READ THE RULEBOOK:** [`docs/RULEBOOK.md`](./RULEBOOK.md) — how Claude works (verify before sending · staging-first · the 4-state colour system · PR links · founder merges). The founder holds Claude to it.
+>
 > **Protocol (LIVING DOC — keep current):**
 > 1. **Start of session:** read the **RESUME HERE** block below, then the relevant chapter.
 > 2. **During work:** flip item status as it changes (⬜→🔨→🧪→✅) in Chapters 2 & 3.

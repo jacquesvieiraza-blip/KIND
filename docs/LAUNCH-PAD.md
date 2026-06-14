@@ -1,5 +1,15 @@
 # 🚀 K.I.N.D — THE LAUNCH PAD (tomorrow → Sep, every item, numbered)
 
+> ## 🧭 VERIFIED STATE — read this first
+> _Single source of ground truth. Update this block whenever state changes so a cold resume (me, Manus, or you) never has to guess._
+> - **Last verified:** 2026-06-14 20:51 UTC
+> - **`main` HEAD:** `687e414` — *docs: reconcile billing-correctness into the 3 source docs (#561, merged tonight)*
+> - **Live on `main`:** marketing website refresh + restored Admin Portal (#547–#549) + billing-correctness docs (#561). **The launch product is NOT live yet.**
+> - **Launch product held on:** **PR #502** (`claude/kind-carson-MYhSl`, ~213 commits ahead — *DO NOT MERGE until the Mon-15 company ship*).
+> - **Purple queue:** 20 open PRs **#506–#525 (R1–R20)** — staged go-live **Mon 22 staging → Tue 23 prod**, never one push.
+> - **Next action:** 📅 **MON 15 — Company Ship** (§2). Today (Sun 14) stays light.
+> - **The 4 canonical docs:** `KIND-MASTER` (governs) · this `LAUNCH-PAD` (the wake-up runlist) · `PRODUCT-INVENTORY` · `V2-TRACKER`. No fifth doc.
+
 > **What this is:** the single, exhaustive run-list from **now → launch → the first quarter**, built off a full audit of all three core docs (`KIND-MASTER` · `PRODUCT-INVENTORY` · `V2-TRACKER`), **every** secondary doc in the repo (deploy/deliverability/smoke/legal/GTM/funding), and the **live git + PR state**. Nothing here is from memory.
 > **Owner key:** 🧍 founder · 🤖 Claude · 🤝 both · **⏰ = hard deadline / external lead-time** (do early, it can't be rushed later).
 > **Created 14 Jun 2026. Today = Sun 14 Jun. Launch = 🚀 Fri 19 Jun 2026.** Where docs conflict, the **12-Jun top-of-master plan governs** (Mon 15 company ship · Fri 19 launch · everything else post-19).

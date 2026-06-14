@@ -96,7 +96,7 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 - **This week:** 3 onboarding Looms (90s/2m/90s — signup · ICP builder · first campaign). *(129.)*
 - **Week 1–2:** homepage hero loop (90s silent cut of the same footage, 130) · FIGSY full demo (12–15 min, `youtube-plan.md`).
 - **Ongoing cadence:** every release wave = **one Drop = one 60s video + one LinkedIn post + one email** ("the release train IS the content calendar"). New drop ~monthly, never empty.
-- ⚠️ **Decisions you owe:** confirm the neutral Calendly link (`calendly.com/kind-ai-demo/...`, NOT your personal one — name-exposure) · resolve the `youtube-plan.md` "Jacques on camera" vs faceless-brand conflict · pick the lifecycle email provider (ConvertKit/Mailchimp, #35/36).
+- ✅ **Already decided (just verify, nothing to choose):** Calendly = neutral `calendly.com/kind-ai-demo/new-meeting` (personal link retired — name-exposure; verify-live is task #9, Sun 14) · YouTube/content runs **faceless brand voice** (no founder face — `youtube-plan.md` reframed) · lifecycle email provider = **Zoho** (#35/36).
 
 ---
 
@@ -105,11 +105,11 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 > North-star: cold outreach is necessary but not sufficient. **Content is the missing leg — it's the focus.**
 
 **Leg 1 · Outbound (running):** FIGSY dogfood — scale the warmup; point FIGSY at the competitor-switcher ICPs (`competitor_icps.sql` — 🧍 set `FIGSY_KIND_CLIENT_ID`, replace the placeholder UUID, run, trigger). *(Inventory 132 / #26.)*
-**Leg 2 · Content/Inbound (the gap):** Drop 01 + per-drop videos (§4) · founder LinkedIn 1/day build-in-public (127/#20) · blog/SEO · YouTube channel (134/#35).
+**Leg 2 · Content/Inbound (the gap):** Drop 01 + per-drop videos (§4) · **brand LinkedIn** 1/day build-in-public (anonymous brand handle, 127/#20) · blog/SEO · YouTube channel (134/#35).
 **Leg 3 · Partners (highest-leverage):** replicate the Demmy model — 1 partner each Kenya + Ghana in month 1–2; partner onboarding tested in T10.
 
 **Week-1 GTM run-list (🧍 unless noted):** 127 — 10 warm outreach + LinkedIn 1/day + activate PhantomBuster (run `20260602_linkedin_queue.sql` + keys) · 128 — Meta/WhatsApp application (⏰ §1) · 131 — 🤝 GTM funnel instrumentation (BLOCKED on 10 analytics decisions in `GTM_FUNNEL_INSTRUMENTATION.md`: PostHog vs GA4, attribution, trial→paid window, UTM columns) · 130 — 🤖 homepage hero = real product loop (blocked on the demo recording) · 132 — dogfood + fresh-signup check.
-**Weeks 2–4 GTM:** 133 — 2 design-partner slots → case study + logo · 134 — 9:16 social cuts + YouTube channel · 135 — onboarding v2 emails + playbook form (ConvertKit) · 137 — 90-day guarantee (ToS clause still needed) + Revenue Playbook call + homepage outcome numbers (real data) · 138 — influencer/community distribution · 136 — Flutterwave activation (ZAR/NGN/KES/GHS).
+**Weeks 2–4 GTM:** 133 — 2 design-partner slots → case study + logo · 134 — 9:16 social cuts + YouTube channel · 135 — onboarding v2 emails + playbook form (Zoho) · 137 — 90-day guarantee (ToS clause still needed) + Revenue Playbook call + homepage outcome numbers (real data) · 138 — influencer/community distribution · 136 — Flutterwave activation (ZAR/NGN/KES/GHS).
 **Africa priority order:** SA → Nigeria → Kenya (fast-follow ~Q4) → Ghana (partner-led) → Egypt (defer). US deferred until ~$10–20k MRR / 25+ clients / >85% retention / beating the US 3.4% reply average.
 
 ---

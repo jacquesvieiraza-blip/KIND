@@ -46,6 +46,7 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. Claude must use th
 4.2 **Cut work branches FROM `main`, merge BACK to `main`.** No long-lived parallel doc branches.
 4.3 **Log every session.** End of session: update the **SESSION LOG** + **RESUME HERE** in `KIND-MASTER.md`, bump the **Last updated** line on any doc touched, then commit + push.
 4.4 **One source of truth wins.** Where docs disagree, `KIND-MASTER.md` is authoritative.
+4.5 **`LAUNCH-PAD.md` is DERIVED, never a 4th source.** It's the assembled run-list pulled from the three source docs. **Refresh it in the same session you touch the master** (when a launch item ships, slips, or a date moves) so it never drifts — that's the whole reason the old docs went stale. If the launch pad ever disagrees with the three sources, the sources win and the pad gets corrected, not the other way round.
 
 ## 5. 🔗 PULL REQUESTS & MERGES
 5.1 **Every time Claude presents something to merge, it includes the GitHub PR link.** No "the PR is up" without the URL.

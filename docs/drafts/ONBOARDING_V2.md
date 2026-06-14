@@ -180,7 +180,7 @@ Embed at Step 6 and link from the day-7 email. Should cover: the Unibox two-way 
 ## 4. Open items for founder before activation
 
 - Confirm the booking link used in day-7 CTAs (per EVERYTHING.md the neutral link is `calendly.com/kind-ai-demo/new-meeting`; the personal `jacques-vieiraza/30min` link is flagged as a name-exposure risk in Part 8 #9 — do not use it here).
-- Confirm send infrastructure for lifecycle emails (Resend is wired for transactional/first-leads; decide whether day-0/3/7 send via Resend or a lifecycle provider — note Part 1 #35 is still choosing ConvertKit/Mailchimp for the playbook form).
+- Confirm send infrastructure for lifecycle emails (Resend is wired for transactional/first-leads; decide whether day-0/3/7 send via Resend or a lifecycle provider — note Part 1 #35 uses Zoho for the playbook form + lifecycle sends).
 - Record [LOOM 1–3] (#29) before embedding placeholders.
 - Verify the day-3 and day-7 suppression/branch logic against the real campaign-state query during the launch run-through.
 - Founder sign-off on voice for each email.

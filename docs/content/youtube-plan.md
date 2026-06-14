@@ -1,6 +1,8 @@
 # KIND AI — YouTube 10-Video Content Plan
 
-**Channel Goal:** Build authority for KIND AI among African B2B founders and sales leaders, drive trial sign-ups, establish Jacques as the definitive voice on AI-powered sales for Africa.
+> **Format rule (faceless brand):** the public brand stays faceless — no founder name, no founder face on camera. Videos run as **brand voice** (voiceover + screen + slides), published under the K.I.N.D channel, not a personal one. CTAs point to the K.I.N.D brand LinkedIn, never a personal profile. (Per the faceless-brand decision; founder identity is reserved for the private investor process only.)
+
+**Channel Goal:** Build authority for KIND AI among African B2B founders and sales leaders, drive trial sign-ups, establish K.I.N.D as the definitive voice on AI-powered sales for Africa.
 
 ---
 
@@ -15,7 +17,7 @@
 
 ## VIDEO 2 — Awareness
 **Title:** "Meet KIND AI — The Sales Platform Built for Africa"
-**Description:** A clear, founder-led introduction to what KIND is, who it's for, and why it was built from Cape Town for the continent. Jacques walks through the three agents — FIGSY, Milla, Vida — without going deep on any one. Positions KIND as category-defining, not just another SaaS tool.
+**Description:** A clear, brand-led introduction to what KIND is, who it's for, and why it was built from Cape Town for the continent. A voiceover walks through the three agents — FIGSY, Milla, Vida — over screen + slides, without going deep on any one. Positions KIND as category-defining, not just another SaaS tool.
 **Length:** 6–8 minutes
 **CTA:** "Go to get-kind.com. See you in the next video where we get into why AI specifically is the unlock for African sales."
 **Loom complement:** Conceptual anchor for all three Loom onboarding videos — link to it in each Loom description.
@@ -40,10 +42,10 @@
 ---
 
 ## VIDEO 5 — Product
-**Title:** "Milla Walkthrough — How KIND Builds Your Lead List So You Don't Have To"
-**Description:** Strategic demo of Milla, KIND's lead generation agent. Shows how Milla takes an ICP definition and builds a qualified prospect list — including African-specific data sources and enrichment logic that generic tools miss.
+**Title:** "Lead Gen Walkthrough — How KIND Builds Your Lead List So You Don't Have To"
+**Description:** Strategic demo of KIND's Lead Gen engine (the ICP Builder — not Milla, who is the VA/assistant). Shows how KIND takes an ICP definition and builds a qualified prospect list — including African-specific data sources and enrichment logic that generic tools miss.
 **Length:** 10–12 minutes
-**CTA:** "Download the ICP template linked below. Book a demo at get-kind.com if you want Milla running for your business."
+**CTA:** "Download the ICP template linked below. Book a demo at get-kind.com if you want KIND's Lead Gen running for your business."
 
 ---
 
@@ -57,16 +59,16 @@
 ---
 
 ## VIDEO 7 — Proof/Story
-**Title:** "Why I Built KIND From Cape Town — The Founder Story"
-**Description:** Jacques tells the honest story: what he saw broken in African B2B sales, why he moved to build in the UK but kept Africa as the primary market, what it took to build KIND Technologies Ltd, and what the mission actually is. The human layer that builds trust.
+**Title:** "Why KIND Was Built From Cape Town — The Origin Story"
+**Description:** The honest origin story, told in the brand's voice (no founder face): what was broken in African B2B sales, why KIND is built from the UK while keeping Africa as the primary market, what it took to build KIND Technologies Ltd, and what the mission actually is. The human layer that builds trust — carried by the story, not a personal identity.
 **Length:** 12–18 minutes
-**CTA:** "If you're building something in Africa, let's connect on LinkedIn. Link below. Subscribe for the next video."
+**CTA:** "If you're building something in Africa, follow K.I.N.D on LinkedIn. Link below. Subscribe for the next video."
 
 ---
 
 ## VIDEO 8 — Proof/Story
 **Title:** "We Use FIGSY to Sell KIND — Here's What the Data Shows"
-**Description:** The dogfooding episode: Jacques pulls back the curtain on how KIND's own outbound pipeline works, using FIGSY to book demos for KIND itself. Shows real sequence copy, open rates, reply rates, and what's been learned. Honest about what didn't work.
+**Description:** The dogfooding episode: we pull back the curtain on how KIND's own outbound pipeline works, using FIGSY to book demos for KIND itself. Screen-only walkthrough — real sequence copy, open rates, reply rates, and what's been learned. Honest about what didn't work.
 **Length:** 12–15 minutes
 **CTA:** "The full sequence templates I used are available inside the KIND platform. Sign up at get-kind.com."
 
@@ -82,7 +84,7 @@
 
 ## VIDEO 10 — Education
 **Title:** "How to Build an ICP That Actually Converts — The African B2B Playbook"
-**Description:** ICP is the most misunderstood concept in African B2B sales. Full framework: how to define firmographic and behavioural signals, validate your ICP with real outreach data, and feed that into Milla for ongoing lead gen.
+**Description:** ICP is the most misunderstood concept in African B2B sales. Full framework: how to define firmographic and behavioural signals, validate your ICP with real outreach data, and feed that into KIND's Lead Gen engine for ongoing prospecting.
 **Length:** 15–18 minutes
 **CTA:** "Use the ICP Builder template linked below. Ready to automate the whole system? Get-kind.com."
 
@@ -90,7 +92,7 @@
 
 ## Production Notes
 
-- Videos 1–3: film in one session (talking head + slides)
+- Videos 1–3: produce in one session (voiceover + slides — faceless, no founder face on camera)
 - Videos 4–6: require screen recording on a clean demo account
 - Videos 7–8: high-authenticity, low-production — do not over-edit
 - Videos 9–10: SEO anchors — invest in thumbnails and keyword-rich descriptions

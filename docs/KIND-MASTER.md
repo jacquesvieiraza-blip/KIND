@@ -12,14 +12,15 @@
 > 2. **Monday (desk, ~45 min):** merge dev → `staging` → re-paste `staging-schema.sql` → redeploy BOTH services (don't re-run the seed) → test via [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md) → $39 Denise Stripe price → then prod migration + merge + `company` flag.
 > 3. **Launch gate (by Fri 19):** D9 10/10 · legal #10–14 · smoke tests T3–T10 · Go/No-Go Thu 18.
 >
-> ### 📍 THE ONLY THREE DOCS (locked 12 Jun — "one inventory, stop the sprawl")
+> ### 📍 THE ONLY THREE SOURCE DOCS + ONE DERIVED RUN-LIST (locked 12 Jun — "one inventory, stop the sprawl")
 > | Doc | Use it for |
 > |-----|-----------|
 > | **THIS doc** (`KIND-MASTER.md`) | The map — plan, **your FOUNDER CHECKLIST**, strategy, dated timeline, session log |
-> | 📋 [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) | **THE status list — every item (161) with one dot (4 states, locked 13 Jun): 🟢 built+live · 🟣 approved+locked (built, signed-off, waiting to ship) · 🟡 built, pending review · 🔴 not built + who's responsible.** "What exists / what's left?" → here, nowhere else |
+> | 📋 [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) | **THE status list — every item (165) with one dot (4 states, locked 13 Jun): 🟢 built+live · 🟣 approved+locked (built, signed-off, waiting to ship) · 🟡 built, pending review · 🔴 not built + who's responsible.** "What exists / what's left?" → here, nowhere else |
 > | [`V2-TRACKER.md`](./V2-TRACKER.md) | Future detail only — risk register · learning engine · GTM · steals. No build statuses |
+> | 🚀 [`LAUNCH-PAD.md`](./LAUNCH-PAD.md) | **DERIVED run-list, not a 4th source.** The assembled day→week→month sequence pulled FROM the three above. "What do I do, in what order?" → here. **If it ever disagrees with the three source docs, they win** — refresh it in the same session the master is updated so it never drifts (RULEBOOK 4.5). |
 >
-> *That's it — 3 docs. The two task tools you only open while doing that one task: [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md) (the Monday test run) · [`STAGING-REVIEW.md`](./STAGING-REVIEW.md) (where 👍/👎 gets logged during the design tour). Demo collateral: `CLIENT_FLOW.html` · `CLIENT_FLOW_PER_REP.html` · `MCP-EXPLAINED.html`.*
+> *That's it — 3 source docs + 1 derived run-list. The two task tools you only open while doing that one task: [`COMPANY-ENGINE-TEST.md`](./COMPANY-ENGINE-TEST.md) (the Monday test run) · [`STAGING-REVIEW.md`](./STAGING-REVIEW.md) (where 👍/👎 gets logged during the design tour). Demo collateral: `CLIENT_FLOW.html` · `CLIENT_FLOW_PER_REP.html` · `MCP-EXPLAINED.html`.*
 >
 > _Everything below this box is the detailed history/timeline — you don't need it for "what do I do next." Use the box above._
 

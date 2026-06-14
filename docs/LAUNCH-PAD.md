@@ -33,10 +33,12 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 
 ## 2 · DAY-BY-DAY TO LAUNCH
 
-### 📅 SUN 14 (today) — 🧍 legal + deliverability + keys
-- ⚖️ **Legal pack #10–14:** ICO (£40) · SR01 home-address suppression (free) · registered office/service address (~£20–50/yr) · WHOIS privacy verify · **LinkedIn lockdown**. *(Inventory 102.)*
-- 📡 **D9 deliverability 10/10** — run `DELIVERABILITY-D9-CHECKLIST.md` to a mail-tester/GlockApps **10/10**. *(Inventory 101.)*
-- ✉️🔑 Section 1 items (Apollo email, hunter/PDL signups) if not already done.
+### 📅 SUN 14 (today) — 🧍 KEEP IT LIGHT (clear-mind decision 14 Jun)
+> **Nothing here has a hard *same-day* deadline** — the "start today" framing was about lead times, not the calendar. So today stays light; the legal pack moves to **Tue 16** to be done with a clear head. Only do these today if you've got the energy:
+- ✅ **Apollo email — DONE** (sent 14 Jun).
+- 📡 **D9 deliverability 10/10** — run `DELIVERABILITY-D9-CHECKLIST.md` to a mail-tester/GlockApps **10/10** (🤖-assisted; it's the Thu-18 launch gate, so worth nudging this week). *(Inventory 101.)*
+- *(Optional)* 🔑 hunter.io + PDL signups if you're at the desk — otherwise Tue.
+- **→ Moved to Tue 16:** the whole legal pack #10–14 (ICO, SR01, registered office, WHOIS, LinkedIn) + trademark search + Meta/WhatsApp application.
 
 ### 📅 MON 15 — 🏢 THE COMPANY SHIP → PROD (the only early ship, ~45 min) 🤝
 **Pre-merge migrations, in this exact order (🧍, before merging #502):** `010_crm_dedup` → `011_denise` → `012_signer_and_booking` *(without it `PATCH /clients/me` breaks)* → `013_nullable_sent_email_refs` *(unblocks warmup cap)*. Then the prod keystone **`20260603_schema_reconcile.sql`** *(reply/send/credit pipeline depends on it — skip it and every reply insert fails → "0 replies" everywhere)*.
@@ -51,7 +53,8 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 7. **Upload the 5 agreement PDFs** via Admin → Terms Library (else no order form can be sent).
 **🤖 Claude:** Stripe → company pool billing lands · fix any smoke failures same-day.
 
-### 📅 TUE 16 — 🤖 builds · 🧍 light
+### 📅 TUE 16 — 🤖 builds · 🧍 LEGAL CATCH-UP DAY (clear mind)
+- ⚖️ **🧍 Legal pack #10–14 (moved from Sun 14, do with a clear head):** ICO (£40, ico.org.uk/registration, Tier 1) · SR01 home-address suppression (free) · registered office/service address (~£20–50/yr) · WHOIS privacy verify · **LinkedIn lockdown**. *(Inventory 102.)* ⚠️ Use the service address on the ICO form, not home. Plus the longer-lead items: 🔍 trademark search · 📲 Meta/WhatsApp API application.
 - 🤖 **113a agent side-panel** — make all 5 agents (FIGSY/Milla/Vida/Denise/**Casey**) conversational + acts-in-place; build Denise + Casey chat endpoints; wire Casey into the picker. *(Inventory 113a.)*
 - 🤖 Start the locked redesigns: inbox-v2 (112) · "AI Family" cards (125) · sequence-builder recolor (82).
 - 🧍 Review Tuesday's builds when handed over. **Give me Casey's voice/tone** — it gates the onboarding-agent build (121).

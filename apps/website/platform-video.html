@@ -65,6 +65,22 @@
   .fade-up-delay2     { animation: fadeUp 0.7s ease 0.45s both; }
   @keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
 
+  /* ── Punch-in zoom animations (14 Jun enhancement) ── */
+  .visible { opacity: 1 !important; }
+  .visible[class*="card"], .visible[class*="chip"] {
+    animation: punchZoom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .visible.hero { animation: heroOvershoot 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  @keyframes punchZoom {
+    from { opacity: 0; transform: scale(1.04) }
+    to { opacity: 1; transform: scale(1) }
+  }
+  @keyframes heroOvershoot {
+    0% { opacity: 0; transform: scale(0) }
+    70% { transform: scale(1.08) }
+    100% { opacity: 1; transform: scale(1) }
+  }
+
   /* ── S1 Problem — dashboard chips ── */
   .dash-float {
     position: absolute; right: 7%; top: 50%; transform: translateY(-50%);
@@ -874,7 +890,7 @@ function onSceneEnter(idx) {
   // S2 — FIGSY introduction
   if (idx === 1) {
     ;['ann1','ann2','ann3','ann4'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 500 + i*280)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 500 + i*150)
       sceneTimers.push(t)
     })
     const t1 = setTimeout(() => document.getElementById('figsy-pill')?.classList.add('visible'), 1800)
@@ -885,7 +901,7 @@ function onSceneEnter(idx) {
   // S3 — Lead cards
   if (idx === 2) {
     ;['lc1','lc2','lc3'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*450)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*150)
       sceneTimers.push(t)
     })
   }
@@ -893,7 +909,7 @@ function onSceneEnter(idx) {
   // S4 — Score cards
   if (idx === 3) {
     ;['sc1','sc2','sc3'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*400)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*150)
       sceneTimers.push(t)
     })
   }
@@ -936,7 +952,7 @@ function onSceneEnter(idx) {
   // S6 — Sequence + bubbles
   if (idx === 5) {
     ;['si1','si2','si3'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*400)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*150)
       sceneTimers.push(t)
     })
     const t1 = setTimeout(() => document.getElementById('bub1')?.classList.add('visible'), 1800)
@@ -947,7 +963,7 @@ function onSceneEnter(idx) {
   // S7 — Reply cards
   if (idx === 6) {
     ;['rc1','rc2','rc3'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*450)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*150)
       sceneTimers.push(t)
     })
   }
@@ -955,7 +971,7 @@ function onSceneEnter(idx) {
   // S8 — Milla introduction
   if (idx === 7) {
     ;['man1','man2','man3','man4'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 500 + i*280)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 500 + i*150)
       sceneTimers.push(t)
     })
     const t1 = setTimeout(() => document.getElementById('milla-pill')?.classList.add('visible'), 1800)
@@ -966,7 +982,7 @@ function onSceneEnter(idx) {
   // S9 — Milla chat
   if (idx === 8) {
     ;['cm1','cm2','cm3','cm4','cm5'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*500)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*150)
       sceneTimers.push(t)
     })
   }
@@ -974,7 +990,7 @@ function onSceneEnter(idx) {
   // S10 — Vida introduction
   if (idx === 9) {
     ;['van1','van2','van3','van4'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 500 + i*280)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 500 + i*150)
       sceneTimers.push(t)
     })
     const t1 = setTimeout(() => document.getElementById('vida-pill')?.classList.add('visible'), 1800)
@@ -985,7 +1001,7 @@ function onSceneEnter(idx) {
   // S11 — KPI dashboard + funnel
   if (idx === 10) {
     ;['dan1','dan2','dan3','dan4'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*400)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*150)
       sceneTimers.push(t)
     })
     const t1 = setTimeout(() => document.getElementById('denise-pill')?.classList.add('visible'), 1800)
@@ -1007,7 +1023,7 @@ function onSceneEnter(idx) {
   // S12 — Alerts
   if (idx === 12) {
     ;['al1','al2','al3'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*500)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 300 + i*150)
       sceneTimers.push(t)
     })
   }
@@ -1034,7 +1050,7 @@ function onSceneEnter(idx) {
   // S15 — Partner stats
   if (idx === 15) {
     ;['ps1','ps2','ps3'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 400 + i*250)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 400 + i*150)
       sceneTimers.push(t)
     })
   }
@@ -1042,7 +1058,7 @@ function onSceneEnter(idx) {
   // S16 — Agent pills pop in
   if (idx === 16) {
     ;['ap1','ap2','ap3','ap4','ap5'].forEach((id, i) => {
-      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 400 + i*180)
+      const t = setTimeout(() => document.getElementById(id)?.classList.add('visible'), 400 + i*150)
       sceneTimers.push(t)
     })
   }
@@ -1092,11 +1108,12 @@ function goTo(idx) {
   dots[cur].classList.add('active')
   resetProgress()
   onSceneEnter(idx)
-  document.getElementById('replay-btn').style.display = idx === TOTAL - 1 ? 'block' : 'none'
+  document.getElementById('replay-btn').style.display = 'none' // continuous loop — no manual replay needed
 }
 
 function next() {
   if (cur < TOTAL - 1) { goTo(cur + 1); scheduleNext() }
+  else { goTo(0); scheduleNext() } // continuous loop — restart from scene 1
 }
 
 function scheduleNext() {

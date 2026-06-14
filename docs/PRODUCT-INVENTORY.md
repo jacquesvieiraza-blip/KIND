@@ -100,10 +100,23 @@
 |---|------|--------|-------|
 | 23 | Stripe — checkout, idempotent webhooks, 8 price IDs | 🟢 | — |
 | 24 | Flutterwave (ZAR/NGN/KES/GHS) — wired; activation ⏸ §4E item 136 | 🟢 | — |
-| 25 | Credit bundles (Lead Gen $1 · FIGSY $3 · 20/40/100) | 🟢 | — |
+| 25 | Credit bundles (Lead Gen $1 · FIGSY $3 · 20/40/100) | 🟡 | ⚠ price tables disagree → item 168 |
 | 26 | Agent subscriptions (Vida $29 · Milla $49 · Denise — $39 repricing = 🟡 §2A item 58) | 🟢 | — |
-| 27 | Credit system + atomic ledger | 🟢 | — |
+| 27 | Credit system + atomic ledger | 🟡 | ⚠ lead-gen pool atomic; FIGSY pool NOT → item 170 |
 | 28 | Usage tracking per client | 🟢 | — |
+
+### 💳 BILLING CORRECTNESS — Tue 16, PRE-CLIENT BLOCKERS (audit 14 Jun, verified vs live code · full detail in `MORNING-FIXLOG.md` → 💳 BILLING CORRECTNESS · gates Fri-19 launch)
+**§3 design SIGNED OFF (Jacques 14 Jun): one lead = one charge = one wallet, via explicit `clients.plan` (`lead_gen`|`figsy`). Lead-Gen → $1 lead-gen pool. FIGSY → $3 FIGSY pool, lead included, lead-gen pool untouched. Outreach enrollment stops charging.**
+| # | Item | Status | Owner |
+|---|------|--------|-------|
+| 166 | **FIGSY double-charge** — delivery charges lead-gen $1 (`lead-delivery.ts:64`) *and* enrol charges FIGSY $3 (`figsy.ts:907-921`) on the same lead = $4; deck promises $3 all-in | 🔴 | 🤖 |
+| 167 | **FIGSY-only bundle can't deliver** — delivery capped by lead-gen balance (`icps.ts:151-152`) → FIGSY-only client gets 0 leads; fix = pool-aware delivery + FIGSY-pool trial grant | 🔴 | 🤖 |
+| 168 | **3 price tables disagree** — FIGSY shown $20/40/100 (`billing/page.tsx:70-74`) vs charged $60/110/250 (`stripe.ts:26-30`) vs "locked" $60/120/300 (`constants:27-31`); reconcile → constants, recreate Stripe Prices, portal imports `@kind/shared` | 🔴 | 🤝 |
+| 169 | **`clients.plan` flag** (the §3 design) — migration + backfill (FIGSY campaign/credits → `figsy`, else `lead_gen`); delivery reads it, charges one pool | 🔴 | 🤖 |
+| 170 | **Atomic FIGSY credit RPC** — replace read-modify-write (`figsy.ts:909-912`) with an `increment_figsy_credits` RPC mirroring `20260526_credit_race_condition_fix.sql` | 🔴 | 🤖 |
+| 171 | **"How credits work" panel honesty** — `billing/page.tsx:303-306` says "Outreach sent — No credit used" (false) + omits FIGSY pool; rewrite to real model | 🔴 | 🤖 |
+| 172 | **Multi-currency** (founder ask 14 Jun) — let client pick USD/GBP/ZAR; Stripe multi-currency Prices + `clients.preferred_currency`; reconcile with Flutterwave (`flutterwave.ts:146-160`); may be own phase, don't block 166–171 | 🔴 | 🤝 |
+| 173 | **Admin FIGSY visibility** — admin shows `credit_balance` only, never `figsy_credits_remaining`; surface it + add top-up | 🔴 | 🤖 |
 
 ## Admin OS (internal)
 | # | Item | Status | Owner |
@@ -348,4 +361,4 @@
 **Alta** Touch-Points tree · template gallery · Train tabs · funnel dashboard · Unibox reply-tags/"Help me reply" · saved views · **the inbox blueprint (item 112)** · **ClickUp** Cmd+K · views · feed · status bar · Goals · Forms · Integrations Hub · **Lemlist** images · sequence builder · community play · **Monday** share-loop · dense dashboards · Pixar warmth · **Atlas** speed-to-lead · 90-day guarantee · influencers · **Instantly** warmup · auto-pause · adaptive volume · rotation · **Clay** waterfall enrichment · **Apollo** job-change · sequence analytics · transparency · intent · **Apex** acts-not-responds · autonomy onboarding · founder-as-demo · **Glean** context moat · benchmarks · winning-play library · Casey/auto-setup · permission-safety · context-backed MCP · **Revio** coaching onboarding · case-study specificity.
 
 ---
-*This inventory is the single complete list (165 stable-ID items). 🟢 = live + checked · 🟣 = approved + locked, waiting to ship · 🟡 = built, needs founder review · 🔴 = future, in order. Numbers are stable IDs, not sequence. Nothing ships until the founder merges.*
+*This inventory is the single complete list (173 stable-ID items). 🟢 = live + checked · 🟣 = approved + locked, waiting to ship · 🟡 = built, needs founder review · 🔴 = future, in order. Numbers are stable IDs, not sequence. Nothing ships until the founder merges.*

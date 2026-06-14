@@ -750,7 +750,7 @@ _(Demo note: seeded Showcase Demo does NOT hit Apollo; live-ICP demos DO. Source
 | **#31** | ⬜ | Populate proof block + homepage outcome numbers with REAL data (#62c) | 🤖 | No fabrication. Wait for first results. |
 | **#32** | ⬜ | Activate Flutterwave (needs key — ZAR/NGN/KES/GHS) | 🧍 | Africa-first revenue. |
 | **#33** | ⬜ | Launch YouTube channel (10-video plan exists) | 🧍 | Long-tail SEO. |
-| **#34** | ⬜ | Wire playbook email form (ConvertKit/Mailchimp) | 🤖 | Lead magnet. |
+| **#34** | ⬜ | Wire playbook email form (Zoho) | 🤖 | Lead magnet. |
 | **#35** | ⬜ | #61a/g Performance-guarantee clause in terms.html + ToS update | 🤖 | Atlas steal. "90-day results or you don't pay". |
 | **#36** | ⬜ | #61e Atlas steal — influencer/community distribution | 🧍 | Distribution moat. |
 | **#37** | ⬜ | #61g Atlas steal — sharpen guarantee language | 🤖 | Messaging. |
@@ -1454,7 +1454,7 @@ FRI 19 JUN:  🚀 LAUNCH ⬜
 | **#33** | Populate proof block with real data | Do NOT fabricate — hold slot, populate with real results | 🤖 | ⬜ | Weeks 2–4 (wait for results) | Honesty |
 | **#34** | Activate Flutterwave | Needs key (ZAR/NGN/KES/GHS) | 🧍 | ⏸ | Weeks 2–4 | Africa-first revenue |
 | **#35** | Launch YouTube channel | 10-video plan exists | 🧍 | ⬜ | Weeks 2–4 | Long-tail SEO |
-| **#36** | Wire playbook email form | ConvertKit/Mailchimp | 🤖 | ⬜ | Weeks 2–4 | Lead magnet |
+| **#36** | Wire playbook email form | Zoho | 🤖 | ⬜ | Weeks 2–4 | Lead magnet |
 | **#61a** | Performance-guarantee clause | Terms.html + ToS: "90-day results or you don't pay" (Atlas steal) | 🤖 | ⬜ | Weeks 2–4 | Confidence signal |
 | **#61e** | Influencer/community distribution | Find SA + US equivalents of Dan Martell (Worth more than seed round) | 🧍 | ⬜ | Weeks 2–4 ongoing | Distribution moat |
 | **#61g** | Guarantee sharpened to 90d | Messaging adjustment | 🤖 | ⬜ | Weeks 2–4 | Messaging |

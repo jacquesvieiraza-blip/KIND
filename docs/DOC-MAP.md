@@ -32,7 +32,7 @@ Clean supersession chain: `MASTER.md (4 Jun archive)` → `EVERYTHING.md (8 Jun 
 - **`docs/CLIENT_FLOW.html` / `CLIENT_FLOW_PER_REP.html`** — journey + **#88 per-rep design** (fully in V2-TRACKER §C); agent pricing legend (FIGSY pay-per-result · Milla $49 · Vida $29 · Denise $99).
 - **`docs/portal-v2-layout.md` / `docs/portal-v2-preview.html`** — V2 concept specs + build notes (reuse FIGSY chat for conversational setup; thinking-state polls status endpoints). **portal-v2-preview** also has: profile-dropdown exact items, Invite modal, Notetaker (.txt/.mp3→owner+deadline), Teams Hub tabs, **Casey full design (coral #ea6a3a, portal-only)**, Train-FIGSY tabs (Persona/Knowledge/Guardrails/Approvals/Test), Smart-Inbox 8-tag taxonomy + "Help me reply", Sequence-builder 8 presets (AI Magic Beta…).
 - **`docs/content/blog-articles.md`** — 3 publish-ready posts (WhatsApp-B2B-Africa · cold-reply-rates-Africa · AI-vs-human-SDR) w/ slugs+meta.
-- **`docs/content/youtube-plan.md`** — 10-video plan (titles/briefs/CTAs). ⚠️ names "Jacques on camera" — conflicts with founder-invisible decision.
+- **`docs/content/youtube-plan.md`** — 10-video plan (titles/briefs/CTAs). ✅ reframed to faceless brand voice (no founder name/face) per the faceless-brand decision.
 
 ### Ops, deploy, infra, legal, security
 - **`docs/SMOKE_TEST.md`** 🔑 *step-level T1–T10 (master only has names).* Pre-flight migration `20260603_schema_reconcile.sql` + `RESEND_WEBHOOK_SECRET`; per-test specifics (T3 send-from `gettingkind.com`; T6 Vida purple-not-blue; T8 mail-tester 10/10; T9 `client_members`; T10 partner sandbox).
@@ -72,7 +72,7 @@ Clean supersession chain: `MASTER.md (4 Jun archive)` → `EVERYTHING.md (8 Jun 
 3. **`NEXT_PUBLIC_ADMIN_KEY`:** DELETE (DEPLOY-CHECKLIST) vs still-listed (portal-admin-failover). Reconcile.
 4. **Cron count:** 16 (master) vs 19 (pitch deck) vs 6 (DEPLOYMENT_GUIDE). Establish true count.
 5. **Pitch-deck Alta-number provenance** (above) — relabel or remove.
-6. **youtube-plan** "Jacques on camera" vs founder-invisible.
+6. ✅ **RESOLVED** — `youtube-plan` reframed to faceless brand voice (no founder name/face).
 7. Milla wording: "The Brain" vs "Virtual Assistant".
 8. The **15 MASTER.md contradictions** (EVERYTHING.md Part 8) — full cleanup list.
 9. Move root `MASTER.md`/`AUDIT.md`/`BUILD_STATUS.md` → `docs/archive/`.

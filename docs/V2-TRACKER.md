@@ -121,7 +121,7 @@ _Last updated: 14 Jun 2026 — **this doc now lives on `main`** (consolidated of
 | #34 | Activate Flutterwave (ZAR/NGN/KES/GHS) | 🧍 ⏸ |
 | #34a | **Client invoicing — surface Stripe receipts in-portal.** 🔒 **DECISION LOCKED 13 Jun: USD billing · NO VAT until a financial benchmark · Stripe issues the receipt, we only pull & display it** (until the benchmark Stripe shows no VAT line; when we register, Stripe adds VAT automatically — no code change our side). **We build** an *Invoices* surface under **Company → Documents** pulling the client's Stripe invoices via API and listing date/number/amount (USD)/status + Download-PDF (Stripe hosted PDF). `previews/invoice-v1.html` = PDF/branding target; `previews/invoices-list.html` = in-portal list. *(inventory 136a)* | 🤖 |
 | #35 | Launch YouTube channel | 🧍 |
-| #36 | Wire playbook email form (ConvertKit) | 🤖 |
+| #36 | Wire playbook email form (Zoho) | 🤖 |
 | #61a | Performance-guarantee clause (90-day) | 🤖 |
 | #61e | Influencer/community distribution | 🧍 |
 | #61g | Guarantee sharpened to 90d | 🤖 |
@@ -271,21 +271,21 @@ Legal (D&O, ODPC/NDPR, AI Risk Register, pen test, trademarks, VAT) · Funding (
 | Leg | What | Status |
 |---|---|---|
 | **1 · Outbound** | FIGSY dogfood (cold email sells K.I.N.D) | ✅ running (warmup) |
-| **2 · Content / Inbound** | **video · product drops · founder LinkedIn · blog** | 🔴 **the missing leg — the focus** |
+| **2 · Content / Inbound** | **video · product drops · brand LinkedIn (anonymous handle) · blog** | 🔴 **the missing leg — the focus** |
 | **3 · Partners** | the Demmy model (1 good partner ≈ 10 clients/mo) | ✅ started · research = highest-leverage for Africa |
 
-**Why content isn't optional:** when FIGSY's cold email lands, the prospect **googles K.I.N.D** — if they find videos + drops + a posting founder + a credible brand → trust → reply; if nothing → ignored. **Content de-risks every cold email.** African B2B is **trust-driven** (research-verified) → content builds trust at scale + generates **inbound** so we're not hostage to cold volume (which the warmup cap limits anyway). Cold email resets each send; **content compounds.**
+**Why content isn't optional:** when FIGSY's cold email lands, the prospect **googles K.I.N.D** — if they find videos + drops + an active brand presence + a credible brand → trust → reply; if nothing → ignored. **Content de-risks every cold email.** African B2B is **trust-driven** (research-verified) → content builds trust at scale + generates **inbound** so we're not hostage to cold volume (which the warmup cap limits anyway). Cold email resets each send; **content compounds.**
 
 **The content engine — built vs the work:**
 - ✅ **Infra built (🤖):** The Drop page (**now with a video slot per drop** — Drop 01 = 60-sec walkthrough) · Product Videos / "Watch" page (YouTube-embed-ready) · blog pages · the drops-cadence system.
-- 🔴 **The content itself (mostly 🧍 founder-led):**
-  - **VIDEO** — founder walkthroughs + **one short video per drop** + demo clips. Highest-trust format; **Africa is video/mobile-first.**
-  - **Founder LinkedIn / build-in-public** — cheapest, highest-trust channel for early-stage (Apex/Atlas steal). Post the drops, the African-first journey, the wins.
+- 🔴 **The content itself (🧍 founder-produced, published faceless under the brand):**
+  - **VIDEO** — brand-voice walkthroughs (voiceover + screen, no face) + **one short video per drop** + demo clips. Highest-trust format; **Africa is video/mobile-first.**
+  - **Brand LinkedIn / build-in-public (anonymous brand handle)** — cheapest, highest-trust channel for early-stage (Apex/Atlas steal). Post the drops, the African-first journey, the wins.
   - **Blog/SEO** (pages exist — keep publishing) · **YouTube channel #35** (10-video plan exists).
 
 **The realistic minimum (don't over-scope — solo founder):** a weekly rhythm —
 1. **Per product drop →** 60-sec walkthrough VIDEO + "we shipped X" LinkedIn post + email to list (one shipping moment = 3 content pieces).
-2. **Founder building-in-public** on LinkedIn (story · wins · journey).
+2. **Brand building-in-public** on LinkedIn (anonymous handle — story · wins · journey).
 That + outbound + partners = the motion.
 
 **Product Drops = the flywheel** (velocity-as-marketing): ship fast → drop (page + video + post + email) → clients re-engage + prospects see momentum → "they ship fast AND show it" = the moat made visible. Cadence: **monthly**, never empty/stale. The in-product "What's New" feed (clients see momentum inside the portal = anti-churn) is a logged future enhancement.

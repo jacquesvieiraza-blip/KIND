@@ -70,11 +70,17 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 
 ---
 
-## 3 · 🟣 THE PURPLE GO-LIVE — "everything live on/after the 20th"
+## 3 · 🟣 THE PURPLE GO-LIVE — staged, NOT one push (LOCKED 14 Jun)
 
-> Your call: flip the built-but-held queue live right after launch. Mechanically this is a **merge + migrate + flag + smoke** sequence, not one switch. 🧍 merges, 🤖 preps + smokes each.
+> **Founder call (14 Jun): do NOT flip the whole built-but-held queue in one push, and NOT on the weekend (away Sat 20–Sun 21).** The safe pattern separates **discovery from execution**: rehearse the entire sequence on **staging Mon 22** (find/fix breakages, zero prod risk), then **replay it on prod Tue 23** as a known-good sequence. Mechanically each side is **merge + migrate + flag + smoke**, in waves — never one switch. 🧍 merges + flips, 🤖 preps order + commands + smokes each wave.
 
-### 📅 SAT 20 onward — the merge sequence
+### 📅 SAT 20–SUN 21 — AWAY. No purple merges. 🤖 monitors prod only (escalation path, no changes).
+
+### 📅 MON 22 — 🟣 STAGING DRESS-REHEARSAL (~3–4 hrs, 🤝)
+Prove the full sequence on staging first. 🤖 writes the exact merge order + migration commands + per-wave smoke checklist; 🧍 clicks; we **find and fix every breakage here, with zero prod risk.** Steps: merge the whole R1–R20 train to staging → run the 3 migrations (R2/R15/R20) in order → smoke the core loop → flip V2 flags in 2 waves (Wave 1: Teams Hub + Notetaker + Sequence Builder · Wave 2: Integrations + Shell + Activity + Notifications + Deliverability + PWA + AI-Family cards + 113a), smoking each wave. **By EOD: sequence proven, runbook locked for Tue.**
+
+### 📅 TUE 23 — 🟣 PROD GO-LIVE (4–5 hr block, 🤝)
+Replay the proven sequence on prod. Founder on standby for hotfix till ~6pm; 🤖 watches each merge + patches any break same-day.
 1. **#502 already merged Mon 15** (company engine). The rest of its portal/API fixes are live with it.
 2. **Merge the R1–R20 release train — PRs #506–#525** (🧍 click, 🤖 prep order + run each additive migration: R2/R15/R20 carry migrations). Lands live:
    - R1 demo-bounce guard (#506, inv 60) · R2 daily brief (#507, 61) · R3 Vida help bubble (#508, 62) · R4 speed-to-lead (#509, 63) · R5 milestone share cards (#510, 64) · R6 onboarding emails (#511, 65) · R7 Unibox AI reply (#512, 66) · R8 saved views (#513, 67) · R9 "Why FIGSY wrote this" (#514, 68) · R10 Goals (#515, 69) · R11 template library (#516, 70) · R12 lead-capture forms (#517, 71) · R13 Cmd+K (#518, 72) · R14 Meeting-Prep (#519, 73) · R15 Train-FIGSY backend (#520, 74) · R16 evals (#521, 75) · R17 spam-score (#522, 76) · R18 multi-model toggle (#523, 77) · R19 What's New feed (#524, 78) · R20 job-change alerts (#525, 79).

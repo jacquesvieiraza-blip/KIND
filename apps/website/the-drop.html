@@ -3,13 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Drop &mdash; Product Drop Archive &middot; K.I.N.D</title>
-  <meta name="description" content="The Drop is what we just shipped — real, live, in your hands. Click into any drop to see the detail behind it." />
+  <title>The Drop &mdash; The Show &middot; K.I.N.D</title>
+  <meta name="description" content="The Drop is the K.I.N.D show — real revenue problems, solved out loud. Founder stories, operator interviews, and the product drops behind them." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --blue: #7c3aed; --dark: #0a0a0a; --ink2:#1E1152; --border: rgba(0,0,0,0.08); }
+    :root {
+      --blue: #7c3aed; --dark: #0a0a0a; --ink2:#1E1152; --border: rgba(0,0,0,0.08);
+      --lav-1:#f4f1fe; --lav-2:#ede9fe; --mint-1:#ecfdf5; --mint-2:#d1fae5;
+      --pink-1:#fdf2f8; --sky-1:#eff6ff; --cream-1:#fffbeb;
+    }
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
     nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
     .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .logo-mark { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg,#7c3aed,#a78bfa); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; }
@@ -19,51 +25,114 @@
     .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
     .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; }
 
-    .drop-header { max-width: 1180px; margin: 0 auto; padding: 80px 48px 28px; }
-    .drop-header h1 { font-size: clamp(2.6rem, 5.5vw, 4.2rem); font-weight: 900; letter-spacing: -0.045em; color: var(--ink2); line-height: 1.0; }
-    .drop-header p { font-size: 1.05rem; color: rgba(0,0,0,0.5); line-height: 1.7; max-width: 600px; margin-top: 16px; }
+    /* HERO — "discover how … drive impact" pattern, soft palette */
+    .show-hero { max-width: 1240px; margin: 28px auto 0; padding: 0 28px; }
+    .sh-panel {
+      background:
+        radial-gradient(720px 360px at 88% 8%, rgba(110,231,183,0.18) 0%, transparent 60%),
+        linear-gradient(135deg, var(--lav-1) 0%, var(--lav-2) 48%, #eef5ff 100%);
+      border: 1px solid rgba(124,58,237,0.10);
+      border-radius: 30px; padding: 60px 56px;
+      display: grid; grid-template-columns: 1fr 1.05fr; gap: 48px; align-items: center;
+    }
+    .sh-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:0.7rem; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--blue); margin-bottom:18px; }
+    .sh-eyebrow .dot { width:7px; height:7px; border-radius:50%; background:#10b981; box-shadow:0 0 0 4px rgba(16,185,129,0.18); }
+    .sh-panel h1 { font-size: clamp(2.3rem, 4.4vw, 3.5rem); font-weight: 900; letter-spacing: -0.045em; color: var(--ink2); line-height: 1.03; }
+    .sh-panel h1 .grad { background: linear-gradient(120deg,#7c3aed,#ec4899 60%,#f59e0b); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    .sh-lead { font-size: 1.05rem; color: rgba(30,17,82,0.62); line-height: 1.7; max-width: 460px; margin: 18px 0 26px; }
+    .sh-btns { display:flex; gap:12px; flex-wrap:wrap; }
+    .sh-btn { display:inline-flex; align-items:center; gap:8px; font-size:0.9rem; font-weight:700; text-decoration:none; padding:13px 24px; border-radius:100px; transition:transform .18s, box-shadow .18s; }
+    .sh-btn-primary { background: var(--blue); color:#fff; box-shadow:0 10px 26px rgba(124,58,237,0.28); }
+    .sh-btn-primary:hover { transform:translateY(-2px); box-shadow:0 16px 34px rgba(124,58,237,0.34); }
+    .sh-btn-ghost { background: rgba(255,255,255,0.7); color: var(--ink2); border:1px solid rgba(124,58,237,0.18); }
+    .sh-btn-ghost:hover { background:#fff; transform:translateY(-2px); }
 
-    /* ARCHIVE — clickable teaser cards (click → drop detail page) */
-    .archive { max-width: 1180px; margin: 0 auto; padding: 24px 48px 30px; }
-    .drop-card { display: grid; grid-template-columns: 1.1fr 1fr; border: 1px solid var(--border); border-radius: 24px; overflow: hidden; margin-bottom: 24px; text-decoration: none; color: inherit; transition: box-shadow .2s, transform .2s; min-height: 260px; }
-    .drop-card:hover { box-shadow: 0 18px 50px rgba(30,17,82,0.12); transform: translateY(-2px); }
-    .dc-copy { padding: 40px 44px; display: flex; flex-direction: column; justify-content: center; }
-    .dc-num { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 12px; }
-    .dc-title { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.03em; color: var(--ink2); line-height: 1.1; margin-bottom: 12px; }
-    .dc-copy p { font-size: 0.98rem; color: rgba(0,0,0,0.55); line-height: 1.7; max-width: 420px; margin-bottom: 22px; }
-    .dc-link { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 700; color: var(--blue); }
-    .drop-card:hover .dc-link { gap: 12px; }
+    /* hero card cluster */
+    .sh-cluster { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+    .hc { position:relative; background:#fff; border:1px solid var(--border); border-radius:18px; overflow:hidden; box-shadow:0 12px 32px rgba(30,17,82,0.08); transition:transform .2s, box-shadow .2s; }
+    .hc:hover { transform:translateY(-4px); box-shadow:0 20px 44px rgba(30,17,82,0.14); }
+    .hc:nth-child(2) { transform:translateY(22px); }
+    .hc:nth-child(2):hover { transform:translateY(18px); }
+    .hc-img { height:108px; position:relative; overflow:hidden; }
+    .hc-img img { width:100%; height:100%; object-fit:cover; display:block; }
+    .hc-img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(255,255,255,0.06)); }
+    .hc-body { padding:14px 15px 16px; }
+    .hc-chip { display:inline-block; font-size:0.6rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; padding:3px 9px; border-radius:100px; margin-bottom:8px; }
+    .hc-title { font-size:0.95rem; font-weight:800; letter-spacing:-0.02em; color:var(--ink2); line-height:1.25; }
+    .hc-meta { font-size:0.72rem; color:rgba(30,17,82,0.45); margin-top:8px; font-weight:600; }
 
-    .dc-visual { position: relative; overflow: hidden; display: grid; place-items: center; }
-    .dc-visual::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(0,0,0,0.10) 1px, transparent 1px); background-size: 16px 16px; opacity: 0.5; }
-    .dc-icon { position: relative; z-index: 1; font-size: 4.5rem; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.18)); }
-    .dc-tag { position: absolute; bottom: 16px; right: 18px; z-index: 1; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #059669; background: rgba(255,255,255,0.85); padding: 4px 10px; border-radius: 100px; display: inline-flex; align-items: center; gap: 6px; }
-    .dc-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #059669; }
+    /* SECTION HEAD */
+    .ep-head { max-width: 1240px; margin: 84px auto 0; padding: 0 48px; text-align:center; }
+    .ep-head h2 { font-size: clamp(1.9rem, 3.4vw, 2.7rem); font-weight: 900; letter-spacing:-0.035em; color:var(--ink2); }
+    .ep-head p { font-size:1rem; color:rgba(30,17,82,0.5); margin-top:10px; }
 
-    .sub-band { max-width: 1180px; margin: 40px auto 90px; padding: 0 48px; }
-    .sub-inner { background: var(--dark); border-radius: 24px; padding: 52px 40px; text-align: center; }
-    .sub-inner h2 { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 12px; }
-    .sub-inner p { font-size: 0.95rem; color: rgba(255,255,255,0.55); max-width: 460px; margin: 0 auto 24px; }
-    .sub-cta { display: inline-block; background: var(--blue); color: #fff; font-size: 0.9rem; font-weight: 700; text-decoration: none; padding: 13px 28px; border-radius: 100px; }
+    /* FILTERS */
+    .ep-filters { max-width: 1240px; margin: 26px auto 0; padding: 0 48px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; justify-content:center; }
+    .ep-pill { font-size:0.82rem; font-weight:700; color:rgba(30,17,82,0.6); background:#fff; border:1.5px solid var(--border); padding:9px 18px; border-radius:100px; cursor:pointer; transition:all .18s; }
+    .ep-pill:hover { border-color:rgba(124,58,237,0.4); color:var(--ink2); }
+    .ep-pill.on { background:var(--ink2); border-color:var(--ink2); color:#fff; }
+    .ep-sel { font-size:0.82rem; font-weight:700; color:rgba(30,17,82,0.6); background:#fff; border:1.5px solid var(--border); padding:9px 16px; border-radius:100px; cursor:pointer; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237c3aed' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 16px center; padding-right:38px; }
+    .ep-clear { font-size:0.82rem; font-weight:700; color:var(--blue); background:none; border:none; cursor:pointer; padding:9px 6px; }
+
+    /* EPISODE GRID — "learn from businesses like yours" pattern */
+    .ep-grid { max-width: 1240px; margin: 32px auto 0; padding: 0 48px; display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+    .ec { display:flex; flex-direction:column; background:#fff; border:1px solid var(--border); border-radius:22px; overflow:hidden; text-decoration:none; color:inherit; transition:transform .2s, box-shadow .2s; }
+    .ec:hover { transform:translateY(-5px); box-shadow:0 22px 50px rgba(30,17,82,0.12); }
+    .ec-top { display:flex; align-items:center; justify-content:space-between; padding:18px 20px 0; }
+    .ec-byline { display:flex; align-items:center; gap:8px; font-size:0.74rem; font-weight:700; color:rgba(30,17,82,0.55); }
+    .ec-byline .av { width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#a78bfa); }
+    .ec-read { display:inline-flex; align-items:center; gap:5px; font-size:0.74rem; font-weight:800; color:var(--blue); }
+    .ec:hover .ec-read { gap:9px; }
+    .ec-pad { padding:14px 20px 6px; }
+    .ec-chip { display:inline-block; font-size:0.6rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; padding:4px 10px; border-radius:100px; margin-bottom:11px; }
+    .ec-title { font-size:1.12rem; font-weight:800; letter-spacing:-0.02em; color:var(--ink2); line-height:1.28; }
+    .ec-desc { font-size:0.86rem; color:rgba(30,17,82,0.5); line-height:1.6; margin-top:9px; }
+    .ec-img { margin:16px 0 0; height:188px; position:relative; overflow:hidden; }
+    .ec-img img { width:100%; height:100%; object-fit:cover; display:block; }
+    .ec-foot { display:flex; align-items:center; gap:10px; padding:14px 20px 18px; font-size:0.76rem; font-weight:700; color:rgba(30,17,82,0.55); }
+    .ec-foot .sep { width:4px; height:4px; border-radius:50%; background:rgba(30,17,82,0.2); }
+
+    /* topic colour tokens */
+    .t-story { background:var(--lav-2); color:#6d28d9; }
+    .t-interview { background:var(--mint-2); color:#047857; }
+    .t-product { background:var(--sky-1); color:#1d4ed8; }
+
+    .ep-empty { max-width:1240px; margin:0 auto; padding:40px 48px; text-align:center; color:rgba(30,17,82,0.45); font-weight:600; display:none; }
+
+    /* SUBSCRIBE BAND — soft */
+    .sub-band { max-width: 1240px; margin: 80px auto 90px; padding: 0 48px; }
+    .sub-inner {
+      background:
+        radial-gradient(600px 300px at 15% 20%, rgba(124,58,237,0.12) 0%, transparent 60%),
+        linear-gradient(135deg, var(--mint-1) 0%, var(--lav-1) 100%);
+      border:1px solid rgba(124,58,237,0.12);
+      border-radius:28px; padding:56px 40px; text-align:center;
+    }
+    .sub-inner h2 { font-size:1.8rem; font-weight:900; letter-spacing:-0.03em; color:var(--ink2); margin-bottom:12px; }
+    .sub-inner p { font-size:0.98rem; color:rgba(30,17,82,0.55); max-width:480px; margin:0 auto 26px; }
+    .sub-cta { display:inline-block; background:var(--blue); color:#fff; font-size:0.92rem; font-weight:700; text-decoration:none; padding:14px 30px; border-radius:100px; box-shadow:0 12px 28px rgba(124,58,237,0.28); transition:transform .18s; }
+    .sub-cta:hover { transform:translateY(-2px); }
 
     footer { border-top: 1px solid var(--border); padding: 40px 48px; }
-    .footer-bottom { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
     .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
     .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
     .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
     .footer-links a:hover { color: var(--dark); }
 
-    @media (max-width: 820px) {
-      nav { padding: 0 20px; } .nav-links { display: none; }
-      .drop-header { padding: 64px 24px 20px; }
-      .archive { padding: 16px 24px; }
-      .drop-card { grid-template-columns: 1fr; }
-      .dc-visual { min-height: 180px; order: 2; }
-      .dc-copy { padding: 32px 28px; }
-      .sub-band { padding: 0 24px; } footer { padding: 32px 24px; }
+    @media (max-width: 980px) {
+      .sh-panel { grid-template-columns:1fr; gap:36px; padding:44px 32px; }
+      .ep-grid { grid-template-columns:repeat(2,1fr); }
     }
-  
-
+    @media (max-width: 720px) {
+      nav { padding: 0 20px; } .nav-links { display: none; }
+      .show-hero { padding:0 16px; } .sh-panel { padding:34px 22px; border-radius:24px; }
+      .sh-cluster { grid-template-columns:1fr 1fr; }
+      .hc:nth-child(2), .hc:nth-child(4) { transform:none; }
+      .ep-head, .ep-filters, .ep-grid, .sub-band { padding-left:20px; padding-right:20px; }
+      .ep-grid { grid-template-columns:1fr; }
+      footer { padding: 32px 24px; }
+    }
   </style>
 </head>
 <body>
@@ -79,109 +148,140 @@
   <span style="display:inline-flex;align-items:center;gap:10px"><a href="demo.html" style="color:rgba(0,0,0,0.6);font-size:0.85rem;text-decoration:none;padding:7px 16px;border-radius:20px;border:1px solid rgba(0,0,0,0.15)">Get a Demo</a><a href="https://app.get-kind.com/signup" class="btn-nav-primary">Start 14-day trial</a></span>
 </nav>
 
-<header class="drop-header">
-  <h1>Product Drop Archive</h1>
-  <p>What we just shipped &mdash; real, live, and in your hands. Click into any drop to see the detail behind it, and read the story on the blog.</p>
-</header>
-
-<section class="archive">
-
-  <a class="drop-card" href="drop-09.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 09 &middot; The AI Family</span>
-      <span class="dc-title">Meet your AI Family</span>
-      <p>Four agents that run your revenue motion end to end &mdash; the team you&rsquo;d hire, working from day one.</p>
-      <span class="dc-link">View all updates &rarr;</span>
+<!-- HERO -->
+<section class="show-hero">
+  <div class="sh-panel">
+    <div class="sh-left">
+      <span class="sh-eyebrow"><span class="dot"></span>The Drop &middot; The Show</span>
+      <h1>Real revenue problems, <span class="grad">solved out loud.</span></h1>
+      <p class="sh-lead">Founder stories, operator interviews, and the product drops behind them &mdash; the real conversations about building pipeline that actually closes. New episodes every week.</p>
+      <div class="sh-btns">
+        <a href="#episodes" class="sh-btn sh-btn-primary">Browse all episodes &darr;</a>
+        <a href="https://app.get-kind.com/signup" class="sh-btn sh-btn-ghost">Get the drop &rarr;</a>
+      </div>
     </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-9.png" alt="Meet your AI Family" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+    <div class="sh-cluster">
+      <div class="hc">
+        <div class="hc-img"><img src="gen-arch-9.png" alt="Meet your AI Family" /></div>
+        <div class="hc-body"><span class="hc-chip t-product">Product Drop</span><div class="hc-title">Meet your AI Family</div><div class="hc-meta">Platform &middot; 3 min</div></div>
+      </div>
+      <div class="hc">
+        <div class="hc-img"><img src="gen-arch-2.png" alt="The hour you never get back" /></div>
+        <div class="hc-body"><span class="hc-chip t-story">Real Story</span><div class="hc-title">The hour you never get back</div><div class="hc-meta">SaaS &middot; 6 min</div></div>
+      </div>
+      <div class="hc">
+        <div class="hc-img"><img src="gen-arch-7.png" alt="Your data is lying to you" /></div>
+        <div class="hc-body"><span class="hc-chip t-interview">Interview</span><div class="hc-title">Your data is lying to you</div><div class="hc-meta">RevOps &middot; 5 min</div></div>
+      </div>
+      <div class="hc">
+        <div class="hc-img"><img src="gen-arch-5.png" alt="Every reply, answered" /></div>
+        <div class="hc-body"><span class="hc-chip t-interview">Interview</span><div class="hc-title">Every reply, answered</div><div class="hc-meta">Sales &middot; 5 min</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION HEAD -->
+<div class="ep-head" id="episodes">
+  <h2>Stories from teams like yours</h2>
+  <p>Filter the show by topic and industry &mdash; every episode is a real problem and how it got solved.</p>
+</div>
+
+<!-- FILTERS -->
+<div class="ep-filters" id="filters">
+  <button class="ep-pill on" data-topic="all">All</button>
+  <button class="ep-pill" data-topic="story">Real Stories</button>
+  <button class="ep-pill" data-topic="interview">Interviews</button>
+  <button class="ep-pill" data-topic="product">Product Drops</button>
+  <select class="ep-sel" id="industry">
+    <option value="all">All industries</option>
+    <option value="Platform">Platform</option>
+    <option value="SaaS">SaaS</option>
+    <option value="RevOps">RevOps</option>
+    <option value="Financial Services">Financial Services</option>
+    <option value="Sales">Sales</option>
+    <option value="Real Estate">Real Estate</option>
+    <option value="Deliverability">Deliverability</option>
+    <option value="Pricing">Pricing</option>
+    <option value="Recruitment">Recruitment</option>
+  </select>
+  <button class="ep-clear" id="clear">Clear all &#8635;</button>
+</div>
+
+<!-- EPISODE GRID -->
+<section class="ep-grid" id="grid">
+
+  <a class="ec" href="blog.html" data-topic="product" data-industry="Platform">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-product">Product Drop</span><div class="ec-title">Meet your AI Family</div><div class="ec-desc">The four agents that run a revenue motion end to end &mdash; and how they hand work to each other.</div></div>
+    <div class="ec-img"><img src="gen-arch-9.png" alt="Meet your AI Family" /></div>
+    <div class="ec-foot">Platform <span class="sep"></span> 3 min read</div>
   </a>
 
-  <a class="drop-card" href="drop-08.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 08 &middot; Lead Generation</span>
-      <span class="dc-title">The Lead Engine</span>
-      <p>From &ldquo;who do you sell to?&rdquo; to a scored, verified list &mdash; the pipeline that feeds everything.</p>
-      <span class="dc-link">View all updates &rarr;</span>
-    </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-8.png" alt="The Lead Engine" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+  <a class="ec" href="blog.html" data-topic="story" data-industry="SaaS">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-story">Real Story</span><div class="ec-title">The hour you never get back</div><div class="ec-desc">A founder on what changed when prospecting stopped eating the first hour of every morning.</div></div>
+    <div class="ec-img"><img src="gen-arch-2.png" alt="The hour you never get back" /></div>
+    <div class="ec-foot">SaaS <span class="sep"></span> 6 min read</div>
   </a>
 
-  <a class="drop-card" href="drop-07.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 07 &middot; Data Quality</span>
-      <span class="dc-title">Enrichment &amp; Data</span>
-      <p>Clean, complete, compliant contact data &mdash; the difference between a bounce and a booked call.</p>
-      <span class="dc-link">View all updates &rarr;</span>
-    </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-7.png" alt="Enrichment & Data" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+  <a class="ec" href="blog.html" data-topic="interview" data-industry="RevOps">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-interview">Interview</span><div class="ec-title">Your data is lying to you</div><div class="ec-desc">Why most pipelines are built on numbers nobody actually checks &mdash; and what to fix first.</div></div>
+    <div class="ec-img"><img src="gen-arch-7.png" alt="Your data is lying to you" /></div>
+    <div class="ec-foot">RevOps <span class="sep"></span> 5 min read</div>
   </a>
 
-  <a class="drop-card" href="drop-06.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 06 &middot; Outreach</span>
-      <span class="dc-title">The Outreach Engine</span>
-      <p>Personalised, multi-step outreach that runs itself &mdash; and reads every reply for you.</p>
-      <span class="dc-link">View all updates &rarr;</span>
-    </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-6.png" alt="The Outreach Engine" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+  <a class="ec" href="blog.html" data-topic="story" data-industry="Financial Services">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-story">Real Story</span><div class="ec-title">Compliant by default, not by accident</div><div class="ec-desc">How a brokerage runs real outreach without ever stepping outside POPIA.</div></div>
+    <div class="ec-img"><img src="gen-arch-8.png" alt="Compliant by default" /></div>
+    <div class="ec-foot">Financial Services <span class="sep"></span> 4 min read</div>
   </a>
 
-  <a class="drop-card" href="drop-05.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 05 &middot; Pipeline</span>
-      <span class="dc-title">Pipeline &amp; Replies</span>
-      <p>Every conversation and every stage in one place &mdash; so nothing warm slips through.</p>
-      <span class="dc-link">View all updates &rarr;</span>
-    </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-5.png" alt="Pipeline & Replies" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+  <a class="ec" href="blog.html" data-topic="interview" data-industry="Sales">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-interview">Interview</span><div class="ec-title">Every reply, answered</div><div class="ec-desc">What happens to a pipeline when no inbound message waits more than a minute for a response.</div></div>
+    <div class="ec-img"><img src="gen-arch-5.png" alt="Every reply, answered" /></div>
+    <div class="ec-foot">Sales <span class="sep"></span> 5 min read</div>
   </a>
 
-  <a class="drop-card" href="drop-04.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 04 &middot; Deliverability</span>
-      <span class="dc-title">Deliverability, Handled</span>
-      <p>The inbox-placement work most teams never get right &mdash; run for you, behind the scenes.</p>
-      <span class="dc-link">View all updates &rarr;</span>
-    </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-4.png" alt="Deliverability, Handled" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+  <a class="ec" href="blog.html" data-topic="story" data-industry="Real Estate">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-story">Real Story</span><div class="ec-title">From cold list to booked viewing</div><div class="ec-desc">A property team&rsquo;s first month letting FIGSY open the conversations they never had time for.</div></div>
+    <div class="ec-img"><img src="gen-arch-6.png" alt="From cold list to booked viewing" /></div>
+    <div class="ec-foot">Real Estate <span class="sep"></span> 6 min read</div>
   </a>
 
-  <a class="drop-card" href="drop-03.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 03 &middot; Billing</span>
-      <span class="dc-title">Payments &amp; Billing</span>
-      <p>Transparent, usage-based billing &mdash; pay for outcomes, never a black-box subscription.</p>
-      <span class="dc-link">View all updates &rarr;</span>
-    </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-3.png" alt="Payments & Billing" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+  <a class="ec" href="blog.html" data-topic="interview" data-industry="Deliverability">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-interview">Interview</span><div class="ec-title">Why your emails never arrived</div><div class="ec-desc">The inbox-placement work most teams never see &mdash; and why it decides whether you get a reply at all.</div></div>
+    <div class="ec-img"><img src="gen-arch-4.png" alt="Why your emails never arrived" /></div>
+    <div class="ec-foot">Deliverability <span class="sep"></span> 7 min read</div>
   </a>
 
-  <a class="drop-card" href="drop-02.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 02 &middot; Integrations</span>
-      <span class="dc-title">The Connected Platform</span>
-      <p>K.I.N.D plugs into the tools you already run &mdash; and the ones your developers want.</p>
-      <span class="dc-link">View all updates &rarr;</span>
-    </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-2.png" alt="The Connected Platform" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+  <a class="ec" href="blog.html" data-topic="product" data-industry="Pricing">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-product">Product Drop</span><div class="ec-title">Pay for results, not promises</div><div class="ec-desc">Inside outcome-based pricing &mdash; what it is, why we built it, and who it changes the maths for.</div></div>
+    <div class="ec-img"><img src="gen-arch-3.png" alt="Pay for results, not promises" /></div>
+    <div class="ec-foot">Pricing <span class="sep"></span> 4 min read</div>
   </a>
 
-  <a class="drop-card" href="drop-01.html">
-    <div class="dc-copy">
-      <span class="dc-num">Drop 01 &middot; Foundations</span>
-      <span class="dc-title">Built for Scale &amp; Trust</span>
-      <p>The foundations &mdash; team scale, local payments, and the reliability you don&rsquo;t think about until you need it.</p>
-      <span class="dc-link">View all updates &rarr;</span>
-    </div>
-    <div class="dc-visual" style="overflow:hidden"><img src="gen-arch-1.png" alt="Built for Scale & Trust" style="width:100%;height:100%;object-fit:cover;display:block" /><span class="dc-tag">Live now</span></div>
+  <a class="ec" href="blog.html" data-topic="story" data-industry="Recruitment">
+    <div class="ec-top"><span class="ec-byline"><span class="av"></span>The Drop</span><span class="ec-read">Read story &rarr;</span></div>
+    <div class="ec-pad"><span class="ec-chip t-story">Real Story</span><div class="ec-title">Filling roles while you sleep</div><div class="ec-desc">A staffing firm on what it&rsquo;s like to wake up to booked calls instead of an empty calendar.</div></div>
+    <div class="ec-img"><img src="gen-arch-1.png" alt="Filling roles while you sleep" /></div>
+    <div class="ec-foot">Recruitment <span class="sep"></span> 5 min read</div>
   </a>
 
 </section>
+<div class="ep-empty" id="empty">No episodes match those filters yet &mdash; try clearing one.</div>
 
+<!-- SUBSCRIBE BAND -->
 <div class="sub-band">
   <div class="sub-inner">
     <h2>Never miss a drop.</h2>
-    <p>Get the new drop the day it ships &mdash; the features, the upgrades, the things that make your pipeline work harder.</p>
+    <p>New stories, interviews and product drops every week. Get each one the day it lands &mdash; straight to your inbox.</p>
     <a href="https://app.get-kind.com/signup" class="sub-cta">Get the drop &rarr;</a>
   </div>
 </div>
@@ -198,6 +298,42 @@
     </div>
   </div>
 </footer>
+
+<script>
+(function(){
+  var topic = 'all', industry = 'all';
+  var pills = document.querySelectorAll('.ep-pill');
+  var sel = document.getElementById('industry');
+  var clear = document.getElementById('clear');
+  var cards = [].slice.call(document.querySelectorAll('#grid .ec'));
+  var empty = document.getElementById('empty');
+
+  function apply(){
+    var shown = 0;
+    cards.forEach(function(c){
+      var okT = topic === 'all' || c.getAttribute('data-topic') === topic;
+      var okI = industry === 'all' || c.getAttribute('data-industry') === industry;
+      var ok = okT && okI;
+      c.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    empty.style.display = shown ? 'none' : 'block';
+  }
+  pills.forEach(function(p){
+    p.addEventListener('click', function(){
+      pills.forEach(function(x){ x.classList.toggle('on', x===p); });
+      topic = p.getAttribute('data-topic');
+      apply();
+    });
+  });
+  sel.addEventListener('change', function(){ industry = sel.value; apply(); });
+  clear.addEventListener('click', function(){
+    topic = 'all'; industry = 'all'; sel.value = 'all';
+    pills.forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-topic')==='all'); });
+    apply();
+  });
+})();
+</script>
 <script>
 (function(){
   fetch('https://kindapi-production-e64c.up.railway.app/track/visit', {

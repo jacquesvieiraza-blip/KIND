@@ -410,13 +410,13 @@
       font-size: 0.75rem; font-weight: 700; color: #a78bfa;
     }
 
-    /* POPIA TRUST BAND — dark trust seal */
+    /* POPIA TRUST BAND — soft mint trust seal */
     .popia-band {
       background:
-        radial-gradient(900px 400px at 12% 0%, rgba(52,211,153,0.16) 0%, transparent 60%),
-        linear-gradient(135deg, #06241b 0%, #0a2e24 50%, #07211c 100%);
-      border-top: 1px solid rgba(52,211,153,0.18);
-      border-bottom: 1px solid rgba(52,211,153,0.18);
+        radial-gradient(900px 420px at 12% 0%, rgba(110,231,183,0.20) 0%, transparent 62%),
+        linear-gradient(135deg, #eafaf4 0%, #eef4fe 100%);
+      border-top: 1px solid rgba(5,150,105,0.12);
+      border-bottom: 1px solid rgba(5,150,105,0.12);
       padding: 64px 48px;
     }
     .popia-inner {
@@ -425,37 +425,37 @@
     }
     .popia-shield {
       width: 88px; height: 88px;
-      background: linear-gradient(160deg, rgba(52,211,153,0.18), rgba(52,211,153,0.04));
-      border: 1px solid rgba(52,211,153,0.35);
+      background: linear-gradient(160deg, #ffffff, #ecfdf5);
+      border: 1px solid rgba(5,150,105,0.18);
       border-radius: 24px;
       display: flex; align-items: center; justify-content: center;
-      color: #34d399;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+      color: #059669;
+      box-shadow: 0 12px 36px rgba(5,150,105,0.16), inset 0 1px 0 rgba(255,255,255,0.9);
       flex-shrink: 0;
     }
     .popia-label {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
-      color: #6ee7b7; margin-bottom: 12px;
+      color: #059669; margin-bottom: 12px;
     }
     .popia-headline {
-      font-size: clamp(1.3rem, 2.4vw, 1.7rem); font-weight: 800; color: #fff; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 12px;
+      font-size: clamp(1.3rem, 2.4vw, 1.7rem); font-weight: 800; color: #0a3d2b; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 12px;
     }
     .popia-copy {
-      font-size: 0.92rem; color: rgba(255,255,255,0.55); line-height: 1.75; max-width: 700px;
+      font-size: 0.92rem; color: #3a6353; line-height: 1.75; max-width: 700px;
     }
     .popia-pills {
       display: flex; gap: 9px; flex-wrap: wrap; margin-top: 20px;
     }
     .popia-pill {
       display: inline-flex; align-items: center; gap: 7px;
-      background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.28);
-      color: #a7f3d0; font-size: 0.74rem; font-weight: 600;
+      background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.20);
+      color: #047857; font-size: 0.74rem; font-weight: 600;
       padding: 7px 14px; border-radius: 100px;
     }
     .popia-pill::before {
       content: ""; width: 5px; height: 5px; border-radius: 50%;
-      background: #34d399; box-shadow: 0 0 8px #34d399; flex-shrink: 0;
+      background: #10b981; box-shadow: 0 0 7px rgba(16,185,129,0.6); flex-shrink: 0;
     }
 
     /* STATS */
@@ -493,23 +493,23 @@
     .p-card:nth-child(3) { --p-accent: linear-gradient(90deg,#fbbf24,#f59e0b); }
     .p-card.featured {
       background: linear-gradient(165deg, #1a1330 0%, #0a0a0a 60%);
-      border-color: rgba(124,58,237,0.5);
+      border-color: rgba(167,139,250,0.4);
       color: #fff;
       transform: scale(1.04);
-      box-shadow: 0 30px 70px rgba(124,58,237,0.32);
+      box-shadow: 0 28px 64px rgba(124,58,237,0.22);
     }
-    .p-card.featured::before { background: linear-gradient(90deg,#a78bfa,#ec4899,#7c3aed); height: 5px; }
+    .p-card.featured::before { background: linear-gradient(90deg,#c4b5fd,#f7a8d8,#a78bfa); height: 5px; }
     .p-card.featured::after {
       content: ""; position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(420px 260px at 50% -10%, rgba(124,58,237,0.35) 0%, transparent 70%);
+      background: radial-gradient(420px 260px at 50% -10%, rgba(167,139,250,0.26) 0%, transparent 70%);
     }
     .p-card.featured > * { position: relative; z-index: 1; }
-    .p-card.featured:hover { transform: scale(1.04) translateY(-6px); box-shadow: 0 36px 84px rgba(124,58,237,0.4); }
+    .p-card.featured:hover { transform: scale(1.04) translateY(-6px); box-shadow: 0 34px 76px rgba(124,58,237,0.3); }
     .p-badge {
       position: absolute; top: 16px; right: 16px; left: auto; transform: none;
-      background: linear-gradient(90deg,#a78bfa,#ec4899); color: #fff; font-size: 0.62rem; font-weight: 800;
+      background: linear-gradient(90deg,#c4b5fd,#f7a8d8); color: #5b2a6b; font-size: 0.62rem; font-weight: 800;
       letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 13px; border-radius: 100px;
-      box-shadow: 0 6px 18px rgba(236,72,153,0.45);
+      box-shadow: 0 6px 16px rgba(196,181,253,0.5);
     }
     .p-plan { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 10px; }
     .p-card:nth-child(3) .p-plan { color: #d97706; }

@@ -20,7 +20,7 @@
 
 These do **not** wait for a calendar slot — the lead time is the constraint. All 🧍.
 
-1. ⏰ **Email `partners@apollo.io`** — API reseller/partner agreement. **~1 week lead.** *(Inventory 103.)* Also note the separate **50-client trigger**: before client #51, email `partnerships@apollo.io` for the reseller agreement or the single key risks termination for all clients (`legal.md`).
+1. ✅ **Email `partners@apollo.io`** — API reseller/partner agreement. **~1 week lead. ✅ SENT 14 Jun (awaiting reply).** *(Inventory 103.)* **Note (corrected per KIND-MASTER 10 Jun):** there is **no 50-client rule** — that threshold was invented; reselling Apollo data off one account violates ToS **from client #1**, so the reseller agreement (or client-brings-own-key) is the structural fix from day one, not a future trigger.
 2. ⏰ **ICO registration** — ico.org.uk, **£40/yr**, "do THIS WEEK," penalty £400–4k. *(Legal #10, `legal-pack.md`.)*
 3. ⏰ **SEIS advance assurance** — HMRC takes **4–8 weeks**; needs an accountant to fill the `[INSERT]` placeholders first. Start now if you want funding optionality. *(`seis-advance-assurance-draft.md`.)*
 4. ⏰ **Trademark clearance search** — **5–7 working days** before any UKIPO filing; file "KIND" (not "K.I.N.D"); Milla/Vida have distinctiveness risk. *(`legal-pack.md`.)*

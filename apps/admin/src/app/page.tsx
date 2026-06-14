@@ -10,7 +10,20 @@ interface ClientRow {
   company_name: string | null
   created_at: string
   ttfl_hours?: number | null
-  status: string | null
+  status?: string | null
+  // `clients` has no status column — the badge status is derived from the
+  // client's subscription(s), embedded via the FK.
+  subscriptions?: { status: string | null }[] | null
+}
+
+// Roll a client's subscription rows up into a single status for the pipeline badge.
+function deriveClientStatus(subs: { status: string | null }[] | null | undefined): string {
+  if (!subs || subs.length === 0) return 'none'
+  const statuses = subs.map(s => s.status)
+  if (statuses.includes('active'))   return 'active'
+  if (statuses.includes('trialing')) return 'trial'
+  if (statuses.includes('past_due')) return 'past_due'
+  return 'cancelled'
 }
 
 interface LeadCountRow {
@@ -49,7 +62,7 @@ async function getAdminStats() {
     supabase.from('subscriptions').select('*').eq('status', 'trialing'),
     supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'past_due'),
     supabase.from('leads').select('id', { count: 'exact', head: true }),
-    supabase.from('clients').select('id, company_name, created_at, status').order('created_at', { ascending: false }).limit(50),
+    supabase.from('clients').select('id, company_name, created_at, subscriptions(status)').order('created_at', { ascending: false }).limit(50),
     supabase.from('leads').select('client_id, created_at').order('created_at', { ascending: true }),
     supabase.from('leads').select('client_id').gte('created_at', startOfMonth),
   ])
@@ -80,7 +93,7 @@ async function getAdminStats() {
     const ttfl_hours = firstLead
       ? (new Date(firstLead).getTime() - new Date(c.created_at).getTime()) / 3600000
       : null
-    return { ...c, ttfl_hours }
+    return { ...c, ttfl_hours, status: deriveClientStatus(c.subscriptions) }
   })
 
   const avgTtfl = (() => {
@@ -153,12 +166,15 @@ function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, string> = {
     trial:     'bg-blue-50 text-blue-600 border border-blue-100',
     active:    'bg-emerald-50 text-emerald-700 border border-emerald-100',
+    past_due:  'bg-amber-50 text-amber-700 border border-amber-100',
     cancelled: 'bg-gray-50 text-gray-400 border border-gray-100',
+    none:      'bg-gray-50 text-gray-400 border border-gray-100',
   }
+  const labels: Record<string, string> = { past_due: 'past due', none: 'no sub' }
   const cls = map[status ?? ''] ?? 'bg-gray-50 text-gray-400 border border-gray-100'
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${cls}`}>
-      {status ?? '—'}
+      {labels[status ?? ''] ?? status ?? '—'}
     </span>
   )
 }
@@ -410,7 +426,7 @@ export default async function AdminPage() {
                   </td>
                   <td className="px-3 py-3 text-gray-700">{(stats.leadCountMap[client.id] ?? 0).toLocaleString()}</td>
                   <td className="px-3 py-3 text-gray-700">{(stats.monthLeadMap[client.id] ?? 0).toLocaleString()}</td>
-                  <td className="px-3 py-3"><StatusBadge status={client.status} /></td>
+                  <td className="px-3 py-3"><StatusBadge status={client.status ?? null} /></td>
                 </tr>
               ))}
             </tbody>

@@ -15,7 +15,7 @@ interface ReplyRow {
   id: string
   campaign_id: string
   client_id: string
-  is_interested?: boolean | null
+  classification?: string | null
 }
 
 interface EnrolmentRow {
@@ -23,9 +23,9 @@ interface EnrolmentRow {
   client_id: string
 }
 
+// figsy_sent_emails has no client_id column — only campaign_id is available here.
 interface EmailSentRow {
   campaign_id: string
-  client_id: string
 }
 
 interface ClientRow {
@@ -65,7 +65,7 @@ async function getAnalyticsData(statusFilter?: string) {
       clientsResult,
     ] = await Promise.all([
       supabase.from('figsy_campaigns').select('id, name, status, client_id, created_at').order('created_at', { ascending: false }),
-      supabase.from('figsy_replies').select('id, campaign_id, client_id, is_interested'),
+      supabase.from('figsy_replies').select('id, campaign_id, client_id, classification'),
       supabase.from('clients').select('id, company_name'),
     ])
 
@@ -88,7 +88,7 @@ async function getAnalyticsData(statusFilter?: string) {
     let emailsSentMap: Record<string, number> = {}
 
     const enrolmentsRes = await supabase
-      .from('figsy_enrolments')
+      .from('figsy_enrollments')
       .select('campaign_id, client_id')
     const enrolmentsAvailable = !enrolmentsRes.error
     for (const row of (enrolmentsRes.data ?? []) as EnrolmentRow[]) {
@@ -96,8 +96,8 @@ async function getAnalyticsData(statusFilter?: string) {
     }
 
     const emailsSentRes = await supabase
-      .from('figsy_emails_sent')
-      .select('campaign_id, client_id')
+      .from('figsy_sent_emails')
+      .select('campaign_id')
     const emailsSentAvailable = !emailsSentRes.error
     for (const row of (emailsSentRes.data ?? []) as EmailSentRow[]) {
       emailsSentMap[row.campaign_id] = (emailsSentMap[row.campaign_id] ?? 0) + 1
@@ -108,7 +108,9 @@ async function getAnalyticsData(statusFilter?: string) {
     const hotLeadMap: Record<string, number> = {}
     for (const r of replies) {
       replyMap[r.campaign_id] = (replyMap[r.campaign_id] ?? 0) + 1
-      if (r.is_interested) {
+      // "Hot" = a positive classification. figsy_replies has no is_interested
+      // boolean; the signal lives in `classification` (hot/interested/warm/...).
+      if (r.classification === 'hot' || r.classification === 'interested') {
         hotLeadMap[r.campaign_id] = (hotLeadMap[r.campaign_id] ?? 0) + 1
       }
     }
@@ -252,8 +254,8 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
           <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-800 leading-relaxed">
             <span className="font-semibold">Some metrics aren&apos;t being tracked yet.</span>{' '}
-            {!enrolmentsAvailable && <>The <code className="bg-amber-100 px-1 rounded">figsy_enrolments</code> table is unavailable, so <b>enrolled</b> shows as not tracked. </>}
-            {!emailsSentAvailable && <>The <code className="bg-amber-100 px-1 rounded">figsy_emails_sent</code> table is unavailable, so <b>emails sent</b> and <b>reply rate</b> can&apos;t be computed. </>}
+            {!enrolmentsAvailable && <>The <code className="bg-amber-100 px-1 rounded">figsy_enrollments</code> table is unavailable, so <b>enrolled</b> shows as not tracked. </>}
+            {!emailsSentAvailable && <>The <code className="bg-amber-100 px-1 rounded">figsy_sent_emails</code> table is unavailable, so <b>emails sent</b> and <b>reply rate</b> can&apos;t be computed. </>}
             These read as &ldquo;—&rdquo; rather than a misleading 0.
           </p>
         </div>

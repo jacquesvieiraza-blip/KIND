@@ -1092,11 +1092,12 @@ function goTo(idx) {
   dots[cur].classList.add('active')
   resetProgress()
   onSceneEnter(idx)
-  document.getElementById('replay-btn').style.display = idx === TOTAL - 1 ? 'block' : 'none'
+  document.getElementById('replay-btn').style.display = 'none' // continuous loop — no manual replay needed
 }
 
 function next() {
   if (cur < TOTAL - 1) { goTo(cur + 1); scheduleNext() }
+  else { goTo(0); scheduleNext() } // continuous loop — restart from scene 1
 }
 
 function scheduleNext() {

@@ -56,12 +56,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } catch { isPartner = false }
 
   let clientRowExists = false
+  let clientQueryFailed = false
   try {
-    const { data: clientRow } = await supabase
+    const { data: clientRow, error: clientErr } = await supabase
       .from('clients')
       .select('id, credit_balance, company_name, company_id, seat_role, enabled_agents, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
+
+    // A query ERROR (e.g. a transient PostgREST schema-cache miss right after a
+    // migration adds columns) is NOT the same as "no account". Treating it as
+    // "no account" bounced real users to /onboard, which redirected back to
+    // /dashboard → infinite loop. Record the failure so the onboarding gate below
+    // only fires on a confirmed-empty result.
+    if (clientErr) {
+      clientQueryFailed = true
+      console.error('[dashboard-layout] clients lookup failed:', clientErr.message)
+    }
 
     if (clientRow) {
       clientRowExists = true
@@ -96,13 +107,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
         .eq('client_id', clientRow.id)
       leadCount = count ?? 0
     }
-  } catch { }
+  } catch (e) {
+    clientQueryFailed = true
+    console.error('[dashboard-layout] clients lookup threw:', e)
+  }
 
   // Onboarding gate: a logged-in user with NO client row (and who isn't a
   // partner) has abandoned onboarding — send them back to finish it instead of
   // stranding them on a half-broken dashboard. Redirect MUST be outside the
   // try/catch above (it throws NEXT_REDIRECT which the empty catch would eat).
-  if (!clientRowExists && !isPartner) redirect('/onboard')
+  // CRITICAL: only redirect on a CONFIRMED-empty result (query succeeded, no row).
+  // Never redirect when the lookup failed — that caused an onboard⇄dashboard loop.
+  if (!clientRowExists && !clientQueryFailed && !isPartner) redirect('/onboard')
 
   const isNewUser = leadCount === 0
 

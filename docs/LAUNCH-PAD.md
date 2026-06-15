@@ -164,7 +164,7 @@ Replay the proven sequence on prod. Founder on standby for hotfix till ~6pm; �
 | **P0** | Billing correctness — finish + verify live | 166–173 | pre-launch | 🤝 | real money flows; chargeback/legal risk |
 | **P0** | **Company RLS / access control** | 55a (=R11) | before the 50-rep client | 🤝 | reps can currently see beyond own data — blocks the big client |
 | **P0** | Money/credit-path integration tests | 124 (=Y15) | week 1 | 🤖 | protect payment paths now they're live |
-| **P0** | Onboarding v2 + **seat-segmentation** | 32/135 + cashflow §14 | week 1 | 🤖 | can't cleanly onboard clients without it |
+| **P0** | Onboarding v2 + **seat-segmentation** | **174–177** (+ 32/135 · cashflow §14) | week 1 | 🤖 | can't cleanly onboard clients without it |
 | **P0** | Company onboarding essentials | 106 invite-email · 107 drill-down · 108 offboarding | before 1st real company | 🤖 | Monday used copy-paste; a real client needs these |
 | **P1** | **Alta-style inbox rebuild** | 112 | — | 🤖 | "the big remaining build"; core daily surface |
 | **P1** | Client invoicing | 136a ⭐ | clients paying | 🤖 | needed once money flows (USD · Stripe-issued) |
@@ -198,7 +198,7 @@ Product already live. 🤖 monitor prod + hotfix only. **No merges over the week
 ### 📅 Wk of Mon 22 — 🔴 P0 · STABILIZE (make it safe for the first real client) 🤝
 - 🤝 **Company RLS / access control (55a)** — owner sees all-reps; rep sees ONLY own; reps can't see each other or the command centre; low-credit alert → owner approves. *(Mon–Tue; the gating blocker for the 50-rep client.)*
 - 🤖 **Money/credit-path integration tests (124)** — lock the billing-correctness fixes against regressions.
-- 🤖 **Onboarding v2 + seat-segmentation** — seat-based routing (1 = self-serve / 2+ = concierge), website→firmographics read, 14-day company trial *(cashflow §14)*.
+- 🤖 **Onboarding v2 + seat-segmentation (174–177)** — website→firmographics read (174), seat-based routing 1=self-serve/2+=concierge (175), 14-day company trial (176), white-glove implementation (177) *(cashflow §13/§14)*.
 - 🤖 **Company onboarding essentials** — invite-email delivery (106) · owner drill-down (107) · edit/deactivate rep (108).
 - 🧍 **GTM Week-1 in parallel** — §5 run-list (127–132).
 

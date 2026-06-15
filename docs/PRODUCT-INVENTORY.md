@@ -4,10 +4,11 @@
 > If something is built anywhere (main, staging, a branch), it is in this doc. `V2-TRACKER.md` holds
 > only FUTURE detail (roadmap rationale, learning engine, steals); anything it mentions as built points back here.
 >
-> **Status dots — FOUR states (locked 13 Jun):**
-> - 🟢 **BUILT + LIVE** — in production, verified working. The terminal "done" state.
-> - 🟣 **APPROVED + LOCKED** — built, founder has design-signed-off, pushed. The design is FINAL; it's just waiting to ship (Monday for the Command Centre; post-19 for the rest). A 🟡 becomes 🟣 the moment it's approved + pushed.
-> - 🟡 **BUILT, PENDING REVIEW** — code-complete on staging/branch/PR, but NOT yet approved. Needs founder review/sign-off (or a key/migration) before it can go 🟣 then 🟢.
+> **Status dots — FIVE states (🩷 pink added 15 Jun).** The ladder: **🔴 → 🟡 → 🟣 → 🩷 → 🟢.**
+> - 🟢 **LIVE + VERIFIED** — in production AND walked/confirmed working with real data. The terminal "done" state.
+> - 🩷 **LIVE, PENDING VERIFICATION** — shipped to production but NOT yet walked/verified (e.g. the Mon-15 #502 superset items). Earns 🟢 once the feature-verification walk (LAUNCH-PAD §13, Wed 17/Thu 18) confirms real data; drops to 🔴 if found broken.
+> - 🟣 **APPROVED + LOCKED** — built, founder design-signed-off, pushed. Design FINAL but **NOT yet shipped/live** (waiting on the launch plan).
+> - 🟡 **BUILT, PENDING REVIEW** — code-complete on staging/branch/PR, but NOT yet approved. Needs founder review/sign-off (or a key/migration).
 > - 🔴 **NOT BUILT** — future work. *(Some carry a 🔒 **design approved** preview to build to — the design is locked even though the code isn't written.)*
 > - *(⏸ marks a 🔴 item that is blocked on something/someone.)*
 >
@@ -154,11 +155,10 @@
 
 ---
 
-# ░ SECTION 2 — 🟣 APPROVED + LOCKED (built · founder-signed-off · pushed · design FINAL) ░
+# ░ SECTION 2 — 🟣 APPROVED + LOCKED · 🩷 SHIPPED-PENDING-VERIFICATION (mixed, updated 15 Jun) ░
 
-> The founder has walked and approved these. Design will NOT change. They're not live yet **only** because of the
-> launch plan: the **Command Centre ships Monday 15**; everything else ships **after the 19th**. Where a row shows a
-> 🟡 execution note, that's build/config left to ship — not the design (the design is locked).
+> The founder has walked and approved these. Design will NOT change.
+> **⚠️ 15 Jun:** the #502 superset SHIPPED most of this LIVE — so **2A (Command Centre), 2B (design screens) and 2C (R1–R20) are now 🩷 pink** (live, pending the Wed/Thu verification walk → then 🟢). Items still genuinely on a branch / not shipped stay 🟣. Where a row shows a 🟡 execution note, that's build/config left — not the design (the design is locked).
 
 ## 2A — 🚀 MONDAY 15 SHIP — Company Payment Command Centre (the ONLY early production ship)
 *(One product: Command Centre + per-rep seats/agent-unlock + its payment system. Layout approved 12 Jun.)*
@@ -166,29 +166,29 @@
 |---|-------|------|------------------------------|-------|
 | 55 | 🟢 | **Command Centre** (#88) — per-rep workspaces · owner-funded pools · per-seat budgets · request→approve/deny · invite→accept→own workspace · winning-plays library · real per-rep stats | ✅ **LIVE on prod 15 Jun** — merged via #564, prod migrations applied (010·011·012·013·20260603·20260612·companion), portal loads, credits/activity/agent-panel verified. (Walk `/dashboard/company` to confirm command-centre panels before calling the rep-flow fully done.) | — |
 | 55a | 🔴 | **⚠️ RLS + Access Control for Company Engine — FAST-FOLLOW (not a launch blocker; founder's call 15 Jun: ship live today, add RLS later)** — owner ONLY sees command centre + all-reps data · reps see ONLY own data (own leads, own campaigns, own calendar) · reps cannot see each other or the command centre. Reps get low-credit notifications & can request top-up, owner approves/denies. **Company Engine SHIPS LIVE Mon 15** without this. **Interim:** until RLS lands, the owner controls who logs in — reps added before RLS would see more than their own data, so the founder gates rep access manually. Build soon after launch. | Design + build RLS policies (row-level security in Supabase) + role/ownership flags + visibility toggles in UI + approval workflow for credit requests. | 🤖 design · 🧍 review |
-| 56 | 🟣 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up bill) — Seats tab | On feature branch — Monday merge + schema re-paste + redeploy, then Test 7 | 🧍 |
+| 56 | 🩷 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up bill) — Seats tab | Live via #502 (schema applied) — **verify with Test 7** in the walk → 🟢 | 🤝 walk |
 | 57 | 🟡 | **Payment system — Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool next; then 🧍 creates pool-topup products | 🤖 then 🧍 |
 | 58 | 🟡 | **Denise $39 Stripe price** (billing prerequisite) | 🧍 create $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
 | 59 | 🟡 | Admin "Company demo" provisioning | Create one in admin → open `/dashboard/company` populated | 🧍 |
 
 > **🔒 Monday rule:** the ONLY thing exposed to production Monday is `company`. Rows 57–59 are finishing build/config on the approved product — nothing in §3/§4 is enabled. **⚠️ NOTE: Item 55a (RLS access control) is a FAST-FOLLOW, not a Monday blocker** — founder's call 15 Jun: ship the Company Engine LIVE today, add RLS soon after. Until RLS lands, the owner controls rep access manually (a rep added pre-RLS could see beyond their own data), so the founder gates who logs in during the interim.
 
-## 2B — 📦 SHIPPED EARLY 15 Jun (via #502/#564) — design-approved screens now LIVE, pending walk-through
-> **⚠️ STATE CHANGE 15 Jun:** opening box **#502** brought these screens live — they're **linked in the merged Sidebar** and the flag is `NEXT_PUBLIC_FEATURE_V2_SCREENS=all`, so they're **reachable in prod now** (not the "orphan URLs" first reported — that was an under-check of the Sidebar). They're all **founder-approved** designs, so this is early progress, not a regression. Status: **🟣→ live-but-unverified.** Each stays 🟣 until walked and confirmed showing real (not placeholder) data, then → 🟢. **No client risk** (no live clients). Known to verify: What's New (needs real entries), Notetaker/Integrations (may be UI shells).
+## 2B — 🩷 SHIPPED EARLY 15 Jun (via #502/#564) — design-approved screens now LIVE, pending verification
+> **⚠️ STATE CHANGE 15 Jun:** opening box **#502** brought these screens live — they're **linked in the merged Sidebar** and the flag is `NEXT_PUBLIC_FEATURE_V2_SCREENS=all`, so they're **reachable in prod now** (not the "orphan URLs" first reported — that was an under-check of the Sidebar). They're all **founder-approved** designs, so this is early progress, not a regression. Status: **🩷 pink — live-but-unverified.** Each is 🩷 until the Wed/Thu walk (LAUNCH-PAD §13) confirms real (not placeholder) data, then → 🟢 (or → 🔴 if broken). **No client risk** (no live clients). Known to verify: What's New (needs real entries), Notetaker/Integrations (may be UI shells). *(84 SSO is 🩷-live but its buttons need OAuth registration to function; 92 already 🟢; 93/98/99 stay as-is — website/reference/design-source, not #502 screens.)*
 | # | State | Item | Where it waits | Owner |
 |---|-------|------|----------------|-------|
-| 80 | 🟣 | **Teams Hub** (`/dashboard/team`) — *✅ approved 12 Jun · co-located in rail* | staging | 🧍 ship post-19 |
-| 81 | 🟣 | **AI Notetaker** (`/dashboard/notetaker`) — *✅ approved as-is 12 Jun* | staging | 🧍 ship post-19 |
-| 83 | 🟣 | **Integrations Hub** (`/dashboard/integrations`) — *✅ approved as-is (Connect group)* | staging | 🧍 ship post-19 |
-| 85 | 🟣 | **Shell — nav redesign** (slim work-only rail + agent switcher) — *✅ founder approved 12 Jun* | staging → merges post-19 | 🤝 |
-| 86 | 🟣 | **Shell — profile dropdown → grouped account hub** — *✅ founder approved* | staging | 🤝 |
-| 82 | 🟣 | **Visual Sequence Builder** (`/dashboard/figsy/sequence-builder`) — *🎨 design locked 12 Jun · **recolor BUILT 13 Jun** to `previews/sequence-builder-v2.html` (lilac page · dotted canvas · purple-tinted tiles · ink headings · lilac connectors · purple banner)* | branch `claude/kind-carson-MYhSl` → ship post-19 | 🧍 ship post-19 |
-| 88 | 🟣 | **Activity feed** (`/dashboard/activity`, #102) — *✅ approved 13 Jun (as-is) → `previews/activity-feed-current.html`*; live workspace timeline (sends/replies/meetings), real client-scoped events, 30s poll | staging → ship post-19 | 🧍 ship post-19 |
-| 89 | 🟣 | **Notification centre** (bell · #103) — *✅ approved 13 Jun (as-is) → `previews/notification-centre-current.html`*; 4 types (interested reply · consented lead · low credits · trial expiring) each with a one-tap action, red count badge, 2-min poll | staging → ship post-19 | 🧍 ship post-19 |
-| 90 | 🟣 | **Deliverability dashboard** (`/dashboard/deliverability`, #48) — *✅ approved 13 Jun (as-is) → `previews/deliverability-current.html`*; health band (opt-out–derived) · warmup pacing (cap 10→50/day) · engagement metrics (open/reply/opt-outs) · 14-day volume chart · honest (no invented bounce/spam until D9) | staging → ship post-19 | 🧍 ship post-19 |
-| 87 | 🟣 | **Shell — status bar** (sidebar footer, #104) — *✅ approved 13 Jun (as-is) → `previews/status-bar-current.html`*; live pulse: FIGSY state (active/idle) · today's sends vs cap (progress bar) · system health (operational/degraded); real endpoints + 60s poll, degrades silently | staging → ship post-19 | 🧍 ship post-19 |
-| 84 | 🟣 | **Signup + SSO buttons** (`/v2/signup`, #R25) — *✅ approved 13 Jun (design) → `previews/signup-sso-current.html`*; Google + Microsoft OAuth buttons + email + T&C. Design locked; **go-live still needs 🧍 OAuth app registration (Google Cloud + Azure)** | staging | 🧍 register OAuth apps |
-| 91 | 🟣 | **Mobile PWA icons** (#114) — *✅ approved as-is 13 Jun (gradient K + cream splash kept)*; manifest (name · shortcuts to Dashboard/Leads/FIGSY · standalone/portrait · theme #7C3AED) + icon-192/512 + maskable-512 | staging → ship post-19 | 🧍 ship post-19 |
+| 80 | 🩷 | **Teams Hub** (`/dashboard/team`) — *✅ approved 12 Jun · co-located in rail* | staging | 🧍 ship post-19 |
+| 81 | 🩷 | **AI Notetaker** (`/dashboard/notetaker`) — *✅ approved as-is 12 Jun* | staging | 🧍 ship post-19 |
+| 83 | 🩷 | **Integrations Hub** (`/dashboard/integrations`) — *✅ approved as-is (Connect group)* | staging | 🧍 ship post-19 |
+| 85 | 🩷 | **Shell — nav redesign** (slim work-only rail + agent switcher) — *✅ founder approved 12 Jun* | staging → merges post-19 | 🤝 |
+| 86 | 🩷 | **Shell — profile dropdown → grouped account hub** — *✅ founder approved* | staging | 🤝 |
+| 82 | 🩷 | **Visual Sequence Builder** (`/dashboard/figsy/sequence-builder`) — *🎨 design locked 12 Jun · **recolor BUILT 13 Jun** to `previews/sequence-builder-v2.html` (lilac page · dotted canvas · purple-tinted tiles · ink headings · lilac connectors · purple banner)* | branch `claude/kind-carson-MYhSl` → ship post-19 | 🧍 ship post-19 |
+| 88 | 🩷 | **Activity feed** (`/dashboard/activity`, #102) — *✅ approved 13 Jun (as-is) → `previews/activity-feed-current.html`*; live workspace timeline (sends/replies/meetings), real client-scoped events, 30s poll | staging → ship post-19 | 🧍 ship post-19 |
+| 89 | 🩷 | **Notification centre** (bell · #103) — *✅ approved 13 Jun (as-is) → `previews/notification-centre-current.html`*; 4 types (interested reply · consented lead · low credits · trial expiring) each with a one-tap action, red count badge, 2-min poll | staging → ship post-19 | 🧍 ship post-19 |
+| 90 | 🩷 | **Deliverability dashboard** (`/dashboard/deliverability`, #48) — *✅ approved 13 Jun (as-is) → `previews/deliverability-current.html`*; health band (opt-out–derived) · warmup pacing (cap 10→50/day) · engagement metrics (open/reply/opt-outs) · 14-day volume chart · honest (no invented bounce/spam until D9) | staging → ship post-19 | 🧍 ship post-19 |
+| 87 | 🩷 | **Shell — status bar** (sidebar footer, #104) — *✅ approved 13 Jun (as-is) → `previews/status-bar-current.html`*; live pulse: FIGSY state (active/idle) · today's sends vs cap (progress bar) · system health (operational/degraded); real endpoints + 60s poll, degrades silently | staging → ship post-19 | 🧍 ship post-19 |
+| 84 | 🩷 | **Signup + SSO buttons** (`/v2/signup`, #R25) — *✅ approved 13 Jun (design) → `previews/signup-sso-current.html`*; Google + Microsoft OAuth buttons + email + T&C. Design locked; **go-live still needs 🧍 OAuth app registration (Google Cloud + Azure)** | staging | 🧍 register OAuth apps |
+| 91 | 🩷 | **Mobile PWA icons** (#114) — *✅ approved as-is 13 Jun (gradient K + cream splash kept)*; manifest (name · shortcuts to Dashboard/Leads/FIGSY · standalone/portrait · theme #7C3AED) + icon-192/512 + maskable-512 | staging → ship post-19 | 🧍 ship post-19 |
 | 92 | 🟢 | **PR #502 — 10-Jun audit batch** (Y1–Y11) — atomic credits · rate-limits · counter-drift kill · dormant PDL · portal fixes | ✅ **LIVE on prod 15 Jun** — merged via #564 (conflict-resolved integration; original #502 superseded, close it) | — |
 | 98 | 🟣 | **Offline flow docs** (`CLIENT_FLOW.html` + `CLIENT_FLOW_PER_REP.html`) — *✅ reference, done & cleared 13 Jun* | reference | — |
 | 93 | 🟣 | **Marketing: The Drop + Watch** (PR #503, `apps/website/the-drop.html` + `product-videos.html`) — *✅ approved 13 Jun → `previews/marketing-the-drop.html` + `marketing-product-videos.html`*; orphan pages until nav rewire (#123, item 118). Site marketing style (darker than portal) intentional. **🔑 CORRECTED 13 Jun: The Drop is a SERIES — each drop showcases 3–5 products. ✅ BUILT: `apps/website/the-drop.html` = 9 drops (newest-first 09→01), no video. Watch/Product Video page → ⏸️ HELD. Full plan in `KIND-MASTER.md` → Website Resources.** Also built this session: **162 Prompt Library** (`prompt-library.html`, 17 prompts, filter+search+copy), **Tony "Coming Soon"** added (Products dropdown 22pp · home grid · footer · About Us family story — The Order Maker), **The Drop + Prompt Library wired into Resources nav** (17pp), **Visitor tracking snippet** on all 40 pages. ⏳ **Pending: website-only deploy to `main`** (Cloudflare publishes; portal stays parked). **🆕 14 Jun — SHIPPED TO `main` (live): The Drop REVAMPED** to a bold Monday-style show/podcast layout (soft palette · hero card-cluster · filterable Topic+Industry grid · 9 episode cards wired to the existing `drop-01..09` detail pages), PR #544 · **main-page polish** (emoji→inline-SVG sweep · pricing redesign · POPIA soft-mint trust seal · cut Promise Strip + Every Team Wins), PR #542. Episode titles/summaries are drafted placeholders to swap for the real recorded episodes; no video yet (cards "Read story"). | 🤖 built · 🤝 deploy | 🤖 |
@@ -196,32 +196,32 @@
 
 > Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
 
-## 2C — 🟢 R1–R20 ALREADY LIVE via #502 (discovered 15 Jun) — PRs #506–#525 are REDUNDANT → close
+## 2C — 🩷 R1–R20 LIVE, PENDING VERIFICATION via #502 (discovered 15 Jun) — PRs #506–#525 are REDUNDANT → close
 > **⚠️ MAJOR STATE CHANGE 15 Jun:** #502's dev branch (`claude/kind-carson-MYhSl`, 213 commits) was a **superset** — it already contained all 20 R-wave features. So merging #502 (#564) shipped **R1–R20 code LIVE on `main`** (verified by grep: VidaHelpBubble, MilestoneCelebration, CommandPalette, speed-to-lead, why-email, evals, spam-check, model-toggle, job-change, templates, whats-new, … all present). **The 20 PRs #506–#525 are therefore redundant — CLOSE them, do NOT merge** (their code is already live; merging = conflicts/no-ops).
 > **🗄️ 3 owed migrations — ✅ RUN ON PROD 15 Jun** (R2 `clients.daily_brief_enabled` · R15 `figsy_knowledge` · R20 `leads.job_changed_at`+`previous_company`). All R1–R20 now have full schema on prod.
-> **Status:** each R-item is **🟢 code-live / pending VERIFICATION** (the end-of-week feature walk confirms real data → keeps 🟢, or drops to 🔴 if broken).
+> **Status:** each R-item is **🩷 pink — LIVE via #502, pending the Wed/Thu feature-verification walk** (LAUNCH-PAD §13). The walk confirms real data → 🟢, or drops it → 🔴 if broken. PRs #506–#525 = redundant, close.
 | # | State | Item | Where it waits | Owner |
 |---|-------|------|----------------|-------|
-| 60 | 🟣 | **R1 demo-bounce guard** — stops emailing fake demo addresses that hard-bounce (protects sender reputation) | PR #506 | 🧍 merge |
-| 61 | 🟣 | **R2 daily client brief** — Settings "Daily brief" toggle now server-backed (opt-outs respected) | PR #507 | 🧍 merge |
-| 62 | 🟣 | **R3 Vida in-portal help bubble** — floating "ask Vida" for how-to questions | PR #508 | 🧍 merge |
-| 63 | 🟣 | **R4 speed-to-lead** — hot Vida visitor → scored pipeline lead + Denise draft | PR #509 | 🧍 merge |
-| 64 | 🟣 | **R5 milestone LinkedIn cards + partner badge** — free share-to-grow loops | PR #510 | 🧍 merge |
-| 65 | 🟣 | **R6 onboarding day-0/3/7 emails** for paid clients (cron currently skips them) | PR #511 | 🧍 merge |
-| 66 | 🟣 | **R7 Unibox "Help me reply"** — real Claude draft from the actual message | PR #512 | 🧍 merge |
-| 67 | 🟣 | **R8 saved views** for the leads table (named filter combos) | PR #513 | 🧍 merge |
-| 68 | 🟣 | **R9 "Why FIGSY wrote this"** transparency card | PR #514 | 🧍 merge |
-| 69 | 🟣 | **R10 Goals** — KPI targets + live progress bars | PR #515 | 🧍 merge |
-| 70 | 🟣 | **R11 sequence-template library** by use-case (one-click copy) | PR #516 | 🧍 merge |
-| 71 | 🟣 | **R12 embeddable lead-capture forms** → scored pipeline (spam-protected) | PR #517 | 🧍 merge |
-| 72 | 🟣 | **R13 Cmd+K upgrade** — quick actions + fixed Inbox link | PR #518 | 🧍 merge |
-| 73 | 🟣 | **R14 Meeting-Prep** — Denise pre-call brief on hot replies | PR #519 | 🧍 merge |
-| 74 | 🟣 | **R15 Train-FIGSY knowledge backend** — lights up the Knowledge page (was silently 404ing) | PR #520 | 🧍 merge |
-| 75 | 🟣 | **R16 internal evals harness** — per-step reply rates + subject-variant performance | PR #521 | 🧍 merge |
-| 76 | 🟣 | **R17 spam-score pre-send check** — colour-coded deliverability flag on each draft | PR #522 | 🧍 merge |
-| 77 | 🟣 | **R18 multi-model toggle** — Fast (Haiku) / Smart (Sonnet) per campaign | PR #523 | 🧍 merge |
-| 78 | 🟣 | **R19 in-product "What's New" feed** — anti-churn changelog | PR #524 | 🧍 merge |
-| 79 | 🟣 | **R20 job-change alerts** on leads — "reconnect" badge | PR #525 | 🧍 merge |
+| 60 | 🩷 | **R1 demo-bounce guard** — stops emailing fake demo addresses that hard-bounce (protects sender reputation) | live via #502 · verify | 🤝 walk |
+| 61 | 🩷 | **R2 daily client brief** — Settings "Daily brief" toggle now server-backed (opt-outs respected) | live via #502 · verify | 🤝 walk |
+| 62 | 🩷 | **R3 Vida in-portal help bubble** — floating "ask Vida" for how-to questions | live via #502 · verify | 🤝 walk |
+| 63 | 🩷 | **R4 speed-to-lead** — hot Vida visitor → scored pipeline lead + Denise draft | live via #502 · verify | 🤝 walk |
+| 64 | 🩷 | **R5 milestone LinkedIn cards + partner badge** — free share-to-grow loops | live via #502 · verify | 🤝 walk |
+| 65 | 🩷 | **R6 onboarding day-0/3/7 emails** for paid clients (cron currently skips them) | live via #502 · verify | 🤝 walk |
+| 66 | 🩷 | **R7 Unibox "Help me reply"** — real Claude draft from the actual message | live via #502 · verify | 🤝 walk |
+| 67 | 🩷 | **R8 saved views** for the leads table (named filter combos) | live via #502 · verify | 🤝 walk |
+| 68 | 🩷 | **R9 "Why FIGSY wrote this"** transparency card | live via #502 · verify | 🤝 walk |
+| 69 | 🩷 | **R10 Goals** — KPI targets + live progress bars | live via #502 · verify | 🤝 walk |
+| 70 | 🩷 | **R11 sequence-template library** by use-case (one-click copy) | live via #502 · verify | 🤝 walk |
+| 71 | 🩷 | **R12 embeddable lead-capture forms** → scored pipeline (spam-protected) | live via #502 · verify | 🤝 walk |
+| 72 | 🩷 | **R13 Cmd+K upgrade** — quick actions + fixed Inbox link | live via #502 · verify | 🤝 walk |
+| 73 | 🩷 | **R14 Meeting-Prep** — Denise pre-call brief on hot replies | live via #502 · verify | 🤝 walk |
+| 74 | 🩷 | **R15 Train-FIGSY knowledge backend** — lights up the Knowledge page (was silently 404ing) | live via #502 · verify | 🤝 walk |
+| 75 | 🩷 | **R16 internal evals harness** — per-step reply rates + subject-variant performance | live via #502 · verify | 🤝 walk |
+| 76 | 🩷 | **R17 spam-score pre-send check** — colour-coded deliverability flag on each draft | live via #502 · verify | 🤝 walk |
+| 77 | 🩷 | **R18 multi-model toggle** — Fast (Haiku) / Smart (Sonnet) per campaign | live via #502 · verify | 🤝 walk |
+| 78 | 🩷 | **R19 in-product "What's New" feed** — anti-churn changelog | live via #502 · verify | 🤝 walk |
+| 79 | 🩷 | **R20 job-change alerts** on leads — "reconnect" badge | live via #502 · verify | 🤝 walk |
 
 > **⚠️ Merge order note:** several R-wave PRs touch the same files as later work; merge in R-number order post-19 and re-run type-check after each (a few may need a trivial rebase — they were branched off `main` on 11 Jun).
 
@@ -296,6 +296,14 @@
 | 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝  |  |
 | 124 | 🔴 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖  |  |
 | 125 | 🟣 | **"Your AI Family" card redesign — BUILT 13 Jun** to [agents-v2.html](./previews/agents-v2.html): feature text moved **off** the photo, square crop fixed, body checklist + clean CTA; **renamed "AI Team"→"AI Family"** (`agents/page.tsx` heading+cards, `Sidebar.tsx` dropdown label; `cmo.ts` already clean). Portal type-check ✓. Ships post-19 | 🤖 | ✅ built |
+
+### 🆕 Onboarding & Segmentation (added 15 Jun — full plan in `run-costs-and-cashflow.md` §13/§14; layers on `ONBOARDING_V2.md` #30 + Company Engine #88)
+| # | 🔴 | Item | Owner | 🎨 Preview |
+|---|----|------|-------|-----------|
+| 174 | 🔴 | **Onboarding — website → own-firmographics read** for routing (PDL company-enrich on the signup domain; feeds 175). *Cashflow §14.* | 🤖 |  |
+| 175 | 🔴 | **Onboarding — seat-based auto-routing** (1 seat = self-serve / 2+ seats = concierge track). Company size is a routing **hint**, never a hard gate. *Cashflow §14.* | 🤖 |  |
+| 176 | 🔴 | **Onboarding — 14-day company trial on bundled data** (value before any Apollo/implementation ask — lets us engage + sell first). *Cashflow §14.* | 🤖 |  |
+| 177 | 🔴 | **Company white-glove implementation flow** — wire CRM + connections + **optional** BYO-Apollo key (forced only if Apollo's ToS requires it; bundled-data is the default). Month-1 company hardening. *Cashflow §13/§14, gated on Apollo's reply.* | 🤝 |  |
 | 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
 
 ## 4D — Week 1 post-launch (Jun 19–28) — GTM
@@ -365,4 +373,4 @@
 **Alta** Touch-Points tree · template gallery · Train tabs · funnel dashboard · Unibox reply-tags/"Help me reply" · saved views · **the inbox blueprint (item 112)** · **ClickUp** Cmd+K · views · feed · status bar · Goals · Forms · Integrations Hub · **Lemlist** images · sequence builder · community play · **Monday** share-loop · dense dashboards · Pixar warmth · **Atlas** speed-to-lead · 90-day guarantee · influencers · **Instantly** warmup · auto-pause · adaptive volume · rotation · **Clay** waterfall enrichment · **Apollo** job-change · sequence analytics · transparency · intent · **Apex** acts-not-responds · autonomy onboarding · founder-as-demo · **Glean** context moat · benchmarks · winning-play library · Casey/auto-setup · permission-safety · context-backed MCP · **Revio** coaching onboarding · case-study specificity.
 
 ---
-*This inventory is the single complete list (173 stable-ID items). 🟢 = live + checked · 🟣 = approved + locked, waiting to ship · 🟡 = built, needs founder review · 🔴 = future, in order. Numbers are stable IDs, not sequence. Nothing ships until the founder merges.*
+*This inventory is the single complete list (177 stable-ID items). 🟢 = live + verified · 🩷 = live, pending verification (shipped, awaiting the walk) · 🟣 = approved + locked, waiting to ship · 🟡 = built, needs founder review · 🔴 = future, in order. Ladder: 🔴→🟡→🟣→🩷→🟢. Numbers are stable IDs, not sequence. Nothing ships until the founder merges.*

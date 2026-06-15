@@ -1,5 +1,7 @@
 # 🎯 K.I.N.D — FORWARD ROADMAP + RISK REGISTER (future detail ONLY)
 
+> **AUTHORITY (operating system — see root `CLAUDE.md`):** future detail only — roadmap rationale, risks, learning engine, GTM, steals, moat. **No current build statuses or daily execution here.** For current status → `PRODUCT-INVENTORY.md`; for current execution → `LAUNCH-PAD.md`; for strategy → `KIND-MASTER.md`.
+
 > 🧭 **WHICH DOC AM I IN? Only THREE docs matter:**
 > 1. **[`KIND-MASTER.md`](./KIND-MASTER.md)** — launch tracking (now → Fri 19) + strategy + session log
 > 2. **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** — **THE status list: every item on the 4-state colour system (locked 13 Jun) — 🟢 built+live · 🟣 approved+locked · 🟡 built, pending review · 🔴 not built, with owner.** If you want to know what exists and what's left — go there, not here.

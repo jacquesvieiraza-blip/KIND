@@ -76,18 +76,20 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 **All pricing is locked. Never changed. Never increased or decreased.**
 
 ### Credit Bundles (current model — corrected 16 Jun)
-*Stripe pricing now matches code. Lead Gen unit cost rises to ~$1.10–2.20/lead (bundle efficiency); FIGSY unit cost drops to ~$2.20–2.50/lead (no double-charge).*
+*Stripe backend pricing (source of truth: `apps/api/src/lib/stripe.ts`). Lead Gen unit cost: $1.00–2.20/lead; FIGSY unit cost: $2.50–3.00/lead.*
 
-| Product | Credits | Price USD | Price ZAR |
-|---|---|---|---|
-| K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 |
-| K.I.N.D AI — Lead Gen Pro | 40 | $38 | R722 |
-| K.I.N.D AI — Lead Gen Pro | 100 | $88 | R1,672 |
-| FIGSY Advanced | 20 | $60 | R1,140 |
-| FIGSY Advanced | 40 | $110 | R2,090 |
-| FIGSY Advanced | 100 | $250 | R4,750 |
+| Product | Credits | Price USD | Price ZAR | Backend ✓ | Portal UI |
+|---|---|---|---|---|---|
+| K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 | ✓ | ✓ |
+| K.I.N.D AI — Lead Gen Pro | 40 | **$38** | R722 | ✓ | ❌ shows $40 |
+| K.I.N.D AI — Lead Gen Pro | 100 | **$88** | R1,672 | ✓ | ❌ shows $100 |
+| FIGSY Advanced | 20 | **$60** | R1,140 | ✓ | ❌ shows $20 |
+| FIGSY Advanced | 40 | **$110** | R2,090 | ✓ | ❌ shows $40 |
+| FIGSY Advanced | 100 | **$250** | R4,750 | ✓ | ❌ shows $100 |
 
-→ Lead Gen = **$1.00–2.20/lead** (by bundle size) · FIGSY Advanced = **$2.50–3.00/lead** (down from $3.00 flat, no double-charge).
+**🚨 CRITICAL BUG AUDIT (16 Jun):** Portal hardcodes wrong prices (`apps/portal/src/app/(dashboard)/dashboard/billing/page.tsx` line 66–73 + company/page.tsx). Customers see $20/$40/$100 for FIGSY (should be $60/$110/$250). **TUE 16 build must fix portal UI to match backend before going live.**
+
+→ Lead Gen = **$1.00–2.20/lead** (by bundle size) · FIGSY Advanced = **$2.50–3.00/lead** (no double-charge).
 
 ### Agent Subscriptions — monthly (added to doc 10 Jun · live in Stripe)
 *The doc previously listed only the two credit products. These three monthly agents are also live (`STRIPE_PRICE_VIDA/MILLA/DENISE_MONTHLY`).*
@@ -103,24 +105,71 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 
 ---
 
-## 4. Unit Economics Per Lead (FIGSY Advanced)
+## 4. Unit Economics By Bundle Tier (detailed audit 16 Jun)
 
-*Note: FIGSY and Lead Gen are separate products (double-charge bug fixed 16 Jun). This shows FIGSY's economics after correction.*
+### 4a. Lead Gen Pro — STANDALONE (per lead)
+*Customers buy 20/40/100 credits per bundle. These are separate from FIGSY (no double-charge post-correction).*
+
+| Bundle | Credits | Price | Per-lead cost | Variable cost* | Per-lead margin | % margin |
+|---|---|---|---|---|---|---|
+| 20 credits | 20 | $20 | **$1.00** | ~$0.008 | ~$0.992 | **99.2%** |
+| 40 credits | 40 | $38 | **$0.95** | ~$0.008 | ~$0.942 | **99.2%** |
+| 100 credits | 100 | $88 | **$0.88** | ~$0.008 | ~$0.872 | **99.2%** |
+| **Blended** | — | — | **~$0.90** | ~$0.008 | ~$0.89 | **99%** |
+
+\* Variable = Apollo delivery verification (~$0.008) + negligible scoring. Data cost is nearly zero — your margin scales to fixed overhead.
+
+### 4b. FIGSY Advanced — STANDALONE (per lead)
+*Customers buy 20/40/100 credits per bundle. These are separate from Lead Gen (no stacking).*
+
+| Bundle | Credits | Price | Per-lead cost | Variable cost* | Per-lead margin | % margin |
+|---|---|---|---|---|---|---|
+| 20 credits | 20 | $60 | **$3.00** | ~$0.024 | ~$2.976 | **99.2%** |
+| 40 credits | 40 | $110 | **$2.75** | ~$0.024 | ~$2.726 | **99.2%** |
+| 100 credits | 100 | $250 | **$2.50** | ~$0.024 | ~$2.476 | **99.2%** |
+| **Blended** | — | — | **~$2.70** | ~$0.024 | ~$2.68 | **99%** |
+
+\* Variable = Apollo lead cost (~$0.008) + Claude Haiku email generation (~$0.012) + Claude scoring (~$0.0004) + Resend send (~negligible) = **~$0.024/lead**. Customers with 100-credit bundles (lowest per-unit cost) + high send volume enjoy the best unit economics.
+
+### 4c. The Double-Charge Bug (fixed 16 Jun)
+**Before:** A client buying both Lead Gen 100 ($88) + FIGSY 20 ($60) was charged BOTH per lead — $1 per Lead Gen lead AND $3 per FIGSY lead, totalling $4/lead when running both. This broke pricing credibility.
+
+**After:** Lead Gen and FIGSY are separate products. Client chooses:
+- Lead Gen **only** → $0.88–1.00/lead (pure lead delivery, no outreach)
+- FIGSY **only** → $2.50–3.00/lead (FIGSY finds, qualifies, and emails on their own)
+- **Both** → combined separate credits (e.g., Starter finds 100 leads @ $88, runs 20 FIGSY emails @ $60 = $148 for mixed flow, not $4/lead stacking) ✓
+
+---
+
+## 4d. What a Customer Actually Pays (mixed scenarios)
+
+| Scenario | What they buy | Cost | Lead units | FIGSY units | Effective cost/lead |
+|---|---|---|---|---|---|
+| **Starter** | Lead Gen 20 | $20 | 20 leads | — | $1.00/lead |
+| **Lead Gen Optimize** | Lead Gen 100 | $88 | 100 leads | — | $0.88/lead |
+| **FIGSY Entry** | FIGSY 20 | $60 | — | 20 emails | $3.00/email |
+| **FIGSY Optimize** | FIGSY 100 | $250 | — | 100 emails | $2.50/email |
+| **Growth blend** | Lead Gen 100 + FIGSY 20 | $148 | 100 leads | 20 emails | $88 LG + $60 FIGSY |
+| **Scale blend** | Lead Gen 100 + FIGSY 100 | $338 | 100 leads | 100 emails | $88 LG + $250 FIGSY |
+
+---
+
+## 5. Unit Economics Summary (FIGSY Advanced, blended)
 
 | | Amount |
 |---|---|
-| You charge per lead (FIGSY Advanced, avg bundle) | $2.75 |
+| Blended per-lead cost (FIGSY 100-credit bundle) | **$2.50** |
 | Apollo cost per lead | $0.008 |
 | Anthropic cost per lead (generation + scoring) | ~$0.015 |
 | Resend send cost | ~negligible |
 | **Total variable cost per lead** | **~$0.024** |
-| **Gross margin per lead** | **~$2.73 (99%)** |
+| **Gross margin per lead** | **~$2.48 (99%)** |
 
-The data cost is negligible. Your real cost is the fixed stack spread across all clients. (Lead Gen bundles separately priced; this models the higher-margin FIGSY flow.)
+The data cost is negligible. Your real cost is the fixed stack (~$138/mo) spread across all clients and all their leads.
 
 ---
 
-## 5. ARPU Assumptions (corrected 16 Jun)
+## 5a. ARPU Assumptions (corrected 16 Jun)
 
 | Client Type | Monthly Spend (USD) | Profile |
 |---|---|---|
@@ -135,7 +184,7 @@ The difference between conservative and optimistic scenarios is primarily ARPU. 
 
 ---
 
-## 5b. UPDATED CASHFLOW & SALES TARGETS — ACTUAL COSTS (3 June 2026)
+## 5b. UPDATED CASHFLOW & SALES TARGETS — ACTUAL COSTS (16 Jun corrected)
 *Rebuilt on the real locked-in stack, replacing the old $203 / Paystack assumptions. This is the version to set sales targets against.*
 
 ### Locked monthly costs (actuals)
@@ -199,7 +248,7 @@ At **$187 ARPU** (Growth+ w/ Denise): net ~$180/client/mo.
 
 ---
 
-## 5c. COST PER PRODUCT — what each agent costs to serve (10 Jun)
+## 5c. COST PER PRODUCT — what each agent costs to serve (16 Jun corrected)
 *The founder's question: "cost per product." Here's the variable cost to actually run each agent for a client. Headline: **only FIGSY's data is a meaningful cost. The other three agents are near-free to serve** on Claude Haiku.*
 
 | Product | What drives the cost | Est. variable cost to serve | What you charge | Gross margin |
@@ -214,7 +263,7 @@ At **$187 ARPU** (Growth+ w/ Denise): net ~$180/client/mo.
 
 ---
 
-## 5d. FUTURE COSTS & THE SCALING MAP (10 Jun)
+## 5d. FUTURE COSTS & THE SCALING MAP (16 Jun, verified 10 Jun baseline)
 *"How we actually start scaling." The cost structure barely moves as you grow — here's what comes online, when, and the one structural decision that decides everything.*
 
 ### 🔑 The single biggest cost lever at scale: the Apollo data decision
@@ -241,8 +290,8 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ---
 
-## 6. Three Scenarios — Month by Month
-*Note: net-profit columns below use the OLD $203 fixed stack and $80 ARPU — directional only. Use §5b for current break-even ($75 ARPU, $138 fixed). Client-growth assumptions still hold. Corrected pricing (16 Jun) shifts ARPU to ~$75, which improves break-even timeline slightly (hit 2-client break-even sooner).*
+## 6. Three Scenarios — Month by Month (directional, use §5b for current numbers)
+*Note: net-profit columns below use the OLD $203 fixed stack and $80 ARPU — directional only. **Use §5b for current break-even ($75 ARPU, $138 fixed)**. Client-growth assumptions still hold. Corrected pricing (16 Jun) shifts ARPU to ~$75, which improves break-even timeline slightly (hit 2-client break-even sooner).*
 
 ### 🔵 Conservative
 *Assumptions: 30% trial→paid conversion, 5% monthly churn, $80 blended ARPU*
@@ -307,7 +356,7 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ---
 
-## 7. Profitability at Scale (corrected 16 Jun)
+## 7. Profitability at Scale (16 Jun audit)
 
 ### Net profit by client count (ARPU $75–148, fixed stack $138–242/mo)
 
@@ -335,7 +384,7 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ---
 
-## 8. Revenue Milestones (16 Jun — corrected ARPU $75)
+## 8. Revenue Milestones & GTM (16 Jun audit)
 *Timelines are directional based on §6 scenarios; corrected pricing ($75 ARPU vs $80) slightly accelerates attainment.*
 
 | Milestone | What it unlocks | Conservative | Base | Optimistic |

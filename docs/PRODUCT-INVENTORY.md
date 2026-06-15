@@ -196,8 +196,10 @@
 
 > Other screens the founder approved are already **🟢 live** (§1): Documents, Referral, Usage, Proposals, Marketplace, Settings, Messages, Partner Hub, What's New, Templates, MCP Connect, Developer API — design-walked + approved 12–13 Jun, no change needed. Milla full chat page approved 13 Jun (live, item 2).
 
-## 2C — 📦 POST-19 — Release-wave PRs (R1–R20) · ✅ founder-approved 13 Jun · merge after the 19th
-*(All coded + build-verified; founder reviewed the plain-English summary of each and approved the wave. Each merges post-19.)*
+## 2C — 🟢 R1–R20 ALREADY LIVE via #502 (discovered 15 Jun) — PRs #506–#525 are REDUNDANT → close
+> **⚠️ MAJOR STATE CHANGE 15 Jun:** #502's dev branch (`claude/kind-carson-MYhSl`, 213 commits) was a **superset** — it already contained all 20 R-wave features. So merging #502 (#564) shipped **R1–R20 code LIVE on `main`** (verified by grep: VidaHelpBubble, MilestoneCelebration, CommandPalette, speed-to-lead, why-email, evals, spam-check, model-toggle, job-change, templates, whats-new, … all present). **The 20 PRs #506–#525 are therefore redundant — CLOSE them, do NOT merge** (their code is already live; merging = conflicts/no-ops).
+> **🗄️ 3 features need their PROD migration run** (code live, schema missing — were NOT in the 15-Jun combined script): **R2** `clients.daily_brief_enabled` · **R15** `figsy_knowledge` table · **R20** `leads.job_changed_at`+`previous_company`. Until run, those 3 error on prod.
+> **Status:** each R-item is **🟢 code-live / pending VERIFICATION** (the end-of-week feature walk confirms real data → keeps 🟢, or drops to 🔴 if broken).
 | # | State | Item | Where it waits | Owner |
 |---|-------|------|----------------|-------|
 | 60 | 🟣 | **R1 demo-bounce guard** — stops emailing fake demo addresses that hard-bounce (protects sender reputation) | PR #506 | 🧍 merge |

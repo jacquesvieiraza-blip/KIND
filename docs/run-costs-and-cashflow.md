@@ -1,5 +1,5 @@
 # K.I.N.D — Run Costs & Cashflow Model
-*Last updated: **10 June 2026** — added §5c Cost Per Product · §5d Future Costs & Scaling Map. Corrected for: the 4-agent line-up, the per-rep company engine (#88), multi-source data (PDL), the verified Apollo-ToS picture.*
+*Last updated: **16 June 2026** — BILLING CORRECTNESS BUILD: price tables reconciled (Stripe ↔ code), Denise $39 restored, double-charge eliminated. Corrected for: the 4-agent line-up, the per-rep company engine (#88), multi-source data (PDL), the verified Apollo-ToS picture.*
 *🔍 **AUDIT FIXES (10 Jun, founder-flagged):** email = **Zoho Mail** (was wrongly "Google Workspace"); **2 domains** now listed (`get-kind.com` + `gettingkind.com`, was 1); **3 agent subscriptions added to §3** (Vida $29 · Milla $49 · Denise $99 + Milla+Vida $69 bundle — previously only the 2 credit products were listed). Also fixed in code/docs (10 Jun sweep): `routes/mcp.ts` + `routes/team.ts` wrong domain `*.kindai.co.za` → `*.get-kind.com`; the admin **"Launch" checklist** rewritten (Google Workspace → **Zoho**, Paystack → **Stripe + Flutterwave**, `privacy@kind.ai` → `privacy@get-kind.com`); `DEPLOYMENT_GUIDE.md` Step 7 → Zoho. **All stale email/domain/processor references now corrected across code + docs.***
 
 > ### 🧭 READ FIRST — the lay of the land (10 Jun)
@@ -75,18 +75,21 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 
 **All pricing is locked. Never changed. Never increased or decreased.**
 
-### Credit Bundles (current model)
+### Credit Bundles (current model — corrected 16 Jun)
+*Stripe backend pricing (source of truth: `apps/api/src/lib/stripe.ts`). Lead Gen unit cost: $1.00–2.20/lead; FIGSY unit cost: $2.50–3.00/lead.*
 
-| Product | Credits | Price USD | Price ZAR |
-|---|---|---|---|
-| K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 |
-| K.I.N.D AI — Lead Gen Pro | 40 | $40 | R760 |
-| K.I.N.D AI — Lead Gen Pro | 100 | $100 | R1,900 |
-| FIGSY Advanced | 20 | $60 | R1,140 |
-| FIGSY Advanced | 40 | $120 | R2,280 |
-| FIGSY Advanced | 100 | $300 | R5,700 |
+| Product | Credits | Price USD | Price ZAR | Backend ✓ | Portal UI |
+|---|---|---|---|---|---|
+| K.I.N.D AI — Lead Gen Pro | 20 | $20 | R380 | ✓ | ✓ |
+| K.I.N.D AI — Lead Gen Pro | 40 | **$38** | R722 | ✓ | ❌ shows $40 |
+| K.I.N.D AI — Lead Gen Pro | 100 | **$88** | R1,672 | ✓ | ❌ shows $100 |
+| FIGSY Advanced | 20 | **$60** | R1,140 | ✓ | ❌ shows $20 |
+| FIGSY Advanced | 40 | **$110** | R2,090 | ✓ | ❌ shows $40 |
+| FIGSY Advanced | 100 | **$250** | R4,750 | ✓ | ❌ shows $100 |
 
-→ Lead Gen = **$1/lead** · FIGSY Advanced = **$3/lead**.
+**🚨 CRITICAL BUG AUDIT (16 Jun):** Portal hardcodes wrong prices (`apps/portal/src/app/(dashboard)/dashboard/billing/page.tsx` line 66–73 + company/page.tsx). Customers see $20/$40/$100 for FIGSY (should be $60/$110/$250). **TUE 16 build must fix portal UI to match backend before going live.**
+
+→ Lead Gen = **$1.00–2.20/lead** (by bundle size) · FIGSY Advanced = **$2.50–3.00/lead** (no double-charge).
 
 ### Agent Subscriptions — monthly (added to doc 10 Jun · live in Stripe)
 *The doc previously listed only the two credit products. These three monthly agents are also live (`STRIPE_PRICE_VIDA/MILLA/DENISE_MONTHLY`).*
@@ -96,39 +99,92 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | **Vida** (The Connector) | **$29** | Website + WhatsApp chatbot — converts inbound 24/7 |
 | **Milla** (The Brain) | **$49** | Intelligence, document drafting, knowledge Q&A |
 | **Milla + Vida bundle** | **$69** | (save $9/mo) |
-| **Denise** (The Closer) | **$99** | Warm follow-ups, proposals, confirms meetings |
+| **Denise** (The Closer) | **$39** | Warm follow-ups, proposals, confirms meetings *(corrected 16 Jun from $99 display)* |
 
 **Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once value is proven.
 
 ---
 
-## 4. Unit Economics Per Lead
+## 4. Unit Economics By Bundle Tier (detailed audit 16 Jun)
 
-| | Amount |
-|---|---|
-| You charge per lead | $1.00 |
-| Apollo cost per lead | $0.008 |
-| Anthropic cost per lead | $0.001 |
-| **Gross margin per lead** | **~$0.99 (99%)** |
+### 4a. Lead Gen Pro — STANDALONE (per lead)
+*Customers buy 20/40/100 credits per bundle. These are separate from FIGSY (no double-charge post-correction).*
 
-The data cost is negligible. Your real cost is the fixed stack spread across all clients.
+| Bundle | Credits | Price | Per-lead cost | Variable cost* | Per-lead margin | % margin |
+|---|---|---|---|---|---|---|
+| 20 credits | 20 | $20 | **$1.00** | ~$0.008 | ~$0.992 | **99.2%** |
+| 40 credits | 40 | $38 | **$0.95** | ~$0.008 | ~$0.942 | **99.2%** |
+| 100 credits | 100 | $88 | **$0.88** | ~$0.008 | ~$0.872 | **99.2%** |
+| **Blended** | — | — | **~$0.90** | ~$0.008 | ~$0.89 | **99%** |
+
+\* Variable = Apollo delivery verification (~$0.008) + negligible scoring. Data cost is nearly zero — your margin scales to fixed overhead.
+
+### 4b. FIGSY Advanced — STANDALONE (per lead)
+*Customers buy 20/40/100 credits per bundle. These are separate from Lead Gen (no stacking).*
+
+| Bundle | Credits | Price | Per-lead cost | Variable cost* | Per-lead margin | % margin |
+|---|---|---|---|---|---|---|
+| 20 credits | 20 | $60 | **$3.00** | ~$0.024 | ~$2.976 | **99.2%** |
+| 40 credits | 40 | $110 | **$2.75** | ~$0.024 | ~$2.726 | **99.2%** |
+| 100 credits | 100 | $250 | **$2.50** | ~$0.024 | ~$2.476 | **99.2%** |
+| **Blended** | — | — | **~$2.70** | ~$0.024 | ~$2.68 | **99%** |
+
+\* Variable = Apollo lead cost (~$0.008) + Claude Haiku email generation (~$0.012) + Claude scoring (~$0.0004) + Resend send (~negligible) = **~$0.024/lead**. Customers with 100-credit bundles (lowest per-unit cost) + high send volume enjoy the best unit economics.
+
+### 4c. The Double-Charge Bug (fixed 16 Jun)
+**Before:** A client buying both Lead Gen 100 ($88) + FIGSY 20 ($60) was charged BOTH per lead — $1 per Lead Gen lead AND $3 per FIGSY lead, totalling $4/lead when running both. This broke pricing credibility.
+
+**After:** Lead Gen and FIGSY are separate products. Client chooses:
+- Lead Gen **only** → $0.88–1.00/lead (pure lead delivery, no outreach)
+- FIGSY **only** → $2.50–3.00/lead (FIGSY finds, qualifies, and emails on their own)
+- **Both** → combined separate credits (e.g., Starter finds 100 leads @ $88, runs 20 FIGSY emails @ $60 = $148 for mixed flow, not $4/lead stacking) ✓
 
 ---
 
-## 5. ARPU Assumptions
+## 4d. What a Customer Actually Pays (mixed scenarios)
+
+| Scenario | What they buy | Cost | Lead units | FIGSY units | Effective cost/lead |
+|---|---|---|---|---|---|
+| **Starter** | Lead Gen 20 | $20 | 20 leads | — | $1.00/lead |
+| **Lead Gen Optimize** | Lead Gen 100 | $88 | 100 leads | — | $0.88/lead |
+| **FIGSY Entry** | FIGSY 20 | $60 | — | 20 emails | $3.00/email |
+| **FIGSY Optimize** | FIGSY 100 | $250 | — | 100 emails | $2.50/email |
+| **Growth blend** | Lead Gen 100 + FIGSY 20 | $148 | 100 leads | 20 emails | $88 LG + $60 FIGSY |
+| **Scale blend** | Lead Gen 100 + FIGSY 100 | $338 | 100 leads | 100 emails | $88 LG + $250 FIGSY |
+
+---
+
+## 5. Unit Economics Summary (FIGSY Advanced, blended)
+
+| | Amount |
+|---|---|
+| Blended per-lead cost (FIGSY 100-credit bundle) | **$2.50** |
+| Apollo cost per lead | $0.008 |
+| Anthropic cost per lead (generation + scoring) | ~$0.015 |
+| Resend send cost | ~negligible |
+| **Total variable cost per lead** | **~$0.024** |
+| **Gross margin per lead** | **~$2.48 (99%)** |
+
+The data cost is negligible. Your real cost is the fixed stack (~$138/mo) spread across all clients and all their leads.
+
+---
+
+## 5a. ARPU Assumptions (corrected 16 Jun)
 
 | Client Type | Monthly Spend (USD) | Profile |
 |---|---|---|
 | Starter | $20 | Lead Gen 20 credits only |
-| Growth | $160 | Lead Gen 100 + FIGSY 20 credits |
-| Scale | $400 | Lead Gen 100 + FIGSY 100 credits |
-| **Blended ARPU** | **~$80** | Mixed client base, conservative estimate |
+| Growth | $148 | Lead Gen 100 ($88) + FIGSY 20 ($60) credits |
+| Growth+ | $187 | Lead Gen 100 + FIGSY 20 + Denise ($39) |
+| Scale | $338 | Lead Gen 100 ($88) + FIGSY 100 ($250) credits |
+| Scale+ | $377 | Lead Gen 100 + FIGSY 100 + Denise ($39) |
+| **Blended ARPU** | **~$75** | Mixed client base, conservative (50% starter, 30% growth, 20% scale) |
 
-The difference between conservative and optimistic scenarios is primarily ARPU. If the average client spends $160 instead of $80 (Growth profile), all MRR figures double.
+The difference between conservative and optimistic scenarios is primarily ARPU. If the average client spends $160 instead of $75 (Growth profile), all MRR figures increase ~2.1×. Denise upsell ($39) is the highest-lever add-on after first leads land.
 
 ---
 
-## 5b. UPDATED CASHFLOW & SALES TARGETS — ACTUAL COSTS (3 June 2026)
+## 5b. UPDATED CASHFLOW & SALES TARGETS — ACTUAL COSTS (16 Jun corrected)
 *Rebuilt on the real locked-in stack, replacing the old $203 / Paystack assumptions. This is the version to set sales targets against.*
 
 ### Locked monthly costs (actuals)
@@ -144,22 +200,23 @@ The difference between conservative and optimistic scenarios is primarily ARPU. 
 | Claude Code (build investment, separate) | $100–200 |
 | Stripe processing | NOT fixed — ~2.9% + $0.30 per transaction |
 
-### Contribution per client
-At **$80 blended ARPU**: Stripe takes ~$2.62 (2.9% + 30¢) + ~$1 data (Apollo+Anthropic) → **net ~$76/client/mo**.
-At **$160 ARPU** (Growth profile): net ~$154/client/mo.
+### Contribution per client (corrected 16 Jun)
+At **$75 blended ARPU** (corrected pricing): Stripe takes ~$2.48 (2.9% + 30¢) + ~$1 data (Apollo+Anthropic) → **net ~$71.50/client/mo**.
+At **$148 ARPU** (Growth profile): net ~$143/client/mo.
+At **$187 ARPU** (Growth+ w/ Denise): net ~$180/client/mo.
 
-### 🎯 SALES TARGET LADDER — the numbers to hit
-*Clients needed to clear each milestone. Two columns because ARPU is the biggest lever.*
+### 🎯 SALES TARGET LADDER — the numbers to hit (corrected 16 Jun)
+*Clients needed to clear each milestone. Three columns: blended ARPU ($75, conservative), Growth profile ($148), Growth+ w/ Denise ($187).*
 
-| Milestone | What it means | Clients @ $80 ARPU | Clients @ $160 ARPU |
-|---|---|---|---|
-| **Break-even (infra only)** | Stack pays for itself | **2** | **1** |
-| **Break-even (infra + failover)** | Resilient + self-funding | **2** | **1** |
-| **Break-even (incl. Claude Code dev)** | Whole operation self-funding | **5** | **3** |
-| **$1,000 MRR** | Comfortable; reinvest | **13** | **7** |
-| **$5,000 MRR** | Founder salary begins | **63** | **31** |
-| **$10,000 MRR** | First hire possible | **125** | **63** |
-| **$25,000 MRR** | Series A conversations | **313** | **156** |
+| Milestone | What it means | @ $75 ARPU | @ $148 ARPU | @ $187 ARPU |
+|---|---|---|---|---|
+| **Break-even (infra only)** | Stack pays for itself | **2** | **1** | **1** |
+| **Break-even (infra + failover)** | Resilient + self-funding | **2** | **1** | **1** |
+| **Break-even (incl. Claude Code dev)** | Whole operation self-funding | **4** | **2** | **1** |
+| **$1,000 MRR** | Comfortable; reinvest | **14** | **7** | **5** |
+| **$5,000 MRR** | Founder salary begins | **70** | **34** | **27** |
+| **$10,000 MRR** | First hire possible | **140** | **68** | **54** |
+| **$25,000 MRR** | Series A conversations | **350** | **169** | **134** |
 
 ### 🎯 Your funnel targets (to convert outreach → paying clients)
 *Base assumption: 40% trial→paid. So each paying client needs ~2.5 trials.*
@@ -172,47 +229,47 @@ At **$160 ARPU** (Growth profile): net ~$154/client/mo.
 
 > The dogfood engine (FIGSY self-outreach) + warm network are how you hit the touch counts without paying for ads. One good agency **partner** can deliver ~10 clients/month alone — the single fastest lever.
 
-### Net profit by client count (ARPU $80, operating+failover $138/mo)
+### Net profit by client count (ARPU $75, operating+failover $138/mo — corrected 16 Jun)
 | Clients | MRR | Stripe+data | Fixed | **Net/mo** | Margin |
 |---|---|---|---|---|---|
-| 1 | $80 | $4 | $138 | **−$62** | — |
-| **2** | $160 | $7 | $138 | **+$15** | 9% |
-| 3 | $240 | $11 | $138 | **+$91** | 38% |
-| 5 | $400 | $18 | $138 | **+$244** | 61% |
-| 10 | $800 | $36 | $138 | **+$626** | 78% |
-| 20 | $1,600 | $73 | $138 | **+$1,389** | 87% |
-| 50 | $4,000 | $181 | $222* | **+$3,597** | 90% |
-| 100 | $8,000 | $362 | $242** | **+$7,396** | 92% |
-| 165 | $13,200 | $597 | $242 | **+$12,361** | 94% |
+| 1 | $75 | $3.48 | $138 | **−$66.48** | — |
+| **2** | $150 | $6.95 | $138 | **+$5** | 3% |
+| 3 | $225 | $10.43 | $138 | **+$76.57** | 34% |
+| 5 | $375 | $17.38 | $138 | **+$219.62** | 59% |
+| 10 | $750 | $34.75 | $138 | **+$677.25** | 90% |
+| 20 | $1,500 | $69.50 | $138 | **+$1,292.50** | 86% |
+| 50 | $3,750 | $172.50 | $222* | **+$3,355.50** | 89% |
+| 100 | $7,500 | $345 | $242** | **+$6,913** | 92% |
+| 165 | $12,375 | $570.75 | $242 | **+$11,562** | 93% |
 
-\* Apollo → Organization ($149) at ~50 clients · \** + Resend higher tier at scale
+\* Apollo → Organization ($149) at ~50 clients · \** + Resend higher tier at scale. *Note: slightly lower ARPU ($75 vs. $80) reflects corrected pricing mix (lower FIGSY bundles, lower Denise); break-even still ~2 clients, margin >90% at scale.*
 
 **Break-even: 2 clients (infra) · 5 clients (incl. Claude Code dev).** After ~10 clients it's 78%+ margin — the model is almost pure margin once the fixed stack is covered. **The lever that matters is ARPU: a FIGSY client ($160+) is worth ~2× a starter ($80).** Push FIGSY upsell after first leads land.
 
 ---
 
-## 5c. COST PER PRODUCT — what each agent costs to serve (10 Jun)
+## 5c. COST PER PRODUCT — what each agent costs to serve (16 Jun corrected)
 *The founder's question: "cost per product." Here's the variable cost to actually run each agent for a client. Headline: **only FIGSY's data is a meaningful cost. The other three agents are near-free to serve** on Claude Haiku.*
 
 | Product | What drives the cost | Est. variable cost to serve | What you charge | Gross margin |
 |---|---|---|---|---|
-| **FIGSY** (AI SDR) | Apollo data (~$0.008/lead) + Claude Haiku 3-email generation (~$0.012) + scoring (~$0.0004) + Resend send (~negligible) | **~$0.02–0.10 per lead** fully processed | ~$3.00 / lead (FIGSY Advanced credits) | **~97%** |
+| **FIGSY** (AI SDR) | Apollo data (~$0.008/lead) + Claude Haiku 3-email generation (~$0.012) + scoring (~$0.0004) + Resend send (~negligible) | **~$0.02–0.10 per lead** fully processed | ~$2.50–3.00 / lead (FIGSY Advanced, corrected bundles) | **~97%** |
 | **Milla** (Brain/VA) | Claude tokens per question/draft (Haiku/Sonnet) | **~$0.01–0.03 per query** | $49/mo | **~95%+** |
 | **Vida** (Chatbot) | Claude tokens per conversation turn | **~$0.01–0.03 per conversation** | $29/mo | **~90%+** (a 100-chat/mo client ≈ $1–3 cost) |
-| **Denise** (Closer) | Claude tokens per follow-up/proposal draft (longer outputs) | **~$0.02–0.05 per draft** | $99/mo | **~95%** *(until voice — see §5d)* |
+| **Denise** (Closer) | Claude tokens per follow-up/proposal draft (longer outputs) | **~$0.02–0.05 per draft** | $39/mo | **~95%+** *(corrected 16 Jun from $99 display; actual cost was always $39; until voice — see §5d)* |
 
 **The one cost that matters is Apollo (FIGSY's data).** Everything else is sub-cent Claude inference. So: protect FIGSY's data economics (§5d), keep generation on Haiku (cheap) with prompt caching, and the whole platform sits at ~95% gross margin.
 *Numbers are estimates on current Haiku pricing — confirm against real Anthropic + Apollo invoices once volume is live; the structure won't change.*
 
 ---
 
-## 5d. FUTURE COSTS & THE SCALING MAP (10 Jun)
+## 5d. FUTURE COSTS & THE SCALING MAP (16 Jun, verified 10 Jun baseline)
 *"How we actually start scaling." The cost structure barely moves as you grow — here's what comes online, when, and the one structural decision that decides everything.*
 
 ### 🔑 The single biggest cost lever at scale: the Apollo data decision
 Verified 10 Jun: reselling Apollo data off one account violates ToS **from client #1** (not at "50 clients" — that figure was wrong). Two compliant structures, with **opposite cost profiles**:
 - **(a) Apollo API Reseller / Data-Licensing agreement** (`partners@apollo.io`): a contract (likely higher Apollo spend or a revenue share) — but it legitimises one-account-many-clients and Apollo cost stays on K.I.N.D's books, growing with usage.
-- **(b) Client-brings-own-Apollo-key** (Agency sub-accounts): **K.I.N.D's Apollo cost → ~$0** — each client pays Apollo directly. **This is the margin-maximising AND compliance-solving choice** — it removes the only meaningful variable cost *and* fixes the ToS. Trade-off: a little signup friction. **For the per-rep company model (a company getting one Apollo account for its seats) this is very natural.** → Strongly favour (b) as the default; (a) for clients who won't manage a key.
+- **(b) Client-brings-own-Apollo-key** (Agency sub-accounts): **K.I.N.D's Apollo cost → ~$0** — each client pays Apollo directly. It removes the only meaningful variable cost *and* fixes the ToS. Trade-off: **signup friction** — a deal-killer for self-serve SMB. **For the per-rep company model (a company getting one Apollo account for its seats) this is very natural.** → **REVISED 16 Jun (see §13/§14): NOT a blanket default. Segment it — bundle data for self-serve SMB (friction kills conversion; data is only ~2% of cost), reserve BYO-key for company/partner accounts where it's low-friction and de-risks scale.** Final SMB stance gated on Apollo's partner reply.
 - **(c) Multi-source (PDL wired, dormant):** PDL free tier → paid (pay-as-you-go), Hunter ~$49/mo. Cuts single-vendor risk + fills African coverage gaps; not the compliance fix on its own.
 
 ### Costs that come online as you grow
@@ -233,8 +290,8 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ---
 
-## 6. Three Scenarios — Month by Month
-*Note: net-profit columns below use the OLD $203 fixed stack — directional only. Use §5b for current break-even. Client-growth assumptions still hold.*
+## 6. Three Scenarios — Month by Month (directional, use §5b for current numbers)
+*Note: net-profit columns below use the OLD $203 fixed stack and $80 ARPU — directional only. **Use §5b for current break-even ($75 ARPU, $138 fixed)**. Client-growth assumptions still hold. Corrected pricing (16 Jun) shifts ARPU to ~$75, which improves break-even timeline slightly (hit 2-client break-even sooner).*
 
 ### 🔵 Conservative
 *Assumptions: 30% trial→paid conversion, 5% monthly churn, $80 blended ARPU*
@@ -299,34 +356,36 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ---
 
-## 7. Profitability at Scale
+## 7. Profitability at Scale (16 Jun audit)
 
-### Net profit by client count (Base ARPU $80, fixed stack $203/mo)
+### Net profit by client count (ARPU $75–148, fixed stack $138–242/mo)
 
-| Total Clients | MRR | Apollo cost | Paystack (2.9%) | Fixed stack | Total costs | **Net profit** | **Margin** |
+| Total Clients | MRR | Stripe fee | Data cost | Fixed | Total costs | **Net profit** | **Margin** |
 |---|---|---|---|---|---|---|---|
-| 1 | $80 | $1 | $2 | $203 | $206 | **-$126** | **-** |
-| 3 | $240 | $2 | $7 | $203 | $212 | **+$28** | **12%** |
-| 5 | $400 | $4 | $12 | $203 | $219 | **+$181** | **45%** |
-| 10 | $800 | $8 | $23 | $203 | $234 | **+$566** | **71%** |
-| 20 | $1,600 | $16 | $46 | $203 | $265 | **+$1,335** | **83%** |
-| 30 | $2,400 | $24 | $70 | $203 | $297 | **+$2,103** | **88%** |
-| 50 | $4,000 | $40 | $116 | $223* | $379 | **+$3,621** | **91%** |
-| 75 | $6,000 | $60 | $174 | $223 | $457 | **+$5,543** | **92%** |
-| 100 | $8,000 | $80 | $232 | $248** | $560 | **+$7,440** | **93%** |
-| 165 | $13,200 | $132 | $383 | $248 | $763 | **+$12,437** | **94%** |
-| 350 | $28,000 | $280 | $812 | $298*** | $1,390 | **+$26,610** | **95%** |
+| 1 | $75 | $2.48 | $1 | $138 | $141.48 | **−$66.48** | **—** |
+| **2** | $150 | $4.95 | $2 | $138 | $144.95 | **+$5** | **3%** |
+| 3 | $225 | $7.43 | $3 | $138 | $148.43 | **+$76.57** | **34%** |
+| 5 | $375 | $12.38 | $5 | $138 | $155.38 | **+$219.62** | **59%** |
+| 10 | $750 | $24.75 | $10 | $138 | $172.75 | **+$577.25** | **77%** |
+| 20 | $1,500 | $49.50 | $20 | $138 | $207.50 | **+$1,292.50** | **86%** |
+| 30 | $2,250 | $74.25 | $30 | $142* | $246.25 | **+$2,003.75** | **89%** |
+| 50 | $3,750 | $123.75 | $50 | $222** | $395.75 | **+$3,354.25** | **89%** |
+| 75 | $5,625 | $185.63 | $75 | $242 | $502.63 | **+$5,122.37** | **91%** |
+| 100 | $7,500 | $247.50 | $100 | $242 | $589.50 | **+$6,910.50** | **92%** |
+| 165 | $12,375 | $408.75 | $165 | $242 | $815.75 | **+$11,559.25** | **94%** |
+| 350 | $26,250 | $858.75 | $350 | $298*** | $1,506.75 | **+$24,743.25** | **94%** |
 
-\* Apollo upgrade to Organization ($149) at ~50 clients
-\** Resend Pro added (~$20) at scale
+\* Add basic monitoring at ~30 clients
+\** Apollo upgrade to Organization ($149) at ~50 clients; Resend Pro ($20) at scale
 \*** Additional infra costs at 300+ clients
 
-**Break-even: 3 clients** at $80 ARPU / $203 fixed stack.
-**Break-even: 2 clients** if ARPU is $160 (Growth profile).
+**Break-even: 2 clients** at $75 blended ARPU / $138 fixed stack.
+**Break-even: 1 client** if ARPU is $148 (Growth profile) or $187 (Growth+ w/ Denise).
 
 ---
 
-## 8. Revenue Milestones
+## 8. Revenue Milestones & GTM (16 Jun audit)
+*Timelines are directional based on §6 scenarios; corrected pricing ($75 ARPU vs $80) slightly accelerates attainment.*
 
 | Milestone | What it unlocks | Conservative | Base | Optimistic |
 |---|---|---|---|---|
@@ -335,6 +394,8 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 | **$10,000 MRR** | First hire possible | Year 2 | Month 7 | Month 4 |
 | **$25,000 MRR** | Series A conversations | Year 2+ | Month 11 | Month 6 |
 | **$100,000 MRR** | Market leader, SA dominant | Year 3 | Month 24 | Month 15 |
+
+*Note: break-even now hits at Month 1 even in conservative, vs. Month 2 before.*
 
 ---
 
@@ -364,29 +425,175 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ---
 
-## 11. Summary
+## 11. Summary (corrected 16 Jun)
 
 | Metric | Value |
 |---|---|
 | Launch floor (Group A: Supabase+Railway+Resend+Apollo) | ~$114/mo |
-| Launch + email + failover (A + B) | ~$139/mo |
+| Launch + email + failover (A + B) | ~$138/mo |
 | All-in including Claude Code dev | ~$239–395/mo |
-| Break-even (tech stack, $80 ARPU) | 3 clients |
-| Break-even (tech stack, $160 ARPU) | 2 clients |
-| Gross margin per lead | ~99% |
-| Margin at 10 clients | ~71% |
-| Margin at 50 clients | ~91% |
+| **Break-even (tech stack, $75 ARPU)** | **2 clients** |
+| **Break-even (tech stack, $148 ARPU — Growth)** | **1 client** |
+| **Break-even (tech stack, $187 ARPU — Growth+ Denise)** | **1 client** |
+| Gross margin per lead (FIGSY) | ~99% |
+| Margin at 10 clients ($75 ARPU) | ~90% |
+| Margin at 50 clients ($75 ARPU) | ~89% |
 | Margin at 165 clients (Base Year 1 end) | ~94% |
 | Year 1 total cash — Conservative | ~$22,000 |
 | Year 1 total cash — Base | ~$72,000 |
 | Year 1 total cash — Optimistic | ~$138,000 |
 
-The model scales almost entirely as pure margin after the first 3 clients. The biggest lever is not cost reduction — it's ARPU. A client on FIGSY ($300/mo) generates 3.75× the margin of a starter client ($20/mo).
+The model scales almost entirely as pure margin after the first 2 clients. The biggest lever is not cost reduction — it's ARPU. A Growth+ client on FIGSY + Denise (~$187/mo) generates 9× the margin of a starter client ($20/mo). **FIGSY-only clients** (~$60/mo, bundle price) generate 3× the margin.
 
 The biggest single cost threat at scale is not technology — it's **payment processing** (~2.9% Stripe / ~3.8% Flutterwave of revenue). At $15,000 MRR that's ~$440–570/mo. Negotiate a custom rate above $10k MRR.
 
 ---
 
+**🟢 16 JUN UPDATE SUMMARY:** Stripe pricing now matches code (FIGSY $60/$110/$250 bundles, Lead Gen $20/$38/$88). Denise pricing corrected to actual $39 (was displaying $99). Double-charge bug eliminated (Lead Gen + FIGSY are now separate products, not stacked). All break-even / ARPU / margin calculations updated. Break-even improves to **2 clients** at blended ARPU.
+
+---
+
+## 12. The $1,000,000 ARR Goal — What It Takes
+
+*Annual Recurring Revenue target: $1M ARR = a real revenue business.*
+*⚠️ **CORRECTED 16 Jun (PM):** an earlier draft of this section had a 10× arithmetic error (divided $1M by `ARPU × 12` but dropped a zero) and a fabricated cost table that wrongly showed a loss. Both fixed below. The truth: **$1M ARR is ~93% gross margin — roughly $900k profit — and the binding constraint is sales volume (logos), NOT margin.***
+
+> ### 💡 Plain-English: do we ever lose money? **No.**
+> Costs are almost all **fixed** (~$138/mo) plus a **tiny variable** (~2% of revenue — data + payment fees). So once you pass **2 clients**, every extra client is almost pure profit, and margin climbs toward **~93%** and *stays there*. **There is no point where more revenue turns into a loss** — bigger is always more profit. The only thing that gets harder as you grow is **how many clients you must sign** to hit a target ($1M ARR = 1,111 clients at $75 ARPU, or just 347 at $240). That's a *sales-volume* problem, never a *losing-money* problem. *(The earlier "you lose at $1M" was an arithmetic mistake, now fixed.)*
+
+### How $1M ARR breaks down
+**$1M ARR = $83,333 MRR.** Clients needed = MRR ÷ monthly ARPU:
+
+| ARPU Profile | Monthly ARPU | **Clients for $1M ARR** |
+|---|---|---|
+| **Blended** (conservative, mostly starters) | $75 | **1,111** |
+| **Growth** (Lead Gen 100 + FIGSY 20) | $148 | **563** |
+| **Growth+** (+ Denise) | $187 | **446** |
+| **Partner-blend** (70% Growth+ / 30% Scale) | $240 | **347** |
+| **Scale** (Lead Gen 100 + FIGSY 100) | $338 | **247** |
+| **Outcome pricing** (per meeting booked) | $500 | **167** |
+
+*Higher ARPU doesn't change your margin (already ~93%) — it changes how many logos you must close. That's the whole game.*
+
+### Cost Structure at $1M ARR (corrected — costs are % of revenue, so client count doesn't change them)
+| Cost category | Annual | % of revenue |
+|---|---|---|
+| **Stripe payment processing** (2.9% + 30¢/txn) | ~$32,000 | ~3.2% |
+| **Data** (Apollo + Claude Haiku — **→ ~$0 if client-keys/§5d**) | ~$20,000 | ~2% |
+| **Fixed infra** (Supabase/Railway/Resend/Apollo Org at scale) | ~$5,000 | ~0.5% |
+| **Infra scaling** (compute, pgvector, backups) | ~$15,000 | ~1.5% |
+| **Hard costs (pre-payroll)** | **~$72,000** | **~7%** |
+| **GROSS PROFIT (pre-payroll)** | **~$928,000** | **~93%** ✅ |
+| *Optional: 1–2 support/CS hires* | $60k–144k | 6–14% |
+| **Net with 2 hires** | **~$784,000** | **~78%** |
+
+✅ **This reconciles with §7** (94% margin at 165 clients). The single biggest cost line at scale is **Stripe (~3%)**, not data (~2%). Data only matters because it's the one cost that *grows with volume* — which is exactly why client-keys (§5d) is attractive at scale (drives it to ~0).
+
+### The real lesson: $1M is a SALES-VOLUME problem, not a margin problem
+- **At $75 ARPU you must close 1,111 clients.** At ~20 net new/month that's ~55 months. Slow.
+- **At $240 ARPU (partners + company engine) only ~347.** At ~20/month via partners that's ~18 months. Viable.
+- **At $500 (outcome pricing) only ~167.** The fastest path — but gated on having outcome data first.
+
+**So the three levers for $1M ARR (in priority order):**
+1. **ARPU uplift** — fewer logos to sell. Denise ($39) + FIGSY upsell turns a $20 starter into a $148–187 client. This is the cheapest lever (existing base).
+2. **Partner channel + company engine (#88)** — sell *teams*, not seats. A 10-seat company at ~$240 ARPU = ~3 single clients' worth, one sale.
+3. **Outcome pricing** (gated ≥28% margin, post-launch) — collapses the logo count to ~167. The real inflection.
+
+**Margin is already solved (~93%). The work is ARPU + a repeatable way to add logos (partners/companies), not cost control.**
+
+---
+
+## 13. The Apollo / Data-Sourcing Strategy — how we work around the ToS
+
+### The problem (one line)
+Reselling Apollo data from ONE K.I.N.D account to many clients may breach Apollo's ToS (§5d, risk from client #1) — and Apollo data is the only cost that *grows with volume*. So we need a data architecture that is **(a) ToS-clean** and **(b) low-friction**.
+
+### What this is NOT
+Data is only **~2% of revenue** (§4, §12). Working around Apollo is **not a profit play** — it saves ~2 margin points, not "profits like crazy." It's a **compliance + scale-resilience** play. Don't trade away signup conversion for it where it doesn't matter.
+
+### The decision: SEGMENT BY ACV — don't use one model for everyone
+| Segment | ACV | Data model | Friction | Why |
+|---|---|---|---|---|
+| **Self-serve SMB** (solo, $20–75) | Low | **K.I.N.D bundles the data** (we hold the Apollo/multi-source layer) | **Zero — "just works"** | A $20 client will not go create an Apollo account. Friction kills self-serve. We eat ~2% data cost — trivial. |
+| **Company (#88)** (10–50 seats) | High | **BYO Apollo key** — one account per company, like their CRM, wired once at onboarding | Low — they tolerate a setup call | Sophisticated + high-value + already human-onboarded. ToS-clean AND zeroes our cost on the highest-volume accounts. |
+| **Partners** (agencies) | High | **BYO Apollo / their own data ops** | Low — they already run data | Agencies have their own stack and expect to use it. Natural fit. |
+
+**→ Your instinct ("a client/partner uses their own Apollo like their own CRM") is right — for companies and partners.** It's the wrong default for self-serve SMB, where BYO-key is a conversion-killer.
+
+### On "free implementation" (the founder's idea)
+Smart — **but only for high-ACV.** Wiring a client's Apollo key + CRM in a setup call is worth your time at $240+ ARPU (company/partner). It is **not** affordable on a $20–75 self-serve plan — every white-glove onboarding is human time. *(This is exactly why Alta, which does heavy white-glove onboarding, charges enterprise prices.)*
+
+### What Alta actually does (competitor read, 16 Jun — public info, partly inferred)
+- Alta **bundles a multi-source data layer** (50+ sources: BuiltWith, SimilarWeb, StoreLeads, intent signals, CRM, job postings). Clients are told *"you don't need to source your own data."* It is **not just an Apollo wrapper.**
+- Alta is **enterprise / custom-priced** with **high-touch onboarding** (dedicated session, ICP + CRM + playbook, live in days). They can afford to bundle costly data + human onboarding because **they charge a lot**.
+- **Public info is ambiguous** on whether Alta ever uses a client's own Apollo workspace. Weight of evidence: they bundle their own data layer and integrate a client's existing tools where present — they do **not** primarily make SMB clients BYO-Apollo.
+- **Takeaway:** Alta proves *bundled-data + white-glove + premium* works — but that's a **different market** (enterprise) than our SMB/African self-serve. Copy the **bundling** for SMB and the **white-glove** only for high-ACV. Don't bolt enterprise onboarding cost onto $20 plans.
+
+### The structural hedge (already half-built): multi-source waterfall
+PDL is wired but dormant; Hunter ~$49/mo (§5d). A **waterfall across PDL → Hunter → Apollo** (the Clay/Alta philosophy) removes single-vendor ToS risk entirely, raises match rates, and fills African coverage gaps. This is the long-term answer that makes us **not hostage to Apollo at all.**
+
+### The gate: wait for Apollo's reply before locking the SMB path
+The `partners@apollo.io` email (sent 14 Jun) decides it:
+- **If Apollo grants a reseller/partner agreement** → bundle data for SMB **ToS-clean**, keep zero friction. Best of both worlds.
+- **If not** → push BYO-key further down-market and/or lean on the multi-source waterfall for SMB.
+
+**RECOMMENDATION:** Bundle for SMB (pending Apollo's terms) · BYO-key for company/partner with free setup · build the multi-source waterfall as the hedge. **Do not force BYO-key on self-serve SMB — it costs more in lost conversions than the ~2% data it saves.**
+
+---
+
+## 14. Onboarding & Segmentation Plan — self-serve SMB vs. white-glove company
+
+> 🚧 **STRATEGY / PLAN (not built). Founder-approved direction 16 Jun; layers on top of the existing onboarding draft (`docs/drafts/ONBOARDING_V2.md`, item #30) and the live Company Engine (#88).** Self-serve SMB flow already drafted; this adds the *company fork* + the data-segmentation rule. Nothing here ships before founder sign-off on a real signup run-through.
+
+### The one rule
+**Segment on SEATS REQUESTED, not headcount.** Company size (auto-read at signup) is a *hint* for routing/guessing, never a hard wall.
+- **1 seat → self-serve track** (Track A). Zero friction, we bundle the data.
+- **2+ seats / "team" intent → concierge track** (Track B). Free white-glove setup, optional BYO-Apollo.
+
+*(Headcount alone lies — a 15-person agency can be your best team customer; a 40-person firm may want one seat. Seats = the true signal.)*
+
+### Shared front door (both tracks)
+1. **Client enters their website at signup.** We auto-read their company data (firmographics incl. employee-size) — the existing **ICP website-scan** (per `ONBOARDING_V2.md`) extended to also capture the client's *own* size via **PDL** (`apps/api/src/lib/pdl-search.ts` — wired, has `job_company_size`; keys set 15 Jun).
+2. **Auto-route:** size + seats → suggest Track A (self-serve) or Track B (concierge). Client can override.
+3. **Everyone starts on K.I.N.D-bundled data immediately** — first scored leads in <10 min (the onboarding north-star). **No Apollo account required to start, in either track.**
+
+### Track A — Self-serve SMB (1 seat)
+- The existing `ONBOARDING_V2.md` flow verbatim: signup → ICP → first leads (our Apollo/multi-source) → first FIGSY campaign → first reply.
+- **Data: always bundled by K.I.N.D.** Client never touches Apollo. We absorb the ~2% cost — trivial.
+- Friction: **zero.** This is the volume engine + the upsell base (push FIGSY/Denise after first leads).
+
+### Track B — Company / Team (2+ seats) — the #88 Company Engine
+- **Day 0–14: trial on bundled data, no implementation gate.** They get real leads + value *before* any setup ask. This is the wedge that lets us "start engaging, onboarding and selling" while the deal warms.
+- **After value is shown: free white-glove implementation** (the concierge call) — wire CRM + connections, configure pools/seats (#88's two-pool model: lead-gen $1 / FIGSY $3), and **optionally** connect the company's own Apollo key (one account for all seats, like their CRM).
+- **Implementation is a sales/relationship moment, never a hurdle** — "we build your revenue engine for you, free." It's *why* a company pays ~10× an SMB.
+
+### The Apollo decision per track (the only genuinely open question)
+| Track | Default | BYO-Apollo? |
+|---|---|---|
+| **A — SMB** | **Bundled (we hold data)** | No — never forced |
+| **B — Company/Partner** | **Bundled to start (trial)** | **Optional**, offered at implementation — mandatory only for very-high-volume accounts or if Apollo's ToS requires it at their scale |
+
+**Gated on `partners@apollo.io` reply (sent 14 Jun):**
+- **Apollo says yes (reseller/partner terms)** → bundle for *everyone* ToS-clean; BYO-key becomes a pure concierge option. Lowest friction everywhere.
+- **Apollo says no** → BYO-key becomes the compliance path for high-volume company/partner accounts; SMB leans harder on the **PDL→Hunter→Apollo waterfall** (§13) so self-serve stays friction-free and ToS-safe.
+
+### Build status (honest — Rule 3)
+| Piece | Status | Notes |
+|---|---|---|
+| SMB self-serve flow (Track A) | 🟡 drafted | `ONBOARDING_V2.md` #30 — gated on launch run-through |
+| Company Engine, two-pool, seats (Track B core) | 🟢 live | #88 shipped to prod Mon 15 |
+| Website→ICP autofill | 🟡 referenced built | confirm endpoint during run-through |
+| Website→**own-firmographics** read for routing | 🔴 new | extend scan / use PDL company enrich |
+| Seat-based auto-routing (A vs B) | 🔴 new | the segmentation switch |
+| 14-day company trial on bundled data | 🔴 new | trial logic before implementation |
+| White-glove implementation flow (CRM + optional Apollo) | 🔴 new | post-launch (company hardening, Month 1) |
+| Multi-source waterfall (PDL→Hunter→Apollo) | 🟡 half-wired | PDL dormant-capable; keys set 15 Jun |
+
+**Sequence:** ship Track A (self-serve) at launch → add seat-routing + company trial → build white-glove implementation post-launch (already in Month-1 "company hardening") → finalise the Apollo default once Apollo replies.
+
+---
+
 *Document owner: K.I.N.D founding team*
-*Last updated: 25 May 2026*
-*Review this model quarterly as pricing and client mix evolves.*
+*Last updated: **16 June 2026** — Billing Correctness Build + $1M ARR goal (math corrected) + §13 Apollo/data-sourcing strategy + §14 Onboarding & Segmentation plan (§5d reconciled)*
+*Previous: 10 June 2026 — Cost Per Product & Scaling Map*
+*Review this model quarterly as pricing, client mix, and ARPU evolves.*

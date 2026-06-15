@@ -198,7 +198,7 @@
 
 ## 2C — 🟢 R1–R20 ALREADY LIVE via #502 (discovered 15 Jun) — PRs #506–#525 are REDUNDANT → close
 > **⚠️ MAJOR STATE CHANGE 15 Jun:** #502's dev branch (`claude/kind-carson-MYhSl`, 213 commits) was a **superset** — it already contained all 20 R-wave features. So merging #502 (#564) shipped **R1–R20 code LIVE on `main`** (verified by grep: VidaHelpBubble, MilestoneCelebration, CommandPalette, speed-to-lead, why-email, evals, spam-check, model-toggle, job-change, templates, whats-new, … all present). **The 20 PRs #506–#525 are therefore redundant — CLOSE them, do NOT merge** (their code is already live; merging = conflicts/no-ops).
-> **🗄️ 3 features need their PROD migration run** (code live, schema missing — were NOT in the 15-Jun combined script): **R2** `clients.daily_brief_enabled` · **R15** `figsy_knowledge` table · **R20** `leads.job_changed_at`+`previous_company`. Until run, those 3 error on prod.
+> **🗄️ 3 owed migrations — ✅ RUN ON PROD 15 Jun** (R2 `clients.daily_brief_enabled` · R15 `figsy_knowledge` · R20 `leads.job_changed_at`+`previous_company`). All R1–R20 now have full schema on prod.
 > **Status:** each R-item is **🟢 code-live / pending VERIFICATION** (the end-of-week feature walk confirms real data → keeps 🟢, or drops to 🔴 if broken).
 | # | State | Item | Where it waits | Owner |
 |---|-------|------|----------------|-------|

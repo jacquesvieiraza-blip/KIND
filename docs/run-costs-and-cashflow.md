@@ -458,6 +458,9 @@ The biggest single cost threat at scale is not technology — it's **payment pro
 *Annual Recurring Revenue target: $1M ARR = a real revenue business.*
 *⚠️ **CORRECTED 16 Jun (PM):** an earlier draft of this section had a 10× arithmetic error (divided $1M by `ARPU × 12` but dropped a zero) and a fabricated cost table that wrongly showed a loss. Both fixed below. The truth: **$1M ARR is ~93% gross margin — roughly $900k profit — and the binding constraint is sales volume (logos), NOT margin.***
 
+> ### 💡 Plain-English: do we ever lose money? **No.**
+> Costs are almost all **fixed** (~$138/mo) plus a **tiny variable** (~2% of revenue — data + payment fees). So once you pass **2 clients**, every extra client is almost pure profit, and margin climbs toward **~93%** and *stays there*. **There is no point where more revenue turns into a loss** — bigger is always more profit. The only thing that gets harder as you grow is **how many clients you must sign** to hit a target ($1M ARR = 1,111 clients at $75 ARPU, or just 347 at $240). That's a *sales-volume* problem, never a *losing-money* problem. *(The earlier "you lose at $1M" was an arithmetic mistake, now fixed.)*
+
 ### How $1M ARR breaks down
 **$1M ARR = $83,333 MRR.** Clients needed = MRR ÷ monthly ARPU:
 
@@ -500,7 +503,45 @@ The biggest single cost threat at scale is not technology — it's **payment pro
 
 ---
 
+## 13. The Apollo / Data-Sourcing Strategy — how we work around the ToS
+
+### The problem (one line)
+Reselling Apollo data from ONE K.I.N.D account to many clients may breach Apollo's ToS (§5d, risk from client #1) — and Apollo data is the only cost that *grows with volume*. So we need a data architecture that is **(a) ToS-clean** and **(b) low-friction**.
+
+### What this is NOT
+Data is only **~2% of revenue** (§4, §12). Working around Apollo is **not a profit play** — it saves ~2 margin points, not "profits like crazy." It's a **compliance + scale-resilience** play. Don't trade away signup conversion for it where it doesn't matter.
+
+### The decision: SEGMENT BY ACV — don't use one model for everyone
+| Segment | ACV | Data model | Friction | Why |
+|---|---|---|---|---|
+| **Self-serve SMB** (solo, $20–75) | Low | **K.I.N.D bundles the data** (we hold the Apollo/multi-source layer) | **Zero — "just works"** | A $20 client will not go create an Apollo account. Friction kills self-serve. We eat ~2% data cost — trivial. |
+| **Company (#88)** (10–50 seats) | High | **BYO Apollo key** — one account per company, like their CRM, wired once at onboarding | Low — they tolerate a setup call | Sophisticated + high-value + already human-onboarded. ToS-clean AND zeroes our cost on the highest-volume accounts. |
+| **Partners** (agencies) | High | **BYO Apollo / their own data ops** | Low — they already run data | Agencies have their own stack and expect to use it. Natural fit. |
+
+**→ Your instinct ("a client/partner uses their own Apollo like their own CRM") is right — for companies and partners.** It's the wrong default for self-serve SMB, where BYO-key is a conversion-killer.
+
+### On "free implementation" (the founder's idea)
+Smart — **but only for high-ACV.** Wiring a client's Apollo key + CRM in a setup call is worth your time at $240+ ARPU (company/partner). It is **not** affordable on a $20–75 self-serve plan — every white-glove onboarding is human time. *(This is exactly why Alta, which does heavy white-glove onboarding, charges enterprise prices.)*
+
+### What Alta actually does (competitor read, 16 Jun — public info, partly inferred)
+- Alta **bundles a multi-source data layer** (50+ sources: BuiltWith, SimilarWeb, StoreLeads, intent signals, CRM, job postings). Clients are told *"you don't need to source your own data."* It is **not just an Apollo wrapper.**
+- Alta is **enterprise / custom-priced** with **high-touch onboarding** (dedicated session, ICP + CRM + playbook, live in days). They can afford to bundle costly data + human onboarding because **they charge a lot**.
+- **Public info is ambiguous** on whether Alta ever uses a client's own Apollo workspace. Weight of evidence: they bundle their own data layer and integrate a client's existing tools where present — they do **not** primarily make SMB clients BYO-Apollo.
+- **Takeaway:** Alta proves *bundled-data + white-glove + premium* works — but that's a **different market** (enterprise) than our SMB/African self-serve. Copy the **bundling** for SMB and the **white-glove** only for high-ACV. Don't bolt enterprise onboarding cost onto $20 plans.
+
+### The structural hedge (already half-built): multi-source waterfall
+PDL is wired but dormant; Hunter ~$49/mo (§5d). A **waterfall across PDL → Hunter → Apollo** (the Clay/Alta philosophy) removes single-vendor ToS risk entirely, raises match rates, and fills African coverage gaps. This is the long-term answer that makes us **not hostage to Apollo at all.**
+
+### The gate: wait for Apollo's reply before locking the SMB path
+The `partners@apollo.io` email (sent 14 Jun) decides it:
+- **If Apollo grants a reseller/partner agreement** → bundle data for SMB **ToS-clean**, keep zero friction. Best of both worlds.
+- **If not** → push BYO-key further down-market and/or lean on the multi-source waterfall for SMB.
+
+**RECOMMENDATION:** Bundle for SMB (pending Apollo's terms) · BYO-key for company/partner with free setup · build the multi-source waterfall as the hedge. **Do not force BYO-key on self-serve SMB — it costs more in lost conversions than the ~2% data it saves.**
+
+---
+
 *Document owner: K.I.N.D founding team*
-*Last updated: **16 June 2026** — Billing Correctness Build + $1M ARR goal analysis*
+*Last updated: **16 June 2026** — Billing Correctness Build + $1M ARR goal (math corrected) + §13 Apollo/data-sourcing strategy*
 *Previous: 10 June 2026 — Cost Per Product & Scaling Map*
 *Review this model quarterly as pricing, client mix, and ARPU evolves.*

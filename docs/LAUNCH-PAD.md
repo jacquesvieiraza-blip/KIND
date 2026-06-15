@@ -2,7 +2,7 @@
 
 > ## 🧭 VERIFIED STATE — read this first
 > _Single source of ground truth. Update this block whenever state changes so a cold resume (me, Manus, or you) never has to guess._
-> - **Last verified:** 2026-06-15 12:50 UTC (Mon — Company Engine LIVE)
+> - **Last verified:** 2026-06-15 13:00 UTC (Mon). **⏰ HARD DEADLINE — everything verified + fixed by THU 18 (founder away Fri 19).** The product is already live; the week = prove + fix, not merge.
 > - **`main` HEAD:** `288230b` (Merge #565). **#502 shipped to prod via #564 + hotfix #565.**
 > - **✅ LIVE ON PROD — #502 was a SUPERSET, so the WHOLE product shipped:** 🏢 Company Engine · API/portal hardening · design screens 80–91 · **AND all 20 R-wave features R1–R20** (their code was on the #502 dev branch — verified by grep). Portal loads, credits (999,839) + activity + FIGSY panel verified. **Everything else = pending the feature-verification walk (§2).**
 > - **➡️ R-train PRs #506–#525 are REDUNDANT → CLOSE them** (code already live; merging = conflicts). Also close old **#502** (superseded by #564).
@@ -91,10 +91,12 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 - 🔎 **Billing correctness** verified (the Tue-16 build) + 🧍 **Smoke T9, T10**.
 - 🚦 **GO/NO-GO:** every live feature ✅ or its 🔴 fixed · D9 10/10 · billing green · legal done · warmup ~50/day. **Any unresolved 🔴 → slip launch** (don't launch broken-but-live features).
 
-### 📅 FRI 19 — 🚀 LAUNCH (Africa-only)
-- Proven core already on `main`. Go live.
-- 🎥 **Drop 01 walkthrough (60s) goes live** in `the-drop.html` (see §4 — record this week).
-- 🤖 Stand up week-1 GTM support · monitor · hotfix.
+### 📅 THU 18 — 🏁 HARD DEADLINE: everything done (founder away Fri)
+**By EOD Thu, all must be true:** every §13 feature ✅ (or its 🔴 fixed) · billing correctness green · 3 owed migrations run · Hunter/PDL keys set · Stripe ($39 Denise + pool products) · 5 PDFs uploaded · legal done · D9 10/10. This is the real finish line.
+
+### 📅 FRI 19 — 🚀 LAUNCH / 🧍 FOUNDER AWAY
+- Product is already live (shipped Mon 15). Launch = GTM moment; 🤖 monitors prod + hotfixes only — **no new merges while you're away.**
+- 🎥 **Drop 01 walkthrough (60s)** goes live in `the-drop.html` if recorded (see §4).
 
 ---
 
@@ -212,7 +214,7 @@ Cross-client intelligence L4 (150) · data-licensing marketplace · ICP L3 · pi
 
 ---
 
-## 13 · 🔎 FEATURE-VERIFICATION CHECKLIST — walk every LIVE feature by Fri 19
+## 13 · 🔎 FEATURE-VERIFICATION CHECKLIST — walk every LIVE feature by THU 18 (founder away Fri)
 > Since #502 shipped the whole product, this is the week's core: confirm each works with **real data**. Mark **✅ works · ⚠️ placeholder/empty · 🔴 broken→fix**. 🤖 fixes 🔴s same-day. Update this in-place as you walk.
 
 **🏢 Company Engine** — ⬜ command centre renders · ⬜ Seats tab + per-seat budgets · ⬜ request→approve/deny · ⬜ winning-plays · ⬜ invite→accept flow · ⬜ per-rep agent unlock (Test 7)

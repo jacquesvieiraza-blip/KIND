@@ -2,7 +2,7 @@
 
 > ## 🧭 VERIFIED STATE — read this first
 > _Single source of ground truth. Update this block whenever state changes so a cold resume (me, Manus, or you) never has to guess._
-> - **Last verified:** 2026-06-15 13:13 UTC (Mon — **end of day, ship complete**). **⏰ HARD DEADLINE — everything verified + fixed by THU 18 (founder away Fri 19).** The product is already live; the week = prove + fix, not merge.
+> - **Last verified:** 2026-06-16 (Mon EOD ship + **restructured into PART A / PART B** — post-19 work now ranked P0→P4 + week-by-week in Part B). **⏰ HARD DEADLINE — everything verified + fixed by THU 18 (founder away Fri 19).** The product is already live; the week = prove + fix, not merge.
 > - **✅ MON 15 DONE:** Company Engine + #502 superset (R1–R20) LIVE · 3 R-train migrations run · Hunter+PDL keys set · 21 PRs closed · Denise $39 · 5 terms docs uploaded. **Only open product PR: #503 (website).** Next = TUE 16 billing correctness.
 > - **`main` HEAD:** `288230b` (Merge #565). **#502 shipped to prod via #564 + hotfix #565.**
 > - **✅ LIVE ON PROD — #502 was a SUPERSET, so the WHOLE product shipped:** 🏢 Company Engine · API/portal hardening · design screens 80–91 · **AND all 20 R-wave features R1–R20** (their code was on the #502 dev branch — verified by grep). Portal loads, credits (999,839) + activity + FIGSY panel verified. **Everything else = pending the feature-verification walk (§2).**
@@ -17,10 +17,14 @@
 > - **The 4 canonical docs:** `KIND-MASTER` (governs) · this `LAUNCH-PAD` (the wake-up runlist) · `PRODUCT-INVENTORY` · `V2-TRACKER`. No fifth doc.
 
 > **What this is:** the single, exhaustive run-list from **now → launch → the first quarter**, built off a full audit of all three core docs (`KIND-MASTER` · `PRODUCT-INVENTORY` · `V2-TRACKER`), **every** secondary doc in the repo (deploy/deliverability/smoke/legal/GTM/funding), and the **live git + PR state**. Nothing here is from memory.
+> **Structure (restructured 16 Jun):** **PART A** = the runway to Fri 19 (closes on launch). **PART B** = the ranked post-19 master sequence — every not-live item, ranked urgency × value (P0→P4) then laid week-by-week. After the 19th you work off Part B only. It stays the *derived* run-list (sources: inventory/V2/master); it does not fold into a new doc.
 > **Owner key:** 🧍 founder · 🤖 Claude · 🤝 both · **⏰ = hard deadline / external lead-time** (do early, it can't be rushed later).
 > **Created 14 Jun 2026 · revised 15 Jun (Company Ship in progress). Launch = 🚀 Fri 19 Jun 2026.** Where docs conflict, **KIND-MASTER governs**; the 🧭 VERIFIED STATE block above is the current live truth.
 
 ---
+
+# ░░ PART A — RUNWAY TO LAUNCH (everything here closes Fri 19 Jun) ░░
+> Once launched, Part A becomes a closed ✅ record — you stop reading it. The live ops tool for this phase is the **§13 Feature-Verification Checklist**. After the 19th, work off **PART B** (the ranked post-19 sequence, below).
 
 ## 0 · WHERE WE ACTUALLY ARE RIGHT NOW (verified state)
 
@@ -149,39 +153,89 @@ Replay the proven sequence on prod. Founder on standby for hotfix till ~6pm; �
 
 ---
 
-## 6 · MONTH 1 (Fri 19 Jun → ~19 Jul) — LAUNCH + CLEAR THE QUEUE
-**Goal: launch clean · onboard first pilots · ship the post-19 queue fast (velocity = the moat).**
-**Targets: 5 clients (break-even) · ~£2.5K MRR (design partners) · demo recorded · LinkedIn live.**
-- 🤖 **Ship the locked design queue:** Alta-style inbox rebuild (112 — the big one) · "AI Family" cards (125) · sequence-builder recolor (82) · 113a panels · the R1–R20 train · shell redesign.
-- 🤖 **Activate the dormant yellows:** PDL (94) + Hunter waterfall (95) once keys are set · A/B subject UI (113) over the live backend (97) · finish site nav rewire (118).
-- 🤖 **Money & admin cleanup:** client invoicing live (136a — USD, no VAT until benchmark, Stripe-issued, under Company → Documents) · Partner Hub earnings ZAR→USD · Flutterwave/2nd-processor decision.
-- 🤖 **Company-engine hardening:** invite-email delivery (106) · owner drill-down (107) · edit/deactivate rep (108) · manager role + notifications (109) · per-rep routing + CRM dedup (110) · per-rep calendars (111). *Dated target: #88 "Company OS" fully on prod by **Tue 30 Jun**.*
-- 🧍 **First clients:** onboard the multi-rep client + partner pipeline; pilot feedback drives the next sprint.
-- 🧍 **Decision-gated builds** waiting on you: Casey voice/tone (121) · pgvector switch for Memory v2 (120) · Flutterwave (136).
-- 🧍 Y16 — kill the dead Vercel↔GitHub integration (122, post-launch).
+# ░░ PART B — POST-19 MASTER SEQUENCE (the ranked run-list) ░░
+> **This is the single ranked view of everything not yet live.** Pulled from `PRODUCT-INVENTORY` (IDs in parens), `V2-TRACKER`, and `KIND-MASTER` — sources win on any conflict. When an item ships: tick it here **and** flip its dot in the inventory. Ranking = **urgency × value**: P0 (blocks safely serving the first real client) → P4 (enterprise, far-gated). Parallel tracks (GTM, content, legal, ongoing) run continuously — see §10/§12 + B-PARALLEL.
+> **One caution carried from the audit:** R-train PRs #506–#525 are **already-live code → verify-and-close, NOT build work** (don't re-rank them).
 
----
+## B0 · THE RANKED VIEW — everything left, most urgent × valuable first
 
-## 7 · MONTH 2 (late Jul → Aug) — INTELLIGENCE LAYER 🔒 GATED: ~10+ paying clients
-**Targets: 10+ clients · ~£12K MRR · Product Hunt · MCP live · V2 redesign ~50%.**
-- **The Learning Engine** (build order: Train-FIGSY RAG → evals → outcome feedback loop → contextual bandit → memory/pgvector #46 → model routing; fine-tuning parked last). *None of this blocks the 19th.*
-- Intent signals · ICP auto-refine (L2) · conditional branching · adaptive send volume · waterfall enrichment live · Milla CRM pull · multi-model per campaign · inbox rotation.
-- **Context-backed MCP server (#59)** — distribution unlock, pulled forward to Month 2 · Product Hunt + G2 listings · ★ shared winning-play library.
-- ⚖️ Month-2 legal: D&O insurance (~£500–1k) · trademark filing (after clearance) · NDPR/Kenya ODPC prep.
+| Rank | Workstream | Items (IDs) | Gate | Own | Why this rank |
+|---|---|---|---|---|---|
+| **P0** | Billing correctness — finish + verify live | 166–173 | pre-launch | 🤝 | real money flows; chargeback/legal risk |
+| **P0** | **Company RLS / access control** | 55a (=R11) | before the 50-rep client | 🤝 | reps can currently see beyond own data — blocks the big client |
+| **P0** | Money/credit-path integration tests | 124 (=Y15) | week 1 | 🤖 | protect payment paths now they're live |
+| **P0** | Onboarding v2 + **seat-segmentation** | 32/135 + cashflow §14 | week 1 | 🤖 | can't cleanly onboard clients without it |
+| **P0** | Company onboarding essentials | 106 invite-email · 107 drill-down · 108 offboarding | before 1st real company | 🤖 | Monday used copy-paste; a real client needs these |
+| **P1** | **Alta-style inbox rebuild** | 112 | — | 🤖 | "the big remaining build"; core daily surface |
+| **P1** | Client invoicing | 136a ⭐ | clients paying | 🤖 | needed once money flows (USD · Stripe-issued) |
+| **P1** | Activate dormant data + A/B UI | 94 PDL · 95 Hunter · 113 A/B (97) | keys set ✅ | 🤖 | de-risks Apollo; quick win |
+| **P1** | Flip the locked design queue live | 125 AI-Family · 113a panels · 82 seq-builder · 85–87 shell | verify R-train | 🤝 | credibility; smoke each before flip |
+| **P1** | Prompt Library | 162 ⭐ | — | 🤖 | the big Resource; GTM/credibility |
+| **P1** | Site nav/footer rewire (finish) | 118 | — | 🤖 | wiring half-done |
+| **P1** | Company hardening (full Company OS) | 109 manager · 110 routing/dedup · 111 calendars | ~Tue 30 Jun | 🤖 | completes #88 |
+| **P2** | **The Learning Engine** | 143 | ~10+ clients | 🤖 | the moat; RAG first = highest near-term ROI |
+| **P2** | Intelligence pieces | 139 · 140 | ~10+ clients | 🤖 | intent · ICP auto-refine · branching · adaptive send · Milla CRM |
+| **P2** | Memory v2 / pgvector | 120 (46) | 🧍 flips switch | 🤝 | the moat |
+| **P2** | Context-backed MCP server | 141 (59) | ~10+ clients | 🤖 | distribution unlock (beats bare MCP 2.5×) |
+| **P2** | Casey conversational onboarding | 121 (V2-3) | 🧍 voice/tone | 🤝 | highest-value V2 build |
+| **P2** | Product Hunt + G2 | 142 | — | 🧍 | distribution |
+| **P3** | DENISE deep build | 144 (54) | margin data | 🤖 | auto-book · notetaker · objections · Vapi voice |
+| **P3** | **Outcome pricing per meeting** | 147 (60) | **≥28% margin** | 🤝 | the ARPU inflection (cashflow §12) |
+| **P3** | LENA (CS) + TONY (Ops) | 145 | — | 🤖 | the agent family expands |
+| **P3** | Orchestration + 500+ skills | 146 | — | 🤖 | |
+| **P3** | CRM Kanban + mobile PWA | 148 | MRR >£8K | 🤝 | |
+| **P3** | Proposal e-sign + Zoom notetaker | 149 | — | 🤖 | |
+| **P4** | Cross-client intelligence (L4) | 150 | 50+ clients | 🤖 | long-term moat |
+| **P4** | Compliance stack (ISO/SOC2/Vanta) | 151 | enterprise deals | 🤝 | ~£70K, slow |
+| **P4** | Advanced moat | 152 | 50+ | 🤖 | memory · de-anon · churn · forecast · call-intel |
+| **P4** | The 15 Pieces | 153–161 | various triggers | 🤖 | each trigger-gated (20–50+ clients) |
 
----
+## B1 · WEEK-BY-WEEK SEQUENCE
 
-## 8 · MONTH 3 (Aug → Sep) — AGENT FAMILY + PRICING 🔒 GATED: unit margin ≥ ~28%
-**Targets: ~50 clients · ~£40K MRR · L2 learning live · ≥28% gross margin (unlocks outcome pricing).**
-- **DENISE deep build (#54/144):** auto-book · call-join notetaker · objection handling · proposal-from-transcript · Vapi voice (she owns the phone).
-- **LENA** (Customer Success, 145) · **TONY** (Operations) · multi-agent orchestration (146) · 500+ skill library.
-- **Outcome pricing per meeting (#60/147)** — gated ≥28% margin ($40/meeting model) · built-in CRM Kanban · mobile PWA (gated MRR >£8K) · pan-African design partners · proposal e-sign + Zoom notetaker (149).
-- ⚖️ Pen test (~£2–5k) · Kenya ODPC.
+### 📅 Fri 19 → Sun 21 — LAUNCH + 🧍 AWAY
+Product already live. 🤖 monitor prod + hotfix only. **No merges over the weekend.**
 
----
+### 📅 Wk of Mon 22 — 🔴 P0 · STABILIZE (make it safe for the first real client) 🤝
+- 🤝 **Company RLS / access control (55a)** — owner sees all-reps; rep sees ONLY own; reps can't see each other or the command centre; low-credit alert → owner approves. *(Mon–Tue; the gating blocker for the 50-rep client.)*
+- 🤖 **Money/credit-path integration tests (124)** — lock the billing-correctness fixes against regressions.
+- 🤖 **Onboarding v2 + seat-segmentation** — seat-based routing (1 = self-serve / 2+ = concierge), website→firmographics read, 14-day company trial *(cashflow §14)*.
+- 🤖 **Company onboarding essentials** — invite-email delivery (106) · owner drill-down (107) · edit/deactivate rep (108).
+- 🧍 **GTM Week-1 in parallel** — §5 run-list (127–132).
 
-## 9 · YEAR 2 (2027) — ENTERPRISE 🔒 GATED: 50+ clients
-Cross-client intelligence L4 (150) · data-licensing marketplace · ICP L3 · pipeline forecasting · in-portal messaging · ISO 27001 + 42001 + SOC 2 via Vanta (~£70K, 151) · 3-type memory · visitor de-anon · churn scoring · revenue forecasting · call intelligence (152) · the "15 Pieces" (153–161, each trigger-gated).
+### 📅 Wk of Mon 29 → Jul 5 — 🔴 P1a · THE BIG BUILD + first revenue 🤖
+- 🤖 **Alta-style inbox rebuild (112)** — the multi-day flagship; rewires the live `/dashboard/inbox`.
+- 🤖 **Client invoicing (136a)** — surface Stripe receipts under Company → Documents.
+- 🤖 **Activate dormant data** — PDL (94) + Hunter waterfall (95); **A/B subject UI (113)** over the live backend.
+- 🧍 **Onboard the first company + design partners**; pilot feedback steers the next sprint.
+
+### 📅 Jul 6 → 12 — 🟠 P1b · CREDIBILITY QUEUE 🤝
+- 🤝 **Flip the locked designs live** (smoke each): AI-Family cards (125) · 113a agent panels · sequence-builder recolor (82) · shell redesign (85–87).
+- 🤖 **Prompt Library (162)** · **site nav/footer rewire (118)**.
+- 🤖 **Company hardening** — manager role + notifications (109) · per-rep routing + CRM dedup (110) · per-rep calendars (111).
+
+### 📅 Jul 13 → 19 — 🟠 P1c · MONTH-1 CLOSE 🤝
+- 🤖 proof block w/ real data (130/33) · 90-day guarantee + Revenue Playbook (137).
+- 🧍 partner #2 (Kenya/Ghana) · demo + Looms recorded (129).
+- 🎯 **Month-1 targets: 5 clients (break-even) · Company OS fully live · demo recorded · LinkedIn live.**
+
+### 📅 MONTH 2 (late Jul → Aug) — 🟡 P2 · INTELLIGENCE 🔒 gated ~10+ paying clients
+- **Learning Engine (143)** build order: ① Train-FIGSY RAG → ③ evals → ② outcome feedback loop → contextual bandit → ④ memory/pgvector (120/46) → ⑤ model routing *(fine-tuning parked last)*.
+- Intelligence (139/140) · **MCP server (141/59)** · **Casey (121)** · Product Hunt + G2 (142).
+- ⚖️ Month-2 legal: D&O insurance · trademark filing (after clearance) · NDPR/Kenya ODPC prep.
+- 🎯 **Targets: 10+ clients · MCP live · V2 redesign ~50%.**
+
+### 📅 MONTH 3 (Aug → Sep) — 🟢 P3 · AGENT FAMILY + PRICING 🔒 gated unit margin ≥ ~28%
+- **DENISE deep build (144)** · **outcome pricing per meeting (147, ≥28% margin)** · LENA + TONY (145) · orchestration + skills (146) · CRM Kanban + mobile PWA (148) · proposal e-sign + notetaker (149).
+- ⚖️ Pen test · Kenya ODPC.
+- 🎯 **Targets: ~50 clients · L2 learning live · outcome pricing unlocked.**
+
+### 📅 YEAR 2 (2027) — 🔵 P4 · ENTERPRISE 🔒 gated 50+ clients
+- Cross-client intelligence L4 (150) · compliance stack ISO 27001/42001 + SOC 2 + Vanta (151) · advanced moat (152) · the 15 Pieces (153–161).
+
+## B2 · GATED ON A FOUNDER ACTION OR A KEY (do the moment the gate opens — not date-bound)
+- 🔑 **Flutterwave** (136) · **Meta/WhatsApp** (128, apply now → live Month 2) · **Google/Microsoft OAuth → social login** (84/126) · **HubSpot sync** (key).
+- 🧍 **pgvector switch** (120) · **Casey voice/tone** (121) — both unblock high-value builds with ~2 min of founder input.
+- 📊 **GTM funnel instrumentation** (131) — blocked on 10 analytics decisions (`GTM_FUNNEL_INSTRUMENTATION.md`).
 
 ---
 

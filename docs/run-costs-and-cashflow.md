@@ -455,75 +455,48 @@ The biggest single cost threat at scale is not technology — it's **payment pro
 
 ## 12. The $1,000,000 ARR Goal — What It Takes
 
-*Annual Recurring Revenue target: $1M ARR = the inflection point where K.I.N.D becomes a meaningful revenue business.*
+*Annual Recurring Revenue target: $1M ARR = a real revenue business.*
+*⚠️ **CORRECTED 16 Jun (PM):** an earlier draft of this section had a 10× arithmetic error (divided $1M by `ARPU × 12` but dropped a zero) and a fabricated cost table that wrongly showed a loss. Both fixed below. The truth: **$1M ARR is ~93% gross margin — roughly $900k profit — and the binding constraint is sales volume (logos), NOT margin.***
 
-### Client Count by ARPU Profile
-| ARPU Profile | Monthly per client | Clients needed for $1M ARR | Annual |
-|---|---|---|---|
-| **Blended $75** (conservative, 50% starter + 30% growth + 20% scale) | $75 | **11,111 clients** | $999,825 |
-| **Growth $148** (30% starter + 50% growth + 20% scale) | $148 | **5,676 clients** | $1,000,368 |
-| **Growth+ $187** (Denise-heavy upsell) | $187 | **4,464 clients** | $999,168 |
-| **Optimistic** (mostly Growth+ and Scale+) | **$220** | **3,788 clients** | $1,000,320 |
+### How $1M ARR breaks down
+**$1M ARR = $83,333 MRR.** Clients needed = MRR ÷ monthly ARPU:
 
-*The ARPU is everything. A 50% shift toward Growth/Growth+ profiles cuts client needs in half.*
+| ARPU Profile | Monthly ARPU | **Clients for $1M ARR** |
+|---|---|---|
+| **Blended** (conservative, mostly starters) | $75 | **1,111** |
+| **Growth** (Lead Gen 100 + FIGSY 20) | $148 | **563** |
+| **Growth+** (+ Denise) | $187 | **446** |
+| **Partner-blend** (70% Growth+ / 30% Scale) | $240 | **347** |
+| **Scale** (Lead Gen 100 + FIGSY 100) | $338 | **247** |
+| **Outcome pricing** (per meeting booked) | $500 | **167** |
 
-### Cost Structure at $1M ARR Scale
-*Assuming Growth profile ($148 ARPU = ~5,676 clients):*
+*Higher ARPU doesn't change your margin (already ~93%) — it changes how many logos you must close. That's the whole game.*
 
-| Cost category | Monthly | Annual | % of revenue |
-|---|---|---|---|
-| **Fixed infra** (Supabase/Railway/Resend/Apollo Org) | ~$350 | ~$4,200 | 0.42% |
-| **Stripe payment processing** (2.9% + 30¢) | ~$28,600 | ~$343,200 | 34% |
-| **Data costs** (Apollo + Claude Haiku scoring) | ~$45,000 | ~$540,000 | 54% |
-| **Support & ops** (1–2 people) | ~$12,000 | ~$144,000 | 14% |
-| **Infrastructure scaling** (load, pgvector, backups) | ~$5,000 | ~$60,000 | 6% |
-| **Marketing & customer success** (optional) | — | — | — |
-| **TOTAL COSTS** | **~$90,950** | **~$1,091,400** | **~109%** ❌ |
-| **Gross profit** | **~$93,350** | **−$91,400** | **−9%** |
+### Cost Structure at $1M ARR (corrected — costs are % of revenue, so client count doesn't change them)
+| Cost category | Annual | % of revenue |
+|---|---|---|
+| **Stripe payment processing** (2.9% + 30¢/txn) | ~$32,000 | ~3.2% |
+| **Data** (Apollo + Claude Haiku — **→ ~$0 if client-keys/§5d**) | ~$20,000 | ~2% |
+| **Fixed infra** (Supabase/Railway/Resend/Apollo Org at scale) | ~$5,000 | ~0.5% |
+| **Infra scaling** (compute, pgvector, backups) | ~$15,000 | ~1.5% |
+| **Hard costs (pre-payroll)** | **~$72,000** | **~7%** |
+| **GROSS PROFIT (pre-payroll)** | **~$928,000** | **~93%** ✅ |
+| *Optional: 1–2 support/CS hires* | $60k–144k | 6–14% |
+| **Net with 2 hires** | **~$784,000** | **~78%** |
 
-⚠️ **CRITICAL FINDING:** At $148 ARPU and standard Stripe fees (2.9% + 30¢), **$1M ARR is BELOW break-even** — payment processing + data costs consume all margin. The model requires either:
+✅ **This reconciles with §7** (94% margin at 165 clients). The single biggest cost line at scale is **Stripe (~3%)**, not data (~2%). Data only matters because it's the one cost that *grows with volume* — which is exactly why client-keys (§5d) is attractive at scale (drives it to ~0).
 
-1. **ARPU > $220+** (Denise-heavy + partners paying $150+ for outcome pricing)
-2. **Client-brings-own-Apollo-key** (§5d: kills ~$0.008/lead cost, freeing ~$45k/yr)
-3. **Volume payment negotiation** (Stripe willing to cut to 1.5% + 10¢ at $1M+ monthly volume)
-4. **Outcome-based pricing** (move to value-based, not per-credit)
+### The real lesson: $1M is a SALES-VOLUME problem, not a margin problem
+- **At $75 ARPU you must close 1,111 clients.** At ~20 net new/month that's ~55 months. Slow.
+- **At $240 ARPU (partners + company engine) only ~347.** At ~20/month via partners that's ~18 months. Viable.
+- **At $500 (outcome pricing) only ~167.** The fastest path — but gated on having outcome data first.
 
-### The Real Path to $1M ARR (sustainable)
+**So the three levers for $1M ARR (in priority order):**
+1. **ARPU uplift** — fewer logos to sell. Denise ($39) + FIGSY upsell turns a $20 starter into a $148–187 client. This is the cheapest lever (existing base).
+2. **Partner channel + company engine (#88)** — sell *teams*, not seats. A 10-seat company at ~$240 ARPU = ~3 single clients' worth, one sale.
+3. **Outcome pricing** (gated ≥28% margin, post-launch) — collapses the logo count to ~167. The real inflection.
 
-**Scenario A: Partner Channel Dominance** (post-19, 12–15 month path)
-- Focus: 1–2 agency partners each doing 20–30 clients/month
-- Mix: 70% Growth+ ($187 ARPU), 30% Scale ($338 ARPU) → blended **$240 ARPU**
-- Clients for $1M: **4,167 clients** (reachable via 5–10 partners)
-- Margin: **Positive at $240 ARPU + outcome pricing overlay** (per meeting booked = 20% higher effective ARPU)
-
-**Scenario B: Company Engine (#88) Scale** (12–18 month path)
-- Focus: Multi-rep companies (10–50 seats each), one pool per company
-- Model: 10-seat company = 10× single seat, same infrastructure cost
-- Clients for $1M: ~500 companies (10 seats avg) = 5,000 seats equivalent
-- Margin: **Positive — fixed cost amortized across 50+ seats per company**
-
-**Scenario C: Outcome Pricing Inflection** (gated ≥28% margin, ~month 3 after launch)
-- Move from per-credit to per-meeting-booked (§5d horizon)
-- Effective ARPU: **$500–1,000+** (client pays for results, not throughput)
-- Clients for $1M: **1,000–2,000 paying clients** (vastly simpler to reach)
-- Margin: **Positive immediately** — outcome pricing scales margin, not volume
-
-### The Math That Matters
-**At $75 blended ARPU:** 11,111 clients is a 10-year path (assuming 2–3 clients/month growth post-launch). Too slow — not viable.
-
-**At $240+ ARPU:** 4,200 clients is a 18–24 month path (assuming 20–30 clients/month via partners or companies). Viable.
-
-**At $500+ outcome pricing:** 2,000 clients is a 12–18 month path (assuming you convert 10% of the Starter/Growth base to outcome pricing). **This is the real inflection.**
-
----
-
-### Key Insight
-**$1M ARR is not a volume game — it's an ARPU + margin game.** You don't scale by adding more $75 clients; you scale by:
-1. **Upselling existing clients** from $75 → $150+ (Denise, FIGSY optimization)
-2. **Landing partners** who bring 10–50 clients at higher ARPU (Growth+)
-3. **Moving to outcome pricing** once you have outcome data (company engine proves ROI per meeting)
-
-**The founder's real goal is not "hit 11,111 clients at $75 each" — it's "hit 2,000–3,000 clients at $300–500 effective ARPU via outcomes + partners."** That's $1M with 70%+ margin, not barely break-even.
+**Margin is already solved (~93%). The work is ARPU + a repeatable way to add logos (partners/companies), not cost control.**
 
 ---
 

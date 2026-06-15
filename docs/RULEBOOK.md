@@ -55,6 +55,9 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. Claude must use th
 5.4 **Branch discipline.** Develop on the assigned feature branch; push with `git push -u origin <branch>`; never push to a different branch without explicit permission.
 5.5 **Don't claim merged/unmerged from memory.** Check the PR state via GitHub before saying it.
 5.6 **After EVERY push, reconcile against `origin/main` before saying a word.** Run `git fetch origin main` then `git log origin/main..HEAD`. If commits are stranded (pushed to a branch whose PR is already merged/closed, so they're going nowhere), **say so immediately and open a fresh PR** — never tell the founder "merge #X" when #X is already merged, and never tell them work "is on `main` / is done" without grepping `origin/main` and seeing it. *(This rule exists because on 14 Jun Claude pushed the locked launch plan to a branch whose PR was already merged, then told the founder to merge it — the commits were stranded; cost the founder time and trust. Same stranded-commit failure as the 14 Jun admin session. Twice = a rule.)*
+5.7 **Standing merge-state footer — report it, never wait to be asked.** After every push, run the Rule 5.6 reconcile and **end the message with a one-line footer**, verified from git/GitHub (never memory):
+   **`📦 Merge state — PR #<n> <open|merged> · on main: <what's confirmed landed> · unmerged: <commit(s) or none>`**
+   Built from `git fetch origin main` + `git log origin/main..HEAD` + the PR's live state. If the branch's PR is already merged and new commits are stranded, **open a fresh PR and put its number in the footer.** Right after creating any PR, verify its commits/diff before presenting it. *(Added 16 Jun: Claude updated an already-merged PR #567's body and told the founder to "merge it", then presented #568 without checking it — the founder should never have to ask "is it merged?")*
 
 ## 6. 💬 COMMUNICATION
 6.1 **Lead with the answer, then the proof.** Short, direct, no narrating options Claude won't take.
@@ -70,6 +73,7 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. Claude must use th
 - [ ] Are any **inventory dots** I touched honest? (Rule 3)
 - [ ] If there's a merge, did I include the **PR link** and confirm **no duplicate**? (Rule 5)
 - [ ] After pushing, did I **reconcile against `origin/main`** and flag any stranded commits? (Rule 5.6)
+- [ ] Did I end with the **merge-state footer** (PR state · on main · unmerged), verified not from memory? (Rule 5.7)
 - [ ] Did I **log the session** if work landed? (Rule 4.3)
 - [ ] Am I stating only what I can **prove**? (Rule 1.4)
 

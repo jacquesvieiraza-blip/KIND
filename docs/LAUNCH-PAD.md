@@ -1,282 +1,79 @@
 # 🚀 K.I.N.D — THE LAUNCH PAD (the daily command sheet)
 
 > ## ⚙️ OPERATING RULE — read once
-> **I only work from this doc day-to-day.** Operating-system map: `LAUNCH-PAD` = today's runlist · `PRODUCT-INVENTORY` = status truth (one dot, one owner) · `KIND-MASTER` = strategy + decisions + session log (governs strategy conflicts) · `V2-TRACKER` = future detail · root `CLAUDE.md` = agent config · GitHub = execution (one PR per shippable change). **No new core doc unless it replaces an old one.**
-> - No item exists without **owner · status · next action · done condition · source item (inventory ID)**.
-> - No work starts unless it's on today's runlist or explicitly pulled in.
+> **I only work from this doc day-to-day.** Map: `LAUNCH-PAD` = today's runlist · `PRODUCT-INVENTORY` = status truth (one dot, one owner) · `KIND-MASTER` = strategy + decisions + session log (governs strategy) · `V2-TRACKER` = future detail · root `CLAUDE.md` = agent config · GitHub = execution (one PR per shippable change). **No new core doc unless it replaces an old one.**
+> - No task without **owner · action · where · done-when · source item (inventory ID) · GitHub**.
+> - No work starts unless it's on TODAY'S RUNLIST or explicitly pulled in.
 > - STATUS lives only in PRODUCT-INVENTORY; this doc references it by ID, never holds it.
 
-> ## 🧭 VERIFIED STATE — read this first
-> _Single source of ground truth. Update this block whenever state changes so a cold resume (me, Manus, or you) never has to guess._
-> - **Last verified:** 2026-06-16 (Mon EOD ship + **restructured into PART A / PART B** — post-19 work now ranked P0→P4 + week-by-week in Part B). **⏰ HARD DEADLINE — everything verified + fixed by THU 18 (founder away Fri 19).** The product is already live; the week = prove + fix, not merge.
-> - **✅ MON 15 DONE:** Company Engine + #502 superset (R1–R20) LIVE · 3 R-train migrations run · Hunter+PDL keys set · 21 PRs closed · Denise $39 · 5 terms docs uploaded. **Only open product PR: #503 (website).** Next = TUE 16 billing correctness.
-> - **`main` HEAD:** `288230b` (Merge #565). **#502 shipped to prod via #564 + hotfix #565.**
-> - **✅ LIVE ON PROD — #502 was a SUPERSET, so the WHOLE product shipped:** 🏢 Company Engine · API/portal hardening · design screens 80–91 · **AND all 20 R-wave features R1–R20** (their code was on the #502 dev branch — verified by grep). Portal loads, credits (999,839) + activity + FIGSY panel verified. **Everything else = pending the feature-verification walk (§2).**
-> - **➡️ R-train PRs #506–#525 are REDUNDANT → CLOSE them** (code already live; merging = conflicts). Also close old **#502** (superseded by #564).
-> - **🗄️ 3 prod migrations still owed** (code live, schema missing): **R2** `clients.daily_brief_enabled` · **R15** `figsy_knowledge` · **R20** `leads.job_changed_at`+`previous_company`. Run on the PRODUCTION project.
-> - **✅ DONE today:** prod migrations applied to PRODUCTION project (morning runs had gone to staging — fixed, recovered) · ICO (C1959926) · #563/#564/#565 merged.
-> - **🔑 Pending env:** set `HUNTER_API_KEY` + `PDL_API_KEY` on Railway `api`.
-> - **⬜ Still sealed:** only the website box **#503**.
-> - **Flag:** `NEXT_PUBLIC_FEATURE_V2_SCREENS = all`.
-> - **RLS / per-rep access control = FAST-FOLLOW** (55a / R11) — before onboarding the 50-rep client.
-> - **Process lock:** **confirm the Supabase project name before every SQL run** (morning runs hit staging — recovered).
-> - **The 4 canonical docs:** `KIND-MASTER` (governs) · this `LAUNCH-PAD` (the wake-up runlist) · `PRODUCT-INVENTORY` · `V2-TRACKER`. No fifth doc.
+---
 
-> **What this is:** the single, exhaustive run-list from **now → launch → the first quarter**, built off a full audit of all three core docs (`KIND-MASTER` · `PRODUCT-INVENTORY` · `V2-TRACKER`), **every** secondary doc in the repo (deploy/deliverability/smoke/legal/GTM/funding), and the **live git + PR state**. Nothing here is from memory.
-> **Structure (restructured 16 Jun):** **PART A** = the runway to Fri 19 (closes on launch). **PART B** = the ranked post-19 master sequence — every not-live item, ranked urgency × value (P0→P4) then laid week-by-week. After the 19th you work off Part B only. It stays the *derived* run-list (sources: inventory/V2/master); it does not fold into a new doc.
-> **Owner key:** 🧍 founder · 🤖 Claude · 🤝 both · **⏰ = hard deadline / external lead-time** (do early, it can't be rushed later).
-> **Created 14 Jun 2026 · revised 15 Jun (Company Ship in progress). Launch = 🚀 Fri 19 Jun 2026.** Where docs conflict, **KIND-MASTER governs**; the 🧭 VERIFIED STATE block above is the current live truth.
+## 🧭 VERIFIED STATE — what's true right now
+- **Last verified:** 2026-06-15 EOD. **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
+- **LIVE on prod:** Company Engine (#88) + the **#502 superset** = R1–R20 + design screens 80–91 → all **🩷 pink** (live, pending the Wed/Thu walk → then 🟢). Verified-🟢: 55, 92. Marketing site (The Drop, Prompt Library) + admin portal live.
+- **`main`:** #570 merged (🩷 pink state + full doc sync). **#571 open** (operating system).
+- **NOT done yet:** billing correctness 166–173 (Tue-16) · the verification walk (Wed/Thu) · legal #10–14 · D9 10/10.
+- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done (C1959926).
+- **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
+- **Process lock:** confirm the Supabase project name before every SQL run.
 
 ---
 
-# ░░ PART A — RUNWAY TO LAUNCH (everything here closes Fri 19 Jun) ░░
-> Once launched, Part A becomes a closed ✅ record — you stop reading it. The live ops tool for this phase is the **§13 Feature-Verification Checklist**. After the 19th, work off **PART B** (the ranked post-19 sequence, below).
+## ✅ TODAY'S RUNLIST
 
-## 0 · WHERE WE ACTUALLY ARE RIGHT NOW (verified state)
+**1 · Merge the operating-system PR**
+- Owner: 🧍 founder · Action: review + merge · Where: GitHub · Done when: on `main` · Source: ops-system · GitHub: **#571**
 
-- **Live on `main`:** the marketing website refresh (The Drop, Prompt Library, Get-a-Demo, AI-Family, POPIA polish) + the **restored Admin Portal** (crash + data-query fixes, #547–#549). That is *all* that's live.
-- **The real launch product is NOT live yet** — it's held on **PR #502** (`claude/kind-carson-MYhSl`, ~213 commits ahead, "DO NOT MERGE until go-live"): portal audit fixes, API hardening (rate-limit, atomic credits, counter-drift kill), deliverability D1–D5, warmup cap, dormant PDL multi-source, admin security.
-- **The "purple" feature queue = 20 open PRs #506–#525 (R1–R20)** — pulled forward to Wed 17 / Thu 18 (see §2). The V2 screen flag `NEXT_PUBLIC_FEATURE_V2_SCREENS = all` (exposes `company` + the live cosmetics; leave as-is).
-- **Smoke tests T1 done; T3–T7, T9, T10 NOT STARTED** — the single biggest launch risk.
-- **Deploy targets:** website → Cloudflare Pages (+ Railway static primary); api/portal/admin → Railway auto-deploy from `main`.
+**2 · Close the stale marketing PR**
+- Owner: 🧍 founder · Action: close it (The Drop already live via #544; the Watch page stays held as inventory 163) · Where: GitHub · Done when: closed · Source: 93/163 · GitHub: **#503**
 
----
+**3 · Billing correctness build** *(the pre-client blocker — gates Fri 19)*
+- Owner: 🤖 Claude · Action: build in order **169 → 167 → 166 → 170 → 168 → 171 → 173** (clients.plan flag → pool-aware delivery → kill double-charge → atomic FIGSY RPC → reconcile prices to constants → honest credits panel → admin FIGSY visibility) · Where: `api` + `portal`, fresh branch off `main` · Done when: smoke test green + screenshots, one PR **open, not merged** · Source: **166–173** · GitHub: _new PR_
 
-## 1 · ⏰ DEADLINE-DRIVEN — START THESE TODAY (they have external clocks)
+**4 · Recreate the Stripe Prices at the locked flat values**
+- Owner: 🧍 founder · Action: recreate the 6 Price objects — Lead Gen **$20/$40/$100**, FIGSY **$60/$120/$300** ($1/$3 flat); confirm `STRIPE_PRICE_DENISE_MONTHLY` = **$39** · Where: Stripe dashboard + Railway env · Done when: checkout charges the locked prices · Source: **168 / 58** · GitHub: —
 
-These do **not** wait for a calendar slot — the lead time is the constraint. All 🧍.
-
-1. ✅ **Email `partners@apollo.io`** — API reseller/partner agreement. **~1 week lead. ✅ SENT 14 Jun (awaiting reply).** *(Inventory 103.)* **Note (corrected per KIND-MASTER 10 Jun):** there is **no 50-client rule** — that threshold was invented; reselling Apollo data off one account violates ToS **from client #1**, so the reseller agreement (or client-brings-own-key) is the structural fix from day one, not a future trigger.
-2. ✅ **ICO registration — DONE 15 Jun (application `C1959926`, direct debit set).** *(Legal #10, `legal-pack.md`.)*
-3. ⏰ **SEIS advance assurance** — HMRC takes **4–8 weeks**; needs an accountant to fill the `[INSERT]` placeholders first. Start now if you want funding optionality. *(`seis-advance-assurance-draft.md`.)*
-4. ⏰ **Trademark clearance search** — **5–7 working days** before any UKIPO filing; file "KIND" (not "K.I.N.D"); Milla/Vida have distinctiveness risk. *(`legal-pack.md`.)*
-5. ⏰ **Meta/WhatsApp Business API application** — **3–7 day** approval window. *(Inventory 128 / #22 — needed for Vida WhatsApp, Month 2.)*
-6. ⏰ **F1 funding — free cloud/AI credits** (Microsoft/Google/AWS, tens of $K) — "do this week," zero dilution. *(Master funding F1.)*
-7. 🔑 **Sign up hunter.io + peopledatalabs.com** → save both API keys → paste to Claude (sets `HUNTER_API_KEY` + `PDL_API_KEY` on Railway `api`). **STILL PENDING.** *(Inventory 104 → lights up 94/95.)*
-8. ⚖️ **Corporation Tax registration** — within **3 months** of first trading (so the clock starts at launch). *(`legal-pack.md`.)*
+**5 · D9 deliverability to 10/10**
+- Owner: 🧍 founder (🤖 assist) · Action: run `DELIVERABILITY-D9-CHECKLIST.md` to a clean 10/10 · Where: mail-tester / GlockApps · Done when: 10/10 (the Thu-18 launch gate) · Source: **101** · GitHub: —
 
 ---
 
-## 2 · DAY-BY-DAY TO LAUNCH
-
-### 📅 SUN 14 (today) — 🧍 KEEP IT LIGHT (clear-mind decision 14 Jun)
-> **Nothing here has a hard *same-day* deadline** — the "start today" framing was about lead times, not the calendar. So today stays light; the legal pack moves to **Tue 16** to be done with a clear head. Only do these today if you've got the energy:
-- ✅ **Apollo email — DONE** (sent 14 Jun).
-- 📡 **D9 deliverability 10/10** — run `DELIVERABILITY-D9-CHECKLIST.md` to a mail-tester/GlockApps **10/10** (🤖-assisted; it's the Thu-18 launch gate, so worth nudging this week). *(Inventory 101.)*
-- *(Optional)* 🔑 hunter.io + PDL signups if you're at the desk — otherwise Tue.
-- **→ Moved to Tue 16:** the whole legal pack #10–14 (ICO, SR01, registered office, WHOIS, LinkedIn) + trademark search + Meta/WhatsApp application.
-
-### 📅 MON 15 — 🏢 THE COMPANY SHIP → PROD (straight to prod, no staging — decided 15 Jun) 🤝
-**✅ DONE this session:**
-- ✅ **All 7 prod migrations applied** in order: `010_crm_dedup` → `011_denise` → `012_signer_and_booking` → `013_nullable_sent_email_refs` → keystone `20260603_schema_reconcile.sql` → `20260612_company_engine.sql` *(NOT 20260611 — superseded; verified the deployed code uses the 20260612 `companies` model)* → companion tables (linkedin_queue · approval_queue · chat_messages · push_subscriptions · calendar_bookings).
-- ✅ **Env vars verified** — `api` has all 6 required (`ADMIN_SECRET_KEY · RESEND_API_KEY · RESEND_WEBHOOK_SECRET · ANTHROPIC_API_KEY · SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY`); `NEXT_PUBLIC_ADMIN_KEY` already absent (nothing to delete); `STRIPE_PRICE_DENISE_MONTHLY` exists (⚠️ verify it's the $39 price in the Stripe step).
-- ✅ **Flag** `NEXT_PUBLIC_FEATURE_V2_SCREENS = all` — **leave as-is** (already exposes `company`; "company only" would regress live screens).
-
-**✅ MON 15 COMPLETE (end of day):**
-- ✅ #563/#564/#565/#566 merged → Company Engine + the whole #502 superset (incl. R1–R20) LIVE; portal loop hotfixed; credits verified (999,839).
-- ✅ **3 owed migrations run on PRODUCTION** (R2 `daily_brief_enabled` · R15 `figsy_knowledge` · R20 `job_changed_at`).
-- ✅ **`HUNTER_API_KEY` + `PDL_API_KEY` set** on Railway `api` (multi-source + enrichment now active).
-- ✅ **21 redundant PRs closed** (old #502 + R-train #506–#525).
-- ✅ **Denise = $39 confirmed in Stripe.**
-- ✅ **5 agreement docs uploaded** → Terms Library (live in portal + admin).
-- 🔄 **Deferred:** create + fund the **demo company pool** → rolls into the **Wed Company-Engine walk** (need a demo company first, item 59). · Stripe **pool-topup products ($1/$3) → Tue-16 billing** (entangled with the price-table reconciliation).
-
-### 📅 TUE 16 — 🤖 builds · 🧍 LEGAL CATCH-UP DAY (clear mind)
-- 💳 **🤝 BILLING CORRECTNESS — the pre-client blocker (the day's headline build).** Fix before any client touches the product; gates Fri 19. Full plan + every file:line in `MORNING-FIXLOG → 💳 BILLING CORRECTNESS`. §3 design **SIGNED OFF (Jacques 14 Jun): one lead = one charge = one wallet** via an explicit `clients.plan` (`lead_gen`|`figsy`). Order: (1) reconcile the **3 disagreeing price tables** → constants, recreate the real Stripe Prices · (2) add `clients.plan` + backfill · (3) pool-aware delivery kills the **$1+$3 double-charge** *and* the **structurally-broken FIGSY-only bundle** (FIGSY-only client currently gets 0 leads); outreach stops charging · (4) Denise $39 · (5) honest "How credits work" panel · (6) atomic FIGSY credit RPC · (7) multi-currency USD/GBP/ZAR (may be its own phase — reconcile w/ Flutterwave, don't let it block 1–5) · (8) admin FIGSY visibility. **No merge to `main` until the smoke test is green + screenshots.** 🧍 = recreate Stripe Prices + sign-off; 🤖 = all code.
-- ⚖️ **🧍 Legal pack #10–14 (moved from Sun 14, do with a clear head):** ICO (£40, ico.org.uk/registration, Tier 1) · SR01 home-address suppression (free) · registered office/service address (~£20–50/yr) · WHOIS privacy verify · **LinkedIn lockdown**. *(Inventory 102.)* ⚠️ Use the service address on the ICO form, not home. Plus the longer-lead items: 🔍 trademark search · 📲 Meta/WhatsApp API application.
-- 🤖 **113a agent side-panel** — make all 5 agents (FIGSY/Milla/Vida/Denise/**Casey**) conversational + acts-in-place; build Denise + Casey chat endpoints; wire Casey into the picker. *(Inventory 113a.)*
-- 🤖 Start the locked redesigns: inbox-v2 (112) · "AI Family" cards (125) · sequence-builder recolor (82).
-- 🧍 Review Tuesday's builds when handed over. **Give me Casey's voice/tone** — it gates the onboarding-agent build (121).
-
-### 📅 WED 17 — 🔎 FEATURE-VERIFICATION WALK · Part 1 (the new core — everything's live, so PROVE it) 🤝
-> The whole product shipped via #502. The job is no longer "merge boxes" — it's **walk every live feature and confirm it works with REAL data, not placeholder.** Use the **§13 VERIFICATION CHECKLIST** — mark each ✅ works / 🔴 broken→fix / ⚠️ placeholder. 🤖 fixes 🔴s same-day.
-- 🔎 **Company Engine** — `/dashboard/company`: command centre panels · Seats tab + per-rep budgets · request→approve/deny · winning plays · invite flow.
-- 🔎 **Design screens** — Teams Hub · Notetaker · Integrations · Deliverability · Activity feed · Sequence Builder · Templates · What's New · KPIs (flag any showing placeholder/empty).
-- 🔎 **R1–R6** — demo-bounce guard · daily-brief toggle (needs R2 migration) · Vida bubble · speed-to-lead · milestone cards · onboarding emails.
-- 🧍 **Smoke tests T3–T7** alongside *(Inventory 100)*.
-
-### 📅 THU 18 — 🔎 FEATURE-VERIFICATION WALK · Part 2 + 🚦 GO / NO-GO 🤝
-- 🔎 **R7–R20** — inbox AI draft · saved views · why-email · goals · templates · lead-capture forms · Cmd+K · meeting-prep · train-FIGSY (needs R15 migration) · evals · spam-check · model toggle · what's new · job-change (needs R20 migration).
-- 🔎 **Billing correctness** verified (the Tue-16 build) + 🧍 **Smoke T9, T10**.
-- 🚦 **GO/NO-GO:** every live feature ✅ or its 🔴 fixed · D9 10/10 · billing green · legal done · warmup ~50/day. **Any unresolved 🔴 → slip launch** (don't launch broken-but-live features).
-
-### 📅 THU 18 — 🏁 HARD DEADLINE: everything done (founder away Fri)
-**By EOD Thu, all must be true:** every §13 feature ✅ (or its 🔴 fixed) · billing correctness green · 3 owed migrations run · Hunter/PDL keys set · Stripe ($39 Denise + pool products) · 5 PDFs uploaded · legal done · D9 10/10. This is the real finish line.
-
-### 📅 FRI 19 — 🚀 LAUNCH / 🧍 FOUNDER AWAY
-- Product is already live (shipped Mon 15). Launch = GTM moment; 🤖 monitors prod + hotfixes only — **no new merges while you're away.**
-- 🎥 **Drop 01 walkthrough (60s)** goes live in `the-drop.html` if recorded (see §4).
+## ⛔ BLOCKED / WAITING
+- **Billing PR can't merge** → waiting on 🧍 Stripe prices + sign-off (task 4, item 168).
+- **🩷 → 🟢 for items 56, 60–79, 80–91** → waiting on the Wed/Thu verification walk.
+- **Onboarding 174–177 final Apollo default** → waiting on the `partners@apollo.io` reply.
+- **Signup/SSO (84)** → waiting on 🧍 Google/Microsoft OAuth registration.
+- **pgvector (120) / Casey (121)** → waiting on 🧍 input (flip the switch / give Casey's voice).
+- **GTM funnel instrumentation (131)** → waiting on 10 analytics decisions (`GTM_FUNNEL_INSTRUMENTATION.md`).
 
 ---
 
-## 3 · 🟣 THE PURPLE GO-LIVE — R-train pulled forward to Wed–Thu (revised 15 Jun)
+## 📅 NEXT 7 DAYS
+- **Tue 16:** 🤖 billing build (above) · 🧍 legal pack #10–14 (ICO done · SR01 · registered office · WHOIS · LinkedIn lockdown) + trademark search + Meta/WhatsApp API application + recreate Stripe prices.
+- **Wed 17:** 🤝 verification walk Pt 1 (Company Engine · design screens 80–91 · R1–R6) · 🧍 smoke T3–T7 → flip 🩷→🟢 as each passes.
+- **Thu 18:** 🤝 verification walk Pt 2 (R7–R20) + billing verified · 🧍 smoke T9/T10 · D9 10/10 · 🚦 **GO / NO-GO** (any unresolved 🔴 → slip launch). **🏁 HARD DEADLINE — founder away Fri.**
+- **Fri 19:** 🚀 **LAUNCH.** Product already live; 🤖 monitors prod + hotfixes only, **no merges.** Drop 01 video goes live if recorded.
+- **Sat 20–Sun 21:** away, **no merges**, 🤖 monitor prod only.
+- **Mon 22:** 🤖 build Company RLS / access control (**55a** — before the 50-rep client) · 🧍 GTM week-1 kickoff (warm outreach + LinkedIn 1/day).
 
-> **Revised 15 Jun (no live clients):** the original "rehearse on staging Mon 22 → replay prod Tue 23" existed to protect a *live client* during the flip. With **zero clients**, that safety reason is gone, so the **R-train (R1–R20) moves to Wed 17 + Thu 18** (see §2), merged in 2 waves with conflict-resolution + the 3 migrations + smoke each wave. **Next week (Mon 22–Tue 23) is freed for the RLS access-control build** (the fast-follow). The only hard rule that stays: **no merges over the weekend** (away Sat 20–Sun 21).
-
-### 📅 SAT 20–SUN 21 — AWAY. No merges. 🤖 monitors prod only (escalation path, no changes).
-
-### 📅 MON 22–TUE 23 — 🔴 BUILD THE COMPANY-ENGINE RLS / ACCESS CONTROL (item 55a / R11) 🤝
-The fast-follow, before the 50-rep client is onboarded: owner sees command centre + all-reps data · reps see ONLY own data · reps can't see each other or the command centre · reps get low-credit alerts + request top-up (owner approves/denies). 🤖 design the RLS policies (Supabase row-level security) + ownership flags + UI visibility toggles + credit-request approval workflow; 🧍 review + approve. Plus GTM kickoff (§5).
-
-### 📅 TUE 23 — 🟣 PROD GO-LIVE (4–5 hr block, 🤝)
-Replay the proven sequence on prod. Founder on standby for hotfix till ~6pm; 🤖 watches each merge + patches any break same-day.
-1. **#502 already merged Mon 15** (company engine). The rest of its portal/API fixes are live with it.
-2. **Merge the R1–R20 release train — PRs #506–#525** (🧍 click, 🤖 prep order + run each additive migration: R2/R15/R20 carry migrations). Lands live:
-   - R1 demo-bounce guard (#506, inv 60) · R2 daily brief (#507, 61) · R3 Vida help bubble (#508, 62) · R4 speed-to-lead (#509, 63) · R5 milestone share cards (#510, 64) · R6 onboarding emails (#511, 65) · R7 Unibox AI reply (#512, 66) · R8 saved views (#513, 67) · R9 "Why FIGSY wrote this" (#514, 68) · R10 Goals (#515, 69) · R11 template library (#516, 70) · R12 lead-capture forms (#517, 71) · R13 Cmd+K (#518, 72) · R14 Meeting-Prep (#519, 73) · R15 Train-FIGSY backend (#520, 74) · R16 evals (#521, 75) · R17 spam-score (#522, 76) · R18 multi-model toggle (#523, 77) · R19 What's New feed (#524, 78) · R20 job-change alerts (#525, 79).
-3. **Flip the V2 staging screens live** by adding keys to `NEXT_PUBLIC_FEATURE_V2_SCREENS` (currently `company` only): Teams Hub (80) · Notetaker (81) · Sequence Builder (82) · Integrations (83) · Shell redesign (85–87) · Activity feed (88) · Notifications (89) · Deliverability (90) · PWA (91) · AI-Family cards (125) · 113a panels. Flip in batches, smoke each.
-4. **Signup + SSO (84)** stays held until Google/Microsoft OAuth is registered (126).
-
-### ⚠️ Held by your own Credibility Rule (don't flip empty)
-- **The Drop / Watch / Product Videos (93, 163)** — go live only once the **Drop 01 video exists** (§4).
-- **Social footer links (164)** — built, hidden until the profiles have real content.
-- **Subscribe-to-the-drop (117)** — blocked on Drop content.
+### 🔎 Verification checklist (the Wed/Thu tool — mark ✅ works · ⚠️ placeholder · 🔴 broken→fix; 🤖 fixes 🔴 same-day)
+- **Company Engine:** ⬜ command centre · ⬜ Seats + budgets · ⬜ request→approve/deny · ⬜ winning-plays · ⬜ invite→accept · ⬜ per-rep agent unlock (Test 7)
+- **Screens 80–91:** ⬜ Teams Hub · ⬜ Notetaker · ⬜ Integrations · ⬜ Deliverability · ⬜ Activity · ⬜ Sequence Builder · ⬜ Templates · ⬜ What's New · ⬜ KPIs
+- **R1–R20:** ⬜ R1 · ⬜ R2*(migration)* · ✅ R3 · ⬜ R4 · ✅ R5 · ⬜ R6 · ⬜ R7 · ⬜ R8 · ⬜ R9 · ⬜ R10 · ⬜ R11 · ⬜ R12 · ⬜ R13 · ⬜ R14 · ⬜ R15*(migration)* · ⬜ R16 · ⬜ R17 · ⬜ R18 · ⬜ R19 · ⬜ R20*(migration)*
+- **Billing (Tue-16):** ⬜ one-charge-one-wallet · ⬜ 3 price tables reconciled · ⬜ Denise $39 · ⬜ FIGSY-only delivers · ⬜ admin FIGSY visibility
+- **Smoke:** ⬜ T3 · ⬜ T4 · ⬜ T5 · ⬜ T6 · ⬜ T7 · ⬜ T9 · ⬜ T10 · ⬜ D9 10/10
 
 ---
 
-## 4 · 🎥 VIDEO & CONTENT — the 🧍-only bottleneck (the GTM unlock)
-
-> Infra is built (slots ready). The blocker is **recording — only you can.** Workflow: record → YouTube → paste the video ID → live. Never a code change.
-
-- **This week (for launch):** Drop 01 walkthrough (60s, the live core loop) → live Fri 19. *(Inventory 129.)*
-- **This week:** 3 onboarding Looms (90s/2m/90s — signup · ICP builder · first campaign). *(129.)*
-- **Week 1–2:** homepage hero loop (90s silent cut of the same footage, 130) · FIGSY full demo (12–15 min, `youtube-plan.md`).
-- **Ongoing cadence:** every release wave = **one Drop = one 60s video + one LinkedIn post + one email** ("the release train IS the content calendar"). New drop ~monthly, never empty.
-- ✅ **Already decided (just verify, nothing to choose):** Calendly = neutral `calendly.com/kind-ai-demo/new-meeting` (personal link retired — name-exposure; verify-live is task #9, Sun 14) · YouTube/content runs **faceless brand voice** (no founder face — `youtube-plan.md` reframed) · lifecycle email provider = **Zoho** (#35/36).
-
----
-
-## 5 · GTM KICKOFF (launch week → Month 1) — the 3 legs
-
-> North-star: cold outreach is necessary but not sufficient. **Content is the missing leg — it's the focus.**
-
-**Leg 1 · Outbound (running):** FIGSY dogfood — scale the warmup; point FIGSY at the competitor-switcher ICPs (`competitor_icps.sql` — 🧍 set `FIGSY_KIND_CLIENT_ID`, replace the placeholder UUID, run, trigger). *(Inventory 132 / #26.)*
-**Leg 2 · Content/Inbound (the gap):** Drop 01 + per-drop videos (§4) · **brand LinkedIn** 1/day build-in-public (anonymous brand handle, 127/#20) · blog/SEO · YouTube channel (134/#35).
-**Leg 3 · Partners (highest-leverage):** replicate the Demmy model — 1 partner each Kenya + Ghana in month 1–2; partner onboarding tested in T10.
-
-**Week-1 GTM run-list (🧍 unless noted):** 127 — 10 warm outreach + LinkedIn 1/day + activate PhantomBuster (run `20260602_linkedin_queue.sql` + keys) · 128 — Meta/WhatsApp application (⏰ §1) · 131 — 🤝 GTM funnel instrumentation (BLOCKED on 10 analytics decisions in `GTM_FUNNEL_INSTRUMENTATION.md`: PostHog vs GA4, attribution, trial→paid window, UTM columns) · 130 — 🤖 homepage hero = real product loop (blocked on the demo recording) · 132 — dogfood + fresh-signup check.
-**Weeks 2–4 GTM:** 133 — 2 design-partner slots → case study + logo · 134 — 9:16 social cuts + YouTube channel · 135 — onboarding v2 emails + playbook form (Zoho) · 137 — 90-day guarantee (ToS clause still needed) + Revenue Playbook call + homepage outcome numbers (real data) · 138 — influencer/community distribution · 136 — Flutterwave activation (ZAR/NGN/KES/GHS).
-**Africa priority order:** SA → Nigeria → Kenya (fast-follow ~Q4) → Ghana (partner-led) → Egypt (defer). US deferred until ~$10–20k MRR / 25+ clients / >85% retention / beating the US 3.4% reply average.
+## 📦 PARKED UNTIL AFTER LAUNCH (pull in only when its gate opens)
+*Full ranked detail + rationale lives in `PRODUCT-INVENTORY` (status) and `V2-TRACKER` (roadmap). This is the index.*
+- **Wk of Mon 22 — P0 stabilize:** Company RLS 55a · money-path tests 124 · onboarding 174–177 · company essentials 106/107/108.
+- **Month 1 — P1 revenue/credibility:** inbox rebuild **112** · invoicing **136a** · dormant data 94/95 + A/B 113 · design queue 125/113a/82/85–87 · Prompt Library **162** · nav 118 · company hardening 109/110/111.
+- **Gated — P2 Intelligence (~10+ clients):** Learning Engine 143 · MCP 141 · Casey 121 · Product Hunt 142. *(→ V2-TRACKER Month 2.)*
+- **Gated — P3 Agent family (≥28% margin):** Denise deep 144 · outcome pricing 147 · Lena/Tony 145 · CRM+mobile 148. *(→ V2-TRACKER Month 3.)*
+- **Gated — P4 Enterprise (50+ clients):** cross-client intel 150 · compliance 151 · advanced moat 152 · the 15 Pieces 153–161. *(→ V2-TRACKER Year 2.)*
+- **Ongoing (no date):** deliverability warmup ramp · funding ladder (F1 credits now) · content cadence (1 ship = video+LinkedIn+email) · tech debt (admin RLS refactor · delete Portal-V2 · key rotation).
+- **Cleanup flags (fix opportunistically):** deck/`sales-playbook` quote Alta's numbers as ours → fix · `denise` page ungated → add sub check · portal `roadmap` page shows ~80 features as "Live" → your call · README empty.
 
 ---
-
-# ░░ PART B — POST-19 MASTER SEQUENCE (the ranked run-list) ░░
-> **This is the single ranked view of everything not yet live.** Pulled from `PRODUCT-INVENTORY` (IDs in parens), `V2-TRACKER`, and `KIND-MASTER` — sources win on any conflict. When an item ships: tick it here **and** flip its dot in the inventory. Ranking = **urgency × value**: P0 (blocks safely serving the first real client) → P4 (enterprise, far-gated). Parallel tracks (GTM, content, legal, ongoing) run continuously — see §10/§12 + B-PARALLEL.
-> **One caution carried from the audit:** R-train PRs #506–#525 are **already-live code → verify-and-close, NOT build work** (don't re-rank them).
-
-## B0 · THE RANKED VIEW — everything left, most urgent × valuable first
-
-| Rank | Workstream | Items (IDs) | Gate | Own | Why this rank |
-|---|---|---|---|---|---|
-| **P0** | Billing correctness — finish + verify live | 166–173 | pre-launch | 🤝 | real money flows; chargeback/legal risk |
-| **P0** | **Company RLS / access control** | 55a (=R11) | before the 50-rep client | 🤝 | reps can currently see beyond own data — blocks the big client |
-| **P0** | Money/credit-path integration tests | 124 (=Y15) | week 1 | 🤖 | protect payment paths now they're live |
-| **P0** | Onboarding v2 + **seat-segmentation** | **174–177** (+ 32/135 · cashflow §14) | week 1 | 🤖 | can't cleanly onboard clients without it |
-| **P0** | Company onboarding essentials | 106 invite-email · 107 drill-down · 108 offboarding | before 1st real company | 🤖 | Monday used copy-paste; a real client needs these |
-| **P1** | **Alta-style inbox rebuild** | 112 | — | 🤖 | "the big remaining build"; core daily surface |
-| **P1** | Client invoicing | 136a ⭐ | clients paying | 🤖 | needed once money flows (USD · Stripe-issued) |
-| **P1** | Activate dormant data + A/B UI | 94 PDL · 95 Hunter · 113 A/B (97) | keys set ✅ | 🤖 | de-risks Apollo; quick win |
-| **P1** | Flip the locked design queue live | 125 AI-Family · 113a panels · 82 seq-builder · 85–87 shell | verify R-train | 🤝 | credibility; smoke each before flip |
-| **P1** | Prompt Library | 162 ⭐ | — | 🤖 | the big Resource; GTM/credibility |
-| **P1** | Site nav/footer rewire (finish) | 118 | — | 🤖 | wiring half-done |
-| **P1** | Company hardening (full Company OS) | 109 manager · 110 routing/dedup · 111 calendars | ~Tue 30 Jun | 🤖 | completes #88 |
-| **P2** | **The Learning Engine** | 143 | ~10+ clients | 🤖 | the moat; RAG first = highest near-term ROI |
-| **P2** | Intelligence pieces | 139 · 140 | ~10+ clients | 🤖 | intent · ICP auto-refine · branching · adaptive send · Milla CRM |
-| **P2** | Memory v2 / pgvector | 120 (46) | 🧍 flips switch | 🤝 | the moat |
-| **P2** | Context-backed MCP server | 141 (59) | ~10+ clients | 🤖 | distribution unlock (beats bare MCP 2.5×) |
-| **P2** | Casey conversational onboarding | 121 (V2-3) | 🧍 voice/tone | 🤝 | highest-value V2 build |
-| **P2** | Product Hunt + G2 | 142 | — | 🧍 | distribution |
-| **P3** | DENISE deep build | 144 (54) | margin data | 🤖 | auto-book · notetaker · objections · Vapi voice |
-| **P3** | **Outcome pricing per meeting** | 147 (60) | **≥28% margin** | 🤝 | the ARPU inflection (cashflow §12) |
-| **P3** | LENA (CS) + TONY (Ops) | 145 | — | 🤖 | the agent family expands |
-| **P3** | Orchestration + 500+ skills | 146 | — | 🤖 | |
-| **P3** | CRM Kanban + mobile PWA | 148 | MRR >£8K | 🤝 | |
-| **P3** | Proposal e-sign + Zoom notetaker | 149 | — | 🤖 | |
-| **P4** | Cross-client intelligence (L4) | 150 | 50+ clients | 🤖 | long-term moat |
-| **P4** | Compliance stack (ISO/SOC2/Vanta) | 151 | enterprise deals | 🤝 | ~£70K, slow |
-| **P4** | Advanced moat | 152 | 50+ | 🤖 | memory · de-anon · churn · forecast · call-intel |
-| **P4** | The 15 Pieces | 153–161 | various triggers | 🤖 | each trigger-gated (20–50+ clients) |
-
-## B1 · WEEK-BY-WEEK SEQUENCE
-
-### 📅 Fri 19 → Sun 21 — LAUNCH + 🧍 AWAY
-Product already live. 🤖 monitor prod + hotfix only. **No merges over the weekend.**
-
-### 📅 Wk of Mon 22 — 🔴 P0 · STABILIZE (make it safe for the first real client) 🤝
-- 🤝 **Company RLS / access control (55a)** — owner sees all-reps; rep sees ONLY own; reps can't see each other or the command centre; low-credit alert → owner approves. *(Mon–Tue; the gating blocker for the 50-rep client.)*
-- 🤖 **Money/credit-path integration tests (124)** — lock the billing-correctness fixes against regressions.
-- 🤖 **Onboarding v2 + seat-segmentation (174–177)** — website→firmographics read (174), seat-based routing 1=self-serve/2+=concierge (175), 14-day company trial (176), white-glove implementation (177) *(cashflow §13/§14)*.
-- 🤖 **Company onboarding essentials** — invite-email delivery (106) · owner drill-down (107) · edit/deactivate rep (108).
-- 🧍 **GTM Week-1 in parallel** — §5 run-list (127–132).
-
-### 📅 Wk of Mon 29 → Jul 5 — 🔴 P1a · THE BIG BUILD + first revenue 🤖
-- 🤖 **Alta-style inbox rebuild (112)** — the multi-day flagship; rewires the live `/dashboard/inbox`.
-- 🤖 **Client invoicing (136a)** — surface Stripe receipts under Company → Documents.
-- 🤖 **Activate dormant data** — PDL (94) + Hunter waterfall (95); **A/B subject UI (113)** over the live backend.
-- 🧍 **Onboard the first company + design partners**; pilot feedback steers the next sprint.
-
-### 📅 Jul 6 → 12 — 🟠 P1b · CREDIBILITY QUEUE 🤝
-- 🤝 **Flip the locked designs live** (smoke each): AI-Family cards (125) · 113a agent panels · sequence-builder recolor (82) · shell redesign (85–87).
-- 🤖 **Prompt Library (162)** · **site nav/footer rewire (118)**.
-- 🤖 **Company hardening** — manager role + notifications (109) · per-rep routing + CRM dedup (110) · per-rep calendars (111).
-
-### 📅 Jul 13 → 19 — 🟠 P1c · MONTH-1 CLOSE 🤝
-- 🤖 proof block w/ real data (130/33) · 90-day guarantee + Revenue Playbook (137).
-- 🧍 partner #2 (Kenya/Ghana) · demo + Looms recorded (129).
-- 🎯 **Month-1 targets: 5 clients (break-even) · Company OS fully live · demo recorded · LinkedIn live.**
-
-### 📅 MONTH 2+ (gated) — ROADMAP LIVES IN V2-TRACKER (don't duplicate it here)
-> P2 Intelligence (Learning Engine 143 · MCP 141 · Casey 121 — gated ~10+ clients) · P3 Agent Family + outcome pricing (144/147 — gated ≥28% margin) · P4 Enterprise (150–161 — gated 50+ clients). **These are future detail → `V2-TRACKER.md` (Month 2 / Month 3 / Year 2 sections). The B0 table above is the ranked index; the detail is V2's, not copied here.** Pull an item into the runlist only when its gate opens.
-
-## B2 · GATED ON A FOUNDER ACTION OR A KEY (do the moment the gate opens — not date-bound)
-- 🔑 **Flutterwave** (136) · **Meta/WhatsApp** (128, apply now → live Month 2) · **Google/Microsoft OAuth → social login** (84/126) · **HubSpot sync** (key).
-- 🧍 **pgvector switch** (120) · **Casey voice/tone** (121) — both unblock high-value builds with ~2 min of founder input.
-- 📊 **GTM funnel instrumentation** (131) — blocked on 10 analytics decisions (`GTM_FUNNEL_INSTRUMENTATION.md`).
-
----
-
-## 10 · PARALLEL / ONGOING (every week, no single date)
-- **Deliverability monitoring** — warmup is a multi-day ramp (started 9 Jun, 10→50/day); full volume ~1–2 weeks post-launch. Deliverability is K.I.N.D's job, never the client's.
-- **Funding ladder** — F1 credits now → F2 SA ecosystem (5–10 clients) → F3 YC (paying clients) → F4 revenue-based financing → F5 influencer lever. **Revisit at 20–30 clients (from leverage, not need).**
-- **Legal rings** — Corp Tax (3mo) · VAT at £90k · Shareholders' Agreement before any investor · incident register.
-- **Content cadence** — 1 shipping moment = 3 pieces (video + LinkedIn + email), monthly Drop.
-- **Tech debt** — admin RLS refactor · delete dormant Portal-V2 · key rotation hygiene.
-
----
-
-## 11 · 🚩 FAST-FOLLOW (build soon after launch — not a Monday blocker)
-
-**🔴 Company Engine RLS + Access Control (Inventory 55a / V2-TRACKER R11):** The Command Centre **ships LIVE Monday 15** (founder's call 15 Jun). Access control is a **fast-follow**, not a launch blocker. Target model: owner sees command centre + all-reps data · reps see ONLY own data (their leads, campaigns, calendar) · reps cannot see each other or the command centre · reps get low-credit notifications + request top-up (owner approves/denies in admin). **Interim until RLS lands:** the owner controls who logs in — a rep added before RLS could see beyond their own data, so the founder gates rep access manually. 🤖 design the RLS policy + UI toggles; 🧍 review + approve.
-
----
-
-## 12 · 🚩 HONESTY & CLEANUP FLAGS (resolve before they bite at launch)
-- **Sales deck + `sales-playbook.md` quote Alta's numbers as ours** (6% reply / 53% revival / 4-day / "8% reply" / R420k) — fix or remove before showing clients/investors. *(MASTER.md §20, DOC-MAP.)*
-- **`denise` page is ungated** — non-subscribers can reach it (add the subscription check). *(MORNING-FIXLOG.)*
-- **Portal `roadmap` page hardcodes ~80 features as "Live" to clients** — needs your call on what it shows.
-- **`NEXT_PUBLIC_ADMIN_KEY` contradiction** — DEPLOY-CHECKLIST says DELETE; `portal-admin-failover` still lists it. Follow DELETE.
-- **💳 Pricing is mis-wired in 3 places** (verified 14 Jun, full plan in `MORNING-FIXLOG → 💳 BILLING CORRECTNESS`): FIGSY clients are **double-charged** ($1+$3/lead vs the deck's $3 all-in); the **FIGSY-only bundle can't deliver leads**; and the FIGSY price is **shown $20/$40/$100, charged $60/$110/$250, "locked" at $60/$120/$300** — three different tables. Plus no multi-currency (USD/GBP/ZAR). **Pre-client blocker — Tue 16.**
-- **4 Jun credential exposure** still "pending rotation" in the incident register — the 2 crown-jewels were rotated 11 Jun; confirm nothing else outstanding.
-- **Cron count** unestablished (6 vs 16 vs 19 across docs) — verify the true set at Railway setup.
-- **Settings prefs are localStorage-only** (writing-style/notifications don't persist).
-- **README.md is empty.**
-
----
-
-## 13 · 🔎 FEATURE-VERIFICATION CHECKLIST — walk every LIVE feature by THU 18 (founder away Fri)
-> Since #502 shipped the whole product, this is the week's core: confirm each works with **real data**. Mark **✅ works · ⚠️ placeholder/empty · 🔴 broken→fix**. 🤖 fixes 🔴s same-day. Update this in-place as you walk.
-
-**🏢 Company Engine** — ⬜ command centre renders · ⬜ Seats tab + per-seat budgets · ⬜ request→approve/deny · ⬜ winning-plays · ⬜ invite→accept flow · ⬜ per-rep agent unlock (Test 7)
-**🖥️ Design screens (80–91)** — ⬜ Teams Hub · ⬜ Notetaker · ⬜ Integrations · ⬜ Deliverability · ⬜ Activity feed · ⬜ Sequence Builder · ⬜ Templates · ⬜ What's New · ⬜ KPIs
-**🚂 R-train (already live via #502)** — ⬜ R1 demo-bounce · ⬜ R2 daily-brief *(run migration)* · ⬜ R3 Vida bubble ✅ *(confirmed live)* · ⬜ R4 speed-to-lead · ⬜ R5 milestone cards ✅ *(confirmed live)* · ⬜ R6 onboarding emails · ⬜ R7 inbox AI draft · ⬜ R8 saved views · ⬜ R9 why-email · ⬜ R10 goals · ⬜ R11 templates · ⬜ R12 lead-capture forms · ⬜ R13 Cmd+K · ⬜ R14 meeting-prep · ⬜ R15 train-FIGSY *(run migration)* · ⬜ R16 evals · ⬜ R17 spam-check · ⬜ R18 model toggle · ⬜ R19 what's new · ⬜ R20 job-change *(run migration)*
-**💳 Billing (Tue-16 build)** — ⬜ one-charge-one-wallet · ⬜ 3 price tables reconciled · ⬜ Denise $39 · ⬜ FIGSY-only delivers leads · ⬜ admin FIGSY visibility
-**🧪 Smoke tests** — ⬜ T3 · ⬜ T4 · ⬜ T5 · ⬜ T6 · ⬜ T7 · ⬜ T9 · ⬜ T10 · ⬜ D9 10/10
-
----
-
-## 14 · OWNER SPLIT AT A GLANCE
-- **🧍 Only you can:** all legal/keys/accounts (§1) · the ship clicks + Stripe prices + env vars · smoke tests · video recordings (§4) · LinkedIn/outreach · merge approvals · the decision-gated inputs (Casey voice, pgvector, Flutterwave, funnel analytics).
-- **🤖 Only I do:** Stripe pool billing · 113a + locked redesigns · company-engine hardening · invoicing · activating dormant integrations · drafting all content copy · the feature-verification fixes.
-- **🤝 Together:** the feature-verification walk · Go/No-Go gate · GTM funnel instrumentation.
-
----
-_Source-of-truth: `KIND-MASTER.md` governs where any doc conflicts. This launch pad is a derived run-list — when an item moves, update the master SESSION LOG + the relevant doc, then this. Built 14 Jun 2026 off a full five-source audit (3 core docs + every secondary doc + live git/PR state)._
+_Derived run-list. When an item moves: flip its dot in `PRODUCT-INVENTORY` + append the `KIND-MASTER` session log (= the commit message), then refresh this doc — same session (CLAUDE.md). Where docs conflict: status → inventory, strategy → KIND-MASTER._

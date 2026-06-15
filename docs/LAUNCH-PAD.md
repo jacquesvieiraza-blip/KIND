@@ -2,7 +2,8 @@
 
 > ## 🧭 VERIFIED STATE — read this first
 > _Single source of ground truth. Update this block whenever state changes so a cold resume (me, Manus, or you) never has to guess._
-> - **Last verified:** 2026-06-15 13:00 UTC (Mon). **⏰ HARD DEADLINE — everything verified + fixed by THU 18 (founder away Fri 19).** The product is already live; the week = prove + fix, not merge.
+> - **Last verified:** 2026-06-15 13:13 UTC (Mon — **end of day, ship complete**). **⏰ HARD DEADLINE — everything verified + fixed by THU 18 (founder away Fri 19).** The product is already live; the week = prove + fix, not merge.
+> - **✅ MON 15 DONE:** Company Engine + #502 superset (R1–R20) LIVE · 3 R-train migrations run · Hunter+PDL keys set · 21 PRs closed · Denise $39 · 5 terms docs uploaded. **Only open product PR: #503 (website).** Next = TUE 16 billing correctness.
 > - **`main` HEAD:** `288230b` (Merge #565). **#502 shipped to prod via #564 + hotfix #565.**
 > - **✅ LIVE ON PROD — #502 was a SUPERSET, so the WHOLE product shipped:** 🏢 Company Engine · API/portal hardening · design screens 80–91 · **AND all 20 R-wave features R1–R20** (their code was on the #502 dev branch — verified by grep). Portal loads, credits (999,839) + activity + FIGSY panel verified. **Everything else = pending the feature-verification walk (§2).**
 > - **➡️ R-train PRs #506–#525 are REDUNDANT → CLOSE them** (code already live; merging = conflicts). Also close old **#502** (superseded by #564).
@@ -61,16 +62,14 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 - ✅ **Env vars verified** — `api` has all 6 required (`ADMIN_SECRET_KEY · RESEND_API_KEY · RESEND_WEBHOOK_SECRET · ANTHROPIC_API_KEY · SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY`); `NEXT_PUBLIC_ADMIN_KEY` already absent (nothing to delete); `STRIPE_PRICE_DENISE_MONTHLY` exists (⚠️ verify it's the $39 price in the Stripe step).
 - ✅ **Flag** `NEXT_PUBLIC_FEATURE_V2_SCREENS = all` — **leave as-is** (already exposes `company`; "company only" would regress live screens).
 
-**✅ ALSO DONE:** #563/#564/#565 merged → Company Engine + the whole #502 superset (incl. R1–R20) LIVE; portal loop hotfixed; credits verified (999,839).
-
-**⬜ REMAINING TODAY, in order (🧍 clicks, 🤖 preps):**
-1. **Run the 3 owed migrations on the PRODUCTION project** (confirm project name first): `20260611_daily_brief_pref` (R2) · `20260611_figsy_knowledge` (R15) · `20260611_lead_job_change` (R20). *(Code is live; these are the missing schema.)*
-2. **Set Railway `api` env:** `HUNTER_API_KEY` · `PDL_API_KEY`.
-3. **Close the redundant PRs:** old **#502** (superseded by #564) + **R-train #506–#525** (code already live).
-4. **Stripe:** verify `STRIPE_PRICE_DENISE_MONTHLY` = **$39** *(58)* · create **pool-topup products** (lead-gen $1 · FIGSY $3) *(57)*.
-5. **Fund the demo company pool.**
-6. **Upload the 5 agreement PDFs** → Admin → Terms Library.
-**🤖 Claude:** prep the migration SQL · fix any smoke failures same-day.
+**✅ MON 15 COMPLETE (end of day):**
+- ✅ #563/#564/#565/#566 merged → Company Engine + the whole #502 superset (incl. R1–R20) LIVE; portal loop hotfixed; credits verified (999,839).
+- ✅ **3 owed migrations run on PRODUCTION** (R2 `daily_brief_enabled` · R15 `figsy_knowledge` · R20 `job_changed_at`).
+- ✅ **`HUNTER_API_KEY` + `PDL_API_KEY` set** on Railway `api` (multi-source + enrichment now active).
+- ✅ **21 redundant PRs closed** (old #502 + R-train #506–#525).
+- ✅ **Denise = $39 confirmed in Stripe.**
+- ✅ **5 agreement docs uploaded** → Terms Library (live in portal + admin).
+- 🔄 **Deferred:** create + fund the **demo company pool** → rolls into the **Wed Company-Engine walk** (need a demo company first, item 59). · Stripe **pool-topup products ($1/$3) → Tue-16 billing** (entangled with the price-table reconciliation).
 
 ### 📅 TUE 16 — 🤖 builds · 🧍 LEGAL CATCH-UP DAY (clear mind)
 - 💳 **🤝 BILLING CORRECTNESS — the pre-client blocker (the day's headline build).** Fix before any client touches the product; gates Fri 19. Full plan + every file:line in `MORNING-FIXLOG → 💳 BILLING CORRECTNESS`. §3 design **SIGNED OFF (Jacques 14 Jun): one lead = one charge = one wallet** via an explicit `clients.plan` (`lead_gen`|`figsy`). Order: (1) reconcile the **3 disagreeing price tables** → constants, recreate the real Stripe Prices · (2) add `clients.plan` + backfill · (3) pool-aware delivery kills the **$1+$3 double-charge** *and* the **structurally-broken FIGSY-only bundle** (FIGSY-only client currently gets 0 leads); outreach stops charging · (4) Denise $39 · (5) honest "How credits work" panel · (6) atomic FIGSY credit RPC · (7) multi-currency USD/GBP/ZAR (may be its own phase — reconcile w/ Flutterwave, don't let it block 1–5) · (8) admin FIGSY visibility. **No merge to `main` until the smoke test is green + screenshots.** 🧍 = recreate Stripe Prices + sign-off; 🤖 = all code.

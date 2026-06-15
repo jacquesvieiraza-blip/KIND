@@ -41,6 +41,13 @@ interface AgentSidePanelProps {
   inputPlaceholder?: string
   online?: boolean
   liveChat?: boolean
+  /**
+   * If set, the panel holds a live in-place conversation against this endpoint
+   * instead of navigating away (113a). Contract: POST { message, history } →
+   * { success, data: { reply } }. FIGSY keeps its own ICP-onboarding path and
+   * ignores this. When unset (and not FIGSY), the panel falls back to onSend().
+   */
+  liveChatEndpoint?: string
   isNewUser?: boolean
 }
 
@@ -56,6 +63,7 @@ export function AgentSidePanel({
   inputPlaceholder = 'Ask anything…',
   online = true,
   liveChat = true,
+  liveChatEndpoint,
   isNewUser = false,
 }: AgentSidePanelProps) {
   const supabase = createClient()
@@ -122,7 +130,9 @@ export function AgentSidePanel({
     if (!msg || thinking) return
     setInput('')
 
-    if (!liveChat || agentId !== 'figsy') { onSend(msg); return }
+    const isFigsyLive = liveChat && agentId === 'figsy'
+    // No live path available → fall back to the legacy navigate-away behaviour.
+    if (!isFigsyLive && !liveChatEndpoint) { onSend(msg); return }
 
     const userMsg: Message = { role: 'user', content: msg }
     const next = [...messages.map(m => ({ role: m.role, content: m.content })), userMsg]
@@ -132,6 +142,21 @@ export function AgentSidePanel({
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
+
+      // ── Milla / Vida / Denise / Casey — generic stateless in-panel chat (113a)
+      if (!isFigsyLive) {
+        const history = next
+          .slice(0, -1)
+          .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+          .slice(-10)
+        const res = await api.post<{ success: boolean; data: { reply: string } }>(
+          liveChatEndpoint!,
+          { message: msg, history },
+          token,
+        )
+        setMessages(prev => [...prev, { role: 'assistant', content: res.data?.reply || "Sorry, I didn't catch that — could you rephrase?" }])
+        return
+      }
 
       if (onboarding && !icpSaved) {
         const history = next

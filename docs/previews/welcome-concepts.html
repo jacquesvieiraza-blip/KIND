@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding Welcome — 3 concepts (item 99)</title>
+<style>
+  :root{ --brand:#7C3AED; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#ECEAF3;color:#111827;-webkit-font-smoothing:antialiased}
+  .flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:8px}
+  .flag b{color:#fff}
+  .intro{max-width:900px;margin:0 auto;padding:24px;text-align:center}
+  .intro h1{font-size:22px;font-weight:800;color:#1E1152;margin-bottom:6px}
+  .intro p{font-size:13px;color:#6B7280}
+
+  .concept{max-width:1100px;margin:0 auto 36px;padding:0 24px}
+  .clabel{display:flex;align-items:center;gap:10px;margin:0 0 12px 4px}
+  .clabel .pill{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:var(--brand);padding:4px 12px;border-radius:100px}
+  .clabel .name{font-size:15px;font-weight:800;color:#1E1152}
+  .clabel .desc{font-size:13px;color:#6B7280}
+  .frame{border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(30,17,82,.16);border:1px solid rgba(0,0,0,.06)}
+
+  /* shared FIGSY photo placeholder */
+  .figsy-ph{background:linear-gradient(150deg,#7C3AED 0%,#a78bfa 50%,#5b21b6 100%);position:relative;display:flex;align-items:center;justify-content:center}
+  .figsy-ph::after{content:'FIGSY';position:absolute;bottom:8px;font-size:10px;letter-spacing:.2em;color:rgba(255,255,255,.6);font-weight:700}
+  .figsy-ph .mono{font-size:64px;font-weight:900;color:rgba(255,255,255,.85)}
+  .ph-note{font-size:11px;color:#9CA3AF;text-align:center;margin-top:8px;font-style:italic}
+
+  /* ───── CONCEPT A — split ───── */
+  .a-wrap{display:flex;min-height:440px;background:#fff}
+  .a-left{width:44%;position:relative}
+  .a-left .figsy-ph{width:100%;height:100%}
+  .a-left .mono{font-size:90px}
+  .a-cap{position:absolute;inset-x:0;bottom:0;background:linear-gradient(to top,rgba(0,0,0,.75),rgba(0,0,0,.3) 50%,transparent);padding:32px}
+  .a-cap .nm{color:#fff;font-size:28px;font-weight:800;line-height:1}
+  .a-cap .role{color:rgba(255,255,255,.85);font-size:15px;margin-top:4px}
+  .a-cap .on{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .a-cap .on .dot{width:8px;height:8px;border-radius:50%;background:#34D399}
+  .a-cap .on span{color:#6EE7B7;font-size:13px;font-weight:500}
+  .a-right{flex:1;display:flex;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,#faf7ff,#ffffff 60%,#f3f0ff)}
+  .a-right .inner{width:100%;max-width:380px}
+  .brandrow{display:flex;align-items:center;gap:8px;margin-bottom:28px}
+  .brandrow .k{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px}
+  .brandrow .t{font-weight:800;color:#111827}
+  .prog{display:flex;gap:6px;margin-bottom:24px}
+  .prog i{height:4px;border-radius:4px;flex:1;background:#e9e3fb}
+  .prog i.on{background:var(--brand)}
+  .h{font-size:24px;font-weight:800;color:#111827;line-height:1.15}
+  .sub{color:#6B7280;margin:8px 0 28px}
+  .bubble{background:#fff;border:1px solid rgba(196,181,253,.5);box-shadow:0 1px 4px rgba(0,0,0,.04);border-radius:16px;border-top-left-radius:4px;padding:14px 16px;font-size:15px;color:#374151;line-height:1.5;margin-bottom:20px}
+  .inputrow{display:flex;gap:8px}
+  .inputrow input{flex:1;border:1px solid #E5E7EB;border-radius:12px;padding:13px 16px;font-size:15px;font-family:inherit}
+  .inputrow .send{width:48px;height:48px;border-radius:12px;background:var(--brand);border:none;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer}
+  .inputrow .send svg{width:20px;height:20px}
+  .fine{font-size:12px;color:#9CA3AF;margin-top:16px}
+
+  /* ───── CONCEPT B — spotlight ───── */
+  .b-wrap{background:radial-gradient(1200px 600px at 50% -10%, #f1ebff, #ffffff 60%);padding:48px 24px;text-align:center;min-height:440px;display:flex;align-items:center;justify-content:center}
+  .b-inner{max-width:460px;width:100%}
+  .b-avatar{position:relative;width:112px;height:112px;margin:0 auto 24px}
+  .b-avatar .glow{position:absolute;inset:0;border-radius:50%;filter:blur(28px);opacity:.4;background:var(--brand)}
+  .b-avatar .ph{position:relative;width:112px;height:112px;border-radius:50%;overflow:hidden;border:4px solid #fff;box-shadow:0 12px 30px rgba(0,0,0,.18)}
+  .b-avatar .ph .mono{font-size:48px}
+  .b-avatar .on{position:absolute;bottom:4px;right:4px;width:20px;height:20px;border-radius:50%;background:#34D399;border:4px solid #fff}
+  .b-role{font-size:13px;font-weight:700;color:var(--brand);letter-spacing:.02em}
+  .b-h{font-size:28px;font-weight:800;color:#111827;margin-top:8px;line-height:1.15}
+  .b-sub{color:#6B7280;margin:12px auto 32px;max-width:380px}
+  .b-card{background:#fff;border:1px solid rgba(196,181,253,.5);border-radius:16px;box-shadow:0 1px 6px rgba(0,0,0,.05);padding:24px;text-align:left;max-width:380px;margin:0 auto}
+  .b-card .q{font-size:15px;font-weight:700;color:#111827;margin-bottom:4px}
+  .b-card .hint{font-size:12px;color:#9CA3AF;margin-bottom:16px}
+  .b-card .inputrow .next{padding:0 20px;height:48px;border-radius:12px;background:var(--brand);border:none;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap}
+  .b-card .next svg{width:16px;height:16px}
+  .b-dots{display:flex;justify-content:center;gap:8px;margin-top:28px}
+  .b-dots span{height:7px;border-radius:7px;background:#d8cffa}
+  .b-dots span.on{width:22px;background:var(--brand)}
+  .b-dots span.off{width:7px}
+
+  /* ───── CONCEPT C — dark chat ───── */
+  .c-wrap{background:linear-gradient(160deg,#0F0929,#1a1040 60%,#0F0929);padding:40px 24px;min-height:440px;display:flex;align-items:center;justify-content:center}
+  .c-card{width:100%;max-width:400px;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1)}
+  .c-hero{position:relative;height:240px;background:#0F0929}
+  .c-hero .figsy-ph{width:100%;height:100%}
+  .c-hero .figsy-ph::after{display:none}
+  .c-herocap{position:absolute;inset-x:0;bottom:0;background:linear-gradient(to top,#0F0929,transparent);padding:40px 20px 12px;display:flex;align-items:flex-end;justify-content:space-between}
+  .c-herocap .nm{display:flex;align-items:baseline;gap:8px}
+  .c-herocap .nm b{color:#fff;font-size:18px;font-weight:800}
+  .c-herocap .nm i{color:#a78bfa;font-size:12px;font-weight:700;font-style:normal}
+  .c-herocap .meta{color:rgba(255,255,255,.5);font-size:11px;margin-top:2px}
+  .c-herocap .on{display:flex;align-items:center;gap:6px}
+  .c-herocap .on .dot{width:8px;height:8px;border-radius:50%;background:#34D399}
+  .c-herocap .on span{color:#6EE7B7;font-size:11px;font-weight:500}
+  .c-conv{background:#130b2e;padding:16px}
+  .c-msg{display:flex;gap:8px}
+  .c-msg .av{width:24px;height:24px;border-radius:50%;flex-shrink:0;margin-top:2px;background:linear-gradient(150deg,#7C3AED,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,.15)}
+  .c-msg .txt{background:rgba(255,255,255,.08);color:rgba(255,255,255,.9);border-radius:16px;border-bottom-left-radius:4px;padding:10px 14px;font-size:13px;line-height:1.5;max-width:85%}
+  .c-typing{display:flex;gap:5px;align-items:center;padding-left:32px;margin-top:12px}
+  .c-typing span{width:6px;height:6px;border-radius:50%;background:rgba(196,181,253,.6)}
+  .c-input{background:#130b2e;padding:4px 16px 16px}
+  .c-inputrow{display:flex;gap:8px}
+  .c-inputrow input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;font-size:14px;color:#fff;font-family:inherit}
+  .c-inputrow input::placeholder{color:rgba(255,255,255,.3)}
+  .c-inputrow .send{width:44px;height:44px;border-radius:12px;background:var(--brand);border:none;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer}
+  .c-inputrow .send svg{width:16px;height:16px}
+  .c-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+  .c-foot .dots{display:flex;gap:4px}
+  .c-foot .dots span{height:6px;border-radius:6px;background:rgba(255,255,255,.15)}
+  .c-foot .dots span.on{width:18px;background:#a78bfa}
+  .c-foot .dots span.off{width:6px}
+  .c-foot .step{color:rgba(255,255,255,.3);font-size:11px}
+
+  @media(max-width:720px){.a-wrap{flex-direction:column}.a-left{width:100%;height:200px}}
+</style>
+</head>
+<body>
+<div class="flag">PREVIEW · 3 onboarding WELCOME concepts (item 99 · /v2/welcome a·b·c) · <b>pick one direction</b> · FIGSY photo shown as placeholder (real photo slots in)</div>
+<div class="intro">
+  <h1>Onboarding welcome — three directions</h1>
+  <p>Same flow (FIGSY greets, asks your company name first, 4-step progress). The difference is the <b>feel</b>. Pick one.</p>
+</div>
+
+<!-- CONCEPT A -->
+<div class="concept">
+  <div class="clabel"><span class="pill">A</span><span class="name">The Introduction</span><span class="desc">· immersive split — big agent on the left, chat on the right</span></div>
+  <div class="frame">
+    <div class="a-wrap">
+      <div class="a-left">
+        <div class="figsy-ph"><span class="mono">F</span></div>
+        <div class="a-cap"><div class="nm">FIGSY</div><div class="role">The Opener · your AI SDR</div><div class="on"><span class="dot"></span><span>Online · ready to find your first leads</span></div></div>
+      </div>
+      <div class="a-right">
+        <div class="inner">
+          <div class="brandrow"><span class="k">K</span><span class="t">K·I·N·D</span></div>
+          <div class="prog"><i class="on"></i><i></i><i></i><i></i></div>
+          <div class="h">Let's hire your AI Family.</div>
+          <div class="sub">I just need a few things first — takes 2 minutes.</div>
+          <div class="bubble">Hey! I'm FIGSY. To find your first leads, what's your company called?</div>
+          <div class="inputrow"><input placeholder="e.g. Acme Corp"><button class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
+          <div class="fine">No credit card to start · Your first leads are free</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONCEPT B -->
+<div class="concept">
+  <div class="clabel"><span class="pill">B</span><span class="name">The Spotlight</span><span class="desc">· centered &amp; calm — Apple-style whitespace, one question in focus</span></div>
+  <div class="frame">
+    <div class="b-wrap">
+      <div class="b-inner">
+        <div class="b-avatar"><div class="glow"></div><div class="ph figsy-ph"><span class="mono">F</span></div><span class="on"></span></div>
+        <div class="b-role">FIGSY · The Opener</div>
+        <div class="b-h">Hey — let's find your<br>first leads together.</div>
+        <div class="b-sub">I'm your AI SDR. Answer 4 quick questions and I'll start building your pipeline today.</div>
+        <div class="b-card">
+          <div class="q">First — what's your company called?</div>
+          <div class="hint">So FIGSY signs your emails properly.</div>
+          <div class="inputrow"><input placeholder="e.g. Acme Corp"><button class="next">Next <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
+        </div>
+        <div class="b-dots"><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span></div>
+        <div class="fine" style="text-align:center">Step 1 of 4 · No credit card to start</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONCEPT C -->
+<div class="concept">
+  <div class="clabel"><span class="pill">C</span><span class="name">The Conversation</span><span class="desc">· premium dark chat-app feel — like messaging the agent</span></div>
+  <div class="frame">
+    <div class="c-wrap">
+      <div class="c-card">
+        <div class="c-hero">
+          <div class="figsy-ph"><span class="mono">F</span></div>
+          <div class="c-herocap">
+            <div><div class="nm"><b>FIGSY</b><i>The Opener</i></div><div class="meta">AI SDR · K.I.N.D</div></div>
+            <div class="on"><span class="dot"></span><span>Online</span></div>
+          </div>
+        </div>
+        <div class="c-conv">
+          <div class="c-msg"><div class="av">F</div><div class="txt">Hey! I'm FIGSY — your AI SDR. I'm about to go find your first leads. First up: what's your company called?</div></div>
+          <div class="c-typing"><span></span><span></span><span></span></div>
+        </div>
+        <div class="c-input">
+          <div class="c-inputrow"><input placeholder="e.g. Acme Corp"><button class="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
+          <div class="c-foot"><div class="dots"><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span></div><span class="step">Step 1 of 4</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="ph-note" style="margin-bottom:40px">The purple block is a stand-in for FIGSY's real photo (2.2MB, slots into each layout as shown).</p>
+</body>
+</html>

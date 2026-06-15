@@ -5,6 +5,7 @@ import { db } from '@kind/db'
 import { runIcpJob } from './icps'
 import { computeChurnRisk } from './internal'
 import { seedShowcaseData } from '../lib/seed-showcase'
+import { seedDemoCompany } from '../lib/seed-company'
 
 export const adminRouter = Router()
 
@@ -136,12 +137,13 @@ adminRouter.post('/demos', async (req: Request, res: Response) => {
       ),
       created_by:    z.string().min(1).max(200),
       showcase:      z.boolean().optional(), // true = seed impressive fake data instead of a real Apollo run
+      company_demo:  z.boolean().optional(), // true = also seed a Company Engine demo (owner + reps + Command Centre)
     }).safeParse(req.body)
     if (!parsed.success) {
       res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' })
       return
     }
-    const { prospect_name, company_name, industry, country, website_url, expires_at, created_by, showcase } = parsed.data
+    const { prospect_name, company_name, industry, country, website_url, expires_at, created_by, showcase, company_demo } = parsed.data
 
     // 1. Create auth user with random credentials (internal only — never shared with prospect)
     const randomSuffix = Math.random().toString(36).slice(2, 10)
@@ -219,9 +221,21 @@ adminRouter.post('/demos', async (req: Request, res: Response) => {
       )
     }
 
+    // Optional: seed a Company Engine demo (owner + reps) so the owner's
+    // Command Centre is populated for the per-rep / multi-seat pitch.
+    if (company_demo) {
+      try {
+        const c = await seedDemoCompany(clientId, userId, company_name)
+        message += ` · Company demo: ${c.reps} reps · ${c.pool.toLocaleString()} pool · ${c.requests} pending requests`
+      } catch (companyErr) {
+        console.error('[demo] company seed failed:', companyErr)
+        message += ` · ⚠️ company demo seed failed: ${companyErr instanceof Error ? companyErr.message : String(companyErr)}`
+      }
+    }
+
     res.status(201).json({
       success: true,
-      data: { client_id: clientId, user_id: userId, company_name, showcase: !!showcase, message },
+      data: { client_id: clientId, user_id: userId, company_name, showcase: !!showcase, company_demo: !!company_demo, message },
     })
   } catch (err) {
     console.error('[admin/demos/create]', err)

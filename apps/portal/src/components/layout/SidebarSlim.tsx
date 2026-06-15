@@ -7,8 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
-  Brain, Bot, Handshake, BarChart2, CreditCard, Settings, LogOut, Pin,
-  ChevronDown, Lock, Sliders, Store,
+  Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
+  LayoutTemplate, GitBranch, ShieldCheck, Webhook, FileText, Mic, Building2, Activity, UserCheck,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -27,23 +27,31 @@ const AGENTS: AgentDef[] = [
   {
     id: 'figsy', name: 'FIGSY', role: 'The Opener', accent: '#7C3AED',
     nav: [
-      { href: '/dashboard/figsy-chat', label: 'Chat with FIGSY', icon: MessageSquare },
-      { href: '/dashboard/figsy',      label: 'Campaigns',       icon: Target },
-      { href: '/dashboard/inbox',      label: 'Inbox',           icon: Inbox },
-      { href: '/dashboard/kpis',       label: 'Performance',     icon: BarChart },
-      { href: '/dashboard/knowledge',  label: 'Knowledge',       icon: Brain },
+      { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
+      { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
+      { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
+      { href: '/dashboard/figsy/sequence-builder', label: 'Sequence Builder', icon: GitBranch },
+      { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox },
+      { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
+      { href: '/dashboard/deliverability',         label: 'Deliverability',   icon: ShieldCheck },
+      { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
+      { href: '/dashboard/figsy/webhooks',         label: 'Webhooks',         icon: Webhook },
     ],
   },
   {
     id: 'milla', name: 'Milla', role: 'The Brain', accent: '#F472B6', price: '$49/mo',
-    nav: [{ href: '/dashboard/assistant', label: 'Assistant', icon: Bot }],
+    nav: [
+      { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
+      { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+      { href: '/dashboard/notetaker', label: 'Notetaker', icon: Mic },
+    ],
   },
   {
     id: 'vida', name: 'Vida', role: 'The Connector', accent: '#14B8A6', price: '$29/mo',
     nav: [{ href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare }],
   },
   {
-    id: 'denise', name: 'Denise', role: 'The Closer', accent: '#D97706', price: '$99/mo',
+    id: 'denise', name: 'Denise', role: 'The Closer', accent: '#D97706', price: '$39/mo',
     nav: [{ href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake }],
   },
 ]
@@ -95,12 +103,12 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
     { href: '/dashboard/leads',          label: 'People',          icon: Users, exact: true },
     { href: '/dashboard/leads/linkedin', label: 'LinkedIn Import', icon: Search },
   ]
-  const account: Item[] = [
-    { href: '/dashboard/usage',   label: 'Usage',   icon: BarChart2 },
-    ...(v2Enabled('config')      ? [{ href: '/dashboard/config',      label: 'Configure FIGSY', icon: Sliders }] : []),
-    ...(v2Enabled('marketplace') ? [{ href: '/dashboard/marketplace', label: 'Marketplace',      icon: Store }]   : []),
-    ...(isPartner ? [{ href: '/dashboard/partner', label: 'Partner Hub', icon: Handshake }] : []),
-    { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
+  // Rail holds WORK only. Account/settings/growth items live in the top-right
+  // profile dropdown (the account hub) — keeps the rail uncluttered.
+  const company: Item[] = [
+    { href: '/dashboard/company',  label: 'Command Centre', icon: Building2 },
+    { href: '/dashboard/team',     label: 'Teams Hub',      icon: UserCheck },
+    { href: '/dashboard/activity', label: 'Activity',       icon: Activity },
   ]
 
   const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'
@@ -215,12 +223,14 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
         </div>
 
         <div className="h-px bg-white/[0.08] my-1.5 mx-4" />
-        {account.map(it => <Row key={it.href} {...it} />)}
+        <p className={`px-5 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-purple-300/35 transition-opacity ${labelCls}`}>
+          Company
+        </p>
+        {company.map(it => <Row key={it.href} {...it} />)}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom — quick sign-out only; everything else lives in the top-right profile menu */}
       <div className="flex flex-col gap-0.5 pt-2 border-t border-white/[0.06]">
-        <Row href="/dashboard/settings" label="Settings" icon={Settings} />
         <button onClick={signOut}
           className="mx-2 flex items-center gap-3 h-10 px-3 rounded-xl text-purple-200/55 hover:text-white hover:bg-white/[0.08] transition-colors">
           <LogOut className="w-[18px] h-[18px] shrink-0" />

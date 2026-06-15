@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification Centre — current (item 89 / #103)</title>
+<style>
+  :root{ --brand:#7C3AED; --faint:#9B8EC4; --muted:#7B6FA0; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#F7F6FB;color:#111827;-webkit-font-smoothing:antialiased}
+  .flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:6px}
+  .flag b{color:#fff}
+
+  /* fake header strip so the bell + dropdown sit in context */
+  .topbar{height:56px;background:#fff;border-bottom:1px solid #EDE9FE;display:flex;align-items:center;
+    justify-content:flex-end;gap:8px;padding:0 24px;position:relative}
+  .topbar .brandmark{position:absolute;left:24px;font-weight:700;color:var(--brand);letter-spacing:1px}
+  .iconbtn{position:relative;padding:8px;border-radius:8px;color:var(--faint);background:none;border:none;cursor:pointer}
+  .iconbtn:hover{color:var(--brand);background:#F5F0FF}
+  .iconbtn svg{width:18px;height:18px}
+  .badge{position:absolute;top:2px;right:2px;width:16px;height:16px;background:#EF4444;border-radius:50%;
+    font-size:10px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#A78BFA);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+
+  /* dropdown */
+  .panel{position:absolute;right:60px;top:50px;width:320px;background:#fff;border-radius:12px;
+    box-shadow:0 20px 50px rgba(30,17,82,.22);border:1px solid rgba(196,181,253,.5);overflow:hidden;z-index:50}
+  .panel .ph{padding:12px 16px;border-bottom:1px solid rgba(196,181,253,.4);display:flex;align-items:center;justify-content:space-between}
+  .panel .ph p{font-size:14px;font-weight:600;color:#111827}
+  .panel .ph .x{padding:4px;border-radius:6px;color:var(--faint);background:none;border:none;cursor:pointer}
+  .panel .ph .x:hover{background:#F3F4F6}
+  .panel .ph .x svg{width:14px;height:14px}
+
+  .note{padding:12px 16px;border-top:1px solid #FAFAFA;display:flex;gap:12px;align-items:flex-start}
+  .note:hover{background:#FAFAFA}
+  .nic{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nic svg{width:16px;height:16px}
+  .nic.credits{color:#F59E0B;background:#FFFBEB}
+  .nic.reply{color:#16A34A;background:#F0FDF4}
+  .nic.lead{color:var(--brand);background:#F5F0FF}
+  .nic.trial{color:#EF4444;background:#FEF2F2}
+  .nbody{flex:1;min-width:0}
+  .nbody .nt{font-size:14px;font-weight:500;color:#111827}
+  .nbody .nm{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5}
+  .nbody a{font-size:12px;color:var(--brand);text-decoration:none;margin-top:4px;display:inline-block}
+  .nbody a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="flag">PREVIEW · standalone — does NOT touch staging · <b>Notification Centre</b> (item 89 · #103) · bell shown open, one of each type</div>
+
+<div class="topbar">
+  <span class="brandmark">K.I.N.D</span>
+  <button class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><span class="badge">4</span></button>
+  <div class="avatar">JV</div>
+
+  <div class="panel">
+    <div class="ph"><p>Notifications</p><button class="x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+
+    <div class="note">
+      <div class="nic reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+      <div class="nbody"><div class="nt">Interested reply</div><div class="nm">Thandi Mokoena (Nedbank) replied "this is interesting" — FIGSY paused the campaign.</div><a href="#">View in FIGSY →</a></div>
+    </div>
+
+    <div class="note">
+      <div class="nic lead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="nbody"><div class="nt">New consented lead</div><div class="nm">14 new POPIA-consented leads delivered to "SaaS founders — Gauteng".</div><a href="#">View leads →</a></div>
+    </div>
+
+    <div class="note">
+      <div class="nic credits"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+      <div class="nbody"><div class="nt">Low credits</div><div class="nm">You have 38 FIGSY credits left — top up to keep sequences running.</div><a href="#">Top up →</a></div>
+    </div>
+
+    <div class="note">
+      <div class="nic trial"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="nbody"><div class="nt">Trial expiring</div><div class="nm">Your trial ends in 3 days — add billing to avoid a pause.</div><a href="#">Add billing →</a></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

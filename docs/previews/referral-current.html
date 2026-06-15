@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Referral — current</title>
+<style>
+  :root{ --brand:#7C3AED; --ink:#111827; --muted:#7B6FA0; --faint:#9B8EC4;
+    --line:#EDE9FE; --bg:#F5F3FF; --dark1:#1A0F47; --dark2:#0F0929; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;padding:32px 24px}
+  .wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+  h1{font-size:24px;font-weight:700}
+  .sub{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+
+  .card{background:rgba(255,255,255,.8);border:1px solid #EDE9FE99;border-radius:12px;padding:24px}
+  .card h2{font-weight:600;font-size:15px;margin-bottom:20px}
+  .step{display:flex;align-items:flex-start;gap:16px;margin-bottom:16px}
+  .step:last-child{margin-bottom:0}
+  .step-n{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+  .step-n span{font-size:14px;font-weight:700;color:#6D28D9}
+  .step-t{font-weight:500;font-size:14px}
+  .step-d{font-size:13px;color:var(--muted);margin-top:2px;line-height:1.5}
+  .arrow{width:16px;height:16px;color:#D1D5DB;flex-shrink:0;margin-top:8px}
+
+  .link-card{background:linear-gradient(to right,var(--dark1),var(--dark2));border-radius:12px;padding:24px;color:#fff}
+  .link-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .gift{width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .gift svg{width:20px;height:20px;color:#fff}
+  .link-head .t{font-weight:600;font-size:14px}
+  .link-head .d{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px}
+  .link-row{display:flex;align-items:center;gap:8px}
+  .link-url{flex:1;background:rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;font-size:12px;
+    color:rgba(255,255,255,.8);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .copy-btn{display:flex;align-items:center;gap:6px;padding:10px 16px;border-radius:8px;background:#fff;
+    color:var(--dark2);font-size:12px;font-weight:600;border:none;cursor:pointer;flex-shrink:0}
+  .copy-btn svg{width:14px;height:14px}
+
+  .refs-head{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .refs-head svg{width:16px;height:16px;color:var(--faint)}
+  .refs-head h2{font-weight:600;font-size:15px}
+  .refs-head .count{margin-left:auto;font-size:12px;color:var(--faint)}
+  .table-wrap{background:rgba(255,255,255,.8);border:1px solid #EDE9FE99;border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;padding:12px 20px;font-size:11px;font-weight:500;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #F3F4F6}
+  td{padding:14px 20px;border-bottom:1px solid #F9FAFB}
+  tr:last-child td{border-bottom:none}
+  .biz{font-weight:500;color:#1F2937}
+  .pill{display:inline-flex;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:500;text-transform:capitalize}
+  .pill.paying{background:#F0FDF4;color:#15803D}
+  .pill.trial{background:var(--bg);color:#6D28D9}
+  .joined{color:var(--faint);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <h1>Refer a business, earn free credits</h1>
+    <p class="sub">Share your unique link. When a business signs up and pays their first invoice, you both get 100 free credits.</p>
+  </div>
+
+  <!-- How it works -->
+  <div class="card">
+    <h2>How it works</h2>
+    <div class="step">
+      <div class="step-n"><span>1</span></div>
+      <div style="flex:1"><div class="step-t">Share your link</div><div class="step-d">Copy your unique referral link below and share it with businesses that could benefit from K.I.N.D.</div></div>
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </div>
+    <div class="step">
+      <div class="step-n"><span>2</span></div>
+      <div style="flex:1"><div class="step-t">They sign up</div><div class="step-d">Your referred business signs up using your link and starts their free trial.</div></div>
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </div>
+    <div class="step">
+      <div class="step-n"><span>3</span></div>
+      <div style="flex:1"><div class="step-t">Both get 100 free credits</div><div class="step-d">Once they make their first payment, you each automatically receive 100 credits — worth $100 in leads.</div></div>
+    </div>
+  </div>
+
+  <!-- Referral link -->
+  <div class="link-card">
+    <div class="link-head">
+      <div class="gift"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+      <div><div class="t">Your referral link</div><div class="d">Share this link to earn credits for every successful referral</div></div>
+    </div>
+    <div class="link-row">
+      <div class="link-url">https://get-kind.com?ref=c8f3a91e-7b24-4d56-9e10-2f8a6b1c4d09</div>
+      <button class="copy-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy link</button>
+    </div>
+  </div>
+
+  <!-- Referrals table -->
+  <div>
+    <div class="refs-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <h2>Your referrals</h2>
+      <span class="count">2 total</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Business</th><th>Status</th><th>Joined</th></tr></thead>
+        <tbody>
+          <tr><td class="biz">MaceyLuxe</td><td><span class="pill paying">paying</span></td><td class="joined">2 Jun 2026</td></tr>
+          <tr><td class="biz">Northwind Logistics</td><td><span class="pill trial">trial</span></td><td class="joined">9 Jun 2026</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

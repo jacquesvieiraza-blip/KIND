@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sequence Builder — current</title>
+<style>
+  :root{ --brand:#7C3AED; --ink:#111827; --muted:#6B7280; --line:#E5E7EB; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#F9FAFB;color:var(--ink);-webkit-font-smoothing:antialiased}
+
+  .banner{background:#FFFBEB;border-bottom:1px solid #FDE68A;padding:12px 24px;display:flex;gap:12px;align-items:flex-start;font-size:13px;color:#92400E}
+  .banner svg{width:16px;height:16px;color:#F59E0B;flex-shrink:0;margin-top:1px}
+  .banner b{font-weight:600}
+  .banner code{font-family:monospace;font-size:11px;background:#FEF3C7;padding:1px 6px;border-radius:4px}
+
+  .wrap{max-width:1400px;margin:0 auto;padding:24px}
+
+  .head .row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .head svg.gb{width:20px;height:20px;color:var(--brand)}
+  .head h1{font-size:24px;font-weight:700}
+  .head .badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#F3E8FF;color:#7E22CE}
+  .head p{font-size:13px;color:var(--muted)}
+
+  .steplabel{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9CA3AF;margin:28px 0 12px}
+
+  /* template grid */
+  .tgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:12px}
+  @media(max-width:1100px){.tgrid{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:560px){.tgrid{grid-template-columns:repeat(2,1fr)}}
+  .tcard{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 10px;border-radius:16px;
+    border:1px solid var(--line);background:#fff;text-align:center;cursor:pointer;transition:.15s}
+  .tcard:hover{border-color:#C4B5FD;background:#FaF5Ff}
+  .tcard.active{border-color:var(--brand);background:#F5F3FF;box-shadow:0 4px 12px rgba(124,58,237,.12)}
+  .tcard.dashed{border-style:dashed}
+  .tcard.outlined{border-color:#C4B5FD}
+  .tcard .dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--brand)}
+  .tcard .ic{width:40px;height:40px;border-radius:12px;background:#F9FAFB;border:1px solid #F3F4F6;display:flex;align-items:center;justify-content:center}
+  .tcard .ic svg{width:20px;height:20px}
+  .tcard .nm{font-size:12px;font-weight:600;line-height:1.2}
+  .tcard.active .nm{color:var(--brand)}
+  .tcard .ds{font-size:10px;color:#9CA3AF;margin-top:2px;line-height:1.2}
+  .tcard .beta{font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:#F3E8FF;color:#9333EA}
+
+  /* canvas + sidebar */
+  .builder{display:flex;gap:20px;align-items:flex-start}
+  @media(max-width:900px){.builder{flex-direction:column}}
+  .canvas{flex:1;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);padding:28px;min-height:480px}
+  .tree{max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center}
+
+  .stepcard{width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .stepcard .si{width:32px;height:32px;border-radius:9px;background:#F9FAFB;border:1px solid #F3F4F6;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .stepcard .si svg{width:16px;height:16px}
+  .stepcard .lbl{font-size:13px;font-weight:600;color:#374151}
+  .stepcard .sub{font-size:11px;color:#9CA3AF;margin-top:1px}
+  .stepcard .chev{margin-left:auto;color:#D1D5DB}
+  .stepcard .chev svg{width:16px;height:16px}
+
+  .wait{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 0;font-size:12px;color:#6B7280}
+  .wait svg{width:14px;height:14px;color:#FBBF24}
+  .conn{width:1px;height:18px;background:var(--line)}
+
+  .branches{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;margin-top:12px}
+  .arm{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .armtag{padding:3px 12px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid}
+  .armtag.yes{color:#16A34A;border-color:#16A34A55;background:#16A34A11}
+  .armtag.no{color:#EA580C;border-color:#EA580C55;background:#EA580C11}
+
+  .addbtn{display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:12px;border:1px dashed #C4B5FD;color:var(--brand);font-size:13px;font-weight:600;background:none;cursor:pointer;margin-top:8px}
+  .addbtn svg{width:16px;height:16px}
+
+  .side{width:264px;flex-shrink:0;display:flex;flex-direction:column;gap:16px}
+  @media(max-width:900px){.side{width:100%}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}
+  .panel .ph{padding:12px 16px;border-bottom:1px solid #F3F4F6;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6B7280}
+  .panel .pb{padding:8px}
+  .act{width:100%;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;color:#374151;background:none;border:none;cursor:pointer;text-align:left;transition:.12s}
+  .act:hover{background:#F5F3FF;color:#7E22CE}
+  .act svg.ai{width:16px;height:16px}
+  .act .fl{flex:1}
+  .act .badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:#D1FAE5;color:#059669}
+  .act .plus{width:14px;height:14px;color:#D1D5DB}
+
+  .info{background:#F5F3FF;border:1px solid #EDE9FE;border-radius:16px;padding:16px}
+  .info .t{font-size:12px;font-weight:600;color:#7E22CE;margin-bottom:4px}
+  .info .d{font-size:11px;color:#A78BFA;line-height:1.5}
+  .info code{font-family:monospace;background:#EDE9FE;padding:1px 5px;border-radius:4px}
+
+  /* icon colors */
+  .c-mail{color:#3B82F6}.c-li{color:#0284C7}.c-call{color:#16A34A}.c-sms{color:#10B981}
+  .c-wa{color:#22C55E}.c-task{color:#6B7280}.c-api{color:#7C3AED}.c-branch{color:#6366F1}
+  .c-spark{color:#A855F7}.c-teal{color:#14B8A6}.c-amber{color:#F59E0B}.c-pink{color:#EC4899}.c-indigo{color:#6366F1}
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <p><b>Visual sequence builder</b> — coming live in <code>#89</code>. Email is live; other channels light up as they ship.</p>
+</div>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="row">
+      <svg class="gb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+      <h1>Sequence Builder</h1>
+      <span class="badge">Preview</span>
+    </div>
+    <p>Choose a template then customise your multi-channel outreach flow.</p>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="steplabel">Step 1 — Choose a template</div>
+  <div class="tgrid">
+    <div class="tcard active outlined"><span class="dot"></span><div class="ic"><svg class="c-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg></div><div><div class="nm">AI Magic</div><div class="ds">AI-powered, adapts as it goes</div></div><span class="beta">Beta</span></div>
+    <div class="tcard"><div class="ic"><svg class="c-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg></div><div><div class="nm">Email only</div><div class="ds">Outbound</div></div></div>
+    <div class="tcard"><div class="ic"><svg class="c-li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div><div><div class="nm">LinkedIn only</div><div class="ds">Outbound</div></div></div>
+    <div class="tcard"><div class="ic"><svg class="c-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></div><div><div class="nm">Omni-channel</div><div class="ds">Email + LinkedIn + more</div></div></div>
+    <div class="tcard"><div class="ic"><svg class="c-teal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg></div><div><div class="nm">Inbound form</div><div class="ds">They filled a form</div></div></div>
+    <div class="tcard"><div class="ic"><svg class="c-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div><div class="nm">Event-driven</div><div class="ds">Before / after an event</div></div></div>
+    <div class="tcard"><div class="ic"><svg class="c-pink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg></div><div><div class="nm">Social signals</div><div class="ds">Engaged on LinkedIn</div></div></div>
+    <div class="tcard dashed"><div class="ic"><svg style="color:#9CA3AF" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div><div class="nm">Start from scratch</div></div></div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="steplabel">Step 2 — Edit the visual tree</div>
+  <div class="builder">
+
+    <!-- Canvas -->
+    <div class="canvas">
+      <div class="tree">
+        <!-- step 1 -->
+        <div class="stepcard"><div class="si"><svg class="c-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg></div><div><div class="lbl">Send email</div><div class="sub">Intro + specific observation</div></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+        <div class="conn"></div>
+        <div class="wait"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> wait 1 day ↓</div>
+        <!-- branch node -->
+        <div class="stepcard"><div class="si"><svg class="c-li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div><div><div class="lbl">LinkedIn · connect</div><div class="sub">Connection request</div></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+        <div class="branches">
+          <div class="arm">
+            <span class="armtag yes">✓ CONNECTED</span>
+            <div class="stepcard"><div class="si"><svg class="c-li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></div><div><div class="lbl">LinkedIn message</div><div class="sub">Value-add follow-up</div></div></div>
+          </div>
+          <div class="arm">
+            <span class="armtag no">✗ NOT CONNECTED</span>
+            <div class="stepcard"><div class="si"><svg class="c-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg></div><div><div class="lbl">Follow-up email</div><div class="sub">Alternative touch</div></div></div>
+          </div>
+        </div>
+        <div class="conn" style="margin-top:12px"></div>
+        <button class="addbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add step / branch</button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="side">
+      <div class="panel">
+        <div class="ph">Actions</div>
+        <div class="pb">
+          <button class="act"><svg class="ai c-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg><span class="fl">Email</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="act"><svg class="ai c-li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg><span class="fl">LinkedIn · connect</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="act"><svg class="ai c-li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg><span class="fl">LinkedIn · message</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="act"><svg class="ai c-call" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span class="fl">Call</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="act"><svg class="ai c-sms" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="fl">SMS</span><span class="badge">Beta</span></button>
+          <button class="act"><svg class="ai c-wa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="fl">WhatsApp</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="act"><svg class="ai c-task" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="fl">Manual task</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="act"><svg class="ai c-api" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 16.98h-5.99c-1.66 0-3.01-1.34-3.01-3s1.34-3 3.01-3H18"/><path d="M6 7.02h5.99c1.66 0 3.01 1.34 3.01 3"/></svg><span class="fl">API Connect</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph">Conditions</div>
+        <div class="pb">
+          <button class="act"><svg class="ai c-teal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span class="fl">Is connected</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="act"><svg class="ai c-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg><span class="fl">Branch / condition</span><svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        </div>
+      </div>
+
+      <div class="info">
+        <div class="t">How branching works</div>
+        <div class="d">Add a condition step to split your sequence. Each branch runs independently — contacts follow the path that matches.</div>
+        <div class="d" style="margin-top:8px">Full branching execution ships with <code>#89</code>.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

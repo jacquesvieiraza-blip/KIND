@@ -545,5 +545,14 @@
     item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open') }, 200) })
   })
 </script>
+<script>
+(function(){
+  fetch('https://kindapi-production-e64c.up.railway.app/track/visit', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({page_url:location.href, referrer:document.referrer, user_agent:navigator.userAgent})
+  }).catch(function(){})
+})()
+</script>
 </body>
 </html>

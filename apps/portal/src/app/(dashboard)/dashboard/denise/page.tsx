@@ -18,6 +18,7 @@ type Tab = 'follow_up' | 'proposal'
 export default function DenisePage() {
   const supabase = createClient()
   const [token, setToken] = useState<string | null>(null)
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null)
   const [tab, setTab] = useState<Tab>('follow_up')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -47,7 +48,13 @@ export default function DenisePage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.access_token) { setToken(session.access_token); loadDrafts(session.access_token) }
+      if (session?.access_token) {
+        setToken(session.access_token); loadDrafts(session.access_token)
+        // Gate access on a Denise subscription (consistent with the other agents).
+        api.get<{ data: { product: string; status: string }[] }>('/subscriptions', session.access_token)
+          .then(res => setHasAccess((res.data ?? []).some(s => (s.product === 'denise' || s.product === 'denise_addon') && s.status === 'active')))
+          .catch(() => setHasAccess(false))
+      } else { setHasAccess(false) }
     })
   }, [supabase, loadDrafts])
 
@@ -86,6 +93,22 @@ export default function DenisePage() {
   const canSubmit = tab === 'follow_up'
     ? company.trim().length > 0 || firstName.trim().length > 0
     : propCompany.trim().length > 0 && callSummary.trim().length > 0
+
+  if (hasAccess === null) {
+    return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" /></div>
+  }
+  if (!hasAccess) {
+    return (
+      <div className="max-w-md mx-auto mt-16 text-center">
+        <div className="w-20 h-20 rounded-2xl overflow-hidden ring-2 ring-amber-200 mx-auto mb-4">
+          <img src="/agents/denise.png" alt="Denise" className="w-full h-full object-cover object-top" />
+        </div>
+        <h1 className="text-xl font-bold text-gray-900">Denise — The Closer</h1>
+        <p className="text-sm text-[#7B6FA0] mt-2 mb-6">Denise drafts warm follow-ups and proposals, confirms meetings, and chases warm leads. Add her to your plan to unlock.</p>
+        <a href="/dashboard/billing" className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] transition-colors">Add Denise to your plan</a>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-3xl">

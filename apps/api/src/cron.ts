@@ -25,6 +25,9 @@ export function startCrons(): void {
   // Daily 06:00 UTC — trial nurture (days 1/3/5/7/10)
   cron.schedule('0 6 * * *', () => callInternal('/ae/nurture'), { timezone: 'UTC' })
 
+  // Daily 06:05 UTC — onboarding activation sequence for paid clients (days 0/3/7)
+  cron.schedule('5 6 * * *', () => callInternal('/onboarding/activation-sequence'), { timezone: 'UTC' })
+
   // Daily 06:15 UTC — at-risk client alert
   cron.schedule('15 6 * * *', () => callInternal('/ae/at-risk'), { timezone: 'UTC' })
 

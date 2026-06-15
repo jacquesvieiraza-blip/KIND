@@ -43,6 +43,14 @@ const REQUIRED_VARS: VarSpec[] = [
   { key: 'ADMIN_SECRET_KEY',          level: 'important', description: 'Admin API auth secret' },
 ]
 
+// In a staging/preview deployment we want the API to boot with ONLY the staging
+// database creds — no production secrets (Anthropic, Resend, Stripe, …) should
+// ever live in the isolated staging environment. When IS_STAGING=true, only the
+// Supabase vars stay critical; everything else degrades to a warning so AI/email/
+// payment features no-op gracefully instead of aborting startup.
+const STAGING = process.env.IS_STAGING === 'true' || process.env.NEXT_PUBLIC_IS_STAGING === 'true'
+const STAGING_CRITICAL = new Set(['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'])
+
 export function runStartupCheck(): void {
   const missing: VarSpec[]  = []
   const warnings: VarSpec[] = []
@@ -51,14 +59,18 @@ export function runStartupCheck(): void {
   for (const spec of REQUIRED_VARS) {
     const val = process.env[spec.key]
     if (!val || val.trim() === '') {
-      if (spec.level === 'critical')  missing.push(spec)
-      if (spec.level === 'important') warnings.push(spec)
-      if (spec.level === 'optional')  optional.push(spec)
+      // Staging: keep only the DB vars hard-critical; downgrade the rest to warnings.
+      const level = STAGING && spec.level === 'critical' && !STAGING_CRITICAL.has(spec.key)
+        ? 'important'
+        : spec.level
+      if (level === 'critical')  missing.push(spec)
+      if (level === 'important') warnings.push(spec)
+      if (level === 'optional')  optional.push(spec)
     }
   }
 
   const lines: string[] = ['', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━']
-  lines.push('  K.I.N.D API — STARTUP CHECK')
+  lines.push('  K.I.N.D API — STARTUP CHECK' + (STAGING ? '  ·  🧪 STAGING MODE (secrets optional)' : ''))
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
   const total    = REQUIRED_VARS.length

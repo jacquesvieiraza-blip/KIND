@@ -612,11 +612,12 @@
           <div><div class="cw-name">Milla</div><div class="cw-status">● Online — powered by Claude</div></div>
         </div>
         <div class="cw-msgs" id="milla-msgs">
+          <div style="font-size:0.62rem;color:rgba(255,255,255,0.5);font-style:italic;text-align:center;margin-bottom:8px">Illustrative example</div>
           <div class="cm-bot" id="cm1">Hi! I'm Milla. Ask me anything about your K.I.N.D pipeline.</div>
           <div class="cm-user" id="cm2">How many interested leads do I have?</div>
           <div class="cm-bot" id="cm3">You have <strong>24 interested leads</strong> this week — up 60% from last week. Top lead: Sarah Chen, 92 score, TechCorp.</div>
           <div class="cm-user" id="cm4">What's my reply rate?</div>
-          <div class="cm-bot" id="cm5">Your reply rate is <strong>5.4%</strong> — nearly 2× the 3% industry average. 🎉</div>
+          <div class="cm-bot" id="cm5">Your reply rate is <strong>5.4%</strong>. 🎉</div>
         </div>
         <div class="cw-input">
           <div class="cw-field">Ask Milla…</div>
@@ -660,9 +661,10 @@
       <p class="sub fade-up-delay" style="text-align:left">Live KPIs, pipeline value, funnel, reply rate vs. industry benchmark.</p>
     </div>
     <div style="z-index:2">
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.55);font-style:italic;margin-bottom:10px">Illustrative example — sample dashboard</div>
       <div class="kpi-grid">
         <div class="kpi-card" id="kpi1"><div class="kpi-lbl">Pipeline Value</div><div class="kpi-val green">$420k</div><div class="kpi-sub">247 active leads</div></div>
-        <div class="kpi-card" id="kpi2"><div class="kpi-lbl">Reply Rate</div><div class="kpi-val purple">5.4%</div><div class="kpi-sub">vs 3% industry avg</div></div>
+        <div class="kpi-card" id="kpi2"><div class="kpi-lbl">Reply Rate</div><div class="kpi-val purple">5.4%</div><div class="kpi-sub">This month</div></div>
         <div class="kpi-card" id="kpi3"><div class="kpi-lbl">Emails Sent</div><div class="kpi-val">1,240</div><div class="kpi-sub">This month</div></div>
         <div class="kpi-card" id="kpi4"><div class="kpi-lbl">Interested</div><div class="kpi-val green">24</div><div class="kpi-sub">Warm leads</div></div>
       </div>
@@ -684,11 +686,12 @@
       <p class="sub fade-up-delay" style="text-align:left">Campaign memory. Auto-pause. Weekly digest. Self-improving agent intelligence.</p>
     </div>
     <div style="z-index:2">
+      <div style="font-size:0.72rem;color:rgba(255,255,255,0.55);font-style:italic;margin-bottom:10px">Illustrative example — sample notifications</div>
       <div class="alert-card succ" id="al1">
         <div class="a-icon">✅</div>
         <div>
           <div class="a-title">Campaign exceeding benchmark</div>
-          <div class="a-body">West Africa Founders Q2 at 8.2% reply rate — 2.7× industry average.</div>
+          <div class="a-body">West Africa Founders Q2 at 8.2% reply rate.</div>
         </div>
       </div>
       <div class="alert-card warn" id="al2">
@@ -702,7 +705,7 @@
         <div class="a-icon">📊</div>
         <div>
           <div class="a-title">Monday digest sent</div>
-          <div class="a-body">156 emails · 12.8% reply rate · 8 interested leads. Industry avg: 3%.</div>
+          <div class="a-body">156 emails · 12.8% reply rate · 8 interested leads.</div>
         </div>
       </div>
     </div>
@@ -1111,6 +1114,15 @@ document.getElementById('stage').addEventListener('click', e => {
 
 onSceneEnter(0)
 scheduleNext()
+</script>
+<script>
+(function(){
+  fetch('https://kindapi-production-e64c.up.railway.app/track/visit', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({page_url:location.href, referrer:document.referrer, user_agent:navigator.userAgent})
+  }).catch(function(){})
+})()
 </script>
 </body>
 </html>

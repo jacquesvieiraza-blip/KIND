@@ -1,4 +1,5 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
+import { pdlSearchPeople } from './pdl-search'
 
 // Apollo's PUBLIC REST API is under /api/v1. The bare /v1 host is Apollo's internal
 // web API (session/OAuth) — calling it with an X-Api-Key is accepted but runs
@@ -226,30 +227,55 @@ export async function searchPeopleWithFallback(
   icp: Parameters<typeof buildSearchBody>[0],
   page = 1,
 ): Promise<{ contacts: ApolloContact[]; relaxed: string | null }> {
-  // Pass 1 — full query
-  const full = buildSearchBody(icp, page)
-  const contacts1 = await searchPeople(full)
-  if (contacts1.length > 0) return { contacts: contacts1, relaxed: null }
+  // SECOND SOURCE (dormant unless PDL_API_KEY is set): when configured, an Apollo
+  // failure (dead key / exhausted credits / rate limit) falls OVER to PDL instead
+  // of throwing, and an empty Apollo result falls BACK to PDL. With no key set,
+  // behaviour is byte-identical to before — Apollo errors propagate, 0 = relaxed msg.
+  const pdlConfigured = !!process.env.PDL_API_KEY
 
-  // Pass 2 — remove consent filter (consent gate was cutting the pool)
-  if (icp.apollo_only_consented) {
-    const relaxed2 = { ...buildSearchBody(icp, page) }
-    delete relaxed2.contact_email_status
-    const contacts2 = await searchPeople(relaxed2)
-    if (contacts2.length > 0) {
-      console.log('[apollo] fallback pass 2: removed consent filter — found', contacts2.length)
-      return { contacts: contacts2, relaxed: 'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.' }
+  try {
+    // Pass 1 — full query
+    const full = buildSearchBody(icp, page)
+    const contacts1 = await searchPeople(full)
+    if (contacts1.length > 0) return { contacts: contacts1, relaxed: null }
+
+    // Pass 2 — remove consent filter (consent gate was cutting the pool)
+    if (icp.apollo_only_consented) {
+      const relaxed2 = { ...buildSearchBody(icp, page) }
+      delete relaxed2.contact_email_status
+      const contacts2 = await searchPeople(relaxed2)
+      if (contacts2.length > 0) {
+        console.log('[apollo] fallback pass 2: removed consent filter — found', contacts2.length)
+        return { contacts: contacts2, relaxed: 'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.' }
+      }
     }
+
+    // Pass 3 — remove employee ranges (geo + titles only)
+    const relaxed3 = { ...buildSearchBody(icp, page) }
+    delete relaxed3.contact_email_status
+    delete relaxed3.organization_num_employees_ranges
+    const contacts3 = await searchPeople(relaxed3)
+    if (contacts3.length > 0) {
+      console.log('[apollo] fallback pass 3: removed size + consent filters — found', contacts3.length)
+      return { contacts: contacts3, relaxed: 'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.' }
+    }
+  } catch (apolloErr) {
+    // Apollo unavailable. If PDL is configured, fail over to it; else preserve the
+    // original behaviour (let the credits/rate/other error propagate to the caller).
+    if (!pdlConfigured) throw apolloErr
+    console.warn('[apollo] search failed — failing over to PDL:', apolloErr instanceof Error ? apolloErr.message : apolloErr)
+    const pdl = await pdlSearchPeople(icp, page)
+    if (pdl.length > 0) return { contacts: pdl, relaxed: 'Sourced via the secondary data provider (Apollo was unavailable).' }
+    return { contacts: [], relaxed: 'No contacts found — Apollo was unavailable and the secondary provider returned none.' }
   }
 
-  // Pass 3 — remove employee ranges (geo + titles only)
-  const relaxed3 = { ...buildSearchBody(icp, page) }
-  delete relaxed3.contact_email_status
-  delete relaxed3.organization_num_employees_ranges
-  const contacts3 = await searchPeople(relaxed3)
-  if (contacts3.length > 0) {
-    console.log('[apollo] fallback pass 3: removed size + consent filters — found', contacts3.length)
-    return { contacts: contacts3, relaxed: 'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.' }
+  // Apollo returned 0 across all passes — try the second source before giving up.
+  if (pdlConfigured) {
+    const pdl = await pdlSearchPeople(icp, page)
+    if (pdl.length > 0) {
+      console.log('[apollo] 0 from Apollo — PDL second-source found', pdl.length)
+      return { contacts: pdl, relaxed: 'Apollo found nobody for this ICP — sourced from the secondary provider instead.' }
+    }
   }
 
   console.log('[apollo] all passes returned 0 — no contacts found for this ICP')

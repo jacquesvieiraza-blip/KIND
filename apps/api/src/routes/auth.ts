@@ -2,11 +2,12 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { sendWelcomeEmail } from '../lib/email'
+import { rateLimit } from '../lib/rate-limit'
 
 export const authRouter = Router()
 
 // ── SIGNUP — bypass email confirmation via admin SDK ──────────────────────────
-authRouter.post('/signup', async (req, res) => {
+authRouter.post('/signup', rateLimit({ limit: 10, windowMs: 60_000, key: 'signup' }), async (req, res) => {
   try {
     const { email, password } = z.object({
       email:    z.string().email(),

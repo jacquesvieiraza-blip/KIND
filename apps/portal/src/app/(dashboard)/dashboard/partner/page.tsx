@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { CertifiedPartnerBadge } from '@/components/ui/CertifiedPartnerBadge'
 import {
   Handshake, Copy, CheckCircle, ChevronDown, ChevronUp,
   ExternalLink, Users, TrendingUp, Clock, Briefcase, Circle,
@@ -309,6 +310,11 @@ export default function PartnerPage() {
           </div>
         )}
       </div>
+
+      {/* ── Certified-Partner badge (R5 / #82) ───────────────────────────── */}
+      {partner.status === 'active' && (
+        <CertifiedPartnerBadge partnerName={partner.name} tierLabel={tierLabel} />
+      )}
 
       {/* ── Stats row ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

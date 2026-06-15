@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoices — in-portal (design preview)</title>
+<style>
+  :root{ --brand:#7C3AED; --dark:#0F0929; --ink:#1E1152; --muted:#6B7280;
+    --faint:#9CA3AF; --line:#EDE9FE; --bg:#F5F3FF; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);color:#111827;-webkit-font-smoothing:antialiased;padding:28px 20px}
+  .flag{max-width:780px;margin:0 auto 16px;background:#111827;color:#fbbf24;text-align:center;
+    font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;line-height:1.5}
+  .flag b{color:#fff}
+  .flag .note{display:block;color:#d1d5db;font-weight:400;margin-top:3px;font-size:11px}
+
+  .wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+
+  .head{display:flex;align-items:center;gap:12px}
+  .head .ic{width:40px;height:40px;border-radius:11px;background:#7C3AED18;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .head .ic svg{width:20px;height:20px;color:var(--brand)}
+  .head h1{font-size:22px;font-weight:700;color:#111827}
+  .head p{font-size:13px;color:var(--muted);margin-top:2px}
+
+  /* billed-to summary */
+  .biz{background:var(--dark);color:#fff;border-radius:14px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  .biz .l{font-size:11px;color:#9B8EC4;letter-spacing:.5px;text-transform:uppercase}
+  .biz .v{font-size:14px;font-weight:600;margin-top:3px}
+  .biz .vatno{font-family:monospace;color:#C4B5FD}
+
+  /* invoices table card */
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(15,9,41,.05)}
+  .card-head{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:between;gap:10px}
+  .card-head h2{font-size:13px;font-weight:700;color:#7C3AED99;letter-spacing:.6px;text-transform:uppercase}
+
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);
+    text-align:left;padding:12px 22px;border-bottom:1px solid var(--line);background:#FBFAFF}
+  thead th.r{text-align:right}
+  tbody td{padding:16px 22px;border-bottom:1px solid #F6F4FC;font-size:13px;color:#374151;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody td.r{text-align:right}
+  .inv-no{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .inv-desc{font-size:11.5px;color:var(--faint);margin-top:2px}
+  .amt{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600}
+  .pill.paid{background:#F0FDF4;color:#15803D}
+  .pill.due{background:#FFFBEB;color:#B45309}
+  .pill .dot{width:6px;height:6px;border-radius:50%}
+  .pill.paid .dot{background:#22C55E}.pill.due .dot{background:#F59E0B}
+  .dl{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--brand);text-decoration:none;
+    border:1px solid var(--line);border-radius:8px;padding:7px 12px;transition:.15s}
+  .dl:hover{background:var(--bg)}
+  .dl svg{width:14px;height:14px}
+
+  .stripe-note{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--faint);padding:0 4px}
+  .stripe-note svg{width:14px;height:14px;flex-shrink:0}
+  .stripe-note b{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="flag">
+  🎨 <b>DESIGN PREVIEW</b> — in-portal Invoices list, lives under <b>Company → Documents</b>
+  <span class="note">Pulls the client's invoices from Stripe via API. Each <i>Download</i> opens Stripe's official invoice PDF (the <code>invoice-v1.html</code> design = Stripe branding target). USD billing; VAT handled by Stripe.</span>
+</div>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="head">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+    <div>
+      <h1>Invoices</h1>
+      <p>Every payment to K.I.N.D, with a downloadable invoice (Stripe-issued).</p>
+    </div>
+  </div>
+
+  <!-- Billed-to -->
+  <div class="biz">
+    <div>
+      <div class="l">Billed to</div>
+      <div class="v">MaceyLuxe Ltd · 14 Hatton Garden, London EC1N 8AT</div>
+    </div>
+    <div style="text-align:right">
+      <div class="l">VAT number</div>
+      <div class="v vatno">GB 412 3456 78</div>
+    </div>
+  </div>
+
+  <!-- Invoices table -->
+  <div class="card">
+    <div class="card-head"><h2>All invoices</h2></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice</th>
+          <th>Date</th>
+          <th class="r">Amount</th>
+          <th class="r">Status</th>
+          <th class="r"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="inv-no">INV-2026-000142</div><div class="inv-desc">FIGSY Pro · Denise · 500 credits</div></td>
+          <td>10 Jun 2026</td>
+          <td class="r amt">$748.00</td>
+          <td class="r"><span class="pill paid"><span class="dot"></span>Paid</span></td>
+          <td class="r"><a class="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a></td>
+        </tr>
+        <tr>
+          <td><div class="inv-no">INV-2026-000118</div><div class="inv-desc">FIGSY Pro · Denise — monthly</div></td>
+          <td>10 May 2026</td>
+          <td class="r amt">$228.00</td>
+          <td class="r"><span class="pill paid"><span class="dot"></span>Paid</span></td>
+          <td class="r"><a class="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a></td>
+        </tr>
+        <tr>
+          <td><div class="inv-no">INV-2026-000094</div><div class="inv-desc">FIGSY Pro — monthly</div></td>
+          <td>10 Apr 2026</td>
+          <td class="r amt">$180.00</td>
+          <td class="r"><span class="pill paid"><span class="dot"></span>Paid</span></td>
+          <td class="r"><a class="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a></td>
+        </tr>
+        <tr>
+          <td><div class="inv-no">INV-2026-000071</div><div class="inv-desc">FIGSY Pro — first month</div></td>
+          <td>10 Mar 2026</td>
+          <td class="r amt">$180.00</td>
+          <td class="r"><span class="pill paid"><span class="dot"></span>Paid</span></td>
+          <td class="r"><a class="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stripe-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <span>Invoices &amp; payments are securely processed by <b>Stripe</b>. Each PDF is an official invoice from K.I.N.D, issued by Stripe.</span>
+  </div>
+
+</div>
+</body>
+</html>

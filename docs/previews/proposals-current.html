@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proposals — current</title>
+<style>
+  :root{ --brand:#7C3AED; --ink:#1E1152; --muted:#6B7280; --faint:#9B8EC4; --line:#EDE9FE; --bg:#F5F3FF; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);color:#111827;-webkit-font-smoothing:antialiased;padding:32px 24px}
+  .wrap{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+
+  .head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .head .ic{width:32px;height:32px;border-radius:10px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .head .ic svg{width:16px;height:16px;color:#fff}
+  .head .row{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .head h1{font-size:24px;font-weight:700;color:var(--ink)}
+  .head p{font-size:13px;color:#7C3AED99}
+  .newbtn{display:flex;align-items:center;gap:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:600;
+    padding:9px 16px;border-radius:12px;border:none;cursor:pointer}
+  .newbtn svg{width:16px;height:16px}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,9,41,.05)}
+  .card-head{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+  .card-head svg{width:16px;height:16px;color:var(--brand)}
+  .card-head h2{font-size:13px;font-weight:600;color:var(--ink)}
+  .card-head .count{margin-left:auto;font-size:12px;color:#7C3AED80}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead{background:#FAF8FE}
+  thead th{text-align:left;padding:12px 20px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#7C3AED99}
+  thead th.r{text-align:right}
+  tbody td{padding:14px 20px;border-top:1px solid #F4F1FC;vertical-align:middle}
+  tbody tr:hover{background:#FAF8FE}
+  .title{font-weight:500;color:#111827}
+  .rname{color:#6B7280}.remail{color:var(--faint);font-size:12px;margin-top:1px}
+  .pill{display:inline-flex;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600}
+  .pill.draft{background:#F3F4F6;color:#4B5563}
+  .pill.sent{background:#DBEAFE;color:#1D4ED8}
+  .pill.viewed{background:#FEF3C7;color:#B45309}
+  .pill.signed{background:#DCFCE7;color:#15803D}
+  .date{color:#6B7280;font-size:12px}
+  .signed-cell{display:inline-flex;align-items:center;gap:5px;color:#15803D;font-size:12px}
+  .signed-cell svg{width:14px;height:14px}
+  .sendbtn{display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;font-size:11px;font-weight:600;
+    padding:6px 12px;border-radius:8px;border:none;cursor:pointer}
+  .sendbtn svg{width:12px;height:12px}
+  .r{text-align:right}
+  .dash{color:#D1D5DB}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div>
+      <div class="row">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <h1>Proposals</h1>
+      </div>
+      <p>Send branded proposals and get e-signatures — no DocuSign needed</p>
+    </div>
+    <button class="newbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Proposal</button>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <h2>All Proposals</h2>
+      <span class="count">4 total</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th><th>Recipient</th><th>Status</th><th>Sent</th><th>Signed</th><th class="r"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="title">FIGSY AI SDR — 3-month engagement</td>
+          <td><div class="rname">Sarah Chen</div><div class="remail">sarah@northwind.co.uk</div></td>
+          <td><span class="pill signed">Signed</span></td>
+          <td class="date">2 Jun 2026</td>
+          <td><span class="signed-cell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>5 Jun 2026</span></td>
+          <td class="r"></td>
+        </tr>
+        <tr>
+          <td class="title">Denise — Closing retainer Q3</td>
+          <td><div class="rname">Marcus Reid</div><div class="remail">marcus@apex-fin.com</div></td>
+          <td><span class="pill viewed">Viewed</span></td>
+          <td class="date">8 Jun 2026</td>
+          <td><span class="dash">—</span></td>
+          <td class="r"><button class="sendbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send</button></td>
+        </tr>
+        <tr>
+          <td class="title">K.I.N.D full-stack — annual</td>
+          <td><div class="rname">Priya Nair</div><div class="remail">priya@maceyluxe.co.uk</div></td>
+          <td><span class="pill sent">Sent</span></td>
+          <td class="date">10 Jun 2026</td>
+          <td><span class="dash">—</span></td>
+          <td class="r"></td>
+        </tr>
+        <tr>
+          <td class="title">Vida chatbot — pilot</td>
+          <td><div class="rname">—</div></td>
+          <td><span class="pill draft">Draft</span></td>
+          <td><span class="dash">—</span></td>
+          <td><span class="dash">—</span></td>
+          <td class="r"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

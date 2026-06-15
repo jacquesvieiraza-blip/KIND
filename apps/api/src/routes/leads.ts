@@ -98,12 +98,16 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
     // Use allSettled so one failed count doesn't blank the whole stats panel.
     // Only count DELIVERED leads — the client is only shown (and charged for)
     // delivered leads, so stats must match what they can actually see.
-    const [total, scored, consented, exported_, optedOut] = (await Promise.allSettled([
+    const [total, scored, consented, exported_, optedOut, pendingReview, inFigsy] = (await Promise.allSettled([
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).not('score', 'is', null),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'consent_given'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'exported'),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'opted_out'),
+      // Pending Review pill: high-quality leads waiting for approval (score ≥ 70, not yet enrolled).
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).gte('score', 70).in('status', ['pending', 'scored']),
+      // In FIGSY pill: consented leads in an active outreach state.
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('apollo_consented', true).in('status', ['consent_given', 'consent_sent']),
     ])).map(r => r.status === 'fulfilled' ? r.value : { count: 0 })
 
     const { data: avgData } = await db.from('leads').select('score, estimated_deal_value_usd')
@@ -122,6 +126,8 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
         consented:          consented.count || 0,
         exported:           exported_.count || 0,
         opted_out:          optedOut.count || 0,
+        pending_review:     pendingReview.count || 0,
+        in_figsy:           inFigsy.count || 0,
         avg_score:          avgScore,
         pipeline_value_usd: pipelineValueUsd,
       },
@@ -132,9 +138,20 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
 // ── LIST ──────────────────────────────────────────────────────────────────────
 leadRouter.get('/', async (req: AuthRequest, res) => {
   try {
-    const { status, min_score, icp_id, apollo_consented, page = '1', limit = '50' } = req.query
+    const { status, min_score, icp_id, apollo_consented, campaign_id, page = '1', limit = '50' } = req.query
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // campaign_id cross-link: a campaign's enrolled leads live in figsy_enrollments,
+    // so resolve the enrolled lead IDs first, then constrain the leads query to them.
+    let campaignLeadIds: string[] | null = null
+    if (campaign_id) {
+      const { data: enr } = await db.from('figsy_enrollments')
+        .select('lead_id').eq('campaign_id', campaign_id as string)
+      campaignLeadIds = (enr ?? []).map((e: { lead_id: string }) => e.lead_id).filter(Boolean)
+      // No enrollments → guarantee an empty result rather than the full list.
+      if (campaignLeadIds.length === 0) campaignLeadIds = ['00000000-0000-0000-0000-000000000000']
+    }
 
     // Only show DELIVERED leads — undelivered leads are not yet paid for and
     // must not appear in the client's list/export (drip/run delivers + charges).
@@ -153,10 +170,29 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
     if (min_score)        query = query.gte('score', Number(min_score))
     if (icp_id)           query = query.eq('icp_id', icp_id as string)
     if (apollo_consented) query = query.eq('apollo_consented', apollo_consented === 'true')
+    if (campaignLeadIds)  query = query.in('id', campaignLeadIds)
 
     const { data, count, error } = await query
     if (error) throw error
-    res.json({ success: true, data, total: count, page: Number(page), limit: Number(limit) })
+
+    // lead → its campaign back-link: attach the campaign each lead is enrolled in
+    // (most-recent enrollment wins) so the list can link a lead back to its campaign.
+    const rows = (data ?? []) as Array<Record<string, any>>
+    const leadIds = rows.map(l => l.id).filter(Boolean)
+    if (leadIds.length > 0) {
+      const { data: enr } = await db.from('figsy_enrollments')
+        .select('lead_id, enrolled_at, figsy_campaigns(id, name)')
+        .in('lead_id', leadIds)
+        .order('enrolled_at', { ascending: false })
+      const byLead = new Map<string, { id: string; name: string }>()
+      for (const e of (enr ?? []) as Array<Record<string, any>>) {
+        const camp = Array.isArray(e.figsy_campaigns) ? e.figsy_campaigns[0] : e.figsy_campaigns
+        if (camp?.id && !byLead.has(e.lead_id)) byLead.set(e.lead_id, { id: camp.id, name: camp.name })
+      }
+      for (const l of rows) l.campaign = byLead.get(l.id) ?? null
+    }
+
+    res.json({ success: true, data: rows, total: count, page: Number(page), limit: Number(limit) })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch leads' }) }
 })
 

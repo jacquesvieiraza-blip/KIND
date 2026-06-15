@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Home — agent-card row (with Tony as Agent 05) · preview</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#f6f4fc;color:#0a0a0a;padding:0}
+  .flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:8px}
+  .flag b{color:#fff}
+  .wrap{max-width:1480px;margin:0 auto;padding:40px 24px 60px}
+  .note{font-size:13px;color:#6b21a8;background:#f3e8ff;border:1px solid #e9d5ff;border-radius:10px;padding:10px 14px;margin-bottom:24px}
+  .kf-block{ position:relative; width:100%; display:grid; grid-template-columns:repeat(5,1fr); gap:18px; }
+  @media(max-width:1100px){.kf-block{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.kf-block{grid-template-columns:1fr}}
+  .kf-agent{ position:relative; display:block; text-decoration:none; color:inherit;
+    height:clamp(380px,46vh,460px); border-radius:24px; overflow:clip;
+    box-shadow:0 20px 50px rgba(20,18,45,.14); transition:transform .2s, box-shadow .2s; }
+  .kf-agent:hover{ transform:translateY(-4px); box-shadow:0 28px 64px rgba(20,18,45,.2); }
+  .kf-bg{ position:absolute; inset:0; z-index:0; }
+  .kf-ghost{ position:absolute; z-index:1; left:50%; top:40%; transform:translate(-50%,-50%);
+    font-weight:900; letter-spacing:-.04em; line-height:.78;
+    font-size:clamp(2.4rem,5vw,4rem); color:rgba(20,18,45,.07); white-space:nowrap; pointer-events:none; user-select:none; text-align:center; }
+  .kf-eyebrow2{ position:absolute; z-index:4; top:20px; left:0; right:0; text-align:center;
+    font-family:'JetBrains Mono',monospace; font-size:.58rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(20,18,45,.55); padding:0 12px; }
+  .kf-figure{ position:absolute; inset:0; z-index:2; display:flex; align-items:flex-end; justify-content:center; }
+  .kf-figure img{ height:94%; width:auto; max-width:100%; object-fit:contain; display:block;
+    filter:drop-shadow(0 18px 36px rgba(20,18,45,.22));
+    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 86%, transparent 100%);
+    mask-image:linear-gradient(to bottom, #000 0%, #000 86%, transparent 100%); }
+  .kf-cta{ position:absolute; z-index:6; bottom:18px; left:50%; transform:translateX(-50%);
+    background:#0a0a0a; color:#fff; font-weight:700; font-size:.8rem; padding:10px 20px; border-radius:12px;
+    text-decoration:none; box-shadow:0 14px 34px rgba(0,0,0,.28); white-space:nowrap; }
+  .kf-soon{ position:absolute; z-index:6; bottom:18px; left:50%; transform:translateX(-50%);
+    background:rgba(255,255,255,.85); color:#0f766e; font-weight:700; font-size:.78rem; padding:10px 18px; border-radius:12px; white-space:nowrap; box-shadow:0 8px 20px rgba(0,0,0,.12); }
+</style>
+</head>
+<body>
+<div class="flag">PREVIEW · Home agent-card row — <b>now with Tony as AGENT 05 · THE ORDER MAKER</b> (teal card, Coming Soon) · your live colors kept</div>
+<div class="wrap">
+  <div class="note">⚠️ Tony's card uses <b>tony.png</b> (full photo) because there's no <b>tony-cut.png</b> cutout yet — so his figure sits in a rectangle instead of the clean cut-out the others use. To match perfectly I need a <b>tony-cut.png</b> (transparent cutout, like figsy-cut.png). Everything else — colors, label, layout, "Coming Soon" — is final.</div>
+  <div class="kf-block">
+    <a class="kf-agent" href="#">
+      <div class="kf-bg" style="background:linear-gradient(160deg,#ffd6ed 0%,#ffb3d9 45%,#ff85c0 100%);"></div>
+      <div class="kf-ghost">FIGSY</div>
+      <div class="kf-eyebrow2">Agent 01 · The Opener</div>
+      <div class="kf-figure"><img src="figsy-cut.png" alt="FIGSY" /></div>
+      <span class="kf-cta">Meet FIGSY →</span>
+    </a>
+    <a class="kf-agent" href="#">
+      <div class="kf-bg" style="background:linear-gradient(160deg,#e8d8ff 0%,#d0b8ff 45%,#b88fff 100%);"></div>
+      <div class="kf-ghost">MILLA</div>
+      <div class="kf-eyebrow2">Agent 02 · The Brain</div>
+      <div class="kf-figure"><img src="milla-cut.png" alt="Milla" /></div>
+      <span class="kf-cta">Meet Milla →</span>
+    </a>
+    <a class="kf-agent" href="#">
+      <div class="kf-bg" style="background:linear-gradient(160deg,#c8ecff 0%,#96d8ff 45%,#5cbfff 100%);"></div>
+      <div class="kf-ghost">VIDA</div>
+      <div class="kf-eyebrow2">Agent 03 · The Connector</div>
+      <div class="kf-figure"><img src="vida-cut.png" alt="Vida" /></div>
+      <span class="kf-cta">Meet Vida →</span>
+    </a>
+    <a class="kf-agent" href="#">
+      <div class="kf-bg" style="background:linear-gradient(160deg,#fff3d6 0%,#ffe1a6 45%,#f5c46b 100%);"></div>
+      <div class="kf-ghost">DENISE</div>
+      <div class="kf-eyebrow2">Agent 04 · The Closer</div>
+      <div class="kf-figure"><img src="denise-cut.png" alt="Denise" /></div>
+      <span class="kf-cta">Meet Denise →</span>
+    </a>
+    <a class="kf-agent" href="#">
+      <div class="kf-bg" style="background:linear-gradient(160deg,#d6f5ea 0%,#a6e6d0 45%,#6fcfae 100%);"></div>
+      <div class="kf-ghost">TONY</div>
+      <div class="kf-eyebrow2">Agent 05 · The Order Maker</div>
+      <div class="kf-figure"><img src="tony-cut.png" onerror="this.src='tony.png'" alt="Tony" /></div>
+      <span class="kf-soon">Coming Soon</span>
+    </a>
+  </div>
+</div>
+</body>
+</html>

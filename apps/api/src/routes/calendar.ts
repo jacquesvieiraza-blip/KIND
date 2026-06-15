@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { logOutcomeEvent } from '../lib/outcomes'
+import { recomputeCampaignCounters } from '../lib/figsy'
 import {
   getAuthUrl,
   exchangeCodeForTokens,
@@ -252,18 +253,26 @@ calendarRouter.post('/book', requireAuth, async (req: AuthRequest, res) => {
           .select('campaign_id').eq('lead_id', body.leadId).order('enrolled_at', { ascending: false }).limit(1).maybeSingle()
         campaignId = enr?.campaign_id ?? null
       }
-      if (campaignId) {
-        const { data: camp } = await db.from('figsy_campaigns').select('meetings_booked').eq('id', campaignId).maybeSingle()
-        await db.from('figsy_campaigns')
-          .update({ meetings_booked: (camp?.meetings_booked ?? 0) + 1 })
-          .eq('id', campaignId)
-      }
-      // Stamp the most recent hot/warm reply from this lead as booked (idempotent-ish).
-      await db.from('figsy_replies')
+      // Stamp the most recent hot/warm reply from this lead as booked, so the
+      // booking is represented in the authoritative source table (figsy_replies).
+      const { data: stamped } = await db.from('figsy_replies')
         .update({ meeting_booked_at: new Date().toISOString() })
         .eq('lead_id', body.leadId).is('meeting_booked_at', null)
         .in('classification', ['hot', 'warm'])
-        .then(() => {}, () => {})
+        .select('id')
+      if (campaignId) {
+        // If no reply existed to attribute the booking to, bump the stored counter
+        // directly (error-checked) so recompute's Math.max preserves it. Otherwise
+        // the stamped reply above makes recompute count it from source.
+        if (!stamped || stamped.length === 0) {
+          const { data: camp } = await db.from('figsy_campaigns').select('meetings_booked').eq('id', campaignId).maybeSingle()
+          const { error: bumpErr } = await db.from('figsy_campaigns')
+            .update({ meetings_booked: (camp?.meetings_booked ?? 0) + 1 })
+            .eq('id', campaignId)
+          if (bumpErr) console.error('[calendar] meetings_booked bump failed:', bumpErr.message, 'campaign', campaignId)
+        }
+        await recomputeCampaignCounters(campaignId)
+      }
     } catch (kpiErr) {
       console.error('[calendar/book] KPI update failed (booking still saved):', kpiErr)
     }

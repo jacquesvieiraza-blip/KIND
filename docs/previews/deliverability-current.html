@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deliverability — current (item 90 / #48)</title>
+<style>
+  :root{ --brand:#7C3AED; --muted:#6B7280; --faint:#9CA3AF; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#F7F6FB;color:#111827;-webkit-font-smoothing:antialiased}
+  .flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:6px}
+  .flag b{color:#fff}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 24px;display:flex;flex-direction:column;gap:22px}
+
+  .head{display:flex;align-items:center;justify-content:space-between}
+  .head h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .head h1 svg{width:20px;height:20px;color:var(--brand)}
+  .head p{font-size:13px;color:var(--muted);margin-top:2px}
+  .refresh{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--brand);
+    background:none;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .refresh:hover{background:#F5F0FF}.refresh svg{width:14px;height:14px}
+
+  .band{border-radius:12px;border:1px solid #A7F3D0;background:#ECFDF5;padding:16px;display:flex;align-items:center;gap:12px}
+  .band .dot{width:10px;height:10px;border-radius:50%;background:#34D399}
+  .band .bt{font-size:14px;font-weight:700;color:#047857}
+  .band .bs{font-size:12px;color:var(--muted);margin-top:2px}
+
+  .card{border-radius:12px;border:1px solid rgba(196,181,253,.4);background:#fff;padding:20px}
+  .card h2{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .card h2 svg{width:16px;height:16px}
+  .rowsb{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .muted{font-size:12px;color:var(--faint)}
+
+  .bignum{font-size:24px;font-weight:700}
+  .baseline{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+  .baseline .sub{font-size:13px;color:var(--faint)}
+  .bar{height:10px;border-radius:999px;background:#F5F0FF;overflow:hidden}
+  .bar > div{height:100%;border-radius:999px;background:var(--brand)}
+  .note{font-size:12px;color:var(--faint);margin-top:8px;line-height:1.5}
+
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:640px){.metrics{grid-template-columns:repeat(2,1fr)}}
+  .metric{border-radius:12px;border:1px solid rgba(196,181,253,.4);background:#fff;padding:16px}
+  .metric.good{border-color:#A7F3D0;background:rgba(236,253,245,.4)}
+  .mi{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;background:rgba(124,58,237,.10);color:var(--brand)}
+  .mi svg{width:16px;height:16px}
+  .metric.good .mi{background:#D1FAE5;color:#059669}
+  .mv{font-size:20px;font-weight:700}
+  .metric.good .mv{color:#047857}
+  .ml{font-size:11px;color:var(--muted);margin-top:2px}
+
+  .chart{display:flex;align-items:flex-end;gap:6px;height:128px;margin-top:8px}
+  .chart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .chart .col .b{width:100%;max-width:28px;border-radius:4px 4px 0 0;background:rgba(124,58,237,.8)}
+  .chart .col .d{font-size:9px;color:var(--faint)}
+
+  .foot{font-size:11px;color:var(--faint);display:flex;align-items:center;gap:6px}
+  .foot svg{width:12px;height:12px}
+</style>
+</head>
+<body>
+<div class="flag">PREVIEW · standalone — does NOT touch staging · <b>Deliverability</b> (item 90 · #48) · seeded sample numbers</div>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> Deliverability</h1>
+      <p>Inbox health, warmup pacing, and engagement signals.</p>
+    </div>
+    <button class="refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Refresh</button>
+  </div>
+
+  <div class="band">
+    <span class="dot"></span>
+    <div>
+      <div class="bt">Sender health: Healthy</div>
+      <div class="bs">Opt-out rate 0.3% across 1,284 sends · keeping it under 0.5% keeps you out of spam folders.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="rowsb">
+      <h2><svg viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg> Warmup pacing — today</h2>
+      <span class="muted">3 active campaigns</span>
+    </div>
+    <div class="baseline"><span class="bignum">28</span><span class="sub">/ 40 cold emails today</span></div>
+    <div class="bar"><div style="width:70%"></div></div>
+    <p class="note">The cap ramps automatically as the domain warms — 10/day → 20 → 30 → 40 → 50. Sends above the cap defer to tomorrow, never drop.</p>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+      <div class="mv">1,284</div><div class="ml">Sent (all time)</div>
+    </div>
+    <div class="metric good">
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 13V7a2 2 0 00-2-2H4a2 2 0 00-2 2v6"/><path d="M22 13l-10 6L2 13"/></svg></div>
+      <div class="mv">38.4%</div><div class="ml">Open rate</div>
+    </div>
+    <div class="metric good">
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+      <div class="mv">6.1%</div><div class="ml">Reply rate</div>
+    </div>
+    <div class="metric">
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div class="mv">4</div><div class="ml">Opt-outs</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><svg viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Send volume — last 14 days</h2>
+    <div class="chart">
+      <div class="col"><div class="b" style="height:30%"></div><div class="d">31</div></div>
+      <div class="col"><div class="b" style="height:45%"></div><div class="d">01</div></div>
+      <div class="col"><div class="b" style="height:40%"></div><div class="d">02</div></div>
+      <div class="col"><div class="b" style="height:55%"></div><div class="d">03</div></div>
+      <div class="col"><div class="b" style="height:20%"></div><div class="d">04</div></div>
+      <div class="col"><div class="b" style="height:15%"></div><div class="d">05</div></div>
+      <div class="col"><div class="b" style="height:60%"></div><div class="d">06</div></div>
+      <div class="col"><div class="b" style="height:65%"></div><div class="d">07</div></div>
+      <div class="col"><div class="b" style="height:70%"></div><div class="d">08</div></div>
+      <div class="col"><div class="b" style="height:58%"></div><div class="d">09</div></div>
+      <div class="col"><div class="b" style="height:80%"></div><div class="d">10</div></div>
+      <div class="col"><div class="b" style="height:75%"></div><div class="d">11</div></div>
+      <div class="col"><div class="b" style="height:90%"></div><div class="d">12</div></div>
+      <div class="col"><div class="b" style="height:70%"></div><div class="d">13</div></div>
+    </div>
+  </div>
+
+  <p class="foot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Bounce and spam-complaint rates are not yet tracked per client — they'll appear here once inbound delivery webhooks are wired (D9).</p>
+</div>
+</body>
+</html>

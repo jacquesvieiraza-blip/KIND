@@ -588,7 +588,45 @@ The `partners@apollo.io` email (sent 14 Jun) decides it:
 
 ---
 
+## 15. Execution Tickets — Tue-16 billing + onboarding build
+
+> Derived run-list (pulls from `PRODUCT-INVENTORY.md` items 166–173 + §14). Inventory is the source of truth for status; this is the *do-it order* with file refs. Owners: 🧍 founder · 🤖 Claude · 🤝 both.
+
+### A. BILLING CORRECTNESS — Tue 16 (pre-client blockers, gate Fri-19) — items 166–173
+*Build order respects dependencies: the `plan` flag + pool model underpin the charge fixes; price reconciliation + admin visibility follow; multi-currency is a separate phase.*
+
+| # | Ticket | Files | Owner | Order |
+|---|---|---|---|---|
+| **169** | `clients.plan` flag — migration + backfill (FIGSY campaign/credits → `figsy`, else `lead_gen`); delivery reads it, charges **one** pool | new migration + delivery path | 🤖 | **1** |
+| **167** | FIGSY-only bundle can deliver — pool-aware delivery (not capped by lead-gen balance) + FIGSY-pool trial grant | `icps.ts:151-152` | 🤖 | **2** |
+| **166** | Kill the double-charge — stop charging lead-gen $1 AND FIGSY $3 on the same lead ($4→$3) | `lead-delivery.ts:64`, `figsy.ts:907-921` | 🤖 | **3** |
+| **170** | Atomic FIGSY credit RPC — replace read-modify-write with `increment_figsy_credits` RPC | `figsy.ts:909-912` | 🤖 | **4** |
+| **168** | **Reconcile 3 price tables → LOCKED constants** ($20/$40/$100 · $60/$120/$300). Code: portal imports `@kind/shared`. **Founder: recreate the 6 Stripe Price objects at locked values.** | `constants/index.ts` (source), `billing/page.tsx:70-74`, `company/page.tsx`, `stripe.ts:26-30` | 🤝 | **5** |
+| **171** | "How credits work" panel honesty — fix false "Outreach sent — No credit used" + show FIGSY pool | `billing/page.tsx:303-306` | 🤖 | **6** |
+| **173** | Admin FIGSY visibility — surface `figsy_credits_remaining` (admin shows `credit_balance` only) + add top-up | admin client view | 🤖 | **7** |
+| **172** | Multi-currency USD/GBP/ZAR — Stripe multi-currency Prices + `clients.preferred_currency`; reconcile w/ Flutterwave. **Own phase — does NOT block 166–171.** | `flutterwave.ts:146-160` | 🤝 | later |
+
+**Founder's two actions for the billing build:** ① recreate the 6 Stripe Price objects at the locked values (item 168); ② decide multi-currency scope (item 172).
+
+### B. ONBOARDING & SEGMENTATION — from §14 (mostly post-launch / Month-1 company hardening)
+| Ref | Ticket | Status | Owner |
+|---|---|---|---|
+| #30 | SMB self-serve flow (Track A) | 🟡 drafted (`ONBOARDING_V2.md`), gated on launch run-through | 🤝 |
+| #88 | Company Engine, two-pool, seats (Track B core) | 🟢 live (prod Mon 15) | — |
+| O1 | Website → read client's **own firmographics** for routing (PDL company enrich) | 🔴 new | 🤖 |
+| O2 | Seat-based auto-routing (1 = self-serve / 2+ = concierge) | 🔴 new | 🤖 |
+| O3 | 14-day company trial on bundled data (before any Apollo implementation) | 🔴 new | 🤖 |
+| O4 | White-glove implementation flow (CRM + **optional** BYO-Apollo) | 🔴 new — Month-1 company hardening | 🤝 |
+| O5 | Multi-source waterfall PDL→Hunter→Apollo (activate) | 🟡 half-wired (keys set 15 Jun) | 🤖 |
+
+### C. Gated on Apollo's reply (`partners@apollo.io`, sent 14 Jun)
+- **Final SMB data default** — bundle (if Apollo grants reseller/partner terms) vs. lean on multi-source waterfall (if not). Until then: **bundle for SMB, BYO-key optional for company/partner** (§13/§14).
+
+**Critical path to Fri-19:** items **169 → 167 → 166 → 170 → 168 → 171 → 173** (billing correctness). Onboarding A/B and the Apollo default are **post-launch** — they do not gate the 19th.
+
+---
+
 *Document owner: K.I.N.D founding team*
-*Last updated: **16 June 2026** — Billing Correctness Build + $1M ARR goal (math corrected) + §13 Apollo/data-sourcing strategy + §14 Onboarding & Segmentation plan (§5d reconciled)*
+*Last updated: **16 June 2026** — prices reconciled to LOCKED flat constants + $1M ARR goal (math corrected) + §13 Apollo strategy + §14 Onboarding/Segmentation + §15 Execution tickets (166–173 + onboarding)*
 *Previous: 10 June 2026 — Cost Per Product & Scaling Map*
 *Review this model quarterly as pricing, client mix, and ARPU evolves.*

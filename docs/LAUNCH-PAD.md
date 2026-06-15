@@ -1,4 +1,10 @@
-# 🚀 K.I.N.D — THE LAUNCH PAD (tomorrow → Sep, every item, numbered)
+# 🚀 K.I.N.D — THE LAUNCH PAD (the daily command sheet)
+
+> ## ⚙️ OPERATING RULE — read once
+> **I only work from this doc day-to-day.** Operating-system map: `LAUNCH-PAD` = today's runlist · `PRODUCT-INVENTORY` = status truth (one dot, one owner) · `KIND-MASTER` = strategy + decisions + session log (governs strategy conflicts) · `V2-TRACKER` = future detail · root `CLAUDE.md` = agent config · GitHub = execution (one PR per shippable change). **No new core doc unless it replaces an old one.**
+> - No item exists without **owner · status · next action · done condition · source item (inventory ID)**.
+> - No work starts unless it's on today's runlist or explicitly pulled in.
+> - STATUS lives only in PRODUCT-INVENTORY; this doc references it by ID, never holds it.
 
 > ## 🧭 VERIFIED STATE — read this first
 > _Single source of ground truth. Update this block whenever state changes so a cold resume (me, Manus, or you) never has to guess._
@@ -218,19 +224,8 @@ Product already live. 🤖 monitor prod + hotfix only. **No merges over the week
 - 🧍 partner #2 (Kenya/Ghana) · demo + Looms recorded (129).
 - 🎯 **Month-1 targets: 5 clients (break-even) · Company OS fully live · demo recorded · LinkedIn live.**
 
-### 📅 MONTH 2 (late Jul → Aug) — 🟡 P2 · INTELLIGENCE 🔒 gated ~10+ paying clients
-- **Learning Engine (143)** build order: ① Train-FIGSY RAG → ③ evals → ② outcome feedback loop → contextual bandit → ④ memory/pgvector (120/46) → ⑤ model routing *(fine-tuning parked last)*.
-- Intelligence (139/140) · **MCP server (141/59)** · **Casey (121)** · Product Hunt + G2 (142).
-- ⚖️ Month-2 legal: D&O insurance · trademark filing (after clearance) · NDPR/Kenya ODPC prep.
-- 🎯 **Targets: 10+ clients · MCP live · V2 redesign ~50%.**
-
-### 📅 MONTH 3 (Aug → Sep) — 🟢 P3 · AGENT FAMILY + PRICING 🔒 gated unit margin ≥ ~28%
-- **DENISE deep build (144)** · **outcome pricing per meeting (147, ≥28% margin)** · LENA + TONY (145) · orchestration + skills (146) · CRM Kanban + mobile PWA (148) · proposal e-sign + notetaker (149).
-- ⚖️ Pen test · Kenya ODPC.
-- 🎯 **Targets: ~50 clients · L2 learning live · outcome pricing unlocked.**
-
-### 📅 YEAR 2 (2027) — 🔵 P4 · ENTERPRISE 🔒 gated 50+ clients
-- Cross-client intelligence L4 (150) · compliance stack ISO 27001/42001 + SOC 2 + Vanta (151) · advanced moat (152) · the 15 Pieces (153–161).
+### 📅 MONTH 2+ (gated) — ROADMAP LIVES IN V2-TRACKER (don't duplicate it here)
+> P2 Intelligence (Learning Engine 143 · MCP 141 · Casey 121 — gated ~10+ clients) · P3 Agent Family + outcome pricing (144/147 — gated ≥28% margin) · P4 Enterprise (150–161 — gated 50+ clients). **These are future detail → `V2-TRACKER.md` (Month 2 / Month 3 / Year 2 sections). The B0 table above is the ranked index; the detail is V2's, not copied here.** Pull an item into the runlist only when its gate opens.
 
 ## B2 · GATED ON A FOUNDER ACTION OR A KEY (do the moment the gate opens — not date-bound)
 - 🔑 **Flutterwave** (136) · **Meta/WhatsApp** (128, apply now → live Month 2) · **Google/Microsoft OAuth → social login** (84/126) · **HubSpot sync** (key).

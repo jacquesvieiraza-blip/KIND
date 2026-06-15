@@ -1,5 +1,7 @@
 # 📋 K.I.N.D — COMPLETE PRODUCT INVENTORY (THE single list)
 
+> **AUTHORITY (operating system — see root `CLAUDE.md`):** this is the ONLY home for product **status** (one dot + one owner per item). Not a task list. For daily execution → `LAUNCH-PAD.md`; for strategy/decisions/history → `KIND-MASTER.md`; for future detail → `V2-TRACKER.md`. **Nothing is 🟢 unless verified live in production** (live-but-unwalked = 🩷).
+
 > **This is the ONE inventory. Every item lives here with one status dot and one owner.**
 > If something is built anywhere (main, staging, a branch), it is in this doc. `V2-TRACKER.md` holds
 > only FUTURE detail (roadmap rationale, learning engine, steals); anything it mentions as built points back here.

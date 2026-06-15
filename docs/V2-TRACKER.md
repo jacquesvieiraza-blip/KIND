@@ -83,6 +83,8 @@ _Last updated: 14 Jun 2026 — **this doc now lives on `main`** (consolidated of
 4. **Manus** — African-SMB deep-research fallback (the potential moat; async, needs dedup+verification). Post-launch.
 **Posture goal: "Apollo-first, multi-source" BEFORE the 50-client trigger.**
 
+> **🆕 15 Jun — ACV-SEGMENTED DATA + ONBOARDING DECISION (full detail: `run-costs-and-cashflow.md` §13/§14).** Resolved how the data model meets onboarding: **bundle data for self-serve SMB** (friction kills conversion; data is only ~2% of cost) · **BYO-Apollo key for company/partner** accounts (low-friction at high ACV, de-risks scale, fixes ToS) — but **optional, not mandatory** until Apollo's reply forces it. Onboarding routes on **seats, not headcount** (1 = self-serve / 2+ = concierge), reads firmographics off the signup domain (PDL), and runs a **14-day company trial on bundled data before any implementation ask**. New inventory build items: **174** firmographics read · **175** seat-routing · **176** 14-day trial · **177** white-glove implementation. Also locked 15 Jun: **flat pricing** (Lead Gen $20/40/100 · FIGSY $60/120/300, $1/$3 flat — item 168 reconciles Stripe+portal to these).
+
 ---
 
 # ░ PART 1 — CURRENT BUILD STATUS → MOVED TO THE INVENTORY ░

@@ -29,17 +29,18 @@
 2.4 **State the deploy impact every time.** When presenting work, Claude says plainly: "this goes live on merge" or "this is docs/staging only, nothing deploys."
 2.5 **Launch date is 🚀 Fri 19 Jun 2026.** Held work is post-19 unless the founder names an exception (e.g. the Company Command Centre).
 
-## 3. 🎨 THE INVENTORY COLOUR SYSTEM (4 states — never blur them)
-Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. Claude must use them honestly:
+## 3. 🎨 THE INVENTORY COLOUR SYSTEM (5 states — never blur them)
+Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴 → 🟡 → 🟣 → 🩷 → 🟢.** Claude must use them honestly:
 | Dot | Means | Bar to earn it |
 |-----|-------|----------------|
-| 🟢 **GREEN** | **LIVE** — in production and **verified working** | deployed + actually run + checked |
+| 🟢 **GREEN** | **LIVE + VERIFIED** — in production and **verified working** | deployed + actually run + checked |
+| 🩷 **PINK** | **LIVE, PENDING VERIFICATION** — shipped to prod but **not yet walked/verified** | deployed, awaiting the feature-verification walk (then → 🟢, or → 🔴 if broken) |
 | 🟣 **PURPLE** | **APPROVED + LOCKED** — built and signed off, **but not live** | founder approved the design/build; sitting on a branch |
 | 🟡 **YELLOW** | **NEEDS VERIFICATION** — built or drafted, **not yet checked/approved** | exists but unproven; pending review or testing |
 | 🔴 **RED** | **NOT BUILT** | idea / planned only |
-3.1 **🟢 is earned, never claimed.** Nothing is green until it has run live and been verified (Rule 1.6).
-3.2 **Don't promote a dot without evidence.** Moving 🔴→🟡→🟣→🟢 requires the proof named in the table.
-3.3 **Purple ≠ live.** Built-and-approved is still staging. Don't describe purple work as if customers can see it.
+3.1 **🟢 is earned, never claimed.** Nothing is green until it has run live and been **verified** (Rule 1.6). Live-but-unverified is **🩷 pink**, not green.
+3.2 **Don't promote a dot without evidence.** Moving 🔴→🟡→🟣→🩷→🟢 requires the proof named in the table.
+3.3 **Purple ≠ live · pink = live-but-unproven.** Purple is still on a branch; pink is deployed but unwalked. Don't describe either as verified-working.
 
 ## 4. 🌿 BRANCHES & DOCS
 4.1 **Docs live on `main`.** The three source-of-truth docs (`KIND-MASTER.md`, `PRODUCT-INVENTORY.md`, `V2-TRACKER.md`) live on the live branch so logging travels with the code. Never maintain them only on a held branch again (that caused the 13→14 Jun drift).

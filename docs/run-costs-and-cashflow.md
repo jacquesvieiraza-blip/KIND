@@ -613,11 +613,13 @@ The `partners@apollo.io` email (sent 14 Jun) decides it:
 |---|---|---|---|
 | #30 | SMB self-serve flow (Track A) | 🟡 drafted (`ONBOARDING_V2.md`), gated on launch run-through | 🤝 |
 | #88 | Company Engine, two-pool, seats (Track B core) | 🟢 live (prod Mon 15) | — |
-| O1 | Website → read client's **own firmographics** for routing (PDL company enrich) | 🔴 new | 🤖 |
-| O2 | Seat-based auto-routing (1 = self-serve / 2+ = concierge) | 🔴 new | 🤖 |
-| O3 | 14-day company trial on bundled data (before any Apollo implementation) | 🔴 new | 🤖 |
-| O4 | White-glove implementation flow (CRM + **optional** BYO-Apollo) | 🔴 new — Month-1 company hardening | 🤝 |
-| O5 | Multi-source waterfall PDL→Hunter→Apollo (activate) | 🟡 half-wired (keys set 15 Jun) | 🤖 |
+| **174** | Website → read client's **own firmographics** for routing (PDL company enrich) | 🔴 new | 🤖 |
+| **175** | Seat-based auto-routing (1 = self-serve / 2+ = concierge) | 🔴 new | 🤖 |
+| **176** | 14-day company trial on bundled data (before any Apollo implementation) | 🔴 new | 🤖 |
+| **177** | White-glove implementation flow (CRM + **optional** BYO-Apollo) | 🔴 new — Month-1 company hardening | 🤝 |
+| 94/95/140 | Multi-source waterfall PDL→Hunter→Apollo (activate) | 🟡 half-wired (keys set 15 Jun) | 🤖 |
+
+*(Inventory IDs 174–177 added 15 Jun. The earlier "O1–O5" labels are retired — these are the canonical numbers across all docs.)*
 
 ### C. Gated on Apollo's reply (`partners@apollo.io`, sent 14 Jun)
 - **Final SMB data default** — bundle (if Apollo grants reseller/partner terms) vs. lean on multi-source waterfall (if not). Until then: **bundle for SMB, BYO-key optional for company/partner** (§13/§14).

@@ -269,7 +269,7 @@ At **$187 ARPU** (Growth+ w/ Denise): net ~$180/client/mo.
 ### 🔑 The single biggest cost lever at scale: the Apollo data decision
 Verified 10 Jun: reselling Apollo data off one account violates ToS **from client #1** (not at "50 clients" — that figure was wrong). Two compliant structures, with **opposite cost profiles**:
 - **(a) Apollo API Reseller / Data-Licensing agreement** (`partners@apollo.io`): a contract (likely higher Apollo spend or a revenue share) — but it legitimises one-account-many-clients and Apollo cost stays on K.I.N.D's books, growing with usage.
-- **(b) Client-brings-own-Apollo-key** (Agency sub-accounts): **K.I.N.D's Apollo cost → ~$0** — each client pays Apollo directly. **This is the margin-maximising AND compliance-solving choice** — it removes the only meaningful variable cost *and* fixes the ToS. Trade-off: a little signup friction. **For the per-rep company model (a company getting one Apollo account for its seats) this is very natural.** → Strongly favour (b) as the default; (a) for clients who won't manage a key.
+- **(b) Client-brings-own-Apollo-key** (Agency sub-accounts): **K.I.N.D's Apollo cost → ~$0** — each client pays Apollo directly. It removes the only meaningful variable cost *and* fixes the ToS. Trade-off: **signup friction** — a deal-killer for self-serve SMB. **For the per-rep company model (a company getting one Apollo account for its seats) this is very natural.** → **REVISED 16 Jun (see §13/§14): NOT a blanket default. Segment it — bundle data for self-serve SMB (friction kills conversion; data is only ~2% of cost), reserve BYO-key for company/partner accounts where it's low-friction and de-risks scale.** Final SMB stance gated on Apollo's partner reply.
 - **(c) Multi-source (PDL wired, dormant):** PDL free tier → paid (pay-as-you-go), Hunter ~$49/mo. Cuts single-vendor risk + fills African coverage gaps; not the compliance fix on its own.
 
 ### Costs that come online as you grow
@@ -541,7 +541,59 @@ The `partners@apollo.io` email (sent 14 Jun) decides it:
 
 ---
 
+## 14. Onboarding & Segmentation Plan — self-serve SMB vs. white-glove company
+
+> 🚧 **STRATEGY / PLAN (not built). Founder-approved direction 16 Jun; layers on top of the existing onboarding draft (`docs/drafts/ONBOARDING_V2.md`, item #30) and the live Company Engine (#88).** Self-serve SMB flow already drafted; this adds the *company fork* + the data-segmentation rule. Nothing here ships before founder sign-off on a real signup run-through.
+
+### The one rule
+**Segment on SEATS REQUESTED, not headcount.** Company size (auto-read at signup) is a *hint* for routing/guessing, never a hard wall.
+- **1 seat → self-serve track** (Track A). Zero friction, we bundle the data.
+- **2+ seats / "team" intent → concierge track** (Track B). Free white-glove setup, optional BYO-Apollo.
+
+*(Headcount alone lies — a 15-person agency can be your best team customer; a 40-person firm may want one seat. Seats = the true signal.)*
+
+### Shared front door (both tracks)
+1. **Client enters their website at signup.** We auto-read their company data (firmographics incl. employee-size) — the existing **ICP website-scan** (per `ONBOARDING_V2.md`) extended to also capture the client's *own* size via **PDL** (`apps/api/src/lib/pdl-search.ts` — wired, has `job_company_size`; keys set 15 Jun).
+2. **Auto-route:** size + seats → suggest Track A (self-serve) or Track B (concierge). Client can override.
+3. **Everyone starts on K.I.N.D-bundled data immediately** — first scored leads in <10 min (the onboarding north-star). **No Apollo account required to start, in either track.**
+
+### Track A — Self-serve SMB (1 seat)
+- The existing `ONBOARDING_V2.md` flow verbatim: signup → ICP → first leads (our Apollo/multi-source) → first FIGSY campaign → first reply.
+- **Data: always bundled by K.I.N.D.** Client never touches Apollo. We absorb the ~2% cost — trivial.
+- Friction: **zero.** This is the volume engine + the upsell base (push FIGSY/Denise after first leads).
+
+### Track B — Company / Team (2+ seats) — the #88 Company Engine
+- **Day 0–14: trial on bundled data, no implementation gate.** They get real leads + value *before* any setup ask. This is the wedge that lets us "start engaging, onboarding and selling" while the deal warms.
+- **After value is shown: free white-glove implementation** (the concierge call) — wire CRM + connections, configure pools/seats (#88's two-pool model: lead-gen $1 / FIGSY $3), and **optionally** connect the company's own Apollo key (one account for all seats, like their CRM).
+- **Implementation is a sales/relationship moment, never a hurdle** — "we build your revenue engine for you, free." It's *why* a company pays ~10× an SMB.
+
+### The Apollo decision per track (the only genuinely open question)
+| Track | Default | BYO-Apollo? |
+|---|---|---|
+| **A — SMB** | **Bundled (we hold data)** | No — never forced |
+| **B — Company/Partner** | **Bundled to start (trial)** | **Optional**, offered at implementation — mandatory only for very-high-volume accounts or if Apollo's ToS requires it at their scale |
+
+**Gated on `partners@apollo.io` reply (sent 14 Jun):**
+- **Apollo says yes (reseller/partner terms)** → bundle for *everyone* ToS-clean; BYO-key becomes a pure concierge option. Lowest friction everywhere.
+- **Apollo says no** → BYO-key becomes the compliance path for high-volume company/partner accounts; SMB leans harder on the **PDL→Hunter→Apollo waterfall** (§13) so self-serve stays friction-free and ToS-safe.
+
+### Build status (honest — Rule 3)
+| Piece | Status | Notes |
+|---|---|---|
+| SMB self-serve flow (Track A) | 🟡 drafted | `ONBOARDING_V2.md` #30 — gated on launch run-through |
+| Company Engine, two-pool, seats (Track B core) | 🟢 live | #88 shipped to prod Mon 15 |
+| Website→ICP autofill | 🟡 referenced built | confirm endpoint during run-through |
+| Website→**own-firmographics** read for routing | 🔴 new | extend scan / use PDL company enrich |
+| Seat-based auto-routing (A vs B) | 🔴 new | the segmentation switch |
+| 14-day company trial on bundled data | 🔴 new | trial logic before implementation |
+| White-glove implementation flow (CRM + optional Apollo) | 🔴 new | post-launch (company hardening, Month 1) |
+| Multi-source waterfall (PDL→Hunter→Apollo) | 🟡 half-wired | PDL dormant-capable; keys set 15 Jun |
+
+**Sequence:** ship Track A (self-serve) at launch → add seat-routing + company trial → build white-glove implementation post-launch (already in Month-1 "company hardening") → finalise the Apollo default once Apollo replies.
+
+---
+
 *Document owner: K.I.N.D founding team*
-*Last updated: **16 June 2026** — Billing Correctness Build + $1M ARR goal (math corrected) + §13 Apollo/data-sourcing strategy*
+*Last updated: **16 June 2026** — Billing Correctness Build + $1M ARR goal (math corrected) + §13 Apollo/data-sourcing strategy + §14 Onboarding & Segmentation plan (§5d reconciled)*
 *Previous: 10 June 2026 — Cost Per Product & Scaling Map*
 *Review this model quarterly as pricing, client mix, and ARPU evolves.*

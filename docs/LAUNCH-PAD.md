@@ -11,7 +11,7 @@
 ## 🧭 VERIFIED STATE — what's true right now
 - **Last verified:** 2026-06-15 EOD. **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
 - **LIVE on prod:** Company Engine (#88) + the **#502 superset** = R1–R20 + design screens 80–91 → all **🩷 pink** (live, pending the Wed/Thu walk → then 🟢). Verified-🟢: 55, 92. Marketing site (The Drop, Prompt Library) + admin portal live.
-- **`main`:** #570 merged (🩷 pink state + full doc sync). **#571 open** (operating system).
+- **`main`:** ✅ all of today's docs merged through **#572** — operating system (`CLAUDE.md`) · 🩷 pink state · this clean daily doc — all live.
 - **NOT done yet:** billing correctness 166–173 (Tue-16) · the verification walk (Wed/Thu) · legal #10–14 · D9 10/10.
 - **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done (C1959926).
 - **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
@@ -20,21 +20,22 @@
 ---
 
 ## ✅ TODAY'S RUNLIST
+> ▶️ **TOMORROW (Tue 16) — start here:** task 1 (billing build, 🤖) · task 2 (recreate Stripe prices, 🧍) · task 3 (D9 10/10) · then legal pack + close #503.
 
-**1 · Merge the operating-system PR**
-- Owner: 🧍 founder · Action: review + merge · Where: GitHub · Done when: on `main` · Source: ops-system · GitHub: **#571**
-
-**2 · Close the stale marketing PR**
-- Owner: 🧍 founder · Action: close it (The Drop already live via #544; the Watch page stays held as inventory 163) · Where: GitHub · Done when: closed · Source: 93/163 · GitHub: **#503**
-
-**3 · Billing correctness build** *(the pre-client blocker — gates Fri 19)*
+**1 · Billing correctness build** *(the pre-client blocker — gates Fri 19)*
 - Owner: 🤖 Claude · Action: build in order **169 → 167 → 166 → 170 → 168 → 171 → 173** (clients.plan flag → pool-aware delivery → kill double-charge → atomic FIGSY RPC → reconcile prices to constants → honest credits panel → admin FIGSY visibility) · Where: `api` + `portal`, fresh branch off `main` · Done when: smoke test green + screenshots, one PR **open, not merged** · Source: **166–173** · GitHub: _new PR_
 
-**4 · Recreate the Stripe Prices at the locked flat values**
+**2 · Recreate the Stripe Prices at the locked flat values**
 - Owner: 🧍 founder · Action: recreate the 6 Price objects — Lead Gen **$20/$40/$100**, FIGSY **$60/$120/$300** ($1/$3 flat); confirm `STRIPE_PRICE_DENISE_MONTHLY` = **$39** · Where: Stripe dashboard + Railway env · Done when: checkout charges the locked prices · Source: **168 / 58** · GitHub: —
 
-**5 · D9 deliverability to 10/10**
+**3 · D9 deliverability to 10/10**
 - Owner: 🧍 founder (🤖 assist) · Action: run `DELIVERABILITY-D9-CHECKLIST.md` to a clean 10/10 · Where: mail-tester / GlockApps · Done when: 10/10 (the Thu-18 launch gate) · Source: **101** · GitHub: —
+
+**4 · Close the stale marketing PR**
+- Owner: 🧍 founder · Action: close it (The Drop already live via #544; the Watch page stays held as inventory 163) · Where: GitHub · Done when: closed · Source: 93/163 · GitHub: **#503**
+
+**5 · Legal pack #10–14** *(do with a clear head)*
+- Owner: 🧍 founder · Action: SR01 · registered office · WHOIS · LinkedIn lockdown (ICO already done) + trademark search + Meta/WhatsApp API application · Where: respective portals · Done when: all filed · Source: **102** · GitHub: —
 
 ---
 

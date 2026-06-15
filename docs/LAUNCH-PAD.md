@@ -2,14 +2,15 @@
 
 > ## 🧭 VERIFIED STATE — read this first
 > _Single source of ground truth. Update this block whenever state changes so a cold resume (me, Manus, or you) never has to guess._
-> - **Last verified:** 2026-06-15 12:10 UTC (Mon — Company Ship in progress)
-> - **`main` HEAD:** `687e414` (pre-#502). **Decision 15 Jun: straight to prod, no staging hop** (schema was staging-proven 12 Jun).
-> - **✅ DONE today:** all 7 prod migrations applied (010·011·012·013·20260603·20260612·companion tables) · env vars verified · **ICO registered (C1959926)** · docs PR **#563** open.
-> - **Flag:** `NEXT_PUBLIC_FEATURE_V2_SCREENS = all` — **leave as-is** (already exposes `company`; setting "company only" would regress the live cosmetic screens).
-> - **No live clients yet** → safe to compress the R-train into this week (Wed–Thu) instead of next.
-> - **Next action:** merge **#563** (docs) → merge **#502** (Company Engine) → smoke `/dashboard/company`.
-> - **Purple boxes still to open:** **#502** (Company Engine + design screens 80–91) · **#506–#525** (R1–R20 train) · #503 (website) · #563 (docs).
-> - **RLS / per-rep access control = FAST-FOLLOW** (item 55a / R11) — build Mon 22–Tue 23, before onboarding the 50-rep client. NOT a launch blocker.
+> - **Last verified:** 2026-06-15 12:50 UTC (Mon — Company Engine LIVE)
+> - **`main` HEAD:** `288230b` (Merge #565). **#502 shipped to prod via #564 + hotfix #565.**
+> - **✅ LIVE ON PROD (box #502 opened):** 🏢 Company Engine (`/dashboard/company`) · API/portal hardening (atomic credits, rate-limits, counter-drift) · the design screens 80–91 (Teams Hub, Notetaker, Integrations, Deliverability, Activity, Sequence Builder, Templates, What's New) — all nav-linked + live, **pending walk-through verification**. Portal loads, credits (999,839) + activity + FIGSY agent panel verified.
+> - **✅ DONE today:** prod migrations applied to the **PRODUCTION** project (morning runs had gone to staging — fixed) · ICO registered (C1959926) · docs #563 merged · #564 + #565 merged.
+> - **⬜ STILL SEALED:** R-train **#506–#525** (20 boxes) · website **#503**. Close the old **#502** PR (superseded by #564).
+> - **🔑 Pending env:** set `HUNTER_API_KEY` + `PDL_API_KEY` on Railway `api` (keys received, not yet confirmed set).
+> - **Flag:** `NEXT_PUBLIC_FEATURE_V2_SCREENS = all` (exposes everything in the merged code).
+> - **RLS / per-rep access control = FAST-FOLLOW** (item 55a / R11) — before onboarding the 50-rep client. NOT a launch blocker.
+> - **Process lock:** **confirm the Supabase project name out loud before every SQL run** (morning runs hit staging by mistake — no harm, recovered).
 > - **The 4 canonical docs:** `KIND-MASTER` (governs) · this `LAUNCH-PAD` (the wake-up runlist) · `PRODUCT-INVENTORY` · `V2-TRACKER`. No fifth doc.
 
 > **What this is:** the single, exhaustive run-list from **now → launch → the first quarter**, built off a full audit of all three core docs (`KIND-MASTER` · `PRODUCT-INVENTORY` · `V2-TRACKER`), **every** secondary doc in the repo (deploy/deliverability/smoke/legal/GTM/funding), and the **live git + PR state**. Nothing here is from memory.

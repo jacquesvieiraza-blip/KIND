@@ -2,14 +2,17 @@
 
 > ## 🧭 VERIFIED STATE — read this first
 > _Single source of ground truth. Update this block whenever state changes so a cold resume (me, Manus, or you) never has to guess._
-> - **Last verified:** 2026-06-15 12:10 UTC (Mon — Company Ship in progress)
-> - **`main` HEAD:** `687e414` (pre-#502). **Decision 15 Jun: straight to prod, no staging hop** (schema was staging-proven 12 Jun).
-> - **✅ DONE today:** all 7 prod migrations applied (010·011·012·013·20260603·20260612·companion tables) · env vars verified · **ICO registered (C1959926)** · docs PR **#563** open.
-> - **Flag:** `NEXT_PUBLIC_FEATURE_V2_SCREENS = all` — **leave as-is** (already exposes `company`; setting "company only" would regress the live cosmetic screens).
-> - **No live clients yet** → safe to compress the R-train into this week (Wed–Thu) instead of next.
-> - **Next action:** merge **#563** (docs) → merge **#502** (Company Engine) → smoke `/dashboard/company`.
-> - **Purple boxes still to open:** **#502** (Company Engine + design screens 80–91) · **#506–#525** (R1–R20 train) · #503 (website) · #563 (docs).
-> - **RLS / per-rep access control = FAST-FOLLOW** (item 55a / R11) — build Mon 22–Tue 23, before onboarding the 50-rep client. NOT a launch blocker.
+> - **Last verified:** 2026-06-15 13:00 UTC (Mon). **⏰ HARD DEADLINE — everything verified + fixed by THU 18 (founder away Fri 19).** The product is already live; the week = prove + fix, not merge.
+> - **`main` HEAD:** `288230b` (Merge #565). **#502 shipped to prod via #564 + hotfix #565.**
+> - **✅ LIVE ON PROD — #502 was a SUPERSET, so the WHOLE product shipped:** 🏢 Company Engine · API/portal hardening · design screens 80–91 · **AND all 20 R-wave features R1–R20** (their code was on the #502 dev branch — verified by grep). Portal loads, credits (999,839) + activity + FIGSY panel verified. **Everything else = pending the feature-verification walk (§2).**
+> - **➡️ R-train PRs #506–#525 are REDUNDANT → CLOSE them** (code already live; merging = conflicts). Also close old **#502** (superseded by #564).
+> - **🗄️ 3 prod migrations still owed** (code live, schema missing): **R2** `clients.daily_brief_enabled` · **R15** `figsy_knowledge` · **R20** `leads.job_changed_at`+`previous_company`. Run on the PRODUCTION project.
+> - **✅ DONE today:** prod migrations applied to PRODUCTION project (morning runs had gone to staging — fixed, recovered) · ICO (C1959926) · #563/#564/#565 merged.
+> - **🔑 Pending env:** set `HUNTER_API_KEY` + `PDL_API_KEY` on Railway `api`.
+> - **⬜ Still sealed:** only the website box **#503**.
+> - **Flag:** `NEXT_PUBLIC_FEATURE_V2_SCREENS = all`.
+> - **RLS / per-rep access control = FAST-FOLLOW** (55a / R11) — before onboarding the 50-rep client.
+> - **Process lock:** **confirm the Supabase project name before every SQL run** (morning runs hit staging — recovered).
 > - **The 4 canonical docs:** `KIND-MASTER` (governs) · this `LAUNCH-PAD` (the wake-up runlist) · `PRODUCT-INVENTORY` · `V2-TRACKER`. No fifth doc.
 
 > **What this is:** the single, exhaustive run-list from **now → launch → the first quarter**, built off a full audit of all three core docs (`KIND-MASTER` · `PRODUCT-INVENTORY` · `V2-TRACKER`), **every** secondary doc in the repo (deploy/deliverability/smoke/legal/GTM/funding), and the **live git + PR state**. Nothing here is from memory.
@@ -58,14 +61,16 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 - ✅ **Env vars verified** — `api` has all 6 required (`ADMIN_SECRET_KEY · RESEND_API_KEY · RESEND_WEBHOOK_SECRET · ANTHROPIC_API_KEY · SUPABASE_URL · SUPABASE_SERVICE_ROLE_KEY`); `NEXT_PUBLIC_ADMIN_KEY` already absent (nothing to delete); `STRIPE_PRICE_DENISE_MONTHLY` exists (⚠️ verify it's the $39 price in the Stripe step).
 - ✅ **Flag** `NEXT_PUBLIC_FEATURE_V2_SCREENS = all` — **leave as-is** (already exposes `company`; "company only" would regress live screens).
 
-**⬜ REMAINING, in order (🧍 clicks, 🤖 preps):**
-1. **Merge #563** (docs — harmless, clears stranded commits).
-2. **Merge #502 → `main`** (straight to prod; Railway auto-deploys api/portal/admin). *Note: #502 = 173 files = the whole launch product; the post-19 design screens ride along as orphan URLs (not in nav). R-train #506–#525 is NOT in #502.*
-3. **Smoke `/dashboard/company`** live + the core loop.
-4. **Stripe:** verify `STRIPE_PRICE_DENISE_MONTHLY` = **$39** (not $99) *(58)* · create **pool-topup products** (lead-gen $1 · FIGSY $3) *(57)*.
+**✅ ALSO DONE:** #563/#564/#565 merged → Company Engine + the whole #502 superset (incl. R1–R20) LIVE; portal loop hotfixed; credits verified (999,839).
+
+**⬜ REMAINING TODAY, in order (🧍 clicks, 🤖 preps):**
+1. **Run the 3 owed migrations on the PRODUCTION project** (confirm project name first): `20260611_daily_brief_pref` (R2) · `20260611_figsy_knowledge` (R15) · `20260611_lead_job_change` (R20). *(Code is live; these are the missing schema.)*
+2. **Set Railway `api` env:** `HUNTER_API_KEY` · `PDL_API_KEY`.
+3. **Close the redundant PRs:** old **#502** (superseded by #564) + **R-train #506–#525** (code already live).
+4. **Stripe:** verify `STRIPE_PRICE_DENISE_MONTHLY` = **$39** *(58)* · create **pool-topup products** (lead-gen $1 · FIGSY $3) *(57)*.
 5. **Fund the demo company pool.**
-6. **Upload the 5 agreement PDFs** via Admin → Terms Library *(else no order form can be sent)*.
-**🤖 Claude:** Stripe → company pool billing · fix any smoke failures same-day.
+6. **Upload the 5 agreement PDFs** → Admin → Terms Library.
+**🤖 Claude:** prep the migration SQL · fix any smoke failures same-day.
 
 ### 📅 TUE 16 — 🤖 builds · 🧍 LEGAL CATCH-UP DAY (clear mind)
 - 💳 **🤝 BILLING CORRECTNESS — the pre-client blocker (the day's headline build).** Fix before any client touches the product; gates Fri 19. Full plan + every file:line in `MORNING-FIXLOG → 💳 BILLING CORRECTNESS`. §3 design **SIGNED OFF (Jacques 14 Jun): one lead = one charge = one wallet** via an explicit `clients.plan` (`lead_gen`|`figsy`). Order: (1) reconcile the **3 disagreeing price tables** → constants, recreate the real Stripe Prices · (2) add `clients.plan` + backfill · (3) pool-aware delivery kills the **$1+$3 double-charge** *and* the **structurally-broken FIGSY-only bundle** (FIGSY-only client currently gets 0 leads); outreach stops charging · (4) Denise $39 · (5) honest "How credits work" panel · (6) atomic FIGSY credit RPC · (7) multi-currency USD/GBP/ZAR (may be its own phase — reconcile w/ Flutterwave, don't let it block 1–5) · (8) admin FIGSY visibility. **No merge to `main` until the smoke test is green + screenshots.** 🧍 = recreate Stripe Prices + sign-off; 🤖 = all code.
@@ -74,20 +79,24 @@ These do **not** wait for a calendar slot — the lead time is the constraint. A
 - 🤖 Start the locked redesigns: inbox-v2 (112) · "AI Family" cards (125) · sequence-builder recolor (82).
 - 🧍 Review Tuesday's builds when handed over. **Give me Casey's voice/tone** — it gates the onboarding-agent build (121).
 
-### 📅 WED 17 — 🟣 R-TRAIN WAVE 1 + 🧪 smoke 🤝
-- 🟣 **R-train Wave 1 (R1–R6, PRs #506–#511)** — 🤖 rebase each onto post-#502 `main`, resolve conflicts, run R2's migration (`20260611_daily_brief_pref`), **smoke after the wave**; 🧍 clicks merge. *(Pulled forward from Mon 22 — safe because no live clients yet.)*
-- 🧍 **Smoke tests T3–T7** begin *(Inventory 100)* — T3 FIGSY send from `hello@gettingkind.com` (cold) → reply→hot→pause · T4 booking + `meetings_booked` · T5 billing idempotency + Milla 403 · T6 Vida widget · T7 non-Milla clients get no Milla mail.
-- 🤖 Continue locked redesigns + invoicing 136a scaffold · fix smoke failures same-day.
+### 📅 WED 17 — 🔎 FEATURE-VERIFICATION WALK · Part 1 (the new core — everything's live, so PROVE it) 🤝
+> The whole product shipped via #502. The job is no longer "merge boxes" — it's **walk every live feature and confirm it works with REAL data, not placeholder.** Use the **§13 VERIFICATION CHECKLIST** — mark each ✅ works / 🔴 broken→fix / ⚠️ placeholder. 🤖 fixes 🔴s same-day.
+- 🔎 **Company Engine** — `/dashboard/company`: command centre panels · Seats tab + per-rep budgets · request→approve/deny · winning plays · invite flow.
+- 🔎 **Design screens** — Teams Hub · Notetaker · Integrations · Deliverability · Activity feed · Sequence Builder · Templates · What's New · KPIs (flag any showing placeholder/empty).
+- 🔎 **R1–R6** — demo-bounce guard · daily-brief toggle (needs R2 migration) · Vida bubble · speed-to-lead · milestone cards · onboarding emails.
+- 🧍 **Smoke tests T3–T7** alongside *(Inventory 100)*.
 
-### 📅 THU 18 — 🟣 R-TRAIN WAVE 2 + 🚦 GO / NO-GO GATE 🤝
-- 🟣 **R-train Wave 2 (R7–R20, PRs #512–#525)** — 🤖 rebase + merge, run R15 + R20 migrations (`20260611_figsy_knowledge`, `20260611_lead_job_change`), smoke each batch; 🧍 clicks.
-- 🧍 **Smoke T9, T10** (team invites · partner onboarding).
-- 🚦 **GO/NO-GO:** D9 10/10 · smoke T3–T10 green · **💳 billing correctness green** (no double-charge · 3 price tables reconciled · FIGSY-only client gets leads · Denise $39) · legal done · warmup ~50/day. **Any red → slip launch to Mon 22** (no half-baked launch).
+### 📅 THU 18 — 🔎 FEATURE-VERIFICATION WALK · Part 2 + 🚦 GO / NO-GO 🤝
+- 🔎 **R7–R20** — inbox AI draft · saved views · why-email · goals · templates · lead-capture forms · Cmd+K · meeting-prep · train-FIGSY (needs R15 migration) · evals · spam-check · model toggle · what's new · job-change (needs R20 migration).
+- 🔎 **Billing correctness** verified (the Tue-16 build) + 🧍 **Smoke T9, T10**.
+- 🚦 **GO/NO-GO:** every live feature ✅ or its 🔴 fixed · D9 10/10 · billing green · legal done · warmup ~50/day. **Any unresolved 🔴 → slip launch** (don't launch broken-but-live features).
 
-### 📅 FRI 19 — 🚀 LAUNCH (Africa-only)
-- Proven core already on `main`. Go live.
-- 🎥 **Drop 01 walkthrough (60s) goes live** in `the-drop.html` (see §4 — record this week).
-- 🤖 Stand up week-1 GTM support · monitor · hotfix.
+### 📅 THU 18 — 🏁 HARD DEADLINE: everything done (founder away Fri)
+**By EOD Thu, all must be true:** every §13 feature ✅ (or its 🔴 fixed) · billing correctness green · 3 owed migrations run · Hunter/PDL keys set · Stripe ($39 Denise + pool products) · 5 PDFs uploaded · legal done · D9 10/10. This is the real finish line.
+
+### 📅 FRI 19 — 🚀 LAUNCH / 🧍 FOUNDER AWAY
+- Product is already live (shipped Mon 15). Launch = GTM moment; 🤖 monitors prod + hotfixes only — **no new merges while you're away.**
+- 🎥 **Drop 01 walkthrough (60s)** goes live in `the-drop.html` if recorded (see §4).
 
 ---
 
@@ -205,10 +214,21 @@ Cross-client intelligence L4 (150) · data-licensing marketplace · ICP L3 · pi
 
 ---
 
-## 12 · OWNER SPLIT AT A GLANCE
-- **🧍 Only you can:** all legal/keys/accounts (§1) · the Mon-15 ship clicks + Stripe prices + env vars · smoke tests · video recordings (§4) · LinkedIn/outreach · merge approvals · the decision-gated inputs (Casey voice, pgvector, Flutterwave, funnel analytics).
-- **🤖 Only I do:** Stripe pool billing · 113a + locked redesigns · the R-train prep · company-engine hardening · invoicing · activating dormant integrations · drafting all content copy.
-- **🤝 Together:** Go/No-Go gate · GTM funnel instrumentation · the purple go-live merge sequence.
+## 13 · 🔎 FEATURE-VERIFICATION CHECKLIST — walk every LIVE feature by THU 18 (founder away Fri)
+> Since #502 shipped the whole product, this is the week's core: confirm each works with **real data**. Mark **✅ works · ⚠️ placeholder/empty · 🔴 broken→fix**. 🤖 fixes 🔴s same-day. Update this in-place as you walk.
+
+**🏢 Company Engine** — ⬜ command centre renders · ⬜ Seats tab + per-seat budgets · ⬜ request→approve/deny · ⬜ winning-plays · ⬜ invite→accept flow · ⬜ per-rep agent unlock (Test 7)
+**🖥️ Design screens (80–91)** — ⬜ Teams Hub · ⬜ Notetaker · ⬜ Integrations · ⬜ Deliverability · ⬜ Activity feed · ⬜ Sequence Builder · ⬜ Templates · ⬜ What's New · ⬜ KPIs
+**🚂 R-train (already live via #502)** — ⬜ R1 demo-bounce · ⬜ R2 daily-brief *(run migration)* · ⬜ R3 Vida bubble ✅ *(confirmed live)* · ⬜ R4 speed-to-lead · ⬜ R5 milestone cards ✅ *(confirmed live)* · ⬜ R6 onboarding emails · ⬜ R7 inbox AI draft · ⬜ R8 saved views · ⬜ R9 why-email · ⬜ R10 goals · ⬜ R11 templates · ⬜ R12 lead-capture forms · ⬜ R13 Cmd+K · ⬜ R14 meeting-prep · ⬜ R15 train-FIGSY *(run migration)* · ⬜ R16 evals · ⬜ R17 spam-check · ⬜ R18 model toggle · ⬜ R19 what's new · ⬜ R20 job-change *(run migration)*
+**💳 Billing (Tue-16 build)** — ⬜ one-charge-one-wallet · ⬜ 3 price tables reconciled · ⬜ Denise $39 · ⬜ FIGSY-only delivers leads · ⬜ admin FIGSY visibility
+**🧪 Smoke tests** — ⬜ T3 · ⬜ T4 · ⬜ T5 · ⬜ T6 · ⬜ T7 · ⬜ T9 · ⬜ T10 · ⬜ D9 10/10
+
+---
+
+## 14 · OWNER SPLIT AT A GLANCE
+- **🧍 Only you can:** all legal/keys/accounts (§1) · the ship clicks + Stripe prices + env vars · smoke tests · video recordings (§4) · LinkedIn/outreach · merge approvals · the decision-gated inputs (Casey voice, pgvector, Flutterwave, funnel analytics).
+- **🤖 Only I do:** Stripe pool billing · 113a + locked redesigns · company-engine hardening · invoicing · activating dormant integrations · drafting all content copy · the feature-verification fixes.
+- **🤝 Together:** the feature-verification walk · Go/No-Go gate · GTM funnel instrumentation.
 
 ---
 _Source-of-truth: `KIND-MASTER.md` governs where any doc conflicts. This launch pad is a derived run-list — when an item moves, update the master SESSION LOG + the relevant doc, then this. Built 14 Jun 2026 off a full five-source audit (3 core docs + every secondary doc + live git/PR state)._

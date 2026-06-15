@@ -165,12 +165,13 @@
 | # | State | Item | Execution left before Monday | Owner |
 |---|-------|------|------------------------------|-------|
 | 55 | 🟣 | **Command Centre** (#88) — per-rep workspaces · owner-funded pools · per-seat budgets · request→approve/deny · invite→accept→own workspace · winning-plays library · real per-rep stats | Verified on staging 12 Jun ✅ — Monday: merge 7 newer commits → re-test → prod migration + `company` flag | 🧍 test · 🤝 ship |
+| 55a | 🔴 | **⚠️ CRITICAL P0 BLOCKER — RLS + Access Control for Company Engine** — owner ONLY sees command centre + all-reps data · reps see ONLY own data (own leads, own campaigns, own calendar) · reps cannot see each other or the command centre. Reps get low-credit notifications & can request top-up, owner approves/denies. **NOT shipping Mon 15 but ESSENTIAL before clients use it.** Post-launch blocker before company engine goes to ANY customer. | Must design + build RLS policies (row-level security in Supabase) + role/ownership flags + visibility toggles in UI + approval workflow for credit requests. **Add to V2-TRACKER as R-class item.** | 🤖 design · 🧍 review |
 | 56 | 🟣 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up bill) — Seats tab | On feature branch — Monday merge + schema re-paste + redeploy, then Test 7 | 🧍 |
 | 57 | 🟡 | **Payment system — Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool next; then 🧍 creates pool-topup products | 🤖 then 🧍 |
 | 58 | 🟡 | **Denise $39 Stripe price** (billing prerequisite) | 🧍 create $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
 | 59 | 🟡 | Admin "Company demo" provisioning | Create one in admin → open `/dashboard/company` populated | 🧍 |
 
-> **🔒 Monday rule:** the ONLY thing exposed to production Monday is `company`. Rows 57–59 are finishing build/config on the approved product — nothing in §3/§4 is enabled.
+> **🔒 Monday rule:** the ONLY thing exposed to production Monday is `company`. Rows 57–59 are finishing build/config on the approved product — nothing in §3/§4 is enabled. **⚠️ NOTE: Item 55a (RLS access control) must be live before the first real company with multiple reps accesses production** — for now, only the demo (founder-owned) and the 50-rep seed client test it, both have full visibility. The access lockdown is a hard blocker before any client onboarding.
 
 ## 2B — 📦 POST-19 — design APPROVED in the founder walk · built on staging · parked until after the 19th
 | # | State | Item | Where it waits | Owner |

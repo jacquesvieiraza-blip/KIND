@@ -179,7 +179,13 @@ Cross-client intelligence L4 (150) · data-licensing marketplace · ICP L3 · pi
 
 ---
 
-## 11 · 🚩 HONESTY & CLEANUP FLAGS (resolve before they bite at launch)
+## 11 · 🚩 CRITICAL BLOCKERS (resolve ASAP — hard stops before customer use)
+
+**🔴 BLOCKER — Company Engine RLS + Access Control (Inventory 55a / V2-TRACKER R11):** The Command Centre ships Monday 15 to production, but **without access control**. Design + build by: owner sees command centre + all-reps data · reps see ONLY own data (their leads, campaigns, calendar) · reps cannot see each other or the command centre · reps get low-credit notifications + request top-up (owner approves/denies in admin). This is **NOT a "nice-to-have" — it's the security boundary that makes the product safe for multi-rep companies.** For now, only the demo (founder) and the 50-rep seed client have full visibility; both are safe. Before onboarding a real multi-rep customer, this RLS + access model must be live. 🤖 design the RLS policy + UI toggles; 🧍 review + approve.
+
+---
+
+## 12 · 🚩 HONESTY & CLEANUP FLAGS (resolve before they bite at launch)
 - **Sales deck + `sales-playbook.md` quote Alta's numbers as ours** (6% reply / 53% revival / 4-day / "8% reply" / R420k) — fix or remove before showing clients/investors. *(MASTER.md §20, DOC-MAP.)*
 - **`denise` page is ungated** — non-subscribers can reach it (add the subscription check). *(MORNING-FIXLOG.)*
 - **Portal `roadmap` page hardcodes ~80 features as "Live" to clients** — needs your call on what it shows.

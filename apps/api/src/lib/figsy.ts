@@ -88,15 +88,10 @@ interface SequenceDraft {
   step3: EmailStep
 }
 
-export async function generateSequence(
-  lead: Lead,
-  senderCompanyName: string,
-  senderIndustry: string | null,
-  campaignIntent?: string,
-  bookingUrl?: string | null,
-  senderName?: string | null,
-): Promise<SequenceDraft> {
-  // ── Signal detection — pick the best personalization hook ─────────────────
+// R9 (Apollo) — "Why FIGSY wrote this": the exact personalization hooks FIGSY
+// uses to open a sequence. Extracted so both the generator and the transparency
+// endpoint share one source of truth (no drift between what we show and use).
+export function personalizationSignals(lead: Pick<Lead, 'tech_stack' | 'industry' | 'score_reasoning'>): string[] {
   const signals: string[] = []
   if (lead.tech_stack && lead.tech_stack.length > 0) {
     signals.push(`Uses ${lead.tech_stack.slice(0, 2).join(' and ')} in their tech stack`)
@@ -107,6 +102,19 @@ export async function generateSequence(
   if (lead.score_reasoning) {
     signals.push(lead.score_reasoning)
   }
+  return signals
+}
+
+export async function generateSequence(
+  lead: Lead,
+  senderCompanyName: string,
+  senderIndustry: string | null,
+  campaignIntent?: string,
+  bookingUrl?: string | null,
+  senderName?: string | null,
+): Promise<SequenceDraft> {
+  // ── Signal detection — pick the best personalization hook ─────────────────
+  const signals = personalizationSignals(lead)
   const bestSignal = signals[0] ?? null
 
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."
@@ -480,6 +488,63 @@ export async function sendSequenceEmail(
         .update({ emails_sent: ((data as { emails_sent?: number }).emails_sent ?? 0) + 1 })
         .eq('id', campaignId)
     }
+  }
+}
+
+// Recompute a single campaign's denormalised counters from the authoritative
+// source tables and persist them. Call this AFTER a reply/opt-out/meeting event
+// has written its source row (figsy_replies / figsy_enrollments). It replaces the
+// old read-modify-write "+1" increments, which (a) lost concurrent updates under
+// load and (b) silently swallowed write errors because supabase RETURNS errors
+// rather than throwing. Persists Math.max(source, stored) so a counter can never
+// regress below a value another path set (e.g. a calendar booking with no reply
+// row to attribute it to).
+export interface CampaignCounters {
+  emails_sent: number
+  replies_total: number
+  replies_interested: number
+  opted_out: number
+  meetings_booked: number
+  leads_enrolled: number
+}
+
+export async function recomputeCampaignCounters(campaignId: string): Promise<CampaignCounters | null> {
+  if (!campaignId) return null
+  try {
+    const [sentRes, repliesRes, enrollRes, campRes] = await Promise.all([
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
+      db.from('figsy_replies').select('classification, meeting_booked_at').eq('campaign_id', campaignId),
+      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
+      db.from('figsy_campaigns')
+        .select('emails_sent, replies_total, replies_interested, opted_out, meetings_booked, leads_enrolled')
+        .eq('id', campaignId).maybeSingle(),
+    ])
+    let repliesTotal = 0, repliesInterested = 0, optedOut = 0, meetings = 0
+    for (const r of (repliesRes.data ?? []) as { classification: string | null; meeting_booked_at: string | null }[]) {
+      repliesTotal++
+      if (r.classification === 'hot' || r.classification === 'interested') repliesInterested++
+      if (r.classification === 'opt_out' || r.classification === 'unsubscribe') optedOut++
+      if (r.meeting_booked_at) meetings++
+    }
+    const cur = (campRes.data ?? {}) as Record<string, number | null>
+    const mx = (a: number, b: number | null | undefined) => Math.max(a, typeof b === 'number' ? b : 0)
+    const next: CampaignCounters = {
+      emails_sent:        mx(sentRes.count ?? 0,   cur.emails_sent),
+      replies_total:      mx(repliesTotal,         cur.replies_total),
+      replies_interested: mx(repliesInterested,    cur.replies_interested),
+      opted_out:          mx(optedOut,             cur.opted_out),
+      meetings_booked:    mx(meetings,             cur.meetings_booked),
+      leads_enrolled:     mx(enrollRes.count ?? 0, cur.leads_enrolled),
+    }
+    const { error } = await db.from('figsy_campaigns').update(next).eq('id', campaignId)
+    if (error) {
+      console.error('[figsy] recomputeCampaignCounters update failed:', error.message, 'campaign', campaignId)
+      return null
+    }
+    return next
+  } catch (err) {
+    console.error('[figsy] recomputeCampaignCounters failed:', err, 'campaign', campaignId)
+    return null
   }
 }
 
@@ -905,23 +970,25 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }
 
     // ── Deduct 1 FIGSY credit per lead enrolled ────────────────────────────────
-    try {
-      const { data: clientBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
-      const newBal = Math.max(0, (clientBal?.figsy_credits_remaining ?? 0) - 1)
-      await Promise.all([
-        db.from('clients').update({ figsy_credits_remaining: newBal }).eq('id', clientId),
-        db.from('credit_transactions').insert({
-          client_id: clientId,
-          amount: -1,
-          type: 'usage',
-          plan: 'figsy',
-          note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
-          created_at: new Date().toISOString(),
-        }),
-      ])
-    } catch (creditErr) {
-      console.error('[figsy] autoEnrollLead: credit deduction failed', creditErr)
-      // Non-fatal — enrollment already happened, log and continue
+    // CHECKED + sequential: supabase RETURNS errors (doesn't throw), so the old
+    // try/catch never saw a failure and the Promise.all could write the ledger row
+    // without the balance changing (or vice-versa). Now we deduct first, verify it
+    // succeeded, and only THEN record the ledger row — so the two can't desync.
+    const { data: clientBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
+    const newBal = Math.max(0, (clientBal?.figsy_credits_remaining ?? 0) - 1)
+    const { error: balErr } = await db.from('clients')
+      .update({ figsy_credits_remaining: newBal }).eq('id', clientId)
+    if (balErr) {
+      console.error('[figsy] autoEnrollLead: FIGSY credit deduction failed', balErr.message)
+    } else {
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount: -1,
+        type: 'usage',
+        plan: 'figsy',
+        note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
+        created_at: new Date().toISOString(),
+      }).then(() => {}, () => {})
     }
 
     // Increment campaign enrolled count

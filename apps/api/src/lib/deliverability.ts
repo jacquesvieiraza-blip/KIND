@@ -153,3 +153,68 @@ export function htmlToText(html: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
+
+// R17 (#43/#44, Instantly) — pre-send spam scoring. A fast, dependency-free
+// heuristic that flags the things that tank cold-email deliverability, so a
+// client can fix a draft BEFORE it sends. Returns a 0–100 score (100 = clean)
+// plus a grade and the specific issues found. Not a spam-filter oracle — a
+// practical checklist mirroring what real filters and humans react to.
+export interface SpamCheckResult {
+  score: number
+  grade: 'great' | 'good' | 'risky'
+  issues: { severity: 'high' | 'medium' | 'low'; message: string }[]
+}
+
+const SPAM_PHRASES = [
+  'free', 'act now', 'limited time', 'click here', 'buy now', 'order now',
+  'guarantee', 'guaranteed', 'no obligation', 'risk free', 'risk-free',
+  '100%', 'cash', 'cheap', 'discount', 'offer expires', 'urgent',
+  'congratulations', 'winner', 'you have been selected', 'special promotion',
+  'amazing', 'incredible deal', 'best price', 'lowest price', 'earn money',
+  'make money', 'extra income', 'double your', 'this is not spam', 'dear friend',
+]
+
+export function spamScore(subject: string, body: string): SpamCheckResult {
+  const issues: SpamCheckResult['issues'] = []
+  let score = 100
+  const subj = (subject || '').trim()
+  const text = (body || '')
+  const lower = `${subj}\n${text}`.toLowerCase()
+
+  // Spam trigger phrases.
+  const hits = SPAM_PHRASES.filter(p => lower.includes(p))
+  if (hits.length) {
+    score -= Math.min(30, hits.length * 8)
+    issues.push({ severity: hits.length > 2 ? 'high' : 'medium',
+      message: `Spam-trigger ${hits.length === 1 ? 'word' : 'words'}: ${hits.slice(0, 5).join(', ')}` })
+  }
+
+  // ALL-CAPS words (3+ letters).
+  const caps = (text.match(/\b[A-Z]{3,}\b/g) || []).filter(w => w !== 'STOP')
+  if (caps.length >= 2) { score -= 10; issues.push({ severity: 'medium', message: `Shouty ALL-CAPS words (${caps.slice(0, 3).join(', ')})` }) }
+
+  // Excessive exclamation marks.
+  const bangs = (text.match(/!/g) || []).length
+  if (bangs >= 3) { score -= 10; issues.push({ severity: 'medium', message: `Too many exclamation marks (${bangs})` }) }
+
+  // Subject line checks.
+  if (subj.length > 60) { score -= 8; issues.push({ severity: 'low', message: 'Subject is long — under 50 chars lands better' }) }
+  if (/[A-Z]{4,}/.test(subj)) { score -= 8; issues.push({ severity: 'medium', message: 'Subject contains ALL-CAPS' }) }
+  if (subj.includes('!')) { score -= 6; issues.push({ severity: 'low', message: 'Exclamation mark in the subject reads as marketing' }) }
+  if (!subj) { score -= 15; issues.push({ severity: 'high', message: 'No subject line' }) }
+
+  // Link density.
+  const links = (text.match(/https?:\/\//g) || []).length
+  if (links >= 3) { score -= 12; issues.push({ severity: 'high', message: `Too many links (${links}) — cold email should have 0–1` }) }
+
+  // Dollar/money symbols.
+  if ((text.match(/\$|€|£/g) || []).length >= 2) { score -= 8; issues.push({ severity: 'medium', message: 'Multiple currency symbols read as salesy' }) }
+
+  // Length — extremely long cold emails underperform and look like newsletters.
+  const words = text.split(/\s+/).filter(Boolean).length
+  if (words > 200) { score -= 8; issues.push({ severity: 'low', message: `Long body (${words} words) — cold email works best under ~120` }) }
+
+  score = Math.max(0, Math.min(100, score))
+  const grade: SpamCheckResult['grade'] = score >= 85 ? 'great' : score >= 65 ? 'good' : 'risky'
+  return { score, grade, issues }
+}

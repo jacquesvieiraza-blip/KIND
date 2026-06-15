@@ -241,7 +241,9 @@ const TABS: TabDef[] = [
   {
     id: 'pending_review',
     label: 'Pending Review',
-    getCount: (leads) => leads.filter(l => l.score !== null && l.score >= 70 && (l.status === 'pending' || l.status === 'scored')).length,
+    // Prefer the server-side total (counts all leads, not just the loaded page);
+    // fall back to the page-local count only if stats haven't loaded yet.
+    getCount: (leads, stats) => stats?.pending_review ?? leads.filter(l => l.score !== null && l.score >= 70 && (l.status === 'pending' || l.status === 'scored')).length,
     pillCls: 'text-amber-700 hover:bg-amber-50',
     activePillCls: 'bg-amber-500 text-white',
   },
@@ -255,7 +257,7 @@ const TABS: TabDef[] = [
   {
     id: 'in_figsy',
     label: 'In FIGSY',
-    getCount: (leads) => leads.filter(l => l.apollo_consented && (l.status === 'consent_given' || l.status === 'consent_sent')).length,
+    getCount: (leads, stats) => stats?.in_figsy ?? leads.filter(l => l.apollo_consented && (l.status === 'consent_given' || l.status === 'consent_sent')).length,
     pillCls: 'text-indigo-700 hover:bg-indigo-50',
     activePillCls: 'bg-indigo-600 text-white',
   },
@@ -385,6 +387,97 @@ function ActiveIcpBanner({ icp, total }: { icp: ICP; total: number }) {
   )
 }
 
+// R9 (Apollo) — "Why FIGSY wrote this": AI transparency disclosure shown under
+// a generated draft. Fetches the personalization signals FIGSY actually used.
+function WhyFigsyWrote({ leadId, token }: { leadId: string; token: string }) {
+  const [open, setOpen] = useState(false)
+  const [data, setData] = useState<{ explanation: string; signals: string[] } | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function toggle() {
+    const next = !open
+    setOpen(next)
+    if (next && !data && !loading) {
+      setLoading(true)
+      try {
+        const res = await api.get<{ data: { explanation: string; signals: string[] } }>(
+          `/figsy/leads/${leadId}/why-email`, token,
+        )
+        setData(res.data)
+      } catch { setData({ explanation: 'Personalization details are unavailable right now.', signals: [] }) }
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="mb-4 border border-purple-100 rounded-xl overflow-hidden">
+      <button onClick={toggle} className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-[#7C3AED] bg-purple-50/60 hover:bg-purple-50 transition-colors">
+        <span className="flex items-center gap-1.5">✨ Why FIGSY wrote this</span>
+        <span>{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="px-4 py-3 text-xs text-gray-600 leading-relaxed">
+          {loading ? 'Looking at what we know about this lead…' : (
+            <>
+              <p>{data?.explanation}</p>
+              {(data?.signals?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {data!.signals.map((s, i) => (
+                    <span key={i} className="px-2 py-0.5 rounded-full bg-purple-50 border border-purple-100 text-[#7C3AED]">{s}</span>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// R17 (#43/#44) — pre-send spam-score badge shown under a generated draft.
+function SpamCheck({ draft, token }: { draft: string; token: string }) {
+  const [result, setResult] = useState<{ score: number; grade: string; issues: { severity: string; message: string }[] } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    api.post<{ data: { score: number; grade: string; issues: { severity: string; message: string }[] } }>(
+      '/figsy/spam-check', { subject: '', body: draft }, token,
+    ).then(r => { if (!cancelled) setResult(r.data) })
+      .catch(() => { if (!cancelled) setResult(null) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [draft, token])
+
+  if (loading) return <p className="text-xs text-[#9B8EC4] mb-4">Checking deliverability…</p>
+  if (!result) return null
+
+  const color = result.grade === 'great' ? 'text-green-600 bg-green-50 border-green-200'
+    : result.grade === 'good' ? 'text-amber-600 bg-amber-50 border-amber-200'
+    : 'text-rose-600 bg-rose-50 border-rose-200'
+
+  return (
+    <div className={`mb-4 rounded-xl border px-4 py-3 ${color}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider">Deliverability check</span>
+        <span className="text-sm font-bold">{result.score}/100 · {result.grade}</span>
+      </div>
+      {result.issues.length > 0 ? (
+        <ul className="mt-2 space-y-1">
+          {result.issues.map((iss, i) => (
+            <li key={i} className="text-xs flex items-start gap-1.5">
+              <span>{iss.severity === 'high' ? '🔴' : iss.severity === 'medium' ? '🟡' : '⚪'}</span>
+              <span className="text-gray-600">{iss.message}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="text-xs text-gray-600 mt-1">Clean — no spam triggers found.</p>}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LeadsPage() {
   const supabase = createClient()
@@ -434,6 +527,38 @@ export default function LeadsPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [revivalFilter, setRevivalFilter] = useState(false)
+  // Campaign cross-link: when arriving from a campaign ("View enrolled leads"),
+  // the URL carries ?campaign_id= and we constrain the list to that campaign.
+  const [campaignId, setCampaignId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setCampaignId(new URLSearchParams(window.location.search).get('campaign_id'))
+  }, [])
+
+  // R8 (Alta) — Saved views: capture the full filter combo as a named, reusable
+  // view (localStorage). Lets clients flip between "Hot SaaS leads", "Score 80+
+  // unworked", etc. in one click.
+  type SavedView = { name: string; activeTab: TabId; statusFilter: string; minScore: string; icpFilter: string; search: string; apolloOnly: boolean }
+  const SAVED_VIEWS_KEY = 'kind_leads_saved_views_v1'
+  const [savedViews, setSavedViews] = useState<SavedView[]>([])
+  useEffect(() => {
+    try { const raw = localStorage.getItem(SAVED_VIEWS_KEY); if (raw) setSavedViews(JSON.parse(raw)) } catch { /* ignore */ }
+  }, [])
+  function persistViews(next: SavedView[]) {
+    setSavedViews(next)
+    try { localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+  }
+  function saveCurrentView() {
+    const name = window.prompt('Name this view (e.g. "Hot SaaS leads"):')?.trim()
+    if (!name) return
+    const view: SavedView = { name, activeTab, statusFilter, minScore, icpFilter, search, apolloOnly }
+    persistViews([...savedViews.filter(v => v.name !== name), view])
+  }
+  function applyView(v: SavedView) {
+    setActiveTab(v.activeTab); setStatusFilter(v.statusFilter); setMinScore(v.minScore)
+    setIcpFilter(v.icpFilter); setSearch(v.search); setApolloOnly(v.apolloOnly); setPage(1)
+  }
+  function deleteView(name: string) { persistViews(savedViews.filter(v => v.name !== name)) }
 
   const fetchData = useCallback(async (tok: string) => {
     setLoading(true)
@@ -444,6 +569,7 @@ export default function LeadsPage() {
       if (minScore)     params.set('min_score', minScore)
       if (icpFilter)    params.set('icp_id', icpFilter)
       if (apolloOnly)   params.set('apollo_consented', 'true')
+      if (campaignId)   params.set('campaign_id', campaignId)
 
       const [statsRes, leadsRes, icpsRes] = await Promise.all([
         api.get<{ data: LeadStats }>('/leads/stats', tok),
@@ -458,7 +584,7 @@ export default function LeadsPage() {
       setFetchError(err instanceof Error ? err.message : 'Failed to load leads — please refresh.')
     }
     setLoading(false)
-  }, [page, statusFilter, minScore, icpFilter, apolloOnly])
+  }, [page, statusFilter, minScore, icpFilter, apolloOnly, campaignId])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -777,6 +903,18 @@ export default function LeadsPage() {
         </div>
       </div>
 
+      {/* Campaign cross-link banner — arrived from a campaign's "View enrolled leads" */}
+      {campaignId && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+          <p className="text-sm text-indigo-900">
+            Showing the <span className="font-semibold">{total}</span> lead{total === 1 ? '' : 's'} enrolled in this campaign.
+          </p>
+          <a href="/dashboard/leads" className="text-sm font-semibold text-indigo-700 hover:text-indigo-900 underline">
+            Show all leads
+          </a>
+        </div>
+      )}
+
       {/* Thinking panel — shows what FIGSY is doing while sourcing (V2, gated) */}
       {v2Enabled('thinking') && runningIcp && <FigsyThinking />}
 
@@ -851,6 +989,20 @@ export default function LeadsPage() {
           )}
         </div>
       )}
+
+      {/* Saved views (R8) */}
+      <div className="flex flex-wrap items-center gap-2">
+        {savedViews.map(v => (
+          <span key={v.name} className="group inline-flex items-center gap-1 pl-3 pr-1.5 py-1 rounded-full bg-purple-50 border border-purple-100 text-xs font-medium text-[#7C3AED]">
+            <button onClick={() => applyView(v)} className="hover:underline">{v.name}</button>
+            <button onClick={() => deleteView(v.name)} aria-label={`Delete view ${v.name}`} className="text-[#9B8EC4] hover:text-rose-500 transition-colors">×</button>
+          </span>
+        ))}
+        <button onClick={saveCurrentView}
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-dashed border-purple-200 text-xs font-medium text-[#9B8EC4] hover:text-[#7C3AED] hover:border-[#7C3AED] transition-colors">
+          + Save current view
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-4">
@@ -989,6 +1141,12 @@ export default function LeadsPage() {
                         <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
                         <p className="text-xs text-[#9B8EC4]">{lead.job_title || '—'}</p>
                         {lead.email && <p className="text-xs text-[#9B8EC4]">{lead.email}</p>}
+                        {/* R20 — job-change alert badge */}
+                        {(lead as { job_changed_at?: string | null }).job_changed_at && (
+                          <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                            🔄 Changed jobs — reconnect
+                          </span>
+                        )}
                         <BuyingSignals lead={lead} />
                       </td>
                       <td className="px-4 py-3">
@@ -999,6 +1157,17 @@ export default function LeadsPage() {
                       <td className="px-4 py-3">
                         <PipelineStageChip status={lead.status} />
                         <CampaignMicroBar lead={lead} />
+                        {(() => {
+                          // lead → its campaign back-link (campaign attached server-side)
+                          const camp = (lead as Lead & { campaign?: { id: string; name: string } | null }).campaign
+                          return camp ? (
+                            <a href={`/dashboard/figsy/${camp.id}`}
+                              className="block mt-1 text-[11px] font-medium text-[#7C3AED] hover:text-[#6D28D9] truncate max-w-[160px]"
+                              title={camp.name}>
+                              In: {camp.name} →
+                            </a>
+                          ) : null
+                        })()}
                         {lead.consent_auto_fired && (
                           <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
                             ✓ Auto-sent
@@ -1239,6 +1408,8 @@ export default function LeadsPage() {
             <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-72 overflow-y-auto">
               {emailDraft.draft}
             </div>
+            {token && <WhyFigsyWrote leadId={emailDraft.leadId} token={token} />}
+            {token && <SpamCheck draft={emailDraft.draft} token={token} />}
             <div className="flex items-center gap-3">
               <button onClick={() => { navigator.clipboard.writeText(emailDraft.draft) }}
                 className="flex-1 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">

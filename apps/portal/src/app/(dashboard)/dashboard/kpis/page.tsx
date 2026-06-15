@@ -7,7 +7,7 @@ import {
   Loader2, Send, MessageSquare, ThumbsUp, MinusCircle,
   Users, Star, DollarSign, ShieldCheck, TrendingUp,
   Target, Zap, ArrowRight, Calendar, Clock, Mail,
-  Linkedin, BarChart2, Activity, RefreshCw, Map,
+  Linkedin, BarChart2, Activity, RefreshCw,
   Download, Globe, AlertCircle, CheckCircle2,
 } from 'lucide-react'
 
@@ -280,6 +280,81 @@ function FigsyInsightsPanel({ token }: { token: string }) {
   )
 }
 
+// R10 (V2-12, ClickUp) — Goals: set KPI targets and track progress toward them.
+// Targets are per-client and stored in localStorage; progress is computed live
+// from the FIGSY KPIs already on the page.
+const GOALS_KEY = 'kind_kpi_goals_v1'
+type GoalKey = 'meetingsBooked' | 'replyRate' | 'leadsContacted' | 'interested'
+const GOAL_DEFS: { key: GoalKey; label: string; suffix: string; defaultTarget: number }[] = [
+  { key: 'meetingsBooked', label: 'Meetings booked',   suffix: '',  defaultTarget: 5 },
+  { key: 'replyRate',      label: 'Reply rate',         suffix: '%', defaultTarget: 5 },
+  { key: 'leadsContacted', label: 'Leads contacted',    suffix: '',  defaultTarget: 100 },
+  { key: 'interested',     label: 'Interested replies', suffix: '',  defaultTarget: 10 },
+]
+
+function GoalsSection({ figsy }: { figsy: FigsyKPIs }) {
+  const [targets, setTargets] = useState<Record<string, number>>({})
+  const [editing, setEditing] = useState(false)
+
+  useEffect(() => {
+    try { const raw = localStorage.getItem(GOALS_KEY); if (raw) setTargets(JSON.parse(raw)) } catch { /* ignore */ }
+  }, [])
+
+  function save(next: Record<string, number>) {
+    setTargets(next)
+    try { localStorage.setItem(GOALS_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+  }
+
+  const actuals: Record<GoalKey, number> = {
+    meetingsBooked: figsy.meetingsBooked ?? 0,
+    replyRate:      Math.round(figsy.replyRate ?? 0),
+    leadsContacted: figsy.leadsContacted ?? 0,
+    interested:     figsy.interested ?? 0,
+  }
+
+  return (
+    <div className="rounded-xl border border-purple-100/60 bg-white p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Target className="w-4 h-4 text-[#7C3AED]" />
+          <h2 className="font-semibold text-gray-900">Goals</h2>
+        </div>
+        <button onClick={() => setEditing(e => !e)} className="text-xs font-semibold text-[#7C3AED] hover:underline">
+          {editing ? 'Done' : 'Set targets'}
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {GOAL_DEFS.map(({ key, label, suffix, defaultTarget }) => {
+          const target = targets[key] ?? defaultTarget
+          const actual = actuals[key]
+          const pct = target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0
+          const hit = actual >= target
+          return (
+            <div key={key} className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#7B6FA0]">{label}</span>
+                {editing ? (
+                  <span className="flex items-center gap-1">
+                    <span className="text-gray-400 text-xs">target</span>
+                    <input type="number" min={0} value={target}
+                      onChange={e => save({ ...targets, [key]: Number(e.target.value) })}
+                      className="w-16 px-2 py-0.5 text-sm border border-purple-100 rounded focus:outline-none focus:ring-1 focus:ring-[#7C3AED]" />
+                  </span>
+                ) : (
+                  <span className="font-semibold text-gray-900">{actual}{suffix} <span className="text-gray-400 font-normal">/ {target}{suffix}</span></span>
+                )}
+              </div>
+              <div className="h-2 rounded-full bg-purple-50 overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${hit ? 'bg-green-500' : 'bg-[#7C3AED]'}`} style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function KPIsPage() {
   const supabase = createClient()
   const [leads, setLeads]   = useState<LeadStats | null>(null)
@@ -479,6 +554,9 @@ export default function KPIsPage() {
         </div>
       </div>
 
+      {/* Goals (R10) */}
+      {figsy && <GoalsSection figsy={figsy} />}
+
       {/* Period filter */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 bg-white border border-purple-100/60 rounded-xl p-1 w-fit">
@@ -531,9 +609,11 @@ export default function KPIsPage() {
                 <p className="text-xs font-semibold text-[#7C3AED] uppercase tracking-wider mb-1">Meetings Booked</p>
                 <p className="text-4xl font-bold text-[#1E0A5C]">{figsy?.meetingsBooked ?? 0}</p>
                 <p className="text-sm text-[#7C3AED]/70 mt-1">
-                  {figsy?.meetingBookedRate !== undefined
-                    ? `${(figsy.meetingBookedRate).toFixed(1)}% booking rate`
-                    : 'No data yet'
+                  {(figsy?.meetingsBooked ?? 0) === 0
+                    ? 'No data yet'
+                    : figsy?.meetingBookedRate !== undefined
+                      ? `${(figsy.meetingBookedRate).toFixed(1)}% booking rate`
+                      : 'Meetings on the board'
                   }
                   {' '}
                   <span className="text-[#9B8EC4]">· Alta target: 3–5%</span>
@@ -694,7 +774,6 @@ export default function KPIsPage() {
                   { icon: <Zap className="w-5 h-5 text-[#7C3AED]" />, title: 'Launch your first campaign', desc: 'FIGSY writes and sends personalised outreach sequences.', href: '/dashboard/figsy-chat', cta: 'Chat with FIGSY →' },
                   { icon: <Target className="w-5 h-5 text-[#7C3AED]" />, title: 'Define your ICP', desc: 'Tell FIGSY who to target and she\'ll find matching leads.', href: '/dashboard/leads/icp', cta: 'Build ICP →' },
                   { icon: <BarChart2 className="w-5 h-5 text-[#7C3AED]" />, title: 'Import leads from LinkedIn', desc: 'Upload a LinkedIn CSV and score your network instantly.', href: '/dashboard/leads/linkedin', cta: 'Import →' },
-                  { icon: <Map className="w-5 h-5 text-[#7C3AED]" />, title: 'See how FIGSY works', desc: 'Explore the product roadmap and upcoming features.', href: '/dashboard/roadmap', cta: 'View roadmap →' },
                 ].map(card => (
                   <a key={card.title} href={card.href}
                     className="flex items-start gap-3 p-4 bg-white border border-purple-100 rounded-xl hover:border-[#7C3AED]/40 hover:shadow-sm transition-all group">

@@ -116,6 +116,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
             { label: 'Ask me anything',   onClick: () => router.push('/dashboard/assistant') },
             { label: 'Upload knowledge',  onClick: () => router.push('/dashboard/knowledge') },
           ]}
+          liveChatEndpoint="/milla/chat"
           onSend={msg => router.push(`/dashboard/assistant?q=${encodeURIComponent(msg)}`)}
           inputPlaceholder="Ask Milla anything…"
           online={hasMilla}
@@ -140,6 +141,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
             { label: 'Configure chatbot',  onClick: () => router.push('/dashboard/chatbot') },
             { label: 'View conversations', onClick: () => router.push('/dashboard/chatbot') },
           ]}
+          liveChatEndpoint="/vida/help"
           onSend={msg => router.push(`/dashboard/chatbot?q=${encodeURIComponent(msg)}`)}
           inputPlaceholder="Ask Vida anything…"
           online={hasVida}
@@ -165,6 +167,7 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
             { label: 'Proposal from a call',   onClick: () => router.push('/dashboard/denise') },
             { label: 'See my drafts',          onClick: () => router.push('/dashboard/denise') },
           ]}
+          liveChatEndpoint="/denise/chat"
           onSend={() => router.push('/dashboard/denise')}
           inputPlaceholder="Ask Denise to draft…"
           online={hasDenise}
@@ -254,13 +257,6 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
       { label: 'See my campaigns', onClick: () => router.push('/dashboard/figsy') },
       { label: 'Top up credits',   onClick: () => router.push('/dashboard/billing') },
     ]
-  } else if (pathname.startsWith('/dashboard/roadmap')) {
-    contextMessage = "This is my evolution — what's live, what I'm building next. I get smarter every week. Voice and WhatsApp are coming."
-    chips = [
-      { label: "What's coming next?", onClick: () => {} },
-      { label: 'Request a feature',   onClick: () => {} },
-      { label: 'Start outreach now',  onClick: () => router.push('/dashboard/figsy') },
-    ]
   } else if (pathname.startsWith('/dashboard/team')) {
     contextMessage = "Your team members share the same pipeline. Invite colleagues to review leads, approve campaigns, or manage replies — everyone sees the same data, I keep running in the background."
     chips = [
@@ -345,7 +341,6 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
       : [
           { label: 'Who should I target?', onClick: () => router.push('/dashboard/leads/icp') },
           { label: 'Build my ICP',         onClick: () => router.push('/dashboard/leads/icp') },
-          { label: 'How does KIND work?',  onClick: () => router.push('/dashboard/roadmap') },
         ]
   }
 

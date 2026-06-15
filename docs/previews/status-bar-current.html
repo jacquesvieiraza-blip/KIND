@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Status Bar — current (item 87 / #104)</title>
+<style>
+  :root{ --brand:#7C3AED; --muted:#6B21A8; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#F7F6FB;color:#111827;-webkit-font-smoothing:antialiased}
+  .flag{background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:6px}
+  .flag b{color:#fff}
+
+  .layout{display:flex;height:100vh}
+  .sidebar{width:240px;background:#fff;border-right:1px solid #EDE9FE;display:flex;flex-direction:column;
+    padding:24px 16px}
+  .logo{font-size:14px;font-weight:700;color:var(--brand);letter-spacing:1px;margin-bottom:28px}
+  .navitem{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:4px;border-radius:8px;
+    color:#6B7280;font-size:13px;cursor:pointer;transition:.15s}
+  .navitem:hover{background:#F3F4F6;color:#111827}
+  .navitem svg{width:16px;height:16px;flex-shrink:0}
+  .navitem.active{background:#F5F0FF;color:var(--brand)}
+  .navitem.active svg{color:var(--brand)}
+
+  .navspace{flex:1}
+
+  .statusbar{border-radius:8px;background:#F3E8FF;padding:12px;space:8px;display:flex;flex-direction:column;gap:8px}
+  .srow{display:flex;align-items:center;gap:8px}
+  .sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;animation:pulse 2s ease-in-out infinite}
+  .sdot.active{background:#34D399}
+  .sdot.idle{background:rgba(124,58,237,.25)}
+  .sdot.degraded{background:#FCD34D}
+  .sdot.checking{background:rgba(124,58,237,.3)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+  .sicon{width:14px;height:14px;color:rgba(124,58,237,.5);flex-shrink:0}
+  .slabel{font-size:11px;font-weight:500;color:rgba(107,33,168,.7);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sbar{flex:1;height:4px;border-radius:2px;background:rgba(124,58,237,.1);overflow:hidden;margin-left:4px}
+  .sbar > div{height:100%;border-radius:2px;background:var(--brand);width:70%}
+  .sbar.warn > div{background:#EA580C}
+</style>
+</head>
+<body>
+<div class="flag">PREVIEW · standalone — does NOT touch staging · <b>Status Bar</b> (item 87 · #104) · shown in sidebar footer, live pulse, 60s poll</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="logo">K.I.N.D</div>
+
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> Dashboard</div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"/></svg> FIGSY</div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Contacts</div>
+    <div class="navitem active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg> Campaigns</div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 010-18 9 9 0 010 18z"/><path d="M12 7v5l4 2"/></svg> Activity</div>
+    <div class="navitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> Messages</div>
+
+    <div class="navspace"></div>
+
+    <div class="statusbar">
+      <div class="srow">
+        <span class="sdot active"></span>
+        <svg class="sicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span class="slabel">FIGSY active · 3 campaigns</span>
+      </div>
+      <div class="srow">
+        <svg class="sicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <span class="slabel">28 / 40 today</span>
+        <div class="sbar"><div></div></div>
+      </div>
+      <div class="srow">
+        <span class="sdot active"></span>
+        <span class="slabel">All systems operational</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1;background:#F7F6FB;padding:40px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;text-align:center">
+    <div>
+      <p style="font-size:14px;margin-bottom:8px">Status bar shown in sidebar footer</p>
+      <p style="font-size:12px;color:#9CA3AF">Three live signals: FIGSY state · today's sends vs cap · system health · all from /figsy/pulse + /health, 60s poll</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

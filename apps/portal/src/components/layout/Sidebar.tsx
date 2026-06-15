@@ -7,11 +7,12 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
-  LogOut, Zap, FileText, Coins, Map, Bot, MessageSquare,
-  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook,
-  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake,
+  LogOut, Zap, FileText, Coins, Bot, MessageSquare,
+  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook, ShieldCheck,
+  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, LayoutTemplate, Sparkles, Mic, GitBranch,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
+import { StatusBar } from '@/components/layout/StatusBar'
 
 type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
 
@@ -35,12 +36,15 @@ const AGENTS: AgentDef[] = [
     accent: '#7C3AED',
     ring: 'ring-[#7C3AED]/20',
     nav: [
-      { href: '/dashboard/figsy-chat',     label: 'Chat with FIGSY', icon: MessageSquare },
-      { href: '/dashboard/figsy',          label: 'Campaigns',   icon: Target },
-      { href: '/dashboard/inbox',          label: 'Inbox',       icon: Inbox, badge: 'unread' },
-      { href: '/dashboard/kpis',           label: 'Performance', icon: BarChart },
-      { href: '/dashboard/knowledge',      label: 'Knowledge',   icon: Brain },
-      { href: '/dashboard/figsy/webhooks', label: 'Webhooks',    icon: Webhook },
+      { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
+      { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
+      { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
+      { href: '/dashboard/figsy/sequence-builder', label: 'Sequence Builder', icon: GitBranch },
+      { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox, badge: 'unread' },
+      { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
+      { href: '/dashboard/deliverability',         label: 'Deliverability',   icon: ShieldCheck },
+      { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
+      { href: '/dashboard/figsy/webhooks',         label: 'Webhooks',         icon: Webhook },
     ],
   },
   {
@@ -52,8 +56,9 @@ const AGENTS: AgentDef[] = [
     ring: 'ring-pink-300/30',
     price: '$49/mo',
     nav: [
-      { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
-      { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+      { href: '/dashboard/assistant',  label: 'Assistant',  icon: Bot },
+      { href: '/dashboard/documents',  label: 'Documents',  icon: FileText },
+      { href: '/dashboard/notetaker',  label: 'Notetaker',  icon: Mic },
     ],
   },
   {
@@ -75,7 +80,7 @@ const AGENTS: AgentDef[] = [
     role: 'AI Account Executive · Closing',
     accent: '#D97706',
     ring: 'ring-amber-300/30',
-    price: '$99/mo',
+    price: '$39/mo',
     nav: [
       { href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake },
     ],
@@ -97,10 +102,11 @@ const LEAD_GEN_NAV = [
 ]
 
 const ACCOUNT_NAV = [
+  { href: '/dashboard/whats-new',  label: "What's New",   icon: Sparkles },
   { href: '/dashboard/usage',      label: 'Usage',        icon: BarChart2 },
-  { href: '/dashboard/roadmap',    label: 'Roadmap',      icon: Map },
-  { href: '/dashboard/partner',    label: 'Partner Hub',  icon: Handshake },
-  { href: '/dashboard/mcp',        label: 'MCP Connect',  icon: Plug },
+  { href: '/dashboard/partner',       label: 'Partner Hub',   icon: Handshake },
+  { href: '/dashboard/integrations',  label: 'Integrations',  icon: Plug },
+  { href: '/dashboard/mcp',           label: 'MCP Connect',   icon: Plug },
   { href: '/dashboard/proposals',  label: 'Proposals',    icon: FileText },
   { href: '/dashboard/developer',  label: 'Developer API', icon: Code2 },
   { href: '/dashboard/billing',    label: 'Billing',      icon: CreditCard },
@@ -108,24 +114,6 @@ const ACCOUNT_NAV = [
   { href: '/dashboard/messages',   label: 'Messages',     icon: MessageCircle },
   { href: '/dashboard/settings',   label: 'Settings',     icon: Settings },
 ]
-
-function SystemStatus() {
-  const [status, setStatus] = React.useState<'checking' | 'ok' | 'degraded'>('checking')
-  React.useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-    fetch(`${url}/health`, { signal: AbortSignal.timeout(5000) })
-      .then(r => r.ok ? setStatus('ok') : setStatus('degraded'))
-      .catch(() => setStatus('degraded'))
-  }, [])
-  const dot   = status === 'ok' ? 'bg-emerald-400' : status === 'degraded' ? 'bg-amber-400' : 'bg-[#7C3AED]/30'
-  const label = status === 'ok' ? 'All systems operational' : status === 'degraded' ? 'Service disruption' : 'Checking…'
-  return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50">
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot} ${status === 'ok' ? 'animate-pulse' : ''}`} />
-      <span className="text-[11px] text-[#7C3AED]/50">{label}</span>
-    </div>
-  )
-}
 
 export function Sidebar({
   userEmail,
@@ -330,7 +318,7 @@ export function Sidebar({
             {open && (
               <div className="mt-1.5 rounded-xl bg-white border border-purple-100 overflow-hidden shadow-lg shadow-purple-100/50 z-50">
                 <p className="text-[10px] text-[#7C3AED]/40 px-3 pt-3 pb-1.5 font-semibold uppercase tracking-wider">
-                  Your AI Team
+                  Your AI Family
                 </p>
                 {AGENTS.map(a => {
                   const locked = !isUnlocked(a.id)
@@ -438,7 +426,7 @@ export function Sidebar({
               </div>
             </div>
           </div>
-          <SystemStatus />
+          <StatusBar />
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-[#7C3AED]/40 hover:text-[#7C3AED] hover:bg-purple-50 transition-colors"

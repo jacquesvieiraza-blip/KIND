@@ -107,8 +107,8 @@ export default async function AgentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Your AI Team</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Four agents. One revenue machine. Click any agent to open their workspace.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Your AI Family</h1>
+        <p className="text-gray-500 text-sm mt-0.5">Four agents. One family. One revenue machine. Click any agent to open their workspace.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -118,24 +118,15 @@ export default async function AgentsPage() {
             <Link
               key={agent.id}
               href={agent.href}
-              className="group block rounded-2xl overflow-hidden border border-purple-100 shadow-sm bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="group flex flex-col rounded-2xl overflow-hidden border border-purple-100 shadow-sm bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
-              {/* Photo */}
-              <div className="relative h-64 overflow-hidden">
+              {/* Photo — clean, no text overlay (AI Family redesign, 125) */}
+              <div className="relative aspect-square overflow-hidden">
                 <img
                   src={`/agents/${agent.id}.png`}
                   alt={agent.name}
                   className="w-full h-full object-cover object-top group-hover:scale-[1.02] transition-transform duration-300"
                 />
-                {/* Feature list overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent p-4 flex flex-col justify-start gap-2.5">
-                  {agent.features.map(f => (
-                    <div key={f.label}>
-                      <p className="text-white text-[10px] font-bold tracking-wider uppercase">{f.label}</p>
-                      <p className="text-white/70 text-[10px] leading-tight">{f.desc}</p>
-                    </div>
-                  ))}
-                </div>
                 {/* Online badge */}
                 <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${unlocked ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
@@ -154,11 +145,21 @@ export default async function AgentsPage() {
                 <p className="text-[#9B8EC4] text-xs mt-0.5">{agent.role} · {agent.category}</p>
               </div>
 
-              {/* Description + CTA */}
-              <div className="px-4 py-3 border-t border-purple-50" style={{ background: agent.accentLight }}>
+              {/* Body — description + feature checklist + CTA */}
+              <div className="px-4 py-4 flex flex-col flex-1">
                 <p className="text-xs text-gray-600 leading-relaxed mb-3">{agent.description}</p>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {agent.features.map(f => (
+                    <div key={f.label} className="flex gap-1.5 items-start">
+                      <svg viewBox="0 0 24 24" fill="none" stroke={agent.accent} strokeWidth={2.5} className="w-3.5 h-3.5 shrink-0 mt-0.5">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                      <span className="text-[11px] font-semibold text-gray-800 leading-tight">{f.label}</span>
+                    </div>
+                  ))}
+                </div>
                 <div
-                  className="w-full text-center text-xs font-semibold py-2 rounded-xl text-white transition-opacity"
+                  className="mt-auto w-full text-center text-xs font-semibold py-2.5 rounded-xl text-white transition-all group-hover:brightness-110"
                   style={{ background: agent.accent }}
                 >
                   {agent.cta} →

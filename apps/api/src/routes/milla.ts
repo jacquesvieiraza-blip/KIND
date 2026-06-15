@@ -2,9 +2,23 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
+import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { processDocument, chat } from '../lib/milla'
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// Stateless side-panel chat persona (113a). Distinct from the session-backed
+// /sessions/:id/chat above (which does RAG + persistence): this is the quick
+// "ask Milla anything" thread that lives in the right-rail agent panel.
+const MILLA_CHAT_SYSTEM = [
+  "You are Milla, the AI virtual assistant ('The Brain') inside the K.I.N.D client portal.",
+  "K.I.N.D is an AI sales platform. The agent family: FIGSY (AI SDR — finds leads, writes & sends cold-email sequences), Milla (you — business-intelligence VA: drafting, business Q&A, daily briefs, organising knowledge), Vida (website chatbot that qualifies visitors), Denise (the AI closer — warm follow-ups & proposals).",
+  "You help with: drafting documents & emails, answering business questions, summarising, and pointing the client to the right place in the portal (Leads, FIGSY campaigns, Inbox, Settings, Documents, Knowledge, Billing).",
+  "Answer concisely — 2-4 sentences unless asked for a full draft. Warm, sharp, practical.",
+  "Never invent metrics, prices, client data, or features you're unsure about. If you don't know or it needs a human, say so and point to hello@get-kind.com.",
+].join(' ')
 
 export const millaRouter = Router()
 millaRouter.use(requireAuth)
@@ -285,5 +299,117 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[milla/chat POST]', err)
     res.status(500).json({ success: false, error: 'Failed to send message' })
+  }
+})
+
+// ── STATELESS SIDE-PANEL CHAT (113a) ───────────────────────────────────────────
+/**
+ * POST /milla/chat — quick stateless "ask Milla anything" for the right-rail
+ * agent panel. Gated on an active Milla subscription (fail-open on lookup error).
+ * Body: { message, history?: [{role, content}] }  →  { success, data: { reply } }
+ */
+millaRouter.post('/chat', async (req: AuthRequest, res) => {
+  try {
+    const { message, history } = z.object({
+      message: z.string().min(1).max(2000),
+      history: z.array(z.object({
+        role:    z.enum(['user', 'assistant']),
+        content: z.string().max(4000),
+      })).max(12).optional(),
+    }).parse(req.body)
+
+    const access = await requireMillaAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.json({ success: true, data: { reply: "I can't reach my brain right now — please email hello@get-kind.com and the team will help." } })
+      return
+    }
+
+    const messages: Anthropic.MessageParam[] = [
+      ...(history ?? []).map(m => ({ role: m.role, content: m.content })),
+      { role: 'user' as const, content: message },
+    ]
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      system: MILLA_CHAT_SYSTEM,
+      messages,
+    })
+
+    const reply = response.content
+      .filter(b => b.type === 'text')
+      .map(b => (b as Anthropic.TextBlock).text)
+      .join('')
+      .trim() || "Sorry, I didn't catch that — could you rephrase?"
+
+    res.json({ success: true, data: { reply } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors[0]?.message ?? 'Invalid input' }); return }
+    console.error('[milla/chat stateless]', err)
+    res.status(500).json({ success: false, error: 'Milla is temporarily unavailable' })
+  }
+})
+
+// ── NOTETAKER ─────────────────────────────────────────────────────────────────
+
+/**
+ * POST /milla/notetaker
+ * Accepts a meeting transcript and uses Claude to extract action items.
+ * Returns { success: true, items: [{task, owner, due}] }
+ */
+millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
+  try {
+    const { transcript } = z.object({
+      transcript: z.string().min(1).max(20000),
+    }).parse(req.body)
+
+    const access = await requireMillaAccess(req.userId!)
+    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.status(503).json({
+        success: false,
+        error: 'AI service is not configured. Please set ANTHROPIC_API_KEY to enable the Notetaker feature.',
+      })
+      return
+    }
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const systemPrompt =
+      'You are Milla, an AI assistant. Extract all action items from this meeting transcript. ' +
+      'Return a JSON array: [{task: string, owner: string, due: string}]. ' +
+      'Owner should be a first name from the transcript. ' +
+      "Due should be a natural date like 'Mon 8 Jun'. " +
+      'Return ONLY the JSON array, no other text.'
+
+    const response = await anthropic.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system:     systemPrompt,
+      messages:   [{ role: 'user', content: transcript }],
+    })
+
+    const textBlock = response.content.find(
+      (block): block is Anthropic.Messages.TextBlock => block.type === 'text',
+    )
+    const rawText = textBlock?.text.trim() ?? '[]'
+
+    try {
+      const items = JSON.parse(rawText) as Array<{ task: string; owner: string; due: string }>
+      res.json({ success: true, items })
+    } catch {
+      // Fallback: return the raw text as a single item so the UI still shows something
+      res.json({
+        success: true,
+        items: [{ task: rawText, owner: 'Unknown', due: '' }],
+      })
+    }
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[milla/notetaker POST]', err)
+    res.status(500).json({ success: false, error: 'Failed to extract action items' })
   }
 })

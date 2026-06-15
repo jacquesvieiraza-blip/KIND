@@ -427,6 +427,7 @@
         <span class="feat-pill">POPIA compliant</span>
       </div>
       <div id="camp-list" style="margin-top:24px">
+        <div style="font-size:0.7rem;color:#9b8ec4;font-style:italic;margin-bottom:8px">Illustrative example — sample campaign data</div>
         <div class="camp-card" id="camp1">
           <div style="flex:1"><div class="camp-name">West Africa Founders Q2</div><div class="camp-meta">156 leads · Day 4 sequence</div></div>
           <div class="camp-stat"><div class="camp-stat-n green">8.2%</div><div class="camp-stat-l">Reply rate</div></div>
@@ -532,9 +533,10 @@
           <div class="url-bar">app.get-kind.com/kpis</div>
         </div>
         <div class="app-body">
+          <div style="font-size:0.62rem;color:rgba(0,0,0,0.4);font-style:italic;margin-bottom:10px">Illustrative example — sample dashboard</div>
           <div class="kpi-row">
             <div class="kpi" id="kpi1"><div class="kpi-lbl">Pipeline Value</div><div class="kpi-val">$420k</div><div class="kpi-sub">247 active leads</div></div>
-            <div class="kpi" id="kpi2"><div class="kpi-lbl">Reply Rate</div><div class="kpi-val">5.4%</div><div class="kpi-sub">vs 3% industry avg</div></div>
+            <div class="kpi" id="kpi2"><div class="kpi-lbl">Reply Rate</div><div class="kpi-val">5.4%</div><div class="kpi-sub">This month</div></div>
             <div class="kpi" id="kpi3"><div class="kpi-lbl">Emails Sent</div><div class="kpi-val">1,240</div><div class="kpi-sub">This month</div></div>
             <div class="kpi" id="kpi4"><div class="kpi-lbl">Interested</div><div class="kpi-val">24</div><div class="kpi-sub">Warm leads ready</div></div>
           </div>
@@ -643,11 +645,12 @@
       </div>
     </div>
     <div id="alerts-list">
+      <div style="font-size:0.7rem;color:#9b8ec4;font-style:italic;margin-bottom:8px">Illustrative example — sample notifications</div>
       <div class="alert-card success" id="alert1">
         <div class="alert-icon">✅</div>
         <div>
           <div class="alert-title">Campaign performing above benchmark</div>
-          <div class="alert-body">West Africa Founders Q2 is at 8.2% reply rate — 2.7× the industry average. FIGSY is continuing to optimise subject lines.</div>
+          <div class="alert-body">West Africa Founders Q2 is at 8.2% reply rate. FIGSY is continuing to optimise subject lines.</div>
         </div>
       </div>
       <div class="alert-card warn" id="alert2">
@@ -661,7 +664,7 @@
         <div class="alert-icon">📊</div>
         <div>
           <div class="alert-title">Monday digest sent</div>
-          <div class="alert-body">Your weekly outreach summary: 156 emails sent, 12.8% reply rate, 8 interested leads. Industry avg: 3%.</div>
+          <div class="alert-body">Your weekly outreach summary: 156 emails sent, 12.8% reply rate, 8 interested leads.</div>
         </div>
       </div>
     </div>
@@ -848,6 +851,15 @@ function onScroll(){
 window.addEventListener('scroll', onScroll, {passive:true})
 setTimeout(onScroll, 200)
 setTimeout(onScroll, 900)
+</script>
+<script>
+(function(){
+  fetch('https://kindapi-production-e64c.up.railway.app/track/visit', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({page_url:location.href, referrer:document.referrer, user_agent:navigator.userAgent})
+  }).catch(function(){})
+})()
 </script>
 </body>
 </html>

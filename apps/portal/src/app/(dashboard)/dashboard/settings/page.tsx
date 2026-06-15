@@ -16,7 +16,10 @@ const DEFAULT_NOTIF_PREFS = {
 }
 type NotifPrefs = typeof DEFAULT_NOTIF_PREFS
 
-function NotificationPreferences() {
+function NotificationPreferences({ serverDailyBrief, onDailyBriefToggle }: {
+  serverDailyBrief: boolean | null
+  onDailyBriefToggle: (next: boolean) => void
+}) {
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS)
   const [saved, setSaved] = useState(false)
 
@@ -31,6 +34,14 @@ function NotificationPreferences() {
   }, [])
 
   function toggle(key: keyof NotifPrefs) {
+    // R2 (#27): the daily brief drives a real server-side email cron, so it's
+    // persisted to the client record rather than localStorage.
+    if (key === 'daily_brief') {
+      onDailyBriefToggle(!(serverDailyBrief ?? false))
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+      return
+    }
     setPrefs(prev => {
       const next = { ...prev, [key]: !prev[key] }
       try { localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
@@ -39,6 +50,9 @@ function NotificationPreferences() {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
+
+  // The daily-brief toggle reflects the server value; the rest are local.
+  const effective: NotifPrefs = { ...prefs, daily_brief: serverDailyBrief ?? false }
 
   const items: { key: keyof NotifPrefs; label: string; desc: string }[] = [
     { key: 'reply_received',  label: 'Reply received',      desc: 'When a lead replies to a FIGSY sequence.' },
@@ -73,12 +87,12 @@ function NotificationPreferences() {
               onClick={() => toggle(key)}
               aria-label={`Toggle ${label}`}
               className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:ring-offset-2 ${
-                prefs[key] ? 'bg-[#7C3AED]' : 'bg-gray-200'
+                effective[key] ? 'bg-[#7C3AED]' : 'bg-gray-200'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${
-                  prefs[key] ? 'translate-x-4' : 'translate-x-0.5'
+                  effective[key] ? 'translate-x-4' : 'translate-x-0.5'
                 }`}
               />
             </button>
@@ -145,6 +159,59 @@ function FigsyOutreachSettings() {
               approveBeforeSend ? 'translate-x-4' : 'translate-x-0.5'
             }`}
           />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// R12 (#83) — Embeddable lead-capture form. Shows a copy-paste snippet that
+// posts to the public /forms/:clientId/submit endpoint → a scored pipeline lead.
+function LeadCaptureFormSection({ clientId }: { clientId: string }) {
+  const [copied, setCopied] = useState(false)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+
+  const snippet = `<!-- K.I.N.D lead-capture form -->
+<form id="kind-lead-form" style="max-width:380px;font-family:sans-serif;display:flex;flex-direction:column;gap:10px">
+  <input name="name" placeholder="Your name" style="padding:10px;border:1px solid #ddd;border-radius:8px" />
+  <input name="email" type="email" required placeholder="Email" style="padding:10px;border:1px solid #ddd;border-radius:8px" />
+  <input name="company" placeholder="Company" style="padding:10px;border:1px solid #ddd;border-radius:8px" />
+  <textarea name="message" placeholder="How can we help?" style="padding:10px;border:1px solid #ddd;border-radius:8px"></textarea>
+  <input name="_hp" style="display:none" tabindex="-1" autocomplete="off" />
+  <button type="submit" style="padding:11px;background:#7C3AED;color:#fff;border:0;border-radius:8px;font-weight:600;cursor:pointer">Send</button>
+  <p id="kind-form-msg" style="font-size:13px;margin:0"></p>
+</form>
+<script>
+(function(){
+  var f=document.getElementById('kind-lead-form'),m=document.getElementById('kind-form-msg');
+  f.addEventListener('submit',function(e){
+    e.preventDefault();
+    var d={};new FormData(f).forEach(function(v,k){d[k]=v;});
+    m.textContent='Sending…';
+    fetch('${apiUrl}/forms/${clientId}/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+      .then(function(r){return r.json();})
+      .then(function(r){m.style.color=r.success?'#16a34a':'#dc2626';m.textContent=r.success?'Thanks — we\\'ll be in touch!':(r.error||'Something went wrong.');if(r.success)f.reset();})
+      .catch(function(){m.style.color='#dc2626';m.textContent='Network error — please try again.';});
+  });
+})();
+</script>`
+
+  return (
+    <div className="border-t border-gray-100 pt-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Link2 className="w-4 h-4 text-[#9B8EC4]" />
+        <h2 className="font-semibold">Lead-Capture Form</h2>
+      </div>
+      <p className="text-sm text-[#9B8EC4] mb-4">
+        Paste this into your website. Every submission becomes a scored lead in your pipeline (source: web form) — deduped by email, spam-protected with a honeypot.
+      </p>
+      <div className="relative">
+        <pre className="text-xs bg-[#1E1B2E] text-gray-200 rounded-lg p-4 overflow-x-auto max-h-64 leading-relaxed"><code>{snippet}</code></pre>
+        <button
+          onClick={() => { navigator.clipboard.writeText(snippet).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500) }) }}
+          className="absolute top-2 right-2 flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white rounded-lg px-2.5 py-1.5 transition-colors"
+        >
+          {copied ? <><CheckCircle className="w-3.5 h-3.5" /> Copied</> : 'Copy'}
         </button>
       </div>
     </div>
@@ -297,6 +364,7 @@ export default function SettingsPage() {
   const [unsavedCrm, setUnsavedCrm]                 = useState(false)
   const [clientId, setClientId]                     = useState<string | null>(null)
   const [userRole, setUserRole]                     = useState<string>('owner')
+  const [dailyBriefEnabled, setDailyBriefEnabled]   = useState<boolean | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -309,6 +377,8 @@ export default function SettingsPage() {
         setCrm({ crm_type: c.crm_type || 'none', crm_api_key: c.crm_api_key || '', crm_sync_enabled: c.crm_sync_enabled ?? false, crm_dedup_enabled: c.crm_dedup_enabled ?? false })
         setSignerName((c as { signer_name?: string | null }).signer_name || '')
         setBookingUrl((c as { booking_url?: string | null }).booking_url || '')
+        // R2 (#27): daily-brief opt-in is server-backed (defaults TRUE).
+        setDailyBriefEnabled((c as { daily_brief_enabled?: boolean | null }).daily_brief_enabled ?? true)
         if (c.id) {
           setClientId(c.id)
           // Fetch the user's role in this team
@@ -413,6 +483,18 @@ export default function SettingsPage() {
       setBookingError(err instanceof Error ? err.message : 'Failed to save — check it\'s a valid URL.')
     }
     setBookingSaving(false)
+  }
+
+  async function handleDailyBriefToggle(next: boolean) {
+    const prev = dailyBriefEnabled
+    setDailyBriefEnabled(next)   // optimistic
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setDailyBriefEnabled(prev); return }
+      await api.patch('/clients/me', { daily_brief_enabled: next }, session.access_token)
+    } catch {
+      setDailyBriefEnabled(prev)  // revert on failure
+    }
   }
 
   async function handleCrmSave(e: React.FormEvent) {
@@ -559,6 +641,9 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold text-gray-900">Integrations</h2>
         <p className="text-[#7B6FA0] text-sm mt-0.5">Connect external tools to supercharge FIGSY.</p>
       </div>
+
+      {/* Lead-Capture Form — R12 */}
+      {clientId && <LeadCaptureFormSection clientId={clientId} />}
 
       {/* Writing Style — W14 */}
       <div className="border-t border-gray-100 pt-6">
@@ -820,7 +905,7 @@ export default function SettingsPage() {
       <FigsyOutreachSettings />
 
       {/* Notification Preferences */}
-      <NotificationPreferences />
+      <NotificationPreferences serverDailyBrief={dailyBriefEnabled} onDailyBriefToggle={handleDailyBriefToggle} />
 
       {/* P2-12 — White-label / Agency Mode */}
       <div className="border-t border-gray-100 pt-6">

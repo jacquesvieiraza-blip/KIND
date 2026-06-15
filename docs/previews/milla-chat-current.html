@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milla — chat (current)</title>
+<style>
+  :root{ --brand:#7C3AED; --brand-d:#6D28D9; --ink:#111827; --muted:#7B6FA0; --faint:#9B8EC4;
+    --line:#EDE9FE; --bg:#F5F3FF; --lilac:#F5F0FF; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Google Sans","Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#FAFAFE;color:var(--ink);-webkit-font-smoothing:antialiased;padding:28px 24px}
+  .wrap{max-width:1000px;margin:0 auto}
+
+  .head h1{font-size:24px;font-weight:700}
+  .head p{font-size:13px;color:var(--muted);margin-top:3px;max-width:640px;line-height:1.5}
+  .langs{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .langs .lbl{font-size:12px;color:var(--faint)}
+  .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:var(--lilac);color:var(--brand);font-size:12px;font-weight:500}
+
+  .tabs{display:flex;gap:4px;border-bottom:1px solid #EDE9FE99;margin:20px 0}
+  .tab{padding:8px 16px;font-size:13px;font-weight:500;border-radius:8px 8px 0 0;color:var(--muted);cursor:pointer}
+  .tab.active{background:#fff;border:1px solid #EDE9FE99;border-bottom-color:#fff;color:var(--ink);margin-bottom:-1px}
+
+  .chat{background:rgba(255,255,255,.85);border:1px solid #EDE9FE99;border-radius:12px;overflow:hidden}
+  .hint{padding:14px 16px;background:var(--lilac);border-bottom:1px solid var(--line);font-size:13px;color:var(--brand-d)}
+  .hint a{text-decoration:underline;font-weight:500;cursor:pointer}
+
+  .body{display:flex;height:560px}
+  /* sessions sidebar */
+  .sessions{width:208px;border-right:1px solid #EDE9FE99;display:flex;flex-direction:column;flex-shrink:0}
+  .newchat{padding:12px}
+  .newchat button{width:100%;padding:8px;background:var(--brand);color:#fff;font-size:12px;font-weight:500;border:none;border-radius:8px;cursor:pointer}
+  .slist{flex:1;overflow-y:auto}
+  .srow{padding:10px 12px;border-bottom:1px solid #F6F4FC;cursor:pointer;font-size:12px}
+  .srow.active{background:var(--lilac);color:var(--brand-d)}
+  .srow .t{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .srow .d{color:var(--faint);margin-top:2px}
+
+  /* conversation */
+  .conv{flex:1;display:flex;flex-direction:column;min-width:0}
+  .msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+  .row{display:flex}
+  .row.me{justify-content:flex-end}
+  .bub{max-width:80%;padding:10px 14px;font-size:13px;line-height:1.55;border-radius:16px}
+  .bub.ai{background:#F7F7FB;border:1px solid #EDE9FE99;color:#374151;border-bottom-left-radius:4px}
+  .bub.me{background:var(--brand);color:#fff;border-bottom-right-radius:4px}
+  .src{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .srcchip{font-size:10px;color:var(--brand);background:var(--lilac);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+  .thinking{font-size:12px;color:var(--faint);background:#F7F7FB;border:1px solid #EDE9FE99;border-radius:16px;border-bottom-left-radius:4px;padding:10px 14px;align-self:flex-start}
+
+  .composer{border-top:1px solid #EDE9FE99;padding:12px 14px}
+  .crow{display:flex;gap:10px;align-items:flex-end}
+  .crow textarea{flex:1;border:1px solid #EDE9FE;border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;resize:none;height:48px;color:var(--ink)}
+  .crow textarea::placeholder{color:var(--faint)}
+  .send{padding:8px 16px;background:var(--brand);color:#fff;font-size:13px;font-weight:500;border:none;border-radius:8px;cursor:pointer;height:36px}
+  .respond{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .respond .lbl{font-size:10px;color:var(--faint);font-weight:500}
+  .lp{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:500;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+  .lp.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>Milla — Virtual Assistant</h1>
+    <p>Ask Milla about lead-gen strategy, your ICP, or how to set up FIGSY — and train her on your documents for answers grounded in your own data.</p>
+    <div class="langs">
+      <span class="lbl">Available in:</span>
+      <span class="pill">🇬🇧 English</span>
+      <span class="pill">🇫🇷 French</span>
+      <span class="pill">🇵🇹 Portuguese</span>
+      <span class="pill">🇿🇦 isiZulu</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab">Documents</div>
+    <div class="tab active">Chat</div>
+  </div>
+
+  <div class="chat">
+    <div class="hint">💡 Milla can answer general questions now. <a>Add your business documents</a> to get answers grounded in your own data.</div>
+    <div class="body">
+
+      <!-- sessions -->
+      <div class="sessions">
+        <div class="newchat"><button>+ New chat</button></div>
+        <div class="slist">
+          <div class="srow active"><div class="t">ICP for fintech outreach</div><div class="d">12 Jun 2026</div></div>
+          <div class="srow"><div class="t">How do I set up FIGSY?</div><div class="d">11 Jun 2026</div></div>
+          <div class="srow"><div class="t">Pricing deck questions</div><div class="d">9 Jun 2026</div></div>
+        </div>
+      </div>
+
+      <!-- conversation -->
+      <div class="conv">
+        <div class="msgs">
+          <div class="row"><div class="bub ai">Hi! I'm Milla, your K.I.N.D business assistant. Ask me anything — about your leads, how to set up FIGSY, what your ICP should look like, or any other business question. How can I help?</div></div>
+          <div class="row me"><div class="bub me">What should my ICP look like if I sell compliance software to UK fintechs?</div></div>
+          <div class="row"><div>
+            <div class="bub ai">For UK fintech compliance buyers, I'd target Heads of Compliance, Risk, or COOs at Series A–C firms (50–500 staff) that are FCA-regulated. Trigger signals: recent funding, a new compliance hire, or an FCA authorisation. Want me to draft a first sequence around that?</div>
+            <div class="src"><span class="srcchip">📄 Pricing Deck Q2 2026</span><span class="srcchip">📄 ICP notes</span></div>
+          </div></div>
+          <div class="row me"><div class="bub me">Yes — keep it to three emails.</div></div>
+          <div class="thinking">Milla is thinking…</div>
+        </div>
+
+        <div class="composer">
+          <div class="crow">
+            <textarea placeholder="Ask Milla anything…"></textarea>
+            <button class="send">Send</button>
+          </div>
+          <div class="respond">
+            <span class="lbl">Respond in:</span>
+            <span class="lp on">🇬🇧 English</span>
+            <span class="lp">🇫🇷 French</span>
+            <span class="lp">🇵🇹 Portuguese</span>
+            <span class="lp">🇿🇦 isiZulu</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

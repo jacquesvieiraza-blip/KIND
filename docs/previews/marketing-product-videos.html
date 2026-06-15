@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watch &mdash; See K.I.N.D in action &middot; K.I.N.D</title>
+  <meta name="description" content="Watch K.I.N.D in action — short product videos of FIGSY sourcing leads, writing outreach, booking meetings, and the full platform end to end." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; }
+    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary:hover { opacity: 0.8; }
+
+    /* HERO */
+    .page-hero { background: #faf5ff; padding: 92px 48px 64px; position: relative; overflow: hidden; text-align: center; }
+    .page-hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 700px; height: 460px; background: radial-gradient(circle, rgba(124,58,237,0.11) 0%, transparent 65%); pointer-events: none; }
+    .page-hero-inner { max-width: 700px; margin: 0 auto; position: relative; z-index: 1; }
+    .page-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 5px 14px; border-radius: 100px; background: rgba(124,58,237,0.1); color: var(--blue); margin-bottom: 20px; }
+    .page-hero h1 { font-size: clamp(2.4rem, 5.5vw, 4rem); font-weight: 900; letter-spacing: -0.045em; color: var(--dark); line-height: 1.04; margin-bottom: 18px; }
+    .page-hero p { font-size: 1.08rem; color: rgba(0,0,0,0.55); line-height: 1.7; max-width: 540px; margin: 0 auto; }
+
+    /* GALLERY */
+    .gallery { max-width: 1080px; margin: 0 auto; padding: 64px 48px 40px; }
+    .feature { display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; margin-bottom: 64px; }
+    .thumb { position: relative; border-radius: 20px; overflow: hidden; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: transform .25s; }
+    .thumb:hover { transform: translateY(-3px); }
+    .thumb-g1 { background: linear-gradient(135deg, #1E1152 0%, #7c3aed 100%); }
+    .thumb-g2 { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
+    .thumb-g3 { background: linear-gradient(135deg, #0a0a0a 0%, #3b2a6b 100%); }
+    .thumb-g4 { background: linear-gradient(135deg, #5b21b6 0%, #1E1152 100%); }
+    .play { width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.95); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 30px rgba(0,0,0,0.25); transition: transform .2s; }
+    .thumb:hover .play { transform: scale(1.08); }
+    .play::after { content: ''; border-left: 18px solid var(--blue); border-top: 11px solid transparent; border-bottom: 11px solid transparent; margin-left: 4px; }
+    .thumb-len { position: absolute; bottom: 12px; right: 12px; font-size: 0.7rem; font-weight: 700; color: #fff; background: rgba(0,0,0,0.55); padding: 3px 9px; border-radius: 6px; }
+    .feature-copy .f-tag { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 12px; }
+    .feature-copy h2 { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; }
+    .feature-copy p { font-size: 0.95rem; color: rgba(0,0,0,0.55); line-height: 1.75; margin-bottom: 20px; }
+    .feature-copy a.watch { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 700; color: var(--dark); text-decoration: none; }
+    .feature-copy a.watch:hover { color: var(--blue); }
+
+    .grid-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0,0,0,0.35); margin-bottom: 24px; }
+    .vid-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 80px; }
+    .vid-card { text-decoration: none; }
+    .vid-card .thumb { aspect-ratio: 16/10; margin-bottom: 14px; }
+    .vid-card .play { width: 48px; height: 48px; }
+    .vid-card .play::after { border-left: 13px solid var(--blue); border-top: 8px solid transparent; border-bottom: 8px solid transparent; }
+    .vid-card h3 { font-size: 1rem; font-weight: 800; color: var(--dark); margin-bottom: 5px; letter-spacing: -0.01em; }
+    .vid-card p { font-size: 0.8rem; color: rgba(0,0,0,0.45); line-height: 1.6; }
+
+    /* CTA */
+    .cta-band { max-width: 1080px; margin: 0 auto 90px; padding: 0 48px; }
+    .cta-inner { background: var(--dark); border-radius: 24px; padding: 52px 40px; text-align: center; }
+    .cta-inner h2 { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 12px; }
+    .cta-inner p { font-size: 0.95rem; color: rgba(255,255,255,0.55); max-width: 440px; margin: 0 auto 24px; }
+    .cta-inner a { display: inline-block; background: var(--blue); color: #fff; font-size: 0.9rem; font-weight: 700; text-decoration: none; padding: 13px 28px; border-radius: 100px; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; } .nav-links { display: none; }
+      .page-hero { padding: 72px 24px 52px; }
+      .gallery { padding: 48px 24px 32px; }
+      .feature { grid-template-columns: 1fr; gap: 24px; }
+      .vid-grid { grid-template-columns: 1fr; }
+      .cta-band { padding: 0 24px; } footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+<div style="background:#111827;color:#fbbf24;text-align:center;font-size:12px;font-weight:600;padding:6px">PREVIEW · PR #503 marketing page · <b style="color:#fff">product-videos.html</b> ("Watch") · website, not portal · logo placeholder</div>
+<nav>
+  <a href="#" class="logo"><div style="width:34px;height:34px;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-weight:800">K</div><span class="logo-text">K.I.N.D</span></a>
+  <div class="nav-links">
+    <a href="#" class="nav-link">Products</a>
+    <a href="#" class="nav-link" style="color:var(--blue);font-weight:600;">Watch</a>
+    <a href="#" class="nav-link">Use Cases</a>
+    <a href="#" class="nav-link">The Drop</a>
+    <a href="#" class="nav-link">Resources</a>
+    <a href="#" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="#" class="btn-nav-ghost">Log in</a>
+    <a href="#" class="btn-nav-primary">Start 14-day trial</a>
+  </div>
+</nav>
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <span class="page-tag">Watch</span>
+    <h1>See K.I.N.D in action.</h1>
+    <p>No polished corporate reel &mdash; just real walkthroughs of the product doing the work, with real examples. Short, honest videos of how it actually runs.</p>
+  </div>
+</section>
+
+<div class="gallery">
+  <div class="feature">
+    <a href="#" class="thumb thumb-g1">
+      <span class="play"></span>
+      <span class="thumb-len">Walkthrough</span>
+    </a>
+    <div class="feature-copy">
+      <div class="f-tag">Start here</div>
+      <h2>The full run-through</h2>
+      <p>I take you through the whole thing &mdash; signing up, building an ICP, sourcing real leads, and how FIGSY runs the outreach and books meetings. The honest tour, start to finish.</p>
+      <a href="#" class="watch">Watch the run-through &rarr;</a>
+    </div>
+  </div>
+
+  <div class="grid-label">Real walkthroughs &amp; examples</div>
+  <div class="vid-grid">
+    <a href="#" class="vid-card">
+      <div class="thumb thumb-g2"><span class="play"></span><span class="thumb-len">Example</span></div>
+      <h3>Building an ICP that works</h3>
+      <p>I build a real ideal-customer profile live and show the leads that come back &mdash; the exact targeting that makes FIGSY land.</p>
+    </a>
+    <a href="#" class="vid-card">
+      <div class="thumb thumb-g3"><span class="play"></span><span class="thumb-len">Example</span></div>
+      <h3>From lead to booked meeting</h3>
+      <p>A real example: FIGSY writes the email, the prospect replies, and the meeting lands &mdash; the whole loop in one short clip.</p>
+    </a>
+    <a href="#" class="vid-card">
+      <div class="thumb thumb-g4"><span class="play"></span><span class="thumb-len">Live</span></div>
+      <h3>See your own demo</h3>
+      <p>Prefer to see it on your business? Get a personalised walkthrough with real leads in your market.</p>
+    </a>
+  </div>
+</div>
+
+<div class="cta-band">
+  <div class="cta-inner">
+    <h2>Ready to see it on your pipeline?</h2>
+    <p>Start a 14-day trial and watch FIGSY source real leads in your market &mdash; no card needed to look.</p>
+    <a href="#">Start your 14-day trial &rarr;</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-bottom">
+    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="#">Home</a>
+      <a href="#">Watch</a>
+      <a href="#">The Drop</a>
+      <a href="#">Pricing</a>
+      <a href="#">Trust</a>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

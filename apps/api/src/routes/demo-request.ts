@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { z } from 'zod'
+import { rateLimit } from '../lib/rate-limit'
 
 const router = Router()
 
@@ -11,7 +12,7 @@ const schema = z.object({
   message: z.string().max(500).optional(),
 })
 
-router.post('/demo-request', async (req, res) => {
+router.post('/demo-request', rateLimit({ limit: 5, windowMs: 60_000, key: 'demo-request' }), async (req, res) => {
   const parse = schema.safeParse(req.body)
   if (!parse.success) return res.status(400).json({ success: false, error: 'Invalid request' })
 
@@ -25,7 +26,7 @@ router.post('/demo-request', async (req, res) => {
   const productNames: Record<string, string> = {
     milla: 'Milla — Virtual Assistant ($49/month)',
     vida: 'Vida — Chatbot Agent ($29/month)',
-    denise: 'Denise — AI Account Executive ($99/month)',
+    denise: 'Denise — AI Account Executive ($39/month)',
     figsy: 'FIGSY — AI SDR',
     general: 'K.I.N.D Platform',
   }

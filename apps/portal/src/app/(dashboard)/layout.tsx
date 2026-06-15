@@ -7,10 +7,15 @@ import { SidebarSlim } from '@/components/layout/SidebarSlim'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
 import { CommandPalette } from '@/components/ui/CommandPalette'
+import { VidaHelpBubble } from '@/components/ui/VidaHelpBubble'
+import { MilestoneCelebration } from '@/components/ui/MilestoneCelebration'
 import { AgentColumn } from './AgentColumn'
 import { ProfileMenu } from '@/components/layout/ProfileMenu'
 import { v2Enabled } from '@/lib/flags'
-import { Coins, Bell } from 'lucide-react'
+import { NotificationBell } from '@/components/ui/NotificationBell'
+import { Coins, FlaskConical } from 'lucide-react'
+
+const IS_STAGING = process.env.NEXT_PUBLIC_IS_STAGING === 'true'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -54,7 +59,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   try {
     const { data: clientRow } = await supabase
       .from('clients')
-      .select('id, credit_balance, company_name, subscriptions(*)')
+      .select('id, credit_balance, company_name, company_id, seat_role, enabled_agents, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -65,10 +70,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       const subs = (clientRow.subscriptions as { status: string; product?: string; trial_ends_at?: string }[]) ?? []
 
       const isLive = (p: string) => subs.some(s => s.product === p && (s.status === 'active' || s.status === 'trialing'))
-      hasFigsy  = isLive('lead_gen_figsy') || isLive('figsy_addon')
-      hasMilla  = isLive('virtual_assistant')
-      hasVida   = isLive('chatbot')
-      hasDenise = isLive('denise') || isLive('denise_addon')
+      // Company reps get their agent access from the owner-controlled enabled_agents
+      // list (per-rep unlock). Solo accounts keep the subscription-based gating —
+      // so existing production clients are completely unaffected.
+      const isRep = !!(clientRow as { company_id?: string; seat_role?: string }).company_id && (clientRow as { seat_role?: string }).seat_role === 'rep'
+      const enabled = ((clientRow as { enabled_agents?: string[] }).enabled_agents) ?? []
+      hasFigsy  = isLive('lead_gen_figsy') || isLive('figsy_addon') || (isRep && enabled.includes('figsy'))
+      hasMilla  = isLive('virtual_assistant') || (isRep && enabled.includes('milla'))
+      hasVida   = isLive('chatbot') || (isRep && enabled.includes('vida'))
+      hasDenise = isLive('denise') || isLive('denise_addon') || (isRep && enabled.includes('denise'))
 
       const hasAny = subs.some((s) => s.status === 'active')
       if (!hasAny) {
@@ -103,6 +113,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start max-w-7xl mx-auto w-full">
         <div className="flex-1 min-w-0 space-y-4">
           <LowCreditsNotice balance={creditBalance} />
+          {!isPartner && <MilestoneCelebration leadCount={leadCount} companyName={companyName} />}
           {children}
         </div>
         <AgentColumn
@@ -120,6 +131,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     </>
   )
 
+  const stagingBanner = IS_STAGING ? (
+    <div className="flex items-center justify-center gap-2 bg-amber-400 text-amber-900 text-xs font-bold py-1.5 px-4 shrink-0">
+      <FlaskConical className="w-3.5 h-3.5" />
+      STAGING — test data only — changes here never affect production
+    </div>
+  ) : null
+
   // ── SLIM LAYOUT (V2) — gated by FEATURE_V2_SCREENS=layout. OFF by default,
   //    so the live product is unchanged until the flag is flipped. ──────────────
   if (v2Enabled('layout')) {
@@ -134,39 +152,43 @@ export default async function DashboardLayout({ children }: { children: React.Re
           isPartner={isPartner}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
+          {stagingBanner}
           <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-end gap-3 px-6 shrink-0">
             <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-amber-700 bg-amber-50">
               <Coins className="w-3.5 h-3.5" /> {creditBalance.toLocaleString()}
             </span>
-            <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
-              <Bell className="w-4 h-4" />
-            </button>
+            <NotificationBell />
             <ProfileMenu name={companyName} email={user.email || ''} />
           </header>
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{mainContent}</main>
         </div>
         <CommandPalette />
+        <VidaHelpBubble />
       </div>
     )
   }
 
   // ── CURRENT LAYOUT (default, live today) ─────────────────────────────────────
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FAFAFE]">
-      <Sidebar
-        userEmail={user.email || ''}
-        creditBalance={creditBalance}
-        hasFigsy={hasFigsy}
-        hasMilla={hasMilla}
-        hasVida={hasVida}
-        hasDenise={hasDenise}
-        isNewUser={isNewUser}
-        isPartner={isPartner}
-      />
-      <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] sm:p-6 sm:pt-[4.75rem] lg:p-8 lg:pt-8">
-        {mainContent}
-      </main>
+    <div className="flex h-screen overflow-hidden bg-[#FAFAFE] flex-col">
+      {stagingBanner}
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
+          userEmail={user.email || ''}
+          creditBalance={creditBalance}
+          hasFigsy={hasFigsy}
+          hasMilla={hasMilla}
+          hasVida={hasVida}
+          hasDenise={hasDenise}
+          isNewUser={isNewUser}
+          isPartner={isPartner}
+        />
+        <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] sm:p-6 sm:pt-[4.75rem] lg:p-8 lg:pt-8">
+          {mainContent}
+        </main>
+      </div>
       <CommandPalette />
+      <VidaHelpBubble />
     </div>
   )
 }

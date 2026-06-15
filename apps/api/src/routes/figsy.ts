@@ -3,13 +3,20 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds } from '../lib/figsy'
+import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals } from '../lib/figsy'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
-import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO } from '../lib/deliverability'
+import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO, warmupRampCap, spamScore } from '../lib/deliverability'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
+import { rateLimit } from '../lib/rate-limit'
+
+// Generous DoS backstop for the public, token-gated unsubscribe routes. The limit
+// is high on purpose: an unsubscribe must NEVER be blocked for a legitimate
+// recipient (that would breach opt-out obligations), and Gmail/Yahoo one-click
+// proxies can batch many POSTs from a shared IP. This only trips on clear abuse.
+const unsubscribeLimiter = rateLimit({ limit: 100, windowMs: 60_000, key: 'unsubscribe' })
 
 export const figsyRouter = Router()
 
@@ -61,7 +68,7 @@ async function recordUnsubscribe(email: string): Promise<void> {
 }
 
 // One-click unsubscribe (Gmail/Yahoo POST to the List-Unsubscribe URL).
-figsyRouter.post('/unsubscribe/:token', async (req, res) => {
+figsyRouter.post('/unsubscribe/:token', unsubscribeLimiter, async (req, res) => {
   const email = verifyUnsubscribeToken(req.params.token)
   if (!email) return res.status(400).send('Invalid unsubscribe link.')
   try { await recordUnsubscribe(email) } catch (err) { console.error('[figsy/unsubscribe] POST failed:', err) }
@@ -69,7 +76,7 @@ figsyRouter.post('/unsubscribe/:token', async (req, res) => {
 })
 
 // Footer link click — confirm in the browser.
-figsyRouter.get('/unsubscribe/:token', async (req, res) => {
+figsyRouter.get('/unsubscribe/:token', unsubscribeLimiter, async (req, res) => {
   const email = verifyUnsubscribeToken(req.params.token)
   if (!email) {
     return res.status(400).type('html').send(
@@ -224,16 +231,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         status: 'opted_out', opted_out_at: new Date().toISOString(),
       }).eq('email', fromEmail)
 
-      if (enrollment?.campaign_id) {
-        const { data: camp } = await db.from('figsy_campaigns')
-          .select('opted_out, replies_total').eq('id', enrollment.campaign_id).maybeSingle()
-        if (camp) {
-          await db.from('figsy_campaigns').update({
-            opted_out:    (camp.opted_out    ?? 0) + 1,
-            replies_total:(camp.replies_total?? 0) + 1,
-          }).eq('id', enrollment.campaign_id)
-        }
-      }
+      if (enrollment?.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
     }
 
     // Handle hot — pause sequence, bump stats, push deal to CRM
@@ -249,14 +247,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         tag: 'hot-reply',
       }).catch(() => {})
 
-      const { data: camp } = await db.from('figsy_campaigns')
-        .select('replies_interested, replies_total').eq('id', enrollment.campaign_id).maybeSingle()
-      if (camp) {
-        await db.from('figsy_campaigns').update({
-          replies_interested: (camp.replies_interested ?? 0) + 1,
-          replies_total:      (camp.replies_total       ?? 0) + 1,
-        }).eq('id', enrollment.campaign_id)
-      }
+      if (enrollment.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
 
       // F2-2 — push deal/opportunity to client's CRM
       const { data: leadFull } = await db.from('leads')
@@ -372,6 +363,109 @@ async function getClientCampaignIds(clientId: string): Promise<string[]> {
   const ids = (data ?? []).map((c: { id: string }) => c.id)
   return ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']
 }
+
+// ── PULSE (#104 status bar) ───────────────────────────────────────────────────
+// Lightweight, real, client-scoped signals for the sidebar status bar:
+//   • active_campaigns — campaigns currently running
+//   • sent_today       — emails sent so far this UTC day
+//   • warmup_cap       — today's cold-send ceiling (null = no cap configured)
+//   • credit_balance   — current credit balance
+// All numbers are real reads — no fabricated values. Cheap (HEAD counts).
+figsyRouter.get('/pulse', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const campaignIds = await getClientCampaignIds(clientId)
+    const todayUTC = new Date()
+    todayUTC.setUTCHours(0, 0, 0, 0)
+
+    // Warmup cap mirrors lib/figsy coldDailyCap(): explicit override wins, else
+    // auto-ramp from FIGSY_WARMUP_START, else no cap.
+    const explicit = parseInt(process.env.FIGSY_COLD_DAILY_CAP ?? '', 10)
+    const warmupStart = process.env.FIGSY_WARMUP_START
+    const warmupCap = Number.isFinite(explicit) && explicit > 0
+      ? explicit
+      : warmupStart ? warmupRampCap(warmupStart) : null
+
+    const [activeCampaignsRes, sentTodayRes, clientRes] = await Promise.all([
+      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds).gte('sent_at', todayUTC.toISOString()),
+      db.from('clients').select('credit_balance').eq('id', clientId).maybeSingle(),
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        active_campaigns: activeCampaignsRes.count ?? 0,
+        sent_today:       sentTodayRes.count ?? 0,
+        warmup_cap:       warmupCap,
+        credit_balance:   (clientRes.data as { credit_balance?: number } | null)?.credit_balance ?? 0,
+        as_of:            new Date().toISOString(),
+      },
+    })
+  } catch (err) { console.error('[figsy/pulse]', err); res.status(500).json({ success: false, error: 'Failed to fetch pulse' }) }
+})
+
+// ── ACTIVITY FEED (#102) ──────────────────────────────────────────────────────
+// A unified, real, client-scoped timeline of recent events — sends, replies,
+// meetings — merged and sorted newest-first. Powers the live activity panel.
+// All real reads (no fabricated events). Cheap: two capped queries, merged.
+figsyRouter.get('/activity', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const limit = Math.min(Math.max(parseInt((req.query.limit as string) ?? '30', 10) || 30, 1), 100)
+    const campaignIds = await getClientCampaignIds(clientId)
+
+    const [sentRes, repliesRes] = await Promise.all([
+      db.from('figsy_sent_emails')
+        .select('lead_id, subject, step, sent_at, leads(first_name, last_name, company)')
+        .in('campaign_id', campaignIds)
+        .order('sent_at', { ascending: false })
+        .limit(limit),
+      db.from('figsy_replies')
+        .select('from_name, from_email, classification, meeting_booked_at, received_at')
+        .eq('client_id', clientId)
+        .order('received_at', { ascending: false })
+        .limit(limit),
+    ])
+
+    type Event = { type: 'sent' | 'reply' | 'meeting'; title: string; subtitle: string; at: string; tone: 'neutral' | 'positive' | 'warn' }
+    const events: Event[] = []
+
+    for (const s of (sentRes.data ?? []) as any[]) {
+      const lead = Array.isArray(s.leads) ? s.leads[0] : s.leads
+      const who = lead ? `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || lead.company || 'a lead' : 'a lead'
+      events.push({
+        type: 'sent',
+        title: `FIGSY sent to ${who}`,
+        subtitle: `Step ${s.step}${s.subject ? ` · ${s.subject}` : ''}`,
+        at: s.sent_at,
+        tone: 'neutral',
+      })
+    }
+
+    for (const r of (repliesRes.data ?? []) as any[]) {
+      const who = r.from_name || (r.from_email ? r.from_email.split('@')[0] : 'a lead')
+      if (r.meeting_booked_at) {
+        events.push({ type: 'meeting', title: `Meeting booked with ${who}`, subtitle: 'FIGSY closed a booking', at: r.meeting_booked_at, tone: 'positive' })
+      }
+      const hot = r.classification === 'hot' || r.classification === 'interested'
+      events.push({
+        type: 'reply',
+        title: `${hot ? '🔥 ' : ''}Reply from ${who}`,
+        subtitle: r.classification ? `Classified: ${r.classification}` : 'New reply',
+        at: r.received_at,
+        tone: hot ? 'positive' : r.classification === 'opt_out' ? 'warn' : 'neutral',
+      })
+    }
+
+    events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    res.json({ success: true, data: events.slice(0, limit) })
+  } catch (err) { console.error('[figsy/activity]', err); res.status(500).json({ success: false, error: 'Failed to fetch activity' }) }
+})
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
@@ -1241,6 +1335,82 @@ Output ONLY the email body. No subject line. No preamble.`,
   }
 })
 
+// R7 (Alta) — "✨ Help me reply": a real, context-aware AI draft for the inbox.
+// Reads the prospect's actual inbound message + lead context and drafts a
+// tailored response, instead of the portal's keyword-template fallback.
+figsyRouter.post('/replies/:id/ai-draft', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, from_email, from_name, subject, body, body_text, classification, client_id, lead_id')
+      .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.status(503).json({ success: false, error: 'AI drafting not configured' }); return
+    }
+
+    // Lead + sender context for a tailored reply.
+    let leadCtx = ''
+    if (reply.lead_id) {
+      const { data: lead } = await db.from('leads')
+        .select('first_name, last_name, job_title, company, industry')
+        .eq('id', reply.lead_id).maybeSingle()
+      if (lead) leadCtx = [lead.first_name && `Name: ${lead.first_name} ${lead.last_name ?? ''}`.trim(),
+        lead.job_title && `Role: ${lead.job_title}`, lead.company && `Company: ${lead.company}`,
+        lead.industry && `Industry: ${lead.industry}`].filter(Boolean).join('; ')
+    }
+
+    // Client's own signer name, if set.
+    const { data: client } = await db.from('clients')
+      .select('company_name, signer_name').eq('id', clientId).maybeSingle()
+    const signer = (client as { signer_name?: string } | null)?.signer_name
+      || (client as { company_name?: string } | null)?.company_name || ''
+
+    const inbound = (reply.body_text || reply.body || '').slice(0, 2000)
+    const senderName = reply.from_name || reply.from_email?.split('@')[0] || 'there'
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const system = [
+      'You draft short, warm, professional replies to inbound sales replies on behalf of the user.',
+      'Reference what the prospect actually said. One clear, easy next step (usually a quick call).',
+      'No pressure, no fluff, no fabricated facts or figures. 3-6 short sentences.',
+      signer ? `Sign off as: ${signer}.` : 'End with a simple sign-off (no placeholder brackets).',
+      'Return ONLY the email body — no subject line, no preamble.',
+    ].join(' ')
+
+    const userPrompt = [
+      `The prospect (${senderName}) replied:`,
+      `"""${inbound}"""`,
+      leadCtx ? `Prospect context: ${leadCtx}.` : '',
+      reply.classification ? `Their reply was classified as: ${reply.classification}.` : '',
+      'Write the best reply to move this forward.',
+    ].filter(Boolean).join('\n')
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      system,
+      messages: [{ role: 'user', content: userPrompt }],
+    })
+
+    const draft = response.content
+      .filter((b: any) => b.type === 'text')
+      .map((b: any) => b.text).join('').trim()
+
+    res.json({ success: true, data: { draft } })
+  } catch (err) {
+    console.error('[figsy/ai-draft]', err)
+    res.status(500).json({ success: false, error: 'Failed to draft reply' })
+  }
+})
+
 // ── SEND MANUAL REPLY FROM UNIBOX ─────────────────────────────────────────────
 figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
   try {
@@ -1331,15 +1501,7 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
       payload:     { reply_id: reply.id },
     })
 
-    if (reply.campaign_id) {
-      const { data: camp } = await db.from('figsy_campaigns')
-        .select('meetings_booked').eq('id', reply.campaign_id).maybeSingle()
-      if (camp !== null) {
-        await db.from('figsy_campaigns').update({
-          meetings_booked: (camp.meetings_booked ?? 0) + 1,
-        }).eq('id', reply.campaign_id)
-      }
-    }
+    if (reply.campaign_id) await recomputeCampaignCounters(reply.campaign_id)
 
     // Emit cross-agent signal: meeting booked
     void emitSignal(clientId, 'figsy', 'meeting_booked', {
@@ -1411,17 +1573,8 @@ figsyRouter.post('/replies/seed-demo', async (req: AuthRequest, res) => {
 
     if (error) throw error
 
-    // Bump campaign stats
-    if (campaign?.id) {
-      const { data: camp } = await db.from('figsy_campaigns')
-        .select('replies_total, replies_interested').eq('id', campaign.id).maybeSingle()
-      if (camp) {
-        await db.from('figsy_campaigns').update({
-          replies_total:       (camp.replies_total       ?? 0) + 1,
-          replies_interested:  (camp.replies_interested  ?? 0) + 1,
-        }).eq('id', campaign.id)
-      }
-    }
+    // Bump campaign stats from source (race-free, error-checked)
+    if (campaign?.id) await recomputeCampaignCounters(campaign.id)
 
     res.json({ success: true, data: { reply_id: reply?.id, from: fromName } })
   } catch (err) {
@@ -1493,6 +1646,133 @@ figsyRouter.get('/memory', async (req: AuthRequest, res) => {
   }
 })
 
+// R15 (Learning Engine ①) — Train-FIGSY knowledge store. The Knowledge page
+// persists seven kinds of training data here. One row per (client, kind); the
+// payload is stored verbatim as JSONB and returned spread at the top level so
+// the frontend reads e.g. res.pitch directly.
+const KNOWLEDGE_KINDS = new Set(['pitch', 'keywords', 'signals', 'dnc', 'messaging', 'context', 'prompts'])
+
+figsyRouter.get('/knowledge/:kind', async (req: AuthRequest, res) => {
+  try {
+    const { kind } = req.params
+    if (!KNOWLEDGE_KINDS.has(kind)) { res.status(404).json({ success: false, error: 'Unknown knowledge kind' }); return }
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data } = await db.from('figsy_knowledge')
+      .select('data').eq('client_id', clientId).eq('kind', kind).maybeSingle()
+    // Spread the stored payload at the top level (or {} when nothing saved yet).
+    res.json({ ...((data as { data?: Record<string, unknown> } | null)?.data ?? {}) })
+  } catch (err) {
+    console.error('[figsy/knowledge GET]', err)
+    res.status(500).json({ success: false, error: 'Failed to load knowledge' })
+  }
+})
+
+figsyRouter.post('/knowledge/:kind', async (req: AuthRequest, res) => {
+  try {
+    const { kind } = req.params
+    if (!KNOWLEDGE_KINDS.has(kind)) { res.status(404).json({ success: false, error: 'Unknown knowledge kind' }); return }
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Store the posted body verbatim. Cap the serialized size so one client
+    // can't stuff the row (256KB is generous for text knowledge).
+    const payload = (req.body && typeof req.body === 'object') ? req.body : {}
+    if (JSON.stringify(payload).length > 256_000) {
+      res.status(413).json({ success: false, error: 'Knowledge payload too large' }); return
+    }
+
+    const { error } = await db.from('figsy_knowledge')
+      .upsert({ client_id: clientId, kind, data: payload, updated_at: new Date().toISOString() }, { onConflict: 'client_id,kind' })
+    if (error) throw error
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[figsy/knowledge POST]', err)
+    res.status(500).json({ success: false, error: 'Failed to save knowledge' })
+  }
+})
+
+// R17 (#43/#44) — pre-send spam check. Scores a subject + body for the things
+// that hurt cold deliverability, so the client can fix it before it sends.
+figsyRouter.post('/spam-check', async (req: AuthRequest, res) => {
+  try {
+    const { subject, body } = z.object({
+      subject: z.string().max(500).optional().default(''),
+      body:    z.string().max(20000),
+    }).parse(req.body)
+    res.json({ success: true, data: spamScore(subject, body) })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }
+    console.error('[figsy/spam-check]', err)
+    res.status(500).json({ success: false, error: 'Spam check failed' })
+  }
+})
+
+// R20 (Apollo) — Job-change alerts. A lead changing jobs is a strong
+// re-engagement signal. This records a detected change, emits a signal, and
+// re-opens the lead so it can be contacted fresh. (Automated detection runs off
+// enrichment keys; this endpoint is also callable when a reply reveals a move.)
+figsyRouter.post('/leads/:leadId/mark-job-change', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { new_company, new_title } = z.object({
+      new_company: z.string().max(200).optional(),
+      new_title:   z.string().max(200).optional(),
+    }).parse(req.body)
+
+    const { data: lead } = await db.from('leads')
+      .select('id, first_name, last_name, company, job_title')
+      .eq('id', req.params.leadId).eq('client_id', clientId).maybeSingle()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const update: Record<string, unknown> = {
+      job_changed_at:   new Date().toISOString(),
+      previous_company: lead.company ?? null,
+      // Re-open for re-engagement — a moved contact is a fresh opportunity.
+      status:           'scored',
+    }
+    if (new_company) update.company = new_company
+    if (new_title)   update.job_title = new_title
+
+    const { error } = await db.from('leads').update(update).eq('id', lead.id)
+    if (error) throw error
+
+    void emitSignal(clientId, 'figsy', 'job_change', {
+      lead_id: lead.id,
+      name: `${lead.first_name} ${lead.last_name}`.trim(),
+      from_company: lead.company ?? null,
+      to_company: new_company ?? lead.company ?? null,
+    })
+
+    res.json({ success: true })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }
+    console.error('[figsy/mark-job-change]', err)
+    res.status(500).json({ success: false, error: 'Failed to record job change' })
+  }
+})
+
+// GET /figsy/job-changes — leads with a recent detected job change (alerts feed).
+figsyRouter.get('/job-changes', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data } = await db.from('leads')
+      .select('id, first_name, last_name, job_title, company, previous_company, job_changed_at')
+      .eq('client_id', clientId)
+      .not('job_changed_at', 'is', null)
+      .order('job_changed_at', { ascending: false })
+      .limit(50)
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) {
+    console.error('[figsy/job-changes]', err)
+    res.status(500).json({ success: false, error: 'Failed to load job changes' })
+  }
+})
+
 // Preview the signal that FIGSY would use for a lead (for display in leads table)
 figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) => {
   try {
@@ -1518,6 +1798,36 @@ figsyRouter.get('/leads/:leadId/signal-preview', async (req: AuthRequest, res) =
   } catch (err) {
     console.error(err)
     res.status(500).json({ success: false, error: 'Failed to get signal preview' })
+  }
+})
+
+// R9 (Apollo) — "Why FIGSY wrote this": AI transparency. Returns the exact
+// personalization hooks FIGSY uses for a lead, via the same helper the generator
+// uses, plus a plain-English explanation. Lets clients see — and trust — that the
+// outreach is genuinely tailored, not spray-and-pray.
+figsyRouter.get('/leads/:leadId/why-email', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: lead } = await db.from('leads')
+      .select('first_name, job_title, company, tech_stack, industry, score, score_reasoning')
+      .eq('id', req.params.leadId)
+      .eq('client_id', clientId)
+      .maybeSingle()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const signals = personalizationSignals(lead as any)
+    const bestSignal = signals[0] ?? null
+    const who = [lead.job_title, lead.company].filter(Boolean).join(' at ') || 'this prospect'
+    const explanation = bestSignal
+      ? `FIGSY opens the email with a specific observation about ${lead.first_name || 'them'} — "${bestSignal}" — then connects it to what you do. ${signals.length > 1 ? `It also factored in: ${signals.slice(1).join('; ')}.` : ''}`
+      : `FIGSY didn't find a strong personalization hook for ${who}, so it leads with your value proposition and keeps the email short. Enriching this lead (tech stack / industry) would let FIGSY personalize harder.`
+
+    res.json({ success: true, data: { signals, bestSignal, score: lead.score ?? null, explanation } })
+  } catch (err) {
+    console.error('[figsy/why-email]', err)
+    res.status(500).json({ success: false, error: 'Failed to explain personalization' })
   }
 })
 

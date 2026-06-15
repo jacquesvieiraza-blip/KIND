@@ -179,9 +179,9 @@ Cross-client intelligence L4 (150) · data-licensing marketplace · ICP L3 · pi
 
 ---
 
-## 11 · 🚩 CRITICAL BLOCKERS (resolve ASAP — hard stops before customer use)
+## 11 · 🚩 FAST-FOLLOW (build soon after launch — not a Monday blocker)
 
-**🔴 BLOCKER — Company Engine RLS + Access Control (Inventory 55a / V2-TRACKER R11):** The Command Centre ships Monday 15 to production, but **without access control**. Design + build by: owner sees command centre + all-reps data · reps see ONLY own data (their leads, campaigns, calendar) · reps cannot see each other or the command centre · reps get low-credit notifications + request top-up (owner approves/denies in admin). This is **NOT a "nice-to-have" — it's the security boundary that makes the product safe for multi-rep companies.** For now, only the demo (founder) and the 50-rep seed client have full visibility; both are safe. Before onboarding a real multi-rep customer, this RLS + access model must be live. 🤖 design the RLS policy + UI toggles; 🧍 review + approve.
+**🔴 Company Engine RLS + Access Control (Inventory 55a / V2-TRACKER R11):** The Command Centre **ships LIVE Monday 15** (founder's call 15 Jun). Access control is a **fast-follow**, not a launch blocker. Target model: owner sees command centre + all-reps data · reps see ONLY own data (their leads, campaigns, calendar) · reps cannot see each other or the command centre · reps get low-credit notifications + request top-up (owner approves/denies in admin). **Interim until RLS lands:** the owner controls who logs in — a rep added before RLS could see beyond their own data, so the founder gates rep access manually. 🤖 design the RLS policy + UI toggles; 🧍 review + approve.
 
 ---
 

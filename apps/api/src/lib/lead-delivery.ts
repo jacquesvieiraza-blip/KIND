@@ -1,5 +1,6 @@
 import { db } from '@kind/db'
 import { bulkMatchEmails } from './apollo'
+import { deliveryCharge, normalizePlan } from './billing-rules'
 
 // Enrich + deliver + charge — the single delivery path for BOTH the on-run
 // immediate delivery (icps.ts) and the daily drip (internal.ts).
@@ -66,9 +67,8 @@ export async function enrichAndDeliverLeads(
     // FIGSY credit is taken at enrollment (figsy.ts), so delivery only makes the
     // lead visible. Lead-gen-plan clients are charged $1/lead from the lead-gen pool.
     const { data: planRow } = await db.from('clients').select('plan').eq('id', clientId).single()
-    const plan = (planRow?.plan as 'lead_gen' | 'figsy' | undefined) ?? 'lead_gen'
 
-    if (plan === 'lead_gen') {
+    if (deliveryCharge(normalizePlan(planRow?.plan)).charge) {
       const { error: rpcErr } = await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: -n })
       if (rpcErr) {
         console.error(`[lead-delivery] credit deduction FAILED for client ${clientId} after delivering ${n} leads:`, rpcErr)

@@ -10,6 +10,7 @@ import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
+import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
 import { isSuppressed } from '../lib/suppression'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -153,9 +154,8 @@ export async function runIcpJob(
     // so a FIGSY-only client (0 lead-gen credits) can still receive leads.
     const { data: balRow } = await db.from('clients')
       .select('plan, credit_balance, figsy_credits_remaining').eq('id', clientId).single()
-    const plan = (balRow?.plan as 'lead_gen' | 'figsy' | undefined) ?? 'lead_gen'
-    const pool = plan === 'figsy' ? (balRow?.figsy_credits_remaining ?? 0) : (balRow?.credit_balance ?? 0)
-    const deliverNow = insertedIds.slice(0, Math.max(0, pool))
+    const cap = deliveryCapBalance(normalizePlan(balRow?.plan), balRow?.credit_balance, balRow?.figsy_credits_remaining)
+    const deliverNow = insertedIds.slice(0, cap)
     await enrichAndDeliverLeads(clientId, deliverNow)
   }
 

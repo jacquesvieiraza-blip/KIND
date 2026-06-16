@@ -296,7 +296,7 @@
 | 121 | ⏸ | Casey conversational onboarding V2-3/10 (⏸ founder voice/tone input — highest-value V2 build) | 🤝  |  |
 | 122 | 🔴 | Y16 — kill dead Vercel↔GitHub integration | 🧍  |  |
 | 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝  |  |
-| 124 | 🔴 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖  |  |
+| 124 | 🟡 | Money-path tests — **BUILT (Box B7, PR pending review):** pure `billing-rules.ts` (single source of which-wallet/how-much) + 4 call-sites wired to it + **13 regression tests** locking the no-double-charge invariant (type-check ✓, tests ✓). *(Smoke Test 2 manual scripts = item 100, separate.)* | 🤖  |  |
 | 125 | 🟣 | **"Your AI Family" card redesign — BUILT 13 Jun** to [agents-v2.html](./previews/agents-v2.html): feature text moved **off** the photo, square crop fixed, body checklist + clean CTA; **renamed "AI Team"→"AI Family"** (`agents/page.tsx` heading+cards, `Sidebar.tsx` dropdown label; `cmo.ts` already clean). Portal type-check ✓. Ships post-19 | 🤖 | ✅ built |
 
 ### 🆕 Onboarding & Segmentation (added 15 Jun — full plan in `run-costs-and-cashflow.md` §13/§14; layers on `ONBOARDING_V2.md` #30 + Company Engine #88)

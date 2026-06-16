@@ -3,6 +3,7 @@ import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
+import { canEnroll } from './billing-rules'
 import {
   COLD_FROM,
   COLD_REPLY_TO,
@@ -927,7 +928,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     // Billing gate (item 166): FIGSY is charged at ENROLLMENT — one FIGSY credit =
     // one lead enrolled. Don't enroll (or spend a Claude draft) when the FIGSY pool
     // is empty; upstream delivery is already capped by this pool — this is the backstop.
-    if ((client?.figsy_credits_remaining ?? 0) < 1) {
+    if (!canEnroll(client?.figsy_credits_remaining)) {
       console.warn(`[figsy] autoEnrollLead: client ${clientId} has no FIGSY credits — skipping enrollment for lead ${leadId}.`)
       return
     }

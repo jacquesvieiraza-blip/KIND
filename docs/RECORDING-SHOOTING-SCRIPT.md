@@ -172,5 +172,23 @@
 | **vs-competitor** (apollo/outreach/salesloft/etc.) | 2.1+3.2+4.1+5.1 + a comparison caption frame | same footage, comparison framing |
 
 ---
+
+# 🧩 VERTICAL RE-SHOOT LIBRARY (the SMB market — one ICP take each)
+**The trick:** you only re-shoot **Scene 2.1 (the ICP builder)** per vertical — type *that* buyer in, record ~12s. Everything after (source → outreach → reply → close) is the **same shared footage**. So a whole vertical video = **one fresh take + a tailored pain line + caption**. Each maps to a real landing page.
+
+| Vertical (page) | Type this into 2.1 (ICP builder) | 🔴 PAIN line | SAY (the vertical hook) |
+|---|---|---|---|
+| **Estate agents** (`for-estate-agents`) | *"We're an estate agency — I want homeowners likely to sell in the next 6 months in [area]."* | "Your pipeline is listings — and chasing sellers is endless cold-calling." | *"Estate agents live on listings. K.I.N.D finds homeowners ready to sell, reaches out, and books the valuation — while you're at viewings."* |
+| **Insurance brokers** (`for-insurance-brokers`) | *"We're an insurance broker — small business owners who need cover."* | "Renewals and referrals dry up; cold prospecting eats your week." | *"K.I.N.D finds business owners who need cover, opens the conversation, and books the review — so your pipeline never runs dry."* |
+| **Financial advisers** (`for-financial-advisers`) | *"We're a financial adviser — professionals aged 35–55 planning for retirement."* | "Your best clients came from referrals you can't scale." | *"K.I.N.D finds the right professionals, starts a compliant conversation, and books the consultation — referrals, on tap."* |
+| **⚡ Electrician** (playbook) | *"Property managers and building ops in buildings 10+ years old."* | "Aging buildings need you — but you're on the tools, not prospecting." | *"K.I.N.D finds the property managers with aging electrics and books the panel-safety audit."* |
+| **🚰 Plumber** (playbook) | *"Homeowners with homes 30+ years old, owned 5+ years."* | "The big replacement jobs go to whoever the homeowner calls first." | *"K.I.N.D finds homes with aging pipes and books the inspection — before they call someone else."* |
+| **❄️ HVAC** (playbook) | *"Homeowners with HVAC systems 8+ years old."* | "Revenue's seasonal; you're feast-or-famine." | *"K.I.N.D finds aging systems and books the efficiency check — turning one-off jobs into maintenance contracts."* |
+| **📸 Photographer** (playbook) | *"Recently engaged couples, age 25–45, in [area]."* | "Couples book the first photographer who reaches out." | *"K.I.N.D spots the engagement and gets your message in first — booked before the competition."* |
+| **🔐 Locksmith** (playbook) | *"Property managers running 10+ multi-unit buildings."* | "Lockouts are reactive; the recurring money is B2B." | *"K.I.N.D finds property managers and books the access audit — turning callouts into annual contracts."* |
+
+*Record each as `2.1-estate.mov`, `2.1-plumber.mov`, etc. Splice into the shared loop + swap the caption. 8 vertical videos from one master capture + 8 short takes.*
+
+---
 ### Recording order (do it in this sequence)
-**Capture Sections 1→9 once** (drop in the onboarding mockups for 1.2–1.3) → that *is* the full demo → then cut Drop 01 → Looms → social → per-agent/vertical/vs. Wrap each in the **show shell** (cold-open → title+music → demo → outro).
+**Capture Sections 1→9 once** (drop in the onboarding mockups for 1.2–1.3) → that *is* the full demo → then cut Drop 01 → Looms → social → per-agent → **the 8 vertical re-shoots** → vs. Wrap each in the **show shell** (cold-open → title+music → demo → outro).

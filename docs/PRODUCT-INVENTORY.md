@@ -309,6 +309,18 @@
 | 178 | 🔴 | **Voice ("speak") chat agent** — live voice-conversation widget: tap-to-talk mic + speaker, real-time speech in/out, animated waveform, with text-chat fallback (per founder screenshot). Voice mode for **Vida** (website) / the agent panel. **Future build.** *Founder ref 16 Jun.* | 🤖 |  |
 | 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
 
+## 🥷 COMPETITIVE GAPS — "what to steal" (16 Jun feature-comparison vs Monday/ClickUp/Glean/Alta)
+*Genuine gaps only. **Already tracked — NOT re-added:** LinkedIn outreach (#21/127) · voice/calling agent (96 Vapi · 144 Denise · 178 voice chat) · mobile app (#61/148) · A/B testing (97 backend live · 113 UI) · team/multi-user = **Company Engine #88** (live 🩷) · sequence templates (70) · ICP-templates-by-vertical (V2 #10) · Milla-as-intelligence-layer (2/143). MFA · IP-allowlist · data-residency fold into enterprise hardening (151).*
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 179 | 🔴 | **Shareable stakeholder pipeline view** — read-only, token-authenticated link to the campaign/pipeline dashboard (no login), optionally branded. *(Monday Client Portal · high impact / low effort — replaces screenshotting to a manager/investor.)* | 🤖 |
+| 180 | 🔴 | **Admin audit log / activity history** — filterable "who sent what, when, to whom" (extend the existing POPIA consent logging to a full activity log). *(Monday/Glean · hard requirement for accounts >~50 people.)* | 🤖 |
+| 181 | 🔴 | **Enterprise SSO/SAML + SCIM provisioning** (Auth0/WorkOS) — beyond the social-OAuth login (84); the hard IT gate for accounts >~100 people. *(Monday/ClickUp/Glean.)* | 🤝 |
+| 182 | 🔴 | **Zapier / Make native integration** — partner listing → 6,000+ apps with no per-connector builds (FIGSY "meeting booked" → Slack). *(ClickUp/Monday · low effort, mostly auth + docs.)* | 🤖 |
+| 183 | 🔴 | **Campaign kill-switch (account-wide panic button)** — one click halts ALL active campaigns instantly (runaway-send / compromised-account protection). *(Monday Panic Button · low effort — pause-all endpoint + admin UI.)* | 🤖 |
+| 184 | 🔴 | **Public status page** — Statuspage.io / BetterUptime; maturity + trust signal when FIGSY runs 24/7. *(Monday/ClickUp · ~15-min setup.)* | 🧍 |
+| 185 | 🔴 | **Outbound webhooks + public event API** — customer-facing events ("meeting booked", "reply received") pushed to their tools → builder ecosystem. *(NB: item 47 is INBOUND webhooks we receive; this is OUTBOUND for customers.)* | 🤖 |
+
 ## 4D — Week 1 post-launch (Jun 19–28) — GTM
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|

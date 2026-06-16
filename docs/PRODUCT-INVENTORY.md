@@ -306,6 +306,7 @@
 | 175 | 🔴 | **Onboarding — seat-based auto-routing** (1 seat = self-serve / 2+ seats = concierge track). Company size is a routing **hint**, never a hard gate. *Cashflow §14.* | 🤖 |  |
 | 176 | 🔴 | **Onboarding — 14-day company trial on bundled data** (value before any Apollo/implementation ask — lets us engage + sell first). *Cashflow §14.* | 🤖 |  |
 | 177 | 🔴 | **Company white-glove implementation flow** — wire CRM + connections + **optional** BYO-Apollo key (forced only if Apollo's ToS requires it; bundled-data is the default). Month-1 company hardening. *Cashflow §13/§14, gated on Apollo's reply.* | 🤝 |  |
+| 178 | 🔴 | **Voice ("speak") chat agent** — live voice-conversation widget: tap-to-talk mic + speaker, real-time speech in/out, animated waveform, with text-chat fallback (per founder screenshot). Voice mode for **Vida** (website) / the agent panel. **Future build.** *Founder ref 16 Jun.* | 🤖 |  |
 | 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
 
 ## 4D — Week 1 post-launch (Jun 19–28) — GTM

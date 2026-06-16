@@ -377,7 +377,7 @@ That + outbound + partners = the motion.
 | Box | Items | Independence |
 |---|---|---|
 | **B1 · Company-Engine fast-follows** | 106 invite-email · 107 owner drill-down · 108 budget-edit + offboarding · 109 manager role + owner↔rep notifs · 110 per-rep routing + CRM dedup | All inside `/dashboard/company` + company API; self-contained to #88. *(111 calendars split out — needs a provider.)* |
-| **B2 · Trust & safety quick-wins** | 183 campaign kill-switch · 180 admin audit log · 179 shareable pipeline view | Admin/trust surface; each ships alone. 183 doubles as a launch-safety net (autonomous sending at volume). |
+| **B2 · Trust & safety / compliance** | 183 kill-switch · 180 audit log · **186 record signup T&C acceptance** | Admin/trust/compliance surface; each ships alone. *(179 shareable view turned out already built.)* 183 doubles as a launch-safety net; 186 is a ~30-min compliance fix. |
 | **B3 · Builder ecosystem** | 185 outbound webhooks + event API → then 182 Zapier/Make listing | Webhooks first; Zapier rides the same events. New surface, touches nothing live. |
 | **B4 · Portal polish** | 113 A/B subject UI (backend 97 ready) · 114 Kanban polish | Front-end only, no new backend. Light design — preview before merge. |
 | **B5 · Onboarding/segmentation (§14)** | 174 firmographics read (PDL) · 175 seat routing · 176 14-day company trial | The onboarding fork; PDL keys already set. Independent of the agents. |

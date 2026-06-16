@@ -321,6 +321,7 @@
 | 183 | 🔴 | **Campaign kill-switch (account-wide panic button)** — one click halts ALL active campaigns instantly (runaway-send / compromised-account protection). *(Monday Panic Button · low effort — pause-all endpoint + admin UI. Verified absent: only per-campaign pause exists.)* | 🤖 |
 | 184 | 🔴 | **Public customer uptime page** — *internal status snapshots + admin status/health pages ALREADY BUILT (`status.ts` · `platform_status` · admin `/status` `/health` · 3×/day cron). Gap = a PUBLIC, customer-facing uptime page (Statuspage.io/BetterUptime).* | 🧍 |
 | 185 | 🔴 | **Outbound webhooks + public event API** — push customer-facing events ("meeting booked", "reply received") to their tools → builder ecosystem. *(Inbound webhook infra exists — `webhook_triggers` + webhook-triggered campaigns; the OUTBOUND direction is the gap.)* | 🤖 |
+| 186 | 🔴 | **Record signup T&C acceptance** — write `terms_accepted_at` (or a `signup_terms_accepted_at`) **at account creation**, not only at first purchase (`credits.ts`). Today the signup tick is a UI gate only → a trial user who never pays has **no stored consent record**. ~30-min compliance fix. *(Found 16 Jun during the recording-flow verify.)* | 🤖 |
 
 ## 4D — Week 1 post-launch (Jun 19–28) — GTM
 | # | 🔴 | Item | Owner |

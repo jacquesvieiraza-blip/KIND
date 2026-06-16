@@ -148,8 +148,14 @@ export async function runIcpJob(
   // atomic `.is('delivered_at', null)` claim inside keeps it idempotent (no
   // double-charge with the drip).
   if (insertedIds.length > 0) {
-    const { data: balRow } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
-    const deliverNow = insertedIds.slice(0, Math.max(0, balRow?.credit_balance ?? 0))
+    // Cap delivery by the wallet that matches the client's plan (item 167) — a
+    // FIGSY-plan client delivers against the FIGSY pool, not the lead-gen balance,
+    // so a FIGSY-only client (0 lead-gen credits) can still receive leads.
+    const { data: balRow } = await db.from('clients')
+      .select('plan, credit_balance, figsy_credits_remaining').eq('id', clientId).single()
+    const plan = (balRow?.plan as 'lead_gen' | 'figsy' | undefined) ?? 'lead_gen'
+    const pool = plan === 'figsy' ? (balRow?.figsy_credits_remaining ?? 0) : (balRow?.credit_balance ?? 0)
+    const deliverNow = insertedIds.slice(0, Math.max(0, pool))
     await enrichAndDeliverLeads(clientId, deliverNow)
   }
 

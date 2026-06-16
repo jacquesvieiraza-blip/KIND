@@ -1616,7 +1616,7 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
   try {
     // Get all active clients with undelivered leads
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, user_id, daily_drip_rate, credit_balance')
+      .select('id, company_name, user_id, daily_drip_rate, plan, credit_balance, figsy_credits_remaining')
       .not('first_icp_run_at', 'is', null)
 
     let totalDelivered = 0
@@ -1624,12 +1624,15 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
     for (const client of clients ?? []) {
       try {
         const drip = client.daily_drip_rate ?? 5
-        const balance = client.credit_balance ?? 0
+        // Cap by the wallet that matches the client's plan (item 167): FIGSY-plan
+        // clients drip against the FIGSY pool, lead-gen clients against credit_balance.
+        const plan = (client.plan as 'lead_gen' | 'figsy' | undefined) ?? 'lead_gen'
+        const balance = plan === 'figsy' ? (client.figsy_credits_remaining ?? 0) : (client.credit_balance ?? 0)
 
-        // Can't deliver leads to a client with no credits
+        // Can't deliver leads to a client with no credits in the relevant pool
         if (balance < 1) continue
 
-        // Deliver up to min(drip_rate, credit_balance) leads
+        // Deliver up to min(drip_rate, pool balance) leads
         const toDeliver = Math.min(drip, balance)
 
         // Find undelivered leads for this client, oldest first

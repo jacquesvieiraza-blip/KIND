@@ -112,12 +112,12 @@
 **§3 design SIGNED OFF (Jacques 14 Jun): one lead = one charge = one wallet, via explicit `clients.plan` (`lead_gen`|`figsy`). Lead-Gen → $1 lead-gen pool. FIGSY → $3 FIGSY pool, lead included, lead-gen pool untouched. Outreach enrollment stops charging.**
 | # | Item | Status | Owner |
 |---|------|--------|-------|
-| 166 | **FIGSY double-charge** — delivery charges lead-gen $1 (`lead-delivery.ts:64`) *and* enrol charges FIGSY $3 (`figsy.ts:907-921`) on the same lead = $4; deck promises $3 all-in | 🔴 | 🤖 |
-| 167 | **FIGSY-only bundle can't deliver** — delivery capped by lead-gen balance (`icps.ts:151-152`) → FIGSY-only client gets 0 leads; fix = pool-aware delivery + FIGSY-pool trial grant | 🔴 | 🤖 |
-| 168 | **3 price tables disagree** — FIGSY shown $20/40/100 (`billing/page.tsx:70-74`) vs charged $60/110/250 (`stripe.ts:26-30`) vs "locked" $60/120/300 (`constants:27-31`); reconcile → constants, recreate Stripe Prices, portal imports `@kind/shared` | 🔴 | 🤝 |
-| 169 | **`clients.plan` flag** (the §3 design) — migration + backfill (FIGSY campaign/credits → `figsy`, else `lead_gen`); delivery reads it, charges one pool | 🔴 | 🤖 |
-| 170 | **Atomic FIGSY credit RPC** — replace read-modify-write (`figsy.ts:909-912`) with an `increment_figsy_credits` RPC mirroring `20260526_credit_race_condition_fix.sql` | 🔴 | 🤖 |
-| 171 | **"How credits work" panel honesty** — `billing/page.tsx:303-306` says "Outreach sent — No credit used" (false) + omits FIGSY pool; rewrite to real model | 🔴 | 🤖 |
+| 166 | **FIGSY double-charge** — KILLED: delivery now charges one wallet by `clients.plan`; FIGSY charged once at enrollment ($3, not $4). *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
+| 167 | **FIGSY-only bundle can't deliver** — FIXED: delivery + drip cap by the plan's pool (FIGSY-only delivers against `figsy_credits_remaining`). *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
+| 168 | **3 price tables reconciled** — `stripe.ts` + portal billing derive from `@kind/shared` (FIGSY $60/$120/$300). *Code BUILT; 🧍 recreate the 6 Stripe Prices to finish.* | 🟡 | 🤝 |
+| 169 | **`clients.plan` flag** — migration adds it + backfill (FIGSY campaign/credits → `figsy`, else `lead_gen`); delivery reads it. *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
+| 170 | **Atomic FIGSY credit RPC** — `increment_figsy_credits` mirrors `increment_client_credits`; enrollment uses it. *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
+| 171 | **"How credits work" panel honesty** — fixed false "Outreach sent — No credit used" → "FIGSY outreach — 1 FIGSY credit". *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
 | 172 | **Multi-currency** (founder ask 14 Jun) — let client pick USD/GBP/ZAR; Stripe multi-currency Prices + `clients.preferred_currency`; reconcile with Flutterwave (`flutterwave.ts:146-160`); may be own phase, don't block 166–171 | 🔴 | 🤝 |
 | 173 | **Admin FIGSY visibility** — admin shows `credit_balance` only, never `figsy_credits_remaining`; surface it + add top-up | 🔴 | 🤖 |
 

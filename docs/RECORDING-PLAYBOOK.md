@@ -28,6 +28,18 @@
 
 **Tip:** keep each scene ~1 motion. If a live run is slow, pre-load each screen and just *cut* between them.
 
+### ⏱️ Exact 60-second cut (read straight — VO is sparse on purpose, ~95 words; let the screens breathe)
+| Time | Screen / motion | Say (exactly) |
+|---|---|---|
+| **0:00–0:07** | Homepage → click **Start free** | *"African businesses can't afford a sales team. So we built one that runs itself. Sixty seconds — watch."* |
+| **0:07–0:11** | `/v2/signup` — type email, **Create account** | *"Sign up. No card."* |
+| **0:11–0:19** | `/dashboard/leads/icp/builder` — type *"We sell bookkeeping software to small retailers in SA"* → send | *"Tell it who you sell to, in plain English."* |
+| **0:19–0:26** | `/v2/thinking` — let it run | *"It builds your ideal-customer profile, and goes hunting."* |
+| **0:26–0:35** | `/dashboard/leads` — slow-scroll the scores *(hold a beat)* | *"Real leads, scored zero to a hundred, POPIA-compliant — in minutes."* |
+| **0:35–0:45** | `/dashboard/figsy/[id]` — show the 3 steps | *"FIGSY writes a personalised three-step sequence for every one, and sends it."* |
+| **0:45–0:52** | `/dashboard/figsy/replies` — open a hot reply | *"When someone's interested, it catches the reply…"* |
+| **0:52–0:60** | reply → booked meeting *(hold on the payoff)* | *"…and books the meeting. That's K.I.N.D — your AI sales team. Live today. Start free."* |
+
 ---
 
 # 🎥 RECORDING 2 — Full product demo (long-form, ~3–4 min, 16:9)

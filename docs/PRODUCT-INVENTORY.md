@@ -261,8 +261,8 @@
 |---|----|------|-------|
 | 100 | 🔴 | Smoke Test 2 — T3 pause · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invites · T10 partner | 🤝 |
 | 101 | 🔴 | **D9 deliverability 10/10** (mail-tester) | 🧍 |
-| 102 | 🔴 | Legal pack #10–14 (ICO £40 · SR01 · registered office · WHOIS · LinkedIn lockdown) | 🧍 |
-| 103 | ✅ | Email `partners@apollo.io` — API reseller agreement (~1 wk lead) — **✅ SENT 14 Jun (awaiting reply)** | 🧍 |
+| 102 | 🔴 | Legal pack #10–14 — **#10 ICO ✅ · #14 LinkedIn ✅; #11 SR01 · #12 registered office · #13 WHOIS pending** | 🧍 |
+| 103 | ✅ | Email `partners@apollo.io` — API reseller agreement — sent 14 Jun · **Apollo replied 15 Jun (overlap review) · founder responded 16 Jun → awaiting decision** | 🧍 |
 | 104 | 🔴 | Hunter.io signup → key · PDL free signup → key | 🧍 |
 | 105 | 🔴 | Go/No-Go gate Thu 18 → **🚀 LAUNCH Africa-only Fri 19 (#18)** | 🤝 |
 

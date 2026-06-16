@@ -311,15 +311,16 @@
 
 ## 🥷 COMPETITIVE GAPS — "what to steal" (16 Jun feature-comparison vs Monday/ClickUp/Glean/Alta)
 *Genuine gaps only. **Already tracked — NOT re-added:** LinkedIn outreach (#21/127) · voice/calling agent (96 Vapi · 144 Denise · 178 voice chat) · mobile app (#61/148) · A/B testing (97 backend live · 113 UI) · team/multi-user = **Company Engine #88** (live 🩷) · sequence templates (70) · ICP-templates-by-vertical (V2 #10) · Milla-as-intelligence-layer (2/143). MFA · IP-allowlist · data-residency fold into enterprise hardening (151).*
+> **⚠️ CODE-VERIFIED 16 Jun (correction):** the gaps below were first added from a docs check only. Grepping the codebase found **179 ALREADY BUILT** (shareable view — now 🩷, not a gap), and **184/185 partly built** (re-scoped above). **True new gaps = 180 · 181 · 182 · 183**, plus the missing slices of **184** (public page) and **185** (outbound). Lesson logged: grep the code before adding/marking an item.*
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
-| 179 | 🔴 | **Shareable stakeholder pipeline view** — read-only, token-authenticated link to the campaign/pipeline dashboard (no login), optionally branded. *(Monday Client Portal · high impact / low effort — replaces screenshotting to a manager/investor.)* | 🤖 |
-| 180 | 🔴 | **Admin audit log / activity history** — filterable "who sent what, when, to whom" (extend the existing POPIA consent logging to a full activity log). *(Monday/Glean · hard requirement for accounts >~50 people.)* | 🤖 |
+| 179 | 🩷 | **Shareable stakeholder pipeline view — ALREADY BUILT** *(not a gap; mis-added 16 Jun)*: public `GET /share/:token` (`share.ts`, mounted) + public page `portal/share/[token]` + `CopyShareLink` + dashboard wiring + migration `20260530_client_share_token`. **Live — verify in the walk → 🟢.** | — |
+| 180 | 🔴 | **Admin audit log / activity history** — filterable "who sent what, when, to whom" (extend the existing POPIA consent logging to a full activity log). *(Monday/Glean · hard requirement for accounts >~50 people. Verified absent in code.)* | 🤖 |
 | 181 | 🔴 | **Enterprise SSO/SAML + SCIM provisioning** (Auth0/WorkOS) — beyond the social-OAuth login (84); the hard IT gate for accounts >~100 people. *(Monday/ClickUp/Glean.)* | 🤝 |
-| 182 | 🔴 | **Zapier / Make native integration** — partner listing → 6,000+ apps with no per-connector builds (FIGSY "meeting booked" → Slack). *(ClickUp/Monday · low effort, mostly auth + docs.)* | 🤖 |
-| 183 | 🔴 | **Campaign kill-switch (account-wide panic button)** — one click halts ALL active campaigns instantly (runaway-send / compromised-account protection). *(Monday Panic Button · low effort — pause-all endpoint + admin UI.)* | 🤖 |
-| 184 | 🔴 | **Public status page** — Statuspage.io / BetterUptime; maturity + trust signal when FIGSY runs 24/7. *(Monday/ClickUp · ~15-min setup.)* | 🧍 |
-| 185 | 🔴 | **Outbound webhooks + public event API** — customer-facing events ("meeting booked", "reply received") pushed to their tools → builder ecosystem. *(NB: item 47 is INBOUND webhooks we receive; this is OUTBOUND for customers.)* | 🤖 |
+| 182 | 🔴 | **Zapier / Make native integration** — partner listing → 6,000+ apps with no per-connector builds (FIGSY "meeting booked" → Slack). *(ClickUp/Monday · low effort. Verified absent in code.)* | 🤖 |
+| 183 | 🔴 | **Campaign kill-switch (account-wide panic button)** — one click halts ALL active campaigns instantly (runaway-send / compromised-account protection). *(Monday Panic Button · low effort — pause-all endpoint + admin UI. Verified absent: only per-campaign pause exists.)* | 🤖 |
+| 184 | 🔴 | **Public customer uptime page** — *internal status snapshots + admin status/health pages ALREADY BUILT (`status.ts` · `platform_status` · admin `/status` `/health` · 3×/day cron). Gap = a PUBLIC, customer-facing uptime page (Statuspage.io/BetterUptime).* | 🧍 |
+| 185 | 🔴 | **Outbound webhooks + public event API** — push customer-facing events ("meeting booked", "reply received") to their tools → builder ecosystem. *(Inbound webhook infra exists — `webhook_triggers` + webhook-triggered campaigns; the OUTBOUND direction is the gap.)* | 🤖 |
 
 ## 4D — Week 1 post-launch (Jun 19–28) — GTM
 | # | 🔴 | Item | Owner |

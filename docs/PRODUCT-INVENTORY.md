@@ -310,7 +310,7 @@
 | 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
 
 ## 4C-CHURN — 🛡️ Retention / anti-churn stack (P1 — pull in as the first clients land)
-*Plan of record: `docs/CHURN-PREVENTION-PLAN.md`. Thesis: acquisition is the accelerator, **retention is the brakes + steering** — at ~$80 ARPU and a churn treadmill, every saved client is worth a new-logo win without the CAC. Lena (CS, item 145) is the human/agent owner of this stack and is **elevated to a churn-defense priority** (see 145 note). Build only once real clients exist (these need live usage data); none are launch-gating.*
+*Plan of record: `docs/CHURN-PREVENTION-PLAN.md`. Thesis: acquisition is the accelerator, **retention is the brakes + steering** — at ~$80 ARPU and a churn treadmill, every saved client is worth a new-logo win without the CAC. Lena (CS, item 145) is the human/agent owner of this stack and is **elevated to a churn-defense priority** (per the salary/break-even plan). Build only once real clients exist (these need live usage data); none are launch-gating.*
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 190 | 🔴 | **Save / pause / win-back flow** — a graceful **pause** (1–3 mo hold instead of cancel: stop billing, keep data + settings warm) on the cancel path, an **at-risk trigger** (no login N days · usage drop · 0 replies in a cycle) that pings Lena, and a **win-back** nudge for lapsed accounts. Today cancel is one-way → churn is silent and final. *(Churn-plan lever 5. Verified: only hard-cancel exists.)* | 🤖 |
@@ -368,7 +368,7 @@
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 144 | 🔴 | **DENISE deep build #54** (auto-book · notetaker · objections · proposal-from-transcript · Vapi voice) | 🤖 |
-| 145 | 🔴 | ⭐ **LENA — CS agent #55** *(elevated to **churn-defense priority** — owns the anti-churn stack 190–193; pull forward the moment retention data exists, ahead of the rest of Month 3)* · **TONY — Ops agent #56** | 🤖 |
+| 145 | 🔴 | **LENA — CS agent #55** · **TONY — Ops agent #56** | 🤖 |
 | 146 | 🔴 | Multi-agent orchestration #57 · 500+ skill library #58 | 🤖 |
 | 147 | 🔴 | Outcome pricing per meeting #60 (gated ≥28% margin) | 🤝 |
 | 148 | 🔴 | Mobile app #61 · built-in CRM Kanban #62 · pan-African design partners #63 | 🤝 |

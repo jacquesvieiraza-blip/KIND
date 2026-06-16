@@ -190,5 +190,41 @@
 *Record each as `2.1-estate.mov`, `2.1-plumber.mov`, etc. Splice into the shared loop + swap the caption. 8 vertical videos from one master capture + 8 short takes.*
 
 ---
+
+# 📅 ONGOING — THE DROP & THE PODCAST (record this every release, forever)
+> Everything above is the **one-time launch capture.** THIS is the **repeatable engine**: every meaningful feature ship = **one Drop reel + one Podcast episode.** The release train *is* the content calendar (velocity = the moat). Both wear the **same show shell** → one consistent K.I.N.D series.
+
+## A) THE DROP — per-release highlight reel (60–90s, screen-led)
+The *product* moment — what shipped, doing its thing. New feature each time, same wrapper.
+- **When:** every meaningful release. Drop 02 · 03 · 04…
+- **Structure (pain → solution, every time):**
+  1. Cold-open + title card — **"Drop 0X · [feature name]"** + music sting
+  2. 🔴 **The problem it kills** — one line (the old/manual pain)
+  3. **The feature in action** — 2–3 screens in Screen Studio (the new thing working)
+  4. **The outcome** + **"Live today · get-kind.com"**
+- **Reusable script skeleton (fill the blanks):**
+  - *"Until now, [the pain]."*
+  - *"New in K.I.N.D — [feature]: [one line on what it does]."* → show it
+  - *"Now you [the outcome]. Live today."*
+- **Repurpose (one ship = 3+ pieces):** the reel → The Drop page (`drop-0X`) + LinkedIn post + email.
+
+## B) THE PODCAST — "Working AI"-style interview / panel
+The *human* moment — why it matters, who it's for. The recurring show; the Drop reels play **inside** it (your Glean reference).
+- **Format:** founder **+ 1 guest** (a client, a partner, or a team member). Conversation, not a monologue.
+- **Episode rundown (template):**
+  1. **Cold-open + title** — "K.I.N.D · Drop 0X" + music (show shell)
+  2. **Hook (30s)** — *"This drop we shipped [X] — here's why it matters."*
+  3. **Conversation (3–6 min)** — why we built it · the problem it solves · a real client story
+  4. **▶️ Cut to the Drop reel** — the highlight reel from (A) plays here
+  5. **Back to discussion** — what it unlocks / what's next
+  6. **Outro + CTA**
+- **Production (solo-friendly):** record remote guests in **Riverside.fm** (separate high-quality local tracks + auto-captions + clip export) or in person; splice the reels in CapCut/Descript.
+
+## 🔓 Decisions to lock when you're ready *(flagged, not blocking)*
+- **Cadence:** podcast per-drop, or monthly?
+- **Panel:** founder solo · + guest · + client each time?
+- **Host tool:** Riverside vs Zoom-record vs in-person?
+
+---
 ### Recording order (do it in this sequence)
-**Capture Sections 1→9 once** (drop in the onboarding mockups for 1.2–1.3) → that *is* the full demo → then cut Drop 01 → Looms → social → per-agent → **the 8 vertical re-shoots** → vs. Wrap each in the **show shell** (cold-open → title+music → demo → outro).
+**Capture Sections 1→9 once** (drop in the onboarding mockups for 1.2–1.3) → that *is* the full demo → then cut Drop 01 → Looms → social → per-agent → **the 8 vertical re-shoots** → vs. **Then, going forward:** every release → one **Drop reel** (A) + one **Podcast episode** (B). Wrap everything in the **show shell** (cold-open → title+music → demo → outro).

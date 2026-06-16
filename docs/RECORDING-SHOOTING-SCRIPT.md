@@ -5,6 +5,9 @@
 **Before every session:** demo account (`/demo-login`) · notifications OFF · hide bookmarks/extensions · browser zoom **125–150%** · large cursor · quiet room.
 **Voice:** calm, real, no hype. Let the screen breathe — the scripts are deliberately short.
 
+> **🛠️ Tools & quality (the stack):** **Screen Studio** to record (auto-zoom + smooth cursor = premium-looking SaaS demos) · **Descript** for voiceover + "Studio Sound" cleanup · **CapCut** for 9:16 reframe + auto-captions. **Audio is the biggest quality lever** — a USB mic (Samson Q2U / Blue Yeti) or wired earbuds in a quiet, soft room beats the laptop mic; clean it with Descript Studio Sound. Export **1080p**, 30–60fps.
+> _This is the **one** recording doc — it replaces the old `RECORDING-PLAYBOOK.md`._
+
 ---
 
 # 🎥 RECORDING 1 — Drop 01 launch walkthrough (~60s, 16:9) — *do this one for Friday*

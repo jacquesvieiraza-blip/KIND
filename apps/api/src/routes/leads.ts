@@ -10,6 +10,7 @@ import { scoreLeadsForIcp } from '../lib/scoring'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
+import { trackingBaseUrl } from '../lib/deliverability'
 
 export const leadRouter = Router()
 
@@ -812,7 +813,7 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       { data: icps },
     ] = await Promise.all([
       db.from('leads').select('id, created_at, score, status, icp_id, industry, seniority').eq('client_id', clientId).not('delivered_at', 'is', null),
-      db.from('figsy_sent_emails').select('id, sent_at').in('campaign_id', campaignFilter),
+      db.from('figsy_sent_emails').select('id, sent_at, opened_at').in('campaign_id', campaignFilter),
       db.from('figsy_replies').select('id, received_at, classification').eq('client_id', clientId),
       db.from('icps').select('id, name').eq('client_id', clientId),
     ])
@@ -833,10 +834,14 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       const mEmails  = (emails  || []).filter((e: any) => e.sent_at?.slice(0,7) === m.key)
       const mReplies = (replies || []).filter((r: any) => r.received_at?.slice(0,7) === m.key)
       const mInterested = mReplies.filter((r: any) => r.classification === 'interested' || r.classification === 'hot')
+      // Real opens — count sent emails in this month that have an opened_at stamp
+      // (recorded by the tracking pixel). 0 if tracking is off (no branded TRACKING_URL).
+      const mOpened = mEmails.filter((e: any) => !!e.opened_at)
       return {
         month:      m.label,
         leads:      mLeads.length,
         emails:     mEmails.length,
+        opened:     mOpened.length,
         replies:    mReplies.length,
         interested: mInterested.length,
       }
@@ -875,9 +880,14 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       .sort(([,a],[,b]) => b - a).slice(0, 6)
       .map(([industry, count]) => ({ industry, count }))
 
+    // Open-tracking is only live when a BRANDED tracking domain is configured
+    // (D3 anti-spam rule). If off, the pixel is never embedded so opened_at is
+    // always null — the UI shows "—" rather than a misleading 0 or a fake estimate.
+    const trackingEnabled = trackingBaseUrl() !== null
+
     res.json({
       success: true,
-      data: { byMonth, icpBreakdown, scoreDist, topIndustries },
+      data: { byMonth, icpBreakdown, scoreDist, topIndustries, trackingEnabled },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch analytics' }) }
 })

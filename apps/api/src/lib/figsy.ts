@@ -897,7 +897,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry, crm_dedup_enabled, crm_type, crm_api_key').eq('id', clientId).single()
+      .select('company_name, industry, crm_dedup_enabled, crm_type, crm_api_key, figsy_credits_remaining').eq('id', clientId).single()
 
     // ── CRM DEDUP GATE ─────────────────────────────────────────────────────────
     // Never cold-email a client's existing customers / known contacts. If the
@@ -922,6 +922,14 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       } catch (err) {
         console.warn(`[figsy] dedup: CRM check failed for lead ${leadId}, proceeding with outreach —`, err instanceof Error ? err.message : err)
       }
+    }
+
+    // Billing gate (item 166): FIGSY is charged at ENROLLMENT — one FIGSY credit =
+    // one lead enrolled. Don't enroll (or spend a Claude draft) when the FIGSY pool
+    // is empty; upstream delivery is already capped by this pool — this is the backstop.
+    if ((client?.figsy_credits_remaining ?? 0) < 1) {
+      console.warn(`[figsy] autoEnrollLead: client ${clientId} has no FIGSY credits — skipping enrollment for lead ${leadId}.`)
+      return
     }
 
     const draft = await generateSequenceWithMemory(
@@ -969,15 +977,11 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       return
     }
 
-    // ── Deduct 1 FIGSY credit per lead enrolled ────────────────────────────────
-    // CHECKED + sequential: supabase RETURNS errors (doesn't throw), so the old
-    // try/catch never saw a failure and the Promise.all could write the ledger row
-    // without the balance changing (or vice-versa). Now we deduct first, verify it
-    // succeeded, and only THEN record the ledger row — so the two can't desync.
-    const { data: clientBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
-    const newBal = Math.max(0, (clientBal?.figsy_credits_remaining ?? 0) - 1)
-    const { error: balErr } = await db.from('clients')
-      .update({ figsy_credits_remaining: newBal }).eq('id', clientId)
+    // ── Deduct 1 FIGSY credit per lead enrolled (item 170: atomic RPC) ──────────
+    // Use the increment_figsy_credits RPC (mirrors increment_client_credits) so the
+    // balance update is atomic — no read-modify-write race that could desync the
+    // balance from the ledger row. Clamps at 0 in SQL.
+    const { error: balErr } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: -1 })
     if (balErr) {
       console.error('[figsy] autoEnrollLead: FIGSY credit deduction failed', balErr.message)
     } else {

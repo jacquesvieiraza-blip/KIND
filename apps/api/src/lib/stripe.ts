@@ -1,33 +1,32 @@
 import Stripe from 'stripe'
+import { PRICING } from '@kind/shared'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' as any })
   : null
 
-// ── Credit bundle price IDs (one-time payments) ───────────────────────────────
-// STRIPE_PRICE_LEADGEN_20  — 20 lead gen credits ($20)
-// STRIPE_PRICE_LEADGEN_40  — 40 lead gen credits ($38)
-// STRIPE_PRICE_LEADGEN_100 — 100 lead gen credits ($88)
-// STRIPE_PRICE_FIGSY_20    — 20 FIGSY credits ($60)
-// STRIPE_PRICE_FIGSY_40    — 40 FIGSY credits ($110)
-// STRIPE_PRICE_FIGSY_100   — 100 FIGSY credits ($250)
+// ── Credit bundle price IDs (one-time payments) — prices LOCKED to @kind/shared ──
+// Lead Gen: $1/credit flat  → $20 / $40 / $100
+// FIGSY:    $3/credit flat   → $60 / $120 / $300
+// The price NUMBERS are derived from PRICING (single source of truth, item 168);
+// the env vars below hold the matching Stripe Price object IDs — recreate those in
+// Stripe at the same locked values:
+//   STRIPE_PRICE_LEADGEN_20 / _40 / _100   ·   STRIPE_PRICE_FIGSY_20 / _40 / _100
 
 // ── Subscription price IDs (recurring monthly) ───────────────────────────────
 // STRIPE_PRICE_MILLA_MONTHLY  — Milla VA $49/month
 // STRIPE_PRICE_VIDA_MONTHLY   — Vida Chatbot $29/month
 // STRIPE_PRICE_DENISE_MONTHLY — Denise AI Account Executive $39/month
 
+// Built FROM the locked pricing constants so the three price tables can never
+// drift apart again (item 168). credits → env var holding the Stripe Price ID.
 export const STRIPE_BUNDLES = {
-  lead_gen: [
-    { credits: 20,  price: 20,  priceEnvVar: 'STRIPE_PRICE_LEADGEN_20' },
-    { credits: 40,  price: 38,  priceEnvVar: 'STRIPE_PRICE_LEADGEN_40' },
-    { credits: 100, price: 88,  priceEnvVar: 'STRIPE_PRICE_LEADGEN_100' },
-  ],
-  figsy: [
-    { credits: 20,  price: 60,  priceEnvVar: 'STRIPE_PRICE_FIGSY_20' },
-    { credits: 40,  price: 110, priceEnvVar: 'STRIPE_PRICE_FIGSY_40' },
-    { credits: 100, price: 250, priceEnvVar: 'STRIPE_PRICE_FIGSY_100' },
-  ],
+  lead_gen: PRICING.lead_gen.bundles.map(b => ({
+    credits: b.credits, price: b.price_usd, priceEnvVar: `STRIPE_PRICE_LEADGEN_${b.credits}`,
+  })),
+  figsy: PRICING.figsy.bundles.map(b => ({
+    credits: b.credits, price: b.price_usd, priceEnvVar: `STRIPE_PRICE_FIGSY_${b.credits}`,
+  })),
 } as const
 
 export const STRIPE_SUBSCRIPTIONS = {

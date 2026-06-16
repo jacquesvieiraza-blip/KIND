@@ -9,10 +9,10 @@
 ---
 
 ## 🧭 VERIFIED STATE — what's true right now
-- **Last verified:** 2026-06-15 EOD. **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
+- **Last verified:** 2026-06-16 09:00 UTC. **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
 - **LIVE on prod:** Company Engine (#88) + the **#502 superset** = R1–R20 + design screens 80–91 → all **🩷 pink** (live, pending the Wed/Thu walk → then 🟢). Verified-🟢: 55, 92. Marketing site (The Drop, Prompt Library) + admin portal live.
-- **`main`:** ✅ all of today's docs merged through **#572** — operating system (`CLAUDE.md`) · 🩷 pink state · this clean daily doc — all live.
-- **NOT done yet:** billing correctness 166–173 (Tue-16) · the verification walk (Wed/Thu) · legal #10–14 · D9 10/10.
+- **`main`:** ✅ merged through **#575** — operating system (`CLAUDE.md`) · 🩷 pink state · this clean daily doc · Apollo-reply + "if-no" fallback logged (KIND-MASTER). Stale marketing PR **#503 closed**.
+- **NOT done yet:** billing correctness 166–173 (Tue-16) · the verification walk (Wed/Thu) · **legal #11–13** (#10 ICO ✅ · #14 LinkedIn ✅) · D9 10/10.
 - **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done (C1959926).
 - **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
 - **Process lock:** confirm the Supabase project name before every SQL run.
@@ -31,18 +31,18 @@
 **3 · D9 deliverability to 10/10**
 - Owner: 🧍 founder (🤖 assist) · Action: run `DELIVERABILITY-D9-CHECKLIST.md` to a clean 10/10 · Where: mail-tester / GlockApps · Done when: 10/10 (the Thu-18 launch gate) · Source: **101** · GitHub: —
 
-**4 · Close the stale marketing PR**
-- Owner: 🧍 founder · Action: close it (The Drop already live via #544; the Watch page stays held as inventory 163) · Where: GitHub · Done when: closed · Source: 93/163 · GitHub: **#503**
+**4 · Close the stale marketing PR** — ✅ **DONE 16 Jun**
+- Owner: 🧍 founder · Action: closed (The Drop already live via #544; the Watch page stays held as inventory 163) · Where: GitHub · Done when: closed ✅ · Source: 93/163 · GitHub: **#503 closed**
 
-**5 · Legal pack #10–14** *(do with a clear head)*
-- Owner: 🧍 founder · Action: SR01 · registered office · WHOIS · LinkedIn lockdown (ICO already done) + trademark search + Meta/WhatsApp API application · Where: respective portals · Done when: all filed · Source: **102** · GitHub: —
+**5 · Legal pack #10–14** *(do with a clear head)* — **#11–13 left** (#10 ICO ✅ · #14 LinkedIn ✅)
+- Owner: 🧍 founder · Action: **#11 SR01 · #12 registered office + service address · #13 WHOIS privacy** · Where: Companies House / formation agent / GoDaddy · Done when: #11–13 filed · Source: **102** · GitHub: — · _Note: trademark = Month 2–3, Meta/WhatsApp API = pipeline window — neither gates Fri 19._
 
 ---
 
 ## ⛔ BLOCKED / WAITING
 - **Billing PR can't merge** → waiting on 🧍 Stripe prices + sign-off (task 4, item 168).
 - **🩷 → 🟢 for items 56, 60–79, 80–91** → waiting on the Wed/Thu verification walk.
-- **Onboarding 174–177 final Apollo default** → waiting on the `partners@apollo.io` reply.
+- **Onboarding 174–177 final Apollo default** → Apollo **replied 15 Jun** (competitive-overlap review); 🧍 founder sent the response + "if-no" fallback locked → now waiting on Apollo's **decision**.
 - **Signup/SSO (84)** → waiting on 🧍 Google/Microsoft OAuth registration.
 - **pgvector (120) / Casey (121)** → waiting on 🧍 input (flip the switch / give Casey's voice).
 - **GTM funnel instrumentation (131)** → waiting on 10 analytics decisions (`GTM_FUNNEL_INSTRUMENTATION.md`).

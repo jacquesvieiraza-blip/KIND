@@ -28,11 +28,11 @@
 ## SECTION 1 — ONBOARD  *(signup → welcome → setup)*
 > **6-beat:** *Small businesses can't afford a sales team (problem). So the owner sells between jobs — late nights, cold lists, no follow-up (pain). Most never contact a lead more than once (metric). Every un-chased lead is a job lost to a competitor (cost). What if setup took five minutes, not a hire (way out)? K.I.N.D gets you live, guided, in minutes (solution).*
 
-### Scene 1.1 — Sign up *(~6s)*
+### Scene 1.1 — Sign up + accept terms *(~7s)*
 - **SCREEN:** `get-kind.com` → **Start free** → `/v2/signup`
 - **🔴 PAIN:** "Hiring a salesperson takes months and thousands a month."
-- **RECORD:** type a business email → **Create account**
-- **SAY:** *"No hire, no contract. You're in, in seconds."*
+- **RECORD:** type a business email → tick **"I agree to the Terms & Conditions and Privacy Policy"** *(required — no account without it)* → **Create account**
+- **SAY:** *"No hire, no contract — tick the terms, and you're in, in seconds."*
 
 ### Scene 1.2 — Welcome / Spotlight *(~8s)* — **MOCKUP** (`/v2/welcome/b`, `previews/welcome-concepts.html`)
 - **🔴 PAIN:** "New tools usually dump you on an empty dashboard."
@@ -41,13 +41,14 @@
 
 ### Scene 1.3 — Casey guided setup *(~10s)* — **MOCKUP** (`/v2/setup`)
 - **🔴 PAIN:** "Setup wizards are forms you abandon."
-- **RECORD:** Casey walks the 3 steps conversationally
-- **SAY:** *"Casey walks you through it — sign, target, launch — one calm step at a time. No manual."*
+- **RECORD:** Casey walks the steps conversationally
+- **SAY:** *"Casey walks you through it — build your targeting, launch your first campaign — one calm step at a time. No manual."*
 
-### Scene 1.4 — Sign the agreement *(~6s)*
-- **SCREEN:** `/dashboard/documents`
-- **RECORD:** open + sign the service agreement (one click)
-- **SAY:** *"Sign once, right here, and you're cleared to go."*
+### Scene 1.4 — Your agreements, on record *(~6s)*
+- **SCREEN:** `/dashboard/documents` ("Documents & Agreements") — *⚠️ the demo account needs a purchase so the "Agreement on record" state shows (otherwise it reads "No purchase yet")*
+- **🔴 PAIN:** "With most tools you never see what you actually agreed to."
+- **RECORD:** open the page — show **"Agreement on record"** + the Terms / Privacy / DPA *(read-only — no contract to sign; acceptance is recorded automatically at your first purchase, ECTA-compliant)*
+- **SAY:** *"No contract to sign — you tick the terms at sign-up, and it's recorded automatically when you buy. All here, transparent — GDPR and POPIA."*
 
 ## SECTION 2 — TARGET  *(your ideal buyer)*
 > **6-beat:** *You know roughly who you sell to — but turning that into a real list is the hard part (problem). Owners guess, or buy a stale list (pain). Generic lists convert near zero (metric). Wasted sends burn your domain and your time (cost). What if you just described your buyer in a sentence (way out)? K.I.N.D turns plain English into a precise target profile (solution).*
@@ -135,11 +136,11 @@
 ## SECTION 9 — RUN IT  *(billing · knowledge · integrations · settings)*
 > **6-beat:** *Tools nickel-and-dime you for seats whether they work or not (problem/pain). You pay for software, not results (metric: most SaaS = sunk cost). Budget gone with nothing to show (cost). What if you only paid for outcomes (way out)? K.I.N.D charges per positive reply — and plugs into what you already use (solution).*
 
-### Scene 9.1 — Outcome billing *(~8s)*
+### Scene 9.1 — Outcome billing (+ pay-time terms) *(~9s)*
 - **SCREEN:** `/dashboard/billing`
 - **🔴 PAIN:** "Per-seat tools charge you whether they work or not."
-- **RECORD:** show the credit panel (Lead-Gen + FIGSY pools)
-- **SAY:** *"You pay for outcomes — one credit, one positive reply. No reply, no charge."*
+- **RECORD:** show the credit panel (Lead-Gen + FIGSY pools); tick **"I agree to the Terms of Service"** before buying credits *(required at payment)*
+- **SAY:** *"You pay for outcomes — one credit, one positive reply, no reply no charge. Agree to the terms at checkout, and you're topped up."*
 
 ### Scene 9.2 — Knowledge *(~6s)*
 - **SCREEN:** `/dashboard/knowledge`

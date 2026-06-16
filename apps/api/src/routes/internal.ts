@@ -21,6 +21,7 @@ import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCa
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
+import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
 import { recomputeCampaignCounters } from '../lib/figsy'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -1624,10 +1625,8 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
     for (const client of clients ?? []) {
       try {
         const drip = client.daily_drip_rate ?? 5
-        // Cap by the wallet that matches the client's plan (item 167): FIGSY-plan
-        // clients drip against the FIGSY pool, lead-gen clients against credit_balance.
-        const plan = (client.plan as 'lead_gen' | 'figsy' | undefined) ?? 'lead_gen'
-        const balance = plan === 'figsy' ? (client.figsy_credits_remaining ?? 0) : (client.credit_balance ?? 0)
+        // Cap by the wallet that matches the client's plan (item 167) — pure rule.
+        const balance = deliveryCapBalance(normalizePlan(client.plan), client.credit_balance, client.figsy_credits_remaining)
 
         // Can't deliver leads to a client with no credits in the relevant pool
         if (balance < 1) continue

@@ -366,6 +366,12 @@ That + outbound + partners = the motion.
 
 > **The boxes rule (the #502 lesson — "open one box and everything falls out"):** every box is ONE self-contained, independently-shippable PR. No box depends on another to merge. Build to 🟡 on an **isolated branch** (not live); founder reviews → 🟣, ships → 🩷→🟢.
 > **Status of record stays in `PRODUCT-INVENTORY`** — this is build *sequencing*, not status. (🟡 items go preview→approve→🟣 separately; this map is the 🔴 set.)
+>
+> **▶️ BUILD STATUS (16 Jun) — PAUSED for launch · RESUME MON 22 (post-launch):**
+> - ✅ **B7** shipped → PR #583 (money-path tests, verified).
+> - ⏳ **B2** partial — 179 (shareable view) was **already built** (code-verified, PR #584); **183 kill-switch + 180 audit log still queued**.
+> - 🔴 **B1 · B3 · B4 · B5 · B6** not started.
+> **Resume order Mon 22:** B2-remainder (183 → 180) → B1 → B3 → B5 → B6 → B4 — **one PR per box, held → 🟡, code-verify each item against the codebase first** (the 179 lesson). Paused now so launch focus stays on D9 + Thu Go/No-Go.
 
 ## 🤖 BUILDABLE NOW — Claude can take these 🔴→🟡 with no external dependency
 | Box | Items | Independence |

@@ -359,7 +359,7 @@
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 144 | 🔴 | **DENISE deep build #54** (auto-book · notetaker · objections · proposal-from-transcript · Vapi voice) | 🤖 |
-| 145 | 🔴 | **LENA — CS agent #55** · **TONY — Ops agent #56** | 🤖 |
+| 145 | 🔴 | **LENA — CS agent #55** ⭐ **CHURN-DEFENSE PRIORITY** (retention = salary — see `SALARY-BREAKEVEN-PLAN.md`; CS is what *holds* the client book) · **TONY — Ops agent #56** | 🤖 |
 | 146 | 🔴 | Multi-agent orchestration #57 · 500+ skill library #58 | 🤖 |
 | 147 | 🔴 | Outcome pricing per meeting #60 (gated ≥28% margin) | 🤝 |
 | 148 | 🔴 | Mobile app #61 · built-in CRM Kanban #62 · pan-African design partners #63 | 🤝 |

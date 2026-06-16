@@ -112,12 +112,12 @@
 **§3 design SIGNED OFF (Jacques 14 Jun): one lead = one charge = one wallet, via explicit `clients.plan` (`lead_gen`|`figsy`). Lead-Gen → $1 lead-gen pool. FIGSY → $3 FIGSY pool, lead included, lead-gen pool untouched. Outreach enrollment stops charging.**
 | # | Item | Status | Owner |
 |---|------|--------|-------|
-| 166 | **FIGSY double-charge** — KILLED: delivery now charges one wallet by `clients.plan`; FIGSY charged once at enrollment ($3, not $4). *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
-| 167 | **FIGSY-only bundle can't deliver** — FIXED: delivery + drip cap by the plan's pool (FIGSY-only delivers against `figsy_credits_remaining`). *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
-| 168 | **3 price tables reconciled** — `stripe.ts` + portal billing derive from `@kind/shared` (FIGSY $60/$120/$300). *Code BUILT; 🧍 recreate the 6 Stripe Prices to finish.* | 🟡 | 🤝 |
-| 169 | **`clients.plan` flag** — migration adds it + backfill (FIGSY campaign/credits → `figsy`, else `lead_gen`); delivery reads it. *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
-| 170 | **Atomic FIGSY credit RPC** — `increment_figsy_credits` mirrors `increment_client_credits`; enrollment uses it. *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
-| 171 | **"How credits work" panel honesty** — fixed false "Outreach sent — No credit used" → "FIGSY outreach — 1 FIGSY credit". *BUILT — PR billing-166-173, pending smoke.* | 🟡 | 🤖 |
+| 166 | **FIGSY double-charge** — KILLED: delivery charges one wallet by `clients.plan`; FIGSY charged once at enrollment ($3, not $4). *LIVE on prod (merged #580 + migration applied staging+prod); self-certifies → 🟢 on the next real FIGSY delivery.* | 🩷 | 🤝 |
+| 167 | **FIGSY-only bundle can deliver** — FIXED: delivery + drip cap by the plan's pool. *LIVE (#580 + migration); pending next-delivery cert.* | 🩷 | — |
+| 168 | **3 price tables reconciled** — code derives from `@kind/shared`; 6 Stripe Prices + 15 env vars set + FIGSY products renamed to 20/40/100 credits. *LIVE.* | 🩷 | — |
+| 169 | **`clients.plan` flag** — migration + backfill applied staging+prod (3 figsy / 5 lead_gen verified). *LIVE.* | 🩷 | — |
+| 170 | **Atomic FIGSY credit RPC** — `increment_figsy_credits` live (verified present in prod). *LIVE.* | 🩷 | — |
+| 171 | **"How credits work" panel honesty** — fixed false "Outreach sent — No credit used" → "FIGSY outreach — 1 FIGSY credit". *LIVE.* | 🩷 | — |
 | 172 | **Multi-currency** (founder ask 14 Jun) — let client pick USD/GBP/ZAR; Stripe multi-currency Prices + `clients.preferred_currency`; reconcile with Flutterwave (`flutterwave.ts:146-160`); may be own phase, don't block 166–171 | 🔴 | 🤝 |
 | 173 | **Admin FIGSY visibility** — admin shows `credit_balance` only, never `figsy_credits_remaining`; surface it + add top-up | 🔴 | 🤖 |
 
@@ -261,7 +261,7 @@
 |---|----|------|-------|
 | 100 | 🔴 | Smoke Test 2 — T3 pause · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invites · T10 partner | 🤝 |
 | 101 | 🔴 | **D9 deliverability 10/10** (mail-tester) | 🧍 |
-| 102 | 🔴 | Legal pack #10–14 — **#10 ICO ✅ · #14 LinkedIn ✅; #11 SR01 · #12 registered office · #13 WHOIS pending** | 🧍 |
+| 102 | 🔴 | Legal pack #10–14 — **#10 ICO ✅ · #14 LinkedIn ✅**; **#11 SR01 · #12 registered office · #13 WHOIS → MOVED TO POST-DELIVERY** (post-launch, founder call 16 Jun) — **no longer a pre-19 gate** | 🧍 |
 | 103 | ✅ | Email `partners@apollo.io` — API reseller agreement — sent 14 Jun · **Apollo replied 15 Jun (overlap review) · founder responded 16 Jun → awaiting decision** | 🧍 |
 | 104 | 🔴 | Hunter.io signup → key · PDL free signup → key | 🧍 |
 | 105 | 🔴 | Go/No-Go gate Thu 18 → **🚀 LAUNCH Africa-only Fri 19 (#18)** | 🤝 |

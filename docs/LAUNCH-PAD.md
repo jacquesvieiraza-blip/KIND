@@ -9,44 +9,48 @@
 ---
 
 ## 🧭 VERIFIED STATE — what's true right now
-- **Last verified:** 2026-06-17 (Wed AM). **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
+- **Last verified:** 2026-06-17 (Wed eve). **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
 - **LIVE on prod:** Company Engine (#88) + the **#502 superset** (R1–R20 + design screens 80–91) + **billing correctness 166–171** → all **🩷 pink** (live, pending the Wed/Thu walk / next-delivery cert → then 🟢). Verified-🟢: 55, 92. Marketing site + admin portal live.
-- **`main`:** ✅ through Wed-17 — last night's 5 PRs + today's 3 builds (#605 188 · #606 186 · #607 187, all migrations run) **+ analytics/deliverability work merged: #608 (render) · #609 (Analytics in sidebar) · #610 (Analytics real send-log data + Open Rate) · #611 (Send-Test to any address).** Earlier: billing #580 · voice 178 (#579) · story (#598/#599).
-- **🚨 LIVE REGRESSION (item 194, top priority):** a real cold test from `gettingkind.com` landed in **"Newsletter", not the inbox.** Prime suspects: the open-tracking pixel we just enabled (193) · new-domain warmup · `List-Unsubscribe`. **Next: run mail-tester (#611) → decide pixel ON/OFF → fix.** This is the #1 launch-gate risk.
-- **🩷 SHIPPED today, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences · **188** Denise on demo · **193** real open-tracking/analytics (pixel pending the 194 decision).
-- **NOT done yet (pre-19 gates):** **fix 194 (deliverability placement)** · verify 186/187/188 · the verification walk (Wed/Thu) · **D9 10/10**. *(Legal #11–13 → post-delivery.)*
-- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done. **`TRACKING_URL=https://api.get-kind.com` NOW SET** (open-pixel live) — ⚠️ **under review** as a 194 suspect; may be reverted for cold. Source: **193 / 194**.
+- **`main`:** ✅ through Wed-17 — today's 3 builds (#605 188 · #606 186 · #607 187, migrations run) **+ the metrics fix chain #608–#615 merged (one source of truth · Analytics in sidebar · 3→2 surfaces · head-count totals).** #616 (debug-line cleanup) open. Earlier: billing #580 · voice 178 (#579) · story (#598/#599).
+- **✅ METRICS SAGA CLOSED (193 · 194 · 195):** mail-tester came back **10/10** → deliverability is clean; the "Newsletter" tab was new-domain warmup + the mail client's heuristic, **not spam** → **194 resolved, open-pixel stays ON.** **195:** FIGSY metrics are now **one source of truth** across Home/Performance/Analytics, and the 3 metric surfaces were consolidated to **2** (Deliverability folded into Performance + Analytics). **The Analytics "0 sent vs 120" root cause = a missing prod migration:** `opened_at` (`20260531_email_open_tracking.sql`) was never run, so Analytics' query — which *selects* `opened_at` — errored to 0 while Performance's count survived → 🧍 ran it → data consistent. (193 open-tracking live; opens populate over coming days.)
+- **🩷 SHIPPED, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences · **188** Denise on demo.
+- **🌙 TONIGHT (Wed eve, founder):** start a **raw Zoom demo recording** (rawness > polish — a full take is unlikely; partial is fine, we gap-mine whatever you capture) · merge **#616** (removes a temp debug line) · optionally verify 186/187/188.
+- **NOT done yet (pre-19 gates):** verify 186/187/188 · the verification walk (Wed/Thu) · **D9** (mail-tester **10/10 ✅** — a formal GlockApps pass still nice-to-have) · 🎥 Drop 01 · 📞 reschedule Apollo (Ali no-showed). *(Legal #11–13 → post-delivery.)*
+- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done. **`TRACKING_URL=https://api.get-kind.com` SET** — open-pixel live and **staying ON** (mail-tester 10/10 confirms it's safe). 🧍 also ran the missing **`20260531_email_open_tracking.sql`** (`opened_at`).
 - **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
 - **Process lock:** confirm the Supabase project name before every SQL run.
 
 ---
 
-## ✅ TODAY'S RUNLIST — 📅 WED 17 JUN (the big build + verify day)
-> ▶️ **The shape of the day:** 🧍 merge the 4 PRs + set `TRACKING_URL` → 🎥 founder records the raw Zoom demo run-through (say "gap" out loud at each gap) → 🤖 I mine the transcript for gaps + coach your flow → 🤖 build **188 · 186 · 187** → 🤝 verification walk Pt 1 → 📞 Apollo call · 🎥 Drop 01 · 🧍 D9. **Thu 18 = walk Pt 2 + Go/No-Go.**
+## ✅ RUNLIST — 📅 THU 18 JUN (verify → Go/No-Go → launch Fri)
+> ▶️ **The shape of the day:** *everything from Wed rolled here.* 🧍 verify 186/187/188 → 🤝 verification walk (Company Engine · screens 80–91 · R-wave) → 🧍 smoke tests → 🎥 raw demo + Drop 01 → 📞 reschedule Apollo → 🚦 **GO / NO-GO (likely GO — we start).** **Fri 19 = launch.**
 
-**1 · Merge the 4 open PRs + set TRACKING_URL** — 🧍 founder, first thing
-- Owner: 🧍 founder · Action: merge **#601** (real opens) · **#602** (churn plan) · **#600** (salary/growth) · **#597** (Google note) — any order, all independent. Then set **`TRACKING_URL=https://api.get-kind.com`** on the API env + redeploy → real opens go live. · Done when: 4 merged + env set + Analytics shows a real Open Rate (not "—") · Source: **193/190–193/189** · GitHub: **#601 #602 #600 #597**
+**1 · Verify 186 · 187 · 188 → 🟢** — 🧍 founder (🤖 renders the dots)
+- Action: eyeball each — Denise demo unlocked · a fresh signup stamps T&C · Sequences build→apply→the send is your copy. · Done when: ✅ given → I flip 🩷→🟢 · Source: **186 · 187 · 188**
 
-**2 · Raw Zoom demo run-through → gap-mine + flow coaching** — 🤝 (🧍 records · 🤖 analyses)
-- Owner: 🧍 founder records · 🤖 Claude analyses · Action: founder does a full client-style demo on Zoom, saying **"gap"** out loud wherever something's missing/broken; pastes the transcript → 🤖 turns every gap into a numbered inventory item **and** coaches the demo flow (order, what to say, what to skip). · Done when: gap list logged + flow notes delivered · Source: **129** · GitHub: —
+**2 · Verification walk (Pt 1 + Pt 2)** — 🤝 founder + Claude
+- Action: walk Company Engine · design screens 80–91 · R1–R20 (the checklist below); mark ✅/⚠️/🔴 — I fix any 🔴 same-day → flip 🩷→🟢. **This converts the bulk of the ~40 🩷 items.** · Done when: rows ✅ · Source: **56 · 60–79 · 80–91**
 
-**3 · 188 + 186 + 187 — SHIPPED 🩷 (merged + migrations run 17 Jun)** — 🧍 **VERIFY today → 🟢**
-- **188 Denise demo** (#605, migration run): open the demo → Denise page unlocked with a follow-up + proposal draft. · **186 signup T&C** (#606, migration run): a fresh signup writes `clients.signup_terms_accepted_at`. · **187 Sequences** (#607, migration run): Portal → **Sequences** → New → 2 email steps with `{{first_name}}` → Save → **Apply to New campaign** → add leads + activate → the send is your copy.
-- Owner: 🧍 founder (after the Apollo call) · Action: eyeball each of the three above · Done when: each confirmed working → flip 🩷→🟢 (🤖 renders the dots once you give the ✅) · Source: **186 · 187 · 188** · GitHub: **#605 #606 #607 (all merged)**
+**3 · Smoke tests T3–T7 + T9/T10** — 🧍 founder
+- Action: run `docs/SMOKE_TEST.md`. · Done when: pass · Source: **100**
 
-**6 · Verification walk Pt 1** — 🤝
-- Owner: 🤝 founder + Claude · Action: walk Company Engine · design screens 80–91 · R1–R6 (use the checklist below); mark ✅/⚠️/🔴 — 🤖 fixes any 🔴 same-day → flip 🩷→🟢 in PRODUCT-INVENTORY. · Done when: Pt-1 rows are ✅ · Source: **80–91 / R1–R6** · GitHub: —
+**4 · Raw Zoom demo → gap-mine + Drop 01** — 🤝 (🧍 records · 🤖 analyses)
+- Action: raw client-style demo (say **"gap"** out loud) → paste transcript → I gap-mine + coach the flow; capture **Drop 01**. · Done when: gap list + raw capture · Source: **129**
 
-**7 · Apollo reseller call** — 🧍 founder (booked)
-- Owner: 🧍 · Action: take the call off the prep sheet (`APOLLO-RESELLER-CALL.md`); the "if-no" fallback is locked. · Done when: Apollo's decision captured → unblocks onboarding 174–177 · Source: **174–177** · GitHub: —
+**5 · Reschedule Apollo** — 🧍 founder
+- Action: send the drafted follow-up (Ali no-showed). · Done when: new time booked · Source: **174–177**
 
-**8 · Record Drop 01** — 🎥 🧍 founder
-- Owner: 🧍 · Action: record Drop 01 to the recording bible (`RECORDING-SHOOTING-SCRIPT.md`). · Done when: raw capture done (assembles later) · Source: **129** · GitHub: —
+**6 · D9 deliverability** — 🧍 (🤖 assist)
+- mail-tester **10/10 ✅ already**; a formal GlockApps pass is nice-to-have, not a blocker. · Source: **101**
 
-**9 · D9 deliverability → 10/10** *(rolling pre-19 gate)*
-- Owner: 🧍 founder (🤖 assist) · Action: run `DELIVERABILITY-D9-CHECKLIST.md` to a clean 10/10 (warmup on track — not at risk). · Where: mail-tester / GlockApps · Done when: 10/10 (the Thu-18 gate) · Source: **101** · GitHub: —
+**7 · Merge the open docs PRs** — 🧍 founder
+- **#616** (195 close-out) · **#617** (this LAUNCH-PAD) · **#618** (item 196 log) → docs fully reconciled to reality. · GitHub: **#616 #617 #618**
 
-> ✅ **Closed Tue 16:** billing shipped (🩷 #580) · Stripe + 15 env vars · #503 closed · #579 merged · legal #11–13 → post-delivery · FIGSY+Tony on story.html (#598/#599) · churn plan + open-tracking fix written (#601/#602). · **Legal:** #10 ICO ✅ · #14 LinkedIn ✅; **#11 SR01 · #12 registered office · #13 WHOIS → POST-DELIVERY.**
+**8 · 🚦 GO / NO-GO** — 🤝, end of Thu
+- Any unresolved 🔴 from the walk → fix same-day or slip. Else **GO → launch Fri 19.** *(Founder read 17 Jun: likely GO — we start.)* · Source: **105**
+
+> ✅ **Closed Wed 17 (big day):** 3 builds shipped (186/187/188 + migrations) · the **metrics saga closed** (193/194/195 — real opens, Analytics fixed, root-cause = a missing `opened_at` migration, now run) · mail-tester **10/10** · **`kind-ops`** company-ops repo built + sent · item **196** (HMRC-grade sales ledger) logged · founder business-model training parked post-launch.
+> ✅ **Closed Tue 16:** billing #580 · Stripe + 15 env vars · #579 · legal #11–13 → post-delivery · story #598/#599 · churn/open-tracking #601/#602.
 
 ---
 
@@ -84,6 +88,7 @@
 - **Gated — P2 Intelligence (~10+ clients):** Learning Engine 143 · MCP 141 · Casey 121 · Product Hunt 142. *(→ V2-TRACKER Month 2.)*
 - **Gated — P3 Agent family (≥28% margin):** Denise deep 144 · outcome pricing 147 · Lena/Tony 145 · CRM+mobile 148. *(→ V2-TRACKER Month 3.)*
 - **Gated — P4 Enterprise (50+ clients):** cross-client intel 150 · compliance 151 · advanced moat 152 · the 15 Pieces 153–161. *(→ V2-TRACKER Year 2.)*
+- **Founder-ops (post-launch):** **🧍 business-model training day** (the operating model end-to-end → write `operating-model.md` in **kind-ops** + SOPs) · **196** HMRC-grade sales ledger (needs 3 decisions: accounting platform · reporting currency · VAT-registered) · finish **kind-ops** setup + connect Stripe/Mettle → FreeAgent.
 - **Ongoing (no date):** deliverability warmup ramp · funding ladder (F1 credits now) · content cadence (1 ship = video+LinkedIn+email) · tech debt (admin RLS refactor · delete Portal-V2 · key rotation).
 - **Cleanup flags (fix opportunistically):** deck/`sales-playbook` quote Alta's numbers as ours → fix · `denise` page ungated → add sub check · portal `roadmap` page shows ~80 features as "Live" → your call · README empty.
 

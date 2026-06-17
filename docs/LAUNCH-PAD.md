@@ -46,8 +46,8 @@
 **9 · D9 deliverability → 10/10** *(rolling pre-19 gate)*
 - Owner: 🧍 founder (🤖 assist) · Action: run `DELIVERABILITY-D9-CHECKLIST.md` to a clean 10/10 (warmup on track — not at risk). · Where: mail-tester / GlockApps · Done when: 10/10 (the Thu-18 gate) · Source: **101** · GitHub: —
 
-**10 · Admin Centre — TOTAL revenue ("money in")** — 🤖 (on founder's go) · 📌 QUEUED today
-- Owner: 🤖 builds on 🧍 go · Action: admin **Revenue** = **total money in** (MRR + one-time credit purchases) in the **real charged currency — we bill USD/client-chosen, NOT ZAR**. Record actual amount + currency + a normalized `amount_usd` per payment → fix the 3 webhooks → admin page (this-month + all-time) → backfill. **⚠️ live payment webhooks — build deliberately.** · Done when: admin shows real total money-in (USD) · Source: **196** · GitHub: new PR · *(Founder 17 Jun: (b) + bill USD/multi-currency, not ZAR.)*
+**10 · Sales/revenue LEDGER (HMRC-grade) — "money in" recorded + reconcilable** — 🤝 (🧍 decisions → 🤖 builds) · 📌 QUEUED
+- Owner: 🤝 · Action: build an **auditable sales ledger** (one row per real charge: processor + txn id, amount + currency, normalised reporting-currency amount, status) — the source of truth that **cross-references the company's HMRC accounting platform**. Then the 3 webhooks write to it → admin Revenue reads it → backfill → accounting export/connector (follow-on). **⚠️ live payment webhooks + compliance — build deliberately.** · Done when: every sale recorded + reconciles to processors/accounting · Source: **196** · GitHub: new PR · **🧍 needs first: accounting platform? · reporting currency (GBP vs USD)? · VAT-registered?**
 
 > ✅ **Closed Tue 16:** billing shipped (🩷 #580) · Stripe + 15 env vars · #503 closed · #579 merged · legal #11–13 → post-delivery · FIGSY+Tony on story.html (#598/#599) · churn plan + open-tracking fix written (#601/#602). · **Legal:** #10 ICO ✅ · #14 LinkedIn ✅; **#11 SR01 · #12 registered office · #13 WHOIS → POST-DELIVERY.**
 

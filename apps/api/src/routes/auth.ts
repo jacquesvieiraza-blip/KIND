@@ -53,6 +53,9 @@ const onboardSchema = z.object({
   // Accept ANY ref value: a client UUID (client referral) OR an 8-char partner
   // code. Validating as uuid() here used to 400 every partner-link signup.
   referred_by:  emptyToUndefined.optional(),
+  // Item 186 — the signup T&C tick. Stored as a binding consent record at account
+  // creation so even a trial user who never pays has proof of acceptance.
+  terms_accepted: z.boolean().optional(),
 })
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -63,7 +66,7 @@ authRouter.post('/onboard', async (req, res) => {
     if (!token) { res.status(401).json({ success: false, error: 'Missing token' }); return }
     const { data: { user }, error: authError } = await db.auth.getUser(token)
     if (authError || !user) { res.status(401).json({ success: false, error: 'Invalid token' }); return }
-    const { referred_by, ...profileFields } = onboardSchema.parse(req.body)
+    const { referred_by, terms_accepted, ...profileFields } = onboardSchema.parse(req.body)
 
     // A ref can be a client UUID (client referral) or an 8-char partner code.
     let resolvedReferredBy: string | undefined   // client referrer id
@@ -81,14 +84,28 @@ authRouter.post('/onboard', async (req, res) => {
     }
 
     const now = new Date().toISOString()
+
+    // Check if client already exists (and whether signup consent is already on record).
+    const { data: existing } = await db.from('clients')
+      .select('id, signup_terms_accepted_at').eq('user_id', user.id).maybeSingle()
+
+    // Item 186 — record the signup T&C tick once, at account creation. Never overwrite
+    // an existing consent timestamp (the first acceptance is the binding one).
+    const recordSignupTerms = terms_accepted === true && !existing?.signup_terms_accepted_at
+    const signupTermsFields = recordSignupTerms
+      ? {
+          signup_terms_accepted_at: now,
+          signup_terms_accepted_ip:
+            req.headers['x-forwarded-for']?.toString().split(',')[0] || req.socket.remoteAddress || '',
+        }
+      : {}
+
     const payload = {
       ...profileFields,
       onboarded_at: now,
       ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}),
+      ...signupTermsFields,
     }
-
-    // Check if client already exists
-    const { data: existing } = await db.from('clients').select('id').eq('user_id', user.id).maybeSingle()
 
     let clientId: string
     if (existing) {

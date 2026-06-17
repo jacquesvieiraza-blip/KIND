@@ -1282,10 +1282,14 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
     const { data: client } = await db.from('clients')
       .select('company_name, industry, signer_name').eq('id', clientId).maybeSingle()
 
-    // Get sender's own email from auth
+    // Optional recipient override — lets the founder fire a REAL cold-path test (pixel,
+    // List-Unsubscribe, cold FROM, generated copy) at any inbox: mail-tester.com for a
+    // deliverability score, or a personal Gmail/Outlook to check Primary-vs-Promotions.
+    // Defaults to the signed-in user's own email when omitted.
+    const toOverride = z.object({ to_email: z.string().email().optional() }).parse(req.body ?? {}).to_email
     const { data: { user } } = await db.auth.admin.getUserById(req.userId!)
-    const toEmail = user?.email
-    if (!toEmail) { res.status(400).json({ success: false, error: 'Could not resolve your email address' }); return }
+    const toEmail = toOverride || user?.email
+    if (!toEmail) { res.status(400).json({ success: false, error: 'Could not resolve a recipient email address' }); return }
 
     // Generate sequence using a placeholder lead representing the sender
     const fakeLead = {

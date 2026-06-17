@@ -479,10 +479,15 @@ export default function CampaignDetailPage() {
 
   async function sendTestEmail() {
     if (!token) return
+    // Optional recipient: blank = your own inbox; or paste a mail-tester.com address
+    // (for a deliverability score) / any Gmail/Outlook (to check inbox placement).
+    const to = window.prompt('Send the test to which address?\n\n• Leave blank to send to your own inbox\n• Or paste a mail-tester.com address to score deliverability')
+    if (to === null) return // cancelled
+    const toEmail = to.trim()
     setSendingTest(true)
     try {
-      await api.post(`/figsy/campaigns/${id}/test-email`, {}, token)
-      showToast('Test email sent — check your inbox in ~2 min')
+      await api.post(`/figsy/campaigns/${id}/test-email`, toEmail ? { to_email: toEmail } : {}, token)
+      showToast(`Test email sent${toEmail ? ` to ${toEmail}` : ''} — arrives in ~2 min`)
     } catch (err) {
       showToast((err as Error).message || 'Failed to send test email', 'error')
     }

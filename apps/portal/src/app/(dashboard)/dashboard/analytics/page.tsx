@@ -217,9 +217,13 @@ export default function AnalyticsPage() {
   ].filter(s => s.value > 0)
 
   // ── Summary totals ────────────────────────────────────────────────────────
-  const totalEmails  = data.byMonth.reduce((s, m) => s + m.emails, 0)
-  const totalOpened  = data.byMonth.reduce((s, m) => s + (m.opened ?? 0), 0)
-  const totalReplies = data.byMonth.reduce((s, m) => s + m.replies, 0)
+  // From the per-campaign REAL row counts (same source as the Campaign Performance
+  // table and /figsy/kpis) — robust to rows with a null/old sent_at, which the
+  // month-bucket sum silently drops (that gap is what made this card read 0 while
+  // Performance read the real number). Falls back to the month series if needed.
+  const totalEmails  = data.byCampaign ? data.byCampaign.reduce((s, c) => s + c.sent,    0) : data.byMonth.reduce((s, m) => s + m.emails, 0)
+  const totalOpened  = data.byCampaign ? data.byCampaign.reduce((s, c) => s + c.opened,  0) : data.byMonth.reduce((s, m) => s + (m.opened ?? 0), 0)
+  const totalReplies = data.byCampaign ? data.byCampaign.reduce((s, c) => s + c.replies, 0) : data.byMonth.reduce((s, m) => s + m.replies, 0)
   const totalLeads   = leadStats?.total ?? data.byMonth.reduce((s, m) => s + m.leads, 0)
   const replyRate    = totalEmails > 0 ? Math.round((totalReplies / totalEmails) * 100) : 0
   const trackingOff  = data.trackingEnabled === false

@@ -9,13 +9,14 @@
 ---
 
 ## 🧭 VERIFIED STATE — what's true right now
-- **Last verified:** 2026-06-17 (Wed AM). **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
+- **Last verified:** 2026-06-17 (Wed eve). **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
 - **LIVE on prod:** Company Engine (#88) + the **#502 superset** (R1–R20 + design screens 80–91) + **billing correctness 166–171** → all **🩷 pink** (live, pending the Wed/Thu walk / next-delivery cert → then 🟢). Verified-🟢: 55, 92. Marketing site + admin portal live.
-- **`main`:** ✅ through Wed-17 — last night's 5 PRs + today's 3 builds (#605 188 · #606 186 · #607 187, all migrations run) **+ analytics/deliverability work merged: #608 (render) · #609 (Analytics in sidebar) · #610 (Analytics real send-log data + Open Rate) · #611 (Send-Test to any address).** Earlier: billing #580 · voice 178 (#579) · story (#598/#599).
-- **🚨 LIVE REGRESSION (item 194, top priority):** a real cold test from `gettingkind.com` landed in **"Newsletter", not the inbox.** Prime suspects: the open-tracking pixel we just enabled (193) · new-domain warmup · `List-Unsubscribe`. **Next: run mail-tester (#611) → decide pixel ON/OFF → fix.** This is the #1 launch-gate risk.
-- **🩷 SHIPPED today, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences · **188** Denise on demo · **193** real open-tracking/analytics (pixel pending the 194 decision).
-- **NOT done yet (pre-19 gates):** **fix 194 (deliverability placement)** · verify 186/187/188 · the verification walk (Wed/Thu) · **D9 10/10**. *(Legal #11–13 → post-delivery.)*
-- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done. **`TRACKING_URL=https://api.get-kind.com` NOW SET** (open-pixel live) — ⚠️ **under review** as a 194 suspect; may be reverted for cold. Source: **193 / 194**.
+- **`main`:** ✅ through Wed-17 — today's 3 builds (#605 188 · #606 186 · #607 187, migrations run) **+ the metrics fix chain #608–#615 merged (one source of truth · Analytics in sidebar · 3→2 surfaces · head-count totals).** #616 (debug-line cleanup) open. Earlier: billing #580 · voice 178 (#579) · story (#598/#599).
+- **✅ METRICS SAGA CLOSED (193 · 194 · 195):** mail-tester came back **10/10** → deliverability is clean; the "Newsletter" tab was new-domain warmup + the mail client's heuristic, **not spam** → **194 resolved, open-pixel stays ON.** **195:** FIGSY metrics are now **one source of truth** across Home/Performance/Analytics, and the 3 metric surfaces were consolidated to **2** (Deliverability folded into Performance + Analytics). **The Analytics "0 sent vs 120" root cause = a missing prod migration:** `opened_at` (`20260531_email_open_tracking.sql`) was never run, so Analytics' query — which *selects* `opened_at` — errored to 0 while Performance's count survived → 🧍 ran it → data consistent. (193 open-tracking live; opens populate over coming days.)
+- **🩷 SHIPPED, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences · **188** Denise on demo.
+- **🌙 TONIGHT (Wed eve, founder):** start a **raw Zoom demo recording** (rawness > polish — a full take is unlikely; partial is fine, we gap-mine whatever you capture) · merge **#616** (removes a temp debug line) · optionally verify 186/187/188.
+- **NOT done yet (pre-19 gates):** verify 186/187/188 · the verification walk (Wed/Thu) · **D9** (mail-tester **10/10 ✅** — a formal GlockApps pass still nice-to-have) · 🎥 Drop 01 · 📞 reschedule Apollo (Ali no-showed). *(Legal #11–13 → post-delivery.)*
+- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done. **`TRACKING_URL=https://api.get-kind.com` SET** — open-pixel live and **staying ON** (mail-tester 10/10 confirms it's safe). 🧍 also ran the missing **`20260531_email_open_tracking.sql`** (`opened_at`).
 - **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
 - **Process lock:** confirm the Supabase project name before every SQL run.
 

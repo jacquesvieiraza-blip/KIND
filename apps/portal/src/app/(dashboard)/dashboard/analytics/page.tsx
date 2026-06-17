@@ -9,7 +9,7 @@ import {
 } from 'recharts'
 import {
   Loader2, Users, Send, MessageSquare,
-  TrendingUp, BarChart2, Target, Star, Calendar,
+  TrendingUp, BarChart2, Target, Star, Calendar, Eye,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -18,6 +18,7 @@ interface MonthPoint {
   month:      string
   leads:      number
   emails:     number
+  opened:     number
   replies:    number
   interested: number
 }
@@ -33,10 +34,11 @@ interface ScoreBucket { label: string; count: number }
 interface IndustryPoint { industry: string; count: number }
 
 interface AnalyticsData {
-  byMonth:       MonthPoint[]
-  icpBreakdown:  IcpPoint[]
-  scoreDist:     ScoreBucket[]
-  topIndustries: IndustryPoint[]
+  byMonth:        MonthPoint[]
+  icpBreakdown:   IcpPoint[]
+  scoreDist:      ScoreBucket[]
+  topIndustries:  IndustryPoint[]
+  trackingEnabled?: boolean
 }
 
 interface Campaign {
@@ -180,9 +182,9 @@ export default function AnalyticsPage() {
     week:                 m.month,
     new_contacted:        m.leads,
     emails_sent:          m.emails,
-    emails_opened:        Math.round(m.emails * 0.28),  // ~28% open rate estimate
+    emails_opened:        m.opened ?? 0,  // REAL opens (opened_at pixel) — 0 when tracking off
     emails_replied:       m.replies,
-    bounced:              Math.round(m.emails * 0.02),  // ~2% bounce estimate
+    bounced:              0,  // not tracked per-month yet — never fabricate a bounce number
     linkedin_connections: 0,  // placeholder
     linkedin_messages:    0,  // placeholder
     meetings_booked:      m.interested,
@@ -214,9 +216,12 @@ export default function AnalyticsPage() {
 
   // ── Summary totals ────────────────────────────────────────────────────────
   const totalEmails  = data.byMonth.reduce((s, m) => s + m.emails, 0)
+  const totalOpened  = data.byMonth.reduce((s, m) => s + (m.opened ?? 0), 0)
   const totalReplies = data.byMonth.reduce((s, m) => s + m.replies, 0)
   const totalLeads   = leadStats?.total ?? data.byMonth.reduce((s, m) => s + m.leads, 0)
   const replyRate    = totalEmails > 0 ? Math.round((totalReplies / totalEmails) * 100) : 0
+  const trackingOff  = data.trackingEnabled === false
+  const openRate     = trackingOff ? null : (totalEmails > 0 ? Math.round((totalOpened / totalEmails) * 100) : 0)
 
   function toggleMetric(key: string) {
     setActiveMetrics(prev =>
@@ -233,10 +238,11 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Summary strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         {[
           { label: 'Total Leads',   value: totalLeads.toLocaleString(),     icon: <Users className="w-5 h-5" />,       bg: 'bg-purple-100 text-purple-500',  text: 'text-gray-900' },
           { label: 'Emails Sent',   value: totalEmails.toLocaleString(),    icon: <Send className="w-5 h-5" />,        bg: 'bg-blue-100 text-blue-500',       text: 'text-blue-700' },
+          { label: 'Open Rate',     value: openRate === null ? '—' : `${openRate}%`, icon: <Eye className="w-5 h-5" />,  bg: 'bg-cyan-100 text-cyan-600',       text: openRate === null ? 'text-gray-400' : 'text-cyan-700' },
           { label: 'Reply Rate',    value: `${replyRate}%`,                 icon: <MessageSquare className="w-5 h-5" />, bg: replyRate >= 3 ? 'bg-green-100 text-green-500' : 'bg-amber-100 text-amber-500', text: replyRate >= 3 ? 'text-green-700' : 'text-amber-700' },
           { label: 'Meetings Booked', value: meetingsBooked.toLocaleString(), icon: <Calendar className="w-5 h-5" />,    bg: 'bg-amber-100 text-amber-500',     text: 'text-amber-700' },
         ].map(({ label, value, icon, bg, text }) => (
@@ -257,6 +263,13 @@ export default function AnalyticsPage() {
           <h3 className="font-semibold text-gray-900">Outreach Metrics Over Time</h3>
           <span className="ml-auto text-xs text-gray-400">Monthly — last 6 months</span>
         </div>
+
+        {trackingOff && (
+          <div className="flex items-start gap-2 mb-4 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-700">
+            <Eye className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <span>Email open tracking is <strong>off</strong>, so opens show as 0. Turn it on by setting a branded tracking domain (<code>TRACKING_URL</code>) — until then we never estimate a number.</span>
+          </div>
+        )}
 
         {/* Metric selector pills */}
         <div className="flex flex-wrap gap-2 mb-5">

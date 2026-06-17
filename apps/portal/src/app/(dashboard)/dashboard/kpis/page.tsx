@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { DeliverabilityHealth } from './DeliverabilityHealth'
 import {
   Loader2, Send, MessageSquare, ThumbsUp, MinusCircle,
   Users, Star, DollarSign, ShieldCheck, TrendingUp,
@@ -829,6 +830,8 @@ export default function KPIsPage() {
           <Globe className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">Deliverability</h2>
         </div>
+        {/* Sender health + warmup pacing — absorbed from the old standalone Deliverability page (195 PR-2). */}
+        <DeliverabilityHealth />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard
             label="Sending domain"

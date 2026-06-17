@@ -102,6 +102,9 @@ function LoginForm() {
           if (signInErr) {
             setError(signInErr.message)
           } else {
+            // Item 186 — carry the actual T&C tick to onboard, where the client row
+            // (and its binding consent record) is created.
+            if (agreed) { try { localStorage.setItem('kind_terms_accepted', '1') } catch { /* ignore */ } }
             router.push('/onboard')
             router.refresh()
           }

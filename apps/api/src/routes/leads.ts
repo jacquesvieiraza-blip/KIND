@@ -929,15 +929,10 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       opened:  openedHeadCount ?? 0,
       replied: (replies ?? []).length,
     }
-    const _debug = {
-      campaignCount:   campaignIds.length,
-      sentRowsFetched: (emails ?? []).length,
-      sentHeadCount:   sentHeadCount ?? 0,
-    }
 
     res.json({
       success: true,
-      data: { byMonth, byCampaign, totals, icpBreakdown, scoreDist, topIndustries, trackingEnabled, _debug },
+      data: { byMonth, byCampaign, totals, icpBreakdown, scoreDist, topIndustries, trackingEnabled },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch analytics' }) }
 })

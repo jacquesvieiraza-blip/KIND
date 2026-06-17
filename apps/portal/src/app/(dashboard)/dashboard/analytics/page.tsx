@@ -41,7 +41,6 @@ interface AnalyticsData {
   scoreDist:      ScoreBucket[]
   topIndustries:  IndustryPoint[]
   trackingEnabled?: boolean
-  _debug?:        { campaignCount: number; sentRowsFetched: number; sentHeadCount: number }
 }
 
 // Per-campaign performance, derived server-side from REAL send-log rows (not counters)
@@ -556,14 +555,6 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
-
-      {/* TEMP audit (item 195) — remove once the breakdown-vs-headcount gap is resolved.
-          If `rows fetched` < `head count`, the row select is silently truncating/erroring. */}
-      {data._debug && (
-        <p className="text-[10px] text-gray-300 font-mono pt-2">
-          debug · campaigns {data._debug.campaignCount} · sent rows fetched {data._debug.sentRowsFetched} · sent head count {data._debug.sentHeadCount}
-        </p>
-      )}
     </div>
   )
 }

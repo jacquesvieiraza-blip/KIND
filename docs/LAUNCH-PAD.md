@@ -11,10 +11,11 @@
 ## 🧭 VERIFIED STATE — what's true right now
 - **Last verified:** 2026-06-17 (Wed AM). **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
 - **LIVE on prod:** Company Engine (#88) + the **#502 superset** (R1–R20 + design screens 80–91) + **billing correctness 166–171** → all **🩷 pink** (live, pending the Wed/Thu walk / next-delivery cert → then 🟢). Verified-🟢: 55, 92. Marketing site + admin portal live.
-- **`main`:** ✅ through Wed-17 — last night's 5 PRs merged (#601 real opens · #602 churn plan · #600 salary/growth · #597 Google note · #603 LAUNCH-PAD) **+ today's 3 builds merged: #605 (188) · #606 (186) · #607 (187)**, all 3 migrations run. Earlier: billing #580 · voice 178 (#579) · story FIGSY+Tony (#598/#599).
-- **🩷 SHIPPED today, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences/Apply-to-campaign · **188** Denise on demo (see runlist item 3).
-- **NOT done yet (pre-19 gates):** verify 186/187/188 (today) · the verification walk (Wed/Thu) · **D9 10/10** (warmup on track — not at risk). *(Legal #11–13 → post-delivery.)*
-- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done (C1959926). **⚠️ TO SET Wed: `TRACKING_URL=https://api.get-kind.com`** on the API → turns real email-open tracking on (else opens read "—"). Source: **193 / #601**.
+- **`main`:** ✅ through Wed-17 — last night's 5 PRs + today's 3 builds (#605 188 · #606 186 · #607 187, all migrations run) **+ analytics/deliverability work merged: #608 (render) · #609 (Analytics in sidebar) · #610 (Analytics real send-log data + Open Rate) · #611 (Send-Test to any address).** Earlier: billing #580 · voice 178 (#579) · story (#598/#599).
+- **🚨 LIVE REGRESSION (item 194, top priority):** a real cold test from `gettingkind.com` landed in **"Newsletter", not the inbox.** Prime suspects: the open-tracking pixel we just enabled (193) · new-domain warmup · `List-Unsubscribe`. **Next: run mail-tester (#611) → decide pixel ON/OFF → fix.** This is the #1 launch-gate risk.
+- **🩷 SHIPPED today, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences · **188** Denise on demo · **193** real open-tracking/analytics (pixel pending the 194 decision).
+- **NOT done yet (pre-19 gates):** **fix 194 (deliverability placement)** · verify 186/187/188 · the verification walk (Wed/Thu) · **D9 10/10**. *(Legal #11–13 → post-delivery.)*
+- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done. **`TRACKING_URL=https://api.get-kind.com` NOW SET** (open-pixel live) — ⚠️ **under review** as a 194 suspect; may be reverted for cold. Source: **193 / 194**.
 - **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
 - **Process lock:** confirm the Supabase project name before every SQL run.
 

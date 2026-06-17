@@ -8,7 +8,7 @@ import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
   Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
-  LayoutTemplate, GitBranch, ShieldCheck, Webhook, FileText, Mic, Building2, Activity, UserCheck,
+  LayoutTemplate, GitBranch, Library, ShieldCheck, Webhook, FileText, Mic, Building2, Activity, UserCheck,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -30,6 +30,7 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
       { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
       { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
+      { href: '/dashboard/figsy/sequences',        label: 'Sequences',        icon: Library },
       { href: '/dashboard/figsy/sequence-builder', label: 'Sequence Builder', icon: GitBranch },
       { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox },
       { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },

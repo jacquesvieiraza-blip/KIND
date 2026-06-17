@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
 import { canEnroll } from './billing-rules'
+import { buildDraftFromSequence, type SequenceStep } from './sequence-apply'
 import {
   COLD_FROM,
   COLD_REPLY_TO,
@@ -933,7 +934,16 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       return
     }
 
-    const draft = await generateSequenceWithMemory(
+    // Item 187 — if a saved sequence/template has been applied to this campaign, send
+    // its literal copy (token-substituted) instead of AI-generating. Falls back to the
+    // AI path when no sequence is applied, or the sequence has no usable email steps.
+    const settings = (campaign as any).settings ?? {}
+    const appliedSequence = (settings.sequence as SequenceStep[] | undefined) ?? undefined
+    const sequenceDraft = appliedSequence
+      ? buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
+      : null
+    const usingSequence = sequenceDraft !== null
+    const draft = sequenceDraft ?? await generateSequenceWithMemory(
       lead as Lead,
       clientId,
       client?.company_name ?? '',
@@ -942,11 +952,11 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       (campaign as any).model_preference ?? 'haiku',
     )
 
-    // P2-3: A/Z multi-variant subject line testing — pick one at random from all non-null variants
-    const settings = (campaign as any).settings ?? {}
+    // P2-3: A/Z multi-variant subject line testing — pick one at random from all non-null
+    // variants. Skipped when a literal sequence is applied (the client wrote the subject).
     const abResolved = settings.ab_test_resolved as boolean | undefined
     const allVariants: string[] = [draft.step1.subject]
-    if (!abResolved) {
+    if (!usingSequence && !abResolved) {
       const b = settings.ab_subject_b as string | null | undefined
       const c = settings.ab_subject_c as string | null | undefined
       const d = settings.ab_subject_d as string | null | undefined

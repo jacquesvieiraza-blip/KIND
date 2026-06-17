@@ -29,14 +29,14 @@
 **2 · Raw Zoom demo run-through → gap-mine + flow coaching** — 🤝 (🧍 records · 🤖 analyses)
 - Owner: 🧍 founder records · 🤖 Claude analyses · Action: founder does a full client-style demo on Zoom, saying **"gap"** out loud wherever something's missing/broken; pastes the transcript → 🤖 turns every gap into a numbered inventory item **and** coaches the demo flow (order, what to say, what to skip). · Done when: gap list logged + flow notes delivered · Source: **129** · GitHub: —
 
-**3 · Build 188 — enable + seed Denise on the demo account** — 🤖 Claude
-- Owner: 🤖 · Action: grant the demo account an active `denise` subscription + seed 1 follow-up + 1 proposal draft so Denise (The Closer) demos live (today it shows the locked/upgrade state). · Done when: demo shows Denise working · Source: **188** · GitHub: new PR
+**3 · Build 188 — enable + seed Denise on the demo account** — ✅ **BUILT 17 Jun (PR #605)** 🤖
+- Owner: 🤖 built · 🧍 run `20260617_denise_demo.sql` · Action: demo-create activates `denise` + `seed-showcase` seeds the sub + a follow-up/proposal draft; migration backfills existing demos. · Done when: migration run + Denise page live on demo → 🟢 · Source: **188** · GitHub: **#605**
 
-**4 · Build 186 — record signup T&C acceptance** — 🤖 Claude
-- Owner: 🤖 · Action: write `terms_accepted_at` at **account creation** (not only at first purchase) so a trial user who never pays still has a stored consent record. ~30-min compliance fix. · Done when: new signup writes the timestamp · Source: **186** · GitHub: new PR
+**4 · Build 186 — record signup T&C acceptance** — ✅ **BUILT 17 Jun (PR #606)** 🤖
+- Owner: 🤖 built · 🧍 run `20260617_signup_terms.sql` · Action: new `signup_terms_accepted_at/ip` written at account creation; the real tick carries signup→onboard. · Done when: migration run + a test signup writes the timestamp → 🟢 · Source: **186** · GitHub: **#606**
 
-**5 · Build 187 — sequence/template → Apply to campaign (email-first)** — 🤖 Claude · 🚨 must be LIVE by Thu-18
-- Owner: 🤖 · Action: from the Sequence Builder **or** a Template → **"Apply to campaign" → New** (creates one) or **Existing** (sets its sequence) + save/reuse to a library. **Email steps send**; LinkedIn/voice/WhatsApp greyed "coming soon". Closes the *"looks like it works but doesn't"* gap. · Done when: a created sequence/template actually drives a campaign's sends · Source: **187 / 82 / 70** · GitHub: new PR
+**5 · Build 187 — sequence/template → Apply to campaign (email-first)** — ✅ **BUILT 17 Jun** 🤖 · 🚨 LIVE-by-Thu gate
+- Owner: 🤖 built · 🧍 run `20260617_figsy_sequences.sql` · Action: new `figsy_sequences` library + **Sequences** page (`/dashboard/figsy/sequences`): build email copy with `{{tokens}}` → **Apply to New/Existing campaign**; applied copy actually sends (both enroll paths), AI is the fallback. Tested 9/9. · Done when: migration run + a real applied-sequence send verified → 🟢 · Source: **187 / 82 / 70** · GitHub: new PR
 
 **6 · Verification walk Pt 1** — 🤝
 - Owner: 🤝 founder + Claude · Action: walk Company Engine · design screens 80–91 · R1–R6 (use the checklist below); mark ✅/⚠️/🔴 — 🤖 fixes any 🔴 same-day → flip 🩷→🟢 in PRODUCT-INVENTORY. · Done when: Pt-1 rows are ✅ · Source: **80–91 / R1–R6** · GitHub: —

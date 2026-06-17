@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals } from '../lib/figsy'
+import { buildDraftFromSequence, emailSteps, type SequenceStep } from '../lib/sequence-apply'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO, warmupRampCap, spamScore } from '../lib/deliverability'
@@ -855,7 +856,15 @@ figsyRouter.post('/campaigns/:id/send-now', async (req: AuthRequest, res) => {
       if (nextStep > 3) continue
       const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
       const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
-      if (!subject || !body) continue
+      if (!subject || !body) {
+        // End of a shorter (applied-sequence) sequence — complete it so it doesn't stay
+        // perpetually due. AI sequences fill all 3 steps, so this only fires for applied
+        // sequences with fewer than 3 email steps.
+        await db.from('figsy_enrollments').update({
+          status: 'completed', completed_at: new Date().toISOString(), next_send_at: null,
+        }).eq('id', enrollment.id)
+        continue
+      }
       try {
         await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, req.params.id)
         sent++
@@ -886,6 +895,155 @@ figsyRouter.put('/campaigns/:id/sequence', async (req: AuthRequest, res) => {
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to save sequence' })
+  }
+})
+
+// ── SEQUENCE LIBRARY (item 187) ───────────────────────────────────────────────
+// Reusable sequences/templates (email-first, literal copy with merge tokens) that
+// can be saved once and applied to any campaign (new or existing). Email steps send;
+// non-email channels are stored for display but don't send yet.
+
+const sequenceStepSchema = z.object({
+  channel:   z.enum(['email', 'linkedin', 'call', 'whatsapp']),
+  subject:   z.string().max(300).optional(),
+  body:      z.string().max(8000).optional(),
+  wait_days: z.number().int().min(0).max(120).optional(),
+  on_reply:  z.enum(['stop', 'skip_next', 'continue']).optional(),
+})
+
+// GET /figsy/sequences — the client's saved sequence library
+figsyRouter.get('/sequences', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data, error } = await db.from('figsy_sequences')
+      .select('id, name, steps, created_at, updated_at')
+      .eq('client_id', clientId).order('created_at', { ascending: false }).limit(100)
+    if (error) throw error
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to load sequences' }) }
+})
+
+// POST /figsy/sequences — save a new sequence to the library
+figsyRouter.post('/sequences', async (req: AuthRequest, res) => {
+  try {
+    const { name, steps } = z.object({
+      name:  z.string().min(1).max(160),
+      steps: z.array(sequenceStepSchema).min(1).max(20),
+    }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    if (emailSteps(steps as SequenceStep[]).length === 0) {
+      res.status(400).json({ success: false, error: 'A sequence needs at least one email step (email-first).' }); return
+    }
+    const { data, error } = await db.from('figsy_sequences')
+      .insert({ client_id: clientId, name, steps }).select('id, name, steps, created_at, updated_at').single()
+    if (error) throw error
+    res.status(201).json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to save sequence' })
+  }
+})
+
+// PUT /figsy/sequences/:id — rename / edit a saved sequence
+figsyRouter.put('/sequences/:id', async (req: AuthRequest, res) => {
+  try {
+    const { name, steps } = z.object({
+      name:  z.string().min(1).max(160).optional(),
+      steps: z.array(sequenceStepSchema).min(1).max(20).optional(),
+    }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    if (steps && emailSteps(steps as SequenceStep[]).length === 0) {
+      res.status(400).json({ success: false, error: 'A sequence needs at least one email step (email-first).' }); return
+    }
+    const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (name !== undefined)  update.name = name
+    if (steps !== undefined) update.steps = steps
+    const { data, error } = await db.from('figsy_sequences')
+      .update(update).eq('id', req.params.id).eq('client_id', clientId)
+      .select('id, name, steps, created_at, updated_at').maybeSingle()
+    if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Sequence not found' }); return }
+    res.json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to update sequence' })
+  }
+})
+
+// DELETE /figsy/sequences/:id
+figsyRouter.delete('/sequences/:id', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { error } = await db.from('figsy_sequences')
+      .delete().eq('id', req.params.id).eq('client_id', clientId)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to delete sequence' }) }
+})
+
+// POST /figsy/sequences/:id/apply — apply a saved sequence to a campaign.
+// Body: { campaign_id }                → set the sequence on an EXISTING campaign
+//   or: { new_campaign_name, icp_id? } → create a NEW campaign with the sequence
+// Stores the steps on campaign.settings.sequence (the enrollment seam reads this) and
+// mirrors the per-step on_reply rules into settings.steps for reply branching.
+figsyRouter.post('/sequences/:id/apply', async (req: AuthRequest, res) => {
+  try {
+    const body = z.object({
+      campaign_id:       z.string().uuid().optional(),
+      new_campaign_name: z.string().min(1).max(160).optional(),
+      icp_id:            z.string().uuid().optional(),
+    }).refine(b => !!b.campaign_id || !!b.new_campaign_name, {
+      message: 'Provide either campaign_id (existing) or new_campaign_name (new).',
+    }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: sequence } = await db.from('figsy_sequences')
+      .select('id, name, steps').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!sequence) { res.status(404).json({ success: false, error: 'Sequence not found' }); return }
+
+    const steps = (sequence.steps as SequenceStep[]) ?? []
+    const emails = emailSteps(steps)
+    if (emails.length === 0) {
+      res.status(400).json({ success: false, error: 'This sequence has no email steps to send.' }); return
+    }
+    // Reply-branching rules, one per email step (the send engine reads settings.steps).
+    const branchingSteps = emails.slice(0, 3).map((s, i) => ({ step: i + 1, on_reply: s.on_reply ?? 'stop' }))
+
+    let campaignId: string
+    let created = false
+    if (body.campaign_id) {
+      const { data: existing } = await db.from('figsy_campaigns')
+        .select('id, settings').eq('id', body.campaign_id).eq('client_id', clientId).maybeSingle()
+      if (!existing) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+      const { error } = await db.from('figsy_campaigns').update({
+        settings: { ...(existing.settings ?? {}), sequence: steps, steps: branchingSteps, applied_sequence_id: sequence.id },
+        steps_count: Math.min(3, emails.length),
+      }).eq('id', body.campaign_id).eq('client_id', clientId)
+      if (error) throw error
+      campaignId = body.campaign_id
+    } else {
+      const { data: newCamp, error } = await db.from('figsy_campaigns').insert({
+        client_id: clientId,
+        name:      body.new_campaign_name!,
+        ...(body.icp_id ? { icp_id: body.icp_id } : {}),
+        status:    'draft',
+        steps_count: Math.min(3, emails.length),
+        settings:  { sequence: steps, steps: branchingSteps, applied_sequence_id: sequence.id },
+      }).select('id').single()
+      if (error) throw error
+      campaignId = newCamp.id
+      created = true
+    }
+
+    res.json({ success: true, data: { campaign_id: campaignId, created, email_steps: emails.length } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error(err); res.status(500).json({ success: false, error: 'Failed to apply sequence' })
   }
 })
 
@@ -1006,8 +1164,11 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id, status').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+      .select('id, status, settings').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    // Item 187 — a saved sequence/template applied to this campaign (literal copy).
+    const appliedSequence = ((campaign.settings as { sequence?: SequenceStep[] } | null)?.sequence) ?? undefined
 
     const { data: client } = await db.from('clients')
       .select('company_name, industry, booking_url').eq('id', clientId).maybeSingle()
@@ -1042,7 +1203,9 @@ figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
       if (existing) { skipped++; continue }
 
       try {
-        const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
+        // Item 187 — applied sequence's literal copy if present, else AI-generated.
+        const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
 
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,
@@ -1203,7 +1366,15 @@ figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
 
       const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
       const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
-      if (!subject || !body) continue
+      if (!subject || !body) {
+        // End of a shorter (applied-sequence) sequence — complete it so it doesn't stay
+        // perpetually due. AI sequences fill all 3 steps, so this only fires for applied
+        // sequences with fewer than 3 email steps.
+        await db.from('figsy_enrollments').update({
+          status: 'completed', completed_at: new Date().toISOString(), next_send_at: null,
+        }).eq('id', enrollment.id)
+        continue
+      }
       try {
         await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, enrollment.campaign_id)
         sent++

@@ -35,22 +35,27 @@ interface IndustryPoint { industry: string; count: number }
 
 interface AnalyticsData {
   byMonth:        MonthPoint[]
+  byCampaign?:    CampaignPerf[]
   icpBreakdown:   IcpPoint[]
   scoreDist:      ScoreBucket[]
   topIndustries:  IndustryPoint[]
   trackingEnabled?: boolean
 }
 
-interface Campaign {
+// Per-campaign performance, derived server-side from REAL send-log rows (not counters)
+// so this table always agrees with the summary cards.
+interface CampaignPerf {
   id: string
   name: string
   status: string
-  leads_enrolled: number
-  emails_sent: number
-  replies_total: number
-  replies_interested: number
-  opted_out: number
   created_at: string
+  contacts: number
+  sent: number
+  opened: number
+  open_rate: number
+  replies: number
+  interested: number
+  reply_rate: number
 }
 
 interface LeadStats {
@@ -127,7 +132,6 @@ export default function AnalyticsPage() {
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState<string | null>(null)
   const [data, setData]         = useState<AnalyticsData | null>(null)
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [leadStats, setLeadStats] = useState<LeadStats | null>(null)
   const [replies, setReplies]   = useState<Reply[]>([])
 
@@ -139,14 +143,12 @@ export default function AnalyticsPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { setLoading(false); return }
       try {
-        const [analyticsRes, campaignsRes, statsRes, repliesRes] = await Promise.allSettled([
+        const [analyticsRes, statsRes, repliesRes] = await Promise.allSettled([
           api.get<{ data: AnalyticsData }>('/leads/analytics', session.access_token),
-          api.get<{ data: Campaign[] }>('/figsy/campaigns', session.access_token),
           api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
           api.get<{ data: Reply[] }>('/figsy/replies/all', session.access_token),
         ])
         if (analyticsRes.status === 'fulfilled') setData(analyticsRes.value.data)
-        if (campaignsRes.status === 'fulfilled') setCampaigns(campaignsRes.value.data || [])
         if (statsRes.status === 'fulfilled') setLeadStats(statsRes.value.data)
         if (repliesRes.status === 'fulfilled') setReplies(repliesRes.value.data || [])
       } catch (err) {
@@ -325,7 +327,7 @@ export default function AnalyticsPage() {
           <BarChart2 className="w-4 h-4 text-[#7C3AED]" />
           <h3 className="font-semibold text-gray-900">Campaign Performance</h3>
         </div>
-        {campaigns.length === 0 ? (
+        {(data.byCampaign ?? []).length === 0 ? (
           <div className="flex items-center justify-center h-20 text-sm text-gray-400">No campaigns yet — create one in FIGSY.</div>
         ) : (
           <div className="overflow-x-auto">
@@ -335,6 +337,7 @@ export default function AnalyticsPage() {
                   <th className="text-left text-xs font-semibold text-[#9B8EC4] pb-3 pr-4">Campaign</th>
                   <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Contacts</th>
                   <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Sent</th>
+                  <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Open Rate</th>
                   <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Reply Rate</th>
                   <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Interested</th>
                   <th className="text-center text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Status</th>
@@ -342,8 +345,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {campaigns.map(c => {
-                  const replyPct = c.emails_sent > 0 ? Math.round((c.replies_total / c.emails_sent) * 100) : 0
+                {(data.byCampaign ?? []).map(c => {
                   const statusColors: Record<string, string> = {
                     draft:     'bg-gray-100 text-gray-600',
                     active:    'bg-green-100 text-green-700',
@@ -358,14 +360,18 @@ export default function AnalyticsPage() {
                           {c.name}
                         </a>
                       </td>
-                      <td className="py-3 px-3 text-right text-gray-700">{c.leads_enrolled}</td>
-                      <td className="py-3 px-3 text-right text-gray-700">{c.emails_sent}</td>
+                      <td className="py-3 px-3 text-right text-gray-700">{c.contacts}</td>
+                      <td className="py-3 px-3 text-right text-gray-700">{c.sent}</td>
                       <td className="py-3 px-3 text-right">
-                        <span className={`font-semibold ${replyPct >= 5 ? 'text-green-700' : replyPct >= 2 ? 'text-amber-700' : 'text-gray-500'}`}>
-                          {replyPct}%
+                        {/* "—" when open-tracking is off, matching the summary card — never a misleading 0%. */}
+                        <span className="text-gray-600">{trackingOff ? '—' : `${c.open_rate}%`}</span>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <span className={`font-semibold ${c.reply_rate >= 5 ? 'text-green-700' : c.reply_rate >= 2 ? 'text-amber-700' : 'text-gray-500'}`}>
+                          {c.reply_rate}%
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-right text-gray-700">{c.replies_interested}</td>
+                      <td className="py-3 px-3 text-right text-gray-700">{c.interested}</td>
                       <td className="py-3 px-3 text-center">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[c.status] ?? 'bg-gray-100 text-gray-600'}`}>
                           {c.status}

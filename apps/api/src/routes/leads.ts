@@ -802,7 +802,8 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     // figsy_sent_emails has NO client_id column — scope it via the client's campaigns.
-    const { data: campRows } = await db.from('figsy_campaigns').select('id').eq('client_id', clientId)
+    const { data: campRows } = await db.from('figsy_campaigns')
+      .select('id, name, status, created_at').eq('client_id', clientId)
     const campaignIds = (campRows ?? []).map((c: { id: string }) => c.id)
     const campaignFilter = campaignIds.length > 0 ? campaignIds : ['00000000-0000-0000-0000-000000000000']
 
@@ -811,11 +812,13 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       { data: emails },
       { data: replies },
       { data: icps },
+      { data: enrollments },
     ] = await Promise.all([
       db.from('leads').select('id, created_at, score, status, icp_id, industry, seniority').eq('client_id', clientId).not('delivered_at', 'is', null),
-      db.from('figsy_sent_emails').select('id, sent_at, opened_at').in('campaign_id', campaignFilter),
-      db.from('figsy_replies').select('id, received_at, classification').eq('client_id', clientId),
+      db.from('figsy_sent_emails').select('id, sent_at, opened_at, campaign_id').in('campaign_id', campaignFilter),
+      db.from('figsy_replies').select('id, received_at, classification, campaign_id').eq('client_id', clientId),
       db.from('icps').select('id, name').eq('client_id', clientId),
+      db.from('figsy_enrollments').select('campaign_id').in('campaign_id', campaignFilter),
     ])
 
     // Monthly buckets — last 6 months
@@ -880,6 +883,33 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       .sort(([,a],[,b]) => b - a).slice(0, 6)
       .map(([industry, count]) => ({ industry, count }))
 
+    // Per-campaign performance — derived from REAL send-log rows (figsy_sent_emails)
+    // and real enrollments/replies, NOT the figsy_campaigns counters. The counters can
+    // drift (e.g. seeded/warmup data), which made the table read "120 sent" while the
+    // summary cards (also row-based) read 0. Reading rows here = one source of truth, so
+    // the table and the cards always agree.
+    const byCampaign = (campRows ?? []).map((c: any) => {
+      const cSent       = (emails || []).filter((e: any) => e.campaign_id === c.id)
+      const cOpened     = cSent.filter((e: any) => !!e.opened_at).length
+      const cReplies    = (replies || []).filter((r: any) => r.campaign_id === c.id)
+      const cInterested = cReplies.filter((r: any) => r.classification === 'interested' || r.classification === 'hot').length
+      const contacts    = (enrollments || []).filter((en: any) => en.campaign_id === c.id).length
+      const sent        = cSent.length
+      return {
+        id:         c.id,
+        name:       c.name,
+        status:     c.status,
+        created_at: c.created_at,
+        contacts,
+        sent,
+        opened:     cOpened,
+        open_rate:  sent > 0 ? Math.round((cOpened / sent) * 100) : 0,
+        replies:    cReplies.length,
+        interested: cInterested,
+        reply_rate: sent > 0 ? Math.round((cReplies.length / sent) * 100) : 0,
+      }
+    }).sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1))
+
     // Open-tracking is only live when a BRANDED tracking domain is configured
     // (D3 anti-spam rule). If off, the pixel is never embedded so opened_at is
     // always null — the UI shows "—" rather than a misleading 0 or a fake estimate.
@@ -887,7 +917,7 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
 
     res.json({
       success: true,
-      data: { byMonth, icpBreakdown, scoreDist, topIndustries, trackingEnabled },
+      data: { byMonth, byCampaign, icpBreakdown, scoreDist, topIndustries, trackingEnabled },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch analytics' }) }
 })

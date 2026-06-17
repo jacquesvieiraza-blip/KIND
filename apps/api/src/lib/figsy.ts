@@ -478,17 +478,24 @@ export async function sendSequenceEmail(
     payload:       { step, subject, sent: !!resend, resend_id: messageId ?? null },
   })
 
-  // Bump campaign email count. NOTE: supabase-js RPCs/queries RETURN errors, they
-  // don't THROW — so a try/catch never sees an RPC failure. Check the returned
-  // error and run the direct-update fallback when the RPC isn't available.
-  const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
-  if (rpcErr) {
-    const { data } = await db.from('figsy_campaigns')
-      .select('emails_sent').eq('id', campaignId).single()
-    if (data) {
-      await db.from('figsy_campaigns')
-        .update({ emails_sent: ((data as { emails_sent?: number }).emails_sent ?? 0) + 1 })
-        .eq('id', campaignId)
+  // Bump the campaign email counter — but ONLY when a real figsy_sent_emails row was
+  // actually inserted (emailId set). Previously this ran unconditionally, so a failed
+  // insert (e.g. the test-email path with placeholder enrollment/lead IDs) still bumped
+  // the counter → it drifted ABOVE the real row count, which is exactly why the Home
+  // card (counter) read 122 while the row-based pages read 120. Gate on emailId so the
+  // counter can never exceed the send log again.
+  // NOTE: supabase-js RPCs/queries RETURN errors, they don't THROW — so a try/catch
+  // never sees an RPC failure. Check the returned error and run the direct-update fallback.
+  if (emailId) {
+    const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
+    if (rpcErr) {
+      const { data } = await db.from('figsy_campaigns')
+        .select('emails_sent').eq('id', campaignId).single()
+      if (data) {
+        await db.from('figsy_campaigns')
+          .update({ emails_sent: ((data as { emails_sent?: number }).emails_sent ?? 0) + 1 })
+          .eq('id', campaignId)
+      }
     }
   }
 }

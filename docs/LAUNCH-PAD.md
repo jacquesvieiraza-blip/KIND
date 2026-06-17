@@ -68,6 +68,9 @@
 - **Sat 20–Sun 21:** away, **no merges**, 🤖 monitor prod only.
 - **Mon 22:** 🤖 build Company RLS / access control (**55a** — before the 50-rep client) · 🧍 GTM week-1 kickoff (warm outreach + LinkedIn 1/day).
 
+### 📚 POST-LAUNCH — PARKED (not before launch)
+- **🧍 Founder "business model end-to-end" training day** — a dedicated session: how the business *operates* as one system (the 6 subsystems · money flow · the 3 loops · the operating rhythm · the dashboard). Builder + seller ✅; the goal is the *running-the-business* muscle (retention · finance literacy · the weekly/monthly rhythm). Deliverable: write it up as `operating-model.md` in **kind-ops** + turn the rhythm into real SOPs. *(Founder call 17 Jun: park for a focused post-launch day, not a tired evening.)*
+
 ### 🔎 Verification checklist (the Wed/Thu tool — mark ✅ works · ⚠️ placeholder · 🔴 broken→fix; 🤖 fixes 🔴 same-day)
 - **Company Engine:** ⬜ command centre · ⬜ Seats + budgets · ⬜ request→approve/deny · ⬜ winning-plays · ⬜ invite→accept · ⬜ per-rep agent unlock (Test 7)
 - **Screens 80–91:** ⬜ Teams Hub · ⬜ Notetaker · ⬜ Integrations · ⬜ Deliverability · ⬜ Activity · ⬜ Sequence Builder · ⬜ Templates · ⬜ What's New · ⬜ KPIs

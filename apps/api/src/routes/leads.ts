@@ -915,9 +915,29 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
     // always null — the UI shows "—" rather than a misleading 0 or a fake estimate.
     const trackingEnabled = trackingBaseUrl() !== null
 
+    // ── Headline totals counted the EXACT way /figsy/kpis does (a head count, no row
+    // fetch) so the Analytics summary cards CANNOT disagree with Performance. We also
+    // expose _debug: if `sentRowsFetched` (the row select above) is less than
+    // `sentHeadCount` (this count), the row fetch is silently truncating/erroring — which
+    // is the only way KPIs could read 120 while the per-campaign/month breakdowns read 0.
+    const [{ count: sentHeadCount }, { count: openedHeadCount }] = await Promise.all([
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignFilter),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignFilter).not('opened_at', 'is', null),
+    ])
+    const totals = {
+      sent:    sentHeadCount ?? 0,
+      opened:  openedHeadCount ?? 0,
+      replied: (replies ?? []).length,
+    }
+    const _debug = {
+      campaignCount:   campaignIds.length,
+      sentRowsFetched: (emails ?? []).length,
+      sentHeadCount:   sentHeadCount ?? 0,
+    }
+
     res.json({
       success: true,
-      data: { byMonth, byCampaign, icpBreakdown, scoreDist, topIndustries, trackingEnabled },
+      data: { byMonth, byCampaign, totals, icpBreakdown, scoreDist, topIndustries, trackingEnabled, _debug },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch analytics' }) }
 })

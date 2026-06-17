@@ -9,11 +9,11 @@
 ---
 
 ## 🧭 VERIFIED STATE — what's true right now
-- **Last verified:** 2026-06-16 20:08 UTC. **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
+- **Last verified:** 2026-06-17 (Wed AM). **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
 - **LIVE on prod:** Company Engine (#88) + the **#502 superset** (R1–R20 + design screens 80–91) + **billing correctness 166–171** → all **🩷 pink** (live, pending the Wed/Thu walk / next-delivery cert → then 🟢). Verified-🟢: 55, 92. Marketing site + admin portal live.
-- **`main`:** ✅ through **#580** (billing — double-charge killed, prices reconciled) + voice 178 (#579) + Company "Our Story" page now carries **FIGSY + Tony** (#598/#599). Migration `20260616` applied **staging + prod**.
-- **🆕 4 PRs OPEN, awaiting founder merge (Wed-17 first thing):** **#601** real email opens (kills the fabricated 28% — Tony/credibility fix) · **#602** churn-prevention plan + items 190–193 · **#600** salary break-even + growth thesis + Lena elevation · **#597** Google Workspace note (189). *All clean, independent, no conflicts.*
-- **NOT done yet (pre-19 gates):** the verification walk (Wed/Thu) · build **186 · 187 · 188** (Denise demo + T&C + sequence/template) · **D9 10/10** (warmup on track — not at risk). *(Legal #11–13 → post-delivery.)*
+- **`main`:** ✅ through Wed-17 — last night's 5 PRs merged (#601 real opens · #602 churn plan · #600 salary/growth · #597 Google note · #603 LAUNCH-PAD) **+ today's 3 builds merged: #605 (188) · #606 (186) · #607 (187)**, all 3 migrations run. Earlier: billing #580 · voice 178 (#579) · story FIGSY+Tony (#598/#599).
+- **🩷 SHIPPED today, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences/Apply-to-campaign · **188** Denise on demo (see runlist item 3).
+- **NOT done yet (pre-19 gates):** verify 186/187/188 (today) · the verification walk (Wed/Thu) · **D9 10/10** (warmup on track — not at risk). *(Legal #11–13 → post-delivery.)*
 - **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done (C1959926). **⚠️ TO SET Wed: `TRACKING_URL=https://api.get-kind.com`** on the API → turns real email-open tracking on (else opens read "—"). Source: **193 / #601**.
 - **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
 - **Process lock:** confirm the Supabase project name before every SQL run.
@@ -29,14 +29,9 @@
 **2 · Raw Zoom demo run-through → gap-mine + flow coaching** — 🤝 (🧍 records · 🤖 analyses)
 - Owner: 🧍 founder records · 🤖 Claude analyses · Action: founder does a full client-style demo on Zoom, saying **"gap"** out loud wherever something's missing/broken; pastes the transcript → 🤖 turns every gap into a numbered inventory item **and** coaches the demo flow (order, what to say, what to skip). · Done when: gap list logged + flow notes delivered · Source: **129** · GitHub: —
 
-**3 · Build 188 — enable + seed Denise on the demo account** — ✅ **BUILT 17 Jun (PR #605)** 🤖
-- Owner: 🤖 built · 🧍 run `20260617_denise_demo.sql` · Action: demo-create activates `denise` + `seed-showcase` seeds the sub + a follow-up/proposal draft; migration backfills existing demos. · Done when: migration run + Denise page live on demo → 🟢 · Source: **188** · GitHub: **#605**
-
-**4 · Build 186 — record signup T&C acceptance** — ✅ **BUILT 17 Jun (PR #606)** 🤖
-- Owner: 🤖 built · 🧍 run `20260617_signup_terms.sql` · Action: new `signup_terms_accepted_at/ip` written at account creation; the real tick carries signup→onboard. · Done when: migration run + a test signup writes the timestamp → 🟢 · Source: **186** · GitHub: **#606**
-
-**5 · Build 187 — sequence/template → Apply to campaign (email-first)** — ✅ **BUILT 17 Jun** 🤖 · 🚨 LIVE-by-Thu gate
-- Owner: 🤖 built · 🧍 run `20260617_figsy_sequences.sql` · Action: new `figsy_sequences` library + **Sequences** page (`/dashboard/figsy/sequences`): build email copy with `{{tokens}}` → **Apply to New/Existing campaign**; applied copy actually sends (both enroll paths), AI is the fallback. Tested 9/9. · Done when: migration run + a real applied-sequence send verified → 🟢 · Source: **187 / 82 / 70** · GitHub: new PR
+**3 · 188 + 186 + 187 — SHIPPED 🩷 (merged + migrations run 17 Jun)** — 🧍 **VERIFY today → 🟢**
+- **188 Denise demo** (#605, migration run): open the demo → Denise page unlocked with a follow-up + proposal draft. · **186 signup T&C** (#606, migration run): a fresh signup writes `clients.signup_terms_accepted_at`. · **187 Sequences** (#607, migration run): Portal → **Sequences** → New → 2 email steps with `{{first_name}}` → Save → **Apply to New campaign** → add leads + activate → the send is your copy.
+- Owner: 🧍 founder (after the Apollo call) · Action: eyeball each of the three above · Done when: each confirmed working → flip 🩷→🟢 (🤖 renders the dots once you give the ✅) · Source: **186 · 187 · 188** · GitHub: **#605 #606 #607 (all merged)**
 
 **6 · Verification walk Pt 1** — 🤝
 - Owner: 🤝 founder + Claude · Action: walk Company Engine · design screens 80–91 · R1–R6 (use the checklist below); mark ✅/⚠️/🔴 — 🤖 fixes any 🔴 same-day → flip 🩷→🟢 in PRODUCT-INVENTORY. · Done when: Pt-1 rows are ✅ · Source: **80–91 / R1–R6** · GitHub: —

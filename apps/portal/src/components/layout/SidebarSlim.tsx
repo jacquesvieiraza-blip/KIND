@@ -171,9 +171,11 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
               <p className="text-[10px] font-semibold truncate" style={{ color: agent.accent }}>{agent.role}</p>
             </div>
           </Link>
-          {/* Switch agent toggle — only meaningful when expanded */}
+          {/* Switch agent toggle — solid high-contrast strip so it's visible on
+              ANY agent card colour (the card bg is per-agent `${agent.accent}`;
+              on FIGSY's purple it blended into the rail and vanished). */}
           <button onClick={() => setOpen(o => !o)}
-            className={`w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-white/70 border-t border-white/10 hover:bg-white/[0.06] transition-colors ${labelCls}`}
+            className={`w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-white bg-black/30 border-t border-white/15 hover:bg-black/45 transition-colors ${labelCls}`}
             aria-label="Switch agent">
             <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
             {open ? 'Hide agents' : 'Switch agent'}

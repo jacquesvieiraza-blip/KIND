@@ -9,7 +9,7 @@ import {
 } from 'recharts'
 import {
   Loader2, Users, Send, MessageSquare,
-  TrendingUp, BarChart2, Target, Star, Calendar,
+  TrendingUp, BarChart2, Target, Star, Calendar, Eye,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -18,6 +18,7 @@ interface MonthPoint {
   month:      string
   leads:      number
   emails:     number
+  opened:     number
   replies:    number
   interested: number
 }
@@ -33,22 +34,30 @@ interface ScoreBucket { label: string; count: number }
 interface IndustryPoint { industry: string; count: number }
 
 interface AnalyticsData {
-  byMonth:       MonthPoint[]
-  icpBreakdown:  IcpPoint[]
-  scoreDist:     ScoreBucket[]
-  topIndustries: IndustryPoint[]
+  byMonth:        MonthPoint[]
+  byCampaign?:    CampaignPerf[]
+  totals?:        { sent: number; opened: number; replied: number }
+  icpBreakdown:   IcpPoint[]
+  scoreDist:      ScoreBucket[]
+  topIndustries:  IndustryPoint[]
+  trackingEnabled?: boolean
+  _debug?:        { campaignCount: number; sentRowsFetched: number; sentHeadCount: number }
 }
 
-interface Campaign {
+// Per-campaign performance, derived server-side from REAL send-log rows (not counters)
+// so this table always agrees with the summary cards.
+interface CampaignPerf {
   id: string
   name: string
   status: string
-  leads_enrolled: number
-  emails_sent: number
-  replies_total: number
-  replies_interested: number
-  opted_out: number
   created_at: string
+  contacts: number
+  sent: number
+  opened: number
+  open_rate: number
+  replies: number
+  interested: number
+  reply_rate: number
 }
 
 interface LeadStats {
@@ -125,7 +134,6 @@ export default function AnalyticsPage() {
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState<string | null>(null)
   const [data, setData]         = useState<AnalyticsData | null>(null)
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [leadStats, setLeadStats] = useState<LeadStats | null>(null)
   const [replies, setReplies]   = useState<Reply[]>([])
 
@@ -137,14 +145,12 @@ export default function AnalyticsPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { setLoading(false); return }
       try {
-        const [analyticsRes, campaignsRes, statsRes, repliesRes] = await Promise.allSettled([
+        const [analyticsRes, statsRes, repliesRes] = await Promise.allSettled([
           api.get<{ data: AnalyticsData }>('/leads/analytics', session.access_token),
-          api.get<{ data: Campaign[] }>('/figsy/campaigns', session.access_token),
           api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
           api.get<{ data: Reply[] }>('/figsy/replies/all', session.access_token),
         ])
         if (analyticsRes.status === 'fulfilled') setData(analyticsRes.value.data)
-        if (campaignsRes.status === 'fulfilled') setCampaigns(campaignsRes.value.data || [])
         if (statsRes.status === 'fulfilled') setLeadStats(statsRes.value.data)
         if (repliesRes.status === 'fulfilled') setReplies(repliesRes.value.data || [])
       } catch (err) {
@@ -180,9 +186,9 @@ export default function AnalyticsPage() {
     week:                 m.month,
     new_contacted:        m.leads,
     emails_sent:          m.emails,
-    emails_opened:        Math.round(m.emails * 0.28),  // ~28% open rate estimate
+    emails_opened:        m.opened ?? 0,  // REAL opens (opened_at pixel) — 0 when tracking off
     emails_replied:       m.replies,
-    bounced:              Math.round(m.emails * 0.02),  // ~2% bounce estimate
+    bounced:              0,  // not tracked per-month yet — never fabricate a bounce number
     linkedin_connections: 0,  // placeholder
     linkedin_messages:    0,  // placeholder
     meetings_booked:      m.interested,
@@ -213,10 +219,19 @@ export default function AnalyticsPage() {
   ].filter(s => s.value > 0)
 
   // ── Summary totals ────────────────────────────────────────────────────────
-  const totalEmails  = data.byMonth.reduce((s, m) => s + m.emails, 0)
-  const totalReplies = data.byMonth.reduce((s, m) => s + m.replies, 0)
+  // From the per-campaign REAL row counts (same source as the Campaign Performance
+  // table and /figsy/kpis) — robust to rows with a null/old sent_at, which the
+  // month-bucket sum silently drops (that gap is what made this card read 0 while
+  // Performance read the real number). Falls back to the month series if needed.
+  // Headline cards use `totals` — counted the EXACT way /figsy/kpis does — so they match
+  // Performance. Fall back to the per-campaign/month sums only if `totals` is absent.
+  const totalEmails  = data.totals?.sent    ?? (data.byCampaign ? data.byCampaign.reduce((s, c) => s + c.sent,    0) : data.byMonth.reduce((s, m) => s + m.emails, 0))
+  const totalOpened  = data.totals?.opened  ?? (data.byCampaign ? data.byCampaign.reduce((s, c) => s + c.opened,  0) : data.byMonth.reduce((s, m) => s + (m.opened ?? 0), 0))
+  const totalReplies = data.totals?.replied ?? (data.byCampaign ? data.byCampaign.reduce((s, c) => s + c.replies, 0) : data.byMonth.reduce((s, m) => s + m.replies, 0))
   const totalLeads   = leadStats?.total ?? data.byMonth.reduce((s, m) => s + m.leads, 0)
   const replyRate    = totalEmails > 0 ? Math.round((totalReplies / totalEmails) * 100) : 0
+  const trackingOff  = data.trackingEnabled === false
+  const openRate     = trackingOff ? null : (totalEmails > 0 ? Math.round((totalOpened / totalEmails) * 100) : 0)
 
   function toggleMetric(key: string) {
     setActiveMetrics(prev =>
@@ -233,10 +248,11 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Summary strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         {[
           { label: 'Total Leads',   value: totalLeads.toLocaleString(),     icon: <Users className="w-5 h-5" />,       bg: 'bg-purple-100 text-purple-500',  text: 'text-gray-900' },
           { label: 'Emails Sent',   value: totalEmails.toLocaleString(),    icon: <Send className="w-5 h-5" />,        bg: 'bg-blue-100 text-blue-500',       text: 'text-blue-700' },
+          { label: 'Open Rate',     value: openRate === null ? '—' : `${openRate}%`, icon: <Eye className="w-5 h-5" />,  bg: 'bg-cyan-100 text-cyan-600',       text: openRate === null ? 'text-gray-400' : 'text-cyan-700' },
           { label: 'Reply Rate',    value: `${replyRate}%`,                 icon: <MessageSquare className="w-5 h-5" />, bg: replyRate >= 3 ? 'bg-green-100 text-green-500' : 'bg-amber-100 text-amber-500', text: replyRate >= 3 ? 'text-green-700' : 'text-amber-700' },
           { label: 'Meetings Booked', value: meetingsBooked.toLocaleString(), icon: <Calendar className="w-5 h-5" />,    bg: 'bg-amber-100 text-amber-500',     text: 'text-amber-700' },
         ].map(({ label, value, icon, bg, text }) => (
@@ -257,6 +273,13 @@ export default function AnalyticsPage() {
           <h3 className="font-semibold text-gray-900">Outreach Metrics Over Time</h3>
           <span className="ml-auto text-xs text-gray-400">Monthly — last 6 months</span>
         </div>
+
+        {trackingOff && (
+          <div className="flex items-start gap-2 mb-4 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-700">
+            <Eye className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <span>Email open tracking is <strong>off</strong>, so opens show as 0. Turn it on by setting a branded tracking domain (<code>TRACKING_URL</code>) — until then we never estimate a number.</span>
+          </div>
+        )}
 
         {/* Metric selector pills */}
         <div className="flex flex-wrap gap-2 mb-5">
@@ -312,7 +335,7 @@ export default function AnalyticsPage() {
           <BarChart2 className="w-4 h-4 text-[#7C3AED]" />
           <h3 className="font-semibold text-gray-900">Campaign Performance</h3>
         </div>
-        {campaigns.length === 0 ? (
+        {(data.byCampaign ?? []).length === 0 ? (
           <div className="flex items-center justify-center h-20 text-sm text-gray-400">No campaigns yet — create one in FIGSY.</div>
         ) : (
           <div className="overflow-x-auto">
@@ -322,6 +345,7 @@ export default function AnalyticsPage() {
                   <th className="text-left text-xs font-semibold text-[#9B8EC4] pb-3 pr-4">Campaign</th>
                   <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Contacts</th>
                   <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Sent</th>
+                  <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Open Rate</th>
                   <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Reply Rate</th>
                   <th className="text-right text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Interested</th>
                   <th className="text-center text-xs font-semibold text-[#9B8EC4] pb-3 px-3">Status</th>
@@ -329,8 +353,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {campaigns.map(c => {
-                  const replyPct = c.emails_sent > 0 ? Math.round((c.replies_total / c.emails_sent) * 100) : 0
+                {(data.byCampaign ?? []).map(c => {
                   const statusColors: Record<string, string> = {
                     draft:     'bg-gray-100 text-gray-600',
                     active:    'bg-green-100 text-green-700',
@@ -345,14 +368,18 @@ export default function AnalyticsPage() {
                           {c.name}
                         </a>
                       </td>
-                      <td className="py-3 px-3 text-right text-gray-700">{c.leads_enrolled}</td>
-                      <td className="py-3 px-3 text-right text-gray-700">{c.emails_sent}</td>
+                      <td className="py-3 px-3 text-right text-gray-700">{c.contacts}</td>
+                      <td className="py-3 px-3 text-right text-gray-700">{c.sent}</td>
                       <td className="py-3 px-3 text-right">
-                        <span className={`font-semibold ${replyPct >= 5 ? 'text-green-700' : replyPct >= 2 ? 'text-amber-700' : 'text-gray-500'}`}>
-                          {replyPct}%
+                        {/* "—" when open-tracking is off, matching the summary card — never a misleading 0%. */}
+                        <span className="text-gray-600">{trackingOff ? '—' : `${c.open_rate}%`}</span>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <span className={`font-semibold ${c.reply_rate >= 5 ? 'text-green-700' : c.reply_rate >= 2 ? 'text-amber-700' : 'text-gray-500'}`}>
+                          {c.reply_rate}%
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-right text-gray-700">{c.replies_interested}</td>
+                      <td className="py-3 px-3 text-right text-gray-700">{c.interested}</td>
                       <td className="py-3 px-3 text-center">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[c.status] ?? 'bg-gray-100 text-gray-600'}`}>
                           {c.status}
@@ -529,6 +556,14 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
+
+      {/* TEMP audit (item 195) — remove once the breakdown-vs-headcount gap is resolved.
+          If `rows fetched` < `head count`, the row select is silently truncating/erroring. */}
+      {data._debug && (
+        <p className="text-[10px] text-gray-300 font-mono pt-2">
+          debug · campaigns {data._debug.campaignCount} · sent rows fetched {data._debug.sentRowsFetched} · sent head count {data._debug.sentHeadCount}
+        </p>
+      )}
     </div>
   )
 }

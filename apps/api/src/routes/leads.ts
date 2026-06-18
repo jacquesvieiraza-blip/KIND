@@ -10,6 +10,7 @@ import { scoreLeadsForIcp } from '../lib/scoring'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
+import { trackingBaseUrl } from '../lib/deliverability'
 
 export const leadRouter = Router()
 
@@ -801,7 +802,8 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     // figsy_sent_emails has NO client_id column — scope it via the client's campaigns.
-    const { data: campRows } = await db.from('figsy_campaigns').select('id').eq('client_id', clientId)
+    const { data: campRows } = await db.from('figsy_campaigns')
+      .select('id, name, status, created_at').eq('client_id', clientId)
     const campaignIds = (campRows ?? []).map((c: { id: string }) => c.id)
     const campaignFilter = campaignIds.length > 0 ? campaignIds : ['00000000-0000-0000-0000-000000000000']
 
@@ -810,11 +812,13 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       { data: emails },
       { data: replies },
       { data: icps },
+      { data: enrollments },
     ] = await Promise.all([
       db.from('leads').select('id, created_at, score, status, icp_id, industry, seniority').eq('client_id', clientId).not('delivered_at', 'is', null),
-      db.from('figsy_sent_emails').select('id, sent_at').in('campaign_id', campaignFilter),
-      db.from('figsy_replies').select('id, received_at, classification').eq('client_id', clientId),
+      db.from('figsy_sent_emails').select('id, sent_at, opened_at, campaign_id').in('campaign_id', campaignFilter),
+      db.from('figsy_replies').select('id, received_at, classification, campaign_id').eq('client_id', clientId),
       db.from('icps').select('id, name').eq('client_id', clientId),
+      db.from('figsy_enrollments').select('campaign_id').in('campaign_id', campaignFilter),
     ])
 
     // Monthly buckets — last 6 months
@@ -833,10 +837,14 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       const mEmails  = (emails  || []).filter((e: any) => e.sent_at?.slice(0,7) === m.key)
       const mReplies = (replies || []).filter((r: any) => r.received_at?.slice(0,7) === m.key)
       const mInterested = mReplies.filter((r: any) => r.classification === 'interested' || r.classification === 'hot')
+      // Real opens — count sent emails in this month that have an opened_at stamp
+      // (recorded by the tracking pixel). 0 if tracking is off (no branded TRACKING_URL).
+      const mOpened = mEmails.filter((e: any) => !!e.opened_at)
       return {
         month:      m.label,
         leads:      mLeads.length,
         emails:     mEmails.length,
+        opened:     mOpened.length,
         replies:    mReplies.length,
         interested: mInterested.length,
       }
@@ -875,9 +883,61 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       .sort(([,a],[,b]) => b - a).slice(0, 6)
       .map(([industry, count]) => ({ industry, count }))
 
+    // Per-campaign performance — derived from REAL send-log rows (figsy_sent_emails)
+    // and real enrollments/replies, NOT the figsy_campaigns counters. The counters can
+    // drift (e.g. seeded/warmup data), which made the table read "120 sent" while the
+    // summary cards (also row-based) read 0. Reading rows here = one source of truth, so
+    // the table and the cards always agree.
+    const byCampaign = (campRows ?? []).map((c: any) => {
+      const cSent       = (emails || []).filter((e: any) => e.campaign_id === c.id)
+      const cOpened     = cSent.filter((e: any) => !!e.opened_at).length
+      const cReplies    = (replies || []).filter((r: any) => r.campaign_id === c.id)
+      const cInterested = cReplies.filter((r: any) => r.classification === 'interested' || r.classification === 'hot').length
+      const contacts    = (enrollments || []).filter((en: any) => en.campaign_id === c.id).length
+      const sent        = cSent.length
+      return {
+        id:         c.id,
+        name:       c.name,
+        status:     c.status,
+        created_at: c.created_at,
+        contacts,
+        sent,
+        opened:     cOpened,
+        open_rate:  sent > 0 ? Math.round((cOpened / sent) * 100) : 0,
+        replies:    cReplies.length,
+        interested: cInterested,
+        reply_rate: sent > 0 ? Math.round((cReplies.length / sent) * 100) : 0,
+      }
+    }).sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1))
+
+    // Open-tracking is only live when a BRANDED tracking domain is configured
+    // (D3 anti-spam rule). If off, the pixel is never embedded so opened_at is
+    // always null — the UI shows "—" rather than a misleading 0 or a fake estimate.
+    const trackingEnabled = trackingBaseUrl() !== null
+
+    // ── Headline totals counted the EXACT way /figsy/kpis does (a head count, no row
+    // fetch) so the Analytics summary cards CANNOT disagree with Performance. We also
+    // expose _debug: if `sentRowsFetched` (the row select above) is less than
+    // `sentHeadCount` (this count), the row fetch is silently truncating/erroring — which
+    // is the only way KPIs could read 120 while the per-campaign/month breakdowns read 0.
+    const [{ count: sentHeadCount }, { count: openedHeadCount }] = await Promise.all([
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignFilter),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignFilter).not('opened_at', 'is', null),
+    ])
+    const totals = {
+      sent:    sentHeadCount ?? 0,
+      opened:  openedHeadCount ?? 0,
+      replied: (replies ?? []).length,
+    }
+    const _debug = {
+      campaignCount:   campaignIds.length,
+      sentRowsFetched: (emails ?? []).length,
+      sentHeadCount:   sentHeadCount ?? 0,
+    }
+
     res.json({
       success: true,
-      data: { byMonth, icpBreakdown, scoreDist, topIndustries },
+      data: { byMonth, byCampaign, totals, icpBreakdown, scoreDist, topIndustries, trackingEnabled, _debug },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch analytics' }) }
 })

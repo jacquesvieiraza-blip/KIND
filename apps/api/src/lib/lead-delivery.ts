@@ -1,5 +1,6 @@
 import { db } from '@kind/db'
 import { bulkMatchEmails } from './apollo'
+import { deliveryCharge, normalizePlan } from './billing-rules'
 
 // Enrich + deliver + charge — the single delivery path for BOTH the on-run
 // immediate delivery (icps.ts) and the daily drip (internal.ts).
@@ -61,18 +62,28 @@ export async function enrichAndDeliverLeads(
 
   const n = claimed?.length ?? 0
   if (n > 0) {
-    const { error: rpcErr } = await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: -n })
-    if (rpcErr) {
-      console.error(`[lead-delivery] credit deduction FAILED for client ${clientId} after delivering ${n} leads:`, rpcErr)
-    } else {
-      await db.from('credit_transactions').insert({
-        client_id: clientId,
-        amount:    -n,
-        type:      'usage',
-        note:      `${n} lead${n === 1 ? '' : 's'} delivered`,
-        created_at: now,
-      }).then(() => {}, () => {})
+    // Charge the wallet that matches the client's plan — one lead = one charge =
+    // one wallet (item 166). FIGSY-plan clients are NOT charged here: their single
+    // FIGSY credit is taken at enrollment (figsy.ts), so delivery only makes the
+    // lead visible. Lead-gen-plan clients are charged $1/lead from the lead-gen pool.
+    const { data: planRow } = await db.from('clients').select('plan').eq('id', clientId).single()
+
+    if (deliveryCharge(normalizePlan(planRow?.plan)).charge) {
+      const { error: rpcErr } = await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: -n })
+      if (rpcErr) {
+        console.error(`[lead-delivery] credit deduction FAILED for client ${clientId} after delivering ${n} leads:`, rpcErr)
+      } else {
+        await db.from('credit_transactions').insert({
+          client_id: clientId,
+          amount:    -n,
+          type:      'usage',
+          plan:      'lead_gen',
+          note:      `${n} lead${n === 1 ? '' : 's'} delivered`,
+          created_at: now,
+        }).then(() => {}, () => {})
+      }
     }
+    // plan === 'figsy': no charge at delivery — the single FIGSY credit is taken at enrollment.
   }
   return n
 }

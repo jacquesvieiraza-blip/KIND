@@ -9,39 +9,51 @@
 ---
 
 ## 🧭 VERIFIED STATE — what's true right now
-- **Last verified:** 2026-06-15 EOD. **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
-- **LIVE on prod:** Company Engine (#88) + the **#502 superset** = R1–R20 + design screens 80–91 → all **🩷 pink** (live, pending the Wed/Thu walk → then 🟢). Verified-🟢: 55, 92. Marketing site (The Drop, Prompt Library) + admin portal live.
-- **`main`:** #570 merged (🩷 pink state + full doc sync). **#571 open** (operating system).
-- **NOT done yet:** billing correctness 166–173 (Tue-16) · the verification walk (Wed/Thu) · legal #10–14 · D9 10/10.
-- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done (C1959926).
+- **Last verified:** 2026-06-17 (Wed AM). **Launch = 🚀 Fri 19 Jun. ⏰ Everything verified/fixed by THU 18** (founder away Fri).
+- **LIVE on prod:** Company Engine (#88) + the **#502 superset** (R1–R20 + design screens 80–91) + **billing correctness 166–171** → all **🩷 pink** (live, pending the Wed/Thu walk / next-delivery cert → then 🟢). Verified-🟢: 55, 92. Marketing site + admin portal live.
+- **`main`:** ✅ through Wed-17 — last night's 5 PRs + today's 3 builds (#605 188 · #606 186 · #607 187, all migrations run) **+ analytics/deliverability work merged: #608 (render) · #609 (Analytics in sidebar) · #610 (Analytics real send-log data + Open Rate) · #611 (Send-Test to any address).** Earlier: billing #580 · voice 178 (#579) · story (#598/#599).
+- **🚨 LIVE REGRESSION (item 194, top priority):** a real cold test from `gettingkind.com` landed in **"Newsletter", not the inbox.** Prime suspects: the open-tracking pixel we just enabled (193) · new-domain warmup · `List-Unsubscribe`. **Next: run mail-tester (#611) → decide pixel ON/OFF → fix.** This is the #1 launch-gate risk.
+- **🩷 SHIPPED today, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences · **188** Denise on demo · **193** real open-tracking/analytics (pixel pending the 194 decision).
+- **NOT done yet (pre-19 gates):** **fix 194 (deliverability placement)** · verify 186/187/188 · the verification walk (Wed/Thu) · **D9 10/10**. *(Legal #11–13 → post-delivery.)*
+- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done. **`TRACKING_URL=https://api.get-kind.com` NOW SET** (open-pixel live) — ⚠️ **under review** as a 194 suspect; may be reverted for cold. Source: **193 / 194**.
 - **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
 - **Process lock:** confirm the Supabase project name before every SQL run.
 
 ---
 
-## ✅ TODAY'S RUNLIST
+## ✅ TODAY'S RUNLIST — 📅 WED 17 JUN (the big build + verify day)
+> ▶️ **The shape of the day:** 🧍 merge the 4 PRs + set `TRACKING_URL` → 🎥 founder records the raw Zoom demo run-through (say "gap" out loud at each gap) → 🤖 I mine the transcript for gaps + coach your flow → 🤖 build **188 · 186 · 187** → 🤝 verification walk Pt 1 → 📞 Apollo call · 🎥 Drop 01 · 🧍 D9. **Thu 18 = walk Pt 2 + Go/No-Go.**
 
-**1 · Merge the operating-system PR**
-- Owner: 🧍 founder · Action: review + merge · Where: GitHub · Done when: on `main` · Source: ops-system · GitHub: **#571**
+**1 · Merge the 4 open PRs + set TRACKING_URL** — 🧍 founder, first thing
+- Owner: 🧍 founder · Action: merge **#601** (real opens) · **#602** (churn plan) · **#600** (salary/growth) · **#597** (Google note) — any order, all independent. Then set **`TRACKING_URL=https://api.get-kind.com`** on the API env + redeploy → real opens go live. · Done when: 4 merged + env set + Analytics shows a real Open Rate (not "—") · Source: **193/190–193/189** · GitHub: **#601 #602 #600 #597**
 
-**2 · Close the stale marketing PR**
-- Owner: 🧍 founder · Action: close it (The Drop already live via #544; the Watch page stays held as inventory 163) · Where: GitHub · Done when: closed · Source: 93/163 · GitHub: **#503**
+**2 · Raw Zoom demo run-through → gap-mine + flow coaching** — 🤝 (🧍 records · 🤖 analyses)
+- Owner: 🧍 founder records · 🤖 Claude analyses · Action: founder does a full client-style demo on Zoom, saying **"gap"** out loud wherever something's missing/broken; pastes the transcript → 🤖 turns every gap into a numbered inventory item **and** coaches the demo flow (order, what to say, what to skip). · Done when: gap list logged + flow notes delivered · Source: **129** · GitHub: —
 
-**3 · Billing correctness build** *(the pre-client blocker — gates Fri 19)*
-- Owner: 🤖 Claude · Action: build in order **169 → 167 → 166 → 170 → 168 → 171 → 173** (clients.plan flag → pool-aware delivery → kill double-charge → atomic FIGSY RPC → reconcile prices to constants → honest credits panel → admin FIGSY visibility) · Where: `api` + `portal`, fresh branch off `main` · Done when: smoke test green + screenshots, one PR **open, not merged** · Source: **166–173** · GitHub: _new PR_
+**3 · 188 + 186 + 187 — SHIPPED 🩷 (merged + migrations run 17 Jun)** — 🧍 **VERIFY today → 🟢**
+- **188 Denise demo** (#605, migration run): open the demo → Denise page unlocked with a follow-up + proposal draft. · **186 signup T&C** (#606, migration run): a fresh signup writes `clients.signup_terms_accepted_at`. · **187 Sequences** (#607, migration run): Portal → **Sequences** → New → 2 email steps with `{{first_name}}` → Save → **Apply to New campaign** → add leads + activate → the send is your copy.
+- Owner: 🧍 founder (after the Apollo call) · Action: eyeball each of the three above · Done when: each confirmed working → flip 🩷→🟢 (🤖 renders the dots once you give the ✅) · Source: **186 · 187 · 188** · GitHub: **#605 #606 #607 (all merged)**
 
-**4 · Recreate the Stripe Prices at the locked flat values**
-- Owner: 🧍 founder · Action: recreate the 6 Price objects — Lead Gen **$20/$40/$100**, FIGSY **$60/$120/$300** ($1/$3 flat); confirm `STRIPE_PRICE_DENISE_MONTHLY` = **$39** · Where: Stripe dashboard + Railway env · Done when: checkout charges the locked prices · Source: **168 / 58** · GitHub: —
+**6 · Verification walk Pt 1** — 🤝
+- Owner: 🤝 founder + Claude · Action: walk Company Engine · design screens 80–91 · R1–R6 (use the checklist below); mark ✅/⚠️/🔴 — 🤖 fixes any 🔴 same-day → flip 🩷→🟢 in PRODUCT-INVENTORY. · Done when: Pt-1 rows are ✅ · Source: **80–91 / R1–R6** · GitHub: —
 
-**5 · D9 deliverability to 10/10**
-- Owner: 🧍 founder (🤖 assist) · Action: run `DELIVERABILITY-D9-CHECKLIST.md` to a clean 10/10 · Where: mail-tester / GlockApps · Done when: 10/10 (the Thu-18 launch gate) · Source: **101** · GitHub: —
+**7 · Apollo reseller call** — 🧍 founder (booked)
+- Owner: 🧍 · Action: take the call off the prep sheet (`APOLLO-RESELLER-CALL.md`); the "if-no" fallback is locked. · Done when: Apollo's decision captured → unblocks onboarding 174–177 · Source: **174–177** · GitHub: —
+
+**8 · Record Drop 01** — 🎥 🧍 founder
+- Owner: 🧍 · Action: record Drop 01 to the recording bible (`RECORDING-SHOOTING-SCRIPT.md`). · Done when: raw capture done (assembles later) · Source: **129** · GitHub: —
+
+**9 · D9 deliverability → 10/10** *(rolling pre-19 gate)*
+- Owner: 🧍 founder (🤖 assist) · Action: run `DELIVERABILITY-D9-CHECKLIST.md` to a clean 10/10 (warmup on track — not at risk). · Where: mail-tester / GlockApps · Done when: 10/10 (the Thu-18 gate) · Source: **101** · GitHub: —
+
+> ✅ **Closed Tue 16:** billing shipped (🩷 #580) · Stripe + 15 env vars · #503 closed · #579 merged · legal #11–13 → post-delivery · FIGSY+Tony on story.html (#598/#599) · churn plan + open-tracking fix written (#601/#602). · **Legal:** #10 ICO ✅ · #14 LinkedIn ✅; **#11 SR01 · #12 registered office · #13 WHOIS → POST-DELIVERY.**
 
 ---
 
 ## ⛔ BLOCKED / WAITING
-- **Billing PR can't merge** → waiting on 🧍 Stripe prices + sign-off (task 4, item 168).
+- ~~Billing PR can't merge~~ → ✅ **RESOLVED 16 Jun** — merged #580 + migration applied; 🩷 live, self-certifies on next FIGSY delivery.
 - **🩷 → 🟢 for items 56, 60–79, 80–91** → waiting on the Wed/Thu verification walk.
-- **Onboarding 174–177 final Apollo default** → waiting on the `partners@apollo.io` reply.
+- **Onboarding 174–177 final Apollo default** → Apollo **replied 15 Jun** (competitive-overlap review); 🧍 founder sent the response + "if-no" fallback locked → now waiting on Apollo's **decision**.
 - **Signup/SSO (84)** → waiting on 🧍 Google/Microsoft OAuth registration.
 - **pgvector (120) / Casey (121)** → waiting on 🧍 input (flip the switch / give Casey's voice).
 - **GTM funnel instrumentation (131)** → waiting on 10 analytics decisions (`GTM_FUNNEL_INSTRUMENTATION.md`).
@@ -50,8 +62,8 @@
 
 ## 📅 NEXT 7 DAYS
 - **Tue 16:** 🤖 billing build (above) · 🧍 legal pack #10–14 (ICO done · SR01 · registered office · WHOIS · LinkedIn lockdown) + trademark search + Meta/WhatsApp API application + recreate Stripe prices.
-- **Wed 17:** 🤝 verification walk Pt 1 (Company Engine · design screens 80–91 · R1–R6) · 🧍 smoke T3–T7 → flip 🩷→🟢 as each passes.
-- **Thu 18:** 🤝 verification walk Pt 2 (R7–R20) + billing verified · 🧍 smoke T9/T10 · D9 10/10 · 🚦 **GO / NO-GO** (any unresolved 🔴 → slip launch). **🏁 HARD DEADLINE — founder away Fri.**
+- **Wed 17:** 🧍 **merge #601/#602/#600/#597 + set `TRACKING_URL`** · 🎥 **raw Zoom demo run-through → 🤖 gap-mine + flow coaching** · 🤝 verification walk Pt 1 (Company Engine · design screens 80–91 · R1–R6) · 🧍 smoke T3–T7 → flip 🩷→🟢 · 🤖 **enable + seed Denise on demo (188)** · 🤖 **record signup T&C acceptance (186)** · 🤖 **build sequence/template → apply-to-campaign (187, email-first)** · 🎥 record Drop 01 · 📞 Apollo call.
+- **Thu 18:** 🤝 verification walk Pt 2 (R7–R20) + billing verified · 🧍 smoke T9/T10 · D9 10/10 · 🤖 **187 sequence/template apply-to-campaign LIVE** · 🚦 **GO / NO-GO** (any unresolved 🔴 → slip launch). **🏁 HARD DEADLINE — founder away Fri.**
 - **Fri 19:** 🚀 **LAUNCH.** Product already live; 🤖 monitors prod + hotfixes only, **no merges.** Drop 01 video goes live if recorded.
 - **Sat 20–Sun 21:** away, **no merges**, 🤖 monitor prod only.
 - **Mon 22:** 🤖 build Company RLS / access control (**55a** — before the 50-rep client) · 🧍 GTM week-1 kickoff (warm outreach + LinkedIn 1/day).

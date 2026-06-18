@@ -10,6 +10,7 @@ import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
+import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
 import { isSuppressed } from '../lib/suppression'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -148,8 +149,13 @@ export async function runIcpJob(
   // atomic `.is('delivered_at', null)` claim inside keeps it idempotent (no
   // double-charge with the drip).
   if (insertedIds.length > 0) {
-    const { data: balRow } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
-    const deliverNow = insertedIds.slice(0, Math.max(0, balRow?.credit_balance ?? 0))
+    // Cap delivery by the wallet that matches the client's plan (item 167) — a
+    // FIGSY-plan client delivers against the FIGSY pool, not the lead-gen balance,
+    // so a FIGSY-only client (0 lead-gen credits) can still receive leads.
+    const { data: balRow } = await db.from('clients')
+      .select('plan, credit_balance, figsy_credits_remaining').eq('id', clientId).single()
+    const cap = deliveryCapBalance(normalizePlan(balRow?.plan), balRow?.credit_balance, balRow?.figsy_credits_remaining)
+    const deliverNow = insertedIds.slice(0, cap)
     await enrichAndDeliverLeads(clientId, deliverNow)
   }
 

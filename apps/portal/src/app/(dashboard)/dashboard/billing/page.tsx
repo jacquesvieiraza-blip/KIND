@@ -67,10 +67,11 @@ const STRIPE_LEADGEN_BUNDLES = [
   { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '', creditType: 'lead_gen' as const },
   { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '', creditType: 'lead_gen' as const },
 ]
+// FIGSY is $3/credit flat (locked, @kind/shared) → $60 / $120 / $300 (item 168).
 const STRIPE_FIGSY_BUNDLES = [
-  { credits: 20,  priceUsd: 20,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '', creditType: 'figsy' as const },
-  { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40  || '', creditType: 'figsy' as const },
-  { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '', creditType: 'figsy' as const },
+  { credits: 20,  priceUsd: 60,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '', creditType: 'figsy' as const },
+  { credits: 40,  priceUsd: 120, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40  || '', creditType: 'figsy' as const },
+  { credits: 100, priceUsd: 300, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '', creditType: 'figsy' as const },
 ]
 
 // ── Agent subscription products ───────────────────────────────────────────────
@@ -302,8 +303,8 @@ export default function BillingPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
           { icon: <Zap className="w-4 h-4 text-purple-500" />, title: 'Lead found', sub: 'No credit used', bg: 'bg-[#F5F0FF]' },
-          { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'Outreach sent', sub: 'No credit used', bg: 'bg-indigo-50' },
-          { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Lead delivered', sub: '1 credit consumed', bg: 'bg-green-50' },
+          { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Lead delivered', sub: '1 Lead-Gen credit', bg: 'bg-green-50' },
+          { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'FIGSY outreach', sub: '1 FIGSY credit', bg: 'bg-indigo-50' },
         ].map(({ icon, title, sub, bg }) => (
           <div key={title} className="bg-purple-50/40 rounded-xl p-4 text-center">
             <div className={`w-8 h-8 ${bg} rounded-full flex items-center justify-center mx-auto mb-2`}>{icon}</div>

@@ -29,6 +29,7 @@ function getBannerState(subscriptions: Record<string, unknown>[]): { state: Bann
 }
 
 type TopLead = { id: string; first_name: string; last_name: string; company: string; job_title: string; score: number }
+type FigsyKpis = { totalSent: number; totalReplied: number; interested: number; meetingsBooked: number }
 
 export default async function DashboardPage() {
   if (process.env.FEATURE_PORTAL_V2 === 'true') {
@@ -54,6 +55,10 @@ export default async function DashboardPage() {
   let hotReplies: { id: string; from_email: string; leads?: { first_name?: string; last_name?: string; company?: string }; classification: string; received_at: string }[] = []
   let topLeads: TopLead[] = []
   let activityEvents: ActivityEvent[] = []
+  // FIGSY headline numbers come from the REAL send-log (one source of truth, shared
+  // with Performance/Deliverability/Analytics) — NOT the figsy_campaigns counters,
+  // which drift. Counter sums remain only as a fallback if /figsy/kpis fails.
+  let figsyKpis: FigsyKpis | null = null
 
   if (user) {
     const { data: clientRow } = await supabase
@@ -92,27 +97,30 @@ export default async function DashboardPage() {
       } catch { /* keep default zeros */ }
     }
     if (session) {
-      const [statsRes, figsyRes, repliesRes, leadsRes, activityRes] = await Promise.allSettled([
+      const [statsRes, figsyRes, repliesRes, leadsRes, activityRes, kpisRes] = await Promise.allSettled([
         api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
         api.get<{ data: typeof figsyCampaigns }>('/figsy/campaigns', session.access_token),
         api.get<{ data: typeof hotReplies }>('/figsy/replies/all?limit=5', session.access_token),
         api.get<{ data: TopLead[] }>('/leads?limit=5&sort=score&order=desc', session.access_token),
         api.get<{ data: ActivityEvent[] }>('/figsy/activity?limit=20', session.access_token),
+        api.get<{ data: FigsyKpis }>('/figsy/kpis', session.access_token),
       ])
       if (statsRes.status === 'fulfilled')    leadStats       = statsRes.value.data
       if (figsyRes.status === 'fulfilled')    figsyCampaigns  = figsyRes.value.data ?? []
       if (repliesRes.status === 'fulfilled')  hotReplies      = repliesRes.value.data ?? []
       if (leadsRes.status === 'fulfilled')    topLeads        = leadsRes.value.data ?? []
       if (activityRes.status === 'fulfilled') activityEvents  = activityRes.value.data ?? []
+      if (kpisRes.status === 'fulfilled')     figsyKpis       = kpisRes.value.data ?? null
     }
   }
 
   const { state, trialDaysLeft } = getBannerState(subs)
 
-  const totalSent       = figsyCampaigns.reduce((s, c) => s + (c.emails_sent ?? 0), 0)
-  const totalReplies    = figsyCampaigns.reduce((s, c) => s + (c.replies_total ?? 0), 0)
-  const totalInterested = figsyCampaigns.reduce((s, c) => s + (c.replies_interested ?? 0), 0)
-  const totalMeetings   = figsyCampaigns.reduce((s, c) => s + (c.meetings_booked ?? 0), 0)
+  // Real send-log numbers (one source of truth); counter sums are the fallback only.
+  const totalSent       = figsyKpis?.totalSent     ?? figsyCampaigns.reduce((s, c) => s + (c.emails_sent ?? 0), 0)
+  const totalReplies    = figsyKpis?.totalReplied  ?? figsyCampaigns.reduce((s, c) => s + (c.replies_total ?? 0), 0)
+  const totalInterested = figsyKpis?.interested    ?? figsyCampaigns.reduce((s, c) => s + (c.replies_interested ?? 0), 0)
+  const totalMeetings   = figsyKpis?.meetingsBooked ?? figsyCampaigns.reduce((s, c) => s + (c.meetings_booked ?? 0), 0)
   const activeCampaigns = figsyCampaigns.filter(c => c.status === 'active')
   const replyRate       = totalSent > 0 ? Math.round((totalReplies / totalSent) * 100) : 0
   const leadCount       = leadStats?.total ?? 0

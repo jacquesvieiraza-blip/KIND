@@ -150,5 +150,86 @@ export async function seedShowcaseData(clientId: string, icpId: string | null): 
   // 7) Healthy balance
   await db.from('clients').update({ credit_balance: 8600 }).eq('id', clientId)
 
+  // 8) DENISE — unlock + seed so The Closer is demoable (item 188). The page and
+  //    API both gate on an active 'denise' subscription; without it Denise shows
+  //    the locked/upgrade state and can't be shown in a demo or Drop. Seed an
+  //    active sub + one warm follow-up + one proposal draft so the page is alive.
+  await seedDenise(clientId)
+
   return { leads: leads.length, sent: sentRows.length, replies: replyRows.length, meetings: N_MEETINGS, pipeline }
+}
+
+/**
+ * Grants a demo client an active Denise subscription and seeds two realistic
+ * drafts (a warm follow-up + a proposal) so the Denise page demos live. Idempotent
+ * on the subscription (unique client_id,product); drafts are inserted fresh.
+ * Safe to call for any is_demo client — only ever invoked from demo seeding.
+ */
+export async function seedDenise(clientId: string): Promise<void> {
+  // Active Denise subscription — unlocks the page + the /denise endpoints.
+  await db.from('subscriptions').upsert({
+    client_id: clientId, product: 'denise', tier: 'starter', status: 'active',
+    billing_interval: 'monthly',
+    current_period_start: new Date().toISOString(),
+    current_period_end: new Date(Date.now() + 30 * 86400000).toISOString(),
+  }, { onConflict: 'client_id,product' })
+
+  // Don't double-seed drafts if this demo was already seeded.
+  const { data: existing } = await db.from('denise_drafts')
+    .select('id').eq('client_id', clientId).limit(1)
+  if ((existing ?? []).length > 0) return
+
+  const followUp = {
+    client_id: clientId, kind: 'follow_up',
+    input: {
+      first_name: 'Lerato', company: 'Yoco', job_title: 'Head of Sales',
+      interest_signal: 'opening more qualified conversations without adding headcount',
+      conversation_summary: 'Interested after FIGSY booked a call; went quiet for a week.',
+    },
+    output: [
+      'Hi Lerato,',
+      '',
+      'It was good to connect earlier — you mentioned Yoco is pushing hard into new merchant segments this quarter, and that the real bottleneck was opening enough qualified conversations without adding headcount.',
+      '',
+      'No rush on my side at all, but I put together a quick view of how we’d open those conversations for your team. Happy to walk you through it whenever suits — even 15 minutes next week would do it.',
+      '',
+      'Want me to send a couple of times that work for you?',
+      '',
+      'Warmly,',
+      'Denise',
+    ].join('\n'),
+    created_at: daysAgo(2),
+  }
+
+  const proposal = {
+    client_id: clientId, kind: 'proposal',
+    input: {
+      company: 'Stitch Money',
+      call_summary: 'Strong close rate but a thin top of funnel; reps sourcing instead of selling; African outbound hit-or-miss on deliverability.',
+      pains: ['Reps spend hours sourcing leads', 'Inconsistent inbox placement on outbound', 'No predictable meeting flow'],
+    },
+    output: [
+      '**Proposal — Stitch Money**',
+      '',
+      '**Where you are**',
+      'On our call you said the team closes well, but the top of the funnel is thin — reps are spending hours sourcing instead of selling, and African outbound has been hit-or-miss on deliverability.',
+      '',
+      '**What we’d do**',
+      '• FIGSY sources and qualifies your ICP (fintech & SaaS decision-makers across SA, Nigeria, Kenya) and runs warm, personalised sequences.',
+      '• Denise closes the seam — confirming booked meetings, prepping your reps, and chasing warm leads so none go cold.',
+      '• Everything runs on consented, deliverability-protected sending so you actually land in the inbox.',
+      '',
+      '**Expected outcome**',
+      'A predictable flow of qualified conversations — without adding SDR headcount.',
+      '',
+      '**Simple next step**',
+      'A 30-minute working session to set your ICP live and book your first sequence. Whenever suits you.',
+      '',
+      '— Denise',
+    ].join('\n'),
+    created_at: daysAgo(1),
+  }
+
+  const { error } = await db.from('denise_drafts').insert([followUp, proposal] as any)
+  if (error) console.error('[showcase] denise_drafts insert failed:', error.message)
 }

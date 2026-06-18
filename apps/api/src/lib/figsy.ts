@@ -3,13 +3,13 @@ import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
+import { canEnroll } from './billing-rules'
+import { buildDraftFromSequence, type SequenceStep } from './sequence-apply'
 import {
   COLD_FROM,
   COLD_REPLY_TO,
-  trackingPixelHtml,
   unsubscribeHeaders,
-  unsubscribeFooterHtml,
-  unsubscribeFooterText,
+  coldEmailHtml,
   warmupRampCap,
 } from './deliverability'
 
@@ -415,35 +415,17 @@ export async function sendSequenceEmail(
     console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} email to ${lead.email} NOT sent (enrollment still recorded)`)
   }
   if (resend) {
-    // D3: tracking pixel — only injected when a branded tracking domain is configured
-    // (never a bare platform host, which reads as phishing). See deliverability.ts.
-    const trackingPixel = trackingPixelHtml(emailId)
-
-    // P2-13: personalised image injection if enabled for campaign
-    let personalizedImageHtml = ''
-    if (campaignId) {
-      const { data: campRow } = await db.from('figsy_campaigns')
-        .select('personalized_images_enabled').eq('id', campaignId).maybeSingle()
-      if ((campRow as any)?.personalized_images_enabled) {
-        personalizedImageHtml = generatePersonalizedImageHtml(lead)
-      }
-    }
-
+    // Cold email = a personal 1:1 message → Primary, not Promotions. NO pixel, image
+    // banner, visible unsubscribe footer, or templated shell (see coldEmailHtml). The
+    // one-click List-Unsubscribe header + the body's "Reply STOP" line cover compliance.
     const result = await resend.emails.send({
       from:     FROM,
       reply_to: REPLY_TO,
       to:       lead.email,
       subject,
-      // D1: one-click unsubscribe (RFC 8058) — required by Gmail/Yahoo bulk rules.
       headers:  unsubscribeHeaders(lead.email),
-      // D2: plain-text alternative — HTML-only mail reads as spam.
-      text:     `${body}${unsubscribeFooterText(lead.email)}`,
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
-        ${body.split('\n').map(line => `<p style="margin:0 0 12px">${line}</p>`).join('')}
-        ${personalizedImageHtml}
-        ${unsubscribeFooterHtml(lead.email)}
-        ${trackingPixel}
-      </div>`,
+      text:     body,
+      html:     coldEmailHtml(body),
     })
     messageId = (result as any).data?.id ?? undefined
 
@@ -476,17 +458,24 @@ export async function sendSequenceEmail(
     payload:       { step, subject, sent: !!resend, resend_id: messageId ?? null },
   })
 
-  // Bump campaign email count. NOTE: supabase-js RPCs/queries RETURN errors, they
-  // don't THROW — so a try/catch never sees an RPC failure. Check the returned
-  // error and run the direct-update fallback when the RPC isn't available.
-  const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
-  if (rpcErr) {
-    const { data } = await db.from('figsy_campaigns')
-      .select('emails_sent').eq('id', campaignId).single()
-    if (data) {
-      await db.from('figsy_campaigns')
-        .update({ emails_sent: ((data as { emails_sent?: number }).emails_sent ?? 0) + 1 })
-        .eq('id', campaignId)
+  // Bump the campaign email counter — but ONLY when a real figsy_sent_emails row was
+  // actually inserted (emailId set). Previously this ran unconditionally, so a failed
+  // insert (e.g. the test-email path with placeholder enrollment/lead IDs) still bumped
+  // the counter → it drifted ABOVE the real row count, which is exactly why the Home
+  // card (counter) read 122 while the row-based pages read 120. Gate on emailId so the
+  // counter can never exceed the send log again.
+  // NOTE: supabase-js RPCs/queries RETURN errors, they don't THROW — so a try/catch
+  // never sees an RPC failure. Check the returned error and run the direct-update fallback.
+  if (emailId) {
+    const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
+    if (rpcErr) {
+      const { data } = await db.from('figsy_campaigns')
+        .select('emails_sent').eq('id', campaignId).single()
+      if (data) {
+        await db.from('figsy_campaigns')
+          .update({ emails_sent: ((data as { emails_sent?: number }).emails_sent ?? 0) + 1 })
+          .eq('id', campaignId)
+      }
     }
   }
 }
@@ -649,13 +638,10 @@ export async function sendDay1OutreachBatch(
           reply_to: REPLY_TO,
           to: lead.email,
           subject: draft.subject,
-          // D1: one-click unsubscribe · D2: plain-text alternative
+          // Personal 1:1 cold email (Primary, not Promotions) — header-only unsubscribe.
           headers: unsubscribeHeaders(lead.email),
-          text: `${draft.body}${unsubscribeFooterText(lead.email)}`,
-          html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.7">
-            ${draft.body.split('\n').map((line: string) => `<p style="margin:0 0 12px">${line}</p>`).join('')}
-            ${unsubscribeFooterHtml(lead.email)}
-          </div>`,
+          text: draft.body,
+          html: coldEmailHtml(draft.body),
         })
       }
 
@@ -834,20 +820,8 @@ Return ONLY valid JSON:
   }
 }
 
-// P2-13: Generate a personalised SVG image tag for email injection
-function generatePersonalizedImageHtml(lead: { first_name?: string|null, company?: string|null }): string {
-  const name = lead.first_name ?? 'there'
-  const company = lead.company ?? ''
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="560" height="120" viewBox="0 0 560 120">
-    <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#6d28d9"/><stop offset="100%" style="stop-color:#7C3AED"/></linearGradient></defs>
-    <rect width="560" height="120" rx="12" fill="url(#g)"/>
-    <text x="32" y="48" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="22" font-weight="700" fill="white">Hi ${name} 👋</text>
-    <text x="32" y="80" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="15" fill="rgba(255,255,255,0.7)">${company}</text>
-    <text x="32" y="105" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">Sent personally by FIGSY — K.I.N.D</text>
-  </svg>`
-  const b64 = Buffer.from(svg).toString('base64')
-  return `<br/><img src="data:image/svg+xml;base64,${b64}" alt="Personalised for ${name}" width="560" height="120" style="border-radius:12px;display:block;margin:24px 0 0 0"/>`
-}
+// (P2-13 personalised SVG image banner removed 17 Jun — an image in a cold email is a
+//  Promotions signal; cold mail is now near-plain. See deliverability.coldEmailHtml.)
 
 // Auto-enroll a single consented lead into the active campaign (S5 — FIGSY auto-start)
 /**
@@ -897,7 +871,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry, crm_dedup_enabled, crm_type, crm_api_key').eq('id', clientId).single()
+      .select('company_name, industry, crm_dedup_enabled, crm_type, crm_api_key, figsy_credits_remaining').eq('id', clientId).single()
 
     // ── CRM DEDUP GATE ─────────────────────────────────────────────────────────
     // Never cold-email a client's existing customers / known contacts. If the
@@ -924,7 +898,24 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       }
     }
 
-    const draft = await generateSequenceWithMemory(
+    // Billing gate (item 166): FIGSY is charged at ENROLLMENT — one FIGSY credit =
+    // one lead enrolled. Don't enroll (or spend a Claude draft) when the FIGSY pool
+    // is empty; upstream delivery is already capped by this pool — this is the backstop.
+    if (!canEnroll(client?.figsy_credits_remaining)) {
+      console.warn(`[figsy] autoEnrollLead: client ${clientId} has no FIGSY credits — skipping enrollment for lead ${leadId}.`)
+      return
+    }
+
+    // Item 187 — if a saved sequence/template has been applied to this campaign, send
+    // its literal copy (token-substituted) instead of AI-generating. Falls back to the
+    // AI path when no sequence is applied, or the sequence has no usable email steps.
+    const settings = (campaign as any).settings ?? {}
+    const appliedSequence = (settings.sequence as SequenceStep[] | undefined) ?? undefined
+    const sequenceDraft = appliedSequence
+      ? buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
+      : null
+    const usingSequence = sequenceDraft !== null
+    const draft = sequenceDraft ?? await generateSequenceWithMemory(
       lead as Lead,
       clientId,
       client?.company_name ?? '',
@@ -933,11 +924,11 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       (campaign as any).model_preference ?? 'haiku',
     )
 
-    // P2-3: A/Z multi-variant subject line testing — pick one at random from all non-null variants
-    const settings = (campaign as any).settings ?? {}
+    // P2-3: A/Z multi-variant subject line testing — pick one at random from all non-null
+    // variants. Skipped when a literal sequence is applied (the client wrote the subject).
     const abResolved = settings.ab_test_resolved as boolean | undefined
     const allVariants: string[] = [draft.step1.subject]
-    if (!abResolved) {
+    if (!usingSequence && !abResolved) {
       const b = settings.ab_subject_b as string | null | undefined
       const c = settings.ab_subject_c as string | null | undefined
       const d = settings.ab_subject_d as string | null | undefined
@@ -969,15 +960,11 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       return
     }
 
-    // ── Deduct 1 FIGSY credit per lead enrolled ────────────────────────────────
-    // CHECKED + sequential: supabase RETURNS errors (doesn't throw), so the old
-    // try/catch never saw a failure and the Promise.all could write the ledger row
-    // without the balance changing (or vice-versa). Now we deduct first, verify it
-    // succeeded, and only THEN record the ledger row — so the two can't desync.
-    const { data: clientBal } = await db.from('clients').select('figsy_credits_remaining').eq('id', clientId).single()
-    const newBal = Math.max(0, (clientBal?.figsy_credits_remaining ?? 0) - 1)
-    const { error: balErr } = await db.from('clients')
-      .update({ figsy_credits_remaining: newBal }).eq('id', clientId)
+    // ── Deduct 1 FIGSY credit per lead enrolled (item 170: atomic RPC) ──────────
+    // Use the increment_figsy_credits RPC (mirrors increment_client_credits) so the
+    // balance update is atomic — no read-modify-write race that could desync the
+    // balance from the ledger row. Clamps at 0 in SQL.
+    const { error: balErr } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: -1 })
     if (balErr) {
       console.error('[figsy] autoEnrollLead: FIGSY credit deduction failed', balErr.message)
     } else {

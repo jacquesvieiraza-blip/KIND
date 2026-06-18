@@ -358,6 +358,53 @@ That + outbound + partners = the motion.
 | **Glean** | Context/memory moat (#46 pgvector · #47 CRM pull · V2-8 notetaker) · cross-client benchmarks (#64) · **[demo 10 Jun — `youtu.be/ybyAZUJZsmM`] agent-per-workflow-step, dogfooded across the whole sales lifecycle** → (1) **research-driven personalization**: per-prospect research (web+internal mashup) BEFORE FIGSY drafts — copy upgrade, plugs into Train-FIGSY RAG + Manus; (2) **Call-Coaching agent** (score a rep's call recording vs criteria → next-call guidance) = the augment thesis as a feature → **new agent candidate for the per-rep engine #88**; (3) **CRM-auto-update-from-transcript** (tool-calling fills fields) → extends Milla Notetaker V2-8 + #47. **Skip:** legal-redline agent (enterprise, SMBs don't redline). Steal the workflow-decomposition logic, NOT the enterprise surface (Pipedrive≠Salesforce, Zoom≠Gong). · **[Auto Mode demo 10 Jun] → (4) AI-ASSISTED AGENT SETUP — describe goal in plain language → AI builds the agent (→ Casey V2-3/V2-10, the highest-value V2 build); (5) "Workflow vs Auto" = control-vs-flexibility product principle for our autonomy modes (autopilot vs gated copilot); (6) PERMISSION-SAFETY checked at create AND run, per-user data scoping → the guardrail to bake into #88 per-rep + the cross-segment recall moat (aggregate only, no raw leakage). VALIDATES (already built, don't rebuild): "watch it think" = our Thinking panel · approval-before-acting = our gated send queue · conversation starters = our agent-panel chips.** |
 | **Revio** | Bundled coaching onboarding (#62b) · case-study specificity (#62c–e) |
 | **Amplemarket / MailerLite / Salesforce / Notion-Linear** | Intent signals (#37) · spam-score pre-send (#44) · AgentExchange marketplace (V2-5) + outcome pricing (#60) · MCP-native (#59) + slim sidebar (V2-6) |
+| **Feature-comparison gap analysis (Jun-26 · Monday/ClickUp/Glean/Alta)** | **Already tracked / built (code-verified 16 Jun):** LinkedIn outreach (127) · voice/calling (96/144/178) · mobile (148) · A/B (97/113) · team = #88 · templates (70) · **shareable pipeline view (179 — BUILT 🩷, was wrongly added as a gap)**. **TRUE NEW 🔴:** admin audit log (180) · enterprise SSO/SAML+SCIM (181) · Zapier/Make (182) · campaign kill-switch (183) · **public** uptime page (184, internal status already built) · **outbound** webhooks+event API (185, inbound infra already built). |
+
+---
+
+# ░ 📦 RED-ITEM BOX MAP — every not-built item, in independent boxes ░
+
+> **The boxes rule (the #502 lesson — "open one box and everything falls out"):** every box is ONE self-contained, independently-shippable PR. No box depends on another to merge. Build to 🟡 on an **isolated branch** (not live); founder reviews → 🟣, ships → 🩷→🟢.
+> **Status of record stays in `PRODUCT-INVENTORY`** — this is build *sequencing*, not status. (🟡 items go preview→approve→🟣 separately; this map is the 🔴 set.)
+>
+> **▶️ BUILD STATUS (16 Jun) — PAUSED for launch · RESUME MON 22 (post-launch):**
+> - ✅ **B7** shipped → PR #583 (money-path tests, verified).
+> - ⏳ **B2** partial — 179 (shareable view) was **already built** (code-verified, PR #584); **183 kill-switch + 180 audit log still queued**.
+> - 🔴 **B1 · B3 · B4 · B5 · B6** not started.
+> **Resume order Mon 22:** B2-remainder (183 → 180) → B1 → B3 → B5 → B6 → B4 — **one PR per box, held → 🟡, code-verify each item against the codebase first** (the 179 lesson). Paused now so launch focus stays on D9 + Thu Go/No-Go.
+
+## 🤖 BUILDABLE NOW — Claude can take these 🔴→🟡 with no external dependency
+| Box | Items | Independence |
+|---|---|---|
+| **B1 · Company-Engine fast-follows** | 106 invite-email · 107 owner drill-down · 108 budget-edit + offboarding · 109 manager role + owner↔rep notifs · 110 per-rep routing + CRM dedup | All inside `/dashboard/company` + company API; self-contained to #88. *(111 calendars split out — needs a provider.)* |
+| **B2 · Trust & safety / compliance** | 183 kill-switch · 180 audit log · **186 record signup T&C acceptance** | Admin/trust/compliance surface; each ships alone. *(179 shareable view turned out already built.)* 183 doubles as a launch-safety net; 186 is a ~30-min compliance fix. |
+| **B3 · Builder ecosystem** | 185 outbound webhooks + event API → then 182 Zapier/Make listing | Webhooks first; Zapier rides the same events. New surface, touches nothing live. |
+| **B4 · Portal polish** | 113 A/B subject UI (backend 97 ready) · 114 Kanban polish · **187 sequence/template → apply-to-campaign (🚨 PULLED to Thu-18, email-first)** | 113/114 front-end only. **187** wires the Sequence Builder (82) + Templates (70) to actually save + apply to a campaign (new/existing) — pulled pre-launch by founder call. |
+| **B5 · Onboarding/segmentation (§14)** | 174 firmographics read (PDL) · 175 seat routing · 176 14-day company trial | The onboarding fork; PDL keys already set. Independent of the agents. |
+| **B6 · Lifecycle email + copy** | 135 onboarding-v2 emails + playbook form · 137 90-day guarantee + homepage outcome copy | Content/email; no deps. |
+| **B7 · Money-path test harness** | 124 integration tests (credit/ledger/KPI) · 100 Smoke Test 2 scripts | Test-only — **zero prod risk**; also certifies the billing fix. |
+
+## 🚧 BLOCKED — one input unlocks each (stays 🔴 until then)
+| Item | Needs |
+|---|---|
+| 181 SSO/SAML + SCIM | 🧍 pick Auth0/WorkOS + account |
+| 120 FIGSY Memory v2 / pgvector | 🧍 flip the pgvector switch (2 min) |
+| 121 Casey onboarding | 🧍 voice/tone input |
+| 126 social login go-live | 🧍 Google + Azure OAuth registration |
+| 177 white-glove implementation | Apollo's reseller decision |
+| 184 public status page | 🧍 Statuspage.io / BetterUptime account (~15 min) |
+| 128 Meta/WhatsApp · 136 Flutterwave · 104 Hunter/PDL keys | 🧍 external accounts/keys |
+| 116 Activity-feed home widget · 119 Revenue Mission Control | design review first (core screen) |
+| 178 voice ("speak") chat | Vapi/voice infra decision + design |
+
+## 🧱 BIG EPICS — own multi-week boxes, sequenced in V2 (NOT "now")
+143 Learning Engine · 144 Denise deep · 145 LENA + TONY · 146 orchestration + skill library · 139/140 intelligence (intent/bandit/adaptive/CRM-pull) · 141 context-MCP · 152 memory/forecasting/call-intel · 148 mobile app + CRM Kanban · 150 cross-client intel + data marketplace · 151 ISO/SOC2/Vanta · 153–161 P4 scale (client-count-gated).
+
+## 🧍 FOUNDER / CONTENT — not a Claude build
+101 D9 · 102 legal (post-delivery) · 105 Go/No-Go · 122 kill dead Vercel · 127 outreach/LinkedIn · 129 demo video · 132 dogfood · 133 design-partners · 134 social cuts · 138 influencer · 142 Product Hunt/G2.
+
+## ▶️ Recommended order (post-launch, ONE PR per box, held → 🟡)
+**B7** (tests, zero risk) → **B2** (trust quick-wins) → **B3** (ecosystem) → **B5** (onboarding) → **B1** (company fast-follows) → **B6** (copy) → **B4** (polish). Pre-Fri-19 the focus stays on the Go/No-Go gates; boxes start after launch unless the founder pulls one forward.
 
 ---
 

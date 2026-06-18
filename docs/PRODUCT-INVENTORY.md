@@ -112,12 +112,12 @@
 **§3 design SIGNED OFF (Jacques 14 Jun): one lead = one charge = one wallet, via explicit `clients.plan` (`lead_gen`|`figsy`). Lead-Gen → $1 lead-gen pool. FIGSY → $3 FIGSY pool, lead included, lead-gen pool untouched. Outreach enrollment stops charging.**
 | # | Item | Status | Owner |
 |---|------|--------|-------|
-| 166 | **FIGSY double-charge** — delivery charges lead-gen $1 (`lead-delivery.ts:64`) *and* enrol charges FIGSY $3 (`figsy.ts:907-921`) on the same lead = $4; deck promises $3 all-in | 🔴 | 🤖 |
-| 167 | **FIGSY-only bundle can't deliver** — delivery capped by lead-gen balance (`icps.ts:151-152`) → FIGSY-only client gets 0 leads; fix = pool-aware delivery + FIGSY-pool trial grant | 🔴 | 🤖 |
-| 168 | **3 price tables disagree** — FIGSY shown $20/40/100 (`billing/page.tsx:70-74`) vs charged $60/110/250 (`stripe.ts:26-30`) vs "locked" $60/120/300 (`constants:27-31`); reconcile → constants, recreate Stripe Prices, portal imports `@kind/shared` | 🔴 | 🤝 |
-| 169 | **`clients.plan` flag** (the §3 design) — migration + backfill (FIGSY campaign/credits → `figsy`, else `lead_gen`); delivery reads it, charges one pool | 🔴 | 🤖 |
-| 170 | **Atomic FIGSY credit RPC** — replace read-modify-write (`figsy.ts:909-912`) with an `increment_figsy_credits` RPC mirroring `20260526_credit_race_condition_fix.sql` | 🔴 | 🤖 |
-| 171 | **"How credits work" panel honesty** — `billing/page.tsx:303-306` says "Outreach sent — No credit used" (false) + omits FIGSY pool; rewrite to real model | 🔴 | 🤖 |
+| 166 | **FIGSY double-charge** — KILLED: delivery charges one wallet by `clients.plan`; FIGSY charged once at enrollment ($3, not $4). *LIVE on prod (merged #580 + migration applied staging+prod); self-certifies → 🟢 on the next real FIGSY delivery.* | 🩷 | 🤝 |
+| 167 | **FIGSY-only bundle can deliver** — FIXED: delivery + drip cap by the plan's pool. *LIVE (#580 + migration); pending next-delivery cert.* | 🩷 | — |
+| 168 | **3 price tables reconciled** — code derives from `@kind/shared`; 6 Stripe Prices + 15 env vars set + FIGSY products renamed to 20/40/100 credits. *LIVE.* | 🩷 | — |
+| 169 | **`clients.plan` flag** — migration + backfill applied staging+prod (3 figsy / 5 lead_gen verified). *LIVE.* | 🩷 | — |
+| 170 | **Atomic FIGSY credit RPC** — `increment_figsy_credits` live (verified present in prod). *LIVE.* | 🩷 | — |
+| 171 | **"How credits work" panel honesty** — fixed false "Outreach sent — No credit used" → "FIGSY outreach — 1 FIGSY credit". *LIVE.* | 🩷 | — |
 | 172 | **Multi-currency** (founder ask 14 Jun) — let client pick USD/GBP/ZAR; Stripe multi-currency Prices + `clients.preferred_currency`; reconcile with Flutterwave (`flutterwave.ts:146-160`); may be own phase, don't block 166–171 | 🔴 | 🤝 |
 | 173 | **Admin FIGSY visibility** — admin shows `credit_balance` only, never `figsy_credits_remaining`; surface it + add top-up | 🔴 | 🤖 |
 
@@ -260,9 +260,9 @@
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 100 | 🔴 | Smoke Test 2 — T3 pause · T4 booking · T5 billing · T6 Vida · T7 Milla · T9 invites · T10 partner | 🤝 |
-| 101 | 🔴 | **D9 deliverability 10/10** (mail-tester) | 🧍 |
-| 102 | 🔴 | Legal pack #10–14 (ICO £40 · SR01 · registered office · WHOIS · LinkedIn lockdown) | 🧍 |
-| 103 | ✅ | Email `partners@apollo.io` — API reseller agreement (~1 wk lead) — **✅ SENT 14 Jun (awaiting reply)** | 🧍 |
+| 101 | 🔴 | **D9 deliverability 10/10** (mail-tester) — ⚠️ **active placement regression, see 194** (cold mail → Newsletter). | 🧍 |
+| 102 | 🔴 | Legal pack #10–14 — **#10 ICO ✅ · #14 LinkedIn ✅**; **#11 SR01 · #12 registered office · #13 WHOIS → MOVED TO POST-DELIVERY** (post-launch, founder call 16 Jun) — **no longer a pre-19 gate** | 🧍 |
+| 103 | ✅ | Email `partners@apollo.io` — API reseller agreement — sent 14 Jun · **Apollo replied 15 Jun (overlap review) · founder responded 16 Jun → awaiting decision** | 🧍 |
 | 104 | 🔴 | Hunter.io signup → key · PDL free signup → key | 🧍 |
 | 105 | 🔴 | Go/No-Go gate Thu 18 → **🚀 LAUNCH Africa-only Fri 19 (#18)** | 🤝 |
 
@@ -296,7 +296,7 @@
 | 121 | ⏸ | Casey conversational onboarding V2-3/10 (⏸ founder voice/tone input — highest-value V2 build) | 🤝  |  |
 | 122 | 🔴 | Y16 — kill dead Vercel↔GitHub integration | 🧍  |  |
 | 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝  |  |
-| 124 | 🔴 | Integration tests on money/credit paths (Y15, week-1 post-launch) | 🤖  |  |
+| 124 | 🟡 | Money-path tests — **BUILT (Box B7, PR pending review):** pure `billing-rules.ts` (single source of which-wallet/how-much) + 4 call-sites wired to it + **13 regression tests** locking the no-double-charge invariant (type-check ✓, tests ✓). *(Smoke Test 2 manual scripts = item 100, separate.)* | 🤖  |  |
 | 125 | 🟣 | **"Your AI Family" card redesign — BUILT 13 Jun** to [agents-v2.html](./previews/agents-v2.html): feature text moved **off** the photo, square crop fixed, body checklist + clean CTA; **renamed "AI Team"→"AI Family"** (`agents/page.tsx` heading+cards, `Sidebar.tsx` dropdown label; `cmo.ts` already clean). Portal type-check ✓. Ships post-19 | 🤖 | ✅ built |
 
 ### 🆕 Onboarding & Segmentation (added 15 Jun — full plan in `run-costs-and-cashflow.md` §13/§14; layers on `ONBOARDING_V2.md` #30 + Company Engine #88)
@@ -306,7 +306,36 @@
 | 175 | 🔴 | **Onboarding — seat-based auto-routing** (1 seat = self-serve / 2+ seats = concierge track). Company size is a routing **hint**, never a hard gate. *Cashflow §14.* | 🤖 |  |
 | 176 | 🔴 | **Onboarding — 14-day company trial on bundled data** (value before any Apollo/implementation ask — lets us engage + sell first). *Cashflow §14.* | 🤖 |  |
 | 177 | 🔴 | **Company white-glove implementation flow** — wire CRM + connections + **optional** BYO-Apollo key (forced only if Apollo's ToS requires it; bundled-data is the default). Month-1 company hardening. *Cashflow §13/§14, gated on Apollo's reply.* | 🤝 |  |
+| 178 | 🔴 | **Voice ("speak") chat agent** — live voice-conversation widget: tap-to-talk mic + speaker, real-time speech in/out, animated waveform, with text-chat fallback (per founder screenshot). Voice mode for **Vida** (website) / the agent panel. **Future build.** *Founder ref 16 Jun.* | 🤖 |  |
 | 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
+
+## 4C-CHURN — 🛡️ Retention / anti-churn stack (P1 — pull in as the first clients land)
+*Plan of record: `docs/CHURN-PREVENTION-PLAN.md`. Thesis: acquisition is the accelerator, **retention is the brakes + steering** — at ~$80 ARPU and a churn treadmill, every saved client is worth a new-logo win without the CAC. Lena (CS, item 145) is the human/agent owner of this stack and is **elevated to a churn-defense priority** (per the salary/break-even plan). Build only once real clients exist (these need live usage data); none are launch-gating.*
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 190 | 🔴 | **Save / pause / win-back flow** — a graceful **pause** (1–3 mo hold instead of cancel: stop billing, keep data + settings warm) on the cancel path, an **at-risk trigger** (no login N days · usage drop · 0 replies in a cycle) that pings Lena, and a **win-back** nudge for lapsed accounts. Today cancel is one-way → churn is silent and final. *(Churn-plan lever 5. Verified: only hard-cancel exists.)* | 🤖 |
+| 191 | 🔴 | **ROI / value dashboard ("what KIND did for you")** — a per-client surface that totals **leads delivered · meetings booked · replies · pipeline touched · $ value** over time, plus a monthly "here's your return" recap. Retention is killed by *invisible* value; make the value un-ignorable. *(Churn-plan lever 4. Builds on the analytics page — must use REAL data, see 193.)* | 🤖 |
+| 192 | 🔴 | **Onboarding activation tracking + nudges** — instrument the first-value path (signup → ICP set → first campaign live → first lead/reply) as explicit **activation milestones**; if a client stalls at a step, auto-nudge (+ flag Lena). Time-to-first-value is the #1 churn predictor; today nothing tracks or rescues a stalled new client. *(Churn-plan lever 1. Verified: no activation funnel exists.)* | 🤖 |
+| 193 | 🩷 | **Surface REAL open-tracking + remove the fabricated 28% — SHIPPED & LIVE 17 Jun.** #601 deleted the `emails × 0.28` guess → analytics reads real `opened_at` ("—" when tracking off, never a fake number). #610 made **Campaign Performance** read real send-log rows + added a real **Open Rate** column (so the table agrees with the cards); #609 put **Analytics** in the sidebar (it was orphaned — URL-only). 🧍 `TRACKING_URL=https://api.get-kind.com` set → the open-pixel now embeds on sends. ⚠️ **The pixel is now a SUSPECT in the deliverability regression (194)** — keeping open-tracking ON is **pending that decision** (it may be turned OFF for cold). NOTE: the warmup-test account shows "no data" because its "120 sent" is a legacy *counter* with no backing `figsy_sent_emails` rows; real sends + the seeded demo populate normally — needs a real-send confirmation. *(Found 16 Jun · shipped 17 Jun.)* | 🤝 |
+| 194 | 🟢 | **Deliverability "Newsletter" scare — RESOLVED (17 Jun): mail-tester = 10/10.** A cold-path test from `gettingkind.com` first sorted into a mail client's **Newsletter** tab — but an objective **mail-tester.com run scored 10/10** (SPF/DKIM/DMARC/content all clean). So we land fine; the tab-sort was the client's heuristic + brand-new-domain warmup (improves with age), **not spam**. **Decision (founder): keep the open-tracking pixel ON** — we need real open numbers, and 10/10 confirms it isn't hurting us. Reversible kill-switch remains if real-world placement degrades as volume ramps. Was the "#1 risk"; downgraded. | — |
+| 195 | 🩷 | **FIGSY metrics — ONE source of truth + 3→2 surfaces + analytics audit.** **PR-1 (#613, live):** Home card reads `/figsy/kpis` (real send-log rows, not the drifting counter); `sendSequenceEmail` only bumps the counter when a row actually inserted → it can't drift above the log again (also stops test-emails inflating it). **PR-2 (#614, live):** consolidated 3 metric surfaces → **2** — Deliverability page removed (redirects to Performance); its sender-health + warmup-pacing moved to Performance (`DeliverabilityHealth`); send-volume already on Analytics. **PR-3 (#615, OPEN):** Analytics still read 0 while Performance read 120 from the *identical* `figsy_sent_emails`-by-campaign query — a contradiction not explainable in code → fixed the headline cards to use the **same head-count** Performance uses (can't disagree again) **+ baked a `_debug` line into the Analytics page** to reveal whether the row-fetch is truncating (rows<count), the client truly has 0 rows, or the page was stale. 🧍 **merge #615 → screenshot the `debug ·` line → I land the final fix → then verify a real send → 🟢.** | 🧍 |
+
+## 🥷 COMPETITIVE GAPS — "what to steal" (16 Jun feature-comparison vs Monday/ClickUp/Glean/Alta)
+*Genuine gaps only. **Already tracked — NOT re-added:** LinkedIn outreach (#21/127) · voice/calling agent (96 Vapi · 144 Denise · 178 voice chat) · mobile app (#61/148) · A/B testing (97 backend live · 113 UI) · team/multi-user = **Company Engine #88** (live 🩷) · sequence templates (70) · ICP-templates-by-vertical (V2 #10) · Milla-as-intelligence-layer (2/143). MFA · IP-allowlist · data-residency fold into enterprise hardening (151).*
+> **⚠️ CODE-VERIFIED 16 Jun (correction):** the gaps below were first added from a docs check only. Grepping the codebase found **179 ALREADY BUILT** (shareable view — now 🩷, not a gap), and **184/185 partly built** (re-scoped above). **True new gaps = 180 · 181 · 182 · 183**, plus the missing slices of **184** (public page) and **185** (outbound). Lesson logged: grep the code before adding/marking an item.*
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 179 | 🩷 | **Shareable stakeholder pipeline view — ALREADY BUILT** *(not a gap; mis-added 16 Jun)*: public `GET /share/:token` (`share.ts`, mounted) + public page `portal/share/[token]` + `CopyShareLink` + dashboard wiring + migration `20260530_client_share_token`. **Live — verify in the walk → 🟢.** | — |
+| 180 | 🔴 | **Admin audit log / activity history** — filterable "who sent what, when, to whom" (extend the existing POPIA consent logging to a full activity log). *(Monday/Glean · hard requirement for accounts >~50 people. Verified absent in code.)* | 🤖 |
+| 181 | 🔴 | **Enterprise SSO/SAML + SCIM provisioning** (Auth0/WorkOS) — beyond the social-OAuth login (84); the hard IT gate for accounts >~100 people. *(Monday/ClickUp/Glean.)* | 🤝 |
+| 182 | 🔴 | **Zapier / Make native integration** — partner listing → 6,000+ apps with no per-connector builds (FIGSY "meeting booked" → Slack). *(ClickUp/Monday · low effort. Verified absent in code.)* | 🤖 |
+| 183 | 🔴 | **Campaign kill-switch (account-wide panic button)** — one click halts ALL active campaigns instantly (runaway-send / compromised-account protection). *(Monday Panic Button · low effort — pause-all endpoint + admin UI. Verified absent: only per-campaign pause exists.)* | 🤖 |
+| 184 | 🔴 | **Public customer uptime page** — *internal status snapshots + admin status/health pages ALREADY BUILT (`status.ts` · `platform_status` · admin `/status` `/health` · 3×/day cron). Gap = a PUBLIC, customer-facing uptime page (Statuspage.io/BetterUptime).* | 🧍 |
+| 185 | 🔴 | **Outbound webhooks + public event API** — push customer-facing events ("meeting booked", "reply received") to their tools → builder ecosystem. *(Inbound webhook infra exists — `webhook_triggers` + webhook-triggered campaigns; the OUTBOUND direction is the gap.)* | 🤖 |
+| 186 | 🩷 | **Record signup T&C acceptance** — **LIVE (merged #606 + migration run 17 Jun).** New `signup_terms_accepted_at` + `signup_terms_accepted_ip` columns, written at account creation in `/auth/onboard`; the signup T&C tick is carried from the login/signup screen → onboard via `localStorage` and persisted (separate from the purchase-time `terms_accepted_at` so both consents are distinct). A trial user who never pays now has a stored consent record. 🧍 **verify** (a fresh signup writes the timestamp) → 🟢. *(Built + shipped 17 Jun.)* | 🧍 |
+| 187 | 🩷 | **Sequence/template → Apply to campaign — email-first. LIVE (merged #607 + migration run 17 Jun).** New `figsy_sequences` library + a working **Sequences** page (`/dashboard/figsy/sequences`): build a reusable email sequence with literal copy + `{{first_name}}`/`{{company}}` tokens → **Apply to campaign → New or Existing**. Engine seam: when a campaign has an applied sequence, enrollment writes that copy (token-substituted) into the send slots — so **email steps actually send** via the existing engine (both `/enroll` + `autoEnrollLead`); AI generation stays the fallback when no sequence is applied. Tested (`sequence-apply.test.ts`, 9/9). LinkedIn/voice/WhatsApp greyed "coming soon". 🧍 **verify a real applied-sequence send** → 🟢. *(Built + shipped 17 Jun.)* | 🧍 |
+| 188 | 🩷 | **Enable + seed Denise on the demo account — LIVE (merged #605 + migration run 17 Jun).** Denise is subscription-gated; the demo account had no `denise` sub → it showed the locked state. **Shipped:** demo-create now activates `denise` (`admin.ts`); `seed-showcase` grants the sub + seeds 1 follow-up + 1 proposal draft; migration `20260617_denise_demo.sql` backfilled existing demo accounts. 🧍 **verify** the Denise page is live on the demo → 🟢. *(Built + shipped 17 Jun.)* | 🧍 |
+| 189 | 🔴 | **Google Workspace — find a workaround** *(📌 detail TBD, founder 16 Jun eve)*. Flagged as needed work; specifics pending from founder. *(Likely one of: Google OAuth/SSO app verification (84/126) · Google Calendar · or email/domain on Workspace — to confirm.)* | 🤝 |
 
 ## 4D — Week 1 post-launch (Jun 19–28) — GTM
 | # | 🔴 | Item | Owner |
@@ -342,7 +371,7 @@
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 144 | 🔴 | **DENISE deep build #54** (auto-book · notetaker · objections · proposal-from-transcript · Vapi voice) | 🤖 |
-| 145 | 🔴 | **LENA — CS agent #55** · **TONY — Ops agent #56** | 🤖 |
+| 145 | 🔴 | **LENA — CS agent #55** ⭐ **CHURN-DEFENSE PRIORITY** (retention = salary — see `SALARY-BREAKEVEN-PLAN.md`; CS is what *holds* the client book) · **TONY — Ops agent #56** | 🤖 |
 | 146 | 🔴 | Multi-agent orchestration #57 · 500+ skill library #58 | 🤖 |
 | 147 | 🔴 | Outcome pricing per meeting #60 (gated ≥28% margin) | 🤝 |
 | 148 | 🔴 | Mobile app #61 · built-in CRM Kanban #62 · pan-African design partners #63 | 🤝 |

@@ -21,6 +21,7 @@ import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCa
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
+import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
 import { recomputeCampaignCounters } from '../lib/figsy'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -1616,7 +1617,7 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
   try {
     // Get all active clients with undelivered leads
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, user_id, daily_drip_rate, credit_balance')
+      .select('id, company_name, user_id, daily_drip_rate, plan, credit_balance, figsy_credits_remaining')
       .not('first_icp_run_at', 'is', null)
 
     let totalDelivered = 0
@@ -1624,12 +1625,13 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
     for (const client of clients ?? []) {
       try {
         const drip = client.daily_drip_rate ?? 5
-        const balance = client.credit_balance ?? 0
+        // Cap by the wallet that matches the client's plan (item 167) — pure rule.
+        const balance = deliveryCapBalance(normalizePlan(client.plan), client.credit_balance, client.figsy_credits_remaining)
 
-        // Can't deliver leads to a client with no credits
+        // Can't deliver leads to a client with no credits in the relevant pool
         if (balance < 1) continue
 
-        // Deliver up to min(drip_rate, credit_balance) leads
+        // Deliver up to min(drip_rate, pool balance) leads
         const toDeliver = Math.min(drip, balance)
 
         // Find undelivered leads for this client, oldest first

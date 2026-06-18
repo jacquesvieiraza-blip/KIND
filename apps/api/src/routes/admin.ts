@@ -173,8 +173,8 @@ adminRouter.post('/demos', async (req: Request, res: Response) => {
     if (clientErr) throw new Error(`Client insert failed: ${clientErr.message}`)
     const clientId = client.id
 
-    // 3. Activate all 4 products
-    for (const product of ['lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot']) {
+    // 3. Activate all products (incl. Denise so The Closer is demoable — item 188)
+    for (const product of ['lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot', 'denise']) {
       const { error: subErr } = await db.from('subscriptions').insert({
         client_id:             clientId,
         product,

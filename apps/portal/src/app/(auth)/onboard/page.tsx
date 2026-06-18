@@ -149,6 +149,9 @@ function OnboardChat() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) { router.push('/login'); return }
+        // Item 186 — pass the T&C tick recorded at signup so consent is stored
+        // on the client row at account creation (not only at first purchase).
+        const termsAccepted = (() => { try { return localStorage.getItem('kind_terms_accepted') === '1' } catch { return false } })()
         await api.post('/auth/onboard', {
           company_name: next.company_name,
           industry:     next.industry,
@@ -156,8 +159,10 @@ function OnboardChat() {
           website:      websiteValue,
           phone:        '',
           ...(referredBy ? { referred_by: referredBy } : {}),
+          ...(termsAccepted ? { terms_accepted: true } : {}),
         }, session.access_token)
         localStorage.removeItem('kind_referral')
+        localStorage.removeItem('kind_terms_accepted')
         router.push('/dashboard')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong — please try again')

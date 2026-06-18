@@ -248,7 +248,10 @@ millaRouter.get('/sessions/:sessionId/messages', async (req: AuthRequest, res) =
 
 millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
   try {
-    const { message } = z.object({ message: z.string().min(1) }).parse(req.body)
+    // Cap the message length so a large paste can't blow Claude's context window
+    // ("prompt is too long"). Matches the 2000-char cap used by every other chat
+    // endpoint; the dedicated notetaker route handles long transcripts separately.
+    const { message } = z.object({ message: z.string().min(1).max(2000) }).parse(req.body)
 
     const access = await requireMillaAccess(req.userId!)
     if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }

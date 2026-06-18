@@ -128,6 +128,12 @@ interface ChatResult {
   sources: Array<{ document_name: string; chunk_content: string }>
 }
 
+// Defensive per-message cap when assembling the prompt. The /chat routes already
+// bound new input, but historical rows persisted before that cap (or via other
+// paths) could still be oversized — truncating here keeps the total context well
+// under Claude's limit so old sessions don't keep failing with "prompt too long".
+const MAX_TURN_CHARS = 4000
+
 /**
  * Retrieves relevant document chunks, then calls Claude to answer the user's question.
  */
@@ -168,13 +174,13 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
     .filter(m => m.role === 'user' || m.role === 'assistant')
     .map(m => ({
       role:    m.role as 'user' | 'assistant',
-      content: m.content,
+      content: m.content.slice(0, MAX_TURN_CHARS),
     }))
 
   // Add the current user turn with injected context
   history.push({
     role:    'user',
-    content: `Context from documents:\n${contextText}\n\nQuestion: ${userMessage}`,
+    content: `Context from documents:\n${contextText}\n\nQuestion: ${userMessage.slice(0, MAX_TURN_CHARS)}`,
   })
 
   const response = await anthropic.messages.create({

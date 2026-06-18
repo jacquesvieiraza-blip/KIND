@@ -401,9 +401,13 @@ export default function FigsyPage() {
       setCampaigns(campaignsRes.data ?? [])
       setCampaignIntentFlag(featuresRes.campaign_intent ?? false)
       const subs = subsRes.data ?? []
+      // Treat a trialing sub as unlocked too — the sidebar gate (isLive) and the
+      // rest of the app already do, so accepting only 'active' here was the
+      // outlier that made FIGSY look "switchable but locked" on trial/demo
+      // accounts (sidebar showed FIGSY unlocked, the page bounced to the upsell).
       const hasSub = subs.some(
         s => (s.product === 'lead_gen_figsy' || s.product === 'figsy_addon') &&
-             s.status === 'active'
+             (s.status === 'active' || s.status === 'trialing')
       )
       setHasFigsySub(hasSub)
     } catch (err) {

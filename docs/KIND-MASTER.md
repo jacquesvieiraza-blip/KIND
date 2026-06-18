@@ -415,8 +415,12 @@
 - [DEPLOY-CHECKLIST.md](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/DEPLOY-CHECKLIST.md) — the launch deploy sequence (migrations → env → merge → smoke)
 - [SMOKE_TEST.md](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/SMOKE_TEST.md) — T1–T10 verification (incl. deliverability, team, partner)
 
-**Hiring / Ops reference (`docs/hiring/`):**
-- [KIND-AE-COMP-PLAN.md](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-COMP-PLAN.md) + [KIND-AE-commission-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-commission-calculator.html) — Account Executive comp plan + live 12-month payout calculator (Smartsheet-FY25 structure: 20% land / 5% retain / 5% expansion on collected MRR; **same spine as the partner economics** — see items 197/201). *Reference only — not a tracker; status lives in PRODUCT-INVENTORY (201).*
+**Hiring / Seller-engine reference (`docs/hiring/`):**
+- **[SELLER-ENGINE-MAP.md](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/SELLER-ENGINE-MAP.md) — START HERE: the full map of the seller/team engine** (the vision · the two systems · every asset · build phases · open decisions).
+- [KIND-AE-COMP-PLAN.md](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-COMP-PLAN.md) — AE comp plan v3 (OTE $112.5k · $1,500 ARPU · $4,500/mo quota).
+- [KIND-PARTNER-COMP-PLAN.md](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-PARTNER-COMP-PLAN.md) — partner comp plan (25% + 5% renewal — same spine).
+- [KIND-AE-commission-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-commission-calculator.html) — live 5-yr AE payout calculator · [KIND-team-pnl-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-team-pnl-calculator.html) — live 5-yr Team P&L.
+- *Reference only — not trackers; status lives in PRODUCT-INVENTORY (196 · 197 · 200 · 201 · 202). UK HR/legal templates + Business Command Centre → `kind-ops`.*
 
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
 

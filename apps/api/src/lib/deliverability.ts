@@ -120,6 +120,22 @@ export function unsubscribeFooterText(email: string): string {
   return `\n\n—\nUnsubscribe: ${unsubscribeUrl(email)}`
 }
 
+// COLD-EMAIL HTML (17 Jun) — deliberately near-plain so it reads as a personal 1:1
+// email and lands in Primary, not Promotions/Updates. A genuine personal email has
+// NONE of these, and each is a "this is bulk/marketing" signal Gmail tabs on:
+//   • a tracking pixel (1×1 <img>)        • an image/banner
+//   • a visible "Unsubscribe" footer       • a templated max-width, centered shell
+// So cold mail is now a bare <div> with default styling and <br> line breaks — exactly
+// what Gmail's own compose produces. Compliance is still met by the one-click
+// List-Unsubscribe header (unsubscribeHeaders) + the "Reply STOP to opt out." line the
+// FIGSY prompt always puts in the body.
+// TRADE-OFF (intentional, founder-agreed): no pixel ⇒ no open-tracking on cold. For
+// cold outreach, landing in the inbox beats knowing the open rate.
+export function coldEmailHtml(body: string): string {
+  const lines = (body || '').split('\n').map(line => (line.length ? line : '')).join('<br>')
+  return `<div dir="ltr" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">${lines}</div>`
+}
+
 // Warmup ramp schedule — given a YYYY-MM-DD start date, returns the cold-send cap
 // for "today" (day 1 = the start date): ≤10 days 1–3 · 20 day 4 · 30 days 5–6 ·
 // 40 days 7–8 · 50 day 9+. Pure, with an injectable clock so it's testable.

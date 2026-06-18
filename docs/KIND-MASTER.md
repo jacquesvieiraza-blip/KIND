@@ -415,6 +415,9 @@
 - [DEPLOY-CHECKLIST.md](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/DEPLOY-CHECKLIST.md) — the launch deploy sequence (migrations → env → merge → smoke)
 - [SMOKE_TEST.md](https://github.com/jacquesvieiraza-blip/KIND/blob/claude/kind-carson-MYhSl/docs/SMOKE_TEST.md) — T1–T10 verification (incl. deliverability, team, partner)
 
+**Hiring / Ops reference (`docs/hiring/`):**
+- [KIND-AE-COMP-PLAN.md](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-COMP-PLAN.md) + [KIND-AE-commission-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-commission-calculator.html) — Account Executive comp plan + live 12-month payout calculator (Smartsheet-FY25 structure: 20% land / 5% retain / 5% expansion on collected MRR; **same spine as the partner economics** — see items 197/201). *Reference only — not a tracker; status lives in PRODUCT-INVENTORY (201).*
+
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*
 
 ### 🔄 SESSION LOG (newest first — append one line per working session)

@@ -39,6 +39,62 @@ _Last updated: 18 Jun 2026 (launch-eve) — **DELIVERABILITY reframed: it's REPU
 
 ---
 
+# ░ 🤝 THE SELLER ENGINE — Partners + AEs on ONE foundation (V2 SPEC · logged 18 Jun) ░
+> **Founder thesis (18 Jun):** a **partner** and an **Account Executive (AE)** are the *same primitive* — a **seller** who refers, manages, and earns on clients **staying alive**. Build the foundation **once**, branch only on **paid vs free**. This is the channel/sales engine that sits on top of the live Company Engine (#88). **Status lives in PRODUCT-INVENTORY: 196 (ledger) · 197 (partner model) · 200 (the portals/foundation) · 201 (hire founding AE) · 202 (the document/legal pack).** Detail (the "why/how") lives here. **Gated post-launch — do not build before first revenue.**
+
+## 1. The primitive: one "seller seat", two types
+| | **Partner** | **AE (Account Executive)** |
+|---|---|---|
+| Relationship | External channel (refers + white-labels) | Employed (internal closer) |
+| Pays for the tool? | **YES** — pays for their own seat/use | **NO** — free seat (employed sales kit) |
+| Earns | 25% + **5% on renewal** (item 197) | 20% land / 5% retain / 5% expansion + 5% multi-seat + 5% partner override (AE comp plan, `docs/hiring/`) |
+| Both | refer · manage a book · **earn on retention** · get a portal + demo envs + sell-through-the-product | (same) |
+
+**One seat model, one `seat_type` flag (`partner_paid` | `ae_free`).** Everything else is shared. This is the whole architecture insight — don't build two systems that drift.
+
+## 2. Three surfaces on the one foundation
+1. **Partner portal** — onboard → refer → manage book → see earnings/statements.
+2. **AE portal** — same shape, free seat, comp dashboard tied to the AE plan + quota/attainment.
+3. **Admin (for both)** — one internal console to onboard / approve / manage / pay every seller, partner or AE.
+
+## 3. What every seller gets (shared capabilities)
+- **Portal**: profile · **their documents** (agreements, comp plan, collateral) · **their book** (clients they own) · pipeline · **earnings + payout statements** · referral link/codes.
+- **Demo environment(s)**: provision a seeded demo per seller to run **live demos** while selling (re-uses the 188 demo-seed engine).
+- **Sell *through* the product (dogfood)**: the seller gets ICP → FIGSY → outreach access to **source their own pipeline** with K.I.N.D itself. (Free for AEs; for partners this is part of what they pay for.)
+- **Enablement**: onboarding pack · scripts · collateral · training.
+
+## 4. The money — same spine, on purpose
+- **Partner (197):** 25% commission **+ 5% extra when the client renews** → rewards *keeping clients alive*.
+- **AE (comp plan):** dollar new-MRR quota (ramped) · 20% land / 5% retain / 5% expansion on **collected** MRR · +5% multi-seat kicker · +5% partner override · greater-of guarantee 100/100/75/75 (month-1 onboarding-gated) · accelerators (1.25× / 1.5×) · **earned-when-collected** · windfall review. Tool: `docs/hiring/KIND-AE-commission-calculator.html`.
+- **Both** are retention-weighted → the seller wins when the client stays. **Earned-when-collected** makes month-to-month MRR safe (no clawback drama).
+
+## 5. The document & legal layer (item 202 — needed BEFORE issuing seats)
+- **AE pack:** employment offer · **compensation agreement** (the comp plan as a signable, localized schedule — base/variable/quota filled per market) · NDA · IP / invention assignment · the calculator as the modeling tool.
+- **Partner pack:** **partner agreement** (commission terms · white-label / territory terms) · NDA · referral + payout terms · data-processing terms.
+- **Shared:** commission schedule · payout cadence · **earned-when-collected / no-clawback clause** · refund/chargeback handling · acceptable-use.
+- **Onboarding doc pack** per seller type (what they sign, in what order).
+- *(Lives in `docs/hiring/` + a partner equivalent; status tracked as inventory 202. NOT a canonical tracker.)*
+
+## 6. Payout & reconciliation
+- Earnings computed from **collected** MRR → **reconcile to the sales ledger (196)** → accounting platform.
+- Statements render in each portal; admin approves/exports payouts.
+
+## 7. Build phases (sequence — post-launch, gated on first clients)
+1. **Model & docs lock (no code):** finalize 197 partner model + the AE plan + **draft all agreements (202)** + reset the calculator default quota (~$480/mo founding AE).
+2. **Discovery & schema:** audit today's partner portal + admin (what's incoherent); design the **shared seller seat** (`partner_paid` | `ae_free`), data model, and the payout/commission engine.
+3. **Admin first:** one console to onboard / approve / manage / pay both seller types.
+4. **Partner portal rebuild:** coherent flow (onboard → refer → manage → earn → statements) + **demo provisioning** + **sell-through-product** access.
+5. **AE portal:** same foundation, free seat, comp dashboard tied to the plan (quota · attainment · accelerators · earnings).
+6. **Payout reconciliation** to the 196 ledger + accounting.
+7. **Enablement:** collateral · scripts · training, per seller type.
+
+## 8. Dependencies / gates
+- Needs **196** (sales ledger) for real payouts · **197** model locked · **202** agreements drafted before any seat is issued.
+- Re-uses: **188** demo-seed (for demo envs) · the **Company Engine #88** seat/budget machinery (a seller seat is a cousin of a rep seat) · **partners.ts** (existing referral/commission code).
+- **Gated post-launch** — first warm the domain (198) and land clients; then stand up the seller engine. Don't build before revenue.
+
+---
+
 # ░ 🚨 RISK & FIX REGISTER (full-system audit · 10 Jun) ░
 **From the all-systems audit (client portal · admin · website · API · docs). Red = act this week · Yellow = scheduled. Owner: 🧍 = founder must do · 🤖 = Claude fixes (branch → founder "go live").**
 

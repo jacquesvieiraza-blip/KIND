@@ -1065,7 +1065,7 @@ export default function LeadsPage() {
               ♻️ {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''} ready for revival
             </p>
             <p className="text-xs text-amber-600 mt-0.5">
-              These leads were scored but never contacted. Alta data shows 53% engagement on revival campaigns.
+              These leads were scored but never contacted. Industry data shows 53% engagement on revival campaigns.
             </p>
           </div>
           <a href="/dashboard/figsy?template=revival"

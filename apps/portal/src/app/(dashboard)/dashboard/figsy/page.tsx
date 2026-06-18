@@ -82,7 +82,7 @@ const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
   {
     id: 'revival',
     name: 'Unresponsive Revival',
-    description: 'Re-engage leads who were scored but never replied. Alta shows 53% engagement on these campaigns — often higher than cold outreach.',
+    description: 'Re-engage leads who were scored but never replied. Industry data shows 53% engagement on these campaigns — often higher than cold outreach.',
     category: 'Nurture',
     icon: TrendingUp,
     tags: ['2 steps', 'Revival', 'High-intent'],

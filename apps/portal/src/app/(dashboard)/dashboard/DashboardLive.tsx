@@ -137,7 +137,7 @@ export function DashboardLive({
     { label: 'Emails sent',     value: totalSent.toLocaleString(),       color: 'text-slate-700',   bg: 'bg-white',          border: 'border-[#EDE9FE]',    trend: sparkPoints, trendColor: '#7C3AED' },
     { label: 'Reply rate',      value: `${replyRate}%`,                  color: replyRate >= 8 ? 'text-emerald-600' : 'text-slate-700', bg: replyRate >= 8 ? 'bg-emerald-50/50' : 'bg-white', border: replyRate >= 8 ? 'border-emerald-200' : 'border-[#EDE9FE]', sub: replyRate >= 8 ? '↑ above avg' : 'avg 8%' },
     { label: 'Interested',      value: totalInterested.toLocaleString(), color: 'text-amber-600',   bg: totalInterested > 0 ? 'bg-amber-50/40' : 'bg-white', border: totalInterested > 0 ? 'border-amber-200' : 'border-[#EDE9FE]', sub: 'warm leads' },
-    { label: 'Meetings booked', value: totalMeetings.toLocaleString(),   color: 'text-[#7C3AED]',   bg: totalMeetings > 0 ? 'bg-[#F5F0FF]' : 'bg-white',    border: 'border-[#EDE9FE]', sub: `Alta avg: 3–5%` },
+    { label: 'Meetings booked', value: totalMeetings.toLocaleString(),   color: 'text-[#7C3AED]',   bg: totalMeetings > 0 ? 'bg-[#F5F0FF]' : 'bg-white',    border: 'border-[#EDE9FE]', sub: `Industry avg: 3–5%` },
   ] as { label: string; value: string; color: string; bg: string; border: string; sub?: string; trend?: number[]; trendColor?: string }[]
 
   return (

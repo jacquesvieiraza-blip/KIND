@@ -1,7 +1,7 @@
 # 📋 K.I.N.D — COMPLETE PRODUCT INVENTORY (THE single list)
 
 ## 📊 STATUS AT A GLANCE — the whole board by colour
-*(Counts of the status dots across this doc — recount at each verification walk. Total ≈ 199 items.)*
+*(⚠️ **APPROXIMATE hand-tally — not yet reconciled to the dots.** Audit 18 Jun: the doc mixes two marking systems — numbered items use lone status-dots (151 rows: 4🟢/38🩷/5🟣/11🟡/87🔴/6⏸), early capability tables use ✅ marks (23 rows). The headline numbers below span both and have drifted. **A proper normalize-and-recount is a MON 22 job** (alongside walk Blocks 2/3). Treat as a rough picture until then.)*
 
 | 🟢 Live + verified | 🩷 Live, not yet walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built (the roadmap) | ⏸ Blocked |
 |:---:|:---:|:---:|:---:|:---:|:---:|

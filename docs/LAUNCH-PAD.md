@@ -11,12 +11,12 @@
 ## 🧭 VERIFIED STATE — what's true right now
 - **Last verified:** 2026-06-18 (Thu, launch-eve). **Launch = 🚀 tonight/Fri 19 — "no matter what we go live."** Founder away Sat/Sun; back **Mon 22**.
 - **LIVE on prod:** Company Engine (#88) + the **#502 superset** (R1–R20 + design screens 80–91) + **billing correctness 166–171** → all **🩷 pink** (live, pending the Wed/Thu walk / next-delivery cert → then 🟢). Verified-🟢: 55, 92. Marketing site + admin portal live.
-- **`main`:** ✅ through Wed-17 — today's 3 builds (#605 188 · #606 186 · #607 187, migrations run) **+ the metrics fix chain #608–#615 merged (one source of truth · Analytics in sidebar · 3→2 surfaces · head-count totals).** #616 (debug-line cleanup) open. Earlier: billing #580 · voice 178 (#579) · story (#598/#599).
+- **`main`:** ✅ through Thu-18 — **#625 merged** (FIGSY trial-gate). Open to merge: **#620** (docs reconcile) · **#626** (Alta scrub) · **#627** (agent-switcher visibility). **Close (superseded by #620): #616 · #617 · #618 · #619.** Earlier on main: 186/187/188 (#605/#606/#607) · metrics chain #608–#615 · billing #580 · voice 178 (#579).
 - **✅ METRICS SAGA CLOSED (193 · 195):** FIGSY metrics are now **one source of truth** across Home/Performance/Analytics; 3 metric surfaces consolidated to **2**. Root cause of "0 sent vs 120" = a missing prod migration `opened_at` (`20260531_email_open_tracking.sql`), now run → data consistent.
 - **🚨 DELIVERABILITY (194 + new 198) — the one open risk:** mail-tester **10/10** BUT real tests landed in **Promotions, then Spam** on fresh Gmails. **Diagnosis: REPUTATION, not content** — `gettingkind.com` is ~9 days old, no Gmail trust yet. **#623 hardened the content** (near-plain HTML, **pixel + footer removed from COLD sends**, kept List-Unsubscribe + "Reply STOP"). **The real fix = a warmup tool (Instantly/Mailreach) ~1–2 wks → item 198, founder action MONDAY.** Until placement = Primary, keep cold-sending minimal.
-- **🩷 SHIPPED, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences · **188** Denise on demo.
-- **🌙 TONIGHT (Wed eve, founder):** start a **raw Zoom demo recording** (rawness > polish — a full take is unlikely; partial is fine, we gap-mine whatever you capture) · merge **#616** (removes a temp debug line) · optionally verify 186/187/188.
-- **NOT done yet (pre-19 gates):** verify 186/187/188 · the verification walk (Wed/Thu) · **D9** (mail-tester **10/10 ✅** — a formal GlockApps pass still nice-to-have) · 🎥 Drop 01 · 📞 reschedule Apollo (Ali no-showed). *(Legal #11–13 → post-delivery.)*
+- **🩷 SHIPPED, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences. *(**188** Denise demo ✅ verified 18 Jun; **56** per-rep unlock ✅ verified 18 Jun.)*
+- **🌙 TONIGHT (Thu eve, founder):** merge **#620 · #626 · #627** + close #616–#619 → 🚦 **GO → live.** Optionally verify 186/187.
+- **NOT done yet:** verify 186/187 · **verification walk Blocks 2 (screens 80–91) + 3 (R1–R20) → MON 22** (Block 1 Company Engine ✅ done) · 🎥 Drop 01 **→ TUE 23** · 📞 Apollo **→ MON 22, 5pm CONFIRMED.** **D9:** mail-tester **10/10 ✅**. *(Legal #11–13 → post-delivery.)*
 - **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done. **`TRACKING_URL=https://api.get-kind.com` SET** — open-pixel on **warm/transactional only** (#623 removed it from COLD sends). 🧍 ran the missing **`20260531_email_open_tracking.sql`** (`opened_at`).
 - **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
 - **Process lock:** confirm the Supabase project name before every SQL run.
@@ -65,7 +65,7 @@
 - **Thu 18 (today, launch-eve):** 🧍 verify 186/187/188 · 🤝 verification walk · 🤖 scrub "Alta" (`claude/scrub-alta-performance`) + merge #620/#625/Alta-PR · 🚦 **GO → live tonight/Fri.**
 - **Fri 19:** 🚀 **LAUNCH.** Product already live; 🤖 monitors prod + hotfixes only, **no merges.**
 - **Sat 20–Sun 21:** founder away, **no merges**, 🤖 monitor prod only.
-- **Mon 22:** 🤝 **verification walk Blocks 2 (screens 80–91) + 3 (R1–R20)** · 🧍 **smoke tests** T3–T7 + T9/T10 (`docs/SMOKE_TEST.md`) · 📞 **Apollo — 5pm meeting CONFIRMED** (Ali) · 🧍 **connect the cold-email warmup tool (item 198)** · 🤖 build Company RLS / access control (**55a** — before the 50-rep client) · 🧍 GTM week-1 kickoff (warm outreach + LinkedIn 1/day).
+- **Mon 22:** 🤝 **verification walk Blocks 2 (screens 80–91) + 3 (R1–R20)** + 🤖 **normalize & recount the inventory STATUS dashboard** (unify the 🟢-dot / ✅ marking, then a true count) · 🧍 **smoke tests** T3–T7 + T9/T10 (`docs/SMOKE_TEST.md`) · 📞 **Apollo — 5pm meeting CONFIRMED** (Ali) · 🧍 **connect the cold-email warmup tool (item 198)** · 🤖 build Company RLS / access control (**55a** — before the 50-rep client) · 🧍 GTM week-1 kickoff (warm outreach + LinkedIn 1/day).
 - **Tue 23:** 🎥 **raw Zoom demo → 🤖 gap-mine + Drop 01** (say "gap" out loud) · continue P0 stabilize.
 
 ### 🔎 Verification checklist (the Wed/Thu tool — mark ✅ works · ⚠️ placeholder · 🔴 broken→fix; 🤖 fixes 🔴 same-day)

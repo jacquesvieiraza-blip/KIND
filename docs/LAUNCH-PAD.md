@@ -29,14 +29,14 @@
 **1 · Verify 186 · 187 · 188 → 🟢** — 🧍 founder (🤖 renders the dots)
 - Action: eyeball each — Denise demo unlocked (✅ 188 verified) · a fresh signup stamps T&C · Sequences build→apply→the send is your copy. · Done when: ✅ given → I flip 🩷→🟢 · Source: **186 · 187 · 188**
 
-**2 · Verification walk (Pt 1 + Pt 2)** — 🤝 founder + Claude
-- Action: walk Company Engine · design screens 80–91 · R1–R20 (the checklist below); mark ✅/⚠️/🔴 — I fix any 🔴 same-day → flip 🩷→🟢. **This converts the bulk of the ~45 🩷 items.** · Done when: rows ✅ · Source: **56 · 60–79 · 80–91**
+**2 · Verification walk** — 🤝 founder + Claude
+- ✅ **Block 1 — Company Engine DONE (18 Jun):** all 6 checks; **item 56 → 🟢** (Test 7: per-rep unlock toggles + **$117/mo roll-up** on the company bill). **Blocks 2 (screens 80–91) + 3 (R1–R20) → MON 22** — founder's call, don't rush 28 screens on launch-eve. · Source: **56 ✅ · 60–79 · 80–91**
 
-**3 · Scrub "Alta" off the Performance page** — 🤖 Claude *(in progress)*
-- Action: replace the competitor-named benchmark with a neutral label (don't point clients elsewhere). · Done when: PR merged + live · Source: **Performance/KPIs UI** · GitHub: **PR pending (branch `claude/scrub-alta-performance`)**
+**3 · Scrub "Alta" off the Performance page** — 🤖 Claude — ✅ **DONE → PR #626**
+- Removed every client-facing competitor "Alta" (Performance benchmark + 2 data-citations) → neutral "Industry" wording; kept the deliberate `/v2/train` positioning. · GitHub: **#626** (awaiting merge)
 
-**4 · Merge the open PRs** — 🧍 founder
-- **#620** (docs reconcile) · **#625** (FIGSY trial-gate fix) · the Alta-scrub PR → then launch. · GitHub: **#620 · #625 · (Alta PR)**
+**4 · Merge the open PRs → GO** — 🧍 founder
+- **#620** (docs reconcile · 9 commits) · **#626** (Alta scrub) · **#627** (agent-switcher visibility fix). **#625 already merged.** After #626/#627 deploy → 🧍 re-check the FIGSY "Switch agent" button is visible + Performance reads "Industry". · GitHub: **#620 · #626 · #627**
 
 **5 · 🚦 GO / NO-GO → GO live** — 🤝, end of today
 - Any unresolved 🔴 from the walk → fix same-day or slip. Else **GO → live tonight / Fri 19.** *(Founder: we go live no matter what.)* · Source: **105**
@@ -65,11 +65,11 @@
 - **Thu 18 (today, launch-eve):** 🧍 verify 186/187/188 · 🤝 verification walk · 🤖 scrub "Alta" (`claude/scrub-alta-performance`) + merge #620/#625/Alta-PR · 🚦 **GO → live tonight/Fri.**
 - **Fri 19:** 🚀 **LAUNCH.** Product already live; 🤖 monitors prod + hotfixes only, **no merges.**
 - **Sat 20–Sun 21:** founder away, **no merges**, 🤖 monitor prod only.
-- **Mon 22:** 🧍 **smoke tests** T3–T7 + T9/T10 (`docs/SMOKE_TEST.md`) · 📞 **Apollo — 5pm meeting CONFIRMED** (Ali) · 🧍 **connect the cold-email warmup tool (item 198)** · 🤖 build Company RLS / access control (**55a** — before the 50-rep client) · 🧍 GTM week-1 kickoff (warm outreach + LinkedIn 1/day).
+- **Mon 22:** 🤝 **verification walk Blocks 2 (screens 80–91) + 3 (R1–R20)** · 🧍 **smoke tests** T3–T7 + T9/T10 (`docs/SMOKE_TEST.md`) · 📞 **Apollo — 5pm meeting CONFIRMED** (Ali) · 🧍 **connect the cold-email warmup tool (item 198)** · 🤖 build Company RLS / access control (**55a** — before the 50-rep client) · 🧍 GTM week-1 kickoff (warm outreach + LinkedIn 1/day).
 - **Tue 23:** 🎥 **raw Zoom demo → 🤖 gap-mine + Drop 01** (say "gap" out loud) · continue P0 stabilize.
 
 ### 🔎 Verification checklist (the Wed/Thu tool — mark ✅ works · ⚠️ placeholder · 🔴 broken→fix; 🤖 fixes 🔴 same-day)
-- **Company Engine:** ⬜ command centre · ⬜ Seats + budgets · ⬜ request→approve/deny · ⬜ winning-plays · ⬜ invite→accept · ⬜ per-rep agent unlock (Test 7)
+- **Company Engine ✅ (18 Jun):** ✅ command centre · ✅ Seats + budgets · ⚠️ request→approve/deny (fires at first real rep request) · ✅ winning-plays · ✅ invite (link generated; accept needs the rep) · ✅ per-rep agent unlock (Test 7 → 56 🟢)
 - **Screens 80–91:** ⬜ Teams Hub · ⬜ Notetaker · ⬜ Integrations · ⬜ Deliverability · ⬜ Activity · ⬜ Sequence Builder · ⬜ Templates · ⬜ What's New · ⬜ KPIs
 - **R1–R20:** ⬜ R1 · ⬜ R2*(migration)* · ✅ R3 · ⬜ R4 · ✅ R5 · ⬜ R6 · ⬜ R7 · ⬜ R8 · ⬜ R9 · ⬜ R10 · ⬜ R11 · ⬜ R12 · ⬜ R13 · ⬜ R14 · ⬜ R15*(migration)* · ⬜ R16 · ⬜ R17 · ⬜ R18 · ⬜ R19 · ⬜ R20*(migration)*
 - **Billing (Tue-16):** ⬜ one-charge-one-wallet · ⬜ 3 price tables reconciled · ⬜ Denise $39 · ⬜ FIGSY-only delivers · ⬜ admin FIGSY visibility

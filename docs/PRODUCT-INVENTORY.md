@@ -5,9 +5,9 @@
 
 | 🟢 Live + verified | 🩷 Live, not yet walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built (the roadmap) | ⏸ Blocked |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| **55** | **45** | **5** | **13** | **89** | **6** |
+| **56** | **44** | **5** | **13** | **89** | **6** |
 
-**How to read it:** the **proven core (55 🟢)** is live + verified. The **45 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test) — the Wed/Thu verification walk converts most of them → 🟢. The **89 🔴** are the **forward roadmap**, gated by client-count milestones (not pre-launch). The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**.
+**How to read it:** the **proven core (56 🟢)** is live + verified. The **44 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test) — the Wed/Thu verification walk converts most of them → 🟢. The **89 🔴** are the **forward roadmap**, gated by client-count milestones (not pre-launch). The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**.
 
 
 > **AUTHORITY (operating system — see root `CLAUDE.md`):** this is the ONLY home for product **status** (one dot + one owner per item). Not a task list. For daily execution → `LAUNCH-PAD.md`; for strategy/decisions/history → `KIND-MASTER.md`; for future detail → `V2-TRACKER.md`. **Nothing is 🟢 unless verified live in production** (live-but-unwalked = 🩷).
@@ -178,7 +178,7 @@
 |---|-------|------|------------------------------|-------|
 | 55 | 🟢 | **Command Centre** (#88) — per-rep workspaces · owner-funded pools · per-seat budgets · request→approve/deny · invite→accept→own workspace · winning-plays library · real per-rep stats | ✅ **LIVE on prod 15 Jun** — merged via #564, prod migrations applied (010·011·012·013·20260603·20260612·companion), portal loads, credits/activity/agent-panel verified. (Walk `/dashboard/company` to confirm command-centre panels before calling the rep-flow fully done.) | — |
 | 55a | 🔴 | **⚠️ RLS + Access Control for Company Engine — FAST-FOLLOW (not a launch blocker; founder's call 15 Jun: ship live today, add RLS later)** — owner ONLY sees command centre + all-reps data · reps see ONLY own data (own leads, own campaigns, own calendar) · reps cannot see each other or the command centre. Reps get low-credit notifications & can request top-up, owner approves/denies. **Company Engine SHIPS LIVE Mon 15** without this. **Interim:** until RLS lands, the owner controls who logs in — reps added before RLS would see more than their own data, so the founder gates rep access manually. Build soon after launch. | Design + build RLS policies (row-level security in Supabase) + role/ownership flags + visibility toggles in UI + approval workflow for credit requests. | 🤖 design · 🧍 review |
-| 56 | 🩷 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up bill) — Seats tab | Live via #502 (schema applied) — **verify with Test 7** in the walk → 🟢 | 🤝 walk |
+| 56 | 🟢 | **Per-rep agent unlock** (owner toggles Milla/Vida/Denise per rep → rolled-up bill) — Seats tab | ✅ **Test 7 PASSED (walk, 18 Jun):** invited a rep → invite link generated + 5,000cr per-seat budget applied; toggled **Milla $49 · Vida $29 · Denise $39** ON → **rolled-up company bill computed correctly: +$117/mo** (invite-pending, so no charge fired). | — |
 | 57 | 🟡 | **Payment system — Stripe → company pool billing** (owner pays → pools funded) | 🤖 **building now** — single pool first, two-pool next; then 🧍 creates pool-topup products | 🤖 then 🧍 |
 | 58 | 🟡 | **Denise $39 Stripe price** (billing prerequisite) | 🧍 create $39 Stripe price + set `STRIPE_PRICE_DENISE_MONTHLY` — until then checkout charges $99 | 🧍 |
 | 59 | 🟡 | Admin "Company demo" provisioning | Create one in admin → open `/dashboard/company` populated | 🧍 |

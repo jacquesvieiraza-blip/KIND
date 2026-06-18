@@ -617,7 +617,7 @@ export default function KPIsPage() {
                       : 'Meetings on the board'
                   }
                   {' '}
-                  <span className="text-[#9B8EC4]">· Alta target: 3–5%</span>
+                  <span className="text-[#9B8EC4]">· Industry benchmark: 3–5%</span>
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">

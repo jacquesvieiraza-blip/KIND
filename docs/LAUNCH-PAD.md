@@ -83,6 +83,7 @@
 
 ## 📦 PARKED UNTIL AFTER LAUNCH (pull in only when its gate opens)
 *Full ranked detail + rationale lives in `PRODUCT-INVENTORY` (status) and `V2-TRACKER` (roadmap). This is the index.*
+- **🧍 MON 22 — FIRST THING (item 198):** connect a real cold-email **warmup tool** (Instantly / Mailreach) on `hello@gettingkind.com`, ramp 20→40/day, ~30% reply — keep real cold-sending OFF until placement = Primary (~1–2 wks). Clock starts Monday.
 - **Wk of Mon 22 — P0 stabilize:** Company RLS 55a · money-path tests 124 · onboarding 174–177 · company essentials 106/107/108.
 - **Month 1 — P1 revenue/credibility:** inbox rebuild **112** · invoicing **136a** · dormant data 94/95 + A/B 113 · design queue 125/113a/82/85–87 · Prompt Library **162** · nav 118 · company hardening 109/110/111.
 - **Gated — P2 Intelligence (~10+ clients):** Learning Engine 143 · MCP 141 · Casey 121 · Product Hunt 142. *(→ V2-TRACKER Month 2.)*

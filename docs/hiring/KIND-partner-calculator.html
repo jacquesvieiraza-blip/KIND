@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K.I.N.D — Partner Channel Calculator (5-year)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c1726; --ink-soft:#5b556b; --ink-faint:#8d8799;
+    --paper:#ffffff; --wash:#f6f4fb; --line:#e7e3f0;
+    --purple:#6d28d9; --purple-2:#7c3aed; --lilac:#f1ecfe; --lilac-line:#d9cdfa;
+    --green:#0f8a5f; --green-wash:#e7f6ef; --red:#c0392b; --red-wash:#fceae8;
+    --radius:12px; --radius-sm:8px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--wash); color:var(--ink); font-family:"Inter",system-ui,sans-serif; line-height:1.5; font-size:15px; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1200px; margin:0 auto; padding:28px 20px 64px}
+  header.top{margin-bottom:18px}
+  .brand{font-family:"Space Grotesk",sans-serif; font-weight:700; letter-spacing:.04em; font-size:13px; color:var(--purple); text-transform:uppercase}
+  h1{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:30px; line-height:1.15; margin:6px 0 6px; letter-spacing:-0.01em}
+  .sub{color:var(--ink-soft); max-width:66ch; font-size:14.5px}
+  .banner{display:flex; align-items:center; gap:10px; background:var(--green-wash); border:1px solid #bfe6d3; border-radius:var(--radius); padding:11px 15px; margin:16px 0 4px; font-size:13.5px; color:#0c6e4c}
+  .banner b{color:var(--green)}
+
+  .grid{display:grid; grid-template-columns:320px 1fr; gap:22px; align-items:start; margin-top:18px}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  .panel{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:18px}
+  .panel + .panel{margin-top:16px}
+  .panel h2{font-family:"Space Grotesk",sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); margin:0 0 14px; font-weight:600}
+  .field{margin-bottom:13px} .field:last-child{margin-bottom:0}
+  .field label{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:13px; color:var(--ink-soft); margin-bottom:5px; font-weight:500}
+  .field .hint{color:var(--ink-faint); font-weight:400; font-size:11.5px}
+  .iw{position:relative; display:flex; align-items:center}
+  .iw .pre,.iw .post{position:absolute; color:var(--ink-faint); font-family:"JetBrains Mono",monospace; font-size:13px; pointer-events:none}
+  .iw .pre{left:11px} .iw .post{right:11px}
+  .field input{width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:var(--radius-sm); font-family:"JetBrains Mono",monospace; font-size:14px; color:var(--ink); background:#fdfcff; -moz-appearance:textfield}
+  .field input.has-pre{padding-left:23px} .field input.has-post{padding-right:30px}
+  .field input:focus{outline:2px solid var(--purple-2); outline-offset:1px; border-color:transparent}
+  input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+  .cardgroup{margin-bottom:16px}
+  .grouplabel{font-family:"Space Grotesk",sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); font-weight:600; margin:0 0 8px 2px}
+  .cards{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+  .card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:14px 15px}
+  .card .k{font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); font-weight:600; margin-bottom:7px}
+  .card .v{font-family:"JetBrains Mono",monospace; font-weight:600; font-size:21px; letter-spacing:-0.02em}
+  .card .v small{font-size:13px; color:var(--ink-soft); font-weight:400}
+  .card.hero{background:var(--green-wash); border-color:#bfe6d3} .card.hero .v{color:var(--green); font-size:23px}
+  .card.accent{background:var(--lilac); border-color:var(--lilac-line)} .card.accent .v{color:var(--purple)}
+
+  .tablecard{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
+  .tablecard .head{display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:10px}
+  .tabs{display:inline-flex; background:var(--wash); border:1px solid var(--line); border-radius:99px; padding:3px}
+  .tab{font-family:"Inter",sans-serif; font-size:13px; font-weight:500; color:var(--ink-soft); background:none; border:none; padding:6px 15px; border-radius:99px; cursor:pointer}
+  .tab.active{background:var(--purple); color:#fff; font-weight:600}
+  .tab:focus-visible{outline:2px solid var(--purple-2); outline-offset:2px}
+  .reset{font-family:"Inter",sans-serif; font-size:12.5px; color:var(--purple); background:none; border:1px solid var(--lilac-line); padding:6px 11px; border-radius:20px; cursor:pointer}
+  .reset:hover{background:var(--lilac)}
+  .scroll{overflow-x:auto} .scroll.tall{max-height:430px; overflow-y:auto}
+  table{width:100%; border-collapse:collapse; font-family:"JetBrains Mono",monospace; font-size:13px; min-width:680px}
+  thead th{text-align:right; font-weight:500; color:var(--ink-faint); padding:11px 13px; border-bottom:1px solid var(--line); font-size:11px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; background:var(--paper)}
+  thead th:first-child{text-align:left}
+  .tall thead th{position:sticky; top:0; z-index:1; box-shadow:0 1px 0 var(--line)}
+  tbody td{text-align:right; padding:11px 13px; border-bottom:1px solid #f1eef8; font-variant-numeric:tabular-nums; white-space:nowrap}
+  tbody td:first-child{text-align:left; color:var(--ink); font-family:"Inter",sans-serif; font-weight:600}
+  tbody tr:last-child td{border-bottom:none}
+  td.pay{color:var(--purple)} td.net{color:var(--green); font-weight:600} td.cum{font-weight:600}
+  tbody tr.yr-start td{border-top:2px solid var(--lilac-line)}
+  #view-month tbody td:first-child{font-weight:500; color:var(--ink-soft)}
+  .note{font-size:12px; color:var(--ink-faint); margin-top:14px; line-height:1.55}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">K.I.N.D · Partner Channel</div>
+    <h1>Partner Channel Calculator — 5-year</h1>
+    <p class="sub">Partners resell K.I.N.D and earn a share of the revenue they bring. No base, no salary — they earn 20% on each new client, then 5% every month to keep it alive. Model one partner or a whole channel and see both what the partner earns and what you keep.</p>
+    <div class="banner">💸 <span><b>No salary, ever.</b> A partner earns <b>20%</b> on acquisition and <b>5% per month</b> to retain hard — everything else in the margin is yours.</span></div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2>Per partner</h2>
+        <div class="field"><label for="clients">New clients / month <span class="hint">e.g. 10</span></label><div class="iw"><input type="number" id="clients" value="10" min="0" step="1"></div></div>
+        <div class="field"><label for="arpu">Avg client MRR <span class="hint">partners land bigger</span></label><div class="iw"><span class="pre">$</span><input class="has-pre" type="number" id="arpu" value="250" min="0" step="10"></div></div>
+        <div class="field"><label for="churn">Monthly churn</label><div class="iw"><input class="has-post" type="number" id="churn" value="4" min="0" max="100" step="0.5"><span class="post">%</span></div></div>
+      </div>
+      <div class="panel">
+        <h2>Channel size</h2>
+        <div class="field"><label for="startp">Partners at start</label><div class="iw"><input type="number" id="startp" value="1" min="0" step="1"></div></div>
+        <div class="field"><label for="newp">New partners / month <span class="hint">recruiting</span></label><div class="iw"><input type="number" id="newp" value="0" min="0" step="0.5"></div></div>
+      </div>
+      <div class="panel">
+        <h2>Partner commission &amp; margin</h2>
+        <div class="field"><label for="acq">Acquisition <span class="hint">one-time, on new client</span></label><div class="iw"><input class="has-post" type="number" id="acq" value="20" min="0" max="100" step="1"><span class="post">%</span></div></div>
+        <div class="field"><label for="retain">Retention <span class="hint">every month, to retain hard</span></label><div class="iw"><input class="has-post" type="number" id="retain" value="5" min="0" max="100" step="0.5"><span class="post">%</span></div></div>
+        <div class="field"><label for="margin">Gross margin</label><div class="iw"><input class="has-post" type="number" id="margin" value="93" min="0" max="100" step="1"><span class="post">%</span></div></div>
+        <button type="button" class="reset" id="reset" style="margin-top:6px">Reset defaults</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="cardgroup">
+        <p class="grouplabel">You net — no salary, only commission</p>
+        <div class="cards">
+          <div class="card hero" id="card-net"><div class="k">5-yr net to you</div><div class="v" id="c-net">—</div></div>
+          <div class="card"><div class="k">Channel book (yr 5)</div><div class="v" id="c-book">—</div></div>
+        </div>
+      </div>
+      <div class="cardgroup">
+        <p class="grouplabel">The partner earns (avg per partner)</p>
+        <div class="cards">
+          <div class="card accent"><div class="k">Per partner (yr 5)</div><div class="v" id="c-pp">—</div></div>
+          <div class="card"><div class="k">Active partners (yr 5)</div><div class="v" id="c-partners">—</div></div>
+        </div>
+      </div>
+
+      <div class="tablecard">
+        <div class="head">
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-view="year" role="tab">Year-by-year</button>
+            <button class="tab" data-view="month" role="tab">Monthly</button>
+          </div>
+        </div>
+        <div class="scroll" id="view-year">
+          <table>
+            <thead><tr><th>Year</th><th>Partners</th><th>Book / mo</th><th>Revenue</th><th>Partner payout</th><th>Your net</th><th>Cumulative</th></tr></thead>
+            <tbody id="rows-year"></tbody>
+          </table>
+        </div>
+        <div class="scroll tall" id="view-month" hidden>
+          <table>
+            <thead><tr><th>Month</th><th>Partners</th><th>Book / mo</th><th>Partner payout</th><th>Your net</th><th>Cumulative</th></tr></thead>
+            <tbody id="rows-month"></tbody>
+          </table>
+        </div>
+      </div>
+      <p class="note" id="footnote"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ids = ["clients","arpu","churn","startp","newp","acq","retain","margin"];
+const defaults = {clients:10,arpu:250,churn:4,startp:1,newp:0,acq:20,retain:5,margin:93};
+const val = id => { const v=parseFloat($(id).value); return isNaN(v)?0:v; };
+const usd = n => (n<0?"-$":"$")+Math.round(Math.abs(n)).toLocaleString("en-US");
+const usd0 = n => Math.abs(n)>=1 ? usd(n) : "—";
+function usdC(n){ const a=Math.abs(n), s=n<0?"-":"";
+  if(a>=1e6) return s+"$"+(a/1e6).toFixed(2)+"M";
+  if(a>=1e3) return s+"$"+Math.round(a/1e3)+"k";
+  return s+"$"+Math.round(a); }
+
+function compute(){
+  const clients=val("clients"), arpu=val("arpu"), churn=val("churn")/100,
+        startp=val("startp"), newp=val("newp"),
+        acq=val("acq")/100, retain=val("retain")/100, margin=val("margin")/100;
+
+  let book=0, cum=0; const months=[], years=[]; let acc={rev:0,pay:0,net:0};
+  for(let mo=1; mo<=60; mo++){
+    const active=Math.max(startp+newp*(mo-1),0);
+    const newMRR=active*clients*arpu;
+    const retained=Math.max(book-book*churn,0);
+    book=retained+newMRR;
+    const pay = acq*newMRR + retain*book;       // 20% acquisition one-time + 5% recurring on book
+    const net = book*margin - pay;
+    cum+=net;
+    months.push({mo, active, book, pay, net, cum});
+    acc.rev+=book; acc.pay+=pay; acc.net+=net;
+    if(mo%12===0){ years.push({y:mo/12, active, book, rev:acc.rev, pay:acc.pay, net:acc.net, cum}); acc={rev:0,pay:0,net:0}; }
+  }
+  const last=years[4];
+  const perPartner = last.active>0 ? last.pay/last.active : 0;
+  $("c-net").textContent=usdC(cum); $("card-net").className="card "+(cum>=0?"hero":"card");
+  $("c-book").innerHTML=usdC(last.book)+" <small>/mo</small>";
+  $("c-pp").innerHTML=usdC(perPartner)+" <small>/yr</small>";
+  $("c-partners").textContent=Math.round(last.active);
+
+  $("rows-year").innerHTML=years.map(r=>`
+    <tr><td>Year ${r.y}</td><td>${Math.round(r.active)}</td><td>${usdC(r.book)}</td><td>${usdC(r.rev)}</td>
+    <td class="pay">${usdC(r.pay)}</td><td class="net">${usdC(r.net)}</td><td class="cum">${usdC(r.cum)}</td></tr>`).join("");
+  $("rows-month").innerHTML=months.map(r=>`
+    <tr class="${(r.mo-1)%12===0&&r.mo>1?'yr-start':''}"><td>Mo ${r.mo}</td><td>${Math.round(r.active)}</td><td>${usd0(r.book)}</td>
+    <td class="pay">${usd(r.pay)}</td><td class="net">${usd(r.net)}</td><td class="cum">${usdC(r.cum)}</td></tr>`).join("");
+
+  $("footnote").textContent = `Each partner brings ${clients} new clients/month at $${arpu} MRR; the channel book compounds against ${(churn*100).toFixed(1)}% monthly churn. The partner earns ${(acq*100).toFixed(0)}% on each new client (one-time) and ${(retain*100).toFixed(1)}% of the active book every month — the recurring slice is what makes them retain hard. "Your net" = book margin − partner payout; there is no salary or base, so a partner is pure channel leverage. This is the optimistic line where every partner keeps producing — taper clients/month to model a partner exhausting their network.`;
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
+  const month=t.dataset.view==="month"; $("view-year").hidden=month; $("view-month").hidden=!month;
+}));
+ids.forEach(id=>$(id).addEventListener("input",compute));
+$("reset").addEventListener("click",()=>{ ids.forEach(id=>$(id).value=defaults[id]); compute(); });
+compute();
+</script>
+</body>
+</html>

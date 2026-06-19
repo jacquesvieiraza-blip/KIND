@@ -419,7 +419,7 @@
 - **[SELLER-ENGINE-MAP.md](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/SELLER-ENGINE-MAP.md) — START HERE: the full map of the seller/team engine** (the vision · the two systems · every asset · build phases · open decisions).
 - [KIND-AE-COMP-PLAN.md](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-COMP-PLAN.md) — AE comp plan v3 (OTE $112.5k · $1,500 ARPU · $4,500/mo quota).
 - [KIND-PARTNER-COMP-PLAN.md](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-PARTNER-COMP-PLAN.md) — partner comp plan (25% + 5% renewal — same spine).
-- [KIND-AE-commission-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-commission-calculator.html) — live 5-yr AE payout calculator · [KIND-team-pnl-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-team-pnl-calculator.html) — live 5-yr Team P&L.
+- [KIND-AE-commission-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-AE-commission-calculator.html) — live 5-yr AE payout calculator · [KIND-partner-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-partner-calculator.html) — live 5-yr Partner Channel calculator (20% acq + 5% retain) · [KIND-team-pnl-calculator.html](https://github.com/jacquesvieiraza-blip/KIND/blob/main/docs/hiring/KIND-team-pnl-calculator.html) — live 5-yr Team P&L.
 - *Reference only — not trackers; status lives in PRODUCT-INVENTORY (196 · 197 · 200 · 201 · 202). UK HR/legal templates + Business Command Centre → `kind-ops`.*
 
 *(HTML files show source on GitHub — download/open to view rendered, or I can send them in chat anytime.)*

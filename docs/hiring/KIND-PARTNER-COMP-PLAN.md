@@ -1,7 +1,7 @@
 # K.I.N.D — Partner Compensation Plan
 *The channel-side twin of the AE comp plan — same spine (refer · manage · earn on retention), built for an **external partner who PAYS to use the tool** (vs the AE's free seat). Reference doc under `/docs/hiring/`. Not a canonical tracker; status lives in PRODUCT-INVENTORY (197 model · 200 portal · 202 agreements).*
 
-> ⚠️ **OPEN DECISION (founder to lock):** the AE comp plan's prose references partner economics as **"20% + 5%"**, but inventory **item 197 locks 25% + 5% on renewal**. This plan is written to **197 (25% + 5%)**. Confirm which is the locked partner rate before issuing any partner agreement.
+> ⚠️ **OPEN DECISION — RATE CONFLICT (founder to lock before issuing):** three sources disagree. The AE comp plan prose says **"20% + 5%"**; the new **Partner Channel Calculator** (`KIND-partner-calculator.html`, 18 Jun) defaults to **20% acquisition + 5% retention**; but inventory **item 197 says 25% + 5% on renewal**. **Two of three (incl. your latest calculator) = 20% + 5%** — so that's likely the real number. This plan currently reads 25% + 5% (the 197 figure). **On your confirm I'll set both this plan and item 197 to match the calculator (20% + 5%)** — or keep 25% if that's the intent. The numbers below are placeholders until you lock it.
 
 ---
 

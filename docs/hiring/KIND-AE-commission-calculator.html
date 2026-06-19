@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>K.I.N.D — AE Commission Calculator</title>
+<title>K.I.N.D — AE Commission Calculator (5-year)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -12,180 +12,155 @@
     --ink:#1c1726; --ink-soft:#5b556b; --ink-faint:#8d8799;
     --paper:#ffffff; --wash:#f6f4fb; --line:#e7e3f0;
     --purple:#6d28d9; --purple-2:#7c3aed; --lilac:#f1ecfe; --lilac-line:#d9cdfa;
-    --green:#0f8a5f; --green-wash:#e7f6ef;
-    --amber:#b4690e; --amber-wash:#fbf0df;
+    --green:#0f8a5f; --green-wash:#e7f6ef; --red:#c0392b; --red-wash:#fceae8;
+    --amber:#b4690e;
     --radius:12px; --radius-sm:8px;
   }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
-  body{
-    margin:0; background:var(--wash); color:var(--ink);
-    font-family:"Inter",system-ui,sans-serif; line-height:1.5;
-    font-size:15px; -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:1180px; margin:0 auto; padding:28px 20px 64px}
+  body{margin:0; background:var(--wash); color:var(--ink); font-family:"Inter",system-ui,sans-serif; line-height:1.5; font-size:15px; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1200px; margin:0 auto; padding:28px 20px 64px}
   header.top{margin-bottom:24px}
   .brand{font-family:"Space Grotesk",sans-serif; font-weight:700; letter-spacing:.04em; font-size:13px; color:var(--purple); text-transform:uppercase}
   h1{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:30px; line-height:1.15; margin:6px 0 6px; letter-spacing:-0.01em}
-  .sub{color:var(--ink-soft); max-width:62ch; font-size:14.5px}
+  .sub{color:var(--ink-soft); max-width:66ch; font-size:14.5px}
   .grid{display:grid; grid-template-columns:340px 1fr; gap:22px; align-items:start}
-  @media (max-width:880px){ .grid{grid-template-columns:1fr} }
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
 
   .panel{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:18px}
   .panel + .panel{margin-top:16px}
   .panel h2{font-family:"Space Grotesk",sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); margin:0 0 14px; font-weight:600}
 
-  .field{margin-bottom:13px}
-  .field:last-child{margin-bottom:0}
+  .field{margin-bottom:13px} .field:last-child{margin-bottom:0}
   .field label{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:13px; color:var(--ink-soft); margin-bottom:5px; font-weight:500}
   .field .hint{color:var(--ink-faint); font-weight:400; font-size:11.5px}
   .input-wrap{position:relative; display:flex; align-items:center}
   .input-wrap .pre,.input-wrap .post{position:absolute; color:var(--ink-faint); font-family:"JetBrains Mono",monospace; font-size:13px; pointer-events:none}
   .input-wrap .pre{left:11px} .input-wrap .post{right:11px}
-  input[type="number"]{
-    width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:var(--radius-sm);
-    font-family:"JetBrains Mono",monospace; font-size:14px; color:var(--ink); background:#fdfcff;
-    -moz-appearance:textfield;
-  }
+  input[type="number"]{width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:var(--radius-sm); font-family:"JetBrains Mono",monospace; font-size:14px; color:var(--ink); background:#fdfcff; -moz-appearance:textfield}
   input.has-pre{padding-left:23px} input.has-post{padding-right:30px}
   input[type="number"]:focus{outline:2px solid var(--purple-2); outline-offset:1px; border-color:transparent}
   input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
-  /* summary cards */
+  .targets{display:grid; grid-template-columns:repeat(3,1fr); background:var(--purple); border-radius:var(--radius); overflow:hidden; margin-bottom:16px}
+  .targets .t{padding:15px 18px; color:#fff}
+  .targets .t + .t{border-left:1px solid rgba(255,255,255,.16)}
+  .targets .tk{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#d9c9fb; font-weight:600; margin-bottom:6px}
+  .targets .tv{font-family:"JetBrains Mono",monospace; font-weight:600; font-size:22px; letter-spacing:-0.02em}
+  .targets .ts{font-size:11.5px; color:#d9c9fb; margin-top:2px; font-family:"JetBrains Mono",monospace}
+  @media (max-width:560px){ .targets{grid-template-columns:1fr} .targets .t + .t{border-left:none; border-top:1px solid rgba(255,255,255,.16)} }
+
   .cards{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px}
-  @media (max-width:880px){ .cards{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:560px){ .cards{grid-template-columns:repeat(2,1fr)} }
   .card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:14px 15px}
-  .card .k{font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:600; margin-bottom:7px}
+  .card .k{font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); font-weight:600; margin-bottom:7px}
   .card .v{font-family:"JetBrains Mono",monospace; font-weight:600; font-size:21px; letter-spacing:-0.02em}
   .card .v small{font-size:13px; color:var(--ink-soft); font-weight:400}
-  .card.accent{background:var(--lilac); border-color:var(--lilac-line)}
-  .card.accent .v{color:var(--purple)}
-  .card.pos .v{color:var(--green)}
+  .card.hero{background:var(--green-wash); border-color:#bfe6d3} .card.hero .v{color:var(--green); font-size:24px}
+  .card.neg{background:var(--red-wash); border-color:#f3cdc8} .card.neg .v{color:var(--red)}
+  .card.accent{background:var(--lilac); border-color:var(--lilac-line)} .card.accent .v{color:var(--purple)}
 
-  /* table */
   .tablecard{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
-  .tablecard .head{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:8px}
-  .tablecard .head h2{font-family:"Space Grotesk",sans-serif; font-size:14px; font-weight:600; margin:0}
-  .legend{display:flex; gap:14px; font-size:11.5px; color:var(--ink-soft)}
-  .legend span{display:inline-flex; align-items:center; gap:5px}
-  .dot{width:9px; height:9px; border-radius:3px; display:inline-block}
-  .dot.g{background:var(--amber)} .dot.e{background:var(--purple)}
-  .scroll{overflow-x:auto}
-  table{width:100%; border-collapse:collapse; font-family:"JetBrains Mono",monospace; font-size:12.5px; min-width:760px}
-  thead th{text-align:right; font-weight:500; color:var(--ink-faint); padding:10px 12px; border-bottom:1px solid var(--line); font-size:11px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap}
-  thead th:first-child{text-align:left}
-  tbody td{text-align:right; padding:9px 12px; border-bottom:1px solid #f1eef8; font-variant-numeric:tabular-nums; white-space:nowrap}
-  tbody td:first-child{text-align:left; color:var(--ink-soft); font-family:"Inter",sans-serif}
-  tbody tr:last-child td{border-bottom:none}
-  tbody tr.netpos td:first-child::after{content:"break-even"; margin-left:8px; font-family:"Inter",sans-serif; font-size:10px; font-weight:600; color:var(--green); background:var(--green-wash); padding:2px 6px; border-radius:20px; vertical-align:middle}
-  .paid{font-weight:600}
-  .paid.g{color:var(--amber)} .paid.e{color:var(--purple)}
-  td.total{color:var(--ink); font-weight:600}
-  .phase{font-size:10px; font-family:"Inter",sans-serif; color:var(--ink-faint); display:block}
-
-  .note{font-size:12px; color:var(--ink-faint); margin-top:14px; line-height:1.55}
+  .tablecard .head{display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:10px}
+  .tabs{display:inline-flex; background:var(--wash); border:1px solid var(--line); border-radius:99px; padding:3px}
+  .tab{font-family:"Inter",sans-serif; font-size:13px; font-weight:500; color:var(--ink-soft); background:none; border:none; padding:6px 15px; border-radius:99px; cursor:pointer}
+  .tab.active{background:var(--purple); color:#fff; font-weight:600}
+  .tab:focus-visible{outline:2px solid var(--purple-2); outline-offset:2px}
   .reset{font-family:"Inter",sans-serif; font-size:12.5px; color:var(--purple); background:none; border:1px solid var(--lilac-line); padding:6px 11px; border-radius:20px; cursor:pointer}
-  .reset:hover{background:var(--lilac)}
-  .reset:focus-visible{outline:2px solid var(--purple-2); outline-offset:2px}
+  .reset:hover{background:var(--lilac)} .reset:focus-visible{outline:2px solid var(--purple-2); outline-offset:2px}
+
+  .scroll{overflow-x:auto}
+  .scroll.tall{max-height:470px; overflow-y:auto}
+  table{width:100%; border-collapse:collapse; font-family:"JetBrains Mono",monospace; font-size:13px; min-width:720px}
+  thead th{text-align:right; font-weight:500; color:var(--ink-faint); padding:11px 14px; border-bottom:1px solid var(--line); font-size:11px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; background:var(--paper)}
+  thead th:first-child{text-align:left}
+  .tall thead th{position:sticky; top:0; z-index:1; box-shadow:0 1px 0 var(--line)}
+  tbody td{text-align:right; padding:11px 14px; border-bottom:1px solid #f1eef8; font-variant-numeric:tabular-nums; white-space:nowrap}
+  tbody td:first-child{text-align:left; color:var(--ink); font-family:"Inter",sans-serif; font-weight:600}
+  tbody tr:last-child td{border-bottom:none}
+  td.comp{color:var(--purple)}
+  td.net.pos{color:var(--green); font-weight:600} td.net.neg{color:var(--red); font-weight:600}
+  td.cum{font-weight:600}
+  tbody tr.yr-start td{border-top:2px solid var(--lilac-line)}
+  tbody tr.be td:first-child::after{content:"break-even"; margin-left:8px; font-family:"Inter",sans-serif; font-size:10px; font-weight:600; color:var(--green); background:var(--green-wash); padding:2px 6px; border-radius:20px; vertical-align:middle}
+  #view-month tbody td:first-child{font-weight:500; color:var(--ink-soft)}
+  .phase{font-size:10px; font-family:"Inter",sans-serif; color:var(--ink-faint); display:block; font-weight:400}
+  .caption{font-family:"Inter",sans-serif; font-size:12.5px; color:var(--ink-soft); padding:12px 16px; border-top:1px solid var(--line); background:var(--wash)}
+  .caption b{color:var(--purple)}
+  .note{font-size:12px; color:var(--ink-faint); margin-top:14px; line-height:1.55}
+  [hidden]{display:none !important}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <div class="brand">K.I.N.D · Sales Comp</div>
-    <h1>AE Commission Calculator</h1>
-    <p class="sub">Dollar new-MRR target, ramped. Land 20% / retain 5% / expansion 5% on collected MRR, greater-of guarantee at 100/100/75/75, accelerators above quota. Change any input — the 12-month projection updates live.</p>
+    <h1>AE Commission Calculator — 5-year</h1>
+    <p class="sub">One company-deal closer over a full retention horizon. Year 1 ramps; years 2–5 run at full production. The recurring book compounds while the base stays flat — change any input and the five-year net, the compounding book, and the AE's rising pay all update live. Switch between the year and month views below.</p>
   </header>
 
   <div class="grid">
-    <!-- CONTROLS -->
     <form id="controls" autocomplete="off">
       <div class="panel">
         <h2>Deal assumptions</h2>
-        <div class="field">
-          <label for="deals">New deals / month <span class="hint">at full ramp</span></label>
-          <div class="input-wrap"><input type="number" id="deals" value="4" min="0" step="1"></div>
-        </div>
-        <div class="field">
-          <label for="mrr">Avg deal MRR <span class="hint">company ≈ $240</span></label>
-          <div class="input-wrap"><span class="pre">$</span><input class="has-pre" type="number" id="mrr" value="240" min="0" step="10"></div>
-        </div>
-        <div class="field">
-          <label for="churn">Monthly churn</label>
-          <div class="input-wrap"><input class="has-post" type="number" id="churn" value="3" min="0" max="100" step="0.5"><span class="post">%</span></div>
-        </div>
-        <div class="field">
-          <label for="expbook">Book expanding / month <span class="hint">upsells</span></label>
-          <div class="input-wrap"><input class="has-post" type="number" id="expbook" value="2" min="0" max="100" step="0.5"><span class="post">%</span></div>
-        </div>
+        <div class="field"><label for="deals">New deals / month <span class="hint">full ramp</span></label><div class="input-wrap"><input type="number" id="deals" value="3" min="0" step="1"></div></div>
+        <div class="field"><label for="mrr">Avg deal MRR <span class="hint">multi-seat ≈ $1,500</span></label><div class="input-wrap"><span class="pre">$</span><input class="has-pre" type="number" id="mrr" value="1500" min="0" step="50"></div></div>
+        <div class="field"><label for="churn">Monthly churn</label><div class="input-wrap"><input class="has-post" type="number" id="churn" value="3" min="0" max="100" step="0.5"><span class="post">%</span></div></div>
+        <div class="field"><label for="expbook">Book expanding / month</label><div class="input-wrap"><input class="has-post" type="number" id="expbook" value="2" min="0" max="100" step="0.5"><span class="post">%</span></div></div>
       </div>
-
       <div class="panel">
         <h2>Plan rates</h2>
-        <div class="field">
-          <label for="land">Land — one-time on first month</label>
-          <div class="input-wrap"><input class="has-post" type="number" id="land" value="20" min="0" max="100" step="1"><span class="post">%</span></div>
-        </div>
-        <div class="field">
-          <label for="retain">Retain — recurring monthly</label>
-          <div class="input-wrap"><input class="has-post" type="number" id="retain" value="5" min="0" max="100" step="1"><span class="post">%</span></div>
-        </div>
-        <div class="field">
-          <label for="expand">Expansion — one-time on upsell</label>
-          <div class="input-wrap"><input class="has-post" type="number" id="expand" value="5" min="0" max="100" step="1"><span class="post">%</span></div>
-        </div>
+        <div class="field"><label for="land">Land — one-time</label><div class="input-wrap"><input class="has-post" type="number" id="land" value="20" min="0" max="100" step="1"><span class="post">%</span></div></div>
+        <div class="field"><label for="retain">Retain — recurring</label><div class="input-wrap"><input class="has-post" type="number" id="retain" value="5" min="0" max="100" step="1"><span class="post">%</span></div></div>
+        <div class="field"><label for="expand">Expansion — one-time</label><div class="input-wrap"><input class="has-post" type="number" id="expand" value="5" min="0" max="100" step="1"><span class="post">%</span></div></div>
       </div>
-
       <div class="panel">
-        <h2>Targets &amp; base</h2>
-        <div class="field">
-          <label for="quota">Full new-MRR quota / month <span class="hint">for accelerator</span></label>
-          <div class="input-wrap"><span class="pre">$</span><input class="has-pre" type="number" id="quota" value="960" min="1" step="50"></div>
-        </div>
-        <div class="field">
-          <label for="vartarget">Monthly variable target <span class="hint">for guarantee</span></label>
-          <div class="input-wrap"><span class="pre">$</span><input class="has-pre" type="number" id="vartarget" value="800" min="0" step="50"></div>
-        </div>
-        <div class="field">
-          <label for="base">Base salary / month <span class="hint">localize</span></label>
-          <div class="input-wrap"><span class="pre">$</span><input class="has-pre" type="number" id="base" value="1500" min="0" step="50"></div>
-        </div>
-        <div class="field">
-          <label for="margin">Gross margin <span class="hint">for break-even</span></label>
-          <div class="input-wrap"><input class="has-post" type="number" id="margin" value="93" min="0" max="100" step="1"><span class="post">%</span></div>
-        </div>
+        <h2>Targets &amp; pay</h2>
+        <div class="field"><label for="quota">Full new-MRR quota / mo</label><div class="input-wrap"><span class="pre">$</span><input class="has-pre" type="number" id="quota" value="4500" min="1" step="100"></div></div>
+        <div class="field"><label for="vartarget">Monthly variable target</label><div class="input-wrap"><span class="pre">$</span><input class="has-pre" type="number" id="vartarget" value="3750" min="0" step="50"></div></div>
+        <div class="field"><label for="base">Base salary / month <span class="hint">$67.5k/yr</span></label><div class="input-wrap"><span class="pre">$</span><input class="has-pre" type="number" id="base" value="5625" min="0" step="50"></div></div>
+        <div class="field"><label for="margin">Gross margin</label><div class="input-wrap"><input class="has-post" type="number" id="margin" value="93" min="0" max="100" step="1"><span class="post">%</span></div></div>
       </div>
     </form>
 
-    <!-- RESULTS -->
     <div>
+      <div class="targets">
+        <div class="t"><div class="tk">Monthly target</div><div class="tv" id="t-mo">—</div><div class="ts" id="t-mo-arr">—</div></div>
+        <div class="t"><div class="tk">Quarterly (full)</div><div class="tv" id="t-q">—</div><div class="ts" id="t-q-arr">—</div></div>
+        <div class="t"><div class="tk">Annual (yr 1)</div><div class="tv" id="t-yr">—</div><div class="ts" id="t-yr-arr">—</div></div>
+      </div>
+
       <div class="cards">
-        <div class="card accent"><div class="k">Year-1 total comp</div><div class="v" id="c-total">—</div></div>
-        <div class="card"><div class="k">Year-1 variable</div><div class="v" id="c-var">—</div></div>
-        <div class="card"><div class="k">Mo-12 variable</div><div class="v" id="c-m12">—</div></div>
-        <div class="card pos"><div class="k">Net-positive</div><div class="v" id="c-be">—</div></div>
+        <div class="card hero" id="card-net"><div class="k">5-yr net to you</div><div class="v" id="c-net">—</div></div>
+        <div class="card"><div class="k">Exit book (yr 5)</div><div class="v" id="c-book">—</div></div>
+        <div class="card accent"><div class="k">Yr-5 AE comp</div><div class="v" id="c-comp">—</div></div>
+        <div class="card"><div class="k">Break-even</div><div class="v" id="c-be">—</div></div>
       </div>
 
       <div class="tablecard">
         <div class="head">
-          <h2>12-month projection</h2>
-          <div class="legend">
-            <span><i class="dot e"></i> earned won</span>
-            <span><i class="dot g"></i> guarantee won</span>
-            <button type="button" class="reset" id="reset">Reset defaults</button>
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="tab-year" data-view="year" role="tab">Year-by-year</button>
+            <button class="tab" id="tab-month" data-view="month" role="tab">Monthly</button>
           </div>
+          <button type="button" class="reset" id="reset">Reset defaults</button>
         </div>
-        <div class="scroll">
+
+        <div class="scroll" id="view-year">
           <table>
-            <thead>
-              <tr>
-                <th>Month</th><th>Deals</th><th>New MRR</th><th>Active book</th>
-                <th>Land</th><th>Retain</th><th>Expand</th><th>Guarantee</th><th>Variable paid</th><th>+ Base = Total</th>
-              </tr>
-            </thead>
-            <tbody id="rows"></tbody>
+            <thead><tr><th>Year</th><th>End book / mo</th><th>Revenue</th><th>Margin</th><th>AE comp</th><th>Net to you</th><th>Cumulative</th></tr></thead>
+            <tbody id="rows-year"></tbody>
           </table>
         </div>
+
+        <div class="scroll tall" id="view-month" hidden>
+          <table>
+            <thead><tr><th>Month</th><th>New MRR</th><th>Book / mo</th><th>Margin</th><th>AE comp</th><th>Net to you</th><th>Cumulative</th></tr></thead>
+            <tbody id="rows-month"></tbody>
+          </table>
+        </div>
+
+        <div class="caption" id="caption"></div>
       </div>
       <p class="note" id="footnote"></p>
     </div>
@@ -195,80 +170,77 @@
 <script>
 const $ = id => document.getElementById(id);
 const ids = ["deals","mrr","churn","expbook","land","retain","expand","quota","vartarget","base","margin"];
-const defaults = {deals:4,mrr:240,churn:3,expbook:2,land:20,retain:5,expand:5,quota:960,vartarget:800,base:1500,margin:93};
-const guaranteeSched = [1,1,0.75,0.75,0,0,0,0,0,0,0,0]; // 100/100/75/75 then off
-
-const usd = n => "$" + Math.round(n).toLocaleString("en-US");
+const defaults = {deals:3,mrr:1500,churn:3,expbook:2,land:20,retain:5,expand:5,quota:4500,vartarget:3750,base:5625,margin:93};
+const guar=[1,1,0.75,0.75];
+const val = id => { const v = parseFloat($(id).value); return isNaN(v)?0:v; };
+const usd = n => (n<0?"-$":"$")+Math.round(Math.abs(n)).toLocaleString("en-US");
 const usd0 = n => n>0 ? usd(n) : "—";
-
-function val(id){ const v = parseFloat($(id).value); return isNaN(v)?0:v; }
+function usdC(n){ const a=Math.abs(n), s=n<0?"-":"";
+  if(a>=1e6) return s+"$"+(a/1e6).toFixed(2)+"M";
+  if(a>=1e3) return s+"$"+Math.round(a/1e3)+"k";
+  return s+"$"+Math.round(a); }
 
 function compute(){
   const deals=val("deals"), mrr=val("mrr"), churn=val("churn")/100, expbook=val("expbook")/100,
         land=val("land")/100, retain=val("retain")/100, expand=val("expand")/100,
         quota=Math.max(val("quota"),1), vartarget=val("vartarget"), base=val("base"), margin=val("margin")/100;
 
-  let book=0, yearVar=0, yearTotal=0, m12var=0, m12book=0, beMonth=null;
-  const rows=[];
+  const moT=quota, qT=quota*3, yrT=quota*10.5;
+  $("t-mo").textContent=usd(moT); $("t-mo-arr").textContent=usd(moT*12)+" ARR";
+  $("t-q").textContent=usd(qT);   $("t-q-arr").textContent=usd(qT*12)+" ARR";
+  $("t-yr").textContent=usd(yrT); $("t-yr-arr").textContent="~"+usd(yrT*12)+" ARR";
 
-  for(let m=1;m<=12;m++){
-    const d = m===1 ? 0 : (m===2 ? Math.round(deals*0.5) : deals);
-    const phase = m===1 ? "onboarding" : (m===2 ? "ramp" : "full");
-    const newMrr = d*mrr;
-    const churned = book*churn;
-    const retained = Math.max(book-churned,0);          // prior book after churn
-    const retainComm = retain*retained;
-    const attain = newMrr/quota;
-    const accel = attain>1.4 ? 1.5 : (attain>=1.0 ? 1.25 : 1.0);
-    const landComm = land*newMrr*accel;
-    const expMrr = expbook*retained;
-    const expComm = expand*expMrr;
-    book = retained + newMrr + expMrr;
-
-    const earned = landComm + retainComm + expComm;
-    const guar = guaranteeSched[m-1]*vartarget;
-    const paid = Math.max(earned, guar);
-    const guarWon = guar > earned + 0.001;
-    const total = base + paid;
-
-    const marginGen = book*margin;
-    const net = marginGen - base - paid;
-    if(beMonth===null && net>=0) beMonth=m;
-
-    yearVar+=paid; yearTotal+=total;
-    if(m===12){ m12var=paid; m12book=book; }
-
-    rows.push({m,d,phase,newMrr,book,landComm,retainComm,expComm,guar,paid,total,guarWon,netpos:(beMonth===m)});
+  let book=0, cum=0, beMonth=null;
+  const months=[]; const years=[]; let acc={rev:0,gm:0,base:0,comm:0,net:0};
+  for(let mo=1; mo<=60; mo++){
+    const d = mo===1 ? 0 : (mo===2 ? Math.round(deals*0.5) : deals);
+    const phase = mo===1 ? "onboarding" : (mo===2 ? "ramp" : "full");
+    const newMrr=d*mrr;
+    const retained=Math.max(book-book*churn,0);
+    const rc=retain*retained;
+    const at=newMrr/quota; const ac=at>1.4?1.5:(at>=1?1.25:1.0);
+    const lc=land*newMrr*ac;
+    const em=expbook*retained, ec=expand*em;
+    book=retained+newMrr+em;
+    const gfloor=(mo<=4?guar[mo-1]:0)*vartarget;
+    const paid=Math.max(lc+rc+ec, gfloor);
+    const cost=base+paid, mg=book*margin, net=mg-cost;
+    cum+=net;
+    if(beMonth===null && net>=0) beMonth=mo;
+    months.push({mo,phase,newMrr,book,mg,comp:cost,net,cum,be:(beMonth===mo)});
+    acc.rev+=book; acc.gm+=mg; acc.base+=base; acc.comm+=paid; acc.net+=net;
+    if(mo%12===0){ years.push({y:mo/12, endBook:book, rev:acc.rev, gm:acc.gm, comp:acc.base+acc.comm, net:acc.net, cum}); acc={rev:0,gm:0,base:0,comm:0,net:0}; }
   }
 
-  // render cards
-  $("c-total").innerHTML = usd(yearTotal);
-  $("c-var").innerHTML = usd(yearVar);
-  $("c-m12").innerHTML = usd(m12var) + " <small>/mo</small>";
-  $("c-be").innerHTML = beMonth ? ("Mo " + beMonth) : "&gt;12 mo";
+  const last=years[4];
+  $("c-net").textContent=usdC(cum);
+  $("card-net").className="card "+(cum>=0?"hero":"neg");
+  $("c-book").innerHTML=usdC(last.endBook)+" <small>/mo</small>";
+  $("c-comp").textContent=usdC(last.comp);
+  $("c-be").innerHTML = beMonth ? ("Mo "+beMonth) : "&gt;60 mo";
 
-  // render rows
-  $("rows").innerHTML = rows.map(r=>`
-    <tr class="${r.netpos?'netpos':''}">
-      <td>Mo ${r.m}<span class="phase">${r.phase}</span></td>
-      <td>${r.d}</td>
-      <td>${usd0(r.newMrr)}</td>
-      <td>${usd0(r.book)}</td>
-      <td>${usd0(r.landComm)}</td>
-      <td>${usd0(r.retainComm)}</td>
-      <td>${usd0(r.expComm)}</td>
-      <td>${usd0(r.guar)}</td>
-      <td class="paid ${r.guarWon?'g':'e'}">${usd(r.paid)}</td>
-      <td class="total">${usd(r.total)}</td>
-    </tr>`).join("");
+  $("rows-year").innerHTML = years.map(r=>`
+    <tr><td>Year ${r.y}</td><td>${usdC(r.endBook)}</td><td>${usdC(r.rev)}</td><td>${usdC(r.gm)}</td>
+    <td class="comp">${usdC(r.comp)}</td><td class="net ${r.net>=0?'pos':'neg'}">${usdC(r.net)}</td><td class="cum">${usdC(r.cum)}</td></tr>`).join("");
 
-  // footnote
-  const beTxt = beMonth
-    ? `The AE turns net-positive in month ${beMonth} — the margin from their active book covers base + variable.`
-    : `The AE doesn't cover base + variable within 12 months at these inputs — raise deal volume or ARPU, or lower the base.`;
-  $("footnote").textContent = `Commission is paid on collected MRR (earned only once collected — churn auto-corrects). Land applies to a new client's first month; retain accrues on the prior book each month; expansion is one-time on upsell MRR. Guarantee pays the greater of the floor or earned (100/100/75/75, month-1 gated on onboarding). Accelerator lifts land to 1.25× at 100–140% of quota and 1.5× above. ${beTxt}`;
+  $("rows-month").innerHTML = months.map(r=>`
+    <tr class="${r.be?'be ':''}${(r.mo-1)%12===0&&r.mo>1?'yr-start':''}">
+      <td>Mo ${r.mo}<span class="phase">${r.phase}</span></td>
+      <td>${usd0(r.newMrr)}</td><td>${usd0(r.book)}</td><td>${usd0(r.mg)}</td>
+      <td class="comp">${usd(r.comp)}</td>
+      <td class="net ${r.net>=0?'pos':'neg'}">${usd(r.net)}</td>
+      <td class="cum">${usdC(r.cum)}</td></tr>`).join("");
+
+  $("caption").innerHTML = `<b>AE comp climbs ${years.map(r=>usdC(r.comp)).join(" → ")}</b> — that growth is the recurring 5% retain compounding on the book they own. It's the retention lock: they don't walk away from trailing income that big.`;
+  $("footnote").textContent = `Year 1 ramps (0 / 50% / 100% over months 1-3); years 2-5 run at full production. Commission is paid on collected MRR; AE comp = base + the greater of earned commission or the guarantee floor (year 1 only). "Net to you" = book margin − AE cost, excluding shared infra. Assumes flat churn and steady new production for 5 years — one rep realistically needs CS / account-management support around years 2-3 (cost not modeled here), so read years 4-5 as the book's trajectory if properly serviced.`;
 }
 
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");
+  const month = t.dataset.view==="month";
+  $("view-year").hidden=month; $("view-month").hidden=!month;
+}));
 ids.forEach(id=>$(id).addEventListener("input",compute));
 $("reset").addEventListener("click",()=>{ ids.forEach(id=>$(id).value=defaults[id]); compute(); });
 compute();

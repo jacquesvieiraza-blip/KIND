@@ -54,7 +54,8 @@ From `getkindbusinesscommandcentre_2.html`. Architecture:
 7. **Enablement:** collateral · scripts · training.
 
 ## 6. Open decisions (founder) — must resolve before issuing seats
-1. **Partner commission rate — NEARLY RESOLVED:** the AE-plan prose AND the new **Partner Channel Calculator** (18 Jun) both use **20% acquisition + 5% retention**; only item 197 still says 25% + 5%. **Two of three (incl. your latest calculator) = 20% + 5%.** → On founder confirm, set the partner comp plan + item 197 to **20% + 5%**. *(Live tool: `KIND-partner-calculator.html`.)*
+1. **Partner commission rate — ✅ LOCKED 19 Jun = 20% acquisition + 5% retention** (the founder's build brief + calculator; item 197 + partner comp plan updated; old "25%+5%" superseded).
+2. **THE BUILD (item 203):** the founder's authoritative **build brief** (`KIND-CLAUDE-CODE-BRIEF.md`) turns all of this into a live system — Stripe → attribution → ONE commission engine → 3 portals → founder-approved payouts. **Founder build priority: ① Admin portal + operating SOP → ② Partner portal → ③ AE portal, account systems right from the start.** **All £ GBP** (vs the product's USD pricing — to reconcile). NEXT-WEEK, confirm plan before any code.
 2. **AE quota:** **$4,500/mo locked** (v3) — confirmed; corrects the earlier $480/$960 example.
 3. **Team roster / timing:** the Team P&L's default start-months (AE+partner mo1, eng mo7, CSM+support mo13, mid-market AE mo25) — confirm.
 4. **Legal pack:** transcribe the 5 UK templates into the portal's document vault now, or keep as issued PDFs and have the portal just store/serve them? (Recommend: portal stores/serves the signed PDFs; templates live in `kind-ops`.)

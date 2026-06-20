@@ -1,7 +1,7 @@
 # K.I.N.D — Partner Compensation Plan
 *The channel-side twin of the AE comp plan — same spine (refer · manage · earn on retention), built for an **external partner who PAYS to use the tool** (vs the AE's free seat). Reference doc under `/docs/hiring/`. Not a canonical tracker; status lives in PRODUCT-INVENTORY (197 model · 200 portal · 202 agreements).*
 
-> ⚠️ **OPEN DECISION — RATE CONFLICT (founder to lock before issuing):** three sources disagree. The AE comp plan prose says **"20% + 5%"**; the new **Partner Channel Calculator** (`KIND-partner-calculator.html`, 18 Jun) defaults to **20% acquisition + 5% retention**; but inventory **item 197 says 25% + 5% on renewal**. **Two of three (incl. your latest calculator) = 20% + 5%** — so that's likely the real number. This plan currently reads 25% + 5% (the 197 figure). **On your confirm I'll set both this plan and item 197 to match the calculator (20% + 5%)** — or keep 25% if that's the intent. The numbers below are placeholders until you lock it.
+> ✅ **RATE LOCKED (19 Jun):** **Acquisition 20% + Retention 5%** — locked by the founder's authoritative build brief (`KIND-CLAUDE-CODE-BRIEF.md` §3) + the Partner Channel Calculator. Supersedes the earlier "25% + 5%". This plan is now written to **20% + 5%**.
 
 ---
 
@@ -11,8 +11,8 @@ A **Partner** is an external seller who **refers AND manages** K.I.N.D clients a
 ## 2. Commission — paid on collected MRR (retention-weighted)
 | Component | Rate | Basis | Timing |
 |---|---|---|---|
-| **Commission** | **25%** | The referred/managed client's collected MRR | Recurring, each month the client pays |
-| **Renewal uplift** | **+5%** | Same client's collected MRR, once they **renew** (cross the retention window) | Recurring, from renewal onward |
+| **Acquisition** | **20%** | A new client's **first-month** MRR | One-time, on the new client signing |
+| **Retention** | **5%** | The partner's **active book** (collected MRR of clients they manage) | Recurring, every month the client stays |
 
 The model deliberately **rewards keeping clients alive**, not one-off sign-ups — a partner earns *more* the longer their clients stay, which aligns the channel with the churn/retention thesis. *(Mirrors the AE's land + retain spine; the partner's "manage & earn" and "refer & earn" are unified into this single retention-based model — item 197.)*
 
@@ -33,7 +33,7 @@ Partner Agreement (commission terms · white-label / territory) → NDA → Refe
 Earnings compute from **collected** MRR → reconcile to the **sales ledger (196)** → accounting → paid out on the agreed cadence, visible in the partner portal.
 
 ## 7. One-line summary
-**25% on collected MRR + 5% renewal uplift · earned-when-collected · partner pays for their own seat (vs AE free) · same portal + demo + sell-through-product toolkit · refer AND manage, unified into one retention-based model (item 197).**
+**20% acquisition (one-time, new client first-month MRR) + 5% retention (recurring on active book) · no base · earned-when-collected · partner pays for their own seat (vs AE free) · same portal + demo + sell-through-product toolkit · refer AND manage, one model (item 197).**
 
 ---
 *Use the AE/Partner calculators (companion files) to model take-home; this plan is the channel twin of `KIND-AE-COMP-PLAN.md`. Full picture: `SELLER-ENGINE-MAP.md`.*

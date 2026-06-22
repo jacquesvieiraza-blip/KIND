@@ -231,6 +231,7 @@ export default function FigsyPage() {
   const [replyDraft, setReplyDraft] = useState<{ replyId: string; draft: string } | null>(null)
   const [draftingId, setDraftingId] = useState<string | null>(null)
   const [cloningId, setCloningId] = useState<string | null>(null)
+  const [pausingAll, setPausingAll] = useState(false)
   const [mode, setMode] = useState<'autopilot' | 'copilot'>('autopilot')
   const [showTemplates, setShowTemplates] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<CampaignTemplate | null>(null)
@@ -491,6 +492,21 @@ export default function FigsyPage() {
     setUpdatingId(null)
   }
 
+  async function handlePauseAll() {
+    if (!confirm('Pause ALL active campaigns? FIGSY will immediately stop sending for every campaign. You can resume them individually afterwards.')) return
+    setPausingAll(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.post<{ data: { paused: number } }>('/figsy/campaigns/pause-all', {}, session?.access_token)
+      await loadCampaigns()
+      const n = res.data?.paused ?? 0
+      toast(n > 0 ? `Paused ${n} campaign${n !== 1 ? 's' : ''}` : 'No active campaigns to pause')
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to pause campaigns')
+    }
+    setPausingAll(false)
+  }
+
   async function handleClone(id: string) {
     setCloningId(id)
     try {
@@ -737,6 +753,17 @@ export default function FigsyPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {campaigns.some(c => c.status === 'active') && (
+            <button
+              onClick={handlePauseAll}
+              disabled={pausingAll}
+              title="Immediately pause every active campaign"
+              className="flex items-center gap-2 px-4 py-2 border border-red-300 hover:border-red-400 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              {pausingAll ? 'Pausing…' : 'Pause all campaigns'}
+            </button>
+          )}
           <a
             href="/dashboard/figsy/kanban"
             className="flex items-center gap-1.5 px-3 py-2 border border-purple-100/80 bg-white hover:bg-purple-50 text-[#7B6FA0] hover:text-[#7C3AED] text-sm font-medium rounded-lg transition-colors"

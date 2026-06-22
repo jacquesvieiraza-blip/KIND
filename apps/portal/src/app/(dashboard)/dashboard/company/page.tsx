@@ -12,6 +12,7 @@ import { api } from '@/lib/api'
 import {
   Building2, Users, Coins, Crown,
   CheckCircle2, XCircle, Loader2, Sparkles, Zap, Eye, CreditCard,
+  X, Megaphone, MessageSquare, CalendarCheck, Send, ChevronRight,
 } from 'lucide-react'
 
 // Lead-gen credit bundles — mirrors billing page. $1/credit, three sizes.
@@ -43,6 +44,9 @@ interface Seat {
   leads?: number
   reply_pct?: number
 }
+interface RepCampaign { id: string; name: string; status: string; leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number; created_at: string }
+interface RepActivity { type: 'sent' | 'reply' | 'meeting'; title: string; subtitle: string; at: string; tone: 'neutral' | 'positive' | 'warn' }
+interface RepDetail { seat: { id: string; role: string }; campaigns: RepCampaign[]; activity: RepActivity[] }
 interface CreditRequest { id: string; rep_client_id: string; amount: number; reason: string | null; created_at: string }
 interface Play { id: string; name: string; note: string | null; reply_rate: number | null; pushed_to_all: boolean }
 interface Overview {
@@ -70,6 +74,21 @@ export default function CompanyPage() {
 
   const [needsSetup, setNeedsSetup] = useState(false)
   const [provisioning, setProvisioning] = useState(false)
+
+  // #107 — owner drill-down into one rep (read-only campaigns + activity).
+  const [drillSeat, setDrillSeat] = useState<Seat | null>(null)
+  const [drillDetail, setDrillDetail] = useState<RepDetail | null>(null)
+  const [drillLoading, setDrillLoading] = useState(false)
+  async function openRep(seat: Seat) {
+    if (!token || seat.role === 'owner') return
+    setDrillSeat(seat); setDrillDetail(null); setDrillLoading(true)
+    try {
+      const res = await api.get<{ data: RepDetail }>(`/company/seats/${seat.id}/detail`, token)
+      setDrillDetail(res.data)
+    } catch { setDrillDetail(null) }
+    setDrillLoading(false)
+  }
+  function closeRep() { setDrillSeat(null); setDrillDetail(null) }
 
   const load = useCallback(async (tok: string) => {
     try {
@@ -292,8 +311,11 @@ export default function CompanyPage() {
                   const left = Math.max(0, s.credit_budget - s.credits_used)
                   const pct  = s.credit_budget > 0 ? (s.credits_used / s.credit_budget) : 0
                   const INITIALS = ['bg-violet-600','bg-indigo-500','bg-emerald-500','bg-amber-500','bg-rose-500']
+                  const isRep = s.role !== 'owner'
                   return (
-                    <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                    <tr key={s.id}
+                      onClick={() => isRep && can_manage && openRep(s)}
+                      className={`border-b border-gray-50 last:border-0 ${isRep && can_manage ? 'cursor-pointer hover:bg-violet-50/50' : 'hover:bg-gray-50/50'}`}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${INITIALS[i % INITIALS.length]}`}>
@@ -315,13 +337,19 @@ export default function CompanyPage() {
                       </td>
                       <td className="px-3 py-4 text-right font-bold text-gray-900">{s.role === 'owner' ? '—' : (s.booked ?? 0)}</td>
                       <td className="px-4 py-4 text-right">
-                        <span className="font-bold" style={{ color: pct > 0.9 ? '#ea580c' : BRAND }}>{left.toLocaleString()}</span>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="font-bold" style={{ color: pct > 0.9 ? '#ea580c' : BRAND }}>{left.toLocaleString()}</span>
+                          {isRep && can_manage && <ChevronRight className="w-4 h-4 text-gray-300" />}
+                        </div>
                       </td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
+            {can_manage && seats.some(s => s.role === 'rep' && s.seat_active) && (
+              <p className="px-6 py-3 text-xs text-gray-400 border-t border-gray-50">Click a rep to drill into their campaigns and recent activity.</p>
+            )}
           </div>
 
           {/* Pending credit requests */}
@@ -570,6 +598,103 @@ export default function CompanyPage() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* #107 — Rep drill-down modal (read-only) */}
+      {drillSeat && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" onClick={closeRep}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-8" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="text-white px-6 py-5 rounded-t-2xl flex items-center justify-between" style={{ background: BRAND }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">
+                  {emailName(drillSeat.email).slice(0,2).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-lg font-bold">{emailName(drillSeat.email)}</p>
+                  <p className="text-xs text-white/70">{drillSeat.accepted_at ? 'FIGSY · active' : 'Invite pending'} · {drillSeat.role}</p>
+                </div>
+              </div>
+              <button onClick={closeRep} className="p-1.5 rounded-lg hover:bg-white/15"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Headline stats — already on the seat from /overview */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: 'Contacted', value: (drillSeat.contacted ?? 0).toLocaleString() },
+                  { label: 'Reply %',   value: `${drillSeat.reply_pct ?? 0}%` },
+                  { label: 'Booked',    value: String(drillSeat.booked ?? 0) },
+                  { label: 'Credits left', value: Math.max(0, drillSeat.credit_budget - drillSeat.credits_used).toLocaleString() },
+                ].map(k => (
+                  <div key={k.label} className="rounded-xl border border-gray-200 p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">{k.value}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{k.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {drillLoading && <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" /></div>}
+
+              {!drillLoading && drillDetail && (
+                <>
+                  {/* Campaigns */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2"><Megaphone className="w-4 h-4" style={{ color: BRAND }} /> Campaigns</h3>
+                    {drillDetail.campaigns.length === 0 ? (
+                      <p className="text-sm text-gray-400">No campaigns yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {drillDetail.campaigns.map(c => (
+                          <div key={c.id} className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                              <p className="text-[11px] text-gray-400 capitalize">{c.status}</p>
+                            </div>
+                            <div className="flex gap-5 text-right text-xs">
+                              <div><p className="font-bold text-gray-900">{c.leads_enrolled.toLocaleString()}</p><p className="text-gray-400">leads</p></div>
+                              <div><p className="font-bold text-gray-900">{c.emails_sent.toLocaleString()}</p><p className="text-gray-400">sent</p></div>
+                              <div><p className="font-bold text-gray-900">{c.replies_total.toLocaleString()}</p><p className="text-gray-400">replies</p></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recent activity */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2"><MessageSquare className="w-4 h-4" style={{ color: BRAND }} /> Recent activity</h3>
+                    {drillDetail.activity.length === 0 ? (
+                      <p className="text-sm text-gray-400">No activity yet.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {drillDetail.activity.map((a, idx) => {
+                          const Icon = a.type === 'meeting' ? CalendarCheck : a.type === 'reply' ? MessageSquare : Send
+                          const color = a.tone === 'positive' ? 'text-emerald-600' : a.tone === 'warn' ? 'text-orange-600' : 'text-gray-400'
+                          return (
+                            <div key={idx} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
+                              <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${color}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-gray-800 truncate">{a.title}</p>
+                                <p className="text-[11px] text-gray-400 truncate">{a.subtitle}</p>
+                              </div>
+                              <span className="text-[11px] text-gray-300 shrink-0">{a.at ? new Date(a.at).toLocaleDateString() : ''}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {!drillLoading && !drillDetail && (
+                <p className="text-sm text-gray-400 text-center py-6">Couldn&apos;t load this rep&apos;s detail. Close and try again.</p>
+              )}
+            </div>
           </div>
         </div>
       )}

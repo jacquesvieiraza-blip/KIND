@@ -580,6 +580,176 @@ adminRouter.post('/messages/:clientId/reply', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to send reply' }) }
 })
 
+// ── ITEM 180: ADMIN ACTIVITY / AUDIT LOG ──────────────────────────────────────
+// Read-only "who sent what, when, to whom" view. AGGREGATES existing logged data
+// — it adds NO new table and NO new write-path. Sources:
+//   • figsy_sent_emails  — outreach email sends (recipient, subject, timestamp)
+//   • outcome_events     — the data floor: replies, meetings booked, opt-outs, etc.
+//   • leads consent cols — POPIA consent sent / consent given / opt-out timestamps
+//   • credit_transactions — key money events (purchases, grants, refunds)
+// Filterable by client, event type and date range. All filtering/merging happens
+// in-process over reads; nothing is written.
+type ActivityEvent = {
+  id: string
+  occurred_at: string
+  client_id: string | null
+  client_name: string | null
+  source: 'email' | 'outcome' | 'consent' | 'credit'
+  event_type: string
+  recipient: string | null    // who it was sent / done to (lead email)
+  summary: string             // human-readable "what"
+}
+
+adminRouter.get('/activity', async (req: Request, res: Response) => {
+  try {
+    const q = z.object({
+      client_id: z.string().uuid().optional(),
+      // event_type filters by our normalised type (e.g. 'email_sent', 'reply',
+      // 'meeting_booked', 'opt_out', 'consent_sent', 'consent_given', 'credit')
+      event_type: z.string().max(60).optional(),
+      from:       z.string().optional(), // ISO date — inclusive lower bound on occurred_at
+      to:         z.string().optional(), // ISO date — inclusive upper bound on occurred_at
+      limit:      z.coerce.number().int().min(1).max(1000).optional(),
+    }).safeParse(req.query)
+    if (!q.success) {
+      res.status(400).json({ success: false, error: q.error.issues[0]?.message ?? 'Invalid filters' }); return
+    }
+    const { client_id, event_type, from, to } = q.data
+    const limit = q.data.limit ?? 500
+    // Over-fetch per source so the merged+sliced result is still the true newest N.
+    const perSource = limit
+
+    const fromIso = from && !Number.isNaN(Date.parse(from)) ? new Date(from).toISOString() : null
+    const toIso   = to   && !Number.isNaN(Date.parse(to))   ? new Date(to).toISOString()   : null
+
+    // Helper: apply the optional date window to a query on a given timestamp column.
+    const window = (qb: any, col: string) => {
+      if (fromIso) qb = qb.gte(col, fromIso)
+      if (toIso)   qb = qb.lte(col, toIso)
+      return qb
+    }
+
+    // Which sources do we need? If event_type is set, only hit the relevant source(s).
+    const wantEmail   = !event_type || event_type === 'email_sent'
+    const wantOutcome = !event_type || ['reply', 'meeting_booked', 'opt_out', 'send', 'open'].includes(event_type)
+    const wantConsent = !event_type || ['consent_sent', 'consent_given', 'opt_out_lead'].includes(event_type)
+    const wantCredit  = !event_type || event_type === 'credit'
+
+    const [emailRes, outcomeRes, leadRes, creditRes] = await Promise.all([
+      wantEmail
+        ? (() => {
+            let qb: any = db.from('figsy_sent_emails')
+              .select('id, lead_id, subject, sent_at, status, leads(email, client_id, clients(company_name))')
+              .order('sent_at', { ascending: false }).limit(perSource)
+            if (client_id) qb = qb.eq('leads.client_id', client_id)
+            return window(qb, 'sent_at')
+          })()
+        : Promise.resolve({ data: [] }),
+      wantOutcome
+        ? (() => {
+            let qb: any = db.from('outcome_events')
+              .select('id, client_id, lead_id, event_type, occurred_at, payload, clients(company_name), leads(email)')
+              .order('occurred_at', { ascending: false }).limit(perSource)
+            if (client_id) qb = qb.eq('client_id', client_id)
+            if (event_type) qb = qb.eq('event_type', event_type)
+            return window(qb, 'occurred_at')
+          })()
+        : Promise.resolve({ data: [] }),
+      wantConsent
+        ? (() => {
+            let qb: any = db.from('leads')
+              .select('id, email, client_id, consent_sent_at, consent_given_at, opted_out_at, updated_at, clients(company_name)')
+              .order('updated_at', { ascending: false }).limit(perSource)
+            if (client_id) qb = qb.eq('client_id', client_id)
+            // Only leads that have at least one consent/opt-out timestamp.
+            qb = qb.or('consent_sent_at.not.is.null,consent_given_at.not.is.null,opted_out_at.not.is.null')
+            return qb
+          })()
+        : Promise.resolve({ data: [] }),
+      wantCredit
+        ? (() => {
+            let qb: any = db.from('credit_transactions')
+              .select('id, client_id, type, amount, note, created_at, clients(company_name)')
+              .order('created_at', { ascending: false }).limit(perSource)
+            if (client_id) qb = qb.eq('client_id', client_id)
+            return window(qb, 'created_at')
+          })()
+        : Promise.resolve({ data: [] }),
+    ])
+
+    const events: ActivityEvent[] = []
+
+    for (const e of ((emailRes as any).data ?? []) as any[]) {
+      const lead = e.leads
+      events.push({
+        id:          `email:${e.id}`,
+        occurred_at: e.sent_at,
+        client_id:   lead?.client_id ?? null,
+        client_name: lead?.clients?.company_name ?? null,
+        source:      'email',
+        event_type:  'email_sent',
+        recipient:   lead?.email ?? null,
+        summary:     `Sent email: "${e.subject ?? '(no subject)'}"${e.status && e.status !== 'sent' ? ` [${e.status}]` : ''}`,
+      })
+    }
+
+    for (const o of ((outcomeRes as any).data ?? []) as any[]) {
+      const p = (o.payload ?? {}) as Record<string, unknown>
+      const subj = typeof p.subject === 'string' ? ` "${p.subject}"` : ''
+      events.push({
+        id:          `outcome:${o.id}`,
+        occurred_at: o.occurred_at,
+        client_id:   o.client_id ?? null,
+        client_name: o.clients?.company_name ?? null,
+        source:      'outcome',
+        event_type:  o.event_type,
+        recipient:   o.leads?.email ?? null,
+        summary:     `${String(o.event_type).replace(/_/g, ' ')}${subj}`,
+      })
+    }
+
+    for (const l of ((leadRes as any).data ?? []) as any[]) {
+      const name = l.clients?.company_name ?? null
+      if ((!event_type || event_type === 'consent_sent') && l.consent_sent_at) {
+        events.push({ id: `consent_sent:${l.id}`, occurred_at: l.consent_sent_at, client_id: l.client_id, client_name: name, source: 'consent', event_type: 'consent_sent', recipient: l.email ?? null, summary: 'POPIA consent request sent' })
+      }
+      if ((!event_type || event_type === 'consent_given') && l.consent_given_at) {
+        events.push({ id: `consent_given:${l.id}`, occurred_at: l.consent_given_at, client_id: l.client_id, client_name: name, source: 'consent', event_type: 'consent_given', recipient: l.email ?? null, summary: 'POPIA consent GIVEN' })
+      }
+      if ((!event_type || event_type === 'opt_out_lead') && l.opted_out_at) {
+        events.push({ id: `opt_out:${l.id}`, occurred_at: l.opted_out_at, client_id: l.client_id, client_name: name, source: 'consent', event_type: 'opt_out_lead', recipient: l.email ?? null, summary: 'Lead opted out' })
+      }
+    }
+
+    for (const t of ((creditRes as any).data ?? []) as any[]) {
+      events.push({
+        id:          `credit:${t.id}`,
+        occurred_at: t.created_at,
+        client_id:   t.client_id ?? null,
+        client_name: t.clients?.company_name ?? null,
+        source:      'credit',
+        event_type:  'credit',
+        recipient:   null,
+        summary:     `Credits ${t.amount > 0 ? '+' : ''}${t.amount} (${t.type})${t.note ? ` — ${t.note}` : ''}`,
+      })
+    }
+
+    // Consent rows were not date-windowed at the DB level (they carry several
+    // timestamp columns), so apply the window here for those derived events.
+    let merged = events
+    if (fromIso) merged = merged.filter(e => e.occurred_at >= fromIso)
+    if (toIso)   merged = merged.filter(e => e.occurred_at <= toIso)
+
+    merged.sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
+    const sliced = merged.slice(0, limit)
+
+    res.json({ success: true, data: sliced, meta: { count: sliced.length, total_before_slice: merged.length } })
+  } catch (err) {
+    console.error('[admin/activity]', err)
+    res.status(500).json({ success: false, error: 'Failed to fetch activity log' })
+  }
+})
+
 // ── P3-6: CHURN RISK — admin endpoint ────────────────────────────────────────
 // GET /admin/churn-risk — returns churn risk scores for all clients with active subs.
 // Authenticated via admin key (same as all other /admin routes).

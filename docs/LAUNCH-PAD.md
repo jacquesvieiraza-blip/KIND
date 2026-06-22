@@ -6,20 +6,23 @@
 > - No work starts unless it's on TODAY'S RUNLIST or explicitly pulled in.
 > - STATUS lives only in PRODUCT-INVENTORY; this doc references it by ID, never holds it.
 
+> ## 📖 READ-THROUGH MAP — where to look (founder quick-nav)
+> - **"What do I do now / this week?"** → **THIS doc** (VERIFIED STATE + RUNLIST below).
+> - **"What's built / live / left?"** → **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)** — the colour board at the top (🟢🩷🟣🟡🔴⏸).
+> - **"Where are we + the full picture + why we decided X?"** → **[`KIND-MASTER.md`](./KIND-MASTER.md) → "▶️ RESUME HERE — LIVE STATUS"** (the cold-start read-through) + the 3-MONTH PLAN + session log.
+> - **"The full forward vision / roadmap / risks?"** → **[`V2-TRACKER.md`](./V2-TRACKER.md)** (seller engine · learning engine · GTM · the 15 Pieces).
+
 ---
 
 ## 🧭 VERIFIED STATE — what's true right now
-- **Last verified:** 2026-06-18 (Thu eve, POST-LAUNCH). **🚀 LAUNCHED.** Founder away Sat/Sun; next working session **Mon 22**.
-- **LIVE on prod:** Company Engine (#88) + the **#502 superset** (R1–R20 + design screens 80–91) + **billing correctness 166–171** → mostly **🩷 pink** (live, pending the Mon-22 walk Blocks 2/3 → then 🟢). **Verified-🟢:** 55 · 56 (per-rep unlock, Test 7) · 92 · 188 (Denise demo). Marketing site + admin portal live.
-- **`main`:** ✅ clean — **all 18-Jun PRs merged: #625 #626 #627 #628 #629 #630 #631 #632** (#616–#619 closed/superseded). **Zero open PRs · no stranded commits.** Earlier on main: 186/187/188 (#605/#606/#607) · metrics chain #608–#615 · billing #580 · voice 178 (#579).
-- **✅ METRICS SAGA CLOSED (193 · 195):** FIGSY metrics are now **one source of truth** across Home/Performance/Analytics; 3 metric surfaces consolidated to **2**. Root cause of "0 sent vs 120" = a missing prod migration `opened_at` (`20260531_email_open_tracking.sql`), now run → data consistent.
-- **🚨 DELIVERABILITY (194 + new 198) — the one open risk:** mail-tester **10/10** BUT real tests landed in **Promotions, then Spam** on fresh Gmails. **Diagnosis: REPUTATION, not content** — `gettingkind.com` is ~9 days old, no Gmail trust yet. **#623 hardened the content** (near-plain HTML, **pixel + footer removed from COLD sends**, kept List-Unsubscribe + "Reply STOP"). **The real fix = a warmup tool (Instantly/Mailreach) ~1–2 wks → item 198, founder action MONDAY.** Until placement = Primary, keep cold-sending minimal.
-- **🩷 SHIPPED, awaiting founder VERIFY → 🟢:** **186** signup T&C · **187** Sequences. *(**188** Denise demo ✅ verified 18 Jun; **56** per-rep unlock ✅ verified 18 Jun.)*
-- **NEXT WORKING SESSION = MON 22:** 🧍 warmup tool (198) · 📞 Apollo 5pm · 🤝 walk Blocks 2/3 + dashboard recount + roadmap-view · 🧍 smoke tests · 🤖 RLS 55a. **TUE 23:** raw demo + Drop 01.
-- **Still 🩷 (not yet verified-green):** 186 signup T&C · 187 Sequences · the 80–91 / R-wave screens (Mon-22 walk). **D9:** mail-tester **10/10 ✅**. *(Legal #11–13 → post-delivery.)*
-- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done. **`TRACKING_URL=https://api.get-kind.com` SET** — open-pixel on **warm/transactional only** (#623 removed it from COLD sends). 🧍 ran the missing **`20260531_email_open_tracking.sql`** (`opened_at`).
-- **After launch:** founder away Sat 20–Sun 21 (no merges) · Mon 22 = Company RLS (55a) before the 50-rep client.
-- **Process lock:** confirm the Supabase project name before every SQL run.
+- **Last updated:** 2026-06-22 (Mon eve, POST-LAUNCH). **🚀 LIVE since 18 Jun.** Today shipped the seller-engine core + integrations; **rest of the runlist → tomorrow.**
+- **LIVE on prod:** the core loop (signup→ICP→leads→FIGSY→reply→meeting) · **Company Engine COMPLETE** (#88 + items **106–111**: seats · budgets · approve · manager role · routing+dedup · calendars) · **billing correctness 166–171** · 5-agent family · admin OS · marketing site. **Board: 56🟢 / 59🩷 / 6🟣 / 12🟡 / 80🔴 / 7⏸.**
+- **🔌 SHIPPED + DEPLOYED GREEN TONIGHT (🩷, awaiting founder VERIFY → 🟢):** **182/185** outbound webhooks + public event API (#668) · **190** subscription pause / win-back (#667) · **203** commission-engine **core module** (#666 — pure USD 20/5/5, 33 tests, **not yet wired**). **Both migrations run live** (`subscription_pause` enum-fixed via #671 · `webhook_endpoints`).
+- **`main`:** ✅ clean — tonight merged **#665 #666 #667 #668 #670 #671 #672**. **Zero open PRs · no stranded commits.** @kind/api deploy GREEN (#668 ACTIVE). *(The two interim deploy reds were transient Railway yarn-cache corruption on install — self-healed next build, not our code.)*
+- **🚨 DELIVERABILITY (194 + 198) — THE one open risk:** mail-tester **10/10** BUT real cold tests land **Promotions/Spam** — **REPUTATION, not content** (`gettingkind.com` young, no Gmail trust). #623 hardened cold content. **Real fix = a warmup tool (Instantly/Mailreach) → item 198, founder action.** Keep cold volume low until placement = Primary.
+- **▶️ TOMORROW (founder):** ① verify pause + a webhook delivery → flip 🩷→🟢 · ② warmup tool (198) · ③ Notion (204) · ④ decide 203 repo+auth · ⑤ Apollo · ⑥ verification walk Blocks 2/3 + dashboard recount. **🤖 mine:** branch cleanup · optional `package-lock.json` removal.
+- **Env:** `NEXT_PUBLIC_FEATURE_V2_SCREENS=all` · Hunter+PDL keys set · ICO done · `TRACKING_URL` set (open-pixel warm/transactional only).
+- **Process lock:** confirm the Supabase project name before every SQL run · one branch = one PR off fresh `main` (stranded-commit rule).
 
 ---
 

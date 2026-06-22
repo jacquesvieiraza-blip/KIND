@@ -23,20 +23,50 @@
 
 ---
 
-## ✅ RUNLIST — 📅 MON 22 JUN (next working session — founder back)
-> ▶️ **Order:** 🧍 connect the **warmup tool (198)** first → 📞 **Apollo 5pm** → 🤝 **walk Blocks 2/3** (screens 80–91 · R1–R20) + 🤖 **dashboard recount** + 🤖 **roadmap-view** → 🧍 **smoke tests** → 🤖 **RLS 55a** → 🧍 GTM week-1 kickoff. **TUE 23:** raw demo + Drop 01.
+## ✅ RUNLIST — 🌙 TONIGHT 7:15PM (Mon 22 Jun — run through together, in order)
+> ▶️ **Order:** 1 re-verify → 2–5 **merge the 4 open PRs** → 6 watch deploys go green → 7–8 **run the 2 migrations** → 9 verify pause + webhooks → 10 🤖 render the colours → 11–13 founder decisions (warmup · Notion · 203) → 14 🤖 branch cleanup. **TUE 23:** raw demo + Drop 01 · Apollo follow-through.
 
-**1 · Connect the cold-email warmup tool (198)** — 🧍 founder, first thing
+**1 · Re-verify live state first** — 🤖 (before any merge)
+- `git fetch origin main` · confirm zero stranded commits · confirm the 4 PRs below are still open & green. · Source: **rulebook §7 gate**
+
+**2 · Merge #665 — USD render + 110/111 → 🩷** — 🧍 founder merges · 🤖 then flips dots
+- Render PR (USD denomination + Company Engine 110/111). After merge, the held 🟡→🩷 flips for 190/182/185/203 can land. · Source: **110 · 111 · 203**
+
+**3 · Merge #666 — 203 commission-engine core (USD)** — 🧍 founder merges
+- Pure USD comp engine module + **33 vitest tests passing** (parity vs the HTML calculators). Phase 1 only — no DB/Stripe wiring yet. · Source: **203**
+
+**4 · Merge #667 — subscription pause/resume (190)** — 🧍 founder merges
+- Win-back: pause stops the Paystack recurring charge; resume restarts. **Needs migration (Step 7)** or the route returns 409 `pause_not_migrated`. · Source: **190**
+
+**5 · Merge #668 — developer API + webhooks (182/185)** — 🧍 founder merges
+- HMAC-signed event webhooks + `GET /developer/events` + API-key auth. **Needs migration (Step 8)** for the `webhook_endpoints` table. · Source: **182 · 185**
+
+**6 · Watch the deploys go green** — 🤝 (Railway @kind/api + @kind/portal + @kind/admin)
+- Confirm each deploy passes its `/health` check. **Liveness must stay 200** (deploy-incident lesson — never gate liveness on the DB). Only after green do the merged items become truly 🩷. · Source: **deploy gate**
+
+**7 · Run migration → subscription pause** — 🧍 founder (confirm Supabase project name first)
+- `supabase/migrations/20260622_subscription_pause.sql` (adds `paused_until`/`paused_at`, widens status CHECK). Unblocks Step 4's route. · Source: **190**
+
+**8 · Run migration → webhook endpoints** — 🧍 founder (confirm Supabase project name first)
+- `apps/api/src/migrations/20260622_webhook_endpoints.sql` (new `webhook_endpoints` table). Unblocks Step 5's webhooks. · Source: **182 · 185**
+
+**9 · Verify pause + webhooks work** — 🤝 (quick smoke)
+- Hit `POST /subscriptions/:id/pause` → expect 200 (not 409). Register a webhook endpoint → trigger a `reply.received` → confirm signed delivery. · Source: **190 · 182 · 185**
+
+**10 · Render the colours** — 🤖 (only AFTER #665 merges, to avoid dashboard conflict)
+- Flip 190 · 182 · 185 · 203 → 🟡 (then 🩷 once Step 6 green). One status edit, in PRODUCT-INVENTORY. Append the session-log line. · Source: **inventory ritual**
+
+**11 · Connect the cold-email warmup tool (198)** — 🧍 founder
 - Instantly/Mailreach on `hello@gettingkind.com` · ramp 20→40/day · keep cold-sending OFF until placement = Primary. Clock starts on connect. · Source: **198**
 
-**2 · Apollo — 5pm meeting (CONFIRMED)** — 🧍 founder · Source: **174–177**
+**12 · Notion — set up the human/ops layer (204)** — 🧍 founder
+- Free tier · separate the **code layer (GitHub)** from the **human/ops layer (Notion)**. Steal-list captured in V2-TRACKER. · Source: **204**
 
-**3 · Verification walk Blocks 2 + 3** — 🤝 (Block 1 ✅ done 18 Jun, item 56 🟢)
-- Walk screens **80–91** + **R1–R20** (checklist below); 🤖 fixes 🔴 same-day → flip 🩷→🟢. **+ 🤖 normalize & recount the STATUS dashboard, + compile the one-screen ROADMAP view in V2-TRACKER.** · Source: **60–79 · 80–91 · roadmap**
+**13 · Decide 203 repo + auth/hosting** — 🧍 founder
+- New `kind-ops`-style repo vs a module in the KIND product · auth provider · hosting. Engine core (#666) is ready to plug in. · Source: **203 · brief §0/§9**
 
-**4 · Smoke tests T3–T7 + T9/T10** — 🧍 (`docs/SMOKE_TEST.md`) · Source: **100**
-
-**5 · RLS / access control (55a)** — 🤖 before the 50-rep client · Source: **55a**
+**14 · Clean up the ~40 stale `claude/*` branches** — 🤖 (verified no lost work first)
+- Prune merged/superseded branches. · Source: **hygiene**
 
 > ✅ **LAUNCHED Thu 18 (the big day):** Company Engine walk Block 1 done (**56 🟢**) · **188** Denise demo verified · **FIGSY switcher** fixed+verified (#627) · **"Alta"** scrubbed (#626) · docs self-audited · seller-engine (197/200/201/202) + AE comp pack mapped · all PRs merged, board clean → **GO LIVE.**
 > ✅ **Closed Wed 17:** 3 builds (186/187/188 + migrations) · metrics saga closed (193/194/195) · mail-tester 10/10 · `kind-ops` built · item 196 logged.

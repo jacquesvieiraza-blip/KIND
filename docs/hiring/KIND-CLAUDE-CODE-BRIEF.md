@@ -81,7 +81,7 @@ All currency £. One repo. Clean small commits. One commission engine, one sourc
 Auth provider, hosting, visual design system — founder's call (propose options). Per-rep/partner login is expected; build the app it plugs into.
 
 ---
-*Model: Land 20% / Retain 5% / Expand 5% · ramp guarantee 100/100/75/75 · 93% gross margin · **all £ GBP**. © the founder. Current as of June 2026.*
+*Model: Land 20% / Retain 5% / Expand 5% · ramp guarantee 100/100/75/75 · 93% gross margin · **all USD (founder decision 22 Jun)**. © the founder. Current as of June 2026.*
 
 ---
 ## 🎯 Founder build priority (19 Jun — overrides §6 portal order)
@@ -92,7 +92,7 @@ Build the **portals in this order**, account/auth systems done right from the st
 *(The data model + Stripe wiring + the single commission engine are the shared foundation under all three — built before/with the admin portal. "All account systems" = the per-rep/partner login + roles done properly from day one, not bolted on later.)*
 
 ## ⚠️ Reconcile notes (for when this is picked up — Claude, 19 Jun)
-- **Currency = £ GBP.** The calculators + comp plans already filed in `docs/hiring/` use **$**; they need re-denominating to £ (the figures match — $112.5k → £112,500 etc.). **Open: is the product/billing actually GBP, or USD?** (The live product's locked pricing constants are in **USD** — Lead Gen $1, FIGSY $3, Denise $39…). This GBP-vs-USD split between *comp/P&L* and *product pricing* must be resolved.
+- **Currency = USD — RESOLVED 22 Jun (founder: "we are USD").** The brief's earlier "all £ GBP" is overridden; the calculators + comp plans already filed in `docs/hiring/` are in **$ (correct)**. *(Original GBP note below kept for history.)* The calculators + comp plans already filed in `docs/hiring/` use **$**; they need re-denominating to £ (the figures match — $112.5k → £112,500 etc.). **Open: is the product/billing actually GBP, or USD?** (The live product's locked pricing constants are in **USD** — Lead Gen $1, FIGSY $3, Denise $39…). This GBP-vs-USD split between *comp/P&L* and *product pricing* must be resolved.
 - **Partner rate = 20% + 5%** (this brief is authoritative) → item 197's "25% + 5%" is superseded.
 - **This brief operationalizes** items 196 (Stripe = money source-of-truth ledger), 197 (partner comp), 200 (the 3 portals), 201 (AE hire), 202 (HR/legal pack) — it's the concrete build spec for the whole seller engine.
 - **Repo question:** the brief says "fresh git repo." Decide: a new repo (like `kind-ops`) vs a module in the KIND product. The Stripe/attribution wiring overlaps the live product, so likely the KIND product (or a tightly-linked service), not fully standalone.

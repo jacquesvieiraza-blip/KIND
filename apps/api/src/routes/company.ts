@@ -236,6 +236,11 @@ companyRouter.patch('/seats/:id', async (req: AuthRequest, res) => {
     const body = z.object({
       autonomy:       z.enum(['auto', 'copilot', 'off']).optional(),
       seat_active:    z.boolean().optional(),
+      // #108 — owner edits a rep's per-seat credit budget directly. This sets the
+      // seat_budget cap only; it does NOT move credits between the company pool
+      // and the rep's balance. Allocation stays the job of /allocate + credit
+      // requests, which remain the credit-pool authority. See PR note.
+      seat_budget:    z.number().int().min(0).max(1_000_000).optional(),
       enabled_agents: z.array(z.enum(['figsy', 'milla', 'vida', 'denise'])).optional(),
     }).parse(req.body)
 

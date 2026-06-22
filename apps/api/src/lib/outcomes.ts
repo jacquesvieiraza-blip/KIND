@@ -1,4 +1,5 @@
 import { db } from '@kind/db'
+import { deliverWebhooks } from './webhooks'
 
 /**
  * THE DATA FLOOR (EVERYTHING.md #17b).
@@ -55,4 +56,10 @@ export async function logOutcomeEvent(ev: OutcomeEvent): Promise<void> {
     // Never break the caller. A dropped event is acceptable; a broken flow is not.
     console.warn('[outcomes] failed to log outcome event (non-fatal):', err instanceof Error ? err.message : String(err))
   }
+
+  // OUTBOUND WEBHOOKS (#182/#185). The single chokepoint: every key event already
+  // routes through here, so wiring delivery in one place fans it out to lead
+  // delivered · reply received · meeting booked · opt-out. Fire-and-forget — the
+  // helper never throws and no-ops safely if the endpoints table is absent.
+  void deliverWebhooks(ev)
 }

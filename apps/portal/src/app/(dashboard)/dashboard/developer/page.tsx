@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { Code2, Key, Copy, Trash2, Plus, CheckCircle, X, Eye, EyeOff } from 'lucide-react'
+import { Code2, Key, Copy, Trash2, Plus, CheckCircle, X, Eye, EyeOff, Webhook } from 'lucide-react'
 
 interface DevKey {
   id: string
@@ -17,6 +17,42 @@ interface DevKey {
 interface NewKeyResult extends DevKey {
   key: string
 }
+
+interface WebhookEndpoint {
+  id: string
+  url: string
+  event_types: string[]
+  active: boolean
+  created_at: string
+}
+
+interface NewWebhookResult extends WebhookEndpoint {
+  secret: string
+}
+
+const WEBHOOK_EVENTS = [
+  { id: 'lead.delivered', label: 'Lead delivered' },
+  { id: 'reply.received', label: 'Reply received' },
+  { id: 'meeting.booked', label: 'Meeting booked' },
+  { id: 'opt_out',        label: 'Opt-out' },
+]
+
+// Stable outbound payload — documented for Zapier / Make / n8n / Slack.
+const WEBHOOK_PAYLOAD_EXAMPLE = `{
+  "event": "meeting.booked",
+  "occurred_at": "2026-06-22T10:00:00.000Z",
+  "client_id": "your-client-id",
+  "campaign_id": "uuid-or-null",
+  "lead_id": "uuid-or-null",
+  "enrollment_id": "uuid-or-null",
+  "channel": "email",
+  "data": { "...full event detail..." }
+}
+
+// Headers on every delivery:
+//   X-Kind-Event:     meeting.booked
+//   X-Kind-Delivery:  <unique id>
+//   X-Kind-Signature: HMAC-SHA256(body, your secret)  // verify authenticity`
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
 
@@ -54,6 +90,13 @@ export default function DeveloperPage() {
   const [error, setError] = useState<string | null>(null)
   const [showKey, setShowKey] = useState(false)
 
+  // Outbound webhooks (#182/#185)
+  const [hooks, setHooks] = useState<WebhookEndpoint[]>([])
+  const [hookUrl, setHookUrl] = useState('')
+  const [hookEvents, setHookEvents] = useState<string[]>([])
+  const [creatingHook, setCreatingHook] = useState(false)
+  const [createdHook, setCreatedHook] = useState<NewWebhookResult | null>(null)
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { setLoading(false); return }
@@ -62,9 +105,44 @@ export default function DeveloperPage() {
         const res = await api.get<DevKey[]>('/developer/keys', session.access_token)
         setKeys(Array.isArray(res) ? res : [])
       } catch { setKeys([]) }
+      try {
+        const wh = await api.get<WebhookEndpoint[]>('/developer/webhooks', session.access_token)
+        setHooks(Array.isArray(wh) ? wh : [])
+      } catch { setHooks([]) }
       setLoading(false)
     })
   }, [])
+
+  async function handleCreateHook() {
+    if (!token || creatingHook) return
+    if (!/^https?:\/\//i.test(hookUrl)) { setError('Enter a valid http(s) URL'); return }
+    setCreatingHook(true)
+    setError(null)
+    try {
+      const result = await api.post<NewWebhookResult>('/developer/webhooks', { url: hookUrl, event_types: hookEvents }, token)
+      setCreatedHook(result)
+      setHooks(prev => [result, ...prev])
+      setHookUrl('')
+      setHookEvents([])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add webhook (the table may not be migrated yet)')
+    }
+    setCreatingHook(false)
+  }
+
+  async function handleDeleteHook(id: string) {
+    if (!token || !confirm('Delete this webhook endpoint? Deliveries will stop immediately.')) return
+    try {
+      await api.delete_(`/developer/webhooks/${id}`, token)
+      setHooks(prev => prev.filter(h => h.id !== id))
+    } catch {
+      setError('Failed to delete webhook')
+    }
+  }
+
+  function toggleHookEvent(id: string) {
+    setHookEvents(prev => prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id])
+  }
 
   async function handleCreate() {
     if (!token || creating) return
@@ -316,6 +394,114 @@ export default function DeveloperPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Outbound Webhooks (#182 Zapier/Make · #185 outbound events) ─────────── */}
+      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-purple-100 flex items-center gap-2">
+          <Webhook className="w-4 h-4 text-[#7C3AED]" />
+          <h2 className="font-semibold text-[#1E1152] text-sm">Outbound Webhooks</h2>
+          <span className="ml-auto text-xs text-[#7C3AED]/50">{hooks.length} endpoint{hooks.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div className="p-5 space-y-5">
+          <p className="text-sm text-gray-600">
+            Push key events — lead delivered, reply received, meeting booked, opt-out — to any URL.
+            Point it at a <span className="font-medium">Zapier</span> or <span className="font-medium">Make</span> webhook
+            trigger to connect 6,000+ apps with no custom build.
+          </p>
+
+          {/* New webhook secret — show ONCE */}
+          {createdHook && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-amber-800 mb-2">Signing secret — store it now, you won't see it again</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-white border border-amber-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-800 truncate">{createdHook.secret}</code>
+                <button
+                  onClick={() => copyToClipboard(createdHook.secret, 'whsec')}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                >
+                  {copiedId === 'whsec' ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedId === 'whsec' ? 'Copied!' : 'Copy'}
+                </button>
+                <button onClick={() => setCreatedHook(null)} className="p-2 text-amber-400 hover:text-amber-700"><X className="w-4 h-4" /></button>
+              </div>
+              <p className="text-[11px] text-amber-700 mt-2">Verify deliveries with HMAC-SHA256 over the raw body, compared to <code>X-Kind-Signature</code>.</p>
+            </div>
+          )}
+
+          {/* Add endpoint */}
+          <div className="rounded-xl border border-purple-100 p-4 space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Endpoint URL</label>
+              <input
+                type="url"
+                value={hookUrl}
+                onChange={e => setHookUrl(e.target.value)}
+                placeholder="https://hooks.zapier.com/hooks/catch/..."
+                className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Events <span className="text-gray-400 font-normal">(none selected = all)</span></label>
+              <div className="flex flex-wrap gap-2">
+                {WEBHOOK_EVENTS.map(ev => (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    onClick={() => toggleHookEvent(ev.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      hookEvents.includes(ev.id)
+                        ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                        : 'bg-white text-gray-600 border-purple-100 hover:border-[#7C3AED]/40'
+                    }`}
+                  >
+                    {ev.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={handleCreateHook}
+              disabled={creatingHook || !hookUrl}
+              className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              {creatingHook ? 'Adding…' : 'Add webhook'}
+            </button>
+          </div>
+
+          {/* Existing endpoints */}
+          {hooks.length > 0 && (
+            <div className="divide-y divide-purple-50 border border-purple-100 rounded-xl overflow-hidden">
+              {hooks.map(h => (
+                <div key={h.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <code className="text-xs font-mono text-gray-800 truncate block">{h.url}</code>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {(!h.event_types || h.event_types.length === 0) ? 'All events' : h.event_types.join(', ')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteHook(h.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-100 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" /> Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Payload shape + polling API docs */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Payload shape</p>
+            <pre className="bg-gray-900 text-green-300 rounded-xl p-4 text-[11px] font-mono overflow-x-auto leading-relaxed whitespace-pre">{WEBHOOK_PAYLOAD_EXAMPLE}</pre>
+            <p className="text-xs text-gray-500 mt-3">
+              Prefer polling? Use the read-only event API with your API key:{' '}
+              <code className="bg-purple-50 text-[#7C3AED] px-1.5 py-0.5 rounded font-mono text-[11px]">GET {API_URL}/developer/events?since=&lt;ISO&gt;&amp;type=meeting.booked</code>
+            </p>
           </div>
         </div>
       </div>

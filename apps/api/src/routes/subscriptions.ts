@@ -96,6 +96,120 @@ subscriptionRouter.post('/:id/cancel', async (req: AuthRequest, res) => {
   }
 })
 
+// ── PAUSE subscription (item 190 — graceful hold instead of cancel) ─────────────
+// Stops billing for 1–3 months but KEEPS the client's data + settings warm. This
+// is the "save" offer on the cancel path so churn isn't one-way + final.
+//
+// CONSERVATIVE: this does NOT delete data and does NOT change how charges are
+// computed elsewhere. Billing is stopped the same way cancel does it (disable the
+// Paystack/Stripe-side recurring charge), and the subscription is marked paused
+// with a resume date. It RELIES on the additive migration
+// supabase/migrations/20260622_subscription_pause.sql (status 'paused' + the
+// paused_until / paused_at columns). Until the founder applies that migration the
+// DB write is rejected by the status CHECK constraint — in that case we return a
+// clear 409 and DO NOT cancel or otherwise mutate the subscription.
+subscriptionRouter.post('/:id/pause', async (req: AuthRequest, res) => {
+  try {
+    const { months } = z.object({
+      months: z.coerce.number().int().min(1).max(3).default(1),
+    }).parse(req.body ?? {})
+
+    const { data: client } = await db.from('clients').select('id').eq('user_id', req.userId!).single()
+    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Verify this subscription belongs to this client
+    const { data: sub } = await db.from('subscriptions')
+      .select('id, product, status, paystack_subscription_code')
+      .eq('id', req.params.id)
+      .eq('client_id', client.id)
+      .single()
+
+    if (!sub) { res.status(404).json({ success: false, error: 'Subscription not found' }); return }
+    if (sub.status === 'cancelled') { res.status(400).json({ success: false, error: 'Subscription already cancelled' }); return }
+    if (sub.status === 'paused') { res.status(400).json({ success: false, error: 'Subscription already paused' }); return }
+
+    const now = new Date()
+    const resumeAt = new Date(now.getTime() + months * 30 * 86400000)
+
+    // Stop billing the SAME way cancel does — disable the Paystack-side recurring
+    // charge. (Stripe-side pause is FLAGGED for the founder — see PR notes.)
+    if (sub.paystack_subscription_code) {
+      await fetch(`https://api.paystack.co/subscription/disable`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: sub.paystack_subscription_code, token: sub.paystack_subscription_code }),
+      })
+    }
+
+    // Mark paused in DB. Data + settings are untouched (no delete).
+    const { error: updErr } = await db.from('subscriptions')
+      .update({
+        status: 'paused',
+        paused_at: now.toISOString(),
+        paused_until: resumeAt.toISOString(),
+      })
+      .eq('id', sub.id)
+
+    if (updErr) {
+      // Almost certainly the 'paused' status / columns aren't migrated yet.
+      // We did NOT change the DB state — report it plainly so nothing is half-done.
+      console.warn('[subscriptions/pause] DB write rejected (migration likely not applied):', updErr.message)
+      res.status(409).json({
+        success: false,
+        error: 'Pause is not enabled yet. Run migration 20260622_subscription_pause.sql to activate it.',
+        code: 'pause_not_migrated',
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      message: `${sub.product} subscription paused. Billing is stopped and your data + settings are kept warm. Resumes ${resumeAt.toISOString().slice(0, 10)}.`,
+      data: { paused_until: resumeAt.toISOString(), months },
+    })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[subscriptions/pause]', err)
+    res.status(500).json({ success: false, error: 'Failed to pause subscription' })
+  }
+})
+
+// ── RESUME a paused subscription (item 190) ─────────────────────────────────────
+// Lifts the pause and returns the subscription to active. Does NOT re-charge or
+// re-create the external recurring billing on its own — the client re-subscribes
+// through the normal checkout flow if the external charge was disabled. This just
+// clears the paused flags so the account is usable again.
+subscriptionRouter.post('/:id/resume', async (req: AuthRequest, res) => {
+  try {
+    const { data: client } = await db.from('clients').select('id').eq('user_id', req.userId!).single()
+    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: sub } = await db.from('subscriptions')
+      .select('id, product, status')
+      .eq('id', req.params.id)
+      .eq('client_id', client.id)
+      .single()
+
+    if (!sub) { res.status(404).json({ success: false, error: 'Subscription not found' }); return }
+    if (sub.status !== 'paused') { res.status(400).json({ success: false, error: 'Subscription is not paused' }); return }
+
+    const { error: updErr } = await db.from('subscriptions')
+      .update({ status: 'active', paused_at: null, paused_until: null })
+      .eq('id', sub.id)
+
+    if (updErr) {
+      console.warn('[subscriptions/resume] DB write rejected:', updErr.message)
+      res.status(409).json({ success: false, error: 'Resume is not enabled yet. Run migration 20260622_subscription_pause.sql.', code: 'pause_not_migrated' })
+      return
+    }
+
+    res.json({ success: true, message: `${sub.product} subscription resumed.` })
+  } catch (err) {
+    console.error('[subscriptions/resume]', err)
+    res.status(500).json({ success: false, error: 'Failed to resume subscription' })
+  }
+})
+
 subscriptionRouter.post('/initiate', async (req: AuthRequest, res) => {
   try {
     const { product, tier, billing_interval } = z.object({

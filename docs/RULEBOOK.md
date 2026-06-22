@@ -88,5 +88,12 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 8.3 **Cross-reference history against `main` + the docs on GitHub.** Confirm that what the *previous* session claimed it shipped actually landed on `main` — grep the real files/docs. Hunt specifically for the gap between "what we said" and "what's actually on `main`."
 8.4 **Open with a one-line reconciled state.** Before doing new work, tell the founder: the last merge, what's confirmed on `main`, and any stranded/unmerged work — so the session starts from truth. If everything reconciles, say so plainly.
 
+## 9. 🥷 STEALS — every steal gets logged (added 22 Jun — "good steals can't go missing")
+> A "steal" = any pattern/feature worth taking from another tool (Notion, Glean, Hypo, Alta, ClickUp, competitor demos, internal tools the founder uses, etc.). These are vital IP and they kept getting mentioned in passing and lost.
+9.1 **Capture on sight.** The moment a steal is identified, it gets logged — same session, no "later."
+9.2 **Logged in RED.** Every steal becomes a tracked **🔴 inventory item** (or maps to an existing item, with the ID written down). If it's already built, note which item realised it. **Nothing stays floating in prose only.**
+9.3 **The STEALS CATALOG is the ledger** (`PRODUCT-INVENTORY.md` → "🥷 STEALS CATALOG / what to steal"): source → what we take → item ID. Add the source + the row when a new steal lands.
+9.4 **Audit on request.** When the founder says "audit the steals," walk the catalog and confirm each line maps to a logged item; mint 🔴 items for any that don't.
+
 ---
 _If a rule here is wrong or missing, the founder says so and we edit this doc. This is the contract._

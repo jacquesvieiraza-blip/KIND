@@ -35,6 +35,9 @@ Each doc is the truth of exactly ONE thing; no other doc may claim that thing.
 3. **Append one line to the KIND-MASTER session log** — and it is the **same sentence as the git commit message** (write it once).
 4. Touch KIND-MASTER strategy or V2-TRACKER **only when a decision or future plan actually changes.**
 
+## Steals are vital — log every one (RULEBOOK §9)
+A **steal** = any pattern worth taking from another tool (Notion, Glean, competitor demos, internal tools the founder uses…). **Capture on sight, same session, logged in RED** as a 🔴 inventory item (or mapped to an existing item ID). The **STEALS CATALOG** in PRODUCT-INVENTORY is the ledger. **Good steals can't go missing — never leave one floating in prose.**
+
 ## GitHub process
 - **One PR = one shippable change. One issue = one problem/feature.** No mega-PR unless the founder explicitly approves it (e.g. launch recovery).
 - Every PR description has: **Source item** (PRODUCT-INVENTORY ID) · **What changed** · **How to test** · **Screenshots** · **Inventory status update needed** · **Launch-Pad update needed**.

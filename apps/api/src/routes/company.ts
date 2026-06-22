@@ -14,6 +14,7 @@ import { z } from 'zod'
 import crypto from 'crypto'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { sendSeatInviteEmail } from '../lib/email'
 
 export const companyRouter = Router()
 companyRouter.use(requireAuth)
@@ -275,7 +276,7 @@ companyRouter.post('/seats', async (req: AuthRequest, res) => {
     // Seat-cap guard.
     const { count } = await db.from('clients').select('id', { count: 'exact', head: true })
       .eq('company_id', ctx.companyId).eq('seat_role', 'rep')
-    const { data: company } = await db.from('companies').select('seat_cap, credit_pool').eq('id', ctx.companyId).maybeSingle()
+    const { data: company } = await db.from('companies').select('name, seat_cap, credit_pool').eq('id', ctx.companyId).maybeSingle()
     if ((count ?? 0) >= ((company as any)?.seat_cap ?? 25)) {
       res.status(409).json({ success: false, error: 'Seat cap reached — raise the cap to add more reps' }); return
     }
@@ -301,6 +302,27 @@ companyRouter.post('/seats', async (req: AuthRequest, res) => {
         .update({ credit_pool: Math.max(0, ((company as any)?.credit_pool ?? 0) - startBudget) })
         .eq('id', ctx.companyId)
     }
+
+    // #106 — Deliver the invite email so the rep gets their accept link directly
+    // (the link is still returned for copy-paste as a fallback). Best-effort: a
+    // delivery failure must never break the invite, so we never throw here.
+    try {
+      const portalUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.PORTAL_URL || 'https://app.get-kind.com'
+      const inviteUrl = `${portalUrl}/invite/accept?token=${token}`
+      let inviterName: string | null = null
+      if (ctx.clientId) {
+        const { data: inviter } = await db.from('clients')
+          .select('company_name').eq('id', ctx.clientId).maybeSingle()
+        inviterName = (inviter as any)?.company_name ?? null
+      }
+      await sendSeatInviteEmail(email.toLowerCase(), inviteUrl, {
+        companyName: (company as any)?.name ?? null,
+        inviterName,
+      })
+    } catch (mailErr) {
+      console.error('[company/seats POST] invite email failed (non-fatal):', mailErr)
+    }
+
     res.json({ success: true, token })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }

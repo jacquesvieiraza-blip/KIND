@@ -112,6 +112,28 @@ export default function CompanyPage() {
     try { await api.patch(`/company/seats/${seat.id}`, { autonomy }, token); await load(token) } catch { /* ignore */ }
     setBusy(null)
   }
+  // #108 — owner edits a rep's per-seat credit budget directly (sets the cap).
+  const [budgetEdits, setBudgetEdits] = useState<Record<string, number>>({})
+  async function saveBudget(seat: Seat) {
+    if (!token) return
+    const next = budgetEdits[seat.id]
+    if (next == null || next < 0 || next === seat.credit_budget) return
+    setBusy(seat.id)
+    try {
+      await api.patch(`/company/seats/${seat.id}`, { seat_budget: next }, token)
+      setBudgetEdits(prev => { const n = { ...prev }; delete n[seat.id]; return n })
+      await load(token)
+    } catch { /* ignore */ }
+    setBusy(null)
+  }
+  // #108 — owner deactivates / removes a rep seat (sets seat_active=false).
+  async function deactivateRep(seat: Seat) {
+    if (!token) return
+    if (!window.confirm(`Deactivate ${emailName(seat.email)}? They lose access to their seat. You can re-invite later.`)) return
+    setBusy(seat.id)
+    try { await api.patch(`/company/seats/${seat.id}`, { seat_active: false }, token); await load(token) } catch { /* ignore */ }
+    setBusy(null)
+  }
   // Per-rep agent unlock — owner toggles Milla/Vida/Denise for a rep (FIGSY always on).
   async function toggleAgent(seat: Seat, key: 'milla' | 'vida' | 'denise') {
     if (!token) return
@@ -412,6 +434,41 @@ export default function CompanyPage() {
                       const extra = (s.enabled_agents ?? []).filter(a => a !== 'figsy').reduce((n, a) => n + (AGENT_PRICE[a] ?? 0), 0)
                       return extra > 0 ? <p className="text-[10px] text-gray-400 mt-1.5">+${extra}/mo on the company bill</p> : null
                     })()}
+                  </div>
+                )}
+
+                {/* #108 — owner edits the rep's budget + can deactivate the seat */}
+                {can_manage && s.role === 'rep' && (
+                  <div className="mt-4 pt-3 border-t border-gray-100 space-y-3">
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Per-seat credit budget</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 rounded-xl border border-gray-200 px-3 py-2 flex-1">
+                          <input
+                            type="number" min={0}
+                            value={budgetEdits[s.id] ?? s.credit_budget}
+                            onChange={e => setBudgetEdits(prev => ({ ...prev, [s.id]: parseInt(e.target.value) || 0 }))}
+                            className="w-full text-sm text-right focus:outline-none" />
+                          <span className="text-xs text-gray-400">cr</span>
+                        </div>
+                        <button
+                          disabled={busy === s.id || (budgetEdits[s.id] ?? s.credit_budget) === s.credit_budget}
+                          onClick={() => saveBudget(s)}
+                          className="px-3 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-50" style={{ background: BRAND }}>
+                          {busy === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                    {s.seat_active ? (
+                      <button
+                        disabled={busy === s.id}
+                        onClick={() => deactivateRep(s)}
+                        className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 py-2 rounded-xl disabled:opacity-50 hover:bg-red-100 transition-colors">
+                        <XCircle className="w-3.5 h-3.5" /> Deactivate rep
+                      </button>
+                    ) : (
+                      <p className="text-[11px] font-semibold text-gray-400 text-center py-1.5">Seat deactivated</p>
+                    )}
                   </div>
                 )}
               </div>

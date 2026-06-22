@@ -1,3 +1,5 @@
+> ⚠️ **ARCHIVED / HISTORICAL — superseded, kept for the record only.** Product **LAUNCHED 18 Jun 2026**. This doc is pre-launch/dated and is **NOT current**. For current truth use: **LAUNCH-PAD** (daily execution) · **PRODUCT-INVENTORY** (status) · **KIND-MASTER** (strategy + session log) · **V2-TRACKER** (future detail). *(Originally: a master to-do index pointing into the now-superseded EVERYTHING.md.)*
+
 # K.I.N.D — MASTER TO-DO
 
 > ⚠️ **This file is NOT the source of truth.** `docs/EVERYTHING.md` is the single

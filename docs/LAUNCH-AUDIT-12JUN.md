@@ -1,3 +1,5 @@
+> ⚠️ **ARCHIVED / HISTORICAL — superseded, kept for the record only.** Product **LAUNCHED 18 Jun 2026**. This doc is pre-launch/dated and is **NOT current**. For current truth use: **LAUNCH-PAD** (daily execution) · **PRODUCT-INVENTORY** (status) · **KIND-MASTER** (strategy + session log) · **V2-TRACKER** (future detail). *(Originally: a 12 Jun 2026 pre-launch audit verifying git/code/builds/tests ahead of the launch.)*
+
 # 🔍 PRE-LAUNCH AUDIT — 12 Jun 2026 (16:20 UTC)
 
 > Verified against git, code, builds, tests — not memory. For the Monday Company-Engine launch + the 19 Jun launch.

@@ -1,3 +1,5 @@
+> ⚠️ **ARCHIVED / HISTORICAL — superseded, kept for the record only.** Product **LAUNCHED 18 Jun 2026**. This doc is pre-launch/dated and is **NOT current**. For current truth use: **LAUNCH-PAD** (daily execution) · **PRODUCT-INVENTORY** (status) · **KIND-MASTER** (strategy + session log) · **V2-TRACKER** (future detail). *(Originally: a pre-launch onboarding / getting-started guide for new users.)*
+
 # Getting Started with K.I.N.D
 
 Welcome. This is your AI revenue team — they find the right people, open the

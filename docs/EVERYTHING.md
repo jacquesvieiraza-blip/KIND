@@ -1,3 +1,5 @@
+> ⚠️ **ARCHIVED / HISTORICAL — superseded, kept for the record only.** Product **LAUNCHED 18 Jun 2026**. This doc is pre-launch/dated and is **NOT current**, and **contains known stale content / contradictions — superseded, do not use.** It is fully replaced by the 4 canonical docs: **LAUNCH-PAD** (daily execution) · **PRODUCT-INVENTORY** (status) · **KIND-MASTER** (strategy + session log) · **V2-TRACKER** (future detail). *(Originally: the old single comprehensive "source of truth" dump, since split into the 4 canonical docs.)*
+
 # K.I.N.D — EVERYTHING
 
 > ⛔ **SUPERSEDED (8 Jun 2026) — DO NOT USE.** The single source of truth is now

@@ -1,3 +1,5 @@
+> ⚠️ **ARCHIVED / HISTORICAL — superseded, kept for the record only.** Product **LAUNCHED 18 Jun 2026**. This doc is pre-launch/dated and is **NOT current**. For current truth use: **LAUNCH-PAD** (daily execution) · **PRODUCT-INVENTORY** (status) · **KIND-MASTER** (strategy + session log) · **V2-TRACKER** (future detail). *(Originally: a 9→10 Jun 2026 overnight portal-audit and fix-log.)*
+
 # 🌅 Morning Fix-Log — overnight portal audit + fixes (9→10 Jun)
 
 **What I did:** full data-flow audit of every portal page (4 parallel agents: metric-consistency · leads→campaign→inbox flow · agent/account pages · API counter sweep), then fixed the highest-impact issues in **build-verified batches pushed to `main`**. Each batch was checked with a real `next build` / API typecheck (the thing that would've caught last night's crash).

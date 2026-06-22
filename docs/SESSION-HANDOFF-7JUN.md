@@ -1,3 +1,5 @@
+> ⚠️ **ARCHIVED / HISTORICAL — superseded, kept for the record only.** Product **LAUNCHED 18 Jun 2026**. This doc is pre-launch/dated and is **NOT current**. For current truth use: **LAUNCH-PAD** (daily execution) · **PRODUCT-INVENTORY** (status) · **KIND-MASTER** (strategy + session log) · **V2-TRACKER** (future detail). *(Originally: a 7 Jun 2026 session-handoff + roadmap transfer doc.)*
+
 # 📋 K.I.N.D — SESSION HANDOFF + FULL ROADMAP (7 Jun 2026)
 
 > ⛔ **SUPERSEDED (8 Jun 2026) — DO NOT USE.** Single source of truth is now

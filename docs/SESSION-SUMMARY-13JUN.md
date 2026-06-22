@@ -1,3 +1,5 @@
+> ⚠️ **ARCHIVED / HISTORICAL — superseded, kept for the record only.** Product **LAUNCHED 18 Jun 2026**. This doc is pre-launch/dated and is **NOT current**. For current truth use: **LAUNCH-PAD** (daily execution) · **PRODUCT-INVENTORY** (status) · **KIND-MASTER** (strategy + session log) · **V2-TRACKER** (future detail). *(Originally: a 13 Jun 2026 session summary of what shipped that day and the weeks ahead.)*
+
 # K.I.N.D — SESSION SUMMARY (13 JUN 2026)
 
 > **FOR YOUR MORNING COFFEE.** Complete status across all tracks. What shipped today, what's left this week, next 3 weeks of action.

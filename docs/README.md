@@ -37,6 +37,7 @@
 ## 🗂️ Supporting files (not daily reading)
 - [`../CLAUDE.md`](../CLAUDE.md) — agent config: how the assistant operates this repo. Not a tracker.
 - [`RULEBOOK.md`](./RULEBOOK.md) — detailed working rules (PRs, merge discipline, the stranded-commit gate).
+- [`TECH-STACK.md`](./TECH-STACK.md) — the tools/vendors register (Railway, Supabase, Resend, **Zoho Mail**, Stripe…) + the email architecture. Seeds the Notion Tools page.
 
 ---
 *Which doc for what, in one line:* **LAUNCH-PAD** "now" · **PRODUCT-INVENTORY** "status" · **KIND-MASTER** "why/where" · **V2-TRACKER** "future."

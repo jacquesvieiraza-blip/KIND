@@ -24,6 +24,7 @@ const SECTIONS: Section[] = [
       { href: '/',          label: 'Dashboard',   icon: LayoutDashboard },
       { href: '/unibox',    label: 'Unibox',      icon: Inbox },
       { href: '/analytics', label: 'Analytics',   icon: BarChart2 },
+      { href: '/activity',  label: 'Activity',    icon: Activity },
       { href: '/revenue',   label: 'Revenue',     icon: DollarSign },
     ],
   },

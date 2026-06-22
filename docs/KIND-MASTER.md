@@ -2,7 +2,9 @@
 
 > **AUTHORITY (operating system — see root `CLAUDE.md`):** this doc governs **strategy** and holds decisions, launch principles, dated history, and the **session log**. It is NOT the daily task list. For daily execution → `LAUNCH-PAD.md`; for current product status → `PRODUCT-INVENTORY.md`; for future detail → `V2-TRACKER.md`.
 
-> # 🧭 START HERE — you are not lost (updated 12 Jun late)
+> ## ⚠️ HISTORICAL (pre-launch) — superseded. **Product LAUNCHED 18 Jun 2026.** Your live to-do is now in **`LAUNCH-PAD.md` → 🧍 FOUNDER TO-DO**; status is in **PRODUCT-INVENTORY**. The START-HERE / FOUNDER-CHECKLIST blocks below are kept as the pre-launch record only — do NOT treat as current.
+>
+> # 🧭 START HERE — you are not lost (updated 12 Jun late) — *⚠️ historical, see banner above*
 >
 > **📅 THE PLAN (locked 12 Jun late — supersedes "one combined launch"):**
 > 1. **MON 15 JUN — Company Command Centre + payment system → PRODUCTION.** The ONLY early ship. Prod flag exposes `company` only.

@@ -153,6 +153,19 @@ export default function CompanyPage() {
     try { await api.patch(`/company/seats/${seat.id}`, { seat_active: false }, token); await load(token) } catch { /* ignore */ }
     setBusy(null)
   }
+  // #109 — owner promotes a rep to manager (same manage powers as the owner) or
+  // demotes a manager back to rep. Owner-only; the API enforces it too.
+  async function setRole(seat: Seat, role: 'manager' | 'rep') {
+    if (!token) return
+    const verb = role === 'manager' ? 'Promote' : 'Demote'
+    const tail = role === 'manager'
+      ? 'They will be able to manage reps, budgets, requests and plays — like an owner, but they cannot remove the owner.'
+      : 'They lose manager powers and go back to a normal rep seat.'
+    if (!window.confirm(`${verb} ${emailName(seat.email)} to ${role}? ${tail}`)) return
+    setBusy(seat.id)
+    try { await api.patch(`/company/seats/${seat.id}`, { seat_role: role }, token); await load(token) } catch { /* ignore */ }
+    setBusy(null)
+  }
   // Per-rep agent unlock — owner toggles Milla/Vida/Denise for a rep (FIGSY always on).
   async function toggleAgent(seat: Seat, key: 'milla' | 'vida' | 'denise') {
     if (!token) return
@@ -243,6 +256,7 @@ export default function CompanyPage() {
   if (!data) return <div className="max-w-md mx-auto text-center py-20 text-gray-500">Couldn't load your company workspace. Refresh to try again.</div>
 
   const { totals, seats, pending_requests: requests, can_manage } = data
+  const isOwner = data.role === 'owner'   // #109 — only the owner may set seat roles
   const emailName = (e: string) => e.split('@')[0]
   const seatById = (id: string) => seats.find(s => s.id === id)
 
@@ -420,6 +434,8 @@ export default function CompanyPage() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-gray-900">{emailName(s.email)}</h3>
                   {s.role === 'owner' && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full"><Crown className="w-3 h-3" /> Owner</span>}
+                  {/* #109 — manager seats carry owner-level manage powers */}
+                  {s.role === 'manager' && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full"><Crown className="w-3 h-3" /> Manager</span>}
                 </div>
                 <p className="text-xs text-gray-400 mb-3">{s.accepted_at ? 'FIGSY · active' : 'Invite pending'}</p>
                 {/* Autonomy (item 35) */}
@@ -497,6 +513,31 @@ export default function CompanyPage() {
                     ) : (
                       <p className="text-[11px] font-semibold text-gray-400 text-center py-1.5">Seat deactivated</p>
                     )}
+                  </div>
+                )}
+
+                {/* #109 — owner sets a seat's role: promote a rep to manager
+                    (owner-level powers over reps) or demote a manager back. Only
+                    the owner sees this; the API enforces owner-only too. */}
+                {isOwner && s.role !== 'owner' && (
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Seat role</p>
+                    {s.role === 'rep' ? (
+                      <button
+                        disabled={busy === s.id}
+                        onClick={() => setRole(s, 'manager')}
+                        className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-100 py-2 rounded-xl disabled:opacity-50 hover:bg-violet-100 transition-colors">
+                        <Crown className="w-3.5 h-3.5" /> Make manager
+                      </button>
+                    ) : (
+                      <button
+                        disabled={busy === s.id}
+                        onClick={() => setRole(s, 'rep')}
+                        className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 py-2 rounded-xl disabled:opacity-50 hover:bg-gray-100 transition-colors">
+                        <Users className="w-3.5 h-3.5" /> Demote to rep
+                      </button>
+                    )}
+                    <p className="text-[10px] text-gray-400 mt-1.5">A manager can run reps, budgets, requests and plays — like an owner, but cannot remove the owner.</p>
                   </div>
                 )}
               </div>

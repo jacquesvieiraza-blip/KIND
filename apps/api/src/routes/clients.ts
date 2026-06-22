@@ -199,7 +199,7 @@ clientRouter.post('/me/suggest-icp', async (req: AuthRequest, res) => {
 clientRouter.get('/me/notifications', async (req: AuthRequest, res) => {
   try {
     const { data: client } = await db.from('clients')
-      .select('id, credit_balance, subscriptions(status, trial_ends_at)')
+      .select('id, credit_balance, company_id, seat_role, subscriptions(status, trial_ends_at)')
       .eq('user_id', req.userId!).single()
     if (!client) { res.json({ success: true, data: [] }); return }
 
@@ -242,6 +242,57 @@ clientRouter.get('/me/notifications', async (req: AuthRequest, res) => {
       const daysLeft = Math.ceil((new Date(trialing.trial_ends_at).getTime() - now.getTime()) / 86400000)
       if (daysLeft <= 3 && daysLeft >= 0) {
         notifications.push({ id: 'trial_expiring', type: 'trial_expiring', title: 'Trial expiring soon', message: `Your trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Add billing to keep access.`, created_at: now.toISOString() })
+      }
+    }
+
+    // #109 — Company Engine owner↔rep notifications. Derived on-read from the
+    // existing seat_credit_requests table (same pattern as every notification
+    // above — no notifications table, no migration). Two directions:
+    //   • owner / manager → a rep's pending credit request needs a decision
+    //   • rep            → their request was approved/denied (last 7 days)
+    if ((client as any).company_id) {
+      const companyId = (client as any).company_id
+      const isManager = (client as any).seat_role === 'owner' || (client as any).seat_role === 'manager'
+      const sevenDaysAgoIso = new Date(now.getTime() - 7 * 86400000).toISOString()
+
+      if (isManager) {
+        // Owner/manager: every pending credit request across the company. Rep
+        // names are resolved with a second query (same style as company/overview),
+        // avoiding any PostgREST embed-relationship ambiguity.
+        const { data: pending } = await db.from('seat_credit_requests')
+          .select('id, rep_client_id, amount, created_at')
+          .eq('company_id', companyId).eq('status', 'pending')
+          .order('created_at', { ascending: false }).limit(10)
+        const repIds = Array.from(new Set((pending ?? []).map((r: any) => r.rep_client_id).filter(Boolean)))
+        const repName: Record<string, string> = {}
+        if (repIds.length) {
+          const { data: repRows } = await db.from('clients')
+            .select('id, invited_email, company_name').in('id', repIds)
+          for (const rr of (repRows ?? []) as any[]) repName[rr.id] = rr.invited_email || rr.company_name || 'A rep'
+        }
+        for (const r of (pending ?? []) as any[]) {
+          const who = repName[r.rep_client_id] || 'A rep'
+          notifications.push({ id: `credit_request_${r.id}`, type: 'credit_request', title: 'Credit request', message: `${who} requested +${(r.amount ?? 0).toLocaleString()} credits. Approve or deny in the Command Centre.`, created_at: r.created_at })
+        }
+      } else {
+        // Rep: their own requests that were decided in the last 7 days.
+        const { data: decided } = await db.from('seat_credit_requests')
+          .select('id, amount, status, decided_at')
+          .eq('rep_client_id', client.id).in('status', ['approved', 'denied'])
+          .gte('decided_at', sevenDaysAgoIso)
+          .order('decided_at', { ascending: false }).limit(10)
+        for (const r of (decided ?? []) as any[]) {
+          const approved = r.status === 'approved'
+          notifications.push({
+            id: `credit_decision_${r.id}`,
+            type: approved ? 'credit_approved' : 'credit_denied',
+            title: approved ? 'Credit request approved' : 'Credit request declined',
+            message: approved
+              ? `Your request for +${(r.amount ?? 0).toLocaleString()} credits was approved — they're in your balance.`
+              : `Your request for +${(r.amount ?? 0).toLocaleString()} credits was declined. Reach out to your owner for more.`,
+            created_at: r.decided_at ?? now.toISOString(),
+          })
+        }
       }
     }
 

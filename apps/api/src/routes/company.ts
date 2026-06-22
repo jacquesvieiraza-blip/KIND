@@ -347,11 +347,22 @@ companyRouter.patch('/seats/:id', async (req: AuthRequest, res) => {
       // requests, which remain the credit-pool authority. See PR note.
       seat_budget:    z.number().int().min(0).max(1_000_000).optional(),
       enabled_agents: z.array(z.enum(['figsy', 'milla', 'vida', 'denise'])).optional(),
+      // #109 — owner sets a seat's role to manager (same manage powers as the
+      // owner, via canManage) or back to rep. Owner-only; the owner seat itself
+      // can never be re-roled. Uses the existing seat_role column — no migration.
+      seat_role:      z.enum(['manager', 'rep']).optional(),
     }).parse(req.body)
 
     const { data: seat } = await db.from('clients')
-      .select('id').eq('id', req.params.id).eq('company_id', ctx.companyId).maybeSingle()
+      .select('id, seat_role').eq('id', req.params.id).eq('company_id', ctx.companyId).maybeSingle()
     if (!seat) { res.status(404).json({ success: false, error: 'Seat not found' }); return }
+
+    // #109 — Only the OWNER may change a seat's role (a manager runs reps but must
+    // not promote/demote). The owner seat itself can never be re-roled.
+    if (body.seat_role !== undefined) {
+      if (!ctx.isOwner) { res.status(403).json({ success: false, error: 'Only the owner can change a seat role' }); return }
+      if ((seat as any).seat_role === 'owner') { res.status(400).json({ success: false, error: 'The owner seat cannot be re-roled' }); return }
+    }
 
     // FIGSY is always available on a seat — never let the owner remove it.
     if (body.enabled_agents) body.enabled_agents = Array.from(new Set(['figsy', ...body.enabled_agents]))

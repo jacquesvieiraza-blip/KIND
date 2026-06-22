@@ -13,6 +13,7 @@ import {
   Building2, Users, Coins, Crown,
   CheckCircle2, XCircle, Loader2, Sparkles, Zap, Eye, CreditCard,
   X, Megaphone, MessageSquare, CalendarCheck, Send, ChevronRight,
+  Calendar, Link2, Database, ShieldCheck,
 } from 'lucide-react'
 
 // Lead-gen credit bundles — mirrors billing page. $1/credit, three sizes.
@@ -43,6 +44,13 @@ interface Seat {
   booked?: number
   leads?: number
   reply_pct?: number
+  // #110 — per-rep lead ownership / routing + CRM dedup (read-only)
+  deduped?: number
+  dedup_enabled?: boolean
+  // #111 — per-rep / multi-provider calendar (read-only)
+  calendar_connected?: boolean
+  calendar_email?: string | null
+  booking_url?: string | null
 }
 interface RepCampaign { id: string; name: string; status: string; leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number; created_at: string }
 interface RepActivity { type: 'sent' | 'reply' | 'meeting'; title: string; subtitle: string; at: string; tone: 'neutral' | 'positive' | 'warn' }
@@ -55,7 +63,7 @@ interface Overview {
   can_manage: boolean
   seats: Seat[]
   pending_requests: CreditRequest[]
-  totals: { seats: number; active_seats: number; allocated: number; used: number; company_pool: number; pending_requests: number }
+  totals: { seats: number; active_seats: number; allocated: number; used: number; company_pool: number; pending_requests: number; total_leads?: number; total_deduped?: number; calendars_connected?: number }
 }
 
 type Tab = 'command' | 'seats' | 'usage' | 'plays'
@@ -309,14 +317,27 @@ export default function CompanyPage() {
                   <div><p className="text-2xl font-bold">{totals.pending_requests}</p><p className="text-xs text-white/60">Requests</p></div>
                 </div>
               </div>
+              {/* #110/#111 — company-wide lead-ownership / dedup + calendar coverage */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/15 px-3 py-1 rounded-full">
+                  <Database className="w-3.5 h-3.5" />{(totals.total_leads ?? 0).toLocaleString()} leads owned across reps
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/15 px-3 py-1 rounded-full">
+                  <ShieldCheck className="w-3.5 h-3.5" />{(totals.total_deduped ?? 0).toLocaleString()} deduped (skipped, already in CRM)
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/15 px-3 py-1 rounded-full">
+                  <CalendarCheck className="w-3.5 h-3.5" />{totals.calendars_connected ?? 0} of {totals.seats} reps bookable
+                </span>
+              </div>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                   <th className="text-left px-6 py-3">Rep · their FIGSY</th>
-                  <th className="text-right px-3 py-3">Contacted</th>
+                  <th className="text-right px-3 py-3">Leads</th>
                   <th className="text-right px-3 py-3">Reply %</th>
                   <th className="text-right px-3 py-3">Booked</th>
+                  <th className="text-center px-3 py-3">Calendar</th>
                   <th className="text-right px-4 py-3">Credits left</th>
                 </tr>
               </thead>
@@ -343,13 +364,37 @@ export default function CompanyPage() {
                           {pct > 0.9 && left < 20 && <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">low credits</span>}
                         </div>
                       </td>
-                      <td className="px-3 py-4 text-right text-gray-700">{s.role === 'owner' ? '—' : (s.contacted ?? 0).toLocaleString()}</td>
+                      <td className="px-3 py-4 text-right text-gray-700">
+                        {s.role === 'owner' ? '—' : (
+                          <span className="inline-flex items-center justify-end gap-1.5">
+                            {(s.leads ?? 0).toLocaleString()}
+                            {/* #110 — leads owned by this rep; deduped = already-in-CRM, skipped */}
+                            {(s.deduped ?? 0) > 0 && (
+                              <span title={`${s.deduped} already in CRM — not re-worked`} className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                                <ShieldCheck className="w-3 h-3" />{s.deduped}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-4 text-right">
                         {s.role === 'owner' ? <span className="text-gray-300">—</span> : (
                           <span className={`font-semibold ${(s.reply_pct ?? 0) >= 12 ? 'text-emerald-600' : (s.reply_pct ?? 0) < 8 ? 'text-orange-600' : 'text-gray-700'}`}>{s.reply_pct ?? 0}%</span>
                         )}
                       </td>
                       <td className="px-3 py-4 text-right font-bold text-gray-900">{s.role === 'owner' ? '—' : (s.booked ?? 0)}</td>
+                      <td className="px-3 py-4 text-center">
+                        {/* #111 — per-rep calendar: Google native or any external booking link */}
+                        {s.role === 'owner' ? <span className="text-gray-300">—</span> : (s.calendar_connected || s.booking_url) ? (
+                          <span title={s.calendar_email || s.booking_url || 'Calendar connected'} className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            <CalendarCheck className="w-3 h-3" />{s.calendar_connected ? 'Google' : 'Link'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                            <Calendar className="w-3 h-3" />None
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <span className="font-bold" style={{ color: pct > 0.9 ? '#ea580c' : BRAND }}>{left.toLocaleString()}</span>
@@ -481,6 +526,47 @@ export default function CompanyPage() {
                   </div>
                 )}
 
+                {/* #110 — per-rep lead ownership / routing + CRM dedup (read-only).
+                    Each rep owns their own lead book (their workspace's leads); dedup
+                    is the rep's FIGSY CRM check that skips already-known contacts. */}
+                {s.role === 'rep' && (
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <p className="text-[11px] font-semibold text-gray-500 mb-2 flex items-center gap-1.5"><Database className="w-3.5 h-3.5" style={{ color: BRAND }} /> Lead book &amp; routing</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-semibold text-gray-700 bg-gray-50 px-2 py-1 rounded-lg">{(s.leads ?? 0).toLocaleString()} leads owned</span>
+                      {(s.deduped ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg"><ShieldCheck className="w-3 h-3" />{s.deduped} deduped</span>
+                      )}
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg ${s.dedup_enabled ? 'text-emerald-700 bg-emerald-50' : 'text-gray-400 bg-gray-50'}`}>
+                        <ShieldCheck className="w-3 h-3" />Dedup {s.dedup_enabled ? 'on' : 'off'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1.5">Leads route to this rep&apos;s own FIGSY — no cross-rep double-working.</p>
+                  </div>
+                )}
+
+                {/* #111 — per-rep / multi-provider calendar (read-only). Google native
+                    slots OR any external booking link (Calendly/Zoho/etc.). */}
+                {s.role === 'rep' && (
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <p className="text-[11px] font-semibold text-gray-500 mb-2 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" style={{ color: BRAND }} /> Booking calendar</p>
+                    {s.calendar_connected ? (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg">
+                        <CalendarCheck className="w-3 h-3" />Google{s.calendar_email ? ` · ${s.calendar_email}` : ''}
+                      </span>
+                    ) : s.booking_url ? (
+                      <a href={s.booking_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-700 bg-violet-50 px-2 py-1 rounded-lg hover:bg-violet-100">
+                        <Link2 className="w-3 h-3" />Booking link
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
+                        <Calendar className="w-3 h-3" />No calendar connected
+                      </span>
+                    )}
+                    <p className="text-[10px] text-gray-400 mt-1.5">Each rep connects their own calendar in Settings — bookings land on their seat.</p>
+                  </div>
+                )}
+
                 {/* #108 — owner edits the rep's budget + can deactivate the seat */}
                 {can_manage && s.role === 'rep' && (
                   <div className="mt-4 pt-3 border-t border-gray-100 space-y-3">
@@ -543,7 +629,7 @@ export default function CompanyPage() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-400">FIGSY is included on every seat. The owner switches on Milla · Vida · Denise per rep — billed to the company. Per-rep lead routing (item 38) and per-rep calendars (item 41) land next.</p>
+          <p className="text-xs text-gray-400">FIGSY is included on every seat. The owner switches on Milla · Vida · Denise per rep — billed to the company. Each rep owns their own lead book (with CRM dedup) and their own booking calendar — shown above.</p>
         </div>
       )}
 
@@ -675,6 +761,21 @@ export default function CompanyPage() {
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{k.label}</p>
                   </div>
                 ))}
+              </div>
+
+              {/* #110/#111 — this rep's lead book + dedup + calendar (read-only) */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-700 bg-gray-50 px-2.5 py-1 rounded-lg"><Database className="w-3.5 h-3.5" style={{ color: BRAND }} />{(drillSeat.leads ?? 0).toLocaleString()} leads owned</span>
+                {(drillSeat.deduped ?? 0) > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg"><ShieldCheck className="w-3.5 h-3.5" />{drillSeat.deduped} deduped</span>
+                )}
+                {drillSeat.calendar_connected ? (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg"><CalendarCheck className="w-3.5 h-3.5" />Calendar{drillSeat.calendar_email ? ` · ${drillSeat.calendar_email}` : ''}</span>
+                ) : drillSeat.booking_url ? (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-700 bg-violet-50 px-2.5 py-1 rounded-lg"><Link2 className="w-3.5 h-3.5" />Booking link</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg"><Calendar className="w-3.5 h-3.5" />No calendar</span>
+                )}
               </div>
 
               {drillLoading && <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-[#7C3AED]" /></div>}

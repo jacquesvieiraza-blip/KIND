@@ -45,18 +45,25 @@ async function getClientForUser(userId: string): Promise<{ id: string; company_i
 }
 
 // Batch per-rep outreach stats (one query per source, aggregated in JS).
-async function repStats(repIds: string[]): Promise<Record<string, { contacted: number; replies: number; booked: number; leads: number }>> {
-  const stats: Record<string, { contacted: number; replies: number; booked: number; leads: number }> = {}
-  for (const id of repIds) stats[id] = { contacted: 0, replies: 0, booked: 0, leads: 0 }
+// #110 — `deduped` counts this rep's leads that FIGSY flagged as already-in-CRM
+// (leads.crm_existing). These are real, written by the live dedup path in
+// lib/figsy.ts; we never re-spend credits re-working them. Read-only here.
+async function repStats(repIds: string[]): Promise<Record<string, { contacted: number; replies: number; booked: number; leads: number; deduped: number }>> {
+  const stats: Record<string, { contacted: number; replies: number; booked: number; leads: number; deduped: number }> = {}
+  for (const id of repIds) stats[id] = { contacted: 0, replies: 0, booked: 0, leads: 0, deduped: 0 }
   if (repIds.length === 0) return stats
 
   const [leadsRes, repliesRes, campsRes] = await Promise.all([
-    db.from('leads').select('client_id').in('client_id', repIds),
+    db.from('leads').select('client_id, crm_existing').in('client_id', repIds),
     db.from('figsy_replies').select('client_id, meeting_booked_at').in('client_id', repIds),
     db.from('figsy_campaigns').select('id, client_id').in('client_id', repIds),
   ])
 
-  for (const r of (leadsRes.data ?? []) as any[]) if (stats[r.client_id]) stats[r.client_id].leads++
+  for (const r of (leadsRes.data ?? []) as any[]) {
+    if (!stats[r.client_id]) continue
+    stats[r.client_id].leads++
+    if (r.crm_existing) stats[r.client_id].deduped++
+  }
   for (const r of (repliesRes.data ?? []) as any[]) {
     if (!stats[r.client_id]) continue
     stats[r.client_id].replies++
@@ -92,7 +99,7 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     const [{ data: company }, { data: seats }, { data: requests }] = await Promise.all([
       db.from('companies').select('id, name, credit_pool, seat_cap').eq('id', ctx.companyId).maybeSingle(),
       db.from('clients')
-        .select('id, company_name, invited_email, seat_role, autonomy, seat_budget, seat_active, seat_accepted_at, credit_balance, enabled_agents')
+        .select('id, company_name, invited_email, seat_role, autonomy, seat_budget, seat_active, seat_accepted_at, credit_balance, enabled_agents, crm_dedup_enabled, calendar_booking_enabled, google_calendar_email, booking_url')
         .eq('company_id', ctx.companyId).order('seat_role', { ascending: true }),
       db.from('seat_credit_requests')
         .select('id, rep_client_id, amount, reason, status, created_at')
@@ -104,7 +111,7 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     const stats = await repStats(reps.map(r => r.id))
 
     const seatsOut = seatRows.map(s => {
-      const st = stats[s.id] ?? { contacted: 0, replies: 0, booked: 0, leads: 0 }
+      const st = stats[s.id] ?? { contacted: 0, replies: 0, booked: 0, leads: 0, deduped: 0 }
       const budget = s.seat_budget ?? 0
       const used = Math.max(0, budget - (s.credit_balance ?? 0))
       return {
@@ -122,6 +129,20 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
         // real per-rep outreach
         contacted: st.contacted, replies: st.replies, booked: st.booked, leads: st.leads,
         reply_pct: st.contacted > 0 ? Math.round((st.replies / st.contacted) * 1000) / 10 : 0,
+        // #110 — per-rep lead ownership / routing + CRM dedup (read-only).
+        // Every rep IS their own clients workspace, so their leads are already
+        // owned by them (leads.client_id = this seat). `deduped` is the count
+        // FIGSY's CRM-dedup flagged as already-known, and `dedup_enabled` is
+        // whether this rep's FIGSY runs that read-only CRM check before enrolling.
+        deduped: st.deduped,
+        dedup_enabled: s.crm_dedup_enabled ?? false,
+        // #111 — per-rep / multi-provider calendar (read-only). Each rep's seat
+        // carries its own Google Calendar connection + booking link, so the
+        // owner can see at a glance who is bookable. Google = native slots;
+        // booking_url = any external provider (Calendly/Zoho/etc.).
+        calendar_connected: s.calendar_booking_enabled ?? false,
+        calendar_email: s.google_calendar_email ?? null,
+        booking_url: s.booking_url ?? null,
       }
     })
 
@@ -136,6 +157,11 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
       pending_requests: (requests ?? []).length,
       total_booked:     repOut.reduce((n, s) => n + s.booked, 0),
       total_contacted:  repOut.reduce((n, s) => n + s.contacted, 0),
+      // #110 — company-wide leads owned across reps + total deduped (saved from
+      // re-working). #111 — how many reps have a booking calendar connected.
+      total_leads:        repOut.reduce((n, s) => n + s.leads, 0),
+      total_deduped:      repOut.reduce((n, s) => n + s.deduped, 0),
+      calendars_connected: repOut.filter(s => s.calendar_connected || s.booking_url).length,
     }
 
     res.json({

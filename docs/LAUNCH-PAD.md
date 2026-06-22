@@ -23,20 +23,35 @@
 
 ---
 
-## ✅ RUNLIST — 📅 MON 22 JUN (next working session — founder back)
-> ▶️ **Order:** 🧍 connect the **warmup tool (198)** first → 📞 **Apollo 5pm** → 🤝 **walk Blocks 2/3** (screens 80–91 · R1–R20) + 🤖 **dashboard recount** + 🤖 **roadmap-view** → 🧍 **smoke tests** → 🤖 **RLS 55a** → 🧍 GTM week-1 kickoff. **TUE 23:** raw demo + Drop 01.
+## ✅ RUNLIST — 🌙 TONIGHT 7:15PM (Mon 22 Jun — **updated mid-session: ship-work DONE, here's what's left**)
+> ▶️ **Where we are:** the 4 build PRs are **merged + deployed green** and **both migrations are run live**. What remains tonight = merge 2 doc PRs · you verify the 2 new features · your 3 high-leverage moves (warmup · Notion · 203) · housekeeping. **TUE 23:** raw demo + Drop 01 · Apollo follow-through.
 
-**1 · Connect the cold-email warmup tool (198)** — 🧍 founder, first thing
-- Instantly/Mailreach on `hello@gettingkind.com` · ramp 20→40/day · keep cold-sending OFF until placement = Primary. Clock starts on connect. · Source: **198**
+### ✅ DONE this session (no action)
+- ✅ **Merged #665 #666 #667 #668** → all on `main`.
+- ✅ **@kind/api deploy GREEN** (#668 ACTIVE). *(#666/#667's two reds = transient Railway **yarn-cache corruption** on install — a different random package each, prettier then realtime-js; self-healed on the next build. NOT our code.)*
+- ✅ **Both migrations RUN live:** `20260622_subscription_pause.sql` (enum-fixed via #671) + `20260622_webhook_endpoints.sql`.
+- ✅ **Colours rendered** → 182/185/190 🔴→🩷; dashboard `56🟢/59🩷/6🟣/12🟡/80🔴/7⏸` (PR #672).
 
-**2 · Apollo — 5pm meeting (CONFIRMED)** — 🧍 founder · Source: **174–177**
+### 🔻 WHAT'S LEFT — in order
+**1 · Merge the 2 doc PRs** — 🧍 founder
+- **#670** (this runlist) + **#672** (the 182/185/190 render). Docs only — safe. · Source: **launch-pad · inventory**
 
-**3 · Verification walk Blocks 2 + 3** — 🤝 (Block 1 ✅ done 18 Jun, item 56 🟢)
-- Walk screens **80–91** + **R1–R20** (checklist below); 🤖 fixes 🔴 same-day → flip 🩷→🟢. **+ 🤖 normalize & recount the STATUS dashboard, + compile the one-screen ROADMAP view in V2-TRACKER.** · Source: **60–79 · 80–91 · roadmap**
+**2 · Verify the 2 new features** — 🧍 founder (turns 🩷 → 🟢)
+- Billing page shows **"Pause for a month"** and pause returns **200** (not 409). Register a test webhook in `/dashboard/developer` and fire an event → confirm signed delivery. · Source: **190 · 182 · 185**
 
-**4 · Smoke tests T3–T7 + T9/T10** — 🧍 (`docs/SMOKE_TEST.md`) · Source: **100**
+**3 · Connect the cold-email warmup tool (198)** — 🧍 founder
+- Instantly/Mailreach on `hello@gettingkind.com` · ramp 20→40/day · keep cold volume LOW — domain still warming. Clock starts on connect. · Source: **198**
 
-**5 · RLS / access control (55a)** — 🤖 before the 50-rep client · Source: **55a**
+**4 · Set up Notion (204)** — 🧍 founder
+- Free workspace · migrate ops/command-centre content · **code + product-trackers stay on GitHub** (boundary rule). · Source: **204**
+
+**5 · Decide 203 repo + auth/hosting** — 🧍 founder (USD already locked)
+- New `kind-ops`-style repo vs a module in the KIND product · auth provider · hosting. Unblocks the next 203 phase (Stripe → engine → admin portal). Engine core (#666) is ready to plug in. · Source: **203 · brief §0/§9**
+
+**6 · 🤖 Housekeeping (mine — no merge needed)** — 🤖
+- Prune the ~40 stale merged/closed `claude/*` branches (verified no lost work). · Optional: tiny PR to remove the stray `package-lock.json` (kills the "mixed package managers" build warning, reduces install-flake surface). · Source: **hygiene**
+
+> ⚠️ **Honest caveat:** the dashboard absolute totals are a hand-reconciled tally — my render *delta* (+3🩷/−3🔴) is exact, but a full absolute tie-out is deferred to the verification **walk recount** (Blocks 2/3). Don't treat the totals as grep-proven.
 
 > ✅ **LAUNCHED Thu 18 (the big day):** Company Engine walk Block 1 done (**56 🟢**) · **188** Denise demo verified · **FIGSY switcher** fixed+verified (#627) · **"Alta"** scrubbed (#626) · docs self-audited · seller-engine (197/200/201/202) + AE comp pack mapped · all PRs merged, board clean → **GO LIVE.**
 > ✅ **Closed Wed 17:** 3 builds (186/187/188 + migrations) · metrics saga closed (193/194/195) · mail-tester 10/10 · `kind-ops` built · item 196 logged.

@@ -95,5 +95,13 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 9.3 **The STEALS CATALOG is the ledger** (`PRODUCT-INVENTORY.md` → "🥷 STEALS CATALOG / what to steal"): source → what we take → item ID. Add the source + the row when a new steal lands.
 9.4 **Audit on request.** When the founder says "audit the steals," walk the catalog and confirm each line maps to a logged item; mint 🔴 items for any that don't.
 
+## 10. 🗺️ DOC FRESHNESS — sub-docs don't rot (added 22 Jun — "we keep coming up with stale docs")
+> The founder lives off the 4 core docs, but the many living sub-docs that branch off them were going stale silently. `DOC-MAP.md` is the freshness index; this rule keeps it true.
+10.1 **One owner of truth per fact.** Status → PRODUCT-INVENTORY · today → LAUNCH-PAD · strategy → KIND-MASTER · future → V2-TRACKER. A sub-doc may *explain* a fact but never *own* a status — so there's only ever one place to update.
+10.2 **Update-on-change.** When a fact changes, update its owning doc the **same session**. For a **sub-doc**, when the thing it describes changes, either update it or **flag it stale at the top + drop its STATUS to ⚠️ in DOC-MAP** — never leave it silently wrong.
+10.3 **`Last-checked` discipline.** Every living sub-doc carries a `Last-checked: <date>` near the top; `DOC-MAP.md` carries the STATUS verdict (✅/⚠️/🛠️/🗄️) + an UPDATE-WHEN trigger per doc.
+10.4 **Weekly doc-freshness sweep.** At each weekly close, re-verify the sub-docs the week's work touched, bump their `Last-checked`, update DOC-MAP. **Verify against the code/reality — never declare a doc fresh from memory** (the 22-Jun audit found 2 agent-flagged "stale" docs were actually fine — check before editing).
+10.5 **Stale ≠ delete.** A superseded doc gets an archive banner + drops to the ARCHIVE tier in DOC-MAP; it's never left in place to mislead.
+
 ---
 _If a rule here is wrong or missing, the founder says so and we edit this doc. This is the contract._

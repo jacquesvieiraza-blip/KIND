@@ -1,6 +1,9 @@
-# 💷 Salary & Break-Even Plan — £75,000 / year (You vs a Partner)
+# 💷 Salary & Break-Even Plan — ~£75k / ~$95k a year (You vs a Partner)
+`Last-checked: 22 Jun 2026`
 
-> **The hardcore version.** What it takes to pay yourself £75k — and, more importantly, to **HOLD** it. Reaching the number is a climb; holding it is a treadmill that never stops. *Last modelled 16 Jun 2026, off `run-costs-and-cashflow.md` (§5a/5b).*
+> **💵 CURRENCY (locked 22 Jun, "we are USD"):** the **business bills USD**. The **client-pricing** figures below are legacy £ — read them as their **USD-equivalent ARPU tiers** in `run-costs-and-cashflow.md` §5a (£60→$60 FIGSY entry · **£155 ≈ $160 Growth** · £190 ≈ $199 Growth+). The **£75k is your personal UK take-home target** (≈ $95k) — that one stays a £ goal because it's personal income; everything that drives it is USD revenue. *The maths (clients-needed, churn treadmill, retention = salary) is unchanged — only the currency label moves.*
+
+> **The hardcore version.** What it takes to pay yourself the target — and, more importantly, to **HOLD** it. Reaching the number is a climb; holding it is a treadmill that never stops. *Last modelled 16 Jun 2026, off `run-costs-and-cashflow.md` (§5a/5b); currency-reconciled 22 Jun.*
 
 ---
 

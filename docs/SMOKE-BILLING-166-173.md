@@ -1,6 +1,8 @@
 # 💳 Billing-correctness smoke test (items 166–171 + 168 code)
 
-**Branch:** `claude/billing-correctness-166-173` · **Not merged until every box below is green.**
+> ✅ **COMPLETED / HISTORICAL (22 Jun).** Items **166–171 are LIVE in production** (merged #580 + migration run 16 Jun; one-charge-one-wallet, separate pools, Denise $39, atomic credits). This was the test record for that build — kept for history. `Last-checked: 22 Jun 2026`.
+
+**Branch:** `claude/billing-correctness-166-173` · *(historical — merged)*.
 **Migration:** `supabase/migrations/20260616_billing_correctness.sql` — run on **STAGING first, then PRODUCTION** (confirm the Supabase project name before each run, per the process lock).
 
 ## What changed (the model)

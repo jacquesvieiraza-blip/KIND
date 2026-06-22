@@ -1,4 +1,6 @@
 # K.I.N.D — Full Roadmap Audit
+> 🗄️ **ARCHIVE (22 Jun) — pre-launch (14 May) roadmap verification, superseded by `PRODUCT-INVENTORY`.** Useful only as the most complete early API/endpoint catalogue (noted in DOC-MAP). Do not build from this. `Last-checked: 22 Jun 2026`.
+
 *Compared against original roadmap document · 14 May 2026*
 *Do not build anything from this document without explicit instruction.*
 

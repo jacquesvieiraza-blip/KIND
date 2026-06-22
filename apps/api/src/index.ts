@@ -50,6 +50,15 @@ import lookalikeRouter from './routes/lookalike'
 import { linkedinRouter } from './routes/linkedin'
 import { integrationsRouter } from './routes/integrations'
 import { startCrons } from './cron'
+import { createClient } from '@supabase/supabase-js'
+
+// Lightweight Supabase client used ONLY by the /health probe (cheap HEAD count).
+// Reuses the same env config as the rest of the API — no new secrets. Created
+// once at module load; null if creds are absent so /health degrades instead of
+// crashing the process.
+const healthDb = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -93,7 +102,39 @@ app.use('/stripe/webhook',   express.raw({ type: 'application/json' }))
 app.use('/figsy/replies/inbound', express.raw({ type: 'application/json' }))
 app.use(express.json())
 
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'kind-api', v: '2026-05-18-b' }))
+// Health probe for external uptime monitors (UptimeRobot/BetterStack).
+// Checks: (a) DB — a fast HEAD count on a small table; (b) email — only that the
+// Resend API key is CONFIGURED (never sends or hits a paid endpoint).
+// Returns 200 when DB is reachable, 503 when it is not, so the monitor alerts.
+// Everything is wrapped + bounded by a 3s timeout so /health never hangs.
+app.get('/health', async (_req, res) => {
+  const v = '2026-06-22-health'
+  const email = process.env.RESEND_API_KEY ? 'configured' as const : 'missing' as const
+  let db: 'ok' | 'fail' = 'fail'
+
+  try {
+    if (!healthDb) throw new Error('supabase creds not configured')
+    // Cheap, read-only probe: HEAD count, no rows returned. Bounded by a 3s race
+    // so a slow/hung DB connection can never stall the health check.
+    const probe = healthDb.from('clients').select('*', { count: 'exact', head: true })
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('db check timed out')), 3000))
+    const { error } = await Promise.race([probe, timeout]) as { error: unknown }
+    if (error) throw error
+    db = 'ok'
+  } catch (err) {
+    db = 'fail'
+    console.error('[health] db check failed:', err instanceof Error ? err.message : err)
+  }
+
+  res.status(db === 'ok' ? 200 : 503).json({
+    status: db === 'ok' ? 'ok' : 'degraded',
+    service: 'kind-api',
+    v,
+    checks: { db, email },
+    ts: new Date().toISOString(),
+  })
+})
 app.get('/features', (_req, res) => {
   res.json({
     campaign_intent: process.env.FEATURE_CAMPAIGN_INTENT === 'true',

@@ -154,6 +154,89 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
   }
 })
 
+// ── GET /company/seats/:id/detail — owner read-only drill-down into a rep ─────
+// #107 — from the Command Centre rep list, the owner clicks a rep and sees that
+// rep's detail: their campaigns (with denormalised stats) + recent activity
+// (sent emails + replies/meetings). READ-ONLY. Owner/manager-scoped: the seat
+// must belong to the caller's company. Headline stats (contacted / reply % /
+// booked / credits / leads) already come from /overview — this fills in the
+// per-rep campaigns + activity that the list row can't show.
+companyRouter.get('/seats/:id/detail', async (req: AuthRequest, res) => {
+  try {
+    const ctx = await resolveContext(req.userId!)
+    if (!ctx) { res.status(404).json({ success: false, error: 'No company found' }); return }
+    if (!canManage(ctx.role)) { res.status(403).json({ success: false, error: 'Only the owner or a manager can view a rep' }); return }
+
+    // Seat must belong to this company (owner-scoped guard).
+    const { data: seat } = await db.from('clients')
+      .select('id, company_name, invited_email, seat_role')
+      .eq('id', req.params.id).eq('company_id', ctx.companyId).maybeSingle()
+    if (!seat) { res.status(404).json({ success: false, error: 'Seat not found' }); return }
+
+    const repId = (seat as any).id
+
+    // Campaigns (denormalised counters are already on the row — no extra reads).
+    const { data: campaigns } = await db.from('figsy_campaigns')
+      .select('id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, created_at')
+      .eq('client_id', repId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    const campIds = ((campaigns ?? []) as any[]).map(c => c.id)
+
+    // Recent activity — same shape the rep's own FIGSY activity feed uses.
+    const [sentRes, repliesRes] = await Promise.all([
+      campIds.length
+        ? db.from('figsy_sent_emails')
+            .select('subject, step, sent_at, leads(first_name, last_name, company)')
+            .in('campaign_id', campIds)
+            .order('sent_at', { ascending: false })
+            .limit(30)
+        : Promise.resolve({ data: [] as any[] }),
+      db.from('figsy_replies')
+        .select('from_name, from_email, classification, meeting_booked_at, received_at')
+        .eq('client_id', repId)
+        .order('received_at', { ascending: false })
+        .limit(30),
+    ])
+
+    type Event = { type: 'sent' | 'reply' | 'meeting'; title: string; subtitle: string; at: string; tone: 'neutral' | 'positive' | 'warn' }
+    const events: Event[] = []
+    for (const s of (sentRes.data ?? []) as any[]) {
+      const lead = Array.isArray(s.leads) ? s.leads[0] : s.leads
+      const who = lead ? `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || lead.company || 'a lead' : 'a lead'
+      events.push({ type: 'sent', title: `FIGSY sent to ${who}`, subtitle: `Step ${s.step}${s.subject ? ` · ${s.subject}` : ''}`, at: s.sent_at, tone: 'neutral' })
+    }
+    for (const r of (repliesRes.data ?? []) as any[]) {
+      const who = r.from_name || (r.from_email ? r.from_email.split('@')[0] : 'a lead')
+      if (r.meeting_booked_at) events.push({ type: 'meeting', title: `Meeting booked with ${who}`, subtitle: 'FIGSY closed a booking', at: r.meeting_booked_at, tone: 'positive' })
+      const hot = r.classification === 'hot' || r.classification === 'interested'
+      events.push({ type: 'reply', title: `${hot ? '🔥 ' : ''}Reply from ${who}`, subtitle: r.classification ? `Classified: ${r.classification}` : 'New reply', at: r.received_at, tone: hot ? 'positive' : r.classification === 'opt_out' ? 'warn' : 'neutral' })
+    }
+    events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+
+    res.json({
+      success: true,
+      data: {
+        seat: { id: repId, role: (seat as any).seat_role },
+        campaigns: (campaigns ?? []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          status: c.status,
+          leads_enrolled: c.leads_enrolled ?? 0,
+          emails_sent: c.emails_sent ?? 0,
+          replies_total: c.replies_total ?? 0,
+          replies_interested: c.replies_interested ?? 0,
+          created_at: c.created_at,
+        })),
+        activity: events.slice(0, 30),
+      },
+    })
+  } catch (err) {
+    console.error('[company/seats detail]', err)
+    res.status(500).json({ success: false, error: 'Failed to load rep detail' })
+  }
+})
+
 // ── POST /company/provision — explicitly turn this account into a company ────
 // Opt-in only. The caller's existing client becomes the owner seat. No-op if
 // they already belong to a company.

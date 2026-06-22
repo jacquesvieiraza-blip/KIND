@@ -5,7 +5,7 @@
 
 | 🟢 Live + verified | 🩷 Live, not yet walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built (the roadmap) | ⏸ Blocked |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| **56** | **52** | **6** | **12** | **87** | **7** |
+| **56** | **53** | **6** | **12** | **86** | **7** |
 
 **How to read it:** the **56 🟢** are the proven core, live + verified. The **44 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test) — the **Mon-22 verification walk (Blocks 2/3)** converts most → 🟢. The **94 🔴** are the **forward roadmap**, gated by client-count milestones (not all buildable now). The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**. *(Counts live only in the table above — this line describes, it does not re-tally.)*
 
@@ -279,7 +279,7 @@
 ## 4B — Company Engine completion (post-19 unless the demo needs it)
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
-| 106 | 🔴 | Invite **email delivery** (today the link is copy-paste — works for Monday) | 🤖 |
+| 106 | 🩷 | Invite **email delivery** (today the link is copy-paste — works for Monday) | 🤖 |
 | 107 | 🩷 | Owner **drill-down** into a rep's pipeline/inbox | 🤖 |
 | 108 | 🩷 | Edit rep budget directly · deactivate/remove a rep (offboarding) | 🤖 |
 | 109 | 🔴 | Manager role fully wired · notifications (owner↔rep) | 🤖 |

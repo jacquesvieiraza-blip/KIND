@@ -5,9 +5,9 @@
 
 | 🟢 Live + verified | 🩷 Live, not yet walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built (the roadmap) | ⏸ Blocked |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| **56** | **59** | **6** | **12** | **80** | **7** |
+| **56** | **59** | **6** | **12** | **86** | **7** |
 
-**How to read it:** the **56 🟢** are the proven core, live + verified. The **59 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test; + 182/185/190 deployed 22 Jun) — the **verification walk (Blocks 2/3)** converts most → 🟢. The **80 🔴** are the **forward roadmap**, gated by client-count milestones (not all buildable now). The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**. *(Counts live only in the table above — this line describes, it does not re-tally.)*
+**How to read it:** the **56 🟢** are the proven core, live + verified. The **59 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test; + 182/185/190 deployed 22 Jun) — the **verification walk (Blocks 2/3)** converts most → 🟢. The **86 🔴** are the **forward roadmap** (incl. the 6 steal-sourced items 205–210 logged 22 Jun), gated by client-count milestones (not all buildable now). The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**. *(Counts live only in the table above — this line describes, it does not re-tally.)*
 
 
 > **AUTHORITY (operating system — see root `CLAUDE.md`):** this is the ONLY home for product **status** (one dot + one owner per item). Not a task list. For daily execution → `LAUNCH-PAD.md`; for strategy/decisions/history → `KIND-MASTER.md`; for future detail → `V2-TRACKER.md`. **Nothing is 🟢 unless verified live in production** (live-but-unwalked = 🩷).
@@ -347,13 +347,24 @@
 *Patterns to copy into the PRODUCT — most map onto items we already have; mapped so we don't re-add. (The "use Notion ourselves?" question is item 204.)*
 - **Agents** (autonomous · 20-min multi-step · scheduled / event-triggered · memory in pages/DBs) → study for **FIGSY + the agent family (2/96/144) + agent-panel 113a**; their cron/trigger-driven agent UX mirrors our send-due cron.
 - **Workers — sync any API into a DB + webhook triggers** → the exact pattern for the **Stripe→attribution engine (203)** + **Integrations Hub (83)**.
-- **Forms: branching logic · auto-create DB entry · custom thank-you** → **lead-capture forms (183)** — steal branching + auto-create-lead.
+- **Forms: branching logic · auto-create DB entry · custom thank-you** → **lead-capture forms (item 71, live)** — steal branching + auto-create-lead → now logged as **item 205**.
 - **Rollups with multi-currency formatting (USD/EUR/%)** → the **admin live P&L (203)** — directly answers our **GBP-vs-USD** rollup need.
 - **Calendar: 2-way Google/Outlook sync, tasks from any DB** → **per-rep calendars (41)** + Denise meeting-booking (144).
 - **Granular per-page permissions/sharing** → the gold standard for **Company-Engine RLS (55a)** + the seller portals (200).
 - **Template gallery flow (gallery → preview → "use this")** → **sequence/ICP/winning-plays libraries (70/162/56)**. **Synced blocks** → winning-plays inherited across reps (56). **People directory** → Company-Engine team/seats (88).
 - **Notion Mail / mail-to-pages** → our **inbox rebuild (112)**. **External Agents API** (Claude/Codex in Notion) → validates our agent thesis; possible future integration.
 > Genuinely NEW vs our roadmap (candidate gaps if we want them): **branching-logic forms** · **multi-currency rollups in admin** · **template-gallery UX**. The rest map to tracked items above. *(Source: notion.com/releases — 3.0 Agents Sep-25 · 3.2 Jan-26.)*
+
+### 🥷 STEAL-SOURCED ITEMS — logged in red (RULEBOOK §9: every steal gets an item)
+*Audited 22 Jun. The catalog steals below had no dedicated item — now logged 🔴 so they can't go missing. (Most other catalog steals already map to tracked/built items — see the STEALS CATALOG audit at the bottom of this doc.)*
+| # | 🔴 | Item | Owner |
+|---|----|------|-------|
+| 205 | 🔴 | **Branching-logic lead-capture forms** *(steal: Notion 3.2 Forms)* — extend the live forms (**item 71**) with **conditional branching · auto-create-lead into the scored pipeline · custom thank-you/redirect**. | 🤖 |
+| 206 | 🔴 | **Template-gallery UX** *(steal: Notion)* — one consistent **gallery → preview → "use this"** flow across the **sequence / ICP / winning-plays** libraries (70 · 162 · 56) + **synced blocks** (a winning play edited once propagates to every rep). | 🤖 |
+| 207 | 🔴 | **Multi-currency rollups in the admin P&L** *(steal: Notion)* — USD/local formatting + FX rollups in the live company P&L; the display layer the seller-engine P&L (**203**) needs (answers the GBP-vs-USD rollup). *(Feeds 203 — logged separately so the steal isn't lost.)* | 🤝 |
+| 208 | 🔴 | **Recency-weighted "hot lead" ranking + champion signal** *(steal: Hypo / Amplitude prospecting agent)* — prioritise leads/accounts whose engagement **spiked recently** (last ~30d), not a static score; flag a **"champion-experimenting"** contact (engaged AND touched the advanced/AI surface). Feeds intent signals (**139**). 🧍 needs a behaviour-signal source (lead engagement + client CRM). | 🤖 |
+| 209 | 🔴 | **Prospecting play-artifact + progress tracker** *(steal: Hypo)* — FIGSY outputs a clean, trackable **play**: strategy + the named target set + sample cadence + a **tick-through progress tracker** (sent/acted · current step) — plus account **org-threading** (one hot contact → the buying committee). Output-UX upgrade on campaigns. | 🤖 |
+| 210 | 🔴 | **Call-coaching agent** *(steal: Glean)* — score a rep's call recording vs criteria → next-call guidance; the "augment the rep" thesis as a feature in the per-rep Company Engine (**#88**) / agent family. *(Was floating in the Glean steal note — now logged.)* | 🤖 |
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 179 | 🩷 | **Shareable stakeholder pipeline view — ALREADY BUILT** *(not a gap; mis-added 16 Jun)*: public `GET /share/:token` (`share.ts`, mounted) + public page `portal/share/[token]` + `CopyShareLink` + dashboard wiring + migration `20260530_client_share_token`. **Live — verify in the walk → 🟢.** | — |
@@ -431,8 +442,8 @@
 ---
 
 # ░ REFERENCE — THE STEALS CATALOG (who we learn from → what we take) ░
-*(unchanged — full per-source detail in `V2-TRACKER.md` steals table)*
-**Alta** Touch-Points tree · template gallery · Train tabs · funnel dashboard · Unibox reply-tags/"Help me reply" · saved views · **the inbox blueprint (item 112)** · **ClickUp** Cmd+K · views · feed · status bar · Goals · Forms · Integrations Hub · **Lemlist** images · sequence builder · community play · **Monday** share-loop · dense dashboards · Pixar warmth · **Atlas** speed-to-lead · 90-day guarantee · influencers · **Instantly** warmup · auto-pause · adaptive volume · rotation · **Clay** waterfall enrichment · **Apollo** job-change · sequence analytics · transparency · intent · **Apex** acts-not-responds · autonomy onboarding · founder-as-demo · **Glean** context moat · benchmarks · winning-play library · Casey/auto-setup · permission-safety · context-backed MCP · **Revio** coaching onboarding · case-study specificity.
+> **🥷 STEALS AUDIT — 22 Jun (RULEBOOK §9: every steal must be logged in red).** Walked the whole catalog: **almost every steal already maps to a tracked/built item** — e.g. ClickUp **Goals → item 69** (built) · ClickUp/Notion **Forms → item 71** (built) + branching now **205** · Instantly **auto-pause → 17/20/21** (built) · Glean **context moat → 46/47**, **benchmarks → 159/150**, **auto-setup → Casey 121**. **Newly logged 🔴 (were floating in prose):** **205** branching forms · **206** template-gallery UX · **207** multi-currency admin rollups · **208** recency-weighted hot-lead ranking + champion signal (Hypo) · **209** prospecting play-artifact + tracker (Hypo) · **210** call-coaching agent (Glean). *Full per-source detail in `V2-TRACKER.md` steals table.*
+**Alta** Touch-Points tree · template gallery · Train tabs · funnel dashboard · Unibox reply-tags/"Help me reply" · saved views · **the inbox blueprint (item 112)** · **ClickUp** Cmd+K · views · feed · status bar · Goals · Forms · Integrations Hub · **Lemlist** images · sequence builder · community play · **Monday** share-loop · dense dashboards · Pixar warmth · **Atlas** speed-to-lead · 90-day guarantee · influencers · **Instantly** warmup · auto-pause · adaptive volume · rotation · **Clay** waterfall enrichment · **Apollo** job-change · sequence analytics · transparency · intent · **Apex** acts-not-responds · autonomy onboarding · founder-as-demo · **Glean** context moat · benchmarks · winning-play library · Casey/auto-setup · permission-safety · context-backed MCP · call-coaching agent (210) · **Revio** coaching onboarding · case-study specificity · **Notion** (3.2) branching forms (205) · template-gallery UX (206) · multi-currency rollups (207) · agents/workers/calendar/permissions (mapped to 2/83/41/55a) · **Hypo / Amplitude** (internal prospecting agent) recency-weighted hot-lead ranking + champion signal (208) · play-artifact + progress tracker + org-threading (209).
 
 ---
 *This inventory is the single complete list (≈199 items — see the colour dashboard at the top). 🟢 = live + verified · 🩷 = live, pending verification (shipped, awaiting the walk) · 🟣 = approved + locked, waiting to ship · 🟡 = built, needs founder review · 🔴 = future, in order. Ladder: 🔴→🟡→🟣→🩷→🟢. Numbers are stable IDs, not sequence. Nothing ships until the founder merges.*

@@ -5,7 +5,7 @@
 
 | 🟢 Live + verified | 🩷 Live, not yet walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built (the roadmap) | ⏸ Blocked |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| **56** | **45** | **6** | **13** | **93** | **7** |
+| **56** | **46** | **6** | **12** | **93** | **7** |
 
 **How to read it:** the **56 🟢** are the proven core, live + verified. The **44 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test) — the **Mon-22 verification walk (Blocks 2/3)** converts most → 🟢. The **94 🔴** are the **forward roadmap**, gated by client-count milestones (not all buildable now). The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**. *(Counts live only in the table above — this line describes, it does not re-tally.)*
 
@@ -360,7 +360,7 @@
 | 180 | 🔴 | **Admin audit log / activity history** — filterable "who sent what, when, to whom" (extend the existing POPIA consent logging to a full activity log). *(Monday/Glean · hard requirement for accounts >~50 people. Verified absent in code.)* | 🤖 |
 | 181 | 🔴 | **Enterprise SSO/SAML + SCIM provisioning** (Auth0/WorkOS) — beyond the social-OAuth login (84); the hard IT gate for accounts >~100 people. *(Monday/ClickUp/Glean.)* | 🤝 |
 | 182 | 🔴 | **Zapier / Make native integration** — partner listing → 6,000+ apps with no per-connector builds (FIGSY "meeting booked" → Slack). *(ClickUp/Monday · low effort. Verified absent in code.)* | 🤖 |
-| 183 | 🟡 | **Campaign kill-switch (account-wide panic button)** — one click halts ALL active campaigns instantly (runaway-send / compromised-account protection). **BUILT 22 Jun (PR `claude/183-kill-switch`):** `POST /figsy/campaigns/pause-all` (client-scoped, idempotent, sets active→paused) + "Pause all campaigns" button on the FIGSY page; tsc clean. → review/merge → 🟢. | 🤖 |
+| 183 | 🩷 | **Campaign kill-switch (account-wide panic button)** — one click halts ALL active campaigns instantly (runaway-send / compromised-account protection). **LIVE on prod 22 Jun** (#643 merged + deployed green): `POST /figsy/campaigns/pause-all` (client-scoped, idempotent, active→paused) + "Pause all campaigns" button on the FIGSY page. → 🧍 verify on prod → 🟢. | 🤖 |
 | 184 | 🔴 | **Public customer uptime page** — *internal status snapshots + admin status/health pages ALREADY BUILT (`status.ts` · `platform_status` · admin `/status` `/health` · 3×/day cron). Gap = a PUBLIC, customer-facing uptime page (Statuspage.io/BetterUptime).* | 🧍 |
 | 185 | 🔴 | **Outbound webhooks + public event API** — push customer-facing events ("meeting booked", "reply received") to their tools → builder ecosystem. *(Inbound webhook infra exists — `webhook_triggers` + webhook-triggered campaigns; the OUTBOUND direction is the gap.)* | 🤖 |
 | 186 | 🩷 | **Record signup T&C acceptance** — **LIVE (merged #606 + migration run 17 Jun).** New `signup_terms_accepted_at` + `signup_terms_accepted_ip` columns, written at account creation in `/auth/onboard`; the signup T&C tick is carried from the login/signup screen → onboard via `localStorage` and persisted (separate from the purchase-time `terms_accepted_at` so both consents are distinct). A trial user who never pays now has a stored consent record. 🧍 **verify** (a fresh signup writes the timestamp) → 🟢. *(Built + shipped 17 Jun.)* | 🧍 |

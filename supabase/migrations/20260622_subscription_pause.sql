@@ -1,29 +1,27 @@
 -- Item 190 — graceful PAUSE on the cancel path (1–3 month hold instead of cancel).
--- Adds a 'paused' subscription status and a resume date, so we can STOP billing
--- while KEEPING the client's data + settings warm (no delete, no churn).
+-- Adds a 'paused' subscription status and pause/resume timestamps, so we can STOP
+-- billing while KEEPING the client's data + settings warm (no delete, no churn).
 --
--- ⚠️ NOT YET APPLIED TO THE LIVE DB. Flagged for the founder to run.
---   This migration is additive + idempotent and does NOT touch billing/charge logic.
---   The `status` CHECK constraint must be widened to include 'paused' before the
---   POST /subscriptions/:id/pause endpoint can write the paused state.
+-- ⚠️ LIVE SCHEMA = ENUM. Production `subscriptions.status` is a Postgres enum
+--   type (`subscription_status`), NOT a text+CHECK column (the repo schema.sql
+--   drifted from prod). A new status is therefore added with `ALTER TYPE ... ADD
+--   VALUE`, not by widening a CHECK constraint. The earlier CHECK-based version
+--   failed in prod with: invalid input value for enum subscription_status: "paused".
+--
+-- Additive + idempotent. Does NOT touch billing/charge logic.
 
--- 1) Resume date — when a paused subscription should automatically resume billing.
+-- 1) Add 'paused' to the existing enum type.
+ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'paused';
+
+-- 2) Pause/resume timestamps.
 ALTER TABLE public.subscriptions
   ADD COLUMN IF NOT EXISTS paused_until timestamptz;
 
 ALTER TABLE public.subscriptions
   ADD COLUMN IF NOT EXISTS paused_at timestamptz;
 
--- 2) Widen the status CHECK constraint to allow 'paused'.
---    Drop the old constraint (name is the Postgres default) and re-add it.
-ALTER TABLE public.subscriptions
-  DROP CONSTRAINT IF EXISTS subscriptions_status_check;
-
-ALTER TABLE public.subscriptions
-  ADD CONSTRAINT subscriptions_status_check
-  CHECK (status IN ('active','inactive','trialing','past_due','cancelled','paused'));
-
 -- 3) Index so the resume sweep (founder cron) can find subscriptions due to resume.
+--    No `WHERE status = 'paused'` predicate: referencing a just-added enum value in
+--    the same transaction is unsafe in Postgres, so the index is unfiltered.
 CREATE INDEX IF NOT EXISTS subscriptions_paused_until_idx
-  ON public.subscriptions (paused_until)
-  WHERE status = 'paused';
+  ON public.subscriptions (paused_until);

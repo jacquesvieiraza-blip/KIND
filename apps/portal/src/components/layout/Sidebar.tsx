@@ -44,6 +44,7 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox, badge: 'unread' },
       { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
       { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },
+      { href: '/dashboard/roi',                    label: 'Your ROI',         icon: Sparkles },
       { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
       { href: '/dashboard/figsy/webhooks',         label: 'Webhooks',         icon: Webhook },
     ],

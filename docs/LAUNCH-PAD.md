@@ -23,50 +23,35 @@
 
 ---
 
-## ✅ RUNLIST — 🌙 TONIGHT 7:15PM (Mon 22 Jun — run through together, in order)
-> ▶️ **Order:** 1 re-verify → 2–5 **merge the 4 open PRs** → 6 watch deploys go green → 7–8 **run the 2 migrations** → 9 verify pause + webhooks → 10 🤖 render the colours → 11–13 founder decisions (warmup · Notion · 203) → 14 🤖 branch cleanup. **TUE 23:** raw demo + Drop 01 · Apollo follow-through.
+## ✅ RUNLIST — 🌙 TONIGHT 7:15PM (Mon 22 Jun — **updated mid-session: ship-work DONE, here's what's left**)
+> ▶️ **Where we are:** the 4 build PRs are **merged + deployed green** and **both migrations are run live**. What remains tonight = merge 2 doc PRs · you verify the 2 new features · your 3 high-leverage moves (warmup · Notion · 203) · housekeeping. **TUE 23:** raw demo + Drop 01 · Apollo follow-through.
 
-**1 · Re-verify live state first** — 🤖 (before any merge)
-- `git fetch origin main` · confirm zero stranded commits · confirm the 4 PRs below are still open & green. · Source: **rulebook §7 gate**
+### ✅ DONE this session (no action)
+- ✅ **Merged #665 #666 #667 #668** → all on `main`.
+- ✅ **@kind/api deploy GREEN** (#668 ACTIVE). *(#666/#667's two reds = transient Railway **yarn-cache corruption** on install — a different random package each, prettier then realtime-js; self-healed on the next build. NOT our code.)*
+- ✅ **Both migrations RUN live:** `20260622_subscription_pause.sql` (enum-fixed via #671) + `20260622_webhook_endpoints.sql`.
+- ✅ **Colours rendered** → 182/185/190 🔴→🩷; dashboard `56🟢/59🩷/6🟣/12🟡/80🔴/7⏸` (PR #672).
 
-**2 · Merge #665 — USD render + 110/111 → 🩷** — 🧍 founder merges · 🤖 then flips dots
-- Render PR (USD denomination + Company Engine 110/111). After merge, the held 🟡→🩷 flips for 190/182/185/203 can land. · Source: **110 · 111 · 203**
+### 🔻 WHAT'S LEFT — in order
+**1 · Merge the 2 doc PRs** — 🧍 founder
+- **#670** (this runlist) + **#672** (the 182/185/190 render). Docs only — safe. · Source: **launch-pad · inventory**
 
-**3 · Merge #666 — 203 commission-engine core (USD)** — 🧍 founder merges
-- Pure USD comp engine module + **33 vitest tests passing** (parity vs the HTML calculators). Phase 1 only — no DB/Stripe wiring yet. · Source: **203**
+**2 · Verify the 2 new features** — 🧍 founder (turns 🩷 → 🟢)
+- Billing page shows **"Pause for a month"** and pause returns **200** (not 409). Register a test webhook in `/dashboard/developer` and fire an event → confirm signed delivery. · Source: **190 · 182 · 185**
 
-**4 · Merge #667 — subscription pause/resume (190)** — 🧍 founder merges
-- Win-back: pause stops the Paystack recurring charge; resume restarts. **Needs migration (Step 7)** or the route returns 409 `pause_not_migrated`. · Source: **190**
+**3 · Connect the cold-email warmup tool (198)** — 🧍 founder
+- Instantly/Mailreach on `hello@gettingkind.com` · ramp 20→40/day · keep cold volume LOW — domain still warming. Clock starts on connect. · Source: **198**
 
-**5 · Merge #668 — developer API + webhooks (182/185)** — 🧍 founder merges
-- HMAC-signed event webhooks + `GET /developer/events` + API-key auth. **Needs migration (Step 8)** for the `webhook_endpoints` table. · Source: **182 · 185**
+**4 · Set up Notion (204)** — 🧍 founder
+- Free workspace · migrate ops/command-centre content · **code + product-trackers stay on GitHub** (boundary rule). · Source: **204**
 
-**6 · Watch the deploys go green** — 🤝 (Railway @kind/api + @kind/portal + @kind/admin)
-- Confirm each deploy passes its `/health` check. **Liveness must stay 200** (deploy-incident lesson — never gate liveness on the DB). Only after green do the merged items become truly 🩷. · Source: **deploy gate**
+**5 · Decide 203 repo + auth/hosting** — 🧍 founder (USD already locked)
+- New `kind-ops`-style repo vs a module in the KIND product · auth provider · hosting. Unblocks the next 203 phase (Stripe → engine → admin portal). Engine core (#666) is ready to plug in. · Source: **203 · brief §0/§9**
 
-**7 · Run migration → subscription pause** — 🧍 founder (confirm Supabase project name first)
-- `supabase/migrations/20260622_subscription_pause.sql` (adds `paused_until`/`paused_at`, widens status CHECK). Unblocks Step 4's route. · Source: **190**
+**6 · 🤖 Housekeeping (mine — no merge needed)** — 🤖
+- Prune the ~40 stale merged/closed `claude/*` branches (verified no lost work). · Optional: tiny PR to remove the stray `package-lock.json` (kills the "mixed package managers" build warning, reduces install-flake surface). · Source: **hygiene**
 
-**8 · Run migration → webhook endpoints** — 🧍 founder (confirm Supabase project name first)
-- `apps/api/src/migrations/20260622_webhook_endpoints.sql` (new `webhook_endpoints` table). Unblocks Step 5's webhooks. · Source: **182 · 185**
-
-**9 · Verify pause + webhooks work** — 🤝 (quick smoke)
-- Hit `POST /subscriptions/:id/pause` → expect 200 (not 409). Register a webhook endpoint → trigger a `reply.received` → confirm signed delivery. · Source: **190 · 182 · 185**
-
-**10 · Render the colours** — 🤖 (only AFTER #665 merges, to avoid dashboard conflict)
-- Flip 190 · 182 · 185 · 203 → 🟡 (then 🩷 once Step 6 green). One status edit, in PRODUCT-INVENTORY. Append the session-log line. · Source: **inventory ritual**
-
-**11 · Connect the cold-email warmup tool (198)** — 🧍 founder
-- Instantly/Mailreach on `hello@gettingkind.com` · ramp 20→40/day · keep cold-sending OFF until placement = Primary. Clock starts on connect. · Source: **198**
-
-**12 · Notion — set up the human/ops layer (204)** — 🧍 founder
-- Free tier · separate the **code layer (GitHub)** from the **human/ops layer (Notion)**. Steal-list captured in V2-TRACKER. · Source: **204**
-
-**13 · Decide 203 repo + auth/hosting** — 🧍 founder
-- New `kind-ops`-style repo vs a module in the KIND product · auth provider · hosting. Engine core (#666) is ready to plug in. · Source: **203 · brief §0/§9**
-
-**14 · Clean up the ~40 stale `claude/*` branches** — 🤖 (verified no lost work first)
-- Prune merged/superseded branches. · Source: **hygiene**
+> ⚠️ **Honest caveat:** the dashboard absolute totals are a hand-reconciled tally — my render *delta* (+3🩷/−3🔴) is exact, but a full absolute tie-out is deferred to the verification **walk recount** (Blocks 2/3). Don't treat the totals as grep-proven.
 
 > ✅ **LAUNCHED Thu 18 (the big day):** Company Engine walk Block 1 done (**56 🟢**) · **188** Denise demo verified · **FIGSY switcher** fixed+verified (#627) · **"Alta"** scrubbed (#626) · docs self-audited · seller-engine (197/200/201/202) + AE comp pack mapped · all PRs merged, board clean → **GO LIVE.**
 > ✅ **Closed Wed 17:** 3 builds (186/187/188 + migrations) · metrics saga closed (193/194/195) · mail-tester 10/10 · `kind-ops` built · item 196 logged.

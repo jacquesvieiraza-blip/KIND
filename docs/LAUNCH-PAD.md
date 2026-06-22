@@ -44,6 +44,35 @@
 
 ---
 
+## 🧍 FOUNDER TO-DO — the complete list (status of record = PRODUCT-INVENTORY by ID)
+*Audited 22 Jun. This is everything that needs YOU. Grouped by type; merge order + dailies are in the RUNLIST above.*
+
+**🔴 NOW / this week**
+- **198** connect the **warmup tool** (deliverability clock — hold campaign volume until it lands) · **204** set up **Notion** (free) + migrate ops content · **Apollo 5pm** · verification **walk Blocks 2/3** (with 🤖) · **smoke tests** (#100)
+
+**🧠 Decisions only you can make**
+- **GBP vs USD** (comp/P&L is £, product pricing is $ — gates **203**) · **203** repo (new vs KIND-product) + auth provider + hosting · **196** accounting platform + reporting currency + VAT? · **108** billing (should budget-edit move pool credits? should deactivate reclaim credits / halt billing?) · **119** Rev-Mission-Control direction · **121** Casey voice · **120** flip pgvector
+
+**🔑 Credentials / keys / external**
+- **104** Hunter + PDL keys (unlocks 94/95) · **96** Vapi + Meta/WhatsApp keys · **128** Meta/WhatsApp API application · **126** Google/MS OAuth registration (unlocks SSO 84/181) · **136** Flutterwave activation · **58** confirm live Denise Stripe price = $39 · **199** wire the uptime monitor to `/health`
+
+**🎥 Demo videos / content** *(plan: `RECORDING-SHOOTING-SCRIPT.md`)*
+- **129** record the whole platform once (Screen Studio) → **Drop 01** (60s, 16:9 + 9:16) · **134** 9:16 social cuts + YouTube · **163** product-videos hero · **117** Drop subscribe content · re-shoot **scene 2.1 per vertical**
+
+**📈 GTM / growth**
+- **127** warm outreach + LinkedIn 1/day · **132** dogfood self-outreach · **133** 2 design-partner slots · **138** influencer/community · **142** Product Hunt + G2 · **131** GTM funnel instrumentation (10 analytics decisions)
+
+**⚖️ Legal / compliance**
+- **102** legal pack (D&O · trademarks · SR01 · WHOIS) · **103** ⏸ awaiting Apollo reseller decision · **151** SOC2/ISO/Vanta (gated, later)
+
+**🤝 Seller engine / hiring** *(next-week build, your sign-off)*
+- **201** hire founding AE · **202** sign AE+partner agreements · **203** confirm the build plan before any code
+
+**🟡 Built — your review/merge**
+- **124** money-path tests · **97** A/B subject backend · **59** company-demo provisioning
+
+---
+
 ## ⛔ BLOCKED / WAITING
 - ~~Billing PR can't merge~~ → ✅ **RESOLVED 16 Jun** — merged #580 + migration applied; 🩷 live, self-certifies on next FIGSY delivery.
 - **🩷 → 🟢 for items 56, 60–79, 80–91** → waiting on the Wed/Thu verification walk.

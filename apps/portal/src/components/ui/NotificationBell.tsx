@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Bell, X, Zap, CreditCard, ShieldCheck, Clock } from 'lucide-react'
+import { Bell, X, Zap, CreditCard, ShieldCheck, Clock, Users, CheckCircle2, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import Link from 'next/link'
 
 interface Notification {
   id: string
-  type: 'low_credits' | 'interested_reply' | 'new_consented_lead' | 'trial_expiring'
+  type: 'low_credits' | 'interested_reply' | 'new_consented_lead' | 'trial_expiring' | 'credit_request' | 'credit_approved' | 'credit_denied'
   title: string
   message: string
   created_at: string
@@ -19,6 +19,10 @@ const TYPE_META: Record<string, { icon: React.ReactNode; color: string }> = {
   interested_reply:   { icon: <Zap className="w-4 h-4" />,         color: 'text-green-600 bg-green-50' },
   new_consented_lead: { icon: <ShieldCheck className="w-4 h-4" />, color: 'text-[#7C3AED] bg-[#F5F0FF]' },
   trial_expiring:     { icon: <Clock className="w-4 h-4" />,       color: 'text-red-500 bg-red-50' },
+  // #109 — Company Engine owner↔rep notifications.
+  credit_request:     { icon: <Users className="w-4 h-4" />,        color: 'text-[#7C3AED] bg-[#F5F0FF]' },
+  credit_approved:    { icon: <CheckCircle2 className="w-4 h-4" />,  color: 'text-green-600 bg-green-50' },
+  credit_denied:      { icon: <XCircle className="w-4 h-4" />,      color: 'text-red-500 bg-red-50' },
 }
 
 export function NotificationBell() {
@@ -99,6 +103,12 @@ export function NotificationBell() {
                         )}
                         {n.type === 'trial_expiring' && (
                           <Link href="/dashboard/billing" className="text-xs text-[#7C3AED] hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>Add billing →</Link>
+                        )}
+                        {n.type === 'credit_request' && (
+                          <Link href="/dashboard/company" className="text-xs text-[#7C3AED] hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>Review in Command Centre →</Link>
+                        )}
+                        {(n.type === 'credit_approved' || n.type === 'credit_denied') && (
+                          <Link href="/dashboard/company" className="text-xs text-[#7C3AED] hover:underline mt-1 inline-block" onClick={() => setOpen(false)}>Open Command Centre →</Link>
                         )}
                       </div>
                     </div>

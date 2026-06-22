@@ -122,6 +122,58 @@ function digestHeader(companyName: string, totalLeads: number, avgScore: number,
     </div>`
 }
 
+// #106 — Rep seat invite. Sent when an owner/manager adds a rep to a company
+// seat (POST /company/seats). Carries the rep's accept-invite link, who invited
+// them, and a short intro to K.I.N.D. The send is best-effort: the caller wraps
+// this so a delivery failure never breaks the invite (the link is still returned
+// for copy-paste). Mirrors the transactional tone of the other emails here.
+export async function sendSeatInviteEmail(
+  to: string,
+  inviteUrl: string,
+  context: { companyName?: string | null; inviterName?: string | null } = {},
+) {
+  if (!resend) return
+  const company = (context.companyName || '').trim()
+  const inviter = (context.inviterName || '').trim()
+  const invitedBy = inviter
+    ? `<strong>${inviter}</strong>${company ? ` from <strong>${company}</strong>` : ''} has invited you`
+    : company
+      ? `<strong>${company}</strong> has invited you`
+      : `You've been invited`
+  await sendTx({
+    from: FROM,
+    to,
+    subject: company
+      ? `You've been invited to join ${company} on K.I.N.D`
+      : `You've been invited to K.I.N.D`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <h1 style="font-size:1.5rem;margin-bottom:8px">You're invited to K.I.N.D 👋</h1>
+        <p style="color:#555;line-height:1.6">
+          ${invitedBy} to your own workspace on K.I.N.D — your AI sales team that finds,
+          scores, and reaches out to leads for you.
+        </p>
+        <p style="color:#555;line-height:1.6">
+          Accept the invite below to claim your seat. You'll get your own pipeline,
+          inbox, and FIGSY campaigns, with credits funded by your company.
+        </p>
+        <a href="${inviteUrl}"
+           style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+          Accept invitation →
+        </a>
+        <p style="color:#999;font-size:0.8rem;margin-top:24px">
+          If the button doesn't work, copy and paste this link into your browser:<br>
+          <a href="${inviteUrl}" style="color:#7C3AED;word-break:break-all">${inviteUrl}</a>
+        </p>
+        <p style="color:#999;font-size:0.8rem;margin-top:24px">
+          Didn't expect this? You can safely ignore this email — no seat is claimed until you accept.
+          Questions? Reply to this email — <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendWelcomeEmail(to: string, companyName: string) {
   if (!resend) return
   await sendTx({

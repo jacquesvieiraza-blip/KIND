@@ -31,7 +31,7 @@ create table if not exists public.subscriptions (
   product                   text not null check (product in ('lead_gen','lead_gen_figsy','figsy_addon','virtual_assistant','chatbot','denise','denise_addon')),
   tier                      text not null check (tier in ('starter','advanced','pro','enterprise')),
   status                    text not null default 'trialing'
-                              check (status in ('active','inactive','trialing','past_due','cancelled')),
+                              check (status in ('active','inactive','trialing','past_due','cancelled','paused')),
   billing_interval          text not null default 'monthly' check (billing_interval in ('monthly','annual')),
   amount_usd                integer not null default 0,
   amount_zar                integer not null default 0,
@@ -42,6 +42,10 @@ create table if not exists public.subscriptions (
   current_period_start      timestamptz not null default now(),
   current_period_end        timestamptz not null default now() + interval '30 days',
   cancelled_at              timestamptz,
+  -- Item 190 — graceful pause (1–3 mo hold instead of cancel). See migration
+  -- 20260622_subscription_pause.sql. NOT YET APPLIED to the live DB.
+  paused_at                 timestamptz,
+  paused_until              timestamptz,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now()
 );

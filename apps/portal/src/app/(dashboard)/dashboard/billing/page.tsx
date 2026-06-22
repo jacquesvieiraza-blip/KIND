@@ -142,6 +142,11 @@ export default function BillingPage() {
   // Subscriptions
   const [subInitiating, setSubInitiating]   = useState<string | null>(null)
   const [activeProducts, setActiveProducts] = useState<string[]>([])
+  // Item 190 — pause-instead-of-cancel: keep the full sub records so we can offer
+  // a pause on the cancel path and reflect a paused state.
+  const [subRecords, setSubRecords]         = useState<{ id: string; product: string; status: string; paused_until?: string | null }[]>([])
+  const [pausing, setPausing]               = useState<string | null>(null)
+  const [pauseNotice, setPauseNotice]       = useState<string | null>(null)
 
   // Auto top-up
   const [autoTopup, setAutoTopup]   = useState({ enabled: false, threshold: 10, plan: 'kind_ai' as 'kind_ai' | 'figsy', bundle_size: 20 })
@@ -156,7 +161,7 @@ export default function BillingPage() {
       try {
         const [creditsRes, subsRes, autoRes] = await Promise.allSettled([
           api.get<{ data: { balance: number; figsy_credits_remaining: number; transactions: CreditTransaction[] } }>('/credits', session.access_token),
-          api.get<{ data: { product: string; status: string }[] }>('/subscriptions', session.access_token),
+          api.get<{ data: { id: string; product: string; status: string; paused_until?: string | null }[] }>('/subscriptions', session.access_token),
           api.get<{ data: { auto_topup_enabled?: boolean; auto_topup_threshold?: number; auto_topup_plan?: string; auto_topup_bundle_size?: number } }>('/clients/me', session.access_token),
         ])
 
@@ -169,7 +174,9 @@ export default function BillingPage() {
         }
 
         if (subsRes.status === 'fulfilled') {
-          const active = (subsRes.value.data ?? [])
+          const records = subsRes.value.data ?? []
+          setSubRecords(records)
+          const active = records
             .filter(s => s.status === 'active')
             .map(s => s.product)
           setActiveProducts(active)
@@ -221,6 +228,30 @@ export default function BillingPage() {
       setBuyError(err instanceof Error ? err.message : 'Subscription failed. Please try again.')
     }
     setSubInitiating(null)
+  }
+
+  // Item 190 — graceful pause instead of cancel. Stops billing for 1–3 months
+  // while keeping data + settings warm. Never deletes anything.
+  async function handlePause(dbProduct: string, months: number) {
+    const rec = subRecords.find(s => s.product === dbProduct && s.status === 'active')
+    if (!rec) return
+    if (!confirm(`Pause this subscription for ${months} month${months > 1 ? 's' : ''}? Billing stops and your data + settings are kept safe. You can resume anytime.`)) return
+    setPausing(dbProduct)
+    setPauseNotice(null)
+    setBuyError(null)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setPausing(null); return }
+    try {
+      const res = await api.post<{ success: boolean; message?: string }>(`/subscriptions/${rec.id}/pause`, { months }, session.access_token)
+      setPauseNotice(res.message || 'Subscription paused.')
+      // Reflect locally without a full reload
+      setSubRecords(prev => prev.map(s => s.id === rec.id ? { ...s, status: 'paused' } : s))
+      setActiveProducts(prev => prev.filter(p => p !== dbProduct))
+    } catch (err) {
+      // 409 = pause not enabled yet (migration not applied). Surface plainly.
+      setBuyError(err instanceof Error ? err.message : 'Could not pause — please contact hello@get-kind.com.')
+    }
+    setPausing(null)
   }
 
   async function handleDemoRequest(product: string) {
@@ -338,6 +369,10 @@ export default function BillingPage() {
         <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700">{buyError}</div>
       )}
 
+      {pauseNotice && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-sm text-amber-800">{pauseNotice}</div>
+      )}
+
       {/* ── CREDIT BUNDLES ──────────────────────────────────────────────────── */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">Top up credits</h2>
@@ -415,6 +450,8 @@ export default function BillingPage() {
           {AGENT_PRODUCTS.map(agent => {
             const dbProduct     = agent.key === 'milla' ? 'virtual_assistant' : agent.key === 'denise' ? 'denise' : 'chatbot'
             const isActive      = activeProducts.includes(dbProduct)
+            const isPaused      = subRecords.some(s => s.product === dbProduct && s.status === 'paused')
+            const isPausingThis = pausing === dbProduct
             const isLoading     = subInitiating === agent.key
             const Icon          = agent.icon
 
@@ -449,12 +486,26 @@ export default function BillingPage() {
                     <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
                   </div>
 
-                  {isActive ? (
-                    <div className="flex items-center justify-center gap-2 w-full bg-green-50 text-green-700 font-semibold rounded-xl px-6 py-3 text-sm border border-green-200">
-                      <CheckCircle className="w-4 h-4" /> Subscribed — go to{' '}
-                      <a href={`/dashboard/${agent.key === 'milla' ? 'assistant' : agent.key === 'denise' ? 'denise' : 'chatbot'}`} className="underline">
-                        {agent.label}
-                      </a>
+                  {isPaused ? (
+                    <div className="flex items-center justify-center gap-2 w-full bg-amber-50 text-amber-700 font-semibold rounded-xl px-6 py-3 text-sm border border-amber-200">
+                      Paused — billing stopped, your data is kept safe. Contact us to resume.
+                    </div>
+                  ) : isActive ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center gap-2 w-full bg-green-50 text-green-700 font-semibold rounded-xl px-6 py-3 text-sm border border-green-200">
+                        <CheckCircle className="w-4 h-4" /> Subscribed — go to{' '}
+                        <a href={`/dashboard/${agent.key === 'milla' ? 'assistant' : agent.key === 'denise' ? 'denise' : 'chatbot'}`} className="underline">
+                          {agent.label}
+                        </a>
+                      </div>
+                      {/* Item 190 — graceful pause instead of cancel (save offer) */}
+                      <button
+                        onClick={() => handlePause(dbProduct, 1)}
+                        disabled={isPausingThis}
+                        className="w-full flex items-center justify-center gap-2 text-xs text-[#7B6FA0] hover:text-gray-800 border border-purple-100/80 hover:border-gray-300 rounded-xl px-4 py-2 transition-colors disabled:opacity-50">
+                        {isPausingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                        Need a break? Pause for a month instead
+                      </button>
                     </div>
                   ) : (
                     <div className="space-y-2">

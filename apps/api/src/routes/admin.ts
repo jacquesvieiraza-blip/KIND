@@ -763,3 +763,56 @@ adminRouter.get('/churn-risk', async (_req: Request, res: Response) => {
   }
 })
 
+// ── Item 190: WIN-BACK SURFACE ───────────────────────────────────────────────
+// GET /admin/win-back — read-only. Reuses the existing churn-risk scoring
+// (computeChurnRisk) and, for each at-risk client, attaches:
+//   • a suggested win-back action (derived from their churn reasons), and
+//   • their current subscription status (so the founder sees who is already
+//     paused / past_due vs who to nudge before they cancel).
+// No new email/notification infra is created — this just SURFACES the list +
+// the suggested next step for the founder (or Lena) to act on.
+function suggestWinBack(reasons: string[]): string {
+  if (reasons.some(r => r.startsWith('no_login'))) {
+    return 'Send a "we miss you" re-engagement nudge — they have not logged in. Offer a 1–3 month pause instead of letting them lapse.'
+  }
+  if (reasons.includes('past_due_subscription')) {
+    return 'Payment failed — send a friendly card-update reminder and offer a short pause if cash is tight.'
+  }
+  if (reasons.includes('no_active_campaigns')) {
+    return 'No active campaigns — offer a free setup/strategy call to relaunch outreach.'
+  }
+  if (reasons.some(r => r.startsWith('low_reply_rate'))) {
+    return 'Replies have dried up — offer a copy/targeting review to lift reply rate before they churn.'
+  }
+  if (reasons.includes('fewer_than_10_leads')) {
+    return 'Very few leads delivered — check ICP fit and offer a guided ICP rebuild.'
+  }
+  return 'Reach out with a personal check-in and offer a pause option rather than cancel.'
+}
+
+adminRouter.get('/win-back', async (_req: Request, res: Response) => {
+  try {
+    const at_risk = await computeChurnRisk()
+
+    const enriched = await Promise.all(at_risk.map(async (c) => {
+      const { data: subs } = await db.from('subscriptions')
+        .select('product, status, current_period_end')
+        .eq('client_id', c.client_id)
+      return {
+        ...c,
+        suggested_action: suggestWinBack(c.reasons),
+        subscriptions: (subs ?? []).map((s: any) => ({
+          product: s.product,
+          status: s.status,
+          current_period_end: s.current_period_end,
+        })),
+      }
+    }))
+
+    res.json({ success: true, data: { count: enriched.length, clients: enriched } })
+  } catch (err) {
+    console.error('[admin/win-back]', err)
+    res.status(500).json({ success: false, error: 'Win-back computation failed' })
+  }
+})
+

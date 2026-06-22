@@ -105,7 +105,10 @@ app.use(express.json())
 // Health probe for external uptime monitors (UptimeRobot/BetterStack).
 // Checks: (a) DB — a fast HEAD count on a small table; (b) email — only that the
 // Resend API key is CONFIGURED (never sends or hits a paid endpoint).
-// Returns 200 when DB is reachable, 503 when it is not, so the monitor alerts.
+// ALWAYS returns 200 (this is the LIVENESS endpoint Railway uses for deploy
+// health-checks — it must not 503 just because the DB is momentarily slow at
+// boot, or deploys fail + roll back). DB/email state is reported in the BODY
+// (`status: ok|degraded`, `checks.db`) so an external monitor can alert on it.
 // Everything is wrapped + bounded by a 3s timeout so /health never hangs.
 app.get('/health', async (_req, res) => {
   const v = '2026-06-22-health'
@@ -127,7 +130,9 @@ app.get('/health', async (_req, res) => {
     console.error('[health] db check failed:', err instanceof Error ? err.message : err)
   }
 
-  res.status(db === 'ok' ? 200 : 503).json({
+  // Liveness: always 200 so the Railway deploy health-check passes. Readiness
+  // (is the DB up?) is in the body — monitors alert on `status:"degraded"` / `checks.db:"fail"`.
+  res.status(200).json({
     status: db === 'ok' ? 'ok' : 'degraded',
     service: 'kind-api',
     v,

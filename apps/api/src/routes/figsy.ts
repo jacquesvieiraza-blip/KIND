@@ -686,6 +686,27 @@ figsyRouter.post('/campaigns', async (req: AuthRequest, res) => {
   }
 })
 
+// ── KILL-SWITCH — pause ALL of this client's active campaigns at once ──────────
+// Account-wide panic button for runaway-send / compromised-account protection.
+// Reuses the exact per-campaign pause mechanism (status → 'paused'), client-scoped
+// and idempotent (re-clicking pauses nothing more, returns paused: 0).
+figsyRouter.post('/campaigns/pause-all', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data, error } = await db.from('figsy_campaigns')
+      .update({ status: 'paused' })
+      .eq('client_id', clientId)
+      .eq('status', 'active')
+      .select('id')
+    if (error) throw error
+    res.json({ success: true, data: { paused: (data ?? []).length } })
+  } catch (err) {
+    console.error('[figsy] pause-all failed', err)
+    res.status(500).json({ success: false, error: 'Failed to pause campaigns' })
+  }
+})
+
 figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
   try {
     const body = z.object({

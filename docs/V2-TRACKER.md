@@ -134,6 +134,24 @@ Researched 23 Jun (sourced). The whole funded AI-SDR market (Apollo, Outreach, A
 
 ---
 
+# ░ 🤝 PARTNER GTM — recruiting 10 partners (logged 23 Jun) ░
+> **Future-detail home for partner recruitment. Execution → LAUNCH-PAD; status → PRODUCT-INVENTORY (197/200).** Goal: **10 activated agency partners in year 1** (~1/mo). At ~10 clients/partner/mo that's the unicorn lever — ~100 clients without ~1,000 cold prospects (*"1 agency partner ≈ 10 clients/month, fastest lever, nearly free"*). **Founder-led + warm → runnable NOW, before the cold domain warms.**
+
+**Partner ICP:** agencies/operators who already own SMB trust + want recurring income without building product — marketing/lead-gen/web/digital agencies · consultants · BPOs · vertical specialists (trade playbooks = their wedge) — across SA → NG → KE → GH.
+**The pitch:** *"Add a recurring revenue line, zero build. Sell our AI sales team to the SMB clients you already have — 20% upfront + 5% every month they stay. We give you the demo, dashboard, playbooks — and you can use our tool to find clients."*
+**Channels (ranked):** ① dogfood — FIGSY at agency-owner ICPs · ② Demmy + warm referrals · ③ founder-led LinkedIn (no warmed domain needed) · ④ communities · ⑤ inbound (PARTNER-BRIEF page + monthly demo).
+**Funnel:** target agency → demo (portal + forecaster + product) → sign agreement → onboard (sandbox + certify) → **first client landed.** Count *activated* partners, not signups.
+**Plan to 10:** now build recruiting assets (portal preview + income forecaster + pitch) + land 2–3 from Demmy/warm; wks 2–6 founder outbound to ~50 agencies (dogfood list) → ~1/mo. **10 good agencies > 30 dormant referrers.**
+
+# ░ 🎨 PARTNER PORTAL v2 — the spec (logged 23 Jun · status = item 200 + 213–226) ░
+> **Build via PREVIEW (§11). Status → PRODUCT-INVENTORY.** The partner side is **substantially built** (`partners.ts` · `dashboard/partner` · admin · `005_partners.sql` · `comp-engine.ts` 20%+5%). v2 makes it amazing + recruiting-grade.
+**⚠️ Honest data gap (item 220):** `partner_commissions` stores a flat `amount_zar`, **no type**, and **no per-client MRR** — so a split + book-value hero **can't be a frontend skin, they'd be fake (the 136a trap).** Backend step first: commission `type` + per-client MRR + ZAR→USD.
+**Slices:** Slice 0 backend (**220**) → Slice 1 split/hero/book (**221/222/223**) → forecaster (**213**) + sell-through (**226**) → trust/docs (**224/225**).
+**Think-bigger (the unicorn layer):** source-through-product (**214**) · client-health + churn-save (**215**) · AI assistant (**216**) · white-label/teams (**217**) · academy/cert (**218**) · CRM-lite/notifications (**219**).
+**Preview approach:** first *visual* preview uses a **clearly-labelled demo partner** (real numbers need Slice 0); demo data is labelled, never presented as live.
+
+---
+
 # ░ 🚨 RISK & FIX REGISTER (full-system audit · 10 Jun) ░
 **From the all-systems audit (client portal · admin · website · API · docs). Red = act this week · Yellow = scheduled. Owner: 🧍 = founder must do · 🤖 = Claude fixes (branch → founder "go live").**
 

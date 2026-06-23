@@ -95,11 +95,13 @@ These were parked as "later / Month-2 / gated." The gate was only **effort or yo
 - **Decisions:** 196 accounting + VAT · 203 repo + auth · 108 credit behaviour · 211 markup + migration · 165 visitor-intel · 120 pgvector · 121 Casey voice.
 - **Legal:** 102 pack · 103 Apollo ⏸ · SEIS · DPAs.
 - **GTM:** 129 demo · 127 outreach · 132 dogfood · 133 partners · 142 Product Hunt · 138 influencer.
+- **🤝 PARTNER GTM (recruit 10/yr — strat in V2-TRACKER; pitch = `PARTNER-BRIEF.md`):** ① Demmy 2–3 intros · ② dogfood a ~50-agency list · ③ founder-led LinkedIn (warm — NOW). *Count activated partners.*
 - **Seller engine:** 201 hire AE · 202 agreements (incl. **partner agreement** — to be drafted) · 200 partner+AE portal.
 - **Business/ops:** Business-model training day → operating-model SOP (Notion, 204) + the partner/AE **earnings-capture** model (Day 6).
 
 ## 🤖 MY QUEUE — buildable now, via preview
 55a · 57 · 106–109 · 115 · 118 · 135 · 137 · 174–176 · 97 · 131 · **211 (the ENGINE)** · **212 (FIGSY 3→6-step)** · **ex-gated: 120 · 121 · 141 · 144 · 145 · 157 · 158 · 165** — all previewed before they go live.
+**🤝 PARTNER PORTAL v2 (200 + new items 213–226):** Slice 0 backend (**220** type+MRR+USD) → Slice 1 (**221** split · **222** hero · **223** book) → **213** forecaster + **226** sell-through → trust/docs (**224/225**) → unicorn layer (**214/215/216/217/218/219**). First *visual* preview = a **labelled demo partner**; each moves preview→approve→live. *(Spec + GTM → V2-TRACKER.)*
 **⛔ Gated, NOT building yet:** **203** (waiting on your repo + auth decision).
 
 ## ⛔ BLOCKED / WAITING

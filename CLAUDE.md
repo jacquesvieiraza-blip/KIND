@@ -23,8 +23,11 @@ Each doc is the truth of exactly ONE thing; no other doc may claim that thing.
 **Authority split** (so "which doc governs?" never recurs): KIND-MASTER governs **strategy**; LAUNCH-PAD governs **daily execution**; PRODUCT-INVENTORY is the only authority on **current status**. Each governs one domain only.
 
 ## Status dots (5 states) — never blur them. Ladder: 🔴 → 🟡 → 🟣 → 🩷 → 🟢
-🟢 live + **verified** in prod · 🩷 live but **not yet verified** · 🟣 approved + locked, not shipped · 🟡 built, pending review · 🔴 not built · ⏸ blocked.
+🟢 live + **verified** in prod · 🩷 live but **not yet verified** · 🟣 **approved by the founder on the PREVIEW site, not yet live** · 🟡 built, on preview/branch, pending review · 🔴 not built · ⏸ blocked.
 **Nothing is 🟢 unless verified live in production.** Live-but-unwalked is 🩷, not 🟢.
+
+## Preview before live — client-facing work is previewed FIRST (RULEBOOK §11)
+On this repo **merging to `main` = shipping to the LIVE site clients use.** So every client-facing build goes to the **PREVIEW site** (`heartfelt-essence…railway.app` / `staging` branch / `kind-staging` DB) first → **I send a preview link → founder approves (🟣) → THEN it ships to LIVE (🩷).** I never say "merge"/"go live" before the founder has previewed. *(Docs don't deploy → no preview needed.)*
 
 ## The one new discipline — render every action
 **Any action that changes state is reflected the SAME session in its one owning doc** — flip the inventory dot · update the LAUNCH-PAD runlist · append the KIND-MASTER session-log line. No silent changes, no deferring the doc update to "later."

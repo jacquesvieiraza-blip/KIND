@@ -3,6 +3,7 @@
 > ## ⚙️ OPERATING RULE — read once
 > **I only work from this doc day-to-day.** Map: `LAUNCH-PAD` = today's runlist · `PRODUCT-INVENTORY` = status truth (one dot, one owner) · `KIND-MASTER` = strategy + decisions + session log · `V2-TRACKER` = future detail · `DOC-MAP` = every other doc + freshness · `CLAUDE.md`/`RULEBOOK` = how I work · GitHub = execution (one PR per shippable change).
 > - No task without **owner · action · done-when · source item (ID)**. STATUS lives only in PRODUCT-INVENTORY — this doc references it by ID.
+> - **👀 PREVIEW BEFORE LIVE (RULEBOOK §11):** client-facing builds go to the **PREVIEW site** (`heartfelt-essence…railway.app` · `staging` branch) first → **I send you a preview link → you approve (🟣) → THEN it ships to LIVE** (`app.get-kind.com`, 🩷). I never say "merge"/"go live" until you've previewed. *(Docs don't deploy → no preview.)*
 
 > ## 📖 READ-THROUGH MAP
 > "what do I do now?" → **here** · "what's built/live/left?" → **PRODUCT-INVENTORY** (colour board) · "where are we + why?" → **KIND-MASTER → RESUME HERE** · "the future?" → **V2-TRACKER** · "what's every other doc?" → **DOC-MAP** · "the tools?" → **TECH-STACK**.
@@ -11,7 +12,7 @@
 
 ## 🎯 THE MISSION — the 2-week sprint (then full-speed selling)
 **We've launched. Cold campaigns are throttled until the domain warms (~2 wks). We use that window to get EVERYTHING oiled** — every buildable item live, every video recorded, the business systems standing up — so that when the domain is warm the founder flips to the **main job: new-logo acquisition, 5–6 new clients/month**, with minimal time on code and the majority on selling + running the business.
-- **🤖 I build** the whole buildable backlog to 🟡 on branches, batched for your review (no drip).
+- **🤖 I build** the buildable backlog → **push to PREVIEW** → hand you a **preview link** (no drip). You approve → it ships to LIVE.
 - **🧍 You** merge, run the migrations I flag, walk the live app to turn 🩷→🟢, and clear your founder-only list (keys/decisions/recordings).
 - **Honest scope:** "everything" = every **buildable, ungated** item + everything waiting on you. Genuinely client-count/margin-**gated** items stay gated (see the ladder) — but I push you to re-validate each.
 

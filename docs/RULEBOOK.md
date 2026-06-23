@@ -103,5 +103,13 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 10.4 **Weekly doc-freshness sweep.** At each weekly close, re-verify the sub-docs the week's work touched, bump their `Last-checked`, update DOC-MAP. **Verify against the code/reality — never declare a doc fresh from memory** (the 22-Jun audit found 2 agent-flagged "stale" docs were actually fine — check before editing).
 10.5 **Stale ≠ delete.** A superseded doc gets an archive banner + drops to the ARCHIVE tier in DOC-MAP; it's never left in place to mislead.
 
+## 11. 👀 PREVIEW BEFORE LIVE — nothing client-facing ships unseen (added 22 Jun — the founder LOCKED this in)
+> Post-launch, merging to `main` deploys **straight to the LIVE site clients use** — there is no gate. So every client-facing change must be **previewed by the founder on the staging site FIRST.** *(Tonight 6 builds went live unseen because I said "merge" instead of "preview" — never again.)*
+11.1 **Two environments.** **LIVE (clients):** portal `app.get-kind.com` · api `api.get-kind.com` · admin `admin.get-kind.com` · site `www.get-kind.com` — this is the **`main`** branch. **PREVIEW (founder only):** staging portal `heartfelt-essence…railway.app` + `api-staging-production-2185.up.railway.app`, on the **`staging`** branch + the **`kind-staging`** Supabase. **Clients never see PREVIEW.**
+11.2 **The loop — every client-facing feature:** 🤖 build → push to the **`staging` branch** (PREVIEW) → send the founder the **preview URL** → 🧍 founder reviews on PREVIEW → 👍 approve → 🤖 merge to `main` (LIVE) → 🧍 confirm on LIVE. 👎 → fix, back to PREVIEW.
+11.3 **I never say "merge"/"ship" until the founder has previewed and approved.** Build PRs sit at 🟡 **with a preview link**; "go live" is the founder's explicit word AFTER previewing — never a default.
+11.4 **Colour mapping for this loop:** 🟡 built, on PREVIEW (not live) · 🟣 founder approved on PREVIEW (still not live) · 🩷 shipped to LIVE (not yet re-confirmed) · 🟢 confirmed working on LIVE.
+11.5 **Exceptions:** docs / non-deploying changes (the 4 core docs, RULEBOOK, etc.) don't deploy → no preview, normal PR + founder merge. Backend-only changes with no client-visible surface get previewed on `api-staging` where feasible, else the risk is called out explicitly.
+
 ---
 _If a rule here is wrong or missing, the founder says so and we edit this doc. This is the contract._

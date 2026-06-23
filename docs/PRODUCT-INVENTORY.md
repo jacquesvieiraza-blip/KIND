@@ -10,7 +10,7 @@
 **How to read it:** the **56 🟢** are the proven core, live + verified. The **59 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test; + 182/185/190 deployed 22 Jun) — the **verification walk (Blocks 2/3)** converts most → 🟢. The **81 🔴** are the **forward roadmap** (incl. the 6 steal-sourced items 205–210), gated by client-count milestones. *(22 Jun late: 5 builds MERGED → 🩷 live (pending walk) — 112/113/114/136a/178; the 140 waterfall part also merged #681.)* The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**. *(Counts live only in the table above — this line describes, it does not re-tally.)*
 
 
-> **AUTHORITY (operating system — see root `CLAUDE.md`):** this is the ONLY home for product **status** (one dot + one owner per item). Not a task list. For daily execution → `LAUNCH-PAD.md`; for strategy/decisions/history → `KIND-MASTER.md`; for future detail → `V2-TRACKER.md`. **Nothing is 🟢 unless verified live in production** (live-but-unwalked = 🩷).
+> **AUTHORITY (operating system — see root `CLAUDE.md`):** this is the ONLY home for product **status** (one dot + one owner per item). Not a task list. For daily execution → `LAUNCH-PAD.md`; for strategy/decisions/history → `KIND-MASTER.md`; for future detail → `V2-TRACKER.md`. **Nothing is 🟢 unless verified live in production** (live-but-unwalked = 🩷). **🟣 = founder approved it on the PREVIEW site, not yet live** (RULEBOOK §11 — client-facing work is previewed before it ships).
 
 > **This is the ONE inventory. Every item lives here with one status dot and one owner.**
 > If something is built anywhere (main, staging, a branch), it is in this doc. `V2-TRACKER.md` holds

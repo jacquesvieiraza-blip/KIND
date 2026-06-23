@@ -59,6 +59,7 @@
 | `DEPLOY-CHECKLIST.md` | migration order · DELETE `NEXT_PUBLIC_ADMIN_KEY` · rollback | ✅ | deploy process change |
 | `DEPLOYMENT_GUIDE.md` | full env-var-per-service · Railway crons · DNS values | ✅ | env/cron/deploy change (22-Jun corrections banner) |
 | `SMOKE_TEST.md` | step-level T1–T10 | ✅ | test flow change |
+| `LIVE-FEATURE-WALK.md` | **the verification checklist — every live feature/element to walk 🩷→🟢** (the 6-day walk to Mon 29) | ✅ | as items are walked / new features ship |
 | `render-cloudflare-failover.md` · `portal-admin-failover.md` | failover setup (Render standby + Cloudflare LB) | ✅ | failover infra change |
 | `COMPANY-ENGINE-TEST.md` | #88 staging test steps | ✅ | company-engine change |
 | `DELIVERABILITY-D9-CHECKLIST.md` | D9 mail-tester readiness (FIGSY_COLD_FROM, DKIM) | ✅ | deliverability change |

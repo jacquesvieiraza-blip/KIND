@@ -5,9 +5,9 @@
 
 | 🟢 Live + verified | 🩷 Live, not yet walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built (the roadmap) | ⏸ Blocked |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| **56** | **59** | **6** | **12** | **86** | **7** |
+| **56** | **59** | **6** | **17** | **81** | **7** |
 
-**How to read it:** the **56 🟢** are the proven core, live + verified. The **59 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test; + 182/185/190 deployed 22 Jun) — the **verification walk (Blocks 2/3)** converts most → 🟢. The **86 🔴** are the **forward roadmap** (incl. the 6 steal-sourced items 205–210 logged 22 Jun), gated by client-count milestones (not all buildable now). The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**. *(Counts live only in the table above — this line describes, it does not re-tally.)*
+**How to read it:** the **56 🟢** are the proven core, live + verified. The **59 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test; + 182/185/190 deployed 22 Jun) — the **verification walk (Blocks 2/3)** converts most → 🟢. The **81 🔴** are the **forward roadmap** (incl. the 6 steal-sourced items 205–210), gated by client-count milestones. *(22 Jun late: 5 builds shipped to 🟡 — 112/113/114/136a/178, PRs #682–#686; the 140 waterfall part also built #681.)* The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**. *(Counts live only in the table above — this line describes, it does not re-tally.)*
 
 
 > **AUTHORITY (operating system — see root `CLAUDE.md`):** this is the ONLY home for product **status** (one dot + one owner per item). Not a task list. For daily execution → `LAUNCH-PAD.md`; for strategy/decisions/history → `KIND-MASTER.md`; for future detail → `V2-TRACKER.md`. **Nothing is 🟢 unless verified live in production** (live-but-unwalked = 🩷).
@@ -289,10 +289,10 @@
 ## 4C — Post-19 near-term build queue (ungated, buildable on founder go)
 | # | 🔴 | Item | Owner | 🎨 Preview |
 |---|----|------|-------|-----------|
-| 112 | 🔴 | **Alta-style inbox rebuild** — Gmail-style multi-channel Unibox. **✅ DESIGN APPROVED 13 Jun** ("i approved the new look") · **must be PURPLE/brand** (founder 13 Jun). Build to [inbox-v2.html](./previews/inbox-v2.html): 5 cols (channel rail · labels+tags · conversation list · thread+FIGSY-draft composer · context card w/ ICP-fit + "FIGSY says"). **The big remaining build** — rewires the live 649-line `/dashboard/inbox` (real `Reply` model, classifications, endpoints) into the new shell; do as a dedicated, verified build (post-19). | 🤖 | 🔒 **APPROVED** → [inbox-v2.html](./previews/inbox-v2.html) |
-| 113 | 🔴 | A/B subject testing **UI** #43 (backend ready, §3C item 97) | 🤖  |  |
+| 112 | 🟡 | **🟡 BUILT 22 Jun (PR #685, pending review)** — Gmail-style multi-channel Unibox, 5-col, brand-purple, wired to real `figsy_replies` (honest TODOs: channel derived not stored, ICP score "—"). **Alta-style inbox rebuild.** **✅ DESIGN APPROVED 13 Jun** ("i approved the new look") · **must be PURPLE/brand** (founder 13 Jun). Build to [inbox-v2.html](./previews/inbox-v2.html): 5 cols (channel rail · labels+tags · conversation list · thread+FIGSY-draft composer · context card w/ ICP-fit + "FIGSY says"). **The big remaining build** — rewires the live 649-line `/dashboard/inbox` (real `Reply` model, classifications, endpoints) into the new shell; do as a dedicated, verified build (post-19). | 🤖 | 🔒 **APPROVED** → [inbox-v2.html](./previews/inbox-v2.html) |
+| 113 | 🟡 | **🟡 BUILT 22 Jun (PR #684, pending review)** — A/B Test tab on the FIGSY campaign page (variants B–E, winner banner), wired to the live 97 backend; no migration. A/B subject testing **UI** #43 | 🤖  |  |
 | 113a | 🟣 | **Agent side-panel = conversational, acts-in-place — BUILT 13 Jun** 🔒 spec locked + prototype approved (`agent-panel-conversational.html`). Founder rule: *every agent does what FIGSY does — conversational in the right rail, input renders in-place + takes action, no navigate-away.* **DONE for FIGSY · Milla · Vida · Denise:** **(1) right agent/panel/screen** = `AgentColumn.tsx` route picker ✓. **(2) conversational in-panel** = `AgentSidePanel` generalized with a `liveChatEndpoint` prop — non-FIGSY agents now hold a live thread instead of `router.push` (legacy `onSend` kept as fallback). **(3) reply renders in place** ✓. **Endpoints (stateless `{message,history}`→`{data:{reply}}`):** Milla `/milla/chat` (new, Milla-sub gated) · Vida `/vida/help` (existing) · Denise `/denise/chat` (new, Denise-sub gated) · Casey `/casey/chat` (new `casey.ts`, mounted). API + portal type-check ✓. **✅ Casey now WIRED LIVE 13 Jun** — `/v2/setup` (Casey's conversational-setup home) holds a real `/casey/chat` thread (replies render in place; the 113a rule applied in Casey's own surface). Casey's panel auto-extends to the rest of onboarding when those screens ship (item 121, gated on founder voice). Portal type-check ✓. Ships post-19 with the rest. | 🤖 |  |
-| 114 | 🔴 | Kanban pipeline polish #100 | 🤖  |  |
+| 114 | 🟡 | **🟡 BUILT 22 Jun (PR #682, pending review)** — Kanban pipeline polish #100 (brand-violet column ramp, count pills, density, empty states) | 🤖  |  |
 | 115 | 🔴 | Configurable agent triggers #53 (send window, weekends, reply delay — **needs backend first**) | 🤖  |  |
 | 116 | 🔴 | Activity feed → Home-dashboard widget (touches core screen — design review first) | 🤝  |  |
 | 117 | ⏸ | Subscribe-to-the-drop #122 (⏸ Drop content) | 🤖  |  |
@@ -316,7 +316,7 @@
 | 175 | 🔴 | **Onboarding — seat-based auto-routing** (1 seat = self-serve / 2+ seats = concierge track). Company size is a routing **hint**, never a hard gate. *Cashflow §14.* | 🤖 |  |
 | 176 | 🔴 | **Onboarding — 14-day company trial on bundled data** (value before any Apollo/implementation ask — lets us engage + sell first). *Cashflow §14.* | 🤖 |  |
 | 177 | 🔴 | **Company white-glove implementation flow** — wire CRM + connections + **optional** BYO-Apollo key (forced only if Apollo's ToS requires it; bundled-data is the default). Month-1 company hardening. *Cashflow §13/§14, gated on Apollo's reply.* | 🤝 |  |
-| 178 | 🔴 | **Voice ("speak") chat agent** — live voice-conversation widget: tap-to-talk mic + speaker, real-time speech in/out, animated waveform, with text-chat fallback (per founder screenshot). Voice mode for **Vida** (website) / the agent panel. **Future build.** *Founder ref 16 Jun.* | 🤖 |  |
+| 178 | 🟡 | **🟡 SHELL BUILT 22 Jun (PR #683, pending review)** — voice affordance on `VidaHelpBubble`: mic + speaker + animated waveform + text fallback; real voice transport **guarded behind `NEXT_PUBLIC_VAPI_PUBLIC_KEY`** (🧍 add the Vapi key → it lights up). **Voice ("speak") chat widget.** Voice mode for **Vida** / the agent panel. *Founder ref 16 Jun.* | 🤖 |  |
 | 126 | ⏸ | Social login go-live (⏸ Google/Microsoft OAuth registration) | 🧍  |  |
 
 ## 4C-CHURN — 🛡️ Retention / anti-churn stack (P1 — pull in as the first clients land)
@@ -396,7 +396,7 @@
 | 134 | 🔴 | 9:16 social cuts (#30) · YouTube channel (#35) | 🤝 |
 | 135 | 🔴 | Onboarding v2 emails (#32) · playbook email form (#36) | 🤖 |
 | 136 | 🔴 | Flutterwave activation (#34) | 🧍 |
-| 136a | 🔴 | ⭐ **IMPORTANT** — **Client invoicing — surface Stripe receipts in-portal.** 🔒 **DECISION LOCKED 13 Jun: USD billing · NO VAT until we hit a financial benchmark · Stripe issues the receipt, we only pull & display it.** (Until the benchmark, Stripe shows no VAT line; when we register, Stripe adds VAT automatically — no code change our side.) **We build:** an *Invoices* surface under **Company → Documents** that pulls the client's Stripe invoices via API (`invoices.list`) and lists date / number / amount (USD) / status with a **Download PDF** link to Stripe's hosted PDF (`invoice_pdf` / `hosted_invoice_url`). 🔒 design approved → `previews/invoice-v1.html` (document target) + `previews/invoices-list.html` (in-portal list). | 🤖 |
+| 136a | 🟡 | **🟡 BUILT 22 Jun (PR #686, pending review)** — `GET /stripe/invoices` (customer resolved by email) + Invoices section under Company → Documents w/ Download PDF; USD, read-only. *(Follow-up: store `stripe_customer_id` for robustness.)* ⭐ **IMPORTANT** — **Client invoicing — surface Stripe receipts in-portal.** 🔒 **DECISION LOCKED 13 Jun: USD billing · NO VAT until we hit a financial benchmark · Stripe issues the receipt, we only pull & display it.** (Until the benchmark, Stripe shows no VAT line; when we register, Stripe adds VAT automatically — no code change our side.) **We build:** an *Invoices* surface under **Company → Documents** that pulls the client's Stripe invoices via API (`invoices.list`) and lists date / number / amount (USD) / status with a **Download PDF** link to Stripe's hosted PDF (`invoice_pdf` / `hosted_invoice_url`). 🔒 design approved → `previews/invoice-v1.html` (document target) + `previews/invoices-list.html` (in-portal list). | 🤖 |
 | 137 | 🔴 | 90-day performance guarantee (#61a/g) · Revenue Playbook call (#62b) · homepage outcome numbers (#62c) | 🤖 |
 | 138 | 🔴 | Influencer/community distribution (#61e) | 🧍 |
 
@@ -404,7 +404,7 @@
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 139 | 🔴 | Intent signals #37 · A/B→contextual bandit #38 · morning-brief #39 · ICP auto-refinement L2 #40 · conditional branching #41 | 🤖 |
-| 140 | 🔴 | Waterfall enrichment live #42 · adaptive send volume #45 · Milla CRM pull #47 · inbox rotation/multi-domain #53 (needs warmed domains) | 🤝 |
+| 140 | 🔴 | **Waterfall enrichment live #42 — 🟡 BUILT 22 Jun (PR #681, pending review): PDL now a parallel+deduped source (not Apollo-only-fallback) + auto-Hunter enrichment for missing emails; 🧍 confirm `PDL_API_KEY`/`HUNTER_API_KEY` in Railway to activate.** Rest of the cluster still 🔴 (Month-2): adaptive send volume #45 · Milla CRM pull #47 · inbox rotation/multi-domain #53 (needs warmed domains). | 🤝 |
 | 141 | 🔴 | **Context-backed MCP server #59** (client-context-backed, not thin wrappers) | 🤖 |
 | 142 | 🔴 | Product Hunt #49 · G2 listing #50 | 🧍 |
 | 143 | 🔴 | **The Learning Engine** (build order: ①Train-FIGSY RAG → ③evals → ②outcome feedback loop → bandit → ④recall/memory → ⑤model routing → fine-tuning LAST) — full blueprint in `V2-TRACKER.md` | 🤖 |

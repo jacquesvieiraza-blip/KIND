@@ -10,7 +10,7 @@
 
 ### 🚀 [`LAUNCH-PAD.md`](./LAUNCH-PAD.md) — your daily command sheet
 - The **only doc you open day-to-day**.
-- Holds: **VERIFIED STATE** (what's true right now) + the **RUNLIST** (what to do today / this week) + the **READ-THROUGH MAP** (nav).
+- Holds: a **⚡ STATE** cockpit (read in 10 seconds) + **🔜 WHAT'S NEXT — by date** (your daily pick) + the full 2-week plan below.
 - Open it for: **"What do I do now?"**
 
 ### 📋 [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) — the status board
@@ -35,8 +35,9 @@
 - **The status ladder:** 🔴 not built → 🟡 built → 🟣 approved → 🩷 live (unverified) → 🟢 live + verified. **Nothing is 🟢 until you've seen it work in production.**
 
 ## 🗂️ Supporting files (not daily reading)
+- [`DOC-MAP.md`](./DOC-MAP.md) — **the freshness index: every doc in the repo, what it's for, and whether it's current/archived.** Open this to find anything that isn't one of the four.
 - [`../CLAUDE.md`](../CLAUDE.md) — agent config: how the assistant operates this repo. Not a tracker.
-- [`RULEBOOK.md`](./RULEBOOK.md) — detailed working rules (PRs, merge discipline, the stranded-commit gate).
+- [`RULEBOOK.md`](./RULEBOOK.md) — detailed working rules (PRs, merge discipline, the stranded-commit gate, the script-counted board).
 - [`TECH-STACK.md`](./TECH-STACK.md) — the tools/vendors register (Railway, Supabase, Resend, **Zoho Mail**, Stripe…) + the email architecture. Seeds the Notion Tools page.
 
 ---

@@ -58,8 +58,8 @@
 ## 🔧 THE MOMENTUM BOARD — everything that can move (so nothing sits)
 > The point: no buildable item sits idle. **I drive the 🤖 column to 🟡; you action your columns.**
 
-**🤖 I BUILD this sprint (🔴→🟡, batched for your review):**
-- **140** data waterfall (P0) · **112** inbox · **136a** in-portal invoicing · **55a** Company RLS · **162** Prompt Library nav · **180** admin audit log · **178** voice widget · **114** Kanban polish · **115** configurable triggers (backend) · **174–176** onboarding fork · **97/113** A/B subject UI · **135/137** lifecycle + guarantee copy · **118** finish nav rewire.
+**✅ BUILT 22 Jun late → 🟡, batched PRs to merge:** **#681** 140 data waterfall (PDL parallel + auto-Hunter) · **#685** 112 inbox rebuild · **#686** 136a invoicing · **#684** 113 A/B subject UI · **#682** 114 Kanban polish · **#683** 178 voice widget shell. *(All audited: builds green on the real deploy path, no migrations, 1-ahead/0-behind main.)*
+**🤖 STILL TO BUILD (next batch):** **55a** Company RLS · **115** configurable triggers (backend) · **174–176** onboarding fork · **135/137** lifecycle + guarantee copy · **118** finish nav rewire. *(162/180 already merged 🩷; 124 built 🟡 — your merge.)*
 
 **🟡 ADVANCE (sitting in yellow):** **124** money-path tests (just needs your merge) · **57** Stripe pool billing (🤖 finishing) · **97** A/B backend (🤖 + UI above) · **59** company-demo provisioning (🧍 create one in admin) · **94/95** PDL/Hunter (🧍 confirm keys → then 140 above) · **96** Vapi/WhatsApp (🧍 keys) · **165** visitor-intel provider (🧍 pick) · **118** nav (🤖).
 

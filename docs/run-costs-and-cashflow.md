@@ -1,5 +1,14 @@
 # K.I.N.D — Run Costs & Cashflow Model
-*Last updated: **16 June 2026** — BILLING CORRECTNESS: prices reconciled to the LOCKED `@kind/shared` constants (founder-confirmed) — **Lead Gen $20/$40/$100, FIGSY $60/$120/$300, flat $1/$3**; Denise $39; double-charge to be removed (item 166). Plus §12 $1M goal (math fixed), §13 Apollo strategy, §14 onboarding/segmentation. Corrected for: 4-agent line-up, per-rep company engine (#88), multi-source data (PDL), verified Apollo-ToS picture.*
+`Last-checked: 22 Jun 2026`
+
+> ### 🟢 22 JUN STATUS UPDATE (read before the body — the model below is sound; this corrects its framing)
+> - **🚀 LAUNCHED 18 Jun** — the doc body is written pre-launch ("gate Fri-19" etc.); treat those as historical. The economics (margins, ARPU, break-even, scenarios) are **still valid**.
+> - **💵 Currency = USD (locked 22 Jun, "we are USD").** Ignore the ZAR/£ columns — they're illustrative only; we **bill USD**. UK Ltd files GBP to HMRC (accounting platform decision = item 196, open).
+> - **✅ Billing items 166–171 are LIVE** (one-charge-one-wallet, separate pools, Denise $39, atomic credits). Every "fix Tue 16 / double-charge to remove" note below is **DONE** — read it as resolved history.
+> - **👥 5 agents now** (FIGSY · Milla · Vida · Denise · **Casey** onboarding). The "4-agent" framing is pre-Casey; Casey isn't a paid SKU (onboarding), so the paid line-up + economics are unchanged.
+> - **Cross-refs:** the finance *system* (sales ledger, accounting, VAT) lives in item **196**; salary/hiring economics in `SALARY-BREAKEVEN-PLAN.md` (USD) + `docs/hiring/`. **Update-when:** pricing · stack · ARPU · launch/billing status changes.
+
+*Prior header — Last updated **16 June 2026**: prices reconciled to the LOCKED `@kind/shared` constants — **Lead Gen $20/$40/$100, FIGSY $60/$120/$300, flat $1/$3**; Denise $39. Plus §12 $1M goal (math fixed), §13 Apollo strategy, §14 onboarding/segmentation.*
 *🔍 **AUDIT FIXES (10 Jun, founder-flagged):** email = **Zoho Mail** (was wrongly "Google Workspace"); **2 domains** now listed (`get-kind.com` + `gettingkind.com`, was 1); **3 agent subscriptions added to §3** (Vida $29 · Milla $49 · Denise $99 + Milla+Vida $69 bundle — previously only the 2 credit products were listed). Also fixed in code/docs (10 Jun sweep): `routes/mcp.ts` + `routes/team.ts` wrong domain `*.kindai.co.za` → `*.get-kind.com`; the admin **"Launch" checklist** rewritten (Google Workspace → **Zoho**, Paystack → **Stripe + Flutterwave**, `privacy@kind.ai` → `privacy@get-kind.com`); `DEPLOYMENT_GUIDE.md` Step 7 → Zoho. **All stale email/domain/processor references now corrected across code + docs.***
 
 > ### 🧭 READ FIRST — the lay of the land (10 Jun)

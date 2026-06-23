@@ -1,5 +1,7 @@
 # 🔍 K.I.N.D — STAGING REVIEW LOG
 
+> 🗄️ **HISTORICAL (22 Jun) — pre-launch staging review log.** The product **launched 18 Jun**; live status now lives in `PRODUCT-INVENTORY` (the colour board) and the verification walk in `LAUNCH-PAD`. Kept for the record of what was reviewed on staging. `Last-checked: 22 Jun 2026`.
+
 > **Purpose:** the founder walks every new feature on the isolated staging environment and records
 > reactions — what works, what doesn't — one screen at a time, over multiple sessions. This is the
 > single capture doc so nothing is lost across days. Worked through at the founder's pace.

@@ -1,30 +1,39 @@
-# 🚀 K.I.N.D — THE LAUNCH PAD (the daily command sheet)
+# 🚀 K.I.N.D — LAUNCH PAD (open this one daily)
 
-> ## ⚙️ OPERATING RULE — read once
-> **I only work from this doc day-to-day.** Map: `LAUNCH-PAD` = today's runlist · `PRODUCT-INVENTORY` = status truth (one dot, one owner) · `KIND-MASTER` = strategy + decisions + session log · `V2-TRACKER` = future detail · `DOC-MAP` = every other doc + freshness · `CLAUDE.md`/`RULEBOOK` = how I work · GitHub = execution (one PR per shippable change).
-> - No task without **owner · action · done-when · source item (ID)**. STATUS lives only in PRODUCT-INVENTORY — this doc references it by ID.
-> - **👀 PREVIEW BEFORE LIVE (RULEBOOK §11):** client-facing builds go to the **PREVIEW site** (`heartfelt-essence…railway.app` · `staging` branch) first → **I send you a preview link → you approve (🟣) → THEN it ships to LIVE** (`app.get-kind.com`, 🩷). I never say "merge"/"go live" until you've previewed. *(Docs don't deploy → no preview.)*
+> **🧭 Four-doc contract:** **LAUNCH-PAD** = today / this week (this doc) · **PRODUCT-INVENTORY** = status (one dot, one owner) · **KIND-MASTER** = strategy + why + session log · **V2-TRACKER** = future. *Status truth = PRODUCT-INVENTORY; this doc references items by ID and never re-states status.*
 
-> ## 📖 READ-THROUGH MAP
-> "what do I do now?" → **here** · "what's built/live/left?" → **PRODUCT-INVENTORY** (colour board) · "where are we + why?" → **KIND-MASTER → RESUME HERE** · "the future?" → **V2-TRACKER** · "what's every other doc?" → **DOC-MAP** · "the tools?" → **TECH-STACK**.
+## ⚡ STATE — read in 10 seconds
+- **🚀 Live since 18 Jun.** Currency = **USD**.
+- **Board** *(script-counted — see PRODUCT-INVENTORY):* **🟢57 · 🩷65 · 🟣6 · 🟡10 · 🔴69 · ⏸7.**
+- **#1 risk → deliverability:** cold domain isn't reputation-warmed. **Do NOT campaign hard yet** (item 198). The ENGINE (211, Smartlead) is the fix.
+- **Open PRs:** docs truth-reset (this) · #686 (136a invoices — built, **not** live) · #697 (Smartlead render).
+- **Trust gate:** 5 builds shipped live, **not yet walked** (112·113·114·178·140) → the walkthrough turns them 🩷→🟢. *(136a is NOT live — it's in PR #686.)*
+
+## 🔜 WHAT'S NEXT — by date (your daily pick is here)
+
+**▶️ TODAY**
+- 🔴 **Set up Instantly warmup** — sign up, connect cold-domain mailboxes, Warmup ON. Clock starts; ~1–2 wks → inbox. · 🧍 · *item 198 · done-when: warmup running*
+- 🟠 **Live feature walkthrough** (`LIVE-FEATURE-WALK.md`) on `app.get-kind.com` — you walk, I fix breaks on the spot. · 🤝 · *gates all demos · done-when: every live feature walked*
+- ⛔ On hold until those two clear: demos (129), anything customer-facing, hard campaigning.
+
+**📆 THIS WEEK (P0)**
+- 🤖 **ENGINE build** (211) — Smartlead spike → provider interface → wire FIGSY off shared Resend, via preview. · *gated on your Smartlead key*
+- 🤝 **Smoke tests T3–T10** (#100) + **verify the 5 merged builds** → 🟢.
+- 🧍 **Keys that unblock me:** Vapi (96) · WhatsApp/Meta app (128 — approval takes days, start now) · Google/MS OAuth (126).
+- 🧍 **Decisions:** accounting platform (196) · 203 repo + auth/hosting.
+
+**⛔ BLOCKED / WAITING ON YOU**
+- **103 Apollo reseller** — awaiting Apollo's reply (external). · check date: this week.
+- **94/95/140 leads** — confirm Hunter/PDL keys live in Railway (item 104 says set — verify).
+- **SSO 84/181** — needs Google/MS OAuth (126).
+- **Gated (challenge, don't drop):** Learning Engine 143 · routing 139 · Memory 120 (10+ clients) · margin-gated 144–147.
+
+**✅ RECENTLY CLOSED (last 7 days)**
+- Docs truth-reset started · ENGINE (211) researched + decided (Smartlead) · reply-rate corrected 8%→2-3% · 6-step sequence · warmup finding logged (198).
 
 ---
 
-## 🎯 THE MISSION — the 2-week sprint (then full-speed selling)
-**We've launched. Cold campaigns are throttled until the domain warms (~2 wks). We use that window to get EVERYTHING oiled** — every buildable item live, every video recorded, the business systems standing up — so that when the domain is warm the founder flips to the **main job: new-logo acquisition, 5–6 new clients/month**, with minimal time on code and the majority on selling + running the business.
-- **🤖 I build** the buildable backlog → **push to PREVIEW** → hand you a **preview link** (no drip). You approve → it ships to LIVE.
-- **🧍 You** merge, run the migrations I flag, walk the live app to turn 🩷→🟢, and clear your founder-only list (keys/decisions/recordings).
-- **Honest scope:** "everything" = every **buildable, ungated** item + everything waiting on you. Genuinely client-count/margin-**gated** items stay gated (see the ladder) — but I push you to re-validate each.
-
----
-
-## 🧭 VERIFIED STATE — what's true right now (23 Jun, post-launch)
-- **🚀 LIVE since 18 Jun.** Core loop · **Company Engine COMPLETE** (88 + 106–111) · billing 166–171 · 5 agents (FIGSY·Milla·Vida·Denise·Casey) · admin OS · marketing site.
-- **Board:** **57🟢 / 66🩷 / 6🟣 / 10🟡 / 80🔴 / 7⏸.** *(Absolute totals = hand-reconciled tally, **NOT grep-verifiable** yet — mixed table formats; normalise at the walk.)*
-- **🩷 LIVE today, awaiting your WALK → 🟢:** the **6 builds** (112 inbox · 113 A/B · 114 Kanban · 136a invoices · 178 voice · 140 leads) — **merged before you verified; the trust gap is real → the walk (TODAY #2) is the gate.**
-- **🚨 THE one open risk = deliverability (194/198):** REAL finding 23 Jun — the in-app "warmup" is only a **send-cap**, cold domain has **no mailbox**; **real fix = Instantly** (TODAY #1). Do NOT campaign hard until warmed.
-- **`main`:** clean · **1 open PR (#692** — the warmup finding + this reset; merge it to make the docs correct) · no stranded commits. **Currency = USD.**
-- **Process locks:** confirm Supabase project before SQL · one branch = one PR · **👀 PREVIEW BEFORE LIVE (§11)** — nothing client-facing merges to live until you've previewed.
+> ### 📂 DETAIL BELOW — the full 2-week plan, founder to-do, and walk checklist. **The cockpit above is your daily read; open the depth only when you need it.**
 
 ---
 
@@ -36,7 +45,7 @@
 
 ### 🟠 #2 — REBUILD TRUST: walk the live system — 🧍 you, 🤖 fixes breaks
 - **Live feature walkthrough** (`LIVE-FEATURE-WALK.md`) on `app.get-kind.com` — you walk every live feature, I fix what's broken on the spot. **Must happen before any demo / customer-facing.**
-- The **6 builds merged today, unverified** (112 inbox · 113 A/B · 114 Kanban · 136a invoices · 178 voice · 140 leads): verify in the walk → 🟢, or I **revert** any that aren't right.
+- The **5 builds merged live, unverified** (112 inbox · 113 A/B · 114 Kanban · 178 voice · 140 leads): verify in the walk → 🟢, or I **revert** any that aren't right. *(136a invoices is **not** live — it's in open PR #686.)*
 
 ### ⏸ ON HOLD until #1 + #2 are cleared (NOT today)
 - Recording demos (129) · anything customer-facing · hard campaigning · Vapi/WhatsApp keys · Notion · accounting · 203.
@@ -52,7 +61,7 @@
 ### 🚨 LANE A — THE ENGINE (item 211 — THE #1 plan; everything orbits this)
 > The ENGINE = the warmed-sending / deliverability layer (RULEBOOK §12). No engine → **SMB dead · mid-market can't scale · enterprise out.** **✅ RESEARCHED + DECIDED 23 Jun: integrate Smartlead** (both modes via one API + white-label). **Full build spec → V2-TRACKER "⚙️ THE ENGINE".**
 1. **198 — Instantly warmup for our OWN outreach** — set up + ON, **Day 1.** 🧍 · *gates our cold campaigning*
-2. **211 — CONFIRM Smartlead** as the engine (vs Instantly fallback) + the **markup model** for managed SMB mailboxes + **migration** of existing Resend clients. 🧍 *(the 3 open founder decisions)*
+2. **211 — ✅ Smartlead CONFIRMED** as the primary engine (Instantly = backup + own outreach, 23 Jun) — open: the **markup model** for managed SMB mailboxes + **migration** of existing Resend clients + your Smartlead API key in Railway. 🧍
 3. **211 — 🤖 BUILD via PREVIEW (6 phases, V2 spec):** ① Smartlead spike on staging → ② thin `SendingProvider` interface → ③ wire FIGSY off the Resend-shared path → ④ two modes (managed SMB / connect-your-own enterprise, mirrors §13/§14 data) → ⑤ reply capture → ⑥ deliverability monitoring. **Start 7pm.** 🤖 · *gated on #2*
 4. **194/101 — D9 placement check** — real-Gmail test now + again as it warms. 🧍
 > **Deliverability rules (non-negotiable):** 1 dedicated domain per client (never shared) · never cold from the primary domain · per-client warmup · ~30–50 sends/mailbox/day.

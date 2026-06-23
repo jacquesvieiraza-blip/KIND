@@ -43,8 +43,10 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 3.3 **Purple ≠ live · pink = live-but-unproven.** Purple is still on a branch; pink is deployed but unwalked. Don't describe either as verified-working.
 
 ## 4. 🌿 BRANCHES & DOCS
-4.1 **Docs live on `main`.** The three source-of-truth docs (`KIND-MASTER.md`, `PRODUCT-INVENTORY.md`, `V2-TRACKER.md`) live on the live branch so logging travels with the code. Never maintain them only on a held branch again (that caused the 13→14 Jun drift).
-4.2 **Cut work branches FROM `main`, merge BACK to `main`.** No long-lived parallel doc branches.
+4.1 **Docs live on `main`.** The **four** core docs (`LAUNCH-PAD.md`, `PRODUCT-INVENTORY.md`, `KIND-MASTER.md`, `V2-TRACKER.md`) live on the live branch so logging travels with the code. Never maintain them only on a held branch again (that caused the 13→14 Jun drift). *(Was wrongly written "three source docs" — LAUNCH-PAD is the 4th core, not a derived run-list. The four-doc contract is canonical; see CLAUDE.md + §4.6.)*
+4.2 **Cut work branches FROM `main`, merge BACK to `main`. No micro-branches.** Batch a session's doc edits onto ONE branch/PR — do not spin a new branch per tiny edit (that sprawl left fixes stranded on branches that never merged, so `main` stayed stale while we believed it was fixed). No long-lived parallel doc branches.
+4.7 **The status board is SCRIPT-GENERATED, never hand-typed.** `scripts/count-inventory.sh` is the only source of the PRODUCT-INVENTORY dashboard (it counts real item rows between the `COUNT:START/END` markers, both table formats). Hand-typing it caused a 227-vs-214 drift + a false-live item. Run `--check` before every docs PR.
+4.8 **Reconcile against `main` at session close.** Before ending: `git log origin/main..HEAD` (nothing stranded), run the count `--check`, and confirm what the docs claim matches what's actually on `main`. State the reconciled merge-state. Never report a fix from a branch that isn't merged.
 4.3 **Log every session.** End of session: update the **SESSION LOG** + **RESUME HERE** in `KIND-MASTER.md`, bump the **Last updated** line on any doc touched, then commit + push.
 4.4 **One source of truth wins.** Where docs disagree, `KIND-MASTER.md` is authoritative.
 4.5 **`LAUNCH-PAD.md` governs daily execution** (the only doc the founder opens day-to-day). It references inventory items by ID and pulls strategy from the master; if it ever disagrees on **status** the inventory wins, on **strategy** the master wins.

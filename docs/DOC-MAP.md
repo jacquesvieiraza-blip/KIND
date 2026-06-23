@@ -1,7 +1,11 @@
 # 🗺️ K.I.N.D — DOC MAP (every doc · what it's for · is it fresh)
 
 > **What this is:** the index of *every* doc in the repo — what it holds, which of the 4 core docs it hangs off, and whether it's current. **You live off the 4 core docs; this is how the supporting docs stay honest so they never rot underneath you.**
-> **Last full audit:** 22 Jun 2026 (post-launch). **Re-run the sweep at every weekly close (RULEBOOK §10).**
+> **Last full audit:** **23 Jun 2026** — full 47-doc verified sweep (4 parallel agents + code/PR check). **Re-run the sweep at every weekly close (RULEBOOK §10).**
+>
+> **🧭 Four-doc contract (canonical):** LAUNCH-PAD = today · PRODUCT-INVENTORY = status · KIND-MASTER = strategy/why · V2-TRACKER = future. No fifth core doc. **The status board is script-generated** — `scripts/count-inventory.sh` (RULEBOOK §4.7). **THE ENGINE** (deliverability/sending engine, item 211) is named in RULEBOOK §12.
+>
+> **🗄️ PR-2 archive queue (marked here 23 Jun, MOVED in PR 2 — not yet):** `DEPLOY-CHECKLIST.md` · `COMPANY-ENGINE-TEST.md` · `ADMIN-BOOKKEEPER-AUDIT.md` + root `BUILD_STATUS.md` · `CHANGELOG.md` · `MASTER.md`. **Fold-then-archive:** root `AUDIT.md` + `FULL_CHECK.md` (methodology → into RULEBOOK first). **Keep (evergreen):** root `AGENT_AVATARS.md`.
 
 ---
 
@@ -56,7 +60,7 @@
 ### 🛠️ Ops · deploy · infra
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
-| `TECH-STACK.md` | the tools/vendors register + email architecture (Resend send / Zoho receive) | ✅ | a tool is added/changed |
+| `TECH-STACK.md` | the tools/vendors register + email architecture (**cold `gettingkind.com` = Resend send + Resend inbound, NO mailbox · human `get-kind.com` = Zoho** · Smartlead/Instantly = THE ENGINE) | ✅ | a tool is added/changed |
 | `DEPLOY-CHECKLIST.md` | migration order · DELETE `NEXT_PUBLIC_ADMIN_KEY` · rollback | ✅ | deploy process change |
 | `DEPLOYMENT_GUIDE.md` | full env-var-per-service · Railway crons · DNS values | ✅ | env/cron/deploy change (22-Jun corrections banner) |
 | `SMOKE_TEST.md` | step-level T1–T10 | ✅ | test flow change |
@@ -76,6 +80,18 @@
 | `hiring/` (5 docs) | AE comp plan (OTE $112.5k) · partner comp · Claude-Code build brief (203) · SELLER-ENGINE-MAP · calculators | ✅ | comp/seller-engine change |
 | `SALARY-BREAKEVEN-PLAN.md` | (see Sales & money) | 🛠️ | — |
 
+### 📁 Root-level files (were untracked — now indexed)
+| Doc | Unique content | Status | Disposition |
+|-----|----------------|:--:|-------------|
+| `README.md` (root) | repo front door → pointer to the 4 core + DOC-MAP | ✅ | keep (PR 1 made it a pointer) |
+| `CLAUDE.md` | agent operating config (four-doc contract, rules) | ✅ | keep — always-loaded |
+| `AGENT_AVATARS.md` | avatar/art-direction generation prompts | ✅ ref | keep (evergreen) |
+| `AUDIT.md` | audit methodology/protocol | ⚠️ | PR 2: fold into RULEBOOK → archive |
+| `FULL_CHECK.md` | audit protocol | ⚠️ | PR 2: fold into RULEBOOK → archive |
+| `BUILD_STATUS.md` | 27-May sprint status (pre-launch) | 🗄️ | PR 2: archive |
+| `CHANGELOG.md` | 27-May change log (pre-launch) | 🗄️ | PR 2: archive |
+| `MASTER.md` (root) | old stale master (known-broken) | 🗄️ | PR 2: archive |
+
 ---
 
 ## 🗄️ ARCHIVE — superseded, DO NOT USE (mined for unique bits, banner-marked)
@@ -94,4 +110,4 @@
 4. ✅ ~~README empty~~ (now the doc signpost) · ✅ ~~NEXT_PUBLIC_ADMIN_KEY in failover doc~~ (verified — the doc warns *against* it).
 
 ---
-*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: 22 Jun 2026 (incl. the §11 preview-before-live lock synced across the 4 core + RULEBOOK + CLAUDE.md).*
+*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: **23 Jun 2026** — all 47 docs verified; four-doc contract installed across the 4 core; status board moved to `scripts/count-inventory.sh`; 136a corrected (was false-live); root files now indexed. PR 2 = move the archive queue; PR 3 = domain 3→6-step fixes.*

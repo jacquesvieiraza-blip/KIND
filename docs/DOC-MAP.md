@@ -106,4 +106,4 @@
 4. ✅ ~~README empty~~ (now the doc signpost) · ✅ ~~NEXT_PUBLIC_ADMIN_KEY in failover doc~~ (verified — the doc warns *against* it).
 
 ---
-*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: **23 Jun 2026**. PR 1 ✅ four-doc contract + script-counted board + 136a fix. PR 2 ✅ 19 dead docs filed to `docs/archive/`, FULL_CHECK protocol → RULEBOOK §13, archive README de-staled. **PR 3 (next) = domain 3→6-step fixes** (PARTNER-BRIEF · RECORDING-SHOOTING-SCRIPT · LIVE-FEATURE-WALK).*
+*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: **23 Jun 2026**. PR 1 ✅ four-doc contract + script-counted board + 136a fix. PR 2 ✅ 19 dead docs filed to `docs/archive/`, FULL_CHECK protocol → RULEBOOK §13, archive README de-staled. PR 3 ✅ 3→6-step resolved honestly: the 6-step is now **tracked item 212** (🔴, not built — product is still 3-step); client/demo docs say "multi-step," internal docs cross-ref 212. Board → 215.*

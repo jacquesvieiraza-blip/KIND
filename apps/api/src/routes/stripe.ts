@@ -7,6 +7,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import {
   isStripeConfigured,
+  listInvoicesByEmail,
   createCheckoutSession,
   createSubscriptionCheckoutSession,
   constructWebhookEvent,
@@ -76,6 +77,26 @@ export const stripeRouter = Router()
 // ── GET /stripe/status ────────────────────────────────────────────────────────
 stripeRouter.get('/status', requireAuth, (_req: Request, res: Response) => {
   res.json({ configured: isStripeConfigured() })
+})
+
+// ── GET /stripe/invoices — client's Stripe-issued invoices (#136a) ───────────
+// Read-only. Stripe ISSUES the receipt; we only pull & display it (USD, no VAT
+// until a benchmark — we surface whatever Stripe returns). Resolves the Stripe
+// customer from the caller's auth email (we don't store stripe_customer_id), and
+// returns an empty list gracefully when Stripe isn't configured or the client has
+// no Stripe customer / no invoices yet.
+stripeRouter.get('/invoices', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '') || ''
+    const { data: { user } } = await db.auth.getUser(token)
+    const email = user?.email || null
+
+    const invoices = await listInvoicesByEmail(email)
+    res.json({ success: true, data: { invoices, configured: isStripeConfigured() } })
+  } catch (err) {
+    console.error('[Stripe] /invoices error:', err)
+    res.status(500).json({ success: false, error: 'Failed to load invoices' })
+  }
 })
 
 // ── POST /stripe/checkout — one-time credit purchase ─────────────────────────

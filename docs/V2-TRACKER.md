@@ -496,6 +496,7 @@ That + outbound + partners = the motion.
 
 ## 🧱 BIG EPICS — own multi-week boxes, sequenced in V2 (NOT "now")
 143 Learning Engine · 144 Denise deep · 145 LENA + TONY · 146 orchestration + skill library · 139/140 intelligence (intent/bandit/adaptive/CRM-pull) · 141 context-MCP · 152 memory/forecasting/call-intel · 148 mobile app + CRM Kanban · 150 cross-client intel + data marketplace · 151 ISO/SOC2/Vanta · 153–161 P4 scale (client-count-gated).
+> **⚡ PULLED FORWARD into the 23-Jun→7-Jul sprint (23 Jun):** the **effort/input-gated** subset — **120 · 121 · 141 · 144 · 145 · 157 · 158 · 165** — is no longer "later"; it's active in LAUNCH-PAD (their gate was hours or a founder input, not real clients). The genuinely **client/data/margin-gated** ones stay here: 143 (data) · 147 (margin) · 150/155/156/159/161 (scale) · 151 (enterprise) · 160 (demand).
 
 ## 🥷 STEAL-SOURCED (logged 22 Jun · RULEBOOK §9 — buildable-now unless noted)
 **205** branching-logic forms (extends live item 71) · **206** template-gallery UX (70/162/56) · **207** multi-currency admin rollups (feeds 203) · **208** recency-weighted hot-lead ranking + champion signal (feeds 139 — 🧍 needs a behaviour-signal source) · **209** prospecting play-artifact + progress tracker + org-threading (FIGSY output UX) · **210** call-coaching agent (per-rep #88 / agent family). *Status of record = PRODUCT-INVENTORY.*

@@ -301,10 +301,10 @@
 | 162 | 🩷 | **Prompt Library** (website, under **Resources**) — *planned 13 Jun (founder ref: ClickUp/Anthropic-style prompt gallery)*. A searchable, filterable gallery of ready-made prompts that unlock more from the K.I.N.D agents (esp. **Milla** + **FIGSY**). **Plan:** ① static page `apps/website/prompt-library.html` linked under the **Resources** nav dropdown · ② header + "Request a prompt" CTA · ③ **Department** filter (Sales · Legal · Ops · CS · All teams) + **Category** filter + search · ④ prompt cards (title · one-line desc · department tag · **Copy**) · ⑤ later: "Use this prompt" deep-link into the portal → opens Milla's panel pre-filled (ties to 113a). Seed ~12–16 prompts (e.g. "Draft a LinkedIn connection request", "Identify contract deviations", "Research a buyer persona", "A/B test plan"). Build post-launch. **⭐ This is THE big multi-item Resource (founder 13 Jun) — while The Drop + video stay consolidated to one each, the Prompt Library is where "lots" lives; seed it richly.** | 🤖 |  |
 | 163 | 🔴 | **Product Videos hero refinement** (website Watch page, item 93) — *planned 13 Jun (founder ref image)*. Upgrade the `product-videos.html` hero to a **dotted-grid background + soft multi-colour pastel gradient wash** with a **"▶ Product Videos" pill badge** + centred subhead ("Explore our library of demos and feature deep dives…"). Apply when item 93 (PR #503) is merged/iterated — currently on branch `claude/marketing-drops`, not this branch. Pairs with the Resources nav build (118). **⏸️ HOLD with the rest of the Watch/Product-Video page (founder 13 Jun: don't build the product video yet).** | 🤖 |  |
 | 164 | 🔴 | **Social footer links** (X · LinkedIn · Instagram · YouTube icons in the site footer) — *planned 13 Jun (founder ref image)*. Build the markup + icons now, **but HELD from go-live until each profile is genuinely populated** (🔒 **CREDIBILITY RULE**, see master: empty/half-full socials lose trust). Flip live only when every linked channel has real content. | 🤝 build now · founder populates → then live |
-| 165 | 🟡 | **Visitor Intelligence — tracking snippet** (admin `/visitors`, ties to #76) — *✅ snippet INSTALLED on all 40 website pages 13 Jun* → **visits + intent scoring live now** (no provider needed). **Company de-anonymisation DEFERRED post-launch** (founder 13 Jun: Clearbit/Breeze not accepting signups). When live: pick an IP→company provider (**IPinfo** easiest · Snitcher/Dealfront better B2B data · ⚠️ thin Africa coverage), set its key in Railway, swap the one lookup in `tracking.ts`. Snippet on-site never changes. | 🧍 pick provider post-launch · 🤖 swap lookup |
+| 165 | 🟡 | **Visitor Intelligence — tracking snippet** (admin `/visitors`, ties to #76) — *✅ snippet INSTALLED on all 40 website pages 13 Jun* → **visits + intent scoring live now** (no provider needed). **Company de-anonymisation DEFERRED post-launch** (founder 13 Jun: Clearbit/Breeze not accepting signups). When live: pick an IP→company provider (**IPinfo** easiest · Snitcher/Dealfront better B2B data · ⚠️ thin Africa coverage), set its key in Railway, swap the one lookup in `tracking.ts`. Snippet on-site never changes. **· ⚡ pulled into the 2-wk sprint (23 Jun) — pick provider Day 1, I swap the lookup** | 🧍 pick provider post-launch · 🤖 swap lookup |
 | 119 | ⏸ | Revenue Mission Control #115 (3-col live ops — ⏸ confirm direction, ~3–4 days) | 🤝  |  |
-| 120 | ⏸ | FIGSY Memory v2 / pgvector #46 (⏸ 🧍 flips pgvector switch, 2 min) | 🤝  |  |
-| 121 | ⏸ | Casey conversational onboarding V2-3/10 (⏸ founder voice/tone input — highest-value V2 build) | 🤝  |  |
+| 120 | ⏸ | FIGSY Memory v2 / pgvector #46 (⏸ 🧍 flips pgvector switch, 2 min) **· ⚡ pulled into the 2-wk sprint (23 Jun) — unblock Day 1, then build** | 🤝  |  |
+| 121 | ⏸ | Casey conversational onboarding V2-3/10 (⏸ founder voice/tone input — highest-value V2 build) **· ⚡ pulled into the 2-wk sprint (23 Jun) — your voice Day 1, then build** | 🤝  |  |
 | 122 | 🔴 | Y16 — kill dead Vercel↔GitHub integration | 🧍  |  |
 | 123 | 🔴 | Y12 failover parity check · Y13 D&O + trademarks · Y14 demo-seed isolation | 🤝  |  |
 | 124 | 🟡 | Money-path tests — **BUILT (Box B7, PR pending review):** pure `billing-rules.ts` (single source of which-wallet/how-much) + 4 call-sites wired to it + **13 regression tests** locking the no-double-charge invariant (type-check ✓, tests ✓). *(Smoke Test 2 manual scripts = item 100, separate.)* | 🤖  |  |
@@ -408,15 +408,15 @@
 |---|----|------|-------|
 | 139 | 🔴 | Intent signals #37 · A/B→contextual bandit #38 · morning-brief #39 · ICP auto-refinement L2 #40 · conditional branching #41 | 🤖 |
 | 140 | 🔴 | **Waterfall enrichment #42 — 🩷 LIVE + ACTIVE 22 Jun (#681 merged + keys CONFIRMED in Railway): PDL now a parallel+deduped source (not Apollo-only-fallback) + auto-Hunter enrichment for missing emails. 🧍 verify on an ICP run → then this part is 🟢.** Rest of the cluster still 🔴 (Month-2): adaptive send volume #45 · Milla CRM pull #47 · inbox rotation/multi-domain #53 (needs warmed domains). | 🤝 |
-| 141 | 🔴 | **Context-backed MCP server #59** (client-context-backed, not thin wrappers) | 🤖 |
+| 141 | 🔴 | **Context-backed MCP server #59** (client-context-backed, not thin wrappers) **· ⚡ pulled into the 2-wk sprint (23 Jun) — effort-gated, not client-gated** | 🤖 |
 | 142 | 🔴 | Product Hunt #49 · G2 listing #50 | 🧍 |
 | 143 | 🔴 | **The Learning Engine** (build order: ①Train-FIGSY RAG → ③evals → ②outcome feedback loop → bandit → ④recall/memory → ⑤model routing → fine-tuning LAST) — full blueprint in `V2-TRACKER.md` | 🤖 |
 
 ## 4G — Month 3 (gated margin data) — the agent family
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
-| 144 | 🔴 | **DENISE deep build #54** (auto-book · notetaker · objections · proposal-from-transcript · Vapi voice) | 🤖 |
-| 145 | 🔴 | **LENA — CS agent #55** ⭐ **CHURN-DEFENSE PRIORITY** (retention = salary — see `SALARY-BREAKEVEN-PLAN.md`; CS is what *holds* the client book) · **TONY — Ops agent #56** | 🤖 |
+| 144 | 🔴 | **DENISE deep build #54** (auto-book · notetaker · objections · proposal-from-transcript · Vapi voice) **· ⚡ pulled into the 2-wk sprint (23 Jun) — effort-gated, not client-gated** | 🤖 |
+| 145 | 🔴 | **LENA — CS agent #55** ⭐ **CHURN-DEFENSE PRIORITY** (retention = salary — see `SALARY-BREAKEVEN-PLAN.md`; CS is what *holds* the client book) · **TONY — Ops agent #56** **· ⚡ pulled into the 2-wk sprint (23 Jun) — effort-gated, not client-gated** | 🤖 |
 | 146 | 🔴 | Multi-agent orchestration #57 · 500+ skill library #58 | 🤖 |
 | 147 | 🔴 | Outcome pricing per meeting #60 (gated ≥28% margin) | 🤝 |
 | 148 | 🔴 | Mobile app #61 · built-in CRM Kanban #62 · pan-African design partners #63 | 🤝 |
@@ -436,8 +436,8 @@
 | 154 | 🔴 | Custom lead fields (jsonb) | on request |
 | 155 | 🔴 | Visual automation builder (React Flow) | 50+ clients |
 | 156 | 🔴 | Self-learning ICP ("narrow your ICP?") | 3 mo data |
-| 157 | 🔴 | Personalised email images (Lemlist) | Phase 3 |
-| 158 | 🔴 | Voice-first morning brief (TTS) | after text brief |
+| 157 | 🔴 | Personalised email images (Lemlist) **· ⚡ pulled into the 2-wk sprint (23 Jun)** | Phase 3 |
+| 158 | 🔴 | Voice-first morning brief (TTS) **· ⚡ pulled into the 2-wk sprint (23 Jun)** | after text brief |
 | 159 | 🔴 | Network benchmarks ("top 15%") | 20+ clients |
 | 160 | 🔴 | White-label / agency channel | first agency asks |
 | 161 | 🔴 | MCP dev tier + directory listing | 20+ clients |

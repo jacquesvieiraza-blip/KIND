@@ -4,9 +4,10 @@
 
 ## ✉️ EMAIL ARCHITECTURE — the part that's easy to get wrong
 Two **separate** systems, do not conflate:
-- **SEND (machine) = Resend.** The app sends ALL programmatic mail via Resend (`RESEND_API_KEY`): transactional/system email **and** FIGSY cold-outreach sends (cold FROM = `FIGSY_COLD_FROM`, e.g. `hello@gettingkind.com`). Inbound delivery/bounce events come back via the Resend webhook.
-- **RECEIVE + human mail = Zoho Mail.** Zoho hosts the **company mailboxes** (MX / receiving + webmail) for our domains. **This is where replies to cold/outreach mail actually land, and where you/the team read and send human email** (e.g. `hello@get-kind.com`, `hello@gettingkind.com`, the founder's address). The in-app unibox/inbox (item 112) is a *product view* of the send-log — **the real mailbox is Zoho.**
-- **Deliverability:** SPF / DKIM / DMARC verified on the sending domain; warmup tool (**item 198**, Instantly/Mailreach) still to connect. Cold identity = `gettingkind.com`; product identity = `get-kind.com`.
+> ⚠️ **CORRECTED 23 Jun** — the earlier version of this section was wrong (it said Zoho receives the cold replies). The truth, verified in code:
+- **COLD domain `gettingkind.com` = Resend, end-to-end.** Sends via Resend (`RESEND_API_KEY`, FROM `FIGSY_COLD_FROM = hello@gettingkind.com`). **Replies are captured via Resend INBOUND** — its **MX points to Resend**, which webhooks each reply to the app (`/figsy/replies/inbound`, then fetches the body). **There is NO mailbox on `gettingkind.com`** — it's send + inbound-webhook only. The product unibox/inbox (item 112) is the view of these.
+- **HUMAN / company mail `get-kind.com` = Zoho Mail.** Zoho hosts the real mailbox (`hello@get-kind.com`, founder's address) — where you read/send human email. *(This is the ONLY Zoho mailbox; there is no `gettingkind.com` Zoho mailbox.)*
+- **Deliverability / warmup (item 198):** SPF/DKIM/DMARC set on the cold domain. **The in-app FIGSY "warmup" (`FIGSY_WARMUP_START`) is only a daily SEND-CAP, NOT reputation warmup** — earlier docs mislabeled it. Because the cold domain has **no mailbox**, a standard warmup tool can't plug in → **real fix = a dedicated cold-email platform (Instantly, chosen 23 Jun)** that provisions + warms its own mailboxes + sends. **Do not campaign hard until warmed.**
 
 ## 🧱 PRODUCT STACK (the live app)
 | Tool | Role |

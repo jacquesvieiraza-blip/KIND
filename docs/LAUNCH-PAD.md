@@ -28,7 +28,25 @@
 
 ---
 
-## ✅ THIS WEEK — the active plan (work top-down; move ≥1 dot/day)
+## 🛑 TODAY — RESET (23 Jun · warmup-first · read this FIRST)
+> **Honest state:** today went off-track. **6 builds got merged to LIVE before you verified them** (against the preview rule we then locked, §11). And **"warmup" was a mess** — what's run since 9 Jun is only a **send-cap**, not real reputation warmup; the cold domain has **no mailbox**, so a normal warmup tool can't plug in. So today = **fix the warmup + rebuild trust in the system.** No demos, nothing customer-facing, until you trust it works.
+
+### 🔴 #1 — FIX THE WARMUP (the mess) — 🧍 you, 🤖 guiding
+- **Set up Instantly** (instantly.ai) — the real warmup + send platform. Sign up → connect/create sending mailboxes on the cold domain → **Warmup ON.** Clock starts today; ~1–2 wks → inbox. **Do NOT campaign hard until warmed** (burns the domain). · Source **198** *(full finding logged in item 198 + TECH-STACK)*
+
+### 🟠 #2 — REBUILD TRUST: walk the live system — 🧍 you, 🤖 fixes breaks
+- **Live feature walkthrough** (`LIVE-FEATURE-WALK.md`) on `app.get-kind.com` — you walk every live feature, I fix what's broken on the spot. **Must happen before any demo / customer-facing.**
+- The **6 builds merged today, unverified** (112 inbox · 113 A/B · 114 Kanban · 136a invoices · 178 voice · 140 leads): verify in the walk → 🟢, or I **revert** any that aren't right.
+
+### ⏸ ON HOLD until #1 + #2 are cleared (NOT today)
+- Recording demos (129) · anything customer-facing · hard campaigning · Vapi/WhatsApp keys · Notion · accounting · 203.
+
+### 🤖 ME — notes only, no building today
+- Logged the warmup finding (item 198) + corrected TECH-STACK (the email architecture was wrong — cold = Resend send+inbound, no mailbox). Then: guide your Instantly setup · run the walkthrough with you · fix what it finds. **No new builds. No merge-to-live without your preview.**
+
+---
+
+## ✅ THE BROADER PLAN (paused until TODAY's reset is cleared)
 > **Priority spine:** P0 make-it-sell → P1 the missing channels → P2 business systems → P3 GTM. Owner tags: 🤖 me · 🧍 you · 🤝 both.
 
 ### 🔴 P0 — make the live product actually sell (do first)

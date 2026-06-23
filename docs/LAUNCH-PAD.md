@@ -53,9 +53,10 @@
 - 🤖 **211 · Phase 5/6** — deliverability monitoring · **57** Stripe → company-pool billing (preview).
 - 🧍 **108 decision** — does budget-edit move pool credits? does deactivate reclaim them? · *(the build is 🩷; this is the open rule)*
 
-### Wed 1 Jul — Day 6 · ONBOARDING + LIFECYCLE
+### Wed 1 Jul — Day 6 · ONBOARDING + LIFECYCLE + BUSINESS TRAINING
 - 🤖 **174–176** onboarding fork (firmographics · seat routing · 14-day trial) · **135 / 137** lifecycle emails + 90-day guarantee.
 - 🧍 **196** accounting platform pick (Xero/QB/FreeAgent/Sage) + VAT timing.
+- 🤝 **Business-model training day** → write the operating-model SOP (in `kind-ops`), including **how partner/AE earnings + retention are captured** (the weekend mapping) — this feeds the Partner Hub build. · *done-when: SOP written + earnings-capture model handed to me*
 
 ### Thu 2 Jul — Day 7 · NAV + NOTION + SELLER DECISION
 - 🤖 **118** finish nav rewire · **162 / 93** verify (Prompt Library + The Drop).
@@ -94,7 +95,8 @@ These were parked as "later / Month-2 / gated." The gate was only **effort or yo
 - **Decisions:** 196 accounting + VAT · 203 repo + auth · 108 credit behaviour · 211 markup + migration · 165 visitor-intel · 120 pgvector · 121 Casey voice.
 - **Legal:** 102 pack · 103 Apollo ⏸ · SEIS · DPAs.
 - **GTM:** 129 demo · 127 outreach · 132 dogfood · 133 partners · 142 Product Hunt · 138 influencer.
-- **Seller engine:** 201 hire AE · 202 agreements.
+- **Seller engine:** 201 hire AE · 202 agreements (incl. **partner agreement** — to be drafted) · 200 partner+AE portal.
+- **Business/ops:** Business-model training day → operating-model SOP (`kind-ops`) + the partner/AE **earnings-capture** model (Day 6).
 
 ## 🤖 MY QUEUE — buildable now, via preview
 55a · 57 · 106–109 · 115 · 118 · 135 · 137 · 174–176 · 97 · 131 · **211 (the ENGINE)** · **212 (FIGSY 3→6-step)** · **ex-gated: 120 · 121 · 141 · 144 · 145 · 157 · 158 · 165** — all previewed before they go live.

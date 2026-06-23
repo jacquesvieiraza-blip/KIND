@@ -33,7 +33,7 @@
 > 2. **Fri 19 Jun — LAUNCH** (the proven core already live on `main`; D9 + legal + smoke tests + Go/No-Go Thu 18)
 > 3. **Post-19 — everything else** (all 25 release PRs, shell redesign, Alta-style inbox, the whole staging review queue)
 >
-> *Last updated: 14 Jun 2026 · **Now lives on `main`** (was stranded on `claude/kind-carson-MYhSl` — consolidated onto the live branch 14 Jun so logging travels with the live code). Today's website work: The Drop revamped to a Monday-style show layout + main-page polish + Demo removed from top nav site-wide (items 93 · 118) — all merged to `main`, live. · The 3 docs: `KIND-MASTER.md` (the map + founder checklist) · THIS (status of everything) · `V2-TRACKER.md` (future detail). Task tools: `COMPANY-ENGINE-TEST.md` (Monday test) · `STAGING-REVIEW.md` (review log).*
+> *Last updated: **23 Jun 2026** (post-launch · the ENGINE = item 211 is the #1 plan). Lives on `main`. The 4 core docs: `LAUNCH-PAD` (today) · THIS (status) · `KIND-MASTER` (strategy + log) · `V2-TRACKER` (future). Freshness index: `DOC-MAP.md`.*
 
 ---
 

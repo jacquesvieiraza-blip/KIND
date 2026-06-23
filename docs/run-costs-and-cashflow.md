@@ -1,5 +1,5 @@
 # K.I.N.D — Run Costs & Cashflow Model
-`Last-checked: 22 Jun 2026`
+`Last-checked: 23 Jun 2026`
 
 > ### 🟢 22 JUN STATUS UPDATE (read before the body — the model below is sound; this corrects its framing)
 > - **🚀 LAUNCHED 18 Jun** — the doc body is written pre-launch ("gate Fri-19" etc.); treat those as historical. The economics (margins, ARPU, break-even, scenarios) are **still valid**.

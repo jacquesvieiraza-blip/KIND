@@ -39,6 +39,44 @@ _Last updated: 22 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **DEL
 
 ---
 
+# ░ ⚙️ THE ENGINE — the deliverability / sending architecture (item 211 · researched + decided 23 Jun) ░
+> **THE foundation of the product (RULEBOOK §12).** Without warmed, inbox-landing email: **SMB dead · mid-market can't scale · enterprise won't touch us.** The AI is the differentiator; the ENGINE is what it stands on. **Status of record: PRODUCT-INVENTORY item 211.** Build spec lives here.
+
+## ✅ Decision: INTEGRATE Smartlead (do NOT build the infra)
+Researched 23 Jun (sourced). The whole funded AI-SDR market (Apollo, Outreach, Artisan, 11x) **integrates** the sending-infra layer — building it (domain provisioning, SPF/DKIM/DMARC at scale, a credible warmup network, IP rotation, reputation monitoring) is a multi-year product in itself. **Don't rebuild the hardest wheel.**
+- **Smartlead = primary** — the one platform doing BOTH our modes via one API + white-label.
+- **Instantly = fallback** — strong API V2 + unlimited warmup, but **NO white-label** (can't brand for SMB clients) + less programmatic provisioning.
+- **Alta** (competitor) = **connect-your-own-mailbox** ("a Rep" = the client's own identity) — confirms the big-account model. *(Inferred; their help-centre blocks crawlers.)*
+
+## The two operational models (segmented by ACV — mirrors the data strategy §13/§14)
+- **A — MANAGED (SMB, low ACV):** K.I.N.D drives Smartlead **SmartSenders** → provisions + auto-warms mailboxes/domains per client (~$4–9/mailbox/mo, DNS auto-set, live 24–48h). **Bundled + marked up. Zero client setup.** *(Same spine as bundled-Apollo for SMB.)*
+- **B — CONNECT-YOUR-OWN (mid-market/enterprise, high ACV):** attach the client's own Google/Outlook/SMTP via `POST /email-accounts/save`. **They bring infra + BYO Apollo key.** *(Same spine as BYO-Apollo for company/partner.)*
+- **FIGSY's AI sits on top of both.** Per-client isolation via white-label `client_id` (~$29/mo/client).
+
+## 🚫 Non-negotiable deliverability rules (baked into the build)
+- **1 dedicated sending domain per client — NEVER shared** (>0.30% complaint rate poisons everyone on the pool).
+- **Never cold from the primary domain** — separate sending domains/subdomains so a spam wave can't burn the main brand.
+- **Per-client warmup mandatory:** 3–6 wks new domain · 2–3 wks new mailbox · keep running forever at ~2:1 warmup:cold.
+- **Volume math:** ~30–50 sends/mailbox/day · ~2–3 inboxes/domain · 350/day ≈ ~10 inboxes · 700/day ≈ ~20 (~$5/mailbox/mo).
+
+## Smartlead spec (verified)
+- REST API `server.smartlead.ai/api/v1` (key auth). `POST /email-accounts/save` = create/connect SMTP/IMAP/OAuth account; warmup configurable per account; campaigns/leads/analytics API-driven. **SmartSenders** = DFY pre-warmed mailboxes (auto MX/SPF/DKIM/DMARC). White-label add-on **~$29/mo/client workspace** + `client_id` scoping. API on **Pro ~$94/mo**; unlimited inboxes + warmup.
+
+## 🏗️ BUILD PLAN (phases — start 7pm, via PREVIEW)
+1. **Spike/eval** — Smartlead API (Pro) + white-label; verify BOTH modes on staging (provision a SmartSender mailbox + connect a test Google mailbox; toggle warmup).
+2. **`SendingProvider` interface** — thin, swappable abstraction in the API: `provisionMailbox` · `connectMailbox` · `enableWarmup` · `send` · per-client (`client_id`) scoping.
+3. **Wire FIGSY's cold send** through the provider — replace/augment the Resend-shared cold path with per-client warmed, isolated sending.
+4. **Onboarding fork** (ties items 174–176): SMB → managed (provision) · company/partner → connect-your-own.
+5. **Reply capture** — route replies via Smartlead inbound → reconcile with the product unibox (item 112).
+6. **Deliverability monitoring** — per-client placement · complaint rate · warmup status, surfaced in admin.
+
+## 🧍 Open decisions (founder)
+- Confirm **Smartlead** as primary (vs Instantly fallback).
+- **Markup model** for SMB managed mailboxes.
+- **Migration** of existing Resend clients → the engine.
+
+---
+
 # ░ 🤝 THE SELLER ENGINE — Partners + AEs on ONE foundation (V2 SPEC · logged 18 Jun) ░
 > **Founder thesis (18 Jun):** a **partner** and an **Account Executive (AE)** are the *same primitive* — a **seller** who refers, manages, and earns on clients **staying alive**. Build the foundation **once**, branch only on **paid vs free**. This is the channel/sales engine that sits on top of the live Company Engine (#88). **Status lives in PRODUCT-INVENTORY: 196 (ledger) · 197 (partner model) · 200 (the portals/foundation) · 201 (hire founding AE) · 202 (the document/legal pack) · 203 (THE BUILD).** Detail (the "why/how") lives here. **Gated post-launch — do not build before first revenue.**
 > **🟢 22 Jun — PHASE 1 of 203 IS BUILT + DEPLOYED:** the **pure commission-engine module** (`apps/api/src/lib/comp-engine.ts`) — the single home for "20/5/5" (Land 20% · Retain 5% · Expand 5%; AE base + 60/40 + ramp guarantee 100/100/75/75; partner 20%+5% no base) — is merged (#666), **USD**, **33 vitest tests passing**, **not yet wired** to Stripe/DB/portals. Next phases (founder-gated, need the **203 repo + auth/hosting** decision): Stripe webhooks → attribution → engine → admin P&L portal → partner portal → AE portal → founder-approved payouts. **203 epic stays 🔴 until the portals land.**

@@ -423,7 +423,7 @@ That + outbound + partners = the motion.
 
 # ░ 📦 RED-ITEM BOX MAP — every not-built item, in independent boxes ░
 
-> **The boxes rule (the #502 lesson — "open one box and everything falls out"):** every box is ONE self-contained, independently-shippable PR. No box depends on another to merge. Build to 🟡 on an **isolated branch** (not live); founder reviews → 🟣, ships → 🩷→🟢.
+> **The boxes rule (the #502 lesson — "open one box and everything falls out"):** every box is ONE self-contained, independently-shippable PR. No box depends on another to merge. Build to 🟡 on an **isolated branch** → **push to PREVIEW** (`staging` branch / `heartfelt-essence…railway.app`) → **founder previews + approves → 🟣** → ship to LIVE (`main`) → 🩷 → verify → 🟢. **(RULEBOOK §11 — client-facing work is previewed before it goes live; never merge-to-live unseen.)**
 > **Status of record stays in `PRODUCT-INVENTORY`** — this is build *sequencing*, not status. (🟡 items go preview→approve→🟣 separately; this map is the 🔴 set.)
 >
 > **▶️ BUILD STATUS (16 Jun) — PAUSED for launch · RESUME MON 22 (post-launch):**

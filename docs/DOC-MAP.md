@@ -24,7 +24,7 @@
 | **KIND-MASTER.md** | strategy · decisions · history · session log | "where are we + why decided X?" |
 | **V2-TRACKER.md** | future detail · roadmap · risks · steals | "what's the longer-term plan?" |
 
-**Always-loaded config:** `CLAUDE.md` (agent rules) · `docs/RULEBOOK.md` (working rules) · `docs/README.md` (the doc signpost) · `docs/TECH-STACK.md` (tools/vendors register).
+**Always-loaded config:** `CLAUDE.md` (agent rules) · `docs/RULEBOOK.md` (working rules — incl. **§11 PREVIEW-BEFORE-LIVE**: client-facing builds preview on `staging`/`heartfelt-essence` → founder approves → ship to LIVE) · `docs/README.md` (the doc signpost) · `docs/TECH-STACK.md` (tools/vendors register).
 
 ---
 
@@ -92,4 +92,4 @@
 4. ✅ ~~README empty~~ (now the doc signpost) · ✅ ~~NEXT_PUBLIC_ADMIN_KEY in failover doc~~ (verified — the doc warns *against* it).
 
 ---
-*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: 22 Jun 2026.*
+*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: 22 Jun 2026 (incl. the §11 preview-before-live lock synced across the 4 core + RULEBOOK + CLAUDE.md).*

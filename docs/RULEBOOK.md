@@ -111,5 +111,12 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 11.4 **Colour mapping for this loop:** 🟡 built, on PREVIEW (not live) · 🟣 founder approved on PREVIEW (still not live) · 🩷 shipped to LIVE (not yet re-confirmed) · 🟢 confirmed working on LIVE.
 11.5 **Exceptions:** docs / non-deploying changes (the 4 core docs, RULEBOOK, etc.) don't deploy → no preview, normal PR + founder merge. Backend-only changes with no client-visible surface get previewed on `api-staging` where feasible, else the risk is called out explicitly.
 
+## 12. ⚙️ THE ENGINE — the deliverability/sending engine IS the business (named 23 Jun, founder)
+> When we say **"the ENGINE,"** we mean the **warmed-sending / deliverability engine** — the infrastructure that actually gets cold email into the inbox at scale. **It is the product's foundation, tracked as item 211.** The term is canonical: "the ENGINE" = item 211 everywhere (docs, chat, planning).
+12.1 **Why it's THE thing.** The AI (FIGSY copy + scoring + African data) is the *differentiator*; the ENGINE is the *foundation* — if email lands in spam, nothing else matters. **Without it: SMB market dead · mid-market can't scale · enterprise won't touch us.**
+12.2 **It compounds.** K.I.N.D's own outreach volume **× every client's** — and you **cannot share a sender across clients** (one client's spam complaints poison the rest). **Each client needs isolated, warmed sending** (own domains/mailboxes, warmed, rotated).
+12.3 **It is the #1 priority.** Nothing scales cold without it — get the ENGINE right *before* scaling anything else.
+12.4 **Build vs integrate** (founder decides): current lean = **integrate** a sending-platform API (**Smartlead** white-label for the product engine · **Instantly** for our own outreach now), put the AI + African data on top — don't rebuild the hardest wheel.
+
 ---
 _If a rule here is wrong or missing, the founder says so and we edit this doc. This is the contract._

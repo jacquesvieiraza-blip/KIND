@@ -113,11 +113,12 @@
 ### 🗓️ DAILY RHYTHM (5-min open)
 Open this doc → pick today's 1–3 · check **Zoho** for replies · check **Stripe** for money · glance **warmup** placement · anything shipped → I render the dot.
 
-### ⛔ HARD GATES — genuinely can't condense (need clients / margin / data)
+### ⛔ GATED ITEMS — 🗓️ CHALLENGE TOMORROW (founder too busy today)
+> **Tomorrow: gate-by-gate review.** For EACH item I give a hard answer — **EFFORT gate** (only hours/sequencing → we KILL it, I build it this fortnight) or **REALITY gate** (needs real clients / margin / data / warmed reputation → can't be forced; I give the *cheapest path to reach it sooner*). Push forward everything that's only effort-gated; for the reality ones, accelerate the trigger (e.g. first 10 clients fast via partners → P2 unlocks weeks early). **Nothing here is dropped — parked one day, not abandoned.**
 - **P2 (10+ clients / outcome data):** Learning Engine 143 · MCP 141 · intelligent routing 139 · Memory v2 120.
 - **P3 (≥28% margin):** Denise deep 144 · outcome pricing 147 · Lena+Tony 145 · orchestration 146.
 - **P4 (50+ clients):** cross-client intel 150 · SOC2 151 · advanced moat 152 · the 15 Pieces 153–161.
-*(Pulled FORWARD as soft gates: Product Hunt 142 · Casey-deep 121 groundwork · AE hire 201.)*
+*(Already pulled FORWARD as soft gates: Product Hunt 142 · Casey-deep 121 groundwork · AE hire 201 — challenge tomorrow for more.)*
 
 ---
 

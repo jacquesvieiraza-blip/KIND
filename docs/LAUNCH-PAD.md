@@ -18,13 +18,13 @@
 
 ---
 
-## 🧭 VERIFIED STATE — what's true right now (22 Jun, post-launch)
-- **🚀 LIVE since 18 Jun.** Core loop (signup→ICP→leads→FIGSY→reply→meeting) · **Company Engine COMPLETE** (88 + 106–111) · billing correctness 166–171 · 5-agent family (FIGSY·Milla·Vida·Denise·Casey) · admin OS · marketing site.
-- **Board:** **56🟢 / 59🩷 / 6🟣 / 12🟡 / 86🔴 / 7⏸.** *(Absolute totals = hand-reconciled; true tie-out at the next walk.)*
-- **Shipped + deployed green, awaiting your verify → 🟢:** 182/185 webhooks · 190 pause/win-back · 203 comp-engine core.
-- **🚨 THE one open risk = deliverability/reputation (194/198):** real cold mail lands Promotions/Spam despite mail-tester 10/10 — `gettingkind.com` is young. **Fix = warmup tool (198).** Keep cold volume low until placement = Primary.
-- **`main`:** clean · 0 open PRs · no stranded commits. **Currency = USD (locked 22 Jun).**
-- **Process locks:** confirm the Supabase project name before every SQL run · one branch = one PR off fresh `main`.
+## 🧭 VERIFIED STATE — what's true right now (23 Jun, post-launch)
+- **🚀 LIVE since 18 Jun.** Core loop · **Company Engine COMPLETE** (88 + 106–111) · billing 166–171 · 5 agents (FIGSY·Milla·Vida·Denise·Casey) · admin OS · marketing site.
+- **Board:** **57🟢 / 66🩷 / 6🟣 / 10🟡 / 80🔴 / 7⏸.** *(Absolute totals = hand-reconciled tally, **NOT grep-verifiable** yet — mixed table formats; normalise at the walk.)*
+- **🩷 LIVE today, awaiting your WALK → 🟢:** the **6 builds** (112 inbox · 113 A/B · 114 Kanban · 136a invoices · 178 voice · 140 leads) — **merged before you verified; the trust gap is real → the walk (TODAY #2) is the gate.**
+- **🚨 THE one open risk = deliverability (194/198):** REAL finding 23 Jun — the in-app "warmup" is only a **send-cap**, cold domain has **no mailbox**; **real fix = Instantly** (TODAY #1). Do NOT campaign hard until warmed.
+- **`main`:** clean · **1 open PR (#692** — the warmup finding + this reset; merge it to make the docs correct) · no stranded commits. **Currency = USD.**
+- **Process locks:** confirm Supabase project before SQL · one branch = one PR · **👀 PREVIEW BEFORE LIVE (§11)** — nothing client-facing merges to live until you've previewed.
 
 ---
 
@@ -50,9 +50,9 @@
 > **Priority spine:** P0 make-it-sell → P1 the missing channels → P2 business systems → P3 GTM. Owner tags: 🤖 me · 🧍 you · 🤝 both.
 
 ### 🔴 P0 — make the live product actually sell (do first)
-1. **🧍 Connect the warmup tool (198)** — Instantly/Mailreach on `hello@gettingkind.com`, ramp 20→40/day. **Done:** connected, clock running.
-2. **🤖 Real leads — the data waterfall (140 / 94 / 95)** — make PDL a true **parallel** source (not Apollo-only-fallback) + auto-run Hunter enrichment for missing emails. **Done:** PDL+Hunter contribute leads on every ICP run → 🟡 for your review. *(This is "why aren't we using their leads" — fixed.)*
-3. **🤝 Verify the 2 shipped features → 🟢** — pause returns 200 on a live sub · register a webhook + fire an event → signed delivery. **Done:** 190/182/185 → 🟢.
+1. **🧍 WARMUP (198) → see TODAY #1.** *(NOT a simple "connect" — needs the **Instantly** platform; the in-app ramp is only a send-cap and the cold domain has no mailbox. The earlier "connected, clock running" was wrong — corrected 23 Jun.)*
+2. **🤖 Real leads — the data waterfall (140 / 94 / 95)** — PDL parallel + auto-Hunter. **🩷 BUILT + MERGED (#681); keys confirmed** → verify on an ICP run in the walk.
+3. **🤝 Verify the 2 shipped features → 🟢** — pause returns 200 on a live sub · register a webhook + fire an event → signed delivery. *(in the walk)*
 4. **🤝 Verification walk Blocks 2+3** — screens 80–91 + R1–R20; I fix 🔴 same-day + recount the dashboard. **Done:** 🩷→🟢.
 
 ### 🟠 P1 — the channels we haven't built yet (the "not progressing")

@@ -1,6 +1,7 @@
 # KIND Sales Playbook
 
 > Version 1.0 — May 2026 · For internal use only
+> `Last-checked: 22 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, website+WhatsApp $29) · Denise (Closer $39) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3 (Lead Gen $1/lead · FIGSY $3/lead · agent subs Milla $49 / Vida $29 / Denise $39).
 
 ---
 
@@ -245,7 +246,7 @@ Navigate to: **Billing**
 
 **"We don't have budget."**
 
-"I hear you. Can I ask — what are you currently spending on your sales effort? Even if it's just your own time? Because at your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in the first month. Our Starter bundle is [X credits / R[price]] — that's less than one client acquisition on the old way. We also have a 14-day trial so you can prove the ROI before you commit anything."
+"I hear you. Can I ask — what are you currently spending on your sales effort? Even if it's just your own time? Because at your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in the first month. Our Starter bundle is [X credits / $[price]] — that's less than one client acquisition on the old way. We also have a 14-day trial so you can prove the ROI before you commit anything."
 
 ---
 
@@ -321,11 +322,12 @@ Based on our discovery conversation, here's what we recommend:
 
 ### Pricing
 
-| Tier | Credits | Best for | Price |
+| Tier | Credits | Best for | Price (USD) |
 |---|---|---|---|
-| Starter | 500 credits | 5–15 leads/week | R[X] |
-| Growth | 1,500 credits | 15–40 leads/week | R[X] |
-| Pro | 5,000 credits | 40+ leads/week | R[X] |
+| Starter | 500 credits | 5–15 leads/week | $[X] |
+| Growth | 1,500 credits | 15–40 leads/week | $[X] |
+| Pro | 5,000 credits | 40+ leads/week | $[X] |
+*(Map tiers to the live bundles: Lead Gen $20/$40/$100 · FIGSY $60/$120/$300 — `run-costs-and-cashflow.md` §3. Add agent subs where they fit: Milla $49 · Vida $29 · Denise $39.)*
 
 **Recommended for [Company]:** [Tier] — [reason based on their target volume from discovery].
 

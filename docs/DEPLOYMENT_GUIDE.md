@@ -1,6 +1,13 @@
 # KIND AI Platform — Deployment Guide
+`Last-checked: 22 Jun 2026`
 
-> ⚠️ **Last updated: 2 June 2026. Paystack removed 27 May — billing is now Stripe. See `MASTER.md` Section 17 (Tech Stack) and Section 2 (What Founder Needs To Do) for context.**
+> 🟢 **22 JUN CORRECTIONS (current stack — `docs/TECH-STACK.md` is the source of truth):**
+> - **Email:** **Resend** sends (system + FIGSY cold, `RESEND_API_KEY` + `FIGSY_COLD_FROM`); **Zoho Mail** hosts the company mailboxes (replies/webmail). *(Not Google Workspace.)*
+> - **Payments:** **Stripe** (global) + **Paystack/Flutterwave** (Africa). Currency = **USD**.
+> - **Open-tracking:** set **`TRACKING_URL`** (e.g. `https://api.get-kind.com`) — open-pixel on warm/transactional only.
+> - `MASTER.md` is archived — current truth lives in the 4 core docs + `TECH-STACK.md`. The env-var/cron detail below is still broadly correct; re-verify against Railway before a deploy.
+
+> *(Historical header — Last updated 2 June 2026; Paystack removed 27 May → Stripe.)*
 
 **Version:** 2.1 · **Date:** June 2026  
 **Time required:** ~90 minutes end-to-end (first time)  

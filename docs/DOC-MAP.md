@@ -36,7 +36,7 @@
 |-----|----------------|:--:|-------------|
 | `run-costs-and-cashflow.md` | the only financial model — fixed stack ~$138/mo · ~99% margin · ARPU tiers · sales-target ladder · 3 scenarios | 🛠️ | pricing · stack · ARPU · launch/billing status changes |
 | `SALARY-BREAKEVEN-PLAN.md` | founder-vs-partner break-even; "reaching ≠ holding" churn-treadmill | 🛠️ | currency · targets · headcount change |
-| `sales-playbook.md` | the only sales manual — qualification · 5-Q discovery · objection rebuttals · proposal tiers · loss reasons | ⚠️ | agents (now 5 incl. Casey) · pricing · positioning change |
+| `sales-playbook.md` | the only sales manual — qualification · 5-Q discovery · objection rebuttals · proposal tiers · loss reasons | ✅ | agents · pricing · positioning change |
 | `PARTNER-BRIEF.md` | partner one-pager — 5 trade playbooks · pricing · 20% recurring terms | ✅ | partner comp/pricing change |
 | `CHURN-PREVENTION-PLAN.md` | retention 6 levers (190–193, Lena 145) | ✅ | churn strategy / item 190s change |
 | `drafts/AI_REVENUE_OS_POSITIONING.md` | LOCKED hero ("You close the deals. We'll bring you the meetings… from $20") + anti-copy list | ✅ | positioning change |
@@ -57,7 +57,7 @@
 |-----|----------------|:--:|-------------|
 | `TECH-STACK.md` | the tools/vendors register + email architecture (Resend send / Zoho receive) | ✅ | a tool is added/changed |
 | `DEPLOY-CHECKLIST.md` | migration order · DELETE `NEXT_PUBLIC_ADMIN_KEY` · rollback | ✅ | deploy process change |
-| `DEPLOYMENT_GUIDE.md` | full env-var-per-service · Railway crons · DNS values | ⚠️ | env/cron/deploy change (dated 2 Jun) |
+| `DEPLOYMENT_GUIDE.md` | full env-var-per-service · Railway crons · DNS values | ✅ | env/cron/deploy change (22-Jun corrections banner) |
 | `SMOKE_TEST.md` | step-level T1–T10 | ✅ | test flow change |
 | `render-cloudflare-failover.md` · `portal-admin-failover.md` | failover setup (Render standby + Cloudflare LB) | ✅ | failover infra change |
 | `COMPANY-ENGINE-TEST.md` | #88 staging test steps | ✅ | company-engine change |
@@ -85,11 +85,11 @@
 
 ---
 
-## 🧹 OPEN CONTRADICTIONS (carried from the 9-Jun map — resolve opportunistically)
-1. **Denise price** still shows **$99** in `CLIENT_FLOW.html`/`client-flow-visual.html` → correct is **$39**.
-2. **Vida price** shows **$39** in a few legacy files → correct is **$29**.
-3. **Pitch deck Alta numbers** presented as ours → relabel/remove (`KIND_DECK.html`).
-4. ~~README empty~~ ✅ fixed (now the doc signpost). ~~NEXT_PUBLIC_ADMIN_KEY in failover doc~~ ✅ verified — the doc warns *against* it (not a leak).
+## 🧹 OPEN CONTRADICTIONS (audited 22 Jun — most were themselves stale)
+1. ✅ **Denise $99** — FALSE/already-fixed: the reference files (`CLIENT_FLOW.html`/`CLIENT_FLOW_PER_REP.html`) already show **Denise $39**; no `$99` exists in text (the old claim was the stale one).
+2. ✅ **Vida $39** — fixed: corrected to **$29** in the only two files that had it (`client-flow-visual.html`, `roadmap-flowchart.html` — both archive); reference files already showed $29.
+3. ⚠️ **Pitch deck Alta numbers** presented as ours → relabel/remove (`KIND_DECK.html`/`kind-pitch-deck.html`). *(Still open — honesty flag.)*
+4. ✅ ~~README empty~~ (now the doc signpost) · ✅ ~~NEXT_PUBLIC_ADMIN_KEY in failover doc~~ (verified — the doc warns *against* it).
 
 ---
 *This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: 22 Jun 2026.*

@@ -48,12 +48,13 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 ---
 
 ## 💰 How you earn (partner terms)
-- **20% recurring monthly commission** on every client you refer — **for as long as they pay**.
-- **No cap** on referrals or earnings. **No paperwork.**
+- **Acquisition — 20% one-time** of a new client's **first-month** bill, when they sign.
+- **Retention — 5% recurring** on your **active book** (every client you manage), **every month they stay.**
+- **Earned when we collect** — if a client churns, the retention simply stops. **No clawback. No cap. No paperwork.**
 - **Your own partner dashboard** + an **auto-provisioned demo account** to show prospects live.
 - **Unique referral link** — signups are attributed to you automatically (`/partners/ref/<your-code>`).
 
-**Example:** refer 10 clients on the Recommended bundle (~$250/mo) → ~$500/mo recurring to you, growing every month you add clients.
+**Example:** refer 10 clients on the Recommended bundle (~$250/mo) → **~$500 in acquisition bonuses** as they sign **+ ~$125/mo recurring** on the book — and the recurring grows every month you keep clients alive.
 
 ---
 
@@ -61,6 +62,6 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 1. Get approved → receive your partner dashboard + demo account + referral link.
 2. Pick a trade, use its playbook, show the demo, quote the bundle.
 3. Send your referral link; the client signs up free (14-day trial, no card).
-4. They convert → your 20% recurring starts and shows on your dashboard.
+4. They convert → your **20% acquisition** pays out + your **5% retention** starts, both shown on your dashboard.
 
 *Questions: hello@get-kind.com*

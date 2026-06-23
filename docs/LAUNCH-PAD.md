@@ -25,6 +25,9 @@
 - 🧍 **198 Instantly** — sign up → connect cold-domain mailboxes → **Warmup ON.** · *done-when: warmup is running*
 - 🧍 **211 Smartlead key** — put the API key (Pro + white-label) in Railway. · *done-when: key in env → unblocks my build*
 - 🧍 **96 / 128** — start the **Vapi key** + the **WhatsApp/Meta app** (Meta approval takes days). · *done-when: applications submitted*
+- 🧍 **120** — flip the **pgvector switch** (2 min) → unblocks Memory v2. · *done-when: switch on*
+- 🧍 **121** — send me **Casey's voice/tone** (a few example lines) → unblocks the Casey V2 build. · *done-when: examples given*
+- 🧍 **165** — pick the **visitor-intel provider** (IPinfo easiest) + key in Railway → I swap the lookup. · *done-when: provider chosen*
 - 🤖 **211 · Phase 1** — Smartlead **spike on staging**: confirm both modes work. · *done-when: I send you a preview showing it works — before I build on it*
 
 ### Thu 25 Jun — Day 2 · TRUST WALK + ENGINE SEAM
@@ -75,6 +78,17 @@
 
 ---
 
+## 🔓 PULLED FORWARD — ex-"gated", now in the sprint *(decided 23 Jun)*
+These were parked as "later / Month-2 / gated." The gate was only **effort or your input** — *not* real clients — so they're **active now**, sequenced around the ENGINE (211 stays the #1 build). Status of record = PRODUCT-INVENTORY.
+- 🧍→🤖 **120 Memory v2 / pgvector** — you flip the switch (Day 1) → I build (Day 3–4).
+- 🧍→🤖 **121 Casey conversational onboarding V2** ⭐ — your voice (Day 1) → I build (Day 4–5).
+- 🧍→🤖 **165 Visitor Intelligence** — you pick the provider (Day 1) → I swap the lookup (Day 2).
+- 🤖 **145 LENA (CS agent) + TONY (ops)** ⭐ churn-defence — build (Day 5–6).
+- 🤖 **141 Context-backed MCP server** — build (Day 6–7).
+- 🤖 **144 Denise deep** (auto-book · notetaker · proposal-from-transcript) — build (Day 7–8).
+- 🤖 **157 / 158** personalised email images · voice morning brief — polish (Day 9–10).
+> **Honest scope:** the ENGINE (211) is still #1 and eats my mornings; these fill the capacity around it. What doesn't land in the fortnight **carries** — but none of it is "gated" anymore. *(Still genuinely gated — need real clients/data/margin: 143 Learning Engine · 147 outcome pricing · 150/155/156/159/161 scale · 151 SOC2 · 160 white-label.)*
+
 ## 🧍 YOUR STANDING LIST *(status of record = PRODUCT-INVENTORY by ID)*
 - **Keys:** 211 Smartlead · 96 Vapi · 128 WhatsApp/Meta · 126 OAuth · 136 Flutterwave · 58 Denise price. *(104 Hunter/PDL ✅ already confirmed in Railway.)*
 - **Decisions:** 196 accounting + VAT · 203 repo + auth · 108 credit behaviour · 211 markup + migration · 165 visitor-intel · 120 pgvector · 121 Casey voice.
@@ -83,7 +97,7 @@
 - **Seller engine:** 201 hire AE · 202 agreements.
 
 ## 🤖 MY QUEUE — buildable now, via preview
-55a · 57 · 106–109 · 115 · 118 · 135 · 137 · 174–176 · 97 · 131 · **211 (the ENGINE)** · **212 (FIGSY 3→6-step)** — all previewed before they go live.
+55a · 57 · 106–109 · 115 · 118 · 135 · 137 · 174–176 · 97 · 131 · **211 (the ENGINE)** · **212 (FIGSY 3→6-step)** · **ex-gated: 120 · 121 · 141 · 144 · 145 · 157 · 158 · 165** — all previewed before they go live.
 **⛔ Gated, NOT building yet:** **203** (waiting on your repo + auth decision).
 
 ## ⛔ BLOCKED / WAITING

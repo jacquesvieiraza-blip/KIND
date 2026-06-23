@@ -237,6 +237,12 @@ At **$199 ARPU** (Growth+ w/ Denise): net ~$192/client/mo.
 | **2%** (conservative) | ~250 | **~1,250–1,500** | ~6,250–7,500 | ~285–340 | **~7–9** |
 | *(8% — optimistic, unvalidated)* | ~60 | ~300–360 | ~1,500–1,800 | ~50–60 | ~2 |
 
+**The conversion chain — per 1 client** *(rates: reply→trial ~50% · trial→paid 40%)*:
+> **~167 prospects** (at 3%) → **~5 interested replies** → **~5 demos/meetings** → **~2.5 trials** → **1 paid client.**
+> Per-client rates are **fixed** (~5 replies · ~2.5 trials · 1 client); only the **prospect count** moves with reply rate (~167 at 3% · ~250 at 2%). A *"demo"* = the meeting that turns an interested reply into a trial.
+
+**To reach the 5–6 clients/month goal:** **~13–15 trials · ~25–30 demos/meetings · ~835–1,500 prospects** (3%→2%) · **~5–9 warmed mailboxes.** **Shortcut → 1 agency partner ≈ 10 clients/month** (bypasses the cold funnel entirely — see Partner strategy below / item 197).
+
 > **Implication:** cold-only at a real 2–3% needs **~5–9 warmed mailboxes in rotation** (multiple sending domains) — a proper cold rig (Instantly), **not** one mailbox. One agency **partner ≈ 10 clients/month** from a single relationship — far cheaper than ~1,000+ cold prospects. **Lead with partners + warm network + dogfood while the rig warms; cold scales after.**
 
 ### Net profit by client count (ARPU $80, operating+failover $138/mo)

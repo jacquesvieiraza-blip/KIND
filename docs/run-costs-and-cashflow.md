@@ -222,16 +222,16 @@ At **$199 ARPU** (Growth+ w/ Denise): net ~$192/client/mo.
 | **$10,000 MRR** | First hire possible | **125** | **63** | **51** |
 | **$25,000 MRR** | Series A conversations | **313** | **157** | **126** |
 
-### 🎯 Your funnel targets (to convert outreach → paying clients)
-*Base assumption: 40% trial→paid. So each paying client needs ~2.5 trials.*
+### 🎯 Your funnel targets — REALISTIC (cold, 6-step sequence, 2–3% reply)
+*Base: **40% trial→paid → ~2.5 trials/client**. Reply→trial ~50%. So **prospects/client = 5 ÷ reply-rate.** ⚠️ The old "~60 touches @ 8%" assumed an **unvalidated 8% reply** (see `sales-playbook.md` — never measured). Plan on **2–3%** on a young cold domain. Sequence moves to **6 steps** (was 3) to capture slow responders — **requires a FIGSY product change (currently 3-step Day 0/4/9).***
 
-| To land… | You need ~trials | Rough outreach (at ~4% reply→trial) |
-|---|---|---|
-| 1 paying client | 2.5 trials | ~60 quality touches |
-| 5 paying (all-in break-even) | ~13 trials | ~315 touches |
-| 13 paying ($1k MRR) | ~33 trials | ~815 touches |
+| Reply rate | Prospects / client | **5–6 clients/mo (goal)** | Sends/mo (6-step, ~5 ea) | ~Sends/day | Warmed mailboxes (~40/day) |
+|---|---|---|---|---|---|
+| **3%** (target) | ~167 | **~835–1,000** | ~4,200–5,000 | ~190–225 | **~5–6** |
+| **2%** (conservative) | ~250 | **~1,250–1,500** | ~6,250–7,500 | ~285–340 | **~7–9** |
+| *(8% — optimistic, unvalidated)* | ~60 | ~300–360 | ~1,500–1,800 | ~50–60 | ~2 |
 
-> The dogfood engine (FIGSY self-outreach) + warm network are how you hit the touch counts without paying for ads. One good agency **partner** can deliver ~10 clients/month alone — the single fastest lever.
+> **Implication:** cold-only at a real 2–3% needs **~5–9 warmed mailboxes in rotation** (multiple sending domains) — a proper cold rig (Instantly), **not** one mailbox. One agency **partner ≈ 10 clients/month** from a single relationship — far cheaper than ~1,000+ cold prospects. **Lead with partners + warm network + dogfood while the rig warms; cold scales after.**
 
 ### Net profit by client count (ARPU $80, operating+failover $138/mo)
 | Clients | MRR | Stripe+data | Fixed | **Net/mo** | Margin |

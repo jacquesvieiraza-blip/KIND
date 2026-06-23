@@ -1,5 +1,6 @@
 import { db } from '@kind/db'
 import { bulkMatchEmails } from './apollo'
+import { waterfallEnrich } from './enrichment'
 import { deliveryCharge, normalizePlan } from './billing-rules'
 
 // Enrich + deliver + charge — the single delivery path for BOTH the on-run
@@ -25,7 +26,7 @@ export async function enrichAndDeliverLeads(
   //    the Apollo person id (the search masks names + hides emails, so id is the
   //    only reliable match key). revealed maps apollo_id → email.
   const { data: rows } = await db.from('leads')
-    .select('id, email, apollo_id')
+    .select('id, email, apollo_id, first_name, last_name, company, linkedin_url')
     .in('id', candidateIds)
     .is('delivered_at', null)
 
@@ -38,6 +39,37 @@ export async function enrichAndDeliverLeads(
         // apollo_consented: came through Apollo's verified-email filter and we now
         // hold a real work email — mark it as Apollo-sourced contactable.
         await db.from('leads').update({ email, apollo_consented: true }).eq('id', r.id)
+      }
+    }
+  }
+
+  // 1b. AUTO HUNTER WATERFALL (item 140): Apollo bulk_match can't reveal an email for
+  //     every lead (no apollo_id — e.g. PDL-sourced — or unmatched). Rather than drop
+  //     those leads as unemailable, run the existing enrichment waterfall (Hunter et al)
+  //     to find a missing email automatically — previously only the manual
+  //     POST /leads/:id/waterfall-enrich endpoint ever did this. Gated ENTIRELY on the
+  //     Hunter key: with HUNTER_API_KEY unset this is a strict no-op (no calls, no cost,
+  //     identical behaviour to before). We re-read the rows so leads filled by the Apollo
+  //     reveal above are excluded.
+  if (process.env.HUNTER_API_KEY) {
+    const { data: stillMissing } = await db.from('leads')
+      .select('id, email, first_name, last_name, company, linkedin_url')
+      .in('id', candidateIds)
+      .is('delivered_at', null)
+      .is('email', null)
+    for (const r of (stillMissing ?? [])) {
+      try {
+        const enriched = await waterfallEnrich({
+          first_name:   r.first_name,
+          last_name:    r.last_name,
+          company:      r.company,
+          linkedin_url: r.linkedin_url,
+        })
+        if (enriched.email) {
+          await db.from('leads').update({ email: enriched.email }).eq('id', r.id)
+        }
+      } catch (err) {
+        console.error('[lead-delivery] hunter waterfall failed for lead', r.id, err)
       }
     }
   }

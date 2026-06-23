@@ -1,7 +1,8 @@
 # KIND Sales Playbook
 
 > Version 1.0 — May 2026 · For internal use only
-> `Last-checked: 22 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, website+WhatsApp $29) · Denise (Closer $39) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3 (Lead Gen $1/lead · FIGSY $3/lead · agent subs Milla $49 / Vida $29 / Denise $39).
+> `Last-checked: 23 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, website+WhatsApp $29) · Denise (Closer $39) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
+> ⚠️ **REPLY-RATE CORRECTION (23 Jun):** the "8% — our actual average" lines below were an **UNVALIDATED target, never measured** — do NOT present 8% as a result. **Plan + quote 2–3%** (cold industry average) until live campaigns prove otherwise; in-call, say "we'll show you *your* real numbers in the trial." **Sequence is moving to 6 steps** (was 3-step Day 0/4/9) to capture slow responders. Funnel maths: `run-costs-and-cashflow.md` §"funnel targets".
 
 ---
 
@@ -208,7 +209,7 @@ Navigate to: **FIGSY (AI SDR)**
 
 *Show the multi-step sequence: email 1, follow-up, breakup email.*
 
-"You review it, edit anything you want, approve — and FIGSY runs it. It sends at human-like intervals, tracks opens and replies, and routes hot replies to your inbox. Our average reply rate across campaigns is 8%. Industry average for cold email is 2–3%."
+"You review it, edit anything you want, approve — and FIGSY runs it. It sends at human-like intervals across a **multi-step sequence**, tracks opens and replies, and routes hot replies to your inbox. Industry average for cold email is 2–3% — FIGSY is built to beat that, and you'll see your own numbers live in the trial." *(Internal: don't quote 8% — unvalidated.)*
 
 ---
 
@@ -278,13 +279,13 @@ Navigate to: **Billing**
 
 **"How do I know the leads are good?"**
 
-"Fair challenge. The honest answer is: every data source has errors. What KIND does differently is show you exactly why each lead scored the way it did. You can see the reasoning — so you're not flying blind. And on the outbound side, our 8% reply rate isn't marketing copy — it's our actual average across campaigns. We can also set your trial up with a small batch of leads in your exact ICP so you see the quality before you commit."
+"Fair challenge. The honest answer is: every data source has errors. What KIND does differently is show you exactly why each lead scored the way it did — so you're not flying blind. And on the outbound side, we don't ask you to take a benchmark on faith — we set your trial up with a small batch in your exact ICP so you see the quality **and the real reply rate** before you commit." *(Internal: don't claim "8% our average" — unvalidated; plan 2–3%.)*
 
 ---
 
 **"What's the reply rate?"**
 
-"Our average across campaigns is 8%. Cold email industry average is 2–3%. The reason ours is higher: the emails are personalised by FIGSY based on each prospect's profile, they come from sequences that respect timing and channel, and the leads themselves are pre-scored so you're not emailing people who are never going to respond. Results will vary by industry and offer — but 8% is a fair benchmark."
+"Cold-email industry average is 2–3%. FIGSY is built to beat that — emails personalised per prospect, sequences that respect timing and channel, and pre-scored leads so you're not emailing people who'll never respond. But I'd rather show you **your** real numbers in the trial than quote a benchmark — results vary by industry and offer." *(Internal: do NOT quote "8% our average" — unvalidated; plan 2–3% until live data proves otherwise.)*
 
 ---
 

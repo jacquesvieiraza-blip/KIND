@@ -121,6 +121,56 @@ export async function createSubscriptionCheckoutSession(params: {
   }
 }
 
+// ── Client invoices (#136a) ──────────────────────────────────────────────────
+// Stripe ISSUES the receipt; we only pull & display it. USD billing, no VAT until
+// a benchmark — VAT (if any) is whatever Stripe already put on the invoice, so we
+// surface the raw amounts Stripe returns. Read-only.
+export interface ClientInvoice {
+  id:                string
+  number:            string | null
+  date:              number          // Unix seconds — invoice creation date
+  amount_usd:        number          // dollars (Stripe amounts are in cents)
+  currency:          string
+  status:            string | null   // paid · open · void · uncollectible · draft
+  hosted_invoice_url: string | null
+  invoice_pdf:       string | null
+}
+
+// List a client's invoices by their Stripe customer email. We don't store a
+// stripe_customer_id (checkout uses customer_email), so we resolve the customer
+// from their email at read-time. Returns [] gracefully when Stripe is not
+// configured, the email is missing, or the customer has never been billed.
+export async function listInvoicesByEmail(email: string | null | undefined): Promise<ClientInvoice[]> {
+  if (!stripe || !email) return []
+  try {
+    const customers = await stripe.customers.list({ email, limit: 100 })
+    if (customers.data.length === 0) return []
+
+    const all: ClientInvoice[] = []
+    for (const customer of customers.data) {
+      const invoices = await stripe.invoices.list({ customer: customer.id, limit: 100 })
+      for (const inv of invoices.data) {
+        all.push({
+          id:                 inv.id,
+          number:             inv.number ?? null,
+          date:               inv.created,
+          amount_usd:         (inv.amount_paid || inv.amount_due || inv.total || 0) / 100,
+          currency:           (inv.currency || 'usd').toUpperCase(),
+          status:             inv.status ?? null,
+          hosted_invoice_url: inv.hosted_invoice_url ?? null,
+          invoice_pdf:        inv.invoice_pdf ?? null,
+        })
+      }
+    }
+    // Newest first.
+    all.sort((a, b) => b.date - a.date)
+    return all
+  } catch (err) {
+    console.error('[Stripe] listInvoicesByEmail error:', err)
+    return []
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function constructWebhookEvent(payload: Buffer, sig: string): any | null {
   if (!stripe) return null

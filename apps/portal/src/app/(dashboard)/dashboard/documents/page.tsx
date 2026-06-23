@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { FileText, CheckCircle, Loader2, Shield, ExternalLink, Lock } from 'lucide-react'
+import { FileText, CheckCircle, Loader2, Shield, ExternalLink, Lock, Download, Receipt } from 'lucide-react'
 
 interface Subscription {
   product: string
@@ -12,6 +12,20 @@ interface Subscription {
   created_at: string
   amount_zar: number
 }
+
+// #136a — Stripe-issued invoices, pulled & displayed read-only (USD).
+interface Invoice {
+  id:                 string
+  number:             string | null
+  date:               number        // Unix seconds
+  amount_usd:         number
+  currency:           string
+  status:             string | null
+  hosted_invoice_url: string | null
+  invoice_pdf:        string | null
+}
+
+const USD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 const DOCS = [
   {
@@ -40,15 +54,20 @@ function productLabel(product: string, tier: string) {
 export default function DocumentsPage() {
   const supabase = createClient()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [invoices, setInvoices]           = useState<Invoice[]>([])
   const [loading, setLoading]             = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { setLoading(false); return }
-      try {
-        const res = await api.get<{ data: { subscriptions: Subscription[] } }>('/clients/me', session.access_token)
-        setSubscriptions((res.data as any).subscriptions ?? [])
-      } catch { }
+      await Promise.all([
+        api.get<{ data: { subscriptions: Subscription[] } }>('/clients/me', session.access_token)
+          .then(res => setSubscriptions((res.data as any).subscriptions ?? []))
+          .catch(() => {}),
+        api.get<{ data: { invoices: Invoice[] } }>('/stripe/invoices', session.access_token)
+          .then(res => setInvoices(res.data?.invoices ?? []))
+          .catch(() => {}),
+      ])
       setLoading(false)
     })
   }, [])
@@ -125,6 +144,65 @@ export default function DocumentsPage() {
               </a>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Invoices (#136a) — Stripe-issued, pulled & displayed read-only (USD) */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 overflow-hidden">
+        <div className="px-6 py-4 border-b border-purple-100/60 flex items-center gap-2">
+          <Receipt className="w-4 h-4 text-[#7C3AED]" />
+          <div>
+            <h2 className="font-semibold text-gray-900">Invoices</h2>
+            <p className="text-xs text-[#9B8EC4] mt-0.5">Every payment to K.I.N.D, with a downloadable invoice (Stripe-issued).</p>
+          </div>
+        </div>
+
+        {invoices.length === 0 ? (
+          <div className="px-6 py-8 text-center text-sm text-[#9B8EC4]">
+            No invoices yet. They&apos;ll appear here automatically after your first payment.
+          </div>
+        ) : (
+          <div className="divide-y divide-purple-100/50">
+            {invoices.map(inv => (
+              <div key={inv.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 text-sm tabular-nums truncate">
+                    {inv.number || inv.id}
+                  </p>
+                  <p className="text-xs text-[#9B8EC4] mt-0.5">
+                    {new Date(inv.date * 1000).toLocaleDateString('en-GB', { dateStyle: 'medium' })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <span className="font-semibold text-[#1E1152] text-sm tabular-nums">
+                    {USD.format(inv.amount_usd)}
+                  </span>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    inv.status === 'paid'
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${inv.status === 'paid' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                    {inv.status === 'paid' ? 'Paid' : (inv.status ?? 'Due').replace(/\b\w/g, c => c.toUpperCase())}
+                  </span>
+                  {inv.invoice_pdf || inv.hosted_invoice_url ? (
+                    <a
+                      href={inv.invoice_pdf || inv.hosted_invoice_url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-[#7C3AED] hover:bg-[#F5F3FF] font-medium shrink-0 border border-purple-100 rounded-lg px-3 py-1.5 transition-colors">
+                      <Download className="w-3.5 h-3.5" />PDF
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="px-6 py-3 border-t border-purple-100/60 flex items-center gap-2 text-xs text-[#9B8EC4]">
+          <Lock className="w-3.5 h-3.5 shrink-0" />
+          <span>Invoices &amp; payments are securely processed by <strong className="text-[#6B7280]">Stripe</strong>. Each PDF is an official K.I.N.D invoice, issued by Stripe.</span>
         </div>
       </div>
 

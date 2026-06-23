@@ -51,6 +51,7 @@
 | `demo-walkthrough-script.html` | verbatim 12-scene demo | ✅ | demo/positioning change |
 | `setup-dashboard-preview.html` · `portal-v2-*` · `CLIENT_FLOW*.html` · `previews/*` | UI mockups/specs (Casey design, inbox-v2, sequence-builder, etc.) | ✅ ref | design lock change |
 | `content/blog-articles.md` · `content/youtube-plan.md` | publish-ready posts + 10-video plan (faceless voice) | ✅ | content cadence |
+| `art-of-possible.md` | future-vision / inspiration log (product ideas, competitive reads — explicitly "nothing built unless marked") | ✅ ref | when an idea graduates to a 🔴 item |
 
 ### 🛠️ Ops · deploy · infra
 | Doc | Unique content | Status | Update when |

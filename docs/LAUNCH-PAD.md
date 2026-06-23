@@ -18,68 +18,103 @@
 
 ---
 
-## 🧭 VERIFIED STATE — what's true right now (22 Jun, post-launch)
-- **🚀 LIVE since 18 Jun.** Core loop (signup→ICP→leads→FIGSY→reply→meeting) · **Company Engine COMPLETE** (88 + 106–111) · billing correctness 166–171 · 5-agent family (FIGSY·Milla·Vida·Denise·Casey) · admin OS · marketing site.
-- **Board:** **56🟢 / 59🩷 / 6🟣 / 12🟡 / 86🔴 / 7⏸.** *(Absolute totals = hand-reconciled; true tie-out at the next walk.)*
-- **Shipped + deployed green, awaiting your verify → 🟢:** 182/185 webhooks · 190 pause/win-back · 203 comp-engine core.
-- **🚨 THE one open risk = deliverability/reputation (194/198):** real cold mail lands Promotions/Spam despite mail-tester 10/10 — `gettingkind.com` is young. **Fix = warmup tool (198).** Keep cold volume low until placement = Primary.
-- **`main`:** clean · 0 open PRs · no stranded commits. **Currency = USD (locked 22 Jun).**
-- **Process locks:** confirm the Supabase project name before every SQL run · one branch = one PR off fresh `main`.
+## 🧭 VERIFIED STATE — what's true right now (23 Jun, post-launch)
+- **🚀 LIVE since 18 Jun.** Core loop · **Company Engine COMPLETE** (88 + 106–111) · billing 166–171 · 5 agents (FIGSY·Milla·Vida·Denise·Casey) · admin OS · marketing site.
+- **Board:** **57🟢 / 66🩷 / 6🟣 / 10🟡 / 80🔴 / 7⏸.** *(Absolute totals = hand-reconciled tally, **NOT grep-verifiable** yet — mixed table formats; normalise at the walk.)*
+- **🩷 LIVE today, awaiting your WALK → 🟢:** the **6 builds** (112 inbox · 113 A/B · 114 Kanban · 136a invoices · 178 voice · 140 leads) — **merged before you verified; the trust gap is real → the walk (TODAY #2) is the gate.**
+- **🚨 THE one open risk = deliverability (194/198):** REAL finding 23 Jun — the in-app "warmup" is only a **send-cap**, cold domain has **no mailbox**; **real fix = Instantly** (TODAY #1). Do NOT campaign hard until warmed.
+- **`main`:** clean · **1 open PR (#692** — the warmup finding + this reset; merge it to make the docs correct) · no stranded commits. **Currency = USD.**
+- **Process locks:** confirm Supabase project before SQL · one branch = one PR · **👀 PREVIEW BEFORE LIVE (§11)** — nothing client-facing merges to live until you've previewed.
 
 ---
 
-## ✅ THIS WEEK — the active plan (work top-down; move ≥1 dot/day)
-> **Priority spine:** P0 make-it-sell → P1 the missing channels → P2 business systems → P3 GTM. Owner tags: 🤖 me · 🧍 you · 🤝 both.
+## 🛑 TODAY — RESET (23 Jun · warmup-first · read this FIRST)
+> **Honest state:** today went off-track. **6 builds got merged to LIVE before you verified them** (against the preview rule we then locked, §11). And **"warmup" was a mess** — what's run since 9 Jun is only a **send-cap**, not real reputation warmup; the cold domain has **no mailbox**, so a normal warmup tool can't plug in. So today = **fix the warmup + rebuild trust in the system.** No demos, nothing customer-facing, until you trust it works.
 
-### 🔴 P0 — make the live product actually sell (do first)
-1. **🧍 Connect the warmup tool (198)** — Instantly/Mailreach on `hello@gettingkind.com`, ramp 20→40/day. **Done:** connected, clock running.
-2. **🤖 Real leads — the data waterfall (140 / 94 / 95)** — make PDL a true **parallel** source (not Apollo-only-fallback) + auto-run Hunter enrichment for missing emails. **Done:** PDL+Hunter contribute leads on every ICP run → 🟡 for your review. *(This is "why aren't we using their leads" — fixed.)*
-3. **🤝 Verify the 2 shipped features → 🟢** — pause returns 200 on a live sub · register a webhook + fire an event → signed delivery. **Done:** 190/182/185 → 🟢.
-4. **🤝 Verification walk Blocks 2+3** — screens 80–91 + R1–R20; I fix 🔴 same-day + recount the dashboard. **Done:** 🩷→🟢.
+### 🔴 #1 — FIX THE WARMUP (the mess) — 🧍 you, 🤖 guiding
+- **Set up Instantly** (instantly.ai) — the real warmup + send platform. Sign up → connect/create sending mailboxes on the cold domain → **Warmup ON.** Clock starts today; ~1–2 wks → inbox. **Do NOT campaign hard until warmed** (burns the domain). · Source **198** *(full finding logged in item 198 + TECH-STACK)*
 
-### 🟠 P1 — the channels we haven't built yet (the "not progressing")
-5. **🤖 Inbox rebuild (112)** — the Gmail-style Unibox (design approved, brand-purple). **Done:** built to 🟡 for review. *(Your flagged priority.)*
-6. **🧍 WhatsApp (128 + 96)** — submit Meta/WhatsApp Business API application + keys. **🤖 then** wires Vida-on-WhatsApp. **Done:** app submitted.
-7. **🧍 Voice/Vapi (96 → 144/178)** — create Vapi account + key. **🤖 then** builds the voice ("speak") widget (178). **Done:** key set; widget to 🟡.
-8. **🧍 Record the platform demo (129)** — Screen Studio, one take → Drop 01 (60s, 16:9+9:16). **🤖 then** cuts 134/163. **Done:** raw capture done.
+### 🟠 #2 — REBUILD TRUST: walk the live system — 🧍 you, 🤖 fixes breaks
+- **Live feature walkthrough** (`LIVE-FEATURE-WALK.md`) on `app.get-kind.com` — you walk every live feature, I fix what's broken on the spot. **Must happen before any demo / customer-facing.**
+- The **6 builds merged today, unverified** (112 inbox · 113 A/B · 114 Kanban · 136a invoices · 178 voice · 140 leads): verify in the walk → 🟢, or I **revert** any that aren't right.
 
-### 🟡 P2 — stand up the business layer
-9. **🧍 Notion (204)** — free workspace · Admin Centre + Command Centre · migrate ops/finance/compliance. **Done:** page-tree live.
-10. **🧍 Accounting platform (196)** — pick Xero/QB/FreeAgent/Sage · confirm bill-USD/file-GBP + VAT timing. **🤖 then** builds the sales ledger. **Done:** platform chosen.
-11. **🧍 Apollo reseller decision** — gates the SMB data default.
+### ⏸ ON HOLD until #1 + #2 are cleared (NOT today)
+- Recording demos (129) · anything customer-facing · hard campaigning · Vapi/WhatsApp keys · Notion · accounting · 203.
 
-### 🟢 P3 — GTM kickoff
-12. **🧍 Warm outreach + LinkedIn 1/day (127)** · dogfood self-outreach (132) · line up 2 design-partner slots (133).
-
-### 🗓️ DAILY RHYTHM (the 5-minute open — the habit)
-**Every morning:** ① open this doc → pick today's 1–3 · ② check **Zoho** inbox for replies · ③ check **Stripe** for new money · ④ glance **warmup** placement · ⑤ anything shipped → I render the dot same session.
+### 🤖 ME — notes only, no building today
+- Logged the warmup finding (item 198) + corrected TECH-STACK (the email architecture was wrong — cold = Resend send+inbound, no mailbox). Then: guide your Instantly setup · run the walkthrough with you · fix what it finds. **No new builds. No merge-to-live without your preview.**
 
 ---
 
-## 🔧 THE MOMENTUM BOARD — everything that can move (so nothing sits)
-> The point: no buildable item sits idle. **I drive the 🤖 column to 🟡; you action your columns.**
+## 📅 THE 2-WEEK PLAN (23 Jun – 7 Jul) — condensed & ambitious
+> **One clock = warmup (~1–2 wks); everything runs in PARALLEL inside it.** I parallelize the whole **buildable** backlog via PREVIEW (far more than a thin list); you run warmup + the walk + keys + ops + legal + GTM + demos. **Every SOFT-gated item is pulled forward; only HARD gates (real client-count / margin / data) stay out** (listed at the end). Owners: 🧍 you · 🤖 me · 🤝 both.
 
-**✅ BUILT 22 Jun late → 🟡, batched PRs to merge:** **#681** 140 data waterfall (PDL parallel + auto-Hunter) · **#685** 112 inbox rebuild · **#686** 136a invoicing · **#684** 113 A/B subject UI · **#682** 114 Kanban polish · **#683** 178 voice widget shell. *(All audited: builds green on the real deploy path, no migrations, 1-ahead/0-behind main.)*
-**🤖 STILL TO BUILD (next batch):** **55a** Company RLS · **115** configurable triggers (backend) · **174–176** onboarding fork · **135/137** lifecycle + guarantee copy · **118** finish nav rewire. *(162/180 already merged 🩷; 124 built 🟡 — your merge.)*
+### 🚨 LANE A — DELIVERABILITY (the #1 clock — Day 1)
+1. **198 — Instantly warmup** set up + ON (mailboxes on `gettingkind.com`). 🧍 · *gates ALL cold campaigning*
+2. **194/101 — D9 placement check** — real-Gmail test now + again as it warms. 🧍
 
-**🟡 ADVANCE (sitting in yellow):** **124** money-path tests (just needs your merge) · **57** Stripe pool billing (🤖 finishing) · **97** A/B backend (🤖 + UI above) · **59** company-demo provisioning (🧍 create one in admin) · **94/95** PDL/Hunter (🧍 confirm keys → then 140 above) · **96** Vapi/WhatsApp (🧍 keys) · **165** visitor-intel provider (🧍 pick) · **118** nav (🤖).
+### 🔐 LANE B — TRUST / WALKTHROUGH (gates demos + customer-facing)
+3. **Live feature walkthrough** (`LIVE-FEATURE-WALK.md`) — walk every live feature; I fix breaks → 🟢. 🤝
+4. **Smoke tests T3–T10 (#100)** — pause · booking · billing · Vida · Milla · invites · partner. 🧍 + 🤖 fix
+5. **Verify-or-revert the 6 merged builds** (112 · 113 · 114 · 136a · 178 · 140). 🤝
 
-**🩷 VERIFY → 🟢 (needs you in the live app — the walk):** the 53 pinks — screens 80–91 · R1–R20 · 182/185/190 · 162/180/191/192 · 106–111 · etc. *(I have no prod access; this column only moves with you.)*
+### 🤖 LANE C — PRODUCT BUILDS (I condense ALL of these — via preview)
+6. **55a** Company RLS + access control. 🤖
+7. **106–109** Company-Engine fast-follows (invite email · owner drill-down · budget-edit/offboard · manager notifs) — verify the 🩷 ones, finish the rest. 🤖
+8. **57** Stripe → company pool billing → 🧍 then create top-up products. 🤖→🧍
+9. **115** configurable triggers (backend). 🤖
+10. **174–176** onboarding fork (firmographics · seat routing · 14-day trial). 🤖
+11. **135/137** lifecycle emails + 90-day guarantee + homepage outcome copy. 🤖
+12. **118** finish nav rewire (Watch · The Drop · Prompt Library). 🤖
+13. **117** Drop subscribe form · **162/93** verify (Prompt Library + The Drop, 🩷). 🤝
+14. **inbox follow-ups** (112 channel column + ICP-fit score). 🤖
+15. **124** money-path tests — merge. 🧍
+16. **97/113** A/B subject UI + backend wired *(113 live — verify)*. 🤖
+17. *(after the demo)* **134** social cuts + **163** product-videos hero. 🤖
 
-**🧍 YOUR UNBLOCKS (each a ~5-min action — I'll spec on request):** keys — Vapi 96 · WhatsApp 128 · Google/MS OAuth 126 · Flutterwave 136 · confirm Hunter/PDL 104; decisions — accounting 196 · 203 repo+auth; actions — warmup 198 · Notion 204 · demo 129 · Apollo.
+### 🧍 LANE D — YOUR KEYS / DECISIONS (unblock Lane C · Day 1–2)
+18. **96 Vapi key** + **128 WhatsApp/Meta app** — start **Day 1** (Meta approval takes days). 🧍
+19. **126** Google/MS OAuth (unlocks SSO 84/181) · **136** Flutterwave activation. 🧍
+20. **165** visitor-intel provider · **120** flip pgvector · **121** Casey voice. 🧍
+21. **108** billing rules (budget-edit / deactivate credit behaviour). 🧍
 
----
+### 🏢 LANE E — BUSINESS / OPS / FINANCE
+22. **204 Notion** — Admin + Command Centre, migrate ops/finance/compliance. 🧍
+23. **196 accounting platform** (Xero/QB/FreeAgent/Sage) + USD-bill/GBP-file + VAT timing → 🤖 then builds the sales ledger. 🧍→🤖
+24. **Business-model training day** → operating-model SOP in `kind-ops`. 🧍
 
-## 🪜 POST-LAUNCH PRIORITY LADDER (replaces "PARKED" — we've launched, gates are open)
-> Active now → near-term → genuinely gated. **Gated stays gated, but each is challenged (see the morning report).**
+### ⚖️ LANE F — LEGAL / COMPLIANCE *(ICO ✅ already done)*
+25. **102 legal pack** — D&O insurance (~£500–1k) · trademark filing (UK IPO → ARIPO, classes 35/42/45) · SR01/Companies House · WHOIS privacy. 🧍
+26. **SEIS advance assurance** (funding readiness — `legal/seis-advance-assurance-draft.md`). 🧍
+27. **DPAs** in place (Railway/Supabase/Stripe/Resend/Apollo/Anthropic) — verify. 🧍
+28. **103 Apollo reseller** — check their reply, progress the decision. 🧍
 
-- **P0 — NOW (this week):** warmup 198 · data waterfall 140 · verify 182/185/190 · walk Blocks 2/3 · RLS 55a · money-path 124.
-- **P1 — next (revenue/credibility):** inbox 112 · invoicing 136a · WhatsApp 128 · voice 178 · demo 129 · onboarding 174–177 · company hardening (109–111 built, verify) · Prompt Library 162 · nav 118.
-- **P2 — gated ~10+ clients (Intelligence):** Learning Engine 143 · MCP 141 · Casey deep 121 · Product Hunt 142.
-- **P3 — gated ≥28% margin / clients (Agent family):** Denise deep 144 · outcome pricing 147 · Lena/Tony 145 · CRM+mobile 148.
-- **P4 — gated 50+ clients (Enterprise):** cross-client intel 150 · compliance/SOC2 151 · advanced moat 152 · the 15 Pieces 153–161.
-- **🧍 Founder-ops (now):** Notion 204 · accounting 196 · sales ledger 196 · business-model training day.
-- **🤝 Seller engine (item 203, founder build-order ① admin+SOP → ② partner → ③ AE):** USD · confirm plan before code. Ties 196·197·200·201·202. Map: `docs/hiring/SELLER-ENGINE-MAP.md`.
+### 📣 LANE G — GTM / CONTENT / DEMOS
+29. **129 record the platform demo** → Drop 01 (**after** the walk gives trust). 🧍
+30. **127 warm outreach + LinkedIn 1/day** (once warmed). 🧍
+31. **132 dogfood** self-outreach (competitor ICPs). 🧍
+32. **133** line up 2 design-partner slots. 🧍
+33. **142 Product Hunt + G2** prep → launch end of Wk 2 *(SOFT gate — pulled forward; it's an acquisition channel)*. 🧍
+34. **138** influencer/community (after demo) · **content cadence** (blog ×3 ready · YouTube plan · The Drop episodes). 🤝
+35. **131** GTM funnel instrumentation (10 analytics decisions). 🤝
+
+### 🤝 LANE H — SELLER ENGINE (condense the foundation)
+36. **203 repo + auth/hosting decision.** 🧍 → unblocks ↓
+37. 🤖 **203 build** — ① admin portal + SOP → ② partner portal → ③ AE portal (engine core #666 ready to wire), via preview. 🤖
+38. **201 start the AE hire** (JD + post — soft, can begin now) · **202** AE/partner agreements from the HR pack *(partner comp = 20%+5%)*. 🧍
+
+### 🧹 LANE I — HOUSEKEEPING (mine — no action from you)
+39. Prune **133 stale branches** · **normalise the dashboard** table format (grep-provable). 🤖
+40. **199** uptime monitor → `/health` + **184** public status page · **122** kill dead Vercel · key-rotation doc. 🤖/🧍
+
+### 🗓️ DAILY RHYTHM (5-min open)
+Open this doc → pick today's 1–3 · check **Zoho** for replies · check **Stripe** for money · glance **warmup** placement · anything shipped → I render the dot.
+
+### ⛔ HARD GATES — genuinely can't condense (need clients / margin / data)
+- **P2 (10+ clients / outcome data):** Learning Engine 143 · MCP 141 · intelligent routing 139 · Memory v2 120.
+- **P3 (≥28% margin):** Denise deep 144 · outcome pricing 147 · Lena+Tony 145 · orchestration 146.
+- **P4 (50+ clients):** cross-client intel 150 · SOC2 151 · advanced moat 152 · the 15 Pieces 153–161.
+*(Pulled FORWARD as soft gates: Product Hunt 142 · Casey-deep 121 groundwork · AE hire 201.)*
 
 ---
 

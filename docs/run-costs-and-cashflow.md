@@ -51,6 +51,12 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | **Launch + email + failover (A + B)** | | **~$139/mo** |
 | **All-in incl. Claude Code dev** | | **~$239–395/mo** |
 
+> ### ⚙️ THE ENGINE — new cost line (item 211, decided 23 Jun)
+> The deliverability/sending engine (Smartlead) is the product's foundation and a **new, scaling** cost: **~$94/mo (Smartlead Pro API)** + **~$5/mailbox/mo** + **~$29/mo per client (white-label)**.
+> - **Managed (SMB):** K.I.N.D carries the mailbox cost (~$5/mailbox; ~10 inboxes per ~350 sends/day) and **marks it up** — it's a billable input, not just overhead.
+> - **Connect-your-own (mid/enterprise):** the **client carries their own mailbox cost → near-zero to K.I.N.D.**
+> Net: the engine adds a low-hundreds/mo base + a small per-client variable that's largely **passed through / marked up**. Full spec: V2-TRACKER "⚙️ THE ENGINE".
+
 > ⚠️ **Apollo free plan = $0/mo but API access is fully blocked.** The `/mixed_people/search` endpoint requires at minimum the Basic plan ($49/mo). The platform cannot find a single lead without this. Upgrade at app.apollo.io → Settings → Plan & Billing.
 > ⚠️ **Supabase Free plan has NO database backups** (confirmed 3 June). One bad query = total data loss. Pro is non-negotiable before onboarding paying clients.
 > ℹ️ **Stripe has no fixed monthly cost** — it charges per transaction (~2.9% + 30¢). "Going live" = switch from test to live keys + add price IDs. See §2.

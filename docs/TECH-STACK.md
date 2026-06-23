@@ -7,7 +7,7 @@ Two **separate** systems, do not conflate:
 > ⚠️ **CORRECTED 23 Jun** — the earlier version of this section was wrong (it said Zoho receives the cold replies). The truth, verified in code:
 - **COLD domain `gettingkind.com` = Resend, end-to-end.** Sends via Resend (`RESEND_API_KEY`, FROM `FIGSY_COLD_FROM = hello@gettingkind.com`). **Replies are captured via Resend INBOUND** — its **MX points to Resend**, which webhooks each reply to the app (`/figsy/replies/inbound`, then fetches the body). **There is NO mailbox on `gettingkind.com`** — it's send + inbound-webhook only. The product unibox/inbox (item 112) is the view of these.
 - **HUMAN / company mail `get-kind.com` = Zoho Mail.** Zoho hosts the real mailbox (`hello@get-kind.com`, founder's address) — where you read/send human email. *(This is the ONLY Zoho mailbox; there is no `gettingkind.com` Zoho mailbox.)*
-- **Deliverability / warmup (item 198):** SPF/DKIM/DMARC set on the cold domain. **The in-app FIGSY "warmup" (`FIGSY_WARMUP_START`) is only a daily SEND-CAP, NOT reputation warmup** — earlier docs mislabeled it. Because the cold domain has **no mailbox**, a standard warmup tool can't plug in → **real fix = a dedicated cold-email platform (Instantly, chosen 23 Jun)** that provisions + warms its own mailboxes + sends. **Do not campaign hard until warmed.**
+- **Deliverability / warmup (item 198) + ⚙️ THE ENGINE (item 211):** SPF/DKIM/DMARC set on the cold domain. **The in-app FIGSY "warmup" (`FIGSY_WARMUP_START`) is only a daily SEND-CAP, NOT reputation warmup** — earlier docs mislabeled it. **🚨 THE ENGINE (the product's foundation — RULEBOOK §12):** the warmed-sending layer for K.I.N.D's *and every client's* cold email. **DECIDED 23 Jun: integrate Smartlead** (both modes via one API + white-label — managed mailboxes for SMB · connect-your-own for enterprise) · **Instantly** = our own-outreach warmup now / engine fallback. The current **Resend-shared** cold path doesn't scale across clients (reputation poisoning) → migrating to per-client isolated warmed sending via Smartlead. **Full spec: V2-TRACKER "⚙️ THE ENGINE".**
 
 ## 🧱 PRODUCT STACK (the live app)
 | Tool | Role |
@@ -16,8 +16,10 @@ Two **separate** systems, do not conflate:
 | **Render** | warm standby / failover for the app (item 51) |
 | **Cloudflare** | marketing website hosting + load-balancer/failover · DNS |
 | **Supabase** | Postgres database + auth (prod) + a sealed `kind-staging` project |
-| **Resend** | programmatic email **sending** (system + FIGSY cold) + inbound webhook |
-| **Zoho Mail** | company **mailboxes** — MX/receiving + webmail + human send (where replies land) |
+| **Resend** | programmatic email **sending** (system + FIGSY cold *today*) + inbound webhook *(cold send migrating to the ENGINE — item 211)* |
+| **⚙️ Smartlead** | **THE ENGINE (item 211, decided 23 Jun)** — per-client warmed sending infrastructure: provision+warm mailboxes (SMB) · connect client's own (enterprise) · white-label + `client_id` isolation. The product's deliverability foundation. |
+| **Instantly** | cold-email warmup/send for **K.I.N.D's OWN outreach** now (item 198) · ENGINE fallback (no white-label) |
+| **Zoho Mail** | company **mailboxes** — MX/receiving + webmail + human send (`get-kind.com` only) |
 | **Stripe** | primary payments — subscriptions, credit purchases, invoices (USD) |
 | **Paystack · Flutterwave** | African payment rails |
 | **Apollo · PDL · Hunter** | lead-data enrichment waterfall (Apollo also via MCP) |
@@ -33,7 +35,7 @@ Two **separate** systems, do not conflate:
 | **Accounting platform** | Xero / QuickBooks / FreeAgent / Sage — feeds HMRC; pairs with the sales ledger (item 196) | 🧍 UNDECIDED |
 | **Companies House / HMRC** | UK Ltd filings — corporation tax, annual accounts | active (UK Ltd) |
 | **ICO** | data-protection registration — done (C1959926) | ✅ |
-| **Warmup tool** | Instantly / Mailreach — cold-email reputation (item 198) | 🧍 to connect |
+| **⚙️ THE ENGINE** | **Smartlead** (per-client warmed sending, item 211 — the product foundation) + **Instantly** (own-outreach warmup, item 198) | 🧍 set up Instantly · confirm Smartlead → 🤖 build |
 | **Uptime monitor** | external monitor wired to `/health` (item 199) | 🧍 to wire |
 | **Business bank account** | UK Ltd banking | 🧍 confirm/record |
 

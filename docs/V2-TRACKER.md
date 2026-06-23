@@ -18,7 +18,7 @@ _Last updated: 23 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **THE
 # ░ WHAT'S BUILT — MOVED ░
 > **🚨 15 Jun — THE WHOLE PRODUCT IS LIVE.** #502 (merged via #564) was a superset of its dev branch — it shipped the Company Engine + design screens 80–91 + **all 20 R-wave features R1–R20** to prod. **PRs #506–#525 are redundant → close, don't merge.** 3 owed prod migrations: R2 `daily_brief_enabled` · R15 `figsy_knowledge` · R20 `job_changed_at`. **Active focus = the FEATURE-VERIFICATION WALK** (LAUNCH-PAD §13) — confirm every live feature works with real data **by THU 18 (founder away Fri 19)**; anything broken drops 🟢→🔴 and gets fixed same-day. **MON 15 closed out:** Company Engine + R1–R20 live · 3 R-train migrations run · Hunter+PDL keys set · 21 redundant PRs closed · Denise $39 · terms docs uploaded.
 > The full Wave 1/2/Tier-3 release tables + Company Engine + shell/staging status live ONLY in **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)**.
-> Staging environment details (URLs, login, review protocol): **[`STAGING-REVIEW.md`](./STAGING-REVIEW.md)**.
+> Staging environment details (URLs, login, review protocol): **[`STAGING-REVIEW.md`](./archive/STAGING-REVIEW.md)**.
 
 ---
 

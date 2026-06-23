@@ -32,7 +32,7 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 
 ## 💷 Pricing (USD — simple, outcome-based)
 **Two things a client buys:**
-1. **FIGSY outreach** — **$3 per lead** (found + 3-step sequence written & sent). Bundles: **20 = $60 · 40 = $120 · 100 = $300.** *(Lead-only, no outreach: $1/lead — 20/40/100 = $20/$40/$100.)*
+1. **FIGSY outreach** — **$3 per lead** (found + a personalised multi-step sequence written & sent). Bundles: **20 = $60 · 40 = $120 · 100 = $300.** *(Lead-only, no outreach: $1/lead — 20/40/100 = $20/$40/$100.)*
 2. **The agents** (monthly): **Milla $49 · Vida $29 · Denise $39** → all three = **$117/mo**.
 
 **Ready-made bundles to quote:**

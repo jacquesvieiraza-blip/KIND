@@ -2,7 +2,7 @@
 
 > Version 1.0 — May 2026 · For internal use only
 > `Last-checked: 23 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, website+WhatsApp $29) · Denise (Closer $39) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
-> ⚠️ **REPLY-RATE CORRECTION (23 Jun):** the "8% — our actual average" lines below were an **UNVALIDATED target, never measured** — do NOT present 8% as a result. **Plan + quote 2–3%** (cold industry average) until live campaigns prove otherwise; in-call, say "we'll show you *your* real numbers in the trial." **Sequence is moving to 6 steps** (was 3-step Day 0/4/9) to capture slow responders. Funnel maths: `run-costs-and-cashflow.md` §"funnel targets".
+> ⚠️ **REPLY-RATE CORRECTION (23 Jun):** the "8% — our actual average" lines below were an **UNVALIDATED target, never measured** — do NOT present 8% as a result. **Plan + quote 2–3%** (cold industry average) until live campaigns prove otherwise; in-call, say "we'll show you *your* real numbers in the trial." **Sequence is moving to 6 steps** (was 3-step Day 0/4/9 — tracked as item 212; not built yet, so the product still sends 3) to capture slow responders. Funnel maths: `run-costs-and-cashflow.md` §"funnel targets".
 
 ---
 

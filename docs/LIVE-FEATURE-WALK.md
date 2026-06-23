@@ -30,7 +30,7 @@
 ---
 
 ## 🤖 The 5 agents (client portal)
-- ⬜ **1 FIGSY** (AI SDR) — finds leads, unique email/lead, 3-step follow-up, books meetings 🟢
+- ⬜ **1 FIGSY** (AI SDR) — finds leads, unique email/lead, 3-step follow-up *(→ 6-step planned, item 212)*, books meetings 🟢
 - ⬜ **2 Milla** (Brain/VA) — drafting, Q&A, weekly brief 🟢
 - ⬜ **3 Vida** (Connector) — website + WhatsApp chatbot, captures/routes 🟢
 - ⬜ **4 Denise** (Closer) — warm follow-up + proposals, sub-gated 🟢
@@ -43,7 +43,7 @@
 - ⬜ 67 saved views (R8) 🩷 · ⬜ 79 job-change alerts (R20) 🩷 · ⬜ 71 lead-capture forms (R12) 🩷
 
 ## 📣 Outreach / FIGSY
-- ⬜ 14 campaigns CRUD 🟢 · ⬜ 15 Auto/Co-pilot 🟢 · ⬜ 16 3-step sequences 🟢
+- ⬜ 14 campaigns CRUD 🟢 · ⬜ 15 Auto/Co-pilot 🟢 · ⬜ 16 3-step sequences 🟢 *(→ 6-step planned, item 212)*
 - ⬜ 17 reply classification 🟢 · ⬜ 19 mark-booked + KPI 🟢 · ⬜ 22 Suggest Campaigns · FIGSY Chat 🟢
 - ⬜ 20 deliverability suite D1–D5 🟢 · ⬜ 21 warmup 🟢
 - ⬜ 68 "Why FIGSY wrote this" (R9) 🩷 · ⬜ 69 Goals (R10) 🩷 · ⬜ 70 sequence-template library (R11) 🩷

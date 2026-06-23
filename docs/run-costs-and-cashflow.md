@@ -229,7 +229,7 @@ At **$199 ARPU** (Growth+ w/ Denise): net ~$192/client/mo.
 | **$25,000 MRR** | Series A conversations | **313** | **157** | **126** |
 
 ### 🎯 Your funnel targets — REALISTIC (cold, 6-step sequence, 2–3% reply)
-*Base: **40% trial→paid → ~2.5 trials/client**. Reply→trial ~50%. So **prospects/client = 5 ÷ reply-rate.** ⚠️ The old "~60 touches @ 8%" assumed an **unvalidated 8% reply** (see `sales-playbook.md` — never measured). Plan on **2–3%** on a young cold domain. Sequence moves to **6 steps** (was 3) to capture slow responders — **requires a FIGSY product change (currently 3-step Day 0/4/9).***
+*Base: **40% trial→paid → ~2.5 trials/client**. Reply→trial ~50%. So **prospects/client = 5 ÷ reply-rate.** ⚠️ The old "~60 touches @ 8%" assumed an **unvalidated 8% reply** (see `sales-playbook.md` — never measured). Plan on **2–3%** on a young cold domain. Sequence moves to **6 steps** (was 3) to capture slow responders — **requires a FIGSY product change (currently 3-step Day 0/4/9 — tracked as item 212).***
 
 | Reply rate | Prospects / client | **5–6 clients/mo (goal)** | Sends/mo (6-step, ~5 ea) | ~Sends/day | Warmed mailboxes (~40/day) |
 |---|---|---|---|---|---|

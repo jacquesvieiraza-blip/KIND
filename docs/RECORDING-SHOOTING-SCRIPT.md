@@ -79,13 +79,13 @@
 - **SAY:** *"And it tells you *why* each one fits — so you trust the list."*
 
 ## SECTION 4 — OUTREACH  *(FIGSY writes & sends)*
-> **6-beat:** *Even with a list, someone has to write and send — every email, personalised (problem). Owners don't, so leads go cold (pain). One-and-done outreach gets ~2% replies (metric). Every un-sent follow-up is a deal that quietly dies (cost). What if it wrote and sent for you (way out)? FIGSY runs a personalised 3-step sequence per lead, automatically (solution).*
+> **6-beat:** *Even with a list, someone has to write and send — every email, personalised (problem). Owners don't, so leads go cold (pain). One-and-done outreach gets ~2% replies (metric). Every un-sent follow-up is a deal that quietly dies (cost). What if it wrote and sent for you (way out)? FIGSY runs a personalised multi-step sequence per lead, automatically (solution).*
 
 ### Scene 4.1 — Launch a campaign *(~10s)*
 - **SCREEN:** `/dashboard/figsy` → **New campaign** → `/dashboard/figsy/[id]`
 - **🔴 PAIN:** "Writing a unique email to every lead? Nobody has the time."
-- **RECORD:** set the intent; the 3-step sequence auto-drafts
-- **SAY:** *"Give FIGSY the goal — it writes a personalised three-step sequence for every lead."*
+- **RECORD:** set the intent; the multi-step sequence auto-drafts
+- **SAY:** *"Give FIGSY the goal — it writes a personalised multi-step sequence for every lead."*
 
 ### Scene 4.2 — Why FIGSY wrote this *(~8s)*
 - **SCREEN:** `/dashboard/figsy/[id]` → "why FIGSY wrote this"

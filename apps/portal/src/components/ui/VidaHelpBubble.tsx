@@ -9,6 +9,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
+import { VoiceControls } from '@/components/ui/VoiceControls'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
@@ -50,6 +51,16 @@ export function VidaHelpBubble() {
       setMsgs(m => [...m, { role: 'assistant', content: "I hit a snag reaching the server. Please try again, or email hello@get-kind.com." }])
     }
     setSending(false)
+  }
+
+  // Voice ("speak") affordance (#178). The mic is a SHELL until the Vapi key
+  // lands — until then a tap surfaces a "coming soon" note and keeps the user
+  // in the working text chat below (the fallback). No mic is ever faked.
+  function handleVoiceUnavailable() {
+    setMsgs(m => [...m, {
+      role: 'assistant',
+      content: "Voice chat is coming soon 🎙️ — for now, just type your question below and I'll help right away.",
+    }])
   }
 
   return (
@@ -96,6 +107,10 @@ export function VidaHelpBubble() {
           </div>
 
           <div className="p-2.5 border-t border-purple-100 bg-white shrink-0">
+            {/* Voice ("speak") affordance — SHELL; text below stays the fallback (#178) */}
+            <div className="mb-2">
+              <VoiceControls onUnavailable={handleVoiceUnavailable} />
+            </div>
             <div className="flex items-end gap-2">
               <textarea
                 value={input}

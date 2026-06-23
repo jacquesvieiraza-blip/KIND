@@ -52,7 +52,7 @@
 ### 🚨 LANE A — THE ENGINE (item 211 — THE #1 plan; everything orbits this)
 > The ENGINE = the warmed-sending / deliverability layer (RULEBOOK §12). No engine → **SMB dead · mid-market can't scale · enterprise out.** **✅ RESEARCHED + DECIDED 23 Jun: integrate Smartlead** (both modes via one API + white-label). **Full build spec → V2-TRACKER "⚙️ THE ENGINE".**
 1. **198 — Instantly warmup for our OWN outreach** — set up + ON, **Day 1.** 🧍 · *gates our cold campaigning*
-2. **211 — CONFIRM Smartlead** as the engine (vs Instantly fallback) + the **markup model** for managed SMB mailboxes + **migration** of existing Resend clients. 🧍 *(the 3 open founder decisions)*
+2. **211 — ✅ SMARTLEAD CONFIRMED (founder, 23 Jun)** as the primary engine · **Instantly = backup + our own outreach.** **🧍 UNBLOCK: sign up Smartlead Pro (~$94/mo) + white-label add-on → put the API key in Railway** — that's what the build needs. *(Markup model + Resend-client migration = decided after the spike.)*
 3. **211 — 🤖 BUILD via PREVIEW (6 phases, V2 spec):** ① Smartlead spike on staging → ② thin `SendingProvider` interface → ③ wire FIGSY off the Resend-shared path → ④ two modes (managed SMB / connect-your-own enterprise, mirrors §13/§14 data) → ⑤ reply capture → ⑥ deliverability monitoring. **Start 7pm.** 🤖 · *gated on #2*
 4. **194/101 — D9 placement check** — real-Gmail test now + again as it warms. 🧍
 > **Deliverability rules (non-negotiable):** 1 dedicated domain per client (never shared) · never cold from the primary domain · per-client warmup · ~30–50 sends/mailbox/day.

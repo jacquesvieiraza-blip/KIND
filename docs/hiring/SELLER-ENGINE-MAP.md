@@ -1,6 +1,8 @@
 # K.I.N.D — SELLER & TEAM ENGINE — the full map
 *The one place that makes sense of everything the founder assembled 18 Jun: the vision, the two systems it spans, every asset, where each lives, and the open decisions. Reference doc under `/docs/hiring/` — NOT a canonical tracker (status lives in PRODUCT-INVENTORY: 196 · 197 · 200 · 201 · 202).*
 
+> ⚠️ **CORRECTION (23 Jun): there is NO `kind-ops` repo — it was never created (verified: the account has one repo, KIND).** Everywhere below that says "→ `kind-ops` repo" actually means → **Notion** (item 204 — the human/ops layer: SOPs · Business Command Centre · finance/compliance · training). The product (portals, code) stays in **this KIND repo**. All `kind-ops` mentions below are superseded by this note.
+
 ---
 
 ## 1. The vision (founder, 18 Jun)

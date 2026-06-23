@@ -223,21 +223,67 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
   }
 }
 
+// Dedup key for cross-source merge: prefer a verified-stable identity (lowercased
+// email); fall back to lowercased name+company when no email is present. PDL and
+// Apollo can legitimately surface the same person, so merging without this would
+// double-count and inflate (and double-charge) the run.
+function contactDedupKey(c: ApolloContact): string {
+  if (c.email) return `email:${c.email.toLowerCase().trim()}`
+  const name    = `${c.first_name} ${c.last_name}`.toLowerCase().trim()
+  const company = (c.organization?.name ?? c.organization_name ?? '').toLowerCase().trim()
+  return `nc:${name}|${company}`
+}
+
+// Merge two contact lists, deduped by contactDedupKey. `primary` wins on collision
+// (Apollo is the primary source — its ids drive the downstream bulk_match reveal).
+function mergeContacts(primary: ApolloContact[], extra: ApolloContact[]): ApolloContact[] {
+  const seen = new Set(primary.map(contactDedupKey))
+  const out  = [...primary]
+  for (const c of extra) {
+    const k = contactDedupKey(c)
+    if (seen.has(k)) continue
+    seen.add(k)
+    out.push(c)
+  }
+  return out
+}
+
 export async function searchPeopleWithFallback(
   icp: Parameters<typeof buildSearchBody>[0],
   page = 1,
 ): Promise<{ contacts: ApolloContact[]; relaxed: string | null }> {
-  // SECOND SOURCE (dormant unless PDL_API_KEY is set): when configured, an Apollo
-  // failure (dead key / exhausted credits / rate limit) falls OVER to PDL instead
-  // of throwing, and an empty Apollo result falls BACK to PDL. With no key set,
-  // behaviour is byte-identical to before — Apollo errors propagate, 0 = relaxed msg.
+  // SECOND SOURCE (dormant unless PDL_API_KEY is set): when configured, PDL is used
+  // two ways — (1) as a PARALLEL SUPPLEMENT that is MERGED (deduped) with a successful
+  // Apollo result so a run returns Apollo ∪ PDL rather than Apollo-only; and (2) as a
+  // FALLBACK when Apollo fails (dead key / exhausted credits / rate limit) or returns 0
+  // across all passes. With no key set, behaviour is byte-identical to before — Apollo
+  // errors propagate, 0 = relaxed msg, no supplement, no extra calls.
   const pdlConfigured = !!process.env.PDL_API_KEY
+
+  // Fetch the PDL supplement once, in parallel with the Apollo pass below, but only
+  // when configured. Never throws (pdlSearchPeople returns [] on any error), so it
+  // can only ever ADD leads — it cannot break the Apollo path. We always supplement
+  // (not just when Apollo under-fills): PDL surfaces a distinct pool of contacts that
+  // carry a real work_email directly, so merging widens reach on every run. Cost is
+  // bounded — one extra PDL search per run, deduped against Apollo before use.
+  const pdlSupplement: Promise<ApolloContact[]> = pdlConfigured
+    ? pdlSearchPeople(icp, page).catch(() => [])
+    : Promise.resolve([])
 
   try {
     // Pass 1 — full query
     const full = buildSearchBody(icp, page)
     const contacts1 = await searchPeople(full)
-    if (contacts1.length > 0) return { contacts: contacts1, relaxed: null }
+    if (contacts1.length > 0) {
+      const pdl = await pdlSupplement
+      if (pdl.length > 0) {
+        const merged = mergeContacts(contacts1, pdl)
+        const added  = merged.length - contacts1.length
+        if (added > 0) console.log(`[apollo] merged PDL supplement: +${added} net-new (Apollo ${contacts1.length} ∪ PDL ${pdl.length} = ${merged.length})`)
+        return { contacts: merged, relaxed: null }
+      }
+      return { contacts: contacts1, relaxed: null }
+    }
 
     // Pass 2 — remove consent filter (consent gate was cutting the pool)
     if (icp.apollo_only_consented) {
@@ -246,7 +292,7 @@ export async function searchPeopleWithFallback(
       const contacts2 = await searchPeople(relaxed2)
       if (contacts2.length > 0) {
         console.log('[apollo] fallback pass 2: removed consent filter — found', contacts2.length)
-        return { contacts: contacts2, relaxed: 'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.' }
+        return { contacts: mergeContacts(contacts2, await pdlSupplement), relaxed: 'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.' }
       }
     }
 
@@ -257,21 +303,22 @@ export async function searchPeopleWithFallback(
     const contacts3 = await searchPeople(relaxed3)
     if (contacts3.length > 0) {
       console.log('[apollo] fallback pass 3: removed size + consent filters — found', contacts3.length)
-      return { contacts: contacts3, relaxed: 'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.' }
+      return { contacts: mergeContacts(contacts3, await pdlSupplement), relaxed: 'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.' }
     }
   } catch (apolloErr) {
     // Apollo unavailable. If PDL is configured, fail over to it; else preserve the
     // original behaviour (let the credits/rate/other error propagate to the caller).
     if (!pdlConfigured) throw apolloErr
     console.warn('[apollo] search failed — failing over to PDL:', apolloErr instanceof Error ? apolloErr.message : apolloErr)
-    const pdl = await pdlSearchPeople(icp, page)
+    // Reuse the in-flight supplement fetch rather than calling PDL twice.
+    const pdl = await pdlSupplement
     if (pdl.length > 0) return { contacts: pdl, relaxed: 'Sourced via the secondary data provider (Apollo was unavailable).' }
     return { contacts: [], relaxed: 'No contacts found — Apollo was unavailable and the secondary provider returned none.' }
   }
 
-  // Apollo returned 0 across all passes — try the second source before giving up.
+  // Apollo returned 0 across all passes — use the second source before giving up.
   if (pdlConfigured) {
-    const pdl = await pdlSearchPeople(icp, page)
+    const pdl = await pdlSupplement
     if (pdl.length > 0) {
       console.log('[apollo] 0 from Apollo — PDL second-source found', pdl.length)
       return { contacts: pdl, relaxed: 'Apollo found nobody for this ICP — sourced from the secondary provider instead.' }

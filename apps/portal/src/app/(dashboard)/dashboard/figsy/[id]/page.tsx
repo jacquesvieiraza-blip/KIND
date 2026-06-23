@@ -8,7 +8,7 @@ import {
   ArrowLeft, Zap, Mail, Clock, ChevronRight, Edit3,
   Save, Loader2, Plus, Trash2, Check, Sparkles,
   Settings2, Users, AlertTriangle, Play, Pause,
-  GitBranch, MoreHorizontal, Copy,
+  GitBranch, MoreHorizontal, Copy, FlaskConical, Trophy,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -27,6 +27,19 @@ function ScoreBadge({ score }: { score: number | null }) {
   )
 }
 
+// A/B subject testing (item 97 backend). Variant A = the AI-generated step1_subject;
+// B–E are operator-authored overrides stored in settings. The daily winner-check cron
+// writes ab_test_resolved + ab_test_winner once it has enough sends per variant.
+interface CampaignSettings {
+  ab_subject_b?: string | null
+  ab_subject_c?: string | null
+  ab_subject_d?: string | null
+  ab_subject_e?: string | null
+  ab_test_resolved?: boolean
+  ab_test_winner?: 'a' | 'b' | 'c' | 'd' | 'e'
+  review_required?: boolean
+}
+
 interface Campaign {
   id: string
   name: string
@@ -37,6 +50,8 @@ interface Campaign {
   replies_interested: number
   opted_out: number
   created_at: string
+  step1_subject?: string | null
+  settings?: CampaignSettings | null
 }
 
 interface SequenceStep {
@@ -333,7 +348,7 @@ export default function CampaignDetailPage() {
   const [sendingTest, setSendingTest]   = useState(false)
   const [sendingNow, setSendingNow]     = useState(false)
   const [enrolling, setEnrolling]       = useState(false)
-  const [activeTab, setActiveTab] = useState<'sequence' | 'audience' | 'settings'>('sequence')
+  const [activeTab, setActiveTab] = useState<'sequence' | 'audience' | 'abtest' | 'settings'>('sequence')
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -351,6 +366,14 @@ export default function CampaignDetailPage() {
   const [savingSettings, setSavingSettings] = useState(false)
   const [archiving, setArchiving]           = useState(false)
 
+  // A/B subject-line testing (item 97). Variant A is read-only (the AI's step1_subject);
+  // B–E are operator overrides. Empty string = unset (sent as null to the backend).
+  const [variantA, setVariantA] = useState('')
+  const [abVariants, setAbVariants] = useState({ b: '', c: '', d: '', e: '' })
+  const [abResolved, setAbResolved] = useState(false)
+  const [abWinner, setAbWinner] = useState<'a' | 'b' | 'c' | 'd' | 'e' | null>(null)
+  const [savingAb, setSavingAb] = useState(false)
+
   function showToast(message: string, type: 'success' | 'error' = 'success') {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
@@ -366,12 +389,23 @@ export default function CampaignDetailPage() {
         setCampaign(res.data)
         setCampaignName(res.data.name)
         // Initialize audience sliders from campaign if fields exist
-        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number; model_preference?: 'haiku' | 'sonnet' | null; settings?: { review_required?: boolean } }
+        const c = res.data as Campaign & { min_score?: number; max_score?: number; daily_limit?: number; model_preference?: 'haiku' | 'sonnet' | null }
         setMinScore(c.min_score ?? 50)
         setMaxScore(c.max_score ?? 100)
         setDailyLimit(c.daily_limit ?? 5)
         setCopilotMode(c.settings?.review_required ?? false)
         setModelPref(c.model_preference ?? 'haiku')
+        // A/B subject testing (item 97)
+        const s = c.settings ?? {}
+        setVariantA(c.step1_subject ?? '')
+        setAbVariants({
+          b: s.ab_subject_b ?? '',
+          c: s.ab_subject_c ?? '',
+          d: s.ab_subject_d ?? '',
+          e: s.ab_subject_e ?? '',
+        })
+        setAbResolved(s.ab_test_resolved ?? false)
+        setAbWinner(s.ab_test_winner ?? null)
       } catch {
         // campaign not found — go back
       }
@@ -446,6 +480,30 @@ export default function CampaignDetailPage() {
       showToast((err as Error).message || 'Failed to save settings', 'error')
     } finally {
       setSavingSettings(false)
+    }
+  }
+
+  // Save A/B subject variants B–E to settings (item 97 PATCH contract).
+  // Trimmed empty strings → null so the winner-check cron ignores unset variants.
+  async function saveAbVariants() {
+    if (!token) return
+    setSavingAb(true)
+    try {
+      const res = await api.patch<{ data: Campaign }>(`/figsy/campaigns/${id}`, {
+        ab_subject_b: abVariants.b.trim() || null,
+        ab_subject_c: abVariants.c.trim() || null,
+        ab_subject_d: abVariants.d.trim() || null,
+        ab_subject_e: abVariants.e.trim() || null,
+      }, token)
+      setCampaign(res.data)
+      const s = res.data.settings ?? {}
+      setAbResolved(s.ab_test_resolved ?? false)
+      setAbWinner(s.ab_test_winner ?? null)
+      showToast('A/B variants saved')
+    } catch (err) {
+      showToast((err as Error).message || 'Failed to save A/B variants', 'error')
+    } finally {
+      setSavingAb(false)
     }
   }
 
@@ -659,6 +717,7 @@ export default function CampaignDetailPage() {
         {([
           { value: 'sequence', label: 'Sequence', icon: GitBranch },
           { value: 'audience', label: 'Audience', icon: Users },
+          { value: 'abtest', label: 'A/B Test', icon: FlaskConical },
           { value: 'settings', label: 'Settings', icon: Settings2 },
         ] as const).map(({ value, label, icon: Icon }) => (
           <button
@@ -840,6 +899,103 @@ export default function CampaignDetailPage() {
                   <p className="text-xl font-bold text-amber-700">{campaign.replies_total}</p>
                   <p className="text-xs text-amber-600">Replied</p>
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── A/B Test tab ─────────────────────────────────────────── */}
+      {activeTab === 'abtest' && (
+        <div className="space-y-4">
+          {/* Winner banner — shown once the daily cron resolves the test (item 97) */}
+          {abResolved && abWinner && (
+            <div className="flex items-start gap-3 px-5 py-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+              <Trophy className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-emerald-800">
+                  Winner: Variant {abWinner.toUpperCase()}
+                </p>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  {(() => {
+                    const subj = abWinner === 'a' ? variantA : abVariants[abWinner as 'b' | 'c' | 'd' | 'e']
+                    return subj ? `"${subj}" had the best open rate and is now the primary subject line.` : 'This variant had the best open rate.'
+                  })()}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-5">
+            <div className="flex items-center gap-2 mb-1">
+              <FlaskConical className="w-4 h-4 text-[#7C3AED]" />
+              <h2 className="text-sm font-bold text-gray-900">Subject-line A/B testing</h2>
+            </div>
+            <p className="text-xs text-[#9B8EC4] mb-4">
+              Add up to four alternative subject lines. FIGSY splits step-1 sends evenly across all variants, then
+              the daily winner check picks the best open rate after 48h and ≥5 sends per variant.
+            </p>
+
+            <div className="space-y-3">
+              {/* Variant A — the AI-written subject, read-only */}
+              <div>
+                <label className="flex items-center gap-2 text-xs font-semibold text-[#7B6FA0] mb-1.5">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[#7C3AED] text-white text-[10px] font-bold">A</span>
+                  Variant A · written by FIGSY
+                  {abResolved && abWinner === 'a' && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                      <Trophy className="w-3 h-3" /> Winner
+                    </span>
+                  )}
+                </label>
+                <input
+                  value={variantA}
+                  readOnly
+                  placeholder="Generated per lead at send time"
+                  className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+
+              {/* Variants B–E — operator overrides */}
+              {(['b', 'c', 'd', 'e'] as const).map(key => (
+                <div key={key}>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-[#7B6FA0] mb-1.5">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-bold">{key.toUpperCase()}</span>
+                    Variant {key.toUpperCase()} <span className="font-normal text-[#9B8EC4]">(optional)</span>
+                    {abResolved && abWinner === key && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        <Trophy className="w-3 h-3" /> Winner
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    value={abVariants[key]}
+                    onChange={e => setAbVariants(v => ({ ...v, [key]: e.target.value }))}
+                    maxLength={200}
+                    disabled={abResolved}
+                    placeholder={`Alternative subject line ${key.toUpperCase()}`}
+                    className="w-full text-sm border border-purple-100/80 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 disabled:bg-gray-50 disabled:text-gray-400"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {abResolved ? (
+              <p className="text-xs text-[#9B8EC4] mt-4">
+                This test is resolved — variants are locked. Variant {abWinner?.toUpperCase()} is now used for new sends.
+              </p>
+            ) : (
+              <div className="mt-5 pt-4 border-t border-gray-50">
+                <button
+                  onClick={saveAbVariants}
+                  disabled={savingAb}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#7C3AED] hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+                >
+                  {savingAb ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : 'Save A/B variants'}
+                </button>
+                <p className="text-xs text-[#9B8EC4] mt-2 text-center">
+                  Add at least one variant (B–E) to start the test on the next send.
+                </p>
               </div>
             )}
           </div>

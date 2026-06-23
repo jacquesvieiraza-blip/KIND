@@ -5,7 +5,7 @@
 
 | 🟢 Live + verified | 🩷 Live, not yet walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built (the roadmap) | ⏸ Blocked |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| **56** | **64** | **6** | **12** | **81** | **7** |
+| **57** | **66** | **6** | **10** | **80** | **7** |
 
 **How to read it:** the **56 🟢** are the proven core, live + verified. The **59 🩷** are shipped but *not yet walked* (incl. 194 — cold content hardened, pending a live re-test; + 182/185/190 deployed 22 Jun) — the **verification walk (Blocks 2/3)** converts most → 🟢. The **81 🔴** are the **forward roadmap** (incl. the 6 steal-sourced items 205–210), gated by client-count milestones. *(22 Jun late: 5 builds MERGED → 🩷 live (pending walk) — 112/113/114/136a/178; the 140 waterfall part also merged #681.)* The ladder is **🔴 → 🟡 → 🟣 → 🩷 → 🟢**. *(Counts live only in the table above — this line describes, it does not re-tally.)*
 
@@ -257,8 +257,8 @@
 ## 3C — Wired but dormant (need a key / approval to switch on)
 | # | 🟡 | Item | Where it waits | Owner |
 |---|----|------|----------------|-------|
-| 94 | 🟡 | PDL 2nd lead-discovery source (code wired, dormant) | needs `PDL_API_KEY` | 🧍 |
-| 95 | 🟡 | Hunter waterfall enrichment (code wired, dormant) | needs `HUNTER_API_KEY` | 🧍 |
+| 94 | 🩷 | PDL 2nd lead-discovery source — **🩷 LIVE 22 Jun (key confirmed + #681 parallel-waterfall merged)**; 🧍 verify on an ICP run → 🟢 | 🧍 |
+| 95 | 🩷 | Hunter waterfall enrichment — **🩷 LIVE 22 Jun (key confirmed + #681 auto-enrich merged)**; 🧍 verify (a no-email lead gets one) → 🟢 | 🧍 |
 | 96 | 🟡 | Voice (Vapi) + WhatsApp (code wired) | keys + Meta approval | 🧍 |
 | 97 | 🟡 | A/B subject-testing backend #43 (winner-check cron + variants — UI = 🔴 §4) | works, invisible until UI | 🤖 |
 
@@ -273,7 +273,7 @@
 | 101 | 🔴 | **D9 deliverability 10/10** (mail-tester) — ⚠️ **active placement regression, see 194** (cold mail → Newsletter). | 🧍 |
 | 102 | 🔴 | Legal pack #10–14 — **#10 ICO ✅ · #14 LinkedIn ✅**; **#11 SR01 · #12 registered office · #13 WHOIS → MOVED TO POST-DELIVERY** (post-launch, founder call 16 Jun) — **no longer a pre-19 gate** | 🧍 |
 | 103 | ⏸ | Email `partners@apollo.io` — API reseller agreement — sent 14 Jun · **Apollo replied 15 Jun (overlap review) · founder responded 16 Jun → ⏸ awaiting Apollo's decision** *(was a stray ✅; ⏸ = blocked on external party)* | 🧍 |
-| 104 | 🔴 | Hunter.io signup → key · PDL free signup → key | 🧍 |
+| 104 | 🟢 | Hunter.io + PDL keys — **✅ CONFIRMED SET IN RAILWAY 22 Jun** (founder). Activates 94/95/140. | 🧍 |
 | 105 | 🔴 | Go/No-Go gate Thu 18 → **🚀 LAUNCH Africa-only Fri 19 (#18)** | 🤝 |
 
 ## 4B — Company Engine completion (post-19 unless the demo needs it)
@@ -404,7 +404,7 @@
 | # | 🔴 | Item | Owner |
 |---|----|------|-------|
 | 139 | 🔴 | Intent signals #37 · A/B→contextual bandit #38 · morning-brief #39 · ICP auto-refinement L2 #40 · conditional branching #41 | 🤖 |
-| 140 | 🔴 | **Waterfall enrichment live #42 — 🟡 BUILT 22 Jun (PR #681, pending review): PDL now a parallel+deduped source (not Apollo-only-fallback) + auto-Hunter enrichment for missing emails; 🧍 confirm `PDL_API_KEY`/`HUNTER_API_KEY` in Railway to activate.** Rest of the cluster still 🔴 (Month-2): adaptive send volume #45 · Milla CRM pull #47 · inbox rotation/multi-domain #53 (needs warmed domains). | 🤝 |
+| 140 | 🔴 | **Waterfall enrichment #42 — 🩷 LIVE + ACTIVE 22 Jun (#681 merged + keys CONFIRMED in Railway): PDL now a parallel+deduped source (not Apollo-only-fallback) + auto-Hunter enrichment for missing emails. 🧍 verify on an ICP run → then this part is 🟢.** Rest of the cluster still 🔴 (Month-2): adaptive send volume #45 · Milla CRM pull #47 · inbox rotation/multi-domain #53 (needs warmed domains). | 🤝 |
 | 141 | 🔴 | **Context-backed MCP server #59** (client-context-backed, not thin wrappers) | 🤖 |
 | 142 | 🔴 | Product Hunt #49 · G2 listing #50 | 🧍 |
 | 143 | 🔴 | **The Learning Engine** (build order: ①Train-FIGSY RAG → ③evals → ②outcome feedback loop → bandit → ④recall/memory → ⑤model routing → fine-tuning LAST) — full blueprint in `V2-TRACKER.md` | 🤖 |

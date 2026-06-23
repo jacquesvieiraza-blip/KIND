@@ -5,7 +5,7 @@
 >
 > **🧭 Four-doc contract (canonical):** LAUNCH-PAD = today · PRODUCT-INVENTORY = status · KIND-MASTER = strategy/why · V2-TRACKER = future. No fifth core doc. **The status board is script-generated** — `scripts/count-inventory.sh` (RULEBOOK §4.7). **THE ENGINE** (deliverability/sending engine, item 211) is named in RULEBOOK §12.
 >
-> **🗄️ PR-2 archive queue (marked here 23 Jun, MOVED in PR 2 — not yet):** `DEPLOY-CHECKLIST.md` · `COMPANY-ENGINE-TEST.md` · `ADMIN-BOOKKEEPER-AUDIT.md` + root `BUILD_STATUS.md` · `CHANGELOG.md` · `MASTER.md`. **Fold-then-archive:** root `AUDIT.md` + `FULL_CHECK.md` (methodology → into RULEBOOK first). **Keep (evergreen):** root `AGENT_AVATARS.md`.
+> **🗄️ PR 2 DONE (23 Jun) — 19 dead docs MOVED to `docs/archive/`:** `DEPLOY-CHECKLIST` · `COMPANY-ENGINE-TEST` · `ADMIN-BOOKKEEPER-AUDIT` · `SMOKE-BILLING-166-173` · `STAGING-REVIEW` · `BOOKMARK-week-plan` · `EVERYTHING` · `MASTER_TODO` · `GETTING_STARTED` · `MORNING-FIXLOG` · `SESSION-HANDOFF-7JUN` · `SESSION-SUMMARY-13JUN` · `LAUNCH-AUDIT-12JUN` · `KIND-MASTER-ARCHIVE` + root `BUILD_STATUS` · `CHANGELOG` · `MASTER`. **`AUDIT.md` + `FULL_CHECK.md`** → methodology folded into **RULEBOOK §13**, originals archived. **Kept at root (evergreen):** `AGENT_AVATARS.md` · `CLAUDE.md` · `README.md`. *(PR 3 = the 3→6-step domain fixes.)*
 
 ---
 
@@ -61,14 +61,11 @@
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
 | `TECH-STACK.md` | the tools/vendors register + email architecture (**cold `gettingkind.com` = Resend send + Resend inbound, NO mailbox · human `get-kind.com` = Zoho** · Smartlead/Instantly = THE ENGINE) | ✅ | a tool is added/changed |
-| `DEPLOY-CHECKLIST.md` | migration order · DELETE `NEXT_PUBLIC_ADMIN_KEY` · rollback | ✅ | deploy process change |
-| `DEPLOYMENT_GUIDE.md` | full env-var-per-service · Railway crons · DNS values | ✅ | env/cron/deploy change (22-Jun corrections banner) |
+| `DEPLOYMENT_GUIDE.md` | full env-var-per-service · Railway crons · DNS values *(the live deploy reference — replaces the archived `DEPLOY-CHECKLIST`)* | ✅ | env/cron/deploy change (22-Jun corrections banner) |
 | `SMOKE_TEST.md` | step-level T1–T10 | ✅ | test flow change |
-| `LIVE-FEATURE-WALK.md` | **the verification checklist — every live feature/element to walk 🩷→🟢** (the 6-day walk to Mon 29) | ✅ | as items are walked / new features ship |
+| `LIVE-FEATURE-WALK.md` | **the verification checklist — every live feature/element to walk 🩷→🟢** *(also covers the company-engine walk — replaces the archived `COMPANY-ENGINE-TEST`)* | ✅ | as items are walked / new features ship |
 | `render-cloudflare-failover.md` · `portal-admin-failover.md` | failover setup (Render standby + Cloudflare LB) | ✅ | failover infra change |
-| `COMPANY-ENGINE-TEST.md` | #88 staging test steps | ✅ | company-engine change |
 | `DELIVERABILITY-D9-CHECKLIST.md` | D9 mail-tester readiness (FIGSY_COLD_FROM, DKIM) | ✅ | deliverability change |
-| `ADMIN-BOOKKEEPER-AUDIT.md` | admin billing-visibility gaps | ✅ | admin billing change |
 
 ### ⚖️ Legal · compliance · hiring
 | Doc | Unique content | Status | Update when |
@@ -86,18 +83,17 @@
 | `README.md` (root) | repo front door → pointer to the 4 core + DOC-MAP | ✅ | keep (PR 1 made it a pointer) |
 | `CLAUDE.md` | agent operating config (four-doc contract, rules) | ✅ | keep — always-loaded |
 | `AGENT_AVATARS.md` | avatar/art-direction generation prompts | ✅ ref | keep (evergreen) |
-| `AUDIT.md` | audit methodology/protocol | ⚠️ | PR 2: fold into RULEBOOK → archive |
-| `FULL_CHECK.md` | audit protocol | ⚠️ | PR 2: fold into RULEBOOK → archive |
-| `BUILD_STATUS.md` | 27-May sprint status (pre-launch) | 🗄️ | PR 2: archive |
-| `CHANGELOG.md` | 27-May change log (pre-launch) | 🗄️ | PR 2: archive |
-| `MASTER.md` (root) | old stale master (known-broken) | 🗄️ | PR 2: archive |
+| `AUDIT.md` | 27-May sprint snapshot | 🗄️ | ✅ archived → `docs/archive/` |
+| `FULL_CHECK.md` | audit protocol | 🗄️ | ✅ methodology folded into **RULEBOOK §13**; original archived |
+| `BUILD_STATUS.md` | 27-May sprint status (pre-launch) | 🗄️ | ✅ archived → `docs/archive/` |
+| `CHANGELOG.md` | 27-May change log (pre-launch) | 🗄️ | ✅ archived → `docs/archive/` |
+| `MASTER.md` (root) | old stale master (known-broken) | 🗄️ | ✅ archived → `docs/archive/` |
 
 ---
 
-## 🗄️ ARCHIVE — superseded, DO NOT USE (mined for unique bits, banner-marked)
-*Already banner-archived (confirmed 22 Jun):* `EVERYTHING.md` · `MASTER_TODO.md` · `GETTING_STARTED.md` · `MORNING-FIXLOG.md` · `SESSION-HANDOFF-7JUN.md` · `SESSION-SUMMARY-13JUN.md` · `LAUNCH-AUDIT-12JUN.md` · `KIND-MASTER-ARCHIVE.md` (explicit reference-only).
-*Archived this sweep:* `STAGING-REVIEW.md` (pre-launch review log) · `BOOKMARK-week-plan.md` (superseded 12 Jun) · `SMOKE-BILLING-166-173.md` (billing 166–171 now LIVE) · `updates-live/roadmap-audit-14-may-2026.md` (pre-launch).
-*Folder `docs/archive/`:* `KIND_Roadmap.md` · `KIND_SOP.md` (pre-pivot) — leave as-is.
+## 🗄️ ARCHIVE — superseded, DO NOT USE (all now physically in `docs/archive/`)
+**Moved to `docs/archive/` in PR 2 (23 Jun):** `EVERYTHING` · `MASTER_TODO` · `GETTING_STARTED` · `MORNING-FIXLOG` · `SESSION-HANDOFF-7JUN` · `SESSION-SUMMARY-13JUN` · `LAUNCH-AUDIT-12JUN` · `KIND-MASTER-ARCHIVE` · `STAGING-REVIEW` · `BOOKMARK-week-plan` · `SMOKE-BILLING-166-173` · `DEPLOY-CHECKLIST` · `COMPANY-ENGINE-TEST` · `ADMIN-BOOKKEEPER-AUDIT` · `AUDIT` · `FULL_CHECK` · `BUILD_STATUS` · `CHANGELOG` · `MASTER`.
+*Already in `docs/archive/`:* `KIND_Roadmap.md` · `KIND_SOP.md` (pre-pivot) · `updates-live/roadmap-audit-14-may-2026.md`.
 
 **Unique nuggets still only in archive (pointer, don't resurrect the doc):** Alta deep-audit numbers (the pitch-deck "6% reply/53% revival" = **Alta's**, not ours — honesty flag) → `EVERYTHING.md`/root `MASTER.md`; #60 outcome-pricing math (28% floor, $15/reply, $40/meeting) → `EVERYTHING.md`; F1–F5 funding table → `EVERYTHING.md`.
 
@@ -110,4 +106,4 @@
 4. ✅ ~~README empty~~ (now the doc signpost) · ✅ ~~NEXT_PUBLIC_ADMIN_KEY in failover doc~~ (verified — the doc warns *against* it).
 
 ---
-*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: **23 Jun 2026** — all 47 docs verified; four-doc contract installed across the 4 core; status board moved to `scripts/count-inventory.sh`; 136a corrected (was false-live); root files now indexed. PR 2 = move the archive queue; PR 3 = domain 3→6-step fixes.*
+*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: **23 Jun 2026**. PR 1 ✅ four-doc contract + script-counted board + 136a fix. PR 2 ✅ 19 dead docs filed to `docs/archive/`, FULL_CHECK protocol → RULEBOOK §13, archive README de-staled. **PR 3 (next) = domain 3→6-step fixes** (PARTNER-BRIEF · RECORDING-SHOOTING-SCRIPT · LIVE-FEATURE-WALK).*

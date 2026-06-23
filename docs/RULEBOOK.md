@@ -120,5 +120,16 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 12.3 **It is the #1 priority.** Nothing scales cold without it — get the ENGINE right *before* scaling anything else.
 12.4 **Build vs integrate** (founder decides): current lean = **integrate** a sending-platform API (**Smartlead** white-label for the product engine · **Instantly** for our own outreach now), put the AI + African data on top — don't rebuild the hardest wheel.
 
+## 13. 🔍 AUDIT PROTOCOL — what "a full audit" must cover (folded in from FULL_CHECK, 23 Jun)
+> When the founder asks for an "audit / teardown / full check / make sure we're done," work through **every** section below and report on each — including the ones that come back clean. *(Origin: a 2-Jun "full teardown" missed that all Railway services have no failover, because it was scoped to "what I built this session" not "the whole system." An audit covers the system, never one session's diff.)*
+13.1 **Single points of failure / redundancy** — what dies if Railway / Supabase / Resend / Anthropic is down? Any failover, status page, uptime monitor, tested DB restore?
+13.2 **Standing commitments not yet built** — reason over conversation + docs for things *discussed* but never built ("backup plan", "Phase 2", "later"). Grep can't find absence — you must.
+13.3 **Dead / duplicate / redundant code & config** — dead config, duplicate files, mounted-but-dead routes, orphan pages, env-var-crash-on-startup.
+13.4 **Stubs / TODOs / fake data** — inventory every `TODO/FIXME/STUB/mock/placeholder`; which are intentional vs accidental gaps?
+13.5 **Doc reconciliation** — does PRODUCT-INVENTORY reflect every real item (one dot, one owner)? Run `scripts/count-inventory.sh --check`. Anything built this session missing from the docs? Anything marked pending that's actually done?
+13.6 **Build health** — `tsc --noEmit` clean on portal/api/admin? Anything uncommitted or unpushed? Broken internal links / visible placeholders?
+13.7 **Brand / consistency locks** — purple `#7c3aed` only (zero stray blues)? Agent images Pixar-3D not photorealistic? Calendly consistent? No Vercel-as-current-fact?
+13.8 **Report format — every audit ends with three explicit lists:** ✅ LIVE & VERIFIED (checked on disk/main) · 🛑 STOPPED / NOT BUILT (with the reason) · ⏳ PENDING (split founder-action vs Claude-build-queue). Never present "what I built" as a complete audit.
+
 ---
 _If a rule here is wrong or missing, the founder says so and we edit this doc. This is the contract._

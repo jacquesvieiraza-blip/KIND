@@ -1,6 +1,8 @@
 # 📬 Deliverability — D9 "10/10 inbox" Readiness Checklist
 
-**Goal:** hit 10/10 on [mail-tester.com](https://www.mail-tester.com) before the 19th.
+_Last-checked: 24 Jun 2026 (post-launch — the pre-19 deadline below is historical; current deliverability status = items 101 · 194 · 198)._
+
+**Goal:** hit 10/10 on [mail-tester.com](https://www.mail-tester.com).
 **Finding (10 Jun audit):** the in-repo deliverability code is correct and complete.
 The remaining risk to a 10/10 score is **environment + DNS**, not code — those are the
 items you must verify.

@@ -3,6 +3,8 @@
 **Goal:** If Railway dies, the portal (`app.get-kind.com`) and admin (`admin.get-kind.com`)
 fail over to warm Render instances — the same pattern already used for the API.
 
+> ⚠️ **AUDIT 24 Jun — config contradiction (code-fix, deferred under freeze):** `render.yaml:169` declares `NEXT_PUBLIC_ADMIN_KEY` on the standby, but a `NEXT_PUBLIC_`-prefixed key is exposed to the browser — exactly what the 8-Jun security fix forbids. Resolve when the freeze lifts: standby admin auth should use the server-only `ADMIN_SECRET`, never `NEXT_PUBLIC_ADMIN_KEY`. _Last-checked: 24 Jun 2026._
+
 > **Is this worth it?** The **API is the critical shared dependency** — if it's down,
 > nothing works, which is why the API standby (see `render-cloudflare-failover.md`) is
 > the priority. Portal/admin standby is **optional belt-and-suspenders**. Note that

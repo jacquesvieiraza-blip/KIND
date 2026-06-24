@@ -13,6 +13,7 @@
 ---
 
 ## 1. 🔍 VERIFICATION — the #1 rule (this is where Claude keeps failing)
+1.0 **NEVER WORK OFF MEMORY — founder-LOCKED 24 Jun.** Memory is not a source. Every claim, status, number, file path, PR state, and "it's done" is proven against the actual files / git / GitHub / command output **before** it is said or written. This is the rule the founder holds Claude to above all others — the repeated drift and false-state came from working off memory.
 1.1 **Never report from memory or assumption.** Before stating anything as fact, check it against the actual files / git / GitHub. "I think", "should be", "from before" = not allowed as a basis for a claim.
 1.2 **Verify, double-check, triple-check before sending.** Run the check, then re-run it a different way. If the founder can catch it by looking, Claude should have caught it first.
 1.3 **Grep the whole repo, not one file.** A site-wide change is verified across *every* affected file (e.g. nav changes = all ~40 pages), never one sample.

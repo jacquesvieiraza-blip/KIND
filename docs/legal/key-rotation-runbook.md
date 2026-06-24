@@ -1,5 +1,7 @@
 # 🔐 Key-Rotation Runbook
 
+_Last-checked: 24 Jun 2026._
+
 **Why:** the 4-Jun credential-exposure incident (keys pasted into chat). This is the
 step-by-step to rotate the exposed secrets safely. Cross-ref: incident register in
 `docs/legal/it-security-pack.md`.

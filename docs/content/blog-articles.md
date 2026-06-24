@@ -156,7 +156,7 @@ This isn't a consolation prize for AI. Handling top-of-funnel at scale is genuin
 
 FIGSY, KIND's outbound agent, is built for the volume role. Email and LinkedIn prospecting, sequenced follow-ups, consistent execution across a large prospect list. FIGSY handles the work that would otherwise consume most of a human SDR's week — leaving your team to focus on the conversations that actually need them.
 
-Milla operates differently. For more complex lead generation — where the strategy matters as much as the execution, where segmentation and targeting require more thought — Milla is built for that layer. Less about sending at scale, more about finding the right accounts and building the right approach.
+Milla operates differently. She's the AI assistant — drafting, business Q&A, and your weekly brief — the layer that helps you think and act on what the numbers show. Less about sending at scale, more about turning your data and questions into clear next steps. *(Lead generation is the ICP Builder / FIGSY engine, not Milla.)*
 
 Vida handles the inbound side: a web chat agent that engages visitors on your site, qualifies them, and routes them appropriately. Same principle — AI handling the structured, high-volume work; humans stepping in when it counts.
 

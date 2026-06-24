@@ -54,7 +54,7 @@
 | `client-flow-sop.md` | 7 onboarding/billing paths | ✅ | onboarding flow change |
 | `drafts/ONBOARDING_V2.md` | 6-step flow + 3 lifecycle emails (Day 0/3/7) — item 30/174–176 | ✅ (draft) | when onboarding ships |
 | `demo-walkthrough-script.html` | verbatim 12-scene demo | ✅ | demo/positioning change |
-| `setup-dashboard-preview.html` · `portal-v2-*` · `CLIENT_FLOW*.html` · `previews/*` | UI mockups/specs (Casey design, inbox-v2, sequence-builder, etc.) | ✅ ref | design lock change |
+| `setup-dashboard-preview.html` · `portal-v2-*` · `CLIENT_FLOW*.html` · `previews/*` · `MCP-EXPLAINED.html` · `pwa-mockup.html` · `updates-live/client-journey-flowchart.html` | UI mockups/specs + reference HTML (Casey design, inbox-v2, sequence-builder, MCP explainer, PWA mockup, client-journey flowchart) — *3 added 24 Jun (were unindexed)* | ✅ ref | design lock change |
 | `content/blog-articles.md` · `content/youtube-plan.md` · `content/website-video-plan.md` | publish-ready posts + 10-video plan (faceless voice) + the website video plan | ✅ | content cadence |
 | `art-of-possible.md` | future-vision / inspiration log (product ideas, competitive reads — explicitly "nothing built unless marked") | ✅ ref | when an idea graduates to a 🔴 item |
 

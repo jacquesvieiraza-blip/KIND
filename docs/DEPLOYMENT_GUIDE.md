@@ -1,5 +1,5 @@
 # KIND AI Platform — Deployment Guide
-`Last-checked: 22 Jun 2026`
+`Last-checked: 24 Jun 2026`
 
 > 🟢 **22 JUN CORRECTIONS (current stack — `docs/TECH-STACK.md` is the source of truth):**
 > - **Email:** **Resend** sends (system + FIGSY cold, `RESEND_API_KEY` + `FIGSY_COLD_FROM`); **Zoho Mail** hosts the company mailboxes (replies/webmail). *(Not Google Workspace.)*

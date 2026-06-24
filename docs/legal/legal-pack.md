@@ -1,6 +1,6 @@
 # K.I.N.D Technologies Ltd — Legal Pack
 **Company:** K.I.N.D Technologies Ltd · Company No. 17260532 · Registered England & Wales
-**Version:** 1.0 · June 2026
+**Version:** 1.0 · June 2026 · **Last-checked:** 24 Jun 2026
 **Owner:** Founder / Director
 **Review cycle:** Every 6 months, or on any material regulatory change
 

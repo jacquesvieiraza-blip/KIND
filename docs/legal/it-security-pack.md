@@ -1,6 +1,6 @@
 # K.I.N.D Technologies Ltd — IT Security Pack
 **Company:** K.I.N.D Technologies Ltd · Company No. 17260532 · Registered England & Wales
-**Version:** 1.0 · June 2026
+**Version:** 1.0 · June 2026 · **Last-checked:** 24 Jun 2026
 **Owner:** Founder / Data Controller
 **Review cycle:** Every 6 months, or after any security incident
 
@@ -46,7 +46,7 @@ All data handled by K.I.N.D is classified into one of four tiers. Classification
 ### 3.2 Database — Supabase
 - **Provider:** Supabase (supabase.com)
 - **Region:** `af-south-1` (Cape Town, South Africa) — chosen for POPIA compliance (SA data residency)
-- **Plan:** Pro (daily automated backups, point-in-time recovery)
+- **Plan:** daily automated backups, 30-day retention; **no PITR yet** (PITR needs Supabase Pro/Team — upgrade decision post-launch; see `restore-runbook.md`). *(⚠️ reconciled 24 Jun — was wrongly "Pro + PITR".)*
 - **Access:**
   - Service role key: API only, never browser/frontend
   - Anon key: Portal/Admin only, always with Row Level Security (RLS) enforced
@@ -193,7 +193,7 @@ Any of the following constitute a reportable security incident:
 - **RPO (Recovery Point Objective):** 24 hours — maximum acceptable data loss (Supabase daily backups)
 
 ### 8.2 Backup Infrastructure
-- **Database:** Supabase Pro daily automated backups, 30-day retention. Point-in-time recovery available.
+- **Database:** Supabase daily automated backups, 30-day retention. **No PITR yet** (needs Pro/Team — post-launch decision; see `restore-runbook.md`).
 - **Code:** GitHub (private repo) with full commit history. Can redeploy from any commit.
 - **Configuration:** All Railway env vars documented in founder's password manager (not in code).
 

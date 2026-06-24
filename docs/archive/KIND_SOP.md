@@ -1,5 +1,7 @@
 # KIND AI Platform — Standard Operating Procedure
 
+> 🗄️ **ARCHIVED — superseded, DO NOT USE.** Pre-pivot (May 2026) SOP, kept for history only. Current ops/SOP truth → Notion (item 204) + the canonical four docs. *(Banner added 24 Jun 2026.)*
+
 **Version:** 1.1 · **Effective:** May 2026 · **Updated:** 18 May 2026 · **Owner:** Operations
 
 ---

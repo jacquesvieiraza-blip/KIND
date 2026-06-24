@@ -1,4 +1,7 @@
 # KIND AI Platform — Master Roadmap
+
+> 🗄️ **ARCHIVED — superseded, DO NOT USE.** Pre-pivot (May 2026) roadmap, kept for history only. Current truth lives in the canonical four: LAUNCH-PAD · PRODUCT-INVENTORY · KIND-MASTER · V2-TRACKER. *(Banner added 24 Jun 2026.)*
+
 **Launch date: 31 May 2026 · Last updated: 18 May 2026 · Days remaining: 13**
 
 > Single source of truth for everything — what's built, what's not, who builds what, targets, KPIs, and vision.

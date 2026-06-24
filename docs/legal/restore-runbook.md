@@ -1,5 +1,7 @@
 # 🛟 Restore & Failover Runbook (1-page)
 
+_Last-checked: 24 Jun 2026._
+
 **Scope:** what to do if the database is lost/corrupted, or a service goes down.
 **Posture (decided 4 Jun):** single-region Supabase project `kind` (af-south-1, Cape
 Town). **Daily backups, 30-day retention. RTO 4h / RPO 24h.** No PITR (that needs the

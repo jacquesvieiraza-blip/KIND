@@ -1,6 +1,8 @@
 # SEIS Advance Assurance — Draft Application
 ## K.I.N.D Technologies Ltd
 
+_Last-checked: 24 Jun 2026 — draft; ~18 [INSERT]/[LEGAL REVIEW] gaps remain (tracked as item 234)._
+
 > **IMPORTANT LEGAL NOTICE:** This is a working draft for founder review only. Must be reviewed by a UK-qualified accountant experienced with EIS/SEIS filings and/or a solicitor before submission to HMRC. Sections marked **[LEGAL REVIEW REQUIRED]** contain content where professional input is essential. Do not file this draft as-is.
 
 ---

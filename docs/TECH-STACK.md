@@ -12,7 +12,7 @@ Two **separate** systems, do not conflate:
 ## 🧱 PRODUCT STACK (the live app)
 | Tool | Role |
 |------|------|
-| **Railway** | hosts the 3 app services: `@kind/api` (Express/TS) · `@kind/portal` (Next.js) · `@kind/admin` (Next.js) |
+| **Railway** | hosts the 4 app services: `@kind/api` (Express/TS) · `@kind/portal` (Next.js) · `@kind/admin` (Next.js) · `@kind/website` (static/Express) |
 | **Render** | warm standby / failover for the app (item 51) |
 | **Cloudflare** | marketing website hosting + load-balancer/failover · DNS |
 | **Supabase** | Postgres database + auth (prod) + a sealed `kind-staging` project |

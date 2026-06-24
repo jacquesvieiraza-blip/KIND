@@ -1,8 +1,11 @@
 # K.I.N.D Agent Avatar Generation Prompts
 
+_Last-checked: 24 Jun 2026._
+
 Use these prompts in **Midjourney** (v6) or **DALL-E 3** to generate the 3D avatars.
-Save outputs as PNG, ideally 512×512 or 1024×1024.
-Place in: `apps/portal/public/agents/figsy.png`, `milla.png`, `vida.png`
+Save outputs as PNG, ideally 512×512 or 1024×1024. Place in `apps/portal/public/agents/`.
+
+> **⚠️ AUDIT 24 Jun — roster behind reality.** This doc has prompts for only 3 agents, but `apps/portal/public/agents/` now holds **8 avatars**: `figsy` · `milla` · `vida` · `denise` · `casey` · `Alex` · `lena` · `tony`. Prompts for Denise/Casey/Alex/Lena/Tony are **TBD**. *(AI family = FIGSY·Milla·Vida·Denise·Casey; Alex = non-family partner-channel agent (216); Lena/Tony = roadmap (145).)*
 
 ---
 

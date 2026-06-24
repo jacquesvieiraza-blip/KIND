@@ -13,7 +13,7 @@ Read this file first. It is the authoritative spec for turning the attached desi
 - Build in the phases in §6. **Confirm the plan with the founder before writing code.**
 
 ## 1. What KIND is
-Pre-launch AI-SDR SaaS for African SMBs (launch order: South Africa → Nigeria → Kenya → Ghana). Solo, stealth, faceless brand. UK-registered limited company. **All money in £ (GBP).** ~93% gross margin. Payments on Stripe. The artifacts model sales compensation + company P&L; the job is to make them **live**.
+Pre-launch AI-SDR SaaS for African SMBs (launch order: South Africa → Nigeria → Kenya → Ghana). Solo, stealth, faceless brand. UK-registered limited company. **All money in USD** (the original brief said £/GBP — superseded by the 22-Jun USD lock; see the §3 footer). ~93% gross margin. Payments on Stripe. The artifacts model sales compensation + company P&L; the job is to make them **live**.
 
 ## 2. The system (one paragraph)
 Stripe webhooks in → **attribute** each customer (partner code / AE tag / no code → agent) → **one commission engine** applies the comp rules → write to **one database** → **three read-only-ish portals** (AE, partner, admin) → owner approves payouts → Stripe/payroll pays out. (See `KIND-Live-System-Blueprint.html`.)
@@ -35,7 +35,7 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 - Monthly pay = monthly base + MAX(earned commission, guarantee-that-month). Months 5+: monthly base + earned commission (guarantee 0).
 
 **AE tiers (pay mix 60/40 all):**
-| Tier | Base £/yr | Variable £/yr | OTE £/yr | Avg deal £ MRR | Churn %/mo |
+| Tier | Base $/yr | Variable $/yr | OTE $/yr | Avg deal £ MRR | Churn %/mo |
 |---|---|---|---|---|---|
 | Enterprise | 67,500 | 45,000 | 112,500 | 1,500 | 3% |
 | Mid-Market | 45,000 | 30,000 | 75,000 | 700 | 4% |

@@ -1,5 +1,5 @@
 # K.I.N.D — Legal
-*Last updated: 25 May 2026*
+*Last-checked: 23 Jun 2026 (content current; Apollo reseller reply still pending)*
 
 ---
 
@@ -365,4 +365,4 @@ K.I.N.D is not doing anything that its well-funded competitors haven't done. The
 
 *This document is a briefing for legal counsel. It does not constitute legal advice. All ToS references must be verified against current provider terms before any legal opinion is formed.*
 
-*Last updated: 25 May 2026*
+*Last-checked: 23 Jun 2026 (content current; Apollo reseller reply still pending)*
